@@ -123,8 +123,8 @@ ipr_db_queue class.
         self->opt_max_messages     = ipr_config_attrn (config, "max-messages");
         self->opt_max_message_size = ipr_config_attrn (config, "max-message-size");
         self->opt_priority_levels  = ipr_config_attrn (config, "priority-levels");
-        self->opt_browsable        = ipr_config_attrn (config, "browsable");
-        self->opt_persistent       = ipr_config_attrn (config, "persistent");
+        self->opt_browsable        = (Bool) ipr_config_attrn (config, "browsable");
+        self->opt_persistent       = (Bool) ipr_config_attrn (config, "persistent");
 
         /*  auto-purge option means delete all queue messages at restart     */
         if (ipr_config_attrn (config, "auto-purge"))
@@ -133,7 +133,7 @@ ipr_db_queue class.
             self->disk_queue_size = self_count (self);
     }
     else {
-        /*  Defaults                                                         */
+        /*  Non-zero defaults                                                 */
         self->opt_browsable = 1;
     }
     s_create_priority_lists (self);
@@ -220,7 +220,7 @@ ipr_db_queue class.
     <argument name = "channel" type = "amq_channel_t *" >Current channel</argument>
     <argument name = "message" type = "amq_smessage_t *">Message, if any</argument>
     <local>
-    int
+    uint
         level;                          /*  Priority level                   */
     </local>
 
@@ -311,7 +311,7 @@ ipr_db_queue class.
         *browser_ref;
     int
         finished;
-    int
+    uint
         level;                          /*  Priority level                   */
     </local>
 
@@ -410,7 +410,7 @@ ipr_db_queue class.
         set_index = 0;                  /*  Index into query set             */
     int
         finished;
-    int
+    uint
         level;                          /*  Priority level                   */
     </local>
 
@@ -511,7 +511,7 @@ static void
 static void
 s_create_priority_lists ($(selftype) *self)
 {
-    int
+    uint
         level;
 
     /*  Create one to 10 priority queues                                     */
@@ -533,7 +533,7 @@ s_create_priority_lists ($(selftype) *self)
 static void
 s_destroy_priority_lists ($(selftype) *self)
 {
-    int
+    uint
         level;
 
     for (level = 0; level < self->opt_priority_levels; level++)
@@ -547,7 +547,7 @@ s_destroy_priority_lists ($(selftype) *self)
 static int
 s_priority_level ($(selftype) *self, amq_smessage_t *message)
 {
-    int
+    uint
         level;
 
     level = message->priority / (AMQP_MAX_PRIORITIES / self->opt_priority_levels);

@@ -283,7 +283,8 @@ data type.  This class provides functions at a per-field level.
         coprintf (" - %s - integer, value=%d", self->name, (int) self->integer);
     else
     if (self->type == AMQ_FIELD_TYPE_DECIMAL)
-        coprintf (" - %s - decimal, value=%f", self->name, (double) self->integer / exp10 (self->decimals));
+        coprintf (" - %s - decimal, value=%f", self->name,
+            (double) self->integer / exp (self->decimals * log (10.0)));
     else
     if (self->type == AMQ_FIELD_TYPE_TIME) {
         struct tm

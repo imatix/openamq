@@ -3,6 +3,7 @@
     - added 'get content' method to amq_message class
     - added Java client and chat program
     - added chat programs to stdc clients (these work with the Java chat)
+    - fixed some portability issues for Win32
 
 0.7d0 - 9 March 2005
     - added queue 'priority-levels' option
