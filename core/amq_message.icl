@@ -208,13 +208,15 @@
         if (!partial) {
             fclose (self->spool_fh);
             self->spool_fh = NULL;
-            /*  Check size & log error if any                                */
-            if (self->processed != self->body_size)
-                coprintf ("$(selfname) E: message size not valid: %ld should be %ld",
-                           self->processed, self->body_size);
         }
         amq_bucket_destroy (&fragment);
     }
+    if (!partial) {
+        /*  Check size & log error if any                                */
+        if (self->processed != self->body_size)
+            coprintf ("$(selfname) E: message size not valid: %ld should be %ld",
+                        self->processed, self->body_size);
+    }                
 </method>
 
 <!-- In the base class this uses a .spool directory in the main directory -->
