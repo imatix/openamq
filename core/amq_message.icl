@@ -9,8 +9,8 @@
 
 <inherit class = "icl_alloc_cache" />
 
-<import class = "amq_bucket"  />
-<import class = "ipr_classes" />
+<import class = "ipr"        />
+<import class = "amq_bucket" />
 
 <public name = "header">
 #include "amq_core.h"

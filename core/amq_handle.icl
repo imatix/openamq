@@ -9,8 +9,7 @@
 
 <inherit class = "ipr_hash_int"  />
 
-<import class = "ipr_classes" />
-<import class = "amq_global"  />
+<import class = "amq_global" />
 
 <public name = "header">
 #include "amq_core.h"

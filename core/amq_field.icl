@@ -12,7 +12,7 @@ data type.  This class provides functions at a per-field level.
 
 <inherit class = "ipr_list_item" />
 
-<import class = "ipr_classes" />
+<import class = "ipr" />
 
 <public>
 #define AMQ_FIELD_TYPE_STRING       'S'

@@ -9,7 +9,7 @@
 
 <inherit class = "icl_alloc_cache" />
 
-<import class = "ipr_classes" />
+<import class = "ipr"         />
 <import class = "smt_thread"  />
 <import class = "amq_message" />
 

@@ -159,7 +159,7 @@ endfunction
 
 #include "amq_core.h"
 #include "amq_bucket.h"
-#include "ipr_classes.h"
+#include "ipr.h"
 
 #define AMQP_COMMAND_END    0xCE        /*  End of frame marker              */
 

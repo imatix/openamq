@@ -9,6 +9,7 @@
 
 <inherit class = "icl_base" />
 
+<import class = "ipr" />
 <import class = "amq_classes" />
 
 <public>

@@ -12,8 +12,7 @@
 
 <inherit class = "ipr_hash_table" />
 
-<import class = "ipr_classes" />
-<import class = "amq_global"  />
+<import class = "amq_global" />
 <option name = "childname" value = "amq_vhost" />
 <option name = "childtype" value = "amq_vhost_t" />
 <option name = "bigtable"  value = "0" />

@@ -14,8 +14,7 @@
 
 <inherit class = "ipr_array_item" />
 
-<import class = "ipr_classes" />
-<import class = "amq_global"  />
+<import class = "amq_global" />
 
 <public name = "header">
 #include "amq_core.h"

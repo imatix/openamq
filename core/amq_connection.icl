@@ -10,8 +10,7 @@
 <inherit class = "icl_alloc_cache" />
 
 <import class = "smt_thread_handle" />
-<import class = "ipr_classes" />
-<import class = "amq_global"  />
+<import class = "amq_global" />
 
 <public name = "header">
 #include "amq_core.h"

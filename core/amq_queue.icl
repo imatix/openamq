@@ -32,9 +32,8 @@ ipr_db_queue class.
     <field name = "store size"  type = "longint" >Stored file size, or 0</field>
 </data>
 
-<import class = "ipr_classes" />
-<import class = "amq_global"  />
-<import class = "amq_db"      />
+<import class = "amq_global" />
+<import class = "amq_db"     />
 
 <public name = "header">
 #include "amq_core.h"
