@@ -1,6 +1,6 @@
 0.7c1 -
     - server name & banner changed to "openamqd"
-    - 
+    - fixed various minor issues in the server
 
 0.7c0 - 17 February 2005
     - added server support for HANDLE QUERY, HANDLE BROWSE commands
