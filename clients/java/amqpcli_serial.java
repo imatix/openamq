@@ -28,15 +28,19 @@ AMQConnection.Open
 AMQConnection.Close
     client_close;                       /* Default close parameters         */
 String
-    opt_server = "localhost";           /* Remote server                    */
+    opt_server = "localhost",           /* Remote server                    */
+    client_name = "java test client",   /* Client name                      */
+    version = "OpenAMQ/0.7c3";          /* AMQ version                      */
 short
     protocol_port = 7654,               /* Server port                      */
     protocol_id = 128,                  /* Protocol id                      */
-    protocol_ver = 1,                   /* Protocol port                    */
-    batch_size = 1000,                  /* Messages prefetched before ACK   */
-    client_nbr = 0;                      /* Added to the name prefix         */
+    protocol_ver = 1,                   /* Protocol version                 */
+// Some test defaults for this client
+    batch_size = 100;                   /* Messages prefetched before ACK   */
 int
-    socket_timeout = 0;                 /* Socket timeout im ms             */
+    socket_timeout = 0,                 /* Socket timeout im ms             */
+    message_size = 1024,                /* Message size                     */
+    messages = 1000;                    /* Messages to send                 */
 
 
 //////////////////////////////   G L O B A L S   //////////////////////////////
@@ -82,8 +86,28 @@ public int amqpcli_serial_execute (String args[])
     int
         feedback;                       /* Console return int               */
     
-    if (args.length > 0)
-        client_nbr = Short.parseShort(args[0]);       
+    if (args.length > 0) {
+        if (args[0].equals("-h")) {
+            System.out.println("Java serial test client - " + version);
+            System.out.println("");
+            System.out.println("Copyright (c) 2004-2005 JPMorgan");
+            System.out.println("This is free software; see the source for copying conditions.  There is NO");
+            System.out.println("warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.");
+            System.out.println("");
+            System.out.println("Provisional syntax: java amqpcli_serial [server] [client name] [messages] [batch] [message size]");
+            System.exit(0);
+        } else {
+            opt_server = args[0];       
+        }
+    }    
+    if (args.length > 1)
+        client_name = args[1];       
+    if (args.length > 2)
+        messages = Integer.parseInt(args[2]);       
+    if (args.length > 3)
+        batch_size = Short.parseShort(args[3]);       
+    if (args.length > 4)
+        message_size = Integer.parseInt(args[4]);       
 
     feedback = execute ();
 
@@ -117,16 +141,18 @@ public void setup ()
             amqp = null;                /* Network socket                   */
 
         // Network setup
+        System.out.println("Connecting to " + opt_server + "...");
         amqp = new Socket(opt_server, protocol_port);
         if (socket_timeout > 0)
             amqp.setSoTimeout(socket_timeout);
         amqp_in = amqp.getInputStream();
         amqp_out = amqp.getOutputStream();
         amq_framing = new AMQFramingFactory(amqp);
+        System.out.println("I: connected to AMQP server on " + opt_server + ":" + protocol_port);
 
         // Client tune capabilities
         client_tune = (AMQConnection.Tune)amq_framing.createFrame(AMQConnection.TUNE);
-        client_tune.frameMax = 2000;
+        client_tune.frameMax = 16000;
         client_tune.channelMax = 128;
         client_tune.handleMax = 128;
         client_tune.heartbeat = 40;
@@ -136,7 +162,7 @@ public void setup ()
         client_open = (AMQConnection.Open)amq_framing.createFrame(AMQConnection.OPEN);
         client_open.confirmTag = 0;
         client_open.virtualPath = null;
-        client_open.clientName = "java/amqpcli_serial (test)" + (client_nbr > 0 ? String.valueOf(client_nbr) : "");
+        client_open.clientName = client_name;
         client_open.options = null;
 
         // Connection close defaults
@@ -328,19 +354,15 @@ public void do_tests ()
         message_head.encoding = "";
         message_head.identifier = "";
         message_head.headers = null;
-        System.out.println("Sending " + (client_tune.frameMax << 1) + " fragmented messages of increasing size to server...");
+        System.out.println("Sending " + messages + " messages to server...");
         int i = 1;
-        for (; true; i++) {
+        for (; i < messages; i++) {
             // Create the message body
-            message_head.bodySize = i;
-            message_body = new byte[i];
+            message_head.bodySize = message_size;
+            message_body = new byte[message_head.bodySize];
             body_fill(message_body, i);
             // Set the fragment size
-            handle_send.fragmentSize = (byte)(Math.random() * Math.min(i, 64)); // Data chunk to send along the header
-            handle_send.partial = handle_send.fragmentSize < message_head.bodySize; // Will there be more to send?
-            handle_send.fragmentSize += message_head.encode(); // Complete the fragment size
-            if (message_head.bodySize > (client_tune.frameMax << 1))
-                break;
+            handle_send.fragmentSize = message_head.encode() + message_body.length;
             // Send message
             amq_framing.produceFrame(handle_send);
             amq_framing.produceMessageHead(message_head);
@@ -372,24 +394,24 @@ public void do_tests ()
         // Request consume messages
         amq_framing.produceFrame(handle_consume);
         System.out.println("Reading messages back from the server...");
-        int j = 1;
-        for (i--; i > 0; i--, j++) {
+        for (i = 1; i < messages; i++) {
             byte[] bytes;
             // Get handle notify
             handle_notify = (AMQHandle.Notify)amq_framing.consumeFrame();
             message_head = amq_framing.consumeMessageHead();
             bytes = amq_framing.consumeInBandMessageBody(handle_notify, message_head);
-            if (bytes.length != j) {
-                System.err.println("amqpcli_serial: body_check: returning message size mismatch (is " + bytes.length + " should be " + j + ").");
+            if (bytes.length != message_size) {
+                System.err.println("amqpcli_serial: body_check: returning message size mismatch (is " 
+                    + bytes.length + " should be " + message_size + ").");
                 System.exit(1);
             }
-            body_check(bytes, j);
+            body_check(bytes, i);
             // Acknowledge & commit from time to time
-            if (j % batch_size == 0) {
+            if (i % batch_size == 0) {
                 channel_ack.messageNbr = handle_notify.messageNbr;
                 amq_framing.produceFrame(channel_ack);
                 amq_framing.produceFrame(channel_commit);
-                System.out.println("Acknowledge batch " + (j / batch_size) + "...");
+                System.out.println("Acknowledge batch " + (i / batch_size) + "...");
             }
         }
         // Acknowledge & commit leftovers
@@ -437,7 +459,7 @@ public void face_connection_challenge ()
         AMQConnection.Response          /* our response                     */
             response = (AMQConnection.Response)amq_framing.createFrame(AMQConnection.RESPONSE);
         // Send the response
-        response.mechanism = "plain";
+        response.mechanism = "none";
         response.responses = null;
         amq_framing.produceFrame(response);
     }
@@ -465,10 +487,15 @@ public void face_connection_challenge ()
 
 public void negotiate_connection_tune ()
 {
+    AMQFrame
+        frame = null;               /* Raw frame                        */
+    AMQConnection.Tune              /* Tune parameters from server      */
+        tune_server = (AMQConnection.Tune)frame;
+        
     try
     {
-        AMQConnection.Tune              /* Tune parameters from server      */
-            tune_server = (AMQConnection.Tune)amq_framing.consumeFrame();
+        frame = amq_framing.consumeFrame();
+        tune_server = (AMQConnection.Tune)frame;
 
         // Send the reply
         client_tune.frameMax = (short)Math.min(client_tune.frameMax, tune_server.frameMax);
@@ -478,7 +505,8 @@ public void negotiate_connection_tune ()
         amq_framing.produceFrame(client_tune);
     }
     catch (ClassCastException e)
-    {
+    {   
+        frame.dump();
         raise_exception(exception_event, e, "amqpci_java", "negotiate_connection_tune", "unexpected frame from server");
     }
     catch (SocketTimeoutException e) {
