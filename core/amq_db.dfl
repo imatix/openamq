@@ -24,44 +24,6 @@
         </index>
     </table>
 
-    <table name = "dest" description = "Destination">
-    Defines a temporary or long-lived destination.
-        <field name = "id"          domain = "recordid" >Record id</field>
-        <field name = "type"        domain = "shortint" >1=Queue, 2=Topic</field>
-        <field name = "temporary"   domain = "boolean"  >Temporary destination?</field>
-        <field name = "subscribe"   domain = "boolean"  >Subscriber queue?</field>
-        <field name = "name"        domain = "shortstr" >Destination name</field>
-        <field name = "client id"   domain = "id"       >Owned by this client</field>
-        <index name = "byname" unique = "1">
-            <field name = "type" />
-            <field name = "name" />
-        </index>
-    </table>
-
-    <!--
-    <table name = "mesg" description = "Message">
-    Holds one message saved to persistent storage.
-        <field name = "id"          domain = "recordid" >Record id</field>
-        <field name = "dest id"     domain = "id"       >Parent destination</field>
-        <field name = "sender id"   domain = "id"       >Original sender</field>
-        <field name = "client id"   domain = "id"       >Owned by this client</field>
-        <field name = "header size" domain = "longint"  >Saved header size</field>
-        <field name = "body size"   domain = "longint"  >Message body size</field>
-        <field name = "priority"    domain = "octet"    >Priority, 0-9</field>
-        <field name = "expiration"  domain = "longint"  >Expiry date/time</field>
-        <field name = "mime type"   domain = "shortstr" >Content MIME type</field>
-        <field name = "encoding"    domain = "shortstr" >Content encoding</field>
-        <field name = "identifier"  domain = "shortstr" >Message identifier</field>
-        <field name = "headers"     domain = "longstr"  >Application headers</field>
-        <field name = "content"     domain = "longstr"  >First body fragment</field>
-        <field name = "spool size"  domain = "longint"  >Spooled size, or 0</field>
-        <index name = "bydest">
-            <field name = "dest id" />
-            <field name = "id"      />
-        </index>
-    </table>
-    -->
-
     <table name = "spool" description = "Spooled messages">
     The spool table registers large messages that are being uploaded but have
     not yet been saved into the mesg table.  We calculate the SHA1 signature
@@ -74,6 +36,10 @@
         <field name = "signature"   domain = "shortstr" >Message header signature</field>
         <field name = "file name"   domain = "shortstr" >Message spool file name</field>
         <index name = "bysignature">
+            <field name = "client id" />
+            <field name = "signature" />
+        </index>
+        <index name = "junkkey">
             <field name = "client id" />
             <field name = "signature" />
         </index>

@@ -28,16 +28,14 @@
         *channel;                       /*  Parent channel                   */
     amq_handle_t
         *handle;                        /*  Parent handle for consumer       */
-    amq_queue_t
-        *queue;                         /*  Parent queue                     */
+    amq_dest_t
+        *dest;                          /*  Parent destination               */
     qbyte
         client_id;                      /*  Parent client record             */
 
     /*  Object properties                                                    */
     ipr_db_t
         *db;                            /*  Database for virtual host        */
-    amq_db_t
-        *ddb;                           /*  Deprecated database handle       */
     int
         prefetch;                       /*  Max prefetch size                */
     int
@@ -50,8 +48,6 @@
     /*  For topic subscriptions                                              */
     ipr_shortstr_t
         identifier;                     /*  Name of persistent subscription  */
-    qbyte
-        sub_dest_id;                    /*  Durable subscription is a queue  */
 </context>
 
 <method name = "new">
@@ -66,7 +62,6 @@
     self->vhost       = handle->vhost;
     self->thread      = handle->thread;
     self->db          = handle->db;
-    self->ddb         = handle->ddb;
 
     /*  Initialise other properties                                          */
     self->prefetch   = command->prefetch? command->prefetch: 1;
@@ -75,20 +70,18 @@
     self->unreliable = command->unreliable;
     ipr_shortstr_cpy (self->identifier, command->identifier);
 
-    /*  Attach to queue                                                      */
-    self->queue = amq_queue_consume (self, command->dest_name);
-    if (!self->queue)
+    /*  Attach to destination                                                */
+    self->dest = amq_dest_consume (self, command->dest_name);
+    if (!self->dest)
         $(selfname)_destroy (&self);
 </method>
 
 <method name = "destroy">
-    if (self->queue)
-        amq_queue_cancel (self->queue, self);
+    if (self->dest)
+        amq_dest_cancel (self->dest, self);
 </method>
 
 <method name = "cancel" template = "function">
-    assert (self->sub_dest_id);
-    amq_db_dest_delete_fast (self->ddb, self->sub_dest_id);
     amq_consumer_destroy (&self);
 </method>
 

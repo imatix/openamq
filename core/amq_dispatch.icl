@@ -29,8 +29,8 @@
         *channel;                       /*  Parent channel                   */
     amq_handle_t
         *handle;                        /*  Parent handle for dispatch       */
-    amq_queue_t
-        *queue;                         /*  Parent queue for dispatch        */
+    amq_dest_t 
+        *dest;                          /*  Parent dest for dispatch         */
 
     /*  Object properties                                                    */
     ipr_db_t
@@ -38,7 +38,7 @@
     amq_smessage_t
         *message;                       /*  Message dispatched               */
     qbyte
-        queue_id;                       /*  Queue id                         */
+        dest_id;                        /*  Dest id                          */
     qbyte
         message_nbr;                    /*  Message number                   */
     Bool
@@ -53,23 +53,23 @@
     self->consumer    = consumer;
     self->handle      = consumer->handle;
     self->channel     = consumer->channel;
-    self->queue       = consumer->queue;
+    self->dest        = consumer->dest;
     self->db          = consumer->db;
 
     /*  Initialise other properties                                          */
     self->message     = message;        /*  We now 0wn this message          */
-    self->queue_id    = self->queue->item_id;
+    self->dest_id     = self->dest->item_id;
     self->message_nbr = ++(self->channel->message_nbr);
 
     amq_dispatch_list_queue (self->channel->dispatch_list, self);
 
     /*  Dispatched message decrements message windows                        */
-    assert (self->queue->window);
+    assert (self->dest->window);
     assert (self->consumer->window);
-    self->queue->window--;
+    self->dest->window--;
     self->consumer->window--;
 #   ifdef TRACE_DISPATCH
-    coprintf ("$(selfname) new: queue:%d consumer:%d", self->queue->window, self->consumer->window);
+    coprintf ("$(selfname) new: dest:%d consumer:%d", self->dest->window, self->consumer->window);
 #   endif
 </method>
 
@@ -89,16 +89,16 @@
 
     next = amq_dispatch_list_next (self->channel->dispatch_list, self);
     if (!self->acknowledged) {
-        /*  Queue and consumer can accept a new message                      */
+        /*  Dest and consumer can accept a new message                       */
         if (self->consumer->window < self->consumer->prefetch) {
-            self->queue->window++;
+            self->dest->window++;
             self->consumer->window++;
 #           ifdef TRACE_DISPATCH
-            coprintf ("$(selfname) ack: queue:%d consumer:%d",
-                self->queue->window, self->consumer->window);
+            coprintf ("$(selfname) ack: dest:%d consumer:%d",
+                self->dest->window, self->consumer->window);
 #           endif
         }
-        amq_queue_dispatch (self->queue);
+        amq_dest_dispatch (self->dest);
 
         /*  Now commit the acknowledgement if not transacted                 */
         self->acknowledged = TRUE;
@@ -112,45 +112,45 @@
 <method name = "unget" template = "function">
     <doc>
     Ungets the specified message.  Non-persistent messages are pushed back
-    to the queue's memory list.  Persistent messages are updated on disk so
+    to the dest's memory list.  Persistent messages are updated on disk so
     that their 'client id' field is zero (meaning, non-dispatched).
     </doc>
 
-    if (self->queue_id == 0) {
+    if (self->dest_id == 0) {
 #       ifdef TRACE_DISPATCH
         coprintf ("$(selfname) unget: non-persistent message %d", self->message_nbr);
 #       endif
         /*  Push back non-persistent message                                 */
         /*    - update window AFTER so it won't bounce to same consumer      */
-        amq_queue_accept (self->queue, NULL, self->message, NULL);
-        self->message = NULL;           /*  Passed to queue_accept           */
+        amq_dest_accept (self->dest, NULL, self->message, NULL);
+        self->message = NULL;           /*  Passed to dest_accept            */
     }
     else {
 #       ifdef TRACE_DISPATCH
         coprintf ("$(selfname) unget: persistent message %d", self->message_nbr);
 #       endif
         /*  Ensure message is no longer assigned to this client              */
-        self->queue->item_id = self->queue_id;
-        amq_queue_fetch (self->queue, IPR_QUEUE_EQ);
-        if (self->queue->item_client_id) {
-            self->queue->item_client_id = 0;
-            amq_queue_update (self->queue, NULL);
+        self->dest->item_id = self->dest_id;
+        amq_dest_fetch (self->dest, IPR_QUEUE_EQ);
+        if (self->dest->item_client_id) {
+            self->dest->item_client_id = 0;
+            amq_dest_update (self->dest, NULL);
         }
-        /*  Reset queue properties to cover this message                     */
-        self->queue->disk_queue_size++;
-        if (self->queue->last_id >= self->queue->item_id)
-            self->queue->last_id  = self->queue->item_id - 1;
+        /*  Reset dest properties to cover this message                      */
+        self->dest->disk_queue_size++;
+        if (self->dest->last_id >= self->dest->item_id)
+            self->dest->last_id  = self->dest->item_id - 1;
     }
-    /*  After ungetting we can dispatch the queue again; we update the
+    /*  After ungetting we can dispatch the dest again; we update the
         window after dispatching so that this message won't go back to
         the same client.
      */
-    amq_queue_dispatch (self->queue);
+    amq_dest_dispatch (self->dest);
     if (self->consumer->window < self->consumer->prefetch) {
-        self->queue->window++;
+        self->dest->window++;
         self->consumer->window++;
 #       ifdef TRACE_DISPATCH
-        coprintf ("$(selfname) unget: queue:%d consumer:%d", self->queue->window, self->consumer->window);
+        coprintf ("$(selfname) unget: dest:%d consumer:%d", self->dest->window, self->consumer->window);
 #       endif
     }
 </method>
@@ -167,14 +167,14 @@
 
     next = amq_dispatch_list_next (self->channel->dispatch_list, self);
     if (self->acknowledged) {
-        if (self->queue_id) {
-            /*  Purge from persistent queue if necessary                     */
-            self->queue->item_id = self->queue_id;
-            self->queue->disk_queue_size--;
-            amq_queue_delete (self->queue, txn);
+        if (self->dest_id) {
+            /*  Purge from persistent dest if necessary                      */
+            self->dest->item_id = self->dest_id;
+            self->dest->disk_queue_size--;
+            amq_dest_delete (self->dest, txn);
 #           ifdef TRACE_DISPATCH
-            coprintf ("$(selfname) delete: queue:%d pending=%d",
-                self->queue->window, self->queue->disk_queue_size);
+            coprintf ("$(selfname) delete: dest:%d pending=%d",
+                self->dest->window, self->dest->disk_queue_size);
 #           endif
         }
     }
@@ -208,18 +208,18 @@
     next = amq_dispatch_list_next (self->channel->dispatch_list, self);
     if (self->acknowledged) {
         self->acknowledged = FALSE;
-        if (self->queue_id) {
-            self->queue->item_id = self->queue_id;
-            amq_queue_fetch (self->queue, IPR_QUEUE_EQ);
-            self->queue->item_client_id = 0;
-            amq_queue_update (self->queue, txn);
+        if (self->dest_id) {
+            self->dest->item_id = self->dest_id;
+            amq_dest_fetch (self->dest, IPR_QUEUE_EQ);
+            self->dest->item_client_id = 0;
+            amq_dest_update (self->dest, txn);
         }
         if (self->consumer->window > 0) {
-            self->queue->window--;
+            self->dest->window--;
             self->consumer->window--;
 #           ifdef TRACE_DISPATCH
-            coprintf ("$(selfname) rollback: queue:%d consumer:%d",
-                self->queue->window, self->consumer->window);
+            coprintf ("$(selfname) rollback: dest:%d consumer:%d",
+                self->dest->window, self->consumer->window);
 #           endif
         }
     }

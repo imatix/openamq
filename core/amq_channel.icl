@@ -127,8 +127,6 @@
 
         /*  Now dispatch the resulting messages, if any                      */
         amq_vhost_dispatch (self->vhost);
-
-        coprintf ("Memory used at commit: %ld", icl_mem_usage ());
     }
     else
         amq_global_set_error (AMQP_COMMAND_INVALID, "Channel is not transacted - commit is not allowed");

@@ -11,7 +11,7 @@ if %1.==. goto exit
     gsl %1.icl
     call c %1
     call c -r libamq %1
-    call c -L %1_test
+    call c -l %1_test
     goto done
 
 :smt
