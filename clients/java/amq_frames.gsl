@@ -698,7 +698,7 @@ public class $(class_prefix:)$(my.outertype: Neat) {
      **/
 .-      Command frames
 .       if (defined (type_type))
-    public class $(my.current_inner: Neat) extends $(AMQPFrame:) {
+    public class $(my.current_inner: Neat) extends Frame {
 .-      The message head
 .       else
     public class $(my.current_inner: Neat) extends $(AMQPFramable:) {
@@ -800,6 +800,7 @@ public abstract class $(AMQPFrame:) extends $(AMQPFramable:) {
      *
      **/
     public AMQFrame(byte[] bucket) throws AMQFramingException {
+        this();
         this.bucket = bucket;
         decode();
     }
