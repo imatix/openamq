@@ -1,0 +1,82 @@
+gdl
+    title     = AMQ RFC007
+    subtitle  = The AMQP/Fast Terminal
+    product   = OpenAMQ
+    author    = iMatix Corporation <amq@imatix.com>
+    date      = 2004/10/03
+    copyright = Copyright (c) 2004 JPMorgan
+    version   = 0.1
+end gdl
+
+Cover
+*****
+
+State of this Document
+======================
+
+This document is a request for comments.  Distribution of this document is
+currently limited to iMatix and JPMorgan internal use.
+
+This document describes a work in progress.
+This document is unfinished.
+
+Copyright Notice
+================
+
+This document is copyright (c) 2004 JPMorgan Inc.
+
+Authors
+=======
+
+This document was written by Pieter Hintjens <ph@imatix.com>.
+
+Abstract
+========
+
+Introduction
+************
+
+Problem Statement
+=================
+
+Argumentation
+=============
+
+Basic Proposal
+==============
+
+Design Proposal
+***************
+
+Definitions and References
+==========================
+
+Objectives
+==========
+
+Architecture
+============
+
+Proof and Demonstration
+=======================
+
+Detailed Proposal
+=================
+
+Alternatives
+============
+
+We do not propose any alternatives at this moment.
+
+Security Considerations
+=======================
+
+This proposal does not have any specific security considerations.
+
+AMQ_Comments on this Document
+*************************
+
+Date, name
+==========
+
+No comments at present.

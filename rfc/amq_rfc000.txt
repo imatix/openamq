@@ -1,0 +1,128 @@
+gdl
+    title     = AMQ RFC000
+    subtitle  = Document template
+    product   = OpenAMQ
+    author    = iMatix Corporation <amq@imatix.com>
+    date      = 20yy/mm/dd
+    copyright = Copyright (c) 2004 JPMorgan
+    version   = 0.1
+end gdl
+
+Cover
+*****
+
+State of this Document
+======================
+
+This document is a request for comments.  Distribution of this document is
+currently limited to iMatix and JPMorgan internal use.
+
+[choose one or more of:]
+This document is unfinished.
+This document is ready for review.
+This document is a speculative discussion.
+This document is a provisional proposal.
+This document describes a work in progress.
+This document is a formal standard.
+This document decribes a completed work.
+
+Copyright Notice
+================
+
+This document is copyright (c) 2004 JPMorgan Inc.
+
+Authors
+=======
+
+This document was written by Your name <you@domain>.
+
+Abstract
+========
+
+[provide a one-paragraph outline of the document]
+
+Quick Reference
+===============
+
+[provide summary of all key syntax or protocol items]
+
+Introduction
+************
+
+Problem Statement
+=================
+
+[define the problem scope]
+
+Argumentation
+=============
+
+[from problem to solution]
+
+Basic Proposal
+==============
+
+[conclude the argumentation with a simple explanation of the proposal]
+
+Design Proposal
+***************
+
+Definitions and References
+==========================
+
+[any terminology or references needed to understand the design proposal].
+
+Objectives
+==========
+
+[specify clearly what we are aiming to achieve]
+
+Architecture
+============
+
+[an overall view of the architecture, with a list of the main design
+elements.  This is a good place to provide a diagram.]
+
+Proof and Demonstration
+=======================
+
+[define the criteria that will be used to decide whether or if the design
+is successful]
+
+Detailed Proposal
+=================
+
+[describe each of the design elements in as much detail as is necessary.]
+
+Alternatives
+============
+
+[describe alternatives for any the design elements where appropriate.]
+[or]
+
+We do not propose any alternatives at this moment.
+
+Security Considerations
+=======================
+
+[note the security considerations of the design.]
+[or]
+
+This proposal does not have any specific security considerations.
+
+Appendices
+**********
+
+[For other information you want to include with this document. If you
+do not have any appendices, you can delete this heading.]
+
+Comments on this Document
+*************************
+
+Comments by readers; these comments may be edited, incoporated, or removed
+by the author(s) of the document at any time.
+
+Date, name
+==========
+
+No comments at present.

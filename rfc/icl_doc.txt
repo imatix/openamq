@@ -1,0 +1,591 @@
+iCL is the iMatix Class Language. iCL is a fat programming language used
+to build and maintain classes, which are packages of code and data. The 
+goal of iCL is to provide a standard framework in which to write modular
+library functions and classes. iCL is loosely based on object-oriented  
+concepts.                                                               
+
+Summary of Language
+-------------------
+This summary shows the hierarchy of elements you can use, with the
+required and optional attributes for each element.  The XML entity and
+attribute names are case-sensitive and we use only lower-case names.
+
+    <class name version target [comment] [copyright] [animate] [abstract] [role]>
+       <doc [domain]/>
+       <inherit class>
+          <option name value/>
+       </inherit>
+       <import class/>
+       <assert role/>
+       <option .../>
+       <invoke [script]/>
+       <public [name]>
+          <doc .../>
+       </public>
+       <private [name]>
+          <doc .../>
+       </private>
+       <context [overlay]>
+          <doc .../>
+       </context>
+       <method name [return] [template] [inherit] [export]>
+          <doc .../>
+          <argument name [type] [default]/>
+          <declare name [type] [default]/>
+          <animate/>
+          <generate/>
+          <option .../>
+          <local>
+             <doc .../>
+          </local>
+          <header/>
+          <footer/>
+       </method>
+       <template name [return] [inherit] [export]>
+          <doc .../>
+          <argument .../>
+          <declare .../>
+          <animate .../>
+          <generate .../>
+          <local .../>
+          <header .../>
+          <footer .../>
+       </template>
+       <todo [owner]/>
+       <generate .../>
+    </class>
+
+Detailed Specifications
+-----------------------
+All child entities are optional and can occur zero or more times without
+any specific limits unless otherwise specified.  The same tag may occur
+at different levels with different meanings, and in such cases will be
+detailed more than once here.
+
+The 'class' Item
+................
+
+The class tag defines the class. One iCL file defines exactly one class.
+
+    <class
+        name = "..."
+        version = "..."
+        target = "stdc | perl | ruby | java"
+      [ comment = "..." ]
+      [ copyright = "..."  ("Copyright(c) iMatix Corporation") ]
+      [ animate = "0 | 1"  ("0") ]
+      [ abstract = "0 | 1"  ("0") ]
+      [ role = "..." ]
+        >
+        <doc>
+        <inherit>
+        <import>
+        <assert>
+        <option>
+        <invoke>
+        <public>
+        <private>
+        <context>
+        <method>
+        <template>
+        <todo>
+        <generate>
+    </class>
+
+The class item can have these attributes:
+
+name:
+    Specifies the name of the class. This name will be used to prefix all   
+    function names and will also be used as the filename for generated code.
+    The name attribute is required.                                         
+
+comment:
+    An optional one-line comment that describes the class. The comment
+    attribute is optional.                                            
+
+target:
+    Specifies the name of the target environment; the target is implemented 
+    by a GSL script that generates code for a specific language environment.
+    The target can be inherited from a parent class. The target attribute is
+    required. It can take one of the following values:                      
+
+Value: Meaning:
+stdc: Standard ANSI C + iMatix runtime
+perl: Perl 5.x
+ruby: Ruby
+java: Java 1.2
+
+version:
+    Specifies the version of the class. This text can take any format but we
+    recommend this standard format: '2.4b1' which is major version 2, minor 
+    version 4, release b, update 1. This string is stamped into the project 
+    sources. The version attribute is required.                             
+
+copyright:
+    This specifies the copyright string for the class. This string is stamped
+    into the project sources. The copyright can be inherited from a parent   
+    class. The copyright attribute is optional. Its default value is         
+    "Copyright(c) iMatix Corporation".                                       
+
+animate:
+    If set, the generated code contains animation that can be switched on and
+    off at runtime. This option can be overridden by a command-line switch   
+    (e.g. "-animate:0"). The animate option can be inherited from a parent   
+    class. The animate attribute is optional. Its default value is "0". It   
+    can take one of the following values:                                    
+
+Value: Meaning:
+0: do not animate
+1: generate animation code
+
+abstract:
+    If set, no code is generated. The abstract attribute is optional. Its
+    default value is "0". It can take one of the following values:       
+
+Value: Meaning:
+0: normal class
+1: abstract base class
+
+role:
+    Defines the role for a base class. A class can assert using the assert
+    tag, that at code generation time (possibly in derived class) certain 
+    roles are present. The role attribute is optional.                    
+
+
+The 'doc' Item
+..............
+
+Documentation for the current element: this is included in the generated 
+source code in a suitable form. Documentation should be in iMatix gurudoc
+format.                                                                  
+
+    <doc
+      [ domain = "..." ]
+        />
+
+The doc item has this single attribute:
+
+domain:
+    Allows documentation of different types to be included in the iCL
+    definitions. The domain attribute is optional.                   
+
+
+The 'inherit' Item
+..................
+
+A class can be based on one or more parent classes, defined using one or 
+more inherit elements. Each inherit element refers to an iCL file, a     
+single class. All elements in the parent class can be inherited into the 
+class; the precise rules for inheritence depend on the element and are   
+explained later. Multiple inheritence is permitted, so a class can itself
+inherit definitions from a parent class. All these iCL files must be     
+present and available during code generation.                            
+
+    <inherit
+        class = "..."
+        >
+        <option>
+    </inherit>
+
+The inherit item has this single attribute:
+
+class:
+    The name of the class inherited. The parser will look for an iCL file   
+    with the specified name and the extension ".icl". The class attribute is
+    required.                                                               
+
+
+The 'option' Item
+.................
+
+Passes an option to the method template or inherited class. Options can be
+used in the template code generation logic, or in method handlers.        
+
+    <option
+        name = "..."
+        value = "..."
+        />
+
+The option item can have these attributes:
+
+name:
+    The name of the option. The name attribute is required.
+
+value:
+    The value for the option. The value attribute is required.
+
+
+The 'import' Item
+.................
+
+Specifies other classes that this class refers to. Note if you want the   
+generated code to be correct you must define an import item for each class
+that you refer to in your class context or methods. By default, the import
+tag is inherited unless you specify inherit = "0".                        
+
+    <import
+        class = "..."
+        />
+
+The import item has this single attribute:
+
+class:
+    The name of the class imported. The class attribute is required.
+
+
+The 'assert' Item
+.................
+
+Asserts that a specified class role is present at code generation.
+
+    <assert
+        role = "..."
+        />
+
+The assert item has this single attribute:
+
+role:
+    The name of the class role being asserted. If no class is present 
+    (inherited or current) with this role, the code generation process
+    aborts. The role attribute is required.                           
+
+
+The 'invoke' Item
+.................
+
+Invoke gsl code to operate on the class tree. Invokes the gsl code        
+contained in the invoke item body, if any, followed by the gsl code       
+specified by the script attribute, if present. The gsl code can access the
+class entity and manipulate it in any way desired. It may also generate   
+other files; the script is invoked before any other code generation       
+starts. The invoke tag can contain arbitrary XML definitions for use by   
+the gsl script.                                                           
+
+    <invoke
+      [ script = "..." ]
+        />
+
+The invoke item has this single attribute:
+
+script:
+    The name of the GSL script, without any extension (.gsl is enforced). The
+    script attribute is optional.                                            
+
+
+The 'public' Item
+.................
+
+Public definitions, exported for use by callers of the class. In C, these 
+definitions are copied into the class header file. Public definitions are 
+inherited from the parent classes unless you specify inherit = "0". If the
+definitions are named, each named block is indepedently inherited.        
+
+    <public
+      [ name = "header | include | types | functions | footer"  ("types") ]
+        >
+        <doc>
+    </public>
+
+The public item has this single attribute:
+
+name:
+    The name of the public block, which really means the place in the      
+    generated code that this public block shoud be inserted. The name      
+    attribute is optional. Its default value is "types". It can take one of
+    the following values:                                                  
+
+Value: Meaning:
+header: issued at start of file
+include: issued after class imports
+types: for type definitions
+functions: for functions prototypes
+footer: issued at end of file
+
+
+The 'private' Item
+..................
+
+Private definitions, used by the class itself. The private definitions can
+include static variables and local functions. Private definitions are     
+inherited from the parent classes unless you specify inherit = "0". If the
+definitions are named, each named block is indepedently inherited.        
+
+    <private
+      [ name = "header | body | footer"  ("body") ]
+        >
+        <doc>
+    </private>
+
+The private item has this single attribute:
+
+name:
+    The name of the private block, can be "header" to hint the code generator
+    to place this at the top of the generated file. The name attribute is    
+    optional. Its default value is "body". It can take one of the following  
+    values:                                                                  
+
+Value: Meaning:
+header: issued at start of source
+body: issued in middle of source
+footer: issued at end of source
+
+
+The 'context' Item
+..................
+
+Defines a context block; one or more variables which will be held in all
+class instances.                                                        
+
+    <context
+      [ overlay = "..." ]
+        >
+        <doc>
+    </context>
+
+The context item has this single attribute:
+
+overlay:
+    If specified, the context block of the specified class is used as the    
+    basis for the context block; this can be used for containers that need to
+    be able to manipulate child objects with the same context structure as   
+    themselves. Use with care, experts only! The overlay attribute is        
+    optional.                                                                
+
+
+The 'method' Item
+.................
+
+Methods provide functionality for the component class. Methods can operate
+on specific objects, on the whole class of objects, or on other arbitrary 
+data. Methods are inherited from parent classes unless the inherit        
+attribute is set to "0". In the new and destroy methods, the class is     
+addressed using the name "self".                                          
+
+    <method
+        name = "..."
+      [ return = "..." ]
+      [ template = "..." ]
+      [ inherit = "0 | 1"  ("1") ]
+      [ export = "before | after | none"  ("before") ]
+        >
+        <doc>
+        <argument>
+        <declare>
+        <animate>
+        <generate>
+        <option>
+        <local>
+        <header>
+        <footer>
+    </method>
+
+The method item can have these attributes:
+
+name:
+    The name of the method, used in the API. The name attribute is required.
+
+return:
+    The name of the returned value. This must be one of the items declared in
+    the method body using 'declare'. The return attribute is optional.       
+
+template:
+    If specified, defines a method that acts as template for this method. The
+    template defines arguments and return values but no code. Templates are a
+    quick way of defining many methods that have a similar API. Note that the
+    template is extended by any arguments or declarations provided in the    
+    method itself. The template attribute is optional.                       
+
+inherit:
+    If inherit is defined as 0 then the method will not be inherited from  
+    parent classes. If inherit is 1, or not specified, the method is       
+    inherited from the parent classe and extended. The inherit attribute is
+    optional. Its default value is "1". It can take one of the following   
+    values:                                                                
+
+Value: Meaning:
+0: may be inherited
+1: is not inherited
+
+export:
+    Defines the inheritence model for the method. There are three models:    
+    'after' means child code and definitions are added after the inherited   
+    code and definitions; 'before' means child code and definitions are added
+    before inherited ones; 'none' means the method is not inherited. The     
+    export attribute is optional. Its default value is "before". It can take 
+    one of the following values:                                             
+
+Value: Meaning:
+before: new code comes last
+after: old code comes last
+none: no inheritence
+
+
+The 'argument' Item
+...................
+
+Defines one argument passed to the method. The body of this entity is used
+to document the argument.                                                 
+
+    <argument
+        name = "..."
+      [ type = "..." ]
+      [ default = "..." ]
+        />
+
+The argument item can have these attributes:
+
+name:
+    The name of the argument. The name attribute is required.
+
+type:
+    The type of the argument, which is a native type name. The type attribute
+    is optional. Its default value is "".                                    
+
+default:
+    The argument default value, used for integer arguments with value zero,  
+    and string and reference arguments with value null. The default attribute
+    is optional.                                                             
+
+
+The 'declare' Item
+..................
+
+Defines data declarations for the code that follows. All local variables
+used in the code body must be placed in declare tags so that the final  
+code can be correctly generated.                                        
+
+    <declare
+        name = "..."
+      [ type = "..." ]
+      [ default = "..." ]
+        />
+
+The declare item can have these attributes:
+
+name:
+    The name of the variable. For non-atomic variables like arrays, this can
+    contain the full variable declaration. Note that only atomic variables  
+    can be passed as arguments. The name attribute is required.             
+
+type:
+    The type of the argument, which is a native type name. To use a reference
+    to the the current class (a pointer in C), use the value "$(selftype) *".
+    The type attribute is optional. Its default value is "".                 
+
+default:
+    The default value for the variable. To define a string value, you must
+    enclose it in &quot; symbols. The default attribute is optional.      
+
+
+The 'animate' Item
+..................
+
+Provides a message or comment that will be shown when animating the
+component. The animate tag can be mixed with code.                 
+
+    <animate>
+
+
+
+The 'generate' Item
+...................
+
+Contains GSL code (in script form) that is executed before code        
+generation. This GSL code can directly manipulate the class XML tree as
+needed. For an example, see the icl_base.icl class.                    
+
+    <generate>
+
+
+
+The 'local' Item
+................
+
+Variable definitions used by the method itself. The local definitions are
+a simpler way of defining blocks of variables than using declare items.  
+Note you must use a declare for the return value.                        
+
+    <local>
+        <doc>
+    </local>
+
+
+
+The 'header' Item
+.................
+
+Defines a block of method code that should come before all bodies from the
+current and parent classes. Do not use for variable declarations, use     
+'local'.                                                                  
+
+    <header>
+
+
+
+The 'footer' Item
+.................
+
+Defines a block of method code that should come after all bodies from the
+current and parent classes.                                              
+
+    <footer>
+
+
+
+The 'template' Item
+...................
+
+Defines a method template.
+
+    <template
+        name = "..."
+      [ return = "..." ]
+      [ inherit = "..."  ("1") ]
+      [ export = "..."  ("before") ]
+        >
+        <doc>
+        <argument>
+        <declare>
+        <animate>
+        <generate>
+        <local>
+        <header>
+        <footer>
+    </template>
+
+The template item can have these attributes:
+
+name:
+    The name of the template, referred to by methods. The name attribute is
+    required.                                                              
+
+return:
+    Provides a default 'return' attribute to methods based on this template.
+    The return attribute is optional.                                       
+
+inherit:
+    Provides a default 'inherit' attribute to methods based on this template.
+    The inherit attribute is optional. Its default value is "1".             
+
+export:
+    Provides a default 'export' attribute to methods based on this template.
+    The export attribute is optional. Its default value is "before".        
+
+
+The 'todo' Item
+...............
+
+Defines a change request, bug or other issue that needs changing in the
+iCL class. Todo items are formalised so that they can be extracted and 
+processed mechanically.                                                
+
+    <todo
+      [ owner = "..." ]
+        />
+
+The todo item has this single attribute:
+
+owner:
+    The developer who registered the issue and will deal with it, specified
+    as an email address. The owner attribute is optional.                  
+

@@ -1,0 +1,79 @@
+gdl
+    title     = AMQ RFC010
+    subtitle  = Module Classes
+    product   = OpenAMQ
+    author    = iMatix Corporation <amq@imatix.com>
+    date      = 2004/10/03
+    copyright = Copyright (c) 2004 JPMorgan
+    version   = 0.1
+end gdl
+
+Cover
+*****
+
+State of this Document
+======================
+
+This document is a request for comments.  Distribution of this document is
+currently limited to iMatix and JPMorgan internal use.
+
+This document describes a work in progress.
+
+Copyright Notice
+================
+
+This document is copyright (c) 2004 JPMorgan Inc.
+
+Authors
+=======
+
+This document was written by Pieter Hintjens <ph@imatix.com>.
+
+Abstract
+========
+
+We define the module classes that OpenAMQ uses.  Each module class is
+implemented by an iCL class definition that specifies its API and provides
+a test framework.
+
+Module Classes
+**************
+
+These module types are implemented or formally proposed:
+
+amq_mod_if:
+    The base module interface class, not used actively.
+amq_term_if:
+    Interface class for terminals. A terminal talks to external clients
+    via an AMQP protocol.
+amq_driv_if:
+    Interface class for drivers. A driver handles a set of destinations.
+amq_disp_if:
+    Interface class for dispatchers.  A dispatcher calculates message
+    forwarding based on client requests.
+
+We will probably also define the following module types:
+
+amq_pars_if:
+    Interface class for parsers. A parser extracts matching criteria from
+    messages and requests.
+amq_filt_if:
+    Interface class for filters.  A filter can modify messages being sent
+    to destinations or to clients.
+amq_cons_if:
+    Interface class for consoles.  A console receives log data and errors
+    and can take appropriate action.
+
+Security Considerations
+=======================
+
+This proposal does not have any specific security considerations.
+
+
+Comments on this Document
+*************************
+
+Date, name
+==========
+
+No comments at present.
