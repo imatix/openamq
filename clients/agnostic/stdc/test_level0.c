@@ -262,13 +262,13 @@ apr_status_t handle_notify_cb (
     apr_status_t result;
     char buffer [32768];
 
-    /*
+/*
     apr_uint32_t i;
     for (i = 0; i!=body_size; i++)
         fprintf (stderr, "%lx ", (long) (unsigned char) data [i]);
     fprintf (stderr, "\n");
-    */
-
+*/
+   
     fprintf (stderr, "Message %s received. (%ld bytes)\n", identifier, (long) body_size);
 
     tag++;
