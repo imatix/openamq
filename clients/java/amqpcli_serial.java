@@ -56,7 +56,10 @@ AMQFactory
     mq_factory = null;
 
 
-///////////////////////////   C O N T R U C T O R   ///////////////////////////
+///////////////////////////   C O N T R U C T O R S  //////////////////////////
+
+public amqpcli_serial () {
+}
 
 public amqpcli_serial (String args[])
 {
