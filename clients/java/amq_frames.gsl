@@ -17,7 +17,7 @@
 class_prefix = "AMQ"
 AMQPFrameException = "$(class_prefix:)FramingException"
 AMQPFrameError = "$(class_prefix:)FramingError"
-AMQPFramingFactory = "$(class_prefix:)Factory"
+AMQPFramingFactory = "$(class_prefix:)FramingFactory"
 AMQPFramable = "$(class_prefix:)Framable"
 AMQPFrame = "$(class_prefix:)Frame"
 error_handling ="
@@ -27,7 +27,7 @@ error_handling ="
      *
      **/
     static void warning(String _class, String method, String message) {
-        $(class_prefix:)Factory.warning(_class, method, message); 
+        $(AMQPFramingFactory:).warning(_class, method, message); 
     }
     
     /**
@@ -36,11 +36,11 @@ error_handling ="
      *
      **/
     static void error(Exception e, String _class, String method, String message) throws $(AMQPFrameException:) {
-        $(class_prefix:)Factory.error(e, _class, method, message); 
+        $(AMQPFramingFactory:).error(e, _class, method, message); 
     }
     
     static void runtimeError(Exception e, String _class, String method, String message) throws RuntimeException {
-        $(class_prefix:)Factory.runtimeError(e, _class, method, message); 
+        $(AMQPFramingFactory:).runtimeError(e, _class, method, message); 
     }"
 imatix_openamq_dir = "com/imatix/openamq"
 imatix_openamq_frames_dir = imatix_openamq_dir + "/framing"
@@ -376,9 +376,11 @@ function build_framing (class, inner, AMQPFrameException)
     endif
     >            try {
     build_decoding (., "dis", my.inner)
+    if (defined(set_type))
     >                byte ce = dis.readByte();
     >                if (ce != AMQP_COMMAND_END) 
     >                    throw new $(AMQPFrameException)("$(my.full_name:): decode: EXCEPTION, frame command-end expected but got " + ce + ".");
+    endif
     >            } catch (IOException e) {
     >                try {
     >                    dis.close();
@@ -400,7 +402,9 @@ function build_framing (class, inner, AMQPFrameException)
     >
     >            try {
     build_encoding (., "dos")
-    >                dos.writeByte(AMQP_COMMAND_END);
+    if (defined(set_type))
+    >                   dos.writeByte(AMQP_COMMAND_END);
+    endif
     >            } catch (IOException e) {
     >                try {
     >                    dos.close();
@@ -721,6 +725,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
@@ -781,14 +786,107 @@ public class $(AMQPFramingFactory:) {
     
     /**
      *
-     * Data producer method
+     * Data producer methods
      *
      **/
     public void produceData(byte[] bytes) throws IOException {
-        writeBytes(outgoing, bytes, 0, bytes.length);
+        produceData(bytes, 0, bytes.length);
+    }
+    
+    public void produceData(byte[] bytes, int off, int len) throws IOException {
+        writeBytes(outgoing, bytes, off, len);
         outgoing.flush();
         if (verbose) 
             System.out.println("I: wrote " + bytes.length + " bytes to server (data)");
+    }
+    
+    /**
+     *
+     * In-band message body consumer (assembles fragments)
+     * The first handle notify and the head for this message must be supplied.
+     * Copies the destName variable in the last handle notify to the provided first.
+     *
+     **/
+    public byte[] consumeInBandMessageBody($(class_prefix:)Handle.Notify hnFirst, $(class_prefix:)Message.Head head) throws $(AMQPFrameException:), IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos);
+        byte[] fragment;
+        
+        $(class_prefix:)Handle.Notify hn = hnFirst;
+        if (!hn.outOfBand && !hn.streaming) {
+            int headSize = head.encode();
+            // Consume the first fragment        
+            if (hn.fragmentSize > headSize) {
+                fragment = consumeData(hn.fragmentSize - headSize);
+                writeBytes(dos, fragment, 0, fragment.length);
+            }
+            // Consume the next fragments
+            while (hn.partial && baos.size() < head.bodySize) {
+                $(class_prefix:)Frame frame = consumeFrame();
+                if (frame instanceof $(class_prefix:)Handle.Notify) {
+                    hn = ($(class_prefix:)Handle.Notify)frame;
+                    // Consume the next fragment        
+                    fragment = consumeData(hn.fragmentSize);
+                    writeBytes(dos, fragment, 0, fragment.length);
+                } else {
+                    throw new $(AMQPFrameException)("$(AMQPFramingFactory:): consumeInBandMessageBody: EXCEPTION, unexpected frame: " + frame.toString() + ".");
+                }
+            }
+            if (hn.partial || baos.size() < head.bodySize) 
+                throw new $(AMQPFrameException)("$(AMQPFramingFactory:): consumeInBandMessageBody: EXCEPTION, partial bit inconsistent with body size read.");
+        } else {
+            runtimeError(null, "$(AMQPFramingFactory:)", "consumeInBandMessageBody", "cannot consume message body if outOfBand or streaming");
+        }
+        
+        hnFirst.destName = hn.destName;
+        return baos.toByteArray();
+    }
+    
+    /**
+     *
+     * In-band message body producer (cuts into fragments)
+     * This function should be called after having sent the message head.
+     * Uses the destName variable supplied in hs at the last handle send. 
+     * Sends fragments of the size specified in hs. 
+     * The first data chunk is smaller if the head size is less than the fragment size.
+     *
+     **/
+    public void produceInBandMessageBody($(class_prefix:)Handle.Send hs, $(class_prefix:)Message.Head head, byte[] body) throws $(AMQPFrameException:), IOException {
+        $(class_prefix:)Handle.Send send = ($(class_prefix:)Handle.Send)createFrame($(class_prefix:)Handle.SEND);
+        String destName = hs.destName;
+        int headSize = head.encode(), off = 0, len, fragmentSize = hs.fragmentSize;
+                
+        if (!hs.outOfBand && !hs.streaming) {
+            if (head.bodySize == body.length) {
+                // Produce the first fragment
+                if (fragmentSize > headSize) {
+                    len = Math.min(fragmentSize - headSize, body.length - off);
+                    produceData(body, off, len);
+                    off += len;
+                }    
+                // Produce the next fragments
+                if (off < body.length) {
+                    hs.partial = true;
+                    hs.destName = "";
+                }
+                while (off < body.length) {
+                    len = body.length - off; // How much body is left
+                    if (len <= fragmentSize) {
+                        hs.partial = false;
+                        hs.destName = destName;
+                    }
+                    len = Math.min(fragmentSize, len); // How much will we read
+                    hs.fragmentSize = len;
+                    produceFrame(hs);
+                    produceData(body, off, len);
+                    off += len;
+                }
+            } else {
+                runtimeError(null, "$(AMQPFramingFactory:)", "produceInBandMessageBody", "size inconsistency between supplied head and body array");
+            }
+        } else {
+            runtimeError(null, "$(AMQPFramingFactory:)", "produceInBandMessageBody", "cannot produce message body if outOfBand or streaming");
+        }
     }
     
     /**
@@ -797,7 +895,7 @@ public class $(AMQPFramingFactory:) {
      *
      **/
     public $(class_prefix:)Message.Head consumeMessageHead() throws $(AMQPFrameException:) {
-        AMQMessage.Head head = null;
+        $(class_prefix:)Message.Head head = null;
         
         // Read the message header
         head = ($(class_prefix:)Message.Head)message.consumeFrame(incoming);
