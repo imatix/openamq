@@ -6,4 +6,7 @@ libamqp.*
 Makefile*
 msmake*
 configure*
+*.d
+*.i
 test_level0
+test_level1
