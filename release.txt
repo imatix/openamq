@@ -1,8 +1,14 @@
 0.8b0 - 2005/03/20
 
+  - transaction handling substantially rewritten to work around
+    limitations of BDB subsystem.
+
+  - consumers were improperly counted at disconnection, so server
+    would eventually report "Too many consumers" for queue - fixed.
+
   - server misbehaved on some boxes when client disconnected abruptly;
     caused by bug in SMT layer - fixed.
-    
+
   - server mishandled ACKs sent in batches of 1 with the result that
     it would wrongly treat the queue as being "full" when it was not.
 

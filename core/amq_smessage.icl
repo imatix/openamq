@@ -202,20 +202,11 @@
     }
 </method>
 
-<method name = "delete" template = "function">
+<method name = "purge" template = "function">
     <doc>
-    Deletes a saved message.  Use this to remove saved messages from a
-    queue rather than the queue delete method, since the message may also
-    have associated persistent data that needs deleting.  The message
+    Removes persistent storage for a specified message.  The message
     must have been loaded from the queue using the load method.
     </doc>
-    <argument name = "txn" type = "ipr_db_txn_t *">Transaction, if any</argument>
-    assert (self->queue);
-
-    /*  Delete queue record                                                  */
-    self->queue->item_id = self->queue_id;
-    amq_queue_delete (self->queue, txn);
-
     /*  Delete persistent file storage if any                                */
     if (self->store_size > 0)
         file_delete (self->store_file);
@@ -393,7 +384,7 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
     until (!partial);
     assert (body_size == 0);
 
-    amq_smessage_delete (message, NULL);
+    amq_smessage_purge (message);
 
     /*  Release resources                                                    */
     amq_queue_destroy         (&queue);

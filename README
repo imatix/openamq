@@ -1,0 +1,57 @@
+Instructions on Building from Source
+************************************
+
+Last updated: 2005/03/18 by ph@imatix.com
+
+Requirements
+============
+
+ - a POSIX box with ANSI C compiler, or
+ - a Win32 box with MSVC/6 or MSVC/7
+ - zip or tar and gunzip
+
+This package has been qualified for Linux, Windows 2000+ Sun Solaris. Your
+milage will vary on other POSIX boxes.
+
+The .tar.gz package and .zip packages are identical except that the text
+files they contain are formatted for POSIX and Windows respectively.  You
+can convert line endings using zip (-l and -a options) but we suggest you
+simply unpack the appropriate file.
+
+Instructions
+============
+
+Select an installation directory.  For instance, c:\home or $HOME.  This
+is where the compiled/linked programs will be installed.  We call this
+the IBASE directory.
+
+After unzipping/detarring, change to the freshly created directory and
+run the 'configure' command:
+
+    configure --with-ibase=IBASE-DIRECTORY
+
+Alternatively, define an environment variable 'IBASE' with this directory
+as its value.
+
+Now build using this command:
+
+    boomake build install
+
+To use the installed tools in your projects, ensure that IBASE/bin is on
+your PATH.
+
+Details
+=======
+
+Under Win32 the MS C/C++ compiler must be configured for command-line
+use.  During MSVC installation, make sure you register the environment
+variables needed for command-line use of the compiler.  Check the
+vcvars32.bat script for correctness.  When you open a console box, the
+MSVCDir variable must point correctly to the MSVC application directory.
+You can set this in the system environment variables.
+
+Requires some C99 functionality, may not build on older C compilers.
+
+To build a debugging version use the configure command:
+
+    configure --enable-debugging

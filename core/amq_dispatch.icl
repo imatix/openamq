@@ -56,14 +56,13 @@
     self->queue_id    = self->queue->item_id;
     self->message_nbr = ++(self->channel->message_nbr);
 
-    amq_dispatch_list_queue (self->channel->dispatched, self);
+    amq_dispatch_list_queue (self->channel->dispatch_list, self);
 
     /*  Dispatched message decrements message windows                        */
     assert (self->queue->window);
     assert (self->consumer->window);
     self->queue->window--;
     self->consumer->window--;
-    coprintf ("$(selfname) new: queue:%d consumer:%d", self->queue->window, self->consumer->window);
 </method>
 
 <method name = "destroy">
@@ -80,60 +79,20 @@
     <argument name = "self" type = "$(selftype) *">Reference to object</argument>
     <declare name = "next" type = "amq_dispatch_t *">Next message in list</declare>
 
-    next = amq_dispatch_list_next (self->channel->dispatched, self);
+    next = amq_dispatch_list_next (self->channel->dispatch_list, self);
     if (!self->acknowledged) {
         /*  Queue and consumer can accept a new message                      */
         if (self->consumer->window < self->consumer->prefetch) {
             self->queue->window++;
             self->consumer->window++;
-            coprintf ("$(selfname) ack: queue:%d consumer:%d", self->queue->window, self->consumer->window);
         }
         amq_queue_dispatch (self->queue);
-        next = amq_dispatch_list_next (self->channel->dispatched, self);
 
-        if (self->queue_id) {
-            /*  Purge from persistent queue if necessary                     */
-            amq_smessage_delete (self->message, self->channel->txn);
-            self->queue->disk_queue_size--;
-        }
-        if (self->channel->transacted)
-            /*  Keep dispatch object in memory so we can rollback the ack    */
-            self->acknowledged = TRUE;
-        else
-            self_destroy (&self);
-    }
-</method>
-
-<method name = "commit" return = "next">
-    <doc>
-    Commit the specified message, if it has been acknowledged by the client.
-    This happens when the client is working in transacted mode.
-    Returns the next message on the dispatch list.
-    </doc>
-    <argument name = "self" type = "$(selftype) *">Reference to object</argument>
-    <declare name = "next" type = "amq_dispatch_t *">Next message in list</declare>
-
-    next = amq_dispatch_list_next (self->channel->dispatched, self);
-    if (self->acknowledged)
-        self_destroy (&self);
-</method>
-
-<method name = "rollback" return = "next">
-    <doc>
-    Rollback the specified mesage if is has been acknowledged by the client.
-    This happens when the client is working in transacted mode.
-    Returns the next message on the dispatch list.
-    </doc>
-    <argument name = "self" type = "$(selftype) *">Reference to object</argument>
-    <declare name = "next" type = "amq_dispatch_t *">Next message in list</declare>
-
-    next = amq_dispatch_list_next (self->channel->dispatched, self);
-    if (self->acknowledged) {
-        self->acknowledged = FALSE;
-        if (self->consumer->window > 0) {
-            self->queue->window--;
-            self->consumer->window--;
-            coprintf ("$(selfname) rollback: queue:%d consumer:%d", self->queue->window, self->consumer->window);
+        /*  Now commit the acknowledgement if not transacted                 */
+        self->acknowledged = TRUE;
+        if (!self->channel->transacted) {
+            self_commit (self, NULL);
+            self_purge  (self);
         }
     }
 </method>
@@ -144,26 +103,25 @@
     to the queue's memory list.  Persistent messages are updated on disk so
     that their 'client id' field is zero (meaning, non-dispatched).
     </doc>
+
     if (self->queue_id == 0) {
-        coprintf ("Unget non-persistent message %d", self->message_nbr);
         /*  Push back non-persistent message                                 */
         /*    - update window AFTER so it won't bounce to same consumer      */
-        amq_queue_accept (self->queue, self->channel, self->message, NULL);
+        amq_queue_accept (self->queue, NULL, self->message, NULL);
         self->message = NULL;           /*  Passed to queue_accept           */
     }
     else {
-        coprintf ("Unget persistent message %d", self->message_nbr);
         /*  Ensure message is no longer assigned to this client              */
         self->queue->item_id = self->queue_id;
         amq_queue_fetch (self->queue, IPR_QUEUE_EQ);
         if (self->queue->item_client_id) {
             self->queue->item_client_id = 0;
-            amq_queue_update (self->queue, self->channel->txn);
+            amq_queue_update (self->queue, NULL);
         }
         /*  Reset queue properties to cover this message                     */
         self->queue->disk_queue_size++;
-        if (self->queue->last_id > self->queue->item_id)
-            self->queue->last_id = self->queue->item_id - 1;
+        if (self->queue->last_id >= self->queue->item_id)
+            self->queue->last_id  = self->queue->item_id - 1;
     }
     /*  After ungetting we can dispatch the queue again; we update the
         window after dispatching so that this message won't go back to
@@ -173,7 +131,68 @@
     if (self->consumer->window < self->consumer->prefetch) {
         self->queue->window++;
         self->consumer->window++;
-        coprintf ("$(selfname) unget: queue:%d consumer:%d", self->queue->window, self->consumer->window);
+    }
+</method>
+
+<method name = "commit" return = "next">
+    <doc>
+    Commit the specified message, if it has been acknowledged by the client.
+    This happens when the client is working in transacted mode.
+    Returns the next message on the dispatch list.
+    </doc>
+    <argument name = "self" type = "$(selftype) *">Reference to object</argument>
+    <argument name = "txn" type = "ipr_db_txn_t *">Current transaction</argument>
+    <declare name = "next" type = "amq_dispatch_t *">Next message in list</declare>
+
+    next = amq_dispatch_list_next (self->channel->dispatch_list, self);
+    if (self->acknowledged) {
+        if (self->queue_id) {
+            /*  Purge from persistent queue if necessary                     */
+            self->queue->item_id = self->queue_id;
+            amq_queue_delete (self->queue, txn);
+        }
+    }
+</method>
+
+<method name = "purge" return = "next">
+    <doc>
+    Purge the specified message if it has been acknowledged by the client.
+    Returns the next message on the dispatch list.
+    </doc>
+    <argument name = "self" type = "$(selftype) *">Reference to object</argument>
+    <declare name = "next" type = "amq_dispatch_t *">Next message in list</declare>
+
+    next = amq_dispatch_list_next (self->channel->dispatch_list, self);
+    if (self->acknowledged) {
+        amq_smessage_purge (self->message);
+        self->queue->disk_queue_size--;
+        self_destroy (&self);
+    }
+</method>
+
+<method name = "rollback" return = "next">
+    <doc>
+    Rollback the specified mesage if is has been acknowledged by the client.
+    This happens when the client is working in transacted mode.
+    Returns the next message on the dispatch list.
+    </doc>
+    <argument name = "self" type = "$(selftype) *">Reference to object</argument>
+    <argument name = "txn" type = "ipr_db_txn_t *">Current transaction</argument>
+    <declare name = "next" type = "amq_dispatch_t *">Next message in list</declare>
+
+    next = amq_dispatch_list_next (self->channel->dispatch_list, self);
+    if (self->acknowledged) {
+        self->acknowledged = FALSE;
+        if (self->queue_id) {
+            self->queue->item_id = self->queue_id;
+            amq_queue_fetch (self->queue, IPR_QUEUE_EQ);
+            self->queue->item_client_id = 0;
+            amq_queue_update (self->queue, txn);
+        }
+        if (self->consumer->window > 0) {
+            self->queue->window--;
+            self->consumer->window--;
+        }
     }
 </method>
 

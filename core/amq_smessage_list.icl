@@ -23,8 +23,8 @@
 
 <method name = "commit" template = "function">
     <doc>
-    Commits a set of messages waiting on the list.  Should be done together
-    with a database commit and before a full dispatch of all queues.
+    Commits a set of messages waiting on the list.  Should be done inside
+    a database transaction and before a full dispatch of all queues.
     </doc>
     <argument name = "txn" type = "ipr_db_txn_t *">Current transaction</argument>
     <local>
@@ -43,7 +43,7 @@
 
 <method name = "rollback" template = "function">
     <doc>
-    Destroys all messages waiting on the list.
+    Rolls-back all messages waiting to be written for the transaction.
     </doc>
     <local>
     amq_smessage_t
@@ -51,6 +51,7 @@
     </local>
     message = amq_smessage_list_first (self);
     while (message) {
+        amq_smessage_purge (message);
         amq_smessage_destroy (&message);
         message = amq_smessage_list_first (self);
     }

@@ -1,0 +1,82 @@
+Message Transaction Management
+
+
+channel
+    `-> dispatch_list
+        `-> dispatch object -> message
+    `-> transact_list
+        `-> message
+queue
+    `-> message_list
+        `-> message
+
+
+HANDLE SEND
+    We receive a complete message from the client.  It may be part of
+    a transaction, or not.  All messages received in a transaction are
+    held in memory until the transaction is committed or rolled-back.
+    All messages received outside a transaction are sent directly to
+    their destination queues.
+    --------------------------------------------------------------------
+    Status: OK
+
+
+Dispatch message
+    We dispatch messages on a specific queue, or on all queues that have
+    pending messages.  The messages can be taken from the queue memory
+    or the queue persistent table.  Each time we dispatch a message to
+    a client we create a dispatch object and hold these per channel.
+    When we dispatch a transient message we move it from to queue memory
+    to the dispatch object.  When we dispatch a persistent message we
+    mark it in the queue persistent table (by setting the clientid field)
+    and we attach it to the dispatch object.
+    --------------------------------------------------------------------
+    Status: OK
+
+
+CHANNEL ACK
+    The ACK matches zero or more messages sent to the client, identified
+    by dispatch objects.  The ACK can be part of a transaction, or not.
+    Inside a transaction we mark the dispatch object as "acknowledged"
+    but otherwise leave it unchanged.  If not transacted, we commit the
+    dispatch object: for persistent messages, we delete from the queue
+    persistent table and then destroy the dispatch object. For transient
+    messages, we just destroy the dispatch object.
+    --------------------------------------------------------------------
+    Status: OK
+
+
+CHANNEL COMMIT
+    The COMMIT command finalises all received messages and acknowledgements
+    for the transaction.  It does not affect dispatched messages; i.e. a
+    client cannot unget messages by doing a rollback, it must explicitly
+    unget messages that it cannot process.  The COMMIT command operates on
+    the list of received messages and dispatch objects held per channel.
+    The messages are stored in their respective queues.  The dispatch
+    objects marked as "acknowledged" are committed.  This happens under
+    control of a single database transaction.  Finally, any queues that
+    have new messages are dispatched.
+    --------------------------------------------------------------------
+    Status: OK
+
+
+CHANNEL ROLLBACK
+    The ROLLBACK command cancels all posted messages and acknowledgements
+    sent in the last transaction.  It does not affect dispatched messages.
+    The ROLLBACK command operates on the list of received messages and
+    dispatch objects held per channel.  The messages are deleted.  The
+    dispatch objects which are acknowledged are reset to unacknowledged.
+    --------------------------------------------------------------------
+    Status: OK
+
+
+HANDLE UNGET
+    The UNGET command refers to a dispatched message, it should match
+    one amq_dispatch object.  If the message was persistent, we undo the
+    dispatching.
+    --------------------------------------------------------------------
+    Status: OK
+
+
+
+

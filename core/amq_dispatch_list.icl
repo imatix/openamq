@@ -69,8 +69,23 @@
 
 <method name = "commit" template = "function">
     <doc>
-    Removes all processed (closed) entries from the dispatched message
+    Commits all processed (closed) entries in the dispatched message
     list.  Must be done together with a database commit.
+    </doc>
+    <argument name = "txn" type = "ipr_db_txn_t *">Current transaction</argument>
+    <local>
+    amq_dispatch_t
+        *dispatch;                      /*  Dispatched message queue entry   */
+    </local>
+    dispatch = amq_dispatch_list_first (self);
+    while (dispatch)
+        dispatch = amq_dispatch_commit (dispatch, txn);
+</method>
+
+<method name = "purge" template = "function">
+    <doc>
+    Removes all processed (closed) entries from the dispatched message
+    list.
     </doc>
     <local>
     amq_dispatch_t
@@ -78,7 +93,7 @@
     </local>
     dispatch = amq_dispatch_list_first (self);
     while (dispatch)
-        dispatch = amq_dispatch_commit (dispatch);
+        dispatch = amq_dispatch_purge (dispatch);
 </method>
 
 <method name = "rollback" template = "function">
@@ -87,13 +102,14 @@
     so that they can be acknowledged again.  Must be done together with
     a database rollback.
     </doc>
+    <argument name = "txn" type = "ipr_db_txn_t *">Current transaction</argument>
     <local>
     amq_dispatch_t
         *dispatch;                      /*  Dispatched message queue entry   */
     </local>
     dispatch = amq_dispatch_list_first (self);
     while (dispatch)
-        dispatch = amq_dispatch_rollback (dispatch);
+        dispatch = amq_dispatch_rollback (dispatch, txn);
 </method>
 
 <method name = "restore" template = "function">

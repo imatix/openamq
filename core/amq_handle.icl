@@ -200,7 +200,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
         self->vhost->queue_hash, self->dest_name, command->dest_name);
 
     if (queue) {
-        amq_queue_accept (queue, self->channel, message, self->channel->txn);
+        amq_queue_accept (queue, self->channel, message, NULL);
         if (queue->dirty)
             amq_queue_dispatch (queue);
     }
@@ -249,8 +249,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
 
 <method name = "unget" template = "function" >
     <argument name = "command" type = "amq_handle_unget_t *" />
-
-    amq_dispatch_list_unget (self->channel->dispatched, command->message_nbr);
+    amq_dispatch_list_unget (self->channel->dispatch_list, command->message_nbr);
 </method>
 
 <method name = "query" template = "function" >

@@ -61,7 +61,7 @@ ipr_db_queue class.
     amq_consumer_list_t
         *consumers;                     /*  Consumers for this queue         */
     amq_smessage_list_t
-        **messages;                     /*  Pending non-persistent messages  */
+        **message_list;                 /*  Pending non-persistent messages  */
     qbyte
         window;                         /*  Total window availability        */
     qbyte
@@ -135,10 +135,8 @@ ipr_db_queue class.
         /*  auto-purge option means delete all queue messages at restart     */
         if (ipr_config_attrn (config, "auto-purge"))
             amq_queue_purge (self);
-        else {
+        else
             self->disk_queue_size = self_count (self);
-            coprintf ("I: queue %s has %d messages", key, self->disk_queue_size);
-        }
     }
     else {
         /*  Temporary queue, set all non-zero defaults                       */
@@ -217,7 +215,7 @@ ipr_db_queue class.
     Cancels a consumer on a specific queue, updating the queue as needed.
     </doc>
     <argument name = "consumer" type = "amq_consumer_t *">Parent consumer</argument>
-    self->nbr_consumers++;
+    self->nbr_consumers--;
     self->window -= consumer->window;
 </method>
 
@@ -231,7 +229,7 @@ ipr_db_queue class.
     </doc>
     <argument name = "channel" type = "amq_channel_t *" >Current channel</argument>
     <argument name = "message" type = "amq_smessage_t *">Message, if any</argument>
-    <argument name = "txn"     type = "ipr_db_txn_t *"  >Current transaction</argument>
+    <argument name = "txn"     type = "ipr_db_txn_t *"  >Transaction, if any</argument>
     <local>
     uint
         level;                          /*  Priority level                   */
@@ -256,10 +254,10 @@ ipr_db_queue class.
 
     if (channel && channel->transacted) {
         /*  Transacted messages are held per-channel                         */
-        if (amq_txn_limit == 0 || channel->txn_size < amq_txn_limit) {
+        if (amq_txn_limit == 0 || channel->transact_count < amq_txn_limit) {
             message->queue = self;
-            amq_smessage_list_queue (channel->txn_list, message);
-            channel->txn_size++;
+            amq_smessage_list_queue (channel->transact_list, message);
+            channel->transact_count++;
 #           ifdef TRACE_DISPATCH
             coprintf ("$(selfname) I: queue transacted message");
 #           endif
@@ -302,7 +300,7 @@ ipr_db_queue class.
         else {
             /*  Non-persistent messages are held per queue                   */
             self->memory_queue_size++;
-            amq_smessage_list_queue (self->messages [level], message);
+            amq_smessage_list_queue (self->message_list [level], message);
     #       ifdef TRACE_DISPATCH
             coprintf ("$(selfname) I: save non-persistent message to queue memory");
     #       endif
@@ -317,8 +315,7 @@ ipr_db_queue class.
 
 <method name = "dispatch" template = "function">
     <doc>
-    Dispatches a specific message or all pending messages on a destination
-    to all interested consumers.
+    Dispatches all pending messages waiting on the specified queue.
     </doc>
     <local>
     amq_smessage_t
@@ -344,33 +341,36 @@ ipr_db_queue class.
 #       endif
 
         /*  Start with highest-priority messages                             */
-        level = self->opt_priority_levels - 1;
-        message = amq_smessage_list_first (self->messages [level]);
-        while (self->window && message) {
-            consumer = s_get_next_consumer (self);
-            if (consumer) {
-                amq_smessage_list_unlink (message);
-                self->memory_queue_size--;
-                self->item_id = 0;      /*  Non-persistent message           */
-                s_dispatch_message (consumer, message);
+        level = self->opt_priority_levels;
+        while (level) {
+            level--;
+            message = amq_smessage_list_first (self->message_list [level]);
+            while (self->window && message) {
+                consumer = s_get_next_consumer (self);
+                if (consumer) {
+                    amq_smessage_list_unlink (message);
+                    self->memory_queue_size--;
+                    self->item_id = 0;      /*  Non-persistent message           */
+                    s_dispatch_message (consumer, message);
 
-                /*  Invalidate any browsers for this message                 */
-                browser_ref = ipr_looseref_list_first (message->browsers);
-                while (browser_ref) {
-                    amq_browser_destroy ((amq_browser_t **) &browser_ref->object);
-                    browser_ref = ipr_looseref_list_next (message->browsers, browser_ref);
-                }
-                /*  Get next message (is now first on queue)                 */
-                message = amq_smessage_list_first (self->messages [level]);
+                    /*  Invalidate any browsers for this message                 */
+                    browser_ref = ipr_looseref_list_first (message->browsers);
+                    while (browser_ref) {
+                        amq_browser_destroy ((amq_browser_t **) &browser_ref->object);
+                        browser_ref = ipr_looseref_list_next (message->browsers, browser_ref);
+                    }
+                    /*  Get next message (is now first on queue)                 */
+                    message = amq_smessage_list_first (self->message_list [level]);
 
-                /*  Work down to next priority level if needed               */
-                while (message == NULL && level > 0) {
-                    level--;
-                    message = amq_smessage_list_first (self->messages [level]);
+                    /*  Work down to next priority level if needed               */
+                    while (message == NULL && level > 0) {
+                        level--;
+                        message = amq_smessage_list_first (self->message_list [level]);
+                    }
                 }
+                else
+                    break;                  /*  No more consumers                */
             }
-            else
-                break;                  /*  No more consumers                */
         }
     }
     /*  Now process any messages on disk                                     */
@@ -379,6 +379,7 @@ ipr_db_queue class.
         coprintf ("$(selfname) I: dispatching persistent window=%d pending=%d",
             self->window, self->disk_queue_size);
 #       endif
+
         /*  Get oldest candidate message to dispatch                         */
         self->item_id = self->last_id;
         finished = amq_queue_fetch (self, IPR_QUEUE_GT);
@@ -386,6 +387,7 @@ ipr_db_queue class.
         coprintf ("$(selfname) I: fetch last=%d rc=%d id=%d finished=%d",
             self->last_id, finished, self->item_id, finished);
 #       endif
+
         while (self->window && !finished) {
 #           ifdef TRACE_DISPATCH
             coprintf ("$(selfname) I: message id=%d client=%d", self->item_id, self->item_client_id);
@@ -397,9 +399,7 @@ ipr_db_queue class.
                     amq_smessage_load  (message, self);
                     s_dispatch_message (consumer, message);
 
-                    /*  Update client id, using channel txn if any           */
                     self->item_client_id = consumer->client_id;
-                    amq_queue_update (self, consumer->channel->txn);
                     amq_queue_update (self, NULL);
                 }
                 else
@@ -443,13 +443,13 @@ ipr_db_queue class.
     level = self->opt_priority_levels;
     while (level) {
         level--;
-        message = amq_smessage_list_first (self->messages [level]);
+        message = amq_smessage_list_first (self->message_list [level]);
         while (message) {
             /*  Track browser for message so we can invalidate it if/when
                 we dispatch the message.                                     */
             browser = amq_browser_new (browser_set, set_index++, self, 0, message);
             ipr_looseref_new (message->browsers, browser);
-            message = amq_smessage_list_next (self->messages [level], message);
+            message = amq_smessage_list_next (self->message_list [level], message);
         }
     }
     /*  Now process any messages on disk                                     */
@@ -540,11 +540,11 @@ s_create_priority_lists ($(selftype) *self)
     if (self->opt_priority_levels == 0)
         self->opt_priority_levels = 1;
 
-    self->messages = icl_mem_alloc (
+    self->message_list = icl_mem_alloc (
         self->opt_priority_levels * sizeof (amq_smessage_list_t *));
 
     for (level = 0; level < self->opt_priority_levels; level++)
-        self->messages [level] = amq_smessage_list_new ();
+        self->message_list [level] = amq_smessage_list_new ();
 }
 
 /*  Destroy the queue's priority lists                                       */
@@ -556,9 +556,9 @@ s_destroy_priority_lists ($(selftype) *self)
         level;
 
     for (level = 0; level < self->opt_priority_levels; level++)
-        amq_smessage_list_destroy (&self->messages [level]);
+        amq_smessage_list_destroy (&self->message_list [level]);
 
-    icl_mem_free (self->messages);
+    icl_mem_free (self->message_list);
 }
 
 /*  Calculate priority level for this message                                */

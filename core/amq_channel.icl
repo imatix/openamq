@@ -40,8 +40,6 @@
         *db;                            /*  Database for virtual host        */
     amq_db_t
         *ddb;                           /*  Deprecated database handle       */
-    ipr_db_txn_t
-        *txn;                           /*  Transaction object               */
     int
         state;                          /*  Channel state                    */
     Bool
@@ -49,11 +47,11 @@
     Bool
         restartable;                    /*  Restartable mode                 */
     amq_dispatch_list_t
-        *dispatched;                    /*  Messages dispatched & pending    */
+        *dispatch_list;                 /*  Messages dispatched & pending    */
     amq_smessage_list_t
-        *txn_list;                      /*  Messages pending commit          */
+        *transact_list;                 /*  Messages pending commit          */
     size_t
-        txn_size;                       /*  Number of messages pending       */
+        transact_count;                 /*  Number of messages pending       */
     qbyte
         message_nbr;                    /*  Message numbering                */
     amq_smessage_t
@@ -75,14 +73,11 @@
     self->ddb         = connection->ddb;
 
     /*  Initialise other properties                                          */
-    self->dispatched  = amq_dispatch_list_new (self);
-    self->txn_list    = amq_smessage_list_new ();
-    self->state       = AMQ_CHANNEL_OPEN;
-    self->transacted  = command->transacted;
-    self->restartable = command->restartable;
-
-    if (self->transacted)
-        self->txn = ipr_db_txn_new (self->db);
+    self->dispatch_list = amq_dispatch_list_new (self);
+    self->transact_list = amq_smessage_list_new ();
+    self->state         = AMQ_CHANNEL_OPEN;
+    self->transacted    = command->transacted;
+    self->restartable   = command->restartable;
 </method>
 
 <method name = "destroy">
@@ -92,36 +87,43 @@
         &&  self->connection->handles->item_table [table_idx]->channel == self)
             amq_handle_destroy (&self->connection->handles->item_table [table_idx]);
     }
-    if (self->transacted) {
+    if (self->transacted)
         self_rollback (self);
-        ipr_db_txn_destroy (&self->txn);
-    }
+
     /*  Restore pending messages if the client disconnected but not if the
         server is shutting down (BDB should not be called from a signal
         handler, which is where we are if shutting down).
      */
     if (!smt_signal_raised) {
-        amq_dispatch_list_restore (self->dispatched);
+        amq_dispatch_list_restore (self->dispatch_list);
         ipr_db_cursor_close (self->db);
     }
     amq_smessage_destroy      (&self->message_in);
-    amq_dispatch_list_destroy (&self->dispatched);
-    amq_smessage_list_destroy (&self->txn_list);
+    amq_dispatch_list_destroy (&self->dispatch_list);
+    amq_smessage_list_destroy (&self->transact_list);
 </method>
 
 <method name = "ack" template = "function" >
     <argument name = "command" type = "amq_channel_ack_t *" />
-    amq_dispatch_list_ack (self->dispatched, command->message_nbr);
+    amq_dispatch_list_ack (self->dispatch_list, command->message_nbr);
 </method>
 
 <method name = "commit" template = "function" >
+    <local>
+    ipr_db_txn_t
+        *txn;                           /*  Transaction for queue i/o        */
+    </local>
     if (self->transacted) {
-        /*  Save the client transaction                                      */
-        amq_smessage_list_commit (self->txn_list, self->txn);
-        amq_dispatch_list_commit (self->dispatched);
-        ipr_db_log_flush  (self->db);
-        ipr_db_txn_commit (self->txn);
-        self->txn_size = 0;
+        txn = ipr_db_txn_new (self->db);
+        amq_smessage_list_commit (self->transact_list, txn);
+        amq_dispatch_list_commit (self->dispatch_list, txn);
+        ipr_db_txn_commit  (txn);
+        ipr_db_txn_destroy (&txn);
+        ipr_db_log_flush   (self->db);
+        self->transact_count = 0;
+
+        /*  TODO: only if transaction finished successfully...               */
+        amq_dispatch_list_purge (self->dispatch_list);
 
         /*  Now dispatch the resulting messages, if any                      */
         amq_vhost_dispatch (self->vhost);
@@ -131,11 +133,18 @@
 </method>
 
 <method name = "rollback" template = "function" >
+    <local>
+    ipr_db_txn_t
+        *txn;                           /*  Transaction for queue i/o        */
+    </local>
     if (self->transacted) {
-        amq_smessage_list_rollback (self->txn_list);
-        amq_dispatch_list_rollback (self->dispatched);
-        ipr_db_txn_rollback (self->txn);
-        self->txn_size = 0;
+        txn = ipr_db_txn_new (self->db);
+        amq_smessage_list_rollback (self->transact_list);
+        amq_dispatch_list_rollback (self->dispatch_list, txn);
+        ipr_db_txn_commit  (txn);
+        ipr_db_txn_destroy (&txn);
+        ipr_db_log_flush   (self->db);
+        self->transact_count = 0;
     }
     else
         amq_global_set_error (AMQP_COMMAND_INVALID, "Channel is not transacted - rollback is not allowed");
