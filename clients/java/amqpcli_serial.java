@@ -529,11 +529,9 @@ public void do_tests ()
                         System.out.println("Acknowledge batch " + (i / batch_size) + "...");
                 }
                 if (delay_mode) {
-                    synchronized (this) {
-                        try {
-                            wait(1);
-                        } catch (InterruptedException e) {}
-                    }
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {}
                 }
             }
             // Acknowledge & commit leftovers
