@@ -3,9 +3,9 @@ gdl
     subtitle  = The AMQP/Fast Wire-Level Protocol
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/02/08
+    date      = 2005/02/11
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.7a1
+    version   = 0.7b0
 end gdl
 
 Cover
@@ -23,6 +23,9 @@ This document is ready for review.
 
 Recent Change History
 ---------------------
+
+0.7b0
+- removed confirmation conflating mechanism; too complex and not needed.
 
 0.7a1
 - minor corrections to the text.
@@ -1086,27 +1089,6 @@ Confirmations are never batched: if the client requests a confirmation
 then the server will not send any other command back to the client until
 the command being confirmed has completed.
 
-However, a client can send many commands each asking for confirmation,
-and the server MAY conflate confirmations so that a single confirmation
-is sent to cover multiple commands.
-
-To request a confirmation message, the confirm-tag MUST obey these
-conditions:
-
-- The confirm-tag must be non-zero.
-- The confirm-tag must be incremental within the current channel.
-- The confirm-tag must wrap around from 2^15-1 to 1.
-
-The server may queue and merge a maximum of 2^15 commands per channel
-before sending a confirmation.  NB: this is an extreme maximum; in most
-cases the server will confirm immediately, so the client will receive
-one confirmation command for each command needed confirmation.  However
-when commands are queued, confirmations can also be queued, and then
-merged, up to a maximum of 2^15 at once. When the client receives a
-confirmation it checks whether the received tag is lower than the oldest
-command it is waiting for confirmation for.  If so, it adds 2^15 to the
-received tag.
-
 Connection Error Handling
 -------------------------
 
@@ -1408,23 +1390,6 @@ commands depending on whether the confirm-tag field is zero or not.  If
 it is greater than zero, the server will confirm the command.  If there
 is an error processing one of these commands the server closes the
 channel by sending CHANNEL CLOSE.
-
-So, if the client wants CHANNEL REPLY confirmations, it provides a
-confirm-tag that obeys these conditions:
-
-- The confirm-tag is non-zero.
-- The confirm-tag is incremental within the current channel.
-- The confirm-tag wraps around from 2^15-1 to 1.
-
-The server may queue and merge a maximum of 2^15 commands per channel
-before sending a confirmation.  NB: this is an extreme maximum; in most
-cases the server will confirm immediately, so the client will receive
-one CHANNEL REPLY command for each command needed confirmation.  However
-when commands are queued, confirmations can also be queued, and then
-merged, up to a maximum of 2^15 at once. When the client receives a
-CHANNEL REPLY it checks whether the received tag is lower than the oldest
-command it is waiting for confirmation for.  If so, it adds 2^15 to the
-received tag.
 
 Command Flow Summary
 --------------------
