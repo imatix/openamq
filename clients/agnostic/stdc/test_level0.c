@@ -11,7 +11,8 @@
 #include <stdlib.h>                     /*  C standard library               */
 #include <stdarg.h>                     /*  For va_* functions               */
 
-/*- Definitions ------------------------------------------------------------ */
+/*- Definitions ------------------------------------------------------------
+*/
 
 #define MAX_FRAME_SIZE 32000            /*  Max supported frame size         */
 #define BUFFER_SIZE    32768            /*  Network buffer size              */
@@ -20,16 +21,18 @@
 #define EXIT_FAILURE   1                /*  Code returned from main in       */           
                                         /*  case of error                    */
 
-/* scenario types client may use                                             */
+/*  Scenario types client may use
+*/
 typedef enum
 {
-    clienttype_undefined,               /*  invalid type                     */
-    clienttype_producer,                /*  sends messages to server         */
-    clienttype_consumer,                /*  receives messages from server    */
-    clienttype_query                    /*  queries server for messages      */
+    clienttype_undefined,               /*  Invalid type                     */
+    clienttype_producer,                /*  Sends messages to server         */
+    clienttype_consumer,                /*  Receives messages from server    */
+    clienttype_query                    /*  Queries server for messages      */
 } clienttype_t;
 
-/*  states client can be in                                                  */
+/*  States client can be in
+*/
 typedef enum
 {
     state_initial,
@@ -40,205 +43,204 @@ typedef enum
     state_waiting_for_handle_open_confirmation,
     state_waiting_for_consume_confirmation,
     state_waiting_for_send_confirmation,
-    state_waiting_for_message,          /*  waiting for acknowledge          */
-                                        /*  confirmations as well            */
+    state_waiting_for_message_or_acknowledge_confirmation,
     state_waiting_for_index,
     state_waiting_for_browse_confirmation
 } state_t;
 
-/*  client object                                                            */
+/*  Client object
+*/
 typedef struct
 {
     clienttype_t
-        clienttype;                     /*  type of client                   */
+        clienttype;                     /*  Type of client                   */
     state_t
-        state;                          /*  current state  of client         */
+        state;                          /*  Current state  of client         */
     apr_socket_t
-        *sck;                           /*  socket                           */
+        *sck;                           /*  Socket                           */
     const char
-        *server;                        /*  server to connect to             */
+        *server;                        /*  Server to connect to             */
     const char
-        *host;                          /*  virtual host to connect to       */
+        *host;                          /*  Virtual host to connect to       */
     const char
-        *destination;                   /*  destination to connect to        */
+        *destination;                   /*  Destination to connect to        */
     const char 
-        *client_name;                   /*  name of the client, used also as */
+        *client_name;                   /*  Name of the client, used also as */
                                         /*  prefix for message identifiers   */
     apr_uint16_t
-        tag;                            /*  current confirm tag              */
+        tag;                            /*  Current confirm tag              */
     int
-        till_acknowledge;               /*  number of messages to be         */
+        till_acknowledge;               /*  Number of messages to be         */
                                         /*  received till acknowledge is to  */
                                         /*  be sent                          */
     long
-        message_number;                 /*  messages are numbered so that    */
-                                        /*  each can have unique identifier, */
-                                        /*  last number is stored in this    */
-                                        /*  variable                         */
+        last_message_number;            /*  Messages are numbered so that    */
+                                        /*  each can have unique identifier  */
     int 
-        stop;                           /*  callback functions set this      */
-                                        /*  variable to 1, when meesage      */
+        stop;                           /*  Callback functions set this      */
+                                        /*  variable to 1, when message      */
                                         /*  dispatch loop is to be           */
                                         /*  terminated                       */
     long
-        messages;                       /*  number of messages to send,      */
+        messages;                       /*  Number of messages to send,      */
                                         /*  0 means infinite                 */
     char
-        *message_buffer;                /*  stores message data to be sent   */
+        *message_buffer;                /*  Stores message data to be sent   */
     apr_size_t
-        message_size;                   /*  size of message data             */
+        message_size;                   /*  Size of message data             */
     apr_byte_t
         persistent;                     /*  1 for persistent messages to be  */
                                         /*  sent, 0 for nonpersistent        */
     long
-        commit_count;                   /*  transaction commited every       */
+        commit_count;                   /*  Transaction commited every       */
                                         /*  N-th message                     */
     long
-        rollback_count;                 /*  transaction rolled back every    */
+        rollback_count;                 /*  Transaction rolled back every    */
                                         /*  N-th message                     */
     int
-        interval;                       /*  interval (in milliseconds)       */
+        interval;                       /*  Interval (in milliseconds)       */
                                         /*  between individual messages sent */
     apr_uint16_t
-        prefetch;                       /*  number of messages that server   */
+        prefetch;                       /*  Number of messages that server   */
                                         /*  prefetches                       */
     
     char
-        *query_result;                  /*  stores result of query while     */
+        *query_result;                  /*  Stores result of query while     */
                                         /*  individual returned messages are */
                                         /*  being browsed                    */
     int
-        query_result_pos;               /*  position in query_result, where  */
+        query_result_pos;               /*  Position in query_result, where  */
                                         /*  parsing is going on              */
     int
-        browse_begin;                   /*  when interval is specified in    */
+        browse_begin;                   /*  When interval is specified in    */
                                         /*  query result, holds left bound   */
     int
-        browse_end;                     /*  when interval is specified in    */
+        browse_end;                     /*  When interval is specified in    */
                                         /*  query result, holds right bound  */
     int
-        last_query_result;              /*  when move_to_next_query_result   */
+        last_query_result;              /*  When move_to_next_query_result   */
                                         /*  is called, this variable stores  */
                                         /*  the result                       */
 } client_t;    
 
-/*- Function prototypes ---------------------------------------------------- */
+/*- Function prototypes ----------------------------------------------------
+*/
 
-int trace (
+static int trace (
    const char *format,
    ...
    );
 
-void print_usage (void);
+static void print_usage (void);
 
-void main_terminate (
+static void main_terminate (
     client_t *client
     );
 
-void move_to_next_query_result (
+static void move_to_next_query_result (
     client_t *client
     );
 
-apr_status_t browse_next (
-    client_t *client,
+static apr_status_t browse_next (
+    client_t     *client,
     apr_uint16_t handle_id
     );
 
-apr_status_t send_message(
-    client_t *client,
+static apr_status_t send_message(
+    client_t     *client,
     apr_uint16_t confirm_tag
     );
 
-apr_status_t handle_close_cb (
-    const void *hint,
+static apr_status_t handle_close_cb (
+    const void         *hint,
     const apr_uint16_t handle_id,
     const apr_uint16_t reply_code,
-    const char *reply_text
+    const char         *reply_text
     );
 
-apr_status_t channel_close_cb (
-    const void *hint,
+static apr_status_t channel_close_cb (
+    const void         *hint,
     const apr_uint16_t channel_id,
     const apr_uint16_t reply_code,
-    const char *reply_text
+    const char         *reply_text
     );
 
-apr_status_t connection_close_cb (
-    const void *hint,
+static apr_status_t connection_close_cb (
+    const void         *hint,
     const apr_uint16_t reply_code,
-    const char *reply_text
+    const char         *reply_text
     );
 
-apr_status_t handle_index_cb (
-    const void *hint,
+static apr_status_t handle_index_cb (
+    const void         *hint,
     const apr_uint16_t handle_id,
     const apr_uint32_t message_nbr,
-    const apr_size_t message_list_size,
-    const char* message_list
+    const apr_size_t   message_list_size,
+    const char*        message_list
     );
 
-apr_status_t handle_reply_cb (
-    const void *hint,
+static apr_status_t handle_reply_cb (
+    const void         *hint,
     const apr_uint16_t handle_id,
     const apr_uint16_t confirm_tag,
     const apr_uint16_t reply_code,
-    const char *reply_text
+    const char         *reply_text
     );
 
-apr_status_t channel_reply_cb (
-    const void *hint,
+static apr_status_t channel_reply_cb (
+    const void         *hint,
     const apr_uint16_t channel_id,
     const apr_uint16_t confirm_tag,
     const apr_uint16_t reply_code,
-    const char *reply_text
+    const char         *reply_text
     );
 
-apr_status_t connection_reply_cb (
-    const void *hint,
+static apr_status_t connection_reply_cb (
+    const void         *hint,
     const apr_uint16_t confirm_tag,
     const apr_uint16_t reply_code,
-    const char *reply_text
+    const char         *reply_text
     );
 
-apr_status_t connection_challenge_cb (
+static apr_status_t connection_challenge_cb (
     const void       *hint,
-    const apr_byte_t  version,
+    const apr_byte_t version,
     const char       *mechanisms,
-    const apr_size_t  challenges_size,
+    const apr_size_t challenges_size,
     const char       *challenges
     );
 
-apr_status_t connection_tune_cb (
-    const void *hint,
+static apr_status_t connection_tune_cb (
+    const void         *hint,
     const apr_uint32_t frame_max,
     const apr_uint16_t channel_max,
     const apr_uint16_t handle_max,
     const apr_uint16_t heartbeat,
-    const apr_size_t options_size,
-    const char *options
+    const apr_size_t   options_size,
+    const char         *options
     );
 
-apr_status_t handle_notify_cb (
-    const void *hint,
+static apr_status_t handle_notify_cb (
+    const void         *hint,
     const apr_uint16_t handle_id,
     const apr_uint32_t message_nbr,
-    const apr_byte_t partial,
-    const apr_byte_t out_of_band,
-    const apr_byte_t recovery,
-    const apr_byte_t delivered,
-    const apr_byte_t redelivered,
-    const apr_byte_t streaming,
-    const char *dest_name,
+    const apr_byte_t   partial,
+    const apr_byte_t   out_of_band,
+    const apr_byte_t   recovery,
+    const apr_byte_t   delivered,
+    const apr_byte_t   redelivered,
+    const apr_byte_t   streaming,
+    const char         *dest_name,
     const apr_uint32_t body_size,
-    const apr_byte_t persistent,
-    const apr_byte_t priority,
+    const apr_byte_t   persistent,
+    const apr_byte_t   priority,
     const apr_uint32_t expiration,
-    const char *mime_type,
-    const char *encoding,
-    const char *identifier,
-    const apr_size_t headers_size,
-    const char *headers,
-    const char *data
+    const char         *mime_type,
+    const char         *encoding,
+    const char         *identifier,
+    const apr_size_t   headers_size,
+    const char         *headers,
+    const char         *data
     );
 
 /*- Main program ------------------------------------------------------------  
@@ -259,79 +261,88 @@ apr_status_t handle_notify_cb (
   there is no separate state machine for each of them.  Differences are 
   handled as if-else statements within event handlers (level 0 callback 
   functions).
-  ---------------------------------------------------------------------------*/
-int main (int argc, const char *const argv[], const char *const env[]) 
+  ---------------------------------------------------------------------------
+*/
+
+int main (
+    int        argc,
+    const char *const argv[],
+    const char *const env[]) 
 {
     apr_status_t
-        result;                         /*  stores return values             */
+        result;                         /*  Stores return values             */
     apr_pool_t
-        *pool = NULL;                   /*  memory pool for APR functions    */
+        *pool = NULL;                   /*  Memory pool for APR functions    */
     char
-        *addr = NULL;                   /*  contains hostname                */
+        *addr = NULL;                   /*  Contains hostname                */
     char
-        *scope_id = NULL;               /*  contains scope id                */
+        *scope_id = NULL;               /*  Contains scope id                */
     apr_port_t
         port;                           /*  APR port object                  */
     apr_sockaddr_t
         *sockaddr = NULL;               /*  APR socket address object        */
     char
-        buffer [BUFFER_SIZE];           /*  multipurpose buffer              */
+        buffer [BUFFER_SIZE];           /*  Multipurpose buffer              */
     int 
-        i;                              /*  loop control variable            */
+        arg_pos;                        /*  Loop control variable            */
+    int
+        buff_pos;                       /*  Loop control variable            */
     amqp_callbacks_t
-        callbacks;                      /*  table of AMQP level0 callbacks   */
+        callbacks;                      /*  Table of AMQP level0 callbacks   */
     client_t
-        client;                         /*  main client object               */
+        client;                         /*  Main client object               */
     
-    /*  initialize client object according to command line parameters        */
-    client.clienttype     = clienttype_undefined;
-    client.state          = state_initial;
-    client.server         = "127.0.0.1";
-    client.host           = NULL;
-    client.destination    = NULL;
-    client.client_name    = "client";
-    client.messages       = 0;
-    client.interval       = 500;
-    client.prefetch       = 1;
-    client.message_size   = 2;
-    client.persistent     = 0;
-    client.commit_count   = 0;
-    client.rollback_count = 0;    
-    client.message_number = 0;
-    client.stop           = 0;
-    for (i=1; i!=argc; i++) {
-        if (strcmp (argv[i], "producer") == 0)
+    /*  Initialize client object according to command line parameters
+    */
+    client.clienttype          = clienttype_undefined;
+    client.state               = state_initial;
+    client.server              = "127.0.0.1";
+    client.host                = NULL;
+    client.destination         = NULL;
+    client.client_name         = "client";
+    client.messages            = 0;
+    client.interval            = 500;
+    client.prefetch            = 1;
+    client.message_size        = 2;
+    client.persistent          = 0;
+    client.commit_count        = 0;
+    client.rollback_count      = 0;    
+    client.last_message_number = 0;
+    client.stop                = 0;
+    for (arg_pos=1; arg_pos!=argc; arg_pos++) {
+        if (strcmp (argv[arg_pos], "producer") == 0)
             client.clienttype = clienttype_producer;
-        if (strcmp (argv[i], "consumer") == 0)
+        if (strcmp (argv[arg_pos], "consumer") == 0)
             client.clienttype = clienttype_consumer;
-        if (strcmp (argv[i], "query") == 0)
+        if (strcmp (argv[arg_pos], "query") == 0)
             client.clienttype = clienttype_query;
-        if (strncmp (argv[i], "-s", 2) == 0)
-            client.server = argv [i] + 2;
-        if (strncmp (argv[i], "-h", 2) == 0)
-            client.host = argv [i] + 2;
-        if (strncmp (argv[i], "-d", 2) == 0)
-            client.destination = argv [i] + 2;
-        if (strncmp (argv[i], "-m", 2) == 0)
-            client.client_name = argv [i] + 2;
-        if (strncmp (argv[i], "-n", 2) == 0)
-            client.messages = atoi (argv [i] + 2);
-        if (strncmp (argv[i], "-i", 2) == 0)
-            client.interval = atoi (argv [i] + 2);
-        if (strncmp (argv[i], "-p", 2) == 0)
-            client.prefetch = atoi (argv [i] + 2);
-        if (strncmp (argv[i], "-l", 2) == 0)
-            client.message_size = atoi (argv [i] + 2);
-        if (strncmp (argv[i], "-x", 2) == 0)
+        if (strncmp (argv[arg_pos], "-s", 2) == 0)
+            client.server = argv [arg_pos] + 2;
+        if (strncmp (argv[arg_pos], "-h", 2) == 0)
+            client.host = argv [arg_pos] + 2;
+        if (strncmp (argv[arg_pos], "-d", 2) == 0)
+            client.destination = argv [arg_pos] + 2;
+        if (strncmp (argv[arg_pos], "-m", 2) == 0)
+            client.client_name = argv [arg_pos] + 2;
+        if (strncmp (argv[arg_pos], "-n", 2) == 0)
+            client.messages = atoi (argv [arg_pos] + 2);
+        if (strncmp (argv[arg_pos], "-i", 2) == 0)
+            client.interval = atoi (argv [arg_pos] + 2);
+        if (strncmp (argv[arg_pos], "-p", 2) == 0)
+            client.prefetch = atoi (argv [arg_pos] + 2);
+        if (strncmp (argv[arg_pos], "-l", 2) == 0)
+            client.message_size = atoi (argv [arg_pos] + 2);
+        if (strncmp (argv[arg_pos], "-x", 2) == 0)
             client.persistent = 1;
-        if (strncmp (argv[i], "-c", 2) == 0)
-            client.commit_count = atoi (argv [i] + 2);
-        if (strncmp (argv[i], "-r", 2) == 0)
-            client.rollback_count = atoi (argv [i] + 2);
+        if (strncmp (argv[arg_pos], "-c", 2) == 0)
+            client.commit_count = atoi (argv [arg_pos] + 2);
+        if (strncmp (argv[arg_pos], "-r", 2) == 0)
+            client.rollback_count = atoi (argv [arg_pos] + 2);
     }
     client.till_acknowledge = client.prefetch;
 
-    /*  make sure that mandatory parameters were supplied                    */
+    /*  Make sure that mandatory parameters were supplied
+    */
     if (client.clienttype == clienttype_undefined ||
             client.host == NULL ||
             client.destination == NULL) {
@@ -339,19 +350,21 @@ int main (int argc, const char *const argv[], const char *const env[])
         return EXIT_FAILURE;
     }
 
-    /*  create message  to be sent                                           */
+    /*  Create message  to be sent
+    */
     client.message_buffer = malloc (client.message_size);
     if (!client.message_buffer) {
         trace ("Not enough memory for message body.");
         main_terminate (&client);
         return EXIT_FAILURE;
     }
-    for (i = 0; i != client.message_size; i++) 
-        client.message_buffer [i] = i % 256;
+    for (buff_pos = 0; buff_pos != client.message_size; buff_pos++) 
+        client.message_buffer [buff_pos] = buff_pos % 256;
 
     trace ("Connecting to server.\n");
 
-    /*  initialize APR, create and open a socket, initialize AMQ             */
+    /*  Initialize APR, create and open a socket, initialize AMQ
+    */
 
     result = apr_app_initialize (&argc, &argv, &env);
     if(result != APR_SUCCESS) {
@@ -422,7 +435,8 @@ int main (int argc, const char *const argv[], const char *const env[])
 
     client.state = state_waiting_for_connection_challenge;
 
-    /*  fill the callbacks table                                             */
+    /*  Fill in the callbacks table
+    */
     memset ( (void*) &callbacks, 0, sizeof (amqp_callbacks_t) );
     callbacks.connection_challenge = connection_challenge_cb;
     callbacks.connection_tune      = connection_tune_cb;
@@ -435,9 +449,9 @@ int main (int argc, const char *const argv[], const char *const env[])
     callbacks.channel_close        = channel_close_cb;
     callbacks.handle_close         = handle_close_cb;
 
-    /*  dispatcher loop                                                      */
-    while (1)
-    {
+    /*  Dispatcher loop
+    */
+    while (1) {
         result = amqp_recv (client.sck, buffer, BUFFER_SIZE,
             &callbacks, (void*) &client);
         if (result != APR_SUCCESS && result != APR_TIMEUP) {
@@ -447,9 +461,11 @@ int main (int argc, const char *const argv[], const char *const env[])
             return EXIT_FAILURE;
         }
 
-        /*  dispatcher loop ends when some command handler sets client.stop  */
-        /*  variable to value of 1                                           */
-        if (client.stop) break;
+        /*  Dispatcher loop ends when some command handler sets client.stop
+            variable to value of 1
+        */
+        if (client.stop)
+            break;
     }
 
     main_terminate (&client);
@@ -463,7 +479,12 @@ int main (int argc, const char *const argv[], const char *const env[])
 
     Synopsis:
     For now same as fprint to stderr, may be modified in case of need
+
+    Arguments:
+        const char *format  Format string, see printf documentation
+        ...                 Variable arguments, same as for printf
     -------------------------------------------------------------------------*/
+
 int trace (
    const char *format,
    ...
@@ -490,6 +511,7 @@ int trace (
     Synopsis:
     Prints out usage notes.
     -------------------------------------------------------------------------*/
+
 void print_usage (void)
 {
     printf (
@@ -528,19 +550,24 @@ void print_usage (void)
 
     Synopsis:
     Termination handler for main function.
+
+    Arguments:
+            client_t *client  Client object
     -------------------------------------------------------------------------*/
+
 void main_terminate (
     client_t *client
     )
 {
     apr_status_t
-        result;                         /*  stores return values             */
+        result;                         /*  Stores return values             */
     char
-        buffer [BUFFER_SIZE];           /*  multipurpose buffer              */
+        buffer [BUFFER_SIZE];           /*  Multipurpose buffer              */
 
     trace ("Terminating client.\n");
 
-    /*  terminates AMQ, closes the socket, terminates APR                    */
+    /*  Terminates AMQ, closes the socket, terminates APR
+    */
 
     if (client->sck) {
         result = amqp_term (client->sck);
@@ -561,21 +588,26 @@ void main_terminate (
     Function: handle_close_cb
 
     Synopsis:
-    Callback function called when HANDLE CLOSE command arrives.              
-    For prototype documentation look into amqp_level0.h                   
+    Callback function called when HANDLE CLOSE command arrives.
+
+    Arguments:              
+        See amqp_level0.h for documentation
     -------------------------------------------------------------------------*/
+
 apr_status_t handle_close_cb (
-    const void *hint,
+    const void         *hint,
     const apr_uint16_t handle_id,
     const apr_uint16_t reply_code,
-    const char *reply_text
+    const char         *reply_text
     )
 {
     trace ("Server closed the handle.\n%ld : %s\n",
         (long) reply_code, reply_text);
-    /*  behaviour not implemented yet                                        */
+    /*  Behaviour not implemented yet
+    */
     abort ();
-    /*  returns some value to prevent compiler from producing warning        */
+    /*  Returns some value to prevent compiler from producing warning
+    */
     return APR_SUCCESS;
 }
 
@@ -584,20 +616,25 @@ apr_status_t handle_close_cb (
 
     Synopsis:
     Callback function called when CHANNEL CLOSE command arrives.              
-    For prototype documentation look into amqp_level0.h                   
+
+    Arguments:              
+        See amqp_level0.h for documentation
     -------------------------------------------------------------------------*/
+
 apr_status_t channel_close_cb (
-    const void *hint,
+    const void         *hint,
     const apr_uint16_t channel_id,
     const apr_uint16_t reply_code,
-    const char *reply_text
+    const char         *reply_text
     )
 {
     trace ("Server closed the channel.\n%ld : %s\n",
         (long) reply_code, reply_text);
-    /*  behaviour not implemented yet                                        */
+    /*  Behaviour not implemented yet
+    */
     abort();
-    /*  returns some value to prevent compiler from producing warning        */
+    /*  Returns some value to prevent compiler from producing warning
+    */
     return APR_SUCCESS;
 }
 
@@ -606,19 +643,24 @@ apr_status_t channel_close_cb (
 
     Synopsis:
     Callback function called when CONNECTION CLOSE command arrives.              
-    For prototype documentation look into amqp_level0.h                   
+
+    Arguments:              
+        See amqp_level0.h for documentation                  
     -------------------------------------------------------------------------*/
+
 apr_status_t connection_close_cb (
-    const void *hint,
+    const void         *hint,
     const apr_uint16_t reply_code,
-    const char *reply_text
+    const char         *reply_text
     )
 {
     trace ("Server closed the connection.\n%ld : %s\n",
         (long) reply_code, reply_text);
-    /*  behaviour not implemented yet                                        */
+    /*  Behaviour not implemented yet
+    */
     abort ();
-    /*  returns some value to prevent compiler from producing warning        */
+    /*  Returns some value to prevent compiler from producing warning
+    */
     return APR_SUCCESS;
 }
 
@@ -628,7 +670,11 @@ apr_status_t connection_close_cb (
     Synopsis:
     Parses next query result from existing query result string
     (one returned by HANDLE INDEX) and stores it into last_query_result.
+
+    Arguments:
+        client_t *client  Client object
     -------------------------------------------------------------------------*/
+
 void move_to_next_query_result (
     client_t *client
     )
@@ -636,26 +682,30 @@ void move_to_next_query_result (
     int
         pos;
 
-    /*  if we are inside a range specifier, return next value                */
+    /*  If we are inside a range specifier, return next value
+    */
     if (client->browse_begin < client->browse_end) {
         client->last_query_result = client->browse_begin++;
     }
     else
-    /*  if we are at the end of query result string,                         */
-    /*  there are no more results                                            */
+    /*  If we are at the end of query result string,
+        there are no more results
+    */
     if (client->query_result [client->query_result_pos] == '\0') {
         free (client->query_result);
         client->last_query_result = -1;
     }
     else {
-        /*  parse next value from query result string                        */
+        /*  Parse next value from query result string
+        */
         pos = client->query_result_pos;
         client->browse_begin = 0;
         while (isdigit (client->query_result [pos]))
             client->browse_begin = client->browse_begin * 10 +
                 client->query_result [pos++] - '0';
 
-        /*  if we have a range specifier, parse the end value                */
+        /*  If we have a range specifier, parse the end value
+        */
         if (client->query_result [pos] == '-') {
             pos++;
             client->browse_end = 0;
@@ -663,12 +713,14 @@ void move_to_next_query_result (
                     client->browse_end = client->browse_end * 10 +
                         client->query_result [pos++] - '0';
         }
-        /* it's just a single value, left and round bound should be the same */
+        /* It's just a single value, left and round bound should be the same
+        */
         else {
             client->browse_end = client->browse_begin;
         }
 
-        /*  ignore whitespace                                                */
+        /*  Ignore whitespace
+        */
         while (isspace (client->query_result [pos]))
             pos++;
 
@@ -682,19 +734,25 @@ void move_to_next_query_result (
 
     Synopsis:
     Browses next message returned from query.
+
+    Arguments:
+        client_t *client        Client object
+        apr_uint16_t handle_id  Handle identifier
     -------------------------------------------------------------------------*/
+
 apr_status_t browse_next (
-    client_t *client,
+    client_t     *client,
     apr_uint16_t handle_id
     )
 {
     apr_status_t
-        result;                         /*  stores return values             */
+        result;                         /*  Stores return values             */
     char
-        buffer [BUFFER_SIZE];           /*  multipurpose buffer              */
+        buffer [BUFFER_SIZE];           /*  Multipurpose buffer              */
 
     move_to_next_query_result (client);
-    /*  if we have more messages to browse, fetch next from server           */
+    /*  If we have more messages to browse, fetch next from server
+    */
     if (client->last_query_result != -1) {
         result = amqp_handle_browse (client->sck, buffer, BUFFER_SIZE,
             handle_id, client->tag++, client->last_query_result);
@@ -706,9 +764,9 @@ apr_status_t browse_next (
         }
         client->state = state_waiting_for_browse_confirmation;
     }
-    /*  else stop                                                            */
-    else
+    else {
         client->stop = 1;
+    }
 
     return APR_SUCCESS;
 }
@@ -718,26 +776,32 @@ apr_status_t browse_next (
 
     Synopsis:
     Sends message to the server.
+
+    Arguments:
+        client_t     *client      Client object
+        apr_uint16_t confirm_tag  Confirmation tag to use
     -------------------------------------------------------------------------*/
+
 apr_status_t send_message(
-    client_t *client,
+    client_t     *client,
     apr_uint16_t confirm_tag
     )
 {
     apr_status_t
-        result;                         /*  stores return values             */
+        result;                         /*  Stores return values             */
     char
-        buffer [BUFFER_SIZE];           /*  multipurpose buffer              */
+        buffer [BUFFER_SIZE];           /*  Multipurpose buffer              */
     char
-        identifier [BUFFER_SIZE];       /*  buffer to construct message      */
+        identifier [BUFFER_SIZE];       /*  Buffer to construct message      */
                                         /*  identifier in                    */
 
-    /*  wait for specified number of milliseconds                            */
     if (client->interval)
         apr_sleep (client->interval * 1000);
 
-    /*  send the message                                                     */
-    sprintf (identifier, "%s-%ld", client->client_name, client->message_number);
+    /*  Send the message
+    */
+    sprintf (identifier, "%s-%ld", client->client_name,
+        client->last_message_number);
 
     result = amqp_handle_send (client->sck, buffer, BUFFER_SIZE, 1,
         confirm_tag, 0, 0, 0, 0, "", client->message_size, client->persistent,
@@ -751,9 +815,10 @@ apr_status_t send_message(
     trace ("Message %s sent. (%ld bytes)\n", identifier,
         (long) client->message_size);
 
-    /*  rollback transaction if needed                                       */
+    /*  Rollback transaction if needed
+    */
     if (client->rollback_count &&
-        ( (client->message_number + 1) % client->rollback_count) == 0) {
+        ( (client->last_message_number + 1) % client->rollback_count) == 0) {
 
         result = amqp_channel_rollback (client->sck, buffer, BUFFER_SIZE, 
             1, 0, 0, "");
@@ -764,9 +829,10 @@ apr_status_t send_message(
         }
         trace ("Rolled back.\n");
     }
-    /*  commit transaction if needed                                         */
+    /*  Commit transaction if needed
+    */
     else if (client->commit_count &&
-        ( (client->message_number + 1) % client->commit_count) == 0) {
+        ( (client->last_message_number + 1) % client->commit_count) == 0) {
 
         result = amqp_channel_commit (client->sck, buffer, BUFFER_SIZE,
             1, 0, 0, "");
@@ -778,8 +844,7 @@ apr_status_t send_message(
         trace ("Commited.\n");
     }
 
-    client->message_number++;
-
+    client->last_message_number++;
     client->state = state_waiting_for_send_confirmation;
 
     return APR_SUCCESS;
@@ -790,30 +855,35 @@ apr_status_t send_message(
 
     Synopsis:
     Callback function called when HANDLE INDEX command arrives.              
-    For prototype documentation look into amqp_level0.h                   
+
+    Arguments:              
+        See amqp_level0.h for documentation
     -------------------------------------------------------------------------*/
+
 apr_status_t handle_index_cb (
-    const void *hint,
+    const void         *hint,
     const apr_uint16_t handle_id,
     const apr_uint32_t message_nbr,
-    const apr_size_t message_list_size,
-    const char* message_list
+    const apr_size_t   message_list_size,
+    const char         *message_list
     )
 {
-    client_t *client =
-        (client_t*) hint;               /*  client object                    */
+    client_t 
+        *client = (client_t*) hint;     /*  Client object                    */
 
     if (client->state == state_waiting_for_index) {
         trace ("Result of query: %s\n", message_list);
 
-        /*  fill query result into client                                    */
+        /*  Fill query result into client
+        */
         client->query_result = malloc (strlen (message_list) + 1);
         strcpy (client->query_result , message_list);
         client->query_result_pos = 0;
 
-        /*  browse first message from result                                 */
-        /*  subsequent messages will be browsed on confirmation of this      */
-        /*  HANDLE BROWSE                                                    */
+        /*  Browse first message from result
+            subsequent messages will be browsed on confirmation of this
+            HANDLE BROWSE
+        */
         browse_next (client, handle_id);
 
         return APR_SUCCESS;
@@ -826,22 +896,25 @@ apr_status_t handle_index_cb (
 
     Synopsis:
     Callback function called when HANDLE REPLY command arrives.              
-    For prototype documentation look into amqp_level0.h                   
+
+    Arguments:              
+        See amqp_level0.h for documentation               
     -------------------------------------------------------------------------*/
+
 apr_status_t handle_reply_cb (
-    const void *hint,
+    const void         *hint,
     const apr_uint16_t handle_id,
     const apr_uint16_t confirm_tag,
     const apr_uint16_t reply_code,
-    const char *reply_text
+    const char         *reply_text
     )
 {
-    client_t *client =
-        (client_t*) hint;               /*  client object                    */
+    client_t
+        *client = (client_t*) hint;     /*  Client object                    */
     apr_status_t
-        result;                         /*  stores return values             */
+        result;                         /*  Stores return values             */
     char
-        buffer [BUFFER_SIZE];           /*  multipurpose buffer              */
+        buffer [BUFFER_SIZE];           /*  Multipurpose buffer              */
 
     if (client->state == state_waiting_for_handle_open_confirmation) {
 
@@ -877,15 +950,17 @@ apr_status_t handle_reply_cb (
     }
     if (client->state == state_waiting_for_consume_confirmation) {
         client->tag = confirm_tag;
-        client->state = state_waiting_for_message;
+        client->state = state_waiting_for_message_or_acknowledge_confirmation;
         return APR_SUCCESS;
     }
     if (client->state == state_waiting_for_send_confirmation) {
         if (client->messages) {
-            /*  decrement number of messages still to be sent                */
-            /*  if there are no more messages to be sent, stop the client    */
+            /*  Decrement number of messages still to be sent
+                If there are no more messages to be sent, stop the client    
+            */
             client->messages--;
-            if (client->messages == 0) client->stop = 1;
+            if (client->messages == 0)
+                client->stop = 1;
         }
         if (!client->stop)
             send_message (client, (apr_uint16_t) (confirm_tag + 1) );
@@ -907,20 +982,23 @@ apr_status_t handle_reply_cb (
 
     Synopsis:
     Callback function called when CHANNEL REPLY command arrives.              
-    For prototype documentation look into amqp_level0.h                   
+
+    Arguments:              
+        See amqp_level0.h for documentation
     -------------------------------------------------------------------------*/
+
 apr_status_t channel_reply_cb (
-    const void *hint,
+    const void         *hint,
     const apr_uint16_t channel_id,
     const apr_uint16_t confirm_tag,
     const apr_uint16_t reply_code,
-    const char *reply_text
+    const char         *reply_text
     )
 {
     client_t
-        *client = (client_t*) hint;     /*  client object                    */
+        *client = (client_t*) hint;     /*  Client object                    */
     apr_status_t
-        result;                         /*  stores return values             */
+        result;                         /*  Stores return values             */
     char
         buffer [BUFFER_SIZE];
 
@@ -937,9 +1015,9 @@ apr_status_t channel_reply_cb (
         client->state = state_waiting_for_handle_open_confirmation;
         return APR_SUCCESS;
     }
-    if (client->state == state_waiting_for_message) {
-        /*  consumer : reply to channel ack                                  */
-        /*  acknowledgement confiramrions and incoming messages may be mixed */
+    if (client->state == state_waiting_for_message_or_acknowledge_confirmation) {
+        /*  Consumer : reply to channel ack
+        */
         trace ("Message acknowledged.\n");
         return APR_SUCCESS;
     }
@@ -952,25 +1030,29 @@ apr_status_t channel_reply_cb (
 
     Synopsis:
     Callback function called when CONNECTION REPLY command arrives.              
-    For prototype documentation look into amqp_level0.h                   
+
+    Arguments:              
+        See amqp_level0.h for documentation
     -------------------------------------------------------------------------*/
+
 apr_status_t connection_reply_cb (
-    const void *hint,
+    const void         *hint,
     const apr_uint16_t confirm_tag,
     const apr_uint16_t reply_code,
-    const char *reply_text
+    const char         *reply_text
     )
 {
     client_t
-        *client = (client_t*) hint;     /*  client object                    */
+        *client = (client_t*) hint;     /*  Client object                    */
     apr_status_t
-        result;                         /*  stores return values             */
+        result;                         /*  Stores return values             */
     char
         buffer [BUFFER_SIZE];
 
     if (client->state == state_waiting_for_connection_open_confirmation) {
         result = amqp_channel_open (client->sck, buffer, BUFFER_SIZE, 1, 2,
-	    /*  transaction mode                                             */
+	    /*  Transaction mode
+            */
             (apr_byte_t) ( (client->commit_count || client->rollback_count) ? 1 : 0),
             0, 0, "", "");
         if (result != APR_SUCCESS) {
@@ -991,26 +1073,29 @@ apr_status_t connection_reply_cb (
 
     Synopsis:
     Callback function called when CONNECTION CHALLENGE command arrives.              
-    For prototype documentation look into amqp_level0.h                   
+
+    Arguments:              
+        See amqp_level0.h for documentation                  
     -------------------------------------------------------------------------*/
 
 apr_status_t connection_challenge_cb (
-    const void *hint,
+    const void       *hint,
     const apr_byte_t version,
-    const char *mechanisms,
+    const char       *mechanisms,
     const apr_size_t challenges_size,
-    const char *challenges
+    const char       *challenges
     )
 {
     client_t 
-        *client = (client_t*) hint;     /*  client object                    */
+        *client = (client_t*) hint;     /*  Client object                    */
     apr_status_t
-        result;                         /*  stores return values             */
+        result;                         /*  Stores return values             */
     char
         buffer [BUFFER_SIZE];
     
     if (client->state == state_waiting_for_connection_challenge) {
-        /*  reply to amq protocol initiation                                 */
+        /*  Reply to amq protocol initiation
+        */
         result = amqp_connection_response (client->sck, buffer,
             BUFFER_SIZE, "plain", 0, "");
         if (result != APR_SUCCESS) {
@@ -1030,22 +1115,25 @@ apr_status_t connection_challenge_cb (
 
     Synopsis:
     Callback function called when CONNECTION TUNE command arrives.              
-    For prototype documentation look into amqp_level0.h                   
+
+    Arguments:              
+        See amqp_level0.h for documentation                
     -------------------------------------------------------------------------*/
+
 apr_status_t connection_tune_cb (
-    const void *hint,
+    const void         *hint,
     const apr_uint32_t frame_max,
     const apr_uint16_t channel_max,
     const apr_uint16_t handle_max,
     const apr_uint16_t heartbeat,
-    const apr_size_t options_size,
-    const char *options
+    const apr_size_t   options_size,
+    const char         *options
     )
 {
     client_t
-        *client = (client_t*) hint;     /*  client object                    */
+        *client = (client_t*) hint;     /*  Client object                    */
     apr_status_t
-        result;                         /*  stores return values             */
+        result;                         /*  Stores return values             */
     char
         buffer [BUFFER_SIZE];
     
@@ -1076,51 +1164,55 @@ apr_status_t connection_tune_cb (
 
     Synopsis:
     Callback function called when HANDLE NOTIFY command arrives.              
-    For prototype documentation look into amqp_level0.h                   
+
+    Arguments:              
+        See amqp_level0.h for documentation                 
     -------------------------------------------------------------------------*/
+
 apr_status_t handle_notify_cb (
-    const void *hint,
+    const void         *hint,
     const apr_uint16_t handle_id,
     const apr_uint32_t message_nbr,
-    const apr_byte_t partial,
-    const apr_byte_t out_of_band,
-    const apr_byte_t recovery,
-    const apr_byte_t delivered,
-    const apr_byte_t redelivered,
-    const apr_byte_t streaming,
-    const char *dest_name,
+    const apr_byte_t   partial,
+    const apr_byte_t   out_of_band,
+    const apr_byte_t   recovery,
+    const apr_byte_t   delivered,
+    const apr_byte_t   redelivered,
+    const apr_byte_t   streaming,
+    const char         *dest_name,
     const apr_uint32_t body_size,
-    const apr_byte_t persistent,
-    const apr_byte_t priority,
+    const apr_byte_t   persistent,
+    const apr_byte_t   priority,
     const apr_uint32_t expiration,
-    const char *mime_type,
-    const char *encoding,
-    const char *identifier,
-    const apr_size_t headers_size,
-    const char *headers,
-    const char *data
+    const char         *mime_type,
+    const char         *encoding,
+    const char         *identifier,
+    const apr_size_t   headers_size,
+    const char         *headers,
+    const char         *data
     )
 {
     client_t
-        *client = (client_t*) hint;     /*  client object                    */
+        *client = (client_t*) hint;     /*  Client object                    */
     apr_status_t
-        result;                         /*  stores return values             */
+        result;                         /*  Stores return values             */
     char
-        buffer [BUFFER_SIZE];           /*  multipurpose buffer              */
+        buffer [BUFFER_SIZE];           /*  Multipurpose buffer              */
 
     if (client->state == state_waiting_for_browse_confirmation) {
         trace ("Message %s browsed successfully.\n", identifier);
         browse_next (client, handle_id);
         return APR_SUCCESS;
     }
-    if (client->state == state_waiting_for_message) {
+    if (client->state == state_waiting_for_message_or_acknowledge_confirmation) {
     
         trace ("Message %s received. (%ld bytes)\n",
             identifier, (long) body_size);
 
         client->tag++;
 
-        /* if N messages where already received, acknowledge them             */
+        /* If N messages where already received, acknowledge them
+        */
         client->till_acknowledge--;
         if (!client->till_acknowledge)
         {
