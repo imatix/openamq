@@ -1,0 +1,489 @@
+USER GUIDE TO AMQ CLIENT API (C IMPLEMENTATION)
+***********************************************
+
+Types
+=====
+
+amq_stdc_connection_t
+---------------------
+
+Handle type for CONNECTION object.
+
+amq_stdc_channel_t
+------------------
+
+Handle type for CHANNEL object.
+
+amq_stdc_handle_t
+-----------------
+
+Handle type for HANDLE object.
+
+amq_stdc_service_type_t
+-----------------------
+
+Enumeration of AMQ service types. Contains following values:
+amq_stdc_service_type_undefined
+amq_stdc_service_type_queue
+amq_stdc_service_type_topic
+amq_stdc_service_type_peer
+
+amq_stdc_heartbeat_model_t
+--------------------------
+
+Enumveration of possible heartbeat strategies. Contains following values:
+amq_stdc_heartbeats_off:
+    No heartbeats
+amq_stdc_heartbeats_on
+    Hearbeat sending/checking on
+amq_stdc_heartbeats_active
+    Same as amq_stdc_heartbeats_on, but when heartbeat isn't delivered on time,
+    active request for heartbeat is made
+
+Global functions
+================
+
+amq_stdc_init
+-------------
+
+apr_status_t amq_stdc_init ()
+
+Initialises API module.
+
+amq_stdc_term
+-------------
+
+apr_status_t amq_stdc_term ()
+
+Deinitialises API module. If there are objects still opened attempts to
+shut them down gracefuly.
+
+amq_stdc_open_connection
+--------------------------
+
+apr_status_t amq_stdc_open_connection (
+    const char                  *server,
+    const char                  *host,
+    const char                  *client_name,
+    amq_stdc_heartbeat_model_t  out_heartbeat_model,
+    amq_stdc_heartbeat_model_t  in_heartbeat_model,
+    apr_interval_time_t         in_heartbeat_interval,
+    apr_byte_t                  async,
+    amq_stdc_connection_t       *out
+    )
+
+Creates new connection object and opens a connection to server.
+
+server:
+    Server to connect to
+host:
+    Virtual host to connect to
+client_name:
+    Client name to use when connecting
+out_heartbeat_model:
+    Specifies how heartbeats are to be sent to server
+in_heartbeat_mode:
+    Specifies how heartbeats are to be received from server
+in_heartbeat_interval:
+    Interval in which client wants server to send heartbeats  
+async:
+    If 1, doesn't wait for confirmation
+connection:
+    Out parameter; new connection object
+
+Connection functions
+====================
+
+amq_stdc_open channel
+---------------------
+
+apr_status_t amq_stdc_open_channel (
+    amq_stdc_connection_t  context,
+    apr_byte_t             transacted,
+    apr_byte_t             restartable,
+    apr_byte_t             async,
+    amq_stdc_channel_t     *out)
+
+Opens channel.
+
+connection:
+    Parent connection for the channel
+transacted:
+    Whether channel is to be transacted
+restartable:
+    Whether channel supports restartable messages
+async:
+    If 1, don't wait for confirmation
+channel:
+    Output parameter; new channel object
+
+amq_stdc_close_connection
+-------------------------
+
+apr_status_t amq_stdc_close_connection (
+    amq_stdc_connection_t  context
+    )
+
+Closes connection to server.
+
+connection:
+    Connection object to close
+
+Channel functions
+=================
+
+amq_stdc_acknowledge
+--------------------
+
+apr_status_t amq_stdc_acknowledge (
+    amq_stdc_channel_t  context,
+    apr_uint32_t        message_nbr,
+    apr_byte_t          async
+    )
+
+Acknowledges message(s).
+
+channel:
+    Channel to do acknowledge on
+message_nbr:
+    Highest message number to be acknowledged
+async:
+    If 1, don't wait for confirmation
+
+amq_stdc_commit
+---------------
+
+apr_status_t amq_stdc_commit (
+    amq_stdc_channel_t  context,
+    apr_byte_t          async
+    )
+
+Commits work done.
+
+channel:
+    Channel to do commit on
+async:
+    If 1, don't wait for confirmation
+
+amq_stdc_rollback
+-----------------
+
+apr_status_t amq_stdc_rollback (
+    amq_stdc_channel_t  context,
+    apr_byte_t          async
+    )
+
+Rolls back work done.
+
+channel:
+    Channel to do rollback on
+async:
+    If 1, don't wait for confirmation
+
+amq_stdc_open_handle
+--------------------
+
+apr_status_t amq_stdc_open_handle (
+    amq_stdc_channel_t       context,
+    amq_stdc_service_type_t  service_type,
+    apr_byte_t               producer,
+    apr_byte_t               consumer,
+    apr_byte_t               browser,
+    apr_byte_t               temporary,
+    char                     *dest_name,
+    char                     *mime_type,
+    char                     *encoding,
+    apr_byte_t               async,
+    char                     **dest_name_out,
+    amq_stdc_handle_t        *out
+    )
+
+Opens handle.
+
+channel:
+    Parent channel for the handle
+service_type:
+    One of following three -
+    amq_stdc_service_type_queue
+    amq_stdc_service_type_topic
+    amq_stdc_service_type_peer
+producer:
+    If 1, client is allowed to send messages
+consumer:
+    If 1, client is allowed to receive messages
+browser:
+    If 1, client is allowed to browse for messages
+temporary:
+    If 1, temporary destination will be created
+dest_name:
+    Destination name
+mime_type:
+    MIME type
+encoding:
+    Content encoding
+async:
+    If 1, doesn't wait for confirmation
+dest_name_out:
+    Out parameter; name of newly created temporary destination;
+    filled only when temporary = 1
+handle:
+    Out parameter; new handle object
+
+amq_stdc_close_channel
+----------------------
+
+apr_status_t amq_stdc_close_channel (
+    amq_stdc_channel_t  context
+    )
+
+Closes channel.
+
+channel:
+    channel object to close
+
+Handle functions
+================
+
+amq_stdc_consume
+----------------
+
+apr_status_t amq_stdc_consume (
+    amq_stdc_handle_t  context,
+    apr_uint16_t       prefetch,
+    apr_byte_t         no_local,
+    apr_byte_t         unreliable,
+    const char         *dest_name,
+    const char         *identifier,
+    const char         *mime_type,
+    apr_byte_t         async
+    )
+
+Starts message consumption.
+
+handle:
+    Handle object
+prefetch:
+    Number of messages to prefetch
+no_local:
+    If 1, messages sent from this connection won't be received
+unreliable:
+    If 1, client won't acknowledge messages
+dest_name:
+    Destination name
+idnetifier:
+    Durable subscription name
+mime_type:
+    MIME type
+async:
+    If 1, doesn't wait for confirmation
+
+amq_stdc_get_message
+--------------------
+
+apr_status_t amq_stdc_get_message (
+    amq_stdc_handle_t  handle,
+    amqp_frame_t       **message
+    )
+
+Gets one message. If no message is available, this is a blocking call.
+
+handle:
+    Handle object
+message:
+    Out parameter; message returned
+
+amq_stdc_send_message
+---------------------
+
+apr_status_t amq_stdc_send_message (
+    amq_stdc_handle_t  context,
+    apr_byte_t         out_of_band,
+    apr_byte_t         recovery,
+    apr_byte_t         streaming,
+    const char         *dest_name,
+    apr_byte_t         persistent,
+    apr_byte_t         priority,
+    apr_uint32_t       expiration,
+    const char         *mime_type,
+    const char         *encoding,
+    const char         *identifier,
+    apr_size_t         data_size,
+    void               *data,
+    apr_byte_t         async
+    )
+
+Sends message to server.
+
+handle:
+    Handle object
+out_of_band:
+    If 1, message data are to be transferred out of band
+recovery:
+    If 1, this is a recovery - only a partial message
+streaming:
+    If 1, it is a stream
+dest_name:
+    Destination name
+persistent:
+    If 1, message is going to be persistent
+priority:
+    Priority of message
+expiration:
+    Expiration time of message
+mime_type:
+    MIME type
+encoding:
+    Content encoding
+identifier:
+    Durable subscription name        
+data_size:
+    Number of bytes to send
+data:
+    Position from which to read data
+async:
+    If 1, doesn't wait for confirmation
+
+amq_stdc_flow
+-------------
+
+apr_status_t amq_stdc_flow (
+    amq_stdc_handle_t  context,
+    apr_byte_t         pause,
+    apr_byte_t         async
+    )
+
+Suspends or restards message flow.
+
+handle:
+    Handle object
+pause:
+    If 1, suspend, if 0, restart
+async:
+    If 1, doesn't wait for confirmation
+
+amq_stdc_cancel_subscription
+----------------------------
+
+apr_status_t amq_stdc_cancel_subscription (
+    amq_stdc_handle_t  context,
+    const char         *dest_name,
+    const char         *identifier,
+    apr_byte_t         async
+    )
+
+Cancels durable subscription.
+
+handle:
+    Handle object
+dest_name:
+    Destination name
+identifier:
+    Subscription name
+async:
+    If 1, doesn't wait for confirmation
+
+amq_stdc_unget_message
+----------------------
+
+apr_status_t amq_stdc_unget_message (
+    amq_stdc_handle_t  context,
+    apr_uint32_t       message_nbr,
+    apr_byte_t         async
+    )
+
+Returns a message to the server.
+
+handle:
+    Handle object
+message_nbr:
+    Number of message to return          
+async:
+    If 1, doesn't wait for confirmation
+
+amq_stdc_query
+--------------
+
+apr_status_t amq_stdc_query (
+    amq_stdc_handle_t  context,
+    apr_uint32_t       message_nbr,
+    const char         *dest_name,
+    const char         *mime_type,
+    apr_byte_t         partial,
+    char               **resultset
+    )
+
+Issues a query to server.
+
+handle:
+    Handle object
+message_nbr:
+    Request for messages with number over this value; 0 means all messages
+dest_name:
+    Destination name
+mime_type:
+    MIME type
+partial:
+    If 1 reads only single batch of results from server
+resultset:
+    Out parameter; returned resultset
+
+amq_stdc_browse
+---------------
+
+apr_status_t amq_stdc_browse (
+    amq_stdc_handle_t  context,
+    apr_uint32_t       message_nbr,
+    apr_byte_t         async,
+    amqp_frame_t       **message
+    )
+
+Browses for message.
+
+handle:
+    Handle object
+message_nbr:
+    Message to browse
+async:
+    If 0, API waits for command confirmation
+message:
+    Out parameter; message returned; it set to NULL message will be returned
+    via standard amq_stdc_get_message function
+
+amq_stdc_close_handle
+---------------------
+
+apr_status_t amq_stdc_close_handle (
+    amq_stdc_handle_t  context
+    )
+
+Closes handle.
+
+handle:
+    Handle object
+
+Helper functions
+================
+
+amq_stdc_destroy_message
+------------------------
+
+apr_status_t amq_stdc_destroy_message (
+    amqp_frame_t  *message
+    )
+
+Deallocates resources associated with message.
+
+message:
+    Message to be destroyed
+
+amq_stdc_destroy_query
+----------------------
+
+apr_status_t amq_stdc_destroy_query (
+    char  *query
+    )
+
+Deallocates resources associated with query result.
+
+query:
+    Query resultset to destroy

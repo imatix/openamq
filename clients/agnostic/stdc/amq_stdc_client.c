@@ -326,7 +326,7 @@ apr_status_t amq_stdc_close_channel (
         consumer              if 1, client is allowed to receive messages
         browser               if 1, client is allowed to browse for messages
         temporary             if 1, temporary destination will be created
-        desn_name             destination name
+        dest_name             destination name
         mime_type             MIME type
         encoding              content encoding
         async                 if 1, doesn't wait for confirmation
@@ -443,7 +443,7 @@ apr_status_t amq_stdc_get_message (
 }
 
 /*  -------------------------------------------------------------------------
-    Function: amq_stdc_destory_message
+    Function: amq_stdc_destroy_message
 
     Synopsis:
     Deallocates resources associated with message.
