@@ -9,6 +9,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+typedef struct
+{
+    void *hint;
+    apr_byte_t type;
+    union
+    {
+        struct
+        {
+            int x;
+        } a;
+        struct
+        {
+            char *y;
+        } b;
+    } fields;
+} frame_t;
+
 typedef enum
 {
     apptype_undefined,
@@ -34,6 +51,10 @@ char *message_buffer;
 apr_byte_t persistent;
 long commit_count;
 long rollback_count;
+char *query_result;
+int query_result_pos = 0;
+int browse_begin;
+int browse_end;
 int stop;
 
 typedef enum
@@ -48,7 +69,9 @@ typedef enum
     state_waiting_for_send_confirmation,
     /*  waiting for acknowledge confirmations as well  */
     state_waiting_for_message,
-    state_waiting_for_index
+    state_waiting_for_index,
+    state_waiting_for_browse_confirmation,
+    state_idle
 } state_t;
 
 state_t state;
@@ -89,6 +112,37 @@ apr_status_t connection_close_cb (
         (long) reply_code, reply_text);
     abort ();
     return APR_SUCCESS;
+}
+
+apr_uint32_t next_query_result ()
+{
+    int pos;
+
+    if (browse_begin != browse_end) return browse_begin++;
+
+    if (query_result [query_result_pos] == 0) {
+        free (query_result);
+        return 0;
+    }
+
+    pos = query_result_pos;
+    browse_begin = 0;
+    while (query_result [pos] >='0' && query_result [pos] <='9')
+        browse_begin = browse_begin * 10 + query_result [pos++] - '0';
+
+    if (query_result [pos] == '-') {
+        pos++;
+        browse_end = 0;
+            while (query_result [pos] >='0' && query_result [pos] <='9')
+                browse_end = browse_end * 10 + query_result [pos++] - '0';
+    }
+    else browse_end = browse_begin + 1;
+
+    while (query_result [pos] == ' ') pos++;
+
+    query_result_pos = pos;
+
+    return browse_begin++;
 }
 
 apr_status_t send_message(apr_uint16_t confirm_tag)
@@ -146,8 +200,30 @@ apr_status_t handle_index_cb (
     const char* message_list
     )
 {
+    apr_status_t result;
+    apr_uint32_t msgnum;
+    char buffer [32768];
+
     if (state == state_waiting_for_index) {
         fprintf (stderr, "Result of query: %s\n", message_list);
+
+        query_result = malloc (strlen (message_list) + 1);
+        strcpy (query_result , message_list);
+        query_result_pos = 0;
+        
+        msgnum= next_query_result ();
+        if (msgnum) {
+            result = amqp_handle_browse (sck, buffer, 32767, handle_id, msgnum);
+            if (result != APR_SUCCESS) {
+                fprintf (stderr, "amqp_handle_browse failed.\n%ld : %s\n",
+                    (long) result, amqp_strerror (result, buffer, 32767) );
+                
+                return result;
+            }
+            state = state_waiting_for_browse_confirmation;
+        }
+        else state = state_idle;
+
         return APR_SUCCESS;
     }
     return AMQ_FRAME_CORRUPTED;
@@ -211,6 +287,10 @@ apr_status_t handle_reply_cb (
             if (messages == 0) stop = 1;
         }
         if (!stop) send_message ( (apr_uint16_t) (confirm_tag + 1) );
+        return APR_SUCCESS;
+    }
+    if (state == state_waiting_for_browse_confirmation) {
+
         return APR_SUCCESS;
     }
     return AMQ_FRAME_CORRUPTED;
