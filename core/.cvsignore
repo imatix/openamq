@@ -153,4 +153,10 @@ amq_user_test.c
 amq_user_test
 amq_user_table_test.c
 amq_user_table_test
-
+amq_field.c
+amq_field.h
+amq_field_list.c
+amq_field_list.h
+amq_field_list.icl
+amq_field_list_test.c
+amq_field_test.c

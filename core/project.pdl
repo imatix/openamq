@@ -51,7 +51,7 @@
 <file name = "amq_consumer_list.icl" class = "icl public cont"  >Container for consumer class</file>
 <file name = "amq_handle_table.icl"  class = "icl public cont"  >Container for handle class</file>
 <file name = "amq_queue_table.icl"   class = "icl public cont"  >Container for queue class</file>
-<file name = "amq_user_table.icl"    class = "icl private class">Container for user class</file>
+<file name = "amq_user_table.icl"    class = "icl public cont"  >Container for user class</file>
 
 <file name = "amq_sclient.icl"       class = "icl public class" >AMQP serial client API</file>
 <file name = "amq_aclient.icl"       class = "icl public class" >AMQP asynch client API</file>
