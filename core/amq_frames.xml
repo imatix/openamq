@@ -23,11 +23,8 @@
 
     <frame name = "connection tune">
         <field type = "octet"    name = "type"         value = "12" />
-        <field type = "longint"  name = "frame max"    >Maximum accepted frame size</field>
-        <field type = "shortint" name = "channel max"  >Maximum number of open channels</field>
-        <field type = "shortint" name = "handle max"   >Maximum number of open handles</field>
-        <field type = "shortint" name = "heartbeat"    >Requested heartbeat interval</field>
         <field type = "table"    name = "options"      >Tuning options</field>
+        <field type = "table"    name = "dictionary"   >Client-supplied dictionary</field>
         <sender role = "client" />
         <sender role = "server" />
     </frame>

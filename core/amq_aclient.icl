@@ -3,7 +3,7 @@
     name      = "amq_aclient"
     comment   = "AMQP asynchronous client API"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 

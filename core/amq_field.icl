@@ -3,7 +3,7 @@
     name      = "amq_field"
     comment   = "Field class"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 
@@ -50,12 +50,13 @@ data type.  This class provides functions at a per-field level.
     amq_field_t
         *self;
     </local>
-    ASSERT (strlen (name) <= AMQ_FIELD_NAME_MAX);
+    assert (strlen (name) <= AMQ_FIELD_NAME_MAX);
 
     self = self_new ();
     strcpy (self->name, name);
     self->type   = AMQ_FIELD_TYPE_STRING;
-    self->string = ipr_longstr_new (value, strlen (value));
+    self->string = ipr_longstr_new (value, strlen (value) + 1);
+    self->string->data [strlen (value)] = '\0';
     amq_field_list_queue (list, self);
 </method>
 
@@ -67,7 +68,7 @@ data type.  This class provides functions at a per-field level.
     amq_field_t
         *self;
     </local>
-    ASSERT (strlen (name) <= AMQ_FIELD_NAME_MAX);
+    assert (strlen (name) <= AMQ_FIELD_NAME_MAX);
 
     self = self_new ();
     strcpy (self->name, name);
@@ -85,7 +86,7 @@ data type.  This class provides functions at a per-field level.
     amq_field_t
         *self;
     </local>
-    ASSERT (strlen (name) <= AMQ_FIELD_NAME_MAX);
+    assert (strlen (name) <= AMQ_FIELD_NAME_MAX);
 
     self = self_new ();
     strcpy (self->name, name);
@@ -103,7 +104,7 @@ data type.  This class provides functions at a per-field level.
     amq_field_t
         *self;
     </local>
-    ASSERT (strlen (name) <= AMQ_FIELD_NAME_MAX);
+    assert (strlen (name) <= AMQ_FIELD_NAME_MAX);
 
     self = self_new ();
     strcpy (self->name, name);
@@ -128,7 +129,7 @@ data type.  This class provides functions at a per-field level.
     size_t
         string_size;
     </local>
-    ASSERT (list);
+    assert (list);
 
     self = self_new ();
 
@@ -140,14 +141,15 @@ data type.  This class provides functions at a per-field level.
     self->name [string_size] = 0;
     input += string_size;
 
-    ASSERT (input <= limit);
+    assert (input <= limit);
     self->type = *input;
     input += 1;
 
     if (self->type == AMQ_FIELD_TYPE_STRING) {
         string_size = ntohs (*(dbyte *) input);
         input += 2;
-        self->string = ipr_longstr_new (input, string_size);
+        self->string = ipr_longstr_new (input, string_size + 1);
+        self->string->data [string_size] = '\0';
         input += string_size;
         field_end = input;
     }
@@ -184,6 +186,68 @@ data type.  This class provides functions at a per-field level.
         amq_field_list_queue (list, self);
 </method>
 
+<method name = "string" return = "value">
+    <doc>
+    Returns string value for field.  If the field is not a string, will
+    attempt to convert the field value into a string.  The returned string
+    is always null-terminated.
+    </doc>
+    <argument name = "self" type = "$(selftype) *">Reference to object</argument>
+    <declare name = "value" type = "char *">Returned string value</declare>
+    assert (self);
+
+    if (self->type != AMQ_FIELD_TYPE_STRING) {
+        /*  Add a string value and format the field accordingly              */
+        if (!self->string)
+            self->string = ipr_longstr_new (NULL, 30);
+
+        if (self->type == AMQ_FIELD_TYPE_INTEGER)
+            ipr_longstr_fmt (self->string, "%d", self->integer);
+        else
+        if (self->type == AMQ_FIELD_TYPE_DECIMAL)
+            ipr_longstr_fmt (self->string, "%g",
+                (double) self->integer / exp (self->decimals * log (10.0)));
+        else
+        if (self->type == AMQ_FIELD_TYPE_TIME) {
+            struct tm
+                *time_struct;
+            time_struct = gmtime ((time_t *) &self->integer);
+            ipr_longstr_fmt (self->string, "%4d/%02d/%02dT%02d:%02d:%02dZ",
+                self->name,
+                time_struct->tm_year + 1900,
+                time_struct->tm_mon + 1,
+                time_struct->tm_mday,
+                time_struct->tm_hour,
+                time_struct->tm_min,
+                time_struct->tm_sec);
+        }
+    }
+    value = self->string->data;
+</method>
+
+<method name = "integer" return = "value">
+    <doc>
+    Returns integer value for field.  If the field is not an integer, will
+    attempt to convert the field into an integer.
+    </doc>
+    <argument name = "self" type = "$(selftype) *">Reference to object</argument>
+    <declare name = "value" type = "long">Returned integer value</declare>
+    assert (self);
+
+    value = 0;
+    if (self->type == AMQ_FIELD_TYPE_STRING)
+        value = atol (self->string->data);
+    else
+    if (self->type == AMQ_FIELD_TYPE_INTEGER)
+        value = self->integer;
+    else
+    if (self->type == AMQ_FIELD_TYPE_DECIMAL)
+        value = self->integer / exp (self->decimals * log (10.0));
+    else
+    if (self->type == AMQ_FIELD_TYPE_TIME)
+        value = self->integer;
+</method>
+
 <method name = "flatten" template = "function">
     <doc>
     Creates a field definition string from the field. Writes the
@@ -214,7 +278,7 @@ data type.  This class provides functions at a per-field level.
         output += 1;
 
         if (self->type == AMQ_FIELD_TYPE_STRING) {
-            ASSERT (self->string->cur_size < 0x10000);
+            assert (self->string->cur_size < 0x10000);
             *(dbyte *) output = htons ((dbyte) self->string->cur_size);
             output += 2;
             memcpy (output, self->string->data, self->string->cur_size);
@@ -283,7 +347,7 @@ data type.  This class provides functions at a per-field level.
         coprintf (" - %s - integer, value=%d", self->name, (int) self->integer);
     else
     if (self->type == AMQ_FIELD_TYPE_DECIMAL)
-        coprintf (" - %s - decimal, value=%f", self->name,
+        coprintf (" - %s - decimal, value=%g", self->name,
             (double) self->integer / exp (self->decimals * log (10.0)));
     else
     if (self->type == AMQ_FIELD_TYPE_TIME) {

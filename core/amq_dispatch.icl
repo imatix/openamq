@@ -3,7 +3,7 @@
     name      = "amq_dispatch"
     comment   = "Dispatched message class"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 
@@ -60,8 +60,8 @@
     amq_dispatch_list_queue (self->channel->dispatched, self);
 
     /*  Dispatched message decrements message windows                        */
-    ASSERT (self->queue->window);
-    ASSERT (self->consumer->window);
+    assert (self->queue->window);
+    assert (self->consumer->window);
     self->queue->window--;
     self->consumer->window--;
 </method>

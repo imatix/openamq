@@ -3,7 +3,7 @@
     name      = "amq_user"
     comment   = "Authorised user class"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 
@@ -26,7 +26,7 @@
 
 <method name = "new">
     <argument name = "config" type = "ipr_config_t *">Configuration entry</argument>
-    ASSERT (config);
+    assert (config);
 
     /*  Initialise other properties                                          */
     ipr_shortstr_cpy (self->password, ipr_config_attr (config, "password", ""));

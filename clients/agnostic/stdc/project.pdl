@@ -2,7 +2,7 @@
 <pdl
     name      = "OpenAMQ Agnostic C Client"
     acronym   = "OpenAMQ_Agnostic_C"
-    version   = "0.1"
+    version   = "0.3"
     copyright = "Copyright (c) 1991-2005 iMatix Corporation"
     workflow  = "standard.pwl"
     library   = "libamqp">

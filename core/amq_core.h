@@ -5,23 +5,25 @@
  *  This header file is intended for applications that use the OpenAMQ core
  *  for their work, E.G. client layers.
  *
- *  Copyright (c) 2004 JPMorgan
+ *  Copyright (c) 2004-2005 JPMorgan and iMatix Corporation
  *===========================================================================*/
 
 #ifndef __AMQ_CORE_INCLUDED__
 #define __AMQ_CORE_INCLUDED__
 
-#include "sfl.h"                        /*  iMatix SFL portability library   */
 #include "icl_types.h"                  /*  iMatix iCL base types            */
+#include "sfl.h"                        /*  iMatix SFL portability library   */
 #include "smt.h"                        /*  iMatix SMT threading kernel      */
 
 
 #define AMQ_SERVER_PORT            "7654"
 #define AMQ_SERVER_CONFIG          "amq_server.cfg"
 #define AMQ_VHOST_CONFIG           "amq_vhost.cfg"
+#define AMQ_CUSTOM_CONFIG          "amq_custom.cfg"
 
 #define AMQP_ID                     128
 #define AMQP_VERSION                1
+#define AMQP_FRAME_MIN              1024
 
 #define AMQP_SERVICE_QUEUE          1
 #define AMQP_SERVICE_TOPIC          2

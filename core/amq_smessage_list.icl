@@ -3,7 +3,7 @@
     name      = "amq_smessage_list"
     comment   = "Implements list head container for amq_smessage"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 <doc>
@@ -36,7 +36,7 @@
         amq_queue_accept (message->queue, NULL, message);
         current = message;              /*  Double-check accept worked       */
         message = amq_smessage_list_first (self);
-        ASSERT (message != current);
+        assert (message != current);
     }
 </method>
 

@@ -261,7 +261,6 @@ static int
     <state name = "expect connection tune">
         <event name = "connection tune" nextstate = "connection active">
             <action name = "process connection tune" />
-            <action name = "send connection tune" />
             <action name = "send connection open" />
             <action name = "wait for activity" />
             <action name = "set monitor timer" />
@@ -269,26 +268,31 @@ static int
     </state>
 
     <action name = "process connection tune">
-    /*  Lower limits if server asks for that                                 */
-    if (tcb->frame_max   > CONNECTION_TUNE.frame_max)
-        tcb->frame_max   = CONNECTION_TUNE.frame_max;
-    if (tcb->channel_max > CONNECTION_TUNE.channel_max)
-        tcb->channel_max = CONNECTION_TUNE.channel_max;
-    if (tcb->handle_max  > CONNECTION_TUNE.handle_max)
-        tcb->handle_max  = CONNECTION_TUNE.handle_max;
+        amq_field_list_t
+            *fields;                    /*  Decoded responses                */
+        int
+            frame_max,                  /*  Field value                      */
+            channel_max,                /*  Field value                      */
+            handle_max,                 /*  Field value                      */
+            heartbeat;
 
-    tcb->heartbeat = CONNECTION_TUNE.heartbeat;
-    </action>
+        fields = amq_field_list_new ();
+        amq_field_list_parse (fields, CONNECTION_TUNE.options);
+        frame_max   = amq_field_list_integer (fields, "FRAME_MAX");
+        channel_max = amq_field_list_integer (fields, "CHANNEL_MAX");
+        handle_max  = amq_field_list_integer (fields, "HANDLE_MAX");
+        heartbeat   = amq_field_list_integer (fields, "HEARTBEAT");
+        amq_field_list_destroy (&fields);
 
-    <action name = "send connection tune">
-        amq_frame_free (&tcb->frame);
-        tcb->frame = amq_frame_connection_tune_new (
-            tcb->frame_max,
-            tcb->channel_max,
-            tcb->handle_max,
-            AMQP_HEARTBEAT,
-            NULL);
-        send_the_frame (thread);
+        /*  Lower limits if server asks for that                             */
+        if (tcb->frame_max   > frame_max)
+            tcb->frame_max   = frame_max;
+        if (tcb->channel_max > channel_max)
+            tcb->channel_max = channel_max;
+        if (tcb->handle_max  > handle_max)
+            tcb->handle_max  = handle_max;
+
+        tcb->heartbeat = heartbeat;
     </action>
 
     <action name = "send connection open">
@@ -897,7 +901,7 @@ static void
 send_the_frame (smt_thread_t *thread)
 {
     amq_frame_encode (tcb->command, tcb->frame);
-    ASSERT (tcb->command->cur_size == tcb->frame->size);
+    assert (tcb->command->cur_size == tcb->frame->size);
 
     if (s_tracing > AMQP_TRACE_NONE)
         amq_frame_dump (tcb->frame, "OUT ");

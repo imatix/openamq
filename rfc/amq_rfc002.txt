@@ -48,6 +48,23 @@ code must conform to it.
 Coding Standards
 ****************
 
+Header Files
+============
+
+All applications must include icl_types.h and conform to the datatypes
+and macros defined in it.  Specifically:
+
+ - the use of the 'byte', 'dbyte', 'qbyte' data types for all unsigned
+   integers where the size is important to know
+ - the use of 'Bool' for all Boolean values
+ - the use of 'uint' for unsigned integers
+ - the use of 'streq' and 'strneq' for string comparison
+
+The goal here is to use short names for common things and to be consistent
+across all our code.  Further, in C, there is good reason to know the size
+of integers and the byte/dbyte/qbyte nomenclature is both accurate and
+efficient.
+
 Language Definition
 ===================
 

@@ -212,12 +212,10 @@ static apr_status_t s_connection_challenge_cb (
 
 static apr_status_t s_connection_tune_cb (
     const void         *hint,
-    const apr_uint32_t frame_max,
-    const apr_uint16_t channel_max,
-    const apr_uint16_t handle_max,
-    const apr_uint16_t heartbeat,
     const apr_size_t   options_size,
-    const char         *options
+    const char         *options,
+    const apr_size_t   dictionary_size,
+    const char         *dictionary
     );
 
 static apr_status_t s_handle_notify_cb (
@@ -1122,13 +1120,11 @@ apr_status_t s_connection_challenge_cb (
     -------------------------------------------------------------------------*/
 
 apr_status_t s_connection_tune_cb (
-    const void         *hint,
-    const apr_uint32_t frame_max,
-    const apr_uint16_t channel_max,
-    const apr_uint16_t handle_max,
-    const apr_uint16_t heartbeat,
+    const void        *hint,
     const apr_size_t   options_size,
-    const char         *options
+    const char        *options,
+    const apr_size_t   dictionary_size,
+    const char        *dictionary
     )
 {
     client_t
@@ -1139,13 +1135,7 @@ apr_status_t s_connection_tune_cb (
         buffer [BUFFER_SIZE];
     
     if (client->state == state_waiting_for_connection_tune) {
-        result = amqp_connection_tune (client->sck, buffer, BUFFER_SIZE,
-            MAX_FRAME_SIZE, 255, 255, 0, options_size, options);
-        if (result != APR_SUCCESS) {
-            s_trace ("amqp_connection_tune failed: err=%d (%s)\n",
-                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
-            return result;
-        }
+        /*  PH: removed sending connection tune back to server, not needed  */
         result = amqp_connection_open (client->sck, buffer, BUFFER_SIZE, 1,
             client->host, client->client_name, 0, "");
         if (result != APR_SUCCESS) {

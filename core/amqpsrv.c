@@ -2,7 +2,7 @@
  *
  *  amqpsrv - openamq test server
  *
- *  Copyright (c) 2004 JPMorgan Inc.
+ *  Copyright (c) 2004-2005 JPMorgan and iMatix Corporation
  *  -------------------------------------------------------------------------*/
 
 #include "amq_core.h"

@@ -3,7 +3,7 @@
     name      = "amq_queue"
     comment   = "Queue class"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 <doc>
@@ -234,7 +234,7 @@ ipr_db_queue class.
         level;                          /*  Priority level                   */
     </local>
 
-    ASSERT (message);
+    assert (message);
     if (self->opt_persistent)
         message->persistent = TRUE;     /*  Force message to be persistent   */
 
@@ -253,11 +253,16 @@ ipr_db_queue class.
 
     if (channel && channel->transacted) {
         /*  Transacted messages are held per-channel                         */
-        message->queue = self;
-        amq_smessage_list_queue (channel->messages, message);
-#       ifdef TRACE_DISPATCH
-        coprintf ("$(selfname) I: queue transacted message");
-#       endif
+        if (amq_txn_limit == 0 || channel->txn_size < amq_txn_limit) {
+            message->queue = self;
+            amq_smessage_list_queue (channel->txn_list, message);
+            channel->txn_size++;
+#           ifdef TRACE_DISPATCH
+            coprintf ("$(selfname) I: queue transacted message");
+#           endif
+        }
+        else
+            amq_global_set_error (AMQP_RESOURCE_ERROR, "Transaction too large");
     }
     else {
         /*  In certain cases we force the message to be persistent           */
@@ -396,7 +401,7 @@ ipr_db_queue class.
                 else
                     break;              /*  No more consumers                */
             }
-            ASSERT (self->item_id > self->last_id);
+            assert (self->item_id > self->last_id);
             self->last_id = self->item_id;
             finished = amq_queue_fetch (self, IPR_QUEUE_NEXT);
         }
@@ -595,7 +600,7 @@ s_dispatch_message (
     amq_dispatch_t
         *dispatch;                      /*  Dispatched message queue entry   */
 
-    ASSERT (consumer);
+    assert (consumer);
     dispatch = amq_dispatch_new (consumer, message);
 
 #   ifdef TRACE_DISPATCH

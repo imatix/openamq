@@ -3,7 +3,7 @@
     name      = "amq_channel"
     comment   = "Channel class"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 
@@ -52,7 +52,9 @@
     amq_dispatch_list_t
         *dispatched;                    /*  Messages dispatched & pending    */
     amq_smessage_list_t
-        *messages;                      /*  Messages pending commit          */
+        *txn_list;                      /*  Messages pending commit          */
+    size_t
+        txn_size;                       /*  Number of messages pending       */
     qbyte
         message_nbr;                    /*  Message numbering                */
     amq_smessage_t
@@ -75,7 +77,7 @@
 
     /*  Initialise other properties                                          */
     self->dispatched  = amq_dispatch_list_new (self);
-    self->messages    = amq_smessage_list_new ();
+    self->txn_list    = amq_smessage_list_new ();
     self->state       = AMQ_CHANNEL_OPEN;
     self->transacted  = command->transacted;
     self->restartable = command->restartable;
@@ -90,7 +92,7 @@
 
     amq_smessage_destroy      (&self->message_in);
     amq_dispatch_list_destroy (&self->dispatched);
-    amq_smessage_list_destroy (&self->messages);
+    amq_smessage_list_destroy (&self->txn_list);
 
     /*  Destroy all handles for this channel                                 */
     for (table_idx = 0; table_idx &lt; AMQ_HANDLE_TABLE_MAXSIZE; table_idx++) {
@@ -108,10 +110,11 @@
 <method name = "commit" template = "function" >
     if (self->transacted) {
         /*  Save the client transaction                                      */
-        amq_smessage_list_commit (self->messages);
+        amq_smessage_list_commit (self->txn_list);
         amq_dispatch_list_commit (self->dispatched);
         ipr_db_log_flush  (self->db);
         ipr_db_txn_commit (self->txn);
+        self->txn_size = 0;
 
         /*  Now dispatch the resulting messages, if any                      */
         amq_vhost_dispatch (self->vhost);
@@ -122,9 +125,10 @@
 
 <method name = "rollback" template = "function" >
     if (self->transacted) {
-        amq_smessage_list_rollback (self->messages);
+        amq_smessage_list_rollback (self->txn_list);
         amq_dispatch_list_rollback (self->dispatched);
         ipr_db_txn_rollback (self->txn);
+        self->txn_size = 0;
     }
     else
         amq_global_set_error (AMQP_COMMAND_INVALID, "Channel is not transacted - rollback is not allowed");
@@ -154,7 +158,7 @@
     vhosts = amq_vhost_table_new (NULL);
     vhost  = amq_vhost_new (vhosts, "/test", "vh_test",
         ipr_config_new ("vh_test", AMQ_VHOST_CONFIG));
-    ASSERT (vhost);
+    assert (vhost);
 
     /*  Initialise connection                                                */
     ipr_shortstr_cpy (connection_open.virtual_path, "/test");
@@ -168,7 +172,7 @@
     channels   = amq_channel_table_new ();
     channel    = amq_channel_new (
         channels, channel_open.channel_id, connection, &channel_open);
-    ASSERT (channel);
+    assert (channel);
 
     /*  Release resources                                                    */
     amq_channel_table_destroy (&channels);

@@ -39,13 +39,9 @@
     mechanism            = short-string
     responses            = long-string
 
-    connection-tune      = %d12 frame-max channel-max handle-max heartbeat options
-    frame-max            = long-integer
-    long-integer         = 4*OCTET
-    channel-max          = short-integer
-    handle-max           = short-integer
-    heartbeat            = short-integer
+    connection-tune      = %d12 options dictionary
     options              = long-string
+    dictionary           = long-string
 
     connection-open      = %d13 confirm-tag virtual-path client-name options
     confirm-tag          = short-integer
@@ -69,6 +65,7 @@
 
     channel-ack          = %d21 channel-id confirm-tag message-nbr
     message-nbr          = long-integer
+    long-integer         = 4*OCTET
 
     channel-commit       = %d22 channel-id confirm-tag options
 

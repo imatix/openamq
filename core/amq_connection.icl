@@ -2,8 +2,8 @@
 <class
     name      = "amq_connection"
     comment   = "Connection class"
-    version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan"
+    version   = "1.1"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 
@@ -82,23 +82,6 @@
     $(selfname)_close (self);
 </method>
 
-<method name = "tune" template = "function">
-    <doc>
-    Implements the CONNECTION TUNE command by updating the connection
-    properties as necessary.
-    </doc>
-    <argument name = "command" type = "amq_connection_tune_t *" />
-    /*  Lower limits if client asks for that                                 */
-    if (self->frame_max   > command->frame_max)
-        self->frame_max   = command->frame_max;
-    if (self->channel_max > command->channel_max)
-        self->channel_max = command->channel_max;
-    if (self->handle_max  > command->handle_max)
-        self->handle_max  = command->handle_max;
-
-    self->heartbeat = command->heartbeat;
-</method>
-
 <method name = "response" template = "function">
     <doc>
     Implements the CONNECTION RESPONSE command by checking the supplied
@@ -152,6 +135,32 @@
         self->authorised = FALSE;
         amq_global_set_error (AMQP_INTERNAL_ERROR, "Broken security mechanism");
     }
+</method>
+
+<method name = "tune" template = "function">
+    <doc>
+    Implements the CONNECTION TUNE command by updating the connection
+    properties from the options table provided by the client.
+    </doc>
+    <argument name = "command" type = "amq_connection_tune_t *" />
+    <local>
+    amq_field_list_t
+        *fields;                        /*  Decoded responses                */
+    int
+        frame_max,                      /*  Field value                      */
+        heartbeat;
+    </local>
+
+    fields = amq_field_list_new ();
+    amq_field_list_parse (fields, command->options);
+    frame_max = amq_field_list_integer (fields, "FRAME_MAX");
+    heartbeat = amq_field_list_integer (fields, "HEARTBEAT");
+    amq_field_list_destroy (&fields);
+
+    /*  Lower limits if client asks for that                                 */
+    if (self->frame_max > frame_max && frame_max > AMQP_FRAME_MIN)
+        self->frame_max = frame_max;
+    self->heartbeat = heartbeat;
 </method>
 
 <method name = "open" template = "function" >
@@ -224,7 +233,7 @@
     vhosts = amq_vhost_table_new (NULL);
     vhost  = amq_vhost_new (vhosts, "/test", "vh_test",
         ipr_config_new ("vh_test", AMQ_VHOST_CONFIG));
-    ASSERT (vhost);
+    assert (vhost);
 
     /*  Initialise connection                                                */
     ipr_shortstr_cpy (connection_open.virtual_path, "/test");

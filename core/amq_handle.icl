@@ -3,7 +3,7 @@
     name      = "amq_handle"
     comment   = "Destination handle class"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 
@@ -98,8 +98,8 @@ typedef struct {
     self->thread      = channel->thread;
     self->db          = channel->db;
     self->ddb         = channel->ddb;
-    ASSERT (self->db);                  /*  Database must be open            */
-    ASSERT (self->ddb);
+    assert (self->db);                  /*  Database must be open            */
+    assert (self->ddb);
 
     /*  Initialise other properties                                          */
     self->consumers    = ipr_looseref_list_new ();
@@ -327,9 +327,9 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
     vhosts = amq_vhost_table_new (NULL);
     vhost  = amq_vhost_new (vhosts, "/test", "vh_test",
         ipr_config_new ("vh_test", AMQ_VHOST_CONFIG));
-    ASSERT (vhost);
-    ASSERT (vhost->db);
-    ASSERT (vhost->ddb);
+    assert (vhost);
+    assert (vhost->db);
+    assert (vhost->ddb);
 
     /*  Initialise connection                                                */
     ipr_shortstr_cpy (connection_open.virtual_path, "/test");
@@ -343,7 +343,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
     channels   = amq_channel_table_new ();
     channel    = amq_channel_new (
         channels, channel_open.channel_id, connection, &channel_open);
-    ASSERT (channel);
+    assert (channel);
 
     /*  Initialise handle                                                    */
     memset (&handle_open, 0, sizeof (handle_open));
@@ -353,7 +353,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
     handles = amq_handle_table_new ();
     handle  = amq_handle_new (
         handles, handle_open.handle_id, channel, &handle_open);
-    ASSERT (handle);
+    assert (handle);
 
     /*  Release resources                                                    */
     amq_handle_table_destroy  (&handles);

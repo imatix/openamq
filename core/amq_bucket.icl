@@ -3,7 +3,7 @@
     name      = "amq_bucket"
     comment   = "Bucket buffer class"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 <doc>
@@ -46,7 +46,7 @@
     </doc>
     <argument name = "source" type = "void *">Address of data to copy from</argument>
     <argument name = "size"   type = "size_t">Amount of data to copy</argument>
-    ASSERT (size <= self->max_size);
+    assert (size <= self->max_size);
     memcpy (self->data, source, size);
     self->cur_size = size;
 </method>
@@ -62,7 +62,7 @@
     </doc>
     <argument name = "file" type = "FILE *">File pointer of open file to copy from</argument>
     <argument name = "size" type = "size_t">Amount of data to copy</argument>
-    ASSERT (size <= self->max_size);
+    assert (size <= self->max_size);
     self->cur_size = fread (self->data, 1, size, file);
 </method>
 

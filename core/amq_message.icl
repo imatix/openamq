@@ -3,7 +3,7 @@
     name      = "amq_message"
     comment   = "Message handling base class"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 
@@ -220,7 +220,7 @@
                 coprintf ("$(selfname) E: can't open spool file '%s': %s",
                     self->spool_file, strerror (errno));
         }
-        ASSERT (self->spool_fh);
+        assert (self->spool_fh);
         fwrite (fragment->data, 1, fragment->cur_size, self->spool_fh);
         self->spool_size += fragment->cur_size;
         self->processed  += fragment->cur_size;
@@ -351,7 +351,7 @@ s_record_header ($(selftype) *self, amq_bucket_t *fragment)
     amq_frame_t
         *frame;                         /*  Message header frame             */
 
-    ASSERT (self->fragment == NULL);
+    assert (self->fragment == NULL);
 
     frame = amq_message_head_decode (fragment);
     if (frame) {
@@ -480,7 +480,7 @@ s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
             amq_message_record (diskmsg, bucket, partial);
         }
         until (!partial);
-        ASSERT (body_size == 0);
+        assert (body_size == 0);
 
         bucket = amq_bucket_new ();
         body_size = TEST_SIZE + amq_message_header_size (message);
@@ -489,7 +489,7 @@ s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
             body_size -= bucket->cur_size;
         }
         until (!partial);
-        ASSERT (body_size == 0);
+        assert (body_size == 0);
 
         amq_bucket_destroy  (&bucket);
         amq_message_destroy (&diskmsg);

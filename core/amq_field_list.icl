@@ -3,6 +3,7 @@
     name      = "amq_field_list"
     comment   = "Implements the list container for amq_field"
     version   = "1.0"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 
@@ -41,7 +42,7 @@ formats, and lookup and operate on field lists.
         *input,                         /*  Current position in string       */
         *limit;                         /*  Limit of string (max + 1)        */
     </local>
-    ASSERT (field_table);
+    assert (field_table);
 
     input = field_table->data;
     limit = input + field_table->cur_size;
@@ -97,6 +98,44 @@ formats, and lookup and operate on field lists.
         field = self_next (self, field);
     }
     return (NULL);
+</method>
+
+<method name = "string" return = "value">
+    <doc>
+    Looks for a field with the specified name, returns the field's string
+    value if found, else NULL.
+    </doc>
+    <argument name = "self" type = "$(selftype) *">Reference to object</argument>
+    <argument name = "name" type = "char *"       >Field name</argument>
+    <declare name = "value" type = "char *">String value to return</declare>
+    <local>
+    amq_field_t
+        *field;
+    </local>
+    field = self_search (self, name);
+    if (field)
+        value = amq_field_string (field);
+    else
+        value = NULL;
+</method>
+
+<method name = "integer" return = "value">
+    <doc>
+    Looks for a field with the specified name, returns the field's integer
+    value if found, else zero.
+    </doc>
+    <argument name = "self" type = "$(selftype) *">Reference to object</argument>
+    <argument name = "name" type = "char *"       >Field name</argument>
+    <declare name = "value" type = "long">Integer value to return</declare>
+    <local>
+    amq_field_t
+        *field;
+    </local>
+    field = self_search (self, name);
+    if (field)
+        value = amq_field_integer (field);
+    else
+        value = 0;
 </method>
 
 <method name = "print" template = "function">

@@ -3,7 +3,7 @@
     name      = "amq_dispatch_list"
     comment   = "Implements list head container for amq_dispatch"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 <doc>

@@ -3,7 +3,7 @@
     name      = "amq_vhost"
     comment   = "Virtual host class"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 
@@ -212,9 +212,9 @@ s_config_queues ($(selftype) *self)
     vhosts = amq_vhost_table_new (config);
 
     vhost = amq_vhost_search (vhosts, "/");
-    ASSERT (vhost);
+    assert (vhost);
     vhost = amq_vhost_search (vhosts, "/test");
-    ASSERT (vhost);
+    assert (vhost);
 
     amq_vhost_destroy       (&vhost);
     amq_vhost_table_destroy (&vhosts);

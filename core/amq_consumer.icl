@@ -3,7 +3,7 @@
     name      = "amq_consumer"
     comment   = "Consumer class"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 
@@ -88,7 +88,7 @@
 </method>
 
 <method name = "cancel" template = "function">
-    ASSERT (self->sub_dest_id);
+    assert (self->sub_dest_id);
     amq_db_dest_delete_fast (self->ddb, self->sub_dest_id);
     amq_consumer_destroy (&self);
 </method>

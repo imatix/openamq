@@ -3,7 +3,7 @@
     name      = "amq_sclient"
     comment   = "AMQP synchronous client API"
     version   = "1.1"
-    copyright = "Copyright (c) 2004-2005 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 
@@ -71,7 +71,7 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     <argument name = "client name" type = "char *">Client identifier</argument>
     <argument name = "login"       type = "char *">User login name</argument>
     <argument name = "password"    type = "char *">User password</argument>
-    ASSERT (client_name && *client_name);
+    assert (client_name && *client_name);
 
     if (!s_class_active)
         s_class_initialise (0);
@@ -123,7 +123,7 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 
 <method name = "producer" template = "function">
     <argument name = "destination" type = "char *">Destination to work with</argument>
-    ASSERT (destination && *destination);
+    assert (destination && *destination);
 
     amq_sclient_agent_handle_open (
         self->thread_handle, CHANNEL_ID, ++self->cur_handle, FALSE, destination, &rc);
@@ -139,7 +139,7 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     <argument name = "destination" type = "char *">Destination to work with</argument>
     <argument name = "prefetch"    type = "int"   >Prefetch window size</argument>
     <argument name = "noack"       type = "Bool"  >No acknowledgements required</argument>
-    ASSERT (destination && *destination);
+    assert (destination && *destination);
 
     amq_sclient_agent_handle_open (
         self->thread_handle, CHANNEL_ID, ++self->cur_handle, FALSE, destination, &rc);
@@ -164,7 +164,7 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     <argument name = "destination" type = "char *">Destination to create</argument>
     <argument name = "prefetch"    type = "int"   >Prefetch window size</argument>
     <argument name = "noack"       type = "Bool"  >No acknowledgements required</argument>
-    ASSERT (destination && *destination);
+    assert (destination && *destination);
 
     amq_sclient_agent_handle_open (
         self->thread_handle, CHANNEL_ID, ++self->cur_handle, TRUE, destination, &rc);
@@ -193,7 +193,7 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     </doc>
     <argument name = "handle id" type = "dbyte"          >Handle id</argument>
     <argument name = "message"   type = "amq_message_t *">Message to send</argument>
-    ASSERT (message);
+    assert (message);
 
     amq_sclient_agent_handle_send (
         self->thread_handle, handle_id, message, NULL, &rc);

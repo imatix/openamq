@@ -402,21 +402,36 @@ static int
     </action>
 
     <action name = "send connection tune">
+        amq_field_list_t
+            *fields;
+        ipr_longstr_t
+            *options = NULL;
+
+        fields = amq_field_list_new ();
+        amq_field_new_integer (fields, "FRAME_MAX",   tcb->connection->frame_max);
+        amq_field_new_integer (fields, "CHANNEL_MAX", tcb->connection->channel_max);
+        amq_field_new_integer (fields, "HANDLE_MAX",  tcb->connection->handle_max);
+        amq_field_new_integer (fields, "HEARTBEAT",   AMQP_HEARTBEAT);
+        amq_field_new_integer (fields, "TXN_LIMIT",   amq_txn_limit);
+        options = amq_field_list_flatten (fields);
+        amq_field_list_destroy (&fields);
+
         amq_frame_free (&tcb->frame);
-        tcb->frame = amq_frame_connection_tune_new (
-            tcb->connection->frame_max,
-            tcb->connection->channel_max,
-            tcb->connection->handle_max,
-            AMQP_HEARTBEAT, NULL);
+        tcb->frame = amq_frame_connection_tune_new (options, NULL);
         send_the_frame (thread);
+        ipr_longstr_destroy (&options);
     </action>
 
     <!--  EXPECT CONNECTION TUNE  -------------------------------------------->
 
     <state name = "expect connection tune">
-        <event name = "connection tune" nextstate = "expect connection open">
+        <event name = "connection tune" nextstate = "expect connection tune">
             <action name = "process connection tune" />
             <action name = "read next command" />
+        </event>
+        <event name = "connection open" nextstate = "connection active">
+            <action name = "process connection open" />
+            <action name = "wait for activity" />
         </event>
     </state>
 
@@ -424,15 +439,6 @@ static int
         amq_connection_tune (tcb->connection, &CONNECTION_TUNE);
         tcb->frame_max = tcb->connection->frame_max;
     </action>
-
-    <!--  EXPECT CONNECTION OPEN  -------------------------------------------->
-
-    <state name = "expect connection open">
-        <event name = "connection open" nextstate = "connection active">
-            <action name = "process connection open" />
-            <action name = "wait for activity" />
-        </event>
-    </state>
 
     <action name = "process connection open">
         amq_global_reset_error ();
@@ -553,11 +559,16 @@ static int
     </state>
 
     <action name = "check sufficient resources">
-    if (amq_allowed_memory > 0
-    &&  icl_mem_usage () > amq_allowed_memory) {
+    if (amq_max_memory > 0
+    &&  icl_mem_usage () > amq_max_memory) {
         tcb->reply_code = AMQP_RESOURCE_ERROR;
         tcb->reply_text = "Server is too busy - try again later";
         smt_thread_raise_exception (thread, connection_error_event);
+        coprintf ("W: Server memory usage=%ld limit=%ld", icl_mem_usage (), amq_max_memory);
+
+        /*  TODO:
+            icl_mem_flush ();
+         */
     }
     </action>
 
@@ -1106,7 +1117,6 @@ use_command_channel (smt_thread_t *thread, dbyte channel_id)
     }
 }
 
-
 static void
 connection_reply_if_needed (smt_thread_t *thread, dbyte confirm_tag)
 {
@@ -1164,7 +1174,7 @@ static void
 send_the_frame (smt_thread_t *thread)
 {
     amq_frame_encode (tcb->command, tcb->frame);
-    ASSERT (tcb->command->cur_size == tcb->frame->size);
+    assert (tcb->command->cur_size == tcb->frame->size);
 
     if (s_tracing > AMQP_TRACE_NONE)
         amq_frame_dump (tcb->frame, "OUT ");

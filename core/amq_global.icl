@@ -3,7 +3,7 @@
     name      = "amq_global"
     comment   = "Holds server-global variables"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 
@@ -22,7 +22,9 @@ extern amq_user_table_t
     *amq_users;                         /*  Users for this vhost             */
 
 extern size_t
-    amq_allowed_memory;                 /*  Configured memory limit, if any  */
+    amq_max_memory;                     /*  Configured memory limit, if any  */
+extern size_t
+    amq_txn_limit;                      /*  Configured txn limit, if any     */
 
 /*  Server security mechanisms                                               */
 
@@ -38,7 +40,9 @@ amq_vhost_table_t
 amq_user_table_t
     *amq_users = NULL;                  /*  Users for this vhost             */
 size_t
-    amq_allowed_memory = 0;             /*  Configured memory limit, if any  */
+    amq_max_memory = 0;                 /*  Configured memory limit, if any  */
+size_t
+    amq_txn_limit = 0;                  /*  Configured txn limit, if any     */
 
 static int
     s_error_code = 0;                   /*  Last error code                  */

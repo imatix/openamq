@@ -3,7 +3,7 @@
     name      = "amq_smessage"
     comment   = "Message handling class for server use"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 
@@ -76,7 +76,7 @@
     && (self->body_size + self->header_size) > AMQ_BUCKET_SIZE) {
         sha (self->fragment->data, self->header_size, digest);
         spool = amq_db_spool_new ();
-        ASSERT (SHA_DIGEST_SIZE &lt; sizeof (spool->signature));
+        assert (SHA_DIGEST_SIZE &lt; sizeof (spool->signature));
         memcpy (spool->signature, digest, SHA_DIGEST_SIZE);
         strcpy (spool->file_name, self->spool_file);
         spool->client_id = self->handle->client_id;
@@ -117,7 +117,7 @@
         *spool;
     </local>
 
-    ASSERT (self);
+    assert (self);
 
     /*  Process message header - which we expect in fragment                 */
     s_record_header (self, fragment);
@@ -146,7 +146,7 @@
     </doc>
     <argument name = "queue" type = "amq_queue_t *" >Queue to save to</argument>
     <argument name = "txn"   type = "ipr_db_txn_t *">Transaction, if any</argument>
-    ASSERT (self->fragment);            /*  Must be loaded, or die           */
+    assert (self->fragment);            /*  Must be loaded, or die           */
 
     /*  Update own reference to queue table used                             */
     self->queue = queue;
@@ -189,7 +189,7 @@
     loaded from the database.
     </doc>
     <argument name = "queue" type = "amq_queue_t *" />
-    ASSERT (self->fragment == NULL);
+    assert (self->fragment == NULL);
 
     /*  Update own reference to queue table used                             */
     self->queue    = queue;
@@ -212,7 +212,7 @@
     </doc>
     <argument name = "txn" type = "ipr_db_txn_t *">Transaction, if any</argument>
 
-    ASSERT (self->queue);
+    assert (self->queue);
 
     /*  Delete queue record                                                  */
     self->queue->item_id = self->queue_id;
@@ -328,9 +328,9 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
     vhosts = amq_vhost_table_new (NULL);
     vhost  = amq_vhost_new (vhosts, "/test", "vh_test",
         ipr_config_new ("vh_test", AMQ_VHOST_CONFIG));
-    ASSERT (vhost);
-    ASSERT (vhost->db);
-    ASSERT (vhost->ddb);
+    assert (vhost);
+    assert (vhost->db);
+    assert (vhost->ddb);
 
     /*  Initialise connection                                                */
     ipr_shortstr_cpy (connection_open.virtual_path, "/test");
@@ -343,7 +343,7 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
     channel_open.channel_id = 1;
     channels   = amq_channel_table_new ();
     channel    = amq_channel_new (channels, channel_open.channel_id, connection, &channel_open);
-    ASSERT (channel);
+    assert (channel);
 
     /*  Initialise handle                                                    */
     memset (&handle_open, 0, sizeof (handle_open));
@@ -352,11 +352,11 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
     handle_open.handle_id    = 1;
     handles = amq_handle_table_new ();
     handle  = amq_handle_new (handles, handle_open.handle_id, channel, &handle_open);
-    ASSERT (handle);
+    assert (handle);
 
     /*  Initialise queue                                                     */
     queue = amq_queue_new ("/tmp/test", vhost, 1, TRUE, NULL);
-    ASSERT (queue);
+    assert (queue);
 
     /*  Record test message                                                  */
     message = amq_smessage_new (handle);
@@ -384,7 +384,7 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
         amq_smessage_record (diskmsg, bucket, partial);
     }
     until (!partial);
-    ASSERT (body_size == 0);
+    assert (body_size == 0);
 
     bucket = amq_bucket_new ();
     body_size = TEST_SIZE + amq_smessage_header_size (message);
@@ -393,7 +393,7 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
         body_size -= bucket->cur_size;
     }
     until (!partial);
-    ASSERT (body_size == 0);
+    assert (body_size == 0);
 
     amq_smessage_delete (message, NULL);
 

@@ -3,9 +3,9 @@ gdl
     subtitle  = The AMQP/Fast Wire-Level Protocol
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/03/08
+    date      = 2005/03/13
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.7d1
+    version   = 0.8a0
 end gdl
 
 Cover
@@ -23,6 +23,14 @@ This document is ready for review.
 
 Recent Change History
 ---------------------
+
+0.8a0
+- CONNECTION TUNE command format revised to be more general
+- CONNECTION TUNE from client to server can now be sent 0+ times
+- introduced the concept of definition of field dictionaries.
+
+0.7d2
+- clarified order of HANDLE REPLY when mixed with other reply commands.
 
 0.7d1
 - added definition of NONE security mechanism.
@@ -47,7 +55,7 @@ Recent Change History
 - message identifier changed from long string to short string.
 - clarified use of HANDLE PREPARE command.
 - clarified use of restartable option in CHANNEL OPEN.
-- defined frame maximum prior to CONNECTION TUNE.
+- defined maximum size of frames prior to connection tuning.
 
 
 Copyright Notice
@@ -257,7 +265,7 @@ server.  For brevity we do not show all confirmations:
     S: CONNECTION CHALLENGE
     C: CONNECTION RESPONSE
     S: CONNECTION TUNE
-    C: CONNECTION TUNE
+    C: CONNECTION TUNE...
 
     #   Open connection
     C: CONNECTION OPEN
@@ -336,8 +344,8 @@ The start of a connection always goes through the same set of steps.
    the client.
 5. The server sends CONNECTION TUNE, a command that configures various
    parameters for the connection.
-6. The client answers with CONNECTION TUNE, and then sends CONNECTION
-   OPEN.
+6. The client answers with zero or more CONNECTION TUNE commands, and
+   then sends CONNECTION OPEN.
 
 Opening Channels and Handles
 ............................
@@ -452,10 +460,11 @@ handle, as usual.  The dialogue for browsing is then:
 
 Since other clients can be reading the same destination, it's possible
 that a message disappears from the list, and that a HANDLE BROWSE fails.
-In this case the server replies with a HANDLE REPLY with an error code.
-This is one of the few cases where the server tells the client explicitly
-that a command failed.  In most cases, failure is treated as an error
-and the handle, channel, or connection is closed.
+In this case the server replies with a HANDLE REPLY with an error code,
+instead of with a HANDLE NOTIFY. This is one of the few cases where the
+server tells the client explicitly that a command failed.  In most cases,
+failure is treated as an error and the handle, channel, or connection is
+closed.
 
 Confirmations
 .............
@@ -489,6 +498,10 @@ The dialogue would then look like this:
 Confirmations are never batched: if the client requests a confirmation
 then the server will not send any other command back to the client until
 the command being confirmed has completed.
+
+When the server sends other commands (while processing the client's
+command), these will arrive before the CHANNEL REPLY or HANDLE REPLY
+command.
 
 You can factor this into the other dialogues shown above to give the
 fully-confirmed dialogue for (E.G.) sending a message.
@@ -609,17 +622,12 @@ Frame Syntax
     mechanism            = short-string
     responses            = long-string
 
-    connection-tune      = %d12 frame-max channel-max handle-max
-                           heartbeat options
-    frame-max            = long-integer
-    long-integer         = 4*OCTET
-    channel-max          = short-integer
-    handle-max           = short-integer
-    heartbeat            = short-integer
+    connection-tune      = %d12 options dictionary
     options              = long-string
+    dictionary           = long-string
 
-    connection-open      = %d13 confirm-tag virtual-path client-name
-                           options
+    connection-open      = %d13 confirm-tag virtual-path
+                           client-name options
     confirm-tag          = short-integer
     virtual-path         = short-string
     client-name          = short-string
@@ -642,6 +650,7 @@ Frame Syntax
 
     channel-ack          = %d21 channel-id confirm-tag message-nbr
     message-nbr          = long-integer
+    long-integer         = 4*OCTET
 
     channel-commit       = %d22 channel-id confirm-tag options
 
@@ -683,7 +692,8 @@ Frame Syntax
     identifier           = short-string
     selector             = long-string
 
-    handle-cancel        = %d33 handle-id confirm-tag dest-name identifier
+    handle-cancel        = %d33 handle-id confirm-tag dest-name
+                           identifier
 
     handle-flow          = %d34 handle-id confirm-tag flow-pause
     flow-pause           = BIT
@@ -774,13 +784,14 @@ CONNECTION RESPONSE:
     CHALLENGE or a CONNECTION TUNE.
 CONNECTION TUNE:
     Server asks client to confirm tuning parameters.  Client replies
-    with a CONNECTION TUNE.
+    with zero or more CONNECTION TUNE commands, followed by a CONNECTION
+    OPEN.
 CONNECTION OPEN:
     The client asks the server to open a connection to a virtual host.
 CONNECTION PING:
     Either party asks the other to respond with a high-priority message.
 CONNECTION REPLY:
-    Server responds to a satisfactory CONNECTION TUNE with a CONNECTION
+    Server responds to a satisfactory CONNECTION OPEN with a CONNECTION
     REPLY to tell the client that the connection is ready.
 CONNECTION CLOSE:
     Either party closes the connection, the other confirms with
@@ -886,6 +897,17 @@ Notes:
 - Time values are held in the POSIX time_t format with an accuracy of
   one second.
 
+As a convention when defining allowed values in field tables we will
+use this syntax:
+
+    Name=(Type)Content
+
+For example:
+
+    EXPIRATION-TIME=(Time)
+    IDENTIFIER=(String)01-ABCD-9876
+    MAXIMUM-SIZE=(Integer)
+
 CONNECTION RESPONSE Command
 ---------------------------
 
@@ -936,7 +958,10 @@ in any way.
 When the server sends a CONNECTION CHALLENGE specifying the security
 mechanism "PLAIN", the client should respond with a CHALLENGE RESPONSE
 containing a responses table with two fields, LOGIN and PASSWORD. These
-fields provide the login name and plain-text password.
+fields provide the login name and plain-text password:
+
+    LOGIN=(String)
+    PASSWORD=(String)
 
 Note that the field names used in a field table are case-sensitive. AMQP
 uses uppercase in all pre-defined field names.  Given a login "Johan"
@@ -951,31 +976,19 @@ CONNECTION TUNE Command
 
 After authentication the client and server negotiates various parameters
 for the connection.  This negotiation consists of an exchange of
-CONNECTION TUNE commands (one from the server to the client and one
-in response back to the server):
+CONNECTION TUNE commands (one from the server to the client and zero
+or more in response back from the client to the server):
 
     CONNECTION TUNE
-        frame-max               long integer
-        channel-max             short integer
-        handle-max              short integer
-        heartbeat               short integer
         options                 field table
+        dictionary              field table
 
-frame-max:
-    The largest frame size or fragment size that the server is
-    prepared to accept, in octets.  May not be zero. The frame-max
-    must be large enough for any command frame and not less than 1024.
-channel-max:
-    The maximum total number of channels supported per connection.
-    Zero means 'unlimited'.
-handle-max:
-    The maximum total number of handles supported per connection.
-    Zero means 'unlimited'.
-heartbeat:
-    The delay, in seconds, of the connection heartbeat: see the
-    CONNECTION PING command.  Zero means no heartbeat is requested.
 options:
-    A set of tuning options.  To be defined later.
+    A set of tuning options as defined below.
+dictionary:
+    A client-defined set of aliases for field names used in messages.
+    This field is always empty in the command sent from server to
+    client.
 
 The server proposes values for the -max parameters and the client
 confirms with the parameters it proposes, which must be equal to or
@@ -984,6 +997,79 @@ accept the client's values it replies with CONNECTION CLOSE.
 
 The maximum allowed size for a CONNECTION TUNE command frame is
 4096 octets.
+
+Connection Tuning Options
+.........................
+
+The server may send these fields to the client in the 'options'
+field table:
+
+    FRAME_MAX=(Integer)
+    CHANNEL_MAX=(Integer)
+    HANDLE_MAX=(Integer)
+    HEARTBEAT=(Integer)
+    TXN_LIMIT=(Integer)
+
+FRAME_MAX:
+    The largest frame size or fragment size that the server is
+    prepared to accept, in octets.  May not be zero. The frame-max
+    must be large enough for any command frame and not less than 1024.
+CHANNEL_MAX:
+    The maximum total number of channels supported per connection.
+    Zero means 'unlimited'.
+HANDLE_MAX:
+    The maximum total number of handles supported per connection.
+    Zero means 'unlimited'.
+HEARTBEAT:
+    The delay, in seconds, of the connection heartbeat requested
+    by the server: see the CONNECTION PING command.  Zero means
+    the server does not request a heartbeat.
+TXN_LIMIT:
+    The highest number of messages that the server will accept
+    per transaction.  If the server does not limit the size of
+    transactions, this field will either be specified as zero,
+    or not specified.
+
+The client may send these fields to the server in the 'options'
+field table:
+
+    FRAME_MAX=(Integer)
+    HEARTBEAT=(Integer)
+
+FRAME_MAX:
+    The largest frame size or fragment size that the client is
+    prepared to accept, in octets.  May not be larger than the
+    value sent by the server, and may not be smaller than 1024.
+HEARTBEAT:
+    The delay, in seconds, of the connection heartbeat requested
+    by the client: see the CONNECTION PING command.  Zero means
+    the client does not request a heartbeat.
+
+Dictionaries
+............
+
+The 'dictionary' is a simple technique designed to save network
+transfer costs.  Messages have a 'headers' field that holds message
+headers (field name-value pairs).  Since the field names used are
+generally the same for all messages sent to a queue, we can see
+large amounts of repetitive data being sent across the network.
+
+A dictionary defines short names for message header fields.  Thus
+a field who's full name is "Expiration-Time" might have a short name
+"ET".  When the message fields are used in selection and routing, we
+use the full name.  However when the message is carried by a HANDLE
+SEND or HANDLE NOTIFY, we use the short name.
+
+This is specified in the dictionary using the field name-value pair:
+
+    ET=(String)Expiration-Time
+
+The client can send as many dictionaries as it wants to, each in a
+CONNECTION TUNE command; dictionaries are merged into a single set
+of aliases that apply to all messages sent across the connection.
+
+Note: selectors are currently unimplemented, and dictionaries are
+not used, if specified.
 
 CONNECTION OPEN Command
 -----------------------
@@ -1802,6 +1888,9 @@ client as owner.  Reopening a temporary queue is equivalent to purging it;
 any messages it contains are deleted.  If the client does not specify a
 queue name the server will create a unique queue name.  The server returns
 the queue name to the client in a HANDLE CREATED command.
+
+If the client also specified a confirm-tag, the HANDLE REPLY comes after
+the HANDLE CREATED command.
 
 Only the client that created a temporary queue can consume messages from
 it.

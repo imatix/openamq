@@ -239,7 +239,7 @@ void   $(prefix)_frame_free\
  *  Copyright (c) 1991-2004 iMatix Corporation
  *---------------------------------------------------------------------------*/
 
-#include "sfl.h"
+#include "icl_types.h"
 #include "$(name).h"
 
 
@@ -268,8 +268,8 @@ $(prefix)_frame_encode (amq_bucket_t *bucket, $(prefix)_frame_t *frame)
 .       last
 .       endif
 .   endfor
-    ASSERT (bucket);
-    ASSERT (frame);
+    assert (bucket);
+    assert (frame);
 
     bucket_data = bucket->data;
     switch (frame->type) {
@@ -321,7 +321,7 @@ $(prefix)_frame_encode (amq_bucket_t *bucket, $(prefix)_frame_t *frame)
 .-
 .           elsif type = "longstr" | type = "table"
             if (frame->body.$(frame.name).$(name)) {
-                ASSERT (frame->body.$(frame.name).$(name)->cur_size < 0x10000);
+                assert (frame->body.$(frame.name).$(name)->cur_size < 0x10000);
                 *(dbyte *) bucket_data = htons ((dbyte) frame->body.$(frame.name).$(name)->cur_size);
                 bucket_data += 2;
                 memcpy (bucket_data,
@@ -378,7 +378,7 @@ $(prefix)_frame_decode (amq_bucket_t *bucket)
 .       endif
 .   endfor
 
-    ASSERT (bucket);
+    assert (bucket);
     frame = icl_mem_alloc (sizeof ($(prefix)_frame_t));
     if (!frame) {
         coprintf ("E: memory allocation failed in $(prefix)_frame_decode");
@@ -483,7 +483,7 @@ $(prefix)_$(name)_decode (amq_bucket_t *bucket)
         bit_string = 0;
 .       endif
 
-    ASSERT (bucket);
+    assert (bucket);
     bucket_data = bucket->data;
     frame = icl_mem_alloc (sizeof ($(prefix)_frame_t));
     if (!frame) {
@@ -608,7 +608,7 @@ $(prefix)_frame_t *$(prefix)_frame_$(name)_new ($(build_struct_args ()))
 size_t
 $(prefix)_frame_size ($(prefix)_frame_t *frame)
 {
-    ASSERT (frame);
+    assert (frame);
 
     switch (frame->type) {
 .   for frame
@@ -631,7 +631,7 @@ $(prefix)_frame_size ($(prefix)_frame_t *frame)
 void
 $(prefix)_frame_dump ($(prefix)_frame_t *frame, char *text)
 {
-    ASSERT (frame);
+    assert (frame);
 
     switch (frame->type) {
 .   for frame

@@ -3,9 +3,9 @@ gdl
     subtitle  = Installation and Use of OpenAMQ
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2004/11/24
-    copyright = Copyright (c) 2004 JPMorgan
-    version   = 0.7
+    date      = 2005/03/12
+    copyright = Copyright (c) 2004-2005 JPMorgan and iMatix Corporation
+    version   = 0.8
 end gdl
 
 Introduction
@@ -14,19 +14,259 @@ Introduction
 Purpose
 =======
 
+OpenAMQ is a reference implementation of the AMQ
+middleware protocol (AMQP).  It provides a high-speed message
+provider along with clients for various platforms and languages.
+
 Disclaimer
 ==========
 
-Do not use this prototype to transfer confidential or proprietary data.
+This version of OpenAMQ is not considered to be a final, stable
+release.  It may be subject to arbitrary changes and is certainly
+not sufficiently tested to be used for critical data.  It is
+provided AS-IS for the purposes of demonstration.
 
-Copyrights
-==========
+Note that OpenAMQ has not been released as open source, though this
+is the project plan.  This software is proprietary and confidential.
 
-OpenAMQ is copyright (c) 2004 JPMorgan
+Copyrights and Credits
+======================
 
+OpenAMQ is copyright (c) 2004-2005 JPMorgan and iMatix Corporation.
+
+The AMQP protocol was designed by Pieter Hintjens and John O'Hara
+with suggestions from Mark Atwell, James Strachan, Stewie Stewart,
+Martin Sustrik and Martin Lucina.
+
+The OpenAMQ server was designed by Pieter Hintjens and John O' Hara
+and built by Pieter Hintjens and Jonathan Schultz with contributions
+from Martin Lucina, Martin Sustrik, Ewen McNeill, Rakan El-Khalil,
+Gustavo Broos, and others.
+
+OpenAMQ uses the iMatix Base platform, including the iMatix Class
+Language (iCL), iMatix Portability Runtime (iPR), and iMatix Simple
+Multithreading kernel (SMT).
+
+Additionally, OpenAMQ uses Berkely Database from Sleepycat software
+and the Apache Runtime (APR) from the Apache Foundation.
+
+Features
+========
+
+The current version of OpenAMQ implements:
+
+ - configured message queues
+ - named and unnamed temporary queues
+ - message sizes from 1 octet to 4 gigaoctets
+ - persistent and non-persistent messages
+ - batched operation with commit/rollback per batch
+ - multiple readers per queue with round-robin dispatching
+ - configurable queue limits (messages, readers)
+ - a rapid single-process server architecture
+ - virtual hosts
+ - restartable message transfer for large messages
+ - browsable queues
+ - simple authorisation via login and password
+ - message prioritisation (up to 10 levels per queue)
+ - multiplexed AMQP protocol with up to 255 channels per socket
+ - XML-based configuration files
+ - tuning options for queue physical storage
+
+These aspects of the AMQP specifications are not implemented:
+
+ - topics and subscriptions
+ - message selectors
+ - connection heartbeats
+ - message expiration
+
+These additional functionalities are planned for future versions
+of OpenAMQ:
+
+ - remote administration tools (web or Java)
+
+Concepts
+========
+
+Virtual Hosts
+.............
+
+An OpenAMQ virtual host packages a set of queues.  In the AMQ protocol
+the virtual host is a "path" that the application chooses to work with
+after authentication.  We can draw parallels between an OpenAMQ virtual
+host and an SQL "database", which packages a set of database tables.
+
+OpenAMQ makes virtual hosts easy to manage.  Each virtual host exists
+as a directory (with its own structure and contents).  You can copy and
+move virtual hosts by copying and/or moving their directories.
+
+Authorisation is not handled on a per-virtual host basis, but access
+controls (which are not yet implemented in OpenAMQ) would be.  I.e. an
+OpenAMQ server defines a single unified set of users but each virtual
+host (and each queue) controls which users can perform different kinds
+of work.
+
+OpenAMQ currently allows up to 255 virtual hosts per server.
+
+Queues
+......
+
+A queue is a named destination for messages.  Queues accept messages from
+one or more producers and distribute these to one or more consumers.  A
+message is never distributed to more than one consumer.  An OpenAMQ queue
+is mapped onto a physical file so that persistent messages can be safely
+held.  This backing storage is also used when the queue "overflows", i.e.
+it reaches a preset limit for the number of non-persistent messages it
+can hold.
+
+OpenAMQ provides full configurability for queues so that you can make the
+best choices between performance and reliability.
+
+Topics
+......
+
+A topic is a named destination for messages.  Topics accept messages from
+one or more producers and distribute these to one or consumers.  A message
+can be distributed to as many consumers who have asked for it.
+
+OpenAMQ does not currently implement topics.
+
+OpenAMQ Configuration Files
+...........................
+
+The OpenAMQ server needs a valid configuration file in order to run.
+Basically there is one configuration file for the main server, and one per
+virtual host, in the virtual host directory. The standard package includes
+these files.
+
+OpenAMQ configuration files use a simple XML format, explained in more
+detail in the next section.  You can edit the configuration files using
+any text editor.
 
 Installation
 ************
+
+Operating Environments
+======================
+
+OpenAMQ runs on Linux and win32 (Windows 95/98/XP/2000/2003).  The server
+uses about 10-20 Mb of memory depending on whether it is built with debug
+information or not.
+
+A Solaris version of OpenAMQ will be available in the near future.  The
+Unix source package should build, but has not been qualified, on other Unix
+systems.
+
+For operation on Linux you should build the server from source.  Of course
+you can copy pre-built binaries between systems but to avoid C runtime
+compatibility issues, you should not mix pre-built binaries between
+different Linux distributions and versions.
+
+For operation on win32 you can either build from source (you then need
+MSVC 6 or 7) or use the pre-built binaries.
+
+OpenAMQ does not need any further software.  For its operation you should
+provide sufficient memory (we recommend at least 256Mb) depending on the
+total estimated number of messages to be held in memory.
+
+Required Files
+==============
+
+To run the OpenAMQ server you need:
+
+ - the openamqd server executable
+ - the amq_server.cfg configuration file
+ - a configuration directory and file per virtual host
+
+The OpenAMQ server must be started in the directory which contains the
+amq_server.cfg file.  We call this the "main directory".  Each virtual
+host is configured as a child directory of this main directory.
+
+We provide a default server configuration in the openamq/servers directory.
+
+Starting and Stopping the Server
+================================
+
+To run the server in a console window start in the main directory and run
+the command 'openamqd'.  To end the server, type Ctrl-C.
+
+The openamqd command accepts several options.  Run 'openamqd -h' to see
+a page of help:
+
+    Syntax: amqpsrv [options...]
+    Options:
+    -w directory     Working directory for server
+    -q               Quiet mode: no messages
+    -s               Server mode: run as background job
+    -c               Console mode: run as foreground job
+    -t level         Set trace level
+                     0=none, 1=low, 2=medium, 3=high
+    -v               Show version information
+    -h               Show summary of command-line options
+
+    The order of arguments is not important. Switches and filenames
+    are case sensitive. See documentation for detailed information.
+
+Under Unix you can run the server in the background as follows:
+
+    openamqd -s
+
+Main Server Configuration
+=========================
+
+The amq_server.cfg file provides the server with its overall configuration.
+
+    <server
+        port = "7654"
+        background = "0"
+        />
+
+You can run the OpenAMQ server on arbitrary ports (7654 is the default).
+
+    <resources
+        max-memory = "800000000"
+        txn-limit = "250"
+        />
+
+The resources
+
+    <logging
+        directory = "logs"
+        console = "amq_console.log"
+        />
+
+    <vhosts>
+        <!-- Virtual hosts, each configured in their own directory -->
+        <vhost directory = "vh_default" />
+        <vhost directory = "vh_test"    />
+    </vhosts>
+
+    <security mechanism = "NONE" />
+    <users>
+        <user name = "test-login" password = "test-password" />
+    </users>
+
+...
+
+
+- format of server config file
+- format of vhost config file
+- amq_custom.cfg
+
+common tasks
+
+- defining users
+- defining a queue
+- queue configuration
+- resetting the server
+- monitoring the server - cpu, memory
+
+server options
+    - run as user/group
+
+
+
+
+
 
 amq_server.cfg file
     server:port

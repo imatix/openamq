@@ -2,7 +2,7 @@
  *
  *  amq_core.c   OpenAMQ server kernel core
  *
- *  Copyright (c) 2004-2005 JPMorgan
+ *  Copyright (c) 2004-2005 JPMorgan and iMatix Corporation
  *===========================================================================*/
 
 #include "amq_classes.h"
@@ -173,6 +173,7 @@ amq_server_core (
 
     /*  Load configuration data, if any, into the config_table               */
     amq_config = ipr_config_new (".", AMQ_SERVER_CONFIG);
+    ipr_config_load (amq_config, ".", AMQ_CUSTOM_CONFIG);
 
     /*  Initialise arguments, taking defaults from the config_table          */
     if (!opt_server) {
@@ -201,7 +202,8 @@ amq_server_core (
 
     /*  Configure server resource parameters                                 */
     ipr_config_locate (amq_config, "/config/resources", NULL);
-    amq_allowed_memory = ipr_config_attrn (amq_config, "allowed-memory");
+    amq_max_memory = ipr_config_attrn (amq_config, "max-memory");
+    amq_txn_limit  = ipr_config_attrn (amq_config, "txn-limit");
 
     /*  Pre-module initialisation                                            */
     amq_users  = amq_user_table_new ();
@@ -294,7 +296,7 @@ s_prepare_security (void)
     while (amq_config->located) {
         amq_user_new (
             amq_users,                  /*  Users hash table                 */
-            ipr_config_attr (amq_config, "login", ""),
+            ipr_config_attr (amq_config, "name", ""),
             amq_config);                /*  Configuration entry              */
         ipr_config_next (amq_config);
     }
