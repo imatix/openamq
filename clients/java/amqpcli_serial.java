@@ -459,7 +459,7 @@ public void do_tests ()
                 System.out.println("(" + repeat_count + ") Sending " + messages + " (fragmented) messages to server...");
             else
                 System.out.println("(" + repeat_count + ") Sending " + messages + " messages to server...");
-            for (int i = 1; i < messages; i++) {
+            for (int i = 1; i <= messages; i++) {
                 OutputStream os;
 
                 // Allocate the message body
@@ -502,7 +502,7 @@ public void do_tests ()
             // Request consume messages
             amq_framing.sendFrame(handle_consume);
             System.out.println("(" + repeat_count + ") Reading messages back from server...");
-            for (int i = 1; i < messages; i++) {
+            for (int i = 1; i <= messages; i++) {
                 InputStream is;
                 byte[] bytes;
 
@@ -535,7 +535,6 @@ public void do_tests ()
                         } catch (InterruptedException e) {}
                     }
                 }
-
             }
             // Acknowledge & commit leftovers
             channel_ack.messageNbr = handle_notify.messageNbr;
