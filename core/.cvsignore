@@ -118,7 +118,6 @@ amq_smessage.c
 amq_smessage.h
 amq_smessage_list.c
 amq_smessage_list.h
-amq_smessage_list.icl
 amq_smessage_list_test
 amq_smessage_list_test.c
 amq_smessage_test
