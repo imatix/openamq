@@ -7,17 +7,32 @@
             <arg type = "const char *" name = "host"/>
             <arg type = "const char *" name = "client_name"/>
             <arg type = "apr_byte_t" name = "async"/>
-            <arg type = "amqp_lock_t *" name = "lock"/>
+            <arg type = "lock_t *" name = "lock"/>
+        </event>
+        <event name = "remove connection">
+            <arg type = "connection_t" name = "connection"/>
+        </event>
+        <event name = "assign new channel id">
+            <arg type = "apr_uint16_t *" name = "channel_id"/>
+        </event>
+        <event name = "assign new handle id">
+            <arg type = "apr_uint16_t *" name = "handle_id"/>
         </event>
         <event name = "terminate">
-            <arg type = "amqp_lock_t *" name = "lock"/>
+            <arg type = "lock_t *" name = "lock"/>
         </event>
+
+        <constructor action = "do construct"/>
+        <destructor action = "do destruct"/>
 
         <state name = "initial">
             <event name = "init" action = "do init" next = "active"/>
         </state>
         <state name = "active">
             <event name = "create connection" action = "do create connection"/>
+            <event name = "remove connection" action = "do remove connection"/>
+            <event name = "assign new channel id" action = "do assign new channel id"/>
+            <event name = "assign new handle id" action = "do assign new handle id"/>
         </state>
         <state name = "closing">
             <event name = "terminate" action = "do duplicate terminate"/>
@@ -32,11 +47,12 @@
     <machine name = "connection">
         <event name = "init">
             <arg type = "global_t" name = "global"/>
+            <arg type = "apr_uint16_t" name = "connection_id"/>
             <arg type = "const char *" name = "server"/>
             <arg type = "const char *" name = "host"/>
             <arg type = "const char *" name = "client_name"/>
             <arg type = "apr_byte_t" name = "async"/>
-            <arg type = "amqp_lock_t *" name ="lock"/>
+            <arg type = "lock_t *" name ="lock"/>
         </event>
         <event name = "challenge">
         </event>
@@ -46,13 +62,24 @@
             <arg type = "apr_byte_t" name = "transacted"/>
             <arg type = "apr_byte_t" name = "restartable"/>
             <arg type = "apr_byte_t" name = "async"/>
-            <arg type = "amqp_lock_t *" name = "lock"/>
+            <arg type = "lock_t *" name = "lock"/>
+        </event>
+        <event name = "remove channel">
+            <arg type = "channel_t" name = "channel"/>
+        </event>
+        <event name = "reply">
+            <arg type = "apr_uint16_t" name = "confirm_tag"/>
+            <arg type = "apr_uint16_t" name = "reply_code"/>
+            <arg type = "const char *" name = "reply_text"/>
         </event>
         <event name = "terminate">
-            <arg type = "amqp_lock_t *" name = "lock"/>
+            <arg type = "lock_t *" name = "lock"/>
         </event>
         <event name = "close">
         </event>
+
+        <constructor action = "do construct"/>
+        <destructor action = "do destruct"/>
 
         <state name = "initial">
             <event name = "init" action = "do init" next = "expect challenge"/>
@@ -65,6 +92,8 @@
         </state>
         <state name = "active">
             <event name = "create channel" action = "do create channel"/>
+            <event name = "remove channel" action = "do remove channel"/>
+            <event name = "reply" action = "do reply"/>
         </state>
         <state name = "expect close">
             <event name = "terminate" action = "do duplicate terminate"/>
@@ -80,13 +109,15 @@
 
     <machine name = "channel">
         <event name = "init">
+            <arg type = "global_t" name = "global"/>
             <arg type = "connection_t" name = "connection"/>
             <arg type = "apr_socket_t *" name = "socket"/>
+            <arg type = "apr_uint16_t" name = "connection_id"/>
             <arg type = "apr_uint16_t" name = "channel_id"/>
             <arg type = "apr_byte_t" name = "transacted"/>
             <arg type = "apr_byte_t" name = "restartable"/>
             <arg type = "apr_byte_t" name = "async"/>
-            <arg type = "amqp_lock_t *" name = "lock"/>
+            <arg type = "lock_t *" name = "lock"/>
         </event>
         <event name = "create handle">
             <arg type = "apr_uint16_t" name = "service_type"/>
@@ -98,36 +129,49 @@
             <arg type = "const char *" name = "mime_type"/>
             <arg type = "const char *" name = "encoding"/>
             <arg type = "apr_byte_t" name = "async"/>
-            <arg type = "amqp_lock_t *" name = "created_lock"/>
-            <arg type = "amqp_lock_t *" name = "lock"/>
+            <arg type = "lock_t *" name = "created_lock"/>
+            <arg type = "lock_t *" name = "lock"/>
+        </event>
+        <event name = "remove handle">
+            <arg type = "handle_t" name = "handle"/>
         </event>
         <event name = "acknowledge">
             <arg type = "apr_uint32_t" name = "message_nbr"/>
             <arg type = "apr_byte_t" name = "async"/>
-            <arg type = "amqp_lock_t *" name = "lock"/>
+            <arg type = "lock_t *" name = "lock"/>
         </event>
         <event name = "commit">
             <arg type = "apr_byte_t" name = "async"/>
-            <arg type = "amqp_lock_t *" name = "lock"/>
+            <arg type = "lock_t *" name = "lock"/>
         </event>
         <event name = "rollback">
             <arg type = "apr_byte_t" name = "async"/>
-            <arg type = "amqp_lock_t *" name = "lock"/>
+            <arg type = "lock_t *" name = "lock"/>
+        </event>
+        <event name = "reply">
+            <arg type = "apr_uint16_t" name = "confirm_tag"/>
+            <arg type = "apr_uint16_t" name = "reply_code"/>
+            <arg type = "const char *" name = "reply_text"/>
         </event>
         <event name = "terminate">
-            <arg type = "amqp_lock_t *" name = "lock"/>
+            <arg type = "lock_t *" name = "lock"/>
         </event>
         <event name = "close">
         </event>
+
+        <constructor action = "do construct"/>
+        <destructor action = "do destruct"/>
 
         <state name = "initial">
             <event name = "init" action = "do init" next = "active"/>
         </state>
         <state name = "active">
             <event name = "create handle" action = "do create handle"/>
+            <event name = "remove handle" action = "do remove handle"/>
             <event name = "acknowledge" action = "do acknowledge"/>
             <event name = "commit" action = "do commit"/>
             <event name = "rollback" action = "do rollback"/>
+            <event name = "reply" action = "do reply"/>
         </state>
         <state name = "expect close">
             <event name = "terminate" action = "do duplicate terminate"/>
@@ -143,9 +187,10 @@
 
     <machine name = "handle">
         <event name = "init">
-            <arg type = "connection_t" name = "connection"/>
+            <arg type = "global_t" name = "global"/>
             <arg type = "channel_t" name = "channel"/>
             <arg type = "apr_socket_t *" name = "socket"/>
+            <arg type = "apr_uint16_t" name = "connection_id"/>
             <arg type = "apr_uint16_t" name = "channel_id"/>
             <arg type = "apr_uint16_t" name = "handle_id"/>
             <arg type = "apr_uint16_t" name = "service_type"/>
@@ -156,10 +201,10 @@
             <arg type = "const char *" name = "mime_type"/>
             <arg type = "const char *" name = "encoding"/>
             <arg type = "apr_byte_t" name = "async"/>
-            <arg type = "amqp_lock_t *" name = "lock"/>
+            <arg type = "lock_t *" name = "lock"/>
         </event>
         <event name = "init temporary">
-            <arg type = "connection_t" name = "connection"/>
+            <arg type = "global_t" name = "global"/>
             <arg type = "channel_t" name = "channel"/>
             <arg type = "apr_socket_t *" name = "socket"/>
             <arg type = "apr_uint16_t" name = "channel_id"/>
@@ -172,8 +217,8 @@
             <arg type = "const char *" name = "mime_type"/>
             <arg type = "const char *" name = "encoding"/>
             <arg type = "apr_byte_t" name = "async"/>
-            <arg type = "amqp_lock_t *" name = "created_lock"/>
-            <arg type = "amqp_lock_t *" name = "lock"/>
+            <arg type = "lock_t *" name = "created_lock"/>
+            <arg type = "lock_t *" name = "lock"/>
         </event>
         <event name = "created">
             <arg type = "const char *" name = "dest_name"/>
@@ -186,7 +231,7 @@
             <arg type = "const char *" name = "identifier"/>
             <arg type = "const char *" name = "mime_type"/>
             <arg type = "apr_byte_t" name = "async"/>
-            <arg type = "amqp_lock_t *" name = "lock"/>
+            <arg type = "lock_t *" name = "lock"/>
         </event>
         <event name = "send message">
             <arg type = "apr_byte_t" name = "out_of_band"/>
@@ -202,10 +247,10 @@
             <arg type = "apr_size_t" name = "data_size"/>
             <arg type = "void *" name = "data"/>
             <arg type = "apr_byte_t" name = "async"/>
-            <arg type = "amqp_lock_t *" name = "lock"/>
+            <arg type = "lock_t *" name = "lock"/>
         </event>
         <event name = "get message">
-            <arg type = "amqp_lock_t *" name = "lock"/>
+            <arg type = "lock_t *" name = "lock"/>
         </event>
         <event name = "receive message">
             <arg type = "amqp_frame_t *" name = "message"/>
@@ -213,24 +258,24 @@
         <event name = "flow">
             <arg type = "apr_byte_t" name = "pause"/>
             <arg type = "apr_byte_t" name = "async"/>
-            <arg type = "amqp_lock_t *" name = "lock"/>
+            <arg type = "lock_t *" name = "lock"/>
         </event>
         <event name = "cancel">
             <arg type = "const char *" name = "dest_name"/>
             <arg type = "const char *" name = "identifier"/>
             <arg type = "apr_byte_t" name = "async"/>
-            <arg type = "amqp_lock_t *" name = "lock"/>
+            <arg type = "lock_t *" name = "lock"/>
         </event>
         <event name = "unget">
             <arg type = "apr_uint32_t" name = "message_nbr"/>
             <arg type = "apr_byte_t" name = "async"/>
-            <arg type = "amqp_lock_t *" name = "lock"/>
+            <arg type = "lock_t *" name = "lock"/>
         </event>
-        <event name = "create query">
+        <event name = "query">
             <arg type = "apr_uint32_t" name = "message_nbr"/>
             <arg type = "const char *" name = "dest_name"/>
             <arg type = "const char *" name = "mime_type"/>
-            <arg type = "amqp_lock_t *" name = "lock"/>
+            <arg type = "lock_t *" name = "lock"/>
         </event>
         <event name = "index">
             <arg type = "apr_uint32_t" name = "message_nbr"/>
@@ -238,9 +283,8 @@
         </event>
         <event name = "browse">
             <arg type = "apr_uint32_t" name = "message_nbr"/>
-            <arg type = "apr_byte_t" name = "wait_for_message"/>
             <arg type = "apr_byte_t" name = "async"/>
-            <arg type = "amqp_lock_t *" name = "lock"/>
+            <arg type = "lock_t *" name = "lock"/>
         </event>
         <event name = "reply">
             <arg type = "apr_uint16_t" name = "confirm_tag"/>
@@ -248,10 +292,13 @@
             <arg type = "const char *" name = "reply_text"/>
         </event>
         <event name = "terminate">
-            <arg type = "amqp_lock_t *" name = "lock"/>
+            <arg type = "lock_t *" name = "lock"/>
         </event>
         <event name = "close">
         </event>
+
+        <constructor action = "do construct"/>
+        <destructor action = "do destruct"/>
 
         <state name = "initial">
             <event name = "init" action = "do init" next = "active"/>
@@ -268,7 +315,7 @@
             <event name = "flow" action = "do flow"/>
             <event name = "cancel" action = "do cancel"/>
             <event name = "unget" action = "do unget"/>
-            <event name = "create query" action = "do create query"/>
+            <event name = "query" action = "do query"/>
             <event name = "index" action = "do index"/>
             <event name = "browse" action = "do browse"/>
         </state>
@@ -282,38 +329,6 @@
             <event name = "reply" action = "do reply"/>
             <event name = "terminate" action = "do terminate" next = "expect close"/>
             <event name = "close" action = "do server requested close" next = "terminal"/>
-        </state>
-    </machine>
-
-    <machine name = "query">
-        <event name = "init">
-            <arg type = "handle_t" name = "hndl"/>
-            <arg type = "apr_uint32_t" name = "message_nbr"/>
-            <arg type = "const char *" name = "dest_name"/>
-            <arg type = "const char *" name = "mime_type"/>
-            <arg type = "amqp_lock_t *" name = "lock"/>
-        </event>
-        <event name = "index">
-            <arg type = "apr_uint32_t" name = "message_nbr"/>
-            <arg type = "const char *" name = "message_list"/>
-        </event>
-        <event name = "get result">
-            <arg type = "apr_uint32_t *" name = "message_nbr"/>
-        </event>
-        <event name = "restart">
-        </event>
-
-        <state name = "initial">
-            <event name = "init" action = "do init query" next = "active"/>
-        </state>
-        <state name = "active">
-            <event name = "index" action = "do index query" next = "done"/>
-        </state>
-        <state name = "done">
-            <event name = "get result" action = "do get query result"/>
-            <event name = "restart" action = "do restart query"/>
-        </state>
-        <state name = "default">
         </state>
     </machine>
 </root>

@@ -1,46 +1,16 @@
 /*---------------------------------------------------------------------------
- *  amqp_handle.c - Definition of HANDLE object and QUERY object
+ *  amq_stdc_handle.c - Definition of HANDLE object and QUERY object
  *
  *  Copyright (c) 2004-2005 JPMorgan
  *  Copyright (c) 1991-2005 iMatix Corporation
  *---------------------------------------------------------------------------*/
 
-#include "amqp_handle.h"
+#include "amq_stdc_handle.h"
 #include "handle_fsm.d"
-#include "query_fsm.d"
 
-/*****************************************************************************/
-/* State machine definitions                                                 */
-
-#define QUERY_OBJECT_ID context->index_tag
-
-DEFINE_QUERY_CONTEXT_BEGIN
-    connection_t
-        connection;
-    apr_uint16_t
-        index_tag;                     /*  Id of lock that's used for        */
-                                       /*  waiting for HANDLE INDEX          */
-    char
-        *results;                      /*  Result string returned by server  */
-    apr_uint16_t
-        current;                       /*  Current position within results   */
-    apr_uint32_t
-        range_current;                 /*  Actual message number within the  */
-                                       /*  range; to be sent to client       */
-    apr_uint32_t
-        range_end;                     /*  Last message number within range  */
-DEFINE_QUERY_CONTEXT_END
-
-DEFINE_QUERY_CONSTRUCTOR_BEGIN
-DEFINE_QUERY_CONSTRUCTOR_MIDDLE
-    context->results = NULL;
-DEFINE_QUERY_CONSTRUCTOR_END
-
-DEFINE_QUERY_DESTRUCTOR_BEGIN
-DEFINE_QUERY_DESTRUCTOR_MIDDLE
-    if (context->results)
-        free ((void*) context->results);
-DEFINE_QUERY_DESTRUCTOR_END
+/*---------------------------------------------------------------------------
+ *  State machine definitions
+ *---------------------------------------------------------------------------*/
 
 typedef struct tag_message_list_item_t
 {
@@ -81,10 +51,12 @@ DEFINE_HANDLE_CONTEXT_BEGIN
         *socket;                    /*  Socket (same as connection socket)   */
     apr_uint16_t
         id;                         /*  Handle id                            */
-    connection_t
-        connection;                 /*  Connection handle belongs to         */
+    global_t
+        global;                     /*  Global object handle                 */
     channel_t
         channel;                    /*  Channel handle belongs to            */
+    apr_uint16_t
+        connection_id;              /*  Id of connection handle belongs to   */
     apr_uint16_t
         channel_id;                 /*  Id of channel handle belongs to      */
     apr_uint16_t
@@ -93,13 +65,13 @@ DEFINE_HANDLE_CONTEXT_BEGIN
     apr_uint16_t
         shutdown_tag;               /*  Id of lock that's used for waiting   */
                                     /*  for HANDLE CLOSE                     */
+    apr_uint16_t
+        index_tag;                  /*  Id of lock that's used for waiting   */
+                                    /*  for HANDLE INDEX                     */
     apr_thread_mutex_t
         *query_sync;                /*  Critical section allowing only       */
                                     /*  single thread to perform             */
                                     /*  HANDLE QUERY at the same time        */ 
-    query_context_t
-        *query;                     /*  Query actualy waiting for HANDLE     */
-                                    /*  INDEX                                */
     char
         *dest_name;                 /*  Name of temporary destination        */
     message_list_item_t
@@ -117,30 +89,49 @@ DEFINE_HANDLE_CONTEXT_BEGIN
                                     /*  synchronous HANDLE BROWSEs           */
 DEFINE_HANDLE_CONTEXT_END
 
-DEFINE_HANDLE_CONSTRUCTOR_BEGIN
-DEFINE_HANDLE_CONSTRUCTOR_MIDDLE
+inline static apr_status_t do_construct (
+    handle_context_t *context
+    )
+{
+    apr_status_t
+        result;
+    char
+        buffer [BUFFER_SIZE];
+
     context->first_message = NULL;
     context->last_message = NULL;
     context->first_lock = NULL;
     context->last_lock = NULL;
     context->browse_requests = NULL;
     result = apr_thread_mutex_create (&(context->query_sync),
-        APR_THREAD_MUTEX_UNNESTED, pool);
+        APR_THREAD_MUTEX_UNNESTED, context->pool);
     TEST(result, apr_thread_mutex_create, buffer)
-DEFINE_HANDLE_CONSTRUCTOR_END
+    return APR_SUCCESS;
+}
 
-DEFINE_HANDLE_DESTRUCTOR_BEGIN
-DEFINE_HANDLE_DESTRUCTOR_MIDDLE
+inline static apr_status_t do_destruct (
+    handle_context_t *context
+    )
+{
+    apr_status_t
+        result;
+    char
+        buffer [BUFFER_SIZE];
+
     /*  Remove handle from channel's list                                    */
     result = channel_remove_handle (context->channel,
         (handle_t) context);
     TEST(result, channel_remove_handle, buffer)
-DEFINE_HANDLE_DESTRUCTOR_END
+    return APR_SUCCESS;
+}
 
-/*****************************************************************************/
-/*  Helper functions (private)                                               */
+/*---------------------------------------------------------------------------
+ *  Helper functions (private)
+ *---------------------------------------------------------------------------*/
 
-static apr_status_t pair_lock_and_message (handle_context_t *context)
+static apr_status_t pair_lock_and_message (
+    handle_context_t  *context
+    )
 {
     apr_status_t
         result;
@@ -170,22 +161,23 @@ static apr_status_t pair_lock_and_message (handle_context_t *context)
         else
             context->last_message = NULL;
         /*  Resume thread waiting for the message                            */
-        result = release_lock (context->connection, lock->lock_id,
+        result = release_lock (context->global, lock->lock_id,
             (void*) message->frame);
         TEST(result, release_lock, buffer);
         /*  Deallocate lock list item                                        */
         /*  Message list item will be deallocated when client destroys the   */
         /*  message (amqp_destroy_message)                                   */
-        free ((void*) lock);
+        amq_free ((void*) lock);
     }
     return APR_SUCCESS;
 }
 
-/*****************************************************************************/
-/*  Helper functions (public)                                                */
+/*---------------------------------------------------------------------------
+ *  Helper functions (public)
+ *---------------------------------------------------------------------------*/
 
 apr_status_t get_exclusive_access_to_query_dialogue (
-    handle_t *ctx
+    handle_t  ctx
     )
 {
     apr_status_t
@@ -204,25 +196,27 @@ apr_status_t get_exclusive_access_to_query_dialogue (
     return APR_SUCCESS;
 }
 
-/*****************************************************************************/
-/*  State machine actions (Handle)                                           */
+/*---------------------------------------------------------------------------
+ *  State machine actions (Handle)
+ *---------------------------------------------------------------------------*/
 
 inline static apr_status_t do_init (
-    handle_context_t *context,
-    connection_t connection,
-    channel_t channel,
-    apr_socket_t *socket,
-    apr_uint16_t channel_id,
-    apr_uint16_t handle_id,
-    apr_uint16_t service_type,
-    apr_byte_t producer,
-    apr_byte_t consumer,
-    apr_byte_t browser,
-    const char* dest_name,
-    const char* mime_type,
-    const char* encoding,
-    apr_byte_t async,
-    amqp_lock_t *lock
+    handle_context_t  *context,
+    global_t          global,
+    channel_t         channel,
+    apr_socket_t      *socket,
+    apr_uint16_t      connection_id,
+    apr_uint16_t      channel_id,
+    apr_uint16_t      handle_id,
+    apr_uint16_t      service_type,
+    apr_byte_t        producer,
+    apr_byte_t        consumer,
+    apr_byte_t        browser,
+    const char        *dest_name,
+    const char        *mime_type,
+    const char        *encoding,
+    apr_byte_t        async,
+    lock_t            *lock
     )
 {
     apr_status_t
@@ -233,8 +227,9 @@ inline static apr_status_t do_init (
         confirm_tag;
 
     /*  Save values that will be needed in future                            */
-    context->connection = connection;
+    context->global = global;
     context->channel = channel;
+    context->connection_id = connection_id;
     context->channel_id = channel_id;
     context->socket = socket;
     context->id = handle_id;
@@ -243,8 +238,8 @@ inline static apr_status_t do_init (
         *lock = NULL;
     confirm_tag = 0;
     if (!async) {
-        result = register_lock (context->connection, channel_id, handle_id,
-            &confirm_tag, lock);
+        result = register_lock (context->global, context->connection_id,
+            channel_id, handle_id, &confirm_tag, lock);
         TEST(result, register_lock, buffer)
     }
     /*  Send handle open                                                     */
@@ -257,22 +252,22 @@ inline static apr_status_t do_init (
 }
 
 inline static apr_status_t do_init_temporary (
-    handle_context_t *context,
-    connection_t connection,
-    channel_t channel,
-    apr_socket_t *socket,
-    apr_uint16_t channel_id,
-    apr_uint16_t handle_id,
-    apr_uint16_t service_type,
-    apr_byte_t producer,
-    apr_byte_t consumer,
-    apr_byte_t browser,
-    const char* dest_name,
-    const char* mime_type,
-    const char* encoding,
-    apr_byte_t async,
-    amqp_lock_t *created_lock,
-    amqp_lock_t *lock
+    handle_context_t  *context,
+    global_t          global,
+    channel_t         channel,
+    apr_socket_t      *socket,
+    apr_uint16_t      channel_id,
+    apr_uint16_t      handle_id,
+    apr_uint16_t      service_type,
+    apr_byte_t        producer,
+    apr_byte_t        consumer,
+    apr_byte_t        browser,
+    const char        *dest_name,
+    const char        *mime_type,
+    const char        *encoding,
+    apr_byte_t        async,
+    lock_t            *created_lock,
+    lock_t            *lock
     )
 {
     apr_status_t
@@ -283,7 +278,7 @@ inline static apr_status_t do_init_temporary (
         confirm_tag;
     
     /*  Save values that will be needed in future                            */
-    context->connection = connection;
+    context->global = global;
     context->channel = channel;
     context->channel_id = channel_id;
     context->socket = socket;
@@ -293,13 +288,13 @@ inline static apr_status_t do_init_temporary (
         *lock = NULL;
     confirm_tag = 0;
     if (!async) {
-        result = register_lock (context->connection, channel_id, handle_id,
-             &confirm_tag, lock);
+        result = register_lock (context->global, context->connection_id,
+            channel_id, handle_id, &confirm_tag, lock);
         TEST(result, register_lock, buffer)
     }
     /*  We have to wait for HANDLE CREATED                                   */
-    result = register_lock (context->connection, channel_id, handle_id,
-        &(context->created_tag), created_lock);
+    result = register_lock (context->global, context->connection_id,
+        channel_id, handle_id, &(context->created_tag), created_lock);
     /*  Send handle open                                                     */
     result = amqp_handle_open (context->socket, buffer, BUFFER_SIZE,
         channel_id, handle_id, service_type, confirm_tag, producer,
@@ -310,8 +305,8 @@ inline static apr_status_t do_init_temporary (
 }
 
 inline static apr_status_t do_created (
-    handle_context_t *context,
-    const char *dest_name
+    handle_context_t  *context,
+    const char        *dest_name
     )
 {
     apr_status_t
@@ -324,22 +319,22 @@ inline static apr_status_t do_created (
         strlen (dest_name) + 1);
     strcpy (context->dest_name, dest_name);
     /*  Unsuspend thread waiting for temporary queue creation                */
-    result = release_lock (context->connection, context->created_tag,
+    result = release_lock (context->global, context->created_tag,
         (void*) context->dest_name);
     TEST(result, release_lock, buffer)
     return APR_SUCCESS; 
 }
 
 inline static apr_status_t do_consume (
-    handle_context_t *context,
-    apr_uint16_t prefetch,
-    apr_byte_t no_local,
-    apr_byte_t unreliable,
-    const char *dest_name,
-    const char *identifier,
-    const char *mime_type,
-    apr_byte_t async,
-    amqp_lock_t *lock
+    handle_context_t  *context,
+    apr_uint16_t      prefetch,
+    apr_byte_t        no_local,
+    apr_byte_t        unreliable,
+    const char        *dest_name,
+    const char        *identifier,
+    const char        *mime_type,
+    apr_byte_t        async,
+    lock_t            *lock
     )
 {
     apr_status_t
@@ -353,8 +348,8 @@ inline static apr_status_t do_consume (
     if (lock)
         *lock = NULL;
     if (!async) {
-        result = register_lock (context->connection, context->channel_id,
-            context->id, &confirm_tag, lock);
+        result = register_lock (context->global, context->connection_id,
+            context->channel_id, context->id, &confirm_tag, lock);
         TEST(result, register_lock, buffer)
     }
     result = amqp_handle_consume (context->socket, buffer,
@@ -365,21 +360,21 @@ inline static apr_status_t do_consume (
 }
 
 inline static apr_status_t do_send_message (
-    handle_context_t *context,
-    apr_byte_t out_of_band,
-    apr_byte_t recovery,
-    apr_byte_t streaming,
-    const char* dest_name,
-    apr_byte_t persistent,
-    apr_byte_t priority,
-    apr_uint32_t expiration,
-    const char* mime_type,
-    const char* encoding,
-    const char* identifier,
-    apr_size_t data_size,
-    void *data,
-    apr_byte_t async,
-    amqp_lock_t *lock
+    handle_context_t  *context,
+    apr_byte_t        out_of_band,
+    apr_byte_t        recovery,
+    apr_byte_t        streaming,
+    const char        *dest_name,
+    apr_byte_t        persistent,
+    apr_byte_t        priority,
+    apr_uint32_t      expiration,
+    const char        *mime_type,
+    const char        *encoding,
+    const char        *identifier,
+    apr_size_t        data_size,
+    void              *data,
+    apr_byte_t        async,
+    lock_t            *lock
     )
 {
     apr_status_t
@@ -393,8 +388,8 @@ inline static apr_status_t do_send_message (
     if (lock)
         *lock = NULL;
     if (!async) {
-        result = register_lock (context->connection, context->channel_id,
-            context->id, &confirm_tag, lock);
+        result = register_lock (context->global, context->connection_id,
+            context->channel_id, context->id, &confirm_tag, lock);
         TEST(result, register_lock, buffer)
     }
     result = amqp_handle_send (context->socket, buffer,
@@ -406,8 +401,8 @@ inline static apr_status_t do_send_message (
 }
 
 inline static apr_status_t do_get_message (
-    handle_context_t *context,
-    amqp_lock_t *lock
+    handle_context_t  *context,
+    lock_t            *lock
     )
 {
     apr_status_t
@@ -418,9 +413,9 @@ inline static apr_status_t do_get_message (
         *new_item;
     
     /*  Allocate and fill in new lock item                                   */
-    new_item = (lock_list_item_t*) malloc (sizeof (lock_list_item_t));
-    result = register_lock (context->connection, context->channel_id,
-        context->id, &(new_item->lock_id), lock);
+    new_item = (lock_list_item_t*) amq_malloc (sizeof (lock_list_item_t));
+    result = register_lock (context->global, context->connection_id,
+        context->channel_id, context->id, &(new_item->lock_id), lock);
     TEST(result, register_lock, buffer);
     /*  Append it to the end of the queue                                    */
     new_item->next = NULL;
@@ -436,8 +431,8 @@ inline static apr_status_t do_get_message (
 }
 
 inline static apr_status_t do_receive_message (
-    handle_context_t *context,
-    amqp_frame_t *message
+    handle_context_t  *context,
+    amqp_frame_t      *message
     )
 {
     apr_status_t
@@ -452,30 +447,30 @@ inline static apr_status_t do_receive_message (
         **prev_browse_request;
     apr_byte_t
         processed;
-    
+
     processed = 0;
     if (message->fields.handle_notify.delivered == 0) {
-        /*  It is a reply to browse command                              */
+        /*  It is a reply to browse command                                  */
         browse_request = context->browse_requests;
         prev_browse_request = &(context->browse_requests);
         while (browse_request) {
             if (browse_request->message_nbr ==
                   message->fields.handle_notify.message_nbr) {
-                /*  It is a reply to sync browse command                 */
-                /*  Make a copy of message and unsuspend the thread      */
-                /*  that's waiting for it                                */
+                /*  It is a reply to sync browse command                     */
+                /*  Make a copy of message and unsuspend the thread          */
+                /*  that's waiting for it                                    */
                 new_item = (message_list_item_t*)
-                    malloc (sizeof (message_list_item_t));
+                    amq_malloc (sizeof (message_list_item_t));
                 memcpy ((void*) (new_item->buffer), (void*) message,
                     BUFFER_SIZE);
                 new_item->frame = (amqp_frame_t*) (new_item->buffer);
                 new_item->next = NULL;
                 new_item->prev = NULL;
-                result = release_lock (context->connection,
+                result = release_lock (context->global,
                     browse_request->lock_id, (void*) new_item);
                 /*  Remove the request from the list                         */
                 *prev_browse_request = browse_request->next;
-                free ((void*) browse_request);
+                amq_free ((void*) browse_request);
                 processed = 1;
                 break;
             }
@@ -486,7 +481,7 @@ inline static apr_status_t do_receive_message (
     if (!processed) {
         /*  Allocate and fill in new message item                            */
         new_item = (message_list_item_t*)
-            malloc (sizeof (message_list_item_t));
+            amq_malloc (sizeof (message_list_item_t));
         memcpy ((void*) (new_item->buffer), (void*) message, BUFFER_SIZE);
         new_item->frame = (amqp_frame_t*) (new_item->buffer);
         /*  Append it to the end of the queue                                */
@@ -504,10 +499,10 @@ inline static apr_status_t do_receive_message (
 }
 
 inline static apr_status_t do_flow (
-    handle_context_t *context,
-    apr_byte_t pause,
-    apr_byte_t async,
-    amqp_lock_t *lock
+    handle_context_t  *context,
+    apr_byte_t        pause,
+    apr_byte_t        async,
+    lock_t            *lock
     )
 {
     apr_status_t
@@ -521,8 +516,8 @@ inline static apr_status_t do_flow (
     if (lock)
         *lock = NULL;
     if (!async) {
-        result = register_lock (context->connection, context->channel_id,
-            context->id, &confirm_tag, lock);
+        result = register_lock (context->global, context->connection_id,
+            context->channel_id, context->id, &confirm_tag, lock);
         TEST(result, register_lock, buffer)
     }
     result = amqp_handle_flow (context->socket, buffer,
@@ -532,11 +527,11 @@ inline static apr_status_t do_flow (
 }
 
 inline static apr_status_t do_cancel (
-    handle_context_t *context,
-    const char *dest_name,
-    const char *identifier,
-    apr_byte_t async,
-    amqp_lock_t *lock
+    handle_context_t  *context,
+    const char        *dest_name,
+    const char        *identifier,
+    apr_byte_t        async,
+    lock_t            *lock
     )
 {
     apr_status_t
@@ -550,8 +545,8 @@ inline static apr_status_t do_cancel (
     if (lock)
         *lock = NULL;
     if (!async) {
-        result = register_lock (context->connection, context->channel_id,
-            context->id, &confirm_tag, lock);
+        result = register_lock (context->global, context->connection_id,
+            context->channel_id, context->id, &confirm_tag, lock);
         TEST(result, register_lock, buffer)
     }
     result = amqp_handle_cancel (context->socket, buffer,
@@ -561,10 +556,10 @@ inline static apr_status_t do_cancel (
 }
 
 inline static apr_status_t do_unget (
-    handle_context_t *context,
-    apr_uint32_t message_nbr,
-    apr_byte_t async,
-    amqp_lock_t *lock
+    handle_context_t  *context,
+    apr_uint32_t      message_nbr,
+    apr_byte_t        async,
+    lock_t            *lock
     )
 {
     apr_status_t
@@ -578,8 +573,8 @@ inline static apr_status_t do_unget (
     if (lock)
         *lock = NULL;
     if (!async) {
-        result = register_lock (context->connection, context->channel_id,
-            context->id, &confirm_tag, lock);
+        result = register_lock (context->global, context->connection_id,
+            context->channel_id, context->id, &confirm_tag, lock);
         TEST(result, register_lock, buffer)
     }
     result = amqp_handle_unget (context->socket, buffer,
@@ -588,51 +583,61 @@ inline static apr_status_t do_unget (
     return APR_SUCCESS;
 }
 
-inline static apr_status_t do_create_query (
-    handle_context_t *context,
-    apr_uint32_t message_nbr,
-    const char *dest_name,
-    const char *mime_type,
-    amqp_lock_t *lock
+inline static apr_status_t do_query (
+    handle_context_t  *context,
+    apr_uint32_t      message_nbr,
+    const char        *dest_name,
+    const char        *mime_type,
+    lock_t            *lock
     )
 {
     apr_status_t
         result;
     char
         buffer [BUFFER_SIZE];
-    query_t
-        query;
 
-    /*  Create query object                                                  */
-    result = query_create (&query);
-    TEST(result, query_create, buffer)
-    context->query = query;
-    /*  Initialise it                                                        */
-    result = query_init (query, (handle_t) context, message_nbr, dest_name,
-        mime_type, lock);
-    TEST(result, query_init, buffer)
+    /*  Issue HANDLE QUERY command                                           */
+    result = amqp_handle_query (context->socket, buffer, BUFFER_SIZE,
+        context->id, message_nbr, dest_name, 0, "", mime_type);
+    TEST(result, amqp_handle_query, buffer)
+    /*  Create lock to wait for HANDLE INDEX                                 */
+    result = register_lock (context->global, context->connection_id,
+        context->channel_id, context->id, &(context->index_tag), lock);
+    TEST(result, register_lock, buffer)
+
     return APR_SUCCESS;
 }
 
 inline static apr_status_t do_index (
-    handle_context_t *context,
-    apr_uint32_t message_nbr,
-    const char *message_list
+    handle_context_t  *context,
+    apr_uint32_t      message_nbr,
+    const char        *message_list
     )
 {
     apr_status_t
         result;
     char
         buffer [BUFFER_SIZE];
+    char
+        *out;
     
-    if (!context->query) {
+    if (!context->index_tag) {
         printf ("HANDLE INDEX received when no HANDLE QUERY was issued.\n");
         exit(1);
     }
-    result = query_index (context->query, message_nbr, message_list);
-    TEST(result, query_index, buffer)
-    context->query = NULL;
+    /*  Make copy of result                                                  */
+    out = (char*) amq_malloc (strlen (message_list) + 1);
+    if (!out) {
+        printf ("Not enough memory.\n");
+        exit (1);
+    }
+    strcpy (out, message_list);
+    /*  Resume thread waiting for the HANDLE INDEX                           */
+    result = release_lock (context->global, context->index_tag,
+        (void*) out);
+    TEST(result, release_lock, buffer)
     /*  Release exclusive access to QUERY/INDEX dialogue                     */
+    context->index_tag = 0;
 #   ifdef AMQTRACE_LOCKS
         printf ("# Exclusive access to QUERY/INDEX dialogue released\n");
 #   endif
@@ -642,11 +647,10 @@ inline static apr_status_t do_index (
 }
 
 inline static apr_status_t do_browse (
-    handle_context_t *context,
-    apr_uint32_t message_nbr,
-    apr_byte_t wait_for_message,
-    apr_byte_t async,
-    amqp_lock_t *lock
+    handle_context_t  *context,
+    apr_uint32_t      message_nbr,
+    apr_byte_t        async,
+    lock_t            *lock
     )
 {
     apr_status_t
@@ -658,28 +662,19 @@ inline static apr_status_t do_browse (
     apr_uint16_t
         confirm_tag;
 
-    if (wait_for_message && async) {
-        printf ("Waiting for message in amqp_browse cannot be combined "
-            "with asynchronous mode.\n");
-        /*  Alternative : In sync mode use wait_for_message as it is         */
-        /*  In async mode ignore it and don't wait for message               */
-        exit(1);
-    }
-    /*  In synchronous mode, register that thread is waiting for reply       */
     if (async) {
         if (lock)
             *lock = NULL;
         confirm_tag = 0;
     }
     else {
-        result = register_lock (context->connection, context->channel_id,
-            context->id, &confirm_tag, lock);
+        /*  Register that we are waiting for reply                           */
+        result = register_lock (context->global, context->connection_id,
+            context->channel_id, context->id, &confirm_tag, lock);
         TEST(result, register_lock, buffer)
-    }
-    if (wait_for_message) {
         /*  Register that we are waiting for the specific message            */
         new_item = (browse_list_item_t*)
-            malloc (sizeof (browse_list_item_t));
+            amq_malloc (sizeof (browse_list_item_t));
         if (!new_item) {
             printf ("Not enough memory.\n");
             exit (1);
@@ -697,10 +692,10 @@ inline static apr_status_t do_browse (
 }
 
 inline static apr_status_t do_reply (
-    handle_context_t *context,
-    apr_uint16_t confirm_tag,
-    apr_uint16_t reply_code,
-    const char *reply_text
+    handle_context_t  *context,
+    apr_uint16_t      confirm_tag,
+    apr_uint16_t      reply_code,
+    const char        *reply_text
     )
 {
 
@@ -724,8 +719,8 @@ inline static apr_status_t do_reply (
     {
         if (browse_request->lock_id == confirm_tag) {
             *prev_browse_request = browse_request->next;
-            free ((void*) browse_request);
-            result = release_lock (context->connection, confirm_tag, NULL);
+            amq_free ((void*) browse_request);
+            result = release_lock (context->global, confirm_tag, NULL);
             TEST(result, release_lock, buffer)
             processed = 1;
             break;
@@ -735,7 +730,7 @@ inline static apr_status_t do_reply (
     }
     if (!processed) {
         /*  Resume the thread waiting for this confirmation                  */
-        result = release_lock (context->connection, confirm_tag,
+        result = release_lock (context->global, confirm_tag,
             (void*) context);
         TEST(result, release_lock, buffer)
     }
@@ -743,8 +738,8 @@ inline static apr_status_t do_reply (
 }
 
 inline static apr_status_t do_terminate (
-    handle_context_t *context,
-    amqp_lock_t *lock
+    handle_context_t  *context,
+    lock_t            *lock
     )
 {
     apr_status_t
@@ -753,8 +748,8 @@ inline static apr_status_t do_terminate (
         buffer [BUFFER_SIZE];
 
     /*  Send HANDLE CLOSE                                                    */
-    result = register_lock (context->connection, context->channel_id,
-        0, &(context->shutdown_tag), lock);
+    result = register_lock (context->global, context->connection_id,
+        context->channel_id, 0, &(context->shutdown_tag), lock);
     TEST(result, register_lock, buffer)
     result = amqp_handle_close (context->socket, buffer, BUFFER_SIZE,
         context->id, 200, "Handle close requested by client");
@@ -763,8 +758,8 @@ inline static apr_status_t do_terminate (
 }
 
 inline static apr_status_t do_duplicate_terminate (
-    handle_context_t *context,
-    amqp_lock_t *lock
+    handle_context_t  *context,
+    lock_t            *lock
     )
 {
     /*  This must be an explicit error; if not defined, it would fall        */
@@ -775,7 +770,7 @@ inline static apr_status_t do_duplicate_terminate (
 }
 
 inline static apr_status_t do_client_requested_close (
-    handle_context_t *context
+    handle_context_t  *context
     )
 {
     apr_status_t
@@ -785,18 +780,17 @@ inline static apr_status_t do_client_requested_close (
 
     /*  Release with error all threads waiting on channel, except the        */
     /*  requesting channel termination                                       */
-    result = release_all_locks (context->connection, 0, context->id,
+    result = release_all_locks (context->global, 0, 0, context->id,
         context->shutdown_tag, AMQ_OBJECT_CLOSED);
     TEST(result, release_all_locks, buffer)
     /*  Resume client thread waiting for handle termination                  */
-    result = release_lock (context->connection,
-        context->shutdown_tag, NULL);
+    result = release_lock (context->global, context->shutdown_tag, NULL);
     TEST(result, release_lock, buffer)
     return APR_SUCCESS;    
 }
 
 inline static apr_status_t do_server_requested_close (
-    handle_context_t *context
+    handle_context_t  *context
     )
 {
     apr_status_t
@@ -805,7 +799,7 @@ inline static apr_status_t do_server_requested_close (
         buffer [BUFFER_SIZE];
 
     /*  Release with error all threads waiting on channel                    */
-    result = release_all_locks (context->connection, 0, context->id,
+    result = release_all_locks (context->global, 0, 0, context->id,
         0, AMQ_OBJECT_CLOSED);
     TEST(result, release_all_locks, buffer)
     /*  Reply with HANDLE CLOSE                                              */
@@ -813,131 +807,4 @@ inline static apr_status_t do_server_requested_close (
         context->id, 200, "Handle close requested by client");
     TEST(result, amqp_handle_close, buffer)
     return APR_SUCCESS;    
-}
-
-/*****************************************************************************/
-/*  State machine actions (Query)                                            */
-
-inline static apr_status_t do_init_query (
-    query_context_t *context,
-    handle_t hndl,
-    apr_uint32_t message_nbr,
-    const char *dest_name,
-    const char *mime_type,
-    amqp_lock_t *lock
-    )
-{
-    apr_status_t
-        result;
-    char
-        buffer [BUFFER_SIZE];
-    handle_context_t
-        *handle = (handle_context_t*) hndl;
-
-    /*  Save values that will be needed in future                            */
-    context->connection = handle->connection;
-    /*  Issue HANDLE QUERY command                                           */
-    result = amqp_handle_query (handle->socket, buffer, BUFFER_SIZE,
-        handle->id, message_nbr, dest_name, 0, "", mime_type);
-    TEST(result, amqp_handle_query, buffer)
-    /*  Create lock to wait for HANDLE INDEX                                 */
-    result = register_lock (context->connection, handle->channel_id,
-        handle->id, &(context->index_tag), lock);
-    TEST(result, register_lock, buffer)
-    return APR_SUCCESS;
-}
-
-inline static apr_status_t do_index_query (
-    query_context_t *context,
-    apr_uint32_t message_nbr,
-    const char *message_list
-    )
-{
-    apr_status_t
-        result;
-    char
-        buffer [BUFFER_SIZE];
-
-    /*  Save result                                                          */
-    context->results = (char*) malloc (strlen (message_list));
-    if (!context->results) {
-        printf ("Not enough memory.\n");
-        exit (1);
-    }
-    strcpy (context->results, message_list);
-    /*  Move cursor to the beginning of the message list                     */
-    context->current = 0;
-    context->range_current = 0;
-    context->range_end = 0;
-    /*  Resume thread waiting for the HANDLE INDEX                           */
-    result = release_lock (context->connection, context->index_tag,
-        (void*) context);
-    TEST(result, release_lock, buffer)
-    return APR_SUCCESS;
-}
-
-inline static apr_status_t do_get_query_result (
-    query_context_t *context,
-    apr_uint32_t *message_nbr
-    )
-{
-    apr_uint16_t
-        pos;
-    apr_uint32_t
-        out;
-
-    /*  If we are inside a range specifier, return next value                */
-    if (context->range_current < context->range_end) {
-        out = context->range_current++;
-    }
-    else
-    /*  If we are at the end of query result string, there are no more       */
-    /*  results                                                              */
-    if (context->results [context->current] == '\0') {
-        free (context->results);
-        out = 0;
-    }
-    else {
-        /*  Parse next value from query result string                        */
-        pos = context->current;
-        context->range_current = 0;
-        while (isdigit (context->results [pos]))
-            context->range_current = context->range_current * 10 +
-                context->results [pos++] - '0';
-
-         /*  If we have a range specifier, parse the end value               */
-        if (context->results [pos] == '-') {
-            pos++;
-            context->range_end = 0;
-            while (isdigit (context->results [pos]))
-                context->range_end = context->range_end * 10 +
-                    context->results [pos++] - '0';
-            context->range_end++;
-        }
-        /*  It's just a single value, left and round bound should be         */
-        /*  the same                                                         */
-        else
-            context->range_end = context->range_current;
-
-        /*  Ignore whitespace                                                */
-        while (isspace (context->results [pos]))
-            pos++;
-
-        context->current = pos;
-        out = context->range_current++;
-    }
-    if (message_nbr)
-        *message_nbr = out;
-    return APR_SUCCESS;
-}
-
-inline static apr_status_t do_restart_query (
-    query_context_t *context
-    )
-{
-    /*  Move cursor to the beginning of the message list                     */
-    context->current = 0;
-    context->range_current = 0;
-    context->range_end = 0;
-    return APR_SUCCESS;
 }

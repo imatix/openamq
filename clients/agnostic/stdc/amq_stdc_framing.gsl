@@ -1,7 +1,7 @@
 .template 0
 # ------------------------------------------------------------------------------
-#  amqp_level0.gsl - source file that generates AMQP/C client API (Level 0)
-#  gsl -script:amqp_level0.gsl amq_frames.xml
+#  amq_stdc_framing.gsl - source file that generates AMQP/C client API
+#  gsl -script:amq_stdc_framing.gsl amq_frames.xml
 # 
 #  Copyright (c) 2004-2005 JPMorgan
 #  Copyright (c) 1991-2005 iMatix Corporation
@@ -616,11 +616,11 @@ frame->fields.handle_send.body_size\
 .endmacro
 
 .macro generate_interface ()
-.output "amqp_level0.h"
+.output "amq_stdc_framing.h"
 /*---------------------------------------------------------------------------
- *  amqp_level0.h - headers for AMQP client API (Level 0)
+ *  amq_stdc_framing.h - headers for AMQP client API (Level 0)
  *
- *  Generated from amq_frames.xml by amqp_level0.gsl using GSL/4.
+ *  Generated from amq_frames.xml by amq_stdc_framing.gsl using GSL/4.
  *  DO NOT MODIFY THIS FILE.
  *
  *  For documentation and updates see http://www.imatix.com.
@@ -628,8 +628,8 @@ frame->fields.handle_send.body_size\
  *  Copyright (c) 1991-2005 iMatix Corporation
  *---------------------------------------------------------------------------*/
 
-#ifndef AMQP_LEVEL0_INCLUDED            /* Prevent multiple inclusions       */
-#define AMQP_LEVEL0_INCLUDED
+#ifndef AMQ_STDC_FRAMING_INCLUDED       /* Prevent multiple inclusions       */
+#define AMQ_STDC_FRAMING_INCLUDED
 
 #include "base.h"                       /* Base definitions                  */
 #include "base_apr.h"                   /* APR definitions                   */
@@ -804,11 +804,11 @@ char *amqp_strerror (
 .endmacro
 
 .macro generate_implementation ()
-.output "amqp_level0.c"
+.output "amq_stdc_framing.c"
 /*---------------------------------------------------------------------------
- *  amqp_level0.c - implementation for AMQP client API (Level 0)
+ *  amq_stdc_framing.c - implementation for AMQP client API
  *
- *  Generated from amq_frames.xml by amqp_level0.gsl using GSL/4.
+ *  Generated from amq_frames.xml by amq_stdc_framing.gsl using GSL/4.
  *  DO NOT MODIFY THIS FILE.
  *
  *  For documentation and updates see http://www.imatix.com.
@@ -816,7 +816,7 @@ char *amqp_strerror (
  *  Copyright (c) 1991-2005 iMatix Corporation
  *---------------------------------------------------------------------------*/
 
-#include "amqp_level0.h"
+#include "amq_stdc_framing.h"
 
 apr_status_t amqp_init (
     apr_socket_t *socket

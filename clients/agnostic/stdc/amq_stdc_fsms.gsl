@@ -1,7 +1,8 @@
 .-------------------------------------------------------------------------------
-.- amqp_fsms.gsl - source file that generates state machines for
-.-  Level 1 AMQP Client API
-.- gsl -script:amqp_fsms.gsl amqp_fsms.xml
+.- amq_stdc_fsms.gsl - source file that generates state machines for
+.-   AMQP Client API
+.-
+.- gsl -script:amq_stdc_fsms.gsl amq_stdc_fsms.xml
 .-
 .- Copyright (c) 2004-2005 JPMorgan
 .- Copyright (c) 1991-2005 iMatix Corporation
@@ -86,7 +87,7 @@ typedef enum
 } $(name:c)_state_t;
 
 #define DEFINE_$(name:c,UPPER)_CONTEXT_BEGIN \\
-typedef struct\\
+typedef struct tag_$(name:c)_context_t\\
 {\\
     $(name:c)_state_t\\
         state;\\
@@ -121,6 +122,18 @@ inline static apr_status_t $(name:c)_sync_end ($(name:c)_context_t *context)\\
     TEST(result, apr_thread_mutex_unlock, buffer)\\
     return APR_SUCCESS;\\
 }\\
+.    for constructor
+inline static apr_status_t $(action:c) (\\
+    $(machine.name:c)_context_t *context\\
+    );\\
+\\
+.    endfor
+.    for destructor
+inline static apr_status_t $(action:c) (\\
+    $(machine.name:c)_context_t *context\\
+    );\\
+\\
+.    endfor
 .    for state
 .        for event
 .            event_name = "$(name:)"
@@ -222,8 +235,6 @@ $(event.name:cobol), $(event.action:cobol), \
 }\\
 \\
 .    endfor
-
-#define DEFINE_$(name:c,UPPER)_CONSTRUCTOR_BEGIN \\
 apr_status_t $(name:c)_create (\\
     $(name:c)_t *out\\
     )\\
@@ -235,9 +246,8 @@ apr_status_t $(name:c)_create (\\
     $(name:c)_context_t\\
         *context;\\
     apr_pool_t\\
-        *pool;
-
-#define DEFINE_$(name:c,UPPER)_CONSTRUCTOR_MIDDLE \\
+        *pool;\\
+\\
     result = apr_pool_create (&pool, NULL);\\
     TEST(result, apr_pool_create, buffer)\\
     context = ($(name:c)_context_t*) apr_palloc (pool,\\
@@ -250,30 +260,24 @@ apr_status_t $(name:c)_create (\\
     context->pool = pool;\\
     result = apr_thread_mutex_create (&(context->sync),\\
         APR_THREAD_MUTEX_NESTED, pool);\\
-    TEST(result, apr_thread_mutex_create, buffer)
-
-#define DEFINE_$(name:c,UPPER)_CONSTRUCTOR_END \\
+    TEST(result, apr_thread_mutex_create, buffer)\\
+.    for constructor
+    result = $(action:c) (context);\\
+    TEST(result, $(action:c), buffer)\\
+.    endfor
     if (out) *out = ($(name:c)_t) context;\\
-    return APR_SUCCESS; \\
-}
-
-#define DEFINE_$(name:c,UPPER)_DESTRUCTOR_BEGIN \\
+    return APR_SUCCESS;\\
+}\\
+\\
 apr_status_t $(name:c)_destroy (\\
     $(name:c)_t ctx\\
     )\\
 {\\
-    apr_status_t\\
-        result;\\
-    char\\
-        buffer [BUFFER_SIZE];\\
     $(name:c)_context_t\\
-        *context = ($(name:c)_context_t*) ctx;
-
-#define DEFINE_$(name:c,UPPER)_DESTRUCTOR_MIDDLE \\
-    result=APR_SUCCESS;\\
-    buffer [0] = '\0';
-
-#define DEFINE_$(name:c,UPPER)_DESTRUCTOR_END \\
+        *context = ($(name:c)_context_t*) ctx;\\
+.    for destructor
+    $(action:c) (context);\\
+.    endfor
     apr_thread_mutex_destroy (context->sync);\\
     apr_pool_destroy (context->pool);\\
     return APR_SUCCESS;\\

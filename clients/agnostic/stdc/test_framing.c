@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------
- *  test_level0.c - APR test client for Level 0 AMQ Client API
+ *  test_level0.c - Test client for Level 0 AMQ Client API
  *
  *  Copyright (c) 2004-2005 JPMorgan
  *  Copyright (c) 1991-2005 iMatix Corporation
@@ -7,8 +7,7 @@
 
 #include "base.h"                       /*  Base definitions                 */
 #include "base_apr.h"                   /*  APR definitions                  */
-#include "amqp_level0.h"                /*  Level 0 API definitions          */
-
+#include "amq_stdc_framing.h"           /*  Level 0 API definitions          */
 
 /*- Definitions ------------------------------------------------------------
 */
@@ -1047,7 +1046,8 @@ apr_status_t s_connection_reply_cb (
         result = amqp_channel_open (client->sck, buffer, BUFFER_SIZE, 1, 2,
 	    /*  Transaction mode
             */
-            (apr_byte_t) ((client->commit_count || client->rollback_count) ? 1 : 0),
+            (apr_byte_t) ((client->clienttype == clienttype_consumer ||
+                client->commit_count || client->rollback_count) ? 1 : 0),
             0, 0, "", "");
         if (result != APR_SUCCESS) {
             s_trace ("amqp_channel_open failed: err=%d (%s)\n",

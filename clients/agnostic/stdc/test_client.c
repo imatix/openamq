@@ -5,14 +5,8 @@
  *  Copyright (c) 1991-2005 iMatix Corporation
  *---------------------------------------------------------------------------*/
 
-#include "base.h"                       /*  Base definitions                 */
-#include "base_apr.h"                   /*  APR definitions                  */
-#include "amqp_level1.h"                /*  Level 1 API definitions          */
+#include "amq_stdc_client.h"
 
-
-/*- Definitions ------------------------------------------------------------ */
-
-/*  Scenario types client may use                                            */
 typedef enum
 {
     clienttype_undefined,               /*  Invalid type                     */
@@ -21,7 +15,6 @@ typedef enum
     clienttype_query                    /*  Queries server for messages      */
 } clienttype_t;
 
-/*  Client object                                                            */
 typedef struct
 {
     clienttype_t
@@ -64,10 +57,91 @@ typedef struct
     apr_uint16_t
         prefetch;                       /*  Number of messages that server   */
                                         /*  prefetches                       */
-} client_t; 
+    char
+        *query_result;                  /*  Resultset returned by query      */
+    int
+        query_result_pos;               /*  Position in query_result, where  */
+                                        /*  parsing is going on              */
+    int
+        browse_begin;                   /*  When interval is specified in    */
+                                        /*  query result, holds left bound   */
+    int
+        browse_end;                     /*  When interval is specified in    */
+                                        /*  query result, holds right bound  */
+    int
+        last_query_result;              /*  When s_move_to_next_query_result */
+                                        /*  is called, this variable stores  */
+                                        /*  the result                       */
+} client_t;
 
-/*- Main program ----------------------------------------------------------- */
+/*  -------------------------------------------------------------------------
+    Function: s_move_to_next_query_result
 
+    Synopsis:
+    Parses next query result from existing query result string
+    (one returned by HANDLE INDEX) and stores it into last_query_result.
+
+    Arguments:
+        client_t *client  Client object
+    -------------------------------------------------------------------------*/
+
+apr_uint32_t s_move_to_next_query_result (
+    client_t *client
+    )
+{
+    int
+        pos;
+
+    /*  If we are inside a range specifier, return next value
+    */
+    if (client->browse_begin < client->browse_end) {
+        client->last_query_result = client->browse_begin++;
+        return client->last_query_result;
+    }
+    else
+    /*  If we are at the end of query result string,
+        there are no more results
+    */
+    if (client->query_result [client->query_result_pos] == '\0') {
+        free (client->query_result);
+        client->last_query_result = -1;
+        return client->last_query_result;
+    }
+    else {
+        /*  Parse next value from query result string
+        */
+        pos = client->query_result_pos;
+        client->browse_begin = 0;
+        while (isdigit (client->query_result [pos]))
+            client->browse_begin = client->browse_begin * 10 +
+                client->query_result [pos++] - '0';
+
+        /*  If we have a range specifier, parse the end value
+        */
+        if (client->query_result [pos] == '-') {
+            pos++;
+            client->browse_end = 0;
+                while (isdigit (client->query_result [pos]))
+                    client->browse_end = client->browse_end * 10 +
+                        client->query_result [pos++] - '0';
+        }
+        /* It's just a single value, left and round bound should be the same
+        */
+        else {
+            client->browse_end = client->browse_begin;
+        }
+
+        /*  Ignore whitespace
+        */
+        while (isspace (client->query_result [pos]))
+            pos++;
+
+        client->query_result_pos = pos;
+        client->last_query_result = client->browse_begin++;
+        return client->last_query_result;
+    }
+}
+ 
 int main(
     int        argc,
     const char *const argv[],
@@ -81,14 +155,12 @@ int main(
         buff_pos;                       /*  Loop control variable            */
     client_t
         client;                         /*  Main client object               */
-    amqp_connection_t
+    amq_stdc_connection_t
         connection;                     /*  Connection object                */
-    amqp_channel_t
+    amq_stdc_channel_t
         channel;                        /*  Channel object                   */
-    amqp_handle_t
+    amq_stdc_handle_t
         handle;                         /*  Handle object                    */
-    amqp_query_t
-        query;                          /*  Query object                     */
     apr_uint32_t
         message_nbr;                    /*  Individual query result          */
     char
@@ -96,6 +168,9 @@ int main(
                                         /*  identifier                       */
     amqp_frame_t
         *frame;                         /*  Frame to hold received message   */
+    apr_byte_t
+        transacted;                     /*  Whether channel has to be        */
+                                        /*  transacted                       */
 
     client.clienttype          = clienttype_undefined;
     client.server              = "127.0.0.1";
@@ -142,7 +217,8 @@ int main(
     }
     client.till_acknowledge = client.prefetch;
 
-    /*  Make sure that mandatory parameters were supplied                    */
+    /*  Make sure that mandatory parameters were supplied
+    */
     if (client.clienttype == clienttype_undefined ||
           client.host == NULL ||
           client.destination == NULL) {
@@ -178,7 +254,8 @@ int main(
         return EXIT_FAILURE;
     }
 
-    /*  Create message to be sent                                            */
+    /*  Create message  to be sent
+    */
     client.message_buffer = malloc (client.message_size);
     if (!client.message_buffer) {
         printf ("Not enough memory for message body.");
@@ -193,94 +270,58 @@ int main(
         return EXIT_FAILURE;
     }
 
-    result = amqp_init1 ();
+    result = amq_stdc_init ();
     if (result != APR_SUCCESS) {
-        printf ("amqp_init1 failed\n");
+        printf ("amq_stdc_init failed\n");
         return EXIT_FAILURE;
     }
 
-    result = amqp_open_connection (
-        client.server,
-        client.host,
-        client.client_name,
-        amqp_heartbeats_off,
-        amqp_heartbeats_off,
-        0,
-        0,
-        &connection
-    );
+    result = amq_stdc_open_connection (client.server, client.host,
+        client.client_name, amq_stdc_heartbeats_off, amq_stdc_heartbeats_off,
+        0, 0, &connection);
     if (result != APR_SUCCESS) {
-        printf ("amqp_open_connection failed\n");
+        printf ("amq_stdc_open_connection failed\n");
+        return EXIT_FAILURE;
+    }
+    transacted = (apr_byte_t) ((client.clienttype == clienttype_consumer ||
+            client.commit_count || client.rollback_count) ? 1 : 0);
+    result = amq_stdc_open_channel (connection, transacted, 0, 0, &channel);
+    if (result != APR_SUCCESS) {
+        printf ("amq_stdc_open_channel_failed\n");
         return EXIT_FAILURE;
     }
 
-    result = amqp_open_channel (
-        connection,
-        /*  Transacted                                                       */
-        (apr_byte_t) ((client.clienttype == clienttype_consumer ||
-            client.commit_count || client.rollback_count) ? 1 : 0),
-        0,
-        0,
-        &channel
-    );
-    if (result != APR_SUCCESS) {
-        printf ("amqp_open_channel_failed\n");
-        return EXIT_FAILURE;
-    }
-
-    result = amqp_open_handle (
-        channel,
-        amqp_service_type_queue,
+    result = amq_stdc_open_handle (channel, amq_stdc_service_type_queue,
         client.clienttype == clienttype_producer ? 1: 0,
         client.clienttype == clienttype_consumer ? 1: 0,
         client.clienttype == clienttype_query ? 1: 0,
-        0,
-        "",
-        "",
-        "",
-        0,
-        NULL,
-        &handle
-    );
+        0, "", "", "", 0, NULL, &handle);
     if (result != APR_SUCCESS) {
-        printf ("amqp_open_handle failed\n");
+        printf ("amq_stdc_open_handle failed\n");
         return EXIT_FAILURE;
     }
 
+    /*  Mode : PRODUCER                                                      */
     if (client.clienttype == clienttype_producer) {
         while (1) {
             
             sprintf (identifier, "%s-%ld", client.client_name,
                 client.last_message_number);
 
-            result = amqp_send_message (
-                handle,
-                0,
-                0,
-                0,
-                client.destination,
-                client.persistent,
-                0,
-                0,
-                "",
-                "",
-                identifier,
-                client.message_size,
-                client.message_buffer,
-                0
-                );
+            result = amq_stdc_send_message (handle, 0, 0, 0,
+                client.destination, client.persistent, 0, 0, "", "",
+                identifier, client.message_size, client.message_buffer, 0);
             if (result != APR_SUCCESS) {
-                printf ("amqp_send_message failed\n");
+                printf ("amq_stdc_send_message failed\n");
                 return EXIT_FAILURE;
             }
-            printf ("Message %s sent.\n", identifier);
 
             /*  Rollback transaction if needed                               */
             if (client.rollback_count && ((client.last_message_number + 1) %
                   client.rollback_count) == 0) {
-                result = amqp_rollback (channel, 0);
+                result = amq_stdc_rollback (channel, 0);
                 if (result != APR_SUCCESS) {
-                    printf ("amqp_rollback failed\n");
+                    printf ("amq_stdc_rollback failed\n");
                     return EXIT_FAILURE;
                 }
             }
@@ -288,9 +329,9 @@ int main(
             else 
             if (client.commit_count && ((client.last_message_number + 1) %
                   client.commit_count) == 0) {
-                result = amqp_commit (channel, 0);
+                result = amq_stdc_commit (channel, 0);
                 if (result != APR_SUCCESS) {
-                    printf ("amqp_commit failed\n");
+                    printf ("amq_stdc_commit failed\n");
                     return EXIT_FAILURE;
                 }
             }
@@ -306,29 +347,19 @@ int main(
         }
     }
 
+    /*  Mode : CONSUMER                                                      */
     if (client.clienttype == clienttype_consumer) {
-        result = amqp_consume (
-            handle,
-            client.prefetch,
-            0,
-            0,
-            client.destination,
-            "",
-            "",
-            0
-            );
-       if (result != APR_SUCCESS) {
-            printf ("amqp_consume failed\n");
+        result = amq_stdc_consume (handle, client.prefetch, 0, 0,
+            client.destination, "", "", 0);
+        if (result != APR_SUCCESS) {
+            printf ("amq_stdc_consume failed\n");
             return EXIT_FAILURE;
-       }
+        }
 
         while ((!client.messages) || client.messages--) {
-            result = amqp_receive_message (
-                handle,
-                &frame
-                );
+            result = amq_stdc_get_message (handle, &frame);
             if (result != APR_SUCCESS) {
-                printf ("amqp_receive_message failed\n");
+                printf ("amq_stdc_receive_message failed\n");
                 return EXIT_FAILURE;
             }
             
@@ -336,115 +367,94 @@ int main(
                 frame->fields.handle_notify.identifier);
 
             if (--client.till_acknowledge == 0) {
-                result = amqp_acknowledge (
-                    channel,
-                    frame->fields.handle_notify.message_nbr,
-                    0
-                    );
+                result = amq_stdc_acknowledge (channel,
+                    frame->fields.handle_notify.message_nbr, 0);
                 if (result != APR_SUCCESS) {
-                    printf ("amqp_acknowledge failed\n");
+                    printf ("amq_stdc_acknowledge failed\n");
                     return EXIT_FAILURE;
                 }
 
-                result = amqp_commit (
-                    channel,
-                    0
-                    );
+                result = amq_stdc_commit (channel, 0);
                 if (result != APR_SUCCESS) {
-                    printf ("amqp_commit failed\n");
+                    printf ("amq_stdc_commit failed\n");
                     return EXIT_FAILURE;
                 }
 
                 client.till_acknowledge = client.prefetch;
             }
             
-            result = amqp_destroy_message (
-                frame
-                );
+            result = amq_stdc_destroy_message (frame);
             if (result != APR_SUCCESS) {
-                printf ("amqp_destroy_message failed\n");
+                printf ("amq_stdc_destroy_message failed\n");
                 return EXIT_FAILURE;
             } 
         }
     }
 
+    /*  Mode : QUERY                                                         */
     if (client.clienttype == clienttype_query) {
-        result = amqp_query (
-            handle,
-            0,
-            client.destination,
-            "",
-            1,
-            &query
-            );
+        result = amq_stdc_query (handle, 0, client.destination, "", 1,
+            &(client.query_result));
         if (result != APR_SUCCESS) {
-            printf ("amqp_query failed\n");
+            printf ("amq_stdc_query failed\n");
             return EXIT_FAILURE;
         }
 
-        while (1) {
-            result = amqp_get_query_result (
-                query,
-                &message_nbr
-                );
-            if (result != APR_SUCCESS) {
-                printf ("amqp_get_query_result failed\n");
-                return EXIT_FAILURE;
-            }
+        /*  Move current position to the beginning of the query              */
+        client.query_result_pos = 0;
+        client.browse_begin = 0;
+        client.browse_end = 0;
+        client.last_query_result = 0;
 
-            result = amqp_browse (
-                handle,
-                message_nbr,
-                0,
-                &frame
-                );
+        while (1) {
+            message_nbr = s_move_to_next_query_result (&client);
+            if (message_nbr == -1)
+                break;
+
+            result = amq_stdc_browse (handle, message_nbr, 0, &frame);
             if (result != APR_SUCCESS) {
-                printf ("amqp_browse failed\n");
+                printf ("amq_stdc_browse failed\n");
                 return EXIT_FAILURE;
             }
             
             printf ("Message %s browsed.\n",
                 frame->fields.handle_notify.identifier);
 
-            result = amqp_destroy_message (
-                frame
-                );
+            result = amq_stdc_destroy_message (frame);
             if (result != APR_SUCCESS) {
-                printf ("amqp_destroy_message failed\n");
+                printf ("amq_stdc_destroy_message failed\n");
                 return EXIT_FAILURE;
             } 
         }
 
-        result = amqp_close_query (
-            query
-            );
+        result = amq_stdc_destroy_query (client.query_result);
         if (result != APR_SUCCESS) {
-            printf ("amqp_close_query failed\n");
+            printf ("amq_stdc_destroy_query failed\n");
             return EXIT_FAILURE;
         }
     }
 
-    result = amqp_close_handle (handle, 0);
+    result = amq_stdc_close_handle (handle);
     if (result != APR_SUCCESS) {
-        printf ("amqp_close_handle failed\n");
+        printf ("amq_stdc_close_handle failed\n");
         return EXIT_FAILURE;
     }
 
-    result = amqp_close_channel (channel, 0);
+    result = amq_stdc_close_channel (channel);
     if (result != APR_SUCCESS) {
-        printf ("amqp_close_channel failed\n");
+        printf ("amq_stdc_close_channel failed\n");
         return EXIT_FAILURE;
     }
 
-    result = amqp_close_connection (connection, 1);
+    result = amq_stdc_close_connection (connection);
     if (result != APR_SUCCESS) {
-        printf ("amqp_close_connection failed\n");
+        printf ("amq_stdc_close_connection failed\n");
         return EXIT_FAILURE;
     }
 
-    result = amqp_term1 ();
+    result = amq_stdc_term ();
     if (result != APR_SUCCESS) {
-        printf ("amqp_term1 failed\n");
+        printf ("amq_stdc_term failed\n");
         return EXIT_FAILURE;
     }
     
