@@ -628,6 +628,9 @@ frame->fields.handle_send.body_size\
  *  Copyright (c) 1991-2005 iMatix Corporation
  *---------------------------------------------------------------------------*/
 
+#ifndef AMQP_LEVEL0_INCLUDED            /* Prevent multiple inclusions       */
+#define AMQP_LEVEL0_INCLUDED
+
 #include "base.h"                       /* Base definitions                  */
 #include "base_apr.h"                   /* APR definitions                   */
 
@@ -638,6 +641,10 @@ frame->fields.handle_send.body_size\
 /*      1. store whole frame received from the server  */
 /*      2. store whole frame to be sent to the server  */
 #define AMQ_BUFFER_OVERFLOW (APR_OS_START_USERERR + 1)
+/*  error value received when object (connection, channel, handle) was  */
+/*  closed by server or another thread during or prior to function      */
+/*  execution                                                           */
+#define AMQ_OBJECT_CLOSED (APR_OS_START_USERERR +2)
 
 /*  types of amqp frames  */
 typedef enum
@@ -792,6 +799,8 @@ char *amqp_strerror (
     char *buffer /*  buffer to hold the result  */,
     apr_size_t buffer_size /*  buffer size  */
     );
+
+#endif                                  /* AMQP_LEVEL0_INCLUDED              */
 .endmacro
 
 .macro generate_implementation ()
@@ -950,6 +959,9 @@ char *amqp_strerror (
         break;
     case AMQ_BUFFER_OVERFLOW:
         str = "Received or trying to send frame bigger than available buffer.";
+        break;
+    case AMQ_OBJECT_CLOSED:
+        str = "Object was closed by server or another thread.";
         break;
     default:
         return apr_strerror (statcode, buffer, buffer_size);
