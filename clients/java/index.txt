@@ -103,8 +103,8 @@ Message input streams:
     allow 4GB memory arrays ((2) 15.10), but a server can use streams to 
     segment incoming/outgoing data. 
 Bucket encoding/decoding:
-    Simple communication between the main thread and the I/O ones. Faster for
-    serving topics.    
+    Simple communication between the main thread and the I/O ones. Separation 
+    of framing layer from transport layer. Faster for serving topics.    
 Underflow / Overflow and other runtime checks:
     Makes programming errors less probable.
 Inner class command sub-types:

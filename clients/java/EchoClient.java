@@ -2,8 +2,8 @@ import java.net.*;
 import java.io.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.applet.*;
-import com.imatix.openamq.framing.*;
+import com.imatix.openamq.*;
+import com.imatix.openamq.frames.*;
 
 public class EchoClient extends amqpcli_serial implements Runnable {
 
@@ -133,7 +133,7 @@ public EchoClient(String[] args) {
                 {
                     raise_exception(exception_event, f, "EchoClient", "windowClosing", "error writing to server.\n");
                 }
-                catch (AMQFramingException f)
+                catch (AMQException f)
                 {
                     raise_exception(exception_event, f, "EchoClient", "windowClosing", "framing error");
                 }
@@ -198,7 +198,7 @@ class tfActionListener implements ActionListener {
         {
             raise_exception(exception_event, f, "EchoClient", "tfActionListener", "error writing to server.\n");
         }
-        catch (AMQFramingException f)
+        catch (AMQException f)
         {
             raise_exception(exception_event, f, "EchoClient", "tfActionListener", "framing error");
         }
@@ -261,7 +261,7 @@ public void run () {
     {
         raise_exception(exception_event, e, "EchoClient", "run", "error reading from server");
     }
-    catch (AMQFramingException e)
+    catch (AMQException e)
     {
         raise_exception(exception_event, e, "EchoClient", "run", "framing error");
     }
@@ -383,7 +383,7 @@ public void do_tests ()
     {
         raise_exception(exception_event, e, "amqpci_java", "do_tests", "IOException");
     }
-    catch (AMQFramingException e)
+    catch (AMQException e)
     {
         raise_exception(exception_event, e, "amqpci_java", "do_tests", "framing error");
     }

@@ -10,37 +10,45 @@
 <include filename = "prelude.pdl" />
 
 <!-- Java API -->
-<file name = "OpenAMQJava.jar"         class = "shared library">AMQ Java framing API</file>
+<file name = "OpenAMQJava.jar"                   class = "shared library">AMQ Java framing API</file>
 
-<!-- Java framing API generated source -->
-<directory name = "com/imatix/openamq/framing" class = "generated">
+<!-- Java API generated source, interface -->
+<directory name = "com/imatix/openamq/api" class = "generated">
     <file name = "AMQFramingFactory.java"     >Glue/utility for framable objects</file>
+    <file name = "AMQException.java"          >General exception</file>
+    <file name = "AMQIOException.java"        >Needed for the provided streams</file>
+</directory>
+
+<!-- Java API generated source, framing -->
+<directory name = "com/imatix/openamq/framing"   class = "generated">
     <file name = "AMQConnection.java"         >Glue/utility for connection commands</file>
     <file name = "AMQChannel.java"            >Glue/utility for channel commands</file>
     <file name = "AMQHandle.java"             >Glue/utility for handle commands</file>
     <file name = "AMQMessage.java"            >Utility for the message class</file>
     <file name = "AMQFramable.java"           >Superclass of network objects</file>
     <file name = "AMQFrame.java"              >Superclass of command frames</file>
-    <file name = "AMQFieldTable.java"         >Field table name/value pairs</file>
-    <file name = "AMQFramingException.java"   >Provisional general exception</file>
-    <file name = "AMQFramingIOException.java" >Needed for the provided streams</file>
+</directory>
+
+<!-- Java API generated source, transport -->
+<directory name = "com/imatix/openamq/transport" class = "generated">
+    <file name = "AMQTransport.java"          >Glue/utility for connection commands</file>
 </directory>
 
 <!-- Java framing API test clients -->
-<file name = "amqpcli_serial*.class"      class = "public command">Java pattern testing client</file>
-<file name = "EchoClient*.class"          class = "public command">Java to C component-chat demonstration client</file>
+<file name = "amqpcli_serial*.class"             class = "public command">Java pattern testing client</file>
+<file name = "EchoClient*.class"                 class = "public command">Java to C component-chat demonstration client</file>
 
 <!-- Java framing API test clients source -->
-<file name = "amqpcli_seriali.java"       class = "generated">FSM implementation for amqpcli_serial.java</file>
-<file name = "amqpcli_serial.java"        class = "private resource">Java pattern testing client</file>
-<file name = "amqpcli_serial.java.l"      class = "private resource">Simple FSM for connecting/closing in amqpcli_serial.java</file>
-<file name = "EchoClient.java"            class = "private resource">Java to C component-chat demonstration client</file>
-<file name = "amq_frames.gsl"             class = "private resource">Java framing API generator</file>
+<file name = "amqpcli_seriali.java"              class = "generated">FSM implementation for amqpcli_serial.java</file>
+<file name = "amqpcli_serial.java"               class = "private resource">Java pattern testing client</file>
+<file name = "amqpcli_serial.java.l"             class = "private resource">Simple FSM for connecting/closing in amqpcli_serial.java</file>
+<file name = "EchoClient.java"                   class = "private resource">Java to C component-chat demonstration client</file>
+<file name = "amq_frames.gsl"                    class = "private resource">Java framing API generator</file>
 
 <!-- Documentation -->
-<file name = "index.txt"                  class = "gurudoc text"   >Java framing layer API documentation</file>
-<file name = "gdstyle.css"                class = "public resource">Documentation style</file>
-<file name = "mainlogo.jpg"               class = "public binary">AMQ logo</file>
+<file name = "index.txt"                         class = "gurudoc text"   >Java framing layer API documentation</file>
+<file name = "gdstyle.css"                       class = "public resource">Documentation style</file>
+<file name = "mainlogo.jpg"                      class = "public binary">AMQ logo</file>
 
 <actions target = "unix">
     <generate>
@@ -52,7 +60,7 @@
     <build>
         <execute>
         <!-- Compile Java API .class files -->
-        javac com/imatix/openamq/framing/AMQFramingFactory.java
+        javac com/imatix/openamq/api/AMQFramingFactory.java
         jar -cf OpenAMQJava.jar com/imatix/openamq/framing/AMQ*.class
         <!-- Compile test clients .class files -->
         javac amqpcli_serial.java
@@ -78,7 +86,7 @@
     <build>
         <execute>
         <!-- Compile Java API .class files -->
-        javac com/imatix/openamq/framing/AMQFramingFactory.java
+        javac com/imatix/openamq/api/AMQFramingFactory.java
         jar -cf OpenAMQJava.jar com/imatix/openamq/framing/AMQ*.class
         <!-- Compile test clients .class files -->
         javac amqpcli_serial.java
