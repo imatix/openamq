@@ -144,10 +144,9 @@ ipr_db_queue class.
 
 <method name = "accept" template = "function">
     <doc>
-    Saves a message to a queue.  The caller can provide a transaction, in which
-    case the message will be invisible for dispatching until the queue has been
-    committed.  Persistent messages are saved to the database, non-persistent
-    messages are held on a per-queue or per-channel (if transacted) basis.
+    Saves a message to a queue.  Transacted messages are held in memory pending
+    a channel commit or roll back.  Non-transacted persistent messages are saved
+    to the persistent queue and n-t n-p messages are saved to the queue memory.
     The channel can be specified as NULL, which forces non-persistent messages
     to be saved to the queue memory list.
     </doc>
@@ -155,24 +154,21 @@ ipr_db_queue class.
     <argument name = "message" type = "amq_smessage_t *">Message, if any</argument>
 
     ASSERT (message);
+    if (channel && channel->transacted) {
+        /*  Transacted messages are held per-channel                         */
+        message->queue = self;
+        amq_smessage_list_queue (channel->messages, message);
+    }
+    else
     if (self->outstanding > 0 || message->persistent) {
-        /*  Save to persistent storage                                       */
+        /*  Persistent messages are saved on persistent queue storage        */
         self->outstanding++;
         amq_smessage_save (message, self, channel->txn);
         amq_smessage_destroy (&message);
-#       ifdef TRACE_DISPATCH
-        coprintf ("$(selfname) I: persistent message id=%d outstanding=%d", self->item_id, self->outstanding);
-#       endif
     }
-    else {
-        /*  Handle non-persistent messages                                   */
-        /*  If transacted, save per channel, else save per queue             */
-        message->queue = self;
-        if (channel && channel->transacted)
-            amq_smessage_list_queue (channel->messages, message);
-        else
-            amq_smessage_list_queue (self->messages, message);
-    }
+    else
+        /*  Non-persistent messages are held per queue                       */
+        amq_smessage_list_queue (self->messages, message);
 </method>
 
 <method name = "dispatch" template = "function">

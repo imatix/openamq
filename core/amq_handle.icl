@@ -169,10 +169,9 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
 
 <method name = "send" template = "function" >
     <doc>
-    Processes a HANDLE SEND command.  Persistent messages are saved in the
-    persistent queue storage.  Non-persistent messages are saved in memory;
-    if transacted, per channel and if not transacted, per queue.  When a
-    new message has been saved per queue, we also dispatch for that queue.
+    Processes a HANDLE SEND command.  Sends the message to the specified
+    queue; transacted messages are held in memory until the client commits
+    or rolls-back the channel.
     </doc>
     <argument name = "command"    type = "amq_handle_send_t *" />
     <argument name = "message"    type = "amq_smessage_t *"    />
