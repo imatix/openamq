@@ -55,6 +55,7 @@ char *query_result;
 int query_result_pos = 0;
 int browse_begin;
 int browse_end;
+apr_uint32_t last_query_result;
 int stop;
 
 typedef enum
@@ -114,15 +115,19 @@ apr_status_t connection_close_cb (
     return APR_SUCCESS;
 }
 
-apr_uint32_t next_query_result ()
+void next_query_result ()
 {
     int pos;
 
-    if (browse_begin != browse_end) return browse_begin++;
+    if (browse_begin != browse_end) {
+        last_query_result = browse_begin++;
+        return;
+    }
 
     if (query_result [query_result_pos] == 0) {
         free (query_result);
-        return 0;
+        last_query_result = 0;
+        return;
     }
 
     pos = query_result_pos;
@@ -142,7 +147,29 @@ apr_uint32_t next_query_result ()
 
     query_result_pos = pos;
 
-    return browse_begin++;
+    last_query_result = browse_begin++;
+}
+
+apr_status_t browse_next (apr_uint16_t handle_id)
+{
+    apr_status_t result;
+    char buffer [32768];
+
+    next_query_result ();
+    if (last_query_result) {
+        result = amqp_handle_browse (sck, buffer, 32767,
+            handle_id, tag++, last_query_result);
+        if (result != APR_SUCCESS) {
+            fprintf (stderr, "amqp_handle_browse failed.\n%ld : %s\n",
+                (long) result, amqp_strerror (result, buffer, 32767) );
+            
+            return result;
+        }
+        state = state_waiting_for_browse_confirmation;
+    }
+    else state = state_idle;
+
+    return APR_SUCCESS;
 }
 
 apr_status_t send_message(apr_uint16_t confirm_tag)
@@ -200,10 +227,6 @@ apr_status_t handle_index_cb (
     const char* message_list
     )
 {
-    apr_status_t result;
-    apr_uint32_t msgnum;
-    char buffer [32768];
-
     if (state == state_waiting_for_index) {
         fprintf (stderr, "Result of query: %s\n", message_list);
 
@@ -211,18 +234,7 @@ apr_status_t handle_index_cb (
         strcpy (query_result , message_list);
         query_result_pos = 0;
         
-        msgnum= next_query_result ();
-        if (msgnum) {
-            result = amqp_handle_browse (sck, buffer, 32767, handle_id, msgnum);
-            if (result != APR_SUCCESS) {
-                fprintf (stderr, "amqp_handle_browse failed.\n%ld : %s\n",
-                    (long) result, amqp_strerror (result, buffer, 32767) );
-                
-                return result;
-            }
-            state = state_waiting_for_browse_confirmation;
-        }
-        else state = state_idle;
+        browse_next (handle_id);
 
         return APR_SUCCESS;
     }
@@ -290,7 +302,11 @@ apr_status_t handle_reply_cb (
         return APR_SUCCESS;
     }
     if (state == state_waiting_for_browse_confirmation) {
-
+        if (reply_code != 200) {
+            fprintf (stderr, "Browsing message number %ld failed with error %ld, %s\n",
+                (long) last_query_result, (long) reply_code, reply_text);
+            browse_next (handle_id);
+        }
         return APR_SUCCESS;
     }
     return AMQ_FRAME_CORRUPTED;
@@ -450,6 +466,11 @@ apr_status_t handle_notify_cb (
     apr_status_t result;
     char buffer [32768];
 
+    if (state == state_waiting_for_browse_confirmation) {
+        fprintf (stderr, "Message %s browsed successfully.\n", identifier);
+        browse_next (handle_id);
+        return APR_SUCCESS;
+    }
     if (state == state_waiting_for_message) {
     
         fprintf (stderr, "Message %s received. (%ld bytes)\n", identifier, (long) body_size);
