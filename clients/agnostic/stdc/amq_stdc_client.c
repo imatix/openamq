@@ -5,6 +5,47 @@
  *  Copyright (c) 1991-2005 iMatix Corporation
  *---------------------------------------------------------------------------*/
 
+/*---------------------------------------------------------------------------
+ *  DESIGN SUMMARY
+ *
+ *  Implementation of AMQ client API is composed of several finite state
+ *  machines (stateful, of course) plus a lightweight wrapper (stateless)
+ *  that converts client requests as well as commands sent by server to state
+ *  machine events. Wrapper converting client requests resides in
+ *  amq_stdc_client.c, coversion of server commands is done by
+ *  dispatcher thread (see s_receiver_thread in amq_stdc_connection_fsm.c).
+ *  Thread synchronisation is done on state machine level: any state machine
+ *  may be accessed only by a single thread at any given moment. Thus it is
+ *  important for threads to spent as little time as possible within the
+ *  state machine, not to block other threads that may require access to the
+ *  same state machine. This means no blocking calls should be done within
+ *  state machines. There are three types of blocking calls to consider.
+ *  First we have reading from socket. This is done within dispatcher thread
+ *  and only subsequently is received command converted to event and sent to
+ *  the apropriate state machine. Next there is writing to socket. It may be
+ *  blocking when socket buffer is full. Special sender thread would be an
+ *  universal solution. (Not implemented yet.) Third type of blocking is when
+ *  command is sent to server and response from server is required to
+ *  continue. This problem is solved using concept of locks. Wrapper layer
+ *  issues event which is processed on spot (command is sent to server) and
+ *  lock is returned. Wrapper layer may wait for the lock, that is released
+ *  once response from server is received. Reply data are passed at the same
+ *  time from thread unlocking the lock to the thread waiting for the lock.
+ *  Implementation of locks may be found in amq_stads_global_fsm.c.
+ *  There are four state machines altogether within client API: global state
+ *  machine (holds state common to the whole of API), connection state machine
+ *  (holds state associated with connection), channel state machine (holds
+ *  state associated with channel) and handle state machine (holds state
+ *  associated with handle). There may be several connection FSM instances
+ *  existing at the same time, several channel FSM instaces per connection and
+ *  handle FSM instances per channel.
+ *  State machine definitions are in amq_stdc_fsms.xml. Processing this file
+ *  using amq_stdc_fsms.gsl generates <fsm-name>.i and <fsm-name>.d files for
+ *  every state machine, which are in turn included into <fsm-name>.h and
+ *  <fsm-name>.c. <fsm-name>.c contains implementation of actions of
+ *  corresponding state machine.
+ *---------------------------------------------------------------------------*/
+
 #include "amq_stdc_private.h"
 #include "amq_stdc_client.h"
 #include "amq_stdc_global_fsm.h"
