@@ -3,9 +3,9 @@ gdl
     subtitle  = The AMQP/Fast Wire-Level Protocol
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/02/14
+    date      = 2005/03/02
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.7b0
+    version   = 0.7c0
 end gdl
 
 Cover
@@ -23,6 +23,9 @@ This document is ready for review.
 
 Recent Change History
 ---------------------
+
+0.7c0
+- clarified format of frame header (was not well explained).
 
 0.7b0
 - removed confirmation conflating mechanism; too complex and not needed.
@@ -182,10 +185,15 @@ Frames
 
 Each command is formatted into a 'frame', a compact binary structure.
 A frame always starts with a header that tells the recipient how many
-octets of data follow.  Following the header are a number of 'fields',
-numbers and strings.  Each command has a fixed set of fields, which we
-specify in detail in this document.  Strings are formatted as a length
-followed by data.  Some frames carry message data, others do not.
+octets of data follow.  This header consists of either two octets
+holding a size 0x0 to 0xFFFE, or 0xFFFF followed by four octets
+holding a size 0xFFFF to 0xFFFFFFFF.  In practice, the frame size is
+limited to under 64k octets to avoid excessive memory consumption, but
+all AMQP clients and servers MUST handle the frame header escaping
+convention as described here.  Following the header are a number of
+'fields', numbers and strings.  Each command has a fixed set of fields,
+which we specify in detail in this document.  Strings are formatted as
+a length followed by data.  Some frames carry message data, others do not.
 
 Command types are single octets as defined below in the section 'Frame
 Syntax'.  We use mnemonic names in this document, but these names do
