@@ -10,7 +10,7 @@
 <include filename = "prelude.pdl" />
 
 <!-- Java framing API -->
-<file name = "AMQJavaFraming.jar"       class = "public binary">AMQ Java framing API</file>
+<file name = "AMQJavaFraming.jar"       class = "public command">AMQ Java framing API</file>
 
 <!-- Java framing API generated source -->
 
@@ -61,6 +61,7 @@
         rm -fR com
         rm -f *.class
         rm -f amqpcli_seriali.java
+        rm -f AMQJavaFraming.jar
         </execute>
     </clean>
 </actions>
