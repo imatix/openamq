@@ -187,14 +187,14 @@ main (int argc, char *argv [])
         /*  Pause consumption on temporary queue                             */
         amq_sclient_flow (amq_client, in_handle, TRUE);
 
-        coprintf ("Sending %d messages to server...", messages);
+        coprintf ("(%d) sending %d messages to server...", repeats, messages);
         for (count = 0; count < messages; count++) {
             message = amq_message_new ();
             amq_message_testfill       (message, msgsize);
             amq_message_set_persistent (message, persistent);
             amq_sclient_msg_send (amq_client, out_handle, message);
         }
-        coprintf ("Reading back messages...");
+        coprintf ("(%d) reading back messages...", repeats);
         count = 0;
         amq_sclient_flow (amq_client, in_handle, FALSE);
         while (count < messages) {

@@ -6,19 +6,28 @@
     <language name = "en">
       <title content = "title"/>
       <remark>
-        <line>If you find a bug or issue, report it to us and we'll
-        fix it before you can say 'OpenAMQ'</line>
+        <line>Let us know if things don't work as smoothly as you might expect</line>
       </remark>
       <header>
-        <line>Here we have a header.</line>
-        <line>Here we have a header.</line>
+        <line>You can use the openamq.org mailing lists for discussion.</line>
+        <line>Or, use our bug tracking system to report problems.</line>
       </header>
       <section>
-        <title>Title text</title>
-        <head>Heading...</head>
-        <line>Some text comes here</line>
-        <line>Some text comes here</line>
-        <line>Some text comes here</line>
+        <title>Mailing Lists</title>
+        <head>openamq-help@lists.openamq.org</head>
+        <line>For all questions about using the OpenAMQ software, libraries,
+        and components.</line>
+        <line>&lt;a href="http://lists.openamq.org/mailman/admin"&gt;Register now...&lt;/a&gt;</line>
+        <head>openamq-dev@lists.openamq.org</head>
+        <line>For developers of the OpenAMQ product and standards.</line>
+        <line>&lt;a href="http://lists.openamq.org/mailman/admin"&gt;Register now...&lt;/a&gt;</line>
+      </section>
+      <section>
+        <title>Bug Tracking System</title>
+        <head>www.changeflow.com by iMatix</head>
+        <line>For all issues that need formal change management.</line>
+        <line>Restricted to users with authorised access.</line>
+        <line>&lt;a href="http://www.changeflow.com"&gt;Login now...&lt;/a&gt;</line>
       </section>
       <footer>
         <line content = "slogan" />

@@ -1,3 +1,6 @@
+0.7b4 - 26 January 2005
+
+
 0.7b3 - 25 January 2005
     - client failed when receiving handle_notify during close; fixed
     - queue management got confused when persistent messages used

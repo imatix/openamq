@@ -13,19 +13,19 @@
         <line>Copyright &copy; 2004-2005.</line>
       </header>
       <section>
-        <title>Principle authors</title>
+        <title>Team</title>
         <head>Design</head>
         <line>John O'Hara</line>
         <line>Pieter Hintjens</line>
-        <head>Engineering</head>
+        <head>Development</head>
         <line>Pieter Hintjens</line>
         <line>Jonathan Schultz</line>
         <line>Martin Lucina</line>
         <line>Martin Sustrik</line>
         <line>Rakan El-Khalil</line>
-        <title>Contributors</title>
-        <line>Mark Atwell</line>
+        <head>Contributors</head>
         <line>James Strachan</line>
+        <line>Mark Atwell</line>
       </section>
       <footer>
         <line content = "slogan" />

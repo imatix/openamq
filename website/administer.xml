@@ -6,7 +6,7 @@
     <language name = "en">
       <title content = "title"/>
       <remark>
-        <line>A quick guide to looking after your OpenAMQ server installation</line>
+        <line>Care and feeding for your OpenAMQ server installation</line>
       </remark>
       <header>
         <line>OpenAMQ will run with no tuning or administration.</line>

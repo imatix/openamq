@@ -73,7 +73,7 @@ oCMenu.level[2].borderClass="clLevel2border"
 Menu item creation:
 myCoolMenu.makeMenu(name, parent_name, text, link, target, width, height, regImage, overImage, regClass, overClass , align, rows, nolink, onclick, onmouseover, onmouseout)
 *************************************/
-oCMenu.makeMenu('top0','','','','','150')
+oCMenu.makeMenu('top0','','','','','175')
 
 oCMenu.makeMenu('top1','','|&nbsp;Home','index_en.html','','50')
 

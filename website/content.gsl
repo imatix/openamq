@@ -37,11 +37,11 @@ endfunction
 global.ignorecase = 0
 slideshow = 0
 xml from "content.xml"
-for root-> content.include
-    xml to root-> content from include.file
+for root->content.include
+    xml to root->content from include.file
 endfor
 
-for root-> content.page
+for root->content.page
     set_page_next (lastpage, page.name)
     for page.set
         page.$(name) = value
@@ -58,7 +58,7 @@ set_page_next (lastpage, root-> content-> page.name)
 
 #   Generate slideshow pages
 slideshow = 1
-for root-> content.page where slide ?= 1
+for root->content.page where slide ?= 1
     for language
         echo "Generating slide_$(page.name)_$(language.name).html..."
         output "slide_$(page.name)_$(language.name).html"
