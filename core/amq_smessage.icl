@@ -113,7 +113,8 @@
     Saves the message to persistent storage.  The message must contain data
     loaded using the $(selfname)_record method.
     </doc>
-    <argument name = "queue" type = "amq_queue_t *" />
+    <argument name = "queue" type = "amq_queue_t *" >Queue to save to</argument>
+    <argument name = "txn"   type = "ipr_db_txn_t *">Transaction, if any</argument>
     <local>
     ipr_shortstr_t
         filename;                       /*  Filename in store directory      */
@@ -123,26 +124,10 @@
 
     /*  Update own reference to queue table used                             */
     self->queue = queue;
-
-    /*  Copy message header fields into saved record so that we can use
-        these without decoding the header each time.                         */
-    queue->item_client_id   = 0;        /*  Not dispatched                   */
-    queue->item_sender_id   = self->handle->client_id;
-    queue->item_header_size = self->header_size;
-    queue->item_body_size   = self->body_size;
-    queue->item_priority    = self->priority;
-    queue->item_expiration  = self->expiration;
-    queue->item_spool_size  = self->spool_size;
-    ipr_shortstr_cpy (queue->item_mime_type, *self->mime_type? self->mime_type: self->handle->mime_type);
-    ipr_shortstr_cpy (queue->item_encoding,  *self->encoding?  self->encoding:  self->handle->encoding);
-    ipr_shortstr_cpy (queue->item_identifier, self->identifier);
-    ipr_longstr_destroy (&queue->item_headers);
-    queue->item_headers = ipr_longstr_new (self->headers->data, self->headers->cur_size);
-    ipr_longstr_destroy (&queue->item_content);
-    queue->item_content = ipr_longstr_new (self->fragment->data, self->fragment->cur_size);
+    s_save_message_properties (self, queue);
 
     /*  Write message to persistent storage                                  */
-    amq_queue_insert (queue, NULL);
+    amq_queue_insert (queue, txn);
     self->queue_id = queue->item_id;
 
     if (self->spool_size) {
@@ -181,25 +166,9 @@
     self->queue    = queue;
     self->queue_id = queue->item_id;
 
-    /*  Restore message properties from recorded data                    */
-    self->header_size = queue->item_header_size;
-    self->body_size   = queue->item_body_size;
-    self->priority    = queue->item_priority;
-    self->expiration  = queue->item_expiration;
-    self->spool_size  = queue->item_spool_size;
-    ipr_shortstr_cpy (self->mime_type,  queue->item_mime_type);
-    ipr_shortstr_cpy (self->encoding,   queue->item_encoding);
-    ipr_shortstr_cpy (self->identifier, queue->item_identifier);
-    ipr_longstr_destroy (&self->headers);
-    self->headers     = ipr_longstr_new (queue->item_headers->data, queue->item_headers->cur_size);
-
-    /*  Get first fragment; rest is in overflow file on disk             */
-    self->processed = self->body_size;
-    self->fragment  = amq_bucket_new ();
-    amq_bucket_fill (self->fragment, queue->item_content->data, queue->item_content->cur_size);
-
+    s_load_message_properties (self, queue);
     if (self->spool_size > 0) {
-        /*  Format the stored filename for the message                   */
+        /*  Format the stored filename for the message                       */
         ipr_shortstr_fmt (self->spool_file,
             "%s/%09ld.msg", self->vhost->storedir, self->queue_id);
     }
@@ -223,6 +192,65 @@
         self->spoolid = 0;
     }
 </method>
+
+<private name = "header">
+static void
+    s_save_message_properties ($(selftype) *self, amq_queue_t *queue);
+static void
+    s_load_message_properties ($(selftype) *self, amq_queue_t *queue);
+</private>
+
+<private name = "footer">
+/*  Copy message header fields into saved record so that we can use
+    these without decoding the header each time.
+ */
+static void
+s_save_message_properties ($(selftype) *self, amq_queue_t *queue)
+{
+    queue->item_client_id   = 0;        /*  Not dispatched                   */
+    queue->item_sender_id   = self->handle->client_id;
+    queue->item_header_size = self->header_size;
+    queue->item_body_size   = self->body_size;
+    queue->item_priority    = self->priority;
+    queue->item_expiration  = self->expiration;
+    queue->item_spool_size  = self->spool_size;
+
+    ipr_shortstr_cpy (queue->item_mime_type, *self->mime_type? self->mime_type: self->handle->mime_type);
+    ipr_shortstr_cpy (queue->item_encoding,  *self->encoding?  self->encoding:  self->handle->encoding);
+    ipr_shortstr_cpy (queue->item_identifier, self->identifier);
+
+    ipr_longstr_destroy (&queue->item_headers);
+    queue->item_headers = ipr_longstr_new (self->headers->data, self->headers->cur_size);
+
+    ipr_longstr_destroy (&queue->item_content);
+    queue->item_content = ipr_longstr_new (self->fragment->data, self->fragment->cur_size);
+}
+
+
+/*  Restore message properties from recorded data                            */
+
+static void
+s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
+{
+    self->header_size = queue->item_header_size;
+    self->body_size   = queue->item_body_size;
+    self->priority    = queue->item_priority;
+    self->expiration  = queue->item_expiration;
+    self->spool_size  = queue->item_spool_size;
+
+    ipr_shortstr_cpy (self->mime_type,  queue->item_mime_type);
+    ipr_shortstr_cpy (self->encoding,   queue->item_encoding);
+    ipr_shortstr_cpy (self->identifier, queue->item_identifier);
+
+    ipr_longstr_destroy (&self->headers);
+    self->headers = ipr_longstr_new (queue->item_headers->data, queue->item_headers->cur_size);
+
+    /*  Get first fragment; rest is in overflow file on disk                 */
+    self->processed = self->body_size;
+    self->fragment  = amq_bucket_new ();
+    amq_bucket_fill (self->fragment, queue->item_content->data, queue->item_content->cur_size);
+}
+</private>
 
 <method name = "testfill" template = "function" inherit = "0">
     <doc>
@@ -343,7 +371,7 @@
     amq_smessage_testfill (message, TEST_SIZE);
 
     /*  Save to persistent storage                                           */
-    amq_smessage_save (message, queue);
+    amq_smessage_save (message, queue, NULL);
     amq_smessage_destroy (&message);
 
     /*  Load from persistent storage                                         */

@@ -1,3 +1,10 @@
+0.7b5 -
+    - CHANNEL ACK did not work as per AMQ RFC 006; it required that the
+      message was present and returned a code 311 if not.  Now it allows
+      the message number to be defined arbitrarily high.
+    - CHANNEL ACK was not failing on non-transacted messages - fixed.
+    - HANDLE SEND was not correctly covered by transaction - fixed.
+
 0.7b4 - 26 January 2005
     - com+ component v0.2 added
 

@@ -54,6 +54,8 @@
         restartable;                    /*  Restartable mode                 */
     amq_dispatch_list_t
         *dispatched;                    /*  Messages dispatched & pending    */
+    amq_smessage_list_t
+        *messages;                      /*  Messages pending commit          */
     qbyte
         message_nbr;                    /*  Message numbering                */
     amq_smessage_t
@@ -65,6 +67,7 @@
 <method name = "new">
     <argument name = "connection" type = "amq_connection_t *">Parent thread</argument>
     <argument name = "command"    type = "amq_channel_open_t *" />
+
     /*  De-normalise from parent object, for simplicity of use               */
     self->connection  = connection;
     self->client_id   = connection->client_id;
@@ -75,6 +78,7 @@
 
     /*  Initialise other properties                                          */
     self->dispatched  = amq_dispatch_list_new (self);
+    self->messages    = amq_smessage_list_new ();
     self->state       = AMQ_CHANNEL_OPEN;
     self->transacted  = command->transacted;
     self->restartable = command->restartable;
@@ -88,6 +92,8 @@
         ipr_db_txn_destroy (&self->txn);
 
     amq_dispatch_list_destroy (&self->dispatched);
+    amq_smessage_list_destroy (&self->messages);
+
     /*  Destroy all handles for this channel                                 */
     for (table_idx = 0; table_idx &lt; AMQ_HANDLE_TABLE_MAXSIZE; table_idx++) {
         if (self->connection->handles->item_table [table_idx]
@@ -97,7 +103,7 @@
 </method>
 
 <method name = "ack" template = "function" >
-    <argument name = "command"  type = "amq_channel_ack_t *" />
+    <argument name = "command" type = "amq_channel_ack_t *" />
     <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
     amq_dispatch_list_ack (self->dispatched, command->message_nbr);
 </method>
@@ -105,6 +111,7 @@
 <method name = "commit" template = "function" >
     <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
     if (self->transacted) {
+        amq_smessage_list_commit (self->messages);
         amq_dispatch_list_commit (self->dispatched);
         ipr_db_log_flush  (self->db);
         ipr_db_txn_commit (self->txn);
@@ -119,6 +126,7 @@
 <method name = "rollback" template = "function" >
     <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
     if (self->transacted) {
+        amq_smessage_list_rollback (self->messages);
         amq_dispatch_list_rollback (self->dispatched);
         ipr_db_txn_rollback (self->txn);
     }
@@ -182,7 +190,3 @@
 </method>
 
 </class>
-
-
-
-

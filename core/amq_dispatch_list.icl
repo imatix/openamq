@@ -10,9 +10,7 @@
     This class implements list head container for amq_dispatch
 </doc>
 
-<inherit class = "ipr_list_head" >
-    <option name = "prefix" value = "list"/>
-</inherit>
+<inherit class = "ipr_list_head" />
 
 <import class = "amq_dispatch"  />
 <option name = "childname" value = "amq_dispatch" />
@@ -37,26 +35,11 @@
         *dispatch;                      /*  Dispatched message queue entry   */
     </local>
 
-    /*  First pass, look for specified message                               */
-    rc = AMQP_MESSAGE_NOT_FOUND;
     dispatch = amq_dispatch_list_first (self);
     while (dispatch) {
-        if (dispatch->message_nbr == message_nbr)
-            rc = 0;                     /*  All's well, message exists       */
-        else
         if (dispatch->message_nbr > message_nbr)
             break;
-        dispatch = amq_dispatch_list_next (self, dispatch);
-    }
-    /*  Second pass, actually process ACK on messages                        */
-    if (rc == 0) {
-        dispatch = amq_dispatch_list_first (self);
-        while (dispatch) {
-            if (dispatch->message_nbr > message_nbr)
-                break;
-            amq_dispatch_ack (dispatch);
-            dispatch = amq_dispatch_list_next (self, dispatch);
-        }
+        dispatch = amq_dispatch_ack (dispatch);
     }
 </method>
 
@@ -119,6 +102,6 @@
     }    
 </method>
 
-<method name = "selftest" /> 
+<method name = "selftest" />
 
 </class>

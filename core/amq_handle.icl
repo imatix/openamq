@@ -168,6 +168,12 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
 </method>
 
 <method name = "send" template = "function" >
+    <doc>
+    Processes a HANDLE SEND command.  Persistent messages are saved in the
+    persistent queue storage.  Non-persistent messages are saved in memory;
+    if transacted, per channel and if not transacted, per queue.  When a
+    new message has been saved per queue, we also dispatch for that queue.
+    </doc>
     <argument name = "command"    type = "amq_handle_send_t *" />
     <argument name = "message"    type = "amq_smessage_t *"    />
     <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
@@ -175,11 +181,15 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
     amq_queue_t
         *queue;
     </local>
-
+    /*  Look for the queue using the destination name specified              */
     queue = amq_queue_full_search (
         self->vhost->queues, self->dest_name, command->dest_name);
-    if (queue)
-        amq_queue_dispatch (queue, message);
+
+    if (queue) {
+        amq_queue_save (queue, channel, message);
+        if (!self->transacted)
+            amq_queue_dispatch (queue);
+    }
     else {
         *reply_text = "No such destination defined";
         rc = AMQP_NOT_FOUND;            /*  Destination not found            */
@@ -197,7 +207,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
     consumer = amq_consumer_new (self, command);
     if (consumer) {
         amq_looseref_new (self->consumers, consumer);
-        amq_queue_dispatch (consumer->queue, NULL);
+        amq_queue_dispatch (consumer->queue);
     }
     else {
         *reply_text = "No such destination defined";
@@ -227,7 +237,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
     if (!self->paused) {
         consumer = amq_looseref_list_first (self->consumers);
         while (consumer) {
-            amq_queue_dispatch (((amq_consumer_t *) consumer->object)->queue, NULL);
+            amq_queue_dispatch (((amq_consumer_t *) consumer->object)->queue);
             consumer = amq_looseref_list_next (self->consumers, consumer);
         }
     }

@@ -71,14 +71,18 @@
     amq_smessage_destroy (&self->message);
 </method>
 
-<method name = "ack" template = "function">
+<method name = "ack" template = "function" return = "next">
     <doc>
-    Acknowledge a specific message.
+    Acknowledge a specific message.  Returns the next message on the
+    dispatch list.
     </doc>
+    <declare name = "next" type = "amq_dispatch_t *" />
+
     /*  Queue and consumer can accept a new message                          */
     self->queue->window++;
     self->consumer->window++;
-    amq_queue_dispatch (self->queue, NULL);
+    amq_queue_dispatch (self->queue);
+    next = amq_dispatch_list_next (self->channel->dispatched, self);
 
     if (self->queue_id) {
         /*  Purge from persistent queue if necessary                         */
@@ -96,10 +100,12 @@
     <doc>
     Unget a specific message.
     </doc>
+
     if (self->queue_id == 0) {
         /*  Push back non-persistent message                                 */
         /*    - update window AFTER so it won't bounce to same consumer      */
-        amq_queue_dispatch (self->queue, self->message);
+        amq_queue_save     (self->queue, self->message->handle->channel, self->message);
+        amq_queue_dispatch (self->queue);
         self->queue->window++;
         self->consumer->window++;
     }
@@ -117,7 +123,7 @@
         /*  Queue and consumer can accept a new message                      */
         self->queue->window++;
         self->consumer->window++;
-        amq_queue_dispatch (self->queue, NULL);
+        amq_queue_dispatch (self->queue);
     }
     amq_dispatch_destroy (&self);
 </method>

@@ -142,12 +142,44 @@ ipr_db_queue class.
     self->window -= consumer->window;
 </method>
 
+<method name = "save" template = "function">
+    <doc>
+    Saves a message to a queue.  The caller can provide a transaction, in which
+    case the message will be invisible for dispatching until the queue has been
+    committed.  Persistent messages are saved to the database, non-persistent
+    messages are held on a per-queue or per-channel (if transacted) basis.
+    The channel can be specified as NULL, which forces non-persistent messages
+    to be saved to the queue memory list.
+    </doc>
+    <argument name = "message" type = "amq_smessage_t *">Message, if any</argument>
+    <argument name = "channel" type = "amq_channel_t *" >Current channel</argument>
+
+    ASSERT (message);
+    if (self->outstanding > 0 || message->persistent) {
+        /*  Save to persistent storage                                       */
+        self->outstanding++;
+        amq_smessage_save (message, self, channel->txn);
+        amq_smessage_destroy (&message);
+#       ifdef TRACE_DISPATCH
+        coprintf ("$(selfname) I: insert message id=%d outstanding=%d", self->item_id, self->outstanding);
+#       endif
+    }
+    else {
+        /*  Handle non-persistent messages                                   */
+        /*  If transacted, save per channel, else save per queue             */
+        message->queue = queue;
+        if (channel && channel->transacted)
+            amq_smessage_list_queue (channel->messages, message);
+        else
+            amq_smessage_list_queue (self->messages, message);
+    }
+</method>
+
 <method name = "dispatch" template = "function">
     <doc>
     Dispatches a specific message or all pending messages on a destination
     to all interested consumers.
     </doc>
-    <argument name = "cur_message" type = "amq_smessage_t *">Message, if any</argument>
     <local>
     amq_smessage_t
         *message;
@@ -157,29 +189,28 @@ ipr_db_queue class.
         finished;
     </local>
 
-    /*  If we have a current message, save to disk or memory                 */
-#   ifdef TRACE_DISPATCH
-    coprintf ("$(selfname) I: queue dispatch, cur_message:%s", cur_message? "yes": "no");
-#   endif
-    if (cur_message) {
-        if (self->outstanding > 0 || cur_message->persistent) {
-            /*  Save to persistent storage                                   */
-            self->outstanding++;
-            amq_smessage_save    (cur_message, self);
-            amq_smessage_destroy (&cur_message);
-#           ifdef TRACE_DISPATCH
-            coprintf ("$(selfname) I: insert message id=%d outstanding=%d", self->item_id, self->outstanding);
-#           endif
-        }
-        else
-            /*  Added to memory queue                                        */
-            amq_smessage_list_queue (self->messages, cur_message);
-    }
-
     /*  Now process messages from memory or from disk                        */
 #   ifdef TRACE_DISPATCH
     coprintf ("$(selfname) I: dispatch window=%d outstanding=%d", self->window, self->outstanding);
 #   endif
+
+    /*  First, process any messages in memory: in the case that messages
+        are held both in memory and disk, the ones in memory will be the
+        oldest.
+     */
+    message = amq_smessage_list_first (self->messages);
+    while (self->window && message) {
+        consumer = s_get_next_consumer (self);
+        if (consumer) {
+            amq_smessage_list_unlink (message);
+            self->item_id = 0;          /*  Non-persistent message           */
+            s_dispatch_message (consumer, message);
+            message = amq_smessage_list_first (self->messages);
+        }
+        else
+            break;                      /*  No more consumers                */
+    }
+    /*  Now process any messages on disk                                     */
     if (self->outstanding) {
         /*  Get oldest candidate message to dispatch                         */
         self->item_id = self->last_id;
@@ -210,27 +241,13 @@ ipr_db_queue class.
             finished = amq_queue_fetch (self, IPR_QUEUE_NEXT);
         }
     }
-    else {
-        message = amq_smessage_list_first (self->messages);
-        while (self->window && message) {
-            consumer = s_get_next_consumer (self);
-            if (consumer) {
-                amq_smessage_list_unlink (message);
-                self->item_id = 0;      /*  Non-persistent message           */
-                s_dispatch_message (consumer, message);
-                message = amq_smessage_list_first (self->messages);
-            }
-            else
-                break;                  /*  No more consumers                */
-        }
-    }
 </method>
 
 <private name = "header">
 static amq_consumer_t *
-s_get_next_consumer ($(selftype) *self);
+    s_get_next_consumer ($(selftype) *self);
 static void
-s_dispatch_message (amq_consumer_t *consumer, amq_smessage_t *message);
+    s_dispatch_message (amq_consumer_t *consumer, amq_smessage_t *message);
 </private>
 
 <private name = "footer">
