@@ -30,6 +30,7 @@
     "  -p               Use persistent messages (no)\n"                     \
     "                   0=none, 1=low, 2=medium, 3=high\n"                  \
     "  -q               Quiet mode: no messages\n"                          \
+    "  -d               Delayed mode; sleeps after receiving a message\n"   \
     "  -v               Show version information\n"                         \
     "  -h               Show summary of command-line options\n"             \
     "\nThe order of arguments is not important. Switches and filenames\n"   \
@@ -44,6 +45,7 @@ main (int argc, char *argv [])
     Bool
         args_ok = TRUE,                 /*  Were the arguments okay?         */
         quiet_mode = FALSE,             /*  -q means suppress messages       */
+        delay_mode = FALSE,             /*  -d means work slowly             */
         persistent = FALSE;             /*  Use persistent messages?         */
     char
         *opt_client,                    /*  Client identifier                */
@@ -126,6 +128,9 @@ main (int argc, char *argv [])
                     break;
                 case 'q':
                     quiet_mode = TRUE;
+                    break;
+                case 'd':
+                    delay_mode = TRUE;
                     break;
                 case 'v':
                     puts (CLIENT_NAME);
@@ -217,6 +222,8 @@ main (int argc, char *argv [])
                     if (amq_sclient_commit  (amq_client))
                         goto aborted;
                 }
+                if (delay_mode)
+                    sleep (1);
             }
             else {
                 coprintf ("No message received - aborting");
