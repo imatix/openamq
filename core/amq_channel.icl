@@ -91,6 +91,7 @@
     if (self->transacted)
         ipr_db_txn_destroy (&self->txn);
 
+    amq_smessage_destroy      (&self->message_in);
     amq_dispatch_list_destroy (&self->dispatched);
     amq_smessage_list_destroy (&self->messages);
 

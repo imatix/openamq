@@ -215,11 +215,12 @@ main (int argc, char *argv [])
             if (message) {
                 if (!quiet_mode)
                     coprintf ("Message number %d arrived", amq_client->msg_number);
+                amq_message_destroy (&message);
                 count++;
                 if (count % batch_size == 0) {
                     if (amq_sclient_msg_ack (amq_client))
                         goto aborted;
-                    if (amq_sclient_commit  (amq_client))
+                    if (amq_sclient_commit (amq_client))
                         goto aborted;
                 }
                 if (delay_mode)

@@ -20,11 +20,13 @@
 </public>
 
 <private name = "types">
-#define AMQP_HEARTBEAT      30
-#define AMQP_TRACE_NONE     0
-#define AMQP_TRACE_LOW      1
-#define AMQP_TRACE_MED      2
-#define AMQP_TRACE_HIGH     3
+#define AMQP_HEARTBEAT         30
+#define AMQP_TRACE_NONE         0
+#define AMQP_TRACE_LOW          1
+#define AMQP_TRACE_MED          2
+#define AMQP_TRACE_HIGH         3
+#define AMQP_SOCKET_TIMEOUT     5 * 1000 * 1000  /*  usecs  */
+
 static int
     s_tracing = 0;
 </private>
@@ -41,98 +43,86 @@ static int
 <method name = "connection open">
     <field name = "hostname"     type = "char *">Server to connect to</field>
     <field name = "virtual path" type = "char *">Virtual host path</field>
-    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
-    <field name = "result"       type = "int *">Pointer to result of operation</field>
+    <field name = "result"       type = "int *" >Pointer to result of operation</field>
 </method>
 
 <method name = "connection close">
-    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
-    <field name = "result"       type = "int *">Pointer to result of operation</field>
+    <field name = "result"       type = "int *" >Pointer to result of operation</field>
 </method>
 
 <method name = "channel open">
-    <field name = "channel id"   type = "dbyte">Channel number</field>
-    <field name = "transacted"   type = "Bool" > Use transacted mode?</field>
-    <field name = "restartable"  type = "Bool" > Use restartable mode?</field>
-    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
-    <field name = "result"       type = "int *">Pointer to result of operation</field>
+    <field name = "channel id"   type = "dbyte" >Channel number</field>
+    <field name = "transacted"   type = "Bool"  >Use transacted mode?</field>
+    <field name = "restartable"  type = "Bool"  >Use restartable mode?</field>
+    <field name = "result"       type = "int *" >Pointer to result of operation</field>
 </method>
 
 <method name = "channel ack">
-    <field name = "channel id"   type = "dbyte">Channel number</field>
-    <field name = "message nbr"  type = "qbyte">Message number</field>
-    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
-    <field name = "result"       type = "int *">Pointer to result of operation</field>
+    <field name = "channel id"   type = "dbyte" >Channel number</field>
+    <field name = "message nbr"  type = "qbyte" >Message number</field>
+    <field name = "result"       type = "int *" >Pointer to result of operation</field>
 </method>
 
 <method name = "channel commit">
-    <field name = "channel id"   type = "dbyte">Channel number</field>
-    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
-    <field name = "result"       type = "int *">Pointer to result of operation</field>
+    <field name = "channel id"   type = "dbyte" >Channel number</field>
+    <field name = "result"       type = "int *" >Pointer to result of operation</field>
 </method>
 
 <method name = "channel rollback">
-    <field name = "channel id"   type = "dbyte">Channel number</field>
-    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
-    <field name = "result"       type = "int *">Pointer to result of operation</field>
+    <field name = "channel id"   type = "dbyte" >Channel number</field>
+    <field name = "result"       type = "int *" >Pointer to result of operation</field>
 </method>
 
 <method name = "channel close">
-    <field name = "channel id"   type = "dbyte">Channel number</field>
-    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
-    <field name = "result"       type = "int *">Pointer to result of operation</field>
+    <field name = "channel id"   type = "dbyte" >Channel number</field>
+    <field name = "result"       type = "int *" >Pointer to result of operation</field>
 </method>
 
 <method name = "handle open">
-    <field name = "channel id"   type = "dbyte">Channel number</field>
-    <field name = "handle id"    type = "dbyte">Handle number</field>
-    <field name = "temporary"    type = "Bool" > Temporary access?</field>
+    <field name = "channel id"   type = "dbyte" >Channel number</field>
+    <field name = "handle id"    type = "dbyte" >Handle number</field>
+    <field name = "temporary"    type = "Bool"  >Temporary access?</field>
     <field name = "dest name"    type = "char *">Destination name</field>
-    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
-    <field name = "result"       type = "int *">Pointer to result of operation</field>
+    <field name = "result"       type = "int *" >Pointer to result of operation</field>
 </method>
 
 <method name = "handle consume">
-    <field name = "handle id"    type = "dbyte">Handle number</field>
-    <field name = "prefetch"     type = "dbyte">Max pending messages</field>
-    <field name = "no local"     type = "Bool" > Don\'t deliver to self?</field>
-    <field name = "unreliable"   type = "Bool" > Don\'t want to ack</field>
+    <field name = "handle id"    type = "dbyte" >Handle number</field>
+    <field name = "prefetch"     type = "dbyte" >Max pending messages</field>
+    <field name = "no local"     type = "Bool"  >Don\'t deliver to self?</field>
+    <field name = "unreliable"   type = "Bool"  >Don\'t want to ack</field>
     <field name = "dest name"    type = "char *">Destination name</field>
     <field name = "identifier"   type = "char *">Subscription identifier</field>
-    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
-    <field name = "result"       type = "int *">Pointer to result of operation</field>
+    <field name = "result"       type = "int *" >Pointer to result of operation</field>
 </method>
 
 <method name = "handle unget">
-    <field name = "handle id"    type = "dbyte">Handle number</field>
-    <field name = "message nbr"  type = "qbyte">Message number</field>
-    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
-    <field name = "result"       type = "int *">Pointer to result of operation</field>
+    <field name = "handle id"    type = "dbyte" >Handle number</field>
+    <field name = "message nbr"  type = "qbyte" >Message number</field>
+    <field name = "result"       type = "int *" >Pointer to result of operation</field>
 </method>
 
 <method name = "handle send">
-    <field name = "handle_id"    type = "dbyte"         > Channel number</field>
-    <field name = "message"      type = "amq_message_t *">Message to send</field>
-    <field name = "dest_name"    type = "char *"        > Destination name</field>
-    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
-    <field name = "result"       type = "int *">Pointer to result of operation</field>
+    <field name = "handle_id"    type = "dbyte" >Channel number</field>
+    <field name = "message"      type = "amq_message_t *"
+                                                >Message to send</field>
+    <field name = "dest_name"    type = "char *">Destination name</field>
+    <field name = "result"       type = "int *" >Pointer to result of operation</field>
 </method>
 
 <method name = "handle flow">
     <field name = "handle id"    type = "dbyte">Handle number</field>
-    <field name = "flow pause"   type = "Bool" > Pause the flow of messages?</field>
-    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
+    <field name = "flow pause"   type = "Bool" >Pause the flow of messages?</field>
     <field name = "result"       type = "int *">Pointer to result of operation</field>
 </method>
 
 <method name = "handle close">
     <field name = "handle id"    type = "dbyte">Handle number</field>
-    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
     <field name = "result"       type = "int *">Pointer to result of operation</field>
 </method>
 
 <method name = "blocking receive">
-    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
+    <field name = "msecs"        type = "long" >Timeout, in msecs</field>
     <field name = "result"       type = "int *">Pointer to result of operation</field>
 </method>
 
@@ -187,9 +177,8 @@ static int
             *handle_notify_callback;
         int
             *result;                    /*  Pointer to result of operation   */
-
-        apr_time_t
-            time_limit;                 /*  Limit for methods with timeout   */
+        uint64_t
+            usecs;                      /*  Default socket timeout           */
     </context>
 
     <handler name = "thread new">
@@ -199,6 +188,7 @@ static int
         <argument name = "password"     type = "char *">User password</argument>
         tcb->client = client;
         tcb->result = NULL;
+        tcb->usecs  = AMQP_SOCKET_TIMEOUT;
         ipr_shortstr_cpy (tcb->client_name, client_name);
         ipr_shortstr_cpy (tcb->login,       login);
         ipr_shortstr_cpy (tcb->password,    password);
@@ -226,7 +216,6 @@ static int
 
     <state name = "initialise connection">
         <method name = "connection open" nextstate = "expect connection challenge">
-            s_calculate_time_limit (thread, connection_open_m->timeout);
             tcb->result = connection_open_m->result;
             if (tcb->result)
                 *tcb->result = AMQ_OK;
@@ -234,16 +223,6 @@ static int
             <action name = "send protocol header" />
             <action name = "read next command" />
         </method>
-        <event name = "socket error"  nextstate = "" >
-            <action name = "handle error"/>
-            if (tcb->result)
-                *tcb->result = AMQ_SOCKET_ERROR;
-        </event>
-        <event name = "socket timeout"  nextstate = "" >
-            <action name = "handle error"/>
-            if (tcb->result)
-                *tcb->result = AMQ_TIMEOUT;
-        </event>
     </state>
 
     <action name = "connect to server">
@@ -260,7 +239,7 @@ static int
             tcb->port = AMQ_SERVER_PORT;
 
         tcb->socket = smt_socket_connect (
-            thread, 1000*connection_open_m->timeout, tcb->hostname, tcb->port,
+            thread, tcb->usecs, tcb->hostname, tcb->port,
             SMT_NULL_EVENT);
     </action>
 
@@ -277,16 +256,6 @@ static int
         <event name = "connection challenge" nextstate = "expect connection tune">
             <action name = "send connection response" />
             <action name = "read next command" />
-        </event>
-        <event name = "socket error"  nextstate = "" >
-            <action name = "handle error"/>
-            if (tcb->result)
-                *tcb->result = AMQ_SOCKET_ERROR;
-        </event>
-        <event name = "socket timeout"  nextstate = "" >
-            <action name = "handle error"/>
-            if (tcb->result)
-                *tcb->result = AMQ_TIMEOUT;
         </event>
     </state>
 
@@ -305,16 +274,6 @@ static int
             <action name = "send connection tune" />
             <action name = "send connection open" />
             <action name = "read next command" />
-        </event>
-        <event name = "socket error"  nextstate = "" >
-            <action name = "handle error"/>
-            if (tcb->result)
-                *tcb->result = AMQ_SOCKET_ERROR;
-        </event>
-        <event name = "socket timeout"  nextstate = "" >
-            <action name = "handle error"/>
-            if (tcb->result)
-                *tcb->result = AMQ_TIMEOUT;
         </event>
     </state>
 
@@ -342,8 +301,6 @@ static int
     </action>
 
     <action name = "send connection open">
-        s_calculate_time_limit (thread, connection_open_m->timeout);
-
         amq_frame_free (&tcb->frame);
         tcb->frame = amq_frame_connection_open_new (
             1,                          /*  Confirm tag                      */
@@ -365,16 +322,6 @@ static int
             if (tcb->result)
                 *tcb->result = AMQ_CONNECTION_CLOSED;
         </event>
-        <event name = "socket error"  nextstate = "" >
-            <action name = "handle error"/>
-            if (tcb->result)
-                *tcb->result = AMQ_SOCKET_ERROR;
-        </event>
-        <event name = "socket timeout"  nextstate = "" >
-            <action name = "handle error"/>
-            if (tcb->result)
-                *tcb->result = AMQ_TIMEOUT;
-        </event>
     </state>
 
     <!--  CONNECTION ACTIVE  ------------------------------------------------->
@@ -384,12 +331,13 @@ static int
              rather to the dialog of reading commands until a HANDLE NOTIFY
              arrives.
           -->
-        <method name = "blocking receive" nextstate = "blocking receive" >
-            s_calculate_time_limit (thread, blocking_receive_m->timeout);
+        <method name = "blocking receive" nextstate = "connection active" >
             tcb->result = blocking_receive_m->result;
             if (tcb->result)
                 *tcb->result = AMQ_OK;
-            smt_thread_set_next_event (thread, ok_event);
+            tcb->usecs = blocking_receive_m->msecs * 1000;
+            <action name = "read next command" />
+            <call state = "expect handle notify" />
         </method>
         <!--
             We allow a specific set of client API methods. The defaults state
@@ -398,7 +346,6 @@ static int
             specific client API methods.
           -->
         <method name = "connection close" nextstate = "initialise connection">
-            s_calculate_time_limit (thread, connection_close_m->timeout);
             tcb->result = connection_close_m->result;
             if (tcb->result)
                 *tcb->result = AMQ_OK;
@@ -408,35 +355,30 @@ static int
             <action name = "close connection" />
         </method>
         <method name = "channel open">
-            s_calculate_time_limit (thread, channel_open_m->timeout);
             tcb->result = channel_open_m->result;
             if (tcb->result)
                 *tcb->result = AMQ_OK;
             <action name = "send channel open" />
         </method>
         <method name = "channel ack">
-            s_calculate_time_limit (thread, channel_ack_m->timeout);
             tcb->result = channel_ack_m->result;
             if (tcb->result)
                 *tcb->result = AMQ_OK;
             <action name = "send channel ack" />
         </method>
         <method name = "channel commit">
-            s_calculate_time_limit (thread, channel_commit_m->timeout);
             tcb->result = channel_commit_m->result;
             if (tcb->result)
                 *tcb->result = AMQ_OK;
             <action name = "send channel commit" />
         </method>
         <method name = "channel rollback">
-            s_calculate_time_limit (thread, channel_rollback_m->timeout);
             tcb->result = channel_rollback_m->result;
             if (tcb->result)
                 *tcb->result = AMQ_OK;
             <action name = "send channel rollback" />
         </method>
         <method name = "channel close">
-            s_calculate_time_limit (thread, channel_close_m->timeout);
             tcb->result = channel_close_m->result;
             if (tcb->result)
                 *tcb->result = AMQ_OK;
@@ -445,42 +387,36 @@ static int
             <call state = "expect channel close" />
         </method>
         <method name = "handle open">
-            s_calculate_time_limit (thread, handle_open_m->timeout);
             tcb->result = handle_open_m->result;
             if (tcb->result)
                 *tcb->result = AMQ_OK;
             <action name = "send handle open" />
         </method>
         <method name = "handle consume">
-            s_calculate_time_limit (thread, handle_consume_m->timeout);
             tcb->result = handle_consume_m->result;
             if (tcb->result)
                 *tcb->result = AMQ_OK;
             <action name = "send handle consume" />
         </method>
         <method name = "handle unget">
-            s_calculate_time_limit (thread, handle_unget_m->timeout);
             tcb->result = handle_unget_m->result;
             if (tcb->result)
                 *tcb->result = AMQ_OK;
             <action name = "send handle unget" />
         </method>
         <method name = "handle send">
-            s_calculate_time_limit (thread, handle_send_m->timeout);
             tcb->result = handle_send_m->result;
             if (tcb->result)
                 *tcb->result = AMQ_OK;
             <call state = "sending message" event = "continue" />
         </method>
         <method name = "handle flow">
-            s_calculate_time_limit (thread, handle_flow_m->timeout);
             tcb->result = handle_flow_m->result;
             if (tcb->result)
                 *tcb->result = AMQ_OK;
             <action name = "send handle flow" />
         </method>
         <method name = "handle close">
-            s_calculate_time_limit (thread, handle_close_m->timeout);
             tcb->result = handle_close_m->result;
             if (tcb->result)
                 *tcb->result = AMQ_OK;
@@ -610,18 +546,6 @@ static int
         send_the_frame (thread);
     </action>
 
-    <!--  BLOCKING RECEIVE  -------------------------------------------------->
-    
-    <state name = "blocking receive" >
-        <event name = "ok" nextstate = "connection active" >
-            <action name = "read next command" />
-            <call state = "expect handle notify" />
-        </event>
-        <event name = "socket timeout" nextstate = "connection active" >
-        if (tcb->result)
-            *tcb->result = AMQ_TIMEOUT;
-        </event>
-    </state>
 
     <!--  EXPECT HANDLE NOTIFY  ---------------------------------------------->
 
@@ -822,6 +746,7 @@ static int
         Bool
             partial;
 
+tcb->usecs = 1;
         partial = amq_message_replay (
             handle_send_m->message, tcb->fragment, tcb->frame_max);
 
@@ -1003,10 +928,9 @@ static int
             if (tcb->result)
                 *tcb->result = AMQ_SOCKET_ERROR;
         </event>
-        <event name = "socket timeout" nextstate = "">
-            <action name = "signal connection timed out" />
-            <action name = "send connection close" />
-            <action name = "close connection" />
+        <event name = "socket timeout"  nextstate = "" >
+            <action name = "handle error"/>
+            coprintf ("Connection to server timed out - shutting-down");
             if (tcb->result)
                 *tcb->result = AMQ_TIMEOUT;
         </event>
@@ -1027,15 +951,10 @@ static int
         tcb->reply_code = AMQP_COMMAND_INVALID;
         smt_thread_raise_exception (thread, channel_error_event);
     </action>
-    
+
     <action name = "handle error">
         coprintf ("E: %s", smt_thread_error (thread));
     </action>
-
-    <action name = "signal connection timed out">
-        coprintf ("Connection to server timed out - shutting-down");
-    </action>
-
 </thread>
 
 <action name = "decode the frame">
@@ -1144,9 +1063,6 @@ amq_sclient_agent_register (
 static void        send_the_frame (smt_thread_t *thread);
 static void inline s_sock_write   (smt_thread_t *thread, byte *buffer, size_t size);
 static void inline s_sock_read    (smt_thread_t *thread, byte *buffer, size_t size);
-
-static void    inline s_calculate_time_limit (smt_thread_t *thread, qbyte msecs);
-static int64_t inline s_request_timeout      (smt_thread_t *thread);
 </private>
 
 <private name = "functions">
@@ -1180,55 +1096,18 @@ send_the_frame (smt_thread_t *thread)
 static void inline
 s_sock_write (smt_thread_t *thread, byte *buffer, size_t size)
 {
-    smt_socket_request_write (thread, tcb->socket,
-                              s_request_timeout (thread),
+    smt_socket_request_write (thread, tcb->socket, tcb->usecs,
                               size, buffer, SMT_NULL_EVENT);
 }
 
 static void inline
 s_sock_read (smt_thread_t *thread, byte *buffer, size_t size)
 {
-    smt_socket_request_read (thread, tcb->socket,
-                             s_request_timeout (thread),
+    smt_socket_request_read (thread, tcb->socket, tcb->usecs,
                              size, size, buffer, SMT_NULL_EVENT);
 }
-
-static void inline
-s_calculate_time_limit (smt_thread_t *thread, qbyte msecs)
-{
-    if (msecs)
-        tcb->time_limit = apr_time_now () + 1000 * msecs;
-    else
-        tcb->time_limit = 0;
-}
-
-static int64_t inline
-s_request_timeout (smt_thread_t *thread)
-{
-    apr_time_t
-        time_now;
-    int64_t
-        usecs;
-
-    if (tcb->time_limit) {
-        time_now = apr_time_now ();
-        if (tcb->time_limit >  time_now)
-            usecs = tcb->time_limit - time_now;
-        else
-            /*  This case only happens if system clock ticks over while      */
-            /*  we are active.  Instead of trapping it separately, just      */
-            /*  do the operation with a minimal timeout.                     */
-            usecs = 1;
-    }
-    else
-        usecs = 0;                      /*  No time limit                    */
-
-    return usecs;
-}
-
-#undef  tcb
+#undef tcb
 </private>
-
 
 <!--
     amq_common.smt
@@ -1237,12 +1116,6 @@ s_request_timeout (smt_thread_t *thread)
  -->
 
 <state name = "defaults">
-    <event name = "socket error"    nextstate = "" >
-        <action name = "handle error"/>
-    </event>
-    <event name = "socket timeout"  nextstate = "" >
-        <action name = "handle error"/>
-    </event>
     <event name = "smt error"       nextstate = "">
         <action name = "handle error"/>
     </event>
@@ -1259,6 +1132,7 @@ s_request_timeout (smt_thread_t *thread)
     <action name = "read frame header escaped" />
     <action name = "read frame body" />
     <action name = "decode the frame" />
+    <action name = "reset default timeout" />
 </action>
 
 <action name = "read frame header normal">
@@ -1286,6 +1160,10 @@ s_request_timeout (smt_thread_t *thread)
     }
     else
         s_sock_read (thread, tcb->command->data, tcb->frame_size);
+</action>
+
+<action name = "reset default timeout">
+    tcb->usecs = AMQP_SOCKET_TIMEOUT;
 </action>
 
 </agent>

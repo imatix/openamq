@@ -71,6 +71,7 @@
     if (self->content && self->free_fn)
         (self->free_fn) (self->content->data);
 
+    self_purge (self);
     amq_bucket_destroy  (&self->fragment);
     ipr_longstr_destroy (&self->content);
     ipr_longstr_destroy (&self->headers);
@@ -173,29 +174,6 @@
     amq_bucket_destroy (&bucket);
 </method>
 
-<method name = "testfill" template = "function">
-    <doc>
-    Records a random binary message with the specified size.
-    </doc>
-    <argument name = "body size" type = "size_t" />
-    <local>
-    byte
-        *data;
-    uint
-        index;
-    char
-        *identifier = "amq_message_testfill: test message";
-    </local>
-
-    data = icl_mem_alloc (body_size);
-    for (index = 0; index &lt; body_size; index++)
-        data [index] = (index % 26) + 'A';
-
-    $(selfname)_set_identifier (self, identifier);
-    $(selfname)_set_persistent (self, FALSE);
-    $(selfname)_set_content    (self, data, body_size, icl_mem_free);
-</method>
-
 <!-- Methods for filling a message from buckets -->
 
 <method name = "record" template = "function">
@@ -205,13 +183,14 @@
     the caller must check and manage the partial flag on message commands.
     Messages with more than one fragment are overflowed to disk. Takes
     ownership of the fragment bucket passed to it.  Do not mix this method
-    with the set_body method.
+    with the set_content method.
     </doc>
     <argument name = "fragment" type = "amq_bucket_t *" />
     <argument name = "partial"  type = "Bool"           />
 
-    if (self->fragment == NULL)
+    if (self->fragment == NULL) {
         s_record_header (self, fragment);
+    }
     else {
         /*  Process additional fragment in same message                      */
         if (self->spool_fh == NULL) {
@@ -331,14 +310,6 @@
     }
 </method>
 
-<method name = "purge" template = "function">
-    <doc>
-    Wipes any spool data for the message.
-    </doc>
-    if (self->spool_size > 0)
-        file_delete (self->spool_file);
-</method>
-
 <private name = "header">
 static void s_record_header ($(selftype) *self, amq_bucket_t *fragment);
 static void s_replay_header ($(selftype) *self, amq_bucket_t *fragment);
@@ -396,6 +367,73 @@ s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
 }
 </private>
 
+<method name = "purge" template = "function">
+    <doc>
+    Wipes any spool data for the message.
+    </doc>
+    if (self->spool_size > 0)
+        file_delete (self->spool_file);
+</method>
+
+<method name = "testfill" template = "function">
+    <doc>
+    Records a random binary message with the specified size.  Smallish
+    messages are created entirely in memory; larger messages are created
+    using the $(selfname)_record method.
+    </doc>
+    <argument name = "body size" type = "size_t" />
+    <local>
+    byte
+        *data;
+    uint
+        index;
+    char
+        *identifier = "amq_message_testfill: test message";
+    amq_bucket_t
+        *bucket;                        /*  Bucket for recording message     */
+    amq_frame_t
+        *frame;                         /*  Message header frame             */
+    </local>
+    /*  Our arbitrary chop-off point for 'small' messages is 64k, which is
+        the most memory anyone should ever need at once. :-)
+        The set_content method is easy but uses an allocated memory block.
+        The record method is a lot more work but uses a disk-based buffer.
+     */
+    if (body_size < 64*1024) {
+        data = icl_mem_alloc (body_size);
+        for (index = 0; index &lt; body_size; index++)
+            data [index] = (index % 26) + 'A';
+        $(selfname)_set_content    (self, data, body_size, icl_mem_free);
+        $(selfname)_set_identifier (self, identifier);
+        $(selfname)_set_persistent (self, FALSE);
+    }
+    else {
+        /*  Prepare message frame and encode it into a data buffer           */
+        bucket = amq_bucket_new ();
+        frame  = amq_frame_message_head_new (
+            body_size, FALSE, 0, 0, NULL, NULL, identifier, NULL);
+        amq_frame_encode (bucket, frame);
+        amq_frame_free (&frame);
+
+        /*  Record test message into bucket, after header and continue
+            with further buckets until the desired amount of test data
+            has been generated and recorded.  Bucket ownership passes to
+            the record method.
+          */
+        while (body_size > 0) {
+            while (bucket->cur_size &lt; bucket->max_size) {
+                bucket->data [bucket->cur_size] = (bucket->cur_size % 26) + 'A';
+                bucket->cur_size++;
+                if (--body_size == 0)
+                    break;
+            }
+            $(selfname)_record (self, bucket, (body_size > 0));
+            if (body_size)
+                bucket = amq_bucket_new ();
+        }
+    }
+</method>
+
 <method name = "selftest" export = "none">
     <local>
 #   define TEST_SIZE 250000
@@ -432,6 +470,7 @@ s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
             /*  Get bucket of message data                                   */
             bucket  = amq_bucket_new ();
             partial = amq_message_replay (message, bucket, frame_max [test_index]);
+
             /*  Mirror it to second message using record method              */
             amq_message_record (diskmsg, bucket, partial);
             body_size -= bucket->cur_size;

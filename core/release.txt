@@ -1,12 +1,21 @@
-0.7b6 -
-    - 
+0.7b6 - 11 February 2005
+    - disconnected clients could not reconnect reliably - fixed
+    - server occasionally got null socket handle from APR and aborted - fixed
+    - transaction management improved for persistent messages
+    - test client can now handle large (gigabyte) messages (it spools them)
+    - server no longer displays 'socket closed' error messages
+    - server politely says 'Interrupted...' when Ctrl-C is used
+    - serial client agent timed-out on large message sending - fixed
+    - serial client was leaking spool files - fixed
+    - server was leaking spool files - fixed
+    - server was leaking messages/buckets if client aborted - fixed
 
 0.7b5 - 9 February 2005
     - CHANNEL ACK did not work as per AMQ RFC 006; it required that the
       message was present and returned a code 311 if not.  Now it allows
-      the message number to be defined arbitrarily high.
-    - CHANNEL ACK was not failing on non-transacted messages - fixed.
-    - HANDLE SEND was not correctly covered by transaction - fixed.
+      the message number to be defined arbitrarily high
+    - CHANNEL ACK was not failing on non-transacted messages - fixed
+    - HANDLE SEND was not correctly covered by transaction - fixed
 
 0.7b4 - 26 January 2005
     - com+ component v0.2 added
