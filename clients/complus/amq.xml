@@ -322,7 +322,7 @@ static void s_mem_free (void *p)
         Fire_MessageArrived(
             m_connection->m_amq_client->msg_number,
             CComBSTR (m_connection->m_amq_client->msg_sender),
-            msg->content ? CComBSTR (msg->content->size, (char*) msg->content->data) : CComBSTR(L""),
+            msg->content ? CComBSTR (msg->content->cur_size, (char*) msg->content->data) : CComBSTR(L""),
             msg->persistent,
             msg->priority,
             msg->expiration,
