@@ -41,10 +41,10 @@ short
     batch_size = 100;                   /* Messages prefetched before ACK   */
 int
     socket_timeout = 0,                 /* Socket timeout im ms             */
-    message_size = 1024,                /* Message size                     */
     messages = 1000;                    /* Messages to send                 */
 long
-    frame_max = 16000;    
+    frame_max = 2048,    
+    message_size = 1024;                /* Message size                     */
 
 
 //////////////////////////////   G L O B A L S   //////////////////////////////
@@ -112,7 +112,7 @@ public int amqpcli_serial_execute (String args[])
         batch_size = Short.parseShort(args[3]);
     if (args.length > 4)
         message_size = Integer.parseInt(args[4]);
-
+    
     feedback = execute ();
 
     return (feedback);
@@ -231,8 +231,8 @@ public void send_connection_initiation ()
     try
     {
         // Send initiation
-        amqp_out.write(protocol_id);
-        amqp_out.write(protocol_ver);
+        amq_framing.writeUnsignedByte(protocol_id);
+        amq_framing.writeUnsignedByte(protocol_ver);
     }
     catch (IOException e)
     {
@@ -298,6 +298,7 @@ public void do_tests ()
             message_head = (AMQMessage.Head)amq_framing.createMessageHead();
         byte[]
             message_body;               /* Message body                     */
+        int head_size;
 
         // Open channel
         channel_open.channelId = 1;
@@ -356,17 +357,24 @@ public void do_tests ()
         message_head.encoding = "";
         message_head.identifier = "";
         message_head.headers = null;
-        System.out.println("Sending " + messages + " messages to server...");
-        int i = 1;
-        for (; i < messages; i++) {
+        head_size = message_head.size();
+        message_head.bodySize = message_size - head_size;
+        if (message_head.bodySize  < 0 )
+            message_head.bodySize = message_size;
+        message_size = head_size + message_head.bodySize;
+        if (message_size > amq_framing.frameMax)
+            System.out.println("Sending " + messages + " (fragmented) messages to server...");
+        else    
+            System.out.println("Sending " + messages + " messages to server...");
+        for (int i = 1; i < messages; i++) {
             OutputStream os;
             
             // Create the message body
-            message_head.bodySize = message_size;
             message_body = new byte[(int)message_head.bodySize];
             body_fill(message_body, i);
             // Set the fragment size
-            handle_send.fragmentSize = message_head.encode() + message_body.length;
+            handle_send.partial = message_size > amq_framing.frameMax;
+            handle_send.fragmentSize = Math.min(amq_framing.frameMax, message_size);
             // Send message
             amq_framing.produceFrame(handle_send);
             amq_framing.produceMessageHead(message_head);
@@ -401,20 +409,21 @@ public void do_tests ()
         // Request consume messages
         amq_framing.produceFrame(handle_consume);
         System.out.println("Reading messages back from the server...");
-        for (i = 1; i < messages; i++) {
+        for (int i = 1; i < messages; i++) {
             InputStream is; 
             byte[] bytes;
             
             // Get handle notify
             handle_notify = (AMQHandle.Notify)amq_framing.consumeFrame();
             message_head = amq_framing.consumeMessageHead();
+            head_size = message_head.size();
             bytes = new byte[(int)message_head.bodySize];
             is = amq_framing.getMessageBodyInputStream(handle_notify, message_head, null, false);
             is.read(bytes);
             is.close();
-            if (bytes.length != message_size) {
+            if (bytes.length != message_size - head_size) {
                 System.err.println("amqpcli_serial: body_check: returning message size mismatch (is "
-                    + bytes.length + " should be " + message_size + ").");
+                    + bytes.length + " should be " + (message_size - head_size) + ").");
                 System.exit(1);
             }
             body_check(bytes, i);
@@ -515,6 +524,7 @@ public void negotiate_connection_tune ()
         tune_reply.putInteger("HEARTBEAT", 0);
         client_tune.options = tune_reply.storeToBucket();
         amq_framing.produceFrame(client_tune);
+        amq_framing.setTuneParameters(client_tune);
     }
     /*catch (ClassCastException e)
     {
