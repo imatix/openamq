@@ -314,7 +314,7 @@ ipr_db_queue class.
     if (message)
         amq_server_agent_handle_notify (
             handle->thread,
-            handle->key,
+            (dbyte) handle->key,
             0,
             FALSE, FALSE, FALSE,
             self->dest->name,

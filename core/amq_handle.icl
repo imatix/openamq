@@ -165,7 +165,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
                 $(selfname)_destroy (p_self);
             }
         }
-        amq_server_agent_handle_created (self->thread, self->key, self->dest_name);
+        amq_server_agent_handle_created (self->thread, (dbyte) self->key, self->dest_name);
     }
 }
 </private>
@@ -283,7 +283,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
     if (queue) {
         amq_queue_query (queue, self->browser_set);
         amq_server_agent_handle_index (
-            self->thread, self->key, 0, amq_browser_array_strindex (self->browser_set));
+            self->thread, (dbyte) self->key, 0, amq_browser_array_strindex (self->browser_set));
     }
     else {
         *reply_text = "No such destination defined";
