@@ -325,6 +325,7 @@ public void do_tests ()
         }
         // Commit leftovers
         mq_factory.produceFrame(channel_commit);
+        System.out.println("Commit final batch...");
 
         // Resume incoming messages
         handle_flow.flowPause = false;
@@ -361,6 +362,7 @@ public void do_tests ()
         channel_ack.messageNbr = handle_notify.messageNbr;
         mq_factory.produceFrame(channel_ack);
         mq_factory.produceFrame(channel_commit);
+        System.out.println("Acknowledge final batch...");
 
         // Say bye
         channel_close.channelId = 1;
@@ -475,11 +477,13 @@ public void raise_exception (int event, Exception e, String _class, String modul
 
 //- Auxiliary routines --------------------------------------------
 byte[] body_fill(byte[] body, int seed) {
+    int a = 1664525, b = 1013904223;
+    long m = (long)1 << 32, v = seed;
+    
+    // Fill with patterns from a linear congruential generator
     for (int i = 0; i < body.length; i++) {
-        if (i == 0)
-            body[i] = (byte)(seed % Byte.MAX_VALUE);
-        else
-            body[i] = (byte)((body[i - 1] * body[i - 1]) % Byte.MAX_VALUE);
+        v = (a * v + b) & (m - 1);
+        body[i] = (byte)(v % Byte.MAX_VALUE);
     }
 
     return body;
