@@ -924,7 +924,7 @@ public class $(AMQPConnectionHandler:) {
      * $(AMQPConnectionHandler:) constructor
      *
      **/
-    public $(AMQPConnectionHandler:)(Socket socket) throws IOException {
+     $(AMQPConnectionHandler:)(Socket socket) throws IOException {
         incoming = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
         outgoing = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
         setup(socket);
@@ -935,7 +935,7 @@ public class $(AMQPConnectionHandler:) {
      * $(AMQPConnectionHandler:) configurable buffer constructor
      *
      **/
-    public $(AMQPConnectionHandler:)(Socket socket, int readBuff, int writeBuff) throws IOException {
+    $(AMQPConnectionHandler:)(Socket socket, int readBuff, int writeBuff) throws IOException {
         incoming = new DataInputStream(new BufferedInputStream(socket.getInputStream(), readBuff));
         outgoing = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream(), writeBuff));
         setup(socket);
