@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------
- *  test_level1.c - Test client for Level 1 AMQ Client API
+ *  test_level1.c - Test client for AMQ Client API
  *
  *  Copyright (c) 2004-2005 JPMorgan
  *  Copyright (c) 1991-2005 iMatix Corporation
@@ -124,6 +124,7 @@ apr_uint32_t s_move_to_next_query_result (
                 while (isdigit (client->query_result [pos]))
                     client->browse_end = client->browse_end * 10 +
                         client->query_result [pos++] - '0';
+            client->browse_end++;
         }
         /* It's just a single value, left and round bound should be the same
         */
