@@ -1,0 +1,39 @@
+<?xml?>
+<pdl
+    name      = "OpenAMQ Servers"
+    version   = "0.7a0"
+    copyright = "Copyright (c) 2004 JPMorgan"
+    workflow  = "standard.pwl"
+    install   = "openamq"
+    deploy    = "app"
+    >
+
+<include filename = "prelude.pdl" />
+
+<!-- Source files -->
+
+<file name = "amqpsrv.c"          class = "main program"   >OpenAMQ general server</file>
+<file name = "userguide.txt"      class = "gurudoc text"   >OpenAMQ servers user guide</file>
+
+<!-- Deliverables -->
+
+<file name = "amqpsrv"            class = "public command" >Server executable</file>
+<file name = "amq_server.cfg"     class = "public resource">Server configuration</file>
+<directory name = "vh_default">
+    <file name = "amq_vhost.cfg"  class = "public resource">Virtual host configuration</file>
+</directory>
+<directory name = "vh_test">
+    <file name = "amq_vhost.cfg"  class = "public resource">Virtual host configuration</file>
+</directory>
+
+<directory name = "userguide"     class = "public binary">
+    <file name = "gdstyle.css"    class = "web resource"   >Gurudoc style sheet</file>
+    <file name = "mainlogo.jpg"   class = "web resource"   >AMQ logo</file>
+    <file name = "userguide*.htm" >
+      <generate>
+        <copy from = "." />
+      </generate>
+    </file>
+</directory>
+
+</pdl>

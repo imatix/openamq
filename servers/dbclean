@@ -1,0 +1,8 @@
+cd vh_test
+rm -rf data spool store
+cd ..
+
+cd vh_default
+rm -rf data spool store
+cd ..
+
