@@ -137,7 +137,7 @@
     ipr_shortstr_cpy (queue->encoding,  *self->encoding?  self->encoding:  self->handle->encoding);
     ipr_shortstr_cpy (queue->identifier, self->identifier);
     ipr_longstr_destroy (&queue->headers);
-    queue->headers = ipr_longstr_new (self->headers->data, self->headers->size);
+    queue->headers = ipr_longstr_new (self->headers->data, self->headers->cur_size);
     ipr_longstr_destroy (&queue->content);
     queue->content = ipr_longstr_new (self->fragment->data, self->fragment->cur_size);
 
@@ -191,12 +191,12 @@
     ipr_shortstr_cpy (self->encoding,   queue->encoding);
     ipr_shortstr_cpy (self->identifier, queue->identifier);
     ipr_longstr_destroy (&self->headers);
-    self->headers     = ipr_longstr_new (queue->headers->data, queue->headers->size);
+    self->headers     = ipr_longstr_new (queue->headers->data, queue->headers->cur_size);
 
     /*  Get first fragment; rest is in overflow file on disk             */
     self->processed = self->body_size;
     self->fragment  = amq_bucket_new ();
-    amq_bucket_fill (self->fragment, queue->content->data, queue->content->size);
+    amq_bucket_fill (self->fragment, queue->content->data, queue->content->cur_size);
 
     if (self->spool_size > 0) {
         /*  Format the stored filename for the message                   */

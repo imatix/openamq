@@ -77,7 +77,7 @@ function frame_macros (frame)
         elsif type = "longstr" | type = "table"
             offset += 2         #   Length word
             string = 1
-            string_fields  = string_fields + " + (frame->body.$(frame.name).$(name)? frame->body.$(frame.name).$(name)->size: 0)"
+            string_fields  = string_fields + " + (frame->body.$(frame.name).$(name)? frame->body.$(frame.name).$(name)->cur_size: 0)"
         endif
     endfor
     if bits > 0
@@ -321,13 +321,13 @@ $(prefix)_frame_encode (amq_bucket_t *bucket, $(prefix)_frame_t *frame)
 .-
 .           elsif type = "longstr" | type = "table"
             if (frame->body.$(frame.name).$(name)) {
-                ASSERT (frame->body.$(frame.name).$(name)->size < 0x10000);
-                *(dbyte *) bucket_data = htons ((dbyte) frame->body.$(frame.name).$(name)->size);
+                ASSERT (frame->body.$(frame.name).$(name)->cur_size < 0x10000);
+                *(dbyte *) bucket_data = htons ((dbyte) frame->body.$(frame.name).$(name)->cur_size);
                 bucket_data += 2;
                 memcpy (bucket_data,
                         frame->body.$(frame.name).$(name)->data,
-                        frame->body.$(frame.name).$(name)->size);
-                bucket_data += frame->body.$(frame.name).$(name)->size;
+                        frame->body.$(frame.name).$(name)->cur_size);
+                bucket_data += frame->body.$(frame.name).$(name)->cur_size;
             }
             else {
                 *(dbyte *) bucket_data = 0;
@@ -588,7 +588,7 @@ $(prefix)_frame_t *$(prefix)_frame_$(name)_new ($(build_struct_args ()))
         strclr (frame->body.$(frame.name).$(name));
 .           elsif type = "longstr" | type = "table"
     if ($(name))
-        frame->body.$(frame.name).$(name) = ipr_longstr_new ($(name)->data, $(name)->size);
+        frame->body.$(frame.name).$(name) = ipr_longstr_new ($(name)->data, $(name)->cur_size);
     else
         frame->body.$(frame.name).$(name) = NULL;
 .           endif
@@ -653,7 +653,7 @@ $(prefix)_frame_dump ($(prefix)_frame_t *frame)
 .               field_string  += ", frame->body.$(frame.name).$(name)"
 .           elsif type = "longstr" | type = "table"
 .               format_string += " $(name)=%ldB"
-.               field_string  += ", frame->body.$(frame.name).$(name)? frame->body.$(frame.name).$(name)->size: 0"
+.               field_string  += ", frame->body.$(frame.name).$(name)? frame->body.$(frame.name).$(name)->cur_size: 0"
 .           endif
 .       endfor
             coprintf ("I: %s:$(format_string:)",

@@ -96,7 +96,8 @@
     self->free_fn = free_fn;
     self->content = ipr_longstr_new (NULL, 0);
     self->content->data = data;
-    self->content->size = size;
+    self->content->cur_size =
+    self->content->max_size = size;
     self->processed = 0;                /*  Reset reply serialisation        */
     self->body_size = size;
 </method>
@@ -271,11 +272,11 @@
         /*  Copy chunk from actual position                                  */
         copy_from = self->content->data + self->processed;
         copy_size = min (frame_max - fragment->cur_size,
-                         self->content->size - self->processed);
+                         self->content->cur_size - self->processed);
         memcpy (fragment->data + fragment->cur_size, copy_from, copy_size);
         fragment->cur_size += copy_size;
         self->processed    += copy_size;
-        if (self->processed &lt; self->content->size)
+        if (self->processed &lt; self->content->cur_size)
             rc = 1;                     /*  Partial, data remaining          */
         else
             self->processed = 0;        /*  Reset cycle                      */
