@@ -610,8 +610,14 @@ apr_status_t amqp_recv (
         result;
     apr_uint32_t
         pos = sizeof (apr_uint16_t) + sizeof(apr_uint32_t);
+.    shortstrcount = 0
+.    for field where type = "shortstr"
+.        shortstrcount = shortstrcount + 1
+.    endfor
+.    if shortstrcount > 0
     apr_uint32_t
         len = 0;
+.    endif
     apr_size_t
         sz;
     const apr_byte_t
