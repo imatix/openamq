@@ -11,7 +11,19 @@
 
 apr_socket_t *sck;
 int sender;
-int tag;
+apr_uint16_t tag;
+const char *server;
+const char *host;
+const char *destination;
+const char *prefix;
+long messages;
+long message_number;
+int interval;
+int prefetch;
+int till_acknowledge;
+int message_size;
+char *message_buffer;
+int stop;
 
 apr_status_t handle_close_cb (
     void *hint,
@@ -53,25 +65,24 @@ apr_status_t send_message(apr_uint16_t confirm_tag)
     apr_status_t result;
     apr_uint16_t value;
     char buffer [32768];
-    char data [2];
+	char identifier [2000];
 
-    /* wait for 5 seconds */
-    apr_sleep (5000000);
+    /* wait for N milliseconds seconds */
+    apr_sleep (interval * 1000);
 
-    /* random message value */
-    value = rand () % 0xffff;
-
-    *( (apr_uint16_t*) data) = htons (value);
+    sprintf (identifier, "%s%ld", prefix, message_number);
 
     result = amqp_handle_send (sck, buffer, 32767, 1, confirm_tag, 0, 0, 0, 0, "",
-        2, 0, 0, 0, "", "", "myMessage", 0, "", data);
+        message_size, 0, 0, 0, "", "", identifier, 0, "", message_buffer);
     if (result != APR_SUCCESS) {
         fprintf (stderr, "amqp_handle_send failed.\n%ld : %s\n",
             (long) result, amqp_strerror (result, buffer, 32767) );
         return result;
     }
 
-    fprintf (stderr, "Message with value %ld being sent.\n", (long) value);
+	message_number++;
+
+	fprintf (stderr, "Message % s sent. (%ld bytes)\n", identifier, (long) message_size);
 
     return APR_SUCCESS;            
 }
@@ -101,7 +112,7 @@ apr_status_t handle_reply_cb (
     }
     if (confirm_tag == 3 && sender == 1) {
         /* sender : reply to handle open */
-        return send_message (confirm_tag + 1);
+        return send_message ( (apr_uint16_t) (confirm_tag + 1) );
     }
     if (confirm_tag == 4 && sender == 0) {
         /* receiver : reply to handle consume */
@@ -109,8 +120,12 @@ apr_status_t handle_reply_cb (
     }
     if (confirm_tag >=4 && sender == 1) {
         /* sender : reply to handle send */
-        fprintf (stderr, "Message sent.\n");
-        return send_message (confirm_tag +1);
+		if (messages)
+		{
+		    messages--;
+		    if (messages == 0) stop = 1;
+		}
+		if (!stop) send_message ( (apr_uint16_t) (confirm_tag + 1) );
     }
     return APR_SUCCESS;
 }
@@ -131,7 +146,7 @@ apr_status_t channel_reply_cb (
         fprintf (stderr, "Channel opened.\n");
 
         result = amqp_handle_open (sck, buffer, 32767, 1, 1, 1, 3, 1, 1, 0, 0,
-            "test-small", "", "", 0, "");
+            destination, "", "", 0, "");
         if (result != APR_SUCCESS) {
             fprintf (stderr, "amqp_handle_open failed.\n%ld : %s\n",
                 (long) result, amqp_strerror (result, buffer, 32767) );
@@ -141,7 +156,6 @@ apr_status_t channel_reply_cb (
     if (confirm_tag >= 5)
     {
         /* receiver : reply to channel ack */
-        fprintf (stderr, "Message acknowledged.\n");
     }
     return APR_SUCCESS;
 }
@@ -213,8 +227,8 @@ apr_status_t connection_tune_cb (
             (long) result, amqp_strerror (result, buffer, 32767) );
         return result;
     }
-    result = amqp_connection_open (sck, buffer, 32767, 1, "/test",
-        sender ? "sender" : "receiver", 0, "");
+    result = amqp_connection_open (sck, buffer, 32767, 1, host,
+        sender ? "producer" : "consumer", 0, "");
     if (result != APR_SUCCESS) {
         fprintf (stderr, "amqp_connection_open failed.\n%ld : %s\n",
             (long) result, amqp_strerror (result, buffer, 32767) );
@@ -249,17 +263,29 @@ apr_status_t handle_notify_cb (
     apr_status_t result;
     char buffer [32768];
 
-    apr_uint16_t value = ntohs (*( (apr_uint16_t*) data) );
-    fprintf (stderr, "Message with value %ld received.\n", (long) value);
+	/*
+	apr_uint32_t i;
+    for (i = 0; i!=body_size; i++)
+        fprintf (stderr, "%lx ", (long) (unsigned char) data [i]);
+	fprintf (stderr, "\n");
+	*/
+
+	fprintf (stderr, "Message %s received. (%ld bytes)\n", identifier, (long) body_size);
 
     tag++;
 
-    result = amqp_channel_ack (sck, buffer, 32767, 1, tag, message_nbr);
-    if (result != APR_SUCCESS) {
-        fprintf (stderr, "amqp_channel_ack failed.\n%ld : %s\n",
-            (long) result, amqp_strerror (result, buffer, 32767) );
-        return result;
-    }
+    till_acknowledge--;
+    if (!till_acknowledge)
+	{
+        result = amqp_channel_ack (sck, buffer, 32767, 1, tag, message_nbr);
+        if (result != APR_SUCCESS) {
+            fprintf (stderr, "amqp_channel_ack failed.\n%ld : %s\n",
+                (long) result, amqp_strerror (result, buffer, 32767) );
+            return result;
+		}
+		fprintf (stderr, "Message %s acknowledged.\n", identifier);
+		till_acknowledge = prefetch;
+	}
     return APR_SUCCESS;
 }
 
@@ -272,22 +298,50 @@ int main (int argc, const char *const argv[], const char *const env[])
     apr_port_t port;
     apr_sockaddr_t *sockaddr = NULL;
     char buffer [2000];
+	int i;
     amqp_callbacks_t callbacks;
+
     memset ( (void*) &callbacks, 0, sizeof (amqp_callbacks_t) );
-    
-    if (argc != 2) {
-        fprintf (stderr, "Use '%s -sender' to start sender client,"
-            " -receiver to start receiver client.\n", argv[0]);
-        return -1;
+
+	sender = -1;
+	server = "127.0.0.1";
+	host = NULL;
+	destination = NULL;
+	prefix = "";
+	messages = 0;
+	interval = 500;
+	prefetch = 1;
+	message_size = 2;
+	message_number = 0;
+
+	stop = 0;
+
+    for (i=1; i!=argc; i++) {
+        if (strcmp (argv[i], "producer") == 0) sender = 1;
+		if (strcmp (argv[i], "consumer") == 0) sender = 0;
+		if (strncmp (argv[i], "-s", 2) == 0) server = argv [i] + 2;
+		if (strncmp (argv[i], "-h", 2) == 0) host = argv [i] + 2;
+		if (strncmp (argv[i], "-d", 2) == 0) destination = argv [i] + 2;
+		if (strncmp (argv[i], "-m", 2) == 0) prefix = argv [i] + 2;
+		if (strncmp (argv[i], "-n", 2) == 0) messages = atoi (argv [i] + 2);
+		if (strncmp (argv[i], "-i", 2) == 0) interval = atoi (argv [i] + 2);
+		if (strncmp (argv[i], "-p", 2) == 0) prefetch = atoi (argv [i] + 2);
+		if (strncmp (argv[i], "-l", 2) == 0) message_size = atoi (argv [i] + 2);
     }
-    
-    if (strcmp (argv[1], "-sender") == 0) sender = 1;
-    else if (strcmp (argv[1], "-receiver") == 0) sender = 0;
-    else {
-        fprintf (stderr, "Use '%s -sender' to start sender client,"
-            " -receiver to start receiver client.\n", argv[0]);
-        return -1;
+
+	if (sender == 2) goto badparams;
+	if (host == NULL) goto badparams;
+	if (destination == NULL) goto badparams;
+	till_acknowledge = prefetch;
+
+	message_buffer = malloc (message_size);
+	if (!message_buffer) {
+        fprintf (stderr, "Not enough memory for message body.");
+        goto err;
     }
+
+	for (i = 0; i != message_size; i++) 
+		message_buffer [i] = i % 256;
 
     fprintf (stderr, "Connecting to server.\n");
 
@@ -319,7 +373,8 @@ int main (int argc, const char *const argv[], const char *const env[])
         goto err;
     }
 
-    result = apr_parse_addr_port (&addr, &scope_id, &port, "127.0.0.1:7654", pool);
+	sprintf (buffer, "%s:7654", server);
+    result = apr_parse_addr_port (&addr, &scope_id, &port, buffer, pool);
     if (result != APR_SUCCESS) {
         fprintf (stderr, "apr_parse_addr_port failed.\n%ld : %s\n",
             (long) result, amqp_strerror (result, buffer, 2000) );
@@ -365,7 +420,10 @@ int main (int argc, const char *const argv[], const char *const env[])
                 (long) result, amqp_strerror (result, buffer, 2000) );
             goto err;
         }
-        apr_sleep (100000);
+
+		if (stop) break;
+
+        apr_sleep (1000000);
     }
 
 err:
@@ -384,6 +442,25 @@ err:
 
     apr_terminate();
 
+    return -1;
+
+badparams:
+	fprintf (stderr,
+		"\n"
+        "  agnostic producer\n"
+        "    -s<server name/ip address, default='127.0.0.1'>\n"
+        "    -h<virtual host name>\n"
+        "    -d<destination>\n"
+        "    -m<message identifier prefix, default=''>\n"
+        "    -n<number of messages, 0 means infinite, default=0>\n"
+        "    -i<interval between individual messages in ms, default=500>\n"
+		"    -l<length of message content in bytes, default=2>\n"
+        "\n"
+        "  agnostic consumer\n"
+        "    -s<server name/ip address, default=127.0.0.1>\n"
+        "    -h<virtual host name>\n"
+        "    -d<destination>\n"
+        "    -p<number of prefetched messages, default=1>\n");
     return -1;
 }
 
