@@ -21,19 +21,21 @@ public class amqpcli_serial extends amqpcli_seriali
 ///////////////////////////   P A R A M E T E R S   ///////////////////////////
 
 // Some protocol defaults for this client
-AMQConnection.Tune                      
+AMQConnection.Tune
     client_tune;                        /* Tune parameters                  */
 AMQConnection.Open
     client_open;                        /* Connection parameters            */
 AMQConnection.Close
     client_close;                       /* Default close parameters         */
+String
+    opt_server = "localhost";           /* Remote server                    */
 short
     protocol_port = 7654,               /* Server port                      */
     protocol_id = 128,                  /* Protocol id                      */
     protocol_ver = 1,                   /* Protocol port                    */
     batch_size = 1000;                  /* Messages prefetched before ACK   */
-String
-    opt_server = "localhost";           /* Remote server                    */
+int
+    socket_timeout = 0;                 /* Socket timeout                   */
 
 
 //////////////////////////////   G L O B A L S   //////////////////////////////
@@ -61,7 +63,7 @@ public amqpcli_serial () {
 
 public amqpcli_serial (String args[])
 {
-    amqpcli_java_execute(args);
+    amqpcli_serial_execute(args);
 }
 
 
@@ -74,13 +76,13 @@ public static void main (String args[])
 
 }
 
-public int amqpcli_java_execute (String args[])
+public int amqpcli_serial_execute (String args[])
 {
     int
         feedback;                       /* Console return int               */
 
     feedback = execute ();
-    
+
     return (feedback);
 }
 
@@ -109,9 +111,11 @@ public void setup ()
     {
         Socket
             amqp = null;                /* Network socket                   */
-            
+
         // Network setup
         amqp = new Socket(opt_server, protocol_port);
+        if (socket_timeout > 0)
+            amqp.setSoTimeout(socket_timeout);
         amqp_in = amqp.getInputStream();
         amqp_out = amqp.getOutputStream();
         amq_framing = new AMQFramingFactory(amqp_in, amqp_out);
@@ -128,7 +132,7 @@ public void setup ()
         client_open = (AMQConnection.Open)amq_framing.createFrame(AMQConnection.OPEN);
         client_open.confirmTag = 0;
         client_open.virtualPath = null;
-        client_open.clientName = "amqpcli_java (test)";
+        client_open.clientName = "java/amqpcli_serial (test)";
         client_open.options = null;
 
         // Connection close defaults
@@ -139,6 +143,9 @@ public void setup ()
     catch (UnknownHostException e)
     {
         raise_exception(exception_event, e, "amqpci_java", "setup", "unknown host");
+    } 
+    catch (SocketTimeoutException e) {
+        raise_exception(timeout_event, e, "amqpci_java", "setup", "SocketTimeoutException");
     }
     catch (IOException e)
     {
@@ -147,6 +154,16 @@ public void setup ()
     catch (AMQFramingException e) {}
 
     the_next_event = send_connection_initiation_event;
+}
+
+
+//////////////////////////////   HANDLE TIMEOUT   /////////////////////////////
+
+public void handle_timeout ()
+{
+    forced_shutdown ();
+    System.out.println("java/amqpcli_serial currently does not handle network timeout, terminating.");
+    System.exit(1);
 }
 
 
@@ -163,7 +180,7 @@ public void forced_shutdown ()
             amqp_out.close();
 
         if (exception != null)
-            AMQFramingFactory.error(exception, "amqpcli_java", module, error_message);
+            AMQFramingFactory.error(exception, "java/amqpcli_serial", module, error_message);
     }
     catch (IOException e) {}
     catch (AMQFramingException e) {}
@@ -174,7 +191,7 @@ public void forced_shutdown ()
 
 public void terminate_the_program ()
 {
-    System.out.println("amqpcli_java terminating.");
+    System.out.println("java/amqpcli_serial terminating.");
     System.exit(exception != null ? 1 : 0);
 }
 
@@ -247,7 +264,7 @@ public void do_tests ()
         // Message
         AMQMessage.Head                 /* Message header                   */
             message_head = (AMQMessage.Head)amq_framing.createMessageHead();
-        byte[]                          
+        byte[]
             message_body;               /* Message body                     */
 
         // Open channel
@@ -424,6 +441,13 @@ public void face_connection_challenge ()
     {
         raise_exception(exception_event, e, "amqpci_java", "face_connection_challenge", "unexpected frame from server");
     }
+    catch (SocketTimeoutException e) {
+        raise_exception(timeout_event, e, "amqpci_java", "face_connection_challenge", "SocketTimeoutException");
+    }
+    catch (IOException e)
+    {
+        raise_exception(exception_event, e, "amqpci_java", "face_connection_challenge", "IOException");
+    }
     catch (AMQFramingException e)
     {
         raise_exception(exception_event, e, "amqpci_java", "face_connection_challenge", "authentication error");
@@ -452,6 +476,13 @@ public void negotiate_connection_tune ()
     catch (ClassCastException e)
     {
         raise_exception(exception_event, e, "amqpci_java", "negotiate_connection_tune", "unexpected frame from server");
+    }
+    catch (SocketTimeoutException e) {
+        raise_exception(timeout_event, e, "amqpci_java", "negotiate_connection_tune", "SocketTimeoutException");
+    }
+    catch (IOException e)
+    {
+        raise_exception(exception_event, e, "amqpci_java", "negotiate_connection_tune", "IOException");
     }
     catch (AMQFramingException e)
     {
@@ -485,17 +516,18 @@ public void raise_exception (int event, Exception e, String _class, String modul
     raise_exception (event);
 }
 
+
 //- Auxiliary routines --------------------------------------------
 byte[] body_fill(byte[] body, int seed) {
     int a = 1664525, b = 1013904223;
     long m = (long)1 << 32, v = seed;
-    
+
     // Fill with patterns from a linear congruential generator
     for (int i = 0; i < body.length; i++) {
         v = (a * v + b) & (m - 1);
-        body[i] = (byte)(v % Byte.MAX_VALUE);
+        body[i] = (byte)Math.max((byte)(v % Byte.MAX_VALUE), 1); // No zeros
     }
-    
+
     return body;
 }
 
@@ -526,6 +558,7 @@ void dump_array(byte[] body) {
     }
     System.out.println("");
 }
+
 
 //%END MODULE
 }
