@@ -308,7 +308,7 @@ coprintf ("$(selfname) I: found, size=%ld", self->processed);
         *bucket;
     size_t
         body_size;
-    int
+    Bool
         partial;
     qbyte
         mesg_id;                         /*  ID of saved message              */
