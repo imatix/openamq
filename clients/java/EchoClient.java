@@ -242,7 +242,7 @@ public void run () {
             amq_framing.produceFrame(channel_ack);
             System.out.println("Acknowledge: \"" + text + "\" from server...");
             // Show text in the echo area
-            ea.append("> " + text + "\n");
+            ea.append("  > " + text + "\n");
         } 
     }
     catch (ClassCastException e)
