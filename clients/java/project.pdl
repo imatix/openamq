@@ -10,34 +10,35 @@
 <include filename = "prelude.pdl" />
 
 <!-- Java framing API -->
-<file name = "AMQJavaFraming.jar"       class = "public command">AMQ Java framing API</file>
+<file name = "AMQJavaFraming.jar"         class = "public library">AMQ Java framing API</file>
 
 <!-- Java framing API generated source -->
-
-<file name = "com/imatix/openamq/framing/AMQFramingFactory.java"       class = "generated">Glue/utility for framable objects</file>
-<file name = "com/imatix/openamq/framing/AMQConnection.java"           class = "generated">Glue/utility for connection commands</file>
-<file name = "com/imatix/openamq/framing/AMQChannel.java"              class = "generated">Glue/utility for channel commands</file>
-<file name = "com/imatix/openamq/framing/AMQHandle.java"               class = "generated">Glue/utility for handle commands</file>
-<file name = "com/imatix/openamq/framing/AMQMessage.java"              class = "generated">Utility for the message class</file>
-<file name = "com/imatix/openamq/framing/AMQFramable.java"             class = "generated">Superclass of network objects</file>
-<file name = "com/imatix/openamq/framing/AMQFrame.java"                class = "generated">Superclass of command frames</file>
-<file name = "com/imatix/openamq/framing/AMQFieldTable.java"           class = "generated">Field table name/value pairs</file>
-<file name = "com/imatix/openamq/framing/AMQFramingException.java"     class = "generated">Provisional general exception</file>
-<file name = "com/imatix/openamq/framing/AMQFramingIOException.java"   class = "generated">Needed for the provided streams</file>
+<directory name = "com/imatix/openamq/framing" class = "generated">
+    <file name = "AMQFramingFactory.java"     >Glue/utility for framable objects</file>
+    <file name = "AMQConnection.java"         >Glue/utility for connection commands</file>
+    <file name = "AMQChannel.java"            >Glue/utility for channel commands</file>
+    <file name = "AMQHandle.java"             >Glue/utility for handle commands</file>
+    <file name = "AMQMessage.java"            >Utility for the message class</file>
+    <file name = "AMQFramable.java"           >Superclass of network objects</file>
+    <file name = "AMQFrame.java"              >Superclass of command frames</file>
+    <file name = "AMQFieldTable.java"         >Field table name/value pairs</file>
+    <file name = "AMQFramingException.java"   >Provisional general exception</file>
+    <file name = "AMQFramingIOException.java" >Needed for the provided streams</file>
+</directory>
 
 <!-- Java framing API test clients -->
-<file name = "amqpcli_serial*.class"    class = "public command">Java pattern testing client</file>
-<file name = "EchoClient*.class"        class = "public command">Java to C component-chat demonstration client</file>
+<file name = "amqpcli_serial*.class"      class = "public command">Java pattern testing client</file>
+<file name = "EchoClient*.class"          class = "public command">Java to C component-chat demonstration client</file>
 
 <!-- Java framing API test clients source -->
-<file name = "amqpcli_seriali.java"     class = "generated">FSM implementation for amqpcli_serial.java</file>
-<file name = "amqpcli_serial.java"      class = "private resource">Java pattern testing client</file>
-<file name = "amqpcli_serial.java.l"    class = "private resource">Simple FSM for connecting/closing in amqpcli_serial.java</file>
-<file name = "EchoClient.java"          class = "private resource">Java to C component-chat demonstration client</file>
-<file name = "amq_frames.gsl"           class = "private resource">Java framing API generator</file>
+<file name = "amqpcli_seriali.java"       class = "generated">FSM implementation for amqpcli_serial.java</file>
+<file name = "amqpcli_serial.java"        class = "private resource">Java pattern testing client</file>
+<file name = "amqpcli_serial.java.l"      class = "private resource">Simple FSM for connecting/closing in amqpcli_serial.java</file>
+<file name = "EchoClient.java"            class = "private resource">Java to C component-chat demonstration client</file>
+<file name = "amq_frames.gsl"             class = "private resource">Java framing API generator</file>
 
 <!-- Documentation -->
-<file name = "index.txt"                class = "gurudoc text"   >Java framing layer API documentation</file>
+<file name = "index.txt"                  class = "gurudoc text"   >Java framing layer API documentation</file>
 
 <actions target = "unix">
     <generate>
@@ -50,7 +51,7 @@
         <execute>
         <!-- Java framing API -->
         javac com/imatix/openamq/framing/AMQFramingFactory.java
-        jar -cf AMQJavaFraming.jar com/imatix/openamq/framing/AMQ*.class        
+        jar -cf AMQJavaFraming.jar com/imatix/openamq/framing/AMQ*.class
         <!-- Java framing API test clients -->
         javac amqpcli_serial.java
         javac EchoClient.java
