@@ -1280,7 +1280,7 @@ public class $(AMQPFramingFactory:) {
      * This class processes handle notifies from the server, and provides the body of the message as an inputstream
      *
      **/
-    class MessageBodyInputStream extends FilterInputStream {
+    public class MessageBodyInputStream extends FilterInputStream {
         $(class_prefix:)Handle.Notify 
             hnFirst,                                       /* Parameters of first fragment     */
             hnCurr;                                        /* Parameters of current fragment   */
@@ -1517,7 +1517,7 @@ public class $(AMQPFramingFactory:) {
      * This class fragments the message body generating handle sends as needed 
      *
      **/
-    class MessageBodyOutputStream extends FilterOutputStream {
+    public class MessageBodyOutputStream extends FilterOutputStream {
         $(class_prefix:)Handle.Send 
             hsCurr;                                        /* Parameters for current fragment  */
         $(class_prefix:)Message.Head 
