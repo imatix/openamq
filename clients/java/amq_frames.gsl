@@ -746,8 +746,6 @@ public class $(AMQPFramingFactory:) {
 .   endfor    
     // Verbose switch
     boolean verbose = false;
-    // Last error code
-    int lastError = ERROR_NONE;    
 
     /**
      *
