@@ -195,20 +195,48 @@ Class overview diagram
                 +---AMQHandle.Close           /* Handle close class            */
             
     FilterOutputStream        
-            |                             /* Message body output stream        */
-            |        
-            +---AMQFramingFactory.MessageBodyOutputStream  
+      |                                   /* Message body output stream        */
+      |        
+      +---AMQFramingFactory.MessageBodyOutputStream  
     
     FilterInputStream        
-            |                             /* Message body Input stream         */
-            |        
-            +---AMQFramingFactory.MessageBodyInputStream 
+      |                                   /* Message body Input stream         */
+      |        
+      +---AMQFramingFactory.MessageBodyInputStream 
     
-    AMQFieldTable                         /* Field table name/value pairs      */
+    HashTable        
+      |
+      +---AMQFieldTable                   /* Field table name/value pairs      */
     
-    AMQFramingException                   /* Provisional general exception     */
+    Exception
+      |  
+      +---AMQFramingException             /* Provisional general exception     */
     
-    AMQFramingIOException                 /* Needed for the provided streams   */
+    IOException  
+      |
+      +---AMQFramingIOException           /* Needed for the provided streams   */
+
+Demonstration
+=============
+Two test clients written using this API are available. These clients are not 
+part of the framing API, they will probably constantly change, and for those
+reasons they will be documented only briefly.
+
+Pattern testing client
+----------------------
+Currently, this client uses a very basic FSM which negotiates connection and 
+handles closing. It writes a series of messages filled with pseudo random 
+patterns which are then read back and tested for integrity, by expanding the 
+seed for the message.
+
+Echo client
+-----------
+This client inherits the FSM from the pattern testing client. The echo client
+is asynchronous, it has threads running for getting a message as it arrives 
+and for sending a message as soon as the user hits return. This client allows
+for a human readable chat demonstration between Java and c components. The echo
+client can chat with another Java instance if the read-queue and write-queue 
+parameters are twisted for the second instance.
 
 Class summary
 =============
@@ -582,6 +610,8 @@ public void produceMessageHead(AMQMessage.Head head)
 .................................................................
 Send a message head object through the network.
 
+    Parameters
+        head - Message head object to produce.
     Throws  
         IOException - Exceptions from the underlying output streams.
 
@@ -591,6 +621,8 @@ Creates an empty object for a given frame type. The object variables should be
 configured, and then the produceFrame method can be used to send the 
 object through the network.
 
+    Parameters
+        type - Requested frame type.
     Returns
         An empty command frame object of the requested type.
     Throws 
@@ -609,6 +641,8 @@ public void produceFrame(AMQFrame frame)
 ........................................
 Send a command frame object through the network.
 
+    Parameters
+        frame - Frame object to produce.
     Throws 
         AMQFramingException - Frame of incorrect size was rejected.
         IOException - Exceptions from the underlying output streams.
