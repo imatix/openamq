@@ -179,7 +179,7 @@ main (int argc, char *argv [])
     amq_client = amq_sclient_new (opt_client, "user", "pass");
 
     if (amq_client == NULL
-    || !amq_sclient_connect (amq_client, opt_server, "/test"))
+    ||  amq_sclient_connect (amq_client, opt_server, "/test"))
         goto failed;
 
     in_handle  = amq_sclient_temporary (amq_client, "temp-client", batch_size, FALSE);
@@ -188,7 +188,7 @@ main (int argc, char *argv [])
     while (repeats) {
         /*  Pause consumption on temporary queue                             */
         rc = amq_sclient_flow (amq_client, in_handle, TRUE);
-        if (!rc)
+        if (rc)
             break;
             
         coprintf ("(%d) sending %d messages to server...", repeats, messages);
@@ -197,13 +197,16 @@ main (int argc, char *argv [])
             amq_message_testfill       (message, msgsize);
             amq_message_set_persistent (message, persistent);
             rc = amq_sclient_msg_send (amq_client, out_handle, message);
-            if (!rc)
+            if (rc)
                 break;
         }
+        if (rc)
+            break;
+            
         coprintf ("(%d) reading back messages...", repeats);
         count = 0;
         rc = amq_sclient_flow (amq_client, in_handle, FALSE);
-        if (!rc)
+        if (rc)
             break;
         while (count < messages) {
             message = amq_sclient_msg_read (amq_client, 0);
@@ -213,21 +216,29 @@ main (int argc, char *argv [])
                 count++;
                 if (count % batch_size == 0) {
                     rc = amq_sclient_msg_ack (amq_client);
-                    if (!rc)
+                    if (rc)
                         break;
                     rc = amq_sclient_commit  (amq_client);
-                    if (!rc)
+                    if (rc)
                         break;
                 }
             }
-            else
+            else {
+                rc = -1;                /*  Flag an error occurrence    */
                 break;
+            }
         }
+        if (rc)
+            break;
+            
         repeats--;
     }
     amq_sclient_close (amq_client, 0);
     amq_sclient_destroy (&amq_client);
     icl_system_destroy ();
+    
+    if (rc)
+        coprintf ("ERROR: %i", rc);
 
     coprintf ("Allocs=%ld frees=%ld\n", icl_mem_allocs (), icl_mem_frees ());
     icl_mem_assert ();

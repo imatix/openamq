@@ -113,15 +113,14 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     /*  To be more accurate we should recalculate the timeout after the      */
     /*  connection is open, instead we just use the same timeout twice.      */
     amq_sclient_agent_connection_open (
-        self->thread_handle, hostname, virtual_path, TIMEOUT);
+        self->thread_handle, hostname, virtual_path, TIMEOUT, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
 
-    if (smt_thread_handle_valid (self->thread_handle))
+    if (rc == AMQ_OK) {
         amq_sclient_agent_channel_open (
-            self->thread_handle, CHANNEL_ID, CHANNEL_TRANSACTED, FALSE, TIMEOUT);
-
-    smt_thread_execute (SMT_EXEC_FULL);
-    rc = (smt_thread_handle_valid (self->thread_handle));
+            self->thread_handle, CHANNEL_ID, CHANNEL_TRANSACTED, FALSE, TIMEOUT, &rc);
+        smt_thread_execute (SMT_EXEC_FULL);
+    }
 </method>
 
 <method name = "producer" template = "function">
@@ -129,11 +128,13 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     ASSERT (destination && *destination);
 
     amq_sclient_agent_handle_open (
-        self->thread_handle, CHANNEL_ID, ++self->cur_handle, FALSE, destination, TIMEOUT);
-
+        self->thread_handle, CHANNEL_ID, ++self->cur_handle, FALSE, destination, TIMEOUT, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
-    if (smt_thread_handle_valid (self->thread_handle))
+    
+    if (rc == AMQ_OK)
         rc = self->cur_handle;
+    else
+        rc = 0;
 </method>
 
 <method name = "consumer" template = "function">
@@ -143,25 +144,19 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     ASSERT (destination && *destination);
 
     amq_sclient_agent_handle_open (
-        self->thread_handle,
-        CHANNEL_ID,
-        ++self->cur_handle,
-        FALSE,
-        destination,
-        TIMEOUT);
-    amq_sclient_agent_handle_consume (
-        self->thread_handle,
-        self->cur_handle,
-        (dbyte) prefetch,
-        TRUE,                           /*  no_local                         */
-        noack,
-        NULL,                           /*  Destination name                 */
-        NULL,                           /*  Identifier for subscriptions     */
-        TIMEOUT);
-
+        self->thread_handle, CHANNEL_ID, ++self->cur_handle, FALSE, destination, TIMEOUT, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
-    if (smt_thread_handle_valid (self->thread_handle))
+    
+    if (rc == AMQ_OK) {
+        amq_sclient_agent_handle_consume (
+            self->thread_handle, self->cur_handle, (dbyte) prefetch, TRUE, noack, NULL, NULL, TIMEOUT, &rc);
+        smt_thread_execute (SMT_EXEC_FULL);
+    }
+    
+    if (rc == AMQ_OK)
         rc = self->cur_handle;
+    else
+        rc = 0;
 </method>
 
 <method name = "temporary" template = "function">
@@ -171,25 +166,19 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     ASSERT (destination && *destination);
 
     amq_sclient_agent_handle_open (
-        self->thread_handle,
-        CHANNEL_ID,
-        ++self->cur_handle,
-        TRUE,
-        destination,
-        TIMEOUT);
-    amq_sclient_agent_handle_consume (
-        self->thread_handle,
-        self->cur_handle,
-        (dbyte) prefetch,
-        TRUE,                           /*  no_local                         */
-        noack,
-        NULL,
-        NULL,                           /*  Identifier for subscriptions     */
-        TIMEOUT);
-
+        self->thread_handle, CHANNEL_ID, ++self->cur_handle, TRUE, destination, TIMEOUT, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
-    if (smt_thread_handle_valid (self->thread_handle))
+    
+    if (rc == AMQ_OK) {
+        amq_sclient_agent_handle_consume (
+            self->thread_handle, self->cur_handle, (dbyte) prefetch, TRUE, noack, NULL, NULL, TIMEOUT, &rc);
+        smt_thread_execute (SMT_EXEC_FULL);
+    }
+    
+    if (rc == AMQ_OK)
         rc = self->cur_handle;
+    else
+        rc = 0;
 </method>
 
 <method name = "msg send" template = "function">
@@ -203,10 +192,8 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     ASSERT (message);
 
     amq_sclient_agent_handle_send (
-        self->thread_handle, handle_id, message, NULL, TIMEOUT);
-
+        self->thread_handle, handle_id, message, NULL, TIMEOUT, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
-    rc = (smt_thread_handle_valid (self->thread_handle));
 </method>
 
 <method name = "msg read" return = "message">
@@ -218,11 +205,12 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     <argument name = "self"    type = "$(selftype) *" />
     <argument name = "timeout" type = "qbyte"          >Timeout in milliseconds</argument>
     <declare  name = "message" type = "amq_message_t *">Message to provide</declare>
-
+    <local>
+        int rc;
+    </local>
     amq_message_destroy (&self->msg_object);
     amq_sclient_agent_blocking_receive (
-        self->thread_handle, timeout);
-
+        self->thread_handle, timeout, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
 
     /*  We return the message explicitly and other properties via context    */
@@ -231,57 +219,46 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 
 <method name = "msg ack" template = "function">
     amq_sclient_agent_channel_ack (
-        self->thread_handle, CHANNEL_ID, self->msg_number, TIMEOUT);
-
+        self->thread_handle, CHANNEL_ID, self->msg_number, TIMEOUT, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
-    rc = (smt_thread_handle_valid (self->thread_handle));
 </method>
 
 <method name = "msg unget" template = "function">
     amq_sclient_agent_handle_unget (
-        self->thread_handle, self->cur_handle, self->msg_number, TIMEOUT);
-
+        self->thread_handle, self->cur_handle, self->msg_number, TIMEOUT, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
-    rc = (smt_thread_handle_valid (self->thread_handle));
 </method>
 
 <method name = "commit" template = "function">
     amq_sclient_agent_channel_commit (
-        self->thread_handle, CHANNEL_ID, TIMEOUT);
-
+        self->thread_handle, CHANNEL_ID, TIMEOUT, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
-    rc = (smt_thread_handle_valid (self->thread_handle));
 </method>
 
 <method name = "rollback" template = "function">
     amq_sclient_agent_channel_rollback (
-        self->thread_handle, CHANNEL_ID, TIMEOUT);
-
+        self->thread_handle, CHANNEL_ID, TIMEOUT, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
-    rc = (smt_thread_handle_valid (self->thread_handle));
 </method>
 
 <method name = "flow" template = "function">
     <argument name = "handle id"  type = "dbyte">Handle id, 0 means all</argument>
     <argument name = "flow pause" type = "Bool" >Pause messages?</argument>
     amq_sclient_agent_handle_flow (
-        self->thread_handle, handle_id, flow_pause, TIMEOUT);
-
+        self->thread_handle, handle_id, flow_pause, TIMEOUT, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
-    rc = (smt_thread_handle_valid (self->thread_handle));
 </method>
 
 <method name = "close" template = "function">
     <argument name = "handle id" type = "dbyte" >Handle id, 0 means all</argument>
     if (handle_id)
         amq_sclient_agent_handle_close (
-            self->thread_handle, handle_id, TIMEOUT);
+            self->thread_handle, handle_id, TIMEOUT, &rc);
     else
         amq_sclient_agent_connection_close (
-            self->thread_handle, TIMEOUT);
-
+            self->thread_handle, TIMEOUT, &rc);
+            
     smt_thread_execute (SMT_EXEC_FULL);
-    rc = 1;
 </method>
 
 <private name = "header">

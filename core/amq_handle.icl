@@ -126,7 +126,8 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
     /*  Find queue if named                                                  */
     if (self->dest_name && *self->dest_name) {
         self->queue = amq_queue_search (self->vhost->queues, self->dest_name);
-        if (self->queue == NULL)
+        if (self->queue == NULL
+        &&  !temporary)
             $(selfname)_destroy (p_self);
     }
     else
