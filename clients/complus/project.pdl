@@ -1,14 +1,16 @@
 <?xml?>
 <pdl
     name      = "OpenAMQ COM Client"
-    version   = "0.7b3"
+    version   = "0.7"
     copyright = "Copyright (c) 2004-2005 JPMorgan"
     workflow  = "standard.pwl"
-    deploy    = "openamq-client"
     >
 
 <include filename = "prelude.pdl" />
 
+<!-- Note that this project file is a pure subset
+     of the one in the parent directory ->
+     
 <file name = "amq.gsl"           class = "private resource" >Main generator</file>
 <file name = "amq.xml"           class = "private resource" >Component definitions</file>
 <file name = "axobj.gsl"         class = "private resource" >Object generator</file>
