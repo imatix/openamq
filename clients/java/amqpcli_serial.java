@@ -122,7 +122,7 @@ public void setup ()
             amqp.setSoTimeout(socket_timeout);
         amqp_in = amqp.getInputStream();
         amqp_out = amqp.getOutputStream();
-        amq_framing = new AMQFramingFactory(amqp_in, amqp_out);
+        amq_framing = new AMQFramingFactory(amqp);
 
         // Client tune capabilities
         client_tune = (AMQConnection.Tune)amq_framing.createFrame(AMQConnection.TUNE);
