@@ -1214,6 +1214,13 @@ apr_status_t s_handle_notify_cb (
                     (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
                 return result;
             }
+            result = amqp_channel_commit (client->sck, buffer, BUFFER_SIZE, 1,
+                0, 0, "");
+            if (result != APR_SUCCESS) {
+                s_trace ("amqp_channel_commit failed: err=%d (%s)\n",
+                    (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
+                return result;
+            }
             client->till_acknowledge = client->prefetch;
         }
         return APR_SUCCESS;
