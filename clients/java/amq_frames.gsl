@@ -728,13 +728,21 @@ import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 
 public class $(AMQPFramingFactory:) {
     // Constants
     final static String STRING_ENC = "UTF-8";
     final static short FRAME_LONG = 0xFFF;
-    final static int READ_RETRY_LATENCY = 100;
-    final static int ERROR_NONE = -1;
+    final static int 
+        WRITE_IDLE = -1,
+        WRITE_FLUSH = 0,
+        WRITE_BYTES = 1;
+       
+    static int     
+        readRetryLatency = 100;
 
     // Incoming stream
     DataInputStream incoming;
@@ -750,22 +758,52 @@ public class $(AMQPFramingFactory:) {
 .       endif
 .   endfor    
     // Verbose switch
-    boolean verbose = false, flush = false;
+    boolean verbose = false;
+    // Writer command
+    int 
+        writeCommand = -1, // Writer thread command (buffer / flush) 
+        writeOff, // Writer data command offset parameter
+        writeLen, // Writer data command length parameter
+        timeout = 0; // Writer thread timeout (0 ms == block)
+    // Get main thread priority
+    int priority = Thread.currentThread().getPriority();
+    // Writer data command data array
+    byte[] writeBytes; 
+    // Writer thread exception
     IOException ioe = null;
-    Thread flusher = new Thread() {
+    // This thread buffers / flushes outgoing data
+    Thread writer = new Thread() {
         public void run() {
-            synchronized(flusher) {
+            // Some VMs lower too much the priority of threads spawned from main
+            setPriority(priority);
+            synchronized(outgoing) {
                 while (outgoing != null) {
-                    if (!flush) {
-                        try {
-                            flusher.wait();
-                        } catch (InterruptedException e) {}
+                    // Wait for write command
+                    synchronized(writer) {
+                        if (writeCommand == WRITE_IDLE) {
+                            try {
+                                writer.wait();
+                            } catch (InterruptedException e) {}
+                        }
                     }
+                    // Perform write command
                     try {
-                        outgoing.flush();
-                        flush = false;
+                        switch (writeCommand) {
+                            case WRITE_BYTES:
+                                writeBytes(outgoing, writeBytes, writeOff, writeLen);
+                                break;
+                            case WRITE_FLUSH:
+                                outgoing.flush();
+                        }
                     } catch (IOException e) {
-                        ioe = e;
+                        synchronized(writer) {
+                            ioe = e;
+                        }
+                    }
+                    // Finished write command
+                    synchronized(writer) {
+                        writeCommand = WRITE_IDLE;
+                        writer.notify();
                     }
                 }
             }
@@ -777,44 +815,67 @@ public class $(AMQPFramingFactory:) {
      * $(AMQPFramingFactory:) constructor
      *
      **/
-    public $(AMQPFramingFactory:)(InputStream incoming, OutputStream outgoing) {
-        if (incoming instanceof DataInputStream)
-            this.incoming = (DataInputStream)incoming;
-        else
-            this.incoming = new DataInputStream(new BufferedInputStream(incoming));
-        
-        if (outgoing instanceof DataOutputStream)
-            this.outgoing = (DataOutputStream)outgoing;
-        else
-            this.outgoing = new DataOutputStream(new BufferedOutputStream(outgoing));
+    public $(AMQPFramingFactory:)(Socket socket) throws IOException {
+        incoming = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
+        outgoing = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
+        setup(socket);
     } 
 
     /**
      *
-     * $(AMQPFramingFactory:) constructor (specific buffers)
+     * $(AMQPFramingFactory:) configurable buffer constructor
      *
      **/
-    public $(AMQPFramingFactory:)(InputStream incoming, OutputStream outgoing, int readBuff, int writeBuff) {
-        this.incoming = new DataInputStream(new BufferedInputStream(incoming, readBuff));
-        this.outgoing = new DataOutputStream(new BufferedOutputStream(outgoing, writeBuff));
+    public $(AMQPFramingFactory:)(Socket socket, int readBuff, int writeBuff) throws IOException {
+        incoming = new DataInputStream(new BufferedInputStream(socket.getInputStream(), readBuff));
+        outgoing = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream(), writeBuff));
+        setup(socket);
     } 
     
     /**
      *
-     * Non-blocking flush method
+     * Setup for constructors
+     *
+     **/
+    void setup(Socket socket) throws SocketException {
+        // Copy the output timeout from the provided socket
+        timeout = socket.getSoTimeout();
+        // Start the writer thread
+        writer.start();
+    }    
+    
+    /**
+     *
+     * Set incoming retry latency
+     *
+     **/
+    public void setIncomingRetryLatency(int latency) {
+        readRetryLatency = latency;
+    }
+    
+    /**
+     *
+     * Flush output buffer
      *
      **/
     public void flush() throws IOException {
-        synchronized(flusher) {
-            // Start the flusher thread if necesary
-            if (!flusher.isAlive())
-                flusher.start();
+        synchronized(writer) {
+            // Check previous completion status
+            if (writeCommand != WRITE_IDLE) {
+                try {
+                    writer.wait(timeout);
+                } catch (InterruptedException e) {}
+                if (writeCommand != WRITE_IDLE) 
+                    throw new SocketTimeoutException("$(AMQPFramingFactory:): flush: EXCEPTION, timeout.");
+            }    
             // Check previous outcome
-            if (ioe != null)
+            if (ioe != null) {
+                ioe = null;
                 throw new IOException(ioe.getMessage());
+            }
             // Request flush
-            flush = true;
-            flusher.notify();
+            writeCommand = WRITE_FLUSH;
+            writer.notify();
         }
     }
     
@@ -843,7 +904,7 @@ public class $(AMQPFramingFactory:) {
     }
     
     public void produceData(byte[] bytes, int off, int len) throws IOException {
-        writeBytes(outgoing, bytes, off, len);
+        writeBytes(outgoing, bytes, off, len, timeout);
         flush();
         if (verbose) 
             System.out.println("I: wrote " + bytes.length + " bytes to server (data)");
@@ -878,7 +939,8 @@ public class $(AMQPFramingFactory:) {
                     fragment = consumeData(hn.fragmentSize);
                     writeBytes(dos, fragment, 0, fragment.length);
                 } else {
-                    throw new $(AMQPFrameException)("$(AMQPFramingFactory:): consumeInBandMessageBody: EXCEPTION, unexpected frame: " + frame.toString() + ".");
+                    frame.dump();
+                    throw new $(AMQPFrameException)("$(AMQPFramingFactory:): consumeInBandMessageBody: EXCEPTION, unexpected frame.");
                 }
             }
             if (hn.partial || baos.size() < head.bodySize) 
@@ -963,8 +1025,7 @@ public class $(AMQPFramingFactory:) {
      **/
     public void produceMessageHead($(class_prefix:)Message.Head head) throws IOException {
         head.encode();
-        writeBytes(outgoing, head.bucket, 0, head.bucket.length);
-        flush();
+        produceData(head.bucket, 0, head.bucket.length);
         if (verbose) 
             System.out.println("I: wrote " + head.bucket.length + " bytes to server (message head)");
     }
@@ -1034,8 +1095,7 @@ public class $(AMQPFramingFactory:) {
                 outgoing.writeShort(frame.bucket.length);
             }
             // Write frame body
-            writeBytes(outgoing, frame.bucket, 0, frame.bucket.length);
-            flush();
+            produceData(frame.bucket, 0, frame.bucket.length);
         } catch (IOException e) {
             error(e, "$(AMQPFramingFactory:)", "produceFrame", "IOException");
         }
@@ -1088,7 +1148,7 @@ public class $(AMQPFramingFactory:) {
     
     /**
      *
-     * Read and check 
+     * Read bytes
      *
      **/
     static void readBytes(DataInputStream dis, byte[] b, int off, int len) throws IOException {
@@ -1098,7 +1158,7 @@ public class $(AMQPFramingFactory:) {
             len -= read;
             if (len > 0) {
                 try {
-                    Thread.sleep(READ_RETRY_LATENCY);
+                    Thread.sleep(readRetryLatency);
                 } catch (InterruptedException e) {}
             }
         }
@@ -1106,11 +1166,40 @@ public class $(AMQPFramingFactory:) {
     
     /**
      *
-     * Write 
+     * Write bytes
      *
      **/
     static void writeBytes(DataOutputStream dos, byte[] b, int off, int len) throws IOException {
         dos.write(b, off, len);
+    }
+    
+    /**
+     *
+     * Blocking-configurable bytes buffering
+     *
+     **/
+    void writeBytes(DataOutputStream dos, byte[] b, int off, int len, int timeout) throws IOException {
+        synchronized(writer) {
+            // Check previous completion status
+            if (writeCommand != WRITE_IDLE) {
+                try {
+                    writer.wait(timeout);
+                } catch (InterruptedException e) {}
+                if (writeCommand != WRITE_IDLE) 
+                    throw new SocketTimeoutException("$(AMQPFramingFactory:): (Blocking-configurable) writeBytes: EXCEPTION, timeout.");
+            }    
+            // Check previous outcome
+            if (ioe != null) {
+                ioe = null;
+                throw new IOException(ioe.getMessage());
+            }
+            // Request write
+            writeCommand = WRITE_BYTES;
+            writeBytes = b;
+            writeOff = off;
+            writeLen = len;
+            writer.notify();
+        }
     }
     
     /**
