@@ -131,4 +131,6 @@ amq_rfc015_toc.htm
 amq_rfc015_top.htm
 boomake
 boomake.bat
-
+Makefile*
+msmake*
+configure*

@@ -3,7 +3,7 @@ gdl
     subtitle  = The AMQP/Fast Wire-Level Protocol
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/02/11
+    date      = 2005/02/14
     copyright = Copyright (c) 2004-2005 JPMorgan
     version   = 0.7b0
 end gdl
@@ -26,6 +26,7 @@ Recent Change History
 
 0.7b0
 - removed confirmation conflating mechanism; too complex and not needed.
+- added some clarifications about confirmations.
 
 0.7a1
 - minor corrections to the text.
@@ -473,7 +474,7 @@ and failure is treated as exceptional.
 
 For example when a client sends a message to a destination, it's very
 abnormal for the message to be refused.  So in most cases the client
-can send the message and forget about it.  We're using a reliable network 
+can send the message and forget about it.  We're using a reliable network
 protocol (TCP/IP) so data does not get lost.
 
 If there is a problem - e.g. the server has run out of space - then the
@@ -490,6 +491,10 @@ The dialogue would then look like this:
 2. Server processes command and replies with CHANNEL REPLY or HANDLE
    REPLY (depending on the command).
 3. Client sends next command.
+
+Confirmations are never batched: if the client requests a confirmation
+then the server will not send any other command back to the client until
+the command being confirmed has completed.
 
 You can factor this into the other dialogues shown above to give the
 fully-confirmed dialogue for (E.G.) sending a message.
@@ -1039,6 +1044,8 @@ CONNECTION TUNE:
     CLOSE.
 CONNECTION PING:
     Expect at any time. Respond by sending CONNECTION PING.
+CONNECTION OPEN:
+    Never expected. Respond by closing the connection (fatal error).
 CONNECTION REPLY:
     Expect after sending CONNECTION OPEN.
 CONNECTION CLOSE:
@@ -1061,6 +1068,8 @@ CONNECTION RESPONSE:
 CONNECTION TUNE:
     Expect after sending CONNECTION TUNE. If tuning options are valid,
     no response, else respond with CONNECTION CLOSE.
+CONNECTION PING:
+    Expect at any time. Respond by sending CONNECTION PING.
 CONNECTION OPEN:
     Expect after a CONNECTION TUNE. Respond with a CONNECTION REPLY if a
     confirmation is wanted.

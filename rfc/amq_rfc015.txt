@@ -3,9 +3,9 @@ gdl
     subtitle  = AMQ Client Component API
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2004/12/15
+    date      = 2005/02/14
     copyright = Copyright (c) 2004 JPMorgan
-    version   = 0.3
+    version   = 0.4
 end gdl
 
 Cover
@@ -23,7 +23,7 @@ This document is a provisional proposal.
 Copyright Notice
 ================
 
-This document is copyright (c) 2004 JPMorgan Inc.
+This document is copyright (c) 2005 JPMorgan Inc.
 
 Authors
 =======
@@ -123,13 +123,13 @@ consumer (destination[, prefetch[, noack]]):
     acknowledges any message it sends to the client. This is the fastest
     but least robust delivery method.  When noack is used, prefetch is
     ignored - the server will send messages as fast as it receives them.
-    Returns a queue handle on success, 0 on failure.  
+    Returns a queue handle on success, 0 on failure.
 temporary (destination[, prefetch [, noack]]):
     Opens a temporary queue for reading and writing. The destination
     name must be specified. The temporary queue may exist and have been
     opened by the same client identifier, in which case it is purged.
     Prefetch and noack are used as for consumers. Returns a queue handle
-    on success, 0 on failure.  
+    on success, 0 on failure.
 msg_read ([timeout]):
     Wait for a message to arrive from any queue opened for reading. The
     timeout, in seconds, tells the client component how long to wait
@@ -149,6 +149,8 @@ msg_send (handle):
 msg_ack ():
     Acknowledges all messages received and not yet acknowledged. No
     return value.
+query (handle):
+    Returns a string listing all pending messages in the queue.
 close ([handle]):
     Closes a specific destination or the connection (if no handle is
     specified).  No return value.
