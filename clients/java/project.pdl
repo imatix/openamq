@@ -59,10 +59,8 @@
     </build>
     <clean>
         <execute>
-        rm -f com/imatix/openamq/framing/*
+        rm -f com/imatix/openamq/framing/*.class
         rm -f *.class
-        rm -f amqpcli_seriali.java
-        rm -f AMQJavaFraming.jar
         </execute>
     </clean>
 </actions>
@@ -86,10 +84,8 @@
     </build>
     <clean>
         <execute>
-        delete com/imatix/openamq/framing/*
+        delete com/imatix/openamq/framing/*.class
         delete *.class
-        delete amqpcli_seriali.java
-        delete AMQJavaFraming.jar
         </execute>
     </clean>
 </actions>
