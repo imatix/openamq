@@ -5,11 +5,9 @@
 -   Written: 2000/01/18
 -   Revised: 2004/12/09  Pieter Hintjens <pieter@imatix.com>
 -   Revised: 2005/01/24  Martin Sustrik <sustrik@imatix.com>
+-   Revised: 2005/02/16  Pieter Hintjens - fixed use of INCDIR/LIBDIR
 -
 -   This module processes COM dll implementation
--
--
--
 -
 -   Schema:
 -
@@ -1231,7 +1229,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /Yu"stdafx.h" /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /ZI /Od /I $\(INCDIR) /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /Gm /ZI /Od /I $\(INCDIR_LOCAL) /I $\(INCDIR) /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /FD /GZ /c
 # SUBTRACT CPP /YX /Yc /Yu
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
@@ -1244,7 +1242,7 @@ LINK32=link.exe
 .for root.library
 $(debugtarget:) \
 .endfor
-/libpath:"$(env.get("IBASE"))/lib" \
+/libpath:"\$(LIBDIR_LOCAL)" /libpath:"\$(LIBDIR)" \
 /nologo /subsystem:windows /dll /debug /machine:I386 /out:"$(class.name:).dll" /pdbtype:sept
 # Begin Custom Build - Performing registration
 OutDir=.\\Debug
@@ -1277,7 +1275,7 @@ SOURCE="\$(InputPath)"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /O1 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "_ATL_DLL" /Yu"stdafx.h" /FD /c
-# ADD CPP /nologo /MT /W3 /O1 /I $\(INCDIR) /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "_ATL_DLL" /FD /c
+# ADD CPP /nologo /MT /W3 /O1 /I $\(INCDIR_LOCAL) /I $\(INCDIR) /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "_ATL_DLL" /FD /c
 # SUBTRACT CPP /YX /Yc /Yu
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
@@ -1290,7 +1288,7 @@ LINK32=link.exe
 .for root.library
 $(target:) \
 .endfor
-/libpath:"$(env.get("IBASE"))/lib" \
+/libpath:"\$(LIBDIR_LOCAL)" /libpath:"\$(LIBDIR)" \
 /nologo /subsystem:windows /dll /machine:I386 /out:"$(class.name:).dll"
 # Begin Custom Build - Performing registration
 OutDir=.\\ReleaseMinSize
@@ -1324,7 +1322,7 @@ SOURCE="\$(InputPath)"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /O1 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "_ATL_STATIC_REGISTRY" /Yu"stdafx.h" /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /I $\(INCDIR) /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "_ATL_STATIC_REGISTRY" /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I $\(INCDIR_LOCAL) /I $\(INCDIR) /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "_ATL_STATIC_REGISTRY" /FD /c
 # SUBTRACT CPP /Fr /YX /Yc /Yu
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
@@ -1337,7 +1335,7 @@ LINK32=link.exe
 .for root.library
 $(target:) \
 .endfor
-/libpath:"$(env.get("IBASE"))/lib" \
+/libpath:"\$(LIBDIR_LOCAL)" /libpath:"\$(LIBDIR)" \
 /nologo /subsystem:windows /dll /machine:I386 /out:"$(class.name:).dll"
 # Begin Custom Build - Performing registration
 OutDir=.\\ReleaseMinDependency

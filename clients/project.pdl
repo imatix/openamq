@@ -31,6 +31,7 @@
     <file name = "amq.gsl"           class = "private resource" >Main generator</file>
     <file name = "amq.xml"           class = "private resource" >Component definitions</file>
     <file name = "axobj.gsl"         class = "private resource" >Object generator</file>
+    <file name = "amq.dll"           class = "public command" target = "win32">AMQ client DLL</file>
     <actions target = "win32">
       <generate>
         <execute>
