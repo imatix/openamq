@@ -26,10 +26,10 @@ char *message_buffer;
 int stop;
 
 apr_status_t handle_close_cb (
-    void *hint,
-    apr_uint16_t handle_id,
-    apr_uint16_t reply_code,
-    char *reply_text
+    const void *hint,
+    const apr_uint16_t handle_id,
+    const apr_uint16_t reply_code,
+    const char *reply_text
     )
 {
     fprintf (stderr, "Server closed the handle.\n%ld : %s\n",
@@ -38,10 +38,10 @@ apr_status_t handle_close_cb (
 }
 
 apr_status_t channel_close_cb (
-    void *hint,
-    apr_uint16_t channel_id,
-    apr_uint16_t reply_code,
-    char *reply_text
+    const void *hint,
+    const apr_uint16_t channel_id,
+    const apr_uint16_t reply_code,
+    const char *reply_text
     )
 {
     fprintf (stderr, "Server closed the channel.\n%ld : %s\n",
@@ -50,9 +50,9 @@ apr_status_t channel_close_cb (
 }
 
 apr_status_t connection_close_cb (
-    void *hint,
-    apr_uint16_t reply_code,
-    char *reply_text
+    const void *hint,
+    const apr_uint16_t reply_code,
+    const char *reply_text
     )
 {
     fprintf (stderr, "Server closed the connection.\n%ld : %s\n",
@@ -87,11 +87,11 @@ apr_status_t send_message(apr_uint16_t confirm_tag)
 }
 
 apr_status_t handle_reply_cb (
-    void *hint,
-    apr_uint16_t handle_id,
-    apr_uint16_t confirm_tag,
-    apr_uint16_t reply_code,
-    char *reply_text
+    const void *hint,
+    const apr_uint16_t handle_id,
+    const apr_uint16_t confirm_tag,
+    const apr_uint16_t reply_code,
+    const char *reply_text
     )
 {
     apr_status_t result;
@@ -130,11 +130,11 @@ apr_status_t handle_reply_cb (
 }
 
 apr_status_t channel_reply_cb (
-    void *hint,
-    apr_uint16_t channel_id,
-    apr_uint16_t confirm_tag,
-    apr_uint16_t reply_code,
-    char *reply_text
+    const void *hint,
+    const apr_uint16_t channel_id,
+    const apr_uint16_t confirm_tag,
+    const apr_uint16_t reply_code,
+    const char *reply_text
     )
 {
     apr_status_t result;
@@ -160,10 +160,10 @@ apr_status_t channel_reply_cb (
 }
 
 apr_status_t connection_reply_cb (
-    void *hint,
-    apr_uint16_t confirm_tag,
-    apr_uint16_t reply_code,
-    char *reply_text
+    const void *hint,
+    const apr_uint16_t confirm_tag,
+    const apr_uint16_t reply_code,
+    const char *reply_text
     )
 {
     apr_status_t result;
@@ -183,11 +183,11 @@ apr_status_t connection_reply_cb (
 }
     
 apr_status_t connection_challenge_cb (
-    void *hint,
-    apr_byte_t version,
-    char *mechanisms,
-    apr_size_t challenges_size,
-    char *challenges
+    const void *hint,
+    const apr_byte_t version,
+    const char *mechanisms,
+    const apr_size_t challenges_size,
+    const char *challenges
     )
 {
     apr_status_t result;
@@ -204,13 +204,13 @@ apr_status_t connection_challenge_cb (
 }
 
 apr_status_t connection_tune_cb (
-    void *hint,
-    apr_uint32_t frame_max,
-    apr_uint16_t channel_max,
-    apr_uint16_t handle_max,
-    apr_uint16_t heartbeat,
-    apr_size_t options_size,
-    char *options
+    const void *hint,
+    const apr_uint32_t frame_max,
+    const apr_uint16_t channel_max,
+    const apr_uint16_t handle_max,
+    const apr_uint16_t heartbeat,
+    const apr_size_t options_size,
+    const char *options
     )
 {
     apr_status_t result;
@@ -237,26 +237,26 @@ apr_status_t connection_tune_cb (
 }
 
 apr_status_t handle_notify_cb (
-    void *hint,
-    apr_uint16_t handle_id,
-    apr_uint32_t message_nbr,
-    apr_byte_t partial,
-    apr_byte_t out_of_band,
-    apr_byte_t recovery,
-    apr_byte_t delivered,
-    apr_byte_t redelivered,
-    apr_byte_t streaming,
-    char *dest_name,
-    apr_uint32_t body_size,
-    apr_byte_t persistent,
-    apr_byte_t priority,
-    apr_uint32_t expiration,
-    char *mime_type,
-    char *encoding,
-    char *identifier,
-    apr_size_t headers_size,
-    char *headers,
-    char *data
+    const void *hint,
+    const apr_uint16_t handle_id,
+    const apr_uint32_t message_nbr,
+    const apr_byte_t partial,
+    const apr_byte_t out_of_band,
+    const apr_byte_t recovery,
+    const apr_byte_t delivered,
+    const apr_byte_t redelivered,
+    const apr_byte_t streaming,
+    const char *dest_name,
+    const apr_uint32_t body_size,
+    const apr_byte_t persistent,
+    const apr_byte_t priority,
+    const apr_uint32_t expiration,
+    const char *mime_type,
+    const char *encoding,
+    const char *identifier,
+    const apr_size_t headers_size,
+    const char *headers,
+    const char *data
     )
 {
     apr_status_t result;

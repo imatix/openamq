@@ -8,19 +8,24 @@
 # ------------------------------------------------------------------------------
 
 #  Converts type as described in XML to native C type
-function makectype (prefix, comment, local)
+function makectype (prefix, comment, local, const)
+    if "$(my.const)" = "1"
+        cnst = "const "
+    else
+        cnst = ""
+    endif
     if "$(type)" = "octet"
->$(my.prefix)apr_byte_t\
+>$(my.prefix)$(cnst)apr_byte_t\
     elsif "$(type)" = "shortstr"
->$(my.prefix)char*\
+>$(my.prefix)$(cnst)char*\
     elsif "$(type)" = "longstr" | "$(type)" = "table"
->$(my.prefix)char*\
+>$(my.prefix)$(cnst)char*\
     elsif "$(type)" = "shortint"
->$(my.prefix)apr_uint16_t\
+>$(my.prefix)$(cnst)apr_uint16_t\
     elsif "$(type)" = "longint"
->$(my.prefix)apr_uint32_t\
+>$(my.prefix)$(cnst)apr_uint32_t\
     elsif "$(type)" = "bit"
->$(my.prefix)apr_byte_t\
+>$(my.prefix)$(cnst)apr_byte_t\
     else
         echo "'$(type)' : unsupported type"
     endif
@@ -36,11 +41,16 @@ function makectype (prefix, comment, local)
     endif
 endfunction
  
-function makectypesize (prefix, postfix, comment, local)
+function makectypesize (prefix, postfix, comment, local, const)
+    if "$(my.const)" = "1"
+        cnst = "const "
+    else
+        cnst = ""
+    endif
     if "$(type)" = "octet"
     elsif "$(type)" = "shortstr"
     elsif "$(type)" = "longstr" | "$(type)" = "table"
->$(my.prefix)apr_size_t\
+>$(my.prefix)$(cnst)apr_size_t\
         if "$(my.local)" = "1"
 >
 >$(my.prefix)    \
@@ -79,15 +89,15 @@ function makeheader (comment)
     endif
     for field where "$(name)" <> "type" & ("$(frame.name)" <> "handle send" | "$(name)" <> "fragment size")
 >,
-        makectypesize ("    ", ",", "$(my.comment)", "0")
-        makectype ("    ", "$(my.comment)", "0")
+        makectypesize ("    ", ",", "$(my.comment)", "0", "1")
+        makectype ("    ", "$(my.comment)", "0", "1")
     endfor
     if "$(name)" = "handle send"
         for frames.frame where name = "message head"
             for field
 >,
-                makectypesize ("    ", ",", "$(my.comment)", "0")
-                makectype ("    ", "$(my.comment)", "0")
+                makectypesize ("    ", ",", "$(my.comment)", "0", "1")
+                makectype ("    ", "$(my.comment)", "0", "1")
             endfor
         endfor
 >,
@@ -318,11 +328,11 @@ endfunction
 .for frame where defined (frame->sender (role = "server") )
 /*  prototype of callback function corresponding to '$(name)' command  */
 typedef apr_status_t (*amqp_$(name:c)_t) (
-    void *hint /*  hint passed to amqp_recv  */,\
+    const void *hint /*  hint passed to amqp_recv  */,\
 .    for field where "$(name)" <> "type" & ("$(frame.name)" <> "handle notify" | "$(name)" <> "fragment size")
 
-.        makectypesize ("    ", ",", "1", "0") 
-.        makectype ("    ", "1", "0") 
+.        makectypesize ("    ", ",", "1", "0", "1") 
+.        makectype ("    ", "1", "0", "1") 
 $(!last()??","?)\
 .    endfor
 .    if "$(name)" = "handle notify"
@@ -330,8 +340,8 @@ $(!last()??","?)\
 .        for frames.frame where name = "message head"
 .            for field
 
-.                makectypesize ("    ", ",", "1", "0")
-.                makectype ("    ", "1", "0") 
+.                makectypesize ("    ", ",", "1", "0", "1")
+.                makectype ("    ", "1", "0", "1") 
 ,\
 .            endfor
 .        endfor
@@ -516,15 +526,15 @@ apr_status_t amqp_recv (
 
 .    bitshift = 0
 .    for field where "$(name)" <> "type"
-.        makectypesize ("            ", ";", "0", "1")
-.        makectype ("            ", "0", "1")
+.        makectypesize ("            ", ";", "0", "1", "0")
+.        makectype ("            ", "0", "1", "0")
 ;
 .    endfor
 .    if "$(name)" = "handle notify"
 .        for frames.frame where name = "message head"
 .            for field
-.                makectypesize ("            ", ";", "0", "1")
-.                makectype ("            ", "0", "1")
+.                makectypesize ("            ", ";", "0", "1", "0")
+.                makectype ("            ", "0", "1", "0")
 ;
 .            endfor
 .        endfor
