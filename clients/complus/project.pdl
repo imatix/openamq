@@ -1,0 +1,28 @@
+<?xml?>
+<pdl
+    name      = "OpenAMQ COM Client"
+    version   = "0.7b3"
+    copyright = "Copyright (c) 2004-2005 JPMorgan"
+    workflow  = "standard.pwl"
+    deploy    = "openamq-client"
+    >
+
+<include filename = "prelude.pdl" />
+
+<file name = "amq.gsl"           class = "private resource" >Main generator</file>
+<file name = "amq.xml"           class = "private resource" >Component definitions</file>
+<file name = "axobj.gsl"         class = "private resource" >Object generator</file>
+<actions target = "win32">
+  <generate>
+    <execute>
+    gsl amq.gsl
+    </execute>
+  </generate>
+  <build>
+    <execute>
+    msdev amq.dsw /make
+    </execute>
+  </build>
+</actions>
+
+</pdl>
