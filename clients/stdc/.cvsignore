@@ -1,3 +1,5 @@
+*.pdb
+*.ilk
 .spool
 amqpcli_asynch
 amqpcli_file

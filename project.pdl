@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <pdl
     name      = "OpenAMQ"
-    version   = "0.7a1"
-    copyright = "Copyright (c) 2004 JPMorgan"
+    version   = "0.7b0"
+    copyright = "Copyright (c) 2004-2005 JPMorgan"
     workflow  = "product.pwl"
     >
 
@@ -11,12 +11,14 @@
     <distrib name = "OpenAMQ source" type = "source">
         <project directory = "core"    />
         <project directory = "servers" />
+        <project directory = "clients" />
         <project directory = "rfc"     />
     </distrib>
 
     <distrib name = "OpenAMQ install" type = "install">
-        <project directory = "core" />
+        <project directory = "core"    />
         <project directory = "servers" />
+        <project directory = "clients" />
         <project directory = "rfc"     />
     </distrib>
 </pdl>

@@ -2,7 +2,7 @@
 #  Make full source package
 #
 VERSION=0.7b0
-PACKAGE=openamq-$VERSION-src.tar.gz
+PACKAGE=openamq-$VERSION-src
 
 echo "Preparing base..."
 cd $HOME/products/base
@@ -16,14 +16,8 @@ rm -f *.tar.gz
 boom
 boom distsrc >/dev/null 2>&1
 
-echo "Preparing openamq/rfc..."
-cd $HOME/products/amq/rfc
-rm -f *.tar.gz
-boom
-boom distsrc >/dev/null 2>&1
-
-echo "Preparing openamq/core..."
-cd $HOME/products/amq/openamq/core
+echo "Preparing openamq..."
+cd $HOME/products/openamq
 rm -f *.tar.gz
 boom
 boom distsrc >/dev/null 2>&1
@@ -42,31 +36,28 @@ cd    base2
 tar -xzf $HOME/products/base2/*.tar.gz
 cd ..
 
-mkdir amq_rfc
-cd    amq_rfc
-tar -xzf $HOME/products/amq/rfc/*.tar.gz
-cd ..
-
 mkdir openamq
 cd    openamq
-tar -xzf $HOME/products/amq/openamq/core/*.tar.gz
+tar -xzf $HOME/products/openamq/*.tar.gz
 cd ..
 
 echo "#  We build & install these 3 products..." > build.sh
 echo "cd base;    sh build.sh; cd .."           >> build.sh
 echo "cd base2;   sh build.sh; cd .."           >> build.sh
-echo "cd openamq; sh boomake build; cd .."      >> build.sh
-echo "#  To run the openamq server: amqpsrv"    >> build.sh
-cp ../BUILDING .
+echo "cd openamq; sh build.sh; cd .."           >> build.sh
+echo "echo Server is installed into openamq-server" >> build.sh
 
 cd ..
-echo "Building OpenAMQ distribution..."
-tar -czf $PACKAGE openamq-$VERSION
+echo "Building OpenAMQ/$VERSION packages..."
+zip -lqr $PACKAGE.zip    openamq-$VERSION
+tar -czf $PACKAGE.tar.gz openamq-$VERSION
 
-echo cd www/pub/amq>response
+echo cd pub>response
 echo bin>>response
-echo put $PACKAGE>>response
+echo put $PACKAGE.zip>>response
+echo put $PACKAGE.tar.gz>>response
 echo quit>>response
-ftp imatix.net < response
+ftp openamq.org < response
 rm response
-echo "Uploaded to: http://imatix.net/pub/amq/$PACKAGE"
+echo "Unix source is at: http://openamq.org/pub/$PACKAGE.zip"
+echo "Win32 source is at: http://openamq.org/pub/$PACKAGE.tar.gz"

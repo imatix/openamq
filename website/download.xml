@@ -28,8 +28,8 @@
         &lt;/a&gt;</line>
         <line>Unpack into a working directory and run 'configure' and then 'make'.</line>
         <line>Requires MSVC/6+.</line>
-        <head>Binary package (MSI installer)</head>
-        <line>&lt;a href="http://www.openamq.org/pub/openamq-0.7b0-win32.exe"&gt;
+        <head>Binary package</head>
+        <line>&lt;a href="http://www.openamq.org/pub/openamq-0.7b0-win32.zip"&gt;
         openamq-0.7b0-win32.exe
         &lt;/a&gt;</line>
         <line>Download and run the executable package.</line>

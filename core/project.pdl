@@ -1,8 +1,8 @@
 <?xml?>
 <pdl
     name      = "OpenAMQ Core"
-    version   = "0.7b0"
-    copyright = "Copyright (c) 2005 JPMorgan"
+    version   = "0.7"
+    copyright = "Copyright (c) 2004-2005 JPMorgan"
     workflow  = "standard.pwl"
     library   = "libamq"
     >
