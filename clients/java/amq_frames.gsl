@@ -733,7 +733,7 @@ public class $(AMQPFramingFactory:) {
     // Constants
     final static String STRING_ENC = "UTF-8";
     final static short FRAME_LONG = 0xFFF;
-    final static int READ_RETRY_LATENCY = 500;
+    final static int READ_RETRY_LATENCY = 100;
     final static int ERROR_NONE = -1;
 
     // Incoming stream
@@ -1043,9 +1043,9 @@ public class $(AMQPFramingFactory:) {
      *
      **/
     static void readBytes(DataInputStream dis, byte[] b, int off, int len) throws IOException {
-        int read = 0;
-        while (read < len) {
-            read = dis.read(b, off, len);
+        while (len > 0) {
+            int read = dis.read(b, off, len);
+            off += read;
             len -= read;
             if (len > 0) {
                 try {
