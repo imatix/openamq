@@ -128,7 +128,15 @@ public EchoClient(String[] args) {
                     channel_close.replyCode = 200;
                     channel_close.replyText = "amqpcli_serial.java: I'll be back";
                     amq_framing.produceFrame(channel_close);
-                } catch (AMQFramingException f) {}
+                } 
+                catch (IOException f)
+                {
+                    raise_exception(exception_event, f, "EchoClient", "windowClosing", "error writing to server.\n");
+                }
+                catch (AMQFramingException f)
+                {
+                    raise_exception(exception_event, f, "EchoClient", "windowClosing", "framing error");
+                }
             } else {
                 System.exit(0);
             }
@@ -170,7 +178,7 @@ class tfActionListener implements ActionListener {
                 message_head.bodySize = message_body.length;
                 // Set the fragment size
                 handle_send.fragmentSize = message_head.encode() + message_head.bodySize;
-                if (handle_send.fragmentSize <= client_tune.frameMax) {
+                if (handle_send.fragmentSize <= tune_reply.getInteger("FRAME_MAX")) {
                     // Send message
                     amq_framing.produceFrame(handle_send);
                     amq_framing.produceMessageHead(message_head);
@@ -235,7 +243,7 @@ public void run () {
             // Get the data
             handle_notify = (AMQHandle.Notify)frame;
             message_head = amq_framing.consumeMessageHead();
-            bytes = amq_framing.consumeData(message_head.bodySize);
+            bytes = amq_framing.consumeData((int)message_head.bodySize);
             text = AMQFramingFactory.bytes2String(bytes);
             // Acknowledge 
             channel_ack.messageNbr = handle_notify.messageNbr;

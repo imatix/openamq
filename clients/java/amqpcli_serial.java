@@ -23,6 +23,8 @@ public class amqpcli_serial extends amqpcli_seriali
 // Some protocol defaults for this client
 AMQConnection.Tune
     client_tune;                        /* Tune parameters                  */
+AMQFieldTable
+    tune_reply;                         /* Tune parameters                  */ 
 AMQConnection.Open
     client_open;                        /* Connection parameters            */
 AMQConnection.Close
@@ -41,6 +43,8 @@ int
     socket_timeout = 0,                 /* Socket timeout im ms             */
     message_size = 1024,                /* Message size                     */
     messages = 1000;                    /* Messages to send                 */
+long
+    frame_max = 16000;    
 
 
 //////////////////////////////   G L O B A L S   //////////////////////////////
@@ -149,22 +153,16 @@ public void setup ()
         amqp_out = amqp.getOutputStream();
         amq_framing = new AMQFramingFactory(amqp);
         System.out.println("I: connected to AMQP server on " + opt_server + ":" + protocol_port);
-
         // Client tune capabilities
         client_tune = (AMQConnection.Tune)amq_framing.createFrame(AMQConnection.TUNE);
-        client_tune.frameMax = 16000;
-        client_tune.channelMax = 128;
-        client_tune.handleMax = 128;
-        client_tune.heartbeat = 40;
         client_tune.options = null;
-
+        client_tune.dictionary = null;
         // Client name and connection open defaults
         client_open = (AMQConnection.Open)amq_framing.createFrame(AMQConnection.OPEN);
         client_open.confirmTag = 0;
         client_open.virtualPath = null;
         client_open.clientName = client_name;
         client_open.options = null;
-
         // Connection close defaults
         client_close = (AMQConnection.Close)amq_framing.createFrame(AMQConnection.CLOSE);
         client_close.replyCode = 200;
@@ -210,7 +208,7 @@ public void forced_shutdown ()
             amqp_out.close();
 
         if (exception != null)
-            AMQFramingFactory.error(exception, "java/amqpcli_serial", module, error_message);
+            AMQFramingFactory.exception(exception, "java/amqpcli_serial", module, error_message);
     }
     catch (IOException e) {}
     catch (AMQFramingException e) {}
@@ -253,6 +251,10 @@ public void send_connection_open ()
     {
         client_open.virtualPath = "/test";
         amq_framing.produceFrame(client_open);
+    }
+    catch (IOException e)
+    {
+        raise_exception(exception_event, e, "amqpci_java", "send_connection_open", "IOException");
     }
     catch (AMQFramingException e)
     {
@@ -357,16 +359,21 @@ public void do_tests ()
         System.out.println("Sending " + messages + " messages to server...");
         int i = 1;
         for (; i < messages; i++) {
+            OutputStream os;
+            
             // Create the message body
             message_head.bodySize = message_size;
-            message_body = new byte[message_head.bodySize];
+            message_body = new byte[(int)message_head.bodySize];
             body_fill(message_body, i);
             // Set the fragment size
             handle_send.fragmentSize = message_head.encode() + message_body.length;
             // Send message
             amq_framing.produceFrame(handle_send);
             amq_framing.produceMessageHead(message_head);
-            amq_framing.produceInBandMessageBody(handle_send, message_head, message_body);
+            os = amq_framing.getMessageBodyOutputStream(handle_send, message_head, null, false);
+            os.write(message_body);
+            os.flush();
+            os.close();
             // Commit from time to time
             if (i % batch_size == 0) {
                 amq_framing.produceFrame(channel_commit);
@@ -395,11 +402,16 @@ public void do_tests ()
         amq_framing.produceFrame(handle_consume);
         System.out.println("Reading messages back from the server...");
         for (i = 1; i < messages; i++) {
+            InputStream is; 
             byte[] bytes;
+            
             // Get handle notify
             handle_notify = (AMQHandle.Notify)amq_framing.consumeFrame();
             message_head = amq_framing.consumeMessageHead();
-            bytes = amq_framing.consumeInBandMessageBody(handle_notify, message_head);
+            bytes = new byte[(int)message_head.bodySize];
+            is = amq_framing.getMessageBodyInputStream(handle_notify, message_head, null, false);
+            is.read(bytes);
+            is.close();
             if (bytes.length != message_size) {
                 System.err.println("amqpcli_serial: body_check: returning message size mismatch (is "
                     + bytes.length + " should be " + message_size + ").");
@@ -496,19 +508,19 @@ public void negotiate_connection_tune ()
     {
         frame = amq_framing.consumeFrame();
         tune_server = (AMQConnection.Tune)frame;
-
+        amq_framing.setTuneParameters(tune_server);
         // Send the reply
-        client_tune.frameMax = (short)Math.min(client_tune.frameMax, tune_server.frameMax);
-        client_tune.channelMax = (short)Math.min(client_tune.channelMax, tune_server.channelMax);
-        client_tune.handleMax = (short)Math.min(client_tune.handleMax, tune_server.handleMax);
-        client_tune.heartbeat = (short)Math.min(client_tune.heartbeat, tune_server.heartbeat);
+        tune_reply = new AMQFieldTable();    
+        tune_reply.putInteger("FRAME_MAX", Math.min(frame_max, amq_framing.frameMax));
+        tune_reply.putInteger("HEARTBEAT", 0);
+        client_tune.options = tune_reply.storeToBucket();
         amq_framing.produceFrame(client_tune);
     }
-    catch (ClassCastException e)
+    /*catch (ClassCastException e)
     {
         frame.dump();
         raise_exception(exception_event, e, "amqpci_java", "negotiate_connection_tune", "unexpected frame from server");
-    }
+    }*/
     catch (SocketTimeoutException e) {
         raise_exception(timeout_event, e, "amqpci_java", "negotiate_connection_tune", "SocketTimeoutException");
     }
@@ -570,25 +582,13 @@ void body_check(byte[] body, int seed) {
     for (int i = 0; i < body.length; i++) {
         if (body[i] != ref[i]) {
             System.out.println("Received:");
-            dump_array(body);
+            System.out.println(amq_framing.hexDump(body));
             System.out.println("Reference:");
-            dump_array(ref);
+            System.out.println(amq_framing.hexDump(ref));
             System.err.println("amqpcli_serial: body_check: returning message contents mismatch.");
             System.exit(1);
         }
     }
-}
-
-void dump_array(byte[] body) {
-    for (int i = 0; i < body.length; i++) {
-        if (body[i] < 10)
-            System.out.print("0");
-        if (body[i] < 100)
-            System.out.print("0");
-        System.out.print(body[i]);
-        System.out.print(" ");
-    }
-    System.out.println("");
 }
 
 
