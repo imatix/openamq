@@ -856,7 +856,7 @@ public class $(AMQPFramingFactory:) {
         readRetryLatency = 100;                            /* Wait this before retrying (ms)   */
     public boolean 
         verbose = false;                                   /* Verbose switch                   */
-    public long        
+    long        
         frameMax = 4096;                                   /* Initial maximum frame size       */
     $(AMQPFieldTable:)
         tuning = null;                                     /* Connection tune parameters       */
@@ -991,6 +991,10 @@ public class $(AMQPFramingFactory:) {
      **/
     public void setIncomingRetryLatency(int latency) {
         readRetryLatency = latency;
+    }
+
+    public long getFrameMax() {
+        return frameMax;
     }
     
     /**
