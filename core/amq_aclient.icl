@@ -3,7 +3,7 @@
     name      = "amq_aclient"
     comment   = "AMQP asynchronous client API"
     version   = "1.0"
-    copyright = "Copyright (c) 2004 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan"
     script    = "icl_gen"
     >
 
@@ -90,13 +90,19 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
         top_handle;
 </context>
 
+<method name = "trace">
+    <argument name = "trace" type = "int">Trace level, 0 to 3</argument>
+    if (!s_class_active)
+        s_class_initialise (trace);
+</method>
+
 <method name = "new">
     <argument name = "client name" type = "char *">Client identifier</argument>
     <argument name = "login"       type = "char *">User login name</argument>
     <argument name = "password"    type = "char *">User password</argument>
 
     if (!s_class_active)
-        s_class_initialise ();
+        s_class_initialise (0);
 
     self->top_channel = 0;
     self->top_handle  = 0;
@@ -239,19 +245,19 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
 static Bool
     s_class_active = FALSE;
 static void
-    s_class_initialise (void);
+    s_class_initialise (int trace);
 static void
     s_class_terminate (void);
 </private>
 
 <private name = "footer">
 static void
-s_class_initialise (void)
+s_class_initialise (int trace)
 {
     s_class_active = TRUE;
 
-    /*  Start the client agent - gets stopped by icl_system               */
-    amq_aclient_agent_init ();
+    /*  Start the client agent - gets stopped by icl_system                  */
+    amq_aclient_agent_init (trace);
 
     /*  Register the class termination call-back functions                   */
     icl_system_register (NULL, s_class_terminate);

@@ -1,3 +1,9 @@
+0.7b1 - 14 January 2005
+   - added tracing control to servers and clients (-t 1 to -t 3)
+   - improved clients to allow wider range of tests
+   - many fixes to boom projects to allow sources to build
+   - full openamq source packager (mksrc)
+  
 0.7b0 - 7 January 2005
     - finished testing of new queue implementation
     

@@ -2,7 +2,7 @@
  *
  *  amq_core.c   OpenAMQ server kernel core
  *
- *  Copyright (c) 2004 JPMorgan
+ *  Copyright (c) 2004-2005 JPMorgan
  *===========================================================================*/
 
 #include "amq_classes.h"
@@ -20,7 +20,8 @@
     "  -q               Quiet mode: no messages\n"                          \
     "  -s               Server mode: run as background job\n"               \
     "  -c               Console mode: run as foreground job\n"              \
-    "  -t               Trace all socket i/o operations to log file\n"      \
+    "  -t level         Set trace level\n"                                  \
+    "                   0=none, 1=low, 2=medium, 3=high\n"                  \
     "  -v               Show version information\n"                         \
     "  -h               Show summary of command-line options\n"             \
     "\nThe order of arguments is not important. Switches and filenames\n"   \
@@ -49,56 +50,53 @@ amq_server_core (
         args_ok = TRUE,                 /*  Were the arguments okay?         */
         quiet_mode = FALSE;             /*  -q means suppress messages       */
     char
-        *workdir,                       /*  Working directory                */
-        *background,                    /*  -s means run in background       */
+        *opt_workdir,                   /*  Working directory                */
+        *opt_server,                    /*  -s means run in background       */
+        *opt_trace,                     /*  0-3                              */
         **argparm;                      /*  Argument parameter to pick-up    */
 
     /*  First off, switch to user's id                                       */
     set_uid_user ();
 
     /*  These are the arguments we may get on the command line               */
-    workdir    = NULL;
-    background = NULL;
+    opt_workdir = NULL;
+    opt_trace   = "0";
+    opt_server  = NULL;
     console_set_mode (CONSOLE_DATETIME);
 
     argparm = NULL;                     /*  Argument parameter to pick-up    */
-    for (argn = 1; argn < argc; argn++)
-      {
+    for (argn = 1; argn < argc; argn++) {
         /*  If argparm is set, we have to collect an argument parameter      */
-        if (argparm)
-          {
-            if (*argv [argn] != '-')    /*  Parameter can't start with '-'   */
-              {
+        if (argparm) {
+            if (*argv [argn] != '-') {  /*  Parameter can't start with '-'   */
                 *argparm = strdupl (argv [argn]);
                 argparm = NULL;
-              }
-            else
-              {
+            }
+            else {
                 args_ok = FALSE;
                 break;
-              }
-          }
+            }
+        }
         else
-        if (*argv [argn] == '-')
-          {
-            switch (argv [argn][1])
-              {
+        if (*argv [argn] == '-') {
+            switch (argv [argn][1]) {
                 /*  These switches take a parameter                          */
                 case 'w':
-                    argparm = &workdir;  break;
+                    argparm = &opt_workdir;
+                    break;
+                case 't':
+                    argparm = &opt_trace;
+                    break;
 
                 /*  These switches have an immediate effect                  */
                 case 'q':
                     quiet_mode = TRUE;
                     break;
                 case 's':
-                    background = "1";
+                    opt_server = "1";
                     break;
                 case 'S':
-                    background = "0";
-                    break;
-                case 't':
-                    smt_socket_request_trace (TRUE);
+                    opt_server = "0";
                     break;
                 case 'v':
                     puts (SERVER_NAME);
@@ -117,15 +115,13 @@ amq_server_core (
                 /*  Anything else is an error                                */
                 default:
                     args_ok = FALSE;
-              }
-          }
-        else
-          {
+            }
+        }
+        else {
             args_ok = FALSE;
             break;
-          }
-      }
-
+        }
+    }
     /*  If there was a missing parameter or an argument error, quit          */
     if (argparm) {
         coprintf ("Argument missing - type 'openamqd -h' for help");
@@ -138,10 +134,11 @@ amq_server_core (
     }
 
     /*  Set server working directory if necessary                            */
-    if (workdir && set_curdir (workdir)) {
-        coprintf ("Can't work in '%s' - %s", workdir, strerror (errno));
+    if (opt_workdir && set_curdir (opt_workdir)) {
+        coprintf ("Can't work in '%s' - %s", opt_workdir, strerror (errno));
         goto failed;
     }
+
     /*  Load configuration data, if any, into the config_table               */
     amq_config = ipr_config_table_new (".", AMQ_SERVER_CONFIG);
     if (!amq_config) {
@@ -150,8 +147,8 @@ amq_server_core (
     }
 
     /*  Initialise arguments, taking defaults from the config_table          */
-    if (!background)
-        background = ipr_config_table_lookup (amq_config, "server/background", "0");
+    if (!opt_server)
+        opt_server = ipr_config_table_lookup (amq_config, "server/background", "0");
 
     if (quiet_mode) {
         fclose (stdout);                /*  Kill standard output             */
@@ -162,7 +159,7 @@ amq_server_core (
         puts (COPYRIGHT);
         puts (NOWARRANTY);
     }
-    if (*background == '1') {
+    if (*opt_server == '1') {
         const char
            *background_args [] = { "-s", NULL };
 
@@ -176,7 +173,7 @@ amq_server_core (
     /*  Pre-module initialisation                                            */
     s_prepare_logging ();
     amq_vhosts = amq_vhost_table_new (amq_config);
-    if (amq_server_agent_init ()) {
+    if (amq_server_agent_init (atoi (opt_trace))) {
         coprintf ("E: could not start server protocol agent");
         goto failed;
     }

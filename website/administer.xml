@@ -15,7 +15,7 @@
       <section>
         <title>Tuning</title>
         <head>The Queue Subsystem</head>
-        <line>... explanation of how to tune queues</line>
+        <line>Some explanation of how to tune queues</line>
       </section>
       <footer>
         <line content = "slogan" />

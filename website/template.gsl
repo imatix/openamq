@@ -15,7 +15,7 @@
      hr     { color:$(accent); background-color:$(accent) }
     .header { margin-top:6px; color:$(accent); font-size:16px; }
     .footer { color:grey; margin-top:6pt; margin-bottom:6pt; }
-    .remark { margin-top:10px; font-size:24px; font-weight:bold; color:$(accent); }
+    .remark { margin-top:10px; font-size:24px; font-weight:bold; color:$(accent); text-align:center; }
     .text   { margin-top:6px; font-size:11px }
   </style>
   <script type="text/javascript">
@@ -43,27 +43,21 @@
         <tr bgcolor="#E0E0E0" height=210>
           <td width=340 align=center><img src="image/$(picture)" alt=""></td>
           <td width=40>&nbsp;</td>
-          <td width=360 class="remark">
+          <td width=400>
 .for remark
 .   for line
-            $(format_block (line.))
+            <p class="remark">$(format_block (line.))</p>
+.   endfor
+.endfor
+.for header
+.   for line
+            <p class="header">$(format_block (line.))</p>
 .   endfor
 .endfor
           </td>
-          <td width=60>&nbsp;</td>
+          <td width=20>&nbsp;</td>
         </tr>
       </table>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-.for header
-.   for line
-      <br>
-      <p class="header" style="margin-left:9px; margin-right:9px">$(format_block (line.))</p>
-.   endfor
-.endfor
-      <hr noshade width="800" size="1" style="margin-top:12px; margin-bottom:0px">
     </td>
   </tr>
 

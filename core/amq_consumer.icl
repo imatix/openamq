@@ -3,7 +3,7 @@
     name      = "amq_consumer"
     comment   = "Consumer class"
     version   = "1.0"
-    copyright = "Copyright (c) 2004 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan"
     script    = "icl_gen"
     >
 

@@ -1,4 +1,10 @@
-#   Last space in text is replaced by non-breaking spaces
+#   Web site generation script
+#   excuse humble code
+#   it will be industrialised
+#   at a later date
+
+#   - last space in text is replaced by non-breaking spaces
+#   - symbols are replaced
 function format_block (args)
     if defined (my.args)
         my.count = 1
@@ -17,7 +23,7 @@ function format_block (args)
     else
         my.args = "[Empty]"
     endif
-    return (my.args)
+    return (gsl.exec (my.args, 1))
 endfunction
 
 function set_page_next (name, next)
@@ -37,6 +43,9 @@ endfor
 
 for root-> content.page
     set_page_next (lastpage, page.name)
+    for page.set
+        page.$(name) = value
+    endfor
     lastpage = page.name
     for language
         echo "Generating $(page.name)_$(language.name).html..."

@@ -3,7 +3,7 @@
     name      = "amq_vhost_table"
     comment   = "Implements hash table container for amq_vhost"
     version   = "1.0"
-    copyright = "Copyright (c) 2004 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan"
     script    = "icl_gen"
     >
 <doc>

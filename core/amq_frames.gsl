@@ -276,7 +276,7 @@ $(prefix)_frame_encode (amq_bucket_t *bucket, $(prefix)_frame_t *frame)
 .   for frame
         case FRAME_TYPE_$(NAME):
             if ($(NAME)_SIZE > bucket->max_size) {
-                coprintf ("$(name) frame needs %ld bytes, bucket too small at %ld",
+                coprintf ("E: $(name) frame needs %ld bytes, bucket too small at %ld",
                     $(NAME)_SIZE, bucket->max_size);
                 return (0);
             }
@@ -344,7 +344,7 @@ $(prefix)_frame_encode (amq_bucket_t *bucket, $(prefix)_frame_t *frame)
 
 .   endfor frame
         default:
-            coprintf ("Unrecognized frame, cannot encode");
+            coprintf ("E: unrecognized frame, cannot encode");
             return (0);
     }
     bucket->cur_size = (byte *) bucket_data - (byte *) bucket->data;
@@ -381,7 +381,7 @@ $(prefix)_frame_decode (amq_bucket_t *bucket)
     ASSERT (bucket);
     frame = mem_alloc (sizeof ($(prefix)_frame_t));
     if (!frame) {
-        coprintf ("Memory allocation failed in $(prefix)_frame_decode");
+        coprintf ("E: memory allocation failed in $(prefix)_frame_decode");
         return (NULL);
     }
     bucket_data = bucket->data;
@@ -441,7 +441,7 @@ $(prefix)_frame_decode (amq_bucket_t *bucket)
     else
 .   endfor frame
     {
-        coprintf ("Unrecognized frame, cannot decode");
+        coprintf ("E: unrecognized frame, cannot decode");
         mem_free (frame);
         return (NULL);
     }
@@ -449,12 +449,12 @@ $(prefix)_frame_decode (amq_bucket_t *bucket)
     if (*bucket_data == AMQP_COMMAND_END)
         return (frame);
     else {
-        coprintf ("Frame missing command-end octet, cannot decode");
+        coprintf ("E: frame missing command-end octet, cannot decode");
         mem_free (frame);
         return (NULL);
     }
     underflow:
-        coprintf ("Insufficient data provided to decode frame");
+        coprintf ("E: insufficient data provided to decode frame");
         mem_free (frame);
         return (NULL);
 }
@@ -487,7 +487,7 @@ $(prefix)_$(name)_decode (amq_bucket_t *bucket)
     bucket_data = bucket->data;
     frame = mem_alloc (sizeof ($(prefix)_frame_t));
     if (!frame) {
-        coprintf ("Memory allocation failed in $(prefix)_$(name)_decode");
+        coprintf ("E: memory allocation failed in $(prefix)_$(name)_decode");
         return (NULL);
     }
     frame->type = FRAME_TYPE_$(NAME);
@@ -563,7 +563,7 @@ $(prefix)_frame_t *$(prefix)_frame_$(name)_new ($(build_struct_args ()))
 
     frame = mem_alloc (sizeof ($(prefix)_frame_t));
     if (!frame) {
-        coprintf ("Memory allocation failed in new_$(name)_frame");
+        coprintf ("E: memory allocation failed in new_$(name)_frame");
         return (NULL);
     }
     frame->type = FRAME_TYPE_$(NAME);
@@ -616,7 +616,7 @@ $(prefix)_frame_size ($(prefix)_frame_t *frame)
             return ($(NAME)_SIZE);
 .   endfor
         default:
-            coprintf ("Unrecognized frame in $(prefix)_frame_size");
+            coprintf ("E: unrecognized frame in $(prefix)_frame_size");
             return (0);
     }
 }
@@ -656,12 +656,12 @@ $(prefix)_frame_dump ($(prefix)_frame_t *frame)
 .               field_string  += ", frame->body.$(frame.name).$(name)? frame->body.$(frame.name).$(name)->size: 0"
 .           endif
 .       endfor
-            coprintf ("I: have %s:$(format_string:)",
+            coprintf ("I: %s:$(format_string:)",
                 "$(name)"$(field_string:));
             break;
 .   endfor frame
         default:
-            coprintf ("Unrecognized frame in $(prefix)_frame_dump");
+            coprintf ("E: unrecognized frame in $(prefix)_frame_dump");
     }
 }
 
@@ -685,7 +685,7 @@ $(prefix)_frame_free ($(prefix)_frame_t **frame)
                 break;
 .   endfor
             default:
-                coprintf ("Unrecognized frame in $(prefix)_frame_free");
+                coprintf ("E: unrecognized frame in $(prefix)_frame_free");
         }
         mem_free ((*frame));
         *frame = NULL;

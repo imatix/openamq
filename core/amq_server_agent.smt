@@ -2,7 +2,7 @@
 <agent
     name    = "amq_server_agent"
     script  = "smt2c.gsl"
-    animate = "0" >
+    animate = "1" >
 
 <include filename = "amq_common.smt" />
 
@@ -13,12 +13,20 @@
 
 <private name = "types">
 #define AMQP_HEARTBEAT      30
+
+#define AMQP_TRACE_NONE     0
+#define AMQP_TRACE_LOW      1
+#define AMQP_TRACE_MED      2
+#define AMQP_TRACE_HIGH     3
+static int
+    s_tracing = 0;
 </private>
 
 <handler name = "agent initialise">
-#if defined (ANIMATION_ENABLED)
-    smt_socket_request_trace (TRUE);
-#endif
+    <argument name = "tracing" type = "int" />
+    s_tracing = tracing;
+    if (s_tracing > AMQP_TRACE_LOW)
+        smt_socket_request_trace (TRUE);
     amq_server_agent_master_thread_new ();
 </handler>
 
@@ -34,7 +42,7 @@
     </context>
 
     <handler name = "thread initialise">
-        thread->animate = TRUE;
+        thread->animate = (s_tracing > AMQP_TRACE_MED);
         smt_thread_set_next_event (thread, ok_event);
     </handler>
     <handler name = "thread destroy">
@@ -70,7 +78,7 @@
         }
         tcb-> socket = smt_socket_passive (thread, port, 5);
         if (!tcb->socket) {
-            coprintf ("E: could not open AMQP port %s - %s", 
+            coprintf ("E: could not open AMQP port %s - %s",
                       port, connect_errlist [thread-> error]);
             smt_thread_raise_exception (thread, error_event);
         }
@@ -159,7 +167,7 @@
     </context>
 
     <handler name = "thread initialise">
-        thread->animate  = TRUE;
+        thread->animate  = (s_tracing > AMQP_TRACE_MED);
         the_next_event   = ok_event;
         tcb->command     = amq_bucket_new ();
         tcb->fragment    = amq_bucket_new ();
@@ -194,13 +202,8 @@
     </action>
 
     <action name = "check protocol header">
-        if (tcb->frame_header [0] == AMQP_ID
-        &&  tcb->frame_header [1] == AMQP_VERSION) {
-#         if defined (ANIMATION_ENABLED)
-            coprintf ("I: client protocol header OK");
-#         endif
-        }
-        else {
+        if (tcb->frame_header [0] != AMQP_ID
+        ||  tcb->frame_header [1] != AMQP_VERSION) {
             coprintf ("E: client sent invalid protocol header - 0x%02x 0x%02x",
                 tcb->frame_header [0], tcb->frame_header [1]);
             smt_thread_raise_exception (thread, connection_error_event);
@@ -857,9 +860,10 @@
     tcb->command->cur_size = tcb->socket->io_size;
     tcb->frame = amq_frame_decode (tcb->command);
     if (tcb->frame) {
-#       if defined (ANIMATION_ENABLED)
-        amq_frame_dump (tcb->frame);
-#       endif
+        if (s_tracing > AMQP_TRACE_NONE) {
+            coprintf ("I: received frame size=%ld", tcb->frame->size);
+            amq_frame_dump (tcb->frame);
+        }
         switch (tcb->frame->type) {
             /*  Connection commands                                          */
             case FRAME_TYPE_CONNECTION_RESPONSE:
@@ -1016,12 +1020,10 @@ handle_reply_if_needed (smt_thread_t *thread, dbyte confirm_tag)
 static void
 send_the_frame (smt_thread_t *thread)
 {
-#   if defined (ANIMATION_ENABLED)
-    coprintf ("I: -------------------------------------------------------------");
-    coprintf ("I: sending frame size=%ld", tcb->frame->size);
-    amq_frame_dump (tcb->frame);
-#   endif
-
+    if (s_tracing > AMQP_TRACE_NONE) {
+        coprintf ("I: sending frame size=%ld", tcb->frame->size);
+        amq_frame_dump (tcb->frame);
+    }
     if (tcb->frame->size > 0xFFFF) {
         *(dbyte *) (tcb->frame_header)     = htons (0xFFFF);
         *(qbyte *) (tcb->frame_header + 2) = htonl (tcb->frame->size);

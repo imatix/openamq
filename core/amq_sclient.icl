@@ -3,7 +3,7 @@
     name      = "amq_sclient"
     comment   = "AMQP synchronous client API"
     version   = "1.0"
-    copyright = "Copyright (c) 2004 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan"
     script    = "icl_gen"
     >
 
@@ -18,7 +18,7 @@
 #include "amq_sclient_agent.h"
 
 #define CHANNEL_ID          1
-#define CHANNEL_TRANSACTED  FALSE
+#define CHANNEL_TRANSACTED  TRUE
 
 #define TIMEOUT 2000  /* msecs  */
 </private>
@@ -64,6 +64,12 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
         msg_redelivered;                /*  Its redelivered property         */
 </context>
 
+<method name = "trace">
+    <argument name = "trace" type = "int">Trace level, 0 to 3</argument>
+    if (!s_class_active)
+        s_class_initialise (trace);
+</method>
+
 <method name = "new">
     <argument name = "client name" type = "char *">Client identifier</argument>
     <argument name = "login"       type = "char *">User login name</argument>
@@ -71,7 +77,7 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     ASSERT (client_name && *client_name);
 
     if (!s_class_active)
-        s_class_initialise ();
+        s_class_initialise (0);
 
     self->cur_handle = 0;
     self->thread_handle = smt_thread_handle_new (
@@ -234,6 +240,22 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     rc = (smt_thread_handle_valid (self->thread_handle));
 </method>
 
+<method name = "commit" template = "function">
+    amq_sclient_agent_channel_commit (
+        self->thread_handle, CHANNEL_ID, TIMEOUT);
+
+    smt_thread_execute (SMT_EXEC_FULL);
+    rc = (smt_thread_handle_valid (self->thread_handle));
+</method>
+
+<method name = "rollback" template = "function">
+    amq_sclient_agent_channel_rollback (
+        self->thread_handle, CHANNEL_ID, TIMEOUT);
+
+    smt_thread_execute (SMT_EXEC_FULL);
+    rc = (smt_thread_handle_valid (self->thread_handle));
+</method>
+
 <method name = "close" template = "function">
     <argument name = "handle id" type = "dbyte" >Handle id, 0 means all</argument>
     if (handle_id)
@@ -253,7 +275,7 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 static Bool
     s_class_active = FALSE;
 static inline void
-    s_class_initialise (void);
+    s_class_initialise (int trace);
 static void
     s_class_terminate (void);
 static void
@@ -262,12 +284,12 @@ static void
 
 <private name = "footer">
 static void
-s_class_initialise (void)
+s_class_initialise (int trace)
 {
     s_class_active = TRUE;
 
     /*  Start the client agent - gets stopped by icl_system               */
-    amq_sclient_agent_init ();
+    amq_sclient_agent_init (trace);
 
     /*  Register the class termination call-back functions                   */
     icl_system_register (NULL, s_class_terminate);

@@ -9,10 +9,9 @@ body {
     margin-left: 0;
     margin-right: 0;
     font-size: 13px;
-    line-height: 16px;
+    line-height: 18px;
     font-weight: bold;
     text-align: center;
-    color: #036376
 }
 .footer {
     margin-top: 18pt;
@@ -20,7 +19,6 @@ body {
     font-size: 12px;
     font-weight: bold;
     text-align: center;
-    color: #036376
 }
 .text {
     font-size: 11px
@@ -75,8 +73,4 @@ a:hover {
     font-size: 13px;
     font-weight: bold;
     color: #58504d
-}
-hr {
-    color: #48b9c6;
-    background-color: #48b9c6
 }

@@ -1,5 +1,9 @@
-BDB
-    - queue tables for queues
+- rename amqpsrv -> openamqd
+
+Tracing
+    - amqpsrv queue configuration
+        - block size per queue
+        - logging options per queue
 
 Acks
     - when dispatching

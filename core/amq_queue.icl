@@ -3,7 +3,7 @@
     name      = "amq_queue"
     comment   = "Queue class"
     version   = "1.0"
-    copyright = "Copyright (c) 2004 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan"
     script    = "icl_gen"
     >
 <doc>
@@ -45,6 +45,8 @@ ipr_db_queue class.
 
 <private>
 #include "amq_server_agent.h"
+#define TRACE_DISPATCH                  /*  Trace dispatching progress?      */
+#undef  TRACE_DISPATCH
 </private>
 
 <context>
@@ -174,12 +176,18 @@ ipr_db_queue class.
     </local>
 
     /*  If we have a current message, save to disk or memory                 */
+#   ifdef TRACE_DISPATCH
+    coprintf ("$(selfname) I: queue dispatch, cur_message:%s", cur_message? "yes": "no");
+#   endif
     if (cur_message) {
         if (self->outstanding > 0 || cur_message->persistent) {
             /*  Save to persistent storage                                   */
             self->outstanding++;
             amq_smessage_save    (cur_message, self);
             amq_smessage_destroy (&cur_message);
+#           ifdef TRACE_DISPATCH
+            coprintf ("$(selfname) I: insert message id=%d outstanding=%d", self->id, self->outstanding);
+#           endif
         }
         else
             /*  Added to memory queue                                        */
@@ -187,11 +195,20 @@ ipr_db_queue class.
     }
 
     /*  Now process messages from memory or from disk                        */
+#   ifdef TRACE_DISPATCH
+    coprintf ("$(selfname) I: dispatch window=%d outstanding=%d", self->window, self->outstanding);
+#   endif
     if (self->outstanding) {
         /*  Get oldest candidate message to dispatch                         */
         self->id = self->last_id;
         finished = amq_queue_fetch (self, IPR_QUEUE_GT);
+#       ifdef TRACE_DISPATCH
+        coprintf ("$(selfname) I: fetch last=%d rc=%d id=%d", self->last_id, finished, self->id);
+#       endif
         while (self->window && !finished) {
+#           ifdef TRACE_DISPATCH
+            coprintf ("$(selfname) I: message id=%d client=%d", self->id, self->client_id);
+#           endif
             if (self->client_id == 0) {
                 consumer = s_get_next_consumer (self);
                 message  = amq_smessage_new (consumer->handle);
@@ -255,6 +272,9 @@ s_dispatch_message (
     ASSERT (consumer);
     dispatch = amq_dispatch_new (consumer, message);
 
+#   ifdef TRACE_DISPATCH
+    coprintf ("$(selfname) I: ==> dispatch nbr=%d", dispatch->message_nbr);
+#   endif
     amq_server_agent_handle_notify (
         consumer->thread,
         (dbyte) consumer->handle->key,

@@ -2,7 +2,7 @@
 <agent
     name    = "amq_aclient_agent"
     script  = "smt2c.gsl"
-    animate = "0" >
+    animate = "1" >
 
 <include filename = "amq_common.smt" />
 
@@ -13,12 +13,19 @@
 
 <private name = "types">
 #define AMQP_HEARTBEAT      30
+#define AMQP_TRACE_NONE     0
+#define AMQP_TRACE_LOW      1
+#define AMQP_TRACE_MED      2
+#define AMQP_TRACE_HIGH     3
+static int
+    s_tracing = 0;
 </private>
 
 <handler name = "agent initialise">
-#if defined (ANIMATION_ENABLED)
-    smt_socket_request_trace (TRUE);
-#endif
+    <argument name = "tracing" type = "int" />
+    s_tracing = tracing;
+    if (s_tracing > AMQP_TRACE_LOW)
+        smt_socket_request_trace (TRUE);
 </handler>
 
 <!--  Messages  ----------------------------------------------------------->
@@ -155,7 +162,7 @@
     </handler>
 
     <handler name = "thread initialise">
-        thread->animate  = TRUE;
+        thread->animate  = (s_tracing > AMQP_TRACE_MED);
         tcb->command     = amq_bucket_new ();
         tcb->fragment    = amq_bucket_new ();
         tcb->frame       = NULL;
@@ -732,9 +739,10 @@
     tcb->command->cur_size = tcb->socket->io_size;
     tcb->frame = amq_frame_decode (tcb->command);
     if (tcb->frame) {
-#       if defined (ANIMATION_ENABLED)
-        amq_frame_dump (tcb->frame);
-#       endif
+        if (s_tracing > AMQP_TRACE_NONE) {
+            coprintf ("I: received frame size=%ld", tcb->frame->size);
+            amq_frame_dump (tcb->frame);
+        }
         switch (tcb->frame->type) {
             case FRAME_TYPE_CONNECTION_CHALLENGE:
                 the_next_event = connection_challenge_event;
@@ -860,12 +868,10 @@ static void inline s_sock_read    (smt_thread_t *thread, byte *buffer, size_t si
 static void
 send_the_frame (smt_thread_t *thread)
 {
-#   if defined (ANIMATION_ENABLED)
-    coprintf ("I: -------------------------------------------------------------");
-    coprintf ("I: sending frame size=%ld", tcb->frame->size);
-    amq_frame_dump (tcb->frame);
-#   endif
-
+    if (s_tracing > AMQP_TRACE_NONE) {
+        coprintf ("I: sending frame size=%ld", tcb->frame->size);
+        amq_frame_dump (tcb->frame);
+    }
     if (tcb->frame->size > 0xFFFF) {
         *(dbyte *) (tcb->frame_header)     = htons (0xFFFF);
         *(qbyte *) (tcb->frame_header + 2) = htonl (tcb->frame->size);

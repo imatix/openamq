@@ -1,8 +1,9 @@
 #
 #  Make full source package
 #
-VERSION=0.7b0
+VERSION=`egrep "  version" project.pdl | cut -d\" -f2`
 PACKAGE=openamq-$VERSION-src
+echo "Building $PACKAGE..."
 
 echo "Preparing base..."
 cd $HOME/products/base

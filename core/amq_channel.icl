@@ -3,7 +3,7 @@
     name      = "amq_channel"
     comment   = "Channel class"
     version   = "1.0"
-    copyright = "Copyright (c) 2004 JPMorgan"
+    copyright = "Copyright (c) 2004-2005 JPMorgan"
     script    = "icl_gen"
     >
 
@@ -106,7 +106,7 @@
     <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
     if (self->transacted) {
         amq_dispatch_list_commit (self->dispatched);
-        coprintf ("COMMIT");
+        ipr_db_log_flush  (self->db);
         ipr_db_txn_commit (self->txn);
     }
     else {
