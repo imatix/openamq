@@ -3,9 +3,9 @@ gdl
     subtitle  = Documentation
     product   = OpenAMQ Java
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/03/21
+    date      = 2005/03/31
     copyright = Copyright (c) 2004 JPMorgan
-    version   = 0.5a2
+    version   = 0.5a3
 end gdl
 
 Cover
@@ -1084,6 +1084,22 @@ wrapped around with buffers of custom capacity.
 
     Parameters
         timeout - Time in milliseconds.
+
+public void flush() 
+...................
+Flushes the data written by the transport methods.
+    
+    Throws
+        IOException - Exceptions from the underlying output stream.
+
+public void flush(OutputStream os)
+..................................
+Flushes the data written by the transport methods on the specified stream.
+
+    Parameters
+        os - Target output stream to be flushed.
+    Throws
+        IOException - Exceptions from the underlying output stream.
 
 public void receiveData(byte[] bytes)
 .....................................

@@ -1308,10 +1308,13 @@ import java.io.UnsupportedEncodingException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import $(imatix_openamq_frames_package:).$(AMQPFramable:);
+import $(imatix_openamq_package:).$(AMQPIOException:);
 import $(imatix_openamq_package:).$(AMQPException:);
 
 public class $(AMQPTransport:) {
     // Constants
+    public final static String 
+        VERSION = "OpenAMQ Java/0.5a2";                    /* API version                      */
     final static String 
         STRING_ENC = "UTF-8";                              /* Prefered string encoding         */
     final static int 
@@ -1338,7 +1341,8 @@ public class $(AMQPTransport:) {
         writeFramable;                                     /* Writer frame to serialize        */
     byte[] 
         writeBytes,                                        /* Writer data command data array   */
-        uBuff = new byte[4];                               /* Buffer for unsigned integers     */
+        uBuff = new byte[4],                               /* Buffer for unsigned integers     */
+        uwBuff = new byte[4];                              /* Buffer for unsigned integers     */
     int    
         priority = Thread.currentThread().getPriority();   /* Main thread priority             */
     OutputStream 
@@ -1357,6 +1361,7 @@ public class $(AMQPTransport:) {
                         synchronized(writer) {
                             while (writeCommand == WRITE_IDLE) {
                                 try {
+                                    writer.notify();
                                     writer.wait();
                                 } catch (InterruptedException e) {}
                             }
@@ -1442,8 +1447,9 @@ public class $(AMQPTransport:) {
             // Send initiation
             writeUnsignedByte(id);
             writeUnsignedByte(version);
+            flush(outgoing);
         } catch (IOException e) {
-            exception(e, "$(AMQPFramingFactory:)", "sendConnectionInitiation", "unable to connect");
+            exception(e, "$(AMQPTransport:)", "sendConnectionInitiation", "unable to connect");
         }
     }
     
@@ -1483,17 +1489,17 @@ public class $(AMQPTransport:) {
      *
      **/
     public void writeUnsignedInt(long value) throws IOException {
-        byte[]
-            bytes = new byte[4];
         int 
             sv = s(value);
             
-        bytes[0] = (byte)(0xff & (sv >> 24));
-        bytes[1] = (byte)(0xff & (sv >> 16));
-        bytes[2] = (byte)(0xff & (sv >> 8));
-        bytes[3] = (byte)(0xff & sv);            
-        
-        sendData(bytes);
+        synchronized (writer) {
+            checkWrite();
+            uwBuff[0] = (byte)(0xff & (sv >> 24));
+            uwBuff[1] = (byte)(0xff & (sv >> 16));
+            uwBuff[2] = (byte)(0xff & (sv >> 8));
+            uwBuff[3] = (byte)(0xff & sv);            
+            sendData(uwBuff, 0, 4);
+        }
     }
 
     /**
@@ -1512,15 +1518,15 @@ public class $(AMQPTransport:) {
      *
      **/
     public void writeUnsignedShort(int value) throws IOException {
-        byte[]
-            bytes = new byte[2];
         short 
             sv = s(value);
             
-        bytes[0] = (byte)(0xff & (sv >> 8));
-        bytes[1] = (byte)(0xff & sv);            
-        
-        sendData(bytes);
+        synchronized (writer) {
+            checkWrite();
+            uwBuff[0] = (byte)(0xff & (sv >> 8));
+            uwBuff[1] = (byte)(0xff & sv);            
+            sendData(uwBuff, 0, 2);
+        }
     }
     
     /**
@@ -1539,10 +1545,11 @@ public class $(AMQPTransport:) {
      *
      **/
     public void writeUnsignedByte(short value) throws IOException {
-        byte[]
-            bytes = new byte[]{s(value)};
-            
-        sendData(bytes);
+        synchronized (writer) {
+            checkWrite();
+            uwBuff[0] = s(value);
+            sendData(uwBuff, 0, 1);
+        }
     }
     
     // Short/long string encoding/decoding
@@ -1556,7 +1563,7 @@ public class $(AMQPTransport:) {
         try {
             return new String(bytes, STRING_ENC);
         } catch (UnsupportedEncodingException e) {
-            runtimeException(e, "$(AMQPFramingFactory:)", "bytes2String", "UnsupportedEncodingException");
+            runtimeException(e, "$(AMQPTransport:)", "bytes2String", "UnsupportedEncodingException");
             return null;
         }
     }
@@ -1570,7 +1577,7 @@ public class $(AMQPTransport:) {
         try {
             return string.getBytes(STRING_ENC);
         } catch (UnsupportedEncodingException e) {
-            runtimeException(e, "$(AMQPFramingFactory:)", "string2Bytes", "UnsupportedEncodingException");
+            runtimeException(e, "$(AMQPTransport:)", "string2Bytes", "UnsupportedEncodingException");
             return null;
         }
     }
@@ -1596,7 +1603,7 @@ public class $(AMQPTransport:) {
         String result = "";
         
         if (base > digits.length())
-            runtimeException(null, "$(AMQPFramingFactory:)", "hexdump", "base to high");
+            runtimeException(null, "$(AMQPTransport:)", "hexdump", "base to high");
         
         for (int i = 0; i < bytes.length; i++) {
             String aByte_str = "";
@@ -1662,7 +1669,7 @@ public class $(AMQPTransport:) {
      *
      **/
     public void sendData(byte[] bytes, int off, int len) throws IOException {
-        sendData(outgoing, bytes, 0, bytes.length);
+        sendData(outgoing, bytes, off, len);
     }
     
     /**
@@ -1672,7 +1679,6 @@ public class $(AMQPTransport:) {
      **/
     public void sendData(OutputStream os, byte[] bytes, int off, int len) throws IOException {
         writeTimeout(os, bytes, off, len);
-        flush();
     }
     
     // Signed/unsigned conversion (final to hint optimization to the compiler)
@@ -1741,10 +1747,10 @@ public class $(AMQPTransport:) {
      **/
     final static void checkRange(long value) {
         if (value < 0) 
-            runtimeException(null, "$(AMQPFramingFactory:)", "checkRange", "unsigned integer underflow (" + value + ")");
+            runtimeException(null, "$(AMQPTransport:)", "checkRange", "unsigned integer underflow (" + value + ")");
     
         if (value > 0xFFFFFFFFl)
-            runtimeException(null, "$(AMQPFramingFactory:)", "checkRange", "unsigned integer overflow (" + value + ")");
+            runtimeException(null, "$(AMQPTransport:)", "checkRange", "unsigned integer overflow (" + value + ")");
     }
     
     /**
@@ -1754,10 +1760,10 @@ public class $(AMQPTransport:) {
      **/
     final static void checkRange(int value) {
         if (value < 0) 
-            runtimeException(null, "$(AMQPFramingFactory:)", "checkRange", "unsigned short underflow (" + value + ")");
+            runtimeException(null, "$(AMQPTransport:)", "checkRange", "unsigned short underflow (" + value + ")");
     
         if (value > 0xFFFF)
-            runtimeException(null, "$(AMQPFramingFactory:)", "checkRange", "unsigned short overflow (" + value + ")");
+            runtimeException(null, "$(AMQPTransport:)", "checkRange", "unsigned short overflow (" + value + ")");
     }
     
     /**
@@ -1767,10 +1773,10 @@ public class $(AMQPTransport:) {
      **/
     final static void checkRange(short value) {
         if (value < 0) 
-            runtimeException(null, "$(AMQPFramingFactory:)", "checkRange", "unsigned byte underflow (" + value + ")");
+            runtimeException(null, "$(AMQPTransport:)", "checkRange", "unsigned byte underflow (" + value + ")");
     
         if (value > 0xFF)
-            runtimeException(null, "$(AMQPFramingFactory:)", "checkRange", "unsigned byte overflow (" + value + ")");
+            runtimeException(null, "$(AMQPTransport:)", "checkRange", "unsigned byte overflow (" + value + ")");
     }
     
     // Socket level reading/writing
@@ -1782,15 +1788,24 @@ public class $(AMQPTransport:) {
      *
      **/
     public static void readBytes(InputStream is, byte[] b, int off, int len) throws IOException {
-        while (len > 0) {
-            int read = is.read(b, off, len);
-            off += read;
-            len -= read;
-            if (len > 0) {
-                try {
-                    Thread.sleep(readRetryLatency);
-                } catch (InterruptedException e) {}
+        try {
+            while (len > 0) {
+                int read = is.read(b, off, len);
+                if (read != -1) {
+                    off += read;
+                    len -= read;
+                    if (len > 0) {
+                        try {
+                            Thread.sleep(readRetryLatency);
+                        } catch (InterruptedException e) {}
+                    }
+                } else {
+                    exception(null, "$(AMQPTransport:)", "readBytes", "end of input stream");
+                }
             }
+        } catch ($(AMQPException) e) {
+            // Encapsulate the exception as $(AMQPIOException)
+            throw new $(AMQPIOException)(e.getMessage());
         }
     }
     
@@ -1841,14 +1856,24 @@ public class $(AMQPTransport:) {
     
     /**
      *
-     * Flush output buffer
+     * Flush the output buffer
      *
      **/
     public void flush() throws IOException {
+        flush(outgoing);
+    }
+    
+    /**
+     *
+     * Flush the output buffer (OutputStream)
+     *
+     **/
+    public void flush(OutputStream os) throws IOException {
         synchronized(writer) {
             checkWrite();
             // Request flush
             writeCommand = WRITE_FLUSH;
+            writeOs = os;
             writer.notify();
         }
     }
@@ -1865,7 +1890,7 @@ public class $(AMQPTransport:) {
                  writer.wait(timeout);
              } catch (InterruptedException e) {}
              if (writeCommand != WRITE_IDLE) 
-                throw new SocketTimeoutException("$(AMQPFramingFactory:): checkWrite: EXCEPTION, timeout.");
+                throw new SocketTimeoutException("$(AMQPTransport:): checkWrite: EXCEPTION, timeout.");
          }    
          // Check previous outcome
          if (ioe != null) {
@@ -2135,7 +2160,7 @@ public class $(AMQPFramingFactory:) extends $(AMQPTransport:) {
     public void sendFrame($(AMQPFrame:) frame) throws $(AMQPException:), IOException {
         sendFrameHeader(frame.size());      
         writeTimeout(outgoing(), frame);
-        flush();
+        flush(outgoing());
         if (verbose) {
             System.out.println("I: wrote " + frame.size() + " bytes to server (frame)");
             frame.dump();
@@ -2199,8 +2224,10 @@ public class $(AMQPFramingFactory:) extends $(AMQPTransport:) {
      *
      **/
     public void sendMessageHead($(class_prefix:)Message.Head head, DataOutputStream dos) throws IOException {
-        writeTimeout((dos != null) ? dos : outgoing(), head);
-        flush();
+        DataOutputStream
+            os = (dos != null) ? dos : outgoing();
+        writeTimeout(os, head);
+        flush(os);
         if (verbose) 
             System.out.println("I: wrote " + head.size() + " bytes to server (message head)");
     }
@@ -2542,6 +2569,15 @@ public class $(AMQPFramingFactory:) extends $(AMQPTransport:) {
         
         /**
          *
+         * Requests a flush
+         *
+         */
+        public void flush() throws IOException {
+            flushRequest(os);
+        }
+        
+        /**
+         *
          * This writes a byte from the message
          *
          */
@@ -2618,6 +2654,15 @@ public class $(AMQPFramingFactory:) extends $(AMQPTransport:) {
             
             return 0;
         }
+    }
+    
+    /**
+     *
+     * Make flush available for the inner streams
+     *
+     */
+    public void flushRequest(OutputStream os) throws IOException {
+        super.flush(os);
     }
 }
 

@@ -9,7 +9,6 @@ public class EchoClient extends amqpcli_serial implements Runnable {
 
 
 ///////////////////////////   P A R A M E T E R S   ///////////////////////////
-
 // Some queue defaults for this client
 String
     read_queue = "java-in",             /* Queue to read from               */
@@ -17,7 +16,9 @@ String
 
     
 //////////////////////////////   G L O B A L S   //////////////////////////////
-
+String        
+    CLIENT_NAME =                       /* Client name                       */
+        "Java echo client";
 // AWT UI
 Frame 
     f;                                  /* The UI frame                     */
@@ -56,51 +57,113 @@ byte[]
 /////////////////////////////////   MAIN   ////////////////////////////////////
  
 public static void main(String[] args) {
-    amqpcli_serial
-        single = new EchoClient(args);
+    new EchoClient(args);
 }
 
 public int amqpcli_serial_execute (String args[])
 {
-    int
-        feedback;                       /* Console return int               */
-    
-    if (args.length > 0) {
-        if (args[0].equals("-h")) {
-            System.out.println("Java echo client - " + version);
-            System.out.println("");
-            System.out.println("Copyright (c) 2004-2005 JPMorgan");
-            System.out.println("This is free software; see the source for copying conditions.  There is NO");
-            System.out.println("warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.");
-            System.out.println("");
-            System.out.println("Provisional syntax: java amqpcli_serial [server] [client name] [read-queue] [write-queue]");
-            System.exit(0);
-        } else {
-            opt_server = args[0];       
-        }
-    }    
-    if (args.length > 1)
-        client_name = args[1];       
-    if (args.length > 2)
-        read_queue = args[2];       
-    if (args.length > 3)
-        write_queue = args[3];       
-
-    feedback = execute ();
-
-    return (feedback);
+    return execute ();
 }
 
 
 /////////////////////////////////   AWT CONSTRUCTOR  //////////////////////////
 
 public EchoClient(String[] args) {
+    // Command-line parameters
+    final String
+        USAGE =                             /* Usage                             */
+            "Syntax: clientname [options...]\n"                                        +
+            "Options:\n"                                                               +
+            "  -c clientname    Client identifier (default: '" + CLIENT_NAME + "')\n"  +
+            "  -s server        Name or address of server (localhost)\n"               +
+            "  -t level         Set trace level (default = 0)\n"                       +
+            "  -r name          Set read queue (default = '" + read_queue + "')\n"     +
+            "  -w name          Set trace level (default = '" + write_queue + "')\n"   +
+            "  -q               Quiet mode: no messages\n"                             +
+            "  -v               Show version information\n"                            +
+            "  -h               Show summary of command-line options\n"                +
+            "\nThe order of arguments is not important. Switches and filenames\n"      +
+            "are case sensitive.\n",
+        CLIENT_NAME_PRINT =             /* Full name for console             */
+            CLIENT_NAME + " - " + AMQFramingFactory.VERSION + "\n";    
+    String
+        argparm = null;                 /* Command line argument             */
+    boolean
+        args_ok = true;                 /* Arguments parsing status          */
+
+    for (int argn = 0; argn < args.length; argn++) {
+        /*  If argparm is set, we have to collect an argument parameter      */
+        if (argparm != null) {
+            if (!args[argn].startsWith("-")) {  /*  Parameter can't start with '-'   */
+                arguments.setProperty(argparm, args[argn]);
+                argparm = null;
+            } else {
+                args_ok = false;
+                break;
+            }
+        } else if (args[argn].startsWith("-")) {
+            switch (args[argn].charAt(1)) {
+                /*  These switches take a parameter                          */
+                case 'c':
+                    argparm = "opt_client";
+                    break;
+                case 's':
+                    argparm = "opt_server";
+                    break;
+                case 't':
+                    argparm = "opt_trace";
+                    break;
+                case 'r':
+                    argparm = "read_queue";
+                    break;
+                case 'w':
+                    argparm = "write_queue";
+                    break;
+
+                /*  These switches have an immediate effect                  */
+                case 'q':
+                    quiet_mode = true;
+                    break;
+                case 'v':
+                    System.out.println(CLIENT_NAME_PRINT);
+                    System.out.println(COPYRIGHT);
+                    System.out.println(NOWARRANTY);
+                    System.exit(0);
+                case 'h':
+                    System.out.println(CLIENT_NAME_PRINT);
+                    System.out.println(COPYRIGHT);
+                    System.out.println(NOWARRANTY);
+                    System.out.println(USAGE);
+                    System.exit(0);
+
+                /*  Anything else is an error                                */
+                default:
+                    args_ok = false;
+            }
+        } else {
+            args_ok = false;
+            break;
+        }
+    }
+    /*  If there was a missing parameter or an argument error, quit          */
+    if (argparm != null) {
+        System.out.println("Argument missing - use -h for help");
+        System.exit(1);
+    } else if (!args_ok) {
+        System.out.println("Invalid arguments - use -h for help");
+        System.exit(1);
+    }
+
+    read_queue = arguments.getProperty("read_queue", "java-in");
+    write_queue = arguments.getProperty("write_queue", "c-in");
+    verbose = Integer.parseInt(arguments.getProperty("opt_trace", "0")) > 0;
+    
+    // UI
     GridBagLayout 
         gbl;                            /* Frame's layout                   */
     GridBagConstraints 
         gbc;                            /* Layout configuration             */
-    
-    // UI
+        
     gbl = new GridBagLayout();
     gbc = new GridBagConstraints();
     ea = new TextArea("", 20, 80, TextArea.SCROLLBARS_VERTICAL_ONLY);
@@ -118,7 +181,7 @@ public EchoClient(String[] args) {
     gbc.weighty = 0;
     gbl.setConstraints(tf, gbc);
     // Configure the frame
-    f = new Frame("Java echo client - " + version);
+    f = new Frame(CLIENT_NAME + " - " + AMQFramingFactory.VERSION);
     f.addWindowListener(new WindowAdapter() {
         public void windowClosing(WindowEvent e) {
             if (receive_thread != null) {
@@ -126,7 +189,7 @@ public EchoClient(String[] args) {
                     // Say bye
                     channel_close.channelId = 1;
                     channel_close.replyCode = 200;
-                    channel_close.replyText = "amqpcli_serial.java: I'll be back";
+                    channel_close.replyText = "EchoClient.java: I'll be back";
                     amq_framing.sendFrame(channel_close);
                 } 
                 catch (IOException f)
@@ -146,6 +209,7 @@ public EchoClient(String[] args) {
     f.add(ea);
     f.add(tf);
     f.pack();
+    // Show window
     f.setVisible(true);
     tf.requestFocus();
     // Start AMQ layer
@@ -168,11 +232,12 @@ class tfActionListener implements ActionListener {
                 // Say bye
                 channel_close.channelId = 1;
                 channel_close.replyCode = 200;
-                channel_close.replyText = "amqpcli_serial.java: I'll be back";
+                channel_close.replyText = "EchoClient.java: I'll be back";
                 amq_framing.sendFrame(channel_close);
             } else {
                 // Send text
-                System.out.println("Sending: \"" + text + "\" to server...");
+                if (!quiet_mode)
+                    System.out.println("Sending: \"" + text + "\" to server...");
                 // Create the message body
                 message_body = AMQFramingFactory.string2Bytes(text);
                 message_head.bodySize = message_body.length;
@@ -183,6 +248,7 @@ class tfActionListener implements ActionListener {
                     amq_framing.sendFrame(handle_send);
                     amq_framing.sendMessageHead(message_head);
                     amq_framing.sendData(message_body);
+                    amq_framing.flush();
                 } else {
                     System.err.println("EchoClient: text size not supported by EchoClient");
                 }   
@@ -249,7 +315,8 @@ public void run () {
             // Acknowledge 
             channel_ack.messageNbr = handle_notify.messageNbr;
             amq_framing.sendFrame(channel_ack);
-            System.out.println("Acknowledge: \"" + text + "\" from server...");
+            if (!quiet_mode)
+                System.out.println("Acknowledge: \"" + text + "\" from server...");
             // Show text in the echo area
             ea.append("  > " + text + "\n");
         } 

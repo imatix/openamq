@@ -23,47 +23,60 @@ public class amqpcli_serial extends amqpcli_seriali
 
 // Some protocol defaults for this client
 AMQConnection.Tune
-    client_tune;                        /* Tune parameters                  */
+    client_tune;                        /* Tune parameters                   */
 AMQFieldTable
-    tune_reply;                         /* Tune parameters                  */
+    tune_reply;                         /* Tune parameters                   */
 AMQConnection.Open
-    client_open;                        /* Connection parameters            */
+    client_open;                        /* Connection parameters             */
 AMQConnection.Close
-    client_close;                       /* Default close parameters         */
-String
-    opt_server = "localhost",           /* Remote server                    */
-    client_name = "java test client",   /* Client name                      */
-    version = "OpenAMQ/0.7d1";          /* AMQ version                      */
+    client_close;                       /* Default close parameters          */
 short
-    protocol_port = 7654,               /* Server port                      */
-    protocol_id = 128,                  /* Protocol id                      */
-    protocol_ver = 1,                   /* Protocol version                 */
-// Some test defaults for this client
-    batch_size = 100;                   /* Messages prefetched before ACK   */
+    protocol_port = 7654,               /* Server port                       */
+    protocol_id = 128,                  /* Protocol id                       */
+    protocol_ver = 1;                   /* Protocol version                  */
 int
-    socket_timeout = 0,                 /* Socket timeout im ms             */
-    messages = 1000;                    /* Messages to send                 */
+    socket_timeout = 0;                 /* Socket timeout im ms              */
 long
-    frame_max = 2048,
-    message_size = 1024;                /* Message size                     */
+    frame_max = 2048;
+// Test parameters
+int
+    messages,                           /* Size of test set                  */
+    batch_size,                         /* Size of batches                   */
+    repeats;                            /* Test repetitions                  */
+long
+    message_size;                       /* Message size                      */
+boolean
+    verbose,                            /* Verbose mode                      */
+    persistent = false,                 /* Use persistent messages?          */
+    quiet_mode = false,                 /* -q means suppress messages        */
+    delay_mode = false;                 /* -d means work slowly              */
 
 
 //////////////////////////////   G L O B A L S   //////////////////////////////
 
-// Network streams
-OutputStream
-    amqp_out = null;                    /* Outgoing connection              */
-InputStream
-    amqp_in = null;                     /* Incoming connectionn             */
-// Messages
+final String
+    COPYRIGHT =                         /* Copyright                         */
+        "Copyright (c) 2004-2005 JPMorgan",
+    NOWARRANTY =                        /* Warranty                          */
+        "This is free software; see the source for copying conditions.  There is NO\n"  +
+        "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n";
 String
-    error_message,                      /* Error details                    */
-    module;                             /* Module in which error occured    */
+    CLIENT_NAME =                       /* Client name                       */
+        "Java serial test client";
+// Outcomes
+String
+    error_message,                      /* Error details                     */
+    module;                             /* Module in which error occured     */
 Exception
-    exception = null;                   /*                                  */
+    exception = null;                   /* Exception                         */
+// Our connection
+Socket
+    amqp = null;                        /* Network socket                    */
 // Framing utility
 AMQFramingFactory
-    amq_framing = null;                 /* Framing utility                  */
+    amq_framing = null;                 /* Framing utility                   */
+Properties
+    arguments = new Properties();       /* Command-line arguments            */
 
 
 ///////////////////////////   C O N T R U C T O R S  //////////////////////////
@@ -81,38 +94,120 @@ public amqpcli_serial (String args[])
 
 public static void main (String args[])
 {
-    amqpcli_serial                      /* The client object                */
+    amqpcli_serial                      /* The client object                 */
         single = new amqpcli_serial(args);
 
 }
 
 public int amqpcli_serial_execute (String args[])
 {
+    final String
+        USAGE =                             /* Usage                             */
+            "Syntax: clientname [options...]\n"                                       +
+            "Options:\n"                                                              +
+            "  -c clientname    Client identifier (default: '" + CLIENT_NAME + "')\n" +
+            "  -s server        Name or address of server (localhost)\n"              +
+            "  -m number        Number of messages to send/receive (1000)\n"          +
+            "  -b batch         Size of each batch (100)\n"                           +
+            "  -x size          Size of each message (default = 1024)\n"              +
+            "  -r repeat        Repeat test N times (1)\n"                            +
+            "  -t level         Set trace level (default = 0)\n"                      +
+            "  -p               Use persistent messages (no)\n"                       +
+            "  -q               Quiet mode: no messages\n"                            +
+            "  -d               Delayed mode; sleeps after receiving a message\n"     +
+            "  -v               Show version information\n"                           +
+            "  -h               Show summary of command-line options\n"               +
+            "\nThe order of arguments is not important. Switches and filenames\n"     +
+            "are case sensitive.\n",
+        CLIENT_NAME_PRINT =             /* Full name for console             */
+            CLIENT_NAME + " - " + AMQFramingFactory.VERSION + "\n";
+    String
+        argparm = null;                 /* Command line argument             */
     int
-        feedback;                       /* Console return int               */
+        feedback;                       /* Console return int                */
+    boolean
+        args_ok = true;                 /* Arguments parsing status          */
 
-    if (args.length > 0) {
-        if (args[0].equals("-h")) {
-            System.out.println("Java serial test client - " + version);
-            System.out.println("");
-            System.out.println("Copyright (c) 2004-2005 JPMorgan");
-            System.out.println("This is free software; see the source for copying conditions.  There is NO");
-            System.out.println("warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.");
-            System.out.println("");
-            System.out.println("Provisional syntax: java amqpcli_serial [server] [client name] [messages] [batch] [message size]");
-            System.exit(0);
+    for (int argn = 0; argn < args.length; argn++) {
+        /*  If argparm is set, we have to collect an argument parameter      */
+        if (argparm != null) {
+            if (!args[argn].startsWith("-")) {  /*  Parameter can't start with '-'   */
+                arguments.setProperty(argparm, args[argn]);
+                argparm = null;
+            } else {
+                args_ok = false;
+                break;
+            }
+        } else if (args[argn].startsWith("-")) {
+            switch (args[argn].charAt(1)) {
+                /*  These switches take a parameter                          */
+                case 'c':
+                    argparm = "opt_client";
+                    break;
+                case 's':
+                    argparm = "opt_server";
+                    break;
+                case 'm':
+                    argparm = "opt_messages";
+                    break;
+                case 'b':
+                    argparm = "opt_batch";
+                    break;
+                case 't':
+                    argparm = "opt_trace";
+                    break;
+                case 'x':
+                    argparm = "opt_msgsize";
+                    break;
+                case 'r':
+                    argparm = "opt_repeats";
+                    break;
+
+                /*  These switches have an immediate effect                  */
+                case 'p':
+                    persistent = true;
+                    break;
+                case 'q':
+                    quiet_mode = true;
+                    break;
+                case 'd':
+                    delay_mode = true;
+                    break;
+                case 'v':
+                    System.out.println(CLIENT_NAME_PRINT);
+                    System.out.println(COPYRIGHT);
+                    System.out.println(NOWARRANTY);
+                    System.exit(0);
+                case 'h':
+                    System.out.println(CLIENT_NAME_PRINT);
+                    System.out.println(COPYRIGHT);
+                    System.out.println(NOWARRANTY);
+                    System.out.println(USAGE);
+                    System.exit(0);
+
+                /*  Anything else is an error                                */
+                default:
+                    args_ok = false;
+            }
         } else {
-            opt_server = args[0];
+            args_ok = false;
+            break;
         }
     }
-    if (args.length > 1)
-        client_name = args[1];
-    if (args.length > 2)
-        messages = Integer.parseInt(args[2]);
-    if (args.length > 3)
-        batch_size = Short.parseShort(args[3]);
-    if (args.length > 4)
-        message_size = Integer.parseInt(args[4]);
+    /*  If there was a missing parameter or an argument error, quit          */
+    if (argparm != null) {
+        System.out.println("Argument missing - use -h for help");
+        System.exit(1);
+    } else if (!args_ok) {
+        System.out.println("Invalid arguments - use -h for help");
+        System.exit(1);
+    }
+
+    messages = Integer.parseInt(arguments.getProperty("opt_messages", "1000"));
+    batch_size = Integer.parseInt(arguments.getProperty("opt_batch", "100"));
+    message_size = Integer.parseInt(arguments.getProperty("opt_msgsize", "1024"));
+    repeats = Integer.parseInt(arguments.getProperty("opt_repeats", "1"));
+    verbose = Integer.parseInt(arguments.getProperty("opt_trace", "0")) > 0;
 
     feedback = execute ();
 
@@ -140,20 +235,18 @@ public void get_external_event ()
 
 public void setup ()
 {
+    String
+        opt_server = arguments.getProperty("opt_server", "localhost");
+
     try
     {
-        Socket
-            amqp = null;                /* Network socket                   */
-
         // Network setup
         System.out.println("Connecting to " + opt_server + "...");
         amqp = new Socket(opt_server, protocol_port);
         if (socket_timeout > 0)
             amqp.setSoTimeout(socket_timeout);
-        amqp_in = amqp.getInputStream();
-        amqp_out = amqp.getOutputStream();
         amq_framing = new AMQFramingFactory(amqp);
-        //amq_framing.verbose = true;
+        amq_framing.verbose = verbose;
         System.out.println("I: connected to AMQP server on " + opt_server + ":" + protocol_port);
         // Client tune capabilities
         client_tune = (AMQConnection.Tune)amq_framing.constructFrame(AMQConnection.TUNE);
@@ -163,7 +256,7 @@ public void setup ()
         client_open = (AMQConnection.Open)amq_framing.constructFrame(AMQConnection.OPEN);
         client_open.confirmTag = 0;
         client_open.virtualPath = null;
-        client_open.clientName = client_name;
+        client_open.clientName = arguments.getProperty("opt_client", CLIENT_NAME);
         client_open.options = null;
         // Connection close defaults
         client_close = (AMQConnection.Close)amq_framing.constructFrame(AMQConnection.CLOSE);
@@ -204,13 +297,11 @@ public void forced_shutdown ()
     // Close connection
     try
     {
-        if (amqp_in != null)
-            amqp_in.close();
-        if (amqp_out != null)
-            amqp_out.close();
-
         if (exception != null)
             AMQFramingFactory.exception(exception, "java/amqpcli_serial", module, error_message);
+
+        if (amqp != null)
+            amqp.close();
     }
     catch (IOException e) {}
     catch (AMQException e) {}
@@ -221,7 +312,6 @@ public void forced_shutdown ()
 
 public void terminate_the_program ()
 {
-    System.out.println("java/amqpcli_serial terminating.");
     System.exit(exception != null ? 1 : 0);
 }
 
@@ -273,32 +363,32 @@ public void do_tests ()
     try
     {
         // Channel
-        AMQChannel.Open                 /* Channel open command             */
+        AMQChannel.Open                 /* Channel open command              */
             channel_open = (AMQChannel.Open)amq_framing.constructFrame(AMQChannel.OPEN);
-        AMQChannel.Commit               /* Channel commit command           */
+        AMQChannel.Commit               /* Channel commit command            */
             channel_commit = (AMQChannel.Commit)amq_framing.constructFrame(AMQChannel.COMMIT);
-        AMQChannel.Ack                  /* Channel ack command              */
+        AMQChannel.Ack                  /* Channel ack command               */
             channel_ack = (AMQChannel.Ack)amq_framing.constructFrame(AMQChannel.ACK);
-        AMQChannel.Close                /* Channel close command            */
+        AMQChannel.Close                /* Channel close command             */
             channel_close = (AMQChannel.Close)amq_framing.constructFrame(AMQChannel.CLOSE);
         // Handle
-        AMQHandle.Open                  /* Handle open command              */
+        AMQHandle.Open                  /* Handle open command               */
             handle_open = (AMQHandle.Open)amq_framing.constructFrame(AMQHandle.OPEN);
-        AMQHandle.Send                  /* Handle send command              */
+        AMQHandle.Send                  /* Handle send command               */
             handle_send = (AMQHandle.Send)amq_framing.constructFrame(AMQHandle.SEND);
-        AMQHandle.Consume               /* Handle consume command           */
+        AMQHandle.Consume               /* Handle consume command            */
             handle_consume = (AMQHandle.Consume)amq_framing.constructFrame(AMQHandle.CONSUME);
-        AMQHandle.Flow                  /* Handle flow command              */
+        AMQHandle.Flow                  /* Handle flow command               */
             handle_flow = (AMQHandle.Flow)amq_framing.constructFrame(AMQHandle.FLOW);
         AMQHandle.Notify
-            handle_notify = null;       /* Handle notify reply              */
+            handle_notify = null;       /* Handle notify reply               */
         AMQHandle.Created
-            handle_created;             /* Handle created reply             */
+            handle_created;             /* Handle created reply              */
         // Message
-        AMQMessage.Head                 /* Message header                   */
+        AMQMessage.Head                 /* Message header                    */
             message_head = (AMQMessage.Head)amq_framing.constructMessageHead();
         byte[]
-            message_body;               /* Message body                     */
+            message_body;               /* Message body                      */
         long head_size;
 
         // Open channel
@@ -330,8 +420,6 @@ public void do_tests ()
         // Pause incoming messages
         handle_flow.handleId = 1;
         handle_flow.confirmTag = 0;
-        handle_flow.flowPause = true;
-        amq_framing.sendFrame(handle_flow);
 
         // Prepare commit and ack
         channel_commit.channelId = 1;
@@ -351,7 +439,7 @@ public void do_tests ()
         handle_send.streaming = false;
         handle_send.destName = "";
         message_head.bodySize = 0;
-        message_head.persistent = false;
+        message_head.persistent = persistent;
         message_head.priority = 1;
         message_head.expiration = 0;
         message_head.mimeType = "";
@@ -363,82 +451,99 @@ public void do_tests ()
         if (message_head.bodySize  < 0 )
             message_head.bodySize = message_size;
         message_size = head_size + message_head.bodySize;
-        if (message_size > amq_framing.getFrameMax())
-            System.out.println("Sending " + messages + " (fragmented) messages to server...");
-        else
-            System.out.println("Sending " + messages + " messages to server...");
-        for (int i = 1; i < messages; i++) {
-            OutputStream os;
+        for (int repeat_count = 1; repeat_count <= repeats; repeat_count++) {
+            // Pause incoming messages
+            handle_flow.flowPause = true;
+            amq_framing.sendFrame(handle_flow);
+            if (message_size > amq_framing.getFrameMax())
+                System.out.println("(" + repeat_count + ") Sending " + messages + " (fragmented) messages to server...");
+            else
+                System.out.println("(" + repeat_count + ") Sending " + messages + " messages to server...");
+            for (int i = 1; i < messages; i++) {
+                OutputStream os;
 
-            // Allocate the message body
-            message_body = new byte[(int)message_head.bodySize];
-            body_fill(message_body, i);
-            // Set the fragment size
-            handle_send.partial = message_size > amq_framing.getFrameMax();
-            handle_send.fragmentSize = Math.min(amq_framing.getFrameMax(), message_size);
-            // Send message
-            os = amq_framing.sendMessage(handle_send, message_head, null, false);
-            os.write(message_body);
-            os.flush();
-            os.close();
-            // Commit from time to time
-            if (i % batch_size == 0) {
-                amq_framing.sendFrame(channel_commit);
-                System.out.println("Commit batch " + (i / batch_size) + "...");
+                // Allocate the message body
+                message_body = new byte[(int)message_head.bodySize];
+                body_fill(message_body, i);
+                // Set the fragment size
+                handle_send.partial = message_size > amq_framing.getFrameMax();
+                handle_send.fragmentSize = Math.min(amq_framing.getFrameMax(), message_size);
+                // Send message
+                os = amq_framing.sendMessage(handle_send, message_head, null, false);
+                os.write(message_body);
+                os.flush();
+                os.close();
+                // Commit from time to time
+                if (i % batch_size == 0) {
+                    amq_framing.sendFrame(channel_commit);
+                    if (!quiet_mode)
+                        System.out.println("Commit batch " + (i / batch_size) + "...");
+                }
             }
+            // Commit leftovers
+            amq_framing.sendFrame(channel_commit);
+            if (!quiet_mode)
+                System.out.println("Commit final batch...");
+
+            // Resume incoming messages
+            handle_flow.flowPause = false;
+            amq_framing.sendFrame(handle_flow);
+
+            // Read back
+            handle_consume.handleId = 1;
+            handle_consume.confirmTag = 0;
+            handle_consume.prefetch = batch_size;
+            handle_consume.noLocal = false;
+            handle_consume.unreliable = false;
+            handle_consume.destName = "";
+            handle_consume.identifier = "";
+            handle_consume.selector = null;
+            handle_consume.mimeType = "";
+            // Request consume messages
+            amq_framing.sendFrame(handle_consume);
+            System.out.println("(" + repeat_count + ") Reading messages back from server...");
+            for (int i = 1; i < messages; i++) {
+                InputStream is;
+                byte[] bytes;
+
+                // Get handle notify
+                handle_notify = (AMQHandle.Notify)amq_framing.receiveFrame();
+                message_head = amq_framing.constructMessageHead();
+                is = amq_framing.receiveMessage(handle_notify, message_head, null, false);
+                head_size = message_head.size();
+                bytes = new byte[(int)message_head.bodySize];
+                is.read(bytes);
+                is.close();
+                if (bytes.length != message_size - head_size) {
+                    System.err.println("amqpcli_serial: body_check: returning message size mismatch (is "
+                        + bytes.length + " should be " + (message_size - head_size) + ").");
+                    System.exit(1);
+                }
+                body_check(bytes, i);
+                // Acknowledge & commit from time to time
+                if (i % batch_size == 0) {
+                    channel_ack.messageNbr = handle_notify.messageNbr;
+                    amq_framing.sendFrame(channel_ack);
+                    amq_framing.sendFrame(channel_commit);
+                    if (!quiet_mode)
+                        System.out.println("Acknowledge batch " + (i / batch_size) + "...");
+                }
+                if (delay_mode) {
+                    synchronized (this) {
+                        try {
+                            wait(1);
+                        } catch (InterruptedException e) {}
+                    }
+                }
+
+            }
+            // Acknowledge & commit leftovers
+            channel_ack.messageNbr = handle_notify.messageNbr;
+            amq_framing.sendFrame(channel_ack);
+            amq_framing.sendFrame(channel_commit);
+            if (!quiet_mode)
+                System.out.println("Acknowledge final batch...");
         }
-        // Commit leftovers
-        amq_framing.sendFrame(channel_commit);
-        System.out.println("Commit final batch...");
-
-        // Resume incoming messages
-        handle_flow.flowPause = false;
-        amq_framing.sendFrame(handle_flow);
-
-        // Read back
-        handle_consume.handleId = 1;
-        handle_consume.confirmTag = 0;
-        handle_consume.prefetch = batch_size;
-        handle_consume.noLocal = false;
-        handle_consume.unreliable = false;
-        handle_consume.destName = "";
-        handle_consume.identifier = "";
-        handle_consume.selector = null;
-        handle_consume.mimeType = "";
-        // Request consume messages
-        amq_framing.sendFrame(handle_consume);
-        System.out.println("Reading messages back from the server...");
-        for (int i = 1; i < messages; i++) {
-            InputStream is;
-            byte[] bytes;
-
-            // Get handle notify
-            handle_notify = (AMQHandle.Notify)amq_framing.receiveFrame();
-            message_head = amq_framing.constructMessageHead();
-            is = amq_framing.receiveMessage(handle_notify, message_head, null, false);
-            head_size = message_head.size();
-            bytes = new byte[(int)message_head.bodySize];
-            is.read(bytes);
-            is.close();
-            if (bytes.length != message_size - head_size) {
-                System.err.println("amqpcli_serial: body_check: returning message size mismatch (is "
-                    + bytes.length + " should be " + (message_size - head_size) + ").");
-                System.exit(1);
-            }
-            body_check(bytes, i);
-            // Acknowledge & commit from time to time
-            if (i % batch_size == 0) {
-                channel_ack.messageNbr = handle_notify.messageNbr;
-                amq_framing.sendFrame(channel_ack);
-                amq_framing.sendFrame(channel_commit);
-                System.out.println("Acknowledge batch " + (i / batch_size) + "...");
-            }
-        }
-        // Acknowledge & commit leftovers
-        channel_ack.messageNbr = handle_notify.messageNbr;
-        amq_framing.sendFrame(channel_ack);
-        amq_framing.sendFrame(channel_commit);
-        System.out.println("Acknowledge final batch...");
 
         // Say bye
         channel_close.channelId = 1;
@@ -448,7 +553,8 @@ public void do_tests ()
         channel_close = (AMQChannel.Close)amq_framing.receiveFrame();
         amq_framing.sendFrame(client_close);
         client_close = (AMQConnection.Close)amq_framing.receiveFrame();
-        System.out.println("Closing, server says: " + client_close.replyText + ".");
+        if (!quiet_mode)
+            System.out.println("Closing, server says: " + client_close.replyText + ".");
     }
     catch (ClassCastException e)
     {
@@ -474,9 +580,9 @@ public void face_connection_challenge ()
 {
     try
     {
-        AMQConnection.Challenge         /* Challenge from server            */
+        AMQConnection.Challenge         /* Challenge from server             */
             challenge = (AMQConnection.Challenge)amq_framing.receiveFrame();
-        AMQConnection.Response          /* our response                     */
+        AMQConnection.Response          /* our response                      */
             response = (AMQConnection.Response)amq_framing.constructFrame(AMQConnection.RESPONSE);
         // Send the response
         response.mechanism = "none";
@@ -508,8 +614,8 @@ public void face_connection_challenge ()
 public void negotiate_connection_tune ()
 {
     AMQFrame
-        frame = null;               /* Raw frame                        */
-    AMQConnection.Tune              /* Tune parameters from server      */
+        frame = null;               /* Raw frame                         */
+    AMQConnection.Tune              /* Tune parameters from server       */
         tune_server = (AMQConnection.Tune)frame;
 
     try
@@ -558,7 +664,6 @@ public void raise_exception (int event, Exception e, String _class, String modul
     this.module = module;
     this.exception = e;
 
-    System.err.println(e.getMessage());
     System.err.println(_class + ": " + module + ": " + message + ".");
 
     // Reset message
