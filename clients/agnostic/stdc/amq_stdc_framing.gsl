@@ -631,8 +631,6 @@ frame->fields.handle_send.body_size\
 #ifndef AMQ_STDC_FRAMING_INCLUDED       /* Prevent multiple inclusions       */
 #define AMQ_STDC_FRAMING_INCLUDED
 
-#define AMQTRACE
-
 #include "base.h"                       /* Base definitions                  */
 #include "base_apr.h"                   /* APR definitions                   */
 
