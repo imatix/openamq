@@ -3,9 +3,9 @@ gdl
     subtitle  = The AMQP/Fast Wire-Level Protocol
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/03/13
+    date      = 2005/03/29
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.8a1
+    version   = 0.8a2
 end gdl
 
 Cover
@@ -23,6 +23,9 @@ This document is ready for review.
 
 Recent Change History
 ---------------------
+
+0.8a2
+- Clarified what happens when field table contains same field twice.
 
 0.8a1
 - CONNECTION PING command has been made optional.
@@ -915,6 +918,9 @@ For example:
     EXPIRATION-TIME=(Time)
     IDENTIFIER=(String)01-ABCD-9876
     MAXIMUM-SIZE=(Integer)
+
+If a field occurs more than once in the field table only the first
+instance should be used.
 
 CONNECTION RESPONSE Command
 ---------------------------
