@@ -77,6 +77,8 @@ AMQFramingFactory
     amq_framing = null;                 /* Framing utility                   */
 Properties
     arguments = new Properties();       /* Command-line arguments            */
+byte[]                                  /* For checking messages read        */
+    ref;
 
 
 ///////////////////////////   C O N T R U C T O R S  //////////////////////////
@@ -455,6 +457,7 @@ public void do_tests ()
         // Allocate the message body
         int heapMax = 1024 * 1024 * 128, done;
         message_body = new byte[(int)Math.min(message_head.bodySize, heapMax)];
+        ref = new byte[message_body.length];
         for (int repeat_count = 1; repeat_count <= repeats; repeat_count++) {
             // Pause incoming messages
             handle_flow.flowPause = true;
@@ -517,7 +520,7 @@ public void do_tests ()
                 message_head = amq_framing.constructMessageHead();
                 is = amq_framing.receiveMessage(handle_notify, message_head, null, false);
                 done = 0;
-                while (done < message_head.bodySize) {  
+                while (done < message_head.bodySize) {
                     int chunk = (int)Math.min(heapMax, message_head.bodySize - done);
                     done += is.read(message_body, 0, chunk);
                     body_check(message_body, i, chunk);
@@ -671,7 +674,7 @@ public void raise_exception (int event, Exception e, String _class, String modul
     this.module = module;
     this.exception = e;
 
-    if (e != null && !(e instanceof AMQException))
+    if (e != null && !(e instanceof AMQException) && !(e instanceof AMQIOException))
         System.out.println("E: " + e.getMessage());
     System.err.println(_class + ": " + module + ": " + message + ".");
 
@@ -689,6 +692,8 @@ byte[] body_fill(byte[] body, int seed, int len) {
     int a = 1664525, b = 1013904223;
     long m = (long)1 << 32, v = seed;
 
+    if (verbose)
+        System.out.println("I: Filling message of size: " + len);
     // Fill with patterns from a linear congruential generator
     for (int i = 0; i < len; i++) {
         v = (a * v + b) & (m - 1);
@@ -699,9 +704,9 @@ byte[] body_fill(byte[] body, int seed, int len) {
 }
 
 void body_check(byte[] body, int seed, int len) {
-    byte[] ref = new byte[body.length];
-
+    // Fill reference
     ref = body_fill(ref, seed, len);
+    // Compare
     for (int i = 0; i < len; i++) {
         if (body[i] != ref[i]) {
             System.out.println("Received:");

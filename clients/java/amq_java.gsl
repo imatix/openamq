@@ -2358,25 +2358,25 @@ public class $(AMQPFramingFactory:) extends $(AMQPTransport:) {
                     if (available >= len) {
                         // Read from current fragment
                         receiveData(is, bytes, off, len);
+                        if (verbose) 
+                            System.out.println("I: read " + len + " bytes from server (of fragment)");
                         mRead += len;
                         fRead += len;
                         fNew = len == 0;
                         off += len;
                         len = 0;
-                        if (verbose) 
-                            System.out.println("I: read " + len + " bytes from server (of fragment)");
                         if (mRead >= head.bodySize)    
                             empty = true;
                     } else {
                         if (available > 0) {
                             // Read what is available from current fragment
                             receiveData(is, bytes, off, (int)available);
+                            if (verbose) 
+                                System.out.println("I: read " + available + " bytes from server (of fragment)");
                             mRead += available;
                             fRead += available;
                             off += available;
                             len -= available;
-                            if (verbose) 
-                                System.out.println("I: read " + available + " bytes from server (of fragment)");
                         } else {   
                             // We must get another handle notify
                             if (receiveHandleNotify() == -1)
@@ -2609,24 +2609,24 @@ public class $(AMQPFramingFactory:) extends $(AMQPTransport:) {
                     if (available >= len) {
                         // Fill current fragment
                         sendData(os, bytes, off, len);
+                        if (verbose) 
+                            System.out.println("I: wrote " + len + " bytes to server (of fragment)");
                         mWritten += len;
                         fWritten += len;
                         off += len;
                         len = 0;    
-                        if (verbose) 
-                            System.out.println("I: wrote " + len + " bytes to server (of fragment)");
                         if (mWritten > head.bodySize)
                             full = true;    
                     } else {
                         if (available > 0) {
                             // Fill what is available from current fragment
                             sendData(os, bytes, off, (int)available);
+                            if (verbose) 
+                                System.out.println("I: wrote " + available + " bytes to server (of fragment)");
                             mWritten += available;
                             fWritten += available;
                             off += available;
                             len -= available;    
-                            if (verbose) 
-                                System.out.println("I: wrote " + available + " bytes to server (of fragment)");
                         } else {   
                             // We must generate another handle send
                             if (sendHandleSend() == -1) 
