@@ -199,6 +199,7 @@
     <frame name = "handle browse">
         <field type = "octet"    name = "type"         value = "37" />
         <field type = "shortint" name = "handle id"    >Handle number</field>
+        <field type = "shortint" name = "confirm tag"  >Confirmation tag</field>
         <field type = "longint"  name = "message nbr"  >Message reference</field>
         <sender role = "client" />
     </frame>

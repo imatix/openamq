@@ -1132,7 +1132,7 @@ send_the_frame (smt_thread_t *thread)
     if (s_tracing > AMQP_TRACE_NONE)
         amq_frame_dump (tcb->frame, "OUT ");
 
-    if (tcb->frame->size > 0xFFFF) {
+    if (tcb->frame->size >= 0xFFFF) {
         *(dbyte *) (tcb->frame_header)     = htons (0xFFFF);
         *(qbyte *) (tcb->frame_header + 2) = htonl (tcb->command->cur_size);
         s_sock_write (thread, tcb->frame_header, 6);

@@ -104,12 +104,10 @@
 
 <method name = "ack" template = "function" >
     <argument name = "command" type = "amq_channel_ack_t *" />
-    <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
     amq_dispatch_list_ack (self->dispatched, command->message_nbr);
 </method>
 
 <method name = "commit" template = "function" >
-    <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
     if (self->transacted) {
         /*  Save the client transaction                                      */
         amq_smessage_list_commit (self->messages);
@@ -120,25 +118,18 @@
         /*  Now dispatch the resulting messages, if any                      */
         amq_vhost_dispatch (self->vhost);
     }
-    else {
-        if (reply_text)
-            *reply_text = "Channel is not transacted - commit is not allowed";
-        rc = AMQP_COMMAND_INVALID;
-    }
+    else
+        amq_global_set_error (AMQP_COMMAND_INVALID, "Channel is not transacted - commit is not allowed");
 </method>
 
 <method name = "rollback" template = "function" >
-    <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
     if (self->transacted) {
         amq_smessage_list_rollback (self->messages);
         amq_dispatch_list_rollback (self->dispatched);
         ipr_db_txn_rollback (self->txn);
     }
-    else {
-        if (reply_text)
-            *reply_text = "Channel is not transacted - rollback is not allowed";
-        rc = AMQP_COMMAND_INVALID;
-    }
+    else
+        amq_global_set_error (AMQP_COMMAND_INVALID, "Channel is not transacted - rollback is not allowed");
 </method>
 
 <method name = "selftest">
@@ -159,8 +150,6 @@
         *channels;
     amq_channel_t
         *channel;
-    char
-        *reply_text;
     </local>
 
     /*  Initialise virtual host                                              */
@@ -173,7 +162,7 @@
     ipr_shortstr_cpy (connection_open.virtual_path, "/test");
     ipr_shortstr_cpy (connection_open.client_name,  "selftest");
     connection = amq_connection_new (NULL);
-    amq_connection_open (connection, vhosts, &connection_open, &reply_text);
+    amq_connection_open (connection, vhosts, &connection_open);
 
     /*  Initialise channel                                                   */
     memset (&channel_open, 0, sizeof (channel_open));

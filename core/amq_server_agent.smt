@@ -285,8 +285,8 @@ static int
     </state>
 
     <action name = "process connection open">
-        tcb->reply_code = amq_connection_open (
-            tcb->connection, amq_vhosts, &CONNECTION_OPEN, &tcb->reply_text);
+        amq_global_reset_error ();
+        amq_connection_open (tcb->connection, amq_vhosts, &CONNECTION_OPEN);
         tcb->vhost      = tcb->connection->vhost;
         tcb->client_id  = tcb->connection->client_id;
         connection_reply_if_needed (thread, CONNECTION_OPEN.confirm_tag);
@@ -342,7 +342,6 @@ static int
     </action>
 
     <action name = "check channel state">
-        tcb->channel = amq_channel_search (tcb->connection->channels, tcb->channel_id);
         if (tcb->channel == NULL)
             the_next_event = undefined_event;
         else
@@ -354,7 +353,6 @@ static int
     </action>
 
     <action name = "assert channel is open">
-        tcb->channel = amq_channel_search (tcb->connection->channels, tcb->channel_id);
         if (tcb->channel == NULL || tcb->channel->state != AMQ_CHANNEL_OPEN) {
             tcb->reply_code = AMQP_CHANNEL_ERROR;
             tcb->reply_text = "Channel is not open";
@@ -363,7 +361,6 @@ static int
     </action>
 
     <action name = "check handle state">
-        tcb->handle = amq_handle_search (tcb->connection->handles, tcb->handle_id);
         if (tcb->handle == NULL)
             the_next_event = undefined_event;
         else
@@ -375,7 +372,6 @@ static int
     </action>
 
     <action name = "use channel for handle">
-        tcb->handle = amq_handle_search (tcb->connection->handles, tcb->handle_id);
         if (tcb->handle)
             tcb->channel_id = tcb->handle->channel_id;
         else {
@@ -401,6 +397,7 @@ static int
     </state>
 
     <action name = "process channel open">
+        amq_global_reset_error ();
         tcb->channel = amq_channel_new (
             tcb->connection->channels, tcb->channel_id, tcb->connection, &CHANNEL_OPEN);
         if (!tcb->channel)
@@ -425,22 +422,20 @@ static int
     </state>
 
     <action name = "process channel method">
+        amq_global_reset_error ();
         switch (tcb->frame->type) {
             case FRAME_TYPE_CHANNEL_COMMIT:
-                tcb->reply_code =
-                    amq_channel_commit (tcb->channel, &tcb->reply_text);
+                amq_channel_commit (tcb->channel);
                 channel_reply_if_needed (thread, CHANNEL_COMMIT.confirm_tag);
                 break;
 
             case FRAME_TYPE_CHANNEL_ROLLBACK:
-                tcb->reply_code =
-                    amq_channel_rollback (tcb->channel, &tcb->reply_text);
+                amq_channel_rollback (tcb->channel);
                 channel_reply_if_needed (thread, CHANNEL_ROLLBACK.confirm_tag);
                 break;
 
             case FRAME_TYPE_CHANNEL_ACK:
-                tcb->reply_code =
-                    amq_channel_ack (tcb->channel, &CHANNEL_ACK, &tcb->reply_text);
+                amq_channel_ack (tcb->channel, &CHANNEL_ACK);
                 channel_reply_if_needed (thread, CHANNEL_ACK.confirm_tag);
                 break;
 
@@ -504,14 +499,12 @@ static int
     </state>
 
     <action name = "process handle open">
+        amq_global_reset_error ();
         tcb->handle = amq_handle_new (
             tcb->connection->handles, tcb->handle_id, tcb->channel, &HANDLE_OPEN);
         if (tcb->handle)
             tcb->handle->client_id = tcb->client_id;
-        else {
-            tcb->reply_code = AMQP_ACCESS_REFUSED;
-            tcb->reply_text = "Access to requested destination is not allowed";
-        }
+
         handle_reply_if_needed (thread, HANDLE_OPEN.confirm_tag);
     </action>
 
@@ -531,36 +524,31 @@ static int
     </state>
 
     <action name = "process handle method">
+        amq_global_reset_error ();
         switch (tcb->frame->type) {
             case FRAME_TYPE_HANDLE_CONSUME:
-                tcb->reply_code =
-                    amq_handle_consume (tcb->handle, &HANDLE_CONSUME, &tcb->reply_text);
+                amq_handle_consume (tcb->handle, &HANDLE_CONSUME);
                 handle_reply_if_needed (thread, HANDLE_CONSUME.confirm_tag);
                 break;
             case FRAME_TYPE_HANDLE_CANCEL:
-                tcb->reply_code =
-                    amq_handle_cancel (tcb->handle, &HANDLE_CANCEL, &tcb->reply_text);
+                amq_handle_cancel (tcb->handle, &HANDLE_CANCEL);
                 handle_reply_if_needed (thread, HANDLE_CANCEL.confirm_tag);
                 break;
             case FRAME_TYPE_HANDLE_FLOW:
-                tcb->reply_code =
-                    amq_handle_flow (tcb->handle, &HANDLE_FLOW, &tcb->reply_text);
+                amq_handle_flow (tcb->handle, &HANDLE_FLOW);
                 handle_reply_if_needed (thread, HANDLE_FLOW.confirm_tag);
                 break;
             case FRAME_TYPE_HANDLE_UNGET:
-                tcb->reply_code =
-                    amq_handle_unget (tcb->handle, &HANDLE_UNGET, &tcb->reply_text);
+                amq_handle_unget (tcb->handle, &HANDLE_UNGET);
                 handle_reply_if_needed (thread, HANDLE_UNGET.confirm_tag);
                 break;
             case FRAME_TYPE_HANDLE_QUERY:
-                tcb->reply_code =
-                    amq_handle_query (tcb->handle, &HANDLE_QUERY, &tcb->reply_text);
+                amq_handle_query (tcb->handle, &HANDLE_QUERY);
                 handle_reply_if_needed (thread, 0);
                 break;
             case FRAME_TYPE_HANDLE_BROWSE:
-                tcb->reply_code =
-                    amq_handle_browse (tcb->handle, &HANDLE_BROWSE, &tcb->reply_text);
-                handle_reply_if_needed (thread, 0);
+                amq_handle_browse (tcb->handle, &HANDLE_BROWSE);
+                handle_reply_if_needed (thread, HANDLE_BROWSE.confirm_tag);
                 break;
             default:
                 coprintf ("E: invalid frame type in process_handle_method");
@@ -609,8 +597,8 @@ static int
             if (HANDLE_SEND.partial)
                 the_next_event = continue_event;
             else {
-                tcb->reply_code = amq_handle_send (
-                    tcb->handle, &HANDLE_SEND, tcb->channel->message_in, &tcb->reply_text);
+                amq_global_reset_error ();
+                amq_handle_send (tcb->handle, &HANDLE_SEND, tcb->channel->message_in);
                 handle_reply_if_needed (thread, HANDLE_SEND.confirm_tag);
 
                 /*  We pass ownership to the message handler code            */
@@ -915,70 +903,70 @@ static int
 
             /*  Channel commands                                             */
             case FRAME_TYPE_CHANNEL_OPEN:
-                tcb->channel_id = CHANNEL_OPEN.channel_id;
+                use_command_channel (thread, CHANNEL_OPEN.channel_id);
                 the_next_event = channel_open_event;
                 break;
             case FRAME_TYPE_CHANNEL_ACK:
-                tcb->channel_id = CHANNEL_ACK.channel_id;
+                use_command_channel (thread, CHANNEL_ACK.channel_id);
                 the_next_event = channel_method_event;
                 break;
             case FRAME_TYPE_CHANNEL_COMMIT:
-                tcb->channel_id = CHANNEL_COMMIT.channel_id;
+                use_command_channel (thread, CHANNEL_COMMIT.channel_id);
                 the_next_event = channel_method_event;
                 break;
             case FRAME_TYPE_CHANNEL_ROLLBACK:
-                tcb->channel_id = CHANNEL_ROLLBACK.channel_id;
+                use_command_channel (thread, CHANNEL_ROLLBACK.channel_id);
                 the_next_event = channel_method_event;
                 break;
             case FRAME_TYPE_CHANNEL_CLOSE:
-                tcb->channel_id = CHANNEL_CLOSE.channel_id;
+                use_command_channel (thread, CHANNEL_CLOSE.channel_id);
                 the_next_event = channel_close_event;
                 break;
 
             /*  Handle commands                                              */
             case FRAME_TYPE_HANDLE_OPEN:
-                tcb->channel_id = HANDLE_OPEN.channel_id;
-                tcb->handle_id  = HANDLE_OPEN.handle_id;
+                use_command_channel (thread, HANDLE_OPEN.channel_id);
+                use_command_handle  (thread, HANDLE_OPEN.handle_id);
                 the_next_event  = handle_open_event;
                 break;
             case FRAME_TYPE_HANDLE_SEND:
-                tcb->handle_id = HANDLE_SEND.handle_id;
+                use_command_handle (thread, HANDLE_SEND.handle_id);
                 the_next_event = handle_send_event;
                 break;
             case FRAME_TYPE_HANDLE_CONSUME:
-                tcb->handle_id = HANDLE_CONSUME.handle_id;
+                use_command_handle (thread, HANDLE_CONSUME.handle_id);
                 the_next_event = handle_method_event;
                 break;
             case FRAME_TYPE_HANDLE_CANCEL:
-                tcb->handle_id = HANDLE_CANCEL.handle_id;
+                use_command_handle (thread, HANDLE_CANCEL.handle_id);
                 the_next_event = handle_method_event;
                 break;
             case FRAME_TYPE_HANDLE_FLOW:
-                tcb->handle_id = HANDLE_FLOW.handle_id;
+                use_command_handle (thread, HANDLE_FLOW.handle_id);
                 the_next_event = handle_method_event;
                 break;
             case FRAME_TYPE_HANDLE_UNGET:
-                tcb->handle_id = HANDLE_UNGET.handle_id;
+                use_command_handle (thread, HANDLE_UNGET.handle_id);
                 the_next_event = handle_method_event;
                 break;
             case FRAME_TYPE_HANDLE_QUERY:
-                tcb->handle_id = HANDLE_QUERY.handle_id;
+                use_command_handle (thread, HANDLE_QUERY.handle_id);
                 the_next_event = handle_method_event;
                 break;
             case FRAME_TYPE_HANDLE_BROWSE:
-                tcb->handle_id = HANDLE_BROWSE.handle_id;
+                use_command_handle (thread, HANDLE_BROWSE.handle_id);
                 the_next_event = handle_method_event;
                 break;
             case FRAME_TYPE_HANDLE_PREPARE:
-                tcb->handle_id = HANDLE_PREPARE.handle_id;
+                use_command_handle (thread, HANDLE_PREPARE.handle_id);
                 the_next_event = handle_prepare_event;
                 break;
             case FRAME_TYPE_HANDLE_READY:
-                tcb->handle_id = HANDLE_READY.handle_id;
+                use_command_handle (thread, HANDLE_READY.handle_id);
                 the_next_event = handle_ready_event;
                 break;
             case FRAME_TYPE_HANDLE_CLOSE:
-                tcb->handle_id = HANDLE_CLOSE.handle_id;
+                use_command_handle (thread, HANDLE_CLOSE.handle_id);
                 the_next_event = handle_close_event;
                 break;
 
@@ -1004,9 +992,38 @@ static void inline s_sock_read    (smt_thread_t *thread, byte *buffer, size_t si
 <private name = "functions">
 #define tcb ((amq_server_agent_client_context_t *) thread->context)
 
+
+/*  Get handle referred to in command, if not same as last, lookup in
+    table of handles opened for this connection.
+ */
+static void
+use_command_handle (smt_thread_t *thread, dbyte handle_id)
+{
+    if (tcb->handle_id != handle_id) {
+        tcb->handle    = amq_handle_search (tcb->connection->handles, handle_id);
+        tcb->handle_id = handle_id;
+    }
+}
+
+/*  Get channel referred to in command, if not same as last, lookup in
+    table of channels opened for this connection.
+ */
+static void
+use_command_channel (smt_thread_t *thread, dbyte channel_id)
+{
+    if (tcb->channel_id != channel_id) {
+        tcb->channel    = amq_channel_search (tcb->connection->channels, channel_id);
+        tcb->channel_id = channel_id;
+    }
+}
+
+
 static void
 connection_reply_if_needed (smt_thread_t *thread, dbyte confirm_tag)
 {
+    tcb->reply_code = amq_global_error_code ();
+    tcb->reply_text = amq_global_error_text ();
+
     if (tcb->reply_code)
         smt_thread_raise_exception (thread, connection_error_event);
     else
@@ -1021,6 +1038,9 @@ connection_reply_if_needed (smt_thread_t *thread, dbyte confirm_tag)
 static void
 channel_reply_if_needed (smt_thread_t *thread, dbyte confirm_tag)
 {
+    tcb->reply_code = amq_global_error_code ();
+    tcb->reply_text = amq_global_error_text ();
+
     if (tcb->reply_code)
         smt_thread_raise_exception (thread, channel_error_event);
     else
@@ -1035,6 +1055,9 @@ channel_reply_if_needed (smt_thread_t *thread, dbyte confirm_tag)
 static void
 handle_reply_if_needed (smt_thread_t *thread, dbyte confirm_tag)
 {
+    tcb->reply_code = amq_global_error_code ();
+    tcb->reply_text = amq_global_error_text ();
+
     if (tcb->reply_code)
         smt_thread_raise_exception (thread, channel_error_event);
     else
@@ -1057,7 +1080,7 @@ send_the_frame (smt_thread_t *thread)
     if (s_tracing > AMQP_TRACE_NONE)
         amq_frame_dump (tcb->frame, "OUT ");
 
-    if (tcb->frame->size > 0xFFFF) {
+    if (tcb->frame->size >= 0xFFFF) {
         *(dbyte *) (tcb->frame_header)     = htons (0xFFFF);
         *(qbyte *) (tcb->frame_header + 2) = htonl (tcb->command->cur_size);
         s_sock_write (thread, tcb->frame_header, 6);

@@ -69,5 +69,5 @@ echo put $PACKAGE.tar.gz>>response
 echo quit>>response
 ftp openamq.org < response
 rm response
-echo "Unix source is at: http://openamq.org/pub/$PACKAGE.zip"
-echo "Win32 source is at: http://openamq.org/pub/$PACKAGE.tar.gz"
+echo "Unix source is at: http://openamq.org/pub/$PACKAGE.tar.gz"
+echo "Win32 source is at: http://openamq.org/pub/$PACKAGE.zip"

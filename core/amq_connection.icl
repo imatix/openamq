@@ -82,7 +82,7 @@
     $(selfname)_close (self);
 </method>
 
-<method name = "tune" template = "function" >
+<method name = "tune" template = "function">
     <argument name = "command" type = "amq_connection_tune_t *" />
     /*  Lower limits if client asks for that                                 */
     if (self->frame_max   > command->frame_max)
@@ -98,7 +98,6 @@
 <method name = "open" template = "function" >
     <argument name = "vhosts"   type = "amq_vhost_table_t *" />
     <argument name = "command"  type = "amq_connection_open_t *" />
-    <argument name = "reply_text" type = "char **" />
     <local>
     amq_db_client_t
         *client;
@@ -114,10 +113,8 @@
         client = amq_db_client_new ();
         strcpy (client->name, self->client_name);
         if (amq_db_client_fetch_byname (self->ddb, client, AMQ_DB_FETCH_EQ) == 0) {
-            if (client->connected) {
-                *reply_text = "Client already has an active session";
-                rc = AMQP_CLIENT_ACTIVE;
-            }
+            if (client->connected)
+                amq_global_set_error (AMQP_CLIENT_ACTIVE, "Client already has an active session");
             else {
                 client->connected = TRUE;
                 amq_db_client_update (self->ddb, client);
@@ -131,10 +128,8 @@
         }
         amq_db_client_destroy (&client);
     }
-    else {
-        *reply_text = "Virtual path does not exist";
-        rc = AMQP_INVALID_PATH;
-    }
+    else
+        amq_global_set_error (AMQP_INVALID_PATH, "Virtual path does not exist");
 </method>
 
 <method name = "close" template = "function" >
@@ -164,9 +159,6 @@
         *connection;
     amq_connection_open_t
         connection_open;
-
-    char
-        *reply_text;
     </local>
 
     /*  Initialise virtual host                                              */
@@ -179,7 +171,7 @@
     ipr_shortstr_cpy (connection_open.virtual_path, "/test");
     ipr_shortstr_cpy (connection_open.client_name,  "selftest");
     connection = amq_connection_new (NULL);
-    amq_connection_open (connection, vhosts, &connection_open, &reply_text);
+    amq_connection_open (connection, vhosts, &connection_open);
 
     /*  Release resources                                                    */
     amq_connection_destroy  (&connection);

@@ -87,7 +87,7 @@
     if (self->queue_id) {
         /*  Purge from persistent queue if necessary                         */
         amq_smessage_delete (self->message, self->channel->txn);
-        self->queue->nbr_persist--;
+        self->queue->disk_queue_size--;
     }
     if (self->channel->transacted)
         self->closed = TRUE;            /*  Keep, to allow rollback          */

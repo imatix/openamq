@@ -321,9 +321,6 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
         body_size;
     Bool
         partial;
-
-    char
-        *reply_text;
     </local>
 
     /*  Initialise virtual host                                              */
@@ -338,7 +335,7 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
     ipr_shortstr_cpy (connection_open.virtual_path, "/test");
     ipr_shortstr_cpy (connection_open.client_name,  "selftest");
     connection = amq_connection_new (NULL);
-    amq_connection_open (connection, vhosts, &connection_open, &reply_text);
+    amq_connection_open (connection, vhosts, &connection_open);
 
     /*  Initialise channel                                                   */
     memset (&channel_open, 0, sizeof (channel_open));
@@ -357,7 +354,7 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
     ASSERT (handle);
 
     /*  Initialise queue                                                     */
-    queue = amq_queue_new ("/tmp/test", vhost, 1, 1);
+    queue = amq_queue_new ("/tmp/test", vhost, 1, TRUE, NULL);
     ASSERT (queue);
 
     /*  Record test message                                                  */

@@ -111,7 +111,7 @@
 
     handle-query         = %d36 handle-id message-nbr dest-name selector mime-type
 
-    handle-browse        = %d37 handle-id message-nbr
+    handle-browse        = %d37 handle-id confirm-tag message-nbr
 
     handle-created       = %d40 handle-id dest-name
 

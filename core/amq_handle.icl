@@ -118,9 +118,8 @@ typedef struct {
     else {
         /*  ***TODO*** implement topics
          */
-        coprintf ("amq_handle: invalid service type '%d' specified",
-            self->service_type);
         $(selfname)_destroy (&self);
+        amq_global_set_error (AMQP_ACCESS_REFUSED, "Access to requested destination is not allowed");
     }
 </method>
 
@@ -152,7 +151,12 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
     /*  Create, if temporary and not already existing                        */
     if (temporary) {
         if (!self->queue)
-            self->queue = amq_queue_new (self->dest_name, self->vhost, self->client_id, TRUE);
+            self->queue = amq_queue_new (
+                self->dest_name,        /*  Name of queue                    */
+                self->vhost,            /*  Parent virtual host              */
+                self->client_id,        /*  Owning client id                 */
+                TRUE,                   /*  Temporary queue?                 */
+                NULL);                  /*  Configuration entry              */
 
         /*  If client is (re)opening temporary queue, purge queue            */
         if (self->queue) {
@@ -190,31 +194,32 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
     queue; transacted messages are held in memory until the client commits
     or rolls-back the channel.
     </doc>
-    <argument name = "command"    type = "amq_handle_send_t *" />
-    <argument name = "message"    type = "amq_smessage_t *"    />
-    <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
+    <argument name = "command" type = "amq_handle_send_t *" />
+    <argument name = "message" type = "amq_smessage_t *"    />
     <local>
     amq_queue_t
         *queue;
     </local>
+
     /*  Look for the queue using the destination name specified              */
     queue = amq_queue_full_search (
         self->vhost->queue_hash, self->dest_name, command->dest_name);
 
     if (queue) {
-        amq_queue_accept (queue, self->channel, message);
-        if (!self->channel->transacted)
-            amq_queue_dispatch (queue);
+        if (queue->nbr_consumers >= queue->opt_min_consumers) {
+            amq_queue_accept (queue, self->channel, message);
+            if (!self->channel->transacted)
+                amq_queue_dispatch (queue);
+        }
+        else
+            amq_global_set_error (AMQP_NOT_ALLOWED, "Queue needs consumers but has none");
     }
-    else {
-        *reply_text = "No such destination defined";
-        rc = AMQP_NOT_FOUND;            /*  Destination not found            */
-    }
+    else
+        amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
 </method>
 
 <method name = "consume" template = "function" >
-    <argument name = "command"    type = "amq_handle_consume_t *" />
-    <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
+    <argument name = "command" type = "amq_handle_consume_t *" />
     <local>
     amq_consumer_t
         *consumer;
@@ -225,24 +230,17 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
         ipr_looseref_new (self->consumers, consumer);
         amq_queue_dispatch (consumer->queue);
     }
-    else {
-        *reply_text = "No such destination defined";
-        rc = AMQP_NOT_FOUND;            /*  Destination not found            */
-    }
 </method>
 
 <method name = "cancel" template = "function" >
-    <argument name = "command"    type = "amq_handle_cancel_t *" />
-    <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
+    <argument name = "command" type = "amq_handle_cancel_t *" />
     /*  ***TODO*** implement topics
      */
-    *reply_text = "Topics are not implemented";
-    rc = AMQP_NOT_IMPLEMENTED;
+    amq_global_set_error (AMQP_NOT_IMPLEMENTED, "Topics are not implemented");
 </method>
 
 <method name = "flow" template = "function" >
-    <argument name = "command"    type = "amq_handle_flow_t *" />
-    <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
+    <argument name = "command" type = "amq_handle_flow_t *" />
     <local>
     ipr_looseref_t
         *consumer;
@@ -260,16 +258,13 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
 </method>
 
 <method name = "unget" template = "function" >
-    <argument name = "command"    type = "amq_handle_unget_t *" />
-    <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
-    rc = amq_dispatch_list_unget (self->channel->dispatched, command->message_nbr);
-    if (rc)
-        *reply_text = "No such message held";
+    <argument name = "command" type = "amq_handle_unget_t *" />
+
+    amq_dispatch_list_unget (self->channel->dispatched, command->message_nbr);
 </method>
 
 <method name = "query" template = "function" >
-    <argument name = "command"    type = "amq_handle_query_t *" />
-    <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
+    <argument name = "command" type = "amq_handle_query_t *" />
     <local>
     amq_queue_t
         *queue;
@@ -284,25 +279,20 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
         amq_server_agent_handle_index (
             self->thread, (dbyte) self->key, 0, amq_browser_array_strindex (self->browser_set));
     }
-    else {
-        *reply_text = "No such destination defined";
-        rc = AMQP_NOT_FOUND;            /*  Destination not found            */
-    }
+    else
+        amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
 </method>
 
 <method name = "browse" template = "function" >
-    <argument name = "command"    type = "amq_handle_browse_t *" />
-    <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
+    <argument name = "command" type = "amq_handle_browse_t *" />
     <local>
     amq_browser_t
         *browser;
     </local>
     browser = amq_browser_array_fetch (self->browser_set, command->message_nbr);
     if (browser == NULL
-    ||  amq_queue_browse (browser->queue, self, browser)){
-        *reply_text = "Message does not exist";
-        rc = AMQP_MESSAGE_NOT_FOUND;
-    }
+    ||  amq_queue_browse (browser->queue, self, browser))
+        amq_global_set_error (AMQP_MESSAGE_NOT_FOUND, "Message does not exist");
 </method>
 
 <method name = "selftest">
@@ -330,9 +320,6 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
         *handle;
     amq_handle_table_t
         *handles;
-
-    char
-        *reply_text;
     </local>
 
     /*  Initialise virtual host                                              */
@@ -347,7 +334,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
     ipr_shortstr_cpy (connection_open.virtual_path, "/test");
     ipr_shortstr_cpy (connection_open.client_name,  "selftest");
     connection = amq_connection_new (NULL);
-    amq_connection_open (connection, vhosts, &connection_open, &reply_text);
+    amq_connection_open (connection, vhosts, &connection_open);
 
     /*  Initialise channel                                                   */
     memset (&channel_open, 0, sizeof (channel_open));

@@ -1,6 +1,13 @@
-0.7c1 -
+0.7c2 - 1 March 2005
+    - added queue 'auto-purge' option, empties queue at startup
+    - added queue 'min-consumers' option, disallows producers if no consumers
+    - added queue 'max-consumers' option to limit max consumers
+    - added queue 'memory-queue-max' option to limit memory consumption
+
+0.7c1 - 18 February 2005
     - server name & banner changed to "openamqd"
     - fixed various minor issues in the server
+    - HANDLE BROWSE message did not implement confirm tag - fixed
 
 0.7c0 - 17 February 2005
     - added server support for HANDLE QUERY, HANDLE BROWSE commands

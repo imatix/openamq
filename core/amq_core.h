@@ -41,7 +41,7 @@
 #define AMQP_CHANNEL_ERROR          504
 #define AMQP_HANDLE_ERROR           505
 #define AMQP_RESOURCE_ERROR         506
-#define AMQP_RESOURCE_ERROR         506
+#define AMQP_NOT_ALLOWED            507
 #define AMQP_NOT_IMPLEMENTED        540
 #define AMQP_INTERNAL_ERROR         541
 #define AMQP_INVALID_MESSAGE        542
@@ -50,11 +50,11 @@
 extern "C" {
 #endif
 
-void amq_set_server_name (char *name);
-void amq_set_server_text (char *text);
+void  amq_set_server_name (char *name);
+void  amq_set_server_text (char *text);
 
-int amq_server_core  (int argc, char *argv []);
-int amq_user_modules (void);
+int   amq_server_core     (int argc, char *argv []);
+int   amq_user_modules    (void);
 
 #ifdef __cplusplus
 }

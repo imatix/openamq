@@ -170,6 +170,9 @@ We define these specific reply codes:
 506:
     Insufficient resources.  The client tried to open more channels or
     handles than the server could support.
+507:
+    Temporarily forbidden.  The client asked to perform a command that
+    was temporarily forbidden.
 540:
     Functionality not implemented.  The client tried to use some function
     which this version of the server does not implement.

@@ -146,7 +146,8 @@ s_config_database ($(selftype) *self)
     /*  Connection to database                                               */
     self->db = ipr_db_new (database_dir);
 
-    /*  To deprecate...  */
+    /*  ***TODO*** (iPR) rewrite BDB database access to use new model
+    */
     ipr_shortstr_fmt (database_dir, "%s/%s", self->directory, "ddata");
     make_dir (database_dir);
     self->ddb = amq_db_new (database_dir);
@@ -175,7 +176,12 @@ s_config_queues ($(selftype) *self)
 {
     ipr_config_locate (self->config, "/config/queues/queue", NULL);
     while (self->config->located) {
-        amq_queue_new (ipr_config_attr (self->config, "name", "unnamed"), self, 0, FALSE);
+        amq_queue_new (
+            ipr_config_attr (self->config, "name", "unnamed"),
+            self,                       /*  Parent virtual host              */
+            0,                          /*  Owning client id, if any         */
+            FALSE,                      /*  Temporary queue?                 */
+            self->config);              /*  Configuration entry              */
         ipr_config_next (self->config);
     }
 }

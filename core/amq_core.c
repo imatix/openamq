@@ -33,10 +33,16 @@ static char
     *s_server_name = "amqpsrv",
     *s_server_text = "*** Test server - for internal use only ***";
 
+static char
+    *s_error_text = "No error";
+static int
+    s_error_code = 0;
+
 
 /*  Prototypes for local functions                                           */
 
 static void s_prepare_logging (void);
+
 
 /*  --------------------------------------------------------------------------
     amq_set_server_name
@@ -61,6 +67,61 @@ void
 amq_set_server_text (char *text)
 {
     s_server_text = text;
+}
+
+
+/*  --------------------------------------------------------------------------
+    amq_set_error
+
+    Sets the error reply code and text for the current operation.  Note that
+    this function is not thread safe; we assume that OpenAMQ is operating in
+    a single-threaded environment, which is accurate when working with SMT.
+ */
+
+void
+amq_set_error (int error_code, char *error_text)
+{
+    s_error_code = error_code;
+    s_error_text = error_text;
+}
+
+
+/*  --------------------------------------------------------------------------
+    amq_error_text
+
+    Returns the last error string.
+ */
+
+char *
+amq_error_text (void)
+{
+    return (s_error_text);
+}
+
+
+/*  --------------------------------------------------------------------------
+    amq_error_code
+
+    Returns the error code, if any.
+ */
+
+int
+amq_error_code (void)
+{
+    return (s_error_code);
+}
+
+
+/*  --------------------------------------------------------------------------
+    amq_reset_error
+
+    Resets the error code to zero.
+ */
+
+void
+amq_reset_error (void)
+{
+    amq_set_error (0, "No error");
 }
 
 

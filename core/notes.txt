@@ -1,4 +1,3 @@
-cache last channel/handle per thread, don't search if same
 
 Test case
     - post messages to a queue

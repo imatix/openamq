@@ -18,7 +18,7 @@
 
 <context>
     amq_dispatch_t
-        amq_dispatch;
+        amq_dispatch;                   /*  Self starts with child object    */
     amq_channel_t
         *channel;                       /*  Parent channel                   */
 </context>
@@ -53,7 +53,7 @@
         *dispatch;                      /*  Dispatched message queue entry   */
     </local>
 
-    rc = AMQP_MESSAGE_NOT_FOUND;        /*  Unless found...                  */
+    rc = -1;                            /*  Unless found...                  */
     dispatch = amq_dispatch_list_first (self);
     while (dispatch) {
         if (dispatch->message_nbr == message_nbr) {
@@ -62,7 +62,9 @@
             break;
         }
         dispatch = amq_dispatch_list_next (self, dispatch);
-    }    
+    }
+    if (rc)
+        amq_global_set_error (AMQP_MESSAGE_NOT_FOUND, "No such message held");
 </method>
 
 <method name = "commit" template = "function">

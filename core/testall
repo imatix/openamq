@@ -15,4 +15,5 @@ test_one amq_consumer
 test_one amq_message
 test_one amq_smessage
 test_one amq_bucket
+rm -r .spool
 

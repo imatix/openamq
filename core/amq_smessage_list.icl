@@ -18,7 +18,7 @@
 
 <context>
     amq_smessage_t
-        amq_smessage;
+        amq_smessage;                   /*  Self starts with child object    */
 </context>
 
 <method name = "commit" template = "function">

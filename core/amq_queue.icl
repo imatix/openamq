@@ -69,15 +69,28 @@ ipr_db_queue class.
     qbyte
         last_id;                        /*  Last dispatched message          */
     size_t
-        nbr_persist;                    /*  Nbr. outstanding messages        */
+        disk_queue_size;                /*  Size of disk queue               */
+    size_t
+        memory_queue_size;              /*  Size of memory queue             */
+    size_t
+        nbr_consumers;                  /*  Number of consumers              */
     Bool
         dirty;                          /*  Queue needs dispatching          */
+
+    /*  Queue configuration options                                          */
+    long
+        opt_min_consumers;              /*  Minimum required consumers       */
+    long
+        opt_max_consumers;              /*  Maximum allowed consumers        */
+    long
+        opt_memory_queue_max;           /*  Max. size of memory queue        */
 </context>
 
 <method name = "new">
     <argument name = "vhost"     type = "amq_vhost_t *">Parent virtual host</argument>
     <argument name = "client_id" type = "qbyte"        >Owner, if any</argument>
     <argument name = "temporary" type = "Bool"         >Temporary queue?</argument>
+    <argument name = "config"    type = "ipr_config_t *">Configuration entry</argument>
 
     <!-- Remove these inherited arguments from the API -->
     <dismiss argument = "db"        value = "vhost->db"         />
@@ -93,6 +106,17 @@ ipr_db_queue class.
     self->dest      = amq_db_dest_new  ();
     self->consumers = amq_consumer_list_new ();
     self->messages  = amq_smessage_list_new ();
+
+    /*  Queue configuration options                                          */
+    if (config) {
+        self->opt_min_consumers    = ipr_config_attrn (config, "min-consumers");
+        self->opt_max_consumers    = ipr_config_attrn (config, "max-consumers");
+        self->opt_memory_queue_max = ipr_config_attrn (config, "memory-queue-max");
+
+        /*  auto-purge option means delete all queue messages at restart     */
+        if (ipr_config_attrn (config, "auto-purge"))
+            amq_queue_purge (self);
+    }
 
     self->dest->type = AMQP_SERVICE_QUEUE;
     ipr_shortstr_cpy (self->dest->name, key);
@@ -121,23 +145,39 @@ ipr_db_queue class.
 </method>
 
 <method name = "consume" return = "queue">
+    <doc>
+    Lookup and return queue, if any, for specified destination name.  Concats
+    the handle destination with the supplied suffix to give a full queue name.
+    </doc>
     <argument name = "consumer" type = "amq_consumer_t *">Parent consumer</argument>
     <argument name = "suffix"   type = "char *"          >Destination name suffix</argument>
     <declare  name = "queue"    type = "$(selftype) *" default = "NULL"/>
 
     queue = $(selfname)_full_search (
         consumer->vhost->queue_hash, consumer->handle->dest_name, suffix);
+
     if (queue) {
+        /*  Allowed as consumer if persistent queue and/or owner             */
         if (queue->dest->client_id == consumer->client_id
         || !queue->dest->temporary) {
-            amq_consumer_list_queue (queue->consumers, consumer);
-            queue->window += consumer->window;
+            if (queue->opt_max_consumers == 0
+            ||  queue->nbr_consumers < queue->opt_max_consumers) {
+                amq_consumer_list_queue (queue->consumers, consumer);
+                queue->nbr_consumers++;
+                queue->window += consumer->window;
+            }
+            else {
+                amq_global_set_error (AMQP_NOT_ALLOWED, "Queue consumer limit reached");
+                queue = NULL;
+            }
         }
         else {
-            coprintf ("$(selfname) W: consume failed, not queue owner");
-            queue = NULL;               /*  Not owner of temporary queue     */
+            amq_global_set_error (AMQP_ACCESS_REFUSED, "Not owner of queue");
+            queue = NULL;
         }
     }
+    else
+        amq_global_set_error (AMQP_NOT_FOUND, "No such queue defined");
 </method>
 
 <method name = "cancel" template = "function">
@@ -145,6 +185,7 @@ ipr_db_queue class.
     Cancels a consumer on a specific queue, updating the queue as needed.
     </doc>
     <argument name = "consumer" type = "amq_consumer_t *">Parent consumer</argument>
+    self->nbr_consumers++;
     self->window -= consumer->window;
 </method>
 
@@ -158,32 +199,43 @@ ipr_db_queue class.
     </doc>
     <argument name = "channel" type = "amq_channel_t *" >Current channel</argument>
     <argument name = "message" type = "amq_smessage_t *">Message, if any</argument>
-
     ASSERT (message);
+
     if (channel && channel->transacted) {
         /*  Transacted messages are held per-channel                         */
         message->queue = self;
         amq_smessage_list_queue (channel->messages, message);
-#   ifdef TRACE_DISPATCH
+#       ifdef TRACE_DISPATCH
         coprintf ("$(selfname) I: queue transacted message");
-#   endif
+#       endif
     }
     else
-    if (self->nbr_persist > 0 || message->persistent) {
+    /*  We save to the disk queue if:
+        - the message is persistent (obviously)
+        - there are still persistent messages to be processed, so that
+          we maintain message ordering (the memory queue gets emptied before
+          the disk queue)
+        - the memory queue is full (>= max, and max > 0)
+     */
+    if (message->persistent
+    ||  self->disk_queue_size > 0
+    || (self->opt_memory_queue_max > 0
+    &&  self->memory_queue_size >= self->opt_memory_queue_max)) {
         /*  Persistent messages are saved on persistent queue storage        */
-        self->nbr_persist++;
+        self->disk_queue_size++;
         amq_smessage_save (message, self, NULL);
         amq_smessage_destroy (&message);
-#   ifdef TRACE_DISPATCH
+#       ifdef TRACE_DISPATCH
         coprintf ("$(selfname) I: save persistent message to storage");
-#   endif
+#       endif
     }
     else {
         /*  Non-persistent messages are held per queue                       */
+        self->memory_queue_size++;
         amq_smessage_list_queue (self->messages, message);
-#   ifdef TRACE_DISPATCH
+#       ifdef TRACE_DISPATCH
         coprintf ("$(selfname) I: save non-persistent message to queue memory");
-#   endif
+#       endif
     }
     self->dirty = TRUE;                 /*  Queue has new data               */
 
@@ -212,35 +264,38 @@ ipr_db_queue class.
         are held both in memory and disk, the ones in memory will be the
         oldest.
      */
-    message = amq_smessage_list_first (self->messages);
-#   ifdef TRACE_DISPATCH
-    if (self->window && message)
-        coprintf ("$(selfname) I: dispatching non-persistent window=%d", self->window);
-#   endif
-    while (self->window && message) {
-        consumer = s_get_next_consumer (self);
-        if (consumer) {
-            amq_smessage_list_unlink (message);
-            self->item_id = 0;          /*  Non-persistent message           */
-            s_dispatch_message (consumer, message);
+    if (self->memory_queue_size) {
+#       ifdef TRACE_DISPATCH
+        coprintf ("$(selfname) I: dispatching non-persistent window=%d pending=%d",
+            self->window, self->memory_queue_size);
+#       endif
+        message = amq_smessage_list_first (self->messages);
+        while (self->window && message) {
+            consumer = s_get_next_consumer (self);
+            if (consumer) {
+                amq_smessage_list_unlink (message);
+                self->memory_queue_size--;
+                self->item_id = 0;          /*  Non-persistent message           */
+                s_dispatch_message (consumer, message);
 
-            /*  Invalidate any browsers for this message                     */
-            browser_ref = ipr_looseref_list_first (message->browsers);
-            while (browser_ref) {
-                amq_browser_destroy ((amq_browser_t **) &browser_ref->object);
-                browser_ref = ipr_looseref_list_next (message->browsers, browser_ref);
+                /*  Invalidate any browsers for this message                     */
+                browser_ref = ipr_looseref_list_first (message->browsers);
+                while (browser_ref) {
+                    amq_browser_destroy ((amq_browser_t **) &browser_ref->object);
+                    browser_ref = ipr_looseref_list_next (message->browsers, browser_ref);
+                }
+                /*  Get next message (is now first on queue)                     */
+                message = amq_smessage_list_first (self->messages);
             }
-            /*  Get next message (is now first on queue)                     */
-            message = amq_smessage_list_first (self->messages);
+            else
+                break;                      /*  No more consumers                */
         }
-        else
-            break;                      /*  No more consumers                */
     }
     /*  Now process any messages on disk                                     */
-    if (self->nbr_persist) {
+    if (self->disk_queue_size) {
 #       ifdef TRACE_DISPATCH
         coprintf ("$(selfname) I: dispatching persistent window=%d pending=%d",
-            self->window, self->nbr_persist);
+            self->window, self->disk_queue_size);
 #       endif
         /*  Get oldest candidate message to dispatch                         */
         self->item_id = self->last_id;
@@ -304,7 +359,7 @@ ipr_db_queue class.
         message = amq_smessage_list_next (self->messages, message);
     }
     /*  Now process any messages on disk                                     */
-    if (self->nbr_persist) {
+    if (self->disk_queue_size) {
         /*  Get oldest candidate message to dispatch                         */
         self->item_id = self->last_id;
         finished = amq_queue_fetch (self, IPR_QUEUE_GT);
