@@ -25,7 +25,7 @@
 #define AMQP_TRACE_LOW          1
 #define AMQP_TRACE_MED          2
 #define AMQP_TRACE_HIGH         3
-#define AMQP_SOCKET_TIMEOUT     5 * 1000 * 1000  /*  usecs  */
+#define AMQP_SOCKET_TIMEOUT     5 * 1000         /*  msecs  */
 
 static int
     s_tracing = 0;
@@ -184,8 +184,8 @@ static int
             *handle_notify_callback;
         int
             *result;                    /*  Pointer to result of operation   */
-        uint64_t
-            usecs;                      /*  Default socket timeout           */
+        qbyte
+            msecs;                      /*  Default socket timeout           */
     </context>
 
     <handler name = "thread new">
@@ -195,7 +195,7 @@ static int
         <argument name = "password"     type = "char *">User password</argument>
         tcb->client = client;
         tcb->result = NULL;
-        tcb->usecs  = AMQP_SOCKET_TIMEOUT;
+        tcb->msecs  = AMQP_SOCKET_TIMEOUT;
         ipr_shortstr_cpy (tcb->client_name, client_name);
         ipr_shortstr_cpy (tcb->login,       login);
         ipr_shortstr_cpy (tcb->password,    password);
@@ -246,7 +246,7 @@ static int
             tcb->port = AMQ_SERVER_PORT;
 
         tcb->socket = smt_socket_connect (
-            thread, tcb->usecs, tcb->hostname, tcb->port,
+            thread, tcb->msecs, tcb->hostname, tcb->port,
             SMT_NULL_EVENT);
     </action>
 
@@ -342,7 +342,7 @@ static int
             tcb->result = blocking_receive_m->result;
             if (tcb->result)
                 *tcb->result = AMQ_OK;
-            tcb->usecs = blocking_receive_m->msecs * 1000;
+            tcb->msecs = blocking_receive_m->msecs;
             <action name = "read next command" />
             <call state = "expect handle notify" />
         </method>
@@ -1150,14 +1150,14 @@ send_the_frame (smt_thread_t *thread)
 static void inline
 s_sock_write (smt_thread_t *thread, byte *buffer, size_t size)
 {
-    smt_socket_request_write (thread, tcb->socket, tcb->usecs,
+    smt_socket_request_write (thread, tcb->socket, tcb->msecs,
                               size, buffer, SMT_NULL_EVENT);
 }
 
 static void inline
 s_sock_read (smt_thread_t *thread, byte *buffer, size_t size)
 {
-    smt_socket_request_read (thread, tcb->socket, tcb->usecs,
+    smt_socket_request_read (thread, tcb->socket, tcb->msecs,
                              size, size, buffer, SMT_NULL_EVENT);
 }
 #undef tcb
@@ -1217,7 +1217,7 @@ s_sock_read (smt_thread_t *thread, byte *buffer, size_t size)
 </action>
 
 <action name = "reset default timeout">
-    tcb->usecs = AMQP_SOCKET_TIMEOUT;
+    tcb->msecs = AMQP_SOCKET_TIMEOUT;
 </action>
 
 </agent>
