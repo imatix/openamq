@@ -9,7 +9,7 @@
 <include filename = "prelude.pdl" />
 
 <!-- Note that this project file is a pure subset
-     of the one in the parent directory ->
+     of the one in the parent directory -->
      
 <file name = "amq.gsl"           class = "private resource" >Main generator</file>
 <file name = "amq.xml"           class = "private resource" >Component definitions</file>
