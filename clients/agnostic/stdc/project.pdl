@@ -13,6 +13,8 @@
 <file name = "test_level0.c" class = "main program"    >Level 0 test program</file>
 
 <!-- Deliverables -->
+<file name = "libamqp"       class = "public library"  >Level 0 library</file>
+<file name = "amqp_level0.h" class = "public header"   >Level 0 definitions</file>
 <file name = "test_level0"   class = "public command"  >Level 0 test executable</file>
 <actions>
 <generate>
