@@ -63,7 +63,6 @@ apr_status_t connection_close_cb (
 apr_status_t send_message(apr_uint16_t confirm_tag)
 {
     apr_status_t result;
-    apr_uint16_t value;
     char buffer [32768];
 	char identifier [2000];
 
@@ -82,7 +81,7 @@ apr_status_t send_message(apr_uint16_t confirm_tag)
 
 	message_number++;
 
-	fprintf (stderr, "Message % s sent. (%ld bytes)\n", identifier, (long) message_size);
+	fprintf (stderr, "Message %s sent. (%ld bytes)\n", identifier, (long) message_size);
 
     return APR_SUCCESS;            
 }
