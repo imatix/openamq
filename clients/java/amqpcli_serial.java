@@ -24,7 +24,7 @@ public class amqpcli_serial extends amqpcli_seriali
 AMQConnection.Tune
     client_tune;                        /* Tune parameters                  */
 AMQFieldTable
-    tune_reply;                         /* Tune parameters                  */ 
+    tune_reply;                         /* Tune parameters                  */
 AMQConnection.Open
     client_open;                        /* Connection parameters            */
 AMQConnection.Close
@@ -43,7 +43,7 @@ int
     socket_timeout = 0,                 /* Socket timeout im ms             */
     messages = 1000;                    /* Messages to send                 */
 long
-    frame_max = 2048,    
+    frame_max = 2048,
     message_size = 1024;                /* Message size                     */
 
 
@@ -112,7 +112,7 @@ public int amqpcli_serial_execute (String args[])
         batch_size = Short.parseShort(args[3]);
     if (args.length > 4)
         message_size = Integer.parseInt(args[4]);
-    
+
     feedback = execute ();
 
     return (feedback);
@@ -364,11 +364,11 @@ public void do_tests ()
         message_size = head_size + message_head.bodySize;
         if (message_size > amq_framing.getFrameMax())
             System.out.println("Sending " + messages + " (fragmented) messages to server...");
-        else    
+        else
             System.out.println("Sending " + messages + " messages to server...");
         for (int i = 1; i < messages; i++) {
             OutputStream os;
-            
+
             // Create the message body
             message_body = new byte[(int)message_head.bodySize];
             body_fill(message_body, i);
@@ -410,9 +410,9 @@ public void do_tests ()
         amq_framing.produceFrame(handle_consume);
         System.out.println("Reading messages back from the server...");
         for (int i = 1; i < messages; i++) {
-            InputStream is; 
+            InputStream is;
             byte[] bytes;
-            
+
             // Get handle notify
             handle_notify = (AMQHandle.Notify)amq_framing.consumeFrame();
             message_head = amq_framing.consumeMessageHead();
@@ -519,7 +519,7 @@ public void negotiate_connection_tune ()
         tune_server = (AMQConnection.Tune)frame;
         amq_framing.setTuneParameters(tune_server);
         // Send the reply
-        tune_reply = new AMQFieldTable();    
+        tune_reply = new AMQFieldTable();
         tune_reply.putInteger("FRAME_MAX", Math.min(frame_max, amq_framing.getFrameMax()));
         tune_reply.putInteger("HEARTBEAT", 0);
         client_tune.options = tune_reply.storeToBucket();
