@@ -277,11 +277,50 @@ function build_variables (frame, do_type)
     endfor
 endfunction
 
+function build_size (frame) 
+    my.bit_count = 0
+    for field
+        if    type <> "bit" & my.bit_count > 0
+-           Prepare for new bitfield
+            my.bit_count = 0
+        endif
+        if    type = "char"
+            >            // char
+            >            size += 1;
+        elsif type = "bit"
+            if (my.bit_count = 0)
+                >            // bits
+                >            size += 1;
+            endif    
+            my.bit_count += 1
+        elsif type = "octet"
+            >            // octet
+            >            size += 1;
+        elsif type = "shortint"
+            >            // shortint
+            >            size += 2;
+        elsif type = "longint"
+            >            // longint
+            >            size += 4;
+        elsif type = "shortstr"
+            >            // shortstr
+            >            size += 1;
+            >            if ($(name:) != null) 
+            >                size += string2Bytes($(name:)).length;
+        elsif type = "longstr" | type = "table"
+            >            // table (longstr)
+            >            size += 2;
+            >            if ($(name:) != null) 
+            >                size += $(name:).length;
+        endif
+    endfor
+endfunction    
+
 function build_decoding (frame, is, inner)
     my.bit_count = 0
     for field
         if    type <> "bit" & my.bit_count > 0
--           Prepare for new bitfield blocks 
+-           Prepare for new bitfield
             my.bit_count = 0
         endif
         if (name <> "type") 
@@ -318,7 +357,7 @@ function build_encoding (frame, os)
         if    type <> "bit" & my.bit_count > 0
 -           Write the bitfield 
             >                $(my.os).writeByte(flags);
--           Prepare for new bitfield blocks 
+-           Prepare for new bitfield
             my.bit_count = 0
         endif
         if    type = "char"
@@ -452,7 +491,7 @@ function build_framing (class, inner, AMQPFrameException)
     >        public int encode() throws $(AMQPFrameException:) {
     >            // We encode into a byte array bucket
     >            ByteArrayOutputStream 
-    >                baos = new ByteArrayOutputStream();          /* Frame stream                     */
+    >                baos = new ByteArrayOutputStream(size());          /* Frame stream                     */
     >            DataOutputStream 
     >                dos = new DataOutputStream(baos);            /* Frame data writer                */
     >
@@ -476,9 +515,9 @@ function build_framing (class, inner, AMQPFrameException)
     >         **/
     >        public int size() throws $(AMQPFrameException:) {
     >           int
-    >               size = encode();
+    >               size = 0;
     >
-    >           bucket = null;
+    build_size (.)
     >
     >           return size;
     >        }
