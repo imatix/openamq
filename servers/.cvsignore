@@ -21,4 +21,12 @@ userguide.gdl
 userguide*.htm
 *.lst
 amqpsrv
+configure
+configure.bat
+Makefile
+Makefile.dev
+Makefile.src
+msmake
+msmake.dev
+msmake.src
 

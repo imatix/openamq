@@ -2,7 +2,7 @@
 :-
 :-  Make full source package
 :-
-set VERSION=0.7b0
+set VERSION=0.7b4
 set PACKAGE=openamq-%VERSION%-src
 set HOME=c:\imatix\work
 

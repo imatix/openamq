@@ -1,14 +1,13 @@
 <?xml?>
 <pdl
     name      = "OpenAMQ Clients"
-    version   = "0.7b3"
+    version   = "0.7b4"
     copyright = "Copyright (c) 2004-2005 JPMorgan"
     workflow  = "standard.pwl"
-    deploy    = "openamq-client"
+    deploy    = "openamq/clients"
     >
 
 <include filename = "prelude.pdl" />
-<inherit filename = "icl_classes.pdl" />
 
 <!-- Standard C clients -->
 <directory name = "stdc" keep_paths = "0">
@@ -21,12 +20,29 @@
     <file name = "version.h"         class = "c version"        >Project version file</file>
 
     <!-- Deliverables -->
-
     <file name = "amqpcli_asynch"    class = "public command"   >Client demo executable</file>
     <file name = "amqpcli_serial"    class = "public command"   >Client demo executable</file>
     <file name = "amqpcli_file"      class = "public command"   >Client file transfer demo</file>
     <file name = "amqpcli_get"       class = "public command"   >Client file get</file>
     <file name = "amqpcli_put"       class = "public command"   >Client file put</file>
+</directory>
+
+<directory name = "complus" keep_paths = "0">
+    <file name = "amq.gsl"           class = "private resource" >Main generator</file>
+    <file name = "amq.xml"           class = "private resource" >Component definitions</file>
+    <file name = "axobj.gsl"         class = "private resource" >Object generator</file>
+    <actions target = "win32">
+      <generate>
+        <execute>
+        gsl amq.gsl
+        </execute>
+      </generate>
+      <build>
+        <execute>
+        msdev amq.dsw /make
+        </execute>
+      </build>
+    </actions>
 </directory>
 
 </pdl>

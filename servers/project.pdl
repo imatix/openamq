@@ -1,10 +1,10 @@
 <?xml?>
 <pdl
     name      = "OpenAMQ Servers"
-    version   = "0.7b2"
+    version   = "0.7b4"
     copyright = "Copyright (c) 2004-2005 JPMorgan"
     workflow  = "standard.pwl"
-    deploy    = "openamq-server"
+    deploy    = "openamq/servers"
     >
 
 <include filename = "prelude.pdl" />

@@ -1,3 +1,11 @@
 boomake*
 version.h
+configure
+configure.bat
+Makefile
+Makefile.dev
+Makefile.src
+msmake
+msmake.dev
+msmake.src
 

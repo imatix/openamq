@@ -1,6 +1,7 @@
-0.7b4 - 26 January 2005
-
-
+0.7b4 - 28 January 2005
+    - fixed build process for Windows 
+    - COM+ client component released (version 0.2)
+    
 0.7b3 - 25 January 2005
     - client failed when receiving handle_notify during close; fixed
     - queue management got confused when persistent messages used

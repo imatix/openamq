@@ -15,8 +15,14 @@
 *.ilk
 *.pdb
 boomake*
-makefile*
-msmake*
+configure
+configure.bat
+Makefile
+Makefile.dev
+Makefile.src
+msmake
+msmake.dev
+msmake.src
 version.h
 .spool
 amqpsrv
