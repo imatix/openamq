@@ -126,52 +126,52 @@ typedef struct
 /*- Function prototypes ----------------------------------------------------
 */
 
-static int trace (
+static int s_trace (
    const char *format,
    ...
    );
 
-static void print_usage (void);
+static void s_print_usage (void);
 
-static void main_terminate (
+static void s_main_terminate (
     client_t *client
     );
 
-static void move_to_next_query_result (
+static void s_move_to_next_query_result (
     client_t *client
     );
 
-static apr_status_t browse_next (
+static apr_status_t s_browse_next (
     client_t     *client,
     apr_uint16_t handle_id
     );
 
-static apr_status_t send_message(
+static apr_status_t s_send_message(
     client_t     *client,
     apr_uint16_t confirm_tag
     );
 
-static apr_status_t handle_close_cb (
+static apr_status_t s_handle_close_cb (
     const void         *hint,
     const apr_uint16_t handle_id,
     const apr_uint16_t reply_code,
     const char         *reply_text
     );
 
-static apr_status_t channel_close_cb (
+static apr_status_t s_channel_close_cb (
     const void         *hint,
     const apr_uint16_t channel_id,
     const apr_uint16_t reply_code,
     const char         *reply_text
     );
 
-static apr_status_t connection_close_cb (
+static apr_status_t s_connection_close_cb (
     const void         *hint,
     const apr_uint16_t reply_code,
     const char         *reply_text
     );
 
-static apr_status_t handle_index_cb (
+static apr_status_t s_handle_index_cb (
     const void         *hint,
     const apr_uint16_t handle_id,
     const apr_uint32_t message_nbr,
@@ -179,7 +179,7 @@ static apr_status_t handle_index_cb (
     const char*        message_list
     );
 
-static apr_status_t handle_reply_cb (
+static apr_status_t s_handle_reply_cb (
     const void         *hint,
     const apr_uint16_t handle_id,
     const apr_uint16_t confirm_tag,
@@ -187,7 +187,7 @@ static apr_status_t handle_reply_cb (
     const char         *reply_text
     );
 
-static apr_status_t channel_reply_cb (
+static apr_status_t s_channel_reply_cb (
     const void         *hint,
     const apr_uint16_t channel_id,
     const apr_uint16_t confirm_tag,
@@ -195,14 +195,14 @@ static apr_status_t channel_reply_cb (
     const char         *reply_text
     );
 
-static apr_status_t connection_reply_cb (
+static apr_status_t s_connection_reply_cb (
     const void         *hint,
     const apr_uint16_t confirm_tag,
     const apr_uint16_t reply_code,
     const char         *reply_text
     );
 
-static apr_status_t connection_challenge_cb (
+static apr_status_t s_connection_challenge_cb (
     const void       *hint,
     const apr_byte_t version,
     const char       *mechanisms,
@@ -210,7 +210,7 @@ static apr_status_t connection_challenge_cb (
     const char       *challenges
     );
 
-static apr_status_t connection_tune_cb (
+static apr_status_t s_connection_tune_cb (
     const void         *hint,
     const apr_uint32_t frame_max,
     const apr_uint16_t channel_max,
@@ -220,7 +220,7 @@ static apr_status_t connection_tune_cb (
     const char         *options
     );
 
-static apr_status_t handle_notify_cb (
+static apr_status_t s_handle_notify_cb (
     const void         *hint,
     const apr_uint16_t handle_id,
     const apr_uint32_t message_nbr,
@@ -316,28 +316,28 @@ int main (
             client.clienttype = clienttype_consumer;
         if (strcmp (argv[arg_pos], "query") == 0)
             client.clienttype = clienttype_query;
-        if (strncmp (argv[arg_pos], "-s", 2) == 0)
-            client.server = argv [arg_pos] + 2;
-        if (strncmp (argv[arg_pos], "-h", 2) == 0)
-            client.host = argv [arg_pos] + 2;
-        if (strncmp (argv[arg_pos], "-d", 2) == 0)
-            client.destination = argv [arg_pos] + 2;
-        if (strncmp (argv[arg_pos], "-m", 2) == 0)
-            client.client_name = argv [arg_pos] + 2;
-        if (strncmp (argv[arg_pos], "-n", 2) == 0)
-            client.messages = atoi (argv [arg_pos] + 2);
-        if (strncmp (argv[arg_pos], "-i", 2) == 0)
-            client.interval = atoi (argv [arg_pos] + 2);
-        if (strncmp (argv[arg_pos], "-p", 2) == 0)
-            client.prefetch = atoi (argv [arg_pos] + 2);
-        if (strncmp (argv[arg_pos], "-l", 2) == 0)
-            client.message_size = atoi (argv [arg_pos] + 2);
-        if (strncmp (argv[arg_pos], "-x", 2) == 0)
+        if (strcmp (argv[arg_pos], "-s") == 0 && ++arg_pos != argc)
+            client.server = argv [arg_pos];
+        if (strcmp (argv[arg_pos], "-h") == 0 && ++arg_pos != argc)
+            client.host = argv [arg_pos];
+        if (strcmp (argv[arg_pos], "-d") == 0 && ++arg_pos != argc)
+            client.destination = argv [arg_pos];
+        if (strcmp (argv[arg_pos], "-m") == 0 && ++arg_pos != argc)
+            client.client_name = argv [arg_pos];
+        if (strcmp (argv[arg_pos], "-n") == 0 && ++arg_pos != argc)
+            client.messages = atoi (argv [arg_pos]);
+        if (strcmp (argv[arg_pos], "-i") == 0 && ++arg_pos != argc)
+            client.interval = atoi (argv [arg_pos]);
+        if (strcmp (argv[arg_pos], "-p") == 0 && ++arg_pos != argc)
+            client.prefetch = atoi (argv [arg_pos]);
+        if (strcmp (argv[arg_pos], "-l") == 0 && ++arg_pos != argc)
+            client.message_size = atoi (argv [arg_pos]);
+        if (strcmp (argv[arg_pos], "-c") == 0 && ++arg_pos != argc)
+            client.commit_count = atoi (argv [arg_pos]);
+        if (strcmp (argv[arg_pos], "-r") == 0 && ++arg_pos != argc)
+            client.rollback_count = atoi (argv [arg_pos]);
+        if (strcmp (argv[arg_pos], "-x") == 0)
             client.persistent = 1;
-        if (strncmp (argv[arg_pos], "-c", 2) == 0)
-            client.commit_count = atoi (argv [arg_pos] + 2);
-        if (strncmp (argv[arg_pos], "-r", 2) == 0)
-            client.rollback_count = atoi (argv [arg_pos] + 2);
     }
     client.till_acknowledge = client.prefetch;
 
@@ -346,7 +346,7 @@ int main (
     if (client.clienttype == clienttype_undefined ||
             client.host == NULL ||
             client.destination == NULL) {
-        print_usage ();
+        s_print_usage ();
         return EXIT_FAILURE;
     }
 
@@ -354,82 +354,82 @@ int main (
     */
     client.message_buffer = malloc (client.message_size);
     if (!client.message_buffer) {
-        trace ("Not enough memory for message body.");
-        main_terminate (&client);
+        s_trace ("Not enough memory for message body.");
+        s_main_terminate (&client);
         return EXIT_FAILURE;
     }
     for (buff_pos = 0; buff_pos != client.message_size; buff_pos++) 
         client.message_buffer [buff_pos] = buff_pos % 256;
 
-    trace ("Connecting to server.\n");
+    s_trace ("Connecting to server.\n");
 
     /*  Initialize APR, create and open a socket, initialize AMQ
     */
 
     result = apr_app_initialize (&argc, &argv, &env);
     if(result != APR_SUCCESS) {
-        trace ("apr_app_initialize failed: err=%d (%s)\n",
-            (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
-        main_terminate (&client);
+        s_trace ("apr_app_initialize failed: err=%d (%s)\n",
+            (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
+        s_main_terminate (&client);
         return EXIT_FAILURE;
     }
 
     result = apr_pool_initialize();
     if(result != APR_SUCCESS) {
-        trace ("apr_pool_initialize failed: err=%d (%s)\n",
-            (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
-        main_terminate (&client);
+        s_trace ("apr_pool_initialize failed: err=%d (%s)\n",
+            (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
+        s_main_terminate (&client);
         return EXIT_FAILURE;
     }
 
     result = apr_pool_create(&pool, NULL);
     if (result != APR_SUCCESS) {
-        trace ("apr_pool_create failed: err=%d (%s)\n",
-            (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
-        main_terminate (&client);
+        s_trace ("apr_pool_create failed: err=%d (%s)\n",
+            (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
+        s_main_terminate (&client);
         return EXIT_FAILURE;
     }
 
     result = apr_socket_create ( &(client.sck), APR_INET, SOCK_STREAM,
         APR_PROTO_TCP, pool);
     if (result != APR_SUCCESS) {
-        trace ("apr_socket_create failed: err=%d (%s)\n",
-            (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
-        main_terminate (&client);
+        s_trace ("apr_socket_create failed: err=%d (%s)\n",
+            (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
+        s_main_terminate (&client);
         return EXIT_FAILURE;
     }
 
     sprintf (buffer, "%s:7654", client.server);
     result = apr_parse_addr_port (&addr, &scope_id, &port, buffer, pool);
     if (result != APR_SUCCESS) {
-        trace ("apr_parse_addr_port failed: err=%d (%s)\n",
-            (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
-        main_terminate (&client);
+        s_trace ("apr_parse_addr_port failed: err=%d (%s)\n",
+            (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
+        s_main_terminate (&client);
         return EXIT_FAILURE;
     }
 
     result = apr_sockaddr_info_get(&sockaddr, addr, AF_UNSPEC, port,
         APR_IPV4_ADDR_OK, pool);
     if (result != APR_SUCCESS) {
-        trace ("apr_sockaddr_info_get failed: err=%d (%s)\n",
-            (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
-        main_terminate (&client);
+        s_trace ("apr_sockaddr_info_get failed: err=%d (%s)\n",
+            (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
+        s_main_terminate (&client);
         return EXIT_FAILURE;
     }
 
     result = apr_socket_connect (client.sck, sockaddr);
     if (result != APR_SUCCESS) {
-        trace ("apr_socket_connect failed: err=%d (%s)\n",
-            (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
-        main_terminate (&client);
+        s_trace ("apr_socket_connect failed: err=%d (%s)\n",
+            (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
+        s_main_terminate (&client);
         return EXIT_FAILURE;
     }
 
     result = amqp_init (client.sck);
     if (result != APR_SUCCESS) {
-        trace ("amqp_init failed: err=%d (%s)\n",
-            (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
-        main_terminate (&client);
+        s_trace ("amqp_init failed: err=%d (%s)\n",
+            (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
+        s_main_terminate (&client);
         return EXIT_FAILURE;
     }
 
@@ -437,17 +437,17 @@ int main (
 
     /*  Fill in the callbacks table
     */
-    memset ( (void*) &callbacks, 0, sizeof (amqp_callbacks_t) );
-    callbacks.connection_challenge = connection_challenge_cb;
-    callbacks.connection_tune      = connection_tune_cb;
-    callbacks.handle_notify        = handle_notify_cb;
-    callbacks.connection_reply     = connection_reply_cb;
-    callbacks.channel_reply        = channel_reply_cb;
-    callbacks.handle_reply         = handle_reply_cb;
-    callbacks.handle_index         = handle_index_cb;
-    callbacks.connection_close     = connection_close_cb;
-    callbacks.channel_close        = channel_close_cb;
-    callbacks.handle_close         = handle_close_cb;
+    memset ((void*) &callbacks, 0, sizeof (amqp_callbacks_t));
+    callbacks.connection_challenge = s_connection_challenge_cb;
+    callbacks.connection_tune      = s_connection_tune_cb;
+    callbacks.handle_notify        = s_handle_notify_cb;
+    callbacks.connection_reply     = s_connection_reply_cb;
+    callbacks.channel_reply        = s_channel_reply_cb;
+    callbacks.handle_reply         = s_handle_reply_cb;
+    callbacks.handle_index         = s_handle_index_cb;
+    callbacks.connection_close     = s_connection_close_cb;
+    callbacks.channel_close        = s_channel_close_cb;
+    callbacks.handle_close         = s_handle_close_cb;
 
     /*  Dispatcher loop
     */
@@ -455,9 +455,9 @@ int main (
         result = amqp_recv (client.sck, buffer, BUFFER_SIZE,
             &callbacks, (void*) &client);
         if (result != APR_SUCCESS && result != APR_TIMEUP) {
-            trace ("amqp_recv failed: err=%d (%s)\n",
-                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
-            main_terminate (&client);
+            s_trace ("amqp_recv failed: err=%d (%s)\n",
+                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
+            s_main_terminate (&client);
             return EXIT_FAILURE;
         }
 
@@ -468,14 +468,14 @@ int main (
             break;
     }
 
-    main_terminate (&client);
+    s_main_terminate (&client);
     return EXIT_SUCCESS;
 }
 
 /*- Internal functions ----------------------------------------------------- */
 
 /*  -------------------------------------------------------------------------
-    Function: trace
+    Function: s_s_trace
 
     Synopsis:
     For now same as fprint to stderr, may be modified in case of need
@@ -485,7 +485,7 @@ int main (
         ...                 Variable arguments, same as for printf
     -------------------------------------------------------------------------*/
 
-int trace (
+int s_trace (
    const char *format,
    ...
    )
@@ -506,47 +506,47 @@ int trace (
 }
 
 /*  -------------------------------------------------------------------------
-    Function: print_usage
+    Function: s_print_usage
 
     Synopsis:
     Prints out usage notes.
     -------------------------------------------------------------------------*/
 
-void print_usage (void)
+void s_print_usage (void)
 {
     printf (
         "Usage: test_level0 MODE OPTIONS ...\n"
         "\n"
         "  MODE: producer\n"
-        "    -s<server name/ip address, default='127.0.0.1'>\n"
-        "    -h<virtual host name>\n"
-        "    -d<destination>\n"
-        "    -m<client identifier, default='client'>\n"
-        "    -n<number of messages, 0 means infinite, default=0>\n"
-        "    -i<interval between individual messages in ms, default=500>\n"
-        "    -l<length of message content in bytes, default=2>\n"
+        "    -s <server name/ip address, default='127.0.0.1'>\n"
+        "    -h <virtual host name>\n"
+        "    -d <destination>\n"
+        "    -m <client identifier, default='client'>\n"
+        "    -n <number of messages, 0 means infinite, default=0>\n"
+        "    -i <interval between individual messages in ms, default=500>\n"
+        "    -l <length of message content in bytes, default=2>\n"
         "    -x (sends persistent messages)\n"
-        "    -c<number of messages while commit is issued>\n"
-        "    -r<number of messages while rollback is issued>\n"
+        "    -c <number of messages while commit is issued>\n"
+        "    -r <number of messages while rollback is issued>\n"
         "  Note : When neither 'c' or 'r' parameter is set\n"
         "         client works in nontransacted mode.\n"
         "\n"
         "  MODE: consumer\n"
-        "    -s<server name/ip address, default=127.0.0.1>\n"
-        "    -h<virtual host name>\n"
-        "    -d<destination>\n"
-        "    -p<number of prefetched messages, default=1>\n"
+        "    -s <server name/ip address, default=127.0.0.1>\n"
+        "    -h <virtual host name>\n"
+        "    -d <destination>\n"
+        "    -p <number of prefetched messages, default=1>\n"
         "\n"
         "  MODE: query (queries for all messages and browses them one by one)\n"
-        "    -s<server name/ip address, default=127.0.0.1>\n"
-        "    -h<virtual host name>\n"
-        "    -d<destination>\n"
+        "    -s <server name/ip address, default=127.0.0.1>\n"
+        "    -h <virtual host name>\n"
+        "    -d <destination>\n"
         "\n"
     );
 }
 
 /*  -------------------------------------------------------------------------
-    Function: main_terminate
+    Function: s_main_terminate
 
     Synopsis:
     Termination handler for main function.
@@ -555,7 +555,7 @@ void print_usage (void)
             client_t *client  Client object
     -------------------------------------------------------------------------*/
 
-void main_terminate (
+void s_main_terminate (
     client_t *client
     )
 {
@@ -564,7 +564,7 @@ void main_terminate (
     char
         buffer [BUFFER_SIZE];           /*  Multipurpose buffer              */
 
-    trace ("Terminating client.\n");
+    s_trace ("Terminating client.\n");
 
     /*  Terminates AMQ, closes the socket, terminates APR
     */
@@ -572,20 +572,20 @@ void main_terminate (
     if (client->sck) {
         result = amqp_term (client->sck);
         if (result != APR_SUCCESS)
-            trace ("apr_term failed: err=%d (%s)\n",
-                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
+            s_trace ("apr_term failed: err=%d (%s)\n",
+                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
         
         result = apr_socket_close (client->sck);
         if (result != APR_SUCCESS)
-            trace ("apr_socket_close failed: err=%d (%s)\n",
-                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
+            s_trace ("apr_socket_close failed: err=%d (%s)\n",
+                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
 
         apr_terminate();
     }
 }
 
 /*  -------------------------------------------------------------------------
-    Function: handle_close_cb
+    Function: s_handle_close_cb
 
     Synopsis:
     Callback function called when HANDLE CLOSE command arrives.
@@ -594,14 +594,14 @@ void main_terminate (
         See amqp_level0.h for documentation
     -------------------------------------------------------------------------*/
 
-apr_status_t handle_close_cb (
+apr_status_t s_handle_close_cb (
     const void         *hint,
     const apr_uint16_t handle_id,
     const apr_uint16_t reply_code,
     const char         *reply_text
     )
 {
-    trace ("Server closed the handle.\n%ld : %s\n",
+    s_trace ("Server closed the handle.\n%ld : %s\n",
         (long) reply_code, reply_text);
     /*  Behaviour not implemented yet
     */
@@ -612,7 +612,7 @@ apr_status_t handle_close_cb (
 }
 
 /*  -------------------------------------------------------------------------
-    Function: channel_close_cb
+    Function: s_channel_close_cb
 
     Synopsis:
     Callback function called when CHANNEL CLOSE command arrives.              
@@ -621,14 +621,14 @@ apr_status_t handle_close_cb (
         See amqp_level0.h for documentation
     -------------------------------------------------------------------------*/
 
-apr_status_t channel_close_cb (
+apr_status_t s_channel_close_cb (
     const void         *hint,
     const apr_uint16_t channel_id,
     const apr_uint16_t reply_code,
     const char         *reply_text
     )
 {
-    trace ("Server closed the channel.\n%ld : %s\n",
+    s_trace ("Server closed the channel.\n%ld : %s\n",
         (long) reply_code, reply_text);
     /*  Behaviour not implemented yet
     */
@@ -639,7 +639,7 @@ apr_status_t channel_close_cb (
 }
 
 /*  -------------------------------------------------------------------------
-    Function: connection_close_cb
+    Function: s_connection_close_cb
 
     Synopsis:
     Callback function called when CONNECTION CLOSE command arrives.              
@@ -648,13 +648,13 @@ apr_status_t channel_close_cb (
         See amqp_level0.h for documentation                  
     -------------------------------------------------------------------------*/
 
-apr_status_t connection_close_cb (
+apr_status_t s_connection_close_cb (
     const void         *hint,
     const apr_uint16_t reply_code,
     const char         *reply_text
     )
 {
-    trace ("Server closed the connection.\n%ld : %s\n",
+    s_trace ("Server closed the connection.\n%ld : %s\n",
         (long) reply_code, reply_text);
     /*  Behaviour not implemented yet
     */
@@ -665,7 +665,7 @@ apr_status_t connection_close_cb (
 }
 
 /*  -------------------------------------------------------------------------
-    Function: move_to_next_query_result
+    Function: s_move_to_next_query_result
 
     Synopsis:
     Parses next query result from existing query result string
@@ -675,7 +675,7 @@ apr_status_t connection_close_cb (
         client_t *client  Client object
     -------------------------------------------------------------------------*/
 
-void move_to_next_query_result (
+void s_move_to_next_query_result (
     client_t *client
     )
 {
@@ -730,7 +730,7 @@ void move_to_next_query_result (
 }
 
 /*  -------------------------------------------------------------------------
-    Function: browse_next
+    Function: s_browse_next
 
     Synopsis:
     Browses next message returned from query.
@@ -740,7 +740,7 @@ void move_to_next_query_result (
         apr_uint16_t handle_id  Handle identifier
     -------------------------------------------------------------------------*/
 
-apr_status_t browse_next (
+apr_status_t s_browse_next (
     client_t     *client,
     apr_uint16_t handle_id
     )
@@ -750,15 +750,15 @@ apr_status_t browse_next (
     char
         buffer [BUFFER_SIZE];           /*  Multipurpose buffer              */
 
-    move_to_next_query_result (client);
+    s_move_to_next_query_result (client);
     /*  If we have more messages to browse, fetch next from server
     */
     if (client->last_query_result != -1) {
         result = amqp_handle_browse (client->sck, buffer, BUFFER_SIZE,
             handle_id, client->tag++, client->last_query_result);
         if (result != APR_SUCCESS) {
-            trace ("amqp_handle_browse failed: err=%d (%s)\n",
-                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
+            s_trace ("amqp_handle_browse failed: err=%d (%s)\n",
+                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
 
             return result;
         }
@@ -772,7 +772,7 @@ apr_status_t browse_next (
 }
 
 /*  -------------------------------------------------------------------------
-    Function: move_to_next_query_result
+    Function: s_send_message
 
     Synopsis:
     Sends message to the server.
@@ -782,7 +782,7 @@ apr_status_t browse_next (
         apr_uint16_t confirm_tag  Confirmation tag to use
     -------------------------------------------------------------------------*/
 
-apr_status_t send_message(
+apr_status_t s_send_message(
     client_t     *client,
     apr_uint16_t confirm_tag
     )
@@ -807,41 +807,42 @@ apr_status_t send_message(
         confirm_tag, 0, 0, 0, 0, "", client->message_size, client->persistent,
         0, 0, "", "", identifier, 0, "", client->message_buffer);
     if (result != APR_SUCCESS) {
-        trace ("amqp_handle_send failed: err=%d (%s)\n",
-            (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
+        s_trace ("amqp_handle_send failed: err=%d (%s)\n",
+            (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
         return result;
     }
 
-    trace ("Message %s sent. (%ld bytes)\n", identifier,
+    s_trace ("Message %s sent. (%ld bytes)\n", identifier,
         (long) client->message_size);
 
     /*  Rollback transaction if needed
     */
     if (client->rollback_count &&
-        ( (client->last_message_number + 1) % client->rollback_count) == 0) {
+        ((client->last_message_number + 1) % client->rollback_count) == 0) {
 
         result = amqp_channel_rollback (client->sck, buffer, BUFFER_SIZE, 
             1, 0, 0, "");
         if (result != APR_SUCCESS) {
-            trace ("amqp_channel_rollback failed: err=%d (%s)\n",
-                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
+            s_trace ("amqp_channel_rollback failed: err=%d (%s)\n",
+                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
             return result;
         }
-        trace ("Rolled back.\n");
+        s_trace ("Rolled back.\n");
     }
     /*  Commit transaction if needed
     */
-    else if (client->commit_count &&
-        ( (client->last_message_number + 1) % client->commit_count) == 0) {
+    else 
+    if (client->commit_count &&
+        ((client->last_message_number + 1) % client->commit_count) == 0) {
 
         result = amqp_channel_commit (client->sck, buffer, BUFFER_SIZE,
             1, 0, 0, "");
         if (result != APR_SUCCESS) {
-            trace ("amqp_channel_commit failed: err=%d (%s)\n",
-                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
+            s_trace ("amqp_channel_commit failed: err=%d (%s)\n",
+                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
             return result;
         }
-        trace ("Commited.\n");
+        s_trace ("Commited.\n");
     }
 
     client->last_message_number++;
@@ -851,7 +852,7 @@ apr_status_t send_message(
 }
 
 /*  -------------------------------------------------------------------------
-    Function: handle_index_cb
+    Function: s_handle_index_cb
 
     Synopsis:
     Callback function called when HANDLE INDEX command arrives.              
@@ -860,7 +861,7 @@ apr_status_t send_message(
         See amqp_level0.h for documentation
     -------------------------------------------------------------------------*/
 
-apr_status_t handle_index_cb (
+apr_status_t s_handle_index_cb (
     const void         *hint,
     const apr_uint16_t handle_id,
     const apr_uint32_t message_nbr,
@@ -872,7 +873,7 @@ apr_status_t handle_index_cb (
         *client = (client_t*) hint;     /*  Client object                    */
 
     if (client->state == state_waiting_for_index) {
-        trace ("Result of query: %s\n", message_list);
+        s_trace ("Result of query: %s\n", message_list);
 
         /*  Fill query result into client
         */
@@ -884,7 +885,7 @@ apr_status_t handle_index_cb (
             subsequent messages will be browsed on confirmation of this
             HANDLE BROWSE
         */
-        browse_next (client, handle_id);
+        s_browse_next (client, handle_id);
 
         return APR_SUCCESS;
     }
@@ -892,7 +893,7 @@ apr_status_t handle_index_cb (
 }
 
 /*  -------------------------------------------------------------------------
-    Function: handle_reply_cb
+    Function: s_handle_reply_cb
 
     Synopsis:
     Callback function called when HANDLE REPLY command arrives.              
@@ -901,7 +902,7 @@ apr_status_t handle_index_cb (
         See amqp_level0.h for documentation               
     -------------------------------------------------------------------------*/
 
-apr_status_t handle_reply_cb (
+apr_status_t s_handle_reply_cb (
     const void         *hint,
     const apr_uint16_t handle_id,
     const apr_uint16_t confirm_tag,
@@ -918,30 +919,30 @@ apr_status_t handle_reply_cb (
 
     if (client->state == state_waiting_for_handle_open_confirmation) {
 
-        trace ("Handle opened.\n");
+        s_trace ("Handle opened.\n");
 
         if (client->clienttype == clienttype_consumer) {
             result = amqp_handle_consume (client->sck, buffer, BUFFER_SIZE,
                 1, 4, client->prefetch, 0, 0, "", "", 0, "", "");
             if (result != APR_SUCCESS) {
-                trace ("amqp_handle_consume failed: err=%d (%s)\n",
-                    (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
+                s_trace ("amqp_handle_consume failed: err=%d (%s)\n",
+                    (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
                 return result;
             }
             client->state = state_waiting_for_consume_confirmation;
         }
 
         if (client->clienttype == clienttype_producer) {
-            return send_message (client, (apr_uint16_t) (confirm_tag + 1) );
+            return s_send_message (client, (apr_uint16_t) (confirm_tag + 1));
         }
 
         if (client->clienttype == clienttype_query) {
-            trace ("Issuing query.\n");
+            s_trace ("Issuing query.\n");
             result = amqp_handle_query (client->sck, buffer, BUFFER_SIZE,
                 1, 0, "", 0, "", "");
             if (result != APR_SUCCESS) {
-                trace ("amqp_handle_query failed: err=%d (%s)\n",
-                    (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
+                s_trace ("amqp_handle_query failed: err=%d (%s)\n",
+                    (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
                 return result;
             }
             client->state = state_waiting_for_index;
@@ -963,14 +964,14 @@ apr_status_t handle_reply_cb (
                 client->stop = 1;
         }
         if (!client->stop)
-            send_message (client, (apr_uint16_t) (confirm_tag + 1) );
+            s_send_message (client, (apr_uint16_t) (confirm_tag + 1));
         return APR_SUCCESS;
     }
     if (client->state == state_waiting_for_browse_confirmation) {
         if (reply_code != 200) {
-            trace ("Browsing message number %d failed with error %d, %s\n",
+            s_trace ("Browsing message number %d failed with error %d, %s\n",
                 client->last_query_result, reply_code, reply_text);
-            browse_next (client, handle_id);
+            s_browse_next (client, handle_id);
         }
         return APR_SUCCESS;
     }
@@ -978,7 +979,7 @@ apr_status_t handle_reply_cb (
 }
 
 /*  -------------------------------------------------------------------------
-    Function: channel_reply_cb
+    Function: s_channel_reply_cb
 
     Synopsis:
     Callback function called when CHANNEL REPLY command arrives.              
@@ -987,7 +988,7 @@ apr_status_t handle_reply_cb (
         See amqp_level0.h for documentation
     -------------------------------------------------------------------------*/
 
-apr_status_t channel_reply_cb (
+apr_status_t s_channel_reply_cb (
     const void         *hint,
     const apr_uint16_t channel_id,
     const apr_uint16_t confirm_tag,
@@ -1003,13 +1004,13 @@ apr_status_t channel_reply_cb (
         buffer [BUFFER_SIZE];
 
     if (client->state == state_waiting_for_channel_open_confirmation) {
-        trace ("Channel opened.\n");
+        s_trace ("Channel opened.\n");
 
         result = amqp_handle_open (client->sck, buffer, BUFFER_SIZE,
             1, 1, 1, 3, 1, 1, 0, 0, client->destination, "", "", 0, "");
         if (result != APR_SUCCESS) {
-            trace ("amqp_handle_open failed: err=%d (%s)\n",
-                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
+            s_trace ("amqp_handle_open failed: err=%d (%s)\n",
+                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
             return result;
         }
         client->state = state_waiting_for_handle_open_confirmation;
@@ -1018,7 +1019,7 @@ apr_status_t channel_reply_cb (
     if (client->state == state_waiting_for_message_or_acknowledge_confirmation) {
         /*  Consumer : reply to channel ack
         */
-        trace ("Message acknowledged.\n");
+        s_trace ("Message acknowledged.\n");
         return APR_SUCCESS;
     }
     
@@ -1026,7 +1027,7 @@ apr_status_t channel_reply_cb (
 }
 
 /*  -------------------------------------------------------------------------
-    Function: connection_reply_cb
+    Function: s_connection_reply_cb
 
     Synopsis:
     Callback function called when CONNECTION REPLY command arrives.              
@@ -1035,7 +1036,7 @@ apr_status_t channel_reply_cb (
         See amqp_level0.h for documentation
     -------------------------------------------------------------------------*/
 
-apr_status_t connection_reply_cb (
+apr_status_t s_connection_reply_cb (
     const void         *hint,
     const apr_uint16_t confirm_tag,
     const apr_uint16_t reply_code,
@@ -1053,15 +1054,15 @@ apr_status_t connection_reply_cb (
         result = amqp_channel_open (client->sck, buffer, BUFFER_SIZE, 1, 2,
 	    /*  Transaction mode
             */
-            (apr_byte_t) ( (client->commit_count || client->rollback_count) ? 1 : 0),
+            (apr_byte_t) ((client->commit_count || client->rollback_count) ? 1 : 0),
             0, 0, "", "");
         if (result != APR_SUCCESS) {
-            trace ("amqp_channel_open failed: err=%d (%s)\n",
-                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
+            s_trace ("amqp_channel_open failed: err=%d (%s)\n",
+                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
             return result;
         }
         client->state = state_waiting_for_channel_open_confirmation;
-        trace ("Connected to server.\n");
+        s_trace ("Connected to server.\n");
         return APR_SUCCESS;
     }
 
@@ -1069,7 +1070,7 @@ apr_status_t connection_reply_cb (
 }
 
 /*  -------------------------------------------------------------------------
-    Function: connection_challenge_cb
+    Function: s_connection_challenge_cb
 
     Synopsis:
     Callback function called when CONNECTION CHALLENGE command arrives.              
@@ -1078,7 +1079,7 @@ apr_status_t connection_reply_cb (
         See amqp_level0.h for documentation                  
     -------------------------------------------------------------------------*/
 
-apr_status_t connection_challenge_cb (
+apr_status_t s_connection_challenge_cb (
     const void       *hint,
     const apr_byte_t version,
     const char       *mechanisms,
@@ -1099,8 +1100,8 @@ apr_status_t connection_challenge_cb (
         result = amqp_connection_response (client->sck, buffer,
             BUFFER_SIZE, "plain", 0, "");
         if (result != APR_SUCCESS) {
-            trace ("amqp_connection_response failed: err=%d (%s)\n",
-                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
+            s_trace ("amqp_connection_response failed: err=%d (%s)\n",
+                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
             return result;
         }
         client->state = state_waiting_for_connection_tune;
@@ -1111,7 +1112,7 @@ apr_status_t connection_challenge_cb (
 }
 
 /*  -------------------------------------------------------------------------
-    Function: connection_tune_cb
+    Function: s_connection_tune_cb
 
     Synopsis:
     Callback function called when CONNECTION TUNE command arrives.              
@@ -1120,7 +1121,7 @@ apr_status_t connection_challenge_cb (
         See amqp_level0.h for documentation                
     -------------------------------------------------------------------------*/
 
-apr_status_t connection_tune_cb (
+apr_status_t s_connection_tune_cb (
     const void         *hint,
     const apr_uint32_t frame_max,
     const apr_uint16_t channel_max,
@@ -1141,15 +1142,15 @@ apr_status_t connection_tune_cb (
         result = amqp_connection_tune (client->sck, buffer, BUFFER_SIZE,
             MAX_FRAME_SIZE, 255, 255, 0, options_size, options);
         if (result != APR_SUCCESS) {
-            trace ("amqp_connection_tune failed: err=%d (%s)\n",
-                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
+            s_trace ("amqp_connection_tune failed: err=%d (%s)\n",
+                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
             return result;
         }
         result = amqp_connection_open (client->sck, buffer, BUFFER_SIZE, 1,
             client->host, client->client_name, 0, "");
         if (result != APR_SUCCESS) {
-            trace ("amqp_connection_open failed: err=%d (%s)\n",
-                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
+            s_trace ("amqp_connection_open failed: err=%d (%s)\n",
+                (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
             return result;
         }
         client->state = state_waiting_for_connection_open_confirmation;
@@ -1160,7 +1161,7 @@ apr_status_t connection_tune_cb (
 }
 
 /*  -------------------------------------------------------------------------
-    Function: handle_notify_cb
+    Function: s_handle_notify_cb
 
     Synopsis:
     Callback function called when HANDLE NOTIFY command arrives.              
@@ -1169,7 +1170,7 @@ apr_status_t connection_tune_cb (
         See amqp_level0.h for documentation                 
     -------------------------------------------------------------------------*/
 
-apr_status_t handle_notify_cb (
+apr_status_t s_handle_notify_cb (
     const void         *hint,
     const apr_uint16_t handle_id,
     const apr_uint32_t message_nbr,
@@ -1200,13 +1201,13 @@ apr_status_t handle_notify_cb (
         buffer [BUFFER_SIZE];           /*  Multipurpose buffer              */
 
     if (client->state == state_waiting_for_browse_confirmation) {
-        trace ("Message %s browsed successfully.\n", identifier);
-        browse_next (client, handle_id);
+        s_trace ("Message %s browsed successfully.\n", identifier);
+        s_browse_next (client, handle_id);
         return APR_SUCCESS;
     }
     if (client->state == state_waiting_for_message_or_acknowledge_confirmation) {
     
-        trace ("Message %s received. (%ld bytes)\n",
+        s_trace ("Message %s received. (%ld bytes)\n",
             identifier, (long) body_size);
 
         client->tag++;
@@ -1219,8 +1220,8 @@ apr_status_t handle_notify_cb (
             result = amqp_channel_ack (client->sck, buffer, BUFFER_SIZE,
                 1, client->tag, message_nbr);
             if (result != APR_SUCCESS) {
-                trace ("amqp_channel_ack failed: err=%d (%s)\n",
-                    (long) result, amqp_strerror (result, buffer, BUFFER_SIZE) );
+                s_trace ("amqp_channel_ack failed: err=%d (%s)\n",
+                    (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
                 return result;
             }
             client->till_acknowledge = client->prefetch;
