@@ -189,8 +189,6 @@ static int
         amq_bucket_destroy     (&tcb->command);
         amq_bucket_destroy     (&tcb->fragment);
         amq_connection_destroy (&tcb->connection);
-        amq_channel_destroy    (&tcb->channel);
-        amq_handle_destroy     (&tcb->handle);
         amq_frame_free         (&tcb->frame);
     </handler>
 
