@@ -11,7 +11,7 @@ Test case
 - amq_server object
     - replaces amq_global
     - runs on a specific port
-
+- move argument parsing & copyright block to standard iPR function
 
 Tracing
     - amqpsrv queue configuration

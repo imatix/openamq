@@ -165,6 +165,25 @@
     self->headers = value;
 </method>
 
+<method name = "get content" template = "function">
+    <doc>
+    Returns the first block of content for a message.  Note that this method
+    is currently limited to a single block of the size provided by the caller.
+    Returns the number of octets actually stored.
+    </doc>
+    <argument name = "buffer" type = "void *">Data for message content</argument>
+    <argument name = "limit" type = "size_t">Limit of message content</argument>
+
+    if (self->content) {
+        rc = min (limit, self->content->cur_size);
+        memcpy (buffer, self->content->data, rc);
+    }
+    else {
+        rc = min (limit, self->fragment->cur_size - self->header_size);
+        memcpy (buffer, self->fragment->data + self->header_size, rc);
+    }
+</method>
+
 <method name = "header size" template = "function">
     <local>
     amq_bucket_t

@@ -70,9 +70,10 @@
     self->ddb         = handle->ddb;
 
     /*  Initialise other properties                                          */
-    self->prefetch = command->prefetch? command->prefetch: 1;
-    self->window   = self->prefetch;
-    self->no_local = command->no_local;
+    self->prefetch   = command->prefetch? command->prefetch: 1;
+    self->window     = self->prefetch;
+    self->no_local   = command->no_local;
+    self->unreliable = command->unreliable;
     ipr_shortstr_cpy (self->identifier, command->identifier);
 
     /*  Attach to queue                                                      */
