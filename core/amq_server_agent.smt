@@ -143,6 +143,18 @@ static int
     <field name = "message list" type = "ipr_longstr_t *">Message numbers</field>
 </method>
 
+<method name = "connection reply">
+    <field name = "confirm tag"  type = "dbyte" >Confirmation tag</field>
+</method>
+
+<method name = "channel reply">
+    <field name = "confirm tag"  type = "dbyte" >Confirmation tag</field>
+</method>
+
+<method name = "handle reply">
+    <field name = "confirm tag"  type = "dbyte" >Confirmation tag</field>
+</method>
+
 <thread name = "client">
     <context>
         smt_socket_t
@@ -1046,7 +1058,7 @@ static int
             <action name = "read next command" />
         </event>
 
-        <!-- Requests from amq classes to talk back to client -->
+        <!-- Requests from self or amq classes to talk back to client -->
         <method name = "handle created">
             <action name = "send handle created" />
             <action name = "wait for activity" />
@@ -1059,22 +1071,19 @@ static int
             <action name = "send handle index" />
             <action name = "wait for activity" />
         </method>
+        <method name = "connection reply">
+            <action name = "send connection reply" />
+            <action name = "wait for activity" />
+        </method>
+        <method name = "channel reply">
+            <action name = "send channel reply" />
+            <action name = "wait for activity" />
+        </method>
+        <method name = "handle reply">
+            <action name = "send handle reply" />
+            <action name = "wait for activity" />
+        </method>
     </state>
-
-    <action name = "send handle created">
-        amq_frame_free (&tcb->frame);
-        tcb->frame = amq_frame_handle_created_new (
-            handle_created_m->handle_id, handle_created_m->dest_name);
-        send_the_frame (thread);
-    </action>
-
-    <action name = "send handle index">
-        amq_frame_free (&tcb->frame);
-        tcb->frame = amq_frame_handle_index_new (
-            handle_index_m->handle_id, handle_index_m->message_nbr, handle_index_m->message_list);
-        send_the_frame (thread);
-        ipr_longstr_destroy (&handle_index_m->message_list);
-    </action>
 
     <action name = "send connection close">
         amq_frame_free (&tcb->frame);
@@ -1097,6 +1106,47 @@ static int
         tcb->reply_code = AMQP_COMMAND_INVALID;
         tcb->reply_text = "Command is not valid at this time";
         smt_thread_raise_exception (thread, channel_error_event);
+    </action>
+
+    <action name = "send handle created">
+        amq_frame_free (&tcb->frame);
+        tcb->frame = amq_frame_handle_created_new (
+            handle_created_m->handle_id, handle_created_m->dest_name);
+        send_the_frame (thread);
+    </action>
+
+    <action name = "send handle index">
+        amq_frame_free (&tcb->frame);
+        tcb->frame = amq_frame_handle_index_new (
+            handle_index_m->handle_id, handle_index_m->message_nbr, handle_index_m->message_list);
+        send_the_frame (thread);
+        ipr_longstr_destroy (&handle_index_m->message_list);
+    </action>
+
+    <action name = "send connection reply">
+        amq_frame_free (&tcb->frame);
+        tcb->frame = amq_frame_connection_reply_new (
+            connection_reply_m->confirm_tag,
+            AMQP_REPLY_SUCCESS, NULL);
+        send_the_frame (thread);
+    </action>
+
+    <action name = "send channel reply">
+        amq_frame_free (&tcb->frame);
+        tcb->frame = amq_frame_channel_reply_new (
+            (dbyte) tcb->channel->key,
+            channel_reply_m->confirm_tag,
+            AMQP_REPLY_SUCCESS, NULL);
+        send_the_frame (thread);
+    </action>
+
+    <action name = "send handle reply">
+        amq_frame_free (&tcb->frame);
+        tcb->frame = amq_frame_handle_reply_new (
+            (dbyte) tcb->handle->key,
+            handle_reply_m->confirm_tag,
+            AMQP_REPLY_SUCCESS, NULL);
+        send_the_frame (thread);
     </action>
 </thread>
 
@@ -1150,23 +1200,27 @@ use_command_channel (smt_thread_t *thread, dbyte channel_id)
 static void
 connection_reply_if_needed (smt_thread_t *thread, dbyte confirm_tag)
 {
+    smt_thread_handle_t
+        *thread_handle;
+
     tcb->reply_code = amq_global_error_code ();
     tcb->reply_text = amq_global_error_text ();
-
     if (tcb->reply_code)
         smt_thread_raise_exception (thread, connection_error_event);
     else
     if (confirm_tag) {
-        amq_frame_free (&tcb->frame);
-        tcb->frame = amq_frame_connection_reply_new (
-            confirm_tag, AMQP_REPLY_SUCCESS, NULL);
-        send_the_frame (thread);
+        thread_handle = smt_thread_handle_new (thread);
+        amq_server_agent_connection_reply (thread_handle, confirm_tag);
+        smt_thread_handle_destroy (&thread_handle);
     }
 }
 
 static void
 channel_reply_if_needed (smt_thread_t *thread, dbyte confirm_tag)
 {
+    smt_thread_handle_t
+        *thread_handle;
+
     tcb->reply_code = amq_global_error_code ();
     tcb->reply_text = amq_global_error_text ();
 
@@ -1174,16 +1228,18 @@ channel_reply_if_needed (smt_thread_t *thread, dbyte confirm_tag)
         smt_thread_raise_exception (thread, channel_error_event);
     else
     if (confirm_tag) {
-        amq_frame_free (&tcb->frame);
-        tcb->frame = amq_frame_channel_reply_new (
-            (dbyte) tcb->channel->key, confirm_tag, AMQP_REPLY_SUCCESS, NULL);
-        send_the_frame (thread);
+        thread_handle = smt_thread_handle_new (thread);
+        amq_server_agent_channel_reply (thread_handle, confirm_tag);
+        smt_thread_handle_destroy (&thread_handle);
     }
 }
 
 static void
 handle_reply_if_needed (smt_thread_t *thread, dbyte confirm_tag)
 {
+    smt_thread_handle_t
+        *thread_handle;
+
     tcb->reply_code = amq_global_error_code ();
     tcb->reply_text = amq_global_error_text ();
 
@@ -1191,10 +1247,9 @@ handle_reply_if_needed (smt_thread_t *thread, dbyte confirm_tag)
         smt_thread_raise_exception (thread, channel_error_event);
     else
     if (confirm_tag) {
-        amq_frame_free (&tcb->frame);
-        tcb->frame = amq_frame_handle_reply_new (
-            (dbyte) tcb->handle->key, confirm_tag, AMQP_REPLY_SUCCESS, NULL);
-        send_the_frame (thread);
+        thread_handle = smt_thread_handle_new (thread);
+        amq_server_agent_handle_reply (thread_handle, confirm_tag);
+        smt_thread_handle_destroy (&thread_handle);
     }
 }
 

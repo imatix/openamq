@@ -504,7 +504,7 @@ ipr_db_queue class.
         amq_server_agent_handle_notify (
             handle->thread,
             (dbyte) handle->key,
-            0,
+            browser->index,
             FALSE, FALSE, FALSE,
             self->dest->name,
             message,

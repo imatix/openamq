@@ -5,7 +5,7 @@ gdl
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/03/29
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.8a2
+    version   = 0.8b0
 end gdl
 
 Cover
@@ -23,6 +23,9 @@ This document is ready for review.
 
 Recent Change History
 ---------------------
+
+0.8b0
+- HANDLE QUERY message number requests messages GE, not GT that specified.
 
 0.8a2
 - Clarified what happens when field table contains same field twice.
@@ -2232,8 +2235,9 @@ a destination by sending the HANDLE QUERY command:
 handle-id:
     The handle reference chosen by the client, must be open.
 message-nbr:
-    The client is interested in all messages with an ID above this value.
-    When zero, means "all messages".
+    The client is interested in all messages with an ID greater or
+    equal to this value.  When zero, means "all messages" (a message can
+    have an ID value zero).
 dest-name:
     The name of the destination to examine. May be empty, see section on
     'Destination Name Hierarchies'.

@@ -525,7 +525,7 @@ static int
             handle_open_m->channel_id,
             handle_open_m->handle_id,
             AMQP_SERVICE_QUEUE,         /*  Service type                     */
-            0,                          /*  Confirmation tag                 */
+            1,                          /*  Confirmation tag                 */
             TRUE,                       /*  Request producer access          */
             TRUE,                       /*  Request consumer access          */
             TRUE,                       /*  Request browser access           */
