@@ -30,7 +30,7 @@
     You should be aiming to get a 9/10 or 10/10 for every score item.
 
     I recommend you:
-        - reread the RFC
+        - reread the AMQ RFC 002
         - study some iMatix code
 
  */
@@ -91,7 +91,7 @@ char *query_result;
 int query_result_pos = 0;
 int browse_begin;
 int browse_end;
-apr_uint32_t last_query_result;
+int last_query_result;
 int stop;
 
 typedef enum
@@ -164,38 +164,38 @@ apr_status_t connection_close_cb (
   */
 void next_query_result ()
 {
-    int pos;
+    int
+        pos;
 
-    if (browse_begin != browse_end) {
+    if (browse_begin < browse_end)
         last_query_result = browse_begin++;
-        return;
-    }
-
-    if (query_result [query_result_pos] == 0) {
+    else
+    if (query_result [query_result_pos] == '\0') {
         free (query_result);
-        last_query_result = 0;
-        return;
+        last_query_result = -1;         /*  Finished                         */
     }
+    else {
+        pos = query_result_pos;
+        browse_begin = 0;
+        while (isdigit (query_result [pos]))
+            browse_begin = browse_begin * 10 + query_result [pos++] - '0';
 
-    pos = query_result_pos;
-    browse_begin = 0;
-    while (query_result [pos] >='0' && query_result [pos] <='9')
-        browse_begin = browse_begin * 10 + query_result [pos++] - '0';
+        /*  If we have a range specifier, parse the end value                */
+        if (query_result [pos] == '-') {
+            pos++;
+            browse_end = 0;
+                while (isdigit (query_result [pos]))
+                    browse_end = browse_end * 10 + query_result [pos++] - '0';
+        }
+        else
+            browse_end = browse_begin;
 
-    if (query_result [pos] == '-') {
-        pos++;
-        browse_end = 0;
-            while (query_result [pos] >='0' && query_result [pos] <='9')
-                browse_end = browse_end * 10 + query_result [pos++] - '0';
+        while (isspace (query_result [pos]))
+            pos++;
+
+        query_result_pos = pos;
+        last_query_result = browse_begin++;
     }
-/*  PH: statements are not correctly formatted.  do not write oneliners */
-    else browse_end = browse_begin + 1;
-
-    while (query_result [pos] == ' ') pos++;
-
-    query_result_pos = pos;
-
-    last_query_result = browse_begin++;
 }
 
 apr_status_t browse_next (apr_uint16_t handle_id)
@@ -204,7 +204,7 @@ apr_status_t browse_next (apr_uint16_t handle_id)
     char buffer [32768];
 
     next_query_result ();
-    if (last_query_result) {
+    if (last_query_result != -1) {
         result = amqp_handle_browse (sck, buffer, 32767,
             handle_id, tag++, last_query_result);
         if (result != APR_SUCCESS) {
@@ -215,8 +215,8 @@ apr_status_t browse_next (apr_uint16_t handle_id)
         }
         state = state_waiting_for_browse_confirmation;
     }
-/*  PH: again, 'else' comes on a line of its own  */
-    else state = state_idle;
+    else
+        state = state_idle;
 
     return APR_SUCCESS;
 }
@@ -344,18 +344,18 @@ apr_status_t handle_reply_cb (
     }
     if (state == state_waiting_for_send_confirmation) {
         /* sender : reply to handle send */
-        if (messages)
-        {
+        if (messages) {
             messages--;
             if (messages == 0) stop = 1;
         }
-        if (!stop) send_message ( (apr_uint16_t) (confirm_tag + 1) );
+        if (!stop)
+            send_message ( (apr_uint16_t) (confirm_tag + 1) );
         return APR_SUCCESS;
     }
     if (state == state_waiting_for_browse_confirmation) {
         if (reply_code != 200) {
-            fprintf (stderr, "Browsing message number %ld failed with error %ld, %s\n",
-                (long) last_query_result, (long) reply_code, reply_text);
+            fprintf (stderr, "Browsing message number %d failed with error %d, %s\n",
+                last_query_result, reply_code, reply_text);
             browse_next (handle_id);
         }
         return APR_SUCCESS;
@@ -448,7 +448,7 @@ apr_status_t connection_challenge_cb (
         state = state_waiting_for_connection_tune;
         return APR_SUCCESS;
     }
-    
+
     return AMQ_FRAME_CORRUPTED;
 }
 
@@ -468,9 +468,9 @@ apr_status_t connection_tune_cb (
     data [0] = 1;
     data [1] = 2;
 
-    if (state = state_waiting_for_connection_tune) {
+    if (state == state_waiting_for_connection_tune) {
         /*  reply to connection response  */
-        result = amqp_connection_tune (sck, buffer, 32767, 32000, 255, 255, 0, 
+        result = amqp_connection_tune (sck, buffer, 32767, 32000, 255, 255, 0,
             options_size, options);
         if (result != APR_SUCCESS) {
             fprintf (stderr, "amqp_connection_tune failed.\n%ld : %s\n",
