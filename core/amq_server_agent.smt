@@ -68,9 +68,10 @@
                     sock_ntoa (hostaddrs [index]), port);
             mem_free (hostaddrs);
         }
-        tcb-> socket = smt_socket_passive (port, 5);
+        tcb-> socket = smt_socket_passive (thread, port, 5);
         if (!tcb->socket) {
-            coprintf ("E: could not open AMQP port %s", port);
+            coprintf ("E: could not open AMQP port %s - %s", 
+                      port, connect_errlist [thread-> error]);
             smt_thread_raise_exception (thread, error_event);
         }
     </action>
