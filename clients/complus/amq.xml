@@ -1,284 +1,393 @@
 <class
-    name        = "amq_client"
-    uuid        = "B9EDF8A0-CAAF-11D3-B3AF-00EFA87EF001"
-    version     = "1.0"
-    description = "OpenAMQ COM+ Client Component"
-    object_name = "client">
+    name = "AMQ"
+    libid = "B9EDF8A0-CAAF-11D3-B3AF-00EFA87EF001"
+    version_major = "1"
+    version_minor = "0"
+    description = "OpenAMQ Client Components">
 
-  <import class = "amq_bucket"  />
-  <import class = "amq_message" />
-  <import class = "amq_sclient" />
+    <include name = "amq_bucket.h" local = "yes"/>
+    <include name = "amq_message.h" local = "yes"/>
+    <include name = "amq_sclient.h" local = "yes"/>
   
-  <object
-    name       = "client"
-    uuid       = "876FAFB0-AEF8-F2DF-AFBA-49AC41AEF001"
-    class_uuid = "876FAFB1-AEF8-F2DF-AFBA-49AC41AEF001">
-
-    <doc>Component to provide access to AMQ destinations</doc>
-    <context>
-        <field name = "amq_message" type = "amq_message_t"  reference = "yes" />
-        <field name = "amq_client"  type = "amq_sclient_t"  reference = "yes" />
-        <field name = "identifier"  type = "ipr_shortstr_t" noinit = "1" />
-        <field name = "login"       type = "ipr_shortstr_t" noinit = "1" />
-        <field name = "password"    type = "ipr_shortstr_t" noinit = "1" />
-    </context>
+    <interface
+        name = "IAMQConnection"
+        source = "no"
+        iid = "876FAFB0-AEF8-F2DF-AFBA-49AC41AEF001">
     
-    <rule name = "constructor">
-        m_amq_message = amq_message_new ();
-        strclr (m_identifier);
-        strclr (m_login);
-        strclr (m_password);
-    </rule>
-    <rule name = "destructor">
-        amq_message_destroy (&m_amq_message);
-        amq_sclient_destroy (&m_amq_client);
-        icl_system_destroy (); 
-    </rule>
-
-    <property name = "identifier">
-        <argument type = "BSTR" name = "identifier" />
-        <doc>Set client identifier used during connections</doc>
-        ipr_shortstr_cpy (m_identifier, OLE2T (identifier));
-    </property>
-
-    <property name = "login">
-        <argument type = "BSTR" name = "login" />
-        <doc>Set user login name used for connections</doc>
-        ipr_shortstr_cpy (m_login, OLE2T (login));
-    </property>
-
-    <property name = "password">
-        <argument type = "BSTR" name = "password" />
-        <doc>Set password used for connections</doc>
-        ipr_shortstr_cpy (m_password, OLE2T (password));
-    </property>
-
-    <property name = "reply_code">
-        <return type = "int" />
-        *pVal = m_amq_client? m_amq_client->reply_code: 0;
-    </property>
-
-    <property name = "reply_text">
-        <return type = "BSTR" />
-        *pVal = SysAllocString (T2OLE (m_amq_client? m_amq_client->reply_text: ""));
-    </property>
-    
-    <property name = "msg_content">
-        <argument type = "BSTR" name = "content" />
-        <doc>Set current message value</doc>
-        <local>
-        byte *my_content;
-        int   my_size;
-        </local>
-        my_size = SysStringByteLen (content);
-        my_content = (byte *) icl_mem_alloc (my_size);
-        memcpy (my_content, content, my_size);
-        amq_message_set_content (m_amq_message, my_content, my_size, icl_mem_free);
-    </property>
-    <property name = "msg_content">
-        <return type = "BSTR" />
-        <doc>Return current message content</doc>
-        if (m_amq_message->content)
-            *pVal = SysAllocStringByteLen (
-                (const char *) m_amq_message->content->data,
-                               m_amq_message->content->size);
-        else
-            *pVal = SysAllocString (L"");
-    </property>
-
-    <property name = "msg_persistent">
-        <argument type = "int" name = "new_value" />
-        amq_message_set_persistent (m_amq_message, (Bool) new_value);
-    </property>
-    <property name = "msg_persistent">
-        <return type = "int" />
-        *pVal = m_amq_message->persistent;
-    </property>
-
-    <property name = "msg_priority">
-        <argument type = "int" name = "new_value" />
-        amq_message_set_priority (m_amq_message, (byte) new_value);
-    </property>
-    <property name = "msg_priority">
-        <return type = "int" />
-        *pVal = m_amq_message->priority;
-    </property>
-
-    <property name = "msg_expiration">
-        <argument type = "int" name = "new_value" />
-        amq_message_set_expiration (m_amq_message, new_value);
-    </property>
-    <property name = "msg_expiration">
-        <return type = "int" />
-        *pVal = m_amq_message->expiration;
-    </property>
-
-    <property name = "msg_mime_type">
-        <argument type = "BSTR" name = "new_value" />
-        amq_message_set_mime_type (m_amq_message, OLE2T (new_value));
-    </property>
-    <property name = "msg_mime_type">
-        <return type = "BSTR" />
-        *pVal = SysAllocString (T2OLE (m_amq_message->mime_type));
-    </property>
-    
-    <property name = "msg_encoding">
-        <argument type = "BSTR" name = "new_value" />
-        amq_message_set_encoding (m_amq_message, OLE2T (new_value));
-    </property>
-    <property name = "msg_encoding">
-        <return type = "BSTR" />
-        *pVal = SysAllocString (T2OLE (m_amq_message->encoding));
-    </property>
-
-    <property name = "msg_identifier">
-        <argument type = "BSTR" name = "new_value" />
-        amq_message_set_identifier (m_amq_message, OLE2T (new_value));
-    </property>
-    <property name = "msg_identifier">
-        <return type = "BSTR" />
-        *pVal = SysAllocString (T2OLE (m_amq_message->identifier));
-    </property>
-
-    <property name = "msg_number">
-        <return type = "int" />
-        *pVal = m_amq_client? m_amq_client->msg_number: 0;
-    </property>
-
-    <property name = "msg_handle">
-        <return type = "int" />
-        *pVal = m_amq_client? m_amq_client->msg_handle: 0;
-    </property>
-
-    <property name = "msg_sender">
-        <return type = "BSTR" />
-        *pVal = SysAllocString (T2OLE (m_amq_client? m_amq_client->msg_sender: ""));
-    </property>
-    
-    <property name = "msg_delivered">
-        <return type = "int" />
-        *pVal = m_amq_client? m_amq_client->msg_delivered: 0;
-    </property>
-
-    <property name = "msg_redelivered">
-        <return type = "int" />
-        *pVal = m_amq_client? m_amq_client->msg_redelivered: 0;
-    </property>
-
-    <property name = "connect">
-        <argument type = "VARIANT" name = "server" optional = "1" />
-        <argument type = "VARIANT" name = "path"   optional = "1" />
-        <return type = "int" />
-        <doc>
+        <method name="Connect">
+            <argument type = "BSTR" name = "server" />
+            <argument type = "BSTR" name = "path" />
+            <argument type = "BSTR" name = "login" />
+            <argument type = "BSTR" name = "password" />
+            <argument type = "BSTR" name = "identifier" />
+            <doc>
         Open a connection to a local or remote AMQP server. Optionally
-        specify a server name, plus an optional virtual path.  Set
-        the port, client name, login, and password before calling this
-        method.  You can specify a non-standard AMQP port by adding ':'
+        specify a server name, plus an optional virtual path. You can
+        specify a non-standard AMQP port by adding ':'
         and the port number to the server name.
-        </doc>
-        <local>
-        char *my_server;
-        char *my_path;
-        </local>
-        VARIANT2STRING (server, my_server);
-        VARIANT2STRING (path, my_path);
+            </doc>
+        </method>
 
-        coprintf ("Connecting to %s using identity '%s'...", my_server, m_identifier);
-        amq_sclient_destroy (&m_amq_client);
-        m_amq_client = amq_sclient_new (m_identifier, m_login, m_password);
-        *pVal = amq_sclient_connect (m_amq_client, my_server, my_path);
-    </property>
+        <method name = "CreateProducer" type = "IDispatch*">
+            <argument type = "BSTR" name = "destination" />
+        </method>
+
+        <method name = "CreateConsumer" type = "IDispatch*">
+            <argument type = "BSTR" name = "destination" />
+            <argument type = "long" name = "prefetch" />
+            <argument type = "long" name = "noack" />
+        </method>
+
+        <method name = "CreateTemporaryQueue" type = "long">
+            <argument type = "BSTR" name = "destination" />
+            <argument type = "long" name = "prefetch" />
+            <argument type = "long" name = "noack" />
+        </method>
+
+        <method name = "MessageAcknowledge">
+        </method>
+
+<!--
+        <property name = "ReplyCode" type = "long" get="yes" put="no" />
+        <property name = "ReplyText" type = "BSTR" get="yes" put="no" />
+-->
+
+    </interface>
+
+    <interface
+        name = "IAMQDestination"
+        source = "no"
+        iid = "10EB17E0-165E-4770-983B-32455B0C3D52">
+
+        <method name = "MsgSend">
+            <argument type = "BSTR" name = "content" />
+            <argument type = "long" name = "persistent" />
+            <argument type = "long" name = "priority" />
+            <argument type = "long" name = "expiration" />
+            <argument type = "BSTR" name = "mime_type" />
+            <argument type = "BSTR" name = "encoding" />
+            <argument type = "BSTR" name = "identifier" />
+        </method>
+
+        <method name = "MsgRead">
+            <argument type = "long" name = "timeout" />
+        </method>
+
+        </interface>
+
+        <interface
+            name = "_IAMQDestinationEvents"
+            source = "yes"
+            iid = "4C8A1B9F-43C6-4bfb-8327-14C57DDAB22A">
+
+            <method name = "MessageArrived">
+                <argument type = "long" name = "msgnum" />
+                <argument type = "BSTR" name = "sender" />
+                <argument type = "BSTR" name = "content" />
+                <argument type = "long" name = "persistent" />
+                <argument type = "long" name = "priority" />
+                <argument type = "long" name = "expiration" />
+                <argument type = "BSTR" name = "mime_type" />
+                <argument type = "BSTR" name = "encoding" />
+                <argument type = "BSTR" name = "identifier" />
+                <argument type = "long" name = "delivered" />
+                <argument type = "long" name = "redelivered" />
+            </method>
+
+        </interface>
+
+        <interface
+            name = "IAMQControl"
+            source = "no"
+            iid = "FBF315E4-DE69-4569-8F69-7DCB291BE20E">
+
+            <property name = "Period" type = "long" get = "yes" put = "yes" />
+            <property name = "Source" type = "IDispatch*" get = "yes" put = "yes" />
+
+        </interface>
+
+        <object
+            name = "AMQConnection"
+            clsid = "876FAFB1-AEF8-F2DF-AFBA-49AC41AEF001"
+            control = "no"
+            creatable = "yes"
+            threading_model = "Apartment"
+            version = "1">
+
+            <include name = "AMQDestination.h" local = "yes" location = "cpp" />
+
+            <context>
+                <field name = "amq_client"  type = "amq_sclient_t"  reference = "yes" />
+            </context>
     
-    <property name = "producer">
-        <argument type = "VARIANT" name = "destination" />
-        <return type = "int" />
-        <local>
-        char *my_destination;
-        </local>
-        VARIANT2STRING (destination, my_destination);
-        *pVal = amq_sclient_producer (m_amq_client, my_destination);
-    </property>
+            <destructor>
+    amq_sclient_destroy (&m_amq_client);
+            </destructor>
+    
+            <implements interface = "IAMQConnection">
+                <method name = "Connect">
+    char *my_server;
+    char *my_path;
+    char *my_login;
+    char *my_password;
+    char *my_identifier;
+    USES_CONVERSION;
+        
+    my_server = OLE2A(server);
+    my_path = OLE2A (path);
+    my_login = OLE2A (login);
+    my_password = OLE2A (password);
+    my_identifier = OLE2A (identifier);
 
-    <property name = "consumer">
-        <argument type = "VARIANT" name = "destination" />
-        <argument type = "VARIANT" name = "prefetch"    optional = "1" />
-        <argument type = "VARIANT" name = "noack"       optional = "1" />
-        <return type = "int" />
-        <local>
-        char *my_destination;
-        long  my_prefetch;
-        Bool  my_noack;
-        </local>
-        VARIANT2STRING (destination, my_destination);
-        VARIANT2LONG   (prefetch,    my_prefetch);
-        VARIANT2BOOL   (noack,       my_noack);
-        *pVal = amq_sclient_consumer (m_amq_client, my_destination, my_prefetch, my_noack);
-    </property>
+    coprintf ("Connecting to %s using identity '%s'...", my_server, my_identifier);
+    amq_sclient_destroy (&m_amq_client);
+    m_amq_client = amq_sclient_new (my_identifier, my_login, my_password);
+    long result = amq_sclient_connect (m_amq_client, my_server, my_path);
+    if (result == 0) return E_FAIL;
+    return S_OK;
+                </method>
 
-    <property name = "temporary">
-        <argument type = "VARIANT" name = "destination" />
-        <argument type = "VARIANT" name = "prefetch"    optional = "1" />
-        <argument type = "VARIANT" name = "noack"       optional = "1" />
-        <return type = "int" />
-        <local>
-        char *my_destination;
-        long  my_prefetch;
-        Bool  my_noack;
-        </local>
-        VARIANT2STRING (destination, my_destination);
-        VARIANT2LONG   (prefetch,    my_prefetch);
-        VARIANT2BOOL   (noack,       my_noack);
-        *pVal = amq_sclient_temporary (m_amq_client, my_destination, my_prefetch, my_noack);
-    </property>
+                <method name = "CreateProducer">
+    USES_CONVERSION;
+    char *my_destination;
+    unsigned short handle;
+    HRESULT hr;
 
-    <property name = "msg_read">
-        <argument type = "VARIANT" name = "timeout" />
-        <return type = "int" />
-        <local>
-        long my_timeout;
-        </local>
-        VARIANT2LONG (timeout, my_timeout);
-        amq_message_destroy (&m_amq_message);
-        m_amq_message = amq_sclient_msg_read (m_amq_client, my_timeout);
-        *pVal = m_amq_message? 1: 0;
-    </property>
+    my_destination = OLE2A (destination);
+    handle = amq_sclient_producer (m_amq_client, my_destination);
+        
+    CComObject &lt;CAMQDestination> *p;
+    hr = CComObject &lt;CAMQDestination>::CreateInstance (&p);
+    if (!SUCCEEDED(hr)) return hr;
+    p->AddRef();
 
-    <method name = "msg_reset">
-        amq_message_destroy (&m_amq_message);
-        m_amq_message = amq_message_new ();
-    </method>
+    p->m_connection = this;
+    AddRef();
+    p->m_handle = handle;
 
-    <method name = "msg_send">
-        <argument type = "VARIANT" name = "handle" />
-        <local>
-        int my_handle;
-        </local>
-        VARIANT2LONG (handle, my_handle);
-        amq_sclient_msg_send (m_amq_client, my_handle, m_amq_message);
-    </method>
+    if(pVal) *pVal = p;
+    else p->Release();
+        
+    return S_OK;
+                </method>
 
-    <method name = "msg_ack">
-        amq_sclient_msg_ack (m_amq_client);
-    </method>
+                <method name = "CreateConsumer">
+    USES_CONVERSION;
+    char *my_destination;
+    unsigned short handle;
+    HRESULT hr;
 
-    <method name = "close">
-        <argument type = "VARIANT" name = "handle" optional = "1" />
-        <local>
-        int my_handle;
-        </local>
-        VARIANT2LONG (handle, my_handle);
-        amq_sclient_close (m_amq_client, my_handle);
-    </method>
+    my_destination = OLE2A (destination);
+    handle = amq_sclient_consumer (m_amq_client, my_destination, prefetch, (Bool) noack);
+        
+    CComObject &lt;CAMQDestination> *p;
+    hr = CComObject &lt;CAMQDestination>::CreateInstance (&p);
+    if (!SUCCEEDED(hr)) return hr;
+    p->AddRef();
 
-    <method name = "msg_debug">
-        console_send     (NULL, TRUE);
-        console_capture  ("c:/amq_client.log", 'w');
-        console_set_mode (CONSOLE_DEBUG);
-        amq_sclient_animate (TRUE);
-    </method>
+    p->m_connection = this;
+    AddRef();
+    p->m_handle = handle;
 
-  </object>
+    if(pVal) *pVal = p;
+    else p->Release();
+        
+    return S_OK;
+                </method>
+
+                <method name = "CreateTemporaryQueue">
+    USES_CONVERSION;
+    char *my_destination;
+
+    my_destination = OLE2A (destination);
+    *pVal = amq_sclient_temporary (m_amq_client, my_destination, prefetch, (Bool) noack);
+    return S_OK;
+                </method>
+
+                <method name = "MessageAcknowledge">
+    long result = amq_sclient_msg_ack (m_amq_client);
+    if (result == 0) return E_FAIL;
+    return S_OK;
+                </method>
+
+<!--
+                <property name = "ReplyCode">
+                    <get>
+    if(pVal) *pVal = m_amq_client? m_amq_client->reply_code: 0;
+    return S_OK;
+                    </get>
+                </property>
+
+                <property name = "ReplyText">
+                    <get>
+    USES_CONVERSION;
+       
+    if (pVal) *pVal = SysAllocString (T2OLE (m_amq_client? m_amq_client->reply_text: ""));
+    return S_OK;
+                    </get>
+                </property>
+-->
+
+            </implements>
+
+        </object>
+
+    <object
+        name = "AMQDestination"
+        clsid = "E511636A-9B33-4ce7-8548-40F656452C13"
+        control = "no"
+        creatable = "no"
+        threading_model = "Apartment"
+        version = "1">
+
+        <fires interface = "_IAMQDestinationEvents" />
+
+        <include name = "AMQConnection.h" local = "yes" location ="h" />
+
+        <destructor>
+    amq_sclient_close (m_connection->m_amq_client, m_handle);
+    if (m_connection) m_connection->Release();
+        </destructor>
+
+        <context>
+            <field name = "connection"  type = "CAMQConnection"  reference = "yes" />
+            <field name = "handle" type = "unsigned short" reference = "no" />
+        </context>
+
+        <implements interface = "IAMQDestination">
+
+            <method name = "MsgSend">
+    USES_CONVERSION;
+
+    amq_message_t *msg = amq_message_new ();
+
+    amq_message_set_persistent (msg, (Bool) persistent);
+    amq_message_set_priority (msg, (byte) priority);
+    amq_message_set_expiration (msg, (time_t) expiration);
+    amq_message_set_mime_type (msg, OLE2A (mime_type) );
+    amq_message_set_encoding (msg, OLE2A (encoding) );
+    amq_message_set_identifier (msg, OLE2A (identifier) );
+
+    int my_size = SysStringByteLen (content);
+    byte *my_content = (byte *) icl_mem_alloc (my_size);        
+    memcpy (my_content, content, my_size);
+    amq_message_set_content (msg, my_content, my_size, icl_mem_free);
+        
+    amq_sclient_msg_send (m_connection->m_amq_client, m_handle, msg);
+    return S_OK;
+            </method>
+
+            <method name = "MsgRead">
+    while(true) {
+        amq_message_t *msg;
+        msg = amq_sclient_msg_read (m_connection->m_amq_client, timeout);
+        if (!msg) break;
+        Fire_MessageArrived(
+            m_connection->m_amq_client->msg_number,
+            CComBSTR (m_connection->m_amq_client->msg_sender),
+            msg->content ? CComBSTR (msg->content->size, (char*) msg->content->data) : CComBSTR(L""),
+            msg->persistent,
+            msg->priority,
+            msg->expiration,
+            CComBSTR(msg->mime_type),
+            CComBSTR(msg->encoding),
+            CComBSTR(msg->identifier),
+            m_connection->m_amq_client->msg_delivered,
+            m_connection->m_amq_client->msg_redelivered);
+        amq_message_destroy (&msg);
+    }
+    return S_OK;
+            </method>
+
+        </implements>
+
+    </object>
+
+    <object
+        name = "AMQControl"
+        clsid = "10BB5D68-4877-41cc-BC7B-289788AB4228"
+        control = "yes"
+        creatable = "yes"
+        threading_model = "Apartment"
+        version = "1">
+
+        <fires interface = "_IAMQDestinationEvents" />
+
+        <context>
+            <field name = "period" type = "long" />
+            <field name = "source" type = "CComPtr<IAMQDestination>" noinit = "" />
+            <field name = "cookie" type = "DWORD" />
+        </context>
+
+        <constructor>
+    m_bWindowOnly = TRUE;
+        </constructor>
+
+        <implements interface = "IAMQControl">
+
+            <property name = "Period">
+                <get>
+    *pVal = m_period;
+    return S_OK;
+                </get>
+                <put>
+    m_period = newVal;
+    SetTimer (1, m_period);
+    return S_OK;
+                </put>
+            </property>
+
+            <property name = "Source">
+                <get>
+    *pVal = m_source;
+    m_source.p->AddRef();
+    return S_OK;
+                </get>
+                <put>
+    HRESULT hr;
+    if (m_source) {
+        hr = DispEventUnadvise (m_source);
+        if (!SUCCEEDED (hr) ) return hr;
+    }
+    m_source.Release();
+    hr = newVal->QueryInterface(__uuidof(IAMQDestination), (void**)&m_source);
+    if (!SUCCEEDED (hr) ) return hr;
+    return CAMQControlSink1::DispEventAdvise(m_source);
+                </put>
+            </property>
+    
+        </implements>
+
+        <handler message = "WM_TIMER">
+    if(m_source) m_source->MsgRead(100);        
+    return 0;
+        </handler>  
+
+        <sink id = "1" interface = "_IAMQDestinationEvents">
+            <event name="MessageArrived">
+    Fire_MessageArrived (msgnum, sender, content, persistent, priority, expiration, mime_type, encoding, identifier, delivered, redelivered);
+    return S_OK;
+            </event>
+        </sink>  
+
+        <function name = "OnDraw" type = "HRESULT">
+            <argument type = "ATL_DRAWINFO&" name = "di" />
+    RECT& rc = *(RECT*)di.prcBounds;
+    Rectangle(di.hdcDraw, rc.left, rc.top, rc.right, rc.bottom);
+    SetTextAlign(di.hdcDraw, TA_CENTER|TA_BASELINE);
+    LPCTSTR pszText = _T("AMQ Control");
+    TextOut(
+        di.hdcDraw, 
+        (rc.left + rc.right) / 2, 
+        (rc.top + rc.bottom) / 2, 
+        pszText, 
+        lstrlen(pszText));
+    return S_OK;
+        </function>
+
+    </object>
+    
 </class>
 
-<library name = "libamq" target = "libamq" />
+<library name = "libamq" target = "..\libamq.lib" debugtarget = "..\libamqd.lib" />
 
