@@ -428,7 +428,7 @@ s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
                 if (--body_size == 0)
                     break;
             }
-            $(selfname)_record (self, bucket, (body_size > 0));
+            $(selfname)_record (self, bucket, (Bool) (body_size > 0));
             if (body_size)
                 bucket = amq_bucket_new ();
         }
