@@ -32,7 +32,7 @@
         *queue;                         /*  Persistent queue table           */
     qbyte
         spoolid;                        /*  Spooler record, if any           */
-    amq_looseref_list_t
+    ipr_looseref_list_t
         *browsers;                      /*  List of browsers per message     */
 </context>
 
@@ -40,7 +40,11 @@
     <argument name = "handle" type = "amq_handle_t *" />
     self->handle   = handle;
     self->vhost    = handle->vhost;
-    self->browsers = amq_looseref_list_new ();
+    self->browsers = ipr_looseref_list_new ();
+</method>
+
+<method name = "destroy">
+    ipr_looseref_list_destroy (&self->browsers);
 </method>
 
 <method name = "spooldir" return = "directory">
@@ -180,15 +184,9 @@
     <doc>
     Wipes any persistent data for the message.
     </doc>
-    if (self->spool_size > 0) {
-        ASSERT (*self->spool_file);
+    if (self->spool_size > 0)
         file_delete (self->spool_file);
-    }
-    if (self->queue_id) {
-        self->queue->item_id = self->queue_id;
-        amq_queue_delete (self->queue, NULL);
-        self->queue_id = 0;
-    }
+
     if (self->spoolid) {
         amq_db_spool_delete_fast (self->vhost->ddb, self->spoolid);
         self->spoolid = 0;

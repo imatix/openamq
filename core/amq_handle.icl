@@ -63,7 +63,7 @@ typedef struct {
         *db;                            /*  Database for virtual host        */
     amq_db_t
         *ddb;                           /*  Deprecated database handle       */
-    amq_looseref_list_t
+    ipr_looseref_list_t
         *consumers;                     /*  List of consumers per handle     */
     amq_queue_t
         *queue;                         /*  If refers to actual queue        */
@@ -105,7 +105,7 @@ typedef struct {
     ASSERT (self->ddb);
 
     /*  Initialise other properties                                          */
-    self->consumers    = amq_looseref_list_new ();
+    self->consumers    = ipr_looseref_list_new ();
     self->browser_set  = amq_browser_array_new ();
     self->state        = AMQ_HANDLE_OPEN;
     self->channel_id   = command->channel_id;
@@ -141,7 +141,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
 
     /*  Find queue if named                                                  */
     if (self->dest_name && *self->dest_name) {
-        self->queue = amq_queue_search (self->vhost->queues, self->dest_name);
+        self->queue = amq_queue_search (self->vhost->queue_hash, self->dest_name);
         if (self->queue == NULL
         &&  !temporary)
             $(selfname)_destroy (p_self);
@@ -172,16 +172,16 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
 
 <method name = "destroy">
     <local>
-    amq_looseref_t
+    ipr_looseref_t
         *consumer;
     </local>
 
-    consumer = amq_looseref_list_first (self->consumers);
+    consumer = ipr_looseref_list_first (self->consumers);
     while (consumer) {
         amq_consumer_destroy ((amq_consumer_t **) &consumer->object);
-        consumer = amq_looseref_list_next (self->consumers, consumer);
+        consumer = ipr_looseref_list_next (self->consumers, consumer);
     }
-    amq_looseref_list_destroy (&self->consumers);
+    ipr_looseref_list_destroy (&self->consumers);
     amq_browser_array_destroy (&self->browser_set);
 </method>
 
@@ -200,7 +200,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
     </local>
     /*  Look for the queue using the destination name specified              */
     queue = amq_queue_full_search (
-        self->vhost->queues, self->dest_name, command->dest_name);
+        self->vhost->queue_hash, self->dest_name, command->dest_name);
 
     if (queue) {
         amq_queue_accept (queue, self->channel, message);
@@ -223,7 +223,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
 
     consumer = amq_consumer_new (self, command);
     if (consumer) {
-        amq_looseref_new (self->consumers, consumer);
+        ipr_looseref_new (self->consumers, consumer);
         amq_queue_dispatch (consumer->queue);
     }
     else {
@@ -245,17 +245,17 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
     <argument name = "command"    type = "amq_handle_flow_t *" />
     <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
     <local>
-    amq_looseref_t
+    ipr_looseref_t
         *consumer;
     </local>
 
     self->paused = command->flow_pause;
     /*  If switching on, dispatch all queues for handle                      */
     if (!self->paused) {
-        consumer = amq_looseref_list_first (self->consumers);
+        consumer = ipr_looseref_list_first (self->consumers);
         while (consumer) {
             amq_queue_dispatch (((amq_consumer_t *) consumer->object)->queue);
-            consumer = amq_looseref_list_next (self->consumers, consumer);
+            consumer = ipr_looseref_list_next (self->consumers, consumer);
         }
     }
 </method>
@@ -278,7 +278,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
 
     /*  Look for the queue using the destination name specified              */
     queue = amq_queue_full_search (
-        self->vhost->queues, self->dest_name, command->dest_name);
+        self->vhost->queue_hash, self->dest_name, command->dest_name);
 
     if (queue) {
         amq_queue_query (queue, self->browser_set);

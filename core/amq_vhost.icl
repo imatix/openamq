@@ -33,7 +33,9 @@
     ipr_config_t
         *config;                        /*  Virtual host configuration       */
     amq_queue_table_t
-        *queues;                        /*  Queues for this vhost            */
+        *queue_hash;                    /*  Queues for this vhost            */
+    ipr_looseref_list_t
+        *queue_refs;                    /*  Queues, as list                  */
     ipr_shortstr_t
         directory;                      /*  Location for virtual host        */
     ipr_shortstr_t
@@ -47,7 +49,8 @@
     <argument name = "config"    type = "ipr_config_t *"/>
 
     self->config = config;
-    self->queues = amq_queue_table_new ();
+    self->queue_hash = amq_queue_table_new ();
+    self->queue_refs = ipr_looseref_list_new ();
     ipr_shortstr_cpy (self->directory, directory);
 
     s_config_workdir  (self);
@@ -60,10 +63,37 @@
 </method>
 
 <method name = "destroy">
-    amq_queue_table_destroy (&self->queues);
-    ipr_config_destroy      (&self->config);
-    ipr_db_destroy          (&self->db);
-    amq_db_destroy          (&self->ddb);
+    amq_queue_table_destroy   (&self->queue_hash);
+    ipr_looseref_list_destroy (&self->queue_refs);
+    ipr_config_destroy        (&self->config);
+    ipr_db_destroy            (&self->db);
+    amq_db_destroy            (&self->ddb);
+</method>
+
+<method name = "dispatch" template = "function">
+    <doc>
+    Dispatches all queues that have received new messages, i.e. have the
+    'dirty' property.  All dirty queues are at the start of the vhost
+    queue list - see amq_queue_accept ().
+    </doc>
+    <local>
+    ipr_looseref_t
+        *queue_ref;                     /*  Entry into queue list    */
+    amq_queue_t
+        *queue;                         /*  Queue itself             */
+    </local>
+
+    /*  Dispatch all dirty queues until we hit the last one          */
+    queue_ref = ipr_looseref_list_first (self->queue_refs);
+    while (queue_ref) {
+        queue = (amq_queue_t *) queue_ref->object;
+        if (queue->dirty) {
+            amq_queue_dispatch (queue);
+            queue_ref = ipr_looseref_list_next (self->queue_refs, queue_ref);
+        }
+        else
+            break;
+    }
 </method>
 
 <private name = "header">

@@ -20,20 +20,20 @@
 
 <method name = "commit" template = "function">
     <doc>
-    Commits and dispatches all messages waiting on the list.
+    Commits a set of messages waiting on the list.  Should be done together
+    with a database commit and before a full dispatch of all queues.
     </doc>
     <local>
     amq_smessage_t
-        *previous,
+        *current,
         *message;
     </local>
     message = amq_smessage_list_first (self);
     while (message) {
-        amq_queue_accept   (message->queue, NULL, message);
-        amq_queue_dispatch (message->queue);
-        previous = message;
+        amq_queue_accept (message->queue, NULL, message);
+        current = message;              /*  Double-check accept worked       */
         message = amq_smessage_list_first (self);
-        ASSERT (message != previous);
+        ASSERT (message != current);
     }
 </method>
 

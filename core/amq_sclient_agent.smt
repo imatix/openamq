@@ -25,7 +25,7 @@
 #define AMQP_TRACE_LOW          1
 #define AMQP_TRACE_MED          2
 #define AMQP_TRACE_HIGH         3
-#define AMQP_SOCKET_TIMEOUT     5 * 1000         /*  msecs  */
+#define AMQP_SOCKET_TIMEOUT     30 * 1000       /*  msecs  */
 
 static int
     s_tracing = 0;

@@ -112,10 +112,14 @@
 <method name = "commit" template = "function" >
     <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
     if (self->transacted) {
+        /*  Save the client transaction                                      */
         amq_smessage_list_commit (self->messages);
         amq_dispatch_list_commit (self->dispatched);
         ipr_db_log_flush  (self->db);
         ipr_db_txn_commit (self->txn);
+
+        /*  Now dispatch the resulting messages, if any                      */
+        amq_vhost_dispatch (self->vhost);
     }
     else {
         if (reply_text)

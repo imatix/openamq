@@ -53,6 +53,8 @@ ipr_db_queue class.
     /*  References to parent objects                                         */
     amq_vhost_t
         *vhost;                         /*  Parent virtual host              */
+    ipr_looseref_t
+        *queue_ref;                     /*  Item in vhost queue list         */
 
     /*  Object properties                                                    */
     amq_db_t
@@ -69,6 +71,8 @@ ipr_db_queue class.
         last_id;                        /*  Last dispatched message          */
     size_t
         outstanding;                    /*  Nbr. outstanding messages        */
+    Bool
+        dirty;                          /*  Queue needs dispatching          */
 </context>
 
 <method name = "new">
@@ -77,9 +81,9 @@ ipr_db_queue class.
     <argument name = "temporary" type = "Bool"         >Temporary queue?</argument>
 
     <!-- Remove these inherited arguments from the API -->
-    <dismiss argument = "db"        value = "vhost->db"     />
-    <dismiss argument = "filename"  value = "key"           />
-    <dismiss argument = "table"     value = "vhost->queues" />
+    <dismiss argument = "db"        value = "vhost->db"         />
+    <dismiss argument = "filename"  value = "key"               />
+    <dismiss argument = "table"     value = "vhost->queue_hash" />
 
     /*  De-normalise from parent object, for simplicity of use               */
     self->vhost = vhost;
@@ -93,6 +97,9 @@ ipr_db_queue class.
 
     self->dest->type = AMQP_SERVICE_QUEUE;
     ipr_shortstr_cpy (self->dest->name, key);
+
+    /*  Attach to list of queues for virtual host                            */
+    self->queue_ref = ipr_looseref_new (vhost->queue_refs, self);
 
     /*  Fetch existing queue if caller specified a name                      */
     if (*key)
@@ -120,7 +127,7 @@ ipr_db_queue class.
     <declare  name = "queue"    type = "$(selftype) *" default = "NULL"/>
 
     queue = $(selfname)_full_search (
-        consumer->vhost->queues, consumer->handle->dest_name, suffix);
+        consumer->vhost->queue_hash, consumer->handle->dest_name, suffix);
     if (queue) {
         if (queue->dest->client_id == consumer->client_id
         || !queue->dest->temporary) {
@@ -166,9 +173,15 @@ ipr_db_queue class.
         amq_smessage_save (message, self, NULL);
         amq_smessage_destroy (&message);
     }
-    else
+    else {
         /*  Non-persistent messages are held per queue                       */
         amq_smessage_list_queue (self->messages, message);
+    }
+    self->dirty = TRUE;                 /*  Queue has new data               */
+
+    /*  We move all dirty queues to the start of the vhost list so that
+        dispatching can be rapid when the vhost has lots of queues           */
+    ipr_looseref_list_push (self->vhost->queue_refs, self->queue_ref);
 </method>
 
 <method name = "dispatch" template = "function">
@@ -181,11 +194,12 @@ ipr_db_queue class.
         *message;
     amq_consumer_t
         *consumer;                      /*  Next consumer to process         */
-    amq_looseref_t
-        *browser;
+    ipr_looseref_t
+        *browser_ref;
     int
         finished;
     </local>
+
     /*  Now process messages from memory or from disk                        */
 #   ifdef TRACE_DISPATCH
     coprintf ("$(selfname) I: dispatch window=%d outstanding=%d", self->window, self->outstanding);
@@ -204,10 +218,10 @@ ipr_db_queue class.
             s_dispatch_message (consumer, message);
 
             /*  Invalidate any browsers for this message                     */
-            browser = amq_looseref_list_first (message->browsers);
-            while (browser) {
-                amq_browser_destroy ((amq_browser_t **) &browser->object);
-                browser = amq_looseref_list_next (message->browsers, browser);
+            browser_ref = ipr_looseref_list_first (message->browsers);
+            while (browser_ref) {
+                amq_browser_destroy ((amq_browser_t **) &browser_ref->object);
+                browser_ref = ipr_looseref_list_next (message->browsers, browser_ref);
             }
             /*  Get next message (is now first on queue)                     */
             message = amq_smessage_list_first (self->messages);
@@ -221,7 +235,8 @@ ipr_db_queue class.
         self->item_id = self->last_id;
         finished = amq_queue_fetch (self, IPR_QUEUE_GT);
 #       ifdef TRACE_DISPATCH
-        coprintf ("$(selfname) I: fetch last=%d rc=%d id=%d", self->last_id, finished, self->item_id);
+        coprintf ("$(selfname) I: fetch last=%d rc=%d id=%d finished=%d",
+            self->last_id, finished, self->item_id, finished);
 #       endif
         while (self->window && !finished) {
 #           ifdef TRACE_DISPATCH
@@ -246,6 +261,7 @@ ipr_db_queue class.
             finished = amq_queue_fetch (self, IPR_QUEUE_NEXT);
         }
     }
+    self->dirty = FALSE;                /*  Queue has been dispatched        */
 </method>
 
 <method name = "query" template = "function">
@@ -273,7 +289,7 @@ ipr_db_queue class.
         /*  Track browser for message so we can invalidate it if/when
             we dispatch the message.                                         */
         browser = amq_browser_new (browser_set, set_index++, self, 0, message);
-        amq_looseref_new (message->browsers, browser);
+        ipr_looseref_new (message->browsers, browser);
         message = amq_smessage_list_next (self->messages, message);
     }
     /*  Now process any messages on disk                                     */
