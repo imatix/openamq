@@ -18,6 +18,8 @@ extern ipr_config_t
     *amq_config;                        /*  Server configuration table       */
 extern amq_vhost_table_t
     *amq_vhosts;                        /*  Virtual hosts table              */
+extern size_t
+    amq_allowed_memory;                 /*  Configured memory limit, if any  */
 </public>
 
 <private>
@@ -25,6 +27,8 @@ ipr_config_t
     *amq_config = NULL;                 /*  Server configuration table       */
 amq_vhost_table_t
     *amq_vhosts = NULL;                 /*  Virtual hosts table              */
+size_t
+    amq_allowed_memory = 0;             /*  Configured memory limit, if any  */
 
 static int
     s_error_code = 0;                   /*  Last error code                  */

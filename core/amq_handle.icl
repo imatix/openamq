@@ -206,13 +206,9 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
         self->vhost->queue_hash, self->dest_name, command->dest_name);
 
     if (queue) {
-        if (queue->nbr_consumers >= queue->opt_min_consumers) {
-            amq_queue_accept (queue, self->channel, message);
-            if (!self->channel->transacted)
-                amq_queue_dispatch (queue);
-        }
-        else
-            amq_global_set_error (AMQP_NOT_ALLOWED, "Queue needs consumers but has none");
+        amq_queue_accept (queue, self->channel, message);
+        if (queue->dirty)
+            amq_queue_dispatch (queue);
     }
     else
         amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
@@ -275,9 +271,13 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
         self->vhost->queue_hash, self->dest_name, command->dest_name);
 
     if (queue) {
-        amq_queue_query (queue, self->browser_set);
-        amq_server_agent_handle_index (
-            self->thread, (dbyte) self->key, 0, amq_browser_array_strindex (self->browser_set));
+        if (queue->opt_browsable) {
+            amq_queue_query (queue, self->browser_set);
+            amq_server_agent_handle_index (
+                self->thread, (dbyte) self->key, 0, amq_browser_array_strindex (self->browser_set));
+        }
+        else
+            amq_global_set_error (AMQP_ACCESS_REFUSED, "Browsing not allowed on queue");
     }
     else
         amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");

@@ -4,8 +4,6 @@
     script  = "smt2c.gsl"
     animate = "1" >
 
-<include filename = "amq_common.smt" />
-
 <public name = "types">
 #include "amq_classes.h"
 #include "amq_smessage.h"
@@ -21,6 +19,9 @@
 static int
     s_tracing = 0;
 </private>
+
+<catch error = "SMT_SOCKET_ERROR" event = "socket error" />
+<catch                            event = "smt error"    />
 
 <handler name = "agent init">
     <argument name = "tracing" type = "int" />
@@ -232,6 +233,148 @@ static int
         send_the_frame (thread);
     </action>
 
+    <action name = "read next command">
+        <action name = "read frame header normal" />
+        <action name = "read frame header escaped" />
+        <action name = "read frame body" />
+        <action name = "decode the frame" />
+    </action>
+
+    <action name = "read frame header normal">
+        s_sock_read (thread, tcb->frame_header, 2);
+    </action>
+
+    <action name = "read frame header escaped">
+        tcb->frame_size = ntohs (*(dbyte *) (tcb->frame_header));
+        if (tcb->frame_size == 0xffff) {
+            s_sock_read (thread, tcb->frame_header, 4);
+            tcb->long_frame = TRUE;
+        }
+        else
+            tcb->long_frame = FALSE;
+    </action>
+
+    <action name = "read frame body">
+        if (tcb->long_frame)
+            tcb->frame_size = ntohl (*(qbyte *) (tcb->frame_header));
+
+        if (tcb->frame_size > tcb->frame_max) {
+            tcb->reply_code = AMQP_FRAME_ERROR;
+            tcb->reply_text = "Client sent oversized fragment";
+            smt_thread_raise_exception (thread, connection_error_event);
+        }
+        else
+            s_sock_read (thread, tcb->command->data, tcb->frame_size);
+    </action>
+
+    <action name = "decode the frame">
+        amq_frame_free (&tcb->frame);
+        tcb->command->cur_size = tcb->socket->io_size;
+        tcb->frame = amq_frame_decode (tcb->command);
+        if (tcb->frame) {
+            if (s_tracing > AMQP_TRACE_NONE)
+                amq_frame_dump (tcb->frame, "IN  ");
+
+            switch (tcb->frame->type) {
+                /*  Connection commands                                          */
+                case FRAME_TYPE_CONNECTION_RESPONSE:
+                    the_next_event = connection_response_event;
+                    break;
+                case FRAME_TYPE_CONNECTION_TUNE:
+                    the_next_event = connection_tune_event;
+                    break;
+                case FRAME_TYPE_CONNECTION_OPEN:
+                    the_next_event = connection_open_event;
+                    break;
+                case FRAME_TYPE_CONNECTION_PING:
+                    the_next_event = connection_ping_event;
+                    break;
+                case FRAME_TYPE_CONNECTION_CLOSE:
+                    the_next_event = connection_close_event;
+                    break;
+
+                /*  Channel commands                                             */
+                case FRAME_TYPE_CHANNEL_OPEN:
+                    use_command_channel (thread, CHANNEL_OPEN.channel_id);
+                    the_next_event = channel_open_event;
+                    break;
+                case FRAME_TYPE_CHANNEL_ACK:
+                    use_command_channel (thread, CHANNEL_ACK.channel_id);
+                    the_next_event = channel_method_event;
+                    break;
+                case FRAME_TYPE_CHANNEL_COMMIT:
+                    use_command_channel (thread, CHANNEL_COMMIT.channel_id);
+                    the_next_event = channel_method_event;
+                    break;
+                case FRAME_TYPE_CHANNEL_ROLLBACK:
+                    use_command_channel (thread, CHANNEL_ROLLBACK.channel_id);
+                    the_next_event = channel_method_event;
+                    break;
+                case FRAME_TYPE_CHANNEL_CLOSE:
+                    use_command_channel (thread, CHANNEL_CLOSE.channel_id);
+                    the_next_event = channel_close_event;
+                    break;
+
+                /*  Handle commands                                              */
+                case FRAME_TYPE_HANDLE_OPEN:
+                    use_command_channel (thread, HANDLE_OPEN.channel_id);
+                    use_command_handle  (thread, HANDLE_OPEN.handle_id);
+                    the_next_event  = handle_open_event;
+                    break;
+                case FRAME_TYPE_HANDLE_SEND:
+                    use_command_handle (thread, HANDLE_SEND.handle_id);
+                    the_next_event = handle_send_event;
+                    break;
+                case FRAME_TYPE_HANDLE_CONSUME:
+                    use_command_handle (thread, HANDLE_CONSUME.handle_id);
+                    the_next_event = handle_method_event;
+                    break;
+                case FRAME_TYPE_HANDLE_CANCEL:
+                    use_command_handle (thread, HANDLE_CANCEL.handle_id);
+                    the_next_event = handle_method_event;
+                    break;
+                case FRAME_TYPE_HANDLE_FLOW:
+                    use_command_handle (thread, HANDLE_FLOW.handle_id);
+                    the_next_event = handle_method_event;
+                    break;
+                case FRAME_TYPE_HANDLE_UNGET:
+                    use_command_handle (thread, HANDLE_UNGET.handle_id);
+                    the_next_event = handle_method_event;
+                    break;
+                case FRAME_TYPE_HANDLE_QUERY:
+                    use_command_handle (thread, HANDLE_QUERY.handle_id);
+                    the_next_event = handle_method_event;
+                    break;
+                case FRAME_TYPE_HANDLE_BROWSE:
+                    use_command_handle (thread, HANDLE_BROWSE.handle_id);
+                    the_next_event = handle_method_event;
+                    break;
+                case FRAME_TYPE_HANDLE_PREPARE:
+                    use_command_handle (thread, HANDLE_PREPARE.handle_id);
+                    the_next_event = handle_prepare_event;
+                    break;
+                case FRAME_TYPE_HANDLE_READY:
+                    use_command_handle (thread, HANDLE_READY.handle_id);
+                    the_next_event = handle_ready_event;
+                    break;
+                case FRAME_TYPE_HANDLE_CLOSE:
+                    use_command_handle (thread, HANDLE_CLOSE.handle_id);
+                    the_next_event = handle_close_event;
+                    break;
+
+                default:
+                    tcb->reply_code = AMQP_FRAME_ERROR;
+                    tcb->reply_text = "Frame type is not recognised";
+                    smt_thread_raise_exception (thread, connection_error_event);
+            }
+        }
+        else {
+            tcb->reply_code = AMQP_FRAME_ERROR;
+            tcb->reply_text = "Frame type is not recognised";
+            smt_thread_raise_exception (thread, connection_error_event);
+        }
+    </action>
+
     <!--  EXPECT CONNECTION RESPONSE  ---------------------------------------->
 
     <state name = "expect connection response">
@@ -290,6 +433,11 @@ static int
         tcb->vhost      = tcb->connection->vhost;
         tcb->client_id  = tcb->connection->client_id;
         connection_reply_if_needed (thread, CONNECTION_OPEN.confirm_tag);
+    </action>
+
+    <action name = "wait for activity" >
+        smt_socket_request_monitor (
+            thread, tcb->socket, socket_input_event, SMT_NULL_EVENT);
     </action>
 
     <!--  CONNECTION ACTIVE  ------------------------------------------------->
@@ -385,6 +533,7 @@ static int
 
     <state name = "have channel open">
         <event name = "undefined" nextstate = "connection active">
+            <action name = "check sufficient resources" />
             <action name = "process channel open" />
             <action name = "wait for activity" />
         </event>
@@ -395,6 +544,15 @@ static int
             <action name = "invalid connection command" />
         </event>
     </state>
+
+    <action name = "check sufficient resources">
+    if (amq_allowed_memory > 0
+    &&  icl_mem_usage () > amq_allowed_memory) {
+        tcb->reply_code = AMQP_RESOURCE_ERROR;
+        tcb->reply_text = "Server is too busy - try again later";
+        smt_thread_raise_exception (thread, connection_error_event);
+    }
+    </action>
 
     <action name = "process channel open">
         amq_global_reset_error ();
@@ -487,6 +645,7 @@ static int
 
     <state name = "have handle open">
         <event name = "undefined" nextstate = "connection active">
+            <action name = "check sufficient resources" />
             <action name = "process handle open" />
             <action name = "wait for activity" />
         </event>
@@ -565,6 +724,7 @@ static int
             <action name = "invalid channel command" />
         </event>
         <event name = "open" nextstate = "after handle send">
+            <action name = "check sufficient resources" />
             <action name = "process handle send" />
             <action name = "process handle send fragment" />
         </event>
@@ -575,7 +735,8 @@ static int
 
     <action name = "process handle send">
         if (HANDLE_SEND.fragment_size > tcb->connection->frame_max) {
-            coprintf ("E: oversized fragment, rejected");
+            tcb->reply_code = AMQP_FRAME_ERROR;
+            tcb->reply_text = "Client sent oversized fragment";
             smt_thread_raise_exception (thread, channel_error_event);
         }
         s_sock_read (thread, tcb->fragment->data, HANDLE_SEND.fragment_size);
@@ -587,24 +748,23 @@ static int
             tcb->channel->message_in = amq_smessage_new (tcb->handle);
 
         tcb->fragment->cur_size = tcb->socket->io_size;
-        if (amq_smessage_record (
-            tcb->channel->message_in, tcb->fragment, HANDLE_SEND.partial))
-            smt_thread_raise_exception (thread, connection_error_event);
+        amq_smessage_record (
+            tcb->channel->message_in, tcb->fragment, HANDLE_SEND.partial);
+
+        /*  Grab new bucket, record method now owns our old one              */
+        tcb->fragment = amq_bucket_new ();
+
+        if (HANDLE_SEND.partial)
+            the_next_event = continue_event;
         else {
-            /*  Grab new bucket, record method now owns our old one          */
-            tcb->fragment = amq_bucket_new ();
+            amq_global_reset_error ();
+            amq_handle_send (tcb->handle, &HANDLE_SEND, tcb->channel->message_in);
+            handle_reply_if_needed (thread, HANDLE_SEND.confirm_tag);
 
-            if (HANDLE_SEND.partial)
-                the_next_event = continue_event;
-            else {
-                amq_global_reset_error ();
-                amq_handle_send (tcb->handle, &HANDLE_SEND, tcb->channel->message_in);
-                handle_reply_if_needed (thread, HANDLE_SEND.confirm_tag);
-
-                /*  We pass ownership to the message handler code            */
+            /*  We pass ownership to the message handler code                */
+            if (amq_global_error_code () == 0)
                 tcb->channel->message_in = NULL;
-                the_next_event = finished_event;
-            }
+            the_next_event = finished_event;
         }
     </action>
 
@@ -655,7 +815,8 @@ static int
 
     <action name = "process handle prepare">
         if (HANDLE_PREPARE.fragment_size > tcb->connection->frame_max) {
-            coprintf ("E: oversized fragment, rejected");
+            tcb->reply_code = AMQP_FRAME_ERROR;
+            tcb->reply_text = "Client sent oversized fragment";
             smt_thread_raise_exception (thread, channel_error_event);
         }
         s_sock_read (thread, tcb->fragment->data, HANDLE_PREPARE.fragment_size);
@@ -875,112 +1036,17 @@ static int
     </action>
 </thread>
 
-<action name = "decode the frame">
-    amq_frame_free (&tcb->frame);
-    tcb->command->cur_size = tcb->socket->io_size;
-    tcb->frame = amq_frame_decode (tcb->command);
-    if (tcb->frame) {
-        if (s_tracing > AMQP_TRACE_NONE)
-            amq_frame_dump (tcb->frame, "IN  ");
+<state name = "defaults">
+    <event name = "socket error" nextstate = "" >
+    </event>
+    <event name = "smt error" nextstate = "">
+        <action name = "handle error"/>
+    </event>
+    <event name = "shutdown" nextstate = "" />
+</state>
 
-        switch (tcb->frame->type) {
-            /*  Connection commands                                          */
-            case FRAME_TYPE_CONNECTION_RESPONSE:
-                the_next_event = connection_response_event;
-                break;
-            case FRAME_TYPE_CONNECTION_TUNE:
-                the_next_event = connection_tune_event;
-                break;
-            case FRAME_TYPE_CONNECTION_OPEN:
-                the_next_event = connection_open_event;
-                break;
-            case FRAME_TYPE_CONNECTION_PING:
-                the_next_event = connection_ping_event;
-                break;
-            case FRAME_TYPE_CONNECTION_CLOSE:
-                the_next_event = connection_close_event;
-                break;
-
-            /*  Channel commands                                             */
-            case FRAME_TYPE_CHANNEL_OPEN:
-                use_command_channel (thread, CHANNEL_OPEN.channel_id);
-                the_next_event = channel_open_event;
-                break;
-            case FRAME_TYPE_CHANNEL_ACK:
-                use_command_channel (thread, CHANNEL_ACK.channel_id);
-                the_next_event = channel_method_event;
-                break;
-            case FRAME_TYPE_CHANNEL_COMMIT:
-                use_command_channel (thread, CHANNEL_COMMIT.channel_id);
-                the_next_event = channel_method_event;
-                break;
-            case FRAME_TYPE_CHANNEL_ROLLBACK:
-                use_command_channel (thread, CHANNEL_ROLLBACK.channel_id);
-                the_next_event = channel_method_event;
-                break;
-            case FRAME_TYPE_CHANNEL_CLOSE:
-                use_command_channel (thread, CHANNEL_CLOSE.channel_id);
-                the_next_event = channel_close_event;
-                break;
-
-            /*  Handle commands                                              */
-            case FRAME_TYPE_HANDLE_OPEN:
-                use_command_channel (thread, HANDLE_OPEN.channel_id);
-                use_command_handle  (thread, HANDLE_OPEN.handle_id);
-                the_next_event  = handle_open_event;
-                break;
-            case FRAME_TYPE_HANDLE_SEND:
-                use_command_handle (thread, HANDLE_SEND.handle_id);
-                the_next_event = handle_send_event;
-                break;
-            case FRAME_TYPE_HANDLE_CONSUME:
-                use_command_handle (thread, HANDLE_CONSUME.handle_id);
-                the_next_event = handle_method_event;
-                break;
-            case FRAME_TYPE_HANDLE_CANCEL:
-                use_command_handle (thread, HANDLE_CANCEL.handle_id);
-                the_next_event = handle_method_event;
-                break;
-            case FRAME_TYPE_HANDLE_FLOW:
-                use_command_handle (thread, HANDLE_FLOW.handle_id);
-                the_next_event = handle_method_event;
-                break;
-            case FRAME_TYPE_HANDLE_UNGET:
-                use_command_handle (thread, HANDLE_UNGET.handle_id);
-                the_next_event = handle_method_event;
-                break;
-            case FRAME_TYPE_HANDLE_QUERY:
-                use_command_handle (thread, HANDLE_QUERY.handle_id);
-                the_next_event = handle_method_event;
-                break;
-            case FRAME_TYPE_HANDLE_BROWSE:
-                use_command_handle (thread, HANDLE_BROWSE.handle_id);
-                the_next_event = handle_method_event;
-                break;
-            case FRAME_TYPE_HANDLE_PREPARE:
-                use_command_handle (thread, HANDLE_PREPARE.handle_id);
-                the_next_event = handle_prepare_event;
-                break;
-            case FRAME_TYPE_HANDLE_READY:
-                use_command_handle (thread, HANDLE_READY.handle_id);
-                the_next_event = handle_ready_event;
-                break;
-            case FRAME_TYPE_HANDLE_CLOSE:
-                use_command_handle (thread, HANDLE_CLOSE.handle_id);
-                the_next_event = handle_close_event;
-                break;
-
-            default:
-                tcb->reply_code = AMQP_FRAME_ERROR;
-                tcb->reply_text = "Frame type is not recognised";
-                smt_thread_raise_exception (thread, connection_error_event);
-        }
-    }
-    else {
-        tcb->reply_code = AMQP_FRAME_ERROR;
-        tcb->reply_text = "Frame type is not recognised";
-        smt_thread_raise_exception (thread, connection_error_event);
-    }
+<action name = "handle error">
+    coprintf ("E: %s", smt_thread_error (thread));
 </action>
 
 <private name = "types">
@@ -1107,5 +1173,6 @@ s_sock_read (smt_thread_t *thread, byte *buffer, size_t size)
 
 #undef  tcb
 </private>
+
 
 </agent>

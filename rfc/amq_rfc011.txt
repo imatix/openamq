@@ -169,7 +169,8 @@ We define these specific reply codes:
     client.
 506:
     Insufficient resources.  The client tried to open more channels or
-    handles than the server could support.
+    handles than the server could support, or the server hit some other
+    internal limit.
 507:
     Temporarily forbidden.  The client asked to perform a command that
     was temporarily forbidden.

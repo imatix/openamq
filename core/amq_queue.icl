@@ -77,13 +77,19 @@ ipr_db_queue class.
     Bool
         dirty;                          /*  Queue needs dispatching          */
 
-    /*  Queue configuration options                                          */
-    long
+    /*  Queue options, loaded from queue configuration in amq_vhost.cfg      */
+    size_t
         opt_min_consumers;              /*  Minimum required consumers       */
-    long
+    size_t
         opt_max_consumers;              /*  Maximum allowed consumers        */
-    long
+    size_t
         opt_memory_queue_max;           /*  Max. size of memory queue        */
+    size_t
+        opt_max_messages;               /*  Max. allowed messages            */
+    size_t
+        opt_max_message_size;           /*  Max. allowed message size        */
+    Bool
+        opt_browsable;                  /*  Queue browsing allowed?          */
 </context>
 
 <method name = "new">
@@ -112,12 +118,18 @@ ipr_db_queue class.
         self->opt_min_consumers    = ipr_config_attrn (config, "min-consumers");
         self->opt_max_consumers    = ipr_config_attrn (config, "max-consumers");
         self->opt_memory_queue_max = ipr_config_attrn (config, "memory-queue-max");
+        self->opt_max_messages     = ipr_config_attrn (config, "max-messages");
+        self->opt_max_message_size = ipr_config_attrn (config, "max-message-size");
+        self->opt_browsable        = ipr_config_attrn (config, "browsable");
 
         /*  auto-purge option means delete all queue messages at restart     */
         if (ipr_config_attrn (config, "auto-purge"))
             amq_queue_purge (self);
     }
-
+    else {
+        /*  Defaults                                                         */
+        self->opt_browsable = 1;
+    }
     self->dest->type = AMQP_SERVICE_QUEUE;
     ipr_shortstr_cpy (self->dest->name, key);
 
@@ -201,6 +213,19 @@ ipr_db_queue class.
     <argument name = "message" type = "amq_smessage_t *">Message, if any</argument>
     ASSERT (message);
 
+    /*  First check that posting to this queue is currently allowed          */
+    if (self->nbr_consumers < self->opt_min_consumers)
+        amq_global_set_error (AMQP_NOT_ALLOWED, "Queue needs consumers but has none");
+    else
+    if (self->opt_max_messages > 0
+    &&  self->disk_queue_size + self->memory_queue_size > self->opt_max_messages)
+        amq_global_set_error (AMQP_NOT_ALLOWED, "Queue is filled to capacity");
+    else
+    if (self->opt_max_message_size > 0
+    &&  message->body_size > self->opt_max_message_size)
+        amq_global_set_error (AMQP_NOT_ALLOWED, "Message exceeds limits for queue");
+    else
+
     if (channel && channel->transacted) {
         /*  Transacted messages are held per-channel                         */
         message->queue = self;
@@ -209,39 +234,40 @@ ipr_db_queue class.
         coprintf ("$(selfname) I: queue transacted message");
 #       endif
     }
-    else
-    /*  We save to the disk queue if:
-        - the message is persistent (obviously)
-        - there are still persistent messages to be processed, so that
-          we maintain message ordering (the memory queue gets emptied before
-          the disk queue)
-        - the memory queue is full (>= max, and max > 0)
-     */
-    if (message->persistent
-    ||  self->disk_queue_size > 0
-    || (self->opt_memory_queue_max > 0
-    &&  self->memory_queue_size >= self->opt_memory_queue_max)) {
-        /*  Persistent messages are saved on persistent queue storage        */
-        self->disk_queue_size++;
-        amq_smessage_save (message, self, NULL);
-        amq_smessage_destroy (&message);
-#       ifdef TRACE_DISPATCH
-        coprintf ("$(selfname) I: save persistent message to storage");
-#       endif
-    }
     else {
-        /*  Non-persistent messages are held per queue                       */
-        self->memory_queue_size++;
-        amq_smessage_list_queue (self->messages, message);
-#       ifdef TRACE_DISPATCH
-        coprintf ("$(selfname) I: save non-persistent message to queue memory");
-#       endif
-    }
-    self->dirty = TRUE;                 /*  Queue has new data               */
+        /*  We save to the disk queue if:
+            - the message is persistent (obviously)
+            - there are still persistent messages to be processed, so that
+            we maintain message ordering (the memory queue gets emptied before
+            the disk queue)
+            - the memory queue is full (>= max, and max > 0)
+        */
+        if (message->persistent
+        ||  self->disk_queue_size > 0
+        || (self->opt_memory_queue_max > 0
+        &&  self->memory_queue_size >= self->opt_memory_queue_max)) {
+            /*  Persistent messages are saved on persistent queue storage    */
+            self->disk_queue_size++;
+            amq_smessage_save (message, self, NULL);
+            amq_smessage_destroy (&message);
+    #       ifdef TRACE_DISPATCH
+            coprintf ("$(selfname) I: save persistent message to storage");
+    #       endif
+        }
+        else {
+            /*  Non-persistent messages are held per queue                   */
+            self->memory_queue_size++;
+            amq_smessage_list_queue (self->messages, message);
+    #       ifdef TRACE_DISPATCH
+            coprintf ("$(selfname) I: save non-persistent message to queue memory");
+    #       endif
+        }
+        self->dirty = TRUE;             /*  Queue has new data               */
 
-    /*  We move all dirty queues to the start of the vhost list so that
-        dispatching can be rapid when the vhost has lots of queues           */
-    ipr_looseref_list_push (self->vhost->queue_refs, self->queue_ref);
+        /*  We move all dirty queues to the start of the vhost list so that
+            dispatching can be rapid when the vhost has lots of queues       */
+        ipr_looseref_list_push (self->vhost->queue_refs, self->queue_ref);
+    }
 </method>
 
 <method name = "dispatch" template = "function">

@@ -259,6 +259,10 @@ amq_server_core (
         }
     }
 
+    /*  Configure server resource parameters                                 */
+    ipr_config_locate (amq_config, "/resources", NULL);
+        amq_allowed_memory = ipr_config_attrn (amq_config, "allowed-memory");
+
     /*  Pre-module initialisation                                            */
     s_prepare_logging ();
     amq_vhosts = amq_vhost_table_new (amq_config);

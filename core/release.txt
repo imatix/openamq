@@ -1,3 +1,10 @@
+0.7c3 - 2 March 2005
+    - added queue 'browsable' option, disables HANDLE QUERY/BROWSE on queue
+    - added queue 'max-messages' option, limits total size of queue
+    - added queue 'max-message-size' option, limits size of messages on queue
+    - added server 'max-memory' option, limits server total memory usage
+    - server did not send useful reply code to oversized fragments - fixed
+
 0.7c2 - 1 March 2005
     - added queue 'auto-purge' option, empties queue at startup
     - added queue 'min-consumers' option, disallows producers if no consumers
