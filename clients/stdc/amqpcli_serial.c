@@ -64,10 +64,10 @@ main (int argc, char *argv [])
         amq_sclient_close (amq_client, 0);
     }
     amq_sclient_destroy (&amq_client);
-    ipr_metacache_destroy ();
+    icl_system_destroy ();
 
     coprintf ("Allocs=%ld frees=%ld\n", mem_allocs (), mem_frees ());
-    ipr_mem_assert ();
+    icl_mem_assert ();
     return (0);
 }
 

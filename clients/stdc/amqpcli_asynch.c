@@ -54,10 +54,10 @@ main (int argc, char *argv [])
     amq_aclient_connect  (amq_client, hostname, "/test");
 
     amq_aclient_destroy (&amq_client);
-    ipr_metacache_destroy ();
+    icl_system_destroy ();
 
     coprintf ("Allocs=%ld frees=%ld\n", mem_allocs (), mem_frees ());
-    ipr_mem_assert ();
+    icl_mem_assert ();
     return (0);
 }
 
