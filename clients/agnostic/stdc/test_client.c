@@ -317,6 +317,8 @@ int main(
                 return EXIT_FAILURE;
             }
 
+            printf ("Message %s sent.\n", identifier);
+
             /*  Rollback transaction if needed                               */
             if (client.rollback_count && ((client.last_message_number + 1) %
                   client.rollback_count) == 0) {

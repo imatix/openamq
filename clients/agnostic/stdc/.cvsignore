@@ -1,6 +1,6 @@
 amq_frames.xml
-amqp_level0.c
-amqp_level0.h
+amq_stdc_framing.c
+amq_stdc_framing.h
 boomake*
 libamqp.*
 Makefile*
@@ -8,5 +8,5 @@ msmake*
 configure*
 *.d
 *.i
-test_level0
-test_level1
+test_framing
+test_client
