@@ -6,7 +6,7 @@
  *  Copyright (c) 1991-2005 iMatix Corporation
  *---------------------------------------------------------------------------*/
 
-#include "amq_stdc_common.h"
+#include "amq_stdc_private.h"
 
 #ifdef AMQTRACE_MEMORY
 
