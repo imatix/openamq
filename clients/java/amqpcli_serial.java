@@ -85,7 +85,7 @@ public int amqpcli_serial_execute (String args[])
 {
     int
         feedback;                       /* Console return int               */
-    
+
     if (args.length > 0) {
         if (args[0].equals("-h")) {
             System.out.println("Java serial test client - " + version);
@@ -97,17 +97,17 @@ public int amqpcli_serial_execute (String args[])
             System.out.println("Provisional syntax: java amqpcli_serial [server] [client name] [messages] [batch] [message size]");
             System.exit(0);
         } else {
-            opt_server = args[0];       
+            opt_server = args[0];
         }
-    }    
+    }
     if (args.length > 1)
-        client_name = args[1];       
+        client_name = args[1];
     if (args.length > 2)
-        messages = Integer.parseInt(args[2]);       
+        messages = Integer.parseInt(args[2]);
     if (args.length > 3)
-        batch_size = Short.parseShort(args[3]);       
+        batch_size = Short.parseShort(args[3]);
     if (args.length > 4)
-        message_size = Integer.parseInt(args[4]);       
+        message_size = Integer.parseInt(args[4]);
 
     feedback = execute ();
 
@@ -173,7 +173,7 @@ public void setup ()
     catch (UnknownHostException e)
     {
         raise_exception(exception_event, e, "amqpci_java", "setup", "unknown host");
-    } 
+    }
     catch (SocketTimeoutException e) {
         raise_exception(timeout_event, e, "amqpci_java", "setup", "SocketTimeoutException");
     }
@@ -401,7 +401,7 @@ public void do_tests ()
             message_head = amq_framing.consumeMessageHead();
             bytes = amq_framing.consumeInBandMessageBody(handle_notify, message_head);
             if (bytes.length != message_size) {
-                System.err.println("amqpcli_serial: body_check: returning message size mismatch (is " 
+                System.err.println("amqpcli_serial: body_check: returning message size mismatch (is "
                     + bytes.length + " should be " + message_size + ").");
                 System.exit(1);
             }
@@ -491,7 +491,7 @@ public void negotiate_connection_tune ()
         frame = null;               /* Raw frame                        */
     AMQConnection.Tune              /* Tune parameters from server      */
         tune_server = (AMQConnection.Tune)frame;
-        
+
     try
     {
         frame = amq_framing.consumeFrame();
@@ -505,7 +505,7 @@ public void negotiate_connection_tune ()
         amq_framing.produceFrame(client_tune);
     }
     catch (ClassCastException e)
-    {   
+    {
         frame.dump();
         raise_exception(exception_event, e, "amqpci_java", "negotiate_connection_tune", "unexpected frame from server");
     }

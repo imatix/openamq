@@ -18,7 +18,7 @@
     <file name = "amqpcli_put.c"     class = "main program"     >AMQP file put client</file>
     <file name = "amqpfeed.c"        class = "main program"     >Generate test files</file>
     <file name = "chat_in.c"         class = "main program"     >C-to-Java chat example</file>
-    <file name = "chat_out.c"        class = "main program"     >C-to-Java chat example/file>
+    <file name = "chat_out.c"        class = "main program"     >C-to-Java chat example</file>
     <file name = "version.h"         class = "c version"        >Project version file</file>
 
     <!-- Deliverables -->
@@ -28,7 +28,7 @@
     <file name = "amqpcli_get"       class = "public command"   >Client file get</file>
     <file name = "amqpcli_put"       class = "public command"   >Client file put</file>
     <file name = "chat_in"           class = "public command"   >C-to-Java chat example</file>
-    <file name = "chat_out"          class = "public command"   >C-to-Java chat example/file>
+    <file name = "chat_out"          class = "public command"   >C-to-Java chat example</file>
 </directory>
 
 <directory name = "complus" keep_paths = "0">
@@ -49,6 +49,17 @@
         </execute>
       </build>
     </actions>
+</directory>
+
+<directory name = "java" keep_paths = "0">
+    <file name = "amq_frames.gsl"        class = "private resource">Java frames generator</file>
+    <file name = "amqpcli_serial.java"   class = "private resource">Java serial test client</file>
+    <file name = "amqpcli_serial.java.l" class = "private resource">Java serial test client</file>
+    <file name = "EchoClient.java"       class = "private resource">Java chat client</file>
+    <file name = "README.txt"            class = "private resource">Readme</file>
+    <file name = "build.sh"              class = "private resource">Readme</file>
+</directory>
+
 </directory>
 
 </pdl>
