@@ -104,7 +104,7 @@
     if (self->queue_id == 0) {
         /*  Push back non-persistent message                                 */
         /*    - update window AFTER so it won't bounce to same consumer      */
-        amq_queue_save     (self->queue, self->message->handle->channel, self->message);
+        amq_queue_accept   (self->queue, self->channel, self->message);
         amq_queue_dispatch (self->queue);
         self->queue->window++;
         self->consumer->window++;

@@ -1,4 +1,4 @@
-0.7b5 -
+0.7b5 - 9 February 2005
     - CHANNEL ACK did not work as per AMQ RFC 006; it required that the
       message was present and returned a code 311 if not.  Now it allows
       the message number to be defined arbitrarily high.

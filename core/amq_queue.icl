@@ -142,7 +142,7 @@ ipr_db_queue class.
     self->window -= consumer->window;
 </method>
 
-<method name = "save" template = "function">
+<method name = "accept" template = "function">
     <doc>
     Saves a message to a queue.  The caller can provide a transaction, in which
     case the message will be invisible for dispatching until the queue has been
@@ -151,8 +151,8 @@ ipr_db_queue class.
     The channel can be specified as NULL, which forces non-persistent messages
     to be saved to the queue memory list.
     </doc>
-    <argument name = "message" type = "amq_smessage_t *">Message, if any</argument>
     <argument name = "channel" type = "amq_channel_t *" >Current channel</argument>
+    <argument name = "message" type = "amq_smessage_t *">Message, if any</argument>
 
     ASSERT (message);
     if (self->outstanding > 0 || message->persistent) {
@@ -161,13 +161,13 @@ ipr_db_queue class.
         amq_smessage_save (message, self, channel->txn);
         amq_smessage_destroy (&message);
 #       ifdef TRACE_DISPATCH
-        coprintf ("$(selfname) I: insert message id=%d outstanding=%d", self->item_id, self->outstanding);
+        coprintf ("$(selfname) I: persistent message id=%d outstanding=%d", self->item_id, self->outstanding);
 #       endif
     }
     else {
         /*  Handle non-persistent messages                                   */
         /*  If transacted, save per channel, else save per queue             */
-        message->queue = queue;
+        message->queue = self;
         if (channel && channel->transacted)
             amq_smessage_list_queue (channel->messages, message);
         else

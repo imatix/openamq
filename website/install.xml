@@ -15,9 +15,10 @@
       <section>
         <title>Unix and Linux</title>
         <head>Building OpenAMQ from Source</head>
-        <line>Unpack the source package into a working directory.</line>
+        <line>Unpack the source package into a working directory. You will need gzip/gtar.</line>
         <line>Run './configure' and then 'make' in that directory.</line>
         <head>Installation</head>
+        <line>The IBASE environment variable (default is $HOME) tells OpenAMQ where to install.</line>
         <line>Run 'make install' to install into $HOME/openamq/servers and $HOME/openamq/clients.</line>
         <head>A Quick Test</head>
         <line>In one window in $HOME/openamq/servers, run './openamq'.</line>
@@ -31,7 +32,8 @@
         <line>Unpack the source package into a working directory.</line>
         <line>Run 'configure' and then 'make' in that directory.</line>
         <head>Installation</head>
-        <line>Run 'make install' to install into c:\openamq\servers and c:\openamq\clients.</line>
+        <line>The IBASE environment variable (default is c:\home) tells OpenAMQ where to install.</line>
+        <line>Run 'make install' to install into c:\home\openamq\servers and c:\home\openamq\clients.</line>
         <head>Installing the OpenAMQ Binary Package</head>
         <line>Unzip the package into c:\openamq.</line>
         <line>This creates the two directories c:\openamq\servers and c:\openamq\clients.</line>

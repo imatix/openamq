@@ -67,8 +67,6 @@ main (int argc, char *argv [])
         count;
     amq_message_t
         *message;
-    int
-        rc;
 
     /*  These are the arguments we may get on the command line               */
     opt_client   = "test client";
@@ -187,27 +185,26 @@ main (int argc, char *argv [])
 
     while (repeats) {
         /*  Pause consumption on temporary queue                             */
-        rc = amq_sclient_flow (amq_client, in_handle, TRUE);
-        if (rc)
-            break;
-            
+        if (amq_sclient_flow (amq_client, in_handle, TRUE))
+            goto aborted;
+
         coprintf ("(%d) sending %d messages to server...", repeats, messages);
         for (count = 0; count < messages; count++) {
             message = amq_message_new ();
             amq_message_testfill       (message, msgsize);
             amq_message_set_persistent (message, persistent);
-            rc = amq_sclient_msg_send (amq_client, out_handle, message);
-            if (rc)
-                break;
+            if (amq_sclient_msg_send (amq_client, out_handle, message))
+                goto aborted;
         }
-        if (rc)
-            break;
-            
+        /*  Commit sent messages                                             */
+        if (amq_sclient_commit (amq_client))
+            goto aborted;
+
         coprintf ("(%d) reading back messages...", repeats);
         count = 0;
-        rc = amq_sclient_flow (amq_client, in_handle, FALSE);
-        if (rc)
-            break;
+        if (amq_sclient_flow (amq_client, in_handle, FALSE))
+            goto aborted;
+
         while (count < messages) {
             message = amq_sclient_msg_read (amq_client, 0);
             if (message) {
@@ -215,36 +212,29 @@ main (int argc, char *argv [])
                     coprintf ("Message number %d arrived", amq_client->msg_number);
                 count++;
                 if (count % batch_size == 0) {
-                    rc = amq_sclient_msg_ack (amq_client);
-                    if (rc)
-                        break;
-                    rc = amq_sclient_commit  (amq_client);
-                    if (rc)
-                        break;
+                    if (amq_sclient_msg_ack (amq_client))
+                        goto aborted;
+                    if (amq_sclient_commit  (amq_client))
+                        goto aborted;
                 }
             }
             else {
-                rc = -1;                /*  Flag an error occurrence    */
-                break;
+                coprintf ("No message received - aborting");
+                goto aborted;
             }
         }
-        if (rc)
-            break;
-            
         repeats--;
     }
     amq_sclient_close (amq_client, 0);
     amq_sclient_destroy (&amq_client);
     icl_system_destroy ();
-    
-    if (rc)
-        coprintf ("ERROR: %i", rc);
 
     coprintf ("Allocs=%ld frees=%ld\n", icl_mem_allocs (), icl_mem_frees ());
     icl_mem_assert ();
     return (0);
 
+    aborted:
+        exit (0);
     failed:
         exit (EXIT_FAILURE);
 }
-

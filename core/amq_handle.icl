@@ -186,8 +186,8 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
         self->vhost->queues, self->dest_name, command->dest_name);
 
     if (queue) {
-        amq_queue_save (queue, channel, message);
-        if (!self->transacted)
+        amq_queue_accept (queue, self->channel, message);
+        if (!self->channel->transacted)
             amq_queue_dispatch (queue);
     }
     else {
