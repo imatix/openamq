@@ -20,7 +20,7 @@ Running the test client
 =======================
 
 1. Simple pattern checking serial client
-java amqpcli_serial
+java amqpcli_serial -h
 
-2. Simple echo client
-java EchoClient
+2. Simple echo client 
+java EchoClient -h
