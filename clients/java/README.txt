@@ -14,8 +14,13 @@ lr amqpcli_serial.java.l
 3. Compile
 javac com/imatix/openamq/framing/AMQFactory.java
 javac amqpcli_serial.java
+javac EchoClient.java
 
 Running the test client
 =======================
 
+1. Simple pattern checking serial client
 java amqpcli_serial
+
+2. Simple echo client
+java EchoClient
