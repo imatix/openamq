@@ -4,9 +4,8 @@ Readme for openamq/clients/java
 Building
 ========
 
-1. Generate the framing code 
+1. Generate the framing code
 
-    ln -s ../../core/amq_frames.xml
     gsl amq_frames.xml
 
 2. Generate the serial Java client from Libero specifications
