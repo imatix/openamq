@@ -211,7 +211,7 @@ $(prefix)_frame_t *$(prefix)_frame_$(name)_new\
 size_t $(prefix)_frame_size\
                                  ($(prefix)_frame_t *frame);
 void   $(prefix)_frame_dump\
-                                 ($(prefix)_frame_t *frame);
+                                 ($(prefix)_frame_t *frame, char *text);
 void   $(prefix)_frame_free\
                                  ($(prefix)_frame_t **frame);
 
@@ -625,11 +625,11 @@ $(prefix)_frame_size ($(prefix)_frame_t *frame)
 /*  -------------------------------------------------------------------------
     $(prefix)_frame_dump
 
-    Prints contents of frame
+    Prints contents of frame with some indicative text.
  */
 
 void
-$(prefix)_frame_dump ($(prefix)_frame_t *frame)
+$(prefix)_frame_dump ($(prefix)_frame_t *frame, char *text)
 {
     ASSERT (frame);
 
@@ -656,7 +656,10 @@ $(prefix)_frame_dump ($(prefix)_frame_t *frame)
 .               field_string  += ", frame->body.$(frame.name).$(name)? frame->body.$(frame.name).$(name)->cur_size: 0"
 .           endif
 .       endfor
-            coprintf ("I: %s:$(format_string:)",
+            coprintf ("");
+            coprintf ("**********************************************************************");
+            coprintf ("I: %s%s:$(format_string:)",
+                text? text: "",
                 "$(name)"$(field_string:));
             break;
 .   endfor frame

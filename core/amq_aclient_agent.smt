@@ -752,10 +752,9 @@ static int
     tcb->command->cur_size = tcb->socket->io_size;
     tcb->frame = amq_frame_decode (tcb->command);
     if (tcb->frame) {
-        if (s_tracing > AMQP_TRACE_NONE) {
-            coprintf ("I: received frame size=%ld", tcb->frame->size);
-            amq_frame_dump (tcb->frame);
-        }
+        if (s_tracing > AMQP_TRACE_NONE)
+            amq_frame_dump (tcb->frame, "IN  ");
+
         switch (tcb->frame->type) {
             case FRAME_TYPE_CONNECTION_CHALLENGE:
                 the_next_event = connection_challenge_event;
@@ -884,10 +883,9 @@ send_the_frame (smt_thread_t *thread)
     amq_frame_encode (tcb->command, tcb->frame);
     ASSERT (tcb->command->cur_size == tcb->frame->size);
 
-    if (s_tracing > AMQP_TRACE_NONE) {
-        coprintf ("I: sending frame size=%ld", tcb->command->cur_size);
-        amq_frame_dump (tcb->frame);
-    }
+    if (s_tracing > AMQP_TRACE_NONE)
+        amq_frame_dump (tcb->frame, "OUT ");
+
     if (tcb->frame->size > 0xFFFF) {
         *(dbyte *) (tcb->frame_header)     = htons (0xFFFF);
         *(qbyte *) (tcb->frame_header + 2) = htonl (tcb->command->cur_size);
