@@ -1,3 +1,9 @@
+0.7d2 - 10 March 2005
+    - added queue 'page-size' option for disk page control
+    - added queue 'extent-size' option for file extent (in pages)
+    - added queue 'block-size' option for block size (physical record)
+
+
 0.7d1 - 9 March 2005
     - fixed 'unreliable' HANDLE CONSUME option which auto-acks messages
     - added 'get content' method to amq_message class

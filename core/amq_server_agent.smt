@@ -690,6 +690,9 @@ static int
     </state>
 
     <action name = "process handle method">
+        dbyte
+            confirm_tag;
+
         amq_global_reset_error ();
         switch (tcb->frame->type) {
             case FRAME_TYPE_HANDLE_CONSUME:
@@ -714,7 +717,15 @@ static int
                 break;
             case FRAME_TYPE_HANDLE_BROWSE:
                 amq_handle_browse (tcb->handle, &HANDLE_BROWSE);
-                handle_reply_if_needed (thread, HANDLE_BROWSE.confirm_tag);
+                /*  Do not raise an exception on errors                      */
+                if (amq_global_error_code ()) {
+                    confirm_tag = HANDLE_BROWSE.confirm_tag;
+                    amq_frame_free (&tcb->frame);
+                    tcb->frame = amq_frame_handle_reply_new (
+                        (dbyte) tcb->handle->key, confirm_tag,
+                            amq_global_error_code (), amq_global_error_text ());
+                    send_the_frame (thread);
+                }
                 break;
             default:
                 coprintf ("E: invalid frame type in process_handle_method");
