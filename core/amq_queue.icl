@@ -126,6 +126,13 @@ ipr_db_queue class.
         self->opt_browsable        = (Bool) ipr_config_attrn (config, "browsable");
         self->opt_persistent       = (Bool) ipr_config_attrn (config, "persistent");
 
+        /*  Tune storage parameters (for physical queue file)                */
+        self_tune (self,
+                   ipr_config_attrn (config, "record-size"),
+                   ipr_config_attrn (config, "extent-size"),
+                   ipr_config_attrn (config, "block-size"));
+        self_open (self);
+
         /*  auto-purge option means delete all queue messages at restart     */
         if (ipr_config_attrn (config, "auto-purge"))
             amq_queue_purge (self);
@@ -133,8 +140,10 @@ ipr_db_queue class.
             self->disk_queue_size = self_count (self);
     }
     else {
-        /*  Non-zero defaults                                                 */
+        /*  Temporary queue, set all non-zero defaults                       */
+        self_open (self);
         self->opt_browsable = 1;
+        self->disk_queue_size = self_count (self);
     }
     s_create_priority_lists (self);
 
@@ -162,6 +171,7 @@ ipr_db_queue class.
     if (self->dest->temporary)
         amq_db_dest_delete (self->ddb, self->dest);
     amq_db_dest_destroy (&self->dest);
+    self_close (self);
 </method>
 
 <method name = "consume" return = "queue">

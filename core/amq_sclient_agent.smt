@@ -744,7 +744,6 @@ static int
     <action name = "store connection close reply">
         tcb->client->reply_code = CONNECTION_CLOSE.reply_code;
         ipr_shortstr_cpy (tcb->client->reply_text, CONNECTION_CLOSE.reply_text);
-        coprintf ("Code:%d text:%s", CONNECTION_CLOSE.reply_code, CONNECTION_CLOSE.reply_text);
     </action>
 
     <action name = "store channel close reply">
@@ -994,13 +993,15 @@ static int
         <event name = "socket input">
             <action name = "read next command" />
         </event>
-        <event name = "socket error"  nextstate = "" >
+        <event name = "socket error" nextstate = "" >
             <action name = "handle error"/>
+            coprintf ("socket error event");
             if (tcb->result)
                 *tcb->result = AMQ_SOCKET_ERROR;
         </event>
-        <event name = "socket timeout"  nextstate = "" >
+        <event name = "socket timeout" nextstate = "" >
             <action name = "handle error"/>
+            coprintf ("socket timeout event");
             coprintf ("Connection to server timed out - shutting-down");
             if (tcb->result)
                 *tcb->result = AMQ_TIMEOUT;
@@ -1024,7 +1025,7 @@ static int
     </action>
 
     <action name = "handle error">
-        coprintf ("E: %s", smt_thread_error (thread));
+        coprintf ("E: TCP/IP error - %s", smt_thread_error (thread));
     </action>
 </thread>
 
@@ -1185,7 +1186,8 @@ s_sock_read (smt_thread_t *thread, byte *buffer, size_t size)
  -->
 
 <state name = "defaults">
-    <event name = "smt error"       nextstate = "">
+    <event name = "smt error" nextstate = "">
+        coprintf ("smt error event");
         <action name = "handle error"/>
     </event>
 </state>
