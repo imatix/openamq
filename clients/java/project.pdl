@@ -53,7 +53,7 @@
         <execute>
         <!-- Compile Java API .class files -->
         javac com/imatix/openamq/framing/AMQFramingFactory.java
-        jar -cf AMQJavaFraming.jar com/imatix/openamq/framing/AMQ*.class
+        jar -cf OpenAMQJava.jar com/imatix/openamq/framing/AMQ*.class
         <!-- Compile test clients .class files -->
         javac amqpcli_serial.java
         javac EchoClient.java
@@ -79,7 +79,7 @@
         <execute>
         <!-- Compile Java API .class files -->
         javac com/imatix/openamq/framing/AMQFramingFactory.java
-        jar -cf AMQJavaFraming.jar com/imatix/openamq/framing/AMQ*.class
+        jar -cf OpenAMQJava.jar com/imatix/openamq/framing/AMQ*.class
         <!-- Compile test clients .class files -->
         javac amqpcli_serial.java
         javac EchoClient.java
