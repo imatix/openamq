@@ -64,7 +64,7 @@ apr_status_t send_message(apr_uint16_t confirm_tag)
 {
     apr_status_t result;
     char buffer [32768];
-	char identifier [2000];
+    char identifier [2000];
 
     /* wait for N milliseconds seconds */
     apr_sleep (interval * 1000);
@@ -79,9 +79,9 @@ apr_status_t send_message(apr_uint16_t confirm_tag)
         return result;
     }
 
-	message_number++;
+    message_number++;
 
-	fprintf (stderr, "Message %s sent. (%ld bytes)\n", identifier, (long) message_size);
+    fprintf (stderr, "Message %s sent. (%ld bytes)\n", identifier, (long) message_size);
 
     return APR_SUCCESS;            
 }
@@ -119,12 +119,12 @@ apr_status_t handle_reply_cb (
     }
     if (confirm_tag >=4 && sender == 1) {
         /* sender : reply to handle send */
-		if (messages)
-		{
-		    messages--;
-		    if (messages == 0) stop = 1;
-		}
-		if (!stop) send_message ( (apr_uint16_t) (confirm_tag + 1) );
+        if (messages)
+        {
+            messages--;
+            if (messages == 0) stop = 1;
+        }
+        if (!stop) send_message ( (apr_uint16_t) (confirm_tag + 1) );
     }
     return APR_SUCCESS;
 }
@@ -262,29 +262,29 @@ apr_status_t handle_notify_cb (
     apr_status_t result;
     char buffer [32768];
 
-	/*
-	apr_uint32_t i;
+    /*
+    apr_uint32_t i;
     for (i = 0; i!=body_size; i++)
         fprintf (stderr, "%lx ", (long) (unsigned char) data [i]);
-	fprintf (stderr, "\n");
-	*/
+    fprintf (stderr, "\n");
+    */
 
-	fprintf (stderr, "Message %s received. (%ld bytes)\n", identifier, (long) body_size);
+    fprintf (stderr, "Message %s received. (%ld bytes)\n", identifier, (long) body_size);
 
     tag++;
 
     till_acknowledge--;
     if (!till_acknowledge)
-	{
+    {
         result = amqp_channel_ack (sck, buffer, 32767, 1, tag, message_nbr);
         if (result != APR_SUCCESS) {
             fprintf (stderr, "amqp_channel_ack failed.\n%ld : %s\n",
                 (long) result, amqp_strerror (result, buffer, 32767) );
             return result;
-		}
-		fprintf (stderr, "Message %s acknowledged.\n", identifier);
-		till_acknowledge = prefetch;
-	}
+        }
+        fprintf (stderr, "Message %s acknowledged.\n", identifier);
+        till_acknowledge = prefetch;
+    }
     return APR_SUCCESS;
 }
 
@@ -297,50 +297,50 @@ int main (int argc, const char *const argv[], const char *const env[])
     apr_port_t port;
     apr_sockaddr_t *sockaddr = NULL;
     char buffer [2000];
-	int i;
+    int i;
     amqp_callbacks_t callbacks;
 
     memset ( (void*) &callbacks, 0, sizeof (amqp_callbacks_t) );
 
-	sender = -1;
-	server = "127.0.0.1";
-	host = NULL;
-	destination = NULL;
-	prefix = "";
-	messages = 0;
-	interval = 500;
-	prefetch = 1;
-	message_size = 2;
-	message_number = 0;
+    sender = -1;
+    server = "127.0.0.1";
+    host = NULL;
+    destination = NULL;
+    prefix = "";
+    messages = 0;
+    interval = 500;
+    prefetch = 1;
+    message_size = 2;
+    message_number = 0;
 
-	stop = 0;
+    stop = 0;
 
     for (i=1; i!=argc; i++) {
         if (strcmp (argv[i], "producer") == 0) sender = 1;
-		if (strcmp (argv[i], "consumer") == 0) sender = 0;
-		if (strncmp (argv[i], "-s", 2) == 0) server = argv [i] + 2;
-		if (strncmp (argv[i], "-h", 2) == 0) host = argv [i] + 2;
-		if (strncmp (argv[i], "-d", 2) == 0) destination = argv [i] + 2;
-		if (strncmp (argv[i], "-m", 2) == 0) prefix = argv [i] + 2;
-		if (strncmp (argv[i], "-n", 2) == 0) messages = atoi (argv [i] + 2);
-		if (strncmp (argv[i], "-i", 2) == 0) interval = atoi (argv [i] + 2);
-		if (strncmp (argv[i], "-p", 2) == 0) prefetch = atoi (argv [i] + 2);
-		if (strncmp (argv[i], "-l", 2) == 0) message_size = atoi (argv [i] + 2);
+        if (strcmp (argv[i], "consumer") == 0) sender = 0;
+        if (strncmp (argv[i], "-s", 2) == 0) server = argv [i] + 2;
+        if (strncmp (argv[i], "-h", 2) == 0) host = argv [i] + 2;
+        if (strncmp (argv[i], "-d", 2) == 0) destination = argv [i] + 2;
+        if (strncmp (argv[i], "-m", 2) == 0) prefix = argv [i] + 2;
+        if (strncmp (argv[i], "-n", 2) == 0) messages = atoi (argv [i] + 2);
+        if (strncmp (argv[i], "-i", 2) == 0) interval = atoi (argv [i] + 2);
+        if (strncmp (argv[i], "-p", 2) == 0) prefetch = atoi (argv [i] + 2);
+        if (strncmp (argv[i], "-l", 2) == 0) message_size = atoi (argv [i] + 2);
     }
 
-	if (sender == 2) goto badparams;
-	if (host == NULL) goto badparams;
-	if (destination == NULL) goto badparams;
-	till_acknowledge = prefetch;
+    if (sender == 2) goto badparams;
+    if (host == NULL) goto badparams;
+    if (destination == NULL) goto badparams;
+    till_acknowledge = prefetch;
 
-	message_buffer = malloc (message_size);
-	if (!message_buffer) {
+    message_buffer = malloc (message_size);
+    if (!message_buffer) {
         fprintf (stderr, "Not enough memory for message body.");
         goto err;
     }
 
-	for (i = 0; i != message_size; i++) 
-		message_buffer [i] = i % 256;
+    for (i = 0; i != message_size; i++) 
+        message_buffer [i] = i % 256;
 
     fprintf (stderr, "Connecting to server.\n");
 
@@ -372,7 +372,7 @@ int main (int argc, const char *const argv[], const char *const env[])
         goto err;
     }
 
-	sprintf (buffer, "%s:7654", server);
+    sprintf (buffer, "%s:7654", server);
     result = apr_parse_addr_port (&addr, &scope_id, &port, buffer, pool);
     if (result != APR_SUCCESS) {
         fprintf (stderr, "apr_parse_addr_port failed.\n%ld : %s\n",
@@ -420,9 +420,7 @@ int main (int argc, const char *const argv[], const char *const env[])
             goto err;
         }
 
-		if (stop) break;
-
-        apr_sleep (1000000);
+        if (stop) break;
     }
 
 err:
@@ -444,8 +442,8 @@ err:
     return -1;
 
 badparams:
-	fprintf (stderr,
-		"\n"
+    fprintf (stderr,
+        "\n"
         "  agnostic producer\n"
         "    -s<server name/ip address, default='127.0.0.1'>\n"
         "    -h<virtual host name>\n"
@@ -453,7 +451,7 @@ badparams:
         "    -m<message identifier prefix, default=''>\n"
         "    -n<number of messages, 0 means infinite, default=0>\n"
         "    -i<interval between individual messages in ms, default=500>\n"
-		"    -l<length of message content in bytes, default=2>\n"
+        "    -l<length of message content in bytes, default=2>\n"
         "\n"
         "  agnostic consumer\n"
         "    -s<server name/ip address, default=127.0.0.1>\n"

@@ -346,7 +346,7 @@ $(!last()??","?)\
 .            endfor
 .        endfor
 
-    char *data\
+    const char *data\
 .    endif
 
     );
