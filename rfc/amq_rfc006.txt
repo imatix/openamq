@@ -3,9 +3,9 @@ gdl
     subtitle  = The AMQP/Fast Wire-Level Protocol
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2004/12/20
-    copyright = Copyright (c) 2004 JPMorgan
-    version   = 0.7a
+    date      = 2005/02/08
+    copyright = Copyright (c) 2004-2005 JPMorgan
+    version   = 0.7a1
 end gdl
 
 Cover
@@ -23,6 +23,9 @@ This document is ready for review.
 
 Recent Change History
 ---------------------
+
+0.7a1
+  - minor corrections to the text.
 
 0.7a
  - message identifier changed from long string to short string.
@@ -121,7 +124,7 @@ These were the main design criteria for AMQP/Fast:
 - Supports content-type driven processing.  This means providing a
   standard place to define the content type and encoding of all messages.
 - Relatively simple to implement as a client.  This means keeping the
-  protocol simple (not easy!)
+  protocol as simple as possible.
 - Compatible with message-oriented middleware (MOM) concepts. This means
   supporting, and providing clear instructions for using, standard MOM
   concepts like 'sessions', 'producers', and 'consumers'.
@@ -852,7 +855,7 @@ CONNECTION RESPONSE Command
 ---------------------------
 
 The client responds to a CONNECTION CHALLENGE with a CONNECTION
-SEND command:
+RESPONSE command:
 
     CONNECTION RESPONSE
         mechanism               short string
@@ -1034,7 +1037,7 @@ CONNECTION TUNE:
     TUNE. If tuning options are not understood, respond with CONNECTION
     CLOSE.
 CONNECTION PING:
-    Expect at any time. Respond by sending CONNECTION
+    Expect at any time. Respond by sending CONNECTION PING.
 CONNECTION REPLY:
     Expect after sending CONNECTION OPEN.
 CONNECTION CLOSE:
@@ -1171,7 +1174,7 @@ confirm-tag:
     See 'Confirmation Tags' section.
 transacted:
     If 1, the channel operates in transacted mode. Transacted channels
-    support the COMMIT and ROLLBACK commands.  See explanation below.  
+    support the COMMIT and ROLLBACK commands.  See explanation below.
 restartable:
     If 1, the channel operates in restartable mode.  See explanation
     below.
@@ -1780,7 +1783,7 @@ AMQP explicitly supports name hierarchies for queue and topic names:
     alt.rec.pets.dogs
     alt.rec.pets.dogs.discuss
 
-The HANDLE OPEN and HANDLE OPEN commands specify part or all of a
+The HANDLE OPEN and HANDLE SEND commands specify part or all of a
 destination name.  Subsequent commands on the same destination provide
 further refinement of the name through simple concatenation of the name
 provided in HANDLE OPEN and the name provided in HANDLE SEND.
@@ -2028,9 +2031,9 @@ The HANDLE FLOW command applies to all the destinations covered by the
 HANDLE OPEN command.
 
 For topics, the HANDLE FLOW command acts to pause the sending of HANDLE
-NOTIFY messages.  For queues, the HANDLE FLOW command acts causes
-messages to be sent to other clients (if there are others consuming from
-the same queue).
+NOTIFY messages.  For queues, the HANDLE FLOW command causes messages to
+be sent to other clients (if there are others consuming from the same
+queue).
 
 This command is not valid for peer services.
 
@@ -2063,7 +2066,7 @@ This command MUST be sent before any CHANNEL ACK that covers or refers
 to the same message.  For example, if the client receives messages
 numbered 1, 2, 3, 4 and wishes to unget message 3 and acknowledge the
 remaining messages, it should send 'unget 3' followed by 'ack 4'.  It
-can also sent 'ack 1', 'ack 2', 'unget 3', 'ack 4'.
+can also send 'ack 1', 'ack 2', 'unget 3', 'ack 4'.
 
 This command is not valid for peer services or topic services.
 
@@ -2309,7 +2312,7 @@ respond with a HANDLE READY with message size of zero.
 
 If the recipient cannot accept the message as specified, it closes
 the channel with the reply code 311 (message too large).  There is
-no recovery for over-large messages.
+no recovery for oversized messages.
 
 HANDLE REPLY Command
 --------------------
@@ -2401,8 +2404,8 @@ HANDLE PREPARE:
 HANDLE READY:
     Expect after sending HANDLE PREPARE. Reply with HANDLE SEND.
 HANDLE CLOSE:
-    Expect at any time on an open destination. Respond by closing the
-    destination and reply with HANDLE CLOSE.
+    Expect at any time on an open destination. Respond by replying with
+    HANDLE CLOSE and closing the destination.
 
 The server must expect and respond to the destination commands as follows:
 
@@ -2417,7 +2420,7 @@ HANDLE CONSUME:
     was requested.
 HANDLE CANCEL:
     Expect on an open destination with active subscription(s). Reply with
-    HANDLE REPLY if confirmation was requested. On an closed destination,
+    HANDLE REPLY if confirmation was requested. On a closed destination,
     reply with CONNECTION CLOSE. If the subscription was not found, close
     the destination.
 HANDLE FLOW:
@@ -2443,18 +2446,17 @@ HANDLE PREPARE:
 HANDLE READY:
     Expect after sending HANDLE PREPARE. Reply with HANDLE SEND.
 HANDLE CLOSE:
-    Expect at any time on an open destination. Respond by closing the
-    destination and reply with HANDLE CLOSE.
+    Expect at any time on an open destination. Respond by replying with
+    HANDLE CLOSE and closing the destination.
 
 Alternatives
 ============
 
-Alternatives to this protocol include AMQP/HTTP, which is a simplified
-model that runs over native HTTP, and AMQP/BEEP, which is a planned
-implementation that runs over BEEP (with less performance in some areas,
-but better compatibility with IETF standards procedures).  SMQP (Simple
-Message Destinationing Protocol) is a proposed IETF standard that also
-covers some of the same ground, mainly with respect to topics.
+Possible future alternatives to this protocol include AMQP/HTTP, a
+proposed implementation over HTTP, and AMQP/BEEP, a proposed
+implementation over BEEP.  SMQP (Simple Message Queueing Protocol)
+is a proposed IETF standard that also covers some of the same
+ground, mainly with respect to topics.
 
 Security Considerations
 =======================
@@ -2462,7 +2464,7 @@ Security Considerations
 The AMQP/Fast framing mechanism does not provide any protection against
 attack per-se.  However, the security profiles used provide varying
 degrees of assurance for authentication and privacy.  To protect against
-a man-in-the-middle attach in which attacker replaces a high-security
+a man-in-the-middle attack in which attacker replaces a high-security
 profile with a lower one, a server or client may be configured to
 refuse to open a channel without an acceptable level of security.
 
