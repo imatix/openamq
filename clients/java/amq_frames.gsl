@@ -661,20 +661,20 @@ public class $(class_prefix:)$(my.outertype: Neat) {
      * $(my.outertype: Neat) frames superclass
      *
      **/
-    abstract class $(AMQPFrame:) extends $(imatix_openamq_frames_package).$(AMQPFrame:) {
+    abstract class Frame extends $(AMQPFrame:) {
         /**
          *
          * Default constructor
          *
          **/
-        public $(AMQPFrame:)() {super();}
+        public Frame() {super();}
     
         /**
          *
          * Decoder constructor
          *
          **/
-        public $(AMQPFrame:)(byte[] bucket) throws AMQFramingException {
+        public Frame(byte[] bucket) throws AMQFramingException {
             super(bucket);
         }
     }
