@@ -746,7 +746,6 @@ static int
         Bool
             partial;
 
-tcb->usecs = 1;
         partial = amq_message_replay (
             handle_send_m->message, tcb->fragment, tcb->frame_max);
 
