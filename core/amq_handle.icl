@@ -14,6 +14,7 @@
 <import class = "amq_consumer" />
 <import class = "amq_smessage" />
 <import class = "ipr_classes"  />
+
 <public name = "header">
 #include "amq_core.h"
 #include "amq_frames.h"
@@ -26,6 +27,7 @@
 #define AMQ_HANDLE_OPEN         1
 #define AMQ_HANDLE_CLOSING      2
 </public>
+
 <private>
 #include "amq_server_agent.h"
 </private>
@@ -44,8 +46,10 @@
         client_id;                      /*  Parent client record             */
 
     /*  Object properties                                                    */
-    amq_db_t
+    ipr_db_t
         *db;                            /*  Database for virtual host        */
+    amq_db_t
+        *ddb;                           /*  Deprecated database handle       */
     amq_looseref_list_t
         *consumers;                     /*  List of consumers per handle     */
     amq_queue_t
@@ -81,7 +85,9 @@
     self->vhost       = channel->vhost;
     self->thread      = channel->thread;
     self->db          = channel->db;
+    self->ddb         = channel->ddb;
     ASSERT (self->db);                  /*  Database must be open            */
+    ASSERT (self->ddb);
 
     /*  Initialise other properties                                          */
     self->consumers    = amq_looseref_list_new ();
@@ -120,13 +126,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
     if (temporary) {
         if (self->dest_name == NULL || *self->dest_name == 0)
             ipr_shortstr_fmt (self->dest_name, "tmp/%09ld", ++queue_nbr);
-        self->queue = amq_queue_new (
-            self->vhost->queues,
-            self->dest_name,
-            self->vhost,
-            self->client_id,
-            TRUE);
-
+        self->queue = amq_queue_new (self->dest_name, self->vhost, self->client_id, TRUE);
         if (self->queue)
             amq_server_agent_handle_created
                 (self->thread, (dbyte) self->key, self->dest_name);
@@ -268,6 +268,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
         ipr_config_table_new ("vh_test", AMQ_VHOST_CONFIG));
     ASSERT (vhost);
     ASSERT (vhost->db);
+    ASSERT (vhost->ddb);
 
     /*  Initialise connection                                                */
     ipr_shortstr_cpy (connection_open.virtual_path, "/test");

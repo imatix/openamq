@@ -15,6 +15,7 @@
 <import class = "amq_channel" />
 <import class = "amq_handle"  />
 <import class = "ipr_classes" />
+
 <public name = "header">
 #include "amq_core.h"
 </public>
@@ -29,8 +30,10 @@
         client_id;                      /*  Parent client record             */
 
     /*  Object properties                                                    */
-    amq_db_t
+    ipr_db_t
         *db;                            /*  Database for virtual host        */
+    amq_db_t
+        *ddb;                           /*  Deprecated database handle       */
     amq_channel_table_t
         *channels;                      /*  Active channels                  */
     amq_handle_table_t
@@ -104,25 +107,26 @@
 
     self->vhost = amq_vhost_search (vhosts, command->virtual_path);
     if (self->vhost) {
-        self->db = self->vhost->db;
+        self->db  = self->vhost->db;
+        self->ddb = self->vhost->ddb;
         ipr_shortstr_cpy (self->client_name, command->client_name);
 
         /*  Create or update client instance                                 */
         client = amq_db_client_new ();
         strcpy (client->name, self->client_name);
-        if (amq_db_client_fetch_byname (self->db, client, AMQ_DB_FETCH_EQ) == 0) {
+        if (amq_db_client_fetch_byname (self->ddb, client, AMQ_DB_FETCH_EQ) == 0) {
             if (client->connected) {
                 *reply_text = "Client already has an active session";
                 rc = AMQP_CLIENT_ACTIVE;
             }
             else {
                 client->connected = TRUE;
-                amq_db_client_update (self->db, client);
+                amq_db_client_update (self->ddb, client);
             }
         }
         else {
             client->connected = TRUE;
-            amq_db_client_insert (self->db, client);
+            amq_db_client_insert (self->ddb, client);
         }
         self->client_id = client->id;
         amq_db_client_destroy (&client);
@@ -142,9 +146,9 @@
     if (self->client_id) {
         client = amq_db_client_new ();
         client->id = self->client_id;
-        amq_db_client_fetch (self->db, client, AMQ_DB_FETCH_EQ);
+        amq_db_client_fetch (self->ddb, client, AMQ_DB_FETCH_EQ);
         client->connected = FALSE;
-        amq_db_client_update  (self->db, client);
+        amq_db_client_update  (self->ddb, client);
         amq_db_client_destroy (&client);
         self->client_id = 0;
     }

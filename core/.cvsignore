@@ -12,11 +12,12 @@
 *.a
 *.gen
 *.gdl
-*.pdb
 *.ilk
+*.pdb
 boomake*
 makefile*
 msmake*
+version.h
 .spool
 amq_aclient.c
 amq_aclient.h
@@ -128,9 +129,9 @@ amq_vhost_table_test
 amq_vhost_table_test.c
 amq_vhost_test
 amq_vhost_test.c
-boomake
-boomake.bat
-makefile
-msmake
-version.h
+class.xml
+data
+gmon.out
+logs
+memtrace.xml
 

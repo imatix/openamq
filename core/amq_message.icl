@@ -12,6 +12,7 @@
 
 <import class = "amq_bucket"  />
 <import class = "ipr_classes" />
+
 <public name = "header">
 #include "amq_core.h"
 #include "amq_frames.h"
@@ -40,8 +41,8 @@
         mime_type;                      /*  Content MIME type                */
     ipr_shortstr_t
         encoding;                       /*  Content encoding                 */
-    ipr_longstr_t
-        *identifier;                    /*  Message identifier               */
+    ipr_shortstr_t
+        identifier;                     /*  Message identifier               */
     ipr_longstr_t
         *headers;                       /*  Message headers                  */
 
@@ -72,7 +73,6 @@
 
     amq_bucket_destroy  (&self->fragment);
     ipr_longstr_destroy (&self->content);
-    ipr_longstr_destroy (&self->identifier);
     ipr_longstr_destroy (&self->headers);
 </method>
 
@@ -148,8 +148,8 @@
     Sets the message identifier property. Defaults to empty.  Note that the
     method takes over the supplied ipr_longstr, and will free it itself.
     </doc>
-    <argument name = "value" type = "ipr_longstr_t *">Value for identifier </argument>
-    self->identifier = value;
+    <argument name = "value" type = "char *">Value for identifier </argument>
+    ipr_shortstr_cpy (self->identifier, value);
 </method>
 
 <method name = "set headers" template = "function">
@@ -182,15 +182,14 @@
         *data;
     uint
         index;
-    ipr_longstr_t
-        *identifier;
+    char
+        *identifier = "amq_message_testfill: test message";
     </local>
 
     data = icl_mem_alloc (body_size);
     for (index = 0; index &lt; body_size; index++)
         data [index] = (index % 26) + 'A';
 
-    identifier = ipr_longstr_new ("999", 3);
     $(selfname)_set_identifier (self, identifier);
     $(selfname)_set_persistent (self, FALSE);
     $(selfname)_set_content    (self, data, body_size, icl_mem_free);
@@ -365,12 +364,11 @@ s_record_header ($(selftype) *self, amq_bucket_t *fragment)
     self->persistent  = frame->body.message_head.persistent;
     self->priority    = frame->body.message_head.priority;
     self->expiration  = frame->body.message_head.expiration;
-    ipr_shortstr_cpy (self->mime_type, frame->body.message_head.mime_type);
-    ipr_shortstr_cpy (self->encoding,  frame->body.message_head.encoding);
-    self->identifier    = frame->body.message_head.identifier;
+    ipr_shortstr_cpy (self->mime_type,  frame->body.message_head.mime_type);
+    ipr_shortstr_cpy (self->encoding,   frame->body.message_head.encoding);
+    ipr_shortstr_cpy (self->identifier, frame->body.message_head.identifier);
     self->headers       = frame->body.message_head.headers;
-    frame->body.message_head.identifier = NULL;
-    frame->body.message_head.headers    = NULL;
+    frame->body.message_head.headers = NULL;
 
     amq_frame_free (&frame);
 }

@@ -12,7 +12,6 @@
 
 <import class = "ipr_classes"  />
 <import class = "amq_db"       />
-<import class = "amq_db_hack"  />
 <import class = "amq_queue"    />
 <import class = "amq_consumer" />
 <import class = "amq_message"  />
@@ -21,13 +20,16 @@
 #include "amq_core.h"
 #include "amq_frames.h"
 </public>
+
 <private>
 #include "amq_server_agent.h"
 </private>
 
 <context>
-    amq_db_t
+    ipr_db_t
         *db;                            /*  Database for virtual host        */
+    amq_db_t
+        *ddb;                           /*  Deprecated database handle       */
     ipr_config_table_t
         *config;                        /*  Virtual host configuration       */
     amq_queue_table_t
@@ -59,7 +61,8 @@
 <method name = "destroy">
     amq_queue_table_destroy  (&self->queues);
     ipr_config_table_destroy (&self->config);
-    amq_db_destroy           (&self->db);
+    ipr_db_destroy           (&self->db);
+    amq_db_destroy           (&self->ddb);
 </method>
 
 <private name = "header">
@@ -108,26 +111,28 @@ s_config_database ($(selftype) *self)
     /*  Prepare database working directory                                   */
     ipr_shortstr_fmt (database_dir, "%s/%s", self->directory,
         ipr_config_table_lookup (self->config, "workdir/data", "data"));
-    if (!file_is_directory (database_dir)) {
-        coprintf ("Creating working directory '%s'", database_dir);
-        make_dir (database_dir);
-    }
+
     /*  Connection to database                                               */
-    self->db = amq_db_new (database_dir);
+    self->db = ipr_db_new (database_dir);
+
+    /*  To deprecate...  */
+    ipr_shortstr_fmt (database_dir, "%s/%s", self->directory, "ddata");
+    make_dir (database_dir);
+    self->ddb = amq_db_new (database_dir);
 
     /*  Reset all client records to non-connected                            */
     client = amq_db_client_new ();
-    while (amq_db_client_fetch (self->db, client, AMQ_DB_FETCH_GT) == 0) {
+    while (amq_db_client_fetch (self->ddb, client, AMQ_DB_FETCH_GT) == 0) {
         client->connected = FALSE;
-        amq_db_client_update (self->db, client);
+        amq_db_client_update (self->ddb, client);
     }
     amq_db_client_destroy (&client);
 
     /*  Wipe all temporary destinations                                      */
     dest = amq_db_dest_new ();
-    while (amq_db_dest_fetch (self->db, dest, AMQ_DB_FETCH_GT) == 0) {
+    while (amq_db_dest_fetch (self->ddb, dest, AMQ_DB_FETCH_GT) == 0) {
         if (dest->temporary)
-            amq_db_dest_delete (self->db, dest);
+            amq_db_dest_delete (self->ddb, dest);
     }
     amq_db_dest_destroy (&dest);
 }
@@ -142,7 +147,7 @@ s_config_queues ($(selftype) *self, char *key)
 
     config_entry = ipr_config_search (self->config, key);
     while (config_entry) {
-        amq_queue_new (self->queues, config_entry->value, self, 0, FALSE);
+        amq_queue_new (config_entry->value, self, 0, FALSE);
         config_entry = ipr_config_next (config_entry);
     }
 }

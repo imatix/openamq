@@ -27,7 +27,9 @@
     amq_handle_t
         *handle;                        /*  Parent handle                    */
     qbyte
-        mesg_id;                        /*  ID in database, if saved         */
+        queue_id;                       /*  ID in database, if saved         */
+    amq_queue_t
+        *queue;                         /*  Persistent queue table           */
     qbyte
         spoolid;                        /*  Spooler record, if any           */
 </context>
@@ -62,9 +64,7 @@
         memcpy (spool->signature, digest, SHA_DIGEST_SIZE);
         strcpy (spool->file_name, self->spool_file);
         spool->client_id = self->handle->client_id;
-        amq_db_spool_insert (self->vhost->db, spool);
-coprintf ("$(selfname) I: save spool message, digest=%02x%02x%02x%02x",
-    digest [0], digest [1], digest [2], digest [3]);
+        amq_db_spool_insert (self->vhost->ddb, spool);
         self->spoolid = spool->id;
         amq_db_spool_destroy (&spool);
     }
@@ -87,7 +87,7 @@ coprintf ("$(selfname) I: save spool message, digest=%02x%02x%02x%02x",
     </local>
 
     ASSERT (self);
-    
+
     /*  Process message header - which we expect in fragment                 */
     s_record_header (self, fragment);
     if ((self->body_size + self->header_size) > AMQ_BUCKET_SIZE) {
@@ -95,16 +95,13 @@ coprintf ("$(selfname) I: save spool message, digest=%02x%02x%02x%02x",
         spool = amq_db_spool_new ();
         spool->client_id = self->handle->client_id;
         memcpy (spool->signature, digest, SHA_DIGEST_SIZE);
-coprintf ("$(selfname) I: look for spool message, digest=%02x%02x%02x%02x",
-    digest [0], digest [1], digest [2], digest [3]);
 
         if (amq_db_spool_fetch_bysignature (
-            self->vhost->db, spool, AMQ_DB_FETCH_EQ) == 0) {
+            self->vhost->ddb, spool, AMQ_DB_FETCH_EQ) == 0) {
             strcpy (self->spool_file, spool->file_name);
             self->spoolid = spool->id;
             self->spool_size = get_file_size (self->spool_file);
             self->processed += self->spool_size;
-coprintf ("$(selfname) I: found, size=%ld", self->processed);
         }
         amq_db_spool_destroy (&spool);
     }
@@ -116,45 +113,42 @@ coprintf ("$(selfname) I: found, size=%ld", self->processed);
     Saves the message to persistent storage.  The message must contain data
     loaded using the $(selfname)_record method.
     </doc>
-    <argument name = "dest_id" type = "qbyte" />
+    <argument name = "queue" type = "amq_queue_t *" />
     <local>
-    amq_db_mesg_t
-        *mesg;
     ipr_shortstr_t
         filename;                       /*  Filename in store directory      */
     </local>
 
     ASSERT (self->fragment);            /*  Must be loaded, or die           */
-    mesg = amq_db_mesg_new ();
 
-    /*  Copy message header fields into message table so that we can use
+    /*  Update own reference to queue table used                             */
+    self->queue = queue;
+
+    /*  Copy message header fields into saved record so that we can use
         these without decoding the header each time.                         */
-    mesg->dest_id     = dest_id;
-    mesg->sender_id   = self->handle->client_id;
-    mesg->header_size = self->header_size;
-    mesg->body_size   = self->body_size;
-    mesg->priority    = self->priority;
-    mesg->expiration  = self->expiration;
-    mesg->spool_size  = self->spool_size;
-    ipr_shortstr_cpy (mesg->mime_type, *self->mime_type? self->mime_type: self->handle->mime_type);
-    ipr_shortstr_cpy (mesg->encoding,  *self->encoding?  self->encoding:  self->handle->encoding);
-    mesg->identifier.size = self->identifier->size;
-    memcpy (mesg->identifier.data, self->identifier->data, mesg->identifier.size);
-    mesg->headers.size = self->headers->size;
-    memcpy (mesg->headers.data, self->headers->data, mesg->headers.size);
-
-    /*  Store first fragment; rest is in overflow file on disk               */
-    mesg->content.size = self->fragment->cur_size;
-    memcpy (mesg->content.data, self->fragment->data, mesg->content.size);
+    queue->client_id   = 0;             /*  Not dispatched                   */
+    queue->sender_id   = self->handle->client_id;
+    queue->header_size = self->header_size;
+    queue->body_size   = self->body_size;
+    queue->priority    = self->priority;
+    queue->expiration  = self->expiration;
+    queue->spool_size  = self->spool_size;
+    ipr_shortstr_cpy (queue->mime_type, *self->mime_type? self->mime_type: self->handle->mime_type);
+    ipr_shortstr_cpy (queue->encoding,  *self->encoding?  self->encoding:  self->handle->encoding);
+    ipr_shortstr_cpy (queue->identifier, self->identifier);
+    ipr_longstr_destroy (&queue->headers);
+    queue->headers = ipr_longstr_new (self->headers->data, self->headers->size);
+    ipr_longstr_destroy (&queue->content);
+    queue->content = ipr_longstr_new (self->fragment->data, self->fragment->cur_size);
 
     /*  Write message to persistent storage                                  */
-    amq_db_mesg_insert (self->vhost->db, mesg);
-    self->mesg_id = mesg->id;
+    amq_queue_insert (queue, NULL);
+    self->queue_id = queue->id;
 
     if (self->spool_size) {
         /*  Format the stored filename for the message                       */
         ipr_shortstr_fmt (filename,
-            "%s/%09ld.msg", self->vhost->storedir, mesg->id);
+            "%s/%09ld.msg", self->vhost->storedir, self->queue_id);
 
         /*  Prepare to move file into store directory                        */
         if (self->spool_fh) {
@@ -169,55 +163,46 @@ coprintf ("$(selfname) I: found, size=%ld", self->processed);
         ipr_shortstr_cpy (self->spool_file, filename);
 
         /*  No longer need recovery on the message, so clean-up spool table  */
-        amq_db_spool_delete_fast (self->vhost->db, self->spoolid);
+        amq_db_spool_delete_fast (self->vhost->ddb, self->spoolid);
     }
-    amq_db_mesg_destroy (&mesg);
 </method>
 
 <method name = "load" template = "function">
-    <argument name = "mesg_id" type = "long" />
     <doc>
     Loads the message from persistent storage. The message must have been
     created using $(selfname)_new but otherwise be empty.  Returns 0 if the
-    message was loaded, else returns 1.
+    message was loaded, else returns 1.  The queue must hold the message
+    loaded from the database.
     </doc>
-    <local>
-    amq_db_mesg_t
-        *mesg;
-    </local>
-
+    <argument name = "queue" type = "amq_queue_t *" />
     ASSERT (self->fragment == NULL);
-    mesg = amq_db_mesg_new ();
-    mesg->id = mesg_id;
-    if (amq_db_mesg_fetch (self->vhost->db, mesg, AMQ_DB_FETCH_EQ) == 0) {
 
-        /*  Restore message properties from recorded data                    */
-        self->mesg_id     = mesg->id;
-        self->header_size = mesg->header_size;
-        self->body_size   = mesg->body_size;
-        self->priority    = mesg->priority;
-        self->expiration  = mesg->expiration;
-        self->spool_size  = mesg->spool_size;
-        ipr_shortstr_cpy (self->mime_type, mesg->mime_type);
-        ipr_shortstr_cpy (self->encoding,  mesg->encoding);
-        self->identifier  = ipr_longstr_new (mesg->identifier.data, mesg->identifier.size);
-        self->headers     = ipr_longstr_new (mesg->headers.data,    mesg->headers.size);
+    /*  Update own reference to queue table used                             */
+    self->queue    = queue;
+    self->queue_id = queue->id;
 
-        /*  Get first fragment; rest is in overflow file on disk             */
-        self->processed = self->body_size;
-        self->fragment  = amq_bucket_new ();
-        amq_bucket_fill (self->fragment, mesg->content.data, mesg->content.size);
+    /*  Restore message properties from recorded data                    */
+    self->header_size = queue->header_size;
+    self->body_size   = queue->body_size;
+    self->priority    = queue->priority;
+    self->expiration  = queue->expiration;
+    self->spool_size  = queue->spool_size;
+    ipr_shortstr_cpy (self->mime_type,  queue->mime_type);
+    ipr_shortstr_cpy (self->encoding,   queue->encoding);
+    ipr_shortstr_cpy (self->identifier, queue->identifier);
+    ipr_longstr_destroy (&self->headers);
+    self->headers     = ipr_longstr_new (queue->headers->data, queue->headers->size);
 
-        if (self->spool_size > 0) {
-            /*  Format the stored filename for the message                   */
-            ipr_shortstr_fmt (self->spool_file,
-                "%s/%09ld.msg", self->vhost->storedir, self->mesg_id);
-        }
+    /*  Get first fragment; rest is in overflow file on disk             */
+    self->processed = self->body_size;
+    self->fragment  = amq_bucket_new ();
+    amq_bucket_fill (self->fragment, queue->content->data, queue->content->size);
+
+    if (self->spool_size > 0) {
+        /*  Format the stored filename for the message                   */
+        ipr_shortstr_fmt (self->spool_file,
+            "%s/%09ld.msg", self->vhost->storedir, self->queue_id);
     }
-    else
-        rc = 1;
-
-    amq_db_mesg_destroy (&mesg);
 </method>
 
 <method name = "purge" template = "function" inherit = "0">
@@ -228,12 +213,13 @@ coprintf ("$(selfname) I: found, size=%ld", self->processed);
         ASSERT (*self->spool_file);
         file_delete (self->spool_file);
     }
-    if (self->mesg_id) {
-        amq_db_mesg_delete_fast (self->vhost->db, self->mesg_id);
-        self->mesg_id = 0;
+    if (self->queue_id) {
+        self->queue->id = self->queue_id;
+        amq_queue_delete (self->queue, NULL);
+        self->queue_id = 0;
     }
     if (self->spoolid) {
-        amq_db_spool_delete_fast (self->vhost->db, self->spoolid);
+        amq_db_spool_delete_fast (self->vhost->ddb, self->spoolid);
         self->spoolid = 0;
     }
 </method>
@@ -248,14 +234,14 @@ coprintf ("$(selfname) I: found, size=%ld", self->processed);
         *bucket;
     amq_frame_t
         *frame;                         /*  Message header frame             */
-    ipr_longstr_t
-        identifier = IPR_LONGSTR ("amq_message_testfill: test message");
+    char
+        *identifier = "amq_message_testfill: test message";
     </local>
 
     /*  Prepare message frame and encode it into a data buffer               */
     bucket = amq_bucket_new ();
     frame  = amq_frame_message_head_new (
-        body_size, 0, 0, 0, NULL, NULL, &identifier, NULL);
+        body_size, 0, 0, 0, NULL, NULL, identifier, NULL);
     amq_frame_encode (bucket, frame);
     amq_frame_free (&frame);
 
@@ -301,6 +287,9 @@ coprintf ("$(selfname) I: found, size=%ld", self->processed);
     amq_handle_table_t
         *handles;
 
+    amq_queue_t
+        *queue;
+
     amq_smessage_t
         *message,
         *diskmsg;
@@ -310,8 +299,6 @@ coprintf ("$(selfname) I: found, size=%ld", self->processed);
         body_size;
     Bool
         partial;
-    qbyte
-        mesg_id;                         /*  ID of saved message              */
 
     char
         *reply_text;
@@ -323,6 +310,7 @@ coprintf ("$(selfname) I: found, size=%ld", self->processed);
         ipr_config_table_new ("vh_test", AMQ_VHOST_CONFIG));
     ASSERT (vhost);
     ASSERT (vhost->db);
+    ASSERT (vhost->ddb);
 
     /*  Initialise connection                                                */
     ipr_shortstr_cpy (connection_open.virtual_path, "/test");
@@ -334,8 +322,7 @@ coprintf ("$(selfname) I: found, size=%ld", self->processed);
     memset (&channel_open, 0, sizeof (channel_open));
     channel_open.channel_id = 1;
     channels   = amq_channel_table_new ();
-    channel    = amq_channel_new (
-        channels, channel_open.channel_id, connection, &channel_open);
+    channel    = amq_channel_new (channels, channel_open.channel_id, connection, &channel_open);
     ASSERT (channel);
 
     /*  Initialise handle                                                    */
@@ -344,23 +331,23 @@ coprintf ("$(selfname) I: found, size=%ld", self->processed);
     handle_open.service_type = 1;
     handle_open.handle_id    = 1;
     handles = amq_handle_table_new ();
-    handle  = amq_handle_new (
-        handles, handle_open.handle_id, channel, &handle_open);
+    handle  = amq_handle_new (handles, handle_open.handle_id, channel, &handle_open);
     ASSERT (handle);
+
+    /*  Initialise queue                                                     */
+    queue = amq_queue_new ("test", vhost, 1, 1);
 
     /*  Record test message                                                  */
     message = amq_smessage_new (handle);
-
     amq_smessage_testfill (message, TEST_SIZE);
 
     /*  Save to persistent storage                                           */
-    amq_smessage_save (message, 1);
-    mesg_id = message->mesg_id;
+    amq_smessage_save (message, queue);
     amq_smessage_destroy (&message);
 
     /*  Load from persistent storage                                         */
     message = amq_smessage_new (handle);
-    amq_smessage_load (message, mesg_id);
+    amq_smessage_load (message, queue);
 
     /*  Replay test message                                                  */
     diskmsg = amq_smessage_new (handle);
@@ -387,6 +374,7 @@ coprintf ("$(selfname) I: found, size=%ld", self->processed);
     ASSERT (body_size == 0);
 
     /*  Release resources                                                    */
+    amq_queue_destroy         (&queue);
     amq_bucket_destroy        (&bucket);
     amq_smessage_destroy      (&diskmsg);
     amq_smessage_destroy      (&message);

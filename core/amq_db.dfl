@@ -7,7 +7,6 @@
     author      = "iMatix Corporation"
     target      = "bdb"
     prefix      = "db"
-    animate     = "0"
     >
 
     <rule name = "clean ids" />
@@ -39,6 +38,7 @@
         </index>
     </table>
 
+    <!--
     <table name = "mesg" description = "Message">
     Holds one message saved to persistent storage.
         <field name = "id"          domain = "recordid" >Record id</field>
@@ -51,7 +51,7 @@
         <field name = "expiration"  domain = "longint"  >Expiry date/time</field>
         <field name = "mime type"   domain = "shortstr" >Content MIME type</field>
         <field name = "encoding"    domain = "shortstr" >Content encoding</field>
-        <field name = "identifier"  domain = "longstr"  >Message identifier</field>
+        <field name = "identifier"  domain = "shortstr" >Message identifier</field>
         <field name = "headers"     domain = "longstr"  >Application headers</field>
         <field name = "content"     domain = "longstr"  >First body fragment</field>
         <field name = "spool size"  domain = "longint"  >Spooled size, or 0</field>
@@ -60,6 +60,7 @@
             <field name = "id"      />
         </index>
     </table>
+    -->
 
     <table name = "spool" description = "Spooled messages">
     The spool table registers large messages that are being uploaded but have

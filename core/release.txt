@@ -1,5 +1,15 @@
-0.7a0 - 21 December
+0.7b0 - 7 January 2005
+    - finished testing of new queue implementation
+    
+0.7a2 - 3 January 2005
+    - started using new queue implementation
+    
+0.7a1 - 27 December 2004
+    - various minor fixes
+
+0.7a0 - 21 December 2004
     - added restartability (HANDLE PREPARE, HANDLE READY)
+    - moved to base/2.1
 
 0.6h4
     - added verbose reply texts for all server errors
@@ -8,7 +18,7 @@
     - under Windows, ctrl-C was not being trapped - fixed
     - file transfer application added in prototype form
 
-0.6h3 - 13 December
+0.6h3 - 13 December 2004
 
     - server did not support named temporary queues correctly - fixed
     - server failed when persistent messages were sent - fixed

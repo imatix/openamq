@@ -1,8 +1,8 @@
 <?xml?>
 <pdl
     name      = "OpenAMQ Core"
-    version   = "0.7a0"
-    copyright = "Copyright (c) 2004 JPMorgan"
+    version   = "0.7b0"
+    copyright = "Copyright (c) 2005 JPMorgan"
     workflow  = "standard.pwl"
     library   = "libamq"
     >
@@ -24,9 +24,7 @@
 <file name = "amq_db.dfl"            class = "fat module"       >Database definitions</file>
 <file name = "amq_db_client.c"       class = "generated module" >Client table</file>
 <file name = "amq_db_dest.c"         class = "generated module" >Destination table</file>
-<file name = "amq_db_mesg.c"         class = "generated module" >Message table</file>
 <file name = "amq_db_spool.c"        class = "generated module" >Spooler table</file>
-<file name = "amq_db_hack.c"         class = "library module"   >Temporary workarounds</file>
 
 <file name = "amq_bucket.icl"        class = "icl public class" >Bucket buffer class</file>
 <file name = "amq_message.icl"       class = "icl public class" >Message base class</file>
@@ -58,6 +56,7 @@
 <file name = "amq_server_agent.smt"  class = "fat module"       >AMQP/Fast server agent</file>
 <file name = "amq_common.smt"        class = "private resource" >AMQP/Fast common functions</file>
 
+<file name = "amqpsrv.c"             class = "main program"     >OpenAMQ test server</file>
 <file name = "amq_server.cfg"        class = "private resource" >Server configuration</file>
 <directory name = "vh_default">
     <file name = "amq_vhost.cfg"     class = "private resource" >Virtual host configuration</file>

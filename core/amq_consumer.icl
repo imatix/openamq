@@ -12,6 +12,7 @@
 
 <import class = "amq_handle"  />
 <import class = "ipr_classes" />
+
 <public name = "header">
 #include "amq_core.h"
 #include "amq_frames.h"
@@ -35,8 +36,10 @@
         client_id;                      /*  Parent client record             */
 
     /*  Object properties                                                    */
-    amq_db_t
+    ipr_db_t
         *db;                            /*  Database for virtual host        */
+    amq_db_t
+        *ddb;                           /*  Deprecated database handle       */
     int
         prefetch;                       /*  Max prefetch size                */
     int
@@ -65,6 +68,7 @@
     self->vhost       = handle->vhost;
     self->thread      = handle->thread;
     self->db          = handle->db;
+    self->ddb         = handle->ddb;
 
     /*  Initialise other properties                                          */
     self->prefetch = command->prefetch? command->prefetch: 1;
@@ -85,7 +89,7 @@
 
 <method name = "cancel" template = "function">
     ASSERT (self->sub_dest_id);
-    amq_db_dest_delete_fast (self->db, self->sub_dest_id);
+    amq_db_dest_delete_fast (self->ddb, self->sub_dest_id);
     amq_consumer_destroy (&self);
 </method>
 

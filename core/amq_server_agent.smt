@@ -2,7 +2,7 @@
 <agent
     name    = "amq_server_agent"
     script  = "smt2c.gsl"
-    animate = "1" >
+    animate = "0" >
 
 <include filename = "amq_common.smt" />
 

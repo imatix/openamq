@@ -14,6 +14,7 @@
 <import class = "amq_smessage"   />
 <import class = "amq_dispatch"   />
 <import class = "ipr_classes"    />
+
 <public name = "header">
 #include "amq_core.h"
 #include "amq_frames.h"
@@ -25,7 +26,6 @@
 #define AMQ_CHANNEL_CLOSED      0
 #define AMQ_CHANNEL_OPEN        1
 #define AMQ_CHANNEL_CLOSING     2
-
 </public>
 
 <context>
@@ -40,10 +40,12 @@
         client_id;                      /*  Parent client record             */
 
     /*  Object properties                                                    */
-    amq_db_t
+    ipr_db_t
         *db;                            /*  Database for virtual host        */
-    amq_db_tx_t
-        *db_tx;                         /*  Transaction object               */
+    amq_db_t
+        *ddb;                           /*  Deprecated database handle       */
+    ipr_db_txn_t
+        *txn;                           /*  Transaction object               */
     int
         state;                          /*  Channel state                    */
     Bool
@@ -69,6 +71,7 @@
     self->vhost       = connection->vhost;
     self->thread      = connection->thread;
     self->db          = connection->db;
+    self->ddb         = connection->ddb;
 
     /*  Initialise other properties                                          */
     self->dispatched  = amq_dispatch_list_new (self);
@@ -76,17 +79,14 @@
     self->transacted  = command->transacted;
     self->restartable = command->restartable;
 
-    if (self->transacted) {
-        self->db_tx = amq_db_tx_new (self->db);
-        amq_db_tx_start (self->db_tx);
-    }
+    if (self->transacted)
+        self->txn = ipr_db_txn_new (self->db);
 </method>
 
 <method name = "destroy">
-    if (self->transacted) {
-        $(selfname)_rollback (self, NULL);
-        amq_db_tx_destroy (&self->db_tx);
-    }
+    if (self->transacted)
+        ipr_db_txn_destroy (&self->txn);
+
     amq_dispatch_list_destroy (&self->dispatched);
     /*  Destroy all handles for this channel                                 */
     for (table_idx = 0; table_idx &lt; AMQ_HANDLE_TABLE_MAXSIZE; table_idx++) {
@@ -106,7 +106,8 @@
     <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
     if (self->transacted) {
         amq_dispatch_list_commit (self->dispatched);
-        amq_db_tx_commit (self->db_tx);
+        coprintf ("COMMIT");
+        ipr_db_txn_commit (self->txn);
     }
     else {
         if (reply_text)
@@ -119,7 +120,7 @@
     <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
     if (self->transacted) {
         amq_dispatch_list_rollback (self->dispatched);
-        amq_db_tx_rollback (self->db_tx);
+        ipr_db_txn_rollback (self->txn);
     }
     else {
         if (reply_text)

@@ -56,10 +56,10 @@ function frame_macros (frame)
             join = " && "
         endif
 
-        if    type = "char"
+        if type = "char"
             offset += 1
         elsif type = "bit"
-            bits   += 1
+            bits += 1
             if bits = 8
                 bits = 0
                 offset += 1
@@ -87,10 +87,10 @@ function frame_macros (frame)
     if marker_fields = ""
         frame.variant = 0
     else
-        >#define IS_$(NAME)(data)     $(marker_fields:)
+        >#define IS_$(NAME)(data) $(marker_fields:)
         frame.variant = 1
     endif
-    >#define $(NAME)_SIZE(frame)  $(offset)$(string_fields:)+1
+    >#define $(NAME)_SIZE $(offset)$(string_fields:)+1
 endfunction
 
 function build_struct_fields
@@ -275,9 +275,9 @@ $(prefix)_frame_encode (amq_bucket_t *bucket, $(prefix)_frame_t *frame)
     switch (frame->type) {
 .   for frame
         case FRAME_TYPE_$(NAME):
-            if ($(NAME)_SIZE (frame) > bucket->max_size) {
+            if ($(NAME)_SIZE > bucket->max_size) {
                 coprintf ("$(name) frame needs %ld bytes, bucket too small at %ld",
-                    $(NAME)_SIZE (frame), bucket->max_size);
+                    $(NAME)_SIZE, bucket->max_size);
                 return (0);
             }
 .       if count (field, type = "bit")
@@ -593,7 +593,7 @@ $(prefix)_frame_t *$(prefix)_frame_$(name)_new ($(build_struct_args ()))
         frame->body.$(frame.name).$(name) = NULL;
 .           endif
 .       endfor
-    frame->size = $(NAME)_SIZE (frame);
+    frame->size = $(NAME)_SIZE;
     return (frame);
 }
 
@@ -613,7 +613,7 @@ $(prefix)_frame_size ($(prefix)_frame_t *frame)
     switch (frame->type) {
 .   for frame
         case FRAME_TYPE_$(NAME):
-            return ($(NAME)_SIZE (frame));
+            return ($(NAME)_SIZE);
 .   endfor
         default:
             coprintf ("Unrecognized frame in $(prefix)_frame_size");

@@ -16,6 +16,7 @@
 <option name = "nullify" value = "1" />
 
 <import class = "ipr_classes" />
+
 <public name = "header">
 #include "amq_core.h"
 #include "amq_frames.h"

@@ -12,6 +12,7 @@
 
 <import class = "amq_handle"  />
 <import class = "ipr_classes" />
+
 <public name = "header">
 #include "amq_core.h"
 #include "amq_frames.h"
@@ -29,14 +30,14 @@
         *queue;                         /*  Parent queue for dispatch        */
 
     /*  Object properties                                                    */
-    amq_db_t
+    ipr_db_t
         *db;                            /*  Database for virtual host        */
     amq_smessage_t
         *message;                       /*  Message dispatched               */
     qbyte
-        mesg_id;                        /*  Message id                       */
+        queue_id;                       /*  Queue id                         */
     qbyte
-        message_nbr;                    /*  Message id                       */
+        message_nbr;                    /*  Message number                   */
     Bool
         closed;                         /*  Finished processing?             */
 </context>
@@ -44,7 +45,6 @@
 <method name = "new">
     <argument name = "consumer" type = "amq_consumer_t *">Parent consumer</argument>
     <argument name = "message"  type = "amq_smessage_t *">Message object</argument>
-    <argument name = "mesg_id"  type = "qbyte" >Message id, if persistent</argument>
 
     /*  De-normalise from parent object, for simplicity of use               */
     self->consumer    = consumer;
@@ -55,7 +55,7 @@
 
     /*  Initialise other properties                                          */
     self->message     = message;        /*  We now 0wn this message          */
-    self->mesg_id     = mesg_id;
+    self->queue_id    = self->queue->id;
     self->message_nbr = ++(self->channel->message_nbr);
 
     amq_dispatch_list_queue (self->channel->dispatched, self);
@@ -81,51 +81,37 @@
     self->consumer->window++;
     amq_queue_dispatch (self->queue, NULL);
 
-    if (self->channel->transacted) {
-        /*  ***TODO*** use channel transaction if transacted
-         */
-        if (self->mesg_id)
-            amq_db_mesg_delete_fast (self->db, self->mesg_id);
-        self->closed = TRUE;
+    if (self->queue_id) {
+        self->queue->id = self->queue_id;
+        amq_queue_delete (self->queue, self->channel->txn);
     }
-    else {
-        if (self->mesg_id)
-            amq_db_mesg_delete_fast (self->db, self->mesg_id);
+    if (self->channel->transacted)
+        self->closed = TRUE;            /*  Keep, to allow rollback          */
+    else
         amq_dispatch_destroy (&self);
-    }
 </method>
 
 <method name = "unget" template = "function">
     <doc>
     Unget a specific message.
     </doc>
-    <local>
-    amq_db_mesg_t
-        *mesg;
-    </local>
-
-    if (self->mesg_id == 0) {
+    if (self->queue_id == 0) {
         /*  Push back non-persistent message                                 */
-        /*    - update window after so it won't bounce to same consumer      */
+        /*    - update window AFTER so it won't bounce to same consumer      */
         amq_queue_dispatch (self->queue, self->message);
         self->queue->window++;
         self->consumer->window++;
     }
     else {
-        mesg = amq_db_mesg_new ();
-        mesg->id = self->mesg_id;
-        amq_db_mesg_fetch (self->db, mesg, AMQ_DB_FETCH_EQ);
+        self->queue->id = self->queue_id;
+        amq_queue_fetch (self->queue, IPR_QUEUE_EQ);
 
-        mesg->client_id = 0;
-        /*  ***TODO*** use channel transaction if transacted
-        if (self->channel->transacted)
-        */
-        amq_db_mesg_update (self->db, mesg);
+        self->queue->client_id = 0;
+        amq_queue_update (self->queue, self->channel->txn);
 
         /*  Reset last message id to cover this message                      */
-        if (self->queue->last_mesg_id > mesg->id)
-            self->queue->last_mesg_id = mesg->id - 1;
-        amq_db_mesg_destroy (&mesg);
+        if (self->queue->last_id > self->queue->id)
+            self->queue->last_id = self->queue->id - 1;
 
         /*  Queue and consumer can accept a new message                      */
         self->queue->window++;

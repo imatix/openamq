@@ -13,6 +13,7 @@
 <import class = "ipr_classes" />
 <import class = "smt_thread"  />
 <import class = "amq_message" />
+
 <private>
 #include "amq_aclient_agent.h"
 </private>

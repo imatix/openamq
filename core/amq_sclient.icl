@@ -5,7 +5,6 @@
     version   = "1.0"
     copyright = "Copyright (c) 2004 JPMorgan"
     script    = "icl_gen"
-    animate   = "1"
     >
 
 <inherit class = "icl_alloc_cache" />
@@ -14,6 +13,7 @@
 <import class = "ipr_classes" />
 <import class = "smt_thread"  />
 <import class = "amq_message" />
+
 <private>
 #include "amq_sclient_agent.h"
 
