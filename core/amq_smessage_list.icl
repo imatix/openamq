@@ -26,6 +26,7 @@
     Commits a set of messages waiting on the list.  Should be done together
     with a database commit and before a full dispatch of all queues.
     </doc>
+    <argument name = "txn" type = "ipr_db_txn_t *">Current transaction</argument>
     <local>
     amq_smessage_t
         *current,
@@ -33,7 +34,7 @@
     </local>
     message = amq_smessage_list_first (self);
     while (message) {
-        amq_queue_accept (message->queue, NULL, message);
+        amq_queue_accept (message->queue, NULL, message, txn);
         current = message;              /*  Double-check accept worked       */
         message = amq_smessage_list_first (self);
         assert (message != current);

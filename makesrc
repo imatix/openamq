@@ -1,73 +1,96 @@
+#!/bin/sh
 #
-#  Make full source package
+#   Make OpenAMQ source packages
 #
-VERSION=`egrep "  version" project.pdl | cut -d\" -f2`
-CVSTAG=OpenAMQ_`echo $VERSION | sed 's/\./_/'`
-PACKAGE=openamq-$VERSION-src
-echo "Building $PACKAGE..."
+#   Modified 2005/03/18 - ph@imatix.com
+#
+#   Creates OpenAMQ source package including base, base2, and gsl4.
+#
+PRODUCTS="base base2 gsl4 openamq"
 
-#  CVS tag current version
-cvs tag -RF $CVSTAG
+for PRODUCT in $PRODUCTS; do
+    echo "Preparing $PRODUCT sources..."
+    cd $HOME/products/$PRODUCT
+    #rm -f *.tar.gz *.zip
+    #boom configure
+    #boom distsrc
+    eval ${PRODUCT}_version=`boom version`
+done
 
-echo "Preparing base..."
-cd $HOME/products/base
-rm -f *.tar.gz
-boom
-boom distsrc >/dev/null 2>&1
+echo "Tagging CVS for $openamq_version..."
+cvs -Q tag -RF `echo $openamq_version | sed 's/\./_/'`
 
-echo "Preparing base2..."
-cd $HOME/products/base2
-rm -f *.tar.gz
-boom
-boom distsrc >/dev/null 2>&1
+echo "Building $openamq_version full package ($PRODUCTS)..."
+rm -rf $openamq_version
+mkdir  $openamq_version
+cd     $openamq_version
 
-echo "Preparing openamq..."
-cd $HOME/products/openamq
-rm -f *.tar.gz
-rm -f *.zip
-boom
-boom distsrc >/dev/null 2>&1
+cat<<END>build.sh
+#!/bin/sh
+#   Build and install OpenAMQ and framework products
+#   Set the IBASE variable to the installation directory
 
-rm -rf openamq-$VERSION
-mkdir  openamq-$VERSION
-cd     openamq-$VERSION
+if [ -z "$IBASE" ]; then
+    echo "The IBASE environment variable is not defined."
+    echo "Set this to desired installation directory, e.g. $HOME/ibase."
+    echo "Then, add $IBASE/bin to your PATH for best results."
+    exit 1
+fi
+END
 
-mkdir base
-cd    base
-tar -xzf $HOME/products/base/*.tar.gz
+cat<<END>build.bat
+@echo off
+:-  Build and install OpenAMQ and framework products
+:-  Set the IBASE variable to the installation directory
+
+if "$IBASE"=="" (
+    echo The IBASE environment variable is not defined.
+    echo Set this to desired installation directory, e.g. c:\ibase.
+    echo Then, add ^%IBASE^%/bin to your PATH for best results.
+    goto exit
+)
+END
+
+for PRODUCT in $PRODUCTS; do
+    tar -xzf $HOME/products/$PRODUCT/*.tar.gz
+    eval SUBDIR="\$${PRODUCT}_version"
+
+    echo "cd $SUBDIR"           >>build.sh
+    echo "boomake build install">>build.sh
+    echo "cd .."                >>build.sh
+
+    echo "cd $SUBDIR"           >>build.bat
+    echo "boomake build install">>build.bat
+    echo "cd .."                >>build.bat
+done
+
+cat<<END>>build.sh
+echo "Finished building and installing OpenAMQ."
+echo "The OpenAMQ server has been installed into $IBASE/openamq/servers"
+echo "and you can run the server from this directory or copy it elsewhere."
+echo "OpenAMQ clients have been installed into $IBASE/openamq/clients."
+END
+
+cat<<END>>build.bat
+echo Finished building and installing OpenAMQ.
+echo The OpenAMQ server has been installed into %IBASE%\\openamq\\servers
+echo and you can run the server from this directory or copy it elsewhere.
+echo OpenAMQ clients have been installed into %IBASE%\\openamq\\clients.
+:exit
+END
+
 cd ..
-
-mkdir base2
-cd    base2
-tar -xzf $HOME/products/base2/*.tar.gz
-cd ..
-
-mkdir openamq
-cd    openamq
-tar -xzf $HOME/products/openamq/*.tar.gz
-cd ..
-
-echo "#  We build & install these 3 products..." > build.sh
-echo "cd base;    sh build.sh; cd .."           >> build.sh
-echo "cd base2;   sh build.sh; cd .."           >> build.sh
-echo "cd openamq; sh build.sh; cd .."           >> build.sh
-echo "echo Server is installed into openamq-server" >> build.sh
-
-#   Force foreign products to reconfigure at build time
-rm base2/foreign/apr-*/Makefile
-rm base2/foreign/db-*/build_unix/Makefile
-
-cd ..
-echo "Building OpenAMQ/$VERSION packages..."
-zip -lqr $PACKAGE.zip    openamq-$VERSION
-tar -czf $PACKAGE.tar.gz openamq-$VERSION
+echo "Building $openamq_version packages..."
+rm *.zip *.tar.gz
+tar -czf  $openamq_version.tar.gz $openamq_version
+zip -lqrm $openamq_version.zip    $openamq_version
 
 echo cd pub>response
 echo bin>>response
-echo put $PACKAGE.zip>>response
-echo put $PACKAGE.tar.gz>>response
+echo put $openamq_version.zip>>response
+echo put $openamq_version.tar.gz>>response
 echo quit>>response
 ftp openamq.org < response
 rm response
-echo "Unix source is at: http://openamq.org/pub/$PACKAGE.tar.gz"
-echo "Win32 source is at: http://openamq.org/pub/$PACKAGE.zip"
+echo "Unix source is at: http://openamq.org/pub/$openamq_version.tar.gz"
+echo "Win32 source is at: http://openamq.org/pub/$openamq_version.zip"

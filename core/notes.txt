@@ -1,27 +1,20 @@
-
-Test case
-    - post messages to a queue
-    - HANDLE QUERY to get list of messages
-    - dispatch the messages to another client
-    - try to read the messages
-    - do for both persistent, non-persistent
-    - do for mix of non-persistent and persistent
-
+- way of using less memory for smessage objects?
+    - 32k per message is too much...
+    - lower bucket size or use slices of 512 bytes
+        -> would allow arbitrary bucket sizes per queue...
+        -> message = chain of buckets
 
 - amq_server object
     - replaces amq_global
     - runs on a specific port
+
 - move argument parsing & copyright block to standard iPR function
 
 Tracing
     - amqpsrv queue configuration
         - block size per queue
         - logging options per queue
-
-Acks
-    - when dispatching
-        -> work off dispatch list
-        -> any not there but with clientid, redeliver
+            - ??
 
 
 Changes
@@ -29,7 +22,6 @@ Changes
     rfc006
     fragments
         - allow client to cancel messages using flow/cancel
-
 
     client failure
     - failover to secondary server

@@ -211,7 +211,6 @@
     must have been loaded from the queue using the load method.
     </doc>
     <argument name = "txn" type = "ipr_db_txn_t *">Transaction, if any</argument>
-
     assert (self->queue);
 
     /*  Delete queue record                                                  */

@@ -11,10 +11,9 @@
 #ifndef __AMQ_CORE_INCLUDED__
 #define __AMQ_CORE_INCLUDED__
 
-#include "icl_types.h"                  /*  iMatix iCL base types            */
+#include "icl.h"                        /*  iCL base classes                 */
 #include "sfl.h"                        /*  iMatix SFL portability library   */
 #include "smt.h"                        /*  iMatix SMT threading kernel      */
-
 
 #define AMQ_SERVER_PORT            "7654"
 #define AMQ_SERVER_CONFIG          "amq_server.cfg"

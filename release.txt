@@ -1,8 +1,27 @@
-0.8a0 - 13 March 2005
+0.8b0 - 2005/03/20
+
+  - server misbehaved on some boxes when client disconnected abruptly;
+    caused by bug in SMT layer - fixed.
+    
+  - server mishandled ACKs sent in batches of 1 with the result that
+    it would wrongly treat the queue as being "full" when it was not.
+
+  - server now automatically rollsback a transaction if the client
+    disconnects during an open transaction.
+
+  - server sometimes blocked when committing messages; problem was
+    caused by misuse of BDB transaction handles (fixed).
+
+  - if client disconnects before committing acknowledgements, the
+    affected messages are released for dispatching to other clients.
+
+0.8a0 - 14 March 2005
     - when server exceeds allowed memory, displays console warning
     - implemented transaction limit (TXN_LIMIT in CONNECTION TUNE)
     - server core updated to AMQP/0.8
     - asynch and serial clients updated to AMQP/0.8
+    - implemented layered configuration files (amq_custom.cfg)
+    - first draft of openamq server documentation
 
 0.7d2 - 10 March 2005
     - added queue 'page-size' option for disk page control

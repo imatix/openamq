@@ -5,7 +5,7 @@ gdl
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/03/13
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.8a0
+    version   = 0.8a1
 end gdl
 
 Cover
@@ -24,9 +24,12 @@ This document is ready for review.
 Recent Change History
 ---------------------
 
+0.8a1
+- CONNECTION PING command has been made optional.
+
 0.8a0
-- CONNECTION TUNE command format revised to be more general
-- CONNECTION TUNE from client to server can now be sent 0+ times
+- CONNECTION TUNE command format revised to be more general.
+- CONNECTION TUNE from client to server can now be sent 0+ times.
 - introduced the concept of definition of field dictionaries.
 
 0.7d2
@@ -561,6 +564,11 @@ regular intervals.  So long as the heartbeat command arrives, we know
 the other side is alive and kicking.  If the heartbeat commands stop
 arriving, we can take suitable action.
 
+For ease of implementation the heartbeats are optional: until a peer
+sends a first heartbeat command, it is assumed to be working without
+heartbeats (and the other peer can use any reasonable algorithm to
+decide whether the situation is normal or not.)
+
 Design Proposal
 ***************
 
@@ -1045,6 +1053,15 @@ HEARTBEAT:
     by the client: see the CONNECTION PING command.  Zero means
     the client does not request a heartbeat.
 
+The heartbeat parameter is a hint, not a formal request.  That is:
+the receiving party may but does not have to send CONNECTION PING
+commands accordingly.  We use this rule: if a party sends at least
+one CONNECTION PING, it must continue to send these commands as
+defined by the heartbeat request it received.  If one party does
+not send CONNECTION PING commands at all, the other party must
+use another, reasonable, algorithm for monitoring the state of
+the connection. (E.g. a timeout after the last received command.)
+
 Dictionaries
 ............
 
@@ -1109,7 +1126,7 @@ The CONNECTION PING command implements the connection heartbeat:
 respond:
     If 1, asks the recipient to respond with a CONNECTION PING
     command.  Note: the response to a PING should never be a
-    PING with respond set to 1.  (For obvious reasons.)
+    PING with respond set to 1.  (For hopefully obvious reasons.)
 
 The connection heartbeat is implemented according to the values set
 by each party during connection tuning: each party tell the other what

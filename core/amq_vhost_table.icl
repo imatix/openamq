@@ -45,6 +45,7 @@
             directory = ipr_config_attr (config, "directory", NULL);
             if (directory) {
                 vhost_config = ipr_config_new (directory, AMQ_VHOST_CONFIG);
+                ipr_config_load (vhost_config, directory, AMQ_CUSTOM_CONFIG);
                 if (vhost_config) {
                     vhost_name = ipr_config_locattr (vhost_config, "/config/vhost", "name", NULL);
                     if (vhost_name)

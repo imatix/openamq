@@ -174,6 +174,7 @@ amq_server_core (
     /*  Load configuration data, if any, into the config_table               */
     amq_config = ipr_config_new (".", AMQ_SERVER_CONFIG);
     ipr_config_load (amq_config, ".", AMQ_CUSTOM_CONFIG);
+    s_prepare_logging ();
 
     /*  Initialise arguments, taking defaults from the config_table          */
     if (!opt_server) {
@@ -209,7 +210,6 @@ amq_server_core (
     amq_users  = amq_user_table_new ();
     amq_vhosts = amq_vhost_table_new (amq_config);
     s_prepare_security ();
-    s_prepare_logging  ();
 
     if (amq_server_agent_init (atoi (opt_trace))) {
         coprintf ("E: could not start server protocol agent");

@@ -87,19 +87,27 @@
 </method>
 
 <method name = "destroy">
-    if (self->transacted)
-        ipr_db_txn_destroy (&self->txn);
-
-    amq_smessage_destroy      (&self->message_in);
-    amq_dispatch_list_destroy (&self->dispatched);
-    amq_smessage_list_destroy (&self->txn_list);
-
     /*  Destroy all handles for this channel                                 */
     for (table_idx = 0; table_idx &lt; AMQ_HANDLE_TABLE_MAXSIZE; table_idx++) {
         if (self->connection->handles->item_table [table_idx]
         &&  self->connection->handles->item_table [table_idx]->channel == self)
             amq_handle_destroy (&self->connection->handles->item_table [table_idx]);
     }
+    if (self->transacted) {
+        self_rollback (self);
+        ipr_db_txn_destroy (&self->txn);
+    }
+    /*  Restore pending messages if the client disconnected but not if the
+        server is shutting down (BDB should not be called from a signal
+        handler, which is where we are if shutting down).
+     */
+    if (!smt_signal_raised) {
+        amq_dispatch_list_restore (self->dispatched);
+        ipr_db_cursor_close (self->db);
+    }
+    amq_smessage_destroy      (&self->message_in);
+    amq_dispatch_list_destroy (&self->dispatched);
+    amq_smessage_list_destroy (&self->txn_list);
 </method>
 
 <method name = "ack" template = "function" >
@@ -110,7 +118,7 @@
 <method name = "commit" template = "function" >
     if (self->transacted) {
         /*  Save the client transaction                                      */
-        amq_smessage_list_commit (self->txn_list);
+        amq_smessage_list_commit (self->txn_list, self->txn);
         amq_dispatch_list_commit (self->dispatched);
         ipr_db_log_flush  (self->db);
         ipr_db_txn_commit (self->txn);

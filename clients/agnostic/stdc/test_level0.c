@@ -840,7 +840,7 @@ apr_status_t s_send_message(
                 (long) result, amqp_strerror (result, buffer, BUFFER_SIZE));
             return result;
         }
-        s_trace ("Commited.\n");
+        s_trace ("Committed.\n");
     }
 
     client->last_message_number++;

@@ -136,14 +136,17 @@ ipr_db_queue class.
         /*  auto-purge option means delete all queue messages at restart     */
         if (ipr_config_attrn (config, "auto-purge"))
             amq_queue_purge (self);
-        else
+        else {
             self->disk_queue_size = self_count (self);
+            coprintf ("I: queue %s has %d messages", key, self->disk_queue_size);
+        }
     }
     else {
         /*  Temporary queue, set all non-zero defaults                       */
         self_open (self);
         self->opt_browsable = 1;
         self->disk_queue_size = self_count (self);
+        amq_queue_purge (self);
     }
     s_create_priority_lists (self);
 
@@ -229,6 +232,7 @@ ipr_db_queue class.
     </doc>
     <argument name = "channel" type = "amq_channel_t *" >Current channel</argument>
     <argument name = "message" type = "amq_smessage_t *">Message, if any</argument>
+    <argument name = "txn"     type = "ipr_db_txn_t *"  >Current transaction</argument>
     <local>
     uint
         level;                          /*  Priority level                   */
@@ -290,7 +294,7 @@ ipr_db_queue class.
         if (message->persistent) {
             /*  Persistent messages are saved on persistent queue storage    */
             self->disk_queue_size++;
-            amq_smessage_save (message, self, NULL);
+            amq_smessage_save (message, self, txn);
             amq_smessage_destroy (&message);
     #       ifdef TRACE_DISPATCH
             coprintf ("$(selfname) I: save persistent message to storage");
@@ -397,6 +401,7 @@ ipr_db_queue class.
                     /*  Update client id, using channel txn if any           */
                     self->item_client_id = consumer->client_id;
                     amq_queue_update (self, consumer->channel->txn);
+                    amq_queue_update (self, NULL);
                 }
                 else
                     break;              /*  No more consumers                */

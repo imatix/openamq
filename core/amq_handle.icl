@@ -148,7 +148,14 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
 
     /*  Create, if temporary and not already existing                        */
     if (temporary) {
-        if (!self->queue)
+        if (self->queue) {
+            if (self->queue->dest->client_id != self->client_id) {
+                coprintf ("$(selfname) E: temporary queue '%s' already in use", self->dest_name);
+                self->queue = NULL;
+                $(selfname)_destroy (p_self);
+            }
+        }
+        else
             self->queue = amq_queue_new (
                 self->dest_name,        /*  Name of queue                    */
                 self->vhost,            /*  Parent virtual host              */
@@ -156,16 +163,6 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
                 TRUE,                   /*  Temporary queue?                 */
                 NULL);                  /*  Configuration entry              */
 
-        /*  If client is (re)opening temporary queue, purge queue            */
-        if (self->queue) {
-            if (self->queue->dest->client_id == self->client_id)
-                amq_queue_purge (self->queue);
-            else {
-                coprintf ("$(selfname) E: temporary queue '%s' already in use", self->dest_name);
-                self->queue = NULL;
-                $(selfname)_destroy (p_self);
-            }
-        }
         amq_server_agent_handle_created (self->thread, (dbyte) self->key, self->dest_name);
     }
 }
@@ -204,7 +201,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
         self->vhost->queue_hash, self->dest_name, command->dest_name);
 
     if (queue) {
-        amq_queue_accept (queue, self->channel, message);
+        amq_queue_accept (queue, self->channel, message, self->channel->txn);
         if (queue->dirty)
             amq_queue_dispatch (queue);
     }

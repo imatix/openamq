@@ -141,7 +141,6 @@ endfunction
 
 
 .macro generate_frames (frames)
-.echo "Generating $(name).h..."
 .output "$(name).h"
 . scope my.frames
 /*---------------------------------------------------------------------------
@@ -225,7 +224,6 @@ void   $(prefix)_frame_free\
 . endscope
 .close
 .
-.echo "Generating $(name).c..."
 .output "$(name).c"
 . scope my.frames
 /*---------------------------------------------------------------------------
@@ -239,7 +237,7 @@ void   $(prefix)_frame_free\
  *  Copyright (c) 1991-2004 iMatix Corporation
  *---------------------------------------------------------------------------*/
 
-#include "icl_types.h"
+#include "base.h"                       /*  iMatix base header               */
 #include "$(name).h"
 
 
@@ -701,7 +699,6 @@ $(prefix)_frame_free ($(prefix)_frame_t **frame)
 .endmacro
 
 function generate_doc (frames)
-    echo "Generating $(name).txt..."
     output "$(name).txt"
     scope my.frames
     my.prefix = "    command-payload      ="
@@ -773,7 +770,6 @@ function generate_doc (frames)
 endfunction
 
 function generate_events (frames)
-    echo "Generating $(name).lst..."
     output "$(name).lst"
     scope my.frames
 
@@ -804,7 +800,6 @@ else
     argn = 1
     while argn <= gsl.argc
         arg = gsl.arg$(argn)
-        echo "Processing " + arg + "..."
         frames = xml.load_file (arg) ? abort_xml_error ()
         parse_frames    (frames)
         generate_frames (frames)

@@ -37,7 +37,6 @@
     amq_dispatch_t
         *dispatch;                      /*  Dispatched message queue entry   */
     </local>
-
     dispatch = amq_dispatch_list_first (self);
     while (dispatch) {
         if (dispatch->message_nbr > message_nbr)
@@ -57,7 +56,8 @@
     dispatch = amq_dispatch_list_first (self);
     while (dispatch) {
         if (dispatch->message_nbr == message_nbr) {
-            amq_dispatch_unget (dispatch);
+            amq_dispatch_unget    (dispatch);
+            amq_dispatch_destroy (&dispatch);
             rc = 0;                     /*  All's well, message exists       */
             break;
         }
@@ -74,19 +74,11 @@
     </doc>
     <local>
     amq_dispatch_t
-        *dispatch,                      /*  Dispatched message queue entry   */
-        *preceding;
+        *dispatch;                      /*  Dispatched message queue entry   */
     </local>
-
     dispatch = amq_dispatch_list_first (self);
-    while (dispatch) {
-        if (dispatch->closed) {
-            preceding = dispatch->list_prev;
-            amq_dispatch_destroy (&dispatch);
-            dispatch = preceding;
-        }
-        dispatch = amq_dispatch_list_next (self, dispatch);
-    }    
+    while (dispatch)
+        dispatch = amq_dispatch_commit (dispatch);
 </method>
 
 <method name = "rollback" template = "function">
@@ -99,12 +91,25 @@
     amq_dispatch_t
         *dispatch;                      /*  Dispatched message queue entry   */
     </local>
+    dispatch = amq_dispatch_list_first (self);
+    while (dispatch)
+        dispatch = amq_dispatch_rollback (dispatch);
+</method>
 
+<method name = "restore" template = "function">
+    <doc>
+    Restores all dispatched messages to their queues; should be done when
+    the client closes the connection, and after any commit or rollback.
+    </doc>
+    <local>
+    amq_dispatch_t
+        *dispatch;                      /*  Dispatched message queue entry   */
+    </local>
     dispatch = amq_dispatch_list_first (self);
     while (dispatch) {
-        dispatch->closed = FALSE;
+        amq_dispatch_unget (dispatch);
         dispatch = amq_dispatch_list_next (self, dispatch);
-    }    
+    }
 </method>
 
 <method name = "selftest" />
