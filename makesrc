@@ -30,10 +30,10 @@ cat<<END>build.sh
 #   Build and install OpenAMQ and framework products
 #   Set the IBASE variable to the installation directory
 
-if [ -z "$IBASE" ]; then
+if [ -z "$\IBASE" ]; then
     echo "The IBASE environment variable is not defined."
-    echo "Set this to desired installation directory, e.g. $HOME/ibase."
-    echo "Then, add $IBASE/bin to your PATH for best results."
+    echo "Set this to desired installation directory, e.g. $\HOME/ibase."
+    echo "Then, add $\\\IBASE/bin to your PATH for best results."
     exit 1
 fi
 END
@@ -43,7 +43,7 @@ cat<<END>build.bat
 :-  Build and install OpenAMQ and framework products
 :-  Set the IBASE variable to the installation directory
 
-if "$IBASE"=="" (
+if "%IBASE%"=="" (
     echo The IBASE environment variable is not defined.
     echo Set this to desired installation directory, e.g. c:\ibase.
     echo Then, add ^%IBASE^%/bin to your PATH for best results.
@@ -66,9 +66,9 @@ done
 
 cat<<END>>build.sh
 echo "Finished building and installing OpenAMQ."
-echo "The OpenAMQ server has been installed into $IBASE/openamq/servers"
+echo "The OpenAMQ server has been installed into $\IBASE/openamq/servers"
 echo "and you can run the server from this directory or copy it elsewhere."
-echo "OpenAMQ clients have been installed into $IBASE/openamq/clients."
+echo "OpenAMQ clients have been installed into $\IBASE/openamq/clients."
 END
 
 cat<<END>>build.bat
@@ -90,7 +90,7 @@ echo bin>>response
 echo put $openamq_version.zip>>response
 echo put $openamq_version.tar.gz>>response
 echo quit>>response
-ftp openamq.org < response
+#ftp openamq.org < response
 rm response
 echo "    Unix sources: http://openamq.org/pub/${openamq_version}.tar.gz"
 echo "    Win32 sources: http://openamq.org/pub/${openamq_version}.zip"
