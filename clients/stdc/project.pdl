@@ -21,7 +21,7 @@
 <file name = "amqpcli_file.c"        class = "main program"     >AMQP file transfer demo client</file>
 <file name = "amqpcli_get.c"         class = "main program"     >AMQP file get client</file>
 <file name = "amqpcli_put.c"         class = "main program"     >AMQP file put client</file>
-<file name = "amqpfeed.c"          class = "main program"   >Generate test files</file>
+<file name = "amqpfeed.c"            class = "main program"   >Generate test files</file>
 
 <!-- Deliverables -->
 

@@ -8,7 +8,6 @@
 
 #include "amq_core.h"
 #include "amq_sclient.h"
-#include "amq_classes.h"
 
 #define CLIENT_VERSION "0.7"
 
