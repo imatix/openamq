@@ -19,41 +19,39 @@ public class amqpcli_serial extends amqpcli_seriali
 
 
 ///////////////////////////   P A R A M E T E R S   ///////////////////////////
-// Remote server
-String
-    opt_server = "localhost";
+
 // Some protocol defaults for this client
-AMQConnection.Tune
-    client_tune;
+AMQConnection.Tune                      
+    client_tune;                        /* Tune parameters                  */
 AMQConnection.Open
-    client_open;
+    client_open;                        /* Connection parameters            */
 AMQConnection.Close
-    client_close;
-// Protocol
+    client_close;                       /* Default close parameters         */
 short
-    protocol_port = 7654,
-    protocol_id = 128,
-    protocol_ver = 1,
-    batch_size = 1000;
+    protocol_port = 7654,               /* Server port                      */
+    protocol_id = 128,                  /* Protocol id                      */
+    protocol_ver = 1,                   /* Protocol port                    */
+    batch_size = 1000;                  /* Messages prefetched before ACK   */
+String
+    opt_server = "localhost";           /* Remote server                    */
 
 
 //////////////////////////////   G L O B A L S   //////////////////////////////
+
 // Network streams
-Socket
-    amqp = null;
 OutputStream
-    amqp_out = null;
+    amqp_out = null;                    /* Outgoing connection              */
 InputStream
-    amqp_in = null;
+    amqp_in = null;                     /* Incoming connectionn             */
 // Messages
 String
-    error_message,
-    module;
+    error_message,                      /* Error details                    */
+    module;                             /* Module in which error occured    */
 Exception
-    exception = null;
+    exception = null;                   /*                                  */
 // Framing utility
 AMQFactory
-    mq_factory = null;
+    amq_framing = null;                 /* Framing utility                  */
 
 
 ///////////////////////////   C O N T R U C T O R S  //////////////////////////
@@ -71,7 +69,7 @@ public amqpcli_serial (String args[])
 
 public static void main (String args[])
 {
-    amqpcli_serial
+    amqpcli_serial                      /* The client object                */
         single = new amqpcli_serial(args);
 
 }
@@ -79,9 +77,10 @@ public static void main (String args[])
 public int amqpcli_java_execute (String args[])
 {
     int
-        feedback;
+        feedback;                       /* Console return int               */
 
     feedback = execute ();
+    
     return (feedback);
 }
 
@@ -108,14 +107,17 @@ public void setup ()
 {
     try
     {
+        Socket
+            amqp = null;                /* Network socket                   */
+            
         // Network setup
         amqp = new Socket(opt_server, protocol_port);
         amqp_in = amqp.getInputStream();
         amqp_out = amqp.getOutputStream();
-        mq_factory = new AMQFactory(amqp_in, amqp_out);
+        amq_framing = new AMQFactory(amqp_in, amqp_out);
 
         // Client tune capabilities
-        client_tune = (AMQConnection.Tune)mq_factory.createFrame(AMQConnection.TUNE);
+        client_tune = (AMQConnection.Tune)amq_framing.createFrame(AMQConnection.TUNE);
         client_tune.frameMax = 4000;
         client_tune.channelMax = 128;
         client_tune.handleMax = 128;
@@ -123,14 +125,14 @@ public void setup ()
         client_tune.options = null;
 
         // Client name and connection open defaults
-        client_open = (AMQConnection.Open)mq_factory.createFrame(AMQConnection.OPEN);
+        client_open = (AMQConnection.Open)amq_framing.createFrame(AMQConnection.OPEN);
         client_open.confirmTag = 0;
         client_open.virtualPath = null;
         client_open.clientName = "amqpcli_java (test)";
         client_open.options = null;
 
         // Connection close defaults
-        client_close = (AMQConnection.Close)mq_factory.createFrame(AMQConnection.CLOSE);
+        client_close = (AMQConnection.Close)amq_framing.createFrame(AMQConnection.CLOSE);
         client_close.replyCode = 200;
         client_close.replyText = "amqpcli_serial.java: bye";
     }
@@ -203,7 +205,7 @@ public void send_connection_open ()
     try
     {
         client_open.virtualPath = "/test";
-        mq_factory.produceFrame(client_open);
+        amq_framing.produceFrame(client_open);
     }
     catch (AMQFramingException e)
     {
@@ -221,32 +223,32 @@ public void do_tests ()
     try
     {
         // Channel
-        AMQChannel.Open
-            channel_open = (AMQChannel.Open)mq_factory.createFrame(AMQChannel.OPEN);
-        AMQChannel.Commit
-            channel_commit = (AMQChannel.Commit)mq_factory.createFrame(AMQChannel.COMMIT);
-        AMQChannel.Ack
-            channel_ack = (AMQChannel.Ack)mq_factory.createFrame(AMQChannel.ACK);
-        AMQChannel.Close
-            channel_close = (AMQChannel.Close)mq_factory.createFrame(AMQChannel.CLOSE);
+        AMQChannel.Open                 /* Channel open command             */
+            channel_open = (AMQChannel.Open)amq_framing.createFrame(AMQChannel.OPEN);
+        AMQChannel.Commit               /* Channel commit command           */
+            channel_commit = (AMQChannel.Commit)amq_framing.createFrame(AMQChannel.COMMIT);
+        AMQChannel.Ack                  /* Channel ack command              */
+            channel_ack = (AMQChannel.Ack)amq_framing.createFrame(AMQChannel.ACK);
+        AMQChannel.Close                /* Channel close command            */
+            channel_close = (AMQChannel.Close)amq_framing.createFrame(AMQChannel.CLOSE);
         // Handle
-        AMQHandle.Open
-            handle_open = (AMQHandle.Open)mq_factory.createFrame(AMQHandle.OPEN);
-        AMQHandle.Send
-            handle_send = (AMQHandle.Send)mq_factory.createFrame(AMQHandle.SEND);
-        AMQHandle.Consume
-            handle_consume = (AMQHandle.Consume)mq_factory.createFrame(AMQHandle.CONSUME);
-        AMQHandle.Flow
-            handle_flow = (AMQHandle.Flow)mq_factory.createFrame(AMQHandle.FLOW);
+        AMQHandle.Open                  /* Handle open command              */
+            handle_open = (AMQHandle.Open)amq_framing.createFrame(AMQHandle.OPEN);
+        AMQHandle.Send                  /* Handle send command              */
+            handle_send = (AMQHandle.Send)amq_framing.createFrame(AMQHandle.SEND);
+        AMQHandle.Consume               /* Handle consume command           */
+            handle_consume = (AMQHandle.Consume)amq_framing.createFrame(AMQHandle.CONSUME);
+        AMQHandle.Flow                  /* Handle flow command              */
+            handle_flow = (AMQHandle.Flow)amq_framing.createFrame(AMQHandle.FLOW);
         AMQHandle.Notify
-            handle_notify = null;
+            handle_notify = null;       /* Handle notify reply              */
         AMQHandle.Created
-            handle_created;
+            handle_created;             /* Handle created reply             */
         // Message
-        AMQMessage.Head
-            message_head = (AMQMessage.Head)mq_factory.createMessageHead();
-        byte[]
-            message_body;
+        AMQMessage.Head                 /* Message header                   */
+            message_head = (AMQMessage.Head)amq_framing.createMessageHead();
+        byte[]                          
+            message_body;               /* Message body                     */
 
         // Open channel
         channel_open.channelId = 1;
@@ -255,7 +257,7 @@ public void do_tests ()
         channel_open.restartable = false;
         channel_open.options = null;
         channel_open.outOfBand = "";
-        mq_factory.produceFrame(channel_open);
+        amq_framing.produceFrame(channel_open);
 
         // Open hadle
         handle_open.channelId = 1;
@@ -270,15 +272,15 @@ public void do_tests ()
         handle_open.mimeType = "";
         handle_open.encoding = "";
         handle_open.options = null;
-        mq_factory.produceFrame(handle_open);
+        amq_framing.produceFrame(handle_open);
         // Get handle created
-        handle_created = (AMQHandle.Created)mq_factory.consumeFrame();
+        handle_created = (AMQHandle.Created)amq_framing.consumeFrame();
 
         // Pause incoming messages
         handle_flow.handleId = 1;
         handle_flow.confirmTag = 0;
         handle_flow.flowPause = true;
-        mq_factory.produceFrame(handle_flow);
+        amq_framing.produceFrame(handle_flow);
 
         // Prepare commit and ack
         channel_commit.channelId = 1;
@@ -317,22 +319,22 @@ public void do_tests ()
             if (handle_send.fragmentSize > client_tune.frameMax)
                 break;
             // Send message
-            mq_factory.produceFrame(handle_send);
-            mq_factory.produceMessageHead(message_head);
-            mq_factory.produceData(message_body);
+            amq_framing.produceFrame(handle_send);
+            amq_framing.produceMessageHead(message_head);
+            amq_framing.produceData(message_body);
             // Commit from time to time
             if (i % batch_size == 0) {
-                mq_factory.produceFrame(channel_commit);
+                amq_framing.produceFrame(channel_commit);
                 System.out.println("Commit batch " + (i / batch_size) + "...");
             }
         }
         // Commit leftovers
-        mq_factory.produceFrame(channel_commit);
+        amq_framing.produceFrame(channel_commit);
         System.out.println("Commit final batch...");
 
         // Resume incoming messages
         handle_flow.flowPause = false;
-        mq_factory.produceFrame(handle_flow);
+        amq_framing.produceFrame(handle_flow);
 
         // Read back
         handle_consume.handleId = 1;
@@ -345,36 +347,36 @@ public void do_tests ()
         handle_consume.selector = null;
         handle_consume.mimeType = "";
         // Request consume messages
-        mq_factory.produceFrame(handle_consume);
+        amq_framing.produceFrame(handle_consume);
         System.out.println("Reading messages back from the server...");
         int j = 1;
         for (i--; i > 0; i--, j++) {
             // Get handle notify
-            handle_notify = (AMQHandle.Notify)mq_factory.consumeFrame();
-            message_head = mq_factory.consumeMessageHead();
-            body_check(mq_factory.consumeData(message_head.bodySize), j);
+            handle_notify = (AMQHandle.Notify)amq_framing.consumeFrame();
+            message_head = amq_framing.consumeMessageHead();
+            body_check(amq_framing.consumeData(message_head.bodySize), j);
             // Acknowledge & commit from time to time
             if (j % batch_size == 0) {
                 channel_ack.messageNbr = handle_notify.messageNbr;
-                mq_factory.produceFrame(channel_ack);
-                mq_factory.produceFrame(channel_commit);
+                amq_framing.produceFrame(channel_ack);
+                amq_framing.produceFrame(channel_commit);
                 System.out.println("Acknowledge batch " + (j / batch_size) + "...");
             }
         }
         // Acknowledge & commit leftovers
         channel_ack.messageNbr = handle_notify.messageNbr;
-        mq_factory.produceFrame(channel_ack);
-        mq_factory.produceFrame(channel_commit);
+        amq_framing.produceFrame(channel_ack);
+        amq_framing.produceFrame(channel_commit);
         System.out.println("Acknowledge final batch...");
 
         // Say bye
         channel_close.channelId = 1;
         channel_close.replyCode = 200;
         channel_close.replyText = "amqpcli_serial.java: I'll be back";
-        mq_factory.produceFrame(channel_close);
-        channel_close = (AMQChannel.Close)mq_factory.consumeFrame();
-        mq_factory.produceFrame(client_close);
-        client_close = (AMQConnection.Close)mq_factory.consumeFrame();
+        amq_framing.produceFrame(channel_close);
+        channel_close = (AMQChannel.Close)amq_framing.consumeFrame();
+        amq_framing.produceFrame(client_close);
+        client_close = (AMQConnection.Close)amq_framing.consumeFrame();
         System.out.println("Closing, server says: " + client_close.replyText + ".");
     }
     catch (ClassCastException e)
@@ -401,16 +403,14 @@ public void face_connection_challenge ()
 {
     try
     {
-        AMQConnection.Challenge
-            // Get the challenge
-            challenge = (AMQConnection.Challenge)mq_factory.consumeFrame();
-        AMQConnection.Response
-            // New response
-            response = (AMQConnection.Response)mq_factory.createFrame(AMQConnection.RESPONSE);
+        AMQConnection.Challenge         /* Challenge from server            */
+            challenge = (AMQConnection.Challenge)amq_framing.consumeFrame();
+        AMQConnection.Response          /* our response                     */
+            response = (AMQConnection.Response)amq_framing.createFrame(AMQConnection.RESPONSE);
         // Send the response
         response.mechanism = "plain";
         response.responses = null;
-        mq_factory.produceFrame(response);
+        amq_framing.produceFrame(response);
     }
     catch (ClassCastException e)
     {
@@ -431,16 +431,15 @@ public void negotiate_connection_tune ()
 {
     try
     {
-        AMQConnection.Tune
-            // Get tune parameters from server
-            tune_server = (AMQConnection.Tune)mq_factory.consumeFrame();
+        AMQConnection.Tune              /* Tune parameters from server      */
+            tune_server = (AMQConnection.Tune)amq_framing.consumeFrame();
 
         // Send the reply
         client_tune.frameMax = (short)Math.min(client_tune.frameMax, tune_server.frameMax);
         client_tune.channelMax = (short)Math.min(client_tune.channelMax, tune_server.channelMax);
         client_tune.handleMax = (short)Math.min(client_tune.handleMax, tune_server.handleMax);
         client_tune.heartbeat = (short)Math.min(client_tune.heartbeat, tune_server.heartbeat);
-        mq_factory.produceFrame(client_tune);
+        amq_framing.produceFrame(client_tune);
     }
     catch (ClassCastException e)
     {
