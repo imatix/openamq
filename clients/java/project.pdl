@@ -4,18 +4,41 @@
     version   = "0.1a0"
     copyright = "Copyright (c) 2004-2005 JPMorgan"
     workflow  = "standard.pwl"
+    library   = "AMQJavaFraming.jar"
     >
 
 <include filename = "prelude.pdl" />
 
-<file name = "amqpcli_serial.java"   class = "private resource">Java serial pattern testing client</file>
-<file name = "EchoClient.java"       class = "private resource">Java to C component-chat demonstration client</file>
+<!-- Java framing API -->
+<file name = "AMQJavaFraming.jar"               class = "public library">
 
-<file name = "amq_frames.gsl"        class = "private resource">Java frames generator</file>
-<file name = "amqpcli_serial.java.l" class = "private resource">Simple FSM for connecting/closing in amqpcli_serial.java</file>
-<file name = "README.txt"            class = "private resource">Readme</file>
+<!-- Java framing API generated source -->
+<file name = "AMQFramingFactory.java"           class = "generated class">Glue/utility for framable objects</file>
+<file name = "AMQConnection.java"               class = "generated class">Glue/utility for connection commands</file>
+<file name = "AMQChannel.java"                  class = "generated class">Glue/utility for channel commands</file>
+<file name = "AMQHandle.java"                   class = "generated class">Glue/utility for handle commands</file>
+<file name = "AMQMessage.java"                  class = "generated class">Utility for the message class</file>
+<file name = "AMQFramable.java"                 class = "generated class">Superclass of network objects</file>
+<file name = "AMQFrame.java"                    class = "generated class">Superclass of command frames</file>
+<file name = "AMQFieldTable.java"               class = "generated class">Field table name/value pairs</file>
+<file name = "AMQFramingException.java"         class = "generated class">Provisional general exception</file>
+<file name = "AMQFramingIOException.java"       class = "generated class">Needed for the provided streams</file>
 
-<actions target = "win32">
+<!-- Java framing API test clients -->
+<file name = "amqpcli_serial.class"             class = "public command">Java pattern testing client</file>
+<file name = "EchoClient.class"                 class = "public command">Java to C component-chat demonstration client</file>
+
+<!-- Java framing API test clients source -->
+<file name = "amqpcli_serial.java.l"            class = "private resource">Simple FSM for connecting/closing in amqpcli_serial.java</file>
+<file name = "amqpcli_seriali.java"             class = "generated class">FSM implementation for amqpcli_serial.java</file>
+<file name = "amqpcli_serial.java"              class = "main program">Java pattern testing client</file>
+<file name = "EchoClient.java"                  class = "main program">Java to C component-chat demonstration client</file>
+<file name = "amq_frames.gsl"                   class = "private resource">Java framing API generator</file>
+
+<!-- Documentation -->
+<file name = "index.txt"                        class = "gurudoc text"   >Java framing layer API documentation</file>
+
+<actions>
     <generate>
         <execute>
         gsl amq_frames.xml
@@ -23,19 +46,27 @@
     </generate>
     <build>
         <execute>
-        call boomvs --where=. --using=amq --target=amq build
+        <!-- Java framing API -->
+        javac com/imatix/openamq/framing/AMQFramingFactory.java
+        jar -cf AMQJavaFraming.jar com/imatix/openamq/framing/AMQ*.class        
+        <!-- Java framing API test clients -->
+        lr amqpcli_serial.java.l
+        javac amqpcli_serial.java
+        javac EchoClient.java
         </execute>
     </build>
     <clean>
-        <execute>
-        call boomvs --where=. --using=amq --target=amq clean
+        <execute  target = "Linux">
+        rm -fR com
+        rm -f *.class
+        rm -f amqpcli_seriali.java
+        </execute>
+        <execute  target = "win32">
+        <!-- rmdir com ->
+        <!-- delete *.class ->
+        <!-- delete amqpcli_seriali.java ->
         </execute>
     </clean>
 </actions>
-
 </pdl>
 
-lr amqpcli_serial.java.l
-javac com/imatix/openamq/framing/AMQFramingFactory.java
-javac amqpcli_serial.java
-javac EchoClient.java
