@@ -60,8 +60,8 @@ as listed below:
 Spacing
 =======
 
-- Code should be formatted to fit an 80 character width terminal [may
-  push that to at most 90 char width].
+- Code should be formatted to fit an 80 character width terminal (may
+  push that to at most 90 char width).
 - Indent with 4 spaces, never use tabs.
 - Spaces outside () and [], not inside.
 - Space after commas.
@@ -71,23 +71,23 @@ Naming Conventions
 ==================
 
 - All names are in English.
-- Variable names always lowercase with '_' as delimiter.
+- Variable names are always lowercase with '_' as delimiter.
 - Exported functions and variables are prefixed as lib_module_func.
-- Rare cases, may abbreviate to lib_func.
-- Macros always capitalized.
+- In rare cases, may abbreviate to lib_func.
+- Macros are always capitalized.
 - Type names end in _t,
-- Functions or variables that are static to a single file a prefixed
+- Functions or variables that are static to a single file are prefixed
   with s_,
 - It is permissible to use short variable names within functions, as
   long as their definition is reasonably close to their place of
-  use.  [and functions should not be very long anyway.]
-- xxx_nbr and xxx_ptr for function local array indices and pointers.
+  use.  (and functions should not be very long anyway.)
+- Use xxx_nbr and xxx_ptr for local array indices and pointers in functions.
 - Filenames are named lib_module.{c, h}.
 
 C Constructs
 ============
 
-Functions braces like this:
+Write function braces like this:
 
     int foo (...)
     {
@@ -119,7 +119,7 @@ Declaration of several variables should span several lines:
         baz;
 
 Nested If/Else statements must be enclosed within braces.
-Eg. Not:
+E.g. Not:
 
     if (foo)
         if (bar)
@@ -132,7 +132,7 @@ But:
             ...
     }
 
-Assignment may not happen within an if statement. Ie, Not:
+Assignment may not happen within an if statement. I.e., Not:
 
     if ((rv = foo ()))
         ...
@@ -152,14 +152,14 @@ explicit comparison made:
 C Comments
 ==========
 
-Same-line comments start in column 41 (starting column being 1) and end on
+Same-line comments start in column 41 (first column being 1) and end on
 column 80:
 
     amq_some_t somevar;                 /*  Message header frame             */
 
-Full-line comments start indented with following code and end on col 80.
+Full-line comments start indented matching following code and end on column 80.
 
-Two spaces after the initial '/*'
+Insert two spaces after the initial '/*'
 
 Error Reporting
 ===============
@@ -168,7 +168,7 @@ The standard practice for unexpected errors is to log a message and
 return a 'failed' code.
 
 When errors need explicit handling, the standard practice is to
-return a distinct code.  Such codes are defined in header files
+return a distinctive code.  Such codes are defined in header files
 and the application documentation if necessary.
 
 Error messages will be issued using the 'coprintf' function, which is
@@ -179,30 +179,30 @@ Your code should issue a message thus:
 
     coprintf ("modulename severity: text", insertions...);
 
- - modulename is a name that makes sense to the person who has to resolve
+- modulename is a name that makes sense to the person who has to resolve
    the error; it can be the application name for configuration errors, or
    the class or source name for internal faults.
- - severity is I, W, E for informational, warning, and error.
- - text is a readable text, possibly followed by a system error message.
+- severity is I, W or E; for informational, warning or error.
+- text is a readable text, possibly followed by a system error message.
 
 Implementation
 ==============
 
-Preference of using typedefs and static inline function over macros.
+Prefer using typedefs and static inline function over macros.
 
 All static functions should be placed at the end of source files, with
 their function prototypes at the top.
 
-The order of methods in code should be [if applicable]: new, destroy,
+The order of methods in code should be (if applicable): new, destroy,
 ..., selftest.
 
 Portability
 ===========
 
 All non-portable code will be isolated in a portability layer (iPR).
-Application may not use #if macros for system-specific functionality.
+The application may not use #if macros for system-specific functionality.
 
-Application code MAY NOT include system header files.  These are non
+Application code MAY NOT include system header files.  These are not
 portable and lead to non-portable applications.  All system header
 files are encapsulated in sfl.h, which applications will include
 either directly or through an encapsulated header file.

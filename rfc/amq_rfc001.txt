@@ -73,7 +73,7 @@ We come thus to the Internet standard: simple text documents that can be
 edited with any text editor and which are held in a revision-control
 system (such as CVS).
 
-A simple text file has the disadvantages of being poor input for final
+A simple text file has the disadvantage of being poor input for final
 document production.  I.e. such files must be manually reformatted if
 one is to use them in a word-processed document.
 
@@ -135,7 +135,7 @@ Proof and Demonstration
 
 We will consider the current proposal to be proven when we have a
 collection of AMQ RFCs that describes a significant part of the OpenAMQ
-product and which has been reviewed and accepted by the OpenAMQ
+product, and which has been reviewed and accepted by the OpenAMQ
 development team including iMatix and JPMorgan engineers.
 
 Detailed Proposal
@@ -175,9 +175,9 @@ Document Process
 1. The AMQ RFC numbers will be assigned informally on a first-come,
    first-served basis.
 2. The AMQ RFC archive is owned by a single person, who will be assigned by
-   the project manager, and who will ensure that AMQ RFC numbers are
+   the project manager to ensure that AMQ RFC numbers are
    correctly assigned, that the AMQ RFC project file is correctly updated,
-   and that documents confirm to the specified standards.
+   and that documents conform to the specified standards.
 3. The AMQ RFC archive will be regularly published to one or more web sites
    for read-only access by interested parties.  This process will be
    implemented as needed over time.

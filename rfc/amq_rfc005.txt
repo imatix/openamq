@@ -46,12 +46,12 @@ Problem Statement
 =================
 
 Our problem is to handle messages of an arbitrary size efficiently.  Our
-real-life scenarious cover messages from a few hundred bytes to messages of
+real-life scenarios cover messages from a few hundred bytes to messages of
 many gigabytes.  We need to handle multiple communication channels, one of
 the requirements of AMQP, and we have to be able to handle messages that
 are split into numerous fragments.  Message confirmations are optional so
 that clients can send data in "batches", receiving a confirmation when the
-whole batch has been received. But, apart from these requirements, the API
+whole batch has been received. But apart from these requirements, the API
 between terminals and drivers is a simple matter of exchanging messages and
 requests.
 
@@ -98,7 +98,7 @@ message body.  The message body may be processed at some point depending on
 its MIME type, but the terminal and driver do not touch it, except to pass
 it along the chain between client and destination.
 
-The basic unit of processing is the "fragment", which is part of, or all of
+The basic unit of processing is the "fragment", which is part or all of
 a message. A small message can fit into one fragment: 
 
     |<------Fragment------>|
@@ -179,7 +179,7 @@ Objectives
 
 Our goals cover performance:
 
-1. To avoid the need to queuing or copy message data.
+1. To avoid the need to queuing or copying message data.
 2. To keep the overhead of the API to a strict minimum.
 
 And scalability:
@@ -188,7 +188,7 @@ And scalability:
 2. To allow large numbers of messages, channels, and clients to be active
    at the same time.
 3. To allow large and small messages to flow through the system in a fair
-   way (IE. that the large messages do not block the smaller ones).
+   way (I.E. that the large messages do not block the smaller ones).
 
 And quality:
 

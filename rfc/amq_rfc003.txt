@@ -71,13 +71,13 @@ This works by pre-indexing data into a long bitmap for each term or
 criteria that we can search on.  One bit represents one document, 1 if
 the term is present in that document, else 0.  The bitmaps are compressed
 and stored.  To search the entire document database for one or more terms
-we retrieve the corresponding bitmaps, perform logical OR or AND operations
+we retrieve the corresponding bitmaps, and perform logical OR or AND operations
 on them.  The resulting bitmap is an index of the documents that match.
 
 The key gain in this approach is that there are few database accesses (if
 the bitmaps are stored persistently), and that the core work is done in
 large chunks (matching 32 or 64 "hits" per iteration through the bitmaps.)
-The SFL modules sflbits, sflsearch, and sflscrit.
+SFL existing modules include: sflbits, sflsearch, and sflscrit.
 
 While the matching engine in OpenAMQ does not entirely match this model,
 it is our starting technology.
@@ -105,8 +105,8 @@ is linked statically or dynamically and provides some specific functionality,
 via a simple registration process.
 
 Our proposal is based around two types of module: a dispatcher and a
-parser, a general implementation for criteria, and a dispatcher design
-aimed at our requirements for speed.
+parser; it includes a general implementation for criteria, and a 
+dispatcher design aimed at our requirements for speed.
 
 Design Proposal
 ***************
@@ -128,17 +128,17 @@ Objectives
 2. To create a general-purpose matching engine that can be integrated into
    OpenAMQ for those cases (types of destination) where we need it.
 3. To allow arbitrary extensions of the matching engine so that customised
-   logic can easily be added.
+   logic can be easily added.
 
 Architecture
 ============
 
-The general architecture uses an abstracted concept of a "criteria", being
+The general architecture uses an abstracted concept of "criteria", being
 a named item with some value.  Requests are pre-indexed according to the
 criteria they ask for, so that each request can be represented by a set of
 criteria.  Messages are analysed to extract criteria, so that each incoming
 message can be represented by a set of criteria.  A message is considered
-to match a request when the request criteria form a subset of the message
+to match a request when the request criteria forms a subset of the message
 criteria.  A client may make multiple requests to create combinations.
 
 Our architecture is based on these design elements:
@@ -151,7 +151,7 @@ Proof and Demonstration
 =======================
 
 This proposal will be demonstated by a working parser and dispatcher that
-use a standard test suite.
+uses a standard test suite.
 
 Detailed Proposal
 =================
@@ -358,7 +358,7 @@ clearer:
   to forward the message to.
 
 It is clear that adding this kind of intelligence to the parser makes it
-slower, and we will need to find fast mapping algorithms to map a message
+slower. We will need to find fast mapping algorithms to map a message
 onto the correct criteria, so range criteria may be a feature we implement
 in a later stage.
 
