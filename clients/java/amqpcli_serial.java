@@ -37,7 +37,7 @@ short
 int
     socket_timeout = 0;                 /* Socket timeout im ms              */
 long
-    frame_max = 2048;
+    frame_max = 32768;
 // Test parameters
 int
     messages,                           /* Size of test set                  */
@@ -408,14 +408,15 @@ public void do_tests ()
         handle_open.producer = true;
         handle_open.consumer = true;
         handle_open.browser = false;
-        handle_open.temporary = true;
-        handle_open.destName = "";
+        handle_open.temporary = !persistent;
+        handle_open.destName = persistent ? "test" : "";
         handle_open.mimeType = "";
         handle_open.encoding = "";
         handle_open.options = null;
         amq_framing.sendFrame(handle_open);
         // Get handle created
-        handle_created = (AMQHandle.Created)amq_framing.receiveFrame();
+        if (handle_open.temporary)
+            handle_created = (AMQHandle.Created)amq_framing.receiveFrame();
 
         // Pause incoming messages
         handle_flow.handleId = 1;
@@ -451,6 +452,8 @@ public void do_tests ()
         if (message_head.bodySize  < 0 )
             message_head.bodySize = message_size;
         message_size = head_size + message_head.bodySize;
+        // Allocate the message body
+        message_body = new byte[(int)message_head.bodySize];
         for (int repeat_count = 1; repeat_count <= repeats; repeat_count++) {
             // Pause incoming messages
             handle_flow.flowPause = true;
@@ -462,8 +465,6 @@ public void do_tests ()
             for (int i = 1; i <= messages; i++) {
                 OutputStream os;
 
-                // Allocate the message body
-                message_body = new byte[(int)message_head.bodySize];
                 body_fill(message_body, i);
                 // Set the fragment size
                 handle_send.partial = message_size > amq_framing.getFrameMax();
@@ -502,24 +503,25 @@ public void do_tests ()
             // Request consume messages
             amq_framing.sendFrame(handle_consume);
             System.out.println("(" + repeat_count + ") Reading messages back from server...");
+            message_body = null;
             for (int i = 1; i <= messages; i++) {
                 InputStream is;
-                byte[] bytes;
 
                 // Get handle notify
                 handle_notify = (AMQHandle.Notify)amq_framing.receiveFrame();
                 message_head = amq_framing.constructMessageHead();
                 is = amq_framing.receiveMessage(handle_notify, message_head, null, false);
                 head_size = message_head.size();
-                bytes = new byte[(int)message_head.bodySize];
-                is.read(bytes);
+                if (message_body == null)
+                    message_body = new byte[(int)message_head.bodySize];
+                is.read(message_body);
                 is.close();
-                if (bytes.length != message_size - head_size) {
+                if (message_body.length != message_size - head_size) {
                     System.err.println("amqpcli_serial: body_check: returning message size mismatch (is "
-                        + bytes.length + " should be " + (message_size - head_size) + ").");
+                        + message_body.length + " should be " + (message_size - head_size) + ").");
                     System.exit(1);
                 }
-                body_check(bytes, i);
+                body_check(message_body, i);
                 // Acknowledge & commit from time to time
                 if (i % batch_size == 0) {
                     channel_ack.messageNbr = handle_notify.messageNbr;
