@@ -184,7 +184,7 @@ amq_server_core (
     }
     else {
         printf (SERVER_NAME, s_server_name, s_server_text);
-        printf (COPYRIGHT);
+        printf (COPYRIGHT "\n");
         printf (NOWARRANTY);
     }
     if (*opt_server == '1') {

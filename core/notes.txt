@@ -1,3 +1,5 @@
+cache last channel/handle per thread, don't search if same
+
 Test case
     - post messages to a queue
     - HANDLE QUERY to get list of messages

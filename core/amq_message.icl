@@ -265,6 +265,9 @@
     else
     if (self->fragment) {
         /*  ***TODO*** rewrite code to create header from current message
+            - replay header into temporary fragment
+            - write from that fragment
+            - write rest from original fragment after old header
          */
         /*  Get whatever we can from our memory fragment                     */
         /*  If we're starting the get cycle, set things up                   */
@@ -380,14 +383,17 @@ s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
     </doc>
     <argument name = "body size" type = "size_t" />
     <local>
-    char
-        *identifier = "amq_message_testfill: test message";
+    ipr_shortstr_t
+        identifier;
     amq_bucket_t
         *bucket;                        /*  Bucket for recording message     */
     amq_frame_t
         *frame;                         /*  Message header frame             */
+    static qbyte
+        message_nbr = 0;                /*  Unique message number            */
     </local>
     /*  Prepare message frame and encode it into a data buffer               */
+    ipr_shortstr_fmt (identifier, "ID%d", ++message_nbr);
     bucket = amq_bucket_new ();
     frame  = amq_frame_message_head_new (
         body_size, FALSE, 0, 0, NULL, NULL, identifier, NULL);

@@ -69,7 +69,7 @@ ipr_db_queue class.
     qbyte
         last_id;                        /*  Last dispatched message          */
     size_t
-        outstanding;                    /*  Nbr. outstanding messages        */
+        nbr_persist;                    /*  Nbr. outstanding messages        */
     Bool
         dirty;                          /*  Queue needs dispatching          */
 </context>
@@ -164,17 +164,26 @@ ipr_db_queue class.
         /*  Transacted messages are held per-channel                         */
         message->queue = self;
         amq_smessage_list_queue (channel->messages, message);
+#   ifdef TRACE_DISPATCH
+        coprintf ("$(selfname) I: queue transacted message");
+#   endif
     }
     else
-    if (self->outstanding > 0 || message->persistent) {
+    if (self->nbr_persist > 0 || message->persistent) {
         /*  Persistent messages are saved on persistent queue storage        */
-        self->outstanding++;
+        self->nbr_persist++;
         amq_smessage_save (message, self, NULL);
         amq_smessage_destroy (&message);
+#   ifdef TRACE_DISPATCH
+        coprintf ("$(selfname) I: save persistent message to storage");
+#   endif
     }
     else {
         /*  Non-persistent messages are held per queue                       */
         amq_smessage_list_queue (self->messages, message);
+#   ifdef TRACE_DISPATCH
+        coprintf ("$(selfname) I: save non-persistent message to queue memory");
+#   endif
     }
     self->dirty = TRUE;                 /*  Queue has new data               */
 
@@ -199,16 +208,15 @@ ipr_db_queue class.
         finished;
     </local>
 
-    /*  Now process messages from memory or from disk                        */
-#   ifdef TRACE_DISPATCH
-    coprintf ("$(selfname) I: dispatch window=%d outstanding=%d", self->window, self->outstanding);
-#   endif
-
     /*  First, process any messages in memory: in the case that messages
         are held both in memory and disk, the ones in memory will be the
         oldest.
      */
     message = amq_smessage_list_first (self->messages);
+#   ifdef TRACE_DISPATCH
+    if (self->window && message)
+        coprintf ("$(selfname) I: dispatching non-persistent window=%d", self->window);
+#   endif
     while (self->window && message) {
         consumer = s_get_next_consumer (self);
         if (consumer) {
@@ -229,7 +237,11 @@ ipr_db_queue class.
             break;                      /*  No more consumers                */
     }
     /*  Now process any messages on disk                                     */
-    if (self->outstanding) {
+    if (self->nbr_persist) {
+#       ifdef TRACE_DISPATCH
+        coprintf ("$(selfname) I: dispatching persistent window=%d pending=%d",
+            self->window, self->nbr_persist);
+#       endif
         /*  Get oldest candidate message to dispatch                         */
         self->item_id = self->last_id;
         finished = amq_queue_fetch (self, IPR_QUEUE_GT);
@@ -292,7 +304,7 @@ ipr_db_queue class.
         message = amq_smessage_list_next (self->messages, message);
     }
     /*  Now process any messages on disk                                     */
-    if (self->outstanding) {
+    if (self->nbr_persist) {
         /*  Get oldest candidate message to dispatch                         */
         self->item_id = self->last_id;
         finished = amq_queue_fetch (self, IPR_QUEUE_GT);
