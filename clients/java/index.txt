@@ -1,11 +1,11 @@
 gdl
-    title     = API
+    title     = Java API
     subtitle  = Documentation
     product   = OpenAMQ Java
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/03/21
     copyright = Copyright (c) 2004 JPMorgan
-    version   = 0.5a0
+    version   = 0.5a1
 end gdl
 
 Cover
@@ -207,14 +207,10 @@ Framing level
       |
       +---AMQFieldTable                   /* Field table name/value pairs      */
     
-    OutputStream        
-      |
-      +---FrugalByteArrayOutputStream     /* Simple, frugal alternative        */
-    
 Transport level
 ...............
 
-    AMQConnectionHandler                  /* Low-level connection handling     */
+    AMQTransport                          /* Low-level connection handling     */
 
 Demonstration
 =============
@@ -296,11 +292,6 @@ This class is modeled closely after the Java Properties object; it contains
 name/value pairs which can be read from or written to network as AMQP field
 tables. A set of get/put methods for the field table types specified in 
 AMQ_RFC006 (1) are provided.
-
-FrugalByteArrayOutputStream summary
------------------------------------
-This class is a subset of Java's ByteArrayOutputStream, it is created with a 
-fixed preallocated bucket.
 
 AMQTransport summary
 --------------------
