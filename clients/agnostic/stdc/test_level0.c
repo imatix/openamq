@@ -5,10 +5,44 @@
  *  Copyright (c) 1991-2005 iMatix Corporation
  *---------------------------------------------------------------------------*/
 
+/*  PH: code review
+    2005/03/04
+    - indentation is generally OK, but there are many other problems
+    - no clear program structure
+        - I expect to see the main at the start and be able to READ the code
+        - take a look at amqpcli_serial.c
+    - use prototypes for internal functions
+    - comment functions
+    - do NOT use global variables to pass data around, this is terrible
+    - do nt use shrt nms nls U xpct ppl 2 wkr rlly hrd to ndrstd yr cd!
+    - consider using a tool like Libero to structure this program
+        - especially since you are using states
+    - gotos are not allowed unless there is no alternative (and there is here)
+    - do not include system headers in your programs
+
+    Score:
+        - general syntax:   6/10
+        - program structure:    5/10
+        - variable names:    7/10
+        - conformity with RFC: 4/10
+        - readability: 5/10
+
+    You should be aiming to get a 9/10 or 10/10 for every score item.
+
+    I recommend you:
+        - reread the RFC
+        - study some iMatix code
+
+ */
+
 #include "amqp_level0.h"
+
+/*  PH: Do not include system files like this - put these into
+    a standard project file or use sfl.h  */
 #include <stdio.h>
 #include <stdlib.h>
 
+/*  PH: what is this structure?  no comments, names like 'x', 'b'            */
 typedef struct
 {
     void *hint;
@@ -33,6 +67,8 @@ typedef enum
     apptype_consumer,
     apptype_query
 } apptype_t;
+
+/*  PH: global variables?  use 'static' and indent neatly   */
 
 apptype_t apptype;
 apr_socket_t *sck;
@@ -75,8 +111,10 @@ typedef enum
     state_idle
 } state_t;
 
+/*  PH: what is this?  */
 state_t state;
 
+/*  PH: functions must be commented, there is a standard for this  */
 apr_status_t handle_close_cb (
     const void *hint,
     const apr_uint16_t handle_id,
@@ -86,6 +124,7 @@ apr_status_t handle_close_cb (
 {
     fprintf (stderr, "Server closed the handle.\n%ld : %s\n",
         (long) reply_code, reply_text);
+/*  PH: abort, then return?  */
     abort ();
     return APR_SUCCESS;
 }
@@ -115,6 +154,14 @@ apr_status_t connection_close_cb (
     return APR_SUCCESS;
 }
 
+/*  PH: no arguments - this is not standard ANSI C
+    also, do not pass results via global variables, we are not writing
+    COBOL.  This function does something quite specific (I would have to
+    guess because it's not explained) but what?  What arguments?  What
+    return values?  Impossible to know without reading everything, and
+    that's no good...
+
+  */
 void next_query_result ()
 {
     int pos;
@@ -141,6 +188,7 @@ void next_query_result ()
             while (query_result [pos] >='0' && query_result [pos] <='9')
                 browse_end = browse_end * 10 + query_result [pos++] - '0';
     }
+/*  PH: statements are not correctly formatted.  do not write oneliners */
     else browse_end = browse_begin + 1;
 
     while (query_result [pos] == ' ') pos++;
@@ -162,11 +210,12 @@ apr_status_t browse_next (apr_uint16_t handle_id)
         if (result != APR_SUCCESS) {
             fprintf (stderr, "amqp_handle_browse failed.\n%ld : %s\n",
                 (long) result, amqp_strerror (result, buffer, 32767) );
-            
+
             return result;
         }
         state = state_waiting_for_browse_confirmation;
     }
+/*  PH: again, 'else' comes on a line of its own  */
     else state = state_idle;
 
     return APR_SUCCESS;
@@ -179,13 +228,15 @@ apr_status_t send_message(apr_uint16_t confirm_tag)
     char identifier [2000];
 
     /* wait for N milliseconds seconds */
-    apr_sleep (interval * 1000);
+    if (interval)
+        apr_sleep (interval * 1000);
 
     sprintf (identifier, "%s%ld", prefix, message_number);
 
     result = amqp_handle_send (sck, buffer, 32767, 1, confirm_tag, 0, 0, 0, 0, "",
         message_size, persistent, 0, 0, "", "", identifier, 0, "", message_buffer);
     if (result != APR_SUCCESS) {
+/*  PH: please use coprintf for output  */
         fprintf (stderr, "amqp_handle_send failed.\n%ld : %s\n",
             (long) result, amqp_strerror (result, buffer, 32767) );
         return result;
@@ -216,7 +267,7 @@ apr_status_t send_message(apr_uint16_t confirm_tag)
 
     state = state_waiting_for_send_confirmation;
 
-    return APR_SUCCESS;            
+    return APR_SUCCESS;
 }
 
 apr_status_t handle_index_cb (
@@ -233,7 +284,7 @@ apr_status_t handle_index_cb (
         query_result = malloc (strlen (message_list) + 1);
         strcpy (query_result , message_list);
         query_result_pos = 0;
-        
+
         browse_next (handle_id);
 
         return APR_SUCCESS;
@@ -639,7 +690,7 @@ int main (int argc, const char *const argv[], const char *const env[])
     }
 
 err:
-    
+
     fprintf (stderr, "Terminating client.\n");
 
     result=amqp_term (sck);

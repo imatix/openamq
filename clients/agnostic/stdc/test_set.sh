@@ -1,5 +1,6 @@
 #   This script runs various test sets
 #
-echo "Testing HANDLE QUERY..."
-test_level0 producer -h/test -dtest -mproducer -n1 -i1
+echo "Testing HANDLE QUERY... sending messages"
+test_level0 producer -h/test -dtest -mproducer -n5 -i0
+echo "... sending query command"
 test_level0 query -h/test -dtest
