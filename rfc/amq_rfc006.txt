@@ -1557,7 +1557,8 @@ expiration:
     A time value in Unix time_t format, after which the message can be
     expired by the server. The resolution of this field is 1 second,
     which is the assumed accuracy of clock synchronization on an AMQ
-    network.  Note that the time_t format is always UTC.
+    network.  Note that the time_t format is always UTC.  This field
+    can be zero, in which case the message will not be expired.
 mime-type:
     The MIME content type of the message. If empty, defaults to the
     mime-type value specified in the open command for the type of

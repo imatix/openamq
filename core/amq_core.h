@@ -46,6 +46,9 @@
 #define AMQP_INTERNAL_ERROR         541
 #define AMQP_INVALID_MESSAGE        542
 
+/*  AMQ RFC 006 defines 10 priority levels, from 0 to 9                      */
+#define AMQP_MAX_PRIORITIES         10
+
 #ifdef __cplusplus
 extern "C" {
 #endif

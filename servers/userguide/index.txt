@@ -24,8 +24,50 @@ Copyrights
 
 OpenAMQ is copyright (c) 2004 JPMorgan
 
+
 Installation
 ************
+
+amq_server.cfg file
+    server:port
+    server:background
+    resources:allowed-memory
+    logging:directory
+    logging:console
+    vhosts/vhost:directory
+
+amq_vhost.cfg file
+    vhost:name
+    directories:data
+    directories:spool
+    directories:store
+    queues/queue:name
+    queues/queue:auto-purge
+    queues/queue:memory-queue-max
+    queues/queue:min-consumers
+    queues/queue:max-consumers
+    queues/queue:browsable
+    queues/queue:max-messages
+    queues/queue:max-message-size
+
+
+message handling
+    persistent
+        held on disk in all cases, following commit
+    priority
+        manages two priority levels (normal, high)
+        for non-persistent messages only
+    expiration
+        expiration to dead-letter queue
+    mime type
+        not used by server
+    encoding
+        not used by server
+    identifier
+        not used by server
+    headers
+        not used by server
+
 
 - server installation
 - server configuration
@@ -45,77 +87,4 @@ Source Code
 
 Executables
 ===========
-
-Test file generator
--------------------
-
-amqpfeed.exe generates test data files of an arbitrary size and with random
-content.  We recommend you use this to generate files, rather than using real
-data.
-
-The syntax for running is amqpfeed is:
-
-    amqpfeed filename filesize [count]
-
-For example:
-
-    amqpfeed xfer_out/testfile 150000000   -- generate a test file of 150Mb
-    amqpfeed xfer_out/testfile 15000 1000  -- generate 1000 test files of 15K
-
-Prototype Demonstration
-***********************
-
-Authentication and Authorization
-================================
-
-The prototype does not implement any security.  All clients are anonymous
-and all accesses are permitted.
-
-The Server
-==========
-
-The server acts as a file queueing and forwarding system.  It uses a very
-simple subscription model: all connected clients are subscribers for new
-files.  There are no permanent subscriptions and no client state saved in
-the server.
-
-The server operates as follows:
-
- - it accepts connections from an unlimited number of clients
- - it negotiates the AMQP session with each client
- - it receives files from the client (POST command)
- - it forwards these files to all other connected clients
-
-The Client
-==========
-
-The client acts as a file sharing front-end.  It monitors the folder called
-xfer_out and sends any files place into that folder.  It requests updates from
-the server and places any files received into xfer_in.
-
-In a scenario where several clients are connected to a server, one user can
-broadcast a file by copying it into the xfer_out directory.  It appears, a
-short time later, in the xfer_in directories of all other clients.
-
-Performance
-===========
-
-Scenario 1: transferring a 100Mb file from a workstation to a server and back to
-the workstation, using two client processes on the workstation.
-
-  - Total round-trip using prototype: ~31 seconds.
-  - Same round-trip using NFS: ~27 seconds
-
-Scenario 2: transferring 1000 100Kb files.
-
-  - Total round-trip using prototype: 274 seconds.
-  - Total round-trip using NFS: 115 second.
-
-Known problems
-==============
-
-The client does not correctly detect file stability, so will start to transfer
-large files created in xfer_out before the file is completely settled.  To
-avoid this, create large test files in another location and copy them into
-xfer_out.
 

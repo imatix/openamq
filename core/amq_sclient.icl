@@ -302,7 +302,7 @@ s_class_initialise (int trace)
 {
     s_class_active = TRUE;
 
-    /*  Start the client agent - gets stopped by icl_system               */
+    /*  Start the client agent - gets stopped by icl_system                  */
     amq_sclient_agent_init (trace);
 
     /*  Register the class termination call-back functions                   */
