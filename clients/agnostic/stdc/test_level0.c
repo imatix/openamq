@@ -51,13 +51,15 @@ apr_status_t connection_close_cb (
 apr_status_t send_message(apr_uint16_t confirm_tag)
 {
     apr_status_t result;
+    apr_uint16_t value;
     char buffer [32768];
     char data [2];
 
     /* wait for 5 seconds */
     apr_sleep (5000000);
 
-    apr_uint16_t value = random () % 0xffff;
+    /* random message value */
+    value = rand () % 0xffff;
 
     *( (apr_uint16_t*) data) = htons (value);
 
