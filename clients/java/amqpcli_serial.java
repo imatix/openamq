@@ -362,7 +362,7 @@ public void do_tests ()
         if (message_head.bodySize  < 0 )
             message_head.bodySize = message_size;
         message_size = head_size + message_head.bodySize;
-        if (message_size > amq_framing.frameMax)
+        if (message_size > amq_framing.getFrameMax())
             System.out.println("Sending " + messages + " (fragmented) messages to server...");
         else    
             System.out.println("Sending " + messages + " messages to server...");
@@ -373,8 +373,8 @@ public void do_tests ()
             message_body = new byte[(int)message_head.bodySize];
             body_fill(message_body, i);
             // Set the fragment size
-            handle_send.partial = message_size > amq_framing.frameMax;
-            handle_send.fragmentSize = Math.min(amq_framing.frameMax, message_size);
+            handle_send.partial = message_size > amq_framing.getFrameMax();
+            handle_send.fragmentSize = Math.min(amq_framing.getFrameMax(), message_size);
             // Send message
             amq_framing.produceFrame(handle_send);
             amq_framing.produceMessageHead(message_head);
@@ -520,7 +520,7 @@ public void negotiate_connection_tune ()
         amq_framing.setTuneParameters(tune_server);
         // Send the reply
         tune_reply = new AMQFieldTable();    
-        tune_reply.putInteger("FRAME_MAX", Math.min(frame_max, amq_framing.frameMax));
+        tune_reply.putInteger("FRAME_MAX", Math.min(frame_max, amq_framing.getFrameMax()));
         tune_reply.putInteger("HEARTBEAT", 0);
         client_tune.options = tune_reply.storeToBucket();
         amq_framing.produceFrame(client_tune);
