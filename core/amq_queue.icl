@@ -135,8 +135,10 @@ ipr_db_queue class.
         /*  auto-purge option means delete all queue messages at restart     */
         if (ipr_config_attrn (config, "auto-purge"))
             amq_queue_purge (self);
-        else
+        else {
             self->disk_queue_size = self_count (self);
+            coprintf ("I: queue %s has %d messages", key, self->disk_queue_size);
+        }
     }
     else {
         /*  Temporary queue, set all non-zero defaults                       */

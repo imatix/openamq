@@ -16,6 +16,11 @@
 #include "amq_frames.h"
 </public>
 
+<private>
+#define TRACE_DISPATCH                  /*  Trace dispatching progress?      */
+#undef  TRACE_DISPATCH
+</private>
+
 <context>
     /*  References to parent objects                                         */
     amq_consumer_t
@@ -63,6 +68,9 @@
     assert (self->consumer->window);
     self->queue->window--;
     self->consumer->window--;
+#   ifdef TRACE_DISPATCH
+    coprintf ("$(selfname) new: queue:%d consumer:%d", self->queue->window, self->consumer->window);
+#   endif
 </method>
 
 <method name = "destroy">
@@ -85,6 +93,10 @@
         if (self->consumer->window < self->consumer->prefetch) {
             self->queue->window++;
             self->consumer->window++;
+#           ifdef TRACE_DISPATCH
+            coprintf ("$(selfname) ack: queue:%d consumer:%d",
+                self->queue->window, self->consumer->window);
+#           endif
         }
         amq_queue_dispatch (self->queue);
 
@@ -105,12 +117,18 @@
     </doc>
 
     if (self->queue_id == 0) {
+#       ifdef TRACE_DISPATCH
+        coprintf ("$(selfname) unget: non-persistent message %d", self->message_nbr);
+#       endif
         /*  Push back non-persistent message                                 */
         /*    - update window AFTER so it won't bounce to same consumer      */
         amq_queue_accept (self->queue, NULL, self->message, NULL);
         self->message = NULL;           /*  Passed to queue_accept           */
     }
     else {
+#       ifdef TRACE_DISPATCH
+        coprintf ("$(selfname) unget: persistent message %d", self->message_nbr);
+#       endif
         /*  Ensure message is no longer assigned to this client              */
         self->queue->item_id = self->queue_id;
         amq_queue_fetch (self->queue, IPR_QUEUE_EQ);
@@ -131,6 +149,9 @@
     if (self->consumer->window < self->consumer->prefetch) {
         self->queue->window++;
         self->consumer->window++;
+#       ifdef TRACE_DISPATCH
+        coprintf ("$(selfname) unget: queue:%d consumer:%d", self->queue->window, self->consumer->window);
+#       endif
     }
 </method>
 
@@ -149,7 +170,12 @@
         if (self->queue_id) {
             /*  Purge from persistent queue if necessary                     */
             self->queue->item_id = self->queue_id;
+            self->queue->disk_queue_size--;
             amq_queue_delete (self->queue, txn);
+#           ifdef TRACE_DISPATCH
+            coprintf ("$(selfname) delete: queue:%d pending=%d",
+                self->queue->window, self->queue->disk_queue_size);
+#           endif
         }
     }
 </method>
@@ -165,7 +191,6 @@
     next = amq_dispatch_list_next (self->channel->dispatch_list, self);
     if (self->acknowledged) {
         amq_smessage_purge (self->message);
-        self->queue->disk_queue_size--;
         self_destroy (&self);
     }
 </method>
@@ -192,6 +217,10 @@
         if (self->consumer->window > 0) {
             self->queue->window--;
             self->consumer->window--;
+#           ifdef TRACE_DISPATCH
+            coprintf ("$(selfname) rollback: queue:%d consumer:%d",
+                self->queue->window, self->consumer->window);
+#           endif
         }
     }
 </method>
