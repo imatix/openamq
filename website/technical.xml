@@ -1,0 +1,26 @@
+  <page
+    name    = "technical"
+    picture = "technical.jpg"
+    accent  = "#323642"
+    >
+    <language name = "en">
+      <title content = "title"/>
+      <remark>
+        <line>OpenAMQ is built to the highest technical standards</line>
+      </remark>
+      <header>
+        <line>Engineered using the best code construction techniques.</line>
+        <line>Heavily tested under hostile conditions.</line>
+      </header>
+      <section>
+        <title>Title text</title>
+        <head>Heading...</head>
+        <line>Some text comes here</line>
+        <line>Some text comes here</line>
+        <line>Some text comes here</line>
+      </section>
+      <footer>
+        <line content = "slogan" />
+      </footer>
+    </language>
+  </page>

@@ -1,0 +1,82 @@
+body {
+    margin: 0 0 0 0;
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+}
+
+.header {
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    margin-right: 0;
+    font-size: 13px;
+    line-height: 16px;
+    font-weight: bold;
+    text-align: center;
+    color: #036376
+}
+.footer {
+    margin-top: 18pt;
+    margin-bottom: 6pt;
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+    color: #036376
+}
+.text {
+    font-size: 11px
+}
+ul {
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
+li {
+    margin-top: 3px;
+    margin-bottom: 0px;
+    font-size: 11px
+}
+.diagram {
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
+.smallprint {
+    margin-top: 0;
+    margin-bottom: 6px;
+    margin-left: 9px;
+    margin-right: 9px;
+    font-size: 7pt;
+    text-align: left;
+}
+a.smallprint {
+    font-size: 7pt;
+    font-weight: bold;
+    color: #000000;
+    text-decoration: none
+}
+a.smallprint:hover {
+    font-size: 7pt;
+    font-weight: bold;
+    color: #33ffff;
+    text-decoration: underline
+}
+a {
+    font-size: 11px;
+    font-weight: bold;
+    color: #000000;
+    text-decoration: none;
+}
+a:hover {
+    font-size: 11px;
+    font-weight: bold;
+    background: #000000;
+    color: #48b9c6;
+    text-decoration: none;
+}
+.slogan {
+    font-size: 13px;
+    font-weight: bold;
+    color: #58504d
+}
+hr {
+    color: #48b9c6;
+    background-color: #48b9c6
+}

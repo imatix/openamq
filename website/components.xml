@@ -1,0 +1,26 @@
+  <page
+    name    = "components"
+    picture = "components.jpg"
+    accent  = "#480100"
+    >
+    <language name = "en">
+      <title content = "title"/>
+      <remark>
+        <line>The OpenAMQ standard component interface</line>
+      </remark>
+      <header>
+        <line>Java, COM+, Perl, C: a single API.</line>
+        <line>Learn once, use everywhere.</line>
+      </header>
+      <section>
+        <title>Title text</title>
+        <head>Heading...</head>
+        <line>Some text comes here</line>
+        <line>Some text comes here</line>
+        <line>Some text comes here</line>
+      </section>
+      <footer>
+        <line content = "slogan" />
+      </footer>
+    </language>
+  </page>

@@ -1,0 +1,25 @@
+  <page
+    name    = "support"
+    picture = "support.jpg"
+    accent  = "#1a4331"
+    >
+    <language name = "en">
+      <title content = "title"/>
+      <remark>
+        <line>OpenAMQ is well supported by an enthusiastic community</line>
+      </remark>
+      <header>
+        <line>Several email discussion groups.</line>
+      </header>
+      <section>
+        <title>Title text</title>
+        <head>Heading...</head>
+        <line>Some text comes here</line>
+        <line>Some text comes here</line>
+        <line>Some text comes here</line>
+      </section>
+      <footer>
+        <line content = "slogan" />
+      </footer>
+    </language>
+  </page>

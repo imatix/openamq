@@ -1,0 +1,32 @@
+  <page
+    name    = "about"
+    picture = "about.jpg"
+    accent  = "#2a3549"
+    >
+    <language name = "en">
+      <title content = "title"/>
+      <remark>
+        <line>About OpenAMQ</line>
+      </remark>
+      <header>
+        <line>Designed by JPMorgan and iMatix Corporation.</line>
+        <line>Copyright &copy; 2004-2005.</line>
+      </header>
+      <section>
+        <title>Principle authors</title>
+        <head>Design</head>
+        <line>John O'Hara</line>
+        <line>Mark Atwell</line>
+        <line>Pieter Hintjens</line>
+        <head>Engineering</head>
+        <line>Pieter Hintjens</line>
+        <line>Jonathan Schultz</line>
+        <line>Rakan El-Khalil</line>
+        <line>Martin Lucina</line>
+        <line>Martin Sustrik</line>
+      </section>
+      <footer>
+        <line content = "slogan" />
+      </footer>
+    </language>
+  </page>

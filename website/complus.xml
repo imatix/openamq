@@ -1,0 +1,25 @@
+  <page
+    name    = "complus"
+    picture = "complus.jpg"
+    accent  = "#184b12"
+    >
+    <language name = "en">
+      <title content = "title"/>
+      <remark>
+        <line>The OpenAMQ COM+ component</line>
+      </remark>
+      <header>
+        <line>Plug and play access for Excel applications.</line>
+      </header>
+      <section>
+        <title>Title text</title>
+        <head>Heading...</head>
+        <line>Some text comes here</line>
+        <line>Some text comes here</line>
+        <line>Some text comes here</line>
+      </section>
+      <footer>
+        <line content = "slogan" />
+      </footer>
+    </language>
+  </page>

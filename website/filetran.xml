@@ -1,0 +1,26 @@
+  <page
+    name    = "filetran"
+    picture = "filetran.jpg"
+    accent  = "#25100f"
+    >
+    <language name = "en">
+      <title content = "title"/>
+      <remark>
+        <line>The OpenAMQ file transfer application</line>
+      </remark>
+      <header>
+        <line>Here we have a header.</line>
+        <line>Here we have a header.</line>
+      </header>
+      <section>
+        <title>Title text</title>
+        <head>Heading...</head>
+        <line>Some text comes here</line>
+        <line>Some text comes here</line>
+        <line>Some text comes here</line>
+      </section>
+      <footer>
+        <line content = "slogan" />
+      </footer>
+    </language>
+  </page>

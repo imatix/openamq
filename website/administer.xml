@@ -1,0 +1,24 @@
+  <page
+    name    = "administer"
+    picture = "administer.jpg"
+    accent  = "#333d46"
+    >
+    <language name = "en">
+      <title content = "title"/>
+      <remark>
+        <line>A quick guide to looking after your OpenAMQ server installation</line>
+      </remark>
+      <header>
+        <line>OpenAMQ will run with no tuning or administration.</line>
+        <line>But some people like to get their hands dirty...</line>
+      </header>
+      <section>
+        <title>Tuning</title>
+        <head>The Queue Subsystem</head>
+        <line>... explanation of how to tune queues</line>
+      </section>
+      <footer>
+        <line content = "slogan" />
+      </footer>
+    </language>
+  </page>

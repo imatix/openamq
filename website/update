@@ -1,0 +1,15 @@
+#! /bin/sh
+echo open openamq.net>response
+echo prompt>>response
+echo bin>>response
+echo "mput *.html">>response
+echo "mput *.js">>response
+echo "mput *.css">>response
+echo lcd image>>response
+echo cd image>>response
+echo "mput *.jpg">>response
+echo "mput *.gif">>response
+echo quit>>response
+ftp < response
+rm response
+

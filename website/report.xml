@@ -1,0 +1,26 @@
+  <page
+    name    = "report"
+    picture = "report.jpg"
+    accent  = "#162e32"
+    >
+    <language name = "en">
+      <title content = "title"/>
+      <remark>
+        <line>Reporting a bug or issue</line>
+      </remark>
+      <header>
+        <line>Here we have a header.</line>
+        <line>Here we have a header.</line>
+      </header>
+      <section>
+        <title>Title text</title>
+        <head>Heading...</head>
+        <line>Some text comes here</line>
+        <line>Some text comes here</line>
+        <line>Some text comes here</line>
+      </section>
+      <footer>
+        <line content = "slogan" />
+      </footer>
+    </language>
+  </page>

@@ -1,0 +1,33 @@
+  <page
+    name    = "license"
+    picture = "license.jpg"
+    accent  = "#773c2e"
+    >
+    <language name = "en">
+      <title content = "title"/>
+      <remark>
+        <line>OpenAMQ is free software licensed under the Apache License, version 2</line>
+      </remark>
+      <header>
+        <line>You may only use this software in compliance with the License.</line>
+      </header>
+      <section>
+        <title>Permissions and Limitations</title>
+        <head>No Warranty</head>
+        <line>Unless required by applicable law or agreed to in writing, software
+        distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+        WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</line>
+        <line>See the License for the specific language governing permissions and
+        limitations under the License.</line>
+      </section>
+      <section>
+        <title>Apache License v2.0</title>
+        <head>From www.apache.org</head>
+        <line>&lt;a href="http://apache.org/licenses/LICENSE-2.0"&gt;In HTML format...&lt;/a&gt;</line>
+        <line>&lt;a href="http://apache.org/licenses/LICENSE-2.0.txt"&gt;In text format...&lt;/a&gt;</line>
+      </section>
+      <footer>
+        <line content = "slogan" />
+      </footer>
+    </language>
+  </page>

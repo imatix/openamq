@@ -1,0 +1,26 @@
+  <page
+    name    = "install"
+    picture = "install.jpg"
+    accent  = "#203d38"
+    >
+    <language name = "en">
+      <title content = "title"/>
+      <remark>
+        <line>Building and installing OpenAMQ</line>
+      </remark>
+      <header>
+        <line>Here we have a header.</line>
+        <line>Here we have a header.</line>
+      </header>
+      <section>
+        <title>Title text</title>
+        <head>Heading...</head>
+        <line>Some text comes here</line>
+        <line>Some text comes here</line>
+        <line>Some text comes here</line>
+      </section>
+      <footer>
+        <line content = "slogan" />
+      </footer>
+    </language>
+  </page>

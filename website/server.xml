@@ -1,0 +1,26 @@
+  <page
+    name    = "server"
+    picture = "server.jpg"
+    accent  = "#312608"
+    >
+    <language name = "en">
+      <title content = "title"/>
+      <remark>
+        <line>OpenAMQ Server Features</line>
+      </remark>
+      <header>
+        <line>Here we have a header.</line>
+        <line>Here we have a header.</line>
+      </header>
+      <section>
+        <title>Title text</title>
+        <head>Heading...</head>
+        <line>Some text comes here</line>
+        <line>Some text comes here</line>
+        <line>Some text comes here</line>
+      </section>
+      <footer>
+        <line content = "slogan" />
+      </footer>
+    </language>
+  </page>

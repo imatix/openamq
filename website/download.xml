@@ -1,0 +1,41 @@
+  <page
+    name    = "download"
+    picture = "download.jpg"
+    accent  = "#636dc2"
+    >
+    <language name = "en">
+      <title content = "title"/>
+      <remark>
+        <line>Download OpenAMQ now</line>
+      </remark>
+      <header>
+        <line>Current version is 0.7b0.</line>
+        <line>This is a beta release of the server and clients.</line>
+      </header>
+      <section>
+        <title>Unix Packages</title>
+        <head>Source package</head>
+        <line>&lt;a href="http://www.openamq.org/pub/openamq-0.7b0-src.tar.gz"&gt;
+        openamq-0.7b0-src.tar.gz
+        &lt;/a&gt;</line>
+        <line>Unpack into a working directory and run './configure; make'.</line>
+      </section>
+      <section>
+        <title>Win32 Packages</title>
+        <head>Source package</head>
+        <line>&lt;a href="http://www.openamq.org/pub/openamq-0.7b0-src.zip"&gt;
+        openamq-0.7b0-src.zip
+        &lt;/a&gt;</line>
+        <line>Unpack into a working directory and run 'configure' and then 'make'.</line>
+        <line>Requires MSVC/6+.</line>
+        <head>Binary package (MSI installer)</head>
+        <line>&lt;a href="http://www.openamq.org/pub/openamq-0.7b0-win32.exe"&gt;
+        openamq-0.7b0-win32.exe
+        &lt;/a&gt;</line>
+        <line>Download and run the executable package.</line>
+      </section>
+      <footer>
+        <line content = "slogan" />
+      </footer>
+    </language>
+  </page>
