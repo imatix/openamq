@@ -58,8 +58,8 @@ values from memory to network is runtime-checked for overflows/underflows. Long
 strings are stored as byte arrays.
 
 The Java API is currently a low-level communications layer, it does not implement
-client or server protocol dialogues. Specifically, the provided framing API can
-be used to:
+client or server protocol dialogues. Specifically, the provided API can be used
+to:
 - Send messages as data streams
 - Send and receive command frames  
 - Read and write field tables
