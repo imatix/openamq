@@ -1,7 +1,7 @@
 <?xml?>
 <pdl
     name      = "OpenAMQ COM Client"
-    version   = "0.7"
+    version   = "0.8a0"
     copyright = "Copyright (c) 2004-2005 JPMorgan"
     workflow  = "standard.pwl"
     >
@@ -14,17 +14,24 @@
 <file name = "amq.gsl"           class = "private resource" >Main generator</file>
 <file name = "amq.xml"           class = "private resource" >Component definitions</file>
 <file name = "axobj.gsl"         class = "private resource" >Object generator</file>
+<file name = "amq.dll"           class = "shared library"
+                                 target = "win32"           >AMQ client DLL</file>
 <actions target = "win32">
-  <generate>
-    <execute>
-    gsl amq.gsl
-    </execute>
-  </generate>
-  <build>
-    <execute>
-    msdev amq.dsw /make
-    </execute>
-  </build>
+    <generate>
+        <execute>
+        gsl amq.gsl
+        </execute>
+    </generate>
+    <build>
+        <execute>
+        call boomvs --where=. --using=amq --target=amq build
+        </execute>
+    </build>
+    <clean>
+        <execute>
+        call boomvs --where=. --using=amq --target=amq clean
+        </execute>
+    </clean>
 </actions>
 
 </pdl>

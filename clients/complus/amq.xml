@@ -5,7 +5,7 @@
     version_minor = "0"
     description = "OpenAMQ Client Components">
 
-    <include name = "icl_classes.h" local = "yes" location = "cpp" />
+    <include name = "icl.h"         local = "yes" location = "cpp" />
     <include name = "sfl.h"         local = "yes" location = "cpp" />
     <include name = "amq_bucket.h"  local = "yes" location = "cpp" />
     <include name = "amq_message.h" local = "yes" location = "cpp" />

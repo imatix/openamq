@@ -1203,8 +1203,7 @@ CFG=$(class.name:) - Win32 Debug
 !MESSAGE Possible choices for configuration are:
 !MESSAGE
 !MESSAGE "$(class.name:) - Win32 Debug" (based on "Win32 (x86) Dynamic-Link Library")
-!MESSAGE "$(class.name:) - Win32 Release MinSize" (based on "Win32 (x86) Dynamic-Link Library")
-!MESSAGE "$(class.name:) - Win32 Release MinDependency" (based on "Win32 (x86) Dynamic-Link Library")
+!MESSAGE "$(class.name:) - Win32 Release" (based on "Win32 (x86) Dynamic-Link Library")
 !MESSAGE
 
 # Begin Project
@@ -1261,17 +1260,17 @@ SOURCE="\$(InputPath)"
 .-PostBuild_Cmds=net START "World Wide Web Publishing Service"
 # End Special Build Tool
 
-!ELSEIF  "\$(CFG)" == "$(class.name:) - Win32 Release MinSize"
+!ELSEIF  "\$(CFG)" == "$(class.name:) - Win32 Release"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
-# PROP BASE Output_Dir "ReleaseMinSize"
-# PROP BASE Intermediate_Dir "ReleaseMinSize"
+# PROP BASE Output_Dir "Release"
+# PROP BASE Intermediate_Dir "Release"
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "ReleaseMinSize"
-# PROP Intermediate_Dir "ReleaseMinSize"
+# PROP Output_Dir "Release"
+# PROP Intermediate_Dir "Release"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /O1 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "_ATL_DLL" /Yu"stdafx.h" /FD /c
@@ -1291,7 +1290,7 @@ $(target:) \
 /libpath:"\$(LIBDIR_LOCAL)" /libpath:"\$(LIBDIR)" \
 /nologo /subsystem:windows /dll /machine:I386 /out:"$(class.name:).dll"
 # Begin Custom Build - Performing registration
-OutDir=.\\ReleaseMinSize
+OutDir=.\\Release
 TargetPath=.\\$(class.name:).dll
 InputPath=.\\$(class.name:).dll
 SOURCE="\$(InputPath)"
@@ -1302,52 +1301,6 @@ SOURCE="\$(InputPath)"
 
 # End Custom Build
 
-# Begin Special Build Tool
-SOURCE="\$(InputPath)"
-.-PreLink_Cmds=net STOP "World Wide Web Publishing Service"
-.-PostBuild_Cmds=net START "World Wide Web Publishing Service"
-# End Special Build Tool
-
-!ELSEIF  "\$(CFG)" == "$(class.name:) - Win32 Release MinDependency"
-
-# PROP BASE Use_MFC 0
-# PROP BASE Use_Debug_Libraries 0
-# PROP BASE Output_Dir "ReleaseMinDependency"
-# PROP BASE Intermediate_Dir "ReleaseMinDependency"
-# PROP BASE Target_Dir ""
-# PROP Use_MFC 0
-# PROP Use_Debug_Libraries 0
-# PROP Output_Dir "ReleaseMinDependency"
-# PROP Intermediate_Dir "ReleaseMinDependency"
-# PROP Ignore_Export_Lib 0
-# PROP Target_Dir ""
-# ADD BASE CPP /nologo /MT /W3 /O1 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "_ATL_STATIC_REGISTRY" /Yu"stdafx.h" /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /I $\(INCDIR_LOCAL) /I $\(INCDIR) /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "_ATL_STATIC_REGISTRY" /FD /c
-# SUBTRACT CPP /Fr /YX /Yc /Yu
-# ADD BASE RSC /l 0x409 /d "NDEBUG"
-# ADD RSC /l 0x409 /d "NDEBUG"
-BSC32=bscmake.exe
-# ADD BASE BSC32 /nologo
-# ADD BSC32 /nologo
-LINK32=link.exe
-# ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386
-# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib delayimp.lib winmm.lib \
-.for root.library
-$(target:) \
-.endfor
-/libpath:"\$(LIBDIR_LOCAL)" /libpath:"\$(LIBDIR)" \
-/nologo /subsystem:windows /dll /machine:I386 /out:"$(class.name:).dll"
-# Begin Custom Build - Performing registration
-OutDir=.\\ReleaseMinDependency
-TargetPath=.\\$(class.name:).dll
-InputPath=.\\$(class.name:).dll
-SOURCE="\$(InputPath)"
-
-"\$(OutDir)\\regsvr32.trg" : \$(SOURCE) "\$(INTDIR)" "\$(OUTDIR)"
-    regsvr32 /s /c "\$(TargetPath)"
-    echo regsvr32 exec. time > "\$(OutDir)\\regsvr32.trg"
-
-# End Custom Build
 # Begin Special Build Tool
 SOURCE="\$(InputPath)"
 .-PreLink_Cmds=net STOP "World Wide Web Publishing Service"
@@ -1359,8 +1312,7 @@ SOURCE="\$(InputPath)"
 # Begin Target
 
 # Name "$(class.name:) - Win32 Debug"
-# Name "$(class.name:) - Win32 Release MinSize"
-# Name "$(class.name:) - Win32 Release MinDependency"
+# Name "$(class.name:) - Win32 Release"
 # Begin Group "Source Files"
 
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"

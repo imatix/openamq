@@ -5,21 +5,16 @@
  *  Copyright (c) 1991-2005 iMatix Corporation
  *---------------------------------------------------------------------------*/
 
+#include "base.h"                       /*  Base definitions                 */
+#include "base_apr.h"                   /*  APR definitions                  */
 #include "amqp_level0.h"                /*  Level 0 API definitions          */
 
-#include <stdio.h>                      /*  C standard I/O                   */
-#include <stdlib.h>                     /*  C standard library               */
-#include <stdarg.h>                     /*  For va_* functions               */
 
 /*- Definitions ------------------------------------------------------------
 */
 
 #define MAX_FRAME_SIZE 32000            /*  Max supported frame size         */
 #define BUFFER_SIZE    32768            /*  Network buffer size              */
-#define EXIT_SUCCESS   0                /*  Code returned from main when     */
-                                        /*  there's no error                 */
-#define EXIT_FAILURE   1                /*  Code returned from main in       */           
-                                        /*  case of error                    */
 
 /*  Scenario types client may use
 */

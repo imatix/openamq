@@ -38,16 +38,21 @@
     <file name = "amq.dll"           class = "shared library"
                                      target = "win32"           >AMQ client DLL</file>
     <actions target = "win32">
-      <generate>
-        <execute>
-        gsl amq.gsl
-        </execute>
-      </generate>
-      <build>
-        <execute>
-        msdev amq.dsw /make
-        </execute>
-      </build>
+        <generate>
+            <execute>
+            gsl amq.gsl
+            </execute>
+        </generate>
+        <build>
+            <execute>
+            call boomvs --where=. --using=amq --target=amq build
+            </execute>
+        </build>
+        <clean>
+            <execute>
+            call boomvs --where=. --using=amq --target=amq clean
+            </execute>
+        </clean>
     </actions>
 </directory>
 

@@ -628,11 +628,8 @@ frame->fields.handle_send.body_size\
  *  Copyright (c) 1991-2005 iMatix Corporation
  *---------------------------------------------------------------------------*/
 
-#include "base_apr.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "base.h"                       /* Base definitions                  */
+#include "base_apr.h"                   /* APR definitions                   */
 
 /*  error value received when frame non coforming to  */
 /*  AMQP protocol is received from the server.  */
