@@ -1,11 +1,11 @@
 gdl
     title     = Java Framing API
     subtitle  = Documentation
-    product   = OpenAMQ
+    product   = OpenAMQ Java
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/03/21
     copyright = Copyright (c) 2004 JPMorgan
-    version   = 0.3
+    version   = 0.4a0
 end gdl
 
 Cover
@@ -75,8 +75,9 @@ Definitions and References
 ==========================
 
 1. AMQ_RFC006
-2. The Java Language Specification
-3. Java 2 Platform Standard Edition API Specification
+2. AMQ_RFC014
+3. The Java Language Specification
+4. Java 2 Platform Standard Edition API Specification
 
 Objectives
 ==========
@@ -115,9 +116,38 @@ Filling of command parameters via public variables:
     
 Class overview diagram
 ----------------------
+AMQ_RFC014 (work in progress) defines API levels with increasing level of 
+functionality 
+
+- Level 2 builds on top of level 1, it deals with protocol implementation. This API
+  does not provide a complete level 2 layer.
+- Level 1 builds on top of level 0, it is in charge of properly handling the
+  physical connection.
+- Level 0 is the bottom level, in charge of framing/deframing.
+
+Level 2
+.......
 
     AMQFramingFactory                     /* Glue/utility for framable classes */
     
+    FilterOutputStream        
+      |                                   /* Message body output stream        */
+      |        
+      +---AMQFramingFactory.MessageBodyOutputStream  
+    
+    FilterInputStream        
+      |                                   /* Message body Input stream         */
+      |        
+      +---AMQFramingFactory.MessageBodyInputStream 
+    
+Level 1
+.......
+
+    AMQConnectionHandler                  /* Low-level connection handling     */
+    
+Level 0
+.......
+
     AMQConnection                         /* Glue/utility for connection comm. */
     
     AMQChannel                            /* Glue/utility for channel commands */
@@ -194,16 +224,6 @@ Class overview diagram
                 |        
                 +---AMQHandle.Close           /* Handle close class            */
             
-    FilterOutputStream        
-      |                                   /* Message body output stream        */
-      |        
-      +---AMQFramingFactory.MessageBodyOutputStream  
-    
-    FilterInputStream        
-      |                                   /* Message body Input stream         */
-      |        
-      +---AMQFramingFactory.MessageBodyInputStream 
-    
     HashTable        
       |
       +---AMQFieldTable                   /* Field table name/value pairs      */
@@ -214,7 +234,7 @@ Class overview diagram
     
     IOException  
       |
-      +---AMQFramingIOException           /* Needed for the provided streams   */
+      +---AMQFramingIOException           /* Protocol specific IO exception    */
 
 Demonstration
 =============
@@ -241,63 +261,69 @@ parameters are twisted for the second instance.
 Class summary
 =============
 
-AMQFramingFactory
------------------
-This class concentrates most of the methods for framing functionality. A client
-or server layer built on top of the framing code will use this class mainly.
-This class handles creation, serialization and deserialization of protocol 
-objects and primitive data types. This class manages low-level network issues 
-such as read retries, socket timeouts, etc. This is the place where most AMQP 
-negotiated parameters will be held, and where checking of frame level session 
-correctness will be performed (frame sizes, heartbeats, transaction limits, 
-coherence of the values on passed objects (when possible), etc.).
+AMQConnectionHandler summary
+----------------------------
+This class handles reading and writing of protocol primitive data types. The
+class manages low-level network issues such as read retries, socket timeouts,
+etc. Higher level layers should not attempt to direcly write to the socket,
+but instead use the methods provided by this class.
 
-AMQConnection
--------------
+AMQFramingFactory summary
+-------------------------
+This class concentrates most of the methods for framing functionality (see also
+the AMQFieldTable class). A client or server layer built on top of the framing
+code will use this class mainly. This class handles construction, serialization
+and deserialization of protocol objects. This is the place where most AMQP 
+negotiated parameters will be held and checked for correctness (frame sizes, 
+transaction limits, coherence of the values on passed objects (in a best-effort
+basis), etc.).
+
+AMQConnection summary
+---------------------
 This class packs connection-type commands as inner classes. The inner classes
 are manipulated through factory-like methods which are meant to support the 
 AMQFramingFactory's functionality. This class provides a common functional
 layer for its inner types. You can use the AMQFramingFactory to ease the use of
 AMQConnection objects. See the description for AMQFrame.
 
-AMQChannel
-----------
+AMQChannel summary
+------------------
 This class packs channel-type commands as inner classes. The inner classes
 are manipulated through factory-like methods which are meant to support the 
 AMQFramingFactory's functionality. This class provides a common functional
 layer for its inner types. You can use the AMQFramingFactory to ease the use of
 AMQChannel objects. See the description for AMQFrame.
 
-AMQHandle
----------
+AMQHandle summary
+-----------------
 This class packs handle-type commands as inner classes. The inner classes
 are manipulated through factory-like methods which are meant to support the 
 AMQFramingFactory's functionality. This class provides a common functional
 layer for its inner types. You can use the AMQFramingFactory to ease the use of
 AMQHandle objects. See the description for AMQFrame.
 
-AMQMessage
-----------
+AMQMessage summary
+------------------
 This class represents a message head network object. This object is an 
 exception to the bucket source rule, it is read directly from the incoming
 stream (the containing fragment may be to big to fit in memory). You can use
 the AMQFramingFactory to ease the use of AMQMessage objects. See the 
 description for AMQFramable.
 
-AMQFramable
------------
+AMQFramable summary
+-------------------
 This class is the superclass for serializable/deserializable protocol objects.
 The message header is not a full command frame, but it is nonetheless framable.
 Every command frame is a network framable object.
 
-AMQFrame
---------
+AMQFrame summary
+----------------
 This class is the superclass for all protocol command frames. All the objects
 of this class have a specific type which is read on deserialization. You can 
 use the AMQFramingFactory to ease the use of AMQFrame objects.
 
-AMQFieldTable
--------------
+AMQFieldTable summary
+---------------------
 This class is modeled closely after the Java Properties object; it contains 
 name/value pairs which can be read from or written to network as AMQP field
 tables. A set of get/put methods for the field table types specified in 
@@ -306,13 +332,13 @@ AMQ_RFC006 are provided.
 Exception summary
 =================
 
-AMQFramingException
--------------------
+AMQFramingException summary
+---------------------------
 This is a provisional general exception which is thrown for framing errors,
 protocol or implementation-specific alike.
 
-AMQFramingIOException
----------------------
+AMQFramingIOException summary
+-----------------------------
 This class extends IOException, so it is possible to throw it from overloaded 
 stream methods. The code should be revised to throw this when it clarifies,
 in the context of the AMQ implementation, some of the IOExceptions that Java 
@@ -321,57 +347,9 @@ may throw.
 Class details
 =============
 
-AMQFramingFactory
------------------
-    
-public boolean verbose
-......................
-Governs console output of execution information.
-Should be refined to an integer value.
+AMQConnectionHandler
+--------------------
 
-public AMQFramingFactory(Socket socket)
-.......................................
-This constructs an AMQFramingFactory object with the input streams provided
-by the socket. The socket provides the timeout parameter enforced for network 
-write operations (currently we rely on SUN's documented behavior (3) for read
-and accept timeouts).
-
-    Parameters
-        socket - Network connection to use.
-    Throws
-        IOException - If network stream wrapping for buffering, etc. fails.
-
-public AMQFramingFactory(Socket socket, int readBuff, int writeBuff)
-....................................................................
-This constructs an AMQFramingFactory object with the input streams provided
-by the socket wrapped around with buffers of custom capacity. See also the 
-other constructor.
-
-    Parameters
-        socket - Network connection to use.
-        readBuff - Requested size for input buffer.
-        writeBuff - Requested size for output buffer.
-    Throws
-        IOException - If network stream wrapping for buffering, etc. fails.
-
-public void setTuneParameters(AMQConnection.Tune tune)
-......................................................
-Sets connection tune parameters from a connection tune object. The parameters should
-not be changed after the connection tune negotiation has been completed, or runtime
-exceptions may be thrown.
-
-    Parameters
-        tune - Connection tune object, provides parameters on field tables.
-    Throws
-        IOException - If the proposed FRAME_MAX is too small.
-
-public long getFrameMax()
-......................... 
-Gets the current FRAME_MAX value that was read from the tune parameters.
-
-    Returns
-        The FRAME_MAX value that is currently effective.
-    
 public void setIncomingRetryLatency(int latency)
 ................................................
 Sets the amount of milliseconds to wait when data is expected but not yet 
@@ -379,7 +357,7 @@ arriving. The default is currently 100 ms.
 
     Parameters
         latency - Time in milliseconds.
-    
+
 public void flush()
 ...................
 Asks the writer thread to flush any buffered data.
@@ -387,7 +365,7 @@ Asks the writer thread to flush any buffered data.
     Throws 
         IOException - If the configured timeout elapses.
     
-public byte[] consumeData(int len)
+public byte[] receiveData(int len)
 ..................................
 This function reads data from the socket's input stream. A bytes array of size
 len is allocated and entirely filled with data from the network. See the base 
@@ -400,19 +378,19 @@ consumer function.
     Throws
         IOException - Exceptions from the underlying input streams.
     
-public void consumeData(byte[] bytes)
+public void receiveData(byte[] bytes)
 .....................................
 This function reads data from the socket's input stream. The bytes array is
-entirely filled with data from the network. See the base consumer function.
+entirely filled with data from the network. See the base receiver function.
 
     Parameters
         bytes - Allocated memory for storing the data read.
     Throws
         IOException - Exceptions from the underlying input streams.
     
-public void consumeData(byte[] bytes, int off, int len)
+public void receiveData(byte[] bytes, int off, int len)
 .......................................................
-This function reads data from the socket's input stream. See the base consumer
+This function reads data from the socket's input stream. See the base receiver
 function.
 
     Parameters
@@ -422,9 +400,9 @@ function.
     Throws
         IOException - Exceptions from the underlying input streams.
     
-public void consumeData(InputStream is, byte[] bytes, int off, int len)
+public void receiveData(InputStream is, byte[] bytes, int off, int len)
 .......................................................................
-Base data consumer function. This function handles data reading from the 
+Base data receiver function. This function handles data reading from the 
 network, low-level details are abstracted at this point and will only show up 
 if exceptions take place from below.
 
@@ -436,19 +414,19 @@ if exceptions take place from below.
     Throws
         IOException - Exceptions from the underlying input streams.
     
-public void produceData(byte[] bytes)
-.....................................
+public void sendData(byte[] bytes)
+..................................
 This function writes data to the socket's output stream. The bytes array will
-be fully written to the network. See the base producer function.
+be fully written to the network. See the base sender function.
 
     Parameters
         bytes - Data to be written to the network.
     Throws
         IOException - Exceptions from the underlying output streams.
     
-public void produceData(byte[] bytes, int off, int len)
+public void sendData(byte[] bytes, int off, int len)
 .......................................................
-This function writes data to the socket's output stream. See the base producer
+This function writes data to the socket's output stream. See the base sender
 function.
 
     Parameters
@@ -458,9 +436,9 @@ function.
     Throws
         IOException - Exceptions from the underlying output streams.
     
-public void produceData(ByteArrayOutputStream baos)
+public void sendData(ByteArrayOutputStream baos)
 ...................................................
-This function writes data to the socket's output stream. See the base producer
+This function writes data to the socket's output stream. See the base sender
 function.
 
     Parameters
@@ -468,9 +446,9 @@ function.
     Throws
         IOException - Exceptions from the underlying output streams.
     
-public void produceData(OutputStream os, byte[] bytes, int off, int len)
+public void sendData(OutputStream os, byte[] bytes, int off, int len)
 ........................................................................
-Base data producer function. This function handles data writing to the 
+Base data sender function. This function handles data writing to the 
 network, low-level details are abstracted at this point and will only show up
 if exceptions take place from below.
     
@@ -548,104 +526,23 @@ if the check fails.
     Throws
         IOException - Exceptions from the underlying output streams.
         
-public InputStream getMessageBodyInputStream(hnFirst, head, is, prepared) 
-.........................................................................
-This returns an InputStream for reading a message body. The first handle notify
-and the head for the message must be supplied. If the passed input stream is
-null, in-band message consumption will take place. Copies the destName variable
-in the last handle notify received to the provided hnFirst.
+public static String bytes2String(byte[] bytes) 
+...............................................
+Encodes a byte array as a short string. The current encoding method is UTF-8.
 
     Parameters
-        AMQHandle.Notify hnFirst - The handle notify that announced the message.
-        AMQMessage.Head head - The message head.
-        InputStream is - From where to read the data.
-        boolean prepared - Was this message prepared with a handle prepare?
+        bytes - The byte array to encode as a short string.
     Returns
-        An InputStream for the message body.    
+        The resulting string.
+     
+public static byte[] string2Bytes(String string)
+................................................ 
+Encodes a short string as a byte array. The current encoding method is UTF-8.
 
-public class MessageBodyInputStream extends FilterInputStream 
-.............................................................
-This class transparently handles message body assembling for the user.
-
-public OutputStream getMessageBodyOutputStream(hsFirst, head, os, prepared)
-...........................................................................
-This returns an OutputStream for writing a message body. The first handle send 
-and the head for this message must be supplied. If the passed output stream is
-null, in-band message production will take place. Uses the destName variable 
-from the provided hsFirst for the last handle send. Sends fragments of the size
-specified in hsFirst.fragmentSize. 
-   
     Parameters
-        AMQHandle.Send hsFirst - The handle send that announced the message.
-        AMQMessage.Head head - The message head.
-        OutputStream os - Where to write the data.
-        boolean prepared - Was this message prepared with a handle prepare?
+        string - The short string to encode as a byte array.
     Returns
-        An OutputStream for the message body.
-    Throws
-        IOException - Trying to send and oversized fragment.    
-        IOException - In hsFirst, partial is false but fragment is too big.
-
-public class MessageBodyOutputStream extends FilterOutputStream 
-...............................................................
-This class transparently handles message body fragmenting for the user.
-    
-public AMQMessage.Head createMessageHead()
-..........................................
-Create a new message head object. The object variables should be configured, and
-then the produceMessageHead method can be used to send the object through the
-network.
-
-    Returns
-        An empty message head object.
-
-public AMQMessage.Head consumeMessageHead() 
-...........................................
-Get a message header object from the network.
-
-    Throws 
-        AMQFramingException - Cannot decode the frame.
-
-public void produceMessageHead(AMQMessage.Head head) 
-.................................................................
-Send a message head object through the network.
-
-    Parameters
-        head - Message head object to produce.
-    Throws  
-        IOException - Exceptions from the underlying output streams.
-
-public AMQFrame createFrame(short type)
-.......................................
-Creates an empty object for a given frame type. The object variables should be
-configured, and then the produceFrame method can be used to send the 
-object through the network.
-
-    Parameters
-        type - Requested frame type.
-    Returns
-        An empty command frame object of the requested type.
-    Throws 
-        AMQFramingException - Unknown frame type.
-
-public AMQFrame consumeFrame()
-..............................
-Get a command frame object from the network.
-
-    Throws 
-        AMQFramingException - Cannot decode the frame.
-        AMQFramingException - Frame of incorrect size was rejected.
-        IOException - Exceptions from the underlying input streams.
-
-public void produceFrame(AMQFrame frame)
-........................................
-Send a command frame object through the network.
-
-    Parameters
-        frame - Frame object to produce.
-    Throws 
-        AMQFramingException - Frame of incorrect size was rejected.
-        IOException - Exceptions from the underlying output streams.
+        The resulting byte array.
 
 final public static long u(int value) 
 .....................................
@@ -709,34 +606,6 @@ the unsigned read/write methods.
         value - A short value.
     Returns
         A signed byte encapsulating one byte representing an unsigned integer.
-    
-public static String hexDump(byte[] bytes)
-..........................................
-Returns a string with the elements of the given byte array as hexadecimal
-values.
-
-    Parameters
-        bytes - The byte array to format to hexadecimal.
-    Returns
-        A hexadecimal representation of the array.
-    
-public static String bytes2String(byte[] bytes) 
-...............................................
-Encodes a byte array as a short string. The current encoding method is UTF-8.
-
-    Parameters
-        bytes - The byte array to encode as a short string.
-    Returns
-        The resulting string.
-     
-public static byte[] string2Bytes(String string)
-................................................ 
-Encodes a short string as a byte array. The current encoding method is UTF-8.
-
-    Parameters
-        string - The short string to encode as a byte array.
-    Returns
-        The resulting byte array.
 
 public static void warning(String _class, String method, String message) 
 ........................................................................
@@ -770,6 +639,166 @@ Standard way for throwing runtime exceptions from the framing code.
         String message - Descriptive message for the warning.
     Throws 
         RuntimeException  - The runtime exception we are willing to throw.
+        
+AMQFramingFactory
+-----------------
+    
+public boolean verbose
+......................
+Governs console output of execution information.
+Should be refined to an integer value.
+
+public AMQFramingFactory(Socket socket)
+.......................................
+This constructs an AMQFramingFactory object with the input streams provided
+by the socket. The socket provides the timeout parameter enforced for network 
+write operations (currently we rely on SUN's documented behavior (3) for read
+and accept timeouts).
+
+    Parameters
+        socket - Network connection to use.
+    Throws
+        IOException - If network stream wrapping for buffering, etc. fails.
+
+public AMQFramingFactory(Socket socket, int readBuff, int writeBuff)
+....................................................................
+This constructs an AMQFramingFactory object with the input streams provided
+by the socket wrapped around with buffers of custom capacity. See also the 
+other constructor.
+
+    Parameters
+        socket - Network connection to use.
+        readBuff - Requested size for input buffer.
+        writeBuff - Requested size for output buffer.
+    Throws
+        IOException - If network stream wrapping for buffering, etc. fails.
+
+public void setTuneParameters(AMQConnection.Tune tune)
+......................................................
+Sets connection tune parameters from a connection tune object. The parameters should
+not be changed after the connection tune negotiation has been completed, or runtime
+exceptions may be thrown.
+
+    Parameters
+        tune - Connection tune object, provides parameters on field tables.
+    Throws
+        IOException - If the proposed FRAME_MAX is too small.
+
+public long getFrameMax()
+......................... 
+Gets the current FRAME_MAX value that was read from the tune parameters.
+
+    Returns
+        The FRAME_MAX value that is currently effective.
+    
+public InputStream getMessageBodyInputStream(hnFirst, head, is, prepared) 
+.........................................................................
+This returns an InputStream for reading a message body. The first handle notify
+and the head for the message must be supplied. If the passed input stream is
+null, in-band message consumption will take place. Copies the destName variable
+in the last handle notify received to the provided hnFirst.
+
+    Parameters
+        AMQHandle.Notify hnFirst - The handle notify that announced the message.
+        AMQMessage.Head head - The message head.
+        InputStream is - From where to read the data.
+        boolean prepared - Was this message prepared with a handle prepare?
+    Returns
+        An InputStream for the message body.    
+
+public class MessageBodyInputStream extends FilterInputStream 
+.............................................................
+This class transparently handles message body assembling for the user.
+
+public OutputStream getMessageBodyOutputStream(hsFirst, head, os, prepared)
+...........................................................................
+This returns an OutputStream for writing a message body. The first handle send 
+and the head for this message must be supplied. If the passed output stream is
+null, in-band message production will take place. Uses the destName variable 
+from the provided hsFirst for the last handle send. Sends fragments of the size
+specified in hsFirst.fragmentSize. 
+   
+    Parameters
+        AMQHandle.Send hsFirst - The handle send that announced the message.
+        AMQMessage.Head head - The message head.
+        OutputStream os - Where to write the data.
+        boolean prepared - Was this message prepared with a handle prepare?
+    Returns
+        An OutputStream for the message body.
+    Throws
+        IOException - Trying to send and oversized fragment.    
+        IOException - In hsFirst, partial is false but fragment is too big.
+
+public class MessageBodyOutputStream extends FilterOutputStream 
+...............................................................
+This class transparently handles message body fragmenting for the user.
+    
+public AMQMessage.Head constructMessageHead()
+..........................................
+Construct a new message head object. The object variables should be configured,
+and then the sendMessageHead method can be used to send the object through the
+network.
+
+    Returns
+        An empty message head object.
+
+public AMQMessage.Head receiveMessageHead() 
+...........................................
+Get a message header object from the network.
+
+    Throws 
+        AMQFramingException - Cannot decode the frame.
+
+public void sendMessageHead(AMQMessage.Head head) 
+.................................................................
+Send a message head object through the network.
+
+    Parameters
+        head - Message head object to send.
+    Throws  
+        IOException - Exceptions from the underlying output streams.
+
+public AMQFrame constructFrame(short type)
+.......................................
+Constructs an empty object for a given frame type. The object variables should 
+be configured, and then the sendFrame method can be used to send the object
+through the network.
+
+    Parameters
+        type - Requested frame type.
+    Returns
+        An empty command frame object of the requested type.
+    Throws 
+        AMQFramingException - Unknown frame type.
+
+public AMQFrame receiveFrame()
+..............................
+Get a command frame object from the network.
+
+    Throws 
+        AMQFramingException - Cannot decode the frame.
+        AMQFramingException - Frame of incorrect size was rejected.
+        IOException - Exceptions from the underlying input streams.
+
+public void sendFrame(AMQFrame frame)
+........................................
+Send a command frame object through the network.
+
+    Parameters
+        frame - Frame object to send.
+    Throws 
+        AMQFramingException - Frame of incorrect size was rejected.
+        IOException - Exceptions from the underlying output streams.
+
+public static String hexDump(byte[] bytes)
+..........................................
+Returns a string with the elements of the given byte array as hexadecimal
+values.
+
+    Parameters
+        bytes - The byte array to format to hexadecimal.
+    Returns
+        A hexadecimal representation of the array.
         
 AMQConnection
 -------------
@@ -990,23 +1019,23 @@ public final static short NOTIFY
 Notify frame type. Used for requesting new handle notify objects.
 
 public final static short INDEX
-..............................
+...............................
 Index frame type. Used for requesting new handle index objects.
 
 public final static short PREPARE
-................................
+.................................
 Prepare frame type. Used for requesting new handle prepare objects.
 
 public final static short READY
-..............................
+...............................
 Ready frame type. Used for requesting new handle ready objects.
 
 public final static short REPLY
-..............................
+...............................
 Reply frame type. Used for requesting new handle reply objects.
 
 public final static short CLOSE
-..............................
+...............................
 Close frame type. Used for requesting new handle close objects.
 
 public class Open extends Frame
