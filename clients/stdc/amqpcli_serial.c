@@ -227,7 +227,7 @@ main (int argc, char *argv [])
         while (count < messages) {
             message = amq_sclient_msg_read (amq_client, 0);
             if (message) {
-                if (messages < 100 && !quiet_mode)
+                if ((delay_mode || messages < 100) && !quiet_mode)
                     coprintf ("Message number %d arrived", amq_client->msg_number);
                 amq_message_destroy (&message);
                 count++;
