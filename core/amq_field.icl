@@ -239,13 +239,13 @@ data type.  This class provides functions at a per-field level.
         value = atol (self->string->data);
     else
     if (self->type == AMQ_FIELD_TYPE_INTEGER)
-        value = self->integer;
+        value = (long) self->integer;
     else
     if (self->type == AMQ_FIELD_TYPE_DECIMAL)
-        value = self->integer / exp (self->decimals * log (10.0));
+        value = (long) (self->integer / exp (self->decimals * log (10.0)));
     else
     if (self->type == AMQ_FIELD_TYPE_TIME)
-        value = self->integer;
+        value = (long) self->integer;
 </method>
 
 <method name = "flatten" template = "function">

@@ -1,5 +1,5 @@
 @echo off
-set VERSION=0.7d1
+set VERSION=0.8a0
 set PACKAGE=openamq-%VERSION%-win32
 set HOME=c:\home
 
