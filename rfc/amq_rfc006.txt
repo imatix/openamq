@@ -2472,10 +2472,10 @@ Application-level access is the responsibilty of the server and client.
 
 We guard against buffer-overflow exploits by using length-specified
 buffers in all places.  All externally-provided data can be verified
-against maximum allowed lengths any data is read.
+against maximum allowed lengths whenever any data is read.
 
-Invalid data can be handled unambiguously, by closing the channel, the
-channel, or the connection.
+Invalid data can be handled unambiguously, by closing the channel or
+the connection.
 
 Change Management Considerations
 ================================
