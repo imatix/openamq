@@ -10,27 +10,27 @@
 
 #include "amq_stdc_private.h"
 
-typedef struct tag_connection_context_t* connection_t;
+typedef struct tag_connection_fsm_context_t* connection_fsm_t;
 
-#include "amq_stdc_global.h"
-#include "amq_stdc_channel.h"
-#include "amq_stdc_handle.h"
+#include "amq_stdc_global_fsm.h"
+#include "amq_stdc_channel_fsm.h"
+#include "amq_stdc_handle_fsm.h"
 
-#include "connection_fsm.i"
+#include "amq_stdc_connection_fsm.i"
 
 /*---------------------------------------------------------------------------
  *  Helper functions (public)
  *---------------------------------------------------------------------------*/
 
 apr_status_t connection_get_channel (
-    connection_t  context,
-    apr_uint16_t  channel_id,
-    channel_t     *channel);
+    connection_fsm_t  context,
+    apr_uint16_t      channel_id,
+    channel_fsm_t     *channel);
 
 apr_status_t connection_get_handle (
-    connection_t  context,
-    apr_uint16_t  handle_id,
-    handle_t      *handle
+    connection_fsm_t  context,
+    apr_uint16_t      handle_id,
+    handle_fsm_t      *handle
     );
 
 #endif

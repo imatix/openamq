@@ -9,12 +9,12 @@
 .-------------------------------------------------------------------------------
 .template 1
 .for root.machine
-.    echo ("Creating $(name:c)_fsm.i")
-.    output "$(name:c)_fsm.i"
+.    echo ("Creating $(output:).i")
+.    output "$(output:).i"
 /*---------------------------------------------------------------------------
- *  $(name:c)_fsm.i - header for $(name:UPPER) state machine
+ *  $(output:).i - header for $(name:UPPER) state machine
  *
- *  Generated from amqp_fsms.xml by make_fsms.gsl using GSL/4.
+ *  Generated from amqp_fsms.xml by amq_stdc_fsms.gsl using GSL/4.
  *  DO NOT MODIFY THIS FILE.
  *
  *  For documentation and updates see http://www.imatix.com.
@@ -46,10 +46,10 @@ apr_status_t $(machine.name:c)_$(event.name:c) (
 .    endfor
 #endif
 .    close
-.    echo ("Creating $(name:c)_fsm.d")
-.    output "$(name:c)_fsm.d"
+.    echo ("Creating $(output:).d")
+.    output "$(output:).d"
 /*---------------------------------------------------------------------------
- *  $(name:c)_fsm.d - definition file for $(name:UPPER) state machine
+ *  $(output:).d - definition file for $(name:UPPER) state machine
  *  Not to be compiled directly.
  *  Include it into your c file and expand the macros.
  *  Define AMQTRACE_FSMS prior to including this file to trace control flow.
@@ -103,11 +103,9 @@ inline static apr_status_t $(name:c)_sync_begin ($(name:c)_context_t *context)\\
 {\\
     apr_status_t\\
         result;\\
-    char\\
-        buffer [BUFFER_SIZE];\\
 \\
     result = apr_thread_mutex_lock (context->sync);\\
-    TEST(result, apr_thread_mutex_lock, buffer)\\
+    AMQ_ASSERT_STATUS (result, apr_thread_mutex_lock)\\
     return APR_SUCCESS;\\
 }\\
 \\
@@ -115,11 +113,9 @@ inline static apr_status_t $(name:c)_sync_end ($(name:c)_context_t *context)\\
 {\\
     apr_status_t\\
         result;\\
-    char\\
-        buffer [BUFFER_SIZE];\\
 \\
     result = apr_thread_mutex_unlock (context->sync);\\
-    TEST(result, apr_thread_mutex_unlock, buffer)\\
+    AMQ_ASSERT_STATUS (result, apr_thread_mutex_unlock)\\
     return APR_SUCCESS;\\
 }\\
 .    for constructor
@@ -164,12 +160,10 @@ apr_status_t $(machine.name:c)_$(event.name:c) (\\
 {\\
     apr_status_t\\
         result;\\
-    char\\
-        buffer [BUFFER_SIZE];\\
     $(machine.name:c)_context_t\\
         *context = ($(machine.name:c)_context_t*) ctx;\\
     result = $(machine.name:c)_sync_begin (context);\\
-    TEST(result, $(machine.name:c)_sync_begin, buffer);\\
+    AMQ_ASSERT_STATUS (result, $(machine.name:c)_sync_begin);\\
     switch (context->state)\\
     {\\
 .        for machine.state where name <> "default"
@@ -191,7 +185,7 @@ $(event.name:cobol), $(event.action:cobol), \
 \\
             );\\
 .                endfor
-        TEST(result, $(event.action:c), buffer)\\
+        AMQ_ASSERT_STATUS (result, $(event.action:c))\\
 .                if defined(event.next)
         context->state = $(machine.name:c)_state_$(event.next:c);\\
 .                endif
@@ -219,7 +213,7 @@ $(event.name:cobol), $(event.action:cobol), \
 \\
             );\\
 .                endfor
-        TEST(result, $(event.action:c), buffer)\\
+        AMQ_ASSERT_STATUS (result, $(event.action:c))\\
 .                if defined(event.next)
         context->state = $(machine.name:c)_state_$(event.next:c);\\
 .                endif 
@@ -230,7 +224,7 @@ $(event.name:cobol), $(event.action:cobol), \
 .        endif
     }\\
     result = $(machine.name:c)_sync_end (context);\\
-    TEST(result, $(machine.name:c)_sync_end, buffer);\\
+    AMQ_ASSERT_STATUS (result, $(machine.name:c)_sync_end);\\
     return APR_SUCCESS;\\
 }\\
 \\
@@ -241,29 +235,25 @@ apr_status_t $(name:c)_create (\\
 {\\
    apr_status_t\\
         result;\\
-    char\\
-        buffer [BUFFER_SIZE];\\
     $(name:c)_context_t\\
         *context;\\
     apr_pool_t\\
         *pool;\\
 \\
     result = apr_pool_create (&pool, NULL);\\
-    TEST(result, apr_pool_create, buffer)\\
+    AMQ_ASSERT_STATUS (result, apr_pool_create)\\
     context = ($(name:c)_context_t*) apr_palloc (pool,\\
         sizeof ($(name:c)_context_t));\\
-    if (!context) {\\
-        printf ("Not enough memory for $(name:) object.\\n");\\
-        exit (1);\\
-    }\\
+    if (!context)\\
+        AMQ_ASSERT (Not enough memory for $(name:) object)\\
     context->state = $(name:c)_state_$(initial_state:c);\\
     context->pool = pool;\\
     result = apr_thread_mutex_create (&(context->sync),\\
         APR_THREAD_MUTEX_NESTED, pool);\\
-    TEST(result, apr_thread_mutex_create, buffer)\\
+    AMQ_ASSERT_STATUS (result, apr_thread_mutex_create)\\
 .    for constructor
     result = $(action:c) (context);\\
-    TEST(result, $(action:c), buffer)\\
+    AMQ_ASSERT_STATUS (result, $(action:c))\\
 .    endfor
     if (out) *out = ($(name:c)_t) context;\\
     return APR_SUCCESS;\\

@@ -39,3 +39,17 @@ void amq_stats_trace ()
 
 #endif
 
+void amq_stdc_assert (
+    apr_status_t result,
+    const char *text,
+    const char *file,
+    long line
+    )
+{
+    char
+        buffer [BUFFER_SIZE];
+
+    amqp_strerror (result, buffer, BUFFER_SIZE);
+    printf ("%s:%ld - %s (%ld: %s)\n", file, line, text, (long) result, buffer);
+    assert (0);
+}

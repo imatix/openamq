@@ -10,19 +10,19 @@
 
 #include "amq_stdc_private.h"
 
-typedef struct tag_lock_context_t* lock_t;
-typedef struct tag_global_context_t* global_t;
+typedef struct tag_lock_context_t*       lock_t;
+typedef struct tag_global_fsm_context_t* global_fsm_t;
 
-#include "amq_stdc_connection.h"
+#include "amq_stdc_connection_fsm.h"
 
-#include "global_fsm.i"
+#include "amq_stdc_global_fsm.i"
 
 /*---------------------------------------------------------------------------
  *  Helper functions (public)
  *---------------------------------------------------------------------------*/
 
 apr_status_t register_lock (
-    global_t      context,
+    global_fsm_t  context,
     apr_uint16_t  connection_id,
     apr_uint16_t  channel_id,
     apr_uint16_t  handle_id,
@@ -31,7 +31,7 @@ apr_status_t register_lock (
     );
 
 apr_status_t release_lock (
-    global_t      context,
+    global_fsm_t  context,
     apr_uint16_t  lock_id,
     void          *result
     );
@@ -42,7 +42,7 @@ apr_status_t wait_for_lock (
     );
 
 apr_status_t release_all_locks (
-    global_t      context,
+    global_fsm_t  context,
     apr_uint16_t  connection_id,
     apr_uint16_t  channel_id,
     apr_uint16_t  handle_id,

@@ -13,10 +13,8 @@
 #include <stdlib.h>
 #include "amq_stdc_framing.h"
 
-#define BUFFER_SIZE 32768
+#define BUFFER_SIZE    32768
 #define MAX_FRAME_SIZE 32000
-#define AMQTRACE_FSMS
-
 
 #ifdef AMQTRACE_MEMORY
 void *amq_malloc_trace (size_t sz, const char *file, long line);
@@ -31,12 +29,18 @@ void amq_stats_trace ();
 #    define amq_stats()
 #endif
 
-#define TEST(result,func,buffer) \
-    if (result != APR_SUCCESS) {\
-        printf ("%s:%ld " #func " failed - %ld: %s\n",\
-            __FILE__, (long) __LINE__, (long)result,\
-            amqp_strerror (result, buffer, BUFFER_SIZE));\
-        exit (1);\
-    }
+void amq_stdc_assert (
+    apr_status_t result,
+    const char *text,
+    const char *file,
+    long line
+    );
+
+#define AMQ_ASSERT(text) \
+    amq_stdc_assert (APR_SUCCESS, #text, __FILE__, __LINE__);
+
+#define AMQ_ASSERT_STATUS(result, text) \
+    if (result != APR_SUCCESS) amq_stdc_assert (\
+        result, #text, __FILE__, __LINE__);
  
 #endif
