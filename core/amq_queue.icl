@@ -215,6 +215,11 @@ ipr_db_queue class.
     </doc>
     <argument name = "channel" type = "amq_channel_t *" >Current channel</argument>
     <argument name = "message" type = "amq_smessage_t *">Message, if any</argument>
+    <local>
+    int
+        level;                          /*  Priority level                   */
+    </local>
+
     ASSERT (message);
 
     /*  First check that posting to this queue is currently allowed          */
@@ -239,17 +244,29 @@ ipr_db_queue class.
 #       endif
     }
     else {
-        /*  We save to the disk queue if:
-            - the message is persistent (obviously)
-            - there are still persistent messages to be processed, so that
-            we maintain message ordering (the memory queue gets emptied before
-            the disk queue)
-            - the memory queue is full (>= max, and max > 0)
-        */
-        if (message->persistent
-        ||  self->disk_queue_size > 0
-        || (self->opt_memory_queue_max > 0
-        &&  self->memory_queue_size >= self->opt_memory_queue_max)) {
+        /*  In certain cases we force the message to be persistent           */
+        level = s_priority_level (self, message);
+        if (!message->persistent) {
+
+            /*  If we have reached the limit for in-memory messages,
+                force the message to disk unless it has the highest
+                priority
+             */
+            if (self->opt_memory_queue_max > 0
+            &&  self->memory_queue_size >= self->opt_memory_queue_max
+            &&  message->priority &lt; AMQP_MAX_PRIORITIES)
+                message->persistent = TRUE;
+
+            /*  If there are already messages on disk, send all low
+                priority messages to disk as well so they are delivered
+                in order
+              */
+            else
+            if (self->disk_queue_size > 0
+            &&  level == 0)
+                message->persistent = TRUE;
+        }
+        if (message->persistent) {
             /*  Persistent messages are saved on persistent queue storage    */
             self->disk_queue_size++;
             amq_smessage_save (message, self, NULL);
@@ -261,7 +278,7 @@ ipr_db_queue class.
         else {
             /*  Non-persistent messages are held per queue                   */
             self->memory_queue_size++;
-            amq_smessage_list_queue (self->messages [s_priority_level (self, message)], message);
+            amq_smessage_list_queue (self->messages [level], message);
     #       ifdef TRACE_DISPATCH
             coprintf ("$(selfname) I: save non-persistent message to queue memory");
     #       endif
