@@ -2,23 +2,47 @@
 <pdl
     name      = "OpenAMQ Agnostic C Client"
     acronym   = "OpenAMQ_Agnostic_C"
-    version   = "0.8a0"
+    version   = "0.8a1"
     copyright = "Copyright (c) 1991-2005 iMatix Corporation"
     workflow  = "standard.pwl"
     library   = "libamqp">
 
 <include filename = "prelude.pdl" />
 
-<file name = "amqp_level0.c" class = "generated module">Level 0 client</file>
-<file name = "test_level0.c" class = "main program"    >Level 0 test program</file>
+<file name = "amqp_level0.gsl"       class = "private resource">Level 0 generator</file>
+<file name = "amqp_level0.c"         class = "generated module">Level 0 public API</file>
+<file name = "test_level0.c"         class = "main program"    >Level 0 test program</file>
+
+<file name = "amqp_fsms.gsl"         class = "private resource">Level 1 FSM generator</file>
+<file name = "amqp_global.c"         class = "library module"  >Global state machine</file>
+<file name = "global_fsm.d"          class = "generated"       >Global state machine definition</file>
+<file name = "global_fsm.i"          class = "generated"       >Global state machine interface</file>
+<file name = "amqp_connection.c"     class = "library module"  >Connection state machine</file>
+<file name = "connection_fsm.d"      class = "generated"       >Connection state machine definition</file>
+<file name = "connection_fsm.i"      class = "generated"       >Connection state machine interface</file>
+<file name = "amqp_channel.c"        class = "library module"  >Channel state machine</file>
+<file name = "channel_fsm.d"         class = "generated"       >Channel state machine definition</file>
+<file name = "channel_fsm.i"         class = "generated"       >Channel state machine interface</file>
+<file name = "amqp_handle.c"         class = "library module"  >Handle state machine</file>
+<file name = "handle_fsm.d"          class = "generated"       >Handle state machine definition</file>
+<file name = "handle_fsm.i"          class = "generated"       >Handle state machine interface</file>
+<file name = "query_fsm.d"           class = "generated"       >Query state machine definition</file>
+<file name = "query_fsm.i"           class = "generated"       >Query state machine interface</file>
+<file name = "amqp_sender.c"         class = "library module"  >Sender thread</file>
+<file name = "amqp_level1.c"         class = "library module"  >Level 1 public API</file>
+<file name = "test_level1.c"         class = "main program"    >Main program</file>
 
 <!-- Deliverables -->
-<file name = "libamqp"       class = "public library"  >Level 0 library</file>
-<file name = "amqp_level0.h" class = "public header"   >Level 0 definitions</file>
-<file name = "test_level0"   class = "public command"  >Level 0 test executable</file>
+<file name = "libamqp"               class = "public library"  >Public API library</file>
+<file name = "amqp_level0.h"         class = "public header"   >Level 0 public API header</file>
+<file name = "amqp_level1.h"         class = "public header"   >Level 1 public API header</file>
+<file name = "test_level0"           class = "public command"  >Level 0 test executable</file>
+<file name = "test_level1"           class = "public command"  >Level 1 test executable</file>
+
 <actions>
 <generate>
     <execute>gsl -script:amqp_level0.gsl amq_frames.xml</execute>
+    <execute>gsl -script:amqp_fsms.gsl   amqp_fsms.xml</execute>
 </generate>
 </actions>
 </pdl>

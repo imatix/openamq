@@ -1,0 +1,7 @@
+0.8a1 - 2005/03/28
+
+ - Initial release of Level 1 functionality
+
+0.8a0 - 2005/03/24
+
+ - Update to OpenAMQ 0.8
