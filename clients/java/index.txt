@@ -5,7 +5,7 @@ gdl
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/03/21
     copyright = Copyright (c) 2004 JPMorgan
-    version   = 0.5a1
+    version   = 0.5a2
 end gdl
 
 Cover
@@ -113,6 +113,7 @@ Class overview diagram
 
 Interface level
 ...............
+package com.imatix.openamq
 
     AMQFramingFactory                     /* Glue/utility for framable classes */
     
@@ -126,6 +127,7 @@ Interface level
     
 Framing level
 .............
+package com.imatix.openamq.frames
 
     AMQConnection                         /* Glue/utility for connection comm. */
     
@@ -209,6 +211,7 @@ Framing level
     
 Transport level
 ...............
+package com.imatix.openamq.transport
 
     AMQTransport                          /* Low-level connection handling     */
 
