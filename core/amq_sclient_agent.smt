@@ -187,7 +187,7 @@ static int
             *handle_notify_callback;
         int
             *result;                    /*  Pointer to result of operation   */
-            
+
         apr_time_t
             time_limit;                 /*  Limit for methods with timeout   */
     </context>
@@ -258,6 +258,7 @@ static int
             *tcb->port++ = 0;           /*  Split the string                 */
         else
             tcb->port = AMQ_SERVER_PORT;
+
         tcb->socket = smt_socket_connect (
             thread, 1000*connection_open_m->timeout, tcb->hostname, tcb->port,
             SMT_NULL_EVENT);
@@ -299,10 +300,11 @@ static int
     <!--  EXPECT CONNECTION TUNE  -------------------------------------------->
 
     <state name = "expect connection tune">
-        <event name = "connection tune" nextstate = "connection active">
+        <event name = "connection tune" nextstate = "after connection open">
             <action name = "process connection tune" />
             <action name = "send connection tune" />
             <action name = "send connection open" />
+            <action name = "read next command" />
         </event>
         <event name = "socket error"  nextstate = "" >
             <action name = "handle error"/>
@@ -317,15 +319,15 @@ static int
     </state>
 
     <action name = "process connection tune">
-    /*  Lower limits if server asks for that                                 */
-    if (tcb->frame_max   > CONNECTION_TUNE.frame_max)
-        tcb->frame_max   = CONNECTION_TUNE.frame_max;
-    if (tcb->channel_max > CONNECTION_TUNE.channel_max)
-        tcb->channel_max = CONNECTION_TUNE.channel_max;
-    if (tcb->handle_max  > CONNECTION_TUNE.handle_max)
-        tcb->handle_max  = CONNECTION_TUNE.handle_max;
+        /*  Lower limits if server asks for that                             */
+        if (tcb->frame_max   > CONNECTION_TUNE.frame_max)
+            tcb->frame_max   = CONNECTION_TUNE.frame_max;
+        if (tcb->channel_max > CONNECTION_TUNE.channel_max)
+            tcb->channel_max = CONNECTION_TUNE.channel_max;
+        if (tcb->handle_max  > CONNECTION_TUNE.handle_max)
+            tcb->handle_max  = CONNECTION_TUNE.handle_max;
 
-    tcb->heartbeat = CONNECTION_TUNE.heartbeat;
+        tcb->heartbeat = CONNECTION_TUNE.heartbeat;
     </action>
 
     <action name = "send connection tune">
@@ -344,12 +346,36 @@ static int
 
         amq_frame_free (&tcb->frame);
         tcb->frame = amq_frame_connection_open_new (
-            0,                          /*  Confirm tag                      */
+            1,                          /*  Confirm tag                      */
             tcb->virtual_path,
             tcb->client_name,
             NULL);                      /*  Connection options               */
         send_the_frame (thread);
     </action>
+
+    <!--  AFTER CONNECTION OPEN  --------------------------------------------->
+
+    <state name = "after connection open">
+        <event name = "connection reply" nextstate = "connection active">
+        </event>
+        <event name = "connection close" nextstate = "initialise connection">
+            <action name = "store connection close reply" />
+            <action name = "send connection close" />
+            <action name = "close connection" />
+            if (tcb->result)
+                *tcb->result = AMQ_CONNECTION_CLOSED;
+        </event>
+        <event name = "socket error"  nextstate = "" >
+            <action name = "handle error"/>
+            if (tcb->result)
+                *tcb->result = AMQ_SOCKET_ERROR;
+        </event>
+        <event name = "socket timeout"  nextstate = "" >
+            <action name = "handle error"/>
+            if (tcb->result)
+                *tcb->result = AMQ_TIMEOUT;
+        </event>
+    </state>
 
     <!--  CONNECTION ACTIVE  ------------------------------------------------->
 
@@ -463,7 +489,7 @@ static int
             <call state = "expect handle close" />
         </method>
     </state>
-    
+
     <action name = "send connection close">
         amq_frame_free (&tcb->frame);
         tcb->frame = amq_frame_connection_close_new (
@@ -1202,6 +1228,7 @@ s_request_timeout (smt_thread_t *thread)
 
 #undef  tcb
 </private>
+
 
 <!--
     amq_common.smt

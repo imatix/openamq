@@ -122,13 +122,14 @@
             else {
                 client->connected = TRUE;
                 amq_db_client_update (self->ddb, client);
+                self->client_id = client->id;
             }
         }
         else {
             client->connected = TRUE;
             amq_db_client_insert (self->ddb, client);
+            self->client_id = client->id;
         }
-        self->client_id = client->id;
         amq_db_client_destroy (&client);
     }
     else {
@@ -142,7 +143,6 @@
     amq_db_client_t
         *client;
     </local>
-
     if (self->client_id) {
         client = amq_db_client_new ();
         client->id = self->client_id;

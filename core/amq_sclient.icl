@@ -121,6 +121,9 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
             self->thread_handle, CHANNEL_ID, CHANNEL_TRANSACTED, FALSE, TIMEOUT, &rc);
         smt_thread_execute (SMT_EXEC_FULL);
     }
+    else
+    if (self->reply_code)
+        coprintf ("E: %d - %s", self->reply_code, self->reply_text);
 </method>
 
 <method name = "producer" template = "function">
@@ -130,7 +133,7 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     amq_sclient_agent_handle_open (
         self->thread_handle, CHANNEL_ID, ++self->cur_handle, FALSE, destination, TIMEOUT, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
-    
+
     if (rc == AMQ_OK)
         rc = self->cur_handle;
     else
@@ -146,13 +149,16 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     amq_sclient_agent_handle_open (
         self->thread_handle, CHANNEL_ID, ++self->cur_handle, FALSE, destination, TIMEOUT, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
-    
+
     if (rc == AMQ_OK) {
         amq_sclient_agent_handle_consume (
             self->thread_handle, self->cur_handle, (dbyte) prefetch, TRUE, noack, NULL, NULL, TIMEOUT, &rc);
         smt_thread_execute (SMT_EXEC_FULL);
     }
-    
+    else
+    if (self->reply_code)
+        coprintf ("E: %d - %s", self->reply_code, self->reply_text);
+
     if (rc == AMQ_OK)
         rc = self->cur_handle;
     else
@@ -168,13 +174,16 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     amq_sclient_agent_handle_open (
         self->thread_handle, CHANNEL_ID, ++self->cur_handle, TRUE, destination, TIMEOUT, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
-    
+
     if (rc == AMQ_OK) {
         amq_sclient_agent_handle_consume (
             self->thread_handle, self->cur_handle, (dbyte) prefetch, TRUE, noack, NULL, NULL, TIMEOUT, &rc);
         smt_thread_execute (SMT_EXEC_FULL);
     }
-    
+    else
+    if (self->reply_code)
+        coprintf ("E: %d - %s", self->reply_code, self->reply_text);
+
     if (rc == AMQ_OK)
         rc = self->cur_handle;
     else
@@ -194,6 +203,9 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     amq_sclient_agent_handle_send (
         self->thread_handle, handle_id, message, NULL, TIMEOUT, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
+
+    if (self->reply_code)
+        coprintf ("E: %d - %s", self->reply_code, self->reply_text);
 </method>
 
 <method name = "msg read" return = "message">
@@ -215,30 +227,45 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 
     /*  We return the message explicitly and other properties via context    */
     message = self->msg_object;
+
+    if (self->reply_code)
+        coprintf ("E: %d - %s", self->reply_code, self->reply_text);
 </method>
 
 <method name = "msg ack" template = "function">
     amq_sclient_agent_channel_ack (
         self->thread_handle, CHANNEL_ID, self->msg_number, TIMEOUT, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
+
+    if (self->reply_code)
+        coprintf ("E: %d - %s", self->reply_code, self->reply_text);
 </method>
 
 <method name = "msg unget" template = "function">
     amq_sclient_agent_handle_unget (
         self->thread_handle, self->cur_handle, self->msg_number, TIMEOUT, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
+
+    if (self->reply_code)
+        coprintf ("E: %d - %s", self->reply_code, self->reply_text);
 </method>
 
 <method name = "commit" template = "function">
     amq_sclient_agent_channel_commit (
         self->thread_handle, CHANNEL_ID, TIMEOUT, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
+
+    if (self->reply_code)
+        coprintf ("E: %d - %s", self->reply_code, self->reply_text);
 </method>
 
 <method name = "rollback" template = "function">
     amq_sclient_agent_channel_rollback (
         self->thread_handle, CHANNEL_ID, TIMEOUT, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
+
+    if (self->reply_code)
+        coprintf ("E: %d - %s", self->reply_code, self->reply_text);
 </method>
 
 <method name = "flow" template = "function">
@@ -247,6 +274,9 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     amq_sclient_agent_handle_flow (
         self->thread_handle, handle_id, flow_pause, TIMEOUT, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
+
+    if (self->reply_code)
+        coprintf ("E: %d - %s", self->reply_code, self->reply_text);
 </method>
 
 <method name = "close" template = "function">
@@ -257,7 +287,7 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     else
         amq_sclient_agent_connection_close (
             self->thread_handle, TIMEOUT, &rc);
-            
+
     smt_thread_execute (SMT_EXEC_FULL);
 </method>
 
