@@ -192,7 +192,7 @@ amq_server_core (
     icl_system_destroy ();
 
     /*  Report memory usage                                                  */
-    coprintf ("Allocs=%ld frees=%ld\n", mem_allocs (), mem_frees ());
+    coprintf ("Allocs=%ld frees=%ld\n", icl_mem_allocs (), icl_mem_frees ());
 
     icl_mem_assert ();
     return (0);

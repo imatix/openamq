@@ -140,7 +140,7 @@ main (int argc, char *argv [])
     
     icl_system_destroy ();
 
-    coprintf ("Allocs=%ld frees=%ld\n", mem_allocs (), mem_frees ());
+    coprintf ("Allocs=%ld frees=%ld\n", icl_mem_allocs (), icl_mem_frees ());
     icl_mem_assert ();
     return (rc);
 }

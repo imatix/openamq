@@ -179,7 +179,7 @@ static int
         ipr_shortstr_cpy (tcb->password,    password);
     </handler>
 
-    <handler name = "thread initialise">
+    <handler name = "thread init">
         thread->animate  = (s_tracing > AMQP_TRACE_MED);
         tcb->command     = amq_bucket_new ();
         tcb->fragment    = amq_bucket_new ();
@@ -318,7 +318,7 @@ static int
           -->
         <method name = "blocking receive" nextstate = "blocking receive" >
             s_calculate_time_limit (thread, blocking_receive_m->timeout);
-            smt_thread_set_next_event (ok_event);
+            smt_thread_set_next_event (thread, ok_event);
         </method>
         <!--
             We allow a specific set of client API methods. The defaults state

@@ -379,7 +379,7 @@ $(prefix)_frame_decode (amq_bucket_t *bucket)
 .   endfor
 
     ASSERT (bucket);
-    frame = mem_alloc (sizeof ($(prefix)_frame_t));
+    frame = icl_mem_alloc (sizeof ($(prefix)_frame_t));
     if (!frame) {
         coprintf ("E: memory allocation failed in $(prefix)_frame_decode");
         return (NULL);
@@ -442,7 +442,7 @@ $(prefix)_frame_decode (amq_bucket_t *bucket)
 .   endfor frame
     {
         coprintf ("E: unrecognized frame, cannot decode");
-        mem_free (frame);
+        icl_mem_free (frame);
         return (NULL);
     }
     /*  Check for command-end byte                                           */
@@ -450,12 +450,12 @@ $(prefix)_frame_decode (amq_bucket_t *bucket)
         return (frame);
     else {
         coprintf ("E: frame missing command-end octet, cannot decode");
-        mem_free (frame);
+        icl_mem_free (frame);
         return (NULL);
     }
     underflow:
         coprintf ("E: insufficient data provided to decode frame");
-        mem_free (frame);
+        icl_mem_free (frame);
         return (NULL);
 }
 
@@ -485,7 +485,7 @@ $(prefix)_$(name)_decode (amq_bucket_t *bucket)
 
     ASSERT (bucket);
     bucket_data = bucket->data;
-    frame = mem_alloc (sizeof ($(prefix)_frame_t));
+    frame = icl_mem_alloc (sizeof ($(prefix)_frame_t));
     if (!frame) {
         coprintf ("E: memory allocation failed in $(prefix)_$(name)_decode");
         return (NULL);
@@ -561,7 +561,7 @@ $(prefix)_frame_t *$(prefix)_frame_$(name)_new ($(build_struct_args ()))
     $(prefix)_frame_t
         *frame = NULL;
 
-    frame = mem_alloc (sizeof ($(prefix)_frame_t));
+    frame = icl_mem_alloc (sizeof ($(prefix)_frame_t));
     if (!frame) {
         coprintf ("E: memory allocation failed in new_$(name)_frame");
         return (NULL);
@@ -687,7 +687,7 @@ $(prefix)_frame_free ($(prefix)_frame_t **frame)
             default:
                 coprintf ("E: unrecognized frame in $(prefix)_frame_free");
         }
-        mem_free ((*frame));
+        icl_mem_free ((*frame));
         *frame = NULL;
     }
 }
