@@ -28,6 +28,22 @@ long commit_count;
 long rollback_count;
 int stop;
 
+typedef enum
+{
+    state_initial,
+    state_waiting_for_connection_challenge,
+    state_waiting_for_connection_tune,
+    state_waiting_for_connection_open_confirmation,
+    state_waiting_for_channel_open_confirmation,
+    state_waiting_for_handle_open_confirmation,
+    state_waiting_for_consume_confirmation,
+    state_waiting_for_send_confirmation,
+    /*  waiting for acknowledge confirmations as well  */
+    state_waiting_for_message
+} state_t;
+
+state_t state;
+
 apr_status_t handle_close_cb (
     const void *hint,
     const apr_uint16_t handle_id,
@@ -37,6 +53,7 @@ apr_status_t handle_close_cb (
 {
     fprintf (stderr, "Server closed the handle.\n%ld : %s\n",
         (long) reply_code, reply_text);
+    abort ();
     return APR_SUCCESS;
 }
 
@@ -49,6 +66,7 @@ apr_status_t channel_close_cb (
 {
     fprintf (stderr, "Server closed the channel.\n%ld : %s\n",
         (long) reply_code, reply_text);
+    abort();
     return APR_SUCCESS;
 }
 
@@ -60,6 +78,7 @@ apr_status_t connection_close_cb (
 {
     fprintf (stderr, "Server closed the connection.\n%ld : %s\n",
         (long) reply_code, reply_text);
+    abort ();
     return APR_SUCCESS;
 }
 
@@ -82,7 +101,9 @@ apr_status_t send_message(apr_uint16_t confirm_tag)
         return result;
     }
 
-    if (rollback_count && message_number % rollback_count == 0) {
+    fprintf (stderr, "Message %s sent. (%ld bytes)\n", identifier, (long) message_size);
+
+    if (rollback_count && (message_number + 1) % rollback_count == 0) {
         result = amqp_channel_rollback (sck, buffer, 32767, 1, 0, 0, "");
         if (result != APR_SUCCESS) {
             fprintf (stderr, "amqp_channel_rollback failed.\n%ld : %s\n",
@@ -91,7 +112,7 @@ apr_status_t send_message(apr_uint16_t confirm_tag)
         }
         fprintf (stderr, "Rollbacked.\n");
     }
-    else if (commit_count && message_number % commit_count == 0) {
+    else if (commit_count && (message_number + 1) % commit_count == 0) {
         result = amqp_channel_commit (sck, buffer, 32767, 1, 0, 0, "");
         if (result != APR_SUCCESS) {
             fprintf (stderr, "amqp_channel_commit failed.\n%ld : %s\n",
@@ -101,9 +122,9 @@ apr_status_t send_message(apr_uint16_t confirm_tag)
         fprintf (stderr, "Commited.\n");
     }
 
-    fprintf (stderr, "Message %s sent. (%ld bytes)\n", identifier, (long) message_size);
-
     message_number++;
+
+    state = state_waiting_for_send_confirmation;
 
     return APR_SUCCESS;            
 }
@@ -119,27 +140,34 @@ apr_status_t handle_reply_cb (
     apr_status_t result;
     char buffer [32768];
 
-    if (confirm_tag == 3) fprintf (stderr, "Handle opened.\n");
-
-    if (confirm_tag == 3 && sender == 0) {
+    if (state == state_waiting_for_handle_open_confirmation) {
         /* receiver : reply to handle open */
-        result = amqp_handle_consume (sck, buffer, 32767, 1, 4, 10, 0, 0,
-            "", "", 0, "", "");
-        if (result != APR_SUCCESS) {
-            fprintf (stderr, "amqp_handle_consume failed.\n%ld : %s\n",
-                (long) result, amqp_strerror (result, buffer, 32767) );
-            return result;
+
+        fprintf (stderr, "Handle opened.\n");
+
+        if (sender == 0) {
+            result = amqp_handle_consume (sck, buffer, 32767, 1, 4,
+                (apr_uint16_t) prefetch, 0, 0, "", "", 0, "", "");
+            if (result != APR_SUCCESS) {
+                fprintf (stderr, "amqp_handle_consume failed.\n%ld : %s\n",
+                    (long) result, amqp_strerror (result, buffer, 32767) );
+                return result;
+            }
+            state = state_waiting_for_consume_confirmation;
         }
+
+        if (sender == 1) {
+            return send_message ( (apr_uint16_t) (confirm_tag + 1) );
+        }
+        return APR_SUCCESS;
     }
-    if (confirm_tag == 3 && sender == 1) {
-        /* sender : reply to handle open */
-        return send_message ( (apr_uint16_t) (confirm_tag + 1) );
-    }
-    if (confirm_tag == 4 && sender == 0) {
+    if (state == state_waiting_for_consume_confirmation) {
         /* receiver : reply to handle consume */
         tag = confirm_tag;
+        state = state_waiting_for_message;
+        return APR_SUCCESS;
     }
-    if (confirm_tag >=4 && sender == 1) {
+    if (state == state_waiting_for_send_confirmation) {
         /* sender : reply to handle send */
         if (messages)
         {
@@ -147,8 +175,9 @@ apr_status_t handle_reply_cb (
             if (messages == 0) stop = 1;
         }
         if (!stop) send_message ( (apr_uint16_t) (confirm_tag + 1) );
+        return APR_SUCCESS;
     }
-    return APR_SUCCESS;
+    return AMQ_FRAME_CORRUPTED;
 }
 
 apr_status_t channel_reply_cb (
@@ -162,8 +191,8 @@ apr_status_t channel_reply_cb (
     apr_status_t result;
     char buffer [32768];
 
-    if (confirm_tag == 2) {
-        /* reply to channel open */
+    if (state == state_waiting_for_channel_open_confirmation) {
+        /*  reply to channel open  */
         fprintf (stderr, "Channel opened.\n");
 
         result = amqp_handle_open (sck, buffer, 32767, 1, 1, 1, 3, 1, 1, 0, 0,
@@ -173,12 +202,17 @@ apr_status_t channel_reply_cb (
                 (long) result, amqp_strerror (result, buffer, 32767) );
             return result;
         }
+        state = state_waiting_for_handle_open_confirmation;
+        return APR_SUCCESS;
     }
-    if (confirm_tag >= 5)
-    {
-        /* receiver : reply to channel ack */
+    if (state == state_waiting_for_message) {
+        /*  receiver : reply to channel ack  */
+        fprintf (stderr, "Message acknowledged.\n");
+        state = state_waiting_for_message;
+        return APR_SUCCESS;
     }
-    return APR_SUCCESS;
+    
+    return AMQ_FRAME_CORRUPTED;
 }
 
 apr_status_t connection_reply_cb (
@@ -191,7 +225,7 @@ apr_status_t connection_reply_cb (
     apr_status_t result;
     char buffer [32768];
 
-    if (confirm_tag == 1) {
+    if (state == state_waiting_for_connection_open_confirmation) {
         /* reply to connection open */
         result = amqp_channel_open (sck, buffer, 32767, 1, 2,
             (apr_byte_t) ( (commit_count || rollback_count) ? 1 : 0),
@@ -201,9 +235,12 @@ apr_status_t connection_reply_cb (
                 (long) result, amqp_strerror (result, buffer, 32767) );
             return result;
         }
+        state = state_waiting_for_channel_open_confirmation;
         fprintf (stderr, "Connected to server.\n");
+        return APR_SUCCESS;
     }
-    return APR_SUCCESS;
+
+    return AMQ_FRAME_CORRUPTED;
 }
     
 apr_status_t connection_challenge_cb (
@@ -216,15 +253,20 @@ apr_status_t connection_challenge_cb (
 {
     apr_status_t result;
     char buffer [32768];
-
-    result = amqp_connection_response (sck, buffer, 32767, "plain", 0, "");
-    if (result != APR_SUCCESS) {
-        fprintf (stderr, "amqp_connection_response failed.\n%ld : %s\n",
-            (long) result, amqp_strerror (result, buffer, 32767) );
-        return result;
+    
+    if (state == state_waiting_for_connection_challenge) {
+        /*  reply to amq protocol initiation  */
+        result = amqp_connection_response (sck, buffer, 32767, "plain", 0, "");
+        if (result != APR_SUCCESS) {
+            fprintf (stderr, "amqp_connection_response failed.\n%ld : %s\n",
+                (long) result, amqp_strerror (result, buffer, 32767) );
+            return result;
+        }
+        state = state_waiting_for_connection_tune;
+        return APR_SUCCESS;
     }
     
-    return APR_SUCCESS;
+    return AMQ_FRAME_CORRUPTED;
 }
 
 apr_status_t connection_tune_cb (
@@ -243,21 +285,27 @@ apr_status_t connection_tune_cb (
     data [0] = 1;
     data [1] = 2;
 
-    result = amqp_connection_tune (sck, buffer, 32767, 32000, 255, 255, 0, 
-        options_size, options);
-    if (result != APR_SUCCESS) {
-        fprintf (stderr, "amqp_connection_tune failed.\n%ld : %s\n",
-            (long) result, amqp_strerror (result, buffer, 32767) );
-        return result;
+    if (state = state_waiting_for_connection_tune) {
+        /*  reply to connection response  */
+        result = amqp_connection_tune (sck, buffer, 32767, 32000, 255, 255, 0, 
+            options_size, options);
+        if (result != APR_SUCCESS) {
+            fprintf (stderr, "amqp_connection_tune failed.\n%ld : %s\n",
+                (long) result, amqp_strerror (result, buffer, 32767) );
+            return result;
+        }
+        result = amqp_connection_open (sck, buffer, 32767, 1, host,
+            prefix, 0, "");
+        if (result != APR_SUCCESS) {
+            fprintf (stderr, "amqp_connection_open failed.\n%ld : %s\n",
+                (long) result, amqp_strerror (result, buffer, 32767) );
+            return result;
+        }
+        state = state_waiting_for_connection_open_confirmation;
+        return APR_SUCCESS;
     }
-    result = amqp_connection_open (sck, buffer, 32767, 1, host,
-        prefix, 0, "");
-    if (result != APR_SUCCESS) {
-        fprintf (stderr, "amqp_connection_open failed.\n%ld : %s\n",
-            (long) result, amqp_strerror (result, buffer, 32767) );
-        return result;
-    }
-    return APR_SUCCESS;
+
+    return AMQ_FRAME_CORRUPTED;
 }
 
 apr_status_t handle_notify_cb (
@@ -286,30 +334,26 @@ apr_status_t handle_notify_cb (
     apr_status_t result;
     char buffer [32768];
 
-/*
-    apr_uint32_t i;
-    for (i = 0; i!=body_size; i++)
-        fprintf (stderr, "%lx ", (long) (unsigned char) data [i]);
-    fprintf (stderr, "\n");
-*/
-   
-    fprintf (stderr, "Message %s received. (%ld bytes)\n", identifier, (long) body_size);
+    if (state == state_waiting_for_message) {
+    
+        fprintf (stderr, "Message %s received. (%ld bytes)\n", identifier, (long) body_size);
 
-    tag++;
+        tag++;
 
-    till_acknowledge--;
-    if (!till_acknowledge)
-    {
-        result = amqp_channel_ack (sck, buffer, 32767, 1, tag, message_nbr);
-        if (result != APR_SUCCESS) {
-            fprintf (stderr, "amqp_channel_ack failed.\n%ld : %s\n",
-                (long) result, amqp_strerror (result, buffer, 32767) );
-            return result;
+        till_acknowledge--;
+        if (!till_acknowledge)
+        {
+            result = amqp_channel_ack (sck, buffer, 32767, 1, tag, message_nbr);
+            if (result != APR_SUCCESS) {
+                fprintf (stderr, "amqp_channel_ack failed.\n%ld : %s\n",
+                    (long) result, amqp_strerror (result, buffer, 32767) );
+                return result;
+            }
+            till_acknowledge = prefetch;
         }
-        fprintf (stderr, "Message %s acknowledged.\n", identifier);
-        till_acknowledge = prefetch;
+        return APR_SUCCESS;
     }
-    return APR_SUCCESS;
+    return AMQ_FRAME_CORRUPTED;
 }
 
 int main (int argc, const char *const argv[], const char *const env[]) 
@@ -340,6 +384,7 @@ int main (int argc, const char *const argv[], const char *const env[])
     commit_count = 0;
     rollback_count = 0;
 
+    state = state_initial;
     stop = 0;
 
     for (i=1; i!=argc; i++) {
@@ -430,6 +475,7 @@ int main (int argc, const char *const argv[], const char *const env[])
             (long) result, amqp_strerror (result, buffer, 2000) );
         goto err;
     }
+    state = state_waiting_for_connection_challenge;
 
     callbacks.connection_challenge = connection_challenge_cb;
     callbacks.connection_tune = connection_tune_cb;
