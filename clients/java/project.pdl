@@ -10,7 +10,7 @@
 <include filename = "prelude.pdl" />
 
 <!-- Java framing API -->
-<file name = "AMQJavaFraming.jar"         class = "public library">AMQ Java framing API</file>
+<file name = "AMQJavaFraming.jar"         class = "shared library">AMQ Java framing API</file>
 
 <!-- Java framing API generated source -->
 <directory name = "com/imatix/openamq/framing" class = "generated">
@@ -59,10 +59,37 @@
     </build>
     <clean>
         <execute>
-        rm -fR com
+        rm -f com/imatix/openamq/framing/*
         rm -f *.class
         rm -f amqpcli_seriali.java
         rm -f AMQJavaFraming.jar
+        </execute>
+    </clean>
+</actions>
+
+<actions target = "win32">
+    <generate>
+        <execute>
+        gsl amq_frames.xml
+        lr amqpcli_serial.java.l
+        </execute>
+    </generate>
+    <build>
+        <execute>
+        <!-- Java framing API -->
+        javac com/imatix/openamq/framing/AMQFramingFactory.java
+        jar -cf AMQJavaFraming.jar com/imatix/openamq/framing/AMQ*.class
+        <!-- Java framing API test clients -->
+        javac amqpcli_serial.java
+        javac EchoClient.java
+        </execute>
+    </build>
+    <clean>
+        <execute>
+        delete com/imatix/openamq/framing/*
+        delete *.class
+        delete amqpcli_seriali.java
+        delete AMQJavaFraming.jar
         </execute>
     </clean>
 </actions>
