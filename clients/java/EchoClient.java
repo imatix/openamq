@@ -127,7 +127,7 @@ public EchoClient(String[] args) {
                     channel_close.channelId = 1;
                     channel_close.replyCode = 200;
                     channel_close.replyText = "amqpcli_serial.java: I'll be back";
-                    amq_framing.produceFrame(channel_close);
+                    amq_framing.sendFrame(channel_close);
                 } 
                 catch (IOException f)
                 {
@@ -169,7 +169,7 @@ class tfActionListener implements ActionListener {
                 channel_close.channelId = 1;
                 channel_close.replyCode = 200;
                 channel_close.replyText = "amqpcli_serial.java: I'll be back";
-                amq_framing.produceFrame(channel_close);
+                amq_framing.sendFrame(channel_close);
             } else {
                 // Send text
                 System.out.println("Sending: \"" + text + "\" to server...");
@@ -180,9 +180,9 @@ class tfActionListener implements ActionListener {
                 handle_send.fragmentSize = message_head.encode() + message_head.bodySize;
                 if (handle_send.fragmentSize <= tune_reply.getInteger("FRAME_MAX")) {
                     // Send message
-                    amq_framing.produceFrame(handle_send);
-                    amq_framing.produceMessageHead(message_head);
-                    amq_framing.produceData(message_body);
+                    amq_framing.sendFrame(handle_send);
+                    amq_framing.sendMessageHead(message_head);
+                    amq_framing.sendData(message_body);
                 } else {
                     System.err.println("EchoClient: text size not supported by EchoClient");
                 }   
@@ -216,19 +216,19 @@ public void run () {
             bytes;                      /* Bytes received from the server   */
         
         // Request consume messages
-        amq_framing.produceFrame(handle_consume);
+        amq_framing.sendFrame(handle_consume);
         while(true) {
             AMQFrame frame;
             int close = 0; 
             // Get frame 
-            frame = amq_framing.consumeFrame();
+            frame = amq_framing.receiveFrame();
             if (frame instanceof AMQConnection.Close) {
                 client_close = (AMQConnection.Close)frame;
                 close = 1;
             } else if (frame instanceof AMQChannel.Close ) {
                 channel_close = (AMQChannel.Close)frame;
-                amq_framing.produceFrame(client_close);
-                client_close = (AMQConnection.Close)amq_framing.consumeFrame();
+                amq_framing.sendFrame(client_close);
+                client_close = (AMQConnection.Close)amq_framing.receiveFrame();
                 close = 2;
             }
             if (close > 0) {         
@@ -242,12 +242,12 @@ public void run () {
             }
             // Get the data
             handle_notify = (AMQHandle.Notify)frame;
-            message_head = amq_framing.consumeMessageHead();
-            bytes = amq_framing.consumeData((int)message_head.bodySize);
+            message_head = amq_framing.receiveMessageHead();
+            bytes = amq_framing.receiveData((int)message_head.bodySize);
             text = AMQFramingFactory.bytes2String(bytes);
             // Acknowledge 
             channel_ack.messageNbr = handle_notify.messageNbr;
-            amq_framing.produceFrame(channel_ack);
+            amq_framing.sendFrame(channel_ack);
             System.out.println("Acknowledge: \"" + text + "\" from server...");
             // Show text in the echo area
             ea.append("  > " + text + "\n");
@@ -275,15 +275,15 @@ public void do_tests ()
     try
     {
         // Channel
-        channel_open = (AMQChannel.Open)amq_framing.createFrame(AMQChannel.OPEN);
-        channel_close = (AMQChannel.Close)amq_framing.createFrame(AMQChannel.CLOSE);
-        channel_ack = (AMQChannel.Ack)amq_framing.createFrame(AMQChannel.ACK);
+        channel_open = (AMQChannel.Open)amq_framing.constructFrame(AMQChannel.OPEN);
+        channel_close = (AMQChannel.Close)amq_framing.constructFrame(AMQChannel.CLOSE);
+        channel_ack = (AMQChannel.Ack)amq_framing.constructFrame(AMQChannel.ACK);
         // Handle
-        handle_open = (AMQHandle.Open)amq_framing.createFrame(AMQHandle.OPEN);
-        handle_send = (AMQHandle.Send)amq_framing.createFrame(AMQHandle.SEND);
-        handle_consume = (AMQHandle.Consume)amq_framing.createFrame(AMQHandle.CONSUME);
+        handle_open = (AMQHandle.Open)amq_framing.constructFrame(AMQHandle.OPEN);
+        handle_send = (AMQHandle.Send)amq_framing.constructFrame(AMQHandle.SEND);
+        handle_consume = (AMQHandle.Consume)amq_framing.constructFrame(AMQHandle.CONSUME);
         // Message
-        message_head = (AMQMessage.Head)amq_framing.createMessageHead();
+        message_head = (AMQMessage.Head)amq_framing.constructMessageHead();
         
         // Open channel
         channel_open.channelId = 1;
@@ -292,7 +292,7 @@ public void do_tests ()
         channel_open.restartable = false;
         channel_open.options = null;
         channel_open.outOfBand = "";
-        amq_framing.produceFrame(channel_open);
+        amq_framing.sendFrame(channel_open);
 
         // Open hadles ... 
         handle_open.channelId = 1;
@@ -308,10 +308,10 @@ public void do_tests ()
         handle_open.consumer = true;
         handle_open.temporary = false;
         handle_open.destName = read_queue;
-        amq_framing.produceFrame(handle_open);
+        amq_framing.sendFrame(handle_open);
         if (handle_open.temporary) {
             // Get handle created
-            handle_created = (AMQHandle.Created)amq_framing.consumeFrame();
+            handle_created = (AMQHandle.Created)amq_framing.receiveFrame();
         }
         // ... for writing
         handle_open.handleId = 2;
@@ -319,10 +319,10 @@ public void do_tests ()
         handle_open.consumer = false;
         handle_open.temporary = false;
         handle_open.destName = write_queue;
-        amq_framing.produceFrame(handle_open);
+        amq_framing.sendFrame(handle_open);
         if (handle_open.temporary) {
             // Get handle created
-            handle_created = (AMQHandle.Created)amq_framing.consumeFrame();
+            handle_created = (AMQHandle.Created)amq_framing.receiveFrame();
         }
 
         // Prepare ack
