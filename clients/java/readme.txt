@@ -37,11 +37,11 @@ Running the test clients
 
 1. Simple pattern checking serial client
 
-    java -cp AMQJavaFraming.jar:. amqpcli_serial
+    java -cp OpenAMQJava.jar:. amqpcli_serial
 
 2. Echo (chat) client
 
-    java -cp AMQJavaFraming.jar:. EchoClient
+    java -cp OpenAMQJava.jar:. EchoClient
 
     in separate windows, run the openamq/clients/stdc/chat_in and chat_out
     clients.
