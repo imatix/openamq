@@ -28,9 +28,9 @@
     amq_channel_t
         *channel;                       /*  Parent channel                   */
     amq_handle_t
-        *handle;                        /*  Parent handle for dispatch       */
-    amq_dest_t 
-        *dest;                          /*  Parent dest for dispatch         */
+        *handle;                        /*  Parent handle                    */
+    amq_mesgq_t
+        *mesgq;                         /*  Parent message queue             */
 
     /*  Object properties                                                    */
     ipr_db_t
@@ -38,7 +38,7 @@
     amq_smessage_t
         *message;                       /*  Message dispatched               */
     qbyte
-        dest_id;                        /*  Dest id                          */
+        mesgq_id;                       /*  Message id in mesgq              */
     qbyte
         message_nbr;                    /*  Message number                   */
     Bool
@@ -53,23 +53,24 @@
     self->consumer    = consumer;
     self->handle      = consumer->handle;
     self->channel     = consumer->channel;
-    self->dest        = consumer->dest;
+    self->mesgq       = consumer->mesgq;
     self->db          = consumer->db;
 
     /*  Initialise other properties                                          */
     self->message     = message;        /*  We now 0wn this message          */
-    self->dest_id     = self->dest->item_id;
+    self->mesgq_id    = self->mesgq->item_id;
     self->message_nbr = ++(self->channel->message_nbr);
 
     amq_dispatch_list_queue (self->channel->dispatch_list, self);
 
     /*  Dispatched message decrements message windows                        */
-    assert (self->dest->window);
+    assert (self->mesgq->window);
     assert (self->consumer->window);
-    self->dest->window--;
+    self->mesgq->window--;
     self->consumer->window--;
 #   ifdef TRACE_DISPATCH
-    coprintf ("$(selfname) new: dest:%d consumer:%d", self->dest->window, self->consumer->window);
+    coprintf ("$(selfname) new: mesgq:%d consumer:%d",
+        self->mesgq->window, self->consumer->window);
 #   endif
 </method>
 
@@ -89,16 +90,16 @@
 
     next = amq_dispatch_list_next (self->channel->dispatch_list, self);
     if (!self->acknowledged) {
-        /*  Dest and consumer can accept a new message                       */
+        /*  Message queue and consumer can accept a new message              */
         if (self->consumer->window < self->consumer->prefetch) {
-            self->dest->window++;
+            self->mesgq->window++;
             self->consumer->window++;
 #           ifdef TRACE_DISPATCH
-            coprintf ("$(selfname) ack: dest:%d consumer:%d",
-                self->dest->window, self->consumer->window);
+            coprintf ("$(selfname) ack: mesgq:%d consumer:%d",
+                self->mesgq->window, self->consumer->window);
 #           endif
         }
-        amq_dest_dispatch (self->dest);
+        amq_mesgq_dispatch (self->mesgq);
 
         /*  Now commit the acknowledgement if not transacted                 */
         self->acknowledged = TRUE;
@@ -112,45 +113,46 @@
 <method name = "unget" template = "function">
     <doc>
     Ungets the specified message.  Non-persistent messages are pushed back
-    to the dest's memory list.  Persistent messages are updated on disk so
+    to the mesgq's memory list.  Persistent messages are updated on disk so
     that their 'client id' field is zero (meaning, non-dispatched).
     </doc>
 
-    if (self->dest_id == 0) {
+    if (self->mesgq_id == 0) {
 #       ifdef TRACE_DISPATCH
         coprintf ("$(selfname) unget: non-persistent message %d", self->message_nbr);
 #       endif
         /*  Push back non-persistent message                                 */
         /*    - update window AFTER so it won't bounce to same consumer      */
-        amq_dest_accept (self->dest, NULL, self->message, NULL);
-        self->message = NULL;           /*  Passed to dest_accept            */
+        amq_mesgq_accept (self->mesgq, NULL, self->message, NULL);
+        self->message = NULL;           /*  Passed to mesgq_accept           */
     }
     else {
 #       ifdef TRACE_DISPATCH
         coprintf ("$(selfname) unget: persistent message %d", self->message_nbr);
 #       endif
         /*  Ensure message is no longer assigned to this client              */
-        self->dest->item_id = self->dest_id;
-        amq_dest_fetch (self->dest, IPR_QUEUE_EQ);
-        if (self->dest->item_client_id) {
-            self->dest->item_client_id = 0;
-            amq_dest_update (self->dest, NULL);
+        self->mesgq->item_id = self->mesgq_id;
+        amq_mesgq_fetch (self->mesgq, IPR_QUEUE_EQ);
+        if (self->mesgq->item_client_id) {
+            self->mesgq->item_client_id = 0;
+            amq_mesgq_update (self->mesgq, NULL);
         }
-        /*  Reset dest properties to cover this message                      */
-        self->dest->disk_queue_size++;
-        if (self->dest->last_id >= self->dest->item_id)
-            self->dest->last_id  = self->dest->item_id - 1;
+        /*  Reset mesgq properties to cover this message                     */
+        self->mesgq->disk_queue_size++;
+        if (self->mesgq->last_id >= self->mesgq->item_id)
+            self->mesgq->last_id  = self->mesgq->item_id - 1;
     }
-    /*  After ungetting we can dispatch the dest again; we update the
+    /*  After ungetting we can dispatch the mesgq again; we update the
         window after dispatching so that this message won't go back to
         the same client.
      */
-    amq_dest_dispatch (self->dest);
+    amq_mesgq_dispatch (self->mesgq);
     if (self->consumer->window < self->consumer->prefetch) {
-        self->dest->window++;
+        self->mesgq->window++;
         self->consumer->window++;
 #       ifdef TRACE_DISPATCH
-        coprintf ("$(selfname) unget: dest:%d consumer:%d", self->dest->window, self->consumer->window);
+        coprintf ("$(selfname) unget: mesgq:%d consumer:%d",
+            self->mesgq->window, self->consumer->window);
 #       endif
     }
 </method>
@@ -167,14 +169,14 @@
 
     next = amq_dispatch_list_next (self->channel->dispatch_list, self);
     if (self->acknowledged) {
-        if (self->dest_id) {
-            /*  Purge from persistent dest if necessary                      */
-            self->dest->item_id = self->dest_id;
-            self->dest->disk_queue_size--;
-            amq_dest_delete (self->dest, txn);
+        if (self->mesgq_id) {
+            /*  Purge from persistent mesgq if necessary                     */
+            self->mesgq->item_id = self->mesgq_id;
+            self->mesgq->disk_queue_size--;
+            amq_mesgq_delete (self->mesgq, txn);
 #           ifdef TRACE_DISPATCH
-            coprintf ("$(selfname) delete: dest:%d pending=%d",
-                self->dest->window, self->dest->disk_queue_size);
+            coprintf ("$(selfname) delete: mesgq:%d pending=%d",
+                self->mesgq->window, self->mesgq->disk_queue_size);
 #           endif
         }
     }
@@ -208,18 +210,18 @@
     next = amq_dispatch_list_next (self->channel->dispatch_list, self);
     if (self->acknowledged) {
         self->acknowledged = FALSE;
-        if (self->dest_id) {
-            self->dest->item_id = self->dest_id;
-            amq_dest_fetch (self->dest, IPR_QUEUE_EQ);
-            self->dest->item_client_id = 0;
-            amq_dest_update (self->dest, txn);
+        if (self->mesgq_id) {
+            self->mesgq->item_id = self->mesgq_id;
+            amq_mesgq_fetch (self->mesgq, IPR_QUEUE_EQ);
+            self->mesgq->item_client_id = 0;
+            amq_mesgq_update (self->mesgq, txn);
         }
         if (self->consumer->window > 0) {
-            self->dest->window--;
+            self->mesgq->window--;
             self->consumer->window--;
 #           ifdef TRACE_DISPATCH
-            coprintf ("$(selfname) rollback: dest:%d consumer:%d",
-                self->dest->window, self->consumer->window);
+            coprintf ("$(selfname) rollback: mesgq:%d consumer:%d",
+                self->mesgq->window, self->consumer->window);
 #           endif
         }
     }

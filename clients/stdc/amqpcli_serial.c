@@ -201,10 +201,9 @@ main (int argc, char *argv [])
         for (count = 0; count < messages; count++) {
             ipr_shortstr_fmt (identifier, "ID%d", count);
             message = amq_message_new ();
-            amq_message_testfill       (message, msgsize);
             amq_message_set_persistent (message, persistent);
-            /*  note: not actually used by amq_message for now               */
             amq_message_set_identifier (message, identifier);
+            amq_message_testfill       (message, msgsize);
             if (amq_sclient_msg_send (amq_client, out_handle, message))
                 goto aborted;
             /*  Commit as we go along                                        */

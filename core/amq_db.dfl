@@ -13,13 +13,27 @@
     <inherit filename = "prelude.dfl" />
 
     <table name = "client" description = "Client">
-    Defines a client who has or is using the application.
+    Defines a client who has ever used, or is still using the application.
         <field name = "id"          domain = "recordid" >Record id</field>
         <field name = "name"        domain = "shortstr" >Client external name</field>
         <field name = "connected"   domain = "boolean"  >Currently connected?</field>
         <field name = "enabled"     domain = "boolean"  >Allowed to connect?</field>
         <field name = "lastused"    domain = "timestamp">Last time connected</field>
         <index name = "byname">
+            <field name = "name" />
+        </index>
+    </table>
+
+    <table name = "dest" description = "Destination">
+    Defines a temporary or long-lived destination.
+        <field name = "id"          domain = "recordid" >Record id</field>
+        <field name = "type"        domain = "shortint" >Destination type</field>
+        <field name = "active"      domain = "boolean"  >Currently active?</field>
+        <field name = "name"        domain = "shortstr" >External dest name</field>
+        <field name = "key"         domain = "shortstr" >Internal key name</field>
+        <field name = "filename"    domain = "shortstr" >Physical file name</field>
+        <index name = "byname" unique = "1">
+            <field name = "type" />
             <field name = "name" />
         </index>
     </table>

@@ -27,15 +27,17 @@
     amq_channel_t
         *channel;                       /*  Parent channel                   */
     amq_handle_t
-        *handle;                        /*  Parent handle for consumer       */
-    amq_dest_t
-        *dest;                          /*  Parent destination               */
+        *handle;                        /*  Parent handle                    */
+    amq_mesgq_t
+        *mesgq;                         /*  Parent message queue             */
     qbyte
         client_id;                      /*  Parent client record             */
 
     /*  Object properties                                                    */
     ipr_db_t
         *db;                            /*  Database for virtual host        */
+    amq_db_t
+        *ddb;                           /*  Deprecated database handle       */
     int
         prefetch;                       /*  Max prefetch size                */
     int
@@ -62,6 +64,7 @@
     self->vhost       = handle->vhost;
     self->thread      = handle->thread;
     self->db          = handle->db;
+    self->ddb         = handle->ddb;
 
     /*  Initialise other properties                                          */
     self->prefetch   = command->prefetch? command->prefetch: 1;
@@ -70,18 +73,21 @@
     self->unreliable = command->unreliable;
     ipr_shortstr_cpy (self->identifier, command->identifier);
 
-    /*  Attach to destination                                                */
-    self->dest = amq_dest_consume (self, command->dest_name);
-    if (!self->dest)
+    /*  Attach to message queue                                              */
+    self->mesgq = amq_mesgq_consume (self, command->dest_name);
+    if (!self->mesgq)
         $(selfname)_destroy (&self);
 </method>
 
 <method name = "destroy">
-    if (self->dest)
-        amq_dest_cancel (self->dest, self);
+    if (self->mesgq)
+        amq_mesgq_cancel (self->mesgq, self);
 </method>
 
 <method name = "cancel" template = "function">
+    /*  TODO
+        - remove subscription criteria from matching list
+     */
     amq_consumer_destroy (&self);
 </method>
 

@@ -1,3 +1,6 @@
+Queues
+    
+
 topics
 
     . queue namespaces
@@ -30,13 +33,11 @@ subscriptions
     - replaces amq_global
     - runs on a specific port
 
+
+
 - move argument parsing & copyright block to standard iPR function
 
-Tracing
-    - amqpsrv queue configuration
-        - block size per queue
-        - logging options per queue
-            - ??
+
 
 
 Changes

@@ -1,17 +1,19 @@
 <?xml?>
 <class
-    name      = "amq_dest"
-    comment   = "Destination class"
+    name      = "amq_mesgq"
+    comment   = "Message queue class"
     version   = "1.2"
     copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 <doc>
-Implements a destination object, which is a queue structure.  Supports
-shared message queues, temporary reply queues, and topic history queues.
-Destinations are held per virtual host. Is a container for consumers for
-the destination.  The dest object is backed by a persistent database
-table based on the ipr_db_queue class.
+Implements a message queue, one of the main openamq classes.  Message
+queues are used to implement configured queues, temporary queues, topic
+contents, and subscriptions.  Message queues exist per virtual host.
+This class holds all consumers for the message queue, and can optionally
+be backed up onto a persistent database using ipr_db_queue serialisation.
+A message queue may be mapped to a single destination, as a record in the
+db_dest database table.
 </doc>
 
 <inherit class = "ipr_hash_str" />
@@ -40,11 +42,11 @@ table based on the ipr_db_queue class.
 #include "amq_core.h"
 #include "amq_frames.h"
 
-/*  Types of dest object                                                     */
-#define AMQ_DEST_TYPE_QUEUE     1       /*  Shared message queue             */
-#define AMQ_DEST_TYPE_TEMPQ     2       /*  Temporary reply queue            */
-#define AMQ_DEST_TYPE_TOPIC     3       /*  Topic history queue              */
-#define AMQ_DEST_TYPE_VALID(t)  (t > 0 && t < 4)
+/*  Types of mesgq object                                                     */
+#define AMQ_MESGQ_TYPE_QUEUE     1       /*  Shared message queue             */
+#define AMQ_MESGQ_TYPE_TEMPQ     2       /*  Temporary reply queue            */
+#define AMQ_MESGQ_TYPE_TOPIC     3       /*  Topic history queue              */
+#define AMQ_MESGQ_TYPE_VALID(t)  (t > 0 && t < 4)
 </public>
 
 <private>
@@ -58,15 +60,19 @@ table based on the ipr_db_queue class.
     amq_vhost_t
         *vhost;                         /*  Parent virtual host              */
     ipr_looseref_t
-        *dest_ref;                      /*  Item in vhost dest list          */
+        *mesgq_ref;                     /*  Item in vhost mesgq list         */
 
     /*  Object properties                                                    */
     int
         type;                           /*  Destination type                 */
+    amq_db_t
+        *ddb;                           /*  Deprecated database handle       */
+    amq_db_dest_t
+        *db_dest;                       /*  Destination record               */
     qbyte
         client_id;                      /*  Owner, if any                    */
     amq_consumer_list_t
-        *consumers;                     /*  Consumers for this destination   */
+        *consumers;                     /*  Consumers for this messageq      */
     amq_smessage_list_t
         **message_list;                 /*  Pending non-persistent messages  */
     qbyte
@@ -80,9 +86,9 @@ table based on the ipr_db_queue class.
     size_t
         nbr_consumers;                  /*  Number of consumers              */
     Bool
-        dirty;                          /*  Dest needs dispatching           */
+        dirty;                          /*  Mesgq needs dispatching          */
 
-    /*  Dest options, loaded from dest configuration in amq_vhost.cfg        */
+    /*  Mesgq options, loaded from dest configuration in amq_vhost.cfg       */
     size_t
         opt_min_consumers;              /*  Minimum required consumers       */
     size_t
@@ -103,45 +109,66 @@ table based on the ipr_db_queue class.
 
 <method name = "new">
     <argument name = "vhost"      type = "amq_vhost_t *">Parent virtual host</argument>
-    <argument name = "type"       type = "int"          >Destination type</argument>
+    <argument name = "type"       type = "int"          >Message queue type</argument>
     <argument name = "name"       type = "char *"       >External name</argument>
     <argument name = "client_id"  type = "qbyte"        >Owner, if any</argument>
-    
+
     <!-- Remove these inherited arguments from the API -->
     <dismiss argument = "db"        value = "vhost->db"         />
     <dismiss argument = "filename"  value = "key"               />
-    <dismiss argument = "table"     value = "vhost->dest_hash"  />
+    <dismiss argument = "table"     value = "vhost->mesgq_hash" />
 
-    assert (AMQ_DEST_TYPE_VALID (type));
+    assert (*key);
+    assert (AMQ_MESGQ_TYPE_VALID (type));
 
     /*  De-normalise from parent object, for simplicity of use               */
     self->vhost = vhost;
     self->db    = vhost->db;
+    self->ddb   = vhost->ddb;
 
     self->type      = type;
     self->client_id = client_id;
     s_get_configuration (self, name);
 
-    /*  Create data structures for dispatchable destinations                 */
-    if (type != AMQ_DEST_TYPE_TOPIC) {
+    /*  Create data structures for dispatchable message queues               */
+    if (type != AMQ_MESGQ_TYPE_TOPIC) {
         self->consumers = amq_consumer_list_new ();
-        self->dest_ref = ipr_looseref_new (vhost->dest_refs, self);
+        self->mesgq_ref = ipr_looseref_new (vhost->mesgq_refs, self);
         s_create_priority_lists (self);
+    }
+    /*  Fetch existing queue if caller specified a name                      */
+    self->db_dest       = amq_db_dest_new ();
+    self->db_dest->type = type;
+    ipr_shortstr_cpy (self->db_dest->name, name);
+    amq_db_dest_fetch_byname (self->ddb, self->db_dest, AMQ_DB_FETCH_EQ);
+
+    /*  If new queue, create it now                                          */
+    if (self->db_dest->id == 0) {
+        ipr_shortstr_cpy (self->db_dest->key, key);
+        /*  TODO
+            - get destination filename
+        ipr_shortstr_cpy (self->db_dest->filename, xxx);
+        */
+        self->db_dest->active = TRUE;
+        amq_db_dest_insert (self->ddb, self->db_dest);
     }
 </method>
 
 <method name = "destroy">
     s_destroy_priority_lists (self);
-    ipr_looseref_destroy (&self->dest_ref);
+    if (self->db_dest->type == AMQ_MESGQ_TYPE_TEMPQ)
+        amq_db_dest_delete (self->ddb, self->db_dest);
+    amq_db_dest_destroy       (&self->db_dest);
     amq_consumer_list_destroy (&self->consumers);
+    ipr_looseref_destroy      (&self->mesgq_ref);
 </method>
 
 <method name = "map name">
     <doc>
-    Turns an external destination name and type into an internal name;
-    the mapping function creates names that are globally unique and
-    file-system safe (contains no special characters).  A given external
-    name is always mapped to the same internal name.
+    Turns an external message queue name (destination name) and type
+    into an internal name; the mapping function creates names that are
+    globally unique and file-system safe (contains no special characters).
+    A given external name is always mapped to the same internal name.
     </doc>
     <argument name = "mapped" type = "char *">Mapped name</argument>
     <argument name = "name"   type = "char *">Destination name</argument>
@@ -156,74 +183,82 @@ table based on the ipr_db_queue class.
     /*  Calculate mod-255 hash for name                                      */
     for (name_ptr = name; *name_ptr; name_ptr++)
         hash += *name_ptr;
-        
+
     ipr_shortstr_fmt (mapped, "%s-%s-%02x",
-        type == AMQ_DEST_TYPE_QUEUE? "queue":
-        type == AMQ_DEST_TYPE_TEMPQ? "queue":
-        type == AMQ_DEST_TYPE_TOPIC? "topic": "",
+        type == AMQ_MESGQ_TYPE_QUEUE? "queue":
+        type == AMQ_MESGQ_TYPE_TEMPQ? "queue":
+        type == AMQ_MESGQ_TYPE_TOPIC? "topic": "",
         name, hash);
     for (name_ptr = mapped; *name_ptr; name_ptr++)
         if (!(isalnum (*name_ptr) || *name_ptr == '-'))
             *name_ptr = '-';
-</method>            
+</method>
 
-<method name = "full search" return = "dest">
+<method name = "search">
+    <argument name = "type" type = "int">Destination type</argument>
+    <local>
+    ipr_shortstr_t
+        internal;                       /*  Internal mesgq name              */
+    </local>
+    <header>
+    /*  Before searching, set correct domain for destination name            */
+    self_map_name (internal, key, type);
+    key = internal;
+    </header>
+</method>
+
+<method name = "full search" return = "mesgq">
     <doc>
-    Handles destination name pasting, whereby the dest name is built
+    Handles destination name pasting, whereby the mesgq name is built
     from a prefix specified at handle-open time, and a suffix specified
     at the individual command level.
     </doc>
-    <argument name = "dests"  type = "$(selfname)_table_t *">Table to search</argument>
+    <argument name = "mesgqs" type = "$(selfname)_table_t *">Table to search</argument>
     <argument name = "prefix" type = "char *">Dest prefix</argument>
     <argument name = "suffix" type = "char *">Dest suffix</argument>
     <argument name = "type"   type = "int"   >Destination type</argument>
-    <declare  name = "dest"   type = "$(selftype) *" default = "NULL"/>
+    <declare  name = "mesgq"  type = "$(selftype) *" default = "NULL"/>
     <local>
     ipr_shortstr_t
         pasted;
-    ipr_shortstr_t
-        internal;                       /*  Internal dest name               */
     </local>
-
-    /*  Paste destination name, then map to internal name                    */
     ipr_shortstr_fmt (pasted, "%s%s", prefix, suffix);
-    self_map_name    (internal, pasted, type);
-    dest = self_search (dests, internal);
+    mesgq = self_search (mesgqs, pasted, type);
 </method>
 
-<method name = "consume" return = "dest">
+<method name = "consume" return = "mesgq">
     <doc>
-    Lookup and return dest, if any, for specified name. Concats the handle
-    destination with the supplied suffix to give a full dest name.
+    Lookup and return mesgq, if any, for specified name. Concats the handle
+    destination with the supplied suffix to give a full destination name.
     </doc>
     <argument name = "consumer" type = "amq_consumer_t *">Parent consumer</argument>
     <argument name = "suffix"   type = "char *"          >Destination name suffix</argument>
-    <declare  name = "dest"     type = "$(selftype) *" default = "NULL"/>
+    <declare  name = "mesgq"    type = "$(selftype) *" default = "NULL"/>
 
     /*  Look for queue - queues and temp-queues are in same namespace        */
-    dest = self_full_search (
-        consumer->vhost->dest_hash,
+    mesgq = self_full_search (
+        consumer->vhost->mesgq_hash,
         consumer->handle->dest_name,
         suffix,
-        AMQ_DEST_TYPE_QUEUE);
+        AMQ_MESGQ_TYPE_QUEUE);
 
-   if (dest) {
+   if (mesgq) {
         /*  Allowed as consumer if shared queue or owner of tempq            */
-        if (dest->type == AMQ_DEST_TYPE_QUEUE || dest->client_id == consumer->client_id) {
-            if (dest->opt_max_consumers == 0
-            ||  dest->nbr_consumers < dest->opt_max_consumers) {
-                amq_consumer_list_queue (dest->consumers, consumer);
-                dest->nbr_consumers++;
-                dest->window += consumer->window;
+        if (mesgq->type == AMQ_MESGQ_TYPE_QUEUE || mesgq->client_id == consumer->client_id) {
+            if (mesgq->opt_max_consumers == 0
+            ||  mesgq->nbr_consumers < mesgq->opt_max_consumers) {
+                amq_consumer_list_queue (mesgq->consumers, consumer);
+                mesgq->nbr_consumers++;
+                mesgq->window += consumer->window;
             }
             else {
                 amq_global_set_error (AMQP_NOT_ALLOWED, "Destination consumer limit reached");
-                dest = NULL;
+                mesgq = NULL;
             }
         }
         else {
             amq_global_set_error (AMQP_ACCESS_REFUSED, "Not owner of temporary queue");
-            dest = NULL;
+            mesgq = NULL;
         }
     }
     else
@@ -232,7 +267,7 @@ table based on the ipr_db_queue class.
 
 <method name = "cancel" template = "function">
     <doc>
-    Cancels a consumer on a specific dest, updating the dest as needed.
+    Cancels a consumer on a specific mesgq, updating the mesgq as needed.
     </doc>
     <argument name = "consumer" type = "amq_consumer_t *">Parent consumer</argument>
     self->nbr_consumers--;
@@ -241,11 +276,12 @@ table based on the ipr_db_queue class.
 
 <method name = "accept" template = "function">
     <doc>
-    Saves a message to a destination. Transacted messages are held in memory
+    Saves a message to a message queue. Transacted messages are held in memory
     pending a channel commit or roll back.  Non-transacted persistent messages
-    are saved to the persistent dest and n-t n-p messages are saved to the dest
-    priority lists.  The channel can be specified as NULL, which forces
-    non-persistent messages to be saved to the dest memory list.
+    are saved to the persistent message queue and n-t n-p messages are saved to
+    the message queue priority lists.  The channel can be specified as NULL,
+    which forces non-persistent messages to be saved to the message queue memory
+    list.
     </doc>
     <argument name = "channel" type = "amq_channel_t *" >Current channel</argument>
     <argument name = "message" type = "amq_smessage_t *">Message, if any</argument>
@@ -259,7 +295,7 @@ table based on the ipr_db_queue class.
     if (self->opt_persistent)
         message->persistent = TRUE;     /*  Force message to be persistent   */
 
-    /*  First check that posting to this dest is currently allowed           */
+    /*  First check that posting to this mesgq is currently allowed          */
     if (self->nbr_consumers < self->opt_min_consumers)
         amq_global_set_error (AMQP_NOT_ALLOWED, "Destination needs consumers but has none");
     else
@@ -275,7 +311,7 @@ table based on the ipr_db_queue class.
     if (channel && channel->transacted) {
         /*  Transacted messages are held per-channel                         */
         if (amq_txn_limit == 0 || channel->transact_count < amq_txn_limit) {
-            message->dest = self;
+            message->mesgq = self;
             amq_smessage_list_queue (channel->transact_list, message);
             channel->transact_count++;
 #           ifdef TRACE_DISPATCH
@@ -310,7 +346,7 @@ table based on the ipr_db_queue class.
                 message->persistent = TRUE;
         }
         if (message->persistent) {
-            /*  Persistent messages are saved on persistent dest storage     */
+            /*  Persistent messages are saved on persistent queue storage    */
             self->disk_queue_size++;
             amq_smessage_save (message, self, txn);
             amq_smessage_destroy (&message);
@@ -319,24 +355,24 @@ table based on the ipr_db_queue class.
     #       endif
         }
         else {
-            /*  Non-persistent messages are held per dest                    */
+            /*  Non-persistent messages are held per message queue           */
             self->memory_queue_size++;
             amq_smessage_list_queue (self->message_list [level], message);
     #       ifdef TRACE_DISPATCH
-            coprintf ("$(selfname) I: save non-persistent message to dest memory");
+            coprintf ("$(selfname) I: save non-persistent message to mesgq memory");
     #       endif
         }
-        self->dirty = TRUE;             /*  Dest has new data                */
+        self->dirty = TRUE;             /*  Message queue has new data       */
 
-        /*  We move all dirty dests to the start of the vhost list so that
-            dispatching can be rapid when the vhost has lots of dests       */
-        ipr_looseref_list_push (self->vhost->dest_refs, self->dest_ref);
+        /*  We move all dirty mesgqs to the start of the vhost list so
+            that dispatching can be rapid when the vhost has lots of them    */
+        ipr_looseref_list_push (self->vhost->mesgq_refs, self->mesgq_ref);
     }
 </method>
 
 <method name = "dispatch" template = "function">
     <doc>
-    Dispatches all pending messages waiting on the specified dest.
+    Dispatches all pending messages waiting on the specified message queue.
     </doc>
     <local>
     amq_smessage_t
@@ -380,7 +416,7 @@ table based on the ipr_db_queue class.
                         amq_browser_destroy ((amq_browser_t **) &browser_ref->object);
                         browser_ref = ipr_looseref_list_next (message->browsers, browser_ref);
                     }
-                    /*  Get next message (is now first on dest)                  */
+                    /*  Get next message (is now first on mesgq)                 */
                     message = amq_smessage_list_first (self->message_list [level]);
 
                     /*  Work down to next priority level if needed               */
@@ -433,16 +469,19 @@ table based on the ipr_db_queue class.
         /*  Close active cursor if any                                       */
         ipr_db_cursor_close (self->db);
     }
-    self->dirty = FALSE;                /*  Dest has been dispatched         */
+    self->dirty = FALSE;                /*  Mesgq has been dispatched        */
 </method>
 
 <method name = "query" template = "function">
     <doc>
     Loads a query set referring to every available message in the
-    destination.
+    message queue.
     </doc>
     <argument name = "browser_set" type = "amq_browser_array_t *">Query set</argument>
     <local>
+    /*  TODO
+        implement maximum query size (0 = all)
+     */
     amq_smessage_t
         *message;
     amq_browser_t
@@ -554,17 +593,17 @@ static void
 static void
 s_get_configuration ($(selftype) *self, char *name)
 {
-    if (self->type == AMQ_DEST_TYPE_QUEUE) {
+    if (self->type == AMQ_MESGQ_TYPE_QUEUE) {
         if (ipr_config_locate (self->vhost->config, "/config/queues/queue", name) == -1)
             ipr_config_locate (self->vhost->config, "/config/template/queue", "default");
 
     }
     else
-    if (self->type == AMQ_DEST_TYPE_TEMPQ) {
+    if (self->type == AMQ_MESGQ_TYPE_TEMPQ) {
         ipr_config_locate (self->vhost->config, "/config/template/tempq", "default");
     }
     else
-    if (self->type == AMQ_DEST_TYPE_TOPIC) {
+    if (self->type == AMQ_MESGQ_TYPE_TOPIC) {
         if (ipr_config_locate (self->vhost->config, "/config/topics/topic", name) == -1)
             ipr_config_locate (self->vhost->config, "/config/template/topic", "default");
     }
@@ -586,7 +625,7 @@ s_get_configuration ($(selftype) *self, char *name)
 
         /*  auto-purge option means delete all messages at restart           */
         if (ipr_config_attrn (self->vhost->config, "auto-purge")
-        ||  self->type == AMQ_DEST_TYPE_TEMPQ)
+        ||  self->type == AMQ_MESGQ_TYPE_TEMPQ)
             self_purge (self);
         else {
             if (self_exists (self)) {
@@ -598,7 +637,7 @@ s_get_configuration ($(selftype) *self, char *name)
     else {
         /*  Set defaults if no configuration found                           */
         self->opt_browsable = 1;
-        if (self->type == AMQ_DEST_TYPE_TEMPQ)
+        if (self->type == AMQ_MESGQ_TYPE_TEMPQ)
             self_purge (self);
     }
 }
@@ -626,7 +665,7 @@ s_create_priority_lists ($(selftype) *self)
         self->message_list [level] = amq_smessage_list_new ();
 }
 
-/*  Destroy the destination's priority lists                                 */
+/*  Destroy the message queue's priority lists                               */
 
 static void
 s_destroy_priority_lists ($(selftype) *self)
@@ -656,7 +695,7 @@ s_priority_level ($(selftype) *self, amq_smessage_t *message)
 }
 
 
-/*  Return next consumer for dest, NULL if there are none                    */
+/*  Return next consumer for mesgq, NULL if there are none                   */
 
 static amq_consumer_t
 *s_get_next_consumer ($(selftype) *self)
@@ -673,7 +712,7 @@ static amq_consumer_t
     return (consumer);
 }
 
-/*  Note that consumer->dest is also self at this stage                      */
+/*  Note that consumer->mesgq is also self at this stage                     */
 
 static void
 s_dispatch_message (
@@ -681,7 +720,7 @@ s_dispatch_message (
     amq_smessage_t *message)
 {
     amq_dispatch_t
-        *dispatch;                      /*  Dispatched message dest entry    */
+        *dispatch;                      /*  Dispatched message mesgq entry   */
 
     assert (consumer);
     dispatch = amq_dispatch_new (consumer, message);
@@ -694,14 +733,14 @@ s_dispatch_message (
         (dbyte) consumer->handle->key,
         dispatch->message_nbr,
         FALSE, TRUE, FALSE,
-        consumer->dest->key,
+        consumer->mesgq->key,
         message,
         consumer->unreliable? dispatch: NULL,
         FALSE);                         /*  Don't auto-destroy message       */
 
     /*  Move consumer to end of list to round-robin it                       */
     amq_consumer_list_unlink (consumer);
-    amq_consumer_list_queue  (consumer->dest->consumers, consumer);
+    amq_consumer_list_queue  (consumer->mesgq->consumers, consumer);
 }
 </private>
 

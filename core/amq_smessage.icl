@@ -27,9 +27,9 @@
     amq_handle_t
         *handle;                        /*  Parent handle                    */
     qbyte
-        dest_id;                        /*  ID in database, if saved         */
-    amq_dest_t
-        *dest;                          /*  Persistent dest table            */
+        mesgq_id;                       /*  ID in database, if saved         */
+    amq_mesgq_t
+        *mesgq;                         /*  Message queue                    */
     qbyte
         spoolid;                        /*  Spooler record, if any           */
     ipr_looseref_list_t
@@ -143,24 +143,24 @@
     Saves the message to persistent storage.  The message must contain data
     loaded using the $(selfname)_record method.
     </doc>
-    <argument name = "dest" type = "amq_dest_t *"  >Dest to save to</argument>
-    <argument name = "txn"  type = "ipr_db_txn_t *">Transaction, if any</argument>
+    <argument name = "mesgq" type = "amq_mesgq_t *">Mesgq to save to</argument>
+    <argument name = "txn"   type = "ipr_db_txn_t *">Transaction, if any</argument>
     assert (self->fragment);            /*  Must be loaded, or die           */
 
-    /*  Update own reference to dest table used                              */
-    self->dest = dest;
+    /*  Update own reference to mesgq used                                   */
+    self->mesgq = mesgq;
     self->store_size = self->spool_size;
-    s_save_message_properties (self, dest);
+    s_save_message_properties (self, mesgq);
 
     /*  Write message to persistent storage                                  */
-    amq_dest_insert (dest, txn);
-    self->dest_id = dest->item_id;
+    amq_mesgq_insert (mesgq, txn);
+    self->mesgq_id = mesgq->item_id;
 
     /*  Save spooled data into persistent store if necessary                 */
     if (self->spool_size) {
         /*  Format the stored filename for the message                       */
         ipr_shortstr_fmt (self->store_file,
-            "%s/%09ld.msg", self->vhost->storedir, self->dest_id);
+            "%s/%09ld.msg", self->vhost->storedir, self->mesgq_id);
 
         /*  Prepare to move file into store directory                        */
         if (self->spool_fh) {
@@ -184,28 +184,28 @@
     <doc>
     Loads the message from persistent storage. The message must have been
     created using $(selfname)_new but otherwise be empty.  Returns 0 if the
-    message was loaded, else returns 1.  The dest must hold the message
+    message was loaded, else returns 1.  The mesgq must hold the message
     loaded from the database.
     </doc>
-    <argument name = "dest" type = "amq_dest_t *" />
+    <argument name = "mesgq" type = "amq_mesgq_t *" />
     assert (self->fragment == NULL);
 
-    /*  Update own reference to dest table used                              */
-    self->dest    = dest;
-    self->dest_id = dest->item_id;
+    /*  Update own reference to mesgq used                                   */
+    self->mesgq    = mesgq;
+    self->mesgq_id = mesgq->item_id;
 
-    s_load_message_properties (self, dest);
+    s_load_message_properties (self, mesgq);
     if (self->store_size > 0) {
         /*  Format the stored filename for the message                       */
         ipr_shortstr_fmt (self->store_file,
-            "%s/%09ld.msg", self->vhost->storedir, self->dest_id);
+            "%s/%09ld.msg", self->vhost->storedir, self->mesgq_id);
     }
 </method>
 
 <method name = "purge" template = "function">
     <doc>
     Removes persistent storage for a specified message.  The message
-    must have been loaded from the dest using the load method.
+    must have been loaded from the mesgq using the load method.
     </doc>
     /*  Delete persistent file storage if any                                */
     if (self->store_size > 0)
@@ -214,9 +214,9 @@
 
 <private name = "header">
 static void
-    s_save_message_properties ($(selftype) *self, amq_dest_t *dest);
+    s_save_message_properties ($(selftype) *self, amq_mesgq_t *mesgq);
 static void
-    s_load_message_properties ($(selftype) *self, amq_dest_t *dest);
+    s_load_message_properties ($(selftype) *self, amq_mesgq_t *mesgq);
 </private>
 
 <private name = "footer">
@@ -224,50 +224,50 @@ static void
     these without decoding the header each time.
  */
 static void
-s_save_message_properties ($(selftype) *self, amq_dest_t *dest)
+s_save_message_properties ($(selftype) *self, amq_mesgq_t *mesgq)
 {
-    dest->item_client_id   = 0;        /*  Not dispatched                   */
-    dest->item_sender_id   = self->handle->client_id;
-    dest->item_header_size = self->header_size;
-    dest->item_body_size   = self->body_size;
-    dest->item_priority    = self->priority;
-    dest->item_expiration  = self->expiration;
-    dest->item_store_size  = self->store_size;
+    mesgq->item_client_id   = 0;        /*  Not dispatched                   */
+    mesgq->item_sender_id   = self->handle->client_id;
+    mesgq->item_header_size = self->header_size;
+    mesgq->item_body_size   = self->body_size;
+    mesgq->item_priority    = self->priority;
+    mesgq->item_expiration  = self->expiration;
+    mesgq->item_store_size  = self->store_size;
 
-    ipr_shortstr_cpy (dest->item_mime_type, *self->mime_type? self->mime_type: self->handle->mime_type);
-    ipr_shortstr_cpy (dest->item_encoding,  *self->encoding?  self->encoding:  self->handle->encoding);
-    ipr_shortstr_cpy (dest->item_identifier, self->identifier);
+    ipr_shortstr_cpy (mesgq->item_mime_type, *self->mime_type? self->mime_type: self->handle->mime_type);
+    ipr_shortstr_cpy (mesgq->item_encoding,  *self->encoding?  self->encoding:  self->handle->encoding);
+    ipr_shortstr_cpy (mesgq->item_identifier, self->identifier);
 
-    ipr_longstr_destroy (&dest->item_headers);
-    dest->item_headers = ipr_longstr_new (self->headers->data, self->headers->cur_size);
+    ipr_longstr_destroy (&mesgq->item_headers);
+    mesgq->item_headers = ipr_longstr_new (self->headers->data, self->headers->cur_size);
 
-    ipr_longstr_destroy (&dest->item_content);
-    dest->item_content = ipr_longstr_new (self->fragment->data, self->fragment->cur_size);
+    ipr_longstr_destroy (&mesgq->item_content);
+    mesgq->item_content = ipr_longstr_new (self->fragment->data, self->fragment->cur_size);
 }
 
 
 /*  Restore message properties from recorded data                            */
 
 static void
-s_load_message_properties ($(selftype) *self, amq_dest_t *dest)
+s_load_message_properties ($(selftype) *self, amq_mesgq_t *mesgq)
 {
-    self->header_size = dest->item_header_size;
-    self->body_size   = dest->item_body_size;
-    self->priority    = dest->item_priority;
-    self->expiration  = dest->item_expiration;
-    self->store_size  = dest->item_store_size;
+    self->header_size = mesgq->item_header_size;
+    self->body_size   = mesgq->item_body_size;
+    self->priority    = mesgq->item_priority;
+    self->expiration  = mesgq->item_expiration;
+    self->store_size  = mesgq->item_store_size;
 
-    ipr_shortstr_cpy (self->mime_type,  dest->item_mime_type);
-    ipr_shortstr_cpy (self->encoding,   dest->item_encoding);
-    ipr_shortstr_cpy (self->identifier, dest->item_identifier);
+    ipr_shortstr_cpy (self->mime_type,  mesgq->item_mime_type);
+    ipr_shortstr_cpy (self->encoding,   mesgq->item_encoding);
+    ipr_shortstr_cpy (self->identifier, mesgq->item_identifier);
 
     ipr_longstr_destroy (&self->headers);
-    self->headers = ipr_longstr_new (dest->item_headers->data, dest->item_headers->cur_size);
+    self->headers = ipr_longstr_new (mesgq->item_headers->data, mesgq->item_headers->cur_size);
 
     /*  Get first fragment; rest is in overflow file on disk                 */
     self->processed = self->body_size;
     self->fragment  = amq_bucket_new (AMQ_BUCKET_MAX_SIZE);
-    amq_bucket_fill (self->fragment, dest->item_content->data, dest->item_content->cur_size);
+    amq_bucket_fill (self->fragment, mesgq->item_content->data, mesgq->item_content->cur_size);
 }
 </private>
 
@@ -299,8 +299,8 @@ s_load_message_properties ($(selftype) *self, amq_dest_t *dest)
     amq_handle_table_t
         *handles;
 
-    amq_dest_t
-        *dest;
+    amq_mesgq_t
+        *mesgq;
 
     amq_smessage_t
         *message,
@@ -343,26 +343,26 @@ s_load_message_properties ($(selftype) *self, amq_dest_t *dest)
     handle  = amq_handle_new (handles, handle_open.handle_id, channel, &handle_open);
     assert (handle);
 
-    /*  Initialise dest                                                     */
-    dest = amq_dest_new (
+    /*  Initialise mesgq                                                     */
+    mesgq = amq_mesgq_new (
             "tempq-test-00",            /*  Mapped key/filename              */
             vhost,                      /*  Parent virtual host              */
-            AMQ_DEST_TYPE_TEMPQ,        /*  Dest type                        */
-            "test",                     /*  External dest name               */
+            AMQ_MESGQ_TYPE_TEMPQ,       /*  Mesgq type                       */
+            "test",                     /*  External destination name        */
             1);                         /*  Owning client id, if any         */
-    assert (dest);
+    assert (mesgq);
 
     /*  Record test message                                                  */
     message = amq_smessage_new (handle);
     amq_smessage_testfill (message, TEST_SIZE);
 
     /*  Save to persistent storage                                           */
-    amq_smessage_save (message, dest, NULL);
+    amq_smessage_save (message, mesgq, NULL);
     amq_smessage_destroy (&message);
 
     /*  Load from persistent storage                                         */
     message = amq_smessage_new (handle);
-    amq_smessage_load (message, dest);
+    amq_smessage_load (message, mesgq);
 
     /*  Replay test message                                                  */
     diskmsg = amq_smessage_new (handle);
@@ -393,7 +393,7 @@ s_load_message_properties ($(selftype) *self, amq_dest_t *dest)
     amq_smessage_purge (message);
 
     /*  Release resources                                                    */
-    amq_dest_destroy          (&dest);
+    amq_mesgq_destroy         (&mesgq);
     amq_bucket_destroy        (&bucket);
     amq_smessage_destroy      (&diskmsg);
     amq_smessage_destroy      (&message);

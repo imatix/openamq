@@ -55,9 +55,9 @@ for PRODUCT in $PRODUCTS; do
     tar -xzf $HOME/products/$PRODUCT/*.tar.gz
     eval SUBDIR="\$${PRODUCT}_version"
 
-    echo "cd $SUBDIR"           >>build.sh
-    echo "boomake build install">>build.sh
-    echo "cd .."                >>build.sh
+    echo "cd $SUBDIR"                >>build.sh
+    echo "sh ./boomake build install">>build.sh
+    echo "cd .."                     >>build.sh
 
     echo "cd $SUBDIR"           >>build.bat
     echo "boomake build install">>build.bat

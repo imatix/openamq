@@ -1,5 +1,14 @@
 0.8b2 - 2005/04/01
 
+  - server now creates and opens queue persistence files 'lazily',
+    allowing pure in-memory queues.
+
+  - amq_message class was ignoring persistent setting in testfill method;
+    thus serial client "persistent" option had no effect - fixed.
+
+  - openamq server now purges memory (50% purge) when it reaches the
+    preset server limit.
+
   - HANDLE BROWSE fixed to return accurate message number (was always
     zero).
 

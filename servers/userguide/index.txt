@@ -55,34 +55,34 @@ Features
 
 The current version of OpenAMQ implements:
 
- - configured message queues
- - named and unnamed temporary queues
- - message sizes from 1 octet to 4 gigaoctets
- - persistent and non-persistent messages
- - batched operation with commit/rollback per batch
- - multiple readers per queue with round-robin dispatching
- - configurable queue limits (messages, readers)
- - a rapid single-process server architecture
- - virtual hosts
- - restartable message transfer for large messages
- - browsable queues
- - simple authorisation via login and password
- - message prioritisation (up to 10 levels per queue)
- - multiplexed AMQP protocol with up to 255 channels per socket
- - XML-based configuration files
- - tuning options for queue physical storage
+- configured message queues
+- named and unnamed temporary queues
+- message sizes from 1 octet to 4 gigaoctets
+- persistent and non-persistent messages
+- batched operation with commit/rollback per batch
+- multiple readers per queue with round-robin dispatching
+- configurable queue limits (messages, readers)
+- a rapid single-process server architecture
+- virtual hosts
+- restartable message transfer for large messages
+- browsable queues
+- simple authorisation via login and password
+- message prioritisation (up to 10 levels per queue)
+- multiplexed AMQP protocol with up to 255 channels per socket
+- XML-based configuration files
+- tuning options for queue physical storage
 
 These aspects of the AMQP specifications are not implemented:
 
- - topics and subscriptions
- - message selectors
- - connection heartbeats
- - message expiration
+- topics and subscriptions
+- message selectors
+- connection heartbeats
+- message expiration
 
 These additional functionalities are planned for future versions
 of OpenAMQ:
 
- - remote administration tools (web or Java)
+- remote administration tools (web or Java)
 
 Concepts
 ========

@@ -27,10 +27,10 @@
         *ddb;                           /*  Deprecated database handle       */
     ipr_config_t
         *config;                        /*  Virtual host configuration       */
-    amq_dest_table_t
-        *dest_hash;                     /*  Destinations for this vhost      */
+    amq_mesgq_table_t
+        *mesgq_hash;                    /*  Message queues for this vhost    */
     ipr_looseref_list_t
-        *dest_refs;                    /*  Destinations, as list            */
+        *mesgq_refs;                    /*  Message queues, as list          */
     ipr_shortstr_t
         directory;                      /*  Location for virtual host        */
     ipr_shortstr_t
@@ -44,8 +44,8 @@
     <argument name = "config"    type = "ipr_config_t *"/>
 
     self->config = config;
-    self->dest_hash = amq_dest_table_new ();
-    self->dest_refs = ipr_looseref_list_new ();
+    self->mesgq_hash = amq_mesgq_table_new ();
+    self->mesgq_refs = ipr_looseref_list_new ();
     ipr_shortstr_cpy (self->directory, directory);
 
     coprintf ("I: configuring virtual host '%s'", self->key);
@@ -67,8 +67,8 @@
         coprintf ("$(selfname) E: database cursor still open, attempting recovery");
         self->db->db_cursor = NULL;
     }
-    amq_dest_table_destroy    (&self->dest_hash);
-    ipr_looseref_list_destroy (&self->dest_refs);
+    amq_mesgq_table_destroy   (&self->mesgq_hash);
+    ipr_looseref_list_destroy (&self->mesgq_refs);
     ipr_config_destroy        (&self->config);
     ipr_db_destroy            (&self->db);
     amq_db_destroy            (&self->ddb);
@@ -78,22 +78,22 @@
     <doc>
     Dispatches all queues that have received new messages, i.e. have the
     'dirty' property.  All dirty queues are at the start of the vhost
-    dest list - see amq_dest_accept ().
+    mesgq list - see amq_mesgq_accept ().
     </doc>
     <local>
     ipr_looseref_t
-        *dest_ref;                      /*  Entry into dest list     */
-    amq_dest_t
-        *dest;                          /*  Destination object       */
+        *mesgq_ref;                      /*  Entry into mesgq list           */
+    amq_mesgq_t
+        *mesgq;                          /*  Message queue object            */
     </local>
 
-    /*  Dispatch all dirty queues until we hit the last one          */
-    dest_ref = ipr_looseref_list_first (self->dest_refs);
-    while (dest_ref) {
-        dest = (amq_dest_t *) dest_ref->object;
-        if (dest->dirty) {
-            amq_dest_dispatch (dest);
-            dest_ref = ipr_looseref_list_next (self->dest_refs, dest_ref);
+    /*  Dispatch all dirty message queues until we hit the last one          */
+    mesgq_ref = ipr_looseref_list_first (self->mesgq_refs);
+    while (mesgq_ref) {
+        mesgq = (amq_mesgq_t *) mesgq_ref->object;
+        if (mesgq->dirty) {
+            amq_mesgq_dispatch (mesgq);
+            mesgq_ref = ipr_looseref_list_next (self->mesgq_refs, mesgq_ref);
         }
         else
             break;
@@ -141,6 +141,8 @@ s_config_database ($(selftype) *self)
         database_dir;
     amq_db_client_t
         *client;
+    amq_db_dest_t
+        *dest;
 
     /*  Prepare database working directory                                   */
     ipr_shortstr_fmt (database_dir, "%s/%s", self->directory,
@@ -162,6 +164,14 @@ s_config_database ($(selftype) *self)
         amq_db_client_update (self->ddb, client);
     }
     amq_db_client_destroy (&client);
+
+    /*  Wipe all temporary queues                                            */
+    dest = amq_db_dest_new ();
+    while (amq_db_dest_fetch (self->ddb, dest, AMQ_DB_FETCH_GT) == 0) {
+        if (dest->type == AMQ_MESGQ_TYPE_TEMPQ)
+            amq_db_dest_delete (self->ddb, dest);
+    }
+    amq_db_dest_destroy (&dest);
 }
 
 
@@ -179,11 +189,11 @@ s_config_queues ($(selftype) *self)
     ipr_config_locate (self->config, "/config/queues/queue", NULL);
     while (self->config->located) {
         external_name = ipr_config_attr (self->config, "name", "unnamed");
-        amq_dest_map_name (internal_name, external_name, AMQ_DEST_TYPE_QUEUE);
-        amq_dest_new (
+        amq_mesgq_map_name (internal_name, external_name, AMQ_MESGQ_TYPE_QUEUE);
+        amq_mesgq_new (
             internal_name,              /*  Mapped key/filename              */
             self,                       /*  Parent virtual host              */
-            AMQ_DEST_TYPE_QUEUE,        /*  Destination type                 */
+            AMQ_MESGQ_TYPE_QUEUE,       /*  Message queue type               */
             external_name,              /*  External dest name               */
             0);                         /*  Owning client id, if any         */
         ipr_config_next (self->config);

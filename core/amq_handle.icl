@@ -32,8 +32,8 @@
     in an array for easy access via HANDLE BROWSE                            */
 
 typedef struct {
-    amq_dest_t
-        *dest;                          /*  Dest which holds the message     */
+    amq_mesgq_t
+        *mesgq;                         /*  Message queue                    */
     amq_smessage_t
         *message;                       /*  Message, if non-persistent       */
     qbyte
@@ -57,10 +57,12 @@ typedef struct {
     /*  Object properties                                                    */
     ipr_db_t
         *db;                            /*  Database for virtual host        */
+    amq_db_t
+        *ddb;                           /*  Deprecated database handle       */
     ipr_looseref_list_t
         *consumers;                     /*  List of consumers per handle     */
-    amq_dest_t
-        *dest;                          /*  If refers to actual dest         */
+    amq_mesgq_t
+        *mesgq;                         /*  If refers to message queue       */
     amq_browser_array_t
         *browser_set;                   /*  Results of last HANDLE QUERY     */
     int
@@ -94,7 +96,9 @@ typedef struct {
     self->vhost       = channel->vhost;
     self->thread      = channel->thread;
     self->db          = channel->db;
+    self->ddb         = channel->ddb;
     assert (self->db);                  /*  Database must be open            */
+    assert (self->ddb);
 
     /*  Initialise other properties                                          */
     self->consumers    = ipr_looseref_list_new ();
@@ -134,10 +138,12 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
 
     /*  Find queue if named                                                  */
     if (self->dest_name && *self->dest_name) {
-        self->dest = amq_dest_search (self->vhost->dest_hash, self->dest_name);
-        if (self->dest == NULL
-        &&  !temporary)
+        self->mesgq = amq_mesgq_search (
+            self->vhost->mesgq_hash, self->dest_name, AMQ_MESGQ_TYPE_QUEUE);
+        if (self->mesgq == NULL && !temporary) {
+            amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
             $(selfname)_destroy (p_self);
+        }
     }
     else
     if (temporary)                      /*  Assign name automatically        */
@@ -145,19 +151,19 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
 
     /*  Create, if temporary and not already present                         */
     if (temporary) {
-        if (self->dest) {
-            if (self->dest->client_id != self->client_id) {
-                coprintf ("$(selfname) E: temporary queue '%s' already in use", self->dest_name);
-                self->dest = NULL;
+        if (self->mesgq) {
+            if (self->mesgq->client_id != self->client_id) {
+                amq_global_set_error (AMQP_NOT_FOUND, "Temporary queue already in use");
+                self->mesgq = NULL;
                 $(selfname)_destroy (p_self);
             }
         }
         else {
-            amq_dest_map_name (internal_name, self->dest_name, AMQ_DEST_TYPE_QUEUE);
-            amq_dest_new (
+            amq_mesgq_map_name (internal_name, self->dest_name, AMQ_MESGQ_TYPE_QUEUE);
+            amq_mesgq_new (
                 internal_name,          /*  Mapped key/filename              */
                 self->vhost,            /*  Parent virtual host              */
-                AMQ_DEST_TYPE_TEMPQ,    /*  Destination type                 */
+                AMQ_MESGQ_TYPE_TEMPQ,   /*  Message queue type               */
                 self->dest_name,        /*  External dest name               */
                 self->client_id);       /*  Owning client id                 */
             amq_server_agent_handle_created (
@@ -191,22 +197,22 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
     <argument name = "command" type = "amq_handle_send_t *" />
     <argument name = "message" type = "amq_smessage_t *"    />
     <local>
-    amq_dest_t
-        *dest;
+    amq_mesgq_t
+        *mesgq;
     </local>
 
-    /*  Look for the dest using the destination name specified               */
-    dest = amq_dest_full_search (
-        self->vhost->dest_hash,
+    /*  Look for the mesgq using the destination name specified              */
+    mesgq = amq_mesgq_full_search (
+        self->vhost->mesgq_hash,
         self->dest_name,
         command->dest_name,
-        AMQ_DEST_TYPE_QUEUE);
+        AMQ_MESGQ_TYPE_QUEUE);
     /*  TODO topic broadcasts  */
 
-    if (dest) {
-        amq_dest_accept (dest, self->channel, message, NULL);
-        if (dest->dirty)
-            amq_dest_dispatch (dest);
+    if (mesgq) {
+        amq_mesgq_accept (mesgq, self->channel, message, NULL);
+        if (mesgq->dirty)
+            amq_mesgq_dispatch (mesgq);
     }
     else
         amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
@@ -222,7 +228,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
     consumer = amq_consumer_new (self, command);
     if (consumer) {
         ipr_looseref_new (self->consumers, consumer);
-        amq_dest_dispatch (consumer->dest);
+        amq_mesgq_dispatch (consumer->mesgq);
     }
 </method>
 
@@ -241,11 +247,11 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
     </local>
 
     self->paused = command->flow_pause;
-    /*  If switching on, dispatch all dests for handle                      */
+    /*  If switching on, dispatch all mesgqs for handle                     */
     if (!self->paused) {
         consumer = ipr_looseref_list_first (self->consumers);
         while (consumer) {
-            amq_dest_dispatch (((amq_consumer_t *) consumer->object)->dest);
+            amq_mesgq_dispatch (((amq_consumer_t *) consumer->object)->mesgq);
             consumer = ipr_looseref_list_next (self->consumers, consumer);
         }
     }
@@ -259,23 +265,23 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
 <method name = "query" template = "function" >
     <argument name = "command" type = "amq_handle_query_t *" />
     <local>
-    amq_dest_t
-        *dest;
+    amq_mesgq_t
+        *mesgq;
     </local>
 
     /*  TODO:
         - check service type for query
      */
-    /*  Look for the dest using the destination name specified              */
-    dest = amq_dest_full_search (
-        self->vhost->dest_hash,
+    /*  Look for the mesgq using the destination name specified             */
+    mesgq = amq_mesgq_full_search (
+        self->vhost->mesgq_hash,
         self->dest_name,
         command->dest_name,
-        AMQ_DEST_TYPE_QUEUE);
+        AMQ_MESGQ_TYPE_QUEUE);
 
-    if (dest) {
-        if (dest->opt_browsable) {
-            amq_dest_query (dest, self->browser_set);
+    if (mesgq) {
+        if (mesgq->opt_browsable) {
+            amq_mesgq_query (mesgq, self->browser_set);
             amq_server_agent_handle_index (
                 self->thread,
                 (dbyte) self->key,
@@ -297,7 +303,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
     </local>
     browser = amq_browser_array_fetch (self->browser_set, command->message_nbr);
     if (browser == NULL
-    ||  amq_dest_browse (browser->dest, self, browser))
+    ||  amq_mesgq_browse (browser->mesgq, self, browser))
         amq_global_set_error (AMQP_MESSAGE_NOT_FOUND, "Message does not exist");
 </method>
 
@@ -334,6 +340,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
         ipr_config_new ("vh_test", AMQ_VHOST_CONFIG));
     assert (vhost);
     assert (vhost->db);
+    assert (vhost->ddb);
 
     /*  Initialise connection                                                */
     ipr_shortstr_cpy (connection_open.virtual_path, "/test");

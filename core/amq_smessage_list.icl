@@ -34,7 +34,7 @@
     </local>
     message = amq_smessage_list_first (self);
     while (message) {
-        amq_dest_accept (message->dest, NULL, message, txn);
+        amq_mesgq_accept (message->mesgq, NULL, message, txn);
         current = message;              /*  Double-check accept worked       */
         message = amq_smessage_list_first (self);
         assert (message != current);
