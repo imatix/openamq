@@ -55,14 +55,4 @@
         </clean>
     </actions>
 </directory>
-
-<directory name = "java" keep_paths = "0">
-    <file name = "amq_frames.gsl"        class = "private resource">Java frames generator</file>
-    <file name = "amqpcli_serial.java"   class = "private resource">Java serial test client</file>
-    <file name = "amqpcli_serial.java.l" class = "private resource">Java serial test client</file>
-    <file name = "EchoClient.java"       class = "private resource">Java chat client</file>
-    <file name = "README.txt"            class = "private resource">Readme</file>
-    <file name = "build.sh"              class = "private resource">Readme</file>
-</directory>
-
 </pdl>
