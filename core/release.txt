@@ -1,4 +1,4 @@
-0.7c0 -
+0.7c0 - 14 February 2005
     - added server support for HANDLE QUERY, HANDLE BROWSE commands
     - added serial client support for HANDLE INDEX
 

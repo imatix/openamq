@@ -39,7 +39,6 @@
     </doc>
     <argument name = "source" type = "void *">Address of data to copy from</argument>
     <argument name = "size"   type = "size_t">Amount of data to copy</argument>
-    ASSERT (self);
     ASSERT (size <= self->max_size);
     memcpy (self->data, source, size);
     self->cur_size = size;
@@ -56,7 +55,6 @@
     </doc>
     <argument name = "file" type = "FILE *">File pointer of open file to copy from</argument>
     <argument name = "size" type = "size_t">Amount of data to copy</argument>
-    ASSERT (self);
     ASSERT (size <= self->max_size);
     self->cur_size = fread (self->data, 1, size, file);
 </method>
@@ -66,7 +64,6 @@
     Saves the data in the bucket to a file.
     </doc>
     <argument name = "file" type = "FILE *">File pointer of open file to copy to</argument>
-    ASSERT (self);
     fwrite (self->data, 1, self->cur_size, file);
 </method>
 

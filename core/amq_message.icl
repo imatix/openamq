@@ -188,9 +188,8 @@
     <argument name = "fragment" type = "amq_bucket_t *" />
     <argument name = "partial"  type = "Bool"           />
 
-    if (self->fragment == NULL) {
+    if (self->fragment == NULL)
         s_record_header (self, fragment);
-    }
     else {
         /*  Process additional fragment in same message                      */
         if (self->spool_fh == NULL) {
@@ -327,22 +326,24 @@ s_record_header ($(selftype) *self, amq_bucket_t *fragment)
     ASSERT (self->fragment == NULL);
 
     frame = amq_message_head_decode (fragment);
-    self->fragment    = fragment;
-    self->header_size = frame->size;
-    self->processed   = fragment->cur_size - frame->size;
-    self->spool_size  = 0;
+    if (frame) {
+        self->fragment    = fragment;
+        self->header_size = frame->size;
+        self->processed   = fragment->cur_size - frame->size;
+        self->spool_size  = 0;
 
-    self->body_size   = frame->body.message_head.body_size;
-    self->persistent  = frame->body.message_head.persistent;
-    self->priority    = frame->body.message_head.priority;
-    self->expiration  = frame->body.message_head.expiration;
-    ipr_shortstr_cpy (self->mime_type,  frame->body.message_head.mime_type);
-    ipr_shortstr_cpy (self->encoding,   frame->body.message_head.encoding);
-    ipr_shortstr_cpy (self->identifier, frame->body.message_head.identifier);
-    self->headers       = frame->body.message_head.headers;
-    frame->body.message_head.headers = NULL;
+        self->body_size   = frame->body.message_head.body_size;
+        self->persistent  = frame->body.message_head.persistent;
+        self->priority    = frame->body.message_head.priority;
+        self->expiration  = frame->body.message_head.expiration;
+        ipr_shortstr_cpy (self->mime_type,  frame->body.message_head.mime_type);
+        ipr_shortstr_cpy (self->encoding,   frame->body.message_head.encoding);
+        ipr_shortstr_cpy (self->identifier, frame->body.message_head.identifier);
+        self->headers       = frame->body.message_head.headers;
+        frame->body.message_head.headers = NULL;
 
-    amq_frame_free (&frame);
+        amq_frame_free (&frame);
+    }
 }
 
 /*  Store message header fields into bucket                                  */

@@ -62,7 +62,6 @@
     && (self->body_size + self->header_size) > AMQ_BUCKET_SIZE) {
         sha (self->fragment->data, self->header_size, digest);
         spool = amq_db_spool_new ();
-
         ASSERT (SHA_DIGEST_SIZE &lt; sizeof (spool->signature));
         memcpy (spool->signature, digest, SHA_DIGEST_SIZE);
         strcpy (spool->file_name, self->spool_file);

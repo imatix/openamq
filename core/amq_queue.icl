@@ -128,7 +128,7 @@ ipr_db_queue class.
             queue->window += consumer->window;
         }
         else {
-            coprintf ("$(selfname) W: consume failed, not owner of temp.queue");
+            coprintf ("$(selfname) W: consume failed, not queue owner");
             queue = NULL;               /*  Not owner of temporary queue     */
         }
     }
@@ -234,7 +234,7 @@ ipr_db_queue class.
                     amq_smessage_load  (message, self);
                     s_dispatch_message (consumer, message);
 
-                    /*  Update client id, using channel transaction if any   */
+                    /*  Update client id, using channel txn if any       */
                     self->item_client_id = consumer->client_id;
                     amq_queue_update (self, consumer->channel->txn);
                 }
@@ -270,12 +270,11 @@ ipr_db_queue class.
     amq_browser_array_reset (browser_set);
     message = amq_smessage_list_first (self->messages);
     while (message) {
-        browser = amq_browser_new (browser_set, set_index++, self, 0, message);
-        message = amq_smessage_list_next (self->messages, message);
         /*  Track browser for message so we can invalidate it if/when
-            we dispatch the message.
-         */
+            we dispatch the message.                                         */
+        browser = amq_browser_new (browser_set, set_index++, self, 0, message);
         amq_looseref_new (message->browsers, browser);
+        message = amq_smessage_list_next (self->messages, message);
     }
     /*  Now process any messages on disk                                     */
     if (self->outstanding) {

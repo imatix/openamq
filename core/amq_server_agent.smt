@@ -110,7 +110,7 @@ static int
         amq_server_agent_client_context_t
             *client_tcb;
 
-        client_thread      = amq_server_agent_client_thread_new ();
+        client_thread = amq_server_agent_client_thread_new ();
         client_tcb         = client_thread->context;
         client_tcb->socket = tcb-> connect;
     </action>
@@ -599,19 +599,24 @@ static int
             tcb->channel->message_in = amq_smessage_new (tcb->handle);
 
         tcb->fragment->cur_size = tcb->socket->io_size;
-        amq_smessage_record (tcb->channel->message_in, tcb->fragment, HANDLE_SEND.partial);
-        /*  Grab new bucket since record method now owns our old one         */
-        tcb->fragment = amq_bucket_new ();
-
-        if (HANDLE_SEND.partial)
-            the_next_event = continue_event;
+        if (amq_smessage_record (
+            tcb->channel->message_in, tcb->fragment, HANDLE_SEND.partial))
+            smt_thread_raise_exception (thread, connection_error_event);
         else {
-            tcb->reply_code = amq_handle_send (
-                tcb->handle, &HANDLE_SEND, tcb->channel->message_in, &tcb->reply_text);
-            handle_reply_if_needed (thread, HANDLE_SEND.confirm_tag);
-            /*  We pass ownership to the message handler code                */
-            tcb->channel->message_in = NULL;
-            the_next_event = finished_event;
+            /*  Grab new bucket, record method now owns our old one          */
+            tcb->fragment = amq_bucket_new ();
+
+            if (HANDLE_SEND.partial)
+                the_next_event = continue_event;
+            else {
+                tcb->reply_code = amq_handle_send (
+                    tcb->handle, &HANDLE_SEND, tcb->channel->message_in, &tcb->reply_text);
+                handle_reply_if_needed (thread, HANDLE_SEND.confirm_tag);
+
+                /*  We pass ownership to the message handler code            */
+                tcb->channel->message_in = NULL;
+                the_next_event = finished_event;
+            }
         }
     </action>
 
@@ -686,8 +691,9 @@ static int
             handle_notify_m->handle_id, size);
         send_the_frame (thread);
 
-        /*  Grab new bucket since record method now owns our old one         */
+        /*  Grab new bucket, record method now owns our old one              */
         tcb->fragment = amq_bucket_new ();
+
         /*  We pass ownership to the message handler code                    */
         tcb->channel->message_in = NULL;
     </action>
