@@ -32,10 +32,9 @@ ipr_db_queue class.
     <field name = "store size"  type = "longint" >Stored file size, or 0</field>
 </data>
 
-<import class = "ipr_classes"  />
-<import class = "amq_db"       />
-<import class = "amq_consumer" />
-<import class = "amq_message"  />
+<import class = "ipr_classes" />
+<import class = "amq_global"  />
+<import class = "amq_db"      />
 
 <public name = "header">
 #include "amq_core.h"
@@ -462,7 +461,7 @@ ipr_db_queue class.
     amq_smessage_t
         *message = NULL;
     Bool
-        destroy_message;                /*  Destroy when sent?               */
+        destroy_message = FALSE;        /*  Destroy when sent?               */
     </local>
     if (browser->message) {
         message = browser->message;

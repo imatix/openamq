@@ -10,7 +10,8 @@
 <inherit class = "amq_message"   />
 <inherit class = "ipr_list_item" />
 
-<import class = "amq_vhost" />
+<import class = "ipr_classes" />
+<import class = "amq_global"  />
 <!--
     This class inherits and extends amq_message with functions to
     load and save from persistent storage.

@@ -47,17 +47,18 @@
 #define AMQP_INVALID_MESSAGE        542
 
 /*  AMQ RFC 006 defines 10 priority levels, from 0 to 9                      */
+
 #define AMQP_MAX_PRIORITIES         10
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void  amq_set_server_name (char *name);
-void  amq_set_server_text (char *text);
+void  amq_set_server_name    (char *name);
+void  amq_set_server_text    (char *text);
 
-int   amq_server_core     (int argc, char *argv []);
-int   amq_user_modules    (void);
+int   amq_server_core        (int argc, char *argv []);
+int   amq_user_modules       (void);
 
 #ifdef __cplusplus
 }

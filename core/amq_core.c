@@ -33,15 +33,10 @@ static char
     *s_server_name = "amqpsrv",
     *s_server_text = "*** Test server - for internal use only ***";
 
-static char
-    *s_error_text = "No error";
-static int
-    s_error_code = 0;
-
-
 /*  Prototypes for local functions                                           */
 
-static void s_prepare_logging (void);
+static void s_prepare_logging  (void);
+static void s_prepare_security (void);
 
 
 /*  --------------------------------------------------------------------------
@@ -67,61 +62,6 @@ void
 amq_set_server_text (char *text)
 {
     s_server_text = text;
-}
-
-
-/*  --------------------------------------------------------------------------
-    amq_set_error
-
-    Sets the error reply code and text for the current operation.  Note that
-    this function is not thread safe; we assume that OpenAMQ is operating in
-    a single-threaded environment, which is accurate when working with SMT.
- */
-
-void
-amq_set_error (int error_code, char *error_text)
-{
-    s_error_code = error_code;
-    s_error_text = error_text;
-}
-
-
-/*  --------------------------------------------------------------------------
-    amq_error_text
-
-    Returns the last error string.
- */
-
-char *
-amq_error_text (void)
-{
-    return (s_error_text);
-}
-
-
-/*  --------------------------------------------------------------------------
-    amq_error_code
-
-    Returns the error code, if any.
- */
-
-int
-amq_error_code (void)
-{
-    return (s_error_code);
-}
-
-
-/*  --------------------------------------------------------------------------
-    amq_reset_error
-
-    Resets the error code to zero.
- */
-
-void
-amq_reset_error (void)
-{
-    amq_set_error (0, "No error");
 }
 
 
@@ -236,7 +176,7 @@ amq_server_core (
 
     /*  Initialise arguments, taking defaults from the config_table          */
     if (!opt_server) {
-        ipr_config_locate (amq_config, "/server", NULL);
+        ipr_config_locate (amq_config, "/config/server", NULL);
         opt_server = ipr_config_attr (amq_config, "background", "0");
     }
     if (quiet_mode) {
@@ -260,12 +200,15 @@ amq_server_core (
     }
 
     /*  Configure server resource parameters                                 */
-    ipr_config_locate (amq_config, "/resources", NULL);
-        amq_allowed_memory = ipr_config_attrn (amq_config, "allowed-memory");
+    ipr_config_locate (amq_config, "/config/resources", NULL);
+    amq_allowed_memory = ipr_config_attrn (amq_config, "allowed-memory");
 
     /*  Pre-module initialisation                                            */
-    s_prepare_logging ();
+    amq_users  = amq_user_table_new ();
     amq_vhosts = amq_vhost_table_new (amq_config);
+    s_prepare_security ();
+    s_prepare_logging  ();
+
     if (amq_server_agent_init (atoi (opt_trace))) {
         coprintf ("E: could not start server protocol agent");
         goto failed;
@@ -280,8 +223,9 @@ amq_server_core (
     smt_thread_execute (SMT_EXEC_FULL);
 
     /*  Release resources                                                    */
-    ipr_config_destroy (&amq_config);
     amq_vhost_table_destroy (&amq_vhosts);
+    amq_user_table_destroy  (&amq_users);
+    ipr_config_destroy      (&amq_config);
     icl_system_destroy ();
 
     /*  Report memory usage                                                  */
@@ -301,6 +245,7 @@ amq_server_core (
     - creates log directory if necessary
     - redirects console output to log file
  */
+
 static void
 s_prepare_logging (void)
 {
@@ -308,7 +253,7 @@ s_prepare_logging (void)
         *log_dir,
         *console_file;
 
-    ipr_config_locate (amq_config, "/logging", NULL);
+    ipr_config_locate (amq_config, "/config/logging", NULL);
 
     log_dir = ipr_config_attr (amq_config, "directory", "./logs");
     if (!file_is_directory (log_dir))
@@ -319,5 +264,39 @@ s_prepare_logging (void)
 
     console_send    (NULL, TRUE);
     console_capture (console_file, 'a');
+}
+
+
+/*  -------------------------------------------------------------------------
+    Prepares server security mechanisms
+ */
+
+static void
+s_prepare_security (void)
+{
+    char
+        *mechanism;
+
+    ipr_config_locate (amq_config, "/config/security", NULL);
+    mechanism = ipr_config_attr (amq_config, "mechanism", "NONE");
+    if (streq (mechanism, "NONE"))
+        amq_global_set_mechanism (AMQ_MECHANISM_NONE);
+    else
+    if (streq (mechanism, "PLAIN"))
+        amq_global_set_mechanism (AMQ_MECHANISM_PLAIN);
+    else {
+        coprintf ("E: invalid security mechanism, '%s'", mechanism);
+        amq_global_set_mechanism (AMQ_MECHANISM_NONE);
+    }
+
+    /*  Load user table from configuration file                              */
+    ipr_config_locate (amq_config, "/config/users/user", NULL);
+    while (amq_config->located) {
+        amq_user_new (
+            amq_users,                  /*  Users hash table                 */
+            ipr_config_attr (amq_config, "login", ""),
+            amq_config);                /*  Configuration entry              */
+        ipr_config_next (amq_config);
+    }
 }
 

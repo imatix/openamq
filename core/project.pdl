@@ -34,9 +34,9 @@
 <file name = "amq_consumer.icl"      class = "icl private class">Consumer class</file>
 <file name = "amq_dispatch.icl"      class = "icl private class">Dispatched message class</file>
 <file name = "amq_dispatch_list.icl" class = "icl private class">Container for dispatch class</file>
-<file name = "amq_field.icl"         class = "icl private class">Data field class</file>
-<file name = "amq_field_list.icl"    class = "icl private class">Container for field class</file>
-<file name = "amq_global.icl"        class = "icl private data" >Globals class</file>
+<file name = "amq_field.icl"         class = "icl public class" >Data field class</file>
+<file name = "amq_field_list.icl"    class = "icl public class" >Container for field class</file>
+<file name = "amq_global.icl"        class = "icl private class">Globals class</file>
 <file name = "amq_handle.icl"        class = "icl private class">Destination handle class</file>
 <file name = "amq_queue.icl"         class = "icl private class">Queue class</file>
 <file name = "amq_smessage.icl"      class = "icl private class">Server-side message</file>

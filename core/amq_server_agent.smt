@@ -230,7 +230,9 @@ static int
     <action name = "send connection challenge">
         amq_frame_free (&tcb->frame);
         tcb->frame = amq_frame_connection_challenge_new (
-            AMQP_VERSION, "plain", NULL);
+            AMQP_VERSION,
+            amq_global_mechanism_str (),
+            NULL);                      /*  No fields in outgoing command    */
         send_the_frame (thread);
     </action>
 
@@ -391,9 +393,12 @@ static int
     </state>
 
     <action name = "process connection response">
-        /*  TODO: decode longstr, check name and password                    */
-        /*  For now we don't validate the response                           */
-        /*  If it was not enough, raise an insufficient_event exception      */
+        amq_connection_response (tcb->connection, &CONNECTION_RESPONSE);
+        if (!tcb->connection->authorised) {
+            tcb->reply_code = amq_global_error_code ();
+            tcb->reply_text = amq_global_error_text ();
+            smt_thread_raise_exception (thread, connection_error_event);
+        }
     </action>
 
     <action name = "send connection tune">

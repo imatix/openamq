@@ -9,8 +9,8 @@
 
 <inherit class = "ipr_list_item" />
 
-<import class = "amq_handle"  />
 <import class = "ipr_classes" />
+<import class = "amq_global"  />
 
 <public name = "header">
 #include "amq_core.h"

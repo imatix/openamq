@@ -8,10 +8,10 @@ Test case
     - do for mix of non-persistent and persistent
 
 
+- amq_server object
+    - replaces amq_global
+    - runs on a specific port
 
-
-
-- rename amqpsrv -> openamqd
 
 Tracing
     - amqpsrv queue configuration

@@ -1,8 +1,10 @@
-0.7c4 - 3 March 2005
+0.7d0 - 9 March 2005
     - added queue 'priority-levels' option
     - implemented message priorities with up to 10 priority levels
     - added queue 'persistent' option, forces all messages to disk
     - fixed several issues with HANDLE QUERY/BROWSE
+    - added support for user authorisation using PLAIN mechanism
+    - added support for NONE security mechanism (default)
 
 0.7c3 - 2 March 2005
     - added queue 'browsable' option, disables HANDLE QUERY/BROWSE on queue

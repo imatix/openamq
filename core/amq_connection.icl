@@ -10,10 +10,8 @@
 <inherit class = "icl_alloc_cache" />
 
 <import class = "smt_thread_handle" />
-<import class = "amq_vhost"   />
-<import class = "amq_channel" />
-<import class = "amq_handle"  />
 <import class = "ipr_classes" />
+<import class = "amq_global"  />
 
 <public name = "header">
 #include "amq_core.h"
@@ -47,6 +45,8 @@
         heartbeat;                      /*  Connection heartbeat             */
     ipr_shortstr_t
         client_name;                    /*  Client identifier                */
+    Bool
+        authorised;                     /*  Connection authorised?           */
 </context>
 
 <method name = "new">
@@ -83,6 +83,10 @@
 </method>
 
 <method name = "tune" template = "function">
+    <doc>
+    Implements the CONNECTION TUNE command by updating the connection
+    properties as necessary.
+    </doc>
     <argument name = "command" type = "amq_connection_tune_t *" />
     /*  Lower limits if client asks for that                                 */
     if (self->frame_max   > command->frame_max)
@@ -93,6 +97,61 @@
         self->handle_max  = command->handle_max;
 
     self->heartbeat = command->heartbeat;
+</method>
+
+<method name = "response" template = "function">
+    <doc>
+    Implements the CONNECTION RESPONSE command by checking the supplied
+    response against the security profile defined for the connection
+    virtual host.
+    </doc>
+    <argument name = "command" type = "amq_connection_response_t *" />
+    <local>
+    amq_field_list_t
+        *fields;                        /*  Decoded responses                */
+    amq_field_t
+        *field;                         /*  Field from response              */
+    ipr_shortstr_t
+        login,                          /*  Login value                      */
+        password;                       /*  Password value                   */
+    amq_user_t
+        *user;                          /*  Defined user profile             */
+    </local>
+
+    if (amq_global_mechanism () == AMQ_MECHANISM_NONE)
+        self->authorised = TRUE;
+
+    else
+    if (amq_global_mechanism () == AMQ_MECHANISM_PLAIN) {
+        self->authorised = FALSE;
+
+        fields = amq_field_list_new ();
+        amq_field_list_parse (fields, command->responses);
+
+        field = amq_field_list_search (fields, "LOGIN");
+        if (field) {
+            ipr_shortstr_ncpy (login, field->string->data, field->string->cur_size);
+            field = amq_field_list_search (fields, "PASSWORD");
+            if (field) {
+                ipr_shortstr_ncpy (password, field->string->data, field->string->cur_size);
+                user = amq_user_search (amq_users, login);
+                if (user && streq (user->password, password))
+                    self->authorised = TRUE;
+                else
+                    amq_global_set_error (AMQP_ACCESS_REFUSED, "Invalid user and/or password");
+            }
+            else
+                amq_global_set_error (AMQP_SYNTAX_ERROR, "PASSWORD missing from response");
+        }
+        else
+            amq_global_set_error (AMQP_SYNTAX_ERROR, "LOGIN missing from response");
+
+        amq_field_list_destroy (&fields);
+    }
+    else {
+        self->authorised = FALSE;
+        amq_global_set_error (AMQP_INTERNAL_ERROR, "Broken security mechanism");
+    }
 </method>
 
 <method name = "open" template = "function" >

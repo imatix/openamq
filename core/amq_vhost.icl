@@ -10,10 +10,7 @@
 <inherit class = "ipr_hash_str" />
 
 <import class = "ipr_classes"  />
-<import class = "amq_db"       />
-<import class = "amq_queue"    />
-<import class = "amq_consumer" />
-<import class = "amq_message"  />
+<import class = "amq_global"   />
 
 <public name = "header">
 #include "amq_core.h"
@@ -31,8 +28,6 @@
         *ddb;                           /*  Deprecated database handle       */
     ipr_config_t
         *config;                        /*  Virtual host configuration       */
-    amq_user_table_t
-        *user_hash;                     /*  Users for this vhost             */
     amq_queue_table_t
         *queue_hash;                    /*  Queues for this vhost            */
     ipr_looseref_list_t
@@ -50,7 +45,6 @@
     <argument name = "config"    type = "ipr_config_t *"/>
 
     self->config = config;
-    self->user_hash  = amq_user_table_new ();
     self->queue_hash = amq_queue_table_new ();
     self->queue_refs = ipr_looseref_list_new ();
     ipr_shortstr_cpy (self->directory, directory);
@@ -58,7 +52,6 @@
     coprintf ("I: configuring virtual host '%s'", self->key);
     s_config_workdir  (self);
     s_config_database (self);
-    s_config_users    (self);
     s_config_queues   (self);
 
     /*  ***TODO*** implement topics
@@ -75,7 +68,6 @@
         coprintf ("$(selfname) E: database cursor still open, attempting recovery");
         self->db->db_cursor = NULL;
     }
-    amq_user_table_destroy    (&self->user_hash);
     amq_queue_table_destroy   (&self->queue_hash);
     ipr_looseref_list_destroy (&self->queue_refs);
     ipr_config_destroy        (&self->config);
@@ -112,7 +104,6 @@
 <private name = "header">
 static void s_config_workdir   ($(selftype) *self);
 static void s_config_database  ($(selftype) *self);
-static void s_config_users     ($(selftype) *self);
 static void s_config_queues    ($(selftype) *self);
 </private>
 
@@ -182,21 +173,6 @@ s_config_database ($(selftype) *self)
             amq_db_dest_delete (self->ddb, dest);
     }
     amq_db_dest_destroy (&dest);
-}
-
-/*  Load user table from configuration file                                  */
-
-static void
-s_config_users ($(selftype) *self)
-{
-    ipr_config_locate (self->config, "/config/users/user", NULL);
-    while (self->config->located) {
-        amq_user_new (
-            ipr_config_attr (self->config, "name", "unnamed"),
-            self,                       /*  Parent virtual host              */
-            self->config);              /*  Configuration entry              */
-        ipr_config_next (self->config);
-    }
 }
 
 

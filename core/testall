@@ -15,7 +15,6 @@ test_one amq_consumer
 test_one amq_message
 test_one amq_smessage
 test_one amq_bucket
-test_one amq_field
 test_one amq_field_list
 test_one amq_browser_array
 

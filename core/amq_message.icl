@@ -212,11 +212,11 @@
         amq_bucket_destroy (&fragment);
     }
     if (!partial) {
-        /*  Check size & log error if any                                */
+        /*  Check size & log error if any                                    */
         if (self->processed != self->body_size)
             coprintf ("$(selfname) E: message size not valid: %ld should be %ld",
-                        self->processed, self->body_size);
-    }                
+                       self->processed, self->body_size);
+    }
 </method>
 
 <!-- In the base class this uses a .spool directory in the main directory -->

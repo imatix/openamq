@@ -10,8 +10,8 @@
 <inherit class = "ipr_hash_str" />
 <option name = "bigtable" value = "1" />
 
-<import class = "amq_vhost"      />
-<import class = "ipr_classes"    />
+<import class = "ipr_classes" />
+<import class = "amq_global"  />
 
 <public name = "header">
 #include "amq_core.h"
@@ -19,24 +19,14 @@
 </public>
 
 <context>
-    /*  References to parent objects                                         */
-    amq_vhost_t
-        *vhost;                         /*  Parent virtual host              */
-
     /*  Object properties                                                    */
     ipr_shortstr_t
         password;                       /*  Clear-text password              */
 </context>
 
 <method name = "new">
-    <argument name = "vhost"   type = "amq_vhost_t *" >Parent virtual host</argument>
-    <argument name = "config"  type = "ipr_config_t *">Configuration entry</argument>
-    <dismiss argument = "table" value = "vhost->user_hash" />
-
+    <argument name = "config" type = "ipr_config_t *">Configuration entry</argument>
     ASSERT (config);
-
-    /*  De-normalise from parent object, for simplicity of use               */
-    self->vhost = vhost;
 
     /*  Initialise other properties                                          */
     ipr_shortstr_cpy (self->password, ipr_config_attr (config, "password", ""));

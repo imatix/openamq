@@ -267,11 +267,26 @@ static int
     </state>
 
     <action name = "send connection response">
-        /*  TODO: format name, password as longstr and send  */
+        amq_field_list_t
+            *fields;
+        ipr_longstr_t
+            *responses = NULL;
+        char
+            *mechanism = "NONE";
+
+        if (streq (CONNECTION_CHALLENGE.mechanisms, "PLAIN")) {
+            fields = amq_field_list_new ();
+            amq_field_new_string  (fields, "LOGIN",    tcb->login);
+            amq_field_new_string  (fields, "PASSWORD", tcb->password);
+            responses = amq_field_list_flatten (fields);
+            amq_field_list_destroy (&fields);
+            mechanism = "PLAIN";
+        }
         amq_frame_free (&tcb->frame);
-        tcb->frame = amq_frame_connection_response_new (
-            "plain", NULL);
+        tcb->frame = amq_frame_connection_response_new (mechanism, responses);
         send_the_frame (thread);
+
+        ipr_longstr_destroy (&responses);
     </action>
 
     <!--  EXPECT CONNECTION TUNE  -------------------------------------------->
@@ -729,6 +744,7 @@ static int
     <action name = "store connection close reply">
         tcb->client->reply_code = CONNECTION_CLOSE.reply_code;
         ipr_shortstr_cpy (tcb->client->reply_text, CONNECTION_CLOSE.reply_text);
+        coprintf ("Code:%d text:%s", CONNECTION_CLOSE.reply_code, CONNECTION_CLOSE.reply_text);
     </action>
 
     <action name = "store channel close reply">

@@ -220,7 +220,7 @@ static int
 
     <action name = "report connection failed">
         coprintf ("E: could not connect to %s:%s (%s)",
-            tcb->hostname, tcb->port, 
+            tcb->hostname, tcb->port,
             smt_thread_error (thread));
     </action>
 
@@ -234,10 +234,26 @@ static int
     </state>
 
     <action name = "send connection response">
+        amq_field_list_t
+            *fields;
+        ipr_longstr_t
+            *responses = NULL;
+        char
+            *mechanism = "NONE";
+
+        if (streq (CONNECTION_CHALLENGE.mechanisms, "PLAIN")) {
+            fields = amq_field_list_new ();
+            amq_field_new_string  (fields, "LOGIN",    tcb->login);
+            amq_field_new_string  (fields, "PASSWORD", tcb->password);
+            responses = amq_field_list_flatten (fields);
+            amq_field_list_destroy (&fields);
+            mechanism = "PLAIN";
+        }
         amq_frame_free (&tcb->frame);
-        tcb->frame = amq_frame_connection_response_new (
-            "plain", NULL);
+        tcb->frame = amq_frame_connection_response_new (mechanism, responses);
         send_the_frame (thread);
+
+        ipr_longstr_destroy (&responses);
     </action>
 
     <!--  EXPECT CONNECTION TUNE  -------------------------------------------->
