@@ -31,7 +31,6 @@
 
 <!-- COM+ client -->
 <directory name = "complus" keep_paths = "0">
-    <file name = "amq.dsw"           class = "private resource" >Component workspace</file>
     <file name = "amq.gsl"           class = "private resource" >Main generator</file>
     <file name = "amq.xml"           class = "private resource" >Component definitions</file>
     <file name = "axobj.gsl"         class = "private resource" >Object generator</file>
