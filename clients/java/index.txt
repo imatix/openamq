@@ -5,7 +5,7 @@ gdl
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/03/21
     copyright = Copyright (c) 2004 JPMorgan
-    version   = 0.1
+    version   = 0.2
 end gdl
 
 Cover
@@ -91,7 +91,7 @@ The framing API has for objectives:
 Architecture
 ============
 
-Desing elements
+Design elements
 ---------------
 
 A framing factory:
@@ -316,7 +316,7 @@ and accept timeouts).
 public AMQFramingFactory(Socket socket, int readBuff, int writeBuff)
 ....................................................................
 This constructs an AMQFramingFactory object with the input streams provided
-by the socket wrapped around by specific values for buffering. See also the 
+by the socket wrapped around with buffers of custom capacity. See also the 
 other constructor.
 
     Parameters
@@ -330,7 +330,7 @@ public void setTuneParameters(AMQConnection.Tune tune)
 ......................................................
 Sets connection tune parameters from a connection tune object. The parameters should
 not be changed after the connection tune negotiation has been completed, or runtime
-errors will be thrown.
+exceptions may be thrown.
 
     Parameters
         tune - Connection tune object, provides parameters on field tables.
@@ -354,7 +354,7 @@ arriving. The default is currently 100 ms.
     
 public void flush()
 ...................
-Asks to the writer thread to flush any buffered data.
+Asks the writer thread to flush any buffered data.
 
     Throws 
         IOException - If the configured timeout elapses.
@@ -389,21 +389,21 @@ function.
 
     Parameters
         bytes - Allocated memory for storing the data read.
-        off - Where to start copying data into the bytes array.
+        off - Where to start writing data into the bytes array.
         len - How much data to read.
     Throws
         IOException - Exceptions from the underlying input streams.
     
 public void consumeData(InputStream is, byte[] bytes, int off, int len)
 .......................................................................
-Base data consumer function. This functions handles data reading from the 
+Base data consumer function. This function handles data reading from the 
 network, low-level details are abstracted at this point and will only show up 
 if exceptions take place from below.
 
     Parameters
-        is - Where to read data from.
+        is - From where to read the data.
         bytes - Allocated memory for storing the data read.
-        off - Where to start copying data into the bytes array.
+        off - Where to start writing data into the bytes array.
         len - How much data to read.
     Throws
         IOException - Exceptions from the underlying input streams.
@@ -425,7 +425,7 @@ function.
 
     Parameters
         bytes - Data to be written to the network.
-        off - Where to start copying data from the bytes array.
+        off - Where to start reading data from the bytes array.
         len - How much data to write.
     Throws
         IOException - Exceptions from the underlying output streams.
@@ -442,14 +442,14 @@ function.
     
 public void produceData(OutputStream os, byte[] bytes, int off, int len)
 ........................................................................
-Base data producer function. This functions handles data writing to the 
+Base data producer function. This function handles data writing to the 
 network, low-level details are abstracted at this point and will only show up
 if exceptions take place from below.
     
     Parameters
         os - Where to write data.
         bytes - Data to be written to the network.
-        off - Where to start copying data from the bytes array.
+        off - Where to start reading data from the bytes array.
         len - How much data to write.
     Throws
         IOException - Exceptions from the underlying output streams.
@@ -463,7 +463,7 @@ the four bytes read from the network.
     Returns
         The unsigned value represented by the four bytes read from the network.
     Throws
-        IOException - Exceptions from the underlying output streams.
+        IOException - Exceptions from the underlying input streams.
 
 public void writeUnsignedInt(long value)
 ........................................
@@ -485,7 +485,7 @@ the two bytes read from the network.
     Returns
         The unsigned value represented by the two bytes read from the network.
     Throws
-        IOException - Exceptions from the underlying output streams.
+        IOException - Exceptions from the underlying input streams.
 
 public void writeUnsignedShort(int value)
 .........................................
@@ -507,7 +507,7 @@ the byte read from the network.
     Returns
         The unsigned value represented by the byte read from the network.
     Throws
-        IOException - Exceptions from the underlying output streams.
+        IOException - Exceptions from the underlying input streams.
 
 public void writeUnsignedByte(short value)
 ..........................................
@@ -528,7 +528,7 @@ null, in-band message consumption will take place. Copies the destName variable
 in the last handle notify received to the provided hnFirst.
 
     Parameters
-        AMQHandle.Notify hnFirst - The handle notify that anounced the message.
+        AMQHandle.Notify hnFirst - The handle notify that announced the message.
         AMQMessage.Head head - The message head.
         InputStream is - From where to read the data.
         boolean prepared - Was this message prepared with a handle prepare?
@@ -548,7 +548,7 @@ from the provided hsFirst for the last handle send. Sends fragments of the size
 specified in hsFirst.fragmentSize. 
    
     Parameters
-        AMQHandle.Send hsFirst - The handle send that anounced the message.
+        AMQHandle.Send hsFirst - The handle send that announced the message.
         AMQMessage.Head head - The message head.
         OutputStream os - Where to write the data.
         boolean prepared - Was this message prepared with a handle prepare?
@@ -618,7 +618,7 @@ final public static long u(int value)
 Convert to unsigned (int to long). Use if a lower level is needed than the 
 one provided by the unsigned read/write methods.
 
-    Parametrs
+    Parameters
         value - A signed int value.
     Returns
         A long containing the unsigned representation of the four bytes from the int.
@@ -629,7 +629,7 @@ Check if the passed long can be packed as a four bytes unsigned value, for
 network traversal. Use if a lower level is needed than the one provided by
 the unsigned read/write methods.
 
-    Parametrs
+    Parameters
         value - A long value.
     Returns
         A signed int encapsulating four bytes representing an unsigned integer.
@@ -639,18 +639,18 @@ final public static int u(short value)
 Convert to unsigned (short to int). Use if a lower level is needed than the 
 one provided by the unsigned read/write methods.
 
-    Parametrs
+   Parameters
         value - A signed short value.
     Returns
         An int containing the unsigned representation of the two bytes from the short.
 
 final public static short s(int value)
 ...................................... 
-Check if the passed int can be packed as a four bytes unsigned value, for 
+Check if the passed int can be packed as a two bytes unsigned value, for 
 network traversal. Use if a lower level is needed than the one provided by
 the unsigned read/write methods.
 
-    Parametrs
+    Parameters
         value - An int value.
     Returns
         A signed short encapsulating two bytes representing an unsigned integer.
@@ -660,7 +660,7 @@ final public static short u(byte value)
 Convert to unsigned (byte to short). Use if a lower level is needed than the 
 one provided by the unsigned read/write methods.
 
-    Parametrs
+    Parameters
         value - A signed byte value.
     Returns
         A short containing the unsigned representation of the byte value.
@@ -671,7 +671,7 @@ Check if the passed short can be packed as a one byte unsigned value, for
 network traversal. Use if a lower level is needed than the one provided by
 the unsigned read/write methods.
 
-    Parametrs
+    Parameters
         value - A short value.
     Returns
         A signed byte encapsulating one byte representing an unsigned integer.
@@ -697,7 +697,7 @@ Encodes a byte array as a short string. The current encoding method is UTF-8.
      
 public static byte[] string2Bytes(String string)
 ................................................ 
-Encodes a short string as an array. The current encoding method is UTF-8.
+Encodes a short string as a byte array. The current encoding method is UTF-8.
 
     Parameters
         string - The short string to encode as a byte array.
@@ -709,7 +709,7 @@ public static void warning(String _class, String method, String message)
 Standard way for printing warning messages to console.
 
     Parameters
-        class - Originating class.
+        _class - Originating class.
         method - Originating method.
         message - Descriptive message for the warning.
 
@@ -719,7 +719,7 @@ Standard way for throwing checked exceptions from the framing code.
 
     Parameters
         e - Java exception information.
-        class - Originating class.
+        _class - Originating class.
         method - Originating method.
         message - Descriptive message for the warning.
     Throws 
@@ -727,7 +727,7 @@ Standard way for throwing checked exceptions from the framing code.
 
 public static void runtimeException(Exception e, String _class, String method, String message)
 ..............................................................................................
-Standard way for throwing checked exceptions from the framing code.
+Standard way for throwing runtime exceptions from the framing code.
 
     Parameters
         e - Java exception information.
@@ -779,7 +779,7 @@ abstract class.
 
 public class Response extends Frame 
 ...................................
-AMQChannel inner class for response frames. Extends the AMQConnection.Frame
+AMQConnection inner class for response frames. Extends the AMQConnection.Frame
 abstract class.
 
     public String   mechanism;              /*  Selected security mechanism      */
@@ -787,7 +787,7 @@ abstract class.
 
 public class Tune extends Frame 
 ...............................
-AMQChannel inner class for tune frames. Extends the AMQConnection.Frame
+AMQConnection inner class for tune frames. Extends the AMQConnection.Frame
 abstract class.
 
     public byte[]   options;                /*  Tuning options                   */
@@ -795,7 +795,7 @@ abstract class.
 
 public class Open extends Frame 
 ...............................
-AMQChannel inner class for open frames. Extends the AMQConnection.Frame
+AMQConnection inner class for open frames. Extends the AMQConnection.Frame
 abstract class.
 
     public int      confirmTag;             /*  Confirmation tag                 */
@@ -805,14 +805,14 @@ abstract class.
 
 public class Ping extends Frame 
 ...............................
-AMQChannel inner class for ping frames. Extends the AMQConnection.Frame
+AMQConnection inner class for ping frames. Extends the AMQConnection.Frame
 abstract class.
 
     public boolean  respond;                /*  Please respond                   */
 
 public class Reply extends Frame 
 ................................
-AMQChannel inner class for reply frames. Extends the AMQConnection.Frame
+AMQConnection inner class for reply frames. Extends the AMQConnection.Frame
 abstract class.
 
     public int      confirmTag;             /*  Confirmation tag                 */
@@ -821,7 +821,7 @@ abstract class.
 
 public class Close extends Frame 
 ................................
-AMQChannel inner class for close frames. Extends the AMQConnection.Frame
+AMQConnection inner class for close frames. Extends the AMQConnection.Frame
 abstract class.
 
     public int      replyCode;              /*  Reply code                       */
@@ -987,7 +987,7 @@ abstract class.
     public boolean  producer;               /*  Request producer access          */
     public boolean  consumer;               /*  Request consumer access          */
     public boolean  browser;                /*  Request browser access           */
-    public boolean  temporary;              /*  Request a temporary dest         */
+    public boolean  temporary;              /*  Request a temporary destination  */
     public String   destName;               /*  Default destination name         */
     public String   mimeType;               /*  Default MIME type                */
     public String   encoding;               /*  Default content encoding         */
@@ -1193,8 +1193,8 @@ Decoder constructor. Sets the bucket instance variable, then calls the decode
 method.
 
     Throws
-        AMQFramingException - The frame could not be decoded (bucket too small, etc.).
-        AMQFramingException - Could not get closing command end.
+        AMQFramingException - The frame could not be decoded.
+        AMQFramingException - Command end is missing.
 
 AMQFieldTable
 -------------
@@ -1204,8 +1204,8 @@ public AMQFieldTable()
 Default constructor. The resulting object should be filled via the get/put
 methods. 
 
-public AMQFieldTable(byte[] bucket) throws AMQFramingException 
-..............................................................
+public AMQFieldTable(byte[] bucket)
+...................................
 Loading constructor. Loads into the underlying hashtable the name/value pairs
 encoded in the passed bucket.
 
@@ -1215,10 +1215,10 @@ encoded in the passed bucket.
         AMQFramingException - Unrecognized field type while loading from bucket.
         AMQFramingException - A field was redefined while loading from bucket.    
 
-public void loadFromBucket(byte[] bucket) throws AMQFramingException 
-....................................................................
-Loads into the underlying hashtable the name/value pairs
-encoded in the passed bucket.
+public void loadFromBucket(byte[] bucket)
+.........................................
+Loads into the underlying hashtable the name/value pairs encoded in the passed
+bucket.
 
     Parameters
         bucket - Field table encoded as a byte array.
@@ -1285,7 +1285,7 @@ field, a ClassCastException will be thrown.
         name - Name of the field to look for.
     Returns
         The decimal part in the first element of the array. The integer part in the
-        second element of te array. Null if the name was not found.
+        second element of the array. Null if the name was not found.
 
 public Object putDecimal(String name, long[] value) 
 ...................................................
@@ -1294,7 +1294,7 @@ any, otherwise null.
 
     Parameters
         name - Name for the field.
-        value - Decimal part in first element, integer part on second element.
+        value - Decimal part in the first element, integer part on the second element.
     Returns
         Previous value for that name.
 
@@ -1327,9 +1327,9 @@ Decode a field name from the passed DataInputStream.
     Parameters
         dis - Field table data source.
     Returns
-        A short string value.
+        A short string.
     Throws
-        Any exception generated from the passed dis.    
+        Any exception generated from the passed stream.    
 
 public static void writeName(DataOutputStream dos, String name) throws IOException 
 ..................................................................................
@@ -1337,9 +1337,9 @@ Write a field name to the passed DataOutputStream.
 
     Parameters
         dos - Field table encoding target.
-        name - A short string value.
+        name - A short string.
     Throws
-        Any exception generated from the passed dos.    
+        Any exception generated from the passed stream.    
 
 public static byte[] readString(DataInputStream dis) throws IOException 
 ....................................................................... 
@@ -1348,19 +1348,19 @@ Read a long string from the passed DataInputStream.
     Parameters
         dis - Field table data source.
     Returns
-        A long string value.
+        A long string.
     Throws
-        Any exception generated from the passed dis.    
+        Any exception generated from the passed stream.    
 
 public static void writeString(DataOutputStream dos, byte[] bytes) throws IOException
 ..................................................................................... 
 Write a long string to the passed DataOutputStream.
 
     Parameters
-        dos - Field table receiving target.
-        name - A long string value.
+        dos - Field table encoding target.
+        bytes - A long string.
     Throws
-        Any exception generated from the passed dos.    
+        Any exception generated from the passed stream.    
 
 public static long readInteger(DataInputStream dis) throws IOException 
 ......................................................................
@@ -1371,17 +1371,17 @@ Read an integer from the passed DataInputStream.
     Returns
         An integer value.
     Throws
-        Any exception generated from the passed dis.    
+        Any exception generated from the passed stream.    
 
 public static void writeInteger(DataOutputStream dos, long aLong) throws IOException  
 ....................................................................................
 Write an integer to the passed DataOutputStream.
 
     Parameters
-        dos - Field table receiving target.
-        name - A long string value.
+        dos - Field table encoding target.
+        aLong - An integer value.
     Throws
-        Any exception generated from the passed dos.    
+        Any exception generated from the passed stream.    
 
 public static long[] readDecimal(DataInputStream dis) throws IOException 
 ........................................................................ 
@@ -1390,19 +1390,19 @@ Read a decimal from the passed DataInputStream.
     Parameters
         dis - Field table data source.
     Returns
-        A decimal value.
+        A decimal.
     Throws
-        Any exception generated from the passed dis.    
+        Any exception generated from the passed stream.    
 
 public static void writeDecimal(DataOutputStream dos, long[] decimal) throws IOException
 ........................................................................................  
 Write a decimal to the passed DataOutputStream.
 
     Parameters
-        dos - Field table receiving target.
-        name - A decimal value.
+        dos - Field table encoding target.
+        decimal - A decimal.
     Throws
-        Any exception generated from the passed dos.    
+        Any exception generated from the passed stream.    
 
 Security Considerations
 =======================
@@ -1412,7 +1412,7 @@ This proposal does not have any specific security considerations.
 Comments on this Document
 *************************
 
-Comments by readers; these comments may be edited, incoporated, or removed
+Comments by readers; these comments may be edited, incorporated, or removed
 by the author(s) of the document at any time.
 
 Date, name
