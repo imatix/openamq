@@ -114,7 +114,7 @@ class tfActionListener implements ActionListener {
                 // Send text
                 System.out.println("Sending: \"" + text + "\" to server...");
                 // Create the message body
-                message_body = AMQFactory.string2Bytes(text);
+                message_body = AMQFramingFactory.string2Bytes(text);
                 message_head.bodySize = message_body.length;
                 // Set the fragment size
                 handle_send.fragmentSize = message_head.encode() + message_head.bodySize;
@@ -182,7 +182,7 @@ public void run () {
             handle_notify = (AMQHandle.Notify)frame;
             message_head = amq_framing.consumeMessageHead();
             bytes = amq_framing.consumeData(message_head.bodySize);
-            text = AMQFactory.bytes2String(bytes);
+            text = AMQFramingFactory.bytes2String(bytes);
             // Acknowledge 
             channel_ack.messageNbr = handle_notify.messageNbr;
             amq_framing.produceFrame(channel_ack);
