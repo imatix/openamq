@@ -385,7 +385,7 @@ function build_framing (class, inner, AMQPFrameException)
     >                try {
     >                    dis.close();
     >                } catch (IOException f) {}
-    >                error(e, "$(my.full_name:)", "decode", "IOException (ByteArrayInputStream)");
+    >                error(e, "$(my.full_name:)", "decode", "IOException");
     >            }
     >        }
     >
@@ -410,7 +410,7 @@ function build_framing (class, inner, AMQPFrameException)
     >                    dos.close();
     >                } catch (IOException f) {}
     >                // Memory?
-    >                runtimeError(e, "$(my.full_name:)", "encode",  "IOException (ByteArrayOutputStream)");
+    >                runtimeError(e, "$(my.full_name:)", "encode",  "IOException");
     >            }
     >
     >            // Set frame reference, and return frame size
@@ -870,8 +870,10 @@ public class $(AMQPFramingFactory:) {
             }    
             // Check previous outcome
             if (ioe != null) {
+                IOException aux = ioe;
+                    
                 ioe = null;
-                throw new IOException(ioe.getMessage());
+                throw new IOException(aux.getMessage());
             }
             // Request flush
             writeCommand = WRITE_FLUSH;
@@ -888,8 +890,6 @@ public class $(AMQPFramingFactory:) {
         byte[] bytes = new byte[len];
         
         readBytes(incoming, bytes, 0, bytes.length);
-        if (verbose) 
-            System.out.println("I: read " + (bytes.length + 1) + " bytes from server (data)");
         
         return bytes;
     }
@@ -906,8 +906,6 @@ public class $(AMQPFramingFactory:) {
     public void produceData(byte[] bytes, int off, int len) throws IOException {
         writeBytes(outgoing, bytes, off, len, timeout);
         flush();
-        if (verbose) 
-            System.out.println("I: wrote " + bytes.length + " bytes to server (data)");
     }
     
     /**
@@ -928,6 +926,8 @@ public class $(AMQPFramingFactory:) {
             // Consume the first fragment        
             if (hn.fragmentSize > headSize) {
                 fragment = consumeData(hn.fragmentSize - headSize);
+                if (verbose) 
+                    System.out.println("I: read " + (hn.fragmentSize - headSize) + " bytes from server (fragment)");
                 writeBytes(dos, fragment, 0, fragment.length);
             }
             // Consume the next fragments
@@ -937,6 +937,8 @@ public class $(AMQPFramingFactory:) {
                     hn = ($(class_prefix:)Handle.Notify)frame;
                     // Consume the next fragment        
                     fragment = consumeData(hn.fragmentSize);
+                    if (verbose) 
+                        System.out.println("I: read " + hn.fragmentSize + " bytes from server (fragment)");
                     writeBytes(dos, fragment, 0, fragment.length);
                 } else {
                     frame.dump();
@@ -975,6 +977,8 @@ public class $(AMQPFramingFactory:) {
                 if (fragmentSize > headSize) {
                     len = Math.min(fragmentSize - headSize, body.length - off);
                     produceData(body, off, len);
+                    if (verbose) 
+                        System.out.println("I: wrote " + len + " bytes to server (fragment)");
                     off += len;
                 }    
                 // Produce the next fragments
@@ -992,6 +996,8 @@ public class $(AMQPFramingFactory:) {
                     hs.fragmentSize = len;
                     produceFrame(hs);
                     produceData(body, off, len);
+                    if (verbose) 
+                        System.out.println("I: wrote " + len + " bytes to server (fragment)");
                     off += len;
                 }
             } else {
@@ -1053,14 +1059,7 @@ public class $(AMQPFramingFactory:) {
         
         try {
             // Read the frame header
-            frameSize = incoming.readShort();
-            // Allocate bucket
-            if (frameSize == FRAME_LONG) {
-                // The frame is long
-                frameSize = incoming.readInt();
-            }
-            if (frameSize <= 0) 
-                throw new $(AMQPFrameException)("$(AMQPFramingFactory:): consumeFrame: zero-size frame.");
+            frameSize = consumeFrameHeader();
             // Read frame type     
             $(type_type_last:) = incoming.readByte();
             // Read the rest of the frame
@@ -1074,7 +1073,7 @@ public class $(AMQPFramingFactory:) {
             error(e, "$(AMQPFrameException:)", "consumeFrame", "IOException");
         } 
         if (verbose) {
-            System.out.println("I: read " + (bucket.length + 1) + " bytes from server (command)");
+            System.out.println("I: read " + (bucket.length + 1) + " bytes from server (frame)");
             frame.dump();
         }
         
@@ -1097,7 +1096,7 @@ public class $(AMQPFramingFactory:) {
             error(e, "$(AMQPFramingFactory:)", "produceFrame", "IOException");
         }
         if (verbose) {
-            System.out.println("I: wrote " + frame.bucket.length + " bytes to server (command)");
+            System.out.println("I: wrote " + frame.bucket.length + " bytes to server (frame)");
             frame.dump();
         }
     } 
@@ -1117,12 +1116,31 @@ public class $(AMQPFramingFactory:) {
     
     /**
      *
+     * Frame header consumer
+     *
+     **/
+    int consumeFrameHeader() throws $(AMQPFrameException), IOException {
+        int frameSize = incoming.readShort();
+        
+        if (frameSize == FRAME_LONG) {
+            // The frame is long
+            frameSize = incoming.readInt();
+        }
+        if (frameSize <= 0) 
+            throw new $(AMQPFrameException)("$(AMQPFramingFactory:): consumeFrame: zero-size frame.");
+            
+        return frameSize;
+    }
+    
+    /**
+     *
      * Frame header producer
      *
      **/
     void produceFrameHeader(int frameSize) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos);
+        byte[] frameHeader;
         
         if (frameSize >= FRAME_LONG) {
             // Long frame
@@ -1133,7 +1151,10 @@ public class $(AMQPFramingFactory:) {
             dos.writeShort(frameSize);
         }
     
-        produceData(baos.toByteArray());
+        frameHeader = baos.toByteArray();
+        produceData(frameHeader);
+        if (verbose) 
+            System.out.println("I: wrote " + frameHeader.length + " bytes to server (frame header)");
         
         dos.close();
     }
@@ -1210,8 +1231,10 @@ public class $(AMQPFramingFactory:) {
             }    
             // Check previous outcome
             if (ioe != null) {
+                IOException aux = ioe;
+                    
                 ioe = null;
-                throw new IOException(ioe.getMessage());
+                throw new IOException(aux.getMessage());
             }
             // Request write
             writeCommand = WRITE_BYTES;
