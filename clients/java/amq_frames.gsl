@@ -15,12 +15,13 @@
 #  ------------------------------   Globals    --------------------------------
 
 class_prefix = "AMQ"
-AMQPFrameIOException = "$(class_prefix:)FramingIOException"
-AMQPFrameException = "$(class_prefix:)FramingException"
+AMQPConnectionHandler = "$(class_prefix:)ConnectionHandler"
 AMQPFramingFactory = "$(class_prefix:)FramingFactory"
 AMQPFieldTable = "$(class_prefix:)FieldTable"
 AMQPFramable = "$(class_prefix:)Framable"
 AMQPFrame = "$(class_prefix:)Frame"
+AMQPFrameIOException = "$(class_prefix:)FramingIOException"
+AMQPFrameException = "$(class_prefix:)FramingException"
 utilities = "
     // Utility functions from $(AMQPFramingFactory:)
     static String hexDump(byte[] bytes) {
@@ -167,7 +168,7 @@ function build_frame_lists (frames, outertype, code)
    for frame where string.prefixed(name, my.outertype)
         my.frame_name = name
         my.current_inner = "$(string.substr (my.frame_name, string.length(my.outertype) + 1, , ))"
--       The consume message exception        
+-       The receive message exception        
         if (my.code = 3)
             for field 
                 my.count += 1
@@ -177,7 +178,7 @@ function build_frame_lists (frames, outertype, code)
                 >        return new $(my.current_inner: Neat)(dis);
                 last
             endfor
--       The create message exception        
+-       The construct message exception        
         elsif (my.code = 5)
             for field 
                 my.count += 1
@@ -200,7 +201,7 @@ function build_frame_lists (frames, outertype, code)
                 if (my.code = 1)
                     >    public final static $(my.type:) 
                     >        $(my.current_inner: UPPER) = $(value:);  /* $(my.current_inner: Neat) type   */
--               The frame consume cases
+-               The frame receive cases
                 elsif (my.code = 2)
                     >            case $(my.current_inner: UPPER): 
                     >                return new $(my.current_inner: Neat)(bucket);
@@ -217,10 +218,10 @@ endfunction
 function build_if_lists (frames, outertype, AMQPFramingFactory, code)
  scope my.frames
     if (my.code = 1)      
-        my.action = "consume"
+        my.action = "receive"
         my.extra_indent = ""        
     elsif (my.code = 2)      
-        my.action = "create"
+        my.action = "construct"
         my.extra_indent = ""        
     endif        
     my.indent = ""        
@@ -620,10 +621,10 @@ public class $(class_prefix:)$(my.outertype: Neat) {
     
     /**
      *
-     * $(my.outertype: Neat) frame consumer
+     * $(my.outertype: Neat) frame receiver
      *
      **/
-    $(my.frame_super:) consumeFrame($(type_type_comma + "byte[] bucket" ? "DataInputStream dis":)) throws $(AMQPFrameException:) {
+    $(my.frame_super:) receiveFrame($(type_type_comma + "byte[] bucket" ? "DataInputStream dis":)) throws $(AMQPFrameException:) {
 .-          Not for message
 .           if (defined (type_type))    
         switch (type) {
@@ -638,19 +639,19 @@ public class $(class_prefix:)$(my.outertype: Neat) {
     
     /**
      *
-     * $(my.outertype: Neat) frame creator
+     * $(my.outertype: Neat) frame constructor
      *
      **/
 .-          Not for message
 .           if (defined (type_type))    
-    $(my.frame_super:) createFrame($(type_type ? "":)) throws $(AMQPFrameException:) {
+    $(my.frame_super:) constructFrame($(type_type ? "":)) throws $(AMQPFrameException:) {
         switch (type) {
 .       build_frame_lists (my.frames, my.outertype, 4)               
         }
         return null;
 .           else        
 .-          The message case
-    $(my.frame_super:) createFrame($(type_type ? "":)) {
+    $(my.frame_super:) constructFrame($(type_type ? "":)) {
 .       build_frame_lists (my.frames, my.outertype, 5)               
 .           endif           
     } 
@@ -808,11 +809,11 @@ public abstract class $(AMQPFrame:) extends $(AMQPFramable:) {
 }
 
 . close
-.- Glues the frame types together onto this utility class
-.echo "Generating $(AMQPFramingFactory:).java..."
-. output "$(AMQPFramingFactory:).java"
+.- Handles low-evel connection issues
+.echo "Generating $(AMQPConnectionHandler:).java..."
+. output "$(AMQPConnectionHandler:).java"
 /**
- *  $(AMQPFramingFactory:).java - Handles frames and related functionality.
+ *  $(AMQPConnectionHandler:).java - Handles low-evel connection issues.
  *
  *  Generated from $(arg?filename) by java/$(script) using GSL/4.
  *  DO NOT MODIFY THIS FILE.
@@ -831,8 +832,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.FilterInputStream;
-import java.io.FilterOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -840,7 +839,7 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 
-public class $(AMQPFramingFactory:) {
+public class $(AMQPConnectionHandler:) {
     // Constants
     final static String 
         STRING_ENC = "UTF-8";                              /* Prefered string encoding         */
@@ -852,39 +851,21 @@ public class $(AMQPFramingFactory:) {
         WRITE_BYTES = 1,                                   /* Writer thread write request      */
         WRITE_BAOS = 2;                                    /* Write from ByteArrayOutputStream */
     
-    // Variabes
-    static int     
-        readRetryLatency = 100;                            /* Wait this before retrying (ms)   */
-    public boolean 
-        verbose = false;                                   /* Verbose switch                   */
-    long        
-        frameMax = 4096;                                   /* Initial maximum frame size       */
-    $(AMQPFieldTable:)
-        tuning = null;                                     /* Connection tune parameters       */
-    int 
-        priority = Thread.currentThread().getPriority();   /* Main thread priority             */
     // Network streams    
     DataInputStream 
         incoming;                                          /* Incoming stream                  */
     DataOutputStream 
         outgoing;                                          /* Outgoing stream                  */
-    // Frame types instances
-.   my.outertype = undefined ?
-.   for frame
-.       my.new_outertype = string.prefix (name, "_")
-.       if (!defined(my.outertype) | my.new_outertype <> my.outertype)
-.           my.outertype = my.new_outertype
-    $(class_prefix:)$(my.outertype: Neat) 
-        $(my.outertype: lower) = new $(class_prefix:)$(my.outertype: Neat)();\
-                                                           /* $(my.outertype: Neat)            */
-.       endif
-.   endfor    
+    // Read retry latency    
+    static int     
+        readRetryLatency = 100;                            /* Wait this before retrying (ms)   */
     // Write command
     int 
         writeCommand = -1,                                 /* Writer thread request            */
         writeOff,                                          /* Write offset parameter           */
         writeLen,                                          /* Writer length parameter          */
-        timeout = 0;                                       /* Writer timeout (0 ms == block)   */
+        timeout = 0,                                       /* Writer timeout (0 ms == block)   */
+        priority = Thread.currentThread().getPriority();   /* Main thread priority             */
     byte[] 
         writeBytes;                                        /* Writer data command data array   */
     ByteArrayOutputStream 
@@ -937,13 +918,13 @@ public class $(AMQPFramingFactory:) {
                 }
             }
         };
-    
+        
     /**
      *
-     * $(AMQPFramingFactory:) constructor
+     * $(AMQPConnectionHandler:) constructor
      *
      **/
-    public $(AMQPFramingFactory:)(Socket socket) throws IOException {
+    public $(AMQPConnectionHandler:)(Socket socket) throws IOException {
         incoming = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
         outgoing = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
         setup(socket);
@@ -951,10 +932,10 @@ public class $(AMQPFramingFactory:) {
 
     /**
      *
-     * $(AMQPFramingFactory:) configurable buffer constructor
+     * $(AMQPConnectionHandler:) configurable buffer constructor
      *
      **/
-    public $(AMQPFramingFactory:)(Socket socket, int readBuff, int writeBuff) throws IOException {
+    public $(AMQPConnectionHandler:)(Socket socket, int readBuff, int writeBuff) throws IOException {
         incoming = new DataInputStream(new BufferedInputStream(socket.getInputStream(), readBuff));
         outgoing = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream(), writeBuff));
         setup(socket);
@@ -974,28 +955,11 @@ public class $(AMQPFramingFactory:) {
     
     /**
      *
-     * Set the connection tune parameters
-     *
-     **/
-    public void setTuneParameters($(class_prefix:)Connection.Tune tune) throws $(AMQPFrameException) {
-        tuning = new $(AMQPFieldTable)(tune.options);
-        // Set the frame size limit
-        frameMax = tuning.getInteger("FRAME_MAX");
-        if (frameMax < FRAME_MIN)
-            exception(null, "$(AMQPFramingFactory:)", "setTuneParameters", "FRAME_MAX too small (" + frameMax + " bytes)");
-    }    
-    
-    /**
-     *
      * Set incoming retry latency
      *
      **/
     public void setIncomingRetryLatency(int latency) {
         readRetryLatency = latency;
-    }
-
-    public long getFrameMax() {
-        return frameMax;
     }
     
     // Socket level reading/writing
@@ -1094,87 +1058,7 @@ public class $(AMQPFramingFactory:) {
             writer.notify();
         }
     }
-    
-    // Raw data reading/writing
-    
-    /**
-     *
-     * Data consumer method (allocates)
-     *
-     **/
-    public byte[] consumeData(int len) throws IOException {
-        byte[] 
-            bytes = new byte[len];                    /* Data bucket                      */
-            
-        consumeData(bytes, 0, bytes.length);
-        
-        return bytes;
-    }
-    
-    /**
-     *
-     * Data consumer method
-     *
-     **/
-    public void consumeData(byte[] bytes) throws IOException {
-        consumeData(bytes, 0, bytes.length);
-    }
-    
-    /**
-     *
-     * Data consumer method (offset and length)
-     *
-     **/
-    public void consumeData(byte[] bytes, int off, int len) throws IOException {
-        consumeData(incoming, bytes, off, len);
-    }
-    
-    /**
-     *
-     * Data consumer method (InputStream, offset and length)
-     *
-     **/
-    public void consumeData(InputStream is, byte[] bytes, int off, int len) throws IOException {
-        readBytes(is, bytes, off, len);
-    }
-    
-    /**
-     *
-     * Data producer
-     *
-     **/
-    public void produceData(byte[] bytes) throws IOException {
-        produceData(bytes, 0, bytes.length);
-    }
-    
-    /**
-     *
-     * Data producer (offset and length)
-     *
-     **/
-    public void produceData(byte[] bytes, int off, int len) throws IOException {
-        produceData(outgoing, bytes, 0, bytes.length);
-    }
-    
-    /**
-     *
-     * Data producer (ByteArrayOutputStream)
-     *
-     **/
-    public void produceData(ByteArrayOutputStream baos) throws IOException {
-        produceData(baos, null, -1, -1);
-    }
-    
-    /**
-     *
-     * Data producer (OutputStream, offset and length)
-     *
-     **/
-    public void produceData(OutputStream os, byte[] bytes, int off, int len) throws IOException {
-        writeTimeout(os, bytes, off, len);
-        flush();
-    }
-    
+
     // Unsigned reading/writing
     
     /**
@@ -1184,7 +1068,7 @@ public class $(AMQPFramingFactory:) {
      **/
     public long readUnsignedInt() throws IOException {
         byte[]
-            bytes = consumeData(4);
+            bytes = receiveData(4);
             
         return u(((bytes[0] & 0xff) << 24) | ((bytes[1] & 0xff) << 16) | ((bytes[2] & 0xff) << 8) | (bytes[3] & 0xff));
     }
@@ -1205,7 +1089,7 @@ public class $(AMQPFramingFactory:) {
         bytes[2] = (byte)(0xff & (sv >> 8));
         bytes[3] = (byte)(0xff & sv);            
         
-        produceData(bytes);
+        sendData(bytes);
     }
 
     /**
@@ -1215,7 +1099,7 @@ public class $(AMQPFramingFactory:) {
      **/
     public int readUnsignedShort() throws IOException {
         byte[]
-            bytes = consumeData(2);
+            bytes = receiveData(2);
         
         return u((short)(((bytes[0] & 0xff) << 8) | (bytes[1] & 0xff)));
     }
@@ -1234,7 +1118,7 @@ public class $(AMQPFramingFactory:) {
         bytes[0] = (byte)(0xff & (sv >> 8));
         bytes[1] = (byte)(0xff & sv);            
         
-        produceData(bytes);
+        sendData(bytes);
     }
     
     /**
@@ -1244,7 +1128,7 @@ public class $(AMQPFramingFactory:) {
      **/
     public short readUnsignedByte() throws IOException {
         byte[]
-            bytes = consumeData(1);
+            bytes = receiveData(1);
         
         return u(bytes[0]);
     }
@@ -1258,9 +1142,525 @@ public class $(AMQPFramingFactory:) {
         byte[]
             bytes = new byte[]{s(value)};
             
-        produceData(bytes);
+        sendData(bytes);
     }
+    
+    // Short/long string encoding/decoding
+    
+    /**
+     *
+     * Byte array to string translation
+     *
+     **/
+    public static String bytes2String(byte[] bytes) {
+        try {
+            return new String(bytes, STRING_ENC);
+        } catch (UnsupportedEncodingException e) {
+            runtimeException(e, "$(AMQPFramingFactory:)", "bytes2String", "UnsupportedEncodingException");
+            return null;
+        }
+    }
+     
+    /**
+     *
+     * String to byte array translation
+     *
+     **/
+    public static byte[] string2Bytes(String string) {
+        try {
+            return string.getBytes(STRING_ENC);
+        } catch (UnsupportedEncodingException e) {
+            runtimeException(e, "$(AMQPFramingFactory:)", "string2Bytes", "UnsupportedEncodingException");
+            return null;
+        }
+    }
+    
+    // Raw data reading/writing
+    
+    /**
+     *
+     * Data receiver method (allocates)
+     *
+     **/
+    public byte[] receiveData(int len) throws IOException {
+        byte[] 
+            bytes = new byte[len];                    /* Data bucket                      */
+            
+        receiveData(bytes, 0, bytes.length);
         
+        return bytes;
+    }
+    
+    /**
+     *
+     * Data receiver method
+     *
+     **/
+    public void receiveData(byte[] bytes) throws IOException {
+        receiveData(bytes, 0, bytes.length);
+    }
+    
+    /**
+     *
+     * Data receiver method (offset and length)
+     *
+     **/
+    public void receiveData(byte[] bytes, int off, int len) throws IOException {
+        receiveData(incoming, bytes, off, len);
+    }
+    
+    /**
+     *
+     * Data receiver method (InputStream, offset and length)
+     *
+     **/
+    public void receiveData(InputStream is, byte[] bytes, int off, int len) throws IOException {
+        readBytes(is, bytes, off, len);
+    }
+    
+    /**
+     *
+     * Data sender
+     *
+     **/
+    public void sendData(byte[] bytes) throws IOException {
+        sendData(bytes, 0, bytes.length);
+    }
+    
+    /**
+     *
+     * Data sender (offset and length)
+     *
+     **/
+    public void sendData(byte[] bytes, int off, int len) throws IOException {
+        sendData(outgoing, bytes, 0, bytes.length);
+    }
+    
+    /**
+     *
+     * Data sender (ByteArrayOutputStream)
+     *
+     **/
+    public void sendData(ByteArrayOutputStream baos) throws IOException {
+        sendData(baos, null, -1, -1);
+    }
+    
+    /**
+     *
+     * Data sender (OutputStream, offset and length)
+     *
+     **/
+    public void sendData(OutputStream os, byte[] bytes, int off, int len) throws IOException {
+        writeTimeout(os, bytes, off, len);
+        flush();
+    }
+    
+    // Signed/unsigned conversion (final to hint optimization to the compiler)
+    
+    /**
+     *
+     * Convert to unsigned (int to long)
+     *
+     **/
+    final public static long u(int value) {
+        return value & 0xFFFFFFFFl;
+    }
+    
+    /**
+     *
+     * Check to signed (long to int)
+     *
+     **/
+    final public static int s(long value) {
+        checkRange(value);
+        return (int)value;
+    }
+    
+    /**
+     *
+     * Convert to unsigned (short to int)
+     *
+     **/
+    final public static int u(short value) {
+        return value & 0xFFFF;
+    }
+    
+    /**
+     *
+     * Check to signed (int to short)
+     *
+     **/
+    final public static short s(int value) {
+        checkRange(value);
+        return (short)value;
+    }
+    
+    /**
+     *
+     * Convert to unsigned (byte to short)
+     *
+     **/
+    final public static short u(byte value) {
+        return (short)(value & 0xFF);
+    }
+    
+    /**
+     *
+     * Check to signed (short to byte)
+     *
+     **/
+    final public static byte s(short value) {
+        checkRange(value);
+        return (byte)value;
+    }
+    
+    /**
+     *
+     * Check if the given long can be converted to an unsigned int
+     *
+     **/
+    final static void checkRange(long value) {
+        if (value < 0) 
+            runtimeException(null, "$(AMQPFramingFactory:)", "checkRange", "unsigned integer underflow (" + value + ")");
+    
+        if (value > 0xFFFFFFFFl)
+            runtimeException(null, "$(AMQPFramingFactory:)", "checkRange", "unsigned integer overflow (" + value + ")");
+    }
+    
+    /**
+     *
+     * Check if the given int can be converted to an unsigned short
+     *
+     **/
+    final static void checkRange(int value) {
+        if (value < 0) 
+            runtimeException(null, "$(AMQPFramingFactory:)", "checkRange", "unsigned short underflow (" + value + ")");
+    
+        if (value > 0xFFFF)
+            runtimeException(null, "$(AMQPFramingFactory:)", "checkRange", "unsigned short overflow (" + value + ")");
+    }
+    
+    /**
+     *
+     * Check if the given short can be converted to an unsigned byte
+     *
+     **/
+    final static void checkRange(short value) {
+        if (value < 0) 
+            runtimeException(null, "$(AMQPFramingFactory:)", "checkRange", "unsigned byte underflow (" + value + ")");
+    
+        if (value > 0xFF)
+            runtimeException(null, "$(AMQPFramingFactory:)", "checkRange", "unsigned byte overflow (" + value + ")");
+    }
+    
+    // Exception/warning handling
+    
+    /**
+     *
+     * Warning handling
+     *
+     **/
+    public static void warning(String _class, String method, String message) {
+        try {
+            exception(null, _class, method, "WARNING, " + message, 0); 
+        } catch ($(AMQPFrameException:) e) {}
+    }
+    
+    /**
+     *
+     * Exception handling
+     *
+     **/
+    public static void exception(Exception e, String _class, String method, String message) throws $(AMQPFrameException:) {
+        exception(e, _class, method, "Exception, " + message, 1); 
+    }
+    
+    /**
+     *
+     * Runtime-exception handling
+     *
+     **/
+    public static void runtimeException(Exception e, String _class, String method, String message) throws RuntimeException {
+        try {
+            exception(e, _class, method, "ERROR, " + message, 2); 
+        } catch ($(AMQPFrameException:) f) {}
+    }
+    
+    /**
+     *
+     * Exception handling
+     *
+     **/
+    static void exception(Exception e, String _class, String method, String message, int type) throws $(AMQPFrameException:) {
+        message = _class + ": " + method + ": " + message + ".";
+        
+        if (e != null) {
+            e.printStackTrace();
+            System.err.println("From java:");
+            System.err.println(e.getMessage());
+        }    
+        System.err.println("E: " + message);
+        switch (type) {
+            case 1:
+                throw new $(AMQPFrameException:)(message);
+            case 2:
+                throw new RuntimeException(message);
+        }
+    }
+}
+
+. close
+.- Glues the frame types together onto this utility class
+.echo "Generating $(AMQPFramingFactory:).java..."
+. output "$(AMQPFramingFactory:).java"
+/**
+ *  $(AMQPFramingFactory:).java - Handles frames and related functionality.
+ *
+ *  Generated from $(arg?filename) by java/$(script) using GSL/4.
+ *  DO NOT MODIFY THIS FILE.
+ *
+ *  For documentation and updates see http://www.imatix.com.
+ *  Copyright (c) 2004 JPMorgan
+ *  Copyright (c) 1991-2004 iMatix Corporation
+ *
+ **/
+ 
+package $(imatix_openamq_frames_package:);
+
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.FilterInputStream;
+import java.io.FilterOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.Socket;
+
+public class $(AMQPFramingFactory:) extends $(AMQPConnectionHandler:) {
+    // Variabes
+    public boolean 
+        verbose = false;                                   /* Verbose switch                   */
+    long        
+        frameMax = 4096;                                   /* Initial maximum frame size       */
+    $(AMQPFieldTable:)
+        tuning = null;                                     /* Connection tune parameters       */
+    // Frame types instances
+.   my.outertype = undefined ?
+.   for frame
+.       my.new_outertype = string.prefix (name, "_")
+.       if (!defined(my.outertype) | my.new_outertype <> my.outertype)
+.           my.outertype = my.new_outertype
+    $(class_prefix:)$(my.outertype: Neat) 
+        $(my.outertype: lower) = new $(class_prefix:)$(my.outertype: Neat)();\
+                                                           /* $(my.outertype: Neat)            */
+.       endif
+.   endfor    
+    
+    /**
+     *
+     * $(AMQPFramingFactory:) constructor
+     *
+     **/
+    public $(AMQPFramingFactory:)(Socket socket) throws IOException {
+        super(socket);
+    } 
+
+    /**
+     *
+     * $(AMQPFramingFactory:) configurable buffer constructor
+     *
+     **/
+    public $(AMQPFramingFactory:)(Socket socket, int readBuff, int writeBuff) throws IOException {
+        super(socket, readBuff, writeBuff);
+    } 
+    
+    /**
+     *
+     * Set the connection tune parameters
+     *
+     **/
+    public void setTuneParameters($(class_prefix:)Connection.Tune tune) throws $(AMQPFrameException) {
+        tuning = new $(AMQPFieldTable)(tune.options);
+        // Set the frame size limit
+        frameMax = tuning.getInteger("FRAME_MAX");
+        if (frameMax < FRAME_MIN)
+            exception(null, "$(AMQPFramingFactory:)", "setTuneParameters", "FRAME_MAX too small (" + frameMax + " bytes)");
+    }    
+    
+    public long getFrameMax() {
+        return frameMax;
+    }
+    
+    public void sendConnectionInitiation(short id, short version) throws $(AMQPFrameException:) {
+        try {
+            // Send initiation
+            writeUnsignedByte(id);
+            writeUnsignedByte(version);
+        } catch (IOException e) {
+            exception(e, "$(AMQPFramingFactory:)", "sendConnectionInitiation", "unable to connect");
+        }
+    }
+   
+    // Frame header reading/writing
+    
+    /**
+     *
+     * Frame header receiver
+     *
+     **/
+    int receiveFrameHeader() throws $(AMQPFrameException), IOException {
+        int 
+            frameSize = incoming.readUnsignedShort();      /* Frame size                       */
+            if (verbose) 
+                System.out.println("I: read " + 2 + " bytes from server (frame header)");
+        
+        if (frameSize == FRAME_LONG) {
+            // The frame is long
+            frameSize = incoming.readInt();
+            if (verbose) 
+                System.out.println("I: read " + 4 + " bytes from server (frame header)");
+        }
+        if (frameSize <= 0) 
+            exception(null, "$(AMQPFramingFactory:)", "receiveFrameHeader", "zero-size frame rejected");
+        else if (frameSize > frameMax) 
+            exception(null, "$(AMQPFramingFactory:)", "receiveFrameHeader", "frame (" + frameSize + ") > frameMax (" + frameMax + " bytes) rejected");
+            
+        return frameSize;
+    }
+    
+    /**
+     *
+     * Frame header sender
+     *
+     **/
+    void sendFrameHeader(int frameSize) throws $(AMQPFrameException), IOException {
+        if (frameSize <= frameMax) {
+            if (frameSize > 0) {
+                if (frameSize >= FRAME_LONG) {
+                    // Long frame
+                    writeUnsignedShort(FRAME_LONG);
+                    writeUnsignedInt(frameSize);
+                    if (verbose) 
+                        System.out.println("I: wrote " + 6 + " bytes to server (frame header)");
+                } else {
+                    // Short frame
+                    writeUnsignedShort(frameSize);
+                    if (verbose) 
+                        System.out.println("I: wrote " + 2 + " bytes to server (frame header)");
+                }
+            } else {
+                exception(null, "$(AMQPFramingFactory:)", "sendFrameHeader", "zero-size frame rejected");
+            }
+        } else {
+            exception(null, "$(AMQPFramingFactory:)", "sendFrameHeader", "frame (" + frameSize + ") > frameMax (" + frameMax + " bytes) rejected");
+        }
+    }
+    
+    // Frame reading/writing
+    
+    /**
+     *
+     * Frame receiver method
+     *
+     **/
+    public $(AMQPFrame:) receiveFrame() throws $(AMQPFrameException:), IOException {
+        $(AMQPFrame:) 
+            frame = null;                                  /* Resulting frame                  */
+        byte[] 
+            bucket = null;                                 /* Raw frame bucket                 */
+        int 
+            frameSize;                                     /* The frame size                   */
+        
+        // Read the frame header
+        frameSize = receiveFrameHeader();
+        // Read frame type     
+        $(type_type_last:) = incoming.readByte();
+        // Read the rest of the frame
+        bucket = new byte[frameSize - 1]; // Minus one byte we just read           
+        readBytes(incoming, bucket, 0, bucket.length);
+.   build_if_lists(my.frames, my.outertype, AMQPFramingFactory, 1)            
+        if (verbose) {
+            System.out.println("I: read " + (bucket.length + 1) + " bytes from server (frame)");
+            frame.dump();
+        }
+        
+        return frame;
+    } 
+    
+    /**
+     *
+     * Frame sender method
+     *
+     **/
+    public void sendFrame($(AMQPFrame:) frame) throws $(AMQPFrameException:), IOException {
+        frame.encode();
+        sendFrameHeader(frame.bucket.length);      
+        sendData(frame.bucket);    
+        if (verbose) {
+            System.out.println("I: wrote " + frame.bucket.length + " bytes to server (frame)");
+            frame.dump();
+        }
+        // Hint the garbage collector
+        frame.bucket = null;
+    } 
+    
+    /**
+     *
+     * Frame constructor method
+     *
+     **/
+    public $(AMQPFrame:) constructFrame($(type_type_last)) throws $(AMQPFrameException) {
+        $(AMQPFrame:) frame = null;
+        
+.    build_if_lists(my.frames, my.outertype, AMQPFramingFactory, 2)            
+
+        return frame;
+    } 
+ 
+    // Message head reading/writing
+    
+    /**
+     *
+     * Message head receiver method
+     *
+     **/
+    public $(class_prefix:)Message.Head receiveMessageHead() throws $(AMQPFrameException:) {
+        $(class_prefix:)Message.Head head = null;
+        
+        // Read the message header
+        head = ($(class_prefix:)Message.Head)message.receiveFrame(incoming);
+        if (verbose) {
+            System.out.println("I: read " + head.size() + " bytes from server (message head)");
+            head.dump();
+        }
+        
+        return head;
+    }
+    
+    /**
+     *
+     * Message head sender method
+     *
+     **/
+    public void sendMessageHead($(class_prefix:)Message.Head head) throws IOException {
+        head.encode();
+        sendData(head.bucket);
+        if (verbose) 
+            System.out.println("I: wrote " + head.bucket.length + " bytes to server (message head)");
+        // Hint garbage collector    
+        head.bucket = null;    
+    }
+    
+    /**
+     *
+     * Message head constructor method
+     *
+     **/
+    public $(class_prefix:)Message.Head constructMessageHead() throws $(AMQPFrameException:) {
+        return ($(class_prefix:)Message.Head)message.constructFrame();
+    }
+    
     // Message body reading/writing
     
     /**
@@ -1313,7 +1713,7 @@ public class $(AMQPFramingFactory:) {
          */
         public int available() throws IOException {
             if (hnCurr.fragmentSize - fRead == 0 && !fNew)
-                consumeHandleNotify();                
+                receiveHandleNotify();                
             // We will tell the current amount of available remaining fragment
             return (int)Math.min(Integer.MAX_VALUE, Math.min(super.available(), hnCurr.fragmentSize - fRead));
         }
@@ -1376,7 +1776,7 @@ public class $(AMQPFramingFactory:) {
                     mRead += len;
                     fRead += len;
                     fNew = len == 0;
-                    consumeData(is, bytes, off, len);
+                    receiveData(is, bytes, off, len);
                     if (verbose) 
                         System.out.println("I: read " + len + " bytes from server (of fragment)");
                     if (mRead >= head.bodySize)    
@@ -1387,12 +1787,12 @@ public class $(AMQPFramingFactory:) {
                         // Read what is available from current fragment
                         mRead += available;
                         fRead += available;
-                        consumeData(is, bytes, off, (int)available);
+                        receiveData(is, bytes, off, (int)available);
                         if (verbose) 
                             System.out.println("I: read " + available + " bytes from server (of fragment)");
                     }    
                     // We must get another handle notify
-                    if (consumeHandleNotify() == -1)
+                    if (receiveHandleNotify() == -1)
                         empty = true;
                     return read(bytes, (int)(off + available), (int)(len - available));
                 }
@@ -1402,21 +1802,21 @@ public class $(AMQPFramingFactory:) {
             }
         }
         
-        int consumeHandleNotify() throws IOException {
+        int receiveHandleNotify() throws IOException {
             try {
                 if (hnCurr.partial) {
-                    $(class_prefix:)Frame frame = consumeFrame();
+                    $(class_prefix:)Frame frame = receiveFrame();
                     if (frame instanceof $(class_prefix:)Handle.Notify) {
                         fRead = 0;
                         fNew = true;
                         hnCurr = ($(class_prefix:)Handle.Notify)frame;
                         if (hnCurr.fragmentSize > frameMax)
-                            exception(null, "MessageBodyInputStream", "consumeHandleNotify", "oversized fragment");
+                            exception(null, "MessageBodyInputStream", "receiveHandleNotify", "oversized fragment");
                         if (!hnCurr.partial) 
                             hnFirst.destName = hnCurr.destName;
                     } else {
                         frame.dump();
-                        exception(null, "MessageBodyInputStream", "consumeHandleNotify", "unexpected frame");
+                        exception(null, "MessageBodyInputStream", "receiveHandleNotify", "unexpected frame");
                     }
                 } else {    
                 
@@ -1611,7 +2011,7 @@ public class $(AMQPFramingFactory:) {
                     // Fill current fragment
                     mWritten += len;
                     fWritten += len;
-                    produceData(os, bytes, off, len);
+                    sendData(os, bytes, off, len);
                     if (verbose) 
                         System.out.println("I: wrote " + len + " bytes to server (of fragment)");
                     if (mWritten > head.bodySize)
@@ -1621,12 +2021,12 @@ public class $(AMQPFramingFactory:) {
                         // Fill what is available from current fragment
                         mWritten += available;
                         fWritten += available;
-                        produceData(os, bytes, off, (int)available);
+                        sendData(os, bytes, off, (int)available);
                         if (verbose) 
                             System.out.println("I: wrote " + available + " bytes to server (of fragment)");
                     }    
                     // We must generate another handle send
-                    if (produceHandleSend() == -1) 
+                    if (sendHandleSend() == -1) 
                         full = true;
                     write(bytes, (int)(off + available), (int)(len - available));
                 }
@@ -1638,7 +2038,7 @@ public class $(AMQPFramingFactory:) {
          * This will prepare for sending the next message fragment
          *
          */
-        int produceHandleSend() throws IOException {
+        int sendHandleSend() throws IOException {
             try {
                 if (hsCurr.partial) {
                     long
@@ -1650,7 +2050,7 @@ public class $(AMQPFramingFactory:) {
                     }
                     hsCurr.fragmentSize = Math.min(fragmentSize, mLeft); 
                     fWritten = 0;
-                    produceFrame(hsCurr);
+                    sendFrame(hsCurr);
                 } else {
                     
                     return -1;
@@ -1664,264 +2064,7 @@ public class $(AMQPFramingFactory:) {
         }
     }
     
-    // Message head reading/writing
-    
-    /**
-     *
-     * Message head consumer method
-     *
-     **/
-    public $(class_prefix:)Message.Head consumeMessageHead() throws $(AMQPFrameException:) {
-        $(class_prefix:)Message.Head head = null;
-        
-        // Read the message header
-        head = ($(class_prefix:)Message.Head)message.consumeFrame(incoming);
-        if (verbose) {
-            System.out.println("I: read " + head.size() + " bytes from server (message head)");
-            head.dump();
-        }
-        
-        return head;
-    }
-    
-    /**
-     *
-     * Message head producer method
-     *
-     **/
-    public void produceMessageHead($(class_prefix:)Message.Head head) throws IOException {
-        head.encode();
-        produceData(head.bucket);
-        if (verbose) 
-            System.out.println("I: wrote " + head.bucket.length + " bytes to server (message head)");
-        // Hint garbage collector    
-        head.bucket = null;    
-    }
-    
-    /**
-     *
-     * Message head creator method
-     *
-     **/
-    public $(class_prefix:)Message.Head createMessageHead() throws $(AMQPFrameException:) {
-        return ($(class_prefix:)Message.Head)message.createFrame();
-    }
-    
-    // Frame header reading/writing
-    
-    /**
-     *
-     * Frame header consumer
-     *
-     **/
-    int consumeFrameHeader() throws $(AMQPFrameException), IOException {
-        int 
-            frameSize = incoming.readUnsignedShort();      /* Frame size                       */
-            if (verbose) 
-                System.out.println("I: read " + 2 + " bytes from server (frame header)");
-        
-        if (frameSize == FRAME_LONG) {
-            // The frame is long
-            frameSize = incoming.readInt();
-            if (verbose) 
-                System.out.println("I: read " + 4 + " bytes from server (frame header)");
-        }
-        if (frameSize <= 0) 
-            exception(null, "$(AMQPFramingFactory:)", "consumeFrameHeader", "zero-size frame rejected");
-        else if (frameSize > frameMax) 
-            exception(null, "$(AMQPFramingFactory:)", "consumeFrameHeader", "frame (" + frameSize + ") > frameMax (" + frameMax + " bytes) rejected");
-            
-        return frameSize;
-    }
-    
-    /**
-     *
-     * Frame header producer
-     *
-     **/
-    void produceFrameHeader(int frameSize) throws $(AMQPFrameException), IOException {
-        if (frameSize <= frameMax) {
-            if (frameSize > 0) {
-                if (frameSize >= FRAME_LONG) {
-                    // Long frame
-                    writeUnsignedShort(FRAME_LONG);
-                    writeUnsignedInt(frameSize);
-                    if (verbose) 
-                        System.out.println("I: wrote " + 6 + " bytes to server (frame header)");
-                } else {
-                    // Short frame
-                    writeUnsignedShort(frameSize);
-                    if (verbose) 
-                        System.out.println("I: wrote " + 2 + " bytes to server (frame header)");
-                }
-            } else {
-                exception(null, "$(AMQPFramingFactory:)", "produceFrameHeader", "zero-size frame rejected");
-            }
-        } else {
-            exception(null, "$(AMQPFramingFactory:)", "produceFrameHeader", "frame (" + frameSize + ") > frameMax (" + frameMax + " bytes) rejected");
-        }
-    }
-    
-    // Frame reading/writing
-    
-    /**
-     *
-     * Frame consumer method
-     *
-     **/
-    public $(AMQPFrame:) consumeFrame() throws $(AMQPFrameException:), IOException {
-        $(AMQPFrame:) 
-            frame = null;                                  /* Resulting frame                  */
-        byte[] 
-            bucket = null;                                 /* Raw frame bucket                 */
-        int 
-            frameSize;                                     /* The frame size                   */
-        
-        // Read the frame header
-        frameSize = consumeFrameHeader();
-        // Read frame type     
-        $(type_type_last:) = incoming.readByte();
-        // Read the rest of the frame
-        bucket = new byte[frameSize - 1]; // Minus one byte we just read           
-        readBytes(incoming, bucket, 0, bucket.length);
-.   build_if_lists(my.frames, my.outertype, AMQPFramingFactory, 1)            
-        if (verbose) {
-            System.out.println("I: read " + (bucket.length + 1) + " bytes from server (frame)");
-            frame.dump();
-        }
-        
-        return frame;
-    } 
-    
-    /**
-     *
-     * Frame producer method
-     *
-     **/
-    public void produceFrame($(AMQPFrame:) frame) throws $(AMQPFrameException:), IOException {
-        frame.encode();
-        produceFrameHeader(frame.bucket.length);      
-        produceData(frame.bucket);    
-        if (verbose) {
-            System.out.println("I: wrote " + frame.bucket.length + " bytes to server (frame)");
-            frame.dump();
-        }
-        // Hint the garbage collector
-        frame.bucket = null;
-    } 
-    
-    /**
-     *
-     * Frame constructor method
-     *
-     **/
-    public $(AMQPFrame:) createFrame($(type_type_last)) throws $(AMQPFrameException) {
-        $(AMQPFrame:) frame = null;
-        
-.    build_if_lists(my.frames, my.outertype, AMQPFramingFactory, 2)            
-
-        return frame;
-    } 
-
-    // Signed/unsigned conversion (final to hint optimization to the compiler)
-    
-    /**
-     *
-     * Convert to unsigned (int to long)
-     *
-     **/
-    final public static long u(int value) {
-        return value & 0xFFFFFFFFl;
-    }
-    
-    /**
-     *
-     * Check to signed (long to int)
-     *
-     **/
-    final public static int s(long value) {
-        checkRange(value);
-        return (int)value;
-    }
-    
-    /**
-     *
-     * Convert to unsigned (short to int)
-     *
-     **/
-    final public static int u(short value) {
-        return value & 0xFFFF;
-    }
-    
-    /**
-     *
-     * Check to signed (int to short)
-     *
-     **/
-    final public static short s(int value) {
-        checkRange(value);
-        return (short)value;
-    }
-    
-    /**
-     *
-     * Convert to unsigned (byte to short)
-     *
-     **/
-    final public static short u(byte value) {
-        return (short)(value & 0xFF);
-    }
-    
-    /**
-     *
-     * Check to signed (short to byte)
-     *
-     **/
-    final public static byte s(short value) {
-        checkRange(value);
-        return (byte)value;
-    }
-    
-    /**
-     *
-     * Check if the given long can be converted to an unsigned int
-     *
-     **/
-    final static void checkRange(long value) {
-        if (value < 0) 
-            runtimeException(null, "$(AMQPFramingFactory:)", "checkRange", "unsigned integer underflow (" + value + ")");
-    
-        if (value > 0xFFFFFFFFl)
-            runtimeException(null, "$(AMQPFramingFactory:)", "checkRange", "unsigned integer overflow (" + value + ")");
-    }
-    
-    /**
-     *
-     * Check if the given int can be converted to an unsigned short
-     *
-     **/
-    final static void checkRange(int value) {
-        if (value < 0) 
-            runtimeException(null, "$(AMQPFramingFactory:)", "checkRange", "unsigned short underflow (" + value + ")");
-    
-        if (value > 0xFFFF)
-            runtimeException(null, "$(AMQPFramingFactory:)", "checkRange", "unsigned short overflow (" + value + ")");
-    }
-    
-    /**
-     *
-     * Check if the given short can be converted to an unsigned byte
-     *
-     **/
-    final static void checkRange(short value) {
-        if (value < 0) 
-            runtimeException(null, "$(AMQPFramingFactory:)", "checkRange", "unsigned byte underflow (" + value + ")");
-    
-        if (value > 0xFF)
-            runtimeException(null, "$(AMQPFramingFactory:)", "checkRange", "unsigned byte overflow (" + value + ")");
-    }
-    
-    // Short/long string representation/conversion
+    // Byte array conversion
     
     /**
      *
@@ -1958,89 +2101,6 @@ public class $(AMQPFramingFactory:) {
         }
         
         return result;
-    }
-    
-    /**
-     *
-     * Byte array to string translation
-     *
-     **/
-    public static String bytes2String(byte[] bytes) {
-        try {
-            return new String(bytes, STRING_ENC);
-        } catch (UnsupportedEncodingException e) {
-            runtimeException(e, "$(AMQPFramingFactory:)", "bytes2String", "UnsupportedEncodingException");
-            return null;
-        }
-    }
-     
-    /**
-     *
-     * String to byte array translation
-     *
-     **/
-    public static byte[] string2Bytes(String string) {
-        try {
-            return string.getBytes(STRING_ENC);
-        } catch (UnsupportedEncodingException e) {
-            runtimeException(e, "$(AMQPFramingFactory:)", "string2Bytes", "UnsupportedEncodingException");
-            return null;
-        }
-    }
-    
-    // Error/warning handling
-    
-    /**
-     *
-     * Warning handling
-     *
-     **/
-    public static void warning(String _class, String method, String message) {
-        try {
-            exception(null, _class, method, "WARNING, " + message, 0); 
-        } catch ($(AMQPFrameException:) e) {}
-    }
-    
-    /**
-     *
-     * Exception handling
-     *
-     **/
-    public static void exception(Exception e, String _class, String method, String message) throws $(AMQPFrameException:) {
-        exception(e, _class, method, "Exception, " + message, 1); 
-    }
-    
-    /**
-     *
-     * Runtime-exception handling
-     *
-     **/
-    public static void runtimeException(Exception e, String _class, String method, String message) throws RuntimeException {
-        try {
-            exception(e, _class, method, "ERROR, " + message, 2); 
-        } catch ($(AMQPFrameException:) f) {}
-    }
-    
-    /**
-     *
-     * Exception handling
-     *
-     **/
-    static void exception(Exception e, String _class, String method, String message, int type) throws $(AMQPFrameException:) {
-        message = _class + ": " + method + ": " + message + ".";
-        
-        if (e != null) {
-            e.printStackTrace();
-            System.err.println("From java:");
-            System.err.println(e.getMessage());
-        }    
-        System.err.println("E: " + message);
-        switch (type) {
-            case 1:
-                throw new $(AMQPFrameException:)(message);
-            case 2:
-                throw new RuntimeException(message);
-        }
     }
 }
 
