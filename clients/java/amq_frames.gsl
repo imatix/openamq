@@ -641,15 +641,16 @@ public class $(class_prefix:)$(my.outertype: Neat) {
      * $(my.outertype: Neat) frame creator
      *
      **/
-    $(my.frame_super:) createFrame($(type_type ? "":)) throws $(AMQPFrameException:) {
 .-          Not for message
 .           if (defined (type_type))    
+    $(my.frame_super:) createFrame($(type_type ? "":)) throws $(AMQPFrameException:) {
         switch (type) {
 .       build_frame_lists (my.frames, my.outertype, 4)               
         }
         return null;
 .           else        
 .-          The message case
+    $(my.frame_super:) createFrame($(type_type ? "":)) {
 .       build_frame_lists (my.frames, my.outertype, 5)               
 .           endif           
     } 
@@ -997,20 +998,6 @@ public class $(AMQPFramingFactory:) {
         return frameMax;
     }
     
-    /**
-     *
-     * Data consumer method (allocates)
-     *
-     **/
-    public byte[] consumeData(int len) throws IOException {
-        byte[] 
-            bytes = new byte[len];                    /* Data bucket                      */
-            
-        consumeData(bytes, 0, bytes.length);
-        
-        return bytes;
-    }
-    
     // Socket level reading/writing
     
     /**
@@ -1109,6 +1096,20 @@ public class $(AMQPFramingFactory:) {
     }
     
     // Raw data reading/writing
+    
+    /**
+     *
+     * Data consumer method (allocates)
+     *
+     **/
+    public byte[] consumeData(int len) throws IOException {
+        byte[] 
+            bytes = new byte[len];                    /* Data bucket                      */
+            
+        consumeData(bytes, 0, bytes.length);
+        
+        return bytes;
+    }
     
     /**
      *
@@ -1279,7 +1280,7 @@ public class $(AMQPFramingFactory:) {
      * This class processes handle notifies from the server, and provides the body of the message as an inputstream
      *
      **/
-    public class MessageBodyInputStream extends FilterInputStream {
+    class MessageBodyInputStream extends FilterInputStream {
         $(class_prefix:)Handle.Notify 
             hnFirst,                                       /* Parameters of first fragment     */
             hnCurr;                                        /* Parameters of current fragment   */
@@ -1516,7 +1517,7 @@ public class $(AMQPFramingFactory:) {
      * This class fragments the message body generating handle sends as needed 
      *
      **/
-    public class MessageBodyOutputStream extends FilterOutputStream {
+    class MessageBodyOutputStream extends FilterOutputStream {
         $(class_prefix:)Handle.Send 
             hsCurr;                                        /* Parameters for current fragment  */
         $(class_prefix:)Message.Head 
@@ -1670,7 +1671,7 @@ public class $(AMQPFramingFactory:) {
      * Message head consumer method
      *
      **/
-    public $(class_prefix:)Message.Head consumeMessageHead() throws $(AMQPFrameException:), IOException {
+    public $(class_prefix:)Message.Head consumeMessageHead() throws $(AMQPFrameException:) {
         $(class_prefix:)Message.Head head = null;
         
         // Read the message header
@@ -1688,7 +1689,7 @@ public class $(AMQPFramingFactory:) {
      * Message head producer method
      *
      **/
-    public void produceMessageHead($(class_prefix:)Message.Head head) throws $(AMQPFrameException:), IOException {
+    public void produceMessageHead($(class_prefix:)Message.Head head) throws IOException {
         head.encode();
         produceData(head.bucket);
         if (verbose) 
@@ -1716,10 +1717,14 @@ public class $(AMQPFramingFactory:) {
     int consumeFrameHeader() throws $(AMQPFrameException), IOException {
         int 
             frameSize = incoming.readUnsignedShort();      /* Frame size                       */
+            if (verbose) 
+                System.out.println("I: read " + 2 + " bytes from server (frame header)");
         
         if (frameSize == FRAME_LONG) {
             // The frame is long
             frameSize = incoming.readInt();
+            if (verbose) 
+                System.out.println("I: read " + 4 + " bytes from server (frame header)");
         }
         if (frameSize <= 0) 
             exception(null, "$(AMQPFramingFactory:)", "consumeFrameHeader", "zero-size frame rejected");
@@ -1990,7 +1995,7 @@ public class $(AMQPFramingFactory:) {
      * Warning handling
      *
      **/
-    public static void warning(String message, String _class, String method) {
+    public static void warning(String _class, String method, String message) {
         try {
             exception(null, _class, method, "WARNING, " + message, 0); 
         } catch ($(AMQPFrameException:) e) {}
