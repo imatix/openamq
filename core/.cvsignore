@@ -19,6 +19,7 @@ makefile*
 msmake*
 version.h
 .spool
+amqpsrv
 amq_aclient.c
 amq_aclient.h
 amq_aclient_agent.c

@@ -1,7 +1,7 @@
 #
 #  Make full source package
 #
-VERSION=0.6h4
+VERSION=0.7b0
 PACKAGE=openamq-$VERSION-src.tar.gz
 
 echo "Preparing base..."

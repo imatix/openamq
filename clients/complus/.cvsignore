@@ -11,4 +11,5 @@ project.pdl
 Release
 save
 testit.c
-
+boomake*
+version.h
