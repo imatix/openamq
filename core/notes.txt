@@ -1,0 +1,54 @@
+BDB
+    - queue tables for queues
+
+Acks
+    - when dispatching
+        -> work off dispatch list
+        -> any not there but with clientid, redeliver
+        
+        
+Changes
+
+    rfc006
+    fragments
+        - allow client to cancel messages using flow/cancel
+
+
+    client failure
+    - failover to secondary server
+    - use heartbeat command to check server is alive
+
+    clustering
+    - n servers
+    - queue + consumers on each server
+    - if queue filled & no consumers, messages are forwarded
+        - using inter-server MTA
+    - if queue empties & consumers, messages are scraped
+        - using inter-server MTA
+    - separate mechanism for forwarding topics
+    - client connection
+        - list of ip addresses
+        - serial or round robin
+        - can be redirected by server
+        - can tell server, "no redirect"
+    - durable subscriptions
+        - may be held on different server, use queue thunking
+        - may be allowed for scalability
+
+    multithreading
+    - one for smt
+    - one for bdb
+        
+    clients, priority
+    * COM+ for demo
+    * C thread-safe
+    * Java
+    - .NET
+    - Perl
+
+
+Durable Subscriptions
+    When server starts up, creates consumer item for all
+    durable subscriptions it finds...
+        - these are destinations marked as SUBSCRIPTION
+

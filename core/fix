@@ -1,0 +1,20 @@
+if test -f $1.icl; then
+    gsl $1*.icl
+    c    $1*.c | head -10
+    c -r libamq $1*.o
+    c -l $1_test
+
+elif test -f $1.smt; then
+    gsl $1.smt
+    c    $1*.c | head -10
+    c -r libamq $1*.o
+
+elif test -f $1.xml; then
+    gsl $1.xml
+    c    $1*.c | head -10
+    c -r libamq $1*.o
+
+elif test -f $1.c; then
+    c    $1*.c | head -10
+    c -r libamq $1*.o
+fi

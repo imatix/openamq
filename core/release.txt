@@ -1,0 +1,17 @@
+0.7a0 - 21 December
+    - added restartability (HANDLE PREPARE, HANDLE READY)
+
+0.6h4
+    - added verbose reply texts for all server errors
+    - server would crash if run without any config data - fixed
+    - was not handling large messages (HANDLE SEND) - fixed
+    - under Windows, ctrl-C was not being trapped - fixed
+    - file transfer application added in prototype form
+
+0.6h3 - 13 December
+
+    - server did not support named temporary queues correctly - fixed
+    - server failed when persistent messages were sent - fixed
+    - first release of COM+ client component (blocking)
+
+0.6h2 - 9 December 2004

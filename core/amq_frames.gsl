@@ -1,0 +1,814 @@
+.template 0
+#! /usr/local/bin/gsl -a
+#  ----------------------------------------------------------------------------
+#   AMQ Frame Generator
+#
+#   Frames are structures designed to be easily serialized for writing
+#   to a socket or file.  Frames are described using an XML language.
+#
+#   This script generates frame structures and serialization code.
+#
+#   Copyright (c) 2004 JPMorgan
+#   Copyright (c) 1991-2004 iMatix Corporation
+#  ----------------------------------------------------------------------------
+
+function abort_xml_error ()
+    abort xml.error
+endfunction
+
+function parse_frames (frames)
+    name   = "$(name:c)"
+    prefix = "$(prefix:c)"
+    for . where name() = "frame"
+        if name = "frame"
+            abort "'frame' is a reserved name, please change this"
+        endif
+        name = "$(name:c)"
+        for field
+            name = "$(name:c)"
+        endfor
+    endfor
+endfunction
+
+function frame_macros (frame)
+    offset = 0
+    bits   = 0
+    string = 0
+    join   = ""
+
+    marker_fields = ""
+    string_fields = ""
+
+    for field
+        if defined (value)
+            if string
+                abort "Can't detect frame type markers after a string"
+            endif
+            if type = "char"
+                marker_fields = marker_fields + join + "*((char *) (data + $(offset))) == '$(value:)'"
+            elsif type = "octet"
+                marker_fields = marker_fields + join + "*((byte *) (data + $(offset))) == $(value)"
+            elsif type = "shortint"
+                marker_fields = marker_fields + join + "ntohs *((dbyte *) (data + $(offset))) == $(value)"
+            elsif type = "longint"
+                marker_fields = marker_fields + join + "ntohl *((qbyte *) (data + $(offset))) == $(value)"
+            endif
+            join = " && "
+        endif
+
+        if    type = "char"
+            offset += 1
+        elsif type = "bit"
+            bits   += 1
+            if bits = 8
+                bits = 0
+                offset += 1
+            endif
+        elsif type = "octet"
+            offset += 1
+        elsif type = "shortint"
+            offset += 2
+        elsif type = "longint"
+            offset += 4
+        elsif type = "shortstr"
+            offset += 1         #   Length octet
+            string = 1
+            string_fields  = string_fields + " + strlen (frame->body.$(frame.name).$(name))"
+        elsif type = "longstr" | type = "table"
+            offset += 2         #   Length word
+            string = 1
+            string_fields  = string_fields + " + (frame->body.$(frame.name).$(name)? frame->body.$(frame.name).$(name)->size: 0)"
+        endif
+        if type <> "bit" & bits > 0
+            bits = 0
+            offset += 1
+        endif
+    endfor
+    if marker_fields = ""
+        frame.variant = 0
+    else
+        >#define IS_$(NAME)(data)     $(marker_fields:)
+        frame.variant = 1
+    endif
+    >#define $(NAME)_SIZE(frame)  $(offset)$(string_fields:)+1
+endfunction
+
+function build_struct_fields
+    for field
+        if    type = "char"
+            my.type = "char  "
+        elsif type = "bit"
+            my.type = "Bool  "
+        elsif type = "octet"
+            my.type = "byte  "
+        elsif type = "shortint"
+            my.type = "dbyte "
+        elsif type = "longint"
+            my.type = "qbyte "
+        elsif type = "shortstr"
+            my.type = "ipr_shortstr_t "
+        elsif type = "longstr" | type = "table"
+            my.type = "ipr_longstr_t *"
+        endif
+        >    $(my.type:)$(name:);                /*  $(.?:)                           */
+    endfor
+endfunction
+
+function build_struct_args
+    my.delim = ""
+    my.args = ""
+    for field where !defined (value)
+        if    type = "char"
+            my.type = "char "
+        elsif type = "bit"
+            my.type = "Bool "
+        elsif type = "octet"
+            my.type = "byte "
+        elsif type = "shortint"
+            my.type = "dbyte "
+        elsif type = "longint"
+            my.type = "qbyte "
+        elsif type = "shortstr"
+            my.type = "ipr_shortstr_t "
+        elsif type = "longstr" | type = "table"
+            my.type = "ipr_longstr_t *"
+        endif
+        my.args += my.delim + my.type + name
+        my.delim = ", "
+    endfor
+    return my.args
+endfunction
+
+
+.macro generate_frames (frames)
+.echo "Generating $(name).h..."
+.output "$(name).h"
+. scope my.frames
+/*---------------------------------------------------------------------------
+ *  $(name).h - prototypes for $(frame.title?name:).
+ *
+ *  Generated from $(arg?filename) by $(script) using GSL/4.
+ *  DO NOT MODIFY THIS FILE.
+ *
+ *  For documentation and updates see http://www.imatix.com.
+ *  Copyright (c) 2004 JPMorgan
+ *  Copyright (c) 1991-2004 iMatix Corporation
+ *---------------------------------------------------------------------------*/
+
+#ifndef INCLUDE_$(name:upper)
+#define INCLUDE_$(name:upper)
+
+#include "amq_core.h"
+#include "amq_bucket.h"
+#include "ipr_classes.h"
+
+#define AMQP_COMMAND_END    0xCE        /*  End of frame marker              */
+
+/*  Structures and union                                                     */
+
+enum {
+.   for frame
+    FRAME_TYPE_$(NAME),
+.   endfor
+    FRAME_TYPE_NULL
+};
+
+.   for . where name() = "frame"
+typedef struct {
+.       build_struct_fields ()
+} $(prefix)_$(name)_t;
+
+.   endfor
+typedef struct {
+    int    type;                        /*  Frame type, enumerated           */
+    size_t size;                        /*  Size of frame when encoded       */
+    union contents {
+.   for frame
+    $(prefix)_$(name)_t $(name);
+.   endfor
+    } body;
+} $(prefix)_frame_t;
+
+
+/*  Frame detection and size macros                                          */
+
+.   for frame
+.       frame_macros (frame)
+.   endfor frame
+
+size_t $(prefix)_frame_encode\
+                                 (amq_bucket_t *bucket, $(prefix)_frame_t *frame);
+$(prefix)_frame_t *$(prefix)_frame_decode\
+                                 (amq_bucket_t *bucket);
+.   for frame where variant = 0
+$(prefix)_frame_t *$(prefix)_$(name)_decode\
+                                 (amq_bucket_t *bucket);
+.   endfor
+.   for frame
+$(prefix)_frame_t *$(prefix)_frame_$(name)_new\
+                                 ($(build_struct_args ()));
+.   endfor
+size_t $(prefix)_frame_size\
+                                 ($(prefix)_frame_t *frame);
+void   $(prefix)_frame_dump\
+                                 ($(prefix)_frame_t *frame);
+void   $(prefix)_frame_free\
+                                 ($(prefix)_frame_t **frame);
+
+/*  Shortcuts for use in SMT agents                                          */
+
+.   for frame
+#define $(NAME)                 tcb->frame->body.$(name)
+.   endfor
+
+#endif
+. endscope
+.close
+.
+.echo "Generating $(name).c..."
+.output "$(name).c"
+. scope my.frames
+/*---------------------------------------------------------------------------
+ *  $(name).c - functions for $(frame.title?name:).
+ *
+ *  Generated from $(arg?filename) by $(script) using GSL/4.
+ *  DO NOT MODIFY THIS FILE.
+ *
+ *  For documentation and updates see http://www.imatix.com.
+ *  Copyright (c) 2004 JPMorgan
+ *  Copyright (c) 1991-2004 iMatix Corporation
+ *---------------------------------------------------------------------------*/
+
+#include "sfl.h"
+#include "$(name).h"
+
+
+/*  -------------------------------------------------------------------------
+    $(prefix)_frame_encode
+
+    Encodes frame into supplied bucket.
+    Updates the cur_size of the bucket and returns this value.  Returns zero
+    if there was an error.  Long strings may be null in which they are encoded
+    as empty.
+ */
+
+size_t
+$(prefix)_frame_encode (amq_bucket_t *bucket, $(prefix)_frame_t *frame)
+{
+    byte
+        *bucket_data;
+    size_t
+        string_size;
+
+.   for frame
+.       if count (field, type = "bit")
+    byte
+        bit_string;
+
+.       last
+.       endif
+.   endfor
+    ASSERT (bucket);
+    ASSERT (frame);
+
+    bucket_data = bucket->data;
+    switch (frame->type) {
+.   for frame
+        case FRAME_TYPE_$(NAME):
+            if ($(NAME)_SIZE (frame) > bucket->max_size) {
+                coprintf ("$(name) frame needs %ld bytes, bucket too small at %ld",
+                    $(NAME)_SIZE (frame), bucket->max_size);
+                return (0);
+            }
+.       if count (field, type = "bit")
+.           bit_count = 0
+.       endif
+.       for field
+.           if    type = "char"
+            *(char *) bucket_data = frame->body.$(frame.name).$(name);
+            bucket_data += 1;
+.           elsif type = "bit"
+.               if bit_count = 0
+            bucket_data += 1;
+            bit_string   = 0;
+.                   bit_count = 0
+.               endif
+            bit_string |= (frame->body.$(frame.name).$(name) & 1) << $(bit_count);
+            *(byte *) (bucket_data - 1) = bit_string;
+.               bit_count += 1
+.               if bit_count = 8
+.                   bit_count = 0
+.               endif
+.-
+.           elsif type = "octet"
+            *(byte *) bucket_data = frame->body.$(frame.name).$(name);
+            bucket_data += 1;
+.-
+.           elsif type = "shortint"
+            *(dbyte *) bucket_data = htons (frame->body.$(frame.name).$(name));
+            bucket_data += 2;
+.-
+.           elsif type = "longint"
+            *(qbyte *) bucket_data = htonl (frame->body.$(frame.name).$(name));
+            bucket_data += 4;
+.-
+.           elsif type = "shortstr"
+            string_size = strlen (frame->body.$(frame.name).$(name));
+            *(byte *) bucket_data = (byte) string_size;
+            bucket_data += 1;
+            memcpy (bucket_data, frame->body.$(frame.name).$(name), string_size);
+            bucket_data += string_size;
+.-
+.           elsif type = "longstr" | type = "table"
+            if (frame->body.$(frame.name).$(name)) {
+                ASSERT (frame->body.$(frame.name).$(name)->size < 0x10000);
+                *(dbyte *) bucket_data = htons ((dbyte) frame->body.$(frame.name).$(name)->size);
+                bucket_data += 2;
+                memcpy (bucket_data,
+                        frame->body.$(frame.name).$(name)->data,
+                        frame->body.$(frame.name).$(name)->size);
+                bucket_data += frame->body.$(frame.name).$(name)->size;
+            }
+            else {
+                *(dbyte *) bucket_data = 0;
+                bucket_data += 2;
+            }
+.           endif
+.       endfor
+.       if frame.variant = 1
+        /*  Add command-end marker after frame contents                      */
+        *(byte *) bucket_data = AMQP_COMMAND_END;
+        bucket_data += 1;
+.       endif
+            break;
+
+.   endfor frame
+        default:
+            coprintf ("Unrecognized frame, cannot encode");
+            return (0);
+    }
+    bucket->cur_size = (byte *) bucket_data - (byte *) bucket->data;
+    return (bucket->cur_size);
+}
+
+
+/*  -------------------------------------------------------------------------
+    $(prefix)_frame_decode
+
+    Decodes a frame from supplied bucket.  Allocates a frame and returns the
+    frame structure filled from the bucket.  If there was a problem decoding
+    the frame, returns NULL and logs an error message.
+ */
+
+$(prefix)_frame_t *
+$(prefix)_frame_decode (amq_bucket_t *bucket)
+{
+    $(prefix)_frame_t
+        *frame = NULL;
+    byte
+        *bucket_data,                   /*  Pointer into bucket data         */
+        *bucket_max;                    /*  Limit of bucket data             */
+    size_t
+        string_size;
+.   for frame
+.       if count (field, type = "bit")
+    byte
+        bit_string = 0;
+.       last
+.       endif
+.   endfor
+
+    ASSERT (bucket);
+    frame = mem_alloc (sizeof ($(prefix)_frame_t));
+    if (!frame) {
+        coprintf ("Memory allocation failed in $(prefix)_frame_decode");
+        return (NULL);
+    }
+    bucket_data = bucket->data;
+    bucket_max  = bucket->data + bucket->cur_size;
+.   for frame where variant = 1
+    if (IS_$(NAME) (bucket_data)) {
+        frame->type = FRAME_TYPE_$(NAME);
+.       if count (field, type = "bit")
+.           bit_count = 0
+.       endif
+.       for field
+        if (bucket_data >= bucket_max)
+            goto underflow;
+.           if    type = "char"
+        frame->body.$(frame.name).$(name) = *(char *) bucket_data;
+        bucket_data += 1;
+.-
+.           elsif type = "bit"
+.               if bit_count = 0
+        bit_string = *(byte *) bucket_data;
+        bucket_data++;
+.               endif
+        frame->body.$(frame.name).$(name) = (bit_string >> $(bit_count)) & 1;
+.           bit_count += 1
+.           if bit_count = 8
+.               bit_count = 0
+.           endif
+.-
+.           elsif type = "octet"
+        frame->body.$(frame.name).$(name) = *(byte *) bucket_data;
+        bucket_data += 1;
+.-
+.           elsif type = "shortint"
+        frame->body.$(frame.name).$(name) = ntohs (*(dbyte *) bucket_data);
+        bucket_data += 2;
+.-
+.           elsif type = "longint"
+        frame->body.$(frame.name).$(name) = ntohl (*(qbyte *) bucket_data);
+        bucket_data += 4;
+.-
+.           elsif type = "shortstr"
+        string_size = *(byte *) bucket_data;
+        bucket_data += 1;
+        memcpy (frame->body.$(frame.name).$(name), bucket_data, string_size);
+        frame->body.$(frame.name).$(name) [string_size] = 0;
+        bucket_data += string_size;
+.-
+.           elsif type = "longstr" | type = "table"
+        string_size = ntohs (*(dbyte *) bucket_data);
+        bucket_data += 2;
+        frame->body.$(frame.name).$(name) = ipr_longstr_new (bucket_data, string_size);
+        bucket_data += string_size;
+.           endif
+.       endfor
+        frame->size = (byte *) bucket_data - (byte *) bucket->data;
+    }
+    else
+.   endfor frame
+    {
+        coprintf ("Unrecognized frame, cannot decode");
+        mem_free (frame);
+        return (NULL);
+    }
+    /*  Check for command-end byte                                           */
+    if (*bucket_data == AMQP_COMMAND_END)
+        return (frame);
+    else {
+        coprintf ("Frame missing command-end octet, cannot decode");
+        mem_free (frame);
+        return (NULL);
+    }
+    underflow:
+        coprintf ("Insufficient data provided to decode frame");
+        mem_free (frame);
+        return (NULL);
+}
+
+
+.   for frame where variant = 0
+/*  -------------------------------------------------------------------------
+    $(prefix)_$(name)_decode
+
+    Decodes a $(name)) from supplied bucket.  Allocates a frame and returns
+    the frame structure filled from the bucket.  If there was a problem decoding
+    the frame, returns NULL and logs an error message.
+ */
+
+$(prefix)_frame_t *
+$(prefix)_$(name)_decode (amq_bucket_t *bucket)
+{
+    $(prefix)_frame_t
+        *frame = NULL;
+    byte
+        *bucket_data;
+    size_t
+        string_size;
+.       if count (field, type = "bit")
+    byte
+        bit_string = 0;
+.       endif
+
+    ASSERT (bucket);
+    bucket_data = bucket->data;
+    frame = mem_alloc (sizeof ($(prefix)_frame_t));
+    if (!frame) {
+        coprintf ("Memory allocation failed in $(prefix)_$(name)_decode");
+        return (NULL);
+    }
+    frame->type = FRAME_TYPE_$(NAME);
+.       if count (field, type = "bit")
+.           bit_count = 0
+.       endif
+.       for field
+.           if    type = "char"
+    frame->body.$(frame.name).$(name) = *(char *) bucket_data;
+    bucket_data += 1;
+.-
+.           elsif type = "bit"
+.               if bit_count = 0
+    bit_string = *(byte *) bucket_data;
+    bucket_data++;
+.               endif
+    frame->body.$(frame.name).$(name) = (bit_string >> $(bit_count)) & 1;
+.           bit_count += 1
+.           if bit_count = 8
+.               bit_count = 0
+.           endif
+.-
+.           elsif type = "octet"
+    frame->body.$(frame.name).$(name) = *(byte *) bucket_data;
+    bucket_data += 1;
+.-
+.           elsif type = "shortint"
+    frame->body.$(frame.name).$(name) = ntohs (*(dbyte *) bucket_data);
+    bucket_data += 2;
+.-
+.           elsif type = "longint"
+    frame->body.$(frame.name).$(name) = ntohl (*(qbyte *) bucket_data);
+    bucket_data += 4;
+.-
+.           elsif type = "shortstr"
+    string_size = *(byte *) bucket_data;
+    bucket_data += 1;
+    memcpy (frame->body.$(frame.name).$(name), bucket_data, string_size);
+    frame->body.$(frame.name).$(name) [string_size] = 0;
+    bucket_data += string_size;
+.-
+.           elsif type = "longstr" | type = "table"
+    string_size = ntohs (*(dbyte *) bucket_data);
+    bucket_data += 2;
+    frame->body.$(frame.name).$(name) = ipr_longstr_new (bucket_data, string_size);
+    bucket_data += string_size;
+.           endif
+.       endfor
+    frame->size = (byte *) bucket_data - (byte *) bucket->data;
+    return (frame);
+}
+
+
+.   endfor
+.   for frame
+/*  -------------------------------------------------------------------------
+    $(prefix)_frame_$(name)_new
+
+    Creates a new frame with the specified values.  Returns a pointer to the
+    new frame, or NULL if there was an error allocating memory or parsing the
+    arguments.
+
+        Argument:           Meaning:
+.       for field where !defined (value)
+        $(name)             $(.:)
+.       endfor
+ */
+
+$(prefix)_frame_t *$(prefix)_frame_$(name)_new ($(build_struct_args ()))
+{
+    $(prefix)_frame_t
+        *frame = NULL;
+
+    frame = mem_alloc (sizeof ($(prefix)_frame_t));
+    if (!frame) {
+        coprintf ("Memory allocation failed in new_$(name)_frame");
+        return (NULL);
+    }
+    frame->type = FRAME_TYPE_$(NAME);
+.       for field
+.           if type = "char"
+.               if defined (value)
+    frame->body.$(frame.name).$(name) = '$(value:)';
+.               else
+    frame->body.$(frame.name).$(name) = $(name);
+.               endif
+.           elsif type = "bit" \
+            |     type = "octet" \
+            |     type = "shortint" \
+            |     type = "longint"
+    frame->body.$(frame.name).$(name) = $(value?name);
+.           elsif type = "shortstr"
+    if ($(name)) {
+        ipr_shortstr_cpy (frame->body.$(frame.name).$(name), $(name));
+        frame->body.$(frame.name).$(name) [IPR_SHORTSTR_MAX] = 0;
+    }
+    else
+        strclr (frame->body.$(frame.name).$(name));
+.           elsif type = "longstr" | type = "table"
+    if ($(name))
+        frame->body.$(frame.name).$(name) = ipr_longstr_new ($(name)->data, $(name)->size);
+    else
+        frame->body.$(frame.name).$(name) = NULL;
+.           endif
+.       endfor
+    frame->size = $(NAME)_SIZE (frame);
+    return (frame);
+}
+
+
+.   endfor
+/*  -------------------------------------------------------------------------
+    $(prefix)_frame_size
+
+    Returns size of frame.
+ */
+
+size_t
+$(prefix)_frame_size ($(prefix)_frame_t *frame)
+{
+    ASSERT (frame);
+
+    switch (frame->type) {
+.   for frame
+        case FRAME_TYPE_$(NAME):
+            return ($(NAME)_SIZE (frame));
+.   endfor
+        default:
+            coprintf ("Unrecognized frame in $(prefix)_frame_size");
+            return (0);
+    }
+}
+
+
+/*  -------------------------------------------------------------------------
+    $(prefix)_frame_dump
+
+    Prints contents of frame
+ */
+
+void
+$(prefix)_frame_dump ($(prefix)_frame_t *frame)
+{
+    ASSERT (frame);
+
+    switch (frame->type) {
+.   for frame
+.       format_string = ""
+.       field_string = ""
+        case FRAME_TYPE_$(NAME):
+.       for field
+.           if    type = "char"
+.               format_string += " $(name)=%c"
+.               field_string  += ", frame->body.$(frame.name).$(name)"
+.           elsif type = "bit" | type = "octet" | type = "shortint"
+.               format_string += " $(name)=%d"
+.               field_string  += ", frame->body.$(frame.name).$(name)"
+.           elsif type = "longint"
+.               format_string += " $(name)=%ld"
+.               field_string  += ", frame->body.$(frame.name).$(name)"
+.           elsif type = "shortstr"
+.               format_string += " $(name)=%s"
+.               field_string  += ", frame->body.$(frame.name).$(name)"
+.           elsif type = "longstr" | type = "table"
+.               format_string += " $(name)=%ldB"
+.               field_string  += ", frame->body.$(frame.name).$(name)? frame->body.$(frame.name).$(name)->size: 0"
+.           endif
+.       endfor
+            coprintf ("I: have %s:$(format_string:)",
+                "$(name)"$(field_string:));
+            break;
+.   endfor frame
+        default:
+            coprintf ("Unrecognized frame in $(prefix)_frame_dump");
+    }
+}
+
+
+/*  -------------------------------------------------------------------------
+    $(prefix)_frame_free
+
+    Frees frame string allocations and the frame structure.
+ */
+
+void
+$(prefix)_frame_free ($(prefix)_frame_t **frame)
+{
+    if (*frame) {
+        switch ((*frame)->type) {
+.   for frame
+            case FRAME_TYPE_$(NAME):
+.       for field where type = "longstr" | type = "table"
+                ipr_longstr_destroy (&(*frame)->body.$(frame.name).$(name));
+.       endfor
+                break;
+.   endfor
+            default:
+                coprintf ("Unrecognized frame in $(prefix)_frame_free");
+        }
+        mem_free ((*frame));
+        *frame = NULL;
+    }
+}
+
+
+. endscope
+.close
+.endmacro
+
+function generate_doc (frames)
+    echo "Generating $(name).txt..."
+    output "$(name).txt"
+    scope my.frames
+    my.prefix = "    command-payload      ="
+    for frame where variant = 1
+        >$(my.prefix) $(name:cobol) /
+        my.prefix = "                          "
+    endfor
+    for frame
+        >
+        my.prefix = "    $(name:cobol)        ="
+        for field
+            if defined (value)
+                if type = "char"
+                    >$(my.prefix) "$(value:)"\
+                else
+                    >$(my.prefix) %d$(value)\
+                endif
+            else
+                >$(my.prefix) $(name:cobol)\
+            endif
+            my.prefix = ""
+        endfor
+        >
+        for field where !defined (value)
+            if !defined (root.def_$(name:c))
+                root.def_$(name:c) = 1
+                if type = "bit"
+                    my.type = "BIT"
+                elsif type = "octet"
+                    my.type = "OCTET"
+                elsif type = "shortint"
+                    my.type = "short-integer"
+                elsif type = "longint"
+                    my.type = "long-integer"
+                elsif type = "shortstr"
+                    my.type = "short-string"
+                elsif type = "longstr" | type = "table"
+                    my.type = "long-string"
+                elsif type = "table"
+                    my.type = "field-table"
+                else
+                    my.type = type
+                endif
+                >    $(name:cobol)        = $(my.type:)
+                if !defined (root.def_$(my.type:c))
+                    root.def_$(my.type:c) = 1
+                    if my.type = "short-integer"
+                        >    short-integer        = 2*OCTET
+                    elsif my.type = "long-integer"
+                        >    long-integer         = 4*OCTET
+                    elsif my.type = "short-string"
+                        >    short-string         = OCTET *OCTET
+                    elsif my.type = "long-string"
+                        >    long-string          = short-integer *OCTET
+                        if !defined (root.def_short_integer)
+                            root.def_short_integer = 1
+                            >    short-integer        = 2*OCTET
+                        endif
+                    elsif my.type = "field-table"
+                        >    field-table          = short-integer *(field-name field-value) %d0
+                        >    field-name           = short-string
+                        >    field-value          = short-string
+                    endif
+                endif
+            endif
+        endfor
+    endfor
+    endscope
+endfunction
+
+function generate_events (frames)
+    echo "Generating $(name).lst..."
+    output "$(name).lst"
+    scope my.frames
+
+    >Client-side event translation:
+    for frame where count (sender, role = "server")
+        >            case FRAME_TYPE_$(NAME):
+        >                the_next_event = $(name)_event;
+        >                break;
+    endfor
+
+    >Server-side event translation:
+    for frame where count (sender, role = "client")
+        >            case FRAME_TYPE_$(NAME):
+        >                the_next_event = $(name)_event;
+        >                break;
+    endfor
+    endscope
+endfunction
+
+#  ------------------------------   Main code  --------------------------------
+
+if scope (frames)
+    parse_frames    (frames)
+    generate_frames (frames)
+    generate_doc    (frames)
+    generate_events (frames)
+else
+    argn = 1
+    while argn <= gsl.argc
+        arg = gsl.arg$(argn)
+        echo "Processing " + arg + "..."
+        frames = xml.load_file (arg) ? abort_xml_error ()
+        parse_frames    (frames)
+        generate_frames (frames)
+        generate_doc    (frames)
+        generate_events (frames)
+        argn += 1
+    endwhile
+endif
+
+.endtemplate

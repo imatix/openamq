@@ -1,0 +1,90 @@
+<!--
+    Standard domains
+  -->
+
+<dfl name = "Standard Domains">
+
+<domain name = "audit" type = "group" >Audit information
+<rule name = "soft delete" when = "object" what = "active" value = "0" />
+
+<field name = "createdts"    type = "timestamp">Date/time record was created
+    <rule name = "timestamp" when = "insert" />
+    <rule name = "show"      when = "all"    what = "hidden" value = "1" />
+    <rule name = "ignore"    when = "object" />
+</field>
+<field name = "createdby"    domain = "id">User who created record
+    <rule name = "userid"    when = "insert" />
+    <rule name = "show"      when = "all"    what = "hidden" value = "1" />
+    <rule name = "ignore"    when = "object" />
+</field>
+<field name = "revisedts"    type = "timestamp">Date/time record was modified
+    <rule name = "timestamp" when = "insert" />
+    <rule name = "timestamp" when = "update" />
+    <rule name = "timestamp" when = "delete" />
+    <rule name = "show"      when = "all"    what = "hidden" value = "1" />
+    <rule name = "ignore"    when = "object" />
+</field>
+<field name = "revisedby"    domain = "id">User who modified record
+    <rule name = "userid"    when = "insert" />
+    <rule name = "userid"    when = "update" />
+    <rule name = "userid"    when = "delete" />
+    <rule name = "show"      when = "all"    what = "hidden" value = "1" />
+    <rule name = "ignore"    when = "object" />
+</field>
+<field name = "active"       type = "boolean">Is record active?
+    <rule name = "set"       when = "insert" value = "1" />
+    <rule name = "set"       when = "delete" value = "0" />
+    <rule name = "show"      when = "all"    what = "hidden" value = "1" />
+    <rule name = "ignore"    when = "object" />
+</field>
+</domain>
+
+<domain name = "createdts"   type = "timestamp">Date/time record was created
+    <rule name = "timestamp" when = "insert" />
+    <rule name = "show"      when = "all"    what = "hidden" value = "1" />
+    <rule name = "ignore"    when = "object" />
+</domain>
+
+<domain name = "revisedts"   type = "timestamp">Date/time record was modified
+    <rule name = "timestamp" when = "insert" />
+    <rule name = "timestamp" when = "update" />
+    <rule name = "show"      when = "all"    what = "hidden" value = "1" />
+    <rule name = "ignore"    when = "object" />
+</domain>
+
+<domain name = "language" type = "textual" size = "5" default = "en" />
+
+<domain name = "timerange" type = "group">
+    <field name = "from" domain = "timeslot">Start time</field>
+    <field name = "to"   domain = "timeslot">End time
+        <rule name = "show" when = "layout" what = "label" value = "End time" />
+        <rule name = "show" when = "layout" what = "join"  value = "1"   />
+    </field>
+</domain>
+
+<domain name = "timeslot" type = "time">
+    <rule name = "show" when = "all" what = "starthour" value = "0"  />
+    <rule name = "show" when = "all" what = "endhour"   value = "23" />
+    <rule name = "show" when = "all" what = "interval"  value = "1" />
+</domain>
+
+<domain name = "recordid"   type = "numeric" size = "9" required = "1" >
+    <rule name = "recordid" when = "insert" />
+    <rule name = "show"     when = "all" what = "hidden" value = "1" />
+</domain>
+
+<domain name = "id"         type = "numeric" size = "9"     >
+    <rule name = "show" when = "all" what = "hidden" value = "1" />
+</domain>
+
+<domain name = "octet"       type = "numeric" size = "3" />
+<domain name = "shortint"    type = "numeric" size = "5" />
+<domain name = "longint"     type = "numeric" size = "9" />
+<domain name = "shortstr"    type = "textual" size = "255" />
+<domain name = "longstr"     type = "textual" size = "4096" />
+<domain name = "date"        type = "date"     />
+<domain name = "boolean"     type = "boolean"  />
+<domain name = "timestamp"   type = "timestamp"/>
+
+</dfl>
+

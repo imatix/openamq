@@ -1,0 +1,140 @@
+    command-payload      = connection-challenge /
+                           connection-response /
+                           connection-tune /
+                           connection-open /
+                           connection-ping /
+                           connection-reply /
+                           connection-close /
+                           channel-open /
+                           channel-ack /
+                           channel-commit /
+                           channel-rollback /
+                           channel-reply /
+                           channel-close /
+                           handle-open /
+                           handle-send /
+                           handle-consume /
+                           handle-cancel /
+                           handle-flow /
+                           handle-unget /
+                           handle-query /
+                           handle-browse /
+                           handle-created /
+                           handle-notify /
+                           handle-index /
+                           handle-prepare /
+                           handle-ready /
+                           handle-reply /
+                           handle-close /
+
+    connection-challenge  = %d10 version mechanisms challenges
+    version              = OCTET
+    mechanisms           = short-string
+    short-string         = OCTET *OCTET
+    challenges           = long-string
+    long-string          = short-integer *OCTET
+    short-integer        = 2*OCTET
+
+    connection-response  = %d11 mechanism responses
+    mechanism            = short-string
+    responses            = long-string
+
+    connection-tune      = %d12 frame-max channel-max handle-max heartbeat options
+    frame-max            = long-integer
+    long-integer         = 4*OCTET
+    channel-max          = short-integer
+    handle-max           = short-integer
+    heartbeat            = short-integer
+    options              = long-string
+
+    connection-open      = %d13 confirm-tag virtual-path client-name options
+    confirm-tag          = short-integer
+    virtual-path         = short-string
+    client-name          = short-string
+
+    connection-ping      = %d14 respond
+    respond              = BIT
+
+    connection-reply     = %d18 confirm-tag reply-code reply-text
+    reply-code           = short-integer
+    reply-text           = short-string
+
+    connection-close     = %d19 reply-code reply-text
+
+    channel-open         = %d20 channel-id confirm-tag transacted restartable options out-of-band
+    channel-id           = short-integer
+    transacted           = BIT
+    restartable          = BIT
+    out-of-band          = short-string
+
+    channel-ack          = %d21 channel-id confirm-tag message-nbr
+    message-nbr          = long-integer
+
+    channel-commit       = %d22 channel-id confirm-tag options
+
+    channel-rollback     = %d23 channel-id confirm-tag options
+
+    channel-reply        = %d28 channel-id confirm-tag reply-code reply-text
+
+    channel-close        = %d29 channel-id reply-code reply-text
+
+    handle-open          = %d30 channel-id handle-id service-type confirm-tag producer consumer browser temporary dest-name mime-type encoding options
+    handle-id            = short-integer
+    service-type         = short-integer
+    producer             = BIT
+    consumer             = BIT
+    browser              = BIT
+    temporary            = BIT
+    dest-name            = short-string
+    mime-type            = short-string
+    encoding             = short-string
+
+    handle-send          = %d31 handle-id confirm-tag fragment-size partial out-of-band recovery streaming dest-name
+    fragment-size        = long-integer
+    partial              = BIT
+    recovery             = BIT
+    streaming            = BIT
+
+    handle-consume       = %d32 handle-id confirm-tag prefetch no-local unreliable dest-name identifier selector mime-type
+    prefetch             = short-integer
+    no-local             = BIT
+    unreliable           = BIT
+    identifier           = short-string
+    selector             = long-string
+
+    handle-cancel        = %d33 handle-id confirm-tag dest-name identifier
+
+    handle-flow          = %d34 handle-id confirm-tag flow-pause
+    flow-pause           = BIT
+
+    handle-unget         = %d35 handle-id confirm-tag message-nbr
+
+    handle-query         = %d36 handle-id message-nbr dest-name selector mime-type
+
+    handle-browse        = %d37 handle-id message-nbr
+
+    handle-created       = %d40 handle-id dest-name
+
+    handle-notify        = %d41 handle-id message-nbr fragment-size partial out-of-band recovery delivered redelivered streaming dest-name
+    delivered            = BIT
+    redelivered          = BIT
+
+    handle-index         = %d42 handle-id message-nbr message-list
+    message-list         = long-string
+
+    handle-prepare       = %d43 handle-id fragment-size content-hash
+    content-hash         = short-string
+
+    handle-ready         = %d44 handle-id message-size
+    message-size         = long-integer
+
+    handle-reply         = %d48 handle-id confirm-tag reply-code reply-text
+
+    handle-close         = %d49 handle-id reply-code reply-text
+
+    message-head         = body-size persistent priority expiration mime-type encoding identifier headers
+    body-size            = long-integer
+    persistent           = BIT
+    priority             = OCTET
+    expiration           = long-integer
+    headers              = long-string
