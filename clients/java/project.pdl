@@ -39,6 +39,8 @@
 
 <!-- Documentation -->
 <file name = "index.txt"                  class = "gurudoc text"   >Java framing layer API documentation</file>
+<file name = "gdstyle.css"                class = "public resource">Documentation style</file>
+<file name = "mainlogo.jpg"               class = "public binary">AMQ logo</file>
 
 <actions target = "unix">
     <generate>
