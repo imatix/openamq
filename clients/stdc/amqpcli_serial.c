@@ -20,11 +20,12 @@
 #define USAGE                                                               \
     "Syntax: clientname [options...]\n"                                     \
     "Options:\n"                                                            \
+    "  -c clientname    Client identifier (default: 'test client')\n"       \
+    "  -s server        Name or address of server (localhost)\n"            \
     "  -m number        Number of messages to send/receive (1000)\n"        \
     "  -b batch         Size of each batch (100)\n"                         \
     "  -x size          Size of each message (default = 1024)\n"            \
     "  -r repeat        Repeat test N times (1)\n"                          \
-    "  -s server        Name or address of server (localhost)\n"            \
     "  -t level         Set trace level\n"                                  \
     "  -p               Use persistent messages (no)\n"                     \
     "                   0=none, 1=low, 2=medium, 3=high\n"                  \
@@ -45,10 +46,11 @@ main (int argc, char *argv [])
         quiet_mode = FALSE,             /*  -q means suppress messages       */
         persistent = FALSE;             /*  Use persistent messages?         */
     char
+        *opt_client,                    /*  Client identifier                */
+        *opt_server,                    /*  Host to connect to               */
         *opt_trace,                     /*  0-3                              */
         *opt_messages,                  /*  Size of test set                 */
         *opt_batch,                     /*  Size of batches                  */
-        *opt_server,                    /*  Host to connect to               */
         *opt_msgsize,                   /*  Message size                     */
         *opt_repeats,                   /*  Test repetitions                 */
         **argparm;                      /*  Argument parameter to pick-up    */
@@ -67,10 +69,11 @@ main (int argc, char *argv [])
         *message;
 
     /*  These are the arguments we may get on the command line               */
+    opt_client   = "test client";
+    opt_server   = "localhost";
     opt_trace    = "0";
     opt_messages = "1000";
     opt_batch    = "100";
-    opt_server   = "localhost";
     opt_msgsize  = "1024";
     opt_repeats  = "1";
 
@@ -95,14 +98,17 @@ main (int argc, char *argv [])
         if (*argv [argn] == '-') {
             switch (argv [argn][1]) {
                 /*  These switches take a parameter                          */
+                case 'c':
+                    argparm = &opt_client;
+                    break;
+                case 's':
+                    argparm = &opt_server;
+                    break;
                 case 'm':
                     argparm = &opt_messages;
                     break;
                 case 'b':
                     argparm = &opt_batch;
-                    break;
-                case 's':
-                    argparm = &opt_server;
                     break;
                 case 't':
                     argparm = &opt_trace;
@@ -168,7 +174,7 @@ main (int argc, char *argv [])
     amq_sclient_trace (atoi (opt_trace));
 
     coprintf ("Connecting to %s...", opt_server);
-    amq_client = amq_sclient_new ("test client", "user", "pass");
+    amq_client = amq_sclient_new (opt_client, "user", "pass");
 
     if (amq_client == NULL
     || !amq_sclient_connect (amq_client, opt_server, "/test"))
