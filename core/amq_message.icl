@@ -192,7 +192,7 @@
 
     $(selfname)_set_identifier (self, identifier);
     $(selfname)_set_persistent (self, FALSE);
-    $(selfname)_set_content    (self, data, body_size, icl_mem_free);
+    $(selfname)_set_content    (self, data, body_size, s_mem_free);
 </method>
 
 <!-- Methods for filling a message from buckets -->
@@ -341,6 +341,7 @@
 <private name = "header">
 static void s_record_header ($(selftype) *self, amq_bucket_t *fragment);
 static void s_replay_header ($(selftype) *self, amq_bucket_t *fragment);
+static void s_mem_free      (void *client);
 </private>
 
 <private name = "footer">
@@ -392,6 +393,12 @@ s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
         self->headers);
     amq_frame_encode (fragment, frame);
     amq_frame_free (&frame);
+}
+
+static void
+s_mem_free (void *client)
+{
+    icl_mem_free (client);
 }
 </private>
 
