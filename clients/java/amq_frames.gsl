@@ -267,8 +267,8 @@ function build_variables (frame, do_type)
             my.type = "byte[]"
         endif
         if ((name = "type") & my.do_type)
-            >        short
-            >            $(name:) = -1;                       /*  $(.?:)                           */
+            >    short
+            >        $(name:) = -1;                       /*  $(.?:)                           */
         elsif ((name <> "type") & !my.do_type)
             >        public $(my.type:)
             >            $(name:);                            /*  $(.?:)                           */
@@ -447,7 +447,7 @@ function build_framing (class, inner, AMQPFrameException)
     >         **/
     >        public $(my.inner:)($(my.decode_type:) $(my.decode_source:)) throws $(AMQPFrameException:) {
     if (defined (set_type)) 
-    >            this.bucket = $(my.decode_source:);
+    >            super($(my.decode_source:));
     else
     >            this.dis = $(my.decode_source:);
     endif
@@ -477,11 +477,7 @@ function build_framing (class, inner, AMQPFrameException)
     >                    exception(null, "$(my.full_name:)", "decode", "frame command-end expected but got " + ce);
     endif
     >            } catch (IOException e) {
-    if (defined (set_type))
-    >                runtimeException(e, "$(my.full_name:)", "decode", "cannot decode");
-    else
     >                exception(e, "$(my.full_name:)", "decode", "cannot decode");
-    endif
     >            }
     >        }
     >
@@ -491,7 +487,7 @@ function build_framing (class, inner, AMQPFrameException)
     >         * Frame encoder for $(my.full_name_comments:) frames
     >         *
     >         **/
-    >        public int encode() throws $(AMQPFrameException:) {
+    >        public int encode() {
     >            // We encode into a byte array bucket
     >            ByteArrayOutputStream 
     if (defined(set_type))
@@ -520,7 +516,7 @@ function build_framing (class, inner, AMQPFrameException)
     >         * Return frame size for $(my.full_name_comments:) frames
     >         *
     >         **/
-    >        public int size() throws $(AMQPFrameException:) {
+    >        public int size() {
     >           int
     >               size = 0;
     >
@@ -666,7 +662,21 @@ public class $(class_prefix:)$(my.outertype: Neat) {
      *
      **/
     abstract class $(AMQPFrame:) extends $(imatix_openamq_frames_package).$(AMQPFrame:) {
-.           build_variables (., 1)
+        /**
+         *
+         * Default constructor
+         *
+         **/
+        public $(AMQPFrame:)() {super();}
+    
+        /**
+         *
+         * Decoder constructor
+         *
+         **/
+        public $(AMQPFrame:)(byte[] bucket) throws AMQFramingException {
+            super(bucket);
+        }
     }
 .           endif    
 .-      Finished with outertype methods
@@ -692,7 +702,8 @@ public class $(class_prefix:)$(my.outertype: Neat) {
 .-      The message head
 .       else
     public class $(my.current_inner: Neat) extends $(AMQPFramable:) {
-        DataInputStream dis = null;                        /* Frame stream                */
+        DataInputStream 
+            dis = null;                          /* Frame stream                      */
 .       endif
 .       build_variables (., 0)
 
@@ -733,14 +744,14 @@ public abstract class $(AMQPFramable:) {
      * Encoder method
      *
      **/
-    abstract public int encode() throws $(AMQPFrameException:);
+    abstract public int encode();
     
     /**
      *
      * Decoder method
      *
      **/
-    abstract public void decode() throws $(AMQPFrameException:);
+    abstract public void decode() throws $(AMQPFrameException);
     
     /**
      *
@@ -771,6 +782,27 @@ package $(imatix_openamq_frames_package:);
 import java.io.DataInputStream;
 
 public abstract class $(AMQPFrame:) extends $(AMQPFramable:) {
+.   for frame
+.       build_variables (., 1)
+.       last
+.   endfor
+
+    /**
+     *
+     * Default constructor
+     *
+     **/
+    public AMQFrame() {type = -1;}
+
+    /**
+     *
+     * Decoder constructor
+     *
+     **/
+    public AMQFrame(byte[] bucket) throws AMQFramingException {
+        this.bucket = bucket;
+        decode();
+    }
 }
 
 . close
@@ -1233,8 +1265,7 @@ public class $(AMQPFramingFactory:) {
      * Copies the destName variable in the last handle notify to the provided hnFirst
      *
      **/
-    public InputStream getMessageBodyInputStream($(class_prefix:)Handle.Notify hnFirst, $(class_prefix:)Message.Head head, InputStream is, boolean prepared)\
-    throws IOException {
+    public InputStream getMessageBodyInputStream($(class_prefix:)Handle.Notify hnFirst, $(class_prefix:)Message.Head head, InputStream is, boolean prepared) {
         return new MessageBodyInputStream(hnFirst, head, is != null ? is : incoming, prepared);
     }
     
@@ -1258,20 +1289,15 @@ public class $(AMQPFramingFactory:) {
             fNew,                                          /* Unread fragment ready            */
             empty = false;                                 /* End of stream                    */
     
-        MessageBodyInputStream($(class_prefix:)Handle.Notify hnFirst, $(class_prefix:)Message.Head head, InputStream is, boolean prepared) throws IOException {
+        MessageBodyInputStream($(class_prefix:)Handle.Notify hnFirst, $(class_prefix:)Message.Head head, InputStream is, boolean prepared) {
             super(is);
 
-            try {
-                this.hnFirst = hnCurr = hnFirst;
-                this.head = head;
-                this.is = is;
-                mRead = 0; 
-                fRead = prepared ? 0 : head.size();
-                fNew = fRead == 0;
-            } catch ($(AMQPFrameException:) e) {
-                // Encapsulate the exception as $(AMQPFrameIOException) to allow method overloading
-                throw new $(AMQPFrameIOException)(e.getMessage());
-            }
+            this.hnFirst = hnCurr = hnFirst;
+            this.head = head;
+            this.is = is;
+            mRead = 0; 
+            fRead = prepared ? 0 : head.size();
+            fNew = fRead == 0;
         }
         
         /**
@@ -2351,7 +2377,6 @@ public class $(AMQPFieldTable:) extends Hashtable {
     static void writeByte(DataOutputStream dos, short aByte) throws IOException  {
         dos.writeByte(s(aByte));
     }
-    
     $(utilities:)    
     $(error_handling:)  
 }
