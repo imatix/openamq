@@ -82,6 +82,11 @@ static int
     <field name = "dest_name"    type = "char *"         >Destination name</field>
 </method>
 
+<method name = "handle flow">
+    <field name = "handle id"    type = "dbyte">Handle number</field>
+    <field name = "flow pause"   type = "Bool" >Pause the flow of messages?</field>
+</method>
+
 <method name = "handle close" >
     <field name = "handle id"    type = "dbyte">Handle number</field>
 </method>
@@ -519,6 +524,7 @@ static int
             <action name = "invalid channel command" />
         </event>
         <event name = "handle notify">
+            <action name = "process handle notify" />
             <action name = "invalid channel command" />
         </event>
         <event name = "handle index">
@@ -577,16 +583,20 @@ static int
             <action name = "send handle open" />
             <action name = "wait for activity" />
         </method>
-        <method name = "handle close">
-            <action name = "send handle close" />
-            <action name = "wait for activity" />
-        </method>
         <method name = "handle consume">
             <action name = "send handle consume" />
             <action name = "wait for activity" />
         </method>
         <method name = "handle send" >
             <call state = "sending message" event = "continue" />
+            <action name = "wait for activity" />
+        </method>
+        <method name = "handle flow">
+            <action name = "send handle flow" />
+            <action name = "wait for activity" />
+        </method>
+        <method name = "handle close">
+            <action name = "send handle close" />
             <action name = "wait for activity" />
         </method>
 
@@ -679,15 +689,6 @@ static int
         send_the_frame (thread);
     </action>
 
-    <action name = "send handle close">
-        amq_frame_free (&tcb->frame);
-        tcb->frame = amq_frame_handle_close_new (
-            handle_close_m->handle_id,
-            AMQP_REPLY_SUCCESS,         /*  Reply code                       */
-            "Closing");                 /*  Reply text                       */
-        send_the_frame (thread);
-    </action>
-
     <action name = "send handle consume">
         amq_frame_free (&tcb->frame);
         tcb->frame = amq_frame_handle_consume_new (
@@ -700,6 +701,24 @@ static int
             handle_consume_m->identifier,
             NULL,                       /*  Selector string                  */
             NULL);                      /*  Selector MIME type               */
+        send_the_frame (thread);
+    </action>
+
+    <action name = "send handle flow">
+        amq_frame_free (&tcb->frame);
+        tcb->frame = amq_frame_handle_flow_new (
+            handle_flow_m->handle_id,
+            0,                          /*  Confirmation tag                 */
+            handle_flow_m->flow_pause);
+        send_the_frame (thread);
+    </action>
+
+    <action name = "send handle close">
+        amq_frame_free (&tcb->frame);
+        tcb->frame = amq_frame_handle_close_new (
+            handle_close_m->handle_id,
+            AMQP_REPLY_SUCCESS,         /*  Reply code                       */
+            "Closing");                 /*  Reply text                       */
         send_the_frame (thread);
     </action>
 
@@ -862,20 +881,22 @@ static void inline s_sock_read    (smt_thread_t *thread, byte *buffer, size_t si
 static void
 send_the_frame (smt_thread_t *thread)
 {
+    amq_frame_encode (tcb->command, tcb->frame);
+    ASSERT (tcb->command->cur_size == tcb->frame->size);
+
     if (s_tracing > AMQP_TRACE_NONE) {
-        coprintf ("I: sending frame size=%ld", tcb->frame->size);
+        coprintf ("I: sending frame size=%ld", tcb->command->cur_size);
         amq_frame_dump (tcb->frame);
     }
     if (tcb->frame->size > 0xFFFF) {
         *(dbyte *) (tcb->frame_header)     = htons (0xFFFF);
-        *(qbyte *) (tcb->frame_header + 2) = htonl (tcb->frame->size);
+        *(qbyte *) (tcb->frame_header + 2) = htonl (tcb->command->cur_size);
         s_sock_write (thread, tcb->frame_header, 6);
     }
     else {
-        *(dbyte *) (tcb->frame_header) = htons ((dbyte) tcb->frame->size);
+        *(dbyte *) (tcb->frame_header) = htons ((dbyte) tcb->command->cur_size);
         s_sock_write (thread, tcb->frame_header, 2);
     }
-    amq_frame_encode (tcb->command, tcb->frame);
     s_sock_write (thread, tcb->command->data, tcb->command->cur_size);
     amq_frame_free (&tcb->frame);
 }

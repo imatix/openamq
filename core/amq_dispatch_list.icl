@@ -53,7 +53,7 @@
         dispatch = amq_dispatch_list_first (self);
         while (dispatch) {
             if (dispatch->message_nbr > message_nbr)
-                break;   
+                break;
             amq_dispatch_ack (dispatch);
             dispatch = amq_dispatch_list_next (self, dispatch);
         }

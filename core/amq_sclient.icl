@@ -98,8 +98,13 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 </method>
 
 <method name = "connect" template = "function">
+    <doc>
+    Connects to the remote AMQP server and virtual host specified.  Returns
+    TRUE if the connection succeeded.
+    </doc>
     <argument name = "hostname"     type = "char *">Server to connect to</argument>
     <argument name = "virtual path" type = "char *">Virtual host path</argument>
+
     if (hostname == NULL || *hostname == 0)
         hostname = "localhost";
     if (virtual_path == NULL || *virtual_path == 0)
@@ -251,6 +256,16 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 <method name = "rollback" template = "function">
     amq_sclient_agent_channel_rollback (
         self->thread_handle, CHANNEL_ID, TIMEOUT);
+
+    smt_thread_execute (SMT_EXEC_FULL);
+    rc = (smt_thread_handle_valid (self->thread_handle));
+</method>
+
+<method name = "flow" template = "function">
+    <argument name = "handle id"  type = "dbyte">Handle id, 0 means all</argument>
+    <argument name = "flow pause" type = "Bool" >Pause messages?</argument>
+    amq_sclient_agent_handle_flow (
+        self->thread_handle, handle_id, flow_pause, TIMEOUT);
 
     smt_thread_execute (SMT_EXEC_FULL);
     rc = (smt_thread_handle_valid (self->thread_handle));

@@ -3,7 +3,7 @@
     picture = "download.jpg"
     accent  = "#636dc2"
     >
-    <set name = "version" value = "0.7b1" />
+    <set name = "version" value = "0.7b2" />
     <language name = "en">
       <title content = "title"/>
       <remark>

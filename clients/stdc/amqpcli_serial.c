@@ -25,7 +25,6 @@
     "  -x size          Size of each message (default = 1024)\n"            \
     "  -s server        Name or address of server (localhost)\n"            \
     "  -t level         Set trace level\n"                                  \
-    "  -q name          Queue to work with (test-small)\n"                  \
     "  -p               Use persistent messages (no)\n"                     \
     "                   0=none, 1=low, 2=medium, 3=high\n"                  \
     "  -q               Quiet mode: no messages\n"                          \
@@ -50,7 +49,6 @@ main (int argc, char *argv [])
         *opt_batch,                     /*  Size of batches                  */
         *opt_server,                    /*  Host to connect to               */
         *opt_msgsize,                   /*  Message size                     */
-        *opt_queue,                     /*  Queue to work with               */
         **argparm;                      /*  Argument parameter to pick-up    */
     amq_sclient_t
         *amq_client;
@@ -71,7 +69,6 @@ main (int argc, char *argv [])
     opt_batch    = "100";
     opt_server   = "localhost";
     opt_msgsize  = "1024";
-    opt_queue    = "test-small";
 
     console_send     (NULL, TRUE);
     console_capture  ("amqpcli_serial.log", 'w');
@@ -163,35 +160,40 @@ main (int argc, char *argv [])
     coprintf ("Connecting to %s...", opt_server);
     amq_client = amq_sclient_new ("test client", "user", "pass");
 
-    if (amq_client
-    &&  amq_sclient_connect (amq_client, opt_server, "/test")) {
-        out_handle = amq_sclient_producer (amq_client, opt_queue);
-        coprintf ("Sending %d messages to server...", messages);
-        for (count = 0; count < messages; count++) {
-            message = amq_message_new ();
-            amq_message_testfill       (message, msgsize);
-            amq_message_set_persistent (message, persistent);
-            amq_sclient_msg_send (amq_client, out_handle, message);
-        }
-        in_handle = amq_sclient_consumer (amq_client, opt_queue, batch_size, FALSE);
-        coprintf ("Reading back messages...");
-        count = 0;
-        while (count < messages) {
-            message = amq_sclient_msg_read (amq_client, 0);
-            if (message) {
-                if (!quiet_mode)
-                    coprintf ("Message number %d arrived", amq_client->msg_number);
-                count++;
-                if (count % batch_size == 0) {
-                    amq_sclient_msg_ack (amq_client);
-                    amq_sclient_commit  (amq_client);
-                }
-            }
-            else
-                break;
-        }
-        amq_sclient_close (amq_client, 0);
+    if (amq_client == NULL
+    || !amq_sclient_connect (amq_client, opt_server, "/test"))
+        goto failed;
+
+    in_handle  = amq_sclient_temporary (amq_client, "temp-client", batch_size, FALSE);
+    out_handle = amq_sclient_producer  (amq_client, "temp-client");
+    /*  Pause consumption on temporary queue                                 */
+    amq_sclient_flow (amq_client, in_handle, TRUE);
+
+    coprintf ("Sending %d messages to server...", messages);
+    for (count = 0; count < messages; count++) {
+        message = amq_message_new ();
+        amq_message_testfill       (message, msgsize);
+        amq_message_set_persistent (message, persistent);
+        amq_sclient_msg_send (amq_client, out_handle, message);
     }
+    coprintf ("Reading back messages...");
+    count = 0;
+    amq_sclient_flow (amq_client, in_handle, FALSE);
+    while (count < messages) {
+        message = amq_sclient_msg_read (amq_client, 0);
+        if (message) {
+            if (!quiet_mode)
+                coprintf ("Message number %d arrived", amq_client->msg_number);
+            count++;
+            if (count % batch_size == 0) {
+                amq_sclient_msg_ack (amq_client);
+                amq_sclient_commit  (amq_client);
+            }
+        }
+        else
+            break;
+    }
+    amq_sclient_close (amq_client, 0);
     amq_sclient_destroy (&amq_client);
     icl_system_destroy ();
 

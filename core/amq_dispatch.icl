@@ -75,15 +75,16 @@
     <doc>
     Acknowledge a specific message.
     </doc>
-
     /*  Queue and consumer can accept a new message                          */
     self->queue->window++;
     self->consumer->window++;
     amq_queue_dispatch (self->queue, NULL);
 
     if (self->queue_id) {
+        /*  Purge from persistent queue if necessary                         */
         self->queue->id = self->queue_id;
         amq_queue_delete (self->queue, self->channel->txn);
+        self->queue->outstanding--;
     }
     if (self->channel->transacted)
         self->closed = TRUE;            /*  Keep, to allow rollback          */

@@ -98,29 +98,11 @@ ipr_db_queue class.
     if (*key)
         amq_db_dest_fetch_byname (self->ddb, self->dest, AMQ_DB_FETCH_EQ);
 
-    if (temporary) {
-        /*  Create or attach to temporary queue                              */
-        if (self->dest->id) {
-            /*  Temporary queue exists, check client_id                      */
-            ASSERT (client_id);
-            if (self->dest->client_id == client_id)
-                amq_queue_purge (self);
-            else {
-                coprintf ("$(selfname) E: temporary queue '%s' already in use", key);
-                $(selfname)_destroy (&self);
-            }
-        }
-        else {
-            /*  Unnamed temporary queue - create it now                      */
-            self->dest->temporary = TRUE;
-            self->dest->client_id = client_id;
-            amq_db_dest_insert (self->ddb, self->dest);
-        }
-    }
-    else {
-        /*  Create configured destination                                    */
-        if (self->dest->id == 0)
-            amq_db_dest_insert (self->ddb, self->dest);
+    /*  If new queue, create it now                                          */
+    if (self->dest->id == 0) {
+        self->dest->temporary = temporary;
+        self->dest->client_id = client_id;
+        amq_db_dest_insert (self->ddb, self->dest);
     }
 </method>
 
@@ -211,13 +193,17 @@ ipr_db_queue class.
 #           endif
             if (self->client_id == 0) {
                 consumer = s_get_next_consumer (self);
-                message  = amq_smessage_new (consumer->handle);
-                amq_smessage_load  (message, self);
-                s_dispatch_message (consumer, message);
+                if (consumer) {
+                    message = amq_smessage_new (consumer->handle);
+                    amq_smessage_load  (message, self);
+                    s_dispatch_message (consumer, message);
 
-                /*  Update client id, using channel transaction if any       */
-                self->client_id = consumer->client_id;
-                amq_queue_update (self, consumer->channel->txn);
+                    /*  Update client id, using channel transaction if any   */
+                    self->client_id = consumer->client_id;
+                    amq_queue_update (self, consumer->channel->txn);
+                }
+                else
+                    break;              /*  No more consumers                */
             }
             ASSERT (self->id > self->last_id);
             self->last_id = self->id;
@@ -228,10 +214,14 @@ ipr_db_queue class.
         message = amq_smessage_list_first (self->messages);
         while (self->window && message) {
             consumer = s_get_next_consumer (self);
-            amq_smessage_list_unlink (message);
-            self->id = 0;               /*  Non-persistent message           */
-            s_dispatch_message (consumer, message);
-            message = amq_smessage_list_first (self->messages);
+            if (consumer) {
+                amq_smessage_list_unlink (message);
+                self->id = 0;           /*  Non-persistent message           */
+                s_dispatch_message (consumer, message);
+                message = amq_smessage_list_first (self->messages);
+            }
+            else
+                break;                  /*  No more consumers                */
         }
     }
 </method>
@@ -244,6 +234,8 @@ s_dispatch_message (amq_consumer_t *consumer, amq_smessage_t *message);
 </private>
 
 <private name = "footer">
+/*  Return next consumer for queue, NULL if there are none                   */
+
 static amq_consumer_t
 *s_get_next_consumer ($(selftype) *self)
 {

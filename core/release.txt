@@ -1,9 +1,20 @@
+0.7b3 -
+    - client failed when receiving handle_notify during close; fixed
+    - queue management got confused when persistent messages used
+    - test client changed to use temporary queue (cleaned at startup)
+    - temporary queues were not working - fixed
+    - added HANDLE FLOW methods to serial & asynch clients
+    - fixed error in framing code for HANDLE FLOW message
+
+0.7b2 - 19 January 2005
+    - fixes to build process
+
 0.7b1 - 14 January 2005
-   - added tracing control to servers and clients (-t 1 to -t 3)
-   - improved clients to allow wider range of tests
-   - many fixes to boom projects to allow sources to build
-   - full openamq source packager (mksrc)
-  
+    - added tracing control to servers and clients (-t 1 to -t 3)
+    - improved clients to allow wider range of tests
+    - many fixes to boom projects to allow sources to build
+    - full openamq source packager (mksrc)
+
 0.7b0 - 7 January 2005
     - finished testing of new queue implementation
     

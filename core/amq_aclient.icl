@@ -177,12 +177,6 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
         self->thread_handle, channel_id, handle_id, temporary, dest_name);
 </method>
 
-<method name = "handle close" template = "function" >
-    <argument name = "handle id" type = "dbyte">Handle id</argument>
-    amq_aclient_agent_handle_close (
-        self->thread_handle, handle_id);
-</method>
-
 <method name = "handle consume" template = "function" >
     <argument name = "handle id"   type = "dbyte"          >Handle id</argument>
     <argument name = "prefetch"    type = "dbyte"          >Max pending messages</argument>
@@ -207,6 +201,19 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
     <argument name = "dest name"  type = "ipr_shortstr_t" >Destination name</argument>
     amq_aclient_agent_handle_send (
         self->thread_handle, handle_id, message, dest_name);
+</method>
+
+<method name = "handle flow" template = "function">
+    <argument name = "handle id"  type = "dbyte">Handle id, 0 means all</argument>
+    <argument name = "flow pause" type = "Bool" >Pause messages?</argument>
+    amq_aclient_agent_handle_flow (
+        self->thread_handle, handle_id, flow_pause);
+</method>
+
+<method name = "handle close" template = "function" >
+    <argument name = "handle id" type = "dbyte">Handle id</argument>
+    amq_aclient_agent_handle_close (
+        self->thread_handle, handle_id);
 </method>
 
 <method name = "channel ack" template = "function" >

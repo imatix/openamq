@@ -123,19 +123,31 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
     static qbyte
         queue_nbr = 0;                  /*  Temporary queue number           */
 
-    if (temporary) {
-        if (self->dest_name == NULL || *self->dest_name == 0)
-            ipr_shortstr_fmt (self->dest_name, "tmp/%09ld", ++queue_nbr);
-        self->queue = amq_queue_new (self->dest_name, self->vhost, self->client_id, TRUE);
-        if (self->queue)
-            amq_server_agent_handle_created
-                (self->thread, (dbyte) self->key, self->dest_name);
-        else
-            $(selfname)_destroy (p_self);
-    }
-    else
-        /*  Find queue if fully named                                        */
+    /*  Find queue if named                                                  */
+    if (self->dest_name && *self->dest_name)
         self->queue = amq_queue_search (self->vhost->queues, self->dest_name);
+    else
+    if (temporary)
+        ipr_shortstr_fmt (self->dest_name, "tmp/%09ld", ++queue_nbr);
+
+    /*  Create, if temporary and not already existing                        */
+    if (temporary) {
+        if (!self->queue)
+            self->queue = amq_queue_new (self->dest_name, self->vhost, self->client_id, TRUE);
+
+        /*  If client is (re)opening temporary queue, purge queue            */
+        if (self->queue) {
+            if (self->queue->dest->client_id == self->client_id)
+                amq_queue_purge (self->queue);
+            else {
+                coprintf ("$(selfname) E: temporary queue '%s' already in use", self->dest_name);
+                self->queue = NULL;
+            }
+        }
+    }
+    /*  If queue not found or not created, self-destruct handle              */
+    if (self->queue == NULL)
+        $(selfname)_destroy (p_self);
 }
 </private>
 
@@ -154,8 +166,8 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
 </method>
 
 <method name = "send" template = "function" >
-    <argument name = "command"  type = "amq_handle_send_t *" />
-    <argument name = "message"  type = "amq_smessage_t *"    />
+    <argument name = "command"    type = "amq_handle_send_t *" />
+    <argument name = "message"    type = "amq_smessage_t *"    />
     <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
     <local>
     amq_queue_t
@@ -173,7 +185,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
 </method>
 
 <method name = "consume" template = "function" >
-    <argument name = "command"  type = "amq_handle_consume_t *" />
+    <argument name = "command"    type = "amq_handle_consume_t *" />
     <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
     <local>
     amq_consumer_t
@@ -192,7 +204,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
 </method>
 
 <method name = "cancel" template = "function" >
-    <argument name = "command"  type = "amq_handle_cancel_t *" />
+    <argument name = "command"    type = "amq_handle_cancel_t *" />
     <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
     /*  ***TODO*** implement topics
      */
@@ -201,13 +213,26 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
 </method>
 
 <method name = "flow" template = "function" >
-    <argument name = "command"  type = "amq_handle_flow_t *" />
+    <argument name = "command"    type = "amq_handle_flow_t *" />
     <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
+    <local>
+    amq_looseref_t
+        *consumer;
+    </local>
+
     self->paused = command->flow_pause;
+    /*  If switching on, dispatch all queues for handle                      */
+    if (!self->paused) {
+        consumer = amq_looseref_list_first (self->consumers);
+        while (consumer) {
+            amq_queue_dispatch (((amq_consumer_t *) consumer->object)->queue, NULL);
+            consumer = amq_looseref_list_next (self->consumers, consumer);
+        }
+    }
 </method>
 
 <method name = "unget" template = "function" >
-    <argument name = "command"  type = "amq_handle_unget_t *" />
+    <argument name = "command"    type = "amq_handle_unget_t *" />
     <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
     rc = amq_dispatch_list_unget (self->channel->dispatched, command->message_nbr);
     if (rc)
@@ -215,7 +240,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
 </method>
 
 <method name = "query" template = "function" >
-    <argument name = "command"  type = "amq_handle_query_t *" />
+    <argument name = "command"    type = "amq_handle_query_t *" />
     <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
     /*  ***TODO*** implement HANDLE QUERY
      */
@@ -224,7 +249,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
 </method>
 
 <method name = "browse" template = "function" >
-    <argument name = "command"  type = "amq_handle_browse_t *" />
+    <argument name = "command"    type = "amq_handle_browse_t *" />
     <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
     /*  ***TODO*** implement HANDLE BROWSE
      */

@@ -1027,20 +1027,22 @@ handle_reply_if_needed (smt_thread_t *thread, dbyte confirm_tag)
 static void
 send_the_frame (smt_thread_t *thread)
 {
+    amq_frame_encode (tcb->command, tcb->frame);
+    ASSERT (tcb->command->cur_size == tcb->frame->size);
+
     if (s_tracing > AMQP_TRACE_NONE) {
-        coprintf ("I: sending frame size=%ld", tcb->frame->size);
+        coprintf ("I: sending frame size=%ld", tcb->command->cur_size);
         amq_frame_dump (tcb->frame);
     }
     if (tcb->frame->size > 0xFFFF) {
         *(dbyte *) (tcb->frame_header)     = htons (0xFFFF);
-        *(qbyte *) (tcb->frame_header + 2) = htonl (tcb->frame->size);
+        *(qbyte *) (tcb->frame_header + 2) = htonl (tcb->command->cur_size);
         s_sock_write (thread, tcb->frame_header, 6);
     }
     else {
-        *(dbyte *) (tcb->frame_header) = htons ((dbyte) tcb->frame->size);
+        *(dbyte *) (tcb->frame_header) = htons ((dbyte) tcb->command->cur_size);
         s_sock_write (thread, tcb->frame_header, 2);
     }
-    amq_frame_encode (tcb->command, tcb->frame);
     s_sock_write (thread, tcb->command->data, tcb->command->cur_size);
     amq_frame_free (&tcb->frame);
 }

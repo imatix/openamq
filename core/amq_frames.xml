@@ -174,7 +174,7 @@
         <field type = "octet"    name = "type"         value = "34" />
         <field type = "shortint" name = "handle id"    >Handle number</field>
         <field type = "shortint" name = "confirm tag"  >Confirmation tag</field>
-        <field type = "bit"      name = "flow pause"   >Message reference</field>
+        <field type = "bit"      name = "flow pause"   >Pause the flow of messages?</field>
         <sender role = "client" />
     </frame>
 

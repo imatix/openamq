@@ -79,11 +79,11 @@ function frame_macros (frame)
             string = 1
             string_fields  = string_fields + " + (frame->body.$(frame.name).$(name)? frame->body.$(frame.name).$(name)->size: 0)"
         endif
-        if type <> "bit" & bits > 0
-            bits = 0
-            offset += 1
-        endif
     endfor
+    if bits > 0
+        bits = 0
+        offset += 1
+    endif
     if marker_fields = ""
         frame.variant = 0
     else

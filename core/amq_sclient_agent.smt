@@ -2,7 +2,7 @@
 <agent
     name    = "amq_sclient_agent"
     script  = "smt2c.gsl"
-    animate = "1" >
+    animate = "1">
 
 <!--include filename = "amq_common.smt" /-->
 
@@ -30,82 +30,88 @@ static int
 
 <!--  Messages  ----------------------------------------------------------->
 
-<method name = "connection open" >
+<method name = "connection open">
     <field name = "hostname"     type = "char *">Server to connect to</field>
     <field name = "virtual path" type = "char *">Virtual host path</field>
-    <field name = "timeout"      type = "qbyte" >Timeout in milliseconds</field>
+    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
 </method>
 
-<method name = "connection close" >
-    <field name = "timeout"      type = "qbyte" >Timeout in milliseconds</field>
+<method name = "connection close">
+    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
 </method>
 
-<method name = "channel open" >
-    <field name = "channel id"   type = "dbyte" >Channel number</field>
-    <field name = "transacted"   type = "Bool"  >Use transacted mode?</field>
-    <field name = "restartable"  type = "Bool"  >Use restartable mode?</field>
-    <field name = "timeout"      type = "qbyte" >Timeout in milliseconds</field>
+<method name = "channel open">
+    <field name = "channel id"   type = "dbyte">Channel number</field>
+    <field name = "transacted"   type = "Bool" > Use transacted mode?</field>
+    <field name = "restartable"  type = "Bool" > Use restartable mode?</field>
+    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
 </method>
 
-<method name = "channel ack" >
-    <field name = "channel id"   type = "dbyte" >Channel number</field>
-    <field name = "message nbr"  type = "qbyte" >Message number</field>
-    <field name = "timeout"      type = "qbyte" >Timeout in milliseconds</field>
+<method name = "channel ack">
+    <field name = "channel id"   type = "dbyte">Channel number</field>
+    <field name = "message nbr"  type = "qbyte">Message number</field>
+    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
 </method>
 
-<method name = "channel commit" >
-    <field name = "channel id"   type = "dbyte" >Channel number</field>
-    <field name = "timeout"      type = "qbyte" >Timeout in milliseconds</field>
+<method name = "channel commit">
+    <field name = "channel id"   type = "dbyte">Channel number</field>
+    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
 </method>
 
-<method name = "channel rollback" >
-    <field name = "channel id"   type = "dbyte" >Channel number</field>
-    <field name = "timeout"      type = "qbyte" >Timeout in milliseconds</field>
+<method name = "channel rollback">
+    <field name = "channel id"   type = "dbyte">Channel number</field>
+    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
 </method>
 
-<method name = "channel close" >
-    <field name = "channel id"   type = "dbyte" >Channel number</field>
-    <field name = "timeout"      type = "qbyte" >Timeout in milliseconds</field>
+<method name = "channel close">
+    <field name = "channel id"   type = "dbyte">Channel number</field>
+    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
 </method>
 
-<method name = "handle open" >
-    <field name = "channel id"   type = "dbyte" >Channel number</field>
-    <field name = "handle id"    type = "dbyte" >Handle number</field>
-    <field name = "temporary"    type = "Bool"  >Temporary access?</field>
+<method name = "handle open">
+    <field name = "channel id"   type = "dbyte">Channel number</field>
+    <field name = "handle id"    type = "dbyte">Handle number</field>
+    <field name = "temporary"    type = "Bool" > Temporary access?</field>
     <field name = "dest name"    type = "char *">Destination name</field>
-    <field name = "timeout"      type = "qbyte" >Timeout in milliseconds</field>
+    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
 </method>
 
-<method name = "handle consume" >
-    <field name = "handle id"    type = "dbyte" >Handle number</field>
-    <field name = "prefetch"     type = "dbyte" >Max pending messages</field>
-    <field name = "no local"     type = "Bool"  >Don\'t deliver to self?</field>
-    <field name = "unreliable"   type = "Bool"  >Don\'t want to ack</field>
+<method name = "handle consume">
+    <field name = "handle id"    type = "dbyte">Handle number</field>
+    <field name = "prefetch"     type = "dbyte">Max pending messages</field>
+    <field name = "no local"     type = "Bool" > Don\'t deliver to self?</field>
+    <field name = "unreliable"   type = "Bool" > Don\'t want to ack</field>
     <field name = "dest name"    type = "char *">Destination name</field>
     <field name = "identifier"   type = "char *">Subscription identifier</field>
-    <field name = "timeout"      type = "qbyte" >Timeout in milliseconds</field>
+    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
 </method>
 
-<method name = "handle unget" >
-    <field name = "handle id"    type = "dbyte" >Handle number</field>
-    <field name = "message nbr"  type = "qbyte" >Message number</field>
-    <field name = "timeout"      type = "qbyte" >Timeout in milliseconds</field>
+<method name = "handle unget">
+    <field name = "handle id"    type = "dbyte">Handle number</field>
+    <field name = "message nbr"  type = "qbyte">Message number</field>
+    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
 </method>
 
-<method name = "handle send" >
-    <field name = "handle_id"    type = "dbyte"          >Channel number</field>
+<method name = "handle send">
+    <field name = "handle_id"    type = "dbyte"         > Channel number</field>
     <field name = "message"      type = "amq_message_t *">Message to send</field>
-    <field name = "dest_name"    type = "char *"         >Destination name</field>
-    <field name = "timeout"      type = "qbyte" >Timeout in milliseconds</field>
+    <field name = "dest_name"    type = "char *"        > Destination name</field>
+    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
 </method>
 
-<method name = "handle close" >
-    <field name = "handle id"    type = "dbyte" >Handle number</field>
-    <field name = "timeout"      type = "qbyte" >Timeout in milliseconds</field>
+<method name = "handle flow">
+    <field name = "handle id"    type = "dbyte">Handle number</field>
+    <field name = "flow pause"   type = "Bool" > Pause the flow of messages?</field>
+    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
 </method>
 
-<method name = "blocking receive" >
-    <field name = "timeout"      type = "qbyte" >Timeout in milliseconds</field>
+<method name = "handle close">
+    <field name = "handle id"    type = "dbyte">Handle number</field>
+    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
+</method>
+
+<method name = "blocking receive">
+    <field name = "timeout"      type = "qbyte">Timeout in milliseconds</field>
 </method>
 
 <!--  Client thread  ------------------------------------------------------>
@@ -163,17 +169,17 @@ static int
     </context>
 
     <handler name = "thread new">
-        <argument name = "client"       type = "void *" >Client to callback</argument>
-        <argument name = "client name"  type = "char *" >Client identifier</argument>
-        <argument name = "login"        type = "char *" >User login name</argument>
-        <argument name = "password"     type = "char *" >User password</argument>
+        <argument name = "client"       type = "void *">Client to callback</argument>
+        <argument name = "client name"  type = "char *">Client identifier</argument>
+        <argument name = "login"        type = "char *">User login name</argument>
+        <argument name = "password"     type = "char *">User password</argument>
         tcb->client = client;
         ipr_shortstr_cpy (tcb->client_name, client_name);
         ipr_shortstr_cpy (tcb->login,       login);
         ipr_shortstr_cpy (tcb->password,    password);
     </handler>
 
-    <handler name = "thread init">
+    <handler name = "thread initialise">
         thread->animate  = (s_tracing > AMQP_TRACE_MED);
         tcb->command     = amq_bucket_new ();
         tcb->fragment    = amq_bucket_new ();
@@ -293,7 +299,7 @@ static int
 
     <action name = "send connection open">
         s_calculate_time_limit (thread, connection_open_m->timeout);
-        
+
         amq_frame_free (&tcb->frame);
         tcb->frame = amq_frame_connection_open_new (
             0,                          /*  Confirm tag                      */
@@ -321,7 +327,7 @@ static int
             the server in this state since we read the socket only after
             specific client API methods.
           -->
-        <method name = "connection close" nextstate = "initialise connection" >
+        <method name = "connection close" nextstate = "initialise connection">
             s_calculate_time_limit (thread, connection_close_m->timeout);
             <action name = "send connection close" />
             <action name = "read next command" />
@@ -362,9 +368,13 @@ static int
             s_calculate_time_limit (thread, channel_ack_m->timeout);
             <action name = "send handle unget" />
         </method>
-        <method name = "handle send" >
+        <method name = "handle send">
             s_calculate_time_limit (thread, handle_send_m->timeout);
             <call state = "sending message" event = "continue" />
+        </method>
+        <method name = "handle flow">
+            s_calculate_time_limit (thread, handle_send_m->timeout);
+            <action name = "send handle flow" />
         </method>
         <method name = "handle close">
             s_calculate_time_limit (thread, handle_close_m->timeout);
@@ -452,15 +462,6 @@ static int
         send_the_frame (thread);
     </action>
 
-    <action name = "send handle close">
-        amq_frame_free (&tcb->frame);
-        tcb->frame = amq_frame_handle_close_new (
-            handle_close_m->handle_id,
-            AMQP_REPLY_SUCCESS,         /*  Reply code                       */
-            "Closing");                 /*  Reply text                       */
-        send_the_frame (thread);
-    </action>
-
     <action name = "send handle consume">
         amq_frame_free (&tcb->frame);
         tcb->frame = amq_frame_handle_consume_new (
@@ -482,6 +483,24 @@ static int
             handle_unget_m->handle_id,
             0,                          /*  Confirm tag                      */
             handle_unget_m->message_nbr);
+        send_the_frame (thread);
+    </action>
+
+    <action name = "send handle flow">
+        amq_frame_free (&tcb->frame);
+        tcb->frame = amq_frame_handle_flow_new (
+            handle_flow_m->handle_id,
+            0,                          /*  Confirmation tag                 */
+            handle_flow_m->flow_pause);
+        send_the_frame (thread);
+    </action>
+
+    <action name = "send handle close">
+        amq_frame_free (&tcb->frame);
+        tcb->frame = amq_frame_handle_close_new (
+            handle_close_m->handle_id,
+            AMQP_REPLY_SUCCESS,         /*  Reply code                       */
+            "Closing");                 /*  Reply text                       */
         send_the_frame (thread);
     </action>
 
@@ -512,7 +531,7 @@ static int
    </state>
 
     <action name = "process handle notify">
-        if (HANDLE_NOTIFY.fragment_size > tcb->frame_max) {
+        if (HANDLE_NOTIFY.fragment_size> tcb->frame_max) {
             coprintf ("E: oversized fragment, rejected");
             smt_thread_raise_exception (thread, channel_error_event);
         }
@@ -587,6 +606,7 @@ static int
             <action name = "read next command" />
         </event>
         <event name = "handle notify">
+            <action name = "process handle notify" />
             <action name = "read next command" />
         </event>
         <event name = "handle index">
@@ -621,7 +641,7 @@ static int
         tcb->client->reply_code = HANDLE_CLOSE.reply_code;
         ipr_shortstr_cpy (tcb->client->reply_text, HANDLE_CLOSE.reply_text);
     </action>
-    
+
     <!--  EXPECT CHANNEL CLOSE  ---------------------------------------------->
 
     <state name = "expect channel close">
@@ -647,6 +667,7 @@ static int
             <action name = "read next command" />
         </event>
         <event name = "handle notify">
+            <action name = "process handle notify" />
             <action name = "read next command" />
         </event>
         <event name = "handle index">
@@ -670,10 +691,10 @@ static int
     <!--  SENDING MESSAGE  --------------------------------------------------->
 
     <state name = "sending message">
-        <event name = "continue" >
+        <event name = "continue">
             <action name = "send message fragment" />
         </event>
-        <event name = "finished" >
+        <event name = "finished">
             <return/>
         </event>
     </state>
@@ -739,6 +760,7 @@ static int
             <action name = "read next command" />
         </event>
         <event name = "handle notify">
+            <action name = "process handle notify" />
             <action name = "read next command" />
         </event>
         <event name = "handle index">
@@ -820,6 +842,7 @@ static int
             <action name = "invalid channel command" />
         </event>
         <event name = "handle notify">
+            <action name = "process handle notify" />
             <action name = "invalid channel command" />
         </event>
         <event name = "handle index">
@@ -837,7 +860,7 @@ static int
         <event name = "handle close">
             <action name = "invalid channel command" />
         </event>
-        <event name = "connection error" nextstate = "" >
+        <event name = "connection error" nextstate = "">
             <action name = "send connection close" />
             <action name = "close connection" />
         </event>
@@ -847,7 +870,7 @@ static int
         </event>
 
         <!--  Events from SMT socket monitor  -->
-        <event name = "socket input" >
+        <event name = "socket input">
             <action name = "read next command" />
         </event>
         <event name = "socket timeout" nextstate = "">
@@ -881,7 +904,7 @@ static int
     tcb->command->cur_size = tcb->socket->io_size;
     tcb->frame = amq_frame_decode (tcb->command);
     if (tcb->frame) {
-        if (s_tracing > AMQP_TRACE_NONE) {
+        if (s_tracing> AMQP_TRACE_NONE) {
             coprintf ("I: received frame size=%ld", tcb->frame->size);
             amq_frame_dump (tcb->frame);
         }
@@ -993,20 +1016,22 @@ static int64_t inline s_request_timeout      (smt_thread_t *thread);
 static void
 send_the_frame (smt_thread_t *thread)
 {
+    amq_frame_encode (tcb->command, tcb->frame);
+    ASSERT (tcb->command->cur_size == tcb->frame->size);
+
     if (s_tracing > AMQP_TRACE_NONE) {
-        coprintf ("I: sending frame size=%ld", tcb->frame->size);
+        coprintf ("I: sending frame size=%ld", tcb->command->cur_size);
         amq_frame_dump (tcb->frame);
     }
     if (tcb->frame->size > 0xFFFF) {
         *(dbyte *) (tcb->frame_header)     = htons (0xFFFF);
-        *(qbyte *) (tcb->frame_header + 2) = htonl (tcb->frame->size);
+        *(qbyte *) (tcb->frame_header + 2) = htonl (tcb->command->cur_size);
         s_sock_write (thread, tcb->frame_header, 6);
     }
     else {
-        *(dbyte *) (tcb->frame_header) = htons ((dbyte) tcb->frame->size);
+        *(dbyte *) (tcb->frame_header) = htons ((dbyte) tcb->command->cur_size);
         s_sock_write (thread, tcb->frame_header, 2);
     }
-    amq_frame_encode (tcb->command, tcb->frame);
     s_sock_write (thread, tcb->command->data, tcb->command->cur_size);
     amq_frame_free (&tcb->frame);
 }
@@ -1046,7 +1071,7 @@ s_request_timeout (smt_thread_t *thread)
 
     if (tcb->time_limit) {
         time_now = apr_time_now ();
-        if (tcb->time_limit > time_now)
+        if (tcb->time_limit >  time_now)
             usecs = tcb->time_limit - time_now;
         else
             /*  This case only happens if system clock ticks over while      */
@@ -1072,8 +1097,7 @@ s_request_timeout (smt_thread_t *thread)
 <state name = "defaults">
     <event name = "socket error"  nextstate = "" >
         <action name = "handle error">
-        coprintf ("E: %s", 
-                  smt_thread_error (thread));
+        coprintf ("E: %s", smt_thread_error (thread));
         </action>
     </event>
     <event name = "smt error" nextstate = "">
@@ -1113,7 +1137,7 @@ s_request_timeout (smt_thread_t *thread)
     if (tcb->long_frame)
         tcb->frame_size = ntohl (*(qbyte *) (tcb->frame_header));
 
-    if (tcb->frame_size > tcb->frame_max) {
+    if (tcb->frame_size> tcb->frame_max) {
         coprintf ("E: received frame is too large (want %ld, have %ld)",
             tcb->frame_size, tcb->frame_max);
         smt_thread_raise_exception (thread, connection_error_event);
