@@ -14,8 +14,11 @@
 
 <import class = "amq_smessage"  />
 <option name = "childname" value = "amq_smessage" />
+<option name = "childtype" value = "amq_smessage_t" />
 
-<context overlay = "amq_smessage">
+<context>
+    amq_smessage_t
+        amq_smessage;
 </context>
 
 <method name = "commit" template = "function">

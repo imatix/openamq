@@ -14,8 +14,11 @@
 
 <import class = "amq_dispatch"  />
 <option name = "childname" value = "amq_dispatch" />
+<option name = "childtype" value = "amq_dispatch_t" />
 
-<context overlay = "amq_dispatch">
+<context>
+    amq_dispatch_t
+        amq_dispatch;
     amq_channel_t
         *channel;                       /*  Parent channel                   */
 </context>

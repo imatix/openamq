@@ -12,8 +12,8 @@
     so that heavy new/destroy use is very cheap.
 </doc>
 
-<inherit class = "icl_alloc_cache" />
 <inherit class = "icl_ref_count"   />
+<inherit class = "icl_alloc_cache" />
 <option name = "nullify" value = "0" />
 
 <public>
