@@ -198,12 +198,12 @@ Incoming parameters:
 socket:
     Socket connected to AMQP server
 storage:
-    As API is totally stateless and thus cannot have preallocated
-    buffer, client provides a buffer to store the frame being
-    constructed so that it wouldn't have to be allocated every time anew.
-    Storage is supplied along with its size so that client API
-    should be able to determine whether frame fits into buffer.
-    If it doesn't buffer overflow error is returned. 
+    As the API is totally stateless and thus cannot have preallocated
+    buffers, clients provide a buffer to store the frame being
+    constructed, so that it wouldn't have to be allocated every time anew.
+    Storage is supplied along with its size so that the client API
+    should be able to determine whether a frame fits into the buffer.
+    If it doesn't, a buffer overflow error is returned. 
 parameters:
     Parameters for frame type TYPE
 
@@ -224,12 +224,12 @@ Incoming parameters:
 socket:
     Socket connected to AMQP server
 storage:
-    As API is totally stateless and thus cannot have preallocated
-    buffer, client provides a buffer to store the frame being
+    As the API is totally stateless and thus cannot have preallocated
+    buffers, clients provide a buffer to store the frame being
     read so that it wouldn't have to be allocated every time anew.
-    Storage is supplied along with its size so that client API
-    should be able to determine whether frame fits into buffer.
-    If it doesn't buffer overflow error is returned. 
+    Storage is supplied along with its size so that the client API
+    should be able to determine whether a frame fits into the buffer.
+    If it doesn't, a buffer overflow error is returned. 
 
 Outgoing parameters:
 
@@ -251,16 +251,16 @@ Incoming parameters:
 socket:
     Socket connected to AMQP server
 storage:
-    As API is totally stateless and thus cannot have preallocated
-    buffer, client provides a buffer to store the frame being
+    As the API is totally stateless and thus cannot have preallocated
+    buffers, clients provide a buffer to store the frame being
     read so that it wouldn't have to be allocated every time anew.
-    Storage is supplied along with its size so that client API
-    should be able to determine whether frame fits into buffer.
-    If it doesn't buffer overflow error is returned. 
+    Storage is supplied along with its size so that the client API
+    should be able to determine whether a frame fits into the buffer.
+    If it doesn't, a buffer overflow error is returned. 
 callbacks:
     Array of callback functions for a individual frame types.  Depending
-    on the implementation language callbacks can be either registered
-    in advance or passed as a parameters/closures.
+    on the implementation language, callbacks can be either registered
+    in advance or passed as parameters/closures.
 
 Outgoing parameters:
 
@@ -276,24 +276,24 @@ it to the caller via function callback.
 
 Error codes
 ...........
-Level 0 API defines following error codes in addition to socket errors:
+Level 0 API defines the following error codes in addition to socket errors:
 
 AMQ_FRAME_CORRUPTED:
-    Fired when frame received from server doesn't comply
-    with AMQP specification
+    Fired when a frame received from the server doesn't comply
+    with the AMQP specification
 AMQ_BUFFER_OVERFLOW:
-    Fired either when received frame is too big to fit into
-    the supplied buffer, or when frame to be sent is too big
+    Fired either when the received frame is too big to fit into
+    the supplied buffer, or when the frame to be sent is too big
     to fit into the supplied buffer.
 
 There should exist some mechanism to convert error codes into human
-readable strings. This could be either mechanism native to the language
-or a function with a following prototype:
+readable strings. This could be either a mechanism native to the language
+or a function with the following prototype:
 
 message = amqp_strerror (errorcode)
 
 It should be able to convert socket error codes as well as level 0 errors.
-May be joined with error handling mechanisms in levels 1 and 2. To be decided.
+[May be joined with error handling mechanisms in levels 1 and 2. To be decided.]
 
 Level 1 API
 -----------

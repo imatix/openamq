@@ -60,8 +60,8 @@ as listed below:
 Spacing
 =======
 
-- Code should be formatted to fit an 80 character width terminal (may
-  push that to at most 90 char width).
+- Code should be formatted to fit an 80 character width terminal [may
+  push that to at most 90 char width].
 - Indent with 4 spaces, never use tabs.
 - Spaces outside () and [], not inside.
 - Space after commas.
@@ -193,7 +193,7 @@ Prefer using typedefs and static inline function over macros.
 All static functions should be placed at the end of source files, with
 their function prototypes at the top.
 
-The order of methods in code should be (if applicable): new, destroy,
+The order of methods in code should be [if applicable]: new, destroy,
 ..., selftest.
 
 Portability

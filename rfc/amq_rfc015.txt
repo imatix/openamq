@@ -132,7 +132,7 @@ temporary (destination[, prefetch [, noack]]):
     on success, 0 on failure.  
 msg_read ([timeout]):
     Wait for a message to arrive from any queue opened for reading. The
-    timeout, in seconds, tell the client component how long to wait
+    timeout, in seconds, tells the client component how long to wait
     before abandoning and returning to the application.  By default, or
     if zero, the timeout is indefinite.  When a message arrives the
     application can inspect it, and may forward it to another destination.
@@ -206,7 +206,7 @@ Security Considerations
 =======================
 
 The AMQ protocol does not yet implement specific authentication or
-authorisation policies.  The API describe here provides for a user login
+authorisation policies.  The API described here provides for a user login
 and password but with no provision for privacy or authentication, we are
 not proposing this API for use outside controlled networks.
 
