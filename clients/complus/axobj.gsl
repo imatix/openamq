@@ -349,7 +349,6 @@ for object
     output "$(class.object_name:)/$(class.object_name).cpp"
 >// $(class.object_name:).cpp : Implementation of C$(class.object_name:)
 >#include "sfl.h"
->#include "sflunic.h"
 for class.import
     >#include "$(import.class).h"
 endfor
@@ -879,7 +878,6 @@ endfunction
 //      run nmake -f $(class.name)ps.mk in the project directory.
 
 #include "sfl.h"
-#include "sflunic.h"
 .for class.import
 #include "$(import.class).h"
 .endfor

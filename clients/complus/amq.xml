@@ -32,7 +32,7 @@
     <rule name = "destructor">
         amq_message_destroy (&m_amq_message);
         amq_sclient_destroy (&m_amq_client);
-        ipr_metacache_destroy (); 
+        icl_system_destroy (); 
     </rule>
 
     <property name = "identifier">
@@ -71,9 +71,9 @@
         int   my_size;
         </local>
         my_size = SysStringByteLen (content);
-        my_content = (byte *) ipr_mem_alloc (my_size);
+        my_content = (byte *) icl_mem_alloc (my_size);
         memcpy (my_content, content, my_size);
-        amq_message_set_content (m_amq_message, my_content, my_size, ipr_mem_free);
+        amq_message_set_content (m_amq_message, my_content, my_size, icl_mem_free);
     </property>
     <property name = "msg_content">
         <return type = "BSTR" />

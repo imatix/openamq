@@ -1,4 +1,10 @@
+*.ilk
+*.pdb
 *.gen
+*.lib
+*.lst
+boomake*
+msmake*
 .spool
 amq_aclient.c
 amq_aclient.h

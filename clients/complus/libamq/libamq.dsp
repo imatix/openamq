@@ -85,27 +85,35 @@ LIB32=link.exe -lib
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=..\..\core\amq_bucket.c
+SOURCE=..\..\..\core\amq_bucket.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\amq_sclient_agent.c
+SOURCE=..\..\..\core\amq_frames.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\amq_sclient.c
+SOURCE=..\..\..\core\amq_message.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\amq_frames.c
+SOURCE=..\..\..\core\amq_sclient.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\core\amq_message.c
+SOURCE=..\..\..\core\amq_sclient_agent.c
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\..\..\base\pcre\get.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\..\base2\icl\icl_mem.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\..\base2\icl\icl_system.c
 # End Source File
 # Begin Source File
 
@@ -126,14 +134,6 @@ SOURCE=..\..\..\..\base2\ipr\ipr_dict_table.c
 # Begin Source File
 
 SOURCE=..\..\..\..\base2\ipr\ipr_longstr.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\..\..\base2\ipr\ipr_mem.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\..\..\base2\ipr\ipr_metacache.c
 # End Source File
 # Begin Source File
 
@@ -422,10 +422,6 @@ SOURCE=..\..\..\..\base2\smt\smt_timer_request_by_thread.c
 # Begin Source File
 
 SOURCE=..\..\..\..\base2\smt\smt_timer_request_list.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\..\..\base2\smt\smtdate.c
 # End Source File
 # Begin Source File
 
