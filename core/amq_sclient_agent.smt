@@ -316,10 +316,9 @@ static int
              rather to the dialog of reading commands until a HANDLE NOTIFY
              arrives.
           -->
-        <method name = "blocking receive">
+        <method name = "blocking receive" nextstate = "blocking receive" >
             s_calculate_time_limit (thread, blocking_receive_m->timeout);
-            <action name = "read next command" />
-            <call state = "expect handle notify" />
+            smt_thread_set_next_event (ok_event);
         </method>
         <!--
             We allow a specific set of client API methods. The defaults state
@@ -383,7 +382,7 @@ static int
             <call state = "expect handle close" />
         </method>
     </state>
-
+    
     <action name = "send connection close">
         amq_frame_free (&tcb->frame);
         tcb->frame = amq_frame_connection_close_new (
@@ -503,6 +502,16 @@ static int
             "Closing");                 /*  Reply text                       */
         send_the_frame (thread);
     </action>
+
+    <!--  BLOCKING RECEIVE  -------------------------------------------------->
+    
+    <state name = "blocking receive" >
+        <event name = "ok" nextstate = "connection active" >
+            <action name = "read next command" />
+            <call state = "expect handle notify" />
+        </event>
+        <event name = "socket timeout" nextstate = "connection active"/>
+    </state>
 
     <!--  EXPECT HANDLE NOTIFY  ---------------------------------------------->
 
