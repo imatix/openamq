@@ -269,7 +269,7 @@ endfunction
 ------------------------------------------------------------------------
 function generate_idl
     echo "Create IDL file $(class.name:).idl..."
-    output "$(class.name:)/$(class.name:).idl"
+    output "$(class.name:).idl"
 >// $(class.name:).idl : IDL source for $(class.name:).dll
 >
 >import "oaidl.idl";
@@ -355,9 +355,8 @@ endfunction
 function generate_cp
 
     for interface where source = "yes"
-        echo "Create connection point implementation for interface $(interface.name:)"
-        echo ("Generating $(class.name:)/$(interface.name:)CP.h...")
-        output "$(class.name:)/$(interface.name:)CP.h"
+        echo ("Generating $(interface.name:)CP.h...")
+        output "$(interface.name:)CP.h"
 >#ifndef _$(INTERFACE.NAME)CP_H_
 >#define _$(INTERFACE.NAME)CP_H_
 >
@@ -410,7 +409,7 @@ endfunction
 function generate_object
     for object
         echo "Create file $(object.name:).h"
-        output "$(class.name)/$(object.name:).h"
+        output "$(object.name:).h"
 >// $(object.name:).h : Declaration of the C$(object.name:)
 >
 >#ifndef __$(OBJECT.NAME)_H_
@@ -653,8 +652,8 @@ function generate_object
 >#endif
         close
 
-        echo "Create file $(class.name:)/$(object.name:).cpp"
-        output "$(class.name:)/$(object.name:).cpp"
+        echo "Create file $(object.name:).cpp"
+        output "$(object.name:).cpp"
 
 >// $(object.name:).cpp : Implementation of C$(object.name:)
 >
@@ -817,8 +816,8 @@ endfunction
 ------------------------------------------------------------------------
 function generate_main_obj
 
-    echo ("Generating $(class.name:)/$(class.name:).cpp...")
-    output ("$(class.name:)/$(class.name:).cpp")
+    echo ("Generating $(class.name:).cpp...")
+    output ("$(class.name:).cpp")
 >// $(class.name:).cpp : Implementation of DLL Exports.
 >
 >#include "common.h"
@@ -922,8 +921,8 @@ endfor
 >}
 >
     close
-    echo ("Generating $(class.name:)/resource.h...")
-    output ("$(class.name:)/resource.h")
+    echo ("Generating resource.h...")
+    output ("resource.h")
 >
 >#define IDS_PROJNAME 100
     resnum = 101
@@ -943,8 +942,8 @@ endfor
 >#endif
 >
     close
-    echo ("Generating $(class.name:)/$(class.name:).rc...")
-    output ("$(class.name:)/$(class.name:).rc")
+    echo ("Generating $(class.name:).rc...")
+    output ("$(class.name:).rc")
 >
 >#include "resource.h"
 >
@@ -967,8 +966,8 @@ endfor
     close
 
     for object where creatable = "yes"
-        echo ("Generating $(class.name:)/$(object.name:).rgs...")
-        output ("$(class.name:)/$(object.name:).rgs")
+        echo ("Generating $(object.name:).rgs...")
+        output ("$(object.name:).rgs")
 >HKCR
 >{
 >    $(class.name:).$(object.name:).$(object.version:) = s '$(object.name:) Class'
@@ -1012,8 +1011,8 @@ endfunction
 ------------------------------------------------------------------------
 function generate_stdafx
 
-    output "$(class.name:)/stdafx.h"
-    echo "Create file $(class.name:)/stdafx.h"
+    output "stdafx.h"
+    echo "Create file stdafx.h"
 >
 >#if !defined(AFX_STDAFX_H_$(CLASS.NAME)_INCLUDED_)
 >#define AFX_STDAFX_H_$(CLASS.NAME)_INCLUDED_
@@ -1036,8 +1035,8 @@ function generate_stdafx
 >#include <atlcom.h>
 >
 >#endif
-    output "$(class.name:)/stdafx.cpp"
-    echo "Create file $(class.name:)/stdafx.cpp"
+    output "stdafx.cpp"
+    echo "Create file stdafx.cpp"
 >
 >#include "stdafx.h"
 >
@@ -1052,8 +1051,8 @@ endfunction
 ------------------------------------------------------------------------
 function generate_dlldatax
 
-    output "$(class.name:)/dlldatax.h"
-    echo "Create file $(class.name:)/dlldatax.h"
+    output "dlldatax.h"
+    echo "Create file dlldatax.h"
 >#if !defined(AFX_DLLDATAX_H_$(CLASS.NAME)_INCLUDED_)
 >#define AFX_DLLDATAX_H_$(CLASS.NAME)_INCLUDED_
 >
@@ -1076,8 +1075,8 @@ function generate_dlldatax
 >
 >#endif
 
-    output "$(class.name:)/dlldatax.c"
-    echo "Create file $(class.name:)/dlldatax.c"
+    output "dlldatax.c"
+    echo "Create file dlldatax.c"
 
 >// wrapper for dlldata.c
 >
@@ -1127,8 +1126,8 @@ endfunction
 ------------------------------------------------------------------------
 function generate_common
 
-    output "$(class.name:)/common.h"
-    echo "Create file $(class.name:)/common.h"
+    output "common.h"
+    echo "Create file common.h"
 
 >#ifndef __COMMON_H__
 >#define __COMMON_H__
@@ -1152,8 +1151,8 @@ endfunction
 ------------------------------------------------------------------------
 function generate_def
 
-    output "$(class.name:)/$(class.name:).def"
-    echo "Create file $(class.name:)/$(class.name:).def"
+    output "$(class.name:).def"
+    echo "Create file $(class.name:).def"
 >; $(class.name:).def : Declares the module parameters.
 >
 >LIBRARY      "$(class.name:).DLL"
@@ -1164,8 +1163,8 @@ function generate_def
 >    DllRegisterServer       @3 PRIVATE
 >    DllUnregisterServer     @4 PRIVATE
 
-    output "$(class.name:)/$(class.name:)ps.def"
-    echo "Create file $(class.name:)/$(class.name:)ps.def"
+    output "$(class.name:)ps.def"
+    echo "Create file $(class.name:)ps.def"
 
 >LIBRARY      "$(class.name:)PS"
 >
@@ -1183,8 +1182,8 @@ endfunction
 .macro generate_ax_dsp
 .-
 .   echo "Create Microsoft Developer Studio Project file for COM dll $(class.name:)"
-.   echo ("Generating $(class.name:)/$(class.name:).dsp...")
-.   output "$(class.name:)/$(class.name:).dsp"
+.   echo ("Generating $(class.name:).dsp...")
+.   output "$(class.name:).dsp"
 .
 # Microsoft Developer Studio Project File - Name="$(class.name:)" - Package Owner=<4>
 # Microsoft Developer Studio Generated Build File, Format Version 6.00
@@ -1222,13 +1221,13 @@ RSC=rc.exe
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 1
-# PROP BASE Output_Dir "$(class.name:)\\Debug"
-# PROP BASE Intermediate_Dir "$(class.name:)\\Debug"
+# PROP BASE Output_Dir "Debug"
+# PROP BASE Intermediate_Dir "Debug"
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "$(class.name:)\\Debug"
-# PROP Intermediate_Dir "$(class.name:)\\Debug"
+# PROP Output_Dir "Debug"
+# PROP Intermediate_Dir "Debug"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /Yu"stdafx.h" /FD /GZ /c
@@ -1248,7 +1247,7 @@ $(debugtarget:) \
 /libpath:"$(env.get("IBASE"))/lib" \
 /nologo /subsystem:windows /dll /debug /machine:I386 /out:"../$(class.name:).dll" /pdbtype:sept
 # Begin Custom Build - Performing registration
-OutDir=.\\$(class.name:)\\Debug
+OutDir=.\\Debug
 TargetPath=..\\$(class.name:).dll
 InputPath=..\\$(class.name:).dll
 SOURCE="\$(InputPath)"
@@ -1268,13 +1267,13 @@ SOURCE="\$(InputPath)"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
-# PROP BASE Output_Dir "$(class.name:)\\ReleaseMinSize"
-# PROP BASE Intermediate_Dir "$(class.name:)\\ReleaseMinSize"
+# PROP BASE Output_Dir "ReleaseMinSize"
+# PROP BASE Intermediate_Dir "ReleaseMinSize"
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "$(class.name:)\\ReleaseMinSize"
-# PROP Intermediate_Dir "$(class.name:)\\ReleaseMinSize"
+# PROP Output_Dir "ReleaseMinSize"
+# PROP Intermediate_Dir "ReleaseMinSize"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /O1 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "_ATL_DLL" /Yu"stdafx.h" /FD /c
@@ -1294,7 +1293,7 @@ $(target:) \
 /libpath:"$(env.get("IBASE"))/lib" \
 /nologo /subsystem:windows /dll /machine:I386 /out:"../$(class.name:).dll"
 # Begin Custom Build - Performing registration
-OutDir=.\\$(class.name:)\\ReleaseMinSize
+OutDir=.\\ReleaseMinSize
 TargetPath=..\\$(class.name:).dll
 InputPath=..\\$(class.name:).dll
 SOURCE="\$(InputPath)"
@@ -1315,13 +1314,13 @@ SOURCE="\$(InputPath)"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
-# PROP BASE Output_Dir "$(class.name:)\\ReleaseMinDependency"
-# PROP BASE Intermediate_Dir "$(class.name:)\\ReleaseMinDependency"
+# PROP BASE Output_Dir "ReleaseMinDependency"
+# PROP BASE Intermediate_Dir "ReleaseMinDependency"
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "$(class.name:)\\ReleaseMinDependency"
-# PROP Intermediate_Dir "$(class.name:)\\ReleaseMinDependency"
+# PROP Output_Dir "ReleaseMinDependency"
+# PROP Intermediate_Dir "ReleaseMinDependency"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /O1 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "_ATL_STATIC_REGISTRY" /Yu"stdafx.h" /FD /c
@@ -1341,7 +1340,7 @@ $(target:) \
 /libpath:"$(env.get("IBASE"))/lib" \
 /nologo /subsystem:windows /dll /machine:I386 /out:"../$(class.name:).dll"
 # Begin Custom Build - Performing registration
-OutDir=.\\$(class.name:)\\ReleaseMinDependency
+OutDir=.\\ReleaseMinDependency
 TargetPath=..\\$(class.name:).dll
 InputPath=..\\$(class.name:).dll
 SOURCE="\$(InputPath)"
