@@ -26,9 +26,9 @@
     "  -b batch         Size of each batch (100)\n"                         \
     "  -x size          Size of each message (default = 1024)\n"            \
     "  -r repeat        Repeat test N times (1)\n"                          \
-    "  -t level         Set trace level\n"                                  \
-    "  -p               Use persistent messages (no)\n"                     \
+    "  -t level         Set trace level (default = 0)\n"                    \
     "                   0=none, 1=low, 2=medium, 3=high\n"                  \
+    "  -p               Use persistent messages (no)\n"                     \
     "  -q               Quiet mode: no messages\n"                          \
     "  -d               Delayed mode; sleeps after receiving a message\n"   \
     "  -v               Show version information\n"                         \
@@ -161,12 +161,12 @@ main (int argc, char *argv [])
     }
     /*  If there was a missing parameter or an argument error, quit          */
     if (argparm) {
-        coprintf ("Argument missing - type 'openamqd -h' for help");
+        coprintf ("Argument missing - type 'amqpcli_serial -h' for help");
         goto failed;
     }
     else
     if (!args_ok) {
-        coprintf ("Invalid arguments - type 'openamqd -h' for help");
+        coprintf ("Invalid arguments - type 'amqpcli_serial -h' for help");
         goto failed;
     }
 
