@@ -8,6 +8,14 @@ import com.imatix.openamq.framing.*;
 public class EchoClient extends amqpcli_serial implements Runnable {
 
 
+///////////////////////////   P A R A M E T E R S   ///////////////////////////
+
+// Some queue defaults for this client
+String
+    read_queue = "java-in",             /* Queue to read from               */
+    write_queue = "c-in";               /* Queue to write to                */
+
+    
 //////////////////////////////   G L O B A L S   //////////////////////////////
 
 // AWT UI
@@ -52,6 +60,37 @@ public static void main(String[] args) {
         single = new EchoClient(args);
 }
 
+public int amqpcli_serial_execute (String args[])
+{
+    int
+        feedback;                       /* Console return int               */
+    
+    if (args.length > 0) {
+        if (args[0].equals("-h")) {
+            System.out.println("Java echo client - " + version);
+            System.out.println("");
+            System.out.println("Copyright (c) 2004-2005 JPMorgan");
+            System.out.println("This is free software; see the source for copying conditions.  There is NO");
+            System.out.println("warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.");
+            System.out.println("");
+            System.out.println("Provisional syntax: java amqpcli_serial [server] [client name] [read-queue] [write-queue]");
+            System.exit(0);
+        } else {
+            opt_server = args[0];       
+        }
+    }    
+    if (args.length > 1)
+        client_name = args[1];       
+    if (args.length > 2)
+        read_queue = args[2];       
+    if (args.length > 3)
+        write_queue = args[3];       
+
+    feedback = execute ();
+
+    return (feedback);
+}
+
 
 /////////////////////////////////   AWT CONSTRUCTOR  //////////////////////////
 
@@ -79,13 +118,17 @@ public EchoClient(String[] args) {
     gbc.weighty = 0;
     gbl.setConstraints(tf, gbc);
     // Configure the frame
-    f = new Frame("AMQP echo client");
+    f = new Frame("Java echo client - " + version);
     f.addWindowListener(new WindowAdapter() {
         public void windowClosing(WindowEvent e) {
             if (receive_thread != null) {
-                synchronized(receive_thread) {
-                    receive_thread.notify();
-                }
+                try {
+                    // Say bye
+                    channel_close.channelId = 1;
+                    channel_close.replyCode = 200;
+                    channel_close.replyText = "amqpcli_serial.java: I'll be back";
+                    amq_framing.produceFrame(channel_close);
+                } catch (AMQFramingException f) {}
             } else {
                 System.exit(0);
             }
@@ -109,11 +152,16 @@ class tfActionListener implements ActionListener {
         try {
             String                      /* Text to send to the server       */
                 text = e.getActionCommand();
-        
+            
+            // Echo local text in the echo area
+            ea.append("< " + text + "\n");
+
             if (text.equals("/quit")) {
-                synchronized(receive_thread) {
-                    receive_thread.notify();
-                }
+                // Say bye
+                channel_close.channelId = 1;
+                channel_close.replyCode = 200;
+                channel_close.replyText = "amqpcli_serial.java: I'll be back";
+                amq_framing.produceFrame(channel_close);
             } else {
                 // Send text
                 System.out.println("Sending: \"" + text + "\" to server...");
@@ -163,24 +211,26 @@ public void run () {
         amq_framing.produceFrame(handle_consume);
         while(true) {
             AMQFrame frame;
-            boolean close = false; 
+            int close = 0; 
             // Get frame 
             frame = amq_framing.consumeFrame();
             if (frame instanceof AMQConnection.Close) {
                 client_close = (AMQConnection.Close)frame;
-                close = true;
+                close = 1;
             } else if (frame instanceof AMQChannel.Close ) {
                 channel_close = (AMQChannel.Close)frame;
                 amq_framing.produceFrame(client_close);
                 client_close = (AMQConnection.Close)amq_framing.consumeFrame();
-                close = true;
+                close = 2;
             }
-            if (close) {         
-                System.out.println("Closing, server says: " + client_close.replyText + ".");
-                synchronized(receive_thread) {
+            if (close > 0) {         
+                if (close > 1)         
+                    System.out.println("Channel closing, server says: " + channel_close.replyText + ".");
+                System.out.println("Connection closing, server says: " + client_close.replyText + ".");
+                 synchronized (receive_thread) {
                     receive_thread.notify();
-                }
-                break;
+                 }
+                 break;
             }
             // Get the data
             handle_notify = (AMQHandle.Notify)frame;
@@ -192,8 +242,7 @@ public void run () {
             amq_framing.produceFrame(channel_ack);
             System.out.println("Acknowledge: \"" + text + "\" from server...");
             // Show text in the echo area
-            ea.append(text + "\n");
-            receive_thread.yield();
+            ea.append("> " + text + "\n");
         } 
     }
     catch (ClassCastException e)
@@ -237,22 +286,36 @@ public void do_tests ()
         channel_open.outOfBand = "";
         amq_framing.produceFrame(channel_open);
 
-        // Open hadle
+        // Open hadles ... 
         handle_open.channelId = 1;
-        handle_open.handleId = 1;
         handle_open.serviceType = 1;
         handle_open.confirmTag = 0;
-        handle_open.producer = true;
-        handle_open.consumer = true;
         handle_open.browser = false;
-        handle_open.temporary = true;
-        handle_open.destName = "echo-out";
         handle_open.mimeType = "";
         handle_open.encoding = "";
         handle_open.options = null;
+        // ... for reading
+        handle_open.handleId = 1;
+        handle_open.producer = false;
+        handle_open.consumer = true;
+        handle_open.temporary = false;
+        handle_open.destName = read_queue;
         amq_framing.produceFrame(handle_open);
-        // Get handle created
-        handle_created = (AMQHandle.Created)amq_framing.consumeFrame();
+        if (handle_open.temporary) {
+            // Get handle created
+            handle_created = (AMQHandle.Created)amq_framing.consumeFrame();
+        }
+        // ... for writing
+        handle_open.handleId = 2;
+        handle_open.producer = true;
+        handle_open.consumer = false;
+        handle_open.temporary = false;
+        handle_open.destName = write_queue;
+        amq_framing.produceFrame(handle_open);
+        if (handle_open.temporary) {
+            // Get handle created
+            handle_created = (AMQHandle.Created)amq_framing.consumeFrame();
+        }
 
         // Prepare ack
         channel_ack.channelId = 1;
@@ -260,7 +323,7 @@ public void do_tests ()
         channel_ack.messageNbr = 0;
     
         // Prepare for sending
-        handle_send.handleId = 1;
+        handle_send.handleId = 2;
         handle_send.confirmTag = 0;
         handle_send.fragmentSize = 0;
         handle_send.partial = false;
@@ -295,24 +358,10 @@ public void do_tests ()
         // Send text in AWT thread
         tf.addActionListener(new tfActionListener());
         
-        // Main thread waits until UI quits
-        synchronized(receive_thread) {
+        synchronized (receive_thread) {
             try {
                 receive_thread.wait();
-            } catch (InterruptedException e) {}
-        }
-        
-        // Say bye
-        channel_close.channelId = 1;
-        channel_close.replyCode = 200;
-        channel_close.replyText = "amqpcli_serial.java: I'll be back";
-        amq_framing.produceFrame(channel_close);
-        
-        // Main thread waits until the close is completed by the consumer thread (receive_thread)
-        synchronized(receive_thread) {
-            try {
-                receive_thread.wait();
-            } catch (InterruptedException e) {}
+            } catch (InterruptedException e)  {}
         }
     }
     catch (ClassCastException e)
