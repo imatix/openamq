@@ -7,7 +7,7 @@
       <title content = "title"/>
       <remark>
         <line>If you find a bug or issue, report it to us and we'll
-        fix it before you can say 'OpenAMQ'.</line>
+        fix it before you can say 'OpenAMQ'</line>
       </remark>
       <header>
         <line>Here we have a header.</line>
