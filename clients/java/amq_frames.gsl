@@ -1,0 +1,1096 @@
+.template 0
+#! /usr/local/bin/gsl -a
+#  ----------------------------------------------------------------------------
+#   AMQ Frame Generator for Java
+#
+#   Frames are structures designed to be easily serialized for writing
+#   to a socket or file.  Frames are described using an XML language.
+#
+#   This script generates frame structures and serialization code.
+#
+#   Copyright (c) 2005 JPMorgan
+#   Copyright (c) 1991-2004 iMatix Corporation
+#  ----------------------------------------------------------------------------
+
+#  ------------------------------   Globals    --------------------------------
+
+class_prefix = "AMQ"
+AMQPFrameException = "$(class_prefix:)FramingException"
+AMQPFrameError = "$(class_prefix:)FramingError"
+AMQPFramingFactory = "$(class_prefix:)Factory"
+AMQPFramable = "$(class_prefix:)Framable"
+AMQPFrame = "$(class_prefix:)Frame"
+error_handling ="
+    /**
+     *
+     * Warning handling
+     *
+     **/
+    static void warning(String _class, String method, String message) {
+        $(class_prefix:)Factory.warning(_class, method, message); 
+    }
+    
+    /**
+     *
+     * Error handling
+     *
+     **/
+    static void error(Exception e, String _class, String method, String message) throws $(AMQPFrameException:) {
+        $(class_prefix:)Factory.error(e, _class, method, message); 
+    }
+    
+    static void runtimeError(Exception e, String _class, String method, String message) throws RuntimeException {
+        $(class_prefix:)Factory.runtimeError(e, _class, method, message); 
+    }"
+imatix_openamq_dir = "com/imatix/openamq"
+imatix_openamq_frames_dir = imatix_openamq_dir + "/framing"
+imatix_openamq_frames_package = string.replace(imatix_openamq_frames_dir, "/|.")
+type_type_last = undefined ? 
+type_type = undefined ?
+set_type = undefined ? 
+
+#  ------------------------------   Functions  --------------------------------
+
+function abort_xml_error ()
+    abort xml.error
+endfunction
+
+#  ------------------------------   Name style --------------------------------
+
+function c2java_class (name)
+    return string.replace("$(my.name: Neat)", "_|")
+endfunction
+
+function c2java_name (name)
+    my.name = string.replace("$(my.name: Neat)", "_|")
+    my.name = "$(string.substr(my.name, 0, , 1):lower)" + "$(string.substr(my.name, 1, , ):)"
+    return my.name
+endfunction
+
+#  ------------------------------   Class hierarchy ---------------------------
+
+function generate_directories ()
+-   Java code from Imatix's openamq project in here
+    directory.create (imatix_openamq_dir)
+-   Framing / Deframing code in here
+    directory.create (imatix_openamq_frames_dir)
+endfunction
+
+#  ------------------------------   Helper functions -------------------------
+
+function get_type_type()
+    for field
+        if (name = "type")
+            if    type = "char"
+                my.type = "char"
+            elsif type = "bit"
+                my.type = "boolean"
+            elsif type = "octet"
+                my.type = "byte"
+            elsif type = "shortint"
+                my.type = "short"
+            elsif type = "longint"
+                my.type = "int"
+            elsif type = "shortstr"
+                my.type = "String"
+            elsif type = "longstr" | type = "table"
+                my.type = "byte[]"
+            endif
+        endif
+    endfor
+    return my.type
+endfunction
+
+function get_type_value()
+    for field
+        if (name = "type")
+            my.value = value
+        endif
+    endfor
+    return my.value
+endfunction
+
+function parse_frames (frames)
+    name   = "$(name:c)"
+    prefix = "$(prefix:c)"
+    for . where name() = "frame"
+        if name = "frame"
+            abort "'frame' is a reserved name, please change this"
+        endif
+        name = "$(name:c)"
+        for field
+            name = "$(c2java_name("$(name:c)"))"
+        endfor
+    endfor
+endfunction
+
+function build_frame_lists (frames, outertype, code)
+ scope my.frames
+   my.count = 0
+   for frame where string.prefixed(name, my.outertype)
+        my.frame_name = name
+        my.current_inner = "$(string.substr (my.frame_name, string.length(my.outertype) + 1, , ))"
+-       The consume message exception        
+        if (my.code = 3)
+            for field 
+                my.count += 1
+                if (my.count > 1)
+                    echo ("java/$(script:): build_frame_lists: FATAL, code = 3 unexpected exception.")
+                endif
+                >        return new $(my.current_inner: Neat)(dis);
+                last
+            endfor
+-       The create message exception        
+        elsif (my.code = 5)
+            for field 
+                my.count += 1
+                if (my.count > 1)
+                    echo ("java/$(script:): build_frame_lists: FATAL, code = 5 unexpected exception.")
+                endif
+                >        return new $(my.current_inner: Neat)();
+                last
+            endfor
+        else
+            my.type = get_type_type() ?
+            for field where name = "type"
+-               Constants
+                if (my.code = 1)
+                    >    public final static $(my.type:) $(my.current_inner: UPPER) = $(value:); 
+-               The frame consume cases
+                elsif (my.code = 2)
+                    >            case $(my.current_inner: UPPER): 
+                    >                return new $(my.current_inner: Neat)(bucket);
+                elsif (my.code = 4)
+                    >            case $(my.current_inner: UPPER): 
+                    >                return new $(my.current_inner: Neat)();
+                endif
+            endfor
+        endif
+    endfor
+ endscope
+endfunction
+
+function build_if_lists (frames, outertype, AMQPFramingFactory, code)
+ scope my.frames
+    if (my.code = 1)      
+        my.action = "consume"
+        my.extra_indent = "    "        
+    elsif (my.code = 2)      
+        my.action = "create"
+        my.extra_indent = ""        
+    endif        
+    my.indent = ""        
+    for frame
+-      The function get_type_value is added just to allow the triggering of the empty value 
+        type_value = "type " + get_type_value() ?
+        my.new_outertype = string.prefix (name, "_")
+        if (!defined(my.outertype) | my.new_outertype <> my.outertype)
+            my.outertype = my.new_outertype
+            if (defined (type_value))
+                my.indent += "    "  
+                if (my.code = 1)
+                    >    $(my.extra_indent)$(my.indent)if ((frame = $(my.outertype: lower).$(my.action)Frame($(string.prefix(type_value, " "):), bucket)) == null)
+                elsif (my.code = 2)
+                    >    $(my.extra_indent)$(my.indent)if ((frame = $(my.outertype: lower).$(my.action)Frame($(string.prefix(type_value, " "):))) == null)
+                endif
+            endif
+        endif
+    endfor
+    my.indent += "    "  
+    >    $(my.extra_indent)$(my.indent)throw new $(AMQPFrameException:)("$(AMQPFramingFactory:): $(my.action)Frame: EXCEPTION, unrecognized frame.");
+ endscope
+endfunction
+
+
+function build_variables (frame, do_type)
+    for field
+        if    type = "char"
+            my.type = "char"
+        elsif type = "bit"
+            my.type = "boolean"
+        elsif type = "octet"
+            my.type = "byte"
+        elsif type = "shortint"
+            my.type = "short"
+        elsif type = "longint"
+            my.type = "int"
+        elsif type = "shortstr"
+            my.type = "String"
+        elsif type = "longstr" | type = "table"
+            my.type = "byte[]"
+        endif
+        if ((name = "type") & my.do_type)
+            >        short $(name:) = -1;                    /*  $(.?:)                           */
+        elsif ((name <> "type") & !my.do_type)
+            >        public $(my.type:) $(name:);            /*  $(.?:)                           */
+        endif
+    endfor
+endfunction
+
+function build_decoding (frame, is, inner)
+    my.bit_count = 0
+    for field
+        if    type <> "bit" & my.bit_count > 0
+-           Prepare for new bitfield blocks 
+            my.bit_count = 0
+        endif
+        if (name <> "type") 
+            if    type = "char"
+                >                $(name:) = $(my.is).readByte();
+            elsif type = "bit"
+                if (my.bit_count = 0)
+-                   Read the bitfield 
+                    >                byte flags = $(my.is).readByte();
+                endif
+                >                $(name:) = (flags & (1 << $(my.bit_count))) > 0;
+                my.bit_count += 1
+            elsif type = "octet"
+                >                $(name:) = $(my.is).readByte();
+            elsif type = "shortint"
+                >                $(name:) = $(my.is).readShort();
+            elsif type = "longint"
+                >                $(name:) = $(my.is).readInt();
+            elsif type = "shortstr"
+                >                {byte[] bytes = new byte[$(my.is).readByte()];
+                >                 readBytes($(my.is), bytes, 0, bytes.length);
+                >                 $(name:) = bytes2String(bytes);}
+            elsif type = "longstr" | type = "table"
+                >                int size = $(my.is).readShort();
+                >                if (size != 0) {
+                >                    byte[] $(name:) = new byte[size];
+                >                    readBytes($(my.is), $(name:), 0, $(name:).length);
+                >                }
+            endif
+        endif
+    endfor
+endfunction
+
+function build_encoding (frame, os)
+    my.bit_count = 0
+    for field
+        if    type <> "bit" & my.bit_count > 0
+-           Write the bitfield 
+            >                $(my.os).writeByte(flags);
+-           Prepare for new bitfield blocks 
+            my.bit_count = 0
+        endif
+        if    type = "char"
+            >                $(my.os).writeByte($(name:));
+        elsif type = "bit"
+-           Compose the bitfield
+            if (my.bit_count = 0)
+                >                byte flags = 0;
+            endif
+            >                if ($(name:))
+            >                   flags |= 1 << $(my.bit_count);        
+            my.bit_count += 1
+        elsif type = "octet"
+            >                $(my.os).writeByte($(name:));
+        elsif type = "shortint"
+            >                $(my.os).writeShort($(name:));
+        elsif type = "longint"
+            >                $(my.os).writeInt($(name:));
+        elsif type = "shortstr"
+            >                {$(my.os).writeByte($(name:).length());
+            >                 byte[] bytes = string2Bytes($(name:));
+            >                 writeBytes($(my.os), bytes, 0, bytes.length);}
+        elsif type = "longstr" | type = "table"
+            >                if ($(name:) != null) {
+            >                    $(my.os).writeShort($(name:).length);
+            >                    writeBytes($(my.os), $(name:), 0, $(name:).length);
+            >                } else {
+            >                    $(my.os).writeShort(0);
+            >                }
+        endif
+    endfor
+    if    my.bit_count > 0
+-       Write the bitfield 
+        >                $(my.os).writeByte(flags);
+    endif
+endfunction
+
+function build_dumping (frame, os)
+    >            $(my.os:).print("I:");
+    for field
+        if    type = "char"
+            >            $(my.os:).print(" $(name:) = " + $(name:));
+        elsif type = "bit"
+            >            $(my.os:).print(" $(name:) = " + $(name:));
+        elsif type = "octet"
+            >            $(my.os:).print(" $(name:) = " + $(name:));
+        elsif type = "shortint"
+            >            $(my.os:).print(" $(name:) = " + $(name:));
+        elsif type = "longint"
+            >            $(my.os:).print(" $(name:) = " + $(name:));
+        elsif type = "shortstr"
+            >            $(my.os:).print(" $(name:) = " + $(name:));
+        elsif type = "longstr" | type = "table"
+            >            $(my.os:).print(" $(name:) = ");
+            >            if ($(name:) != null) 
+            >                $(my.os:).print(bytes2String($(name:)));
+        endif
+    endfor
+    >            $(my.os:).println("");
+endfunction
+
+function build_framing (class, inner, AMQPFrameException)
+    my.full_name = "$(my.class + "." + my.inner:)"
+    my.full_name_comments = "$(my.class + " " + my.inner: lower)"
+    if (defined (set_type)) 
+        my.decode_type = "byte[]"
+        my.decode_source = "bucket"
+    else
+        my.decode_type = "DataInputStream"
+        my.decode_source = "dis"
+    endif
+-   Constructors        
+    >        /**
+    >         *
+    >         * Encoder constructor for $(my.full_name:)
+    >         *
+    >         **/
+    >        public $(my.inner:)() {$(set_type?:)}
+    >
+    >        /**
+    >         *
+    >         * Decoder constructor for $(my.full_name:)
+    >         *
+    >         **/
+    >        public $(my.inner:)($(my.decode_type:) $(my.decode_source:)) throws $(AMQPFrameException:) {
+    >            this();
+    >            decode($(my.decode_source:));
+    >        }
+    >
+-   Deframing        
+    >        /**
+    >         *
+    >         * Frame decoder for $(my.full_name_comments:) frames
+    >         *
+    >         **/
+    >        public void decode($(my.decode_type:) $(my.decode_source:)) throws $(AMQPFrameException:) {
+    if (defined (set_type)) 
+        >            // We decode from a byte array bucket
+        >            ByteArrayInputStream bais = new ByteArrayInputStream(bucket);
+        >            DataInputStream dis = new DataInputStream(bais);
+        >
+    endif
+    >            try {
+    build_decoding (., "dis", my.inner)
+    >                byte ce = dis.readByte();
+    >                if (ce != AMQP_COMMAND_END) 
+    >                    throw new $(AMQPFrameException)("$(my.full_name:): decode: EXCEPTION, frame command-end expected but got " + ce + ".");
+    >            } catch (IOException e) {
+    >                try {
+    >                    dis.close();
+    >                } catch (IOException f) {}
+    >                error(e, "$(my.full_name:)", "decode", "IOException (ByteArrayInputStream)");
+    >            }
+    >        }
+    >
+-   Framing        
+    >        /**
+    >         *
+    >         * Frame encoder for $(my.full_name_comments:) frames
+    >         *
+    >         **/
+    >        public int encode() {
+    >            // We encode into a byte array bucket
+    >            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    >            DataOutputStream dos = new DataOutputStream(baos);
+    >
+    >            try {
+    build_encoding (., "dos")
+    >                dos.writeByte(AMQP_COMMAND_END);
+    >            } catch (IOException e) {
+    >                try {
+    >                    dos.close();
+    >                } catch (IOException f) {}
+    >                // Memory?
+    >                runtimeError(e, "$(my.full_name:)", "encode",  "IOException (ByteArrayOutputStream)");
+    >            }
+    >
+    >            // Set frame reference, and return frame size
+    >            bucket = baos.toByteArray();
+    >            return bucket.length;
+    >        }
+    >
+-   Dumping
+    >        /**
+    >         *
+    >         * Frame dumper for $(my.full_name_comments:) frames
+    >         *
+    >         **/
+    >        public void dump() {
+    build_dumping (., "System.out")
+    >        }
+endfunction
+
+#  ------------------------------   Output macro -----------------------------
+
+.macro generate_frames (frames)
+. scope my.frames
+.-  Set the java output directory
+.   directory.setcwd(imatix_openamq_frames_dir)
+.-  outertype refers to one of connection, channel, handle or message
+.-  Iterate through frames and generate .java files for outertypes (realted types must be together)
+.   for frame
+.-      Set some frame type variables
+.       type_type = get_type_type() + " type" ?
+.       type_type_comma = type_type + ", " ?
+.       if (defined (type_type))
+.           type_type_last = type_type
+.       endif
+.-      This takes the beginnings of frame names to generate new files
+.       my.new_outertype = string.prefix (name, "_")
+.       if (!defined (my.outertype))
+.           my.outertype = my.new_outertype
+.           my.outertype_break = 1
+.       elsif (my.new_outertype <> my.outertype)
+.           my.outertype = my.new_outertype
+.           my.outertype_break = 2
+.       else
+.           my.outertype_break = 0
+.       endif
+.-      Write file headers only for new outertypes (connection, channel, handle, message)
+.       if (my.outertype_break > 0)
+.-          Close current class
+.           if (my.outertype_break > 1)
+    $(error_handling:)    
+}
+. close
+.           endif
+.-          The message type is not formally a frame type 
+.           my.first_inner = string.substr (name, string.length(my.outertype) + 1, , )
+.-          Command frames
+.           if (defined (type_type))
+.               my.frame_super = AMQPFrame
+.-          The message head
+.           else
+.               my.frame_super = "$(my.first_inner : Neat)"
+.           endif
+.echo "Generating $(class_prefix:)$(my.outertype: Neat).java..."
+. output "$(class_prefix:)$(my.outertype: Neat).java"
+/**
+ *  $(class_prefix:)$(my.outertype: Neat).java - AMQP $(my.outertype) frames.
+ *
+ *  Generated from $(arg?filename) by java/$(script) using GSL/4.
+ *  DO NOT MODIFY THIS FILE.
+ *
+ *  For documentation and updates see http://www.imatix.com.
+ *  Copyright (c) 2004 JPMorgan
+ *  Copyright (c) 1991-2004 iMatix Corporation
+ *
+ **/
+ 
+package $(imatix_openamq_frames_package:);
+
+import java.io.InputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+ 
+public class $(class_prefix:)$(my.outertype: Neat) {
+    // Constants
+    final static byte AMQP_COMMAND_END = (byte)0xCE;
+    // Frame-types
+.           build_frame_lists (my.frames, my.outertype, 1)   
+    
+    /**
+     *
+     * $(my.outertype: Neat) default constructor
+     *
+     **/
+    $(class_prefix:)$(my.outertype: Neat)() {
+    } 
+    
+    /**
+     *
+     * $(my.outertype: Neat) frame consumer
+     *
+     **/
+    $(my.frame_super:) consumeFrame($(type_type_comma + "byte[] bucket" ? "DataInputStream dis":)) throws $(AMQPFrameException:) {
+.-          Not for message
+.           if (defined (type_type))    
+        switch (type) {
+.       build_frame_lists (my.frames, my.outertype, 2)               
+        }
+        return null;
+.           else           
+.-          The message case
+.       build_frame_lists (my.frames, my.outertype, 3)               
+.           endif           
+    } 
+    
+    /**
+     *
+     * $(my.outertype: Neat) frame creator
+     *
+     **/
+    $(my.frame_super:) createFrame($(type_type ? "":)) throws $(AMQPFrameException:) {
+.-          Not for message
+.           if (defined (type_type))    
+        switch (type) {
+.       build_frame_lists (my.frames, my.outertype, 4)               
+        }
+        return null;
+.           else        
+.-          The message case
+.       build_frame_lists (my.frames, my.outertype, 5)               
+.           endif           
+    } 
+    
+    /**
+     *
+     * Byte array to string translation
+     *
+     **/
+    public static String bytes2String(byte[] bytes) {
+        return $(AMQPFramingFactory:).bytes2String(bytes);
+    }
+     
+    /**
+     *
+     * String to byte array translation
+     *
+     **/
+    public static byte[] string2Bytes(String string) {
+        return $(AMQPFramingFactory:).string2Bytes(string);
+    } 
+    
+    /**
+     *
+     * Read and check
+     *
+     **/
+    void readBytes(DataInputStream dis, byte[] b, int off, int len) throws IOException {
+        $(AMQPFramingFactory:).readBytes(dis, b, off, len);
+    } 
+    
+    /**
+     *
+     * Write
+     *
+     **/
+    void writeBytes(DataOutputStream dos, byte[] b, int off, int len) throws IOException {
+        $(AMQPFramingFactory:).writeBytes(dos, b, off, len);
+    } 
+ 
+.-          Command frames
+.           if (defined (type_type))
+    /**
+     *
+     * $(my.outertype: Neat) frames superclass
+     *
+     **/
+    abstract class $(AMQPFrame:) extends $(imatix_openamq_frames_package).$(AMQPFrame:) {
+.           build_variables (., 1)
+    }
+.           endif    
+.-      Finished with outertype methods
+.       endif
+.-  Write the frame types for this outertype
+.       my.current_inner = string.substr (name, string.length(my.outertype) + 1, , )
+.-      Command frames
+.       if (defined (type_type))
+.           set_type = "type = $(my.current_inner: UPPER);" ?
+.-      The message head
+.       else
+.           set_type = undefined ?
+.       endif
+
+    /**
+     *
+     * $(my.current_inner: Neat) frame
+     *
+     **/
+.-      Command frames
+.       if (defined (type_type))
+    public class $(my.current_inner: Neat) extends $(AMQPFrame:) {
+.-      The message head
+.       else
+    public class $(my.current_inner: Neat) extends $(AMQPFramable:) {
+.       endif
+.       build_variables (., 0)
+
+.       build_framing ("$(my.outertype: Neat)", "$(my.current_inner: Neat)", AMQPFrameException) 
+    }    
+.-  Finished with last class body
+.   endfor
+    $(error_handling:)    
+}
+
+.-  Close last class
+. close
+.- Frames and message header super class (AMQP network-serializable objects)
+.echo "Generating $(AMQPFramable:).java..."
+. output "$(AMQPFramable:).java"
+/**
+ *  $(AMQPFramable:).java - General protocol exception.
+ *
+ *  Generated from $(arg?filename) by java/$(script) using GSL/4.
+ *  DO NOT MODIFY THIS FILE.
+ *
+ *  For documentation and updates see http://www.imatix.com.
+ *  Copyright (c) 2004 JPMorgan
+ *  Copyright (c) 1991-2004 iMatix Corporation
+ *
+ **/
+ 
+package $(imatix_openamq_frames_package:);
+
+import java.io.DataInputStream;
+
+public abstract class $(AMQPFramable:) {
+    public byte[] bucket;             /*  The frame bytes                  */
+
+    /**
+     * 
+     * Default constructor 
+     *
+     **/
+    public $(AMQPFramable:)() {}
+
+    /**
+     *
+     * Decoder constructor 
+     *
+     **/
+    public $(AMQPFramable:)(byte[] bucket) throws $(AMQPFrameException:) {}
+
+    /**
+     *
+     * Encoder method
+     *
+     **/
+    public int encode() throws $(AMQPFrameException:) {return 0;}
+    
+    /**
+     *
+     * Frame dumping method
+     *
+     **/
+    public void dump() {}
+}
+
+. close
+.- Regular frames super class (to follow a frame header generated by the AMQPFactory)
+.echo "Generating $(AMQPFrame:).java..."
+. output "$(AMQPFrame:).java"
+/**
+ *  $(AMQPFrame:).java - General protocol exception.
+ *
+ *  Generated from $(arg?filename) by java/$(script) using GSL/4.
+ *  DO NOT MODIFY THIS FILE.
+ *
+ *  For documentation and updates see http://www.imatix.com.
+ *  Copyright (c) 2004 JPMorgan
+ *  Copyright (c) 1991-2004 iMatix Corporation
+ *
+ **/
+ 
+package $(imatix_openamq_frames_package:);
+
+import java.io.DataInputStream;
+
+public abstract class $(AMQPFrame:) extends $(AMQPFramable:) {
+}
+
+. close
+.- Glues the frame types together onto this utility class
+.echo "Generating $(AMQPFramingFactory:).java..."
+. output "$(AMQPFramingFactory:).java"
+/**
+ *  $(AMQPFramingFactory:).java - General protocol exception.
+ *
+ *  Generated from $(arg?filename) by java/$(script) using GSL/4.
+ *  DO NOT MODIFY THIS FILE.
+ *
+ *  For documentation and updates see http://www.imatix.com.
+ *  Copyright (c) 2004 JPMorgan
+ *  Copyright (c) 1991-2004 iMatix Corporation
+ *
+ **/
+ 
+package $(imatix_openamq_frames_package:);
+
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+
+public class $(AMQPFramingFactory:) {
+    // Constants
+    final static String STRING_ENC = "UTF-8";
+    final static short FRAME_LONG = 0xFFF;
+    final static int READ_RETRY_LATENCY = 500;
+    final static int ERROR_NONE = -1;
+
+    // Incoming stream
+    DataInputStream incoming;
+    // Outgoing stream
+    DataOutputStream outgoing;
+    // Frame classes
+.   my.outertype = undefined ?
+.   for frame
+.       my.new_outertype = string.prefix (name, "_")
+.       if (!defined(my.outertype) | my.new_outertype <> my.outertype)
+.           my.outertype = my.new_outertype
+    $(class_prefix:)$(my.outertype: Neat) $(my.outertype: lower) = new $(class_prefix:)$(my.outertype: Neat)();
+.       endif
+.   endfor    
+    // Verbose switch
+    boolean verbose = false;
+    // Last error code
+    int lastError = ERROR_NONE;    
+
+    /**
+     *
+     * $(AMQPFramingFactory:) constructor
+     *
+     **/
+    public $(AMQPFramingFactory:)(InputStream incoming, OutputStream outgoing) {
+        if (incoming instanceof DataInputStream)
+            this.incoming = (DataInputStream)incoming;
+        else
+            this.incoming = new DataInputStream(new BufferedInputStream(incoming));
+        
+        if (outgoing instanceof DataOutputStream)
+            this.outgoing = (DataOutputStream)outgoing;
+        else
+            this.outgoing = new DataOutputStream(new BufferedOutputStream(outgoing));
+    } 
+    
+    /**
+     *
+     * Data consumer method
+     *
+     **/
+    public byte[] consumeData(int len) throws IOException {
+        byte[] bytes = new byte[len];
+        
+        readBytes(incoming, bytes, 0, bytes.length);
+        if (verbose) 
+            System.out.println("I: read " + (bytes.length + 1) + " bytes from server (data)");
+        
+        return bytes;
+    }
+    
+    /**
+     *
+     * Data producer method
+     *
+     **/
+    public void produceData(byte[] bytes) throws IOException {
+        writeBytes(outgoing, bytes, 0, bytes.length);
+        outgoing.flush();
+        if (verbose) 
+            System.out.println("I: wrote " + bytes.length + " bytes to server (data)");
+    }
+    
+    /**
+     *
+     * Message head consumer method
+     *
+     **/
+    public $(class_prefix:)Message.Head consumeMessageHead() throws $(AMQPFrameException:) {
+        AMQMessage.Head head = null;
+        
+        // Read the message header
+        head = ($(class_prefix:)Message.Head)message.consumeFrame(incoming);
+        if (verbose) {
+            System.out.println("I: read " + head.encode() + " bytes from server (message head)");
+            head.dump();
+        }
+        
+        return head;
+    }
+    
+    /**
+     *
+     * Message head producer method
+     *
+     **/
+    public void produceMessageHead($(class_prefix:)Message.Head head) throws IOException {
+        head.encode();
+        writeBytes(outgoing, head.bucket, 0, head.bucket.length);
+        outgoing.flush();
+        if (verbose) 
+            System.out.println("I: wrote " + head.bucket.length + " bytes to server (message head)");
+    }
+    
+    /**
+     *
+     * Message head creator method
+     *
+     **/
+    public $(class_prefix:)Message.Head createMessageHead() throws $(AMQPFrameException:) {
+        return ($(class_prefix:)Message.Head)message.createFrame();
+    }
+    
+    /**
+     *
+     * Frame consumer method
+     *
+     **/
+    public $(AMQPFrame:) consumeFrame() throws $(AMQPFrameException:) {
+        $(AMQPFrame:) frame = null;
+        byte[] bucket = null;
+        int frameSize;
+        
+        try {
+            // Read the frame header
+            frameSize = incoming.readShort();
+            // Allocate bucket
+            if (frameSize == FRAME_LONG) {
+                // The frame is long
+                frameSize = incoming.readInt();
+            }
+            if (frameSize <= 0) 
+                throw new $(AMQPFrameException)("$(AMQPFramingFactory:): consumeFrame: zero-size frame.");
+            // Read frame type     
+            $(type_type_last:) = incoming.readByte();
+            // Read the rest of the frame
+            bucket = new byte[frameSize - 1]; // Minus one byte we just read           
+            readBytes(incoming, bucket, 0, bucket.length);
+.   build_if_lists(my.frames, my.outertype, AMQPFramingFactory, 1)            
+        } catch (IOException e) {
+            try {
+                incoming.close();
+            } catch (IOException f) {}
+            error(e, "$(AMQPFrameException:)", "consumeFrame", "IOException");
+        } 
+        if (verbose) {
+            System.out.println("I: read " + (bucket.length + 1) + " bytes from server (command)");
+            frame.dump();
+        }
+        
+        return frame;
+    } 
+    
+    /**
+     *
+     * Frame producer method
+     *
+     **/
+    public void produceFrame($(AMQPFrame:) frame) throws $(AMQPFrameException:) {
+        frame.encode();
+        try {
+            // Write frame size
+            if (frame.bucket.length >= FRAME_LONG) {
+                outgoing.writeShort(FRAME_LONG);
+                outgoing.writeInt(frame.bucket.length);
+            } else {
+                outgoing.writeShort(frame.bucket.length);
+            }
+            // Write frame body
+            writeBytes(outgoing, frame.bucket, 0, frame.bucket.length);
+            outgoing.flush();
+        } catch (IOException e) {
+            error(e, "$(AMQPFramingFactory:)", "produceFrame", "IOException");
+        }
+        if (verbose) {
+            System.out.println("I: wrote " + frame.bucket.length + " bytes to server (command)");
+            frame.dump();
+        }
+    } 
+    
+    /**
+     *
+     * Frame constructor method
+     *
+     **/
+    public $(AMQPFrame:) createFrame($(type_type_last)) throws $(AMQPFrameException:) {
+        $(AMQPFrame:) frame = null;
+        
+.   build_if_lists(my.frames, my.outertype, AMQPFramingFactory, 2)            
+
+        return frame;
+    } 
+    
+    /**
+     *
+     * Byte array to string translation
+     *
+     **/
+    public static String bytes2String(byte[] bytes) {
+        try {
+            return new String(bytes, STRING_ENC);
+        } catch (UnsupportedEncodingException e) {
+            runtimeError(e, "$(AMQPFramingFactory:)", "bytes2String", "UnsupportedEncodingException");
+            return null;
+        }
+    }
+     
+    /**
+     *
+     * String to byte array translation
+     *
+     **/
+    public static byte[] string2Bytes(String string) {
+        try {
+            return string.getBytes(STRING_ENC);
+        } catch (UnsupportedEncodingException e) {
+            runtimeError(e, "$(AMQPFramingFactory:)", "string2Bytes", "UnsupportedEncodingException.");
+            return null;
+        }
+    }
+    
+    /**
+     *
+     * Read and check 
+     *
+     **/
+    static void readBytes(DataInputStream dis, byte[] b, int off, int len) throws IOException {
+        int read = 0;
+        while (read < len) {
+            read = dis.read(b, off, len);
+            len -= read;
+            if (len > 0) {
+                try {
+                    Thread.sleep(READ_RETRY_LATENCY);
+                } catch (InterruptedException e) {}
+            }
+        }
+    }
+    
+    /**
+     *
+     * Write 
+     *
+     **/
+    static void writeBytes(DataOutputStream dos, byte[] b, int off, int len) throws IOException {
+        dos.write(b, off, len);
+    }
+    
+    /**
+     *
+     * Warning handling
+     *
+     **/
+    public static void warning(String message, String _class, String method) {
+        try {
+            exception(null, _class, method, "WARNING, " + message, 0); 
+        } catch ($(AMQPFrameException:) e) {}
+    }
+    
+    /**
+     *
+     * Error handling
+     *
+     **/
+    public static void error(Exception e, String _class, String method, String message) throws $(AMQPFrameException:) {
+        exception(e, _class, method, "ERROR, " + message, 1); 
+    }
+    
+    public static void runtimeError(Exception e, String _class, String method, String message) throws RuntimeException {
+        try {
+            exception(e, _class, method, "ERROR, " + message, 2); 
+        } catch ($(AMQPFrameException:) f) {}
+    }
+    
+    /**
+     *
+     * Exception handling
+     *
+     **/
+    static void exception(Exception e, String _class, String method, String message, int type) throws $(AMQPFrameException:) {
+        message = _class + ": " + method + ": " + message + ".";
+        
+        if (e != null)
+            System.err.println(e.getMessage());
+        System.err.println(message);
+        switch (type) {
+            case 1:
+                throw new $(AMQPFrameError:)(message);
+            case 2:
+                throw new RuntimeException(message);
+        }
+    }
+}
+
+. close
+. endscope
+.- Currently, this generates general exceptions. This can serve as the basis to generate more specialized exceptions.
+.    my.current_exception = AMQPFrameException
+.    my.current_extends = "Exception"
+.    while (defined(my.current_exception))
+.        echo "Generating $(my.current_exception:).java..."
+. output "$(my.current_exception:).java"
+/**
+ *  $(my.current_exception:).java - General protocol exception.
+ *
+ *  Generated from $(arg?filename) by java/$(script) using GSL/4.
+ *  DO NOT MODIFY THIS FILE.
+ *
+ *  For documentation and updates see http://www.imatix.com.
+ *  Copyright (c) 2004 JPMorgan
+ *  Copyright (c) 1991-2004 iMatix Corporation
+ *
+ **/
+ 
+package $(imatix_openamq_frames_package);
+ 
+import java.lang.Exception;
+ 
+public class $(my.current_exception:) extends $(my.current_extends:) {
+    /**
+     *
+     * Default constructor
+     *
+     **/
+    public $(my.current_exception:)() {
+        super();
+    }
+    
+    /**
+     *
+     * Message constructor
+     *
+     **/
+    public $(my.current_exception:)(String message) {
+        super(message);
+    }
+    
+    /**
+     *
+     * Message and cause constructor
+     *
+     **/
+    public $(my.current_exception:)(String message, Throwable cause) {
+        super(message, cause);
+    }
+    
+    /**
+     *
+     * Cause constructor
+     *
+     **/
+    public $(my.current_exception:)(Throwable cause) {
+        super(cause);
+    }
+}
+
+. close
+.        if (my.current_exception = AMQPFrameException)
+.            my.current_exception = AMQPFrameError
+.            my.current_extends = "$(AMQPFrameException:)"
+.        else
+.            my.current_exception = undefined ?
+.        endif
+.    endwhile
+.endmacro
+
+#  ------------------------------   Main code  --------------------------------
+
+if scope (frames)
+    generate_directories ()
+    parse_frames    (frames)
+    generate_frames (frames)
+endif 
+.endtemplate
