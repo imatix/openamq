@@ -272,7 +272,7 @@ s_dispatch_message (
         (dbyte) consumer->handle->key,
         dispatch->message_nbr,
         FALSE, TRUE, FALSE,
-        icl_mem_strdup (consumer->queue->dest->name),
+        consumer->queue->dest->name,
         message,
         consumer->unreliable? dispatch: NULL);
 

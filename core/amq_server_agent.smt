@@ -179,15 +179,19 @@ static int
         tcb->command     = amq_bucket_new ();
         tcb->fragment    = amq_bucket_new ();
         tcb->connection  = amq_connection_new (thread);
+        tcb->channel     = NULL;
+        tcb->handle      = NULL;
         tcb->frame       = NULL;
         tcb->frame_max   = AMQ_BUCKET_SIZE;
     </handler>
     <handler name = "thread destroy">
         smt_socket_destroy     (&tcb->socket);
-        amq_frame_free         (&tcb->frame);
         amq_bucket_destroy     (&tcb->command);
         amq_bucket_destroy     (&tcb->fragment);
         amq_connection_destroy (&tcb->connection);
+        amq_channel_destroy    (&tcb->channel);
+        amq_handle_destroy     (&tcb->handle);
+        amq_frame_free         (&tcb->frame);
     </handler>
 
     <!--  INITIALISE CONNECTION  --------------------------------------------->
@@ -755,7 +759,6 @@ static int
             the_next_event = continue_event;
         else {
             the_next_event = finished_event;
-            icl_mem_strfree (&handle_notify_m->dest_name);
 
             /*  If a dispatch object was passed, acknowledge the message
                 immediately - this is used for 'unreliable' consumers        */

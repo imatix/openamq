@@ -6,10 +6,7 @@
 
 <state name = "defaults">
     <event name = "socket error"  nextstate = "" >
-        <action name = "handle error">
-        coprintf ("E: %s", 
-                  smt_thread_error (thread));
-        </action>
+        <action name = "handle error"/>
     </event>
     <event name = "smt error" nextstate = "">
         <action name = "handle error"/>
@@ -19,6 +16,11 @@
 
 <catch error = "SMT_SOCKET_ERROR"     event = "socket error" />
 <catch                                event = "smt error" />
+
+<action name = "handle error">
+coprintf ("E: %s", 
+          smt_thread_error (thread));
+</action>
 
 <action name = "wait for activity" >
     smt_socket_request_monitor (
