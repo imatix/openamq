@@ -5,29 +5,20 @@
  -->
 
 <state name = "defaults">
-    <event name = "socket closed" nextstate = "" >
-    </event>
     <event name = "socket error"  nextstate = "" >
-        <action name = "handle socket error">
-        coprintf ("E: socket error (%s)", sockmsg ());
+        <action name = "handle error">
+        coprintf ("E: %s", 
+                  smt_thread_error (thread));
         </action>
     </event>
     <event name = "smt error" nextstate = "">
-        <action name = "handle smt error">
-        coprintf ("E: unhandled SMT kernel error: %d", thread->result);
-        </action>
+        <action name = "handle error"/>
     </event>
     <event name = "shutdown" nextstate = "" />
 </state>
 
-<catch error = "SMT_SOCKET_CLOSED"    event = "socket closed" />
 <catch error = "SMT_SOCKET_ERROR"     event = "socket error" />
-<catch error = "SMT_FULL"             event = "smt error" />
-<catch error = "SMT_EMPTY"            event = "smt error" />
-<catch error = "SMT_ILLEGAL_ARGUMENT" event = "smt error" />
-<catch error = "SMT_SELECT_ERROR"     event = "smt error" />
-<catch error = "SMT_SEQUENCE_ERROR"   event = "smt error" />
-<catch error = "SMT_CONNECT_ERROR"    event = "socket error" />
+<catch                                event = "smt error" />
 
 <action name = "wait for activity" >
     smt_socket_request_monitor (

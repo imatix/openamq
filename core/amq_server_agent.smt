@@ -22,7 +22,7 @@ static int
     s_tracing = 0;
 </private>
 
-<handler name = "agent initialise">
+<handler name = "agent init">
     <argument name = "tracing" type = "int" />
     s_tracing = tracing;
     if (s_tracing > AMQP_TRACE_LOW)
@@ -30,7 +30,7 @@ static int
     amq_server_agent_master_thread_new ();
 </handler>
 
-<handler name = "agent terminate">
+<handler name = "agent term">
 </handler>
 
 <!--  Master thread  --------------------------------------------------------->
@@ -41,7 +41,7 @@ static int
         smt_socket_t *connect;          /*  Newly-accepted socket            */
     </context>
 
-    <handler name = "thread initialise">
+    <handler name = "thread init">
         thread->animate = (s_tracing > AMQP_TRACE_MED);
         smt_thread_set_next_event (thread, ok_event);
     </handler>
@@ -63,23 +63,30 @@ static int
     <action name = "initialise server">
         char
             *port;                          /*  Port to listen on                */
-        qbyte
-            *hostaddrs;                     /*  List of host addresses           */
-        int
-            index;                          /*  Index into hostaddrs table       */
+        ipr_shortstr_t
+            buffer;                         /*  Holds host name & error message  */
+        apr_pool_t
+            *pool;                          /*  APR pool for host addresses      */
+        apr_sockaddr_t
+            *sockaddr;                      /*  The associated socket addresses  */
+        char
+            *addr;                          /*  To hold socket address string    */
 
         port = ipr_config_table_lookup (amq_config, "server/port", AMQ_SERVER_PORT);
-        hostaddrs = get_hostaddrs ();
-        if (hostaddrs) {
-            for (index = 0; hostaddrs [index]; index++)
-                coprintf ("I: AMQP server binding to %s:%s",
-                    sock_ntoa (hostaddrs [index]), port);
-            mem_free (hostaddrs);
+        apr_pool_create (&pool, NULL);
+        apr_gethostname (buffer, IPR_SHORTSTR_MAX, pool);
+        apr_sockaddr_info_get (&sockaddr, buffer, APR_UNSPEC, 0, 0, pool);
+        while (sockaddr) {
+            apr_sockaddr_ip_get (&addr, sockaddr);
+            coprintf ("I: AMQP server binding to %s:%s", addr, port);
+            sockaddr = sockaddr-> next;
         }
+        apr_pool_destroy (pool);
+
         tcb-> socket = smt_socket_passive (thread, port, 5);
         if (!tcb->socket) {
-            coprintf ("E: could not open AMQP port %s - %s",
-                      port, connect_errlist [thread-> error]);
+            coprintf ("E: could not open AMQP port %s - %s", 
+                      port, smt_thread_error (thread));
             smt_thread_raise_exception (thread, error_event);
         }
     </action>
@@ -166,7 +173,7 @@ static int
             client_id;                  /*  Client record for connection     */
     </context>
 
-    <handler name = "thread initialise">
+    <handler name = "thread init">
         thread->animate  = (s_tracing > AMQP_TRACE_MED);
         the_next_event   = ok_event;
         tcb->command     = amq_bucket_new ();

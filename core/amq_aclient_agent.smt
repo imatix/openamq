@@ -21,7 +21,7 @@ static int
     s_tracing = 0;
 </private>
 
-<handler name = "agent initialise">
+<handler name = "agent init">
     <argument name = "tracing" type = "int" />
     s_tracing = tracing;
     if (s_tracing > AMQP_TRACE_LOW)
@@ -161,7 +161,7 @@ static int
         ipr_shortstr_cpy (tcb->password,    password);
     </handler>
 
-    <handler name = "thread initialise">
+    <handler name = "thread init">
         thread->animate  = (s_tracing > AMQP_TRACE_MED);
         tcb->command     = amq_bucket_new ();
         tcb->fragment    = amq_bucket_new ();
@@ -203,7 +203,7 @@ static int
         else
             tcb->port = AMQ_SERVER_PORT;
         tcb->socket = smt_socket_connect (
-            thread, 60000 /*msecs*/, tcb->hostname, tcb->port, SMT_NULL_EVENT);
+            thread, 60000000 /*usecs*/, tcb->hostname, tcb->port, SMT_NULL_EVENT);
     </action>
 
     <action name = "send protocol header">
@@ -215,7 +215,8 @@ static int
 
     <action name = "report connection failed">
         coprintf ("E: could not connect to %s:%s (%s)",
-            tcb->hostname, tcb->port, sockmsg ());
+            tcb->hostname, tcb->port, 
+            smt_thread_error (thread));
     </action>
 
     <!--  EXPECT CONNECTION CHALLENGE  --------------------------------------->
@@ -281,7 +282,7 @@ static int
 
     <action name = "set monitor timer">
         if (tcb-> monitor_callback)
-            smt_timer_request_delay (thread, 1000 /*msecs*/, timer_expired_event);
+            smt_timer_request_delay (thread, 1000000 /*usecs*/, timer_expired_event);
     </action>
 
     <!--  CONNECTION ACTIVE  ------------------------------------------------->
@@ -593,9 +594,6 @@ static int
         <event name = "socket input" >
             <action name = "read next command" />
         </event>
-        <event name = "socket closed" nextstate = "" >
-            <action name = "signal connection dropped" />
-        </event>
         <event name = "timer expired" >
             <action name = "call monitor callback" />
             <action name = "wait for activity" />
@@ -703,10 +701,6 @@ static int
             NULL,                       /*  Selector string                  */
             NULL);                      /*  Selector MIME type               */
         send_the_frame (thread);
-    </action>
-
-    <action name = "signal connection dropped">
-        coprintf ("Connection to server was lost - shutting-down");
     </action>
 
     <action name = "call monitor callback" >
@@ -842,7 +836,7 @@ amq_aclient_agent_register (
         else
         if (callback == AMQ_ACLIENT_MONITOR) {
             tcb->monitor_callback        = (amq_aclient_monitor_fn *)        function;
-            smt_timer_request_delay (thread, 1000 /*msecs*/, timer_expired_event);
+            smt_timer_request_delay (thread, 1000000 /*usecs*/, timer_expired_event);
         }
         else {
             coprintf ("amq_aclient_agent: tried to register invalid callback '%u'", callback);

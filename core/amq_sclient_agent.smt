@@ -21,7 +21,7 @@ static int
     s_tracing = 0;
 </private>
 
-<handler name = "agent initialise">
+<handler name = "agent init">
     <argument name = "tracing" type = "int" />
     s_tracing = tracing;
     if (s_tracing > AMQP_TRACE_LOW)
@@ -158,7 +158,7 @@ static int
         amq_sclient_handle_notify_fn
             *handle_notify_callback;
             
-        TIMEVAL
+        apr_time_t
             time_limit;                 /*  Limit for methods with timeout   */
     </context>
 
@@ -173,7 +173,7 @@ static int
         ipr_shortstr_cpy (tcb->password,    password);
     </handler>
 
-    <handler name = "thread initialise">
+    <handler name = "thread init">
         thread->animate  = (s_tracing > AMQP_TRACE_MED);
         tcb->command     = amq_bucket_new ();
         tcb->fragment    = amq_bucket_new ();
@@ -203,9 +203,6 @@ static int
         <event name = "socket error" nextstate = "">
             <action name = "report connection failed" />
         </event>
-        <event name = "socket closed" nextstate = "">
-            <action name = "report connection failed" />
-        </event>
         <event name = "socket timeout" nextstate = "">
             <action name = "report connection failed" />
         </event>
@@ -224,7 +221,8 @@ static int
         else
             tcb->port = AMQ_SERVER_PORT;
         tcb->socket = smt_socket_connect (
-            thread, connection_open_m->timeout, tcb->hostname, tcb->port, SMT_NULL_EVENT);
+            thread, 1000*connection_open_m->timeout, tcb->hostname, tcb->port,
+            SMT_NULL_EVENT);
     </action>
 
     <action name = "send protocol header">
@@ -235,8 +233,12 @@ static int
     </action>
 
     <action name = "report connection failed">
+        ipr_shortstr_t
+            buffer;                         /*  Holds error message              */
+
         coprintf ("E: could not connect to %s:%s (%s)",
-            tcb->hostname, tcb->port, sockmsg ());
+            tcb->hostname, tcb->port, 
+            apr_strerror (thread-> error, buffer, IPR_SHORTSTR_MAX));
         smt_socket_destroy (&tcb->socket);
     </action>
 
@@ -848,9 +850,6 @@ static int
         <event name = "socket input" >
             <action name = "read next command" />
         </event>
-        <event name = "socket closed" nextstate = "" >
-            <action name = "signal connection dropped" />
-        </event>
         <event name = "socket timeout" nextstate = "">
             <action name = "signal connection timed out" />
             <action name = "send connection close" />
@@ -870,10 +869,6 @@ static int
     <action name = "invalid channel command">
         tcb->reply_code = AMQP_COMMAND_INVALID;
         smt_thread_raise_exception (thread, channel_error_event);
-    </action>
-
-    <action name = "signal connection dropped">
-        coprintf ("Connection to server was lost - shutting-down");
     </action>
 
     <action name = "signal connection timed out">
@@ -986,8 +981,8 @@ static void        send_the_frame (smt_thread_t *thread);
 static void inline s_sock_write   (smt_thread_t *thread, byte *buffer, size_t size);
 static void inline s_sock_read    (smt_thread_t *thread, byte *buffer, size_t size);
 
-static void  inline s_calculate_time_limit (smt_thread_t *thread, qbyte timeout);
-static qbyte inline s_request_timeout      (smt_thread_t *thread);
+static void    inline s_calculate_time_limit (smt_thread_t *thread, qbyte msecs);
+static int64_t inline s_request_timeout      (smt_thread_t *thread);
 </private>
 
 <private name = "functions">
@@ -1019,61 +1014,50 @@ send_the_frame (smt_thread_t *thread)
 static void inline
 s_sock_write (smt_thread_t *thread, byte *buffer, size_t size)
 {
-    smt_socket_request_write (thread, tcb->socket, s_request_timeout (thread),
+    smt_socket_request_write (thread, tcb->socket,
+                              s_request_timeout (thread),
                               size, buffer, SMT_NULL_EVENT);
 }
 
 static void inline
 s_sock_read (smt_thread_t *thread, byte *buffer, size_t size)
 {
-    smt_socket_request_read (thread, tcb->socket, s_request_timeout (thread),
+    smt_socket_request_read (thread, tcb->socket,
+                             s_request_timeout (thread),
                              size, size, buffer, SMT_NULL_EVENT);
 }
 
 static void inline
-s_calculate_time_limit (smt_thread_t *thread, qbyte timeout)
+s_calculate_time_limit (smt_thread_t *thread, qbyte msecs)
 {
-    if (timeout) {
-        gettimeofday (&tcb->time_limit, NULL);
-        tcb->time_limit.tv_sec += timeout / 1000;
-        timeout = timeout % 1000;
-        tcb->time_limit.tv_usec += timeout * 1000;
-        if (tcb->time_limit.tv_usec > 1000000) {
-            tcb->time_limit.tv_usec -= 1000000;
-            tcb->time_limit.tv_sec  += 1;
-        }
-    }
-    else {
-        tcb->time_limit.tv_sec  = 0;
-        tcb->time_limit.tv_usec = 0;
-    }
+    if (msecs)
+        tcb->time_limit = apr_time_now () + 1000 * msecs;
+    else
+        tcb->time_limit = 0;
 }
 
-static qbyte inline
+static int64_t inline
 s_request_timeout (smt_thread_t *thread)
 {
-    TIMEVAL
+    apr_time_t
         time_now;
-    qbyte
-        msecs;
+    int64_t
+        usecs;
 
-    if (tcb->time_limit.tv_sec || tcb->time_limit.tv_usec) {
-        gettimeofday (&time_now, NULL);
-        if (tcb->time_limit.tv_sec  >  time_now.tv_sec
-        || (tcb->time_limit.tv_sec  == time_now.tv_sec
-        &&  tcb->time_limit.tv_usec >= time_now.tv_usec))
-            msecs = (tcb->time_limit.tv_usec - time_now.tv_usec) / 1000
-                  + (tcb->time_limit.tv_sec  - time_now.tv_sec)  * 1000;
+    if (tcb->time_limit) {
+        time_now = apr_time_now ();
+        if (tcb->time_limit > time_now)
+            usecs = tcb->time_limit - time_now;
         else
             /*  This case only happens if system clock ticks over while      */
             /*  we are active.  Instead of trapping it separately, just      */
             /*  do the operation with a minimal timeout.                     */
-            msecs = 1;
+            usecs = 1;
     }
     else
-        msecs = 0;                      /*  No time limit                    */
+        usecs = 0;                      /*  No time limit                    */
 
-    return msecs;
+    return usecs;
 }
 
 #undef  tcb
@@ -1086,30 +1070,23 @@ s_request_timeout (smt_thread_t *thread)
  -->
 
 <state name = "defaults">
-    <event name = "socket closed" nextstate = "" >
-    </event>
     <event name = "socket error"  nextstate = "" >
-        <action name = "handle socket error">
-        coprintf ("E: socket error (%s)", sockmsg ());
+        <action name = "handle error">
+        coprintf ("E: %s", 
+                  smt_thread_error (thread));
         </action>
     </event>
     <event name = "smt error" nextstate = "">
-        <action name = "handle smt error">
-        coprintf ("E: unhandled SMT kernel error: %d", thread->result);
-        </action>
+        <action name = "handle error"/>
     </event>
     <event name = "shutdown" nextstate = "" />
 </state>
 
-<catch error = "SMT_SOCKET_CLOSED"    event = "socket closed" />
 <catch error = "SMT_SOCKET_ERROR"     event = "socket error"  />
 <catch error = "SMT_TIMEOUT"          event = "socket timeout"/>
-<catch error = "SMT_FULL"             event = "smt error" />
 <catch error = "SMT_EMPTY"            event = "smt error" />
 <catch error = "SMT_ILLEGAL_ARGUMENT" event = "smt error" />
 <catch error = "SMT_SELECT_ERROR"     event = "smt error" />
-<catch error = "SMT_SEQUENCE_ERROR"   event = "smt error" />
-<catch error = "SMT_CONNECT_ERROR"    event = "smt error" />
 
 <action name = "read next command">
     <action name = "read frame header normal" />
