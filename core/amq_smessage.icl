@@ -34,6 +34,10 @@
         spoolid;                        /*  Spooler record, if any           */
     ipr_looseref_list_t
         *browsers;                      /*  List of browsers per message     */
+    ipr_shortstr_t
+        store_file;                     /*  Store filename if any            */
+    size_t
+        store_size;                     /*  Size of stored data, if any      */
 </context>
 
 <method name = "new">
@@ -44,6 +48,11 @@
 </method>
 
 <method name = "destroy">
+    /*  Wipe spooler entry, if any                                           */
+    if (self->spoolid) {
+        amq_db_spool_delete_fast (self->vhost->ddb, self->spoolid);
+        self->spoolid = 0;
+    }
     ipr_looseref_list_destroy (&self->browsers);
 </method>
 
@@ -74,6 +83,21 @@
         self->spoolid = spool->id;
         amq_db_spool_destroy (&spool);
     }
+</method>
+
+<method name = "replay" template = "function">
+    <header>
+    if (self->store_size) {
+        self->spool_size = self->store_size;
+        strcpy (self->spool_file, self->store_file);
+    }
+    </header>
+    <footer>
+    if (self->store_size) {
+        self->spool_size = 0;
+        self->spool_file [0] = '\0';
+    }
+    </footer>
 </method>
 
 <method name = "prepare" return = "value">
@@ -121,24 +145,21 @@
     </doc>
     <argument name = "queue" type = "amq_queue_t *" >Queue to save to</argument>
     <argument name = "txn"   type = "ipr_db_txn_t *">Transaction, if any</argument>
-    <local>
-    ipr_shortstr_t
-        filename;                       /*  Filename in store directory      */
-    </local>
-
     ASSERT (self->fragment);            /*  Must be loaded, or die           */
 
     /*  Update own reference to queue table used                             */
     self->queue = queue;
+    self->store_size = self->spool_size;
     s_save_message_properties (self, queue);
 
     /*  Write message to persistent storage                                  */
     amq_queue_insert (queue, txn);
     self->queue_id = queue->item_id;
 
+    /*  Save spooled data into persistent store if necessary                 */
     if (self->spool_size) {
         /*  Format the stored filename for the message                       */
-        ipr_shortstr_fmt (filename,
+        ipr_shortstr_fmt (self->store_file,
             "%s/%09ld.msg", self->vhost->storedir, self->queue_id);
 
         /*  Prepare to move file into store directory                        */
@@ -146,12 +167,13 @@
             fclose (self->spool_fh);
             self->spool_fh = NULL;
         }
-        file_delete (filename);
-        if (file_rename (self->spool_file, filename))
+        file_delete (self->store_file);
+        if (file_rename (self->spool_file, self->store_file))
             coprintf ("$(selfname): can't rename '%s': %s", self->spool_file, strerror (errno));
 
-        /*  Switch spool filename so that replay method can use it           */
-        ipr_shortstr_cpy (self->spool_file, filename);
+        /*  No spool file, so clear spool file properties                    */
+        self->spool_size = 0;
+        self->spool_file [0] = '\0';
 
         /*  No longer need recovery on the message, so clean-up spool table  */
         amq_db_spool_delete_fast (self->vhost->ddb, self->spoolid);
@@ -173,24 +195,31 @@
     self->queue_id = queue->item_id;
 
     s_load_message_properties (self, queue);
-    if (self->spool_size > 0) {
+    if (self->store_size > 0) {
         /*  Format the stored filename for the message                       */
-        ipr_shortstr_fmt (self->spool_file,
+        ipr_shortstr_fmt (self->store_file,
             "%s/%09ld.msg", self->vhost->storedir, self->queue_id);
     }
 </method>
 
-<method name = "purge" template = "function" inherit = "0">
+<method name = "delete" template = "function">
     <doc>
-    Wipes any persistent data for the message.
+    Deletes a saved message.  Use this to remove saved messages from a
+    queue rather than the queue delete method, since the message may also
+    have associated persistent data that needs deleting.  The message
+    must have been loaded from the queue using the load method.
     </doc>
-    if (self->spool_size > 0)
-        file_delete (self->spool_file);
+    <argument name = "txn" type = "ipr_db_txn_t *">Transaction, if any</argument>
 
-    if (self->spoolid) {
-        amq_db_spool_delete_fast (self->vhost->ddb, self->spoolid);
-        self->spoolid = 0;
-    }
+    ASSERT (self->queue);
+
+    /*  Delete queue record                                                  */
+    self->queue->item_id = self->queue_id;
+    amq_queue_delete (self->queue, txn);
+
+    /*  Delete persistent file storage if any                                */
+    if (self->store_size > 0)
+        file_delete (self->store_file);
 </method>
 
 <private name = "header">
@@ -213,7 +242,7 @@ s_save_message_properties ($(selftype) *self, amq_queue_t *queue)
     queue->item_body_size   = self->body_size;
     queue->item_priority    = self->priority;
     queue->item_expiration  = self->expiration;
-    queue->item_spool_size  = self->spool_size;
+    queue->item_store_size  = self->store_size;
 
     ipr_shortstr_cpy (queue->item_mime_type, *self->mime_type? self->mime_type: self->handle->mime_type);
     ipr_shortstr_cpy (queue->item_encoding,  *self->encoding?  self->encoding:  self->handle->encoding);
@@ -236,7 +265,7 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
     self->body_size   = queue->item_body_size;
     self->priority    = queue->item_priority;
     self->expiration  = queue->item_expiration;
-    self->spool_size  = queue->item_spool_size;
+    self->store_size  = queue->item_store_size;
 
     ipr_shortstr_cpy (self->mime_type,  queue->item_mime_type);
     ipr_shortstr_cpy (self->encoding,   queue->item_encoding);
@@ -251,41 +280,6 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
     amq_bucket_fill (self->fragment, queue->item_content->data, queue->item_content->cur_size);
 }
 </private>
-
-<method name = "testfill" template = "function" inherit = "0">
-    <doc>
-    Records a random binary message with the specified size.
-    </doc>
-    <argument name = "body size" type = "size_t" />
-    <local>
-    amq_bucket_t
-        *bucket;
-    amq_frame_t
-        *frame;                         /*  Message header frame             */
-    char
-        *identifier = "amq_message_testfill: test message";
-    </local>
-
-    /*  Prepare message frame and encode it into a data buffer               */
-    bucket = amq_bucket_new ();
-    frame  = amq_frame_message_head_new (
-        body_size, 0, 0, 0, NULL, NULL, identifier, NULL);
-    amq_frame_encode (bucket, frame);
-    amq_frame_free (&frame);
-
-    /*  Record test message                                                  */
-    while (body_size > 0) {
-        while (bucket->cur_size &lt; bucket->max_size) {
-            bucket->data [bucket->cur_size] = (bucket->cur_size % 26) + 'A';
-            bucket->cur_size++;
-            if (--body_size == 0)
-                break;
-        }
-        $(selfname)_record (self, bucket, TRUE);
-        bucket = amq_bucket_new ();
-    }
-    amq_bucket_destroy (&bucket);
-</method>
 
 <method name = "selftest">
     <local>
@@ -386,9 +380,10 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
         /*  Get bucket of message data                                   */
         bucket  = amq_bucket_new ();
         partial = amq_smessage_replay (message, bucket, AMQ_BUCKET_SIZE);
+        body_size -= bucket->cur_size;
+
         /*  Mirror it to second message using record method              */
         amq_smessage_record (diskmsg, bucket, partial);
-        body_size -= bucket->cur_size;
     }
     until (!partial);
     ASSERT (body_size == 0);
@@ -401,6 +396,8 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
     }
     until (!partial);
     ASSERT (body_size == 0);
+
+    amq_smessage_delete (message, NULL);
 
     /*  Release resources                                                    */
     amq_queue_destroy         (&queue);

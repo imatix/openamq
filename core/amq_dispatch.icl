@@ -8,7 +8,6 @@
     >
 
 <inherit class = "ipr_list_item" />
-<option name = "nullify" value = "1" />
 
 <import class = "amq_handle"  />
 <import class = "ipr_classes" />
@@ -87,8 +86,7 @@
 
     if (self->queue_id) {
         /*  Purge from persistent queue if necessary                         */
-        self->queue->item_id = self->queue_id;
-        amq_queue_delete (self->queue, self->channel->txn);
+        amq_smessage_delete (self->message, self->channel->txn);
         self->queue->outstanding--;
     }
     if (self->channel->transacted)

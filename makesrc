@@ -24,6 +24,7 @@ boom distsrc >/dev/null 2>&1
 echo "Preparing openamq..."
 cd $HOME/products/openamq
 rm -f *.tar.gz
+rm -f *.zip
 boom
 boom distsrc >/dev/null 2>&1
 

@@ -14,6 +14,7 @@
 
 <inherit class = "icl_alloc_cache" />
 <inherit class = "icl_ref_count"   />
+<option name = "nullify" value = "0" />
 
 <public>
 #define AMQ_BUCKET_SIZE  32000
@@ -28,6 +29,12 @@
 <method name = "new">
     self->cur_size = 0;
     self->max_size = AMQ_BUCKET_SIZE;
+</method>
+
+<method name = "destroy">
+    /*  Since we don't nullify buckets, set all properties to zero now      */
+    self->cur_size = 0;
+    self->max_size = 0;
 </method>
 
 <method name = "fill" template = "function">

@@ -9,12 +9,13 @@
 #include "amq_server_agent.h"
 #include "version.h"
 
-#define SERVER_NAME "OpenAMQ/" VERSION "\n"
+#define SERVER_NAME "%s/" VERSION "\n%s\n\n"
 #define NOWARRANTY \
 "This is free software; see the source for copying conditions.  There is NO\n" \
-"warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n"
+"warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n" \
+    "\n"
 #define USAGE                                                               \
-    "Syntax: openamqd [options...]\n"                                       \
+    "Syntax: %s [options...]\n"                                       \
     "Options:\n"                                                            \
     "  -w directory     Working directory for server\n"                     \
     "  -q               Quiet mode: no messages\n"                          \
@@ -25,12 +26,42 @@
     "  -v               Show version information\n"                         \
     "  -h               Show summary of command-line options\n"             \
     "\nThe order of arguments is not important. Switches and filenames\n"   \
-    "are case sensitive. See documentation for detailed information.\n"
+    "are case sensitive. See documentation for detailed information.\n"     \
+    "\n"
+
+static char
+    *s_server_name = "amqpsrv",
+    *s_server_text = "*** Test server - for internal use only ***";
 
 
 /*  Prototypes for local functions                                           */
 
 static void s_prepare_logging (void);
+
+/*  --------------------------------------------------------------------------
+    amq_set_server_name
+
+    Sets the displayed server name.
+ */
+
+void
+amq_set_server_name (char *name)
+{
+    s_server_name = name;
+}
+
+
+/*  --------------------------------------------------------------------------
+    amq_set_server_text
+
+    Sets the displayed server description.
+ */
+
+void
+amq_set_server_text (char *text)
+{
+    s_server_text = text;
+}
 
 
 /*  --------------------------------------------------------------------------
@@ -99,17 +130,17 @@ amq_server_core (
                     opt_server = "0";
                     break;
                 case 'v':
-                    puts (SERVER_NAME);
-                    puts (COPYRIGHT);
-                    puts (NOWARRANTY);
-                    puts (BUILDMODEL);
-                    puts ("Built on: " BUILDDATE);
+                    printf (SERVER_NAME, s_server_name, s_server_text);
+                    printf (COPYRIGHT "\n");
+                    printf (NOWARRANTY);
+                    printf (BUILDMODEL "\n");
+                    printf ("Built on: " BUILDDATE "\n");
                     exit (EXIT_SUCCESS);
                 case 'h':
-                    puts (SERVER_NAME);
-                    puts (COPYRIGHT);
-                    puts (NOWARRANTY);
-                    puts (USAGE);
+                    printf (SERVER_NAME, s_server_name, s_server_text);
+                    printf (COPYRIGHT "\n");
+                    printf (NOWARRANTY);
+                    printf (USAGE, s_server_name);
                     exit (EXIT_SUCCESS);
 
                 /*  Anything else is an error                                */
@@ -152,9 +183,9 @@ amq_server_core (
         fclose (stderr);                /*   and standard error              */
     }
     else {
-        puts (SERVER_NAME);
-        puts (COPYRIGHT);
-        puts (NOWARRANTY);
+        printf (SERVER_NAME, s_server_name, s_server_text);
+        printf (COPYRIGHT);
+        printf (NOWARRANTY);
     }
     if (*opt_server == '1') {
         const char

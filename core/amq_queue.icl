@@ -15,7 +15,6 @@ ipr_db_queue class.
 
 <inherit class = "ipr_hash_str" />
 <inherit class = "ipr_db_queue" />
-<option name = "nullify"  value = "1" />
 <option name = "bigtable" value = "1" />
 
 <data>
@@ -30,7 +29,7 @@ ipr_db_queue class.
     <field name = "identifier"  type = "shortstr">Message identifier</field>
     <field name = "headers"     type = "longstr" >Application headers</field>
     <field name = "content"     type = "longstr" >First body fragment</field>
-    <field name = "spool size"  type = "longint" >Spooled size, or 0</field>
+    <field name = "store size"  type = "longint" >Stored file size, or 0</field>
 </data>
 
 <import class = "ipr_classes"  />

@@ -8,7 +8,6 @@
     >
 
 <inherit class = "ipr_hash_int"  />
-<option name = "nullify" value = "1" />
 
 <import class = "amq_channel"  />
 <import class = "amq_consumer" />

@@ -8,7 +8,6 @@
     >
 
 <inherit class = "ipr_list_item" />
-<option name = "nullify" value = "1" />
 
 <import class = "amq_handle"  />
 <import class = "ipr_classes" />

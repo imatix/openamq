@@ -50,6 +50,9 @@
 extern "C" {
 #endif
 
+void amq_set_server_name (char *name);
+void amq_set_server_text (char *text);
+
 int amq_server_core  (int argc, char *argv []);
 int amq_user_modules (void);
 

@@ -8,7 +8,6 @@
     >
 
 <inherit class = "icl_alloc_cache" />
-<option name = "nullify" value = "1" />
 
 <import class = "smt_thread_handle" />
 <import class = "amq_vhost"   />

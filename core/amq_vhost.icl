@@ -8,7 +8,6 @@
     >
 
 <inherit class = "ipr_hash_str" />
-<option name = "nullify" value = "1" />
 
 <import class = "ipr_classes"  />
 <import class = "amq_db"       />

@@ -9,8 +9,8 @@
 
 <include filename = "prelude.pdl" />
 
-<file name = "amqpsrv.c"          class = "main program"   >OpenAMQ general server</file>
-<file name = "amqpsrv"            class = "public command" >Server executable</file>
+<file name = "openamqd.c"         class = "main program"   >OpenAMQ general server</file>
+<file name = "openamqd"           class = "public command" >Server executable</file>
 <file name = "amq_server.cfg"     class = "public resource">Server configuration</file>
 <directory name = "vh_default">
     <file name = "amq_vhost.cfg"  class = "public resource">Virtual host configuration</file>
