@@ -30,7 +30,7 @@ AMQConnection.Close
 String
     opt_server = "localhost",           /* Remote server                    */
     client_name = "java test client",   /* Client name                      */
-    version = "OpenAMQ/0.7c3";          /* AMQ version                      */
+    version = "OpenAMQ/0.7d1";          /* AMQ version                      */
 short
     protocol_port = 7654,               /* Server port                      */
     protocol_id = 128,                  /* Protocol id                      */
