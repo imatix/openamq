@@ -328,7 +328,7 @@ public void do_tests ()
         message_head.encoding = "";
         message_head.identifier = "";
         message_head.headers = null;
-        System.out.println("Sending " + (client_tune.frameMax << 1) + " fragmented messages to server...");
+        System.out.println("Sending " + (client_tune.frameMax << 1) + " fragmented messages of increasing size to server...");
         int i = 1;
         for (; true; i++) {
             // Create the message body
