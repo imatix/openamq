@@ -19,7 +19,7 @@
         <line>&lt;a href="http://www.openamq.org/pub/openamq-$(version)-src.tar.gz"&gt;
         openamq-$(version)-src.tar.gz
         &lt;/a&gt;</line>
-        <line>Unpack into a working directory and run './configure; make'.</line>
+        <line>Unpack into a working directory and run './configure' and then 'make'.</line>
       </section>
       <section>
         <title>Win32 Packages</title>
