@@ -1,0 +1,163 @@
+/*
+ * README - Documentation for iDB
+ *
+ * This README details how to use the idb subsystem.
+ *
+ * Author: Rakan El-Khalil
+ * Copyright (c) 2004 iMatix Corporation
+ */
+
+1 - Introduction:
+-----------------
+
+Using Berkeley DB directly can get rather involved detail-wise, so we
+decided to write a wrapper around it that performs the most common
+functions.  For example, it should be easy to create a table, populate
+it, search for elements in that table, etc.
+
+Also, due to the nature of BDB, a different set of accessors and
+settors need to be written for every different table in the DB.  So if
+one decides to change the DB schema, those functions need to be
+revised.
+
+Therefore, we wrote a tool that enables you to specify a DB schema in
+a simple xml format [called DFL], and from that schema is generated
+all the functions needed to operate on the DB.
+
+The remainer of this document will go through how to do this.
+
+2 - DFL DB Schema:
+------------------
+
+Write the schema for your DB in DFL syntax.  At the root level of the
+schema, make sure to specify the attributes 'target = "bdb"', and
+'script = "dfl_bdb".  The 'name' attribute will be used as filename
+into which the code will be generated.
+
+3 - Generate functions:
+-----------------------
+
+Run 'gsl your-schema.dfl', several .h and .c files get created: one
+for each table in the DFL schema.  In addition, a pair of .h and .c
+files get produced following the name of the dfl schema itself.
+
+4 - API:
+--------
+
+The generated code conforms to the following API.  There are generic
+functions that are used to create and shutdown the DB specified in the
+schema.  In both functions, a handle to the DB is used:
+
+idb_t *idb_new (char *db_path);
+idb_destroy (idb_t **db);
+
+The new function allocates the object on the heap and returns it, and
+the destroy frees it.  The destroy function sets the db pointer to
+null as well, so that a later function doesn't dereference it.
+
+Note: All functions return 0 if there were no errors.
+
+Every table in the DB is represented by a structure that is generated.
+This structure contains the appropriate fields and is used as an
+argument to the access functions, both to populate the table and to
+retrieve elements from it.
+
+The struct has the following format:
+
+typedef struct {
+    datatype1_t field1;
+    datatype2_t field2;
+    ....
+} idb_tablename_t;
+
+Where 'tablename' is substituted for the correct name.
+
+Similarly to the db functions above, the tables have the follwing
+functions:
+idb_tablename_t *idb_tablename_new (void);
+idb_tablename_destroy (idb_tablename_t **table);
+
+And its access functions are:
+
+idb_tablename_insert (idb_t *db, idb_tablename_t *table);
+idb_tablename_update (idb_t *db, idb_tablename_t *table);
+idb_tablename_fetch  (idb_t *db, idb_tablename_t *table);
+idb_tablename_delete (idb_t *db, idb_tablename_t *table);
+
+For each of the functions, the table is operated upon by looking only
+at the primary key in the table.  So with the fetch function, one
+populates the primary key field in the table structure, passes that as
+an argument to the function, and the other fields get populated
+appropriately.  It is an error to insert an entry with a duplicate
+primary key.
+
+Secondary indices are also supported.  They are updated transparently
+behind the scenes by the above functions.  One can, however, query
+over any secondary index.  Similarly to above, a query function is
+generated for every secondary index in every table.
+
+idb_query_tablename_sindexname (idb_t *db,
+                                idb_table_tablename_t *table,
+                                idb_query_t *query);
+
+This function uses the appropriate fields in 'table' to reconstruct
+the secondary key that is being referred to, and performs the
+appropriate search as defined in 'query'.
+
+The query API is the following:
+idb_query_init    (idb_query_t *query);
+idb_query_set     (idb_query_t *query, uint command);
+idb_query_destroy (idb_query_t *query);
+
+One must initialize a query object before any use.  Then, one sets it
+to a command from the following set:
+IDB_QUERY_FIRST:  Get the first item in the table that matches the secondary
+                  index.
+IDB_QUERY_NEXT :  Get the next item in the table that matches the index.  If
+                  this query is used before any other queries, it behaves
+                  identically to IDB_QUERY_FIRST.
+IDB_QUERY_PREV :  Get the previous item in the table that matches the index.
+                  If this query is used before any other queries, it behaves
+                  identically to IDB_QUERY_LAST.
+IDB_QUERY_LAST :  Get the last item in the table that matches the index.
+
+Once the query object is set, one executes the query with the
+aforementionned idb_query_tbalename_sindexname function.
+
+When there are no more queries to be done over that table, one must
+destroy the query object.
+
+Note: If, during the querying process, an item is modified [XXX have
+to double check what i mean by 'modified'], one _must_ destroy the
+query object and recreate it.
+
+The above querying rely on the fact that the user fills out the
+appropriate fields that correspond to the secondary index in the table
+structure before calling the query function.  Those fields are used to
+determine the match.
+
+One may also specify an incomplete secondary key, and thus perform a
+partial match.  The technique to do so is to specify an all-zero value
+for the fields that one does not care about.  For this reason, it is
+disallowed to insert an all-zero primary or secondary key in the DB.
+It is also disallowed to insert an all-ones primary or secondary key
+in the DB [for internal querying performance reasons].
+
+
+4 - Use the code:
+-----------------
+
+To use the above code, after the code generation is done one simply
+put the main() in the file $(dfl.name)_main.c.  In that file, just
+include $(dfl.name).h, and you can begin using the generated
+functions.  At the beginning, you must do:
+$(dfl.name)_new (char *path);
+
+It will setup the db environment properly.  When you're done, use:
+$(dfl.name)_destroy (db);
+
+
+5 - Examples:
+-------------
+
+Checkout amq_main.c, which uses the amq* code generated from amq.dfl.
