@@ -3,9 +3,9 @@ gdl
     subtitle  = The AMQP/Fast Wire-Level Protocol
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/03/02
+    date      = 2005/03/08
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.7c0
+    version   = 0.7d0
 end gdl
 
 Cover
@@ -24,8 +24,14 @@ This document is ready for review.
 Recent Change History
 ---------------------
 
+0.7d0
+- confirm-tag was missing from definition of HANDLE BROWSE.
+- added description of 'field table' structures.
+- added definition of PLAIN security mechanism.
+- clarified format of HANDLE INDEX.
+
 0.7c0
-- clarified format of frame header (was not well explained).
+- clarified format of frame header (improved description).
 
 0.7b0
 - removed confirmation conflating mechanism; too complex and not needed.
@@ -707,7 +713,7 @@ Frame Syntax
     handle-query         = %d36 handle-id message-nbr dest-name selector
                            mime-type
 
-    handle-browse        = %d37 handle-id message-nbr
+    handle-browse        = %d37 handle-id confirm-tag message-nbr
 
     handle-created       = %d40 handle-id dest-name
 
@@ -857,13 +863,48 @@ protocol-version:
     higher than the client's version.
 mechanism-list:
     A list of the security mechanisms that the server supports, delimited
-    by spaces.  To be defined later.
+    by spaces.  Currently AMQP supports these mechanisms: PLAIN.  See below
+    for details.
 challenges:
     A set of challenge fields that specify the information asked for for
-    the current (or all) mechanisms.  To be defined later.
+    the current (or all) mechanisms.  Defined below, for each security
+    mechanism.
 
 The maximum allowed size for a CONNECTION CHALLENGE command frame is
 4096 octets.
+
+Field Tables
+............
+
+Many commands contain 'field table' structures.  These are long strings
+that contain name-value pairs.  Each name-value pair is a structure that
+provides a field name, a field type, and a field value.  Fields can
+store a string, an integer, a decimal, or a date and/or time.  This is
+a syntax chart for field tables:
+
+    field-table      = short-integer *field-value-pair
+    field-value-pair = field-name field-value
+    field-name       = short-string
+    field-value      = 'S' long-string
+                     / 'I' long-integer
+                     / 'D' decimal-value
+                     / 'T' long-integer
+    decimal-value    = decimals long-integer
+    decimals         = OCTET
+
+Notes:
+
+- Field names must start with a letter, '$' or '#' and may continue with
+  letters, '$' or '#', digits, or underlines, to a maximum length of 128
+  characters.
+- String values are formatted as long strings, i.e. with a 2-octet length
+  field in network order, followed by that number of data octets.
+- Integer values are signed (I.E. 31 bits plus sign).
+- Decimal values are not intended to support floating point values,
+  but rather business values such as currency rates and amounts.
+  The 'decimals' octet is not signed.
+- Time values are held in the POSIX time_t format with an accuracy of
+  one second.
 
 CONNECTION RESPONSE Command
 ---------------------------
@@ -880,7 +921,7 @@ mechanism:
     specified by the server.
 responses:
     A set of response fields that provide additional information for
-    the specific security mechanism chosen.  To be defined later.
+    the specific security mechanism chosen.
 
 There are three possible server responses to a CONNECTION RESPONSE.
 First, the server needs more information to continue, so it sends
@@ -892,6 +933,26 @@ CONNECTION TUNE command.
 
 The maximum allowed size for a CONNECTION RESPONSE command frame is
 4096 octets.
+
+The PLAIN Security Mechanism
+............................
+
+The PLAIN security mechanism passes login credentials as clear text, with
+no attempt at encryption or authentication.  This mechanism is not secure
+in any way.
+
+The PLAIN security mechanism uses two fields in the responses table of
+the CONNECTION RESPONSE command:
+
+- "LOGIN", which specifies the login name to use.
+- "PASSWORD", which provides the password for the login name.
+
+As an example of encoding a field table, the PLAIN response for a login
+for user "Johan" with a password of "Ok" would be:
+
+    %0d %28d
+    %5d 'L' 'O' 'G' 'I' 'N' 'S' %0d %5d 'J' 'o' 'h' 'a' 'n'
+    %8d 'P' 'A' 'S' 'S' 'W' 'O' 'R' 'D' 'S' %0d %2d 'O' 'k'
 
 CONNECTION TUNE Command
 -----------------------
@@ -1144,7 +1205,7 @@ CHANNEL COMMIT:
 CHANNEL ROLLBACK:
     Client asks server to rollback the current transaction.
 CHANNEL ACK:
-    Client acknowledges one or more destination message that is has 
+    Client acknowledges one or more destination message that is has
     processed.
 CHANNEL REPLY:
     Server or client confirms a channel command.
@@ -1554,7 +1615,7 @@ priority:
     priority. The server will do its best to deliver high priority
     messages ahead of normal ones.
 expiration:
-    A time value in Unix time_t format, after which the message can be
+    A time value in POSIX time_t format, after which the message can be
     expired by the server. The resolution of this field is 1 second,
     which is the assumed accuracy of clock synchronization on an AMQ
     network.  Note that the time_t format is always UTC.  This field
@@ -2216,7 +2277,12 @@ message-nbr:
     list and there are further messages available to inspect.
 message-list:
     A list of message ID's available. This list is formatted as an ASCII
-    string delimited by commas and hyphens, E.G. "5,9,15-40,80".
+    string delimited by spaces and hyphens, E.G. "0 5 9 15-40 80".
+
+The lowest valid message ID is zero.  The highest valid message ID is
+2^32-1.  Note that message IDs are not permanent - the server can assign
+these on any basis so long as it can resolve the message ID used in a
+HANDLE BROWSE command.
 
 There is an implicit limit to how many message numbers the server will
 return; this limit depends on the server implementation.  If there are
