@@ -12,7 +12,8 @@ import java.applet.*;
 import java.net.*;
 import java.util.*;
 import java.io.*;
-import com.imatix.openamq.framing.*;
+import com.imatix.openamq.*;
+import com.imatix.openamq.frames.*;
 
 public class amqpcli_serial extends amqpcli_seriali
 {
@@ -152,6 +153,7 @@ public void setup ()
         amqp_in = amqp.getInputStream();
         amqp_out = amqp.getOutputStream();
         amq_framing = new AMQFramingFactory(amqp);
+        //amq_framing.verbose = true;
         System.out.println("I: connected to AMQP server on " + opt_server + ":" + protocol_port);
         // Client tune capabilities
         client_tune = (AMQConnection.Tune)amq_framing.constructFrame(AMQConnection.TUNE);
@@ -179,7 +181,7 @@ public void setup ()
     {
         raise_exception(exception_event, e, "amqpci_java", "setup", "IOException");
     }
-    catch (AMQFramingException e) {}
+    catch (AMQException e) {}
 
     the_next_event = send_connection_initiation_event;
 }
@@ -211,7 +213,7 @@ public void forced_shutdown ()
             AMQFramingFactory.exception(exception, "java/amqpcli_serial", module, error_message);
     }
     catch (IOException e) {}
-    catch (AMQFramingException e) {}
+    catch (AMQException e) {}
 }
 
 
@@ -233,7 +235,7 @@ public void send_connection_initiation ()
         // Send initiation
         amq_framing.sendConnectionInitiation(protocol_id, protocol_ver);
     }
-    catch (AMQFramingException e)
+    catch (AMQException e)
     {
         raise_exception(exception_event, e, "amqpci_java", "send_connection_initiation", "unable to connect");
     }
@@ -255,7 +257,7 @@ public void send_connection_open ()
     {
         raise_exception(exception_event, e, "amqpci_java", "send_connection_open", "IOException");
     }
-    catch (AMQFramingException e)
+    catch (AMQException e)
     {
         raise_exception(exception_event, e, "amqpci_java", "send_connection_open", "cannot open connection");
     }
@@ -458,7 +460,7 @@ public void do_tests ()
     {
         raise_exception(exception_event, e, "amqpci_java", "do_tests", "IOException");
     }
-    catch (AMQFramingException e)
+    catch (AMQException e)
     {
         raise_exception(exception_event, e, "amqpci_java", "do_tests", "framing error");
     }
@@ -494,7 +496,7 @@ public void face_connection_challenge ()
     {
         raise_exception(exception_event, e, "amqpci_java", "face_connection_challenge", "IOException");
     }
-    catch (AMQFramingException e)
+    catch (AMQException e)
     {
         raise_exception(exception_event, e, "amqpci_java", "face_connection_challenge", "authentication error");
     }
@@ -537,7 +539,7 @@ public void negotiate_connection_tune ()
     {
         raise_exception(exception_event, e, "amqpci_java", "negotiate_connection_tune", "IOException");
     }
-    catch (AMQFramingException e)
+    catch (AMQException e)
     {
         raise_exception(exception_event, e, "amqpci_java", "negotiate_connection_tune", "tune error");
     }
