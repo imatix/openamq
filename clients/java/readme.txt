@@ -46,7 +46,7 @@ Running the test clients
 
     java -cp OpenAMQJava.jar:. EchoClient
 
-    in separate windows, run the openamq/clients/stdc/chat_in and chat_out
+    In separate windows, run the openamq/clients/stdc/chat_in and chat_out
     clients.
 
 
