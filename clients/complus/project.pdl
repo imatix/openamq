@@ -1,0 +1,87 @@
+<?xml?>
+<pdl
+    name      = "OpenAMQ"
+    acronym   = "openamq"
+    version   = "0.7a0"
+    copyright = "Copyright (c) 2004 JPMorgan"
+    workflow  = "standard.pwl"
+    library   = "libamq">
+<!--
+    install   = "openamq"
+    deploy    = "app"
+ -->
+
+<include filename = "prelude.pdl" />
+<inherit filename = "icl_classes.pdl" />
+
+<file name = "version.h"             class = "c version"        >Project version file</file>
+
+<file name = "amq_core.c"            class = "library module"   >OpenAMQ core</file>
+<file name = "amq_core.h"            class = "public header"    >OpenAMQ definitions</file>
+<file name = "amq_classes.h"         class = "private resource" >OpenAMQ classes</file>
+<file name = "amqpsrv.c"             class = "main program"     >OpenAMQ server</file>
+<file name = "amqpfeed.c"            class = "main program"     >Generate test files</file>
+<file name = "amqptest"              class = "private resource" >Stress test automator</file>
+
+<file name = "amq_frames.xml"        class = "fat module"       >Frame definitions
+    <distrib as = "binary" />
+</file>    
+<file name = "amq_frames.gsl"        class = "private resource" >Frame generation script</file>
+<file name = "amq_frames.h"          class = "generated header" >Frame generation script</file>
+
+<file name = "amq_db.dfl"            class = "fat module"       >Database definitions</file>
+<file name = "amq_db_client.c"       class = "generated module" >Client table</file>
+<file name = "amq_db_dest.c"         class = "generated module" >Destination table</file>
+<file name = "amq_db_mesg.c"         class = "generated module" >Message table</file>
+<file name = "amq_db_spool.c"        class = "generated module" >Spooler table</file>
+<file name = "amq_db_hack.c"         class = "library module"   >Temporary workarounds</file>
+
+<file name = "amq_bucket.icl"        class = "icl public class" >Bucket buffer class</file>
+<file name = "amq_message.icl"       class = "icl public class" >Message base class</file>
+<file name = "amq_channel.icl"       class = "icl private class">Channel class</file>
+<file name = "amq_connection.icl"    class = "icl private class">Connection class</file>
+<file name = "amq_consumer.icl"      class = "icl private class">Consumer class</file>
+<file name = "amq_dispatch.icl"      class = "icl private class">Dispatched message class</file>
+<file name = "amq_dispatch_list.icl" class = "icl private class">Container for dispatch class</file>
+<file name = "amq_handle.icl"        class = "icl private class">Destination handle class</file>
+<file name = "amq_looseref.icl"      class = "icl private class">Loose reference class</file>
+<file name = "amq_smessage.icl"      class = "icl private class">Server-side message</file>
+<file name = "amq_queue.icl"         class = "icl private class">Queue class</file>
+<file name = "amq_vhost.icl"         class = "icl private class">Virtual host class</file>
+<file name = "amq_vhost_table.icl"   class = "icl private class">Virtual host table class</file>
+<file name = "amq_global.icl"        class = "icl private data" >Globals class</file>
+
+<!-- These classes are generated and NOT modified afterwards -->
+<file name = "amq_channel_table.icl" class = "icl public cont"  >Container for channel class</file>
+<file name = "amq_consumer_list.icl" class = "icl public cont"  >Container for consumer class</file>
+<file name = "amq_handle_table.icl"  class = "icl public cont"  >Container for handle class</file>
+<file name = "amq_looseref_list.icl" class = "icl public cont"  >Container for loose reference class</file>
+<file name = "amq_smessage_list.icl" class = "icl public cont"  >Container for smessage class</file>
+<file name = "amq_queue_table.icl"   class = "icl public cont"  >Container for queue class</file>
+
+<file name = "amqpcli_serial.c"      class = "main program"     >AMQP serial demo client</file>
+<file name = "amqpcli_asynch.c"      class = "main program"     >AMQP asynch demo client</file>
+<file name = "amqpcli_file.c"        class = "main program"     >AMQP file transfer demo client</file>
+<file name = "amqpcli_get.c"         class = "main program"     >AMQP file get client</file>
+<file name = "amqpcli_put.c"         class = "main program"     >AMQP file put client</file>
+<file name = "amq_sclient.icl"       class = "icl public class" >AMQP serial client API</file>
+<file name = "amq_aclient.icl"       class = "icl public class" >AMQP asynch client API</file>
+<file name = "amq_sclient_agent.smt" class = "fat module"       >AMQP serial client agent</file>
+<file name = "amq_aclient_agent.smt" class = "fat module"       >AMQP asynch client agent</file>
+<file name = "amq_server_agent.smt"  class = "fat module"       >AMQP/Fast server agent</file>
+<file name = "amq_common.smt"        class = "private resource" >AMQP/Fast common functions</file>
+
+<file name = "amq_server.cfg"        class = "public resource" >Server configuration</file>
+<directory name = "vh_default">
+    <file name = "amq_vhost.cfg"     class = "public resource" >Virtual host configuration</file>
+</directory>
+<directory name = "vh_test">
+    <file name = "amq_vhost.cfg"     class = "public resource" >Virtual host configuration</file>
+</directory>
+
+<!-- Deliverables -->
+<file name = "libamq"                class = "public library"   >Object library</file>
+<file name = "amqpsrv"               class = "public command"   >Server executable</file>
+<file name = "amqpcli_asynch"        class = "public command"   >Client demo executable</file>
+<file name = "amqpcli_serial"        class = "public command"   >Client demo executable</file>
+</pdl>

@@ -1,0 +1,30 @@
+<?xml?>
+<pdl
+    name      = "OpenAMQ C Clients"
+    acronym   = "openamq_clic"
+    version   = "0.7a0"
+    copyright = "Copyright (c) 2004 JPMorgan"
+    workflow  = "standard.pwl"
+    library   = "libamq">
+<!--
+    install   = "openamq"
+    deploy    = "app"
+ -->
+
+<include filename = "prelude.pdl" />
+<inherit filename = "icl_classes.pdl" />
+
+<file name = "version.h"             class = "c version"        >Project version file</file>
+
+<file name = "amqpcli_serial.c"      class = "main program"     >AMQP serial demo client</file>
+<file name = "amqpcli_asynch.c"      class = "main program"     >AMQP asynch demo client</file>
+<file name = "amqpcli_file.c"        class = "main program"     >AMQP file transfer demo client</file>
+<file name = "amqpcli_get.c"         class = "main program"     >AMQP file get client</file>
+<file name = "amqpcli_put.c"         class = "main program"     >AMQP file put client</file>
+<file name = "amqpfeed.c"          class = "main program"   >Generate test files</file>
+
+<!-- Deliverables -->
+
+<file name = "amqpcli_asynch"        class = "public command"   >Client demo executable</file>
+<file name = "amqpcli_serial"        class = "public command"   >Client demo executable</file>
+</pdl>
