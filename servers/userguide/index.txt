@@ -68,6 +68,25 @@ message handling
     headers
         not used by server
 
+Message priorities effectively split the queue into sub-queues.  High-priority
+messages are delivered before low-priority messages.  The openamq server lets 
+you configure how many sub-queues you want, per queue:
+
+E.g. (from vh_test/amq_vhost.cfg):
+
+        <queue
+            name = "test"
+            priority-levels = "2"
+        />
+
+Persistent messages are always treated as lowest priority.  In general the 
+server will deliver higher-priority non-persistent messages ahead of any 
+persistent messages.
+
+If the queue memory limit (max messages) is reached, high-priority messages 
+are still accepted in memory, all the rest are queued on disk as persistent 
+messages.
+
 
 - server installation
 - server configuration
