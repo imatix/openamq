@@ -1,0 +1,8 @@
+amq_frames.xml
+amqp_level0.c
+amqp_level0.h
+boomake*
+libamqp.*
+makefile
+msmake
+test_level0

@@ -1,103 +1,103 @@
-.-----------------------------------------------------------------------------
-.-  amqp_client_api.gls - source file that generates AMQP client API (level 0)
-.-  gsl -script:amqp_client_api.gsl amq_frames.xml
-.-
-.-  Copyright (c) 2004 JPMorgan
-.-  Copyright (c) 1991-2004 iMatix Corporation
-.-----------------------------------------------------------------------------
-.template 1
-\
-.- converts type as described in xml to native C type
-.macro makectype (prefix, comment, local)
-.    if "$(type)" = "octet"
-$(my.prefix)apr_byte_t\
-.    elsif "$(type)" = "shortstr"
-$(my.prefix)char*\
-.    elsif "$(type)" = "longstr" | "$(type)" = "table"
-$(my.prefix)char*\
-.    elsif "$(type)" = "shortint"
-$(my.prefix)apr_uint16_t\
-.    elsif "$(type)" = "longint"
-$(my.prefix)apr_uint32_t\
-.    elsif "$(type)" = "bit"
-$(my.prefix)apr_byte_t\
-.    else
-.        echo "'$(type)' : unsupported type"
-.    endif
-.if "$(my.local)" = "1"
+.template 0
+# ------------------------------------------------------------------------------
+#  amqp_level0.gsl - source file that generates AMQP/C client API (Level 0)
+#  gsl -script:amqp_level0.gsl amq_frames.xml
+# 
+#  Copyright (c) 2004-2005 JPMorgan
+#  Copyright (c) 1991-2005 iMatix Corporation
+# ------------------------------------------------------------------------------
 
-$(my.prefix)    \
-.else
- \
-.endif
-$(name:c)\
-.if "$(my.comment)" = "1"
- /*  $(field)  */\
-.endif
-.endmacro
-\
-.macro makectypesize (prefix, postfix, comment, local)
-.    if "$(type)" = "octet"
-.    elsif "$(type)" = "shortstr"
-.    elsif "$(type)" = "longstr" | "$(type)" = "table"
-$(my.prefix)apr_size_t\
-.        if "$(my.local)" = "1"
+#  Converts type as described in XML to native C type
+function makectype (prefix, comment, local)
+    if "$(type)" = "octet"
+>$(my.prefix)apr_byte_t\
+    elsif "$(type)" = "shortstr"
+>$(my.prefix)char*\
+    elsif "$(type)" = "longstr" | "$(type)" = "table"
+>$(my.prefix)char*\
+    elsif "$(type)" = "shortint"
+>$(my.prefix)apr_uint16_t\
+    elsif "$(type)" = "longint"
+>$(my.prefix)apr_uint32_t\
+    elsif "$(type)" = "bit"
+>$(my.prefix)apr_byte_t\
+    else
+        echo "'$(type)' : unsupported type"
+    endif
+    if "$(my.local)" = "1"
+>
+>$(my.prefix)    \
+    else
+> \
+    endif
+>$(name:c)\
+    if "$(my.comment)" = "1"
+> /*  $(field)  */\
+    endif
+endfunction
+ 
+function makectypesize (prefix, postfix, comment, local)
+    if "$(type)" = "octet"
+    elsif "$(type)" = "shortstr"
+    elsif "$(type)" = "longstr" | "$(type)" = "table"
+>$(my.prefix)apr_size_t\
+        if "$(my.local)" = "1"
+>
+>$(my.prefix)    \
+        else
+> \
+        endif
+>$(name:c)_size\
+        if "$(my.comment)" = "1"
+> /*  $(name) size  */\
+        endif
+>$(my.postfix)
+    elsif "$(type)" = "shortint"
+    elsif "$(type)" = "longint"
+    elsif "$(type)" = "bit"
+    else
+        echo "'$(type)' : unsupported type"
+    endif
+endfunction
 
-$(my.prefix)    \
-.        else
- \
-.        endif
-$(name:c)_size\
-.        if "$(my.comment)" = "1"
- /*  $(name) size  */\
-.        endif
-$(my.postfix)
-.    elsif "$(type)" = "shortint"
-.    elsif "$(type)" = "longint"
-.    elsif "$(type)" = "bit"
-.    else
-.        echo "'$(type)' : unsupported type"
-.    endif
-.endmacro
-\
-.- creates header for function sending specific frame type to server
-.macro makeheader (comment)
-apr_status_t amqp_$(name:c) (
-    apr_socket_t *socket\
-.if "$(my.comment)" = "1"
- /*  amqp socket  */\
-.endif
-,
-    char *buffer\
-.if "$(my.comment)" = "1"
- /*  buffer used to compose the command  */\
-.endif
-,
-    apr_size_t buffer_size\
-.if "$(my.comment)" = "1"
- /*  buffer size  */\
-.endif
-.    for field where "$(name)" <> "type" & ("$(frame.name)" <> "handle send" | "$(name)" <> "fragment size")
-,
-.        makectypesize ("    ", ",", "$(my.comment)", "0")
-.        makectype ("    ", "$(my.comment)", "0")
-.    endfor
-.    if "$(name)" = "handle send"
-.        for frames.frame where name = "message head"
-.            for field
-,
-.                makectypesize ("    ", ",", "$(my.comment)", "0")
-.                makectype ("    ", "$(my.comment)", "0")
-.            endfor
-.        endfor
-,
-    char* data\
-.    endif
-
-    )\
-.endmacro
-\
-.- generates code for writing single field into buffer
+#  Creates header for function sending specific frame type to server
+function makeheader (comment)
+>apr_status_t amqp_$(name:c) (
+>    apr_socket_t *socket\
+    if "$(my.comment)" = "1"
+> /*  amqp socket  */\
+    endif
+>,
+>    char *buffer\
+    if "$(my.comment)" = "1"
+> /*  buffer used to compose the command  */\
+    endif
+>,
+>    apr_size_t buffer_size\
+    if "$(my.comment)" = "1"
+> /*  buffer size  */\
+    endif
+    for field where "$(name)" <> "type" & ("$(frame.name)" <> "handle send" | "$(name)" <> "fragment size")
+>,
+        makectypesize ("    ", ",", "$(my.comment)", "0")
+        makectype ("    ", "$(my.comment)", "0")
+    endfor
+    if "$(name)" = "handle send"
+        for frames.frame where name = "message head"
+            for field
+>,
+                makectypesize ("    ", ",", "$(my.comment)", "0")
+                makectype ("    ", "$(my.comment)", "0")
+            endfor
+        endfor
+>,
+>    char* data\
+    endif
+>
+>    )\
+endfunction
+ 
+#  Generates code for writing single field into buffer
 .macro writeargument()
     /*  writes '$(name)' field into buffer  */
 .    if "$(type)" = "octet"
@@ -198,8 +198,8 @@ apr_status_t amqp_$(name:c) (
 .        echo "'$(type)' : unsupported type"
 .    endif
 .endmacro
-\
-.- generates code for reading single field from buffer
+
+#  Generates code for reading single field from buffer
 .macro readargument ()
             /*  decodes '$(name)' field  */
 .    if "$(type)" = "octet"
@@ -287,20 +287,25 @@ apr_status_t amqp_$(name:c) (
 .        echo "'$(type)' : unsupported type"
 .    endif
 .endmacro
-\
-.output "amqp_client_api.h"
+
+.macro generate_interface ()
+.output "amqp_level0.h"
 /*---------------------------------------------------------------------------
- *  amqp_client_api.h - headers for AMQP client API (level 0)
+ *  amqp_level0.h - headers for AMQP client API (Level 0)
  *
- *  Generated from amq_frames.xml by amqp_client_api.gsl using GSL/4.
+ *  Generated from amq_frames.xml by amqp_level0.gsl using GSL/4.
  *  DO NOT MODIFY THIS FILE.
  *
  *  For documentation and updates see http://www.imatix.com.
- *  Copyright (c) 2004 JPMorgan
- *  Copyright (c) 1991-2004 iMatix Corporation
+ *  Copyright (c) 2004-2005 JPMorgan
+ *  Copyright (c) 1991-2005 iMatix Corporation
  *---------------------------------------------------------------------------*/
 
-#include <apr_network_io.h>
+#include "base_apr.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /*  error value received when frame non coforming to  */
 /*  AMQP protocol is received from the server.  */
@@ -402,21 +407,22 @@ char *amqp_strerror (
     char *buffer /*  buffer to hold the result  */,
     apr_size_t buffer_size /*  buffer size  */
     );
+.endmacro
 
-.output "amqp_client_api.c"
+.macro generate_implementation ()
+.output "amqp_level0.c"
 /*---------------------------------------------------------------------------
- *  amqp_client_api.c - implementation for AMQP client API (level 0)
+ *  amqp_level0.c - implementation for AMQP client API (Level 0)
  *
- *  Generated from amq_frames.xml by amqp_clinet_api.gsl using GSL/4.
+ *  Generated from amq_frames.xml by amqp_level0.gsl using GSL/4.
  *  DO NOT MODIFY THIS FILE.
  *
  *  For documentation and updates see http://www.imatix.com.
- *  Copyright (c) 2004 JPMorgan
- *  Copyright (c) 1991-2004 iMatix Corporation
+ *  Copyright (c) 2004-2005 JPMorgan
+ *  Copyright (c) 1991-2005 iMatix Corporation
  *---------------------------------------------------------------------------*/
 
-#include "amqp_client_api.h"
-#include <stdlib.h>
+#include "amqp_level0.h"
 
 .for frame where name <> "message head"
 #define AMQP_$(name:c,UPPER)_TYPE $(frame->field (name = "type").value)
@@ -704,5 +710,13 @@ char *amqp_strerror (
     }
     return strncpy(buffer, str, buffer_size);
 }
+.endmacro
 
-.endtemplate  
+
+#
+#  Main Program 
+#
+generate_interface ()
+generate_implementation ()
+
+endtemplate  

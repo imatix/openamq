@@ -1,14 +1,13 @@
 /*---------------------------------------------------------------------------
- *  client.c - code example for level 0 AMQ client API
+ *  test_level0.c - code example for Level 0 AMQ Client API
  *
- *  Copyright (c) 2004 JPMorgan
- *  Copyright (c) 1991-2004 iMatix Corporation
+ *  Copyright (c) 2004-2005 JPMorgan
+ *  Copyright (c) 1991-2005 iMatix Corporation
  *---------------------------------------------------------------------------*/
 
-#define APR_DECLARE_STATIC
-#define APU_DECLARE_STATIC
-
-#include "amqp_client_api.h"
+#include "amqp_level0.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 apr_socket_t *sck;
 int sender;
@@ -63,7 +62,7 @@ apr_status_t send_message(apr_uint16_t confirm_tag)
     *( (apr_uint16_t*) data) = htons (value);
 
     result = amqp_handle_send (sck, buffer, 32767, 1, confirm_tag, 0, 0, 0, 0, "",
-        2, 0, 0, 0, "", "", 10, "myMessage", 0, "", data);
+        2, 0, 0, 0, "", "", "myMessage", 0, "", data);
     if (result != APR_SUCCESS) {
         fprintf (stderr, "amqp_handle_send failed.\n%ld : %s\n",
             (long) result, amqp_strerror (result, buffer, 32767) );
@@ -239,7 +238,6 @@ apr_status_t handle_notify_cb (
     apr_uint32_t expiration,
     char *mime_type,
     char *encoding,
-    apr_size_t identifier_size,
     char *identifier,
     apr_size_t headers_size,
     char *headers,
@@ -274,6 +272,20 @@ int main (int argc, const char *const argv[], const char *const env[])
     char buffer [2000];
     amqp_callbacks_t callbacks;
     memset ( (void*) &callbacks, 0, sizeof (amqp_callbacks_t) );
+    
+    if (argc != 2) {
+        fprintf (stderr, "Use '%s -sender' to start sender client,"
+            " -receiver to start receiver client.\n", argv[0]);
+        return -1;
+    }
+    
+    if (strcmp (argv[1], "-sender") == 0) sender = 1;
+    else if (strcmp (argv[1], "-receiver") == 0) sender = 0;
+    else {
+        fprintf (stderr, "Use '%s -sender' to start sender client,"
+            " -receiver to start receiver client.\n", argv[0]);
+        return -1;
+    }
 
     fprintf (stderr, "Connecting to server.\n");
 
@@ -282,20 +294,6 @@ int main (int argc, const char *const argv[], const char *const env[])
         fprintf (stderr, "apr_app_initialize failed.\n%ld : %s\n",
             (long) result, amqp_strerror (result, buffer, 2000) );
         goto err;
-    }
-
-    if (argc != 2) {
-        fprintf (stderr, "Use 'client -sender' to start sender client,"
-            " -receiver to start receiver client.\n");
-        return -1;
-    }
-    
-    if (strcmp (argv[1], "-sender") == 0) sender = 1;
-    else if (strcmp (argv[1], "-receiver") == 0) sender = 0;
-    else {
-        fprintf (stderr, "Use 'client -sender' to start sender client,"
-            " -receiver to start receiver client.\n");
-        return -1;
     }
 
     result = apr_pool_initialize();

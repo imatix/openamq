@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<pdl
+    name      = "OpenAMQ Agnostic C Client"
+    acronym   = "OpenAMQ_Agnostic_C"
+    version   = "0.1"
+    copyright = "Copyright (c) 1991-2005 iMatix Corporation"
+    workflow  = "standard.pwl"
+    library   = "libamqp">
+
+<include filename = "prelude.pdl" />
+
+<file name = "amqp_level0.c" class = "generated module">Level 0 client</file>
+<file name = "test_level0.c" class = "main program"    >Level 0 test program</file>
+
+<actions>
+<generate>
+    <execute>gsl -script:amqp_level0.gsl amq_frames.xml</execute>
+</generate>
+</actions>
+</pdl>
