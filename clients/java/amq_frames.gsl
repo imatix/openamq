@@ -39,6 +39,11 @@ error_handling ="
         $(AMQPFramingFactory:).error(e, _class, method, message); 
     }
     
+    /**
+     *
+     * Runtime-error handling
+     *
+     **/
     static void runtimeError(Exception e, String _class, String method, String message) throws RuntimeException {
         $(AMQPFramingFactory:).runtimeError(e, _class, method, message); 
     }"
@@ -151,11 +156,18 @@ function build_frame_lists (frames, outertype, code)
                 last
             endfor
         else
-            my.type = get_type_type() ?
+            if (my.code = 1)
+                my.type = get_type_type() ?
+                if (my.count = 0 & defined (my.type))
+                    >    // Frame-types
+                    my.count = 1
+                endif
+            endif
             for field where name = "type"
 -               Constants
                 if (my.code = 1)
-                    >    public final static $(my.type:) $(my.current_inner: UPPER) = $(value:); 
+                    >    public final static $(my.type:) 
+                    >        $(my.current_inner: UPPER) = $(value:);  /* $(my.current_inner: Neat) type   */
 -               The frame consume cases
                 elsif (my.code = 2)
                     >            case $(my.current_inner: UPPER): 
@@ -220,9 +232,11 @@ function build_variables (frame, do_type)
             my.type = "byte[]"
         endif
         if ((name = "type") & my.do_type)
-            >        short $(name:) = -1;                    /*  $(.?:)                           */
+            >        short
+            >            $(name:) = -1;                       /*  $(.?:)                           */
         elsif ((name <> "type") & !my.do_type)
-            >        public $(my.type:) $(name:);            /*  $(.?:)                           */
+            >        public $(my.type:)
+            >            $(name:);                            /*  $(.?:)                           */
         endif
     endfor
 endfunction
@@ -370,8 +384,10 @@ function build_framing (class, inner, AMQPFrameException)
     >        public void decode($(my.decode_type:) $(my.decode_source:)) throws $(AMQPFrameException:) {
     if (defined (set_type)) 
         >            // We decode from a byte array bucket
-        >            ByteArrayInputStream bais = new ByteArrayInputStream(bucket);
-        >            DataInputStream dis = new DataInputStream(bais);
+        >            ByteArrayInputStream 
+        >                bais = new ByteArrayInputStream(bucket);   /* Frame stream                     */
+        >            DataInputStream 
+        >                dis = new DataInputStream(bais);           /* Frame data reader                */
         >
     endif
     >            try {
@@ -397,20 +413,22 @@ function build_framing (class, inner, AMQPFrameException)
     >         **/
     >        public int encode() {
     >            // We encode into a byte array bucket
-    >            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    >            DataOutputStream dos = new DataOutputStream(baos);
+    >            ByteArrayOutputStream 
+    >                baos = new ByteArrayOutputStream();          /* Frame stream                     */
+    >            DataOutputStream 
+    >                dos = new DataOutputStream(baos);            /* Frame data writer                */
     >
     >            try {
     build_encoding (., "dos")
     if (defined(set_type))
-    >                   dos.writeByte(AMQP_COMMAND_END);
+    >                dos.writeByte(AMQP_COMMAND_END);
     endif
     >            } catch (IOException e) {
     >                try {
     >                    dos.close();
     >                } catch (IOException f) {}
     >                // Memory?
-    >                runtimeError(e, "$(my.full_name:)", "encode",  "IOException");
+    >                runtimeError(e, "$(my.full_name:)", "encode", "IOException");
     >            }
     >
     >            // Set frame reference, and return frame size
@@ -497,8 +515,8 @@ import java.io.IOException;
  
 public class $(class_prefix:)$(my.outertype: Neat) {
     // Constants
-    final static byte AMQP_COMMAND_END = (byte)0xCE;
-    // Frame-types
+    final static byte 
+        AMQP_COMMAND_END = (byte)0xCE;           /* Frame last byte                  */
 .           build_frame_lists (my.frames, my.outertype, 1)   
     
     /**
@@ -647,7 +665,7 @@ package $(imatix_openamq_frames_package:);
 import java.io.DataInputStream;
 
 public abstract class $(AMQPFramable:) {
-    public byte[] bucket;             /*  The frame bytes                  */
+    public byte[] bucket;                        /*  The frame bytes                  */
 
     /**
      * 
@@ -734,81 +752,86 @@ import java.net.SocketTimeoutException;
 
 public class $(AMQPFramingFactory:) {
     // Constants
-    final static String STRING_ENC = "UTF-8";
-    final static short FRAME_LONG = 0xFFF;
+    final static String 
+        STRING_ENC = "UTF-8";                              /* Prefered string encoding         */
     final static int 
-        WRITE_IDLE = -1,
-        WRITE_FLUSH = 0,
-        WRITE_BYTES = 1;
-       
+        FRAME_LONG = 0xFFFF,                               /* Frames >= to this are long       */
+        WRITE_IDLE = -1,                                   /* Writer thread is idle            */
+        WRITE_FLUSH = 0,                                   /* Writer thread flush request      */
+        WRITE_BYTES = 1;                                   /* Writer thread write request      */
+    
+    // Variabes
     static int     
-        readRetryLatency = 100;
-
-    // Incoming stream
-    DataInputStream incoming;
-    // Outgoing stream
-    DataOutputStream outgoing;
-    // Frame classes
+        readRetryLatency = 100;                            /* Wait this before retrying (ms)   */
+    int 
+        priority = Thread.currentThread().getPriority();   /* Main thread priority             */
+    boolean 
+        verbose = false;                                   /* Verbose switch                   */
+    // Network streams    
+    DataInputStream 
+        incoming;                                          /* Incoming stream                  */
+    DataOutputStream 
+        outgoing;                                          /* Outgoing stream                  */
+    // Frame types instances
 .   my.outertype = undefined ?
 .   for frame
 .       my.new_outertype = string.prefix (name, "_")
 .       if (!defined(my.outertype) | my.new_outertype <> my.outertype)
 .           my.outertype = my.new_outertype
-    $(class_prefix:)$(my.outertype: Neat) $(my.outertype: lower) = new $(class_prefix:)$(my.outertype: Neat)();
+    $(class_prefix:)$(my.outertype: Neat) 
+        $(my.outertype: lower) = new $(class_prefix:)$(my.outertype: Neat)();\
+                                                           /* $(my.outertype: Neat)            */
 .       endif
 .   endfor    
-    // Verbose switch
-    boolean verbose = false;
-    // Writer command
+    // Write command
     int 
-        writeCommand = -1, // Writer thread command (buffer / flush) 
-        writeOff, // Writer data command offset parameter
-        writeLen, // Writer data command length parameter
-        timeout = 0; // Writer thread timeout (0 ms == block)
-    // Get main thread priority
-    int priority = Thread.currentThread().getPriority();
-    // Writer data command data array
-    byte[] writeBytes; 
-    // Writer thread exception
-    IOException ioe = null;
-    // This thread buffers / flushes outgoing data
-    Thread writer = new Thread() {
-        public void run() {
-            // Some VMs lower too much the priority of threads spawned from main
-            setPriority(priority);
-            synchronized(outgoing) {
-                while (outgoing != null) {
-                    // Wait for write command
-                    synchronized(writer) {
-                        if (writeCommand == WRITE_IDLE) {
-                            try {
-                                writer.wait();
-                            } catch (InterruptedException e) {}
-                        }
-                    }
-                    // Perform write command
-                    try {
-                        switch (writeCommand) {
-                            case WRITE_BYTES:
-                                writeBytes(outgoing, writeBytes, writeOff, writeLen);
-                                break;
-                            case WRITE_FLUSH:
-                                outgoing.flush();
-                        }
-                    } catch (IOException e) {
+        writeCommand = -1,                                 /* Writer thread request            */
+        writeOff,                                          /* Write offset parameter           */
+        writeLen,                                          /* Writer length parameter          */
+        timeout = 0;                                       /* Writer timeout (0 ms == block)   */
+    byte[] 
+        writeBytes;                                        /* Writer data command data array   */
+    IOException 
+        ioe = null;                                        /* Writer thread exception          */
+    // This thread buffers and flushes outgoing data
+    Thread 
+        writer = new Thread() {                            /* Writer thread                    */
+            public void run() {
+                // Some VMs lower too much the priority of threads spawned from main
+                setPriority(priority);
+                synchronized(outgoing) {
+                    while (outgoing != null) {
+                        // Wait for write command
                         synchronized(writer) {
-                            ioe = e;
+                            if (writeCommand == WRITE_IDLE) {
+                                try {
+                                    writer.wait();
+                                } catch (InterruptedException e) {}
+                            }
                         }
-                    }
-                    // Finished write command
-                    synchronized(writer) {
-                        writeCommand = WRITE_IDLE;
-                        writer.notify();
+                        // Perform write command
+                        try {
+                            switch (writeCommand) {
+                                case WRITE_BYTES:
+                                    writeBytes(outgoing, writeBytes, writeOff, writeLen);
+                                    break;
+                                case WRITE_FLUSH:
+                                    outgoing.flush();
+                            }
+                        } catch (IOException e) {
+                            synchronized(writer) {
+                                ioe = e;
+                            }
+                        }
+                        // Finished write command
+                        synchronized(writer) {
+                            writeCommand = WRITE_IDLE;
+                            writer.notify();
+                        }
                     }
                 }
             }
-        }
-    };
+        };
     
     /**
      *
@@ -887,7 +910,8 @@ public class $(AMQPFramingFactory:) {
      *
      **/
     public byte[] consumeData(int len) throws IOException {
-        byte[] bytes = new byte[len];
+        byte[] 
+            bytes = new byte[len];                         /* Data bucket                      */
         
         readBytes(incoming, bytes, 0, bytes.length);
         
@@ -896,13 +920,18 @@ public class $(AMQPFramingFactory:) {
     
     /**
      *
-     * Data producer methods
+     * Data producer
      *
      **/
     public void produceData(byte[] bytes) throws IOException {
         produceData(bytes, 0, bytes.length);
     }
     
+    /**
+     *
+     * Data producer (offset and length)
+     *
+     **/
     public void produceData(byte[] bytes, int off, int len) throws IOException {
         writeBytes(outgoing, bytes, off, len, timeout);
         flush();
@@ -916,9 +945,13 @@ public class $(AMQPFramingFactory:) {
      *
      **/
     public byte[] consumeInBandMessageBody($(class_prefix:)Handle.Notify hnFirst, $(class_prefix:)Message.Head head) throws $(AMQPFrameException:), IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(baos);
-        byte[] fragment, messageBody;
+        ByteArrayOutputStream 
+            baos = new ByteArrayOutputStream();            /* Frame stream                     */
+        DataOutputStream 
+            dos = new DataOutputStream(baos);              /* Frame data writer                */
+        byte[] 
+            fragment,                                      /* A message fragment               */
+            messageBody;                                   /* The resulting message            */
         
         $(class_prefix:)Handle.Notify hn = hnFirst;
         if (!hn.outOfBand && !hn.streaming) {
@@ -967,9 +1000,16 @@ public class $(AMQPFramingFactory:) {
      *
      **/
     public void produceInBandMessageBody($(class_prefix:)Handle.Send hs, $(class_prefix:)Message.Head head, byte[] body) throws $(AMQPFrameException:), IOException {
-        $(class_prefix:)Handle.Send send = ($(class_prefix:)Handle.Send)createFrame($(class_prefix:)Handle.SEND);
-        String destName = hs.destName;
-        int headSize = head.encode(), off = 0, len, fragmentSize = hs.fragmentSize;
+        $(class_prefix:)Handle.Send 
+            send = ($(class_prefix:)Handle.Send)createFrame($(class_prefix:)Handle.SEND);\
+                                                           /* Handles we will be sending       */
+        String
+            destName = hs.destName;                        /* Destination name                 */
+        int 
+            headSize = head.encode(),                      /* The message header size          */ 
+            off = 0,                                       /* Offset into message body         */
+            len,                                           /* Length of current data chunk     */
+            fragmentSize = hs.fragmentSize;                /* Length of fragments              */
                 
         if (!hs.outOfBand && !hs.streaming) {
             if (head.bodySize == body.length) {
@@ -1053,9 +1093,12 @@ public class $(AMQPFramingFactory:) {
      *
      **/
     public $(AMQPFrame:) consumeFrame() throws $(AMQPFrameException:), IOException {
-        $(AMQPFrame:) frame = null;
-        byte[] bucket = null;
-        int frameSize;
+        $(AMQPFrame:) 
+            frame = null;                                  /* Resulting frame                  */
+        byte[] 
+            bucket = null;                                 /* Raw frame bucket                 */
+        int 
+            frameSize;                                     /* The frame size                   */
         
         try {
             // Read the frame header
@@ -1120,7 +1163,8 @@ public class $(AMQPFramingFactory:) {
      *
      **/
     int consumeFrameHeader() throws $(AMQPFrameException), IOException {
-        int frameSize = incoming.readShort();
+        int 
+            frameSize = incoming.readShort();              /* Frame size                       */
         
         if (frameSize == FRAME_LONG) {
             // The frame is long
@@ -1138,9 +1182,12 @@ public class $(AMQPFramingFactory:) {
      *
      **/
     void produceFrameHeader(int frameSize) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(baos);
-        byte[] frameHeader;
+        ByteArrayOutputStream 
+            baos = new ByteArrayOutputStream();            /* Frame header stream              */
+        DataOutputStream 
+            dos = new DataOutputStream(baos);              /* Frame header data writer         */
+        byte[] 
+            frameHeader;                                   /* Frame header ready for writer   */
         
         if (frameSize >= FRAME_LONG) {
             // Long frame
@@ -1265,6 +1312,11 @@ public class $(AMQPFramingFactory:) {
         exception(e, _class, method, "ERROR, " + message, 1); 
     }
     
+    /**
+     *
+     * Runtime-error handling
+     *
+     **/
     public static void runtimeError(Exception e, String _class, String method, String message) throws RuntimeException {
         try {
             exception(e, _class, method, "ERROR, " + message, 2); 
