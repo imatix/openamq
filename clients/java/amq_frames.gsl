@@ -491,7 +491,11 @@ function build_framing (class, inner, AMQPFrameException)
     >        public int encode() throws $(AMQPFrameException:) {
     >            // We encode into a byte array bucket
     >            ByteArrayOutputStream 
-    >                baos = new ByteArrayOutputStream(size());          /* Frame stream                     */
+    if (defined(set_type))
+    >                baos = new ByteArrayOutputStream(size() + 1);/* Frame stream                     */
+    else
+    >                baos = new ByteArrayOutputStream(size());    /* Frame stream                     */
+    endif
     >            DataOutputStream 
     >                dos = new DataOutputStream(baos);            /* Frame data writer                */
     >
