@@ -69,6 +69,8 @@ main (int argc, char *argv [])
         count;
     amq_message_t
         *message;
+    ipr_shortstr_t
+        identifier;                     /*  Message identifier               */
 
     /*  These are the arguments we may get on the command line               */
     opt_client   = "test client";
@@ -195,9 +197,12 @@ main (int argc, char *argv [])
 
         coprintf ("(%d) sending %d messages to server...", repeats, messages);
         for (count = 0; count < messages; count++) {
+            ipr_shortstr_fmt (identifier, "ID%d", count);
             message = amq_message_new ();
             amq_message_testfill       (message, msgsize);
             amq_message_set_persistent (message, persistent);
+            /*  note: not actually used by amq_message for now               */
+            amq_message_set_identifier (message, identifier);
             if (amq_sclient_msg_send (amq_client, out_handle, message))
                 goto aborted;
             /*  Commit as we go along                                        */
