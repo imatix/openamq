@@ -5,8 +5,14 @@
  *  Copyright (c) 1991-2005 iMatix Corporation
  *---------------------------------------------------------------------------*/
 
-#include "amqp_level1.h"
+#include "base.h"                       /*  Base definitions                 */
+#include "base_apr.h"                   /*  APR definitions                  */
+#include "amqp_level1.h"                /*  Level 1 API definitions          */
 
+
+/*- Definitions ------------------------------------------------------------ */
+
+/*  Scenario types client may use                                            */
 typedef enum
 {
     clienttype_undefined,               /*  Invalid type                     */
@@ -15,6 +21,7 @@ typedef enum
     clienttype_query                    /*  Queries server for messages      */
 } clienttype_t;
 
+/*  Client object                                                            */
 typedef struct
 {
     clienttype_t
@@ -58,6 +65,8 @@ typedef struct
         prefetch;                       /*  Number of messages that server   */
                                         /*  prefetches                       */
 } client_t; 
+
+/*- Main program ----------------------------------------------------------- */
 
 int main(
     int        argc,
@@ -133,8 +142,7 @@ int main(
     }
     client.till_acknowledge = client.prefetch;
 
-    /*  Make sure that mandatory parameters were supplied
-    */
+    /*  Make sure that mandatory parameters were supplied                    */
     if (client.clienttype == clienttype_undefined ||
           client.host == NULL ||
           client.destination == NULL) {
@@ -170,8 +178,7 @@ int main(
         return EXIT_FAILURE;
     }
 
-    /*  Create message  to be sent
-    */
+    /*  Create message to be sent                                            */
     client.message_buffer = malloc (client.message_size);
     if (!client.message_buffer) {
         printf ("Not enough memory for message body.");
@@ -266,6 +273,7 @@ int main(
                 printf ("amqp_send_message failed\n");
                 return EXIT_FAILURE;
             }
+            printf ("Message %s sent.\n", identifier);
 
             /*  Rollback transaction if needed                               */
             if (client.rollback_count && ((client.last_message_number + 1) %
