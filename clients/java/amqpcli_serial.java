@@ -205,7 +205,7 @@ public int amqpcli_serial_execute (String args[])
 
     messages = Integer.parseInt(arguments.getProperty("opt_messages", "1000"));
     batch_size = Integer.parseInt(arguments.getProperty("opt_batch", "100"));
-    message_size = Integer.parseInt(arguments.getProperty("opt_msgsize", "1024"));
+    message_size = Long.parseLong(arguments.getProperty("opt_msgsize", "1024"));
     repeats = Integer.parseInt(arguments.getProperty("opt_repeats", "1"));
     verbose = Integer.parseInt(arguments.getProperty("opt_trace", "0")) > 0;
 
@@ -453,7 +453,8 @@ public void do_tests ()
             message_head.bodySize = message_size;
         message_size = head_size + message_head.bodySize;
         // Allocate the message body
-        message_body = new byte[(int)message_head.bodySize];
+        int heapMax = 1024 * 1024 * 128, done;
+        message_body = new byte[(int)Math.min(message_head.bodySize, heapMax)];
         for (int repeat_count = 1; repeat_count <= repeats; repeat_count++) {
             // Pause incoming messages
             handle_flow.flowPause = true;
@@ -465,14 +466,19 @@ public void do_tests ()
             for (int i = 1; i <= messages; i++) {
                 OutputStream os;
 
-                body_fill(message_body, i);
                 // Set the fragment size
                 handle_send.partial = message_size > amq_framing.getFrameMax();
                 handle_send.fragmentSize = Math.min(amq_framing.getFrameMax(), message_size);
                 // Send message
                 os = amq_framing.sendMessage(handle_send, message_head, null, false);
-                os.write(message_body);
-                os.flush();
+                done = 0;
+                while (done < message_head.bodySize) {
+                    int chunk = (int)Math.min(heapMax, message_head.bodySize - done);
+                    body_fill(message_body, i, chunk);
+                    os.write(message_body, 0, chunk);
+                    os.flush();
+                    done += chunk;
+                }
                 os.close();
                 // Commit from time to time
                 if (i % batch_size == 0) {
@@ -503,7 +509,6 @@ public void do_tests ()
             // Request consume messages
             amq_framing.sendFrame(handle_consume);
             System.out.println("(" + repeat_count + ") Reading messages back from server...");
-            message_body = null;
             for (int i = 1; i <= messages; i++) {
                 InputStream is;
 
@@ -511,19 +516,20 @@ public void do_tests ()
                 handle_notify = (AMQHandle.Notify)amq_framing.receiveFrame();
                 message_head = amq_framing.constructMessageHead();
                 is = amq_framing.receiveMessage(handle_notify, message_head, null, false);
-                head_size = message_head.size();
-                if (message_body == null)
-                    message_body = new byte[(int)message_head.bodySize];
-                is.read(message_body);
+                done = 0;
+                while (done < message_head.bodySize) {  
+                    int chunk = (int)Math.min(heapMax, message_head.bodySize - done);
+                    done += is.read(message_body, 0, chunk);
+                    body_check(message_body, i, chunk);
+                }
                 is.close();
                 if ((delay_mode || messages < 100) && !quiet_mode)
                     System.out.println("Message number " + handle_notify.messageNbr + " arrived");
-                if (message_body.length != message_size - head_size) {
+                if (done != message_size - head_size) {
                     System.err.println("amqpcli_serial: body_check: returning message size mismatch (is "
-                        + message_body.length + " should be " + (message_size - head_size) + ").");
+                        + done + " should be " + (message_size - head_size) + ").");
                     System.exit(1);
                 }
-                body_check(message_body, i);
                 // Acknowledge & commit from time to time
                 if (i % batch_size == 0) {
                     channel_ack.messageNbr = handle_notify.messageNbr;
@@ -679,12 +685,12 @@ public void raise_exception (int event, Exception e, String _class, String modul
 
 
 //- Auxiliary routines --------------------------------------------
-byte[] body_fill(byte[] body, int seed) {
+byte[] body_fill(byte[] body, int seed, int len) {
     int a = 1664525, b = 1013904223;
     long m = (long)1 << 32, v = seed;
 
     // Fill with patterns from a linear congruential generator
-    for (int i = 0; i < body.length; i++) {
+    for (int i = 0; i < len; i++) {
         v = (a * v + b) & (m - 1);
         body[i] = (byte)Math.max((byte)(v % Byte.MAX_VALUE), 1); // No zeros
     }
@@ -692,11 +698,11 @@ byte[] body_fill(byte[] body, int seed) {
     return body;
 }
 
-void body_check(byte[] body, int seed) {
+void body_check(byte[] body, int seed, int len) {
     byte[] ref = new byte[body.length];
 
-    ref = body_fill(ref, seed);
-    for (int i = 0; i < body.length; i++) {
+    ref = body_fill(ref, seed, len);
+    for (int i = 0; i < len; i++) {
         if (body[i] != ref[i]) {
             System.out.println("Received:");
             System.out.println(amq_framing.hexDump(body));
