@@ -446,8 +446,12 @@ function build_framing (class, inner, AMQPFrameException)
     >         *
     >         **/
     >        public $(my.inner:)($(my.decode_type:) $(my.decode_source:)) throws $(AMQPFrameException:) {
-    >            this();
-    >            decode($(my.decode_source:));
+    if (defined (set_type)) 
+    >            this.bucket = $(my.decode_source:);
+    else
+    >            this.dis = $(my.decode_source:);
+    endif
+    >            decode();
     >        }
     >
 -   Deframing        
@@ -456,7 +460,7 @@ function build_framing (class, inner, AMQPFrameException)
     >         * Frame decoder for $(my.full_name_comments:) frames
     >         *
     >         **/
-    >        public void decode($(my.decode_type:) $(my.decode_source:)) throws $(AMQPFrameException:) {
+    >        public void decode() throws $(AMQPFrameException:) {
     if (defined (set_type)) 
         >            // We decode from a byte array bucket
         >            ByteArrayInputStream 
@@ -688,6 +692,7 @@ public class $(class_prefix:)$(my.outertype: Neat) {
 .-      The message head
 .       else
     public class $(my.current_inner: Neat) extends $(AMQPFramable:) {
+        DataInputStream dis = null;                        /* Frame stream                */
 .       endif
 .       build_variables (., 0)
 
@@ -724,32 +729,25 @@ public abstract class $(AMQPFramable:) {
     public byte[] bucket = null;                           /*  The frame bytes                  */
 
     /**
-     * 
-     * Default constructor 
-     *
-     **/
-    public $(AMQPFramable:)() {}
-
-    /**
-     *
-     * Decoder constructor 
-     *
-     **/
-    public $(AMQPFramable:)(byte[] bucket) throws $(AMQPFrameException:) {}
-
-    /**
      *
      * Encoder method
      *
      **/
-    public int encode() throws $(AMQPFrameException:) {return -1;}
+    abstract public int encode() throws $(AMQPFrameException:);
+    
+    /**
+     *
+     * Decoder method
+     *
+     **/
+    abstract public void decode() throws $(AMQPFrameException:);
     
     /**
      *
      * Frame dumping method
      *
      **/
-    public void dump() {}
+    abstract public void dump();
 }
 
 . close
