@@ -67,6 +67,8 @@ main (int argc, char *argv [])
         count;
     amq_message_t
         *message;
+    int
+        rc;
 
     /*  These are the arguments we may get on the command line               */
     opt_client   = "test client";
@@ -185,18 +187,24 @@ main (int argc, char *argv [])
 
     while (repeats) {
         /*  Pause consumption on temporary queue                             */
-        amq_sclient_flow (amq_client, in_handle, TRUE);
-
+        rc = amq_sclient_flow (amq_client, in_handle, TRUE);
+        if (!rc)
+            break;
+            
         coprintf ("(%d) sending %d messages to server...", repeats, messages);
         for (count = 0; count < messages; count++) {
             message = amq_message_new ();
             amq_message_testfill       (message, msgsize);
             amq_message_set_persistent (message, persistent);
-            amq_sclient_msg_send (amq_client, out_handle, message);
+            rc = amq_sclient_msg_send (amq_client, out_handle, message);
+            if (!rc)
+                break;
         }
         coprintf ("(%d) reading back messages...", repeats);
         count = 0;
-        amq_sclient_flow (amq_client, in_handle, FALSE);
+        rc = amq_sclient_flow (amq_client, in_handle, FALSE);
+        if (!rc)
+            break;
         while (count < messages) {
             message = amq_sclient_msg_read (amq_client, 0);
             if (message) {
@@ -204,8 +212,12 @@ main (int argc, char *argv [])
                     coprintf ("Message number %d arrived", amq_client->msg_number);
                 count++;
                 if (count % batch_size == 0) {
-                    amq_sclient_msg_ack (amq_client);
-                    amq_sclient_commit  (amq_client);
+                    rc = amq_sclient_msg_ack (amq_client);
+                    if (!rc)
+                        break;
+                    rc = amq_sclient_commit  (amq_client);
+                    if (!rc)
+                        break;
                 }
             }
             else
