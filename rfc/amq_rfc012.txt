@@ -43,14 +43,14 @@ Detailed Proposal
 
 We map the message-oriented semantics of JMS onto AMQP/Fast as follows:
 
-1. JMS connection and sessions are mapped cleanly onto AMQP connections
+1. JMS connections and sessions are mapped cleanly onto AMQP connections
    and channels.
 2. JMS MessageConsumers will each use a single AMQP handle.
 3. JMS MessageProducers will each use at least one AMQP handle.
    For a MessageProducer created with a specific Destination, then
    a single AMQP handle will be used; though JMS supports other
    destinations to be used and so other handles will be used.
-4. There is nothing in JMS which naturally maps to HANDLE REQUEST though a
+4. Though there is nothing in JMS which naturally maps to HANDLE REQUEST, a
    provider may wish to use this mechanism, outside of the JMS specification
    such as to implement a remote JMX protocol.
 5. The MIME type for the request field in CHANNEL SUBSCRIBE commands will
@@ -73,21 +73,21 @@ JMS supports the following destinationType values and associated semantics.
     them.
 
 /topic/transient:
-    A transient topic; messages may be buffered to disk/in RAM for a period of time
-    and if a client disconnects and reconnects some form of recovery/replay
+    A transient topic; messages may be buffered into disk/RAM for a period of time.
+    If a client disconnects and reconnects some form of recovery/replay
     may be used but this is provider dependent
 
 /transient/queue:
-    a transient queue; messages may be buffered to disk/in RAM up for a period of time
+    A transient queue; messages may be buffered to disk/in RAM up for a period of time
     and if a client disconnects and reconnects some form of recovery/replay
     may be used but this is provider dependent
 
 /tmp/queue:
-    a temporary queue which survives only as long as the current connection.
+    A temporary queue which survives only as long as the current connection does.
     On reconnection, the queue no longer exists.
 
 /topic/tmp:
-    a temporary topic which survives only as long as the current connection.
+    A temporary topic which survives only as long as the current connection does.
     On reconnection, the topic no longer exists.
 
 MessageProducer mapping
@@ -98,18 +98,19 @@ A handle in AMQP is bound to a single destinationType (such as
 can send/receive to any destination and can use both temporary
 destinations or permanent ones as well as using topics and queues.
 
-So to map to AMQP a MessageProducer must remember the current
-destinationType of the AMQP channel and if a new destination or delivery
-mode is different, explicitly open a new HANDLE for the new destination.
+So to map to AMQP, a MessageProducer must remember the current
+destinationType of the AMQP channel, and if a new destination or delivery
+mode is different, it must explicitly open a new HANDLE for the new 
+destination.
 
 Some providers may find this inefficient and may wish to create, lazily,
-up to 6 different AMQP channels for each JMS MessageProducer and use
+up to 6 different AMQP channels for each JMS MessageProducer, and use
 the correct one each time to avoid the rebind.
 
 TBD
 ===
 
-We need to come up with MIME types for the standard 5 JMS message body
+We need to come up with MIME types for the 5 standard JMS message bodies
 types
 
 - Java serialized object
@@ -121,8 +122,8 @@ types
 Future Considerations
 =====================
 
-If multiple MessageConsumer instances are consuming on a similar topics
-with overlapping selectors then a single message could be delivered to
+If multiple MessageConsumer instances are consuming on similar topics
+with overlapping selectors, then a single message could be delivered to
 several MessageConsumers. Currently there is no optimisation in the AMQP
 protocol to cater for this scenario.
 
@@ -131,7 +132,7 @@ all other matching handle subscriptions that a given message matches; allowing a
 client to map a single message to multiple channels.
 
 Currently this is only an issue for multiple consumers on overlapping
-topics. Its advisable to use a single MessageConsumer channel in the JMS
+topics. It is advisable to use a single MessageConsumer channel in the JMS
 client to minimise the redundant use of the network in this particular
 case.
 

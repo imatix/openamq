@@ -53,7 +53,7 @@ Argumentation
 
 Reply codes must be clearly defined, and processable by software. The IETF
 standard has evolved over some time and is today a recognised solution to
-the problem of error reporting.  The 3-digit reply code distinguish cleanly
+the problem of error reporting.  The 3-digit reply code distinguishes cleanly
 between a well-defined set of outcomes that cover the needs of modern
 protocol implementations.  We do not need to reinvent a solution to this
 problem, only define our implementation of it.
@@ -73,7 +73,7 @@ Design Proposal
 Definitions and References
 ==========================
 
-The IETF RFC2821 and RFC2822 (SMTP) provides the theory and definition of reply codes.
+The IETF RFC2821 and RFC2822 (SMTP) provide the theory and definition of reply codes.
 
 Objectives
 ==========
@@ -117,8 +117,8 @@ Second digit (category) provides more information on failures:
 5-9:
     Reserved for future use.
 
-Third digit (instance) distinguishes different situations with the same
-completion/category.
+Third digit (instance) distinguishes among different situations with the 
+same completion/category.
 
 We define these specific reply codes:
 
@@ -177,7 +177,7 @@ We define these specific reply codes:
     Internal error detected.  The server or client issuing the response
     needs intervention.
 542:
-    Message contents invalid.  The server or client detected a corrupted
+    Message contents invalid.  The server or client detected corrupted
     or invalid message contents.
 
 Clients should be designed to accept any reply code and handle it depending

@@ -55,15 +55,15 @@ SOAN:
     the network as independent services that are accessed in a standard
     way.
 Application:
-    A data processing application, the principle user of a SOAN services
+    A data processing application, the principle user of SOAN services
     (SOAN services also use each other internally).
 Destination:
     An abstract data store that can act variously as a queue, topic,
     table, and so on.  Applications communicate by talking to destinations
     (rather than directly to each other).
 Service:
-    A subclass of destination that provides a specific service rather than
-    or as well as access to data.  Services are the intelligence of
+    A destination subclass that provides a specific service and may
+    as well provide access to data.  Services are the intelligence of
     the SOAN.  Application programs can be instantiated as services.
 Server:
     A package of destinations and services provided to the rest of the
@@ -81,20 +81,20 @@ Path:
     server for a destination, and within that server, the virtual location
     of the destination.
 Root Services:
-    The services that handles authentication, registration, name
-    translation, and other principle SOAN services.
+    The services that handle authentication, registration, name
+    translation, and other principal SOAN services.
 Root Server:
-    The server that provides the root services.  There exactly one root
+    The server that provides the root services.  There is exactly one root
     server in a SOAN.
 Session:
     A single context in which messages are produced and consumed.  Usually
-    a session corresponds to a business process. Used as the basis for
+    a session corresponds to a business process. It is used as the basis for
     transaction management.
 Consumer:
-    A channel between a client and server used for receiving messages
+    A channel between a client and a server used for receiving messages
     from a destination.
 Producer:
-    A channel between a client and server used for sending messages to
+    A channel between a client and a server used for sending messages to
     a destination.
 Channel:
     A virtual connection between a client and a server. We allow multiple
