@@ -72,7 +72,7 @@
 
     /*  Create spooler entry so we can find part-uploaded large messages     */
     if (self->fragment && self->spool_size == 0
-    && (self->body_size + self->header_size) > AMQ_BUCKET_SIZE) {
+    && (self->body_size + self->header_size) > AMQ_BUCKET_MAX_SIZE) {
         sha (self->fragment->data, self->header_size, digest);
         spool = amq_db_spool_new ();
         assert (SHA_DIGEST_SIZE &lt; sizeof (spool->signature));
@@ -120,7 +120,7 @@
 
     /*  Process message header - which we expect in fragment                 */
     s_record_header (self, fragment);
-    if ((self->body_size + self->header_size) > AMQ_BUCKET_SIZE) {
+    if ((self->body_size + self->header_size) > AMQ_BUCKET_MAX_SIZE) {
         sha (self->fragment->data, self->header_size, digest);
         spool = amq_db_spool_new ();
         spool->client_id = self->handle->client_id;
@@ -266,7 +266,7 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
 
     /*  Get first fragment; rest is in overflow file on disk                 */
     self->processed = self->body_size;
-    self->fragment  = amq_bucket_new ();
+    self->fragment  = amq_bucket_new (AMQ_BUCKET_MAX_SIZE);
     amq_bucket_fill (self->fragment, queue->item_content->data, queue->item_content->cur_size);
 }
 </private>
@@ -365,8 +365,8 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
     body_size = TEST_SIZE + amq_smessage_header_size (message);
     do {
         /*  Get bucket of message data                                   */
-        bucket  = amq_bucket_new ();
-        partial = amq_smessage_replay (message, bucket, AMQ_BUCKET_SIZE);
+        bucket  = amq_bucket_new (AMQ_BUCKET_MAX_SIZE);
+        partial = amq_smessage_replay (message, bucket, AMQ_BUCKET_MAX_SIZE);
         body_size -= bucket->cur_size;
 
         /*  Mirror it to second message using record method              */
@@ -375,10 +375,10 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
     until (!partial);
     assert (body_size == 0);
 
-    bucket = amq_bucket_new ();
+    bucket = amq_bucket_new (AMQ_BUCKET_MAX_SIZE);
     body_size = TEST_SIZE + amq_smessage_header_size (message);
     do {
-        partial = amq_smessage_replay (diskmsg, bucket, AMQ_BUCKET_SIZE);
+        partial = amq_smessage_replay (diskmsg, bucket, AMQ_BUCKET_MAX_SIZE);
         body_size -= bucket->cur_size;
     }
     until (!partial);

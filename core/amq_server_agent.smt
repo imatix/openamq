@@ -184,13 +184,13 @@ static int
     <handler name = "thread init">
         thread->animate  = (s_tracing > AMQP_TRACE_MED);
         the_next_event   = ok_event;
-        tcb->command     = amq_bucket_new ();
-        tcb->fragment    = amq_bucket_new ();
         tcb->connection  = amq_connection_new (thread);
         tcb->channel     = NULL;
         tcb->handle      = NULL;
         tcb->frame       = NULL;
-        tcb->frame_max   = AMQ_BUCKET_SIZE;
+        tcb->frame_max   = AMQ_BUCKET_MAX_SIZE;
+        tcb->command     = amq_bucket_new (tcb->frame_max);
+        tcb->fragment    = amq_bucket_new (tcb->frame_max);
     </handler>
     <handler name = "thread destroy">
         smt_socket_destroy     (&tcb->socket);
@@ -781,7 +781,7 @@ static int
             tcb->channel->message_in, tcb->fragment, HANDLE_SEND.partial);
 
         /*  Grab new bucket, record method now owns our old one              */
-        tcb->fragment = amq_bucket_new ();
+        tcb->fragment = amq_bucket_new (tcb->frame_max);
 
         if (HANDLE_SEND.partial)
             the_next_event = continue_event;
@@ -870,7 +870,7 @@ static int
         send_the_frame (thread);
 
         /*  Grab new bucket, record method now owns our old one              */
-        tcb->fragment = amq_bucket_new ();
+        tcb->fragment = amq_bucket_new (tcb->frame_max);
 
         /*  We pass ownership to the message handler code                    */
         tcb->channel->message_in = NULL;

@@ -189,7 +189,7 @@
     amq_bucket_t
         *bucket;
     </local>
-    bucket = amq_bucket_new ();
+    bucket = amq_bucket_new (AMQ_BUCKET_MAX_SIZE);
     s_replay_header (self, bucket);
     rc = bucket->cur_size;
     amq_bucket_destroy (&bucket);
@@ -415,7 +415,7 @@ s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
     </local>
     /*  Prepare message frame and encode it into a data buffer               */
     ipr_shortstr_fmt (identifier, "ID%d", ++message_nbr);
-    bucket = amq_bucket_new ();
+    bucket = amq_bucket_new (AMQ_BUCKET_MAX_SIZE);
     frame  = amq_frame_message_head_new (
         body_size, FALSE, 0, 0, NULL, NULL, identifier, NULL);
     amq_frame_encode (bucket, frame);
@@ -434,7 +434,7 @@ s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
         }
         $(selfname)_record (self, bucket, (Bool) (body_size > 0));
         if (body_size)
-            bucket = amq_bucket_new ();
+            bucket = amq_bucket_new (AMQ_BUCKET_MAX_SIZE);
     }
 </method>
 
@@ -450,9 +450,9 @@ s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
         body_size;
     size_t
         frame_max [] = {
-            AMQ_BUCKET_SIZE / 16,
-            AMQ_BUCKET_SIZE / 4,
-            AMQ_BUCKET_SIZE };
+            AMQ_BUCKET_MAX_SIZE / 16,
+            AMQ_BUCKET_MAX_SIZE / 4,
+            AMQ_BUCKET_MAX_SIZE };
     int
         test_index;
     Bool
@@ -472,7 +472,7 @@ s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
         body_size = TEST_SIZE + amq_message_header_size (message);
         do {
             /*  Get bucket of message data                                   */
-            bucket  = amq_bucket_new ();
+            bucket  = amq_bucket_new (AMQ_BUCKET_MAX_SIZE);
             partial = amq_message_replay (message, bucket, frame_max [test_index]);
             body_size -= bucket->cur_size;
 
@@ -482,7 +482,7 @@ s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
         until (!partial);
         assert (body_size == 0);
 
-        bucket = amq_bucket_new ();
+        bucket = amq_bucket_new (AMQ_BUCKET_MAX_SIZE);
         body_size = TEST_SIZE + amq_message_header_size (message);
         do {
             partial = amq_message_replay (diskmsg, bucket, frame_max [test_index]);

@@ -52,7 +52,7 @@
     <argument name = "thread"  type = "smt_thread_t *">Parent thread</argument>
     if (thread)
         self->thread  = smt_thread_handle_new (thread);
-    self->frame_max   = AMQ_BUCKET_SIZE;
+    self->frame_max   = AMQ_BUCKET_MAX_SIZE;
     self->channel_max = AMQ_CHANNEL_MAX;
     self->handle_max  = AMQ_HANDLE_MAX;
     self->channels    = amq_channel_table_new ();
