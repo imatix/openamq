@@ -4,7 +4,6 @@
     version   = "0.7a0"
     copyright = "Copyright (c) 2004 JPMorgan"
     workflow  = "standard.pwl"
-    install   = "openamq"
     library   = "libamq"
     >
 
@@ -70,7 +69,4 @@
 <!-- Deliverables -->
 <file name = "libamq"                class = "public library"   >Object library</file>
 <file name = "amq_core.h"            class = "public header"    >OpenAMQ definitions</file>
-<file name = "amq_sclient_agent.h"   class = "public header"    >AMQP serial client agent</file>
-<file name = "amq_aclient_agent.h"   class = "public header"    >AMQP asynch client agent</file>
-<file name = "amq_server_agent.h"    class = "public header"    >AMQP/Fast server agent</file>
 </pdl>

@@ -6,7 +6,6 @@
  *  -------------------------------------------------------------------------*/
 
 #include "amq_core.h"
-#include "amq_server_agent.h"
 
 
 /*  Register your modules here
@@ -15,8 +14,6 @@
 int
 amq_user_modules (void)
 {
-    if (amq_server_agent_init ())
-        return (1);
     return (0);
 }
 

@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<pdl
+    name      = "OpenAMQ"
+    version   = "0.7"
+    copyright = "Copyright (c) 2004 JPMorgan"
+    workflow  = "product.pwl"
+    >
+
+    <inherit filename = "classes.pdl" />
+
+    <distrib name = "OpenAMQ source" type = "source">
+        <project directory = "core"    />
+        <project directory = "servers" />
+        <project directory = "rfc"     />
+    </distrib>
+
+    <distrib name = "OpenAMQ install" type = "install">
+        <project directory = "core" />
+        <project directory = "servers" />
+        <project directory = "rfc"     />
+    </distrib>
+</pdl>

@@ -4,7 +4,6 @@
     version   = "0.2"
     copyright = "Copyright (c) 2004 JPMorgan"
     workflow  = "scripted.pwl"
-    install   = "openamq"
     >
 
 <inherit filename = "classes.pdl" />

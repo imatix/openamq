@@ -6,6 +6,7 @@
  *===========================================================================*/
 
 #include "amq_classes.h"
+#include "amq_server_agent.h"
 #include "version.h"
 
 #define SERVER_NAME "OpenAMQ/" VERSION "\n"
@@ -175,8 +176,11 @@ amq_server_core (
     /*  Pre-module initialisation                                            */
     s_prepare_logging ();
     amq_vhosts = amq_vhost_table_new (amq_config);
-
-    /*  Register resources                                                   */
+    if (amq_server_agent_init ()) {
+        coprintf ("E: could not start server protocol agent");
+        goto failed;
+    }
+    /*  Register user modules                                                */
     if (amq_user_modules ()) {
         coprintf ("E: module registration failed - server is halting");
         goto failed;

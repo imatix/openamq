@@ -1,3 +1,4 @@
+*.gen
 .spool
 amq_aclient.c
 amq_aclient.h
