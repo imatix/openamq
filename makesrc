@@ -40,6 +40,9 @@ cd ..
 mkdir openamq
 cd    openamq
 tar -xzf $HOME/products/openamq/*.tar.gz
+#   Force foreign products to reconfigure at build time
+rm base2/foreign/apr-*/Makefile
+rm base2/foreign/db-*/build_unix/Makefile
 cd ..
 
 echo "#  We build & install these 3 products..." > build.sh

@@ -5,7 +5,6 @@
     version   = "1.0"
     copyright = "Copyright (c) 2004-2005 JPMorgan"
     script    = "icl_gen"
-    animate   = "1"
     >
 
 <inherit class = "icl_alloc_cache" />
