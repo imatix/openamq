@@ -36,20 +36,20 @@
     <file name = "amq.xml"           class = "private resource" >Component definitions</file>
     <file name = "axobj.gsl"         class = "private resource" >Object generator</file>
     <file name = "com_test.asp"      class = "private resource" >Test page, ASP</file>
-    <file name = "amq_client.dll"    class = "public binary"    >COM+ DLL</file>
+    <file name = "amq_client.dll"    class = "public binary"    target = "win32">COM+ DLL</file>
     <actions target = "win32">
-    <generate>
+      <generate>
         <execute>
         gsl amq.gsl
         </execute>
-    </generate>
-    <build>
+      </generate>
+      <build>
         <execute>
         regsvr32 /u /s amq_client.dll
         msdev amq.dsw /make
         regsvr32 /s amq_client.dll
         </execute>
-    </build>
+      </build>
     </actions>
 </directory>
 
