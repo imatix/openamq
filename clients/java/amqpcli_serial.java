@@ -33,9 +33,10 @@ short
     protocol_port = 7654,               /* Server port                      */
     protocol_id = 128,                  /* Protocol id                      */
     protocol_ver = 1,                   /* Protocol port                    */
-    batch_size = 1000;                  /* Messages prefetched before ACK   */
+    batch_size = 1000,                  /* Messages prefetched before ACK   */
+    client_nbr = 0;                      /* Added to the name prefix         */
 int
-    socket_timeout = 0;                 /* Socket timeout                   */
+    socket_timeout = 0;                 /* Socket timeout im ms             */
 
 
 //////////////////////////////   G L O B A L S   //////////////////////////////
@@ -80,6 +81,9 @@ public int amqpcli_serial_execute (String args[])
 {
     int
         feedback;                       /* Console return int               */
+    
+    if (args.length > 0)
+        client_nbr = Short.parseShort(args[0]);       
 
     feedback = execute ();
 
@@ -132,7 +136,7 @@ public void setup ()
         client_open = (AMQConnection.Open)amq_framing.createFrame(AMQConnection.OPEN);
         client_open.confirmTag = 0;
         client_open.virtualPath = null;
-        client_open.clientName = "java/amqpcli_serial (test)";
+        client_open.clientName = "java/amqpcli_serial (test)" + (client_nbr > 0 ? String.valueOf(client_nbr) : "");
         client_open.options = null;
 
         // Connection close defaults

@@ -82,8 +82,12 @@ public EchoClient(String[] args) {
     f = new Frame("AMQP echo client");
     f.addWindowListener(new WindowAdapter() {
         public void windowClosing(WindowEvent e) {
-            synchronized(receive_thread) {
-                receive_thread.notify();
+            if (receive_thread != null) {
+                synchronized(receive_thread) {
+                    receive_thread.notify();
+                }
+            } else {
+                System.exit(0);
             }
         }
     });
@@ -94,7 +98,7 @@ public EchoClient(String[] args) {
     f.setVisible(true);
     tf.requestFocus();
     // Start AMQ layer
-    amqpcli_java_execute(args);
+    amqpcli_serial_execute(args);
 }
 
 
@@ -285,7 +289,7 @@ public void do_tests ()
         handle_consume.mimeType = "";
         
         // Read text thread
-        receive_thread=new Thread(this);
+        receive_thread = new Thread(this);
         receive_thread.start();
         
         // Send text in AWT thread
@@ -314,6 +318,13 @@ public void do_tests ()
     catch (ClassCastException e)
     {
         raise_exception(exception_event, e, "amqpci_java", "do_tests", "unexpected frame from server");
+    }
+    catch (SocketTimeoutException e) {
+        raise_exception(timeout_event, e, "amqpci_java", "do_tests", "SocketTimeoutException");
+    }
+    catch (IOException e)
+    {
+        raise_exception(exception_event, e, "amqpci_java", "do_tests", "IOException");
     }
     catch (AMQFramingException e)
     {
