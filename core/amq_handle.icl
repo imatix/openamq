@@ -30,6 +30,19 @@
 
 <private>
 #include "amq_server_agent.h"
+
+/*  This structure holds one queued message reference
+    We collect these when the client uses HANDLE QUERY and we hold them
+    in an array for easy access via HANDLE BROWSE                            */
+
+typedef struct {
+    amq_queue_t
+        *queue;                         /*  Queue which holds the message    */
+    amq_smessage_t
+        *message;                       /*  Message, if non-persistent       */
+    qbyte
+        item_id;                        /*  Queue item id, if persistent     */
+} AMQ_QUEUED_MESSAGE_REF;
 </private>
 
 <context>
@@ -54,6 +67,8 @@
         *consumers;                     /*  List of consumers per handle     */
     amq_queue_t
         *queue;                         /*  If refers to actual queue        */
+    amq_browser_array_t
+        *browser_set;                   /*  Results of last HANDLE QUERY     */
     int
         state;                          /*  Handle state                     */
     dbyte
@@ -91,6 +106,7 @@
 
     /*  Initialise other properties                                          */
     self->consumers    = amq_looseref_list_new ();
+    self->browser_set  = amq_browser_array_new ();
     self->state        = AMQ_HANDLE_OPEN;
     self->channel_id   = command->channel_id;
     self->service_type = command->service_type;
@@ -149,6 +165,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
                 $(selfname)_destroy (p_self);
             }
         }
+        amq_server_agent_handle_created (self->thread, self->key, self->dest_name);
     }
 }
 </private>
@@ -165,6 +182,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
         consumer = amq_looseref_list_next (self->consumers, consumer);
     }
     amq_looseref_list_destroy (&self->consumers);
+    amq_browser_array_destroy (&self->browser_set);
 </method>
 
 <method name = "send" template = "function" >
@@ -253,19 +271,39 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
 <method name = "query" template = "function" >
     <argument name = "command"    type = "amq_handle_query_t *" />
     <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
-    /*  ***TODO*** implement HANDLE QUERY
-     */
-    *reply_text = "Function is not implemented";
-    rc = AMQP_NOT_IMPLEMENTED;
+    <local>
+    amq_queue_t
+        *queue;
+    </local>
+
+    /*  Look for the queue using the destination name specified              */
+    queue = amq_queue_full_search (
+        self->vhost->queues, self->dest_name, command->dest_name);
+
+    if (queue) {
+        amq_queue_query (queue, self->browser_set);
+        amq_server_agent_handle_index (
+            self->thread, self->key, 0, amq_browser_array_strindex (self->browser_set));
+    }
+    else {
+        *reply_text = "No such destination defined";
+        rc = AMQP_NOT_FOUND;            /*  Destination not found            */
+    }
 </method>
 
 <method name = "browse" template = "function" >
     <argument name = "command"    type = "amq_handle_browse_t *" />
     <argument name = "reply_text" type = "char **">Returned error message, if any</argument>
-    /*  ***TODO*** implement HANDLE BROWSE
-     */
-    *reply_text = "Function is not implemented";
-    rc = AMQP_NOT_IMPLEMENTED;
+    <local>
+    amq_browser_t
+        *browser;
+    </local>
+    browser = amq_browser_array_fetch (self->browser_set, command->message_nbr);
+    if (browser == NULL
+    ||  amq_queue_browse (browser->queue, self, browser)){
+        *reply_text = "Message does not exist";
+        rc = AMQP_MESSAGE_NOT_FOUND;
+    }
 </method>
 
 <method name = "selftest">

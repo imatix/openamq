@@ -135,4 +135,11 @@ data
 gmon.out
 logs
 memtrace.xml
-
+amq_browser.c
+amq_browser.h
+amq_browser_array.c
+amq_browser_array.h
+amq_browser_array.icl
+amq_browser_array_test.c
+amq_browser_test
+amq_browser_test.c

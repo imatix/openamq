@@ -16,6 +16,7 @@
 
 /*  Private OpenAMQ class headers                                            */
 
+#include "amq_browser.h"
 #include "amq_bucket.h"
 #include "amq_channel.h"
 #include "amq_connection.h"

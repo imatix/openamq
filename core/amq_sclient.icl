@@ -210,7 +210,7 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     caller.  Each incoming message is freshly allocated; the caller should
     destroy it when finished processing it.
     </doc>
-    <argument name = "self"    type = "$(selftype) *" />
+    <argument name = "self"    type = "$(selftype) *"  >Reference to object</argument>
     <argument name = "timeout" type = "qbyte"          >Timeout in milliseconds</argument>
     <declare  name = "message" type = "amq_message_t *">Message to provide</declare>
     <local>

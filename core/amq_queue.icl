@@ -181,10 +181,11 @@ ipr_db_queue class.
         *message;
     amq_consumer_t
         *consumer;                      /*  Next consumer to process         */
+    amq_looseref_t
+        *browser;
     int
         finished;
     </local>
-
     /*  Now process messages from memory or from disk                        */
 #   ifdef TRACE_DISPATCH
     coprintf ("$(selfname) I: dispatch window=%d outstanding=%d", self->window, self->outstanding);
@@ -201,6 +202,14 @@ ipr_db_queue class.
             amq_smessage_list_unlink (message);
             self->item_id = 0;          /*  Non-persistent message           */
             s_dispatch_message (consumer, message);
+
+            /*  Invalidate any browsers for this message                     */
+            browser = amq_looseref_list_first (message->browsers);
+            while (browser) {
+                amq_browser_destroy ((amq_browser_t **) &browser->object);
+                browser = amq_looseref_list_next (message->browsers, browser);
+            }
+            /*  Get next message (is now first on queue)                     */
             message = amq_smessage_list_first (self->messages);
         }
         else
@@ -237,6 +246,83 @@ ipr_db_queue class.
             finished = amq_queue_fetch (self, IPR_QUEUE_NEXT);
         }
     }
+</method>
+
+<method name = "query" template = "function">
+    <doc>
+    Loads a query set referring to every available message in the queue.
+    </doc>
+    <argument name = "browser_set" type = "amq_browser_array_t *">Query set</argument>
+    <local>
+    amq_smessage_t
+        *message;
+    amq_browser_t
+        *browser;
+    qbyte
+        set_index = 0;                  /*  Index into query set             */
+    int
+        finished;
+    </local>
+    /*  First, process any messages in memory: in the case that messages
+        are held both in memory and disk, the ones in memory will be the
+        oldest.
+     */
+    amq_browser_array_reset (browser_set);
+    message = amq_smessage_list_first (self->messages);
+    while (message) {
+        browser = amq_browser_new (browser_set, set_index++, self, 0, message);
+        message = amq_smessage_list_next (self->messages, message);
+        /*  Track browser for message so we can invalidate it if/when
+            we dispatch the message.
+         */
+        amq_looseref_new (message->browsers, browser);
+    }
+    /*  Now process any messages on disk                                     */
+    if (self->outstanding) {
+        /*  Get oldest candidate message to dispatch                         */
+        self->item_id = self->last_id;
+        finished = amq_queue_fetch (self, IPR_QUEUE_GT);
+        while (!finished) {
+            if (self->item_client_id == 0)
+                amq_browser_new (browser_set, set_index++, self, self->item_id, NULL);
+            finished = amq_queue_fetch (self, IPR_QUEUE_NEXT);
+        }
+    }
+</method>
+
+<method name = "browse" template = "function">
+    <doc>
+    Sends a single message to the user, where the message is specified
+    by an amq_browse_t object.  If the message does not exist or has already
+    been dispatched to another user, sends the user a 310 error.
+    </doc>
+    <argument name = "handle"  type = "amq_handle_t *" >Parent handle</argument>
+    <argument name = "browser" type = "amq_browser_t *">Browser reference</argument>
+    <local>
+    amq_smessage_t
+        *message = NULL;
+    </local>
+    if (browser->message)
+        message = browser->message;
+    else
+    if (browser->item_id) {
+        self->item_id = browser->item_id;
+        if (amq_queue_fetch (self, IPR_QUEUE_EQ) == 0) {
+            message = amq_smessage_new (handle);
+            amq_smessage_load (message, self);
+        }
+    }
+    if (message)
+        amq_server_agent_handle_notify (
+            handle->thread,
+            handle->key,
+            0,
+            FALSE, FALSE, FALSE,
+            self->dest->name,
+            message,
+            NULL);
+    else
+        rc = 1;                         /*  No message to dispatch           */
 </method>
 
 <private name = "header">

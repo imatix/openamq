@@ -26,6 +26,7 @@
 <file name = "amq_db_dest.c"         class = "generated module" >Destination table</file>
 <file name = "amq_db_spool.c"        class = "generated module" >Spooler table</file>
 
+<file name = "amq_browser.icl"       class = "icl private class">Message browser class</file>
 <file name = "amq_bucket.icl"        class = "icl public class" >Bucket buffer class</file>
 <file name = "amq_message.icl"       class = "icl public class" >Message base class</file>
 <file name = "amq_channel.icl"       class = "icl private class">Channel class</file>
@@ -43,10 +44,11 @@
 <file name = "amq_global.icl"        class = "icl private data" >Globals class</file>
 
 <!-- These classes are generated and NOT modified afterwards -->
+<file name = "amq_browser_array.icl" class = "icl public cont"  >Container for message browser</file>
 <file name = "amq_channel_table.icl" class = "icl public cont"  >Container for channel class</file>
 <file name = "amq_consumer_list.icl" class = "icl public cont"  >Container for consumer class</file>
 <file name = "amq_handle_table.icl"  class = "icl public cont"  >Container for handle class</file>
-<file name = "amq_looseref_list.icl" class = "icl public cont"  >Container for loose reference class</file>
+<file name = "amq_looseref_list.icl" class = "icl public cont"  >Container for loose references</file>
 <file name = "amq_queue_table.icl"   class = "icl public cont"  >Container for queue class</file>
 
 <file name = "amq_sclient.icl"       class = "icl public class" >AMQP serial client API</file>

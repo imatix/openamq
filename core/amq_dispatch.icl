@@ -71,12 +71,13 @@
     amq_smessage_destroy (&self->message);
 </method>
 
-<method name = "ack" template = "function" return = "next">
+<method name = "ack" return = "next">
     <doc>
     Acknowledge a specific message.  Returns the next message on the
     dispatch list.
     </doc>
-    <declare name = "next" type = "amq_dispatch_t *" />
+    <argument name = "self" type = "$(selftype) *">Reference to object</argument>
+    <declare name = "next" type = "amq_dispatch_t *">Next message in list</declare>
 
     /*  Queue and consumer can accept a new message                          */
     self->queue->window++;

@@ -1,3 +1,7 @@
+0.7c0 -
+    - added server support for HANDLE QUERY, HANDLE BROWSE commands
+    - added serial client support for HANDLE INDEX
+
 0.7b6 - 11 February 2005
     - disconnected clients could not reconnect reliably - fixed
     - server occasionally got null socket handle from APR and aborted - fixed

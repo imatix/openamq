@@ -135,6 +135,12 @@ static int
     <field name = "dispatch"    type = "amq_dispatch_t *">Auto-acknowledge</field>
 </method>
 
+<method name = "handle index">
+    <field name = "handle id"    type = "dbyte" >Handle number</field>
+    <field name = "message nbr"  type = "qbyte" >Top message number</field>
+    <field name = "message list" type = "ipr_longstr_t *">Message numbers</field>
+</method>
+
 <thread name = "client">
     <context>
         smt_socket_t
@@ -830,6 +836,10 @@ static int
             <call state = "sending message" event = "continue" />
             <action name = "wait for activity" />
         </method>
+        <method name = "handle index">
+            <action name = "send handle index" />
+            <action name = "wait for activity" />
+        </method>
     </state>
 
     <action name = "send handle created">
@@ -837,6 +847,14 @@ static int
         tcb->frame = amq_frame_handle_created_new (
             handle_created_m->handle_id, handle_created_m->dest_name);
         send_the_frame (thread);
+    </action>
+
+    <action name = "send handle index">
+        amq_frame_free (&tcb->frame);
+        tcb->frame = amq_frame_handle_index_new (
+            handle_index_m->handle_id, handle_index_m->message_nbr, handle_index_m->message_list);
+        send_the_frame (thread);
+        ipr_longstr_destroy (&handle_index_m->message_list);
     </action>
 
     <action name = "send connection close">

@@ -102,6 +102,13 @@ static int
     <field name = "result"       type = "int *" >Pointer to result of operation</field>
 </method>
 
+<method name = "handle query">
+    <field name = "handle id"    type = "dbyte" >Handle number</field>
+    <field name = "message nbr"  type = "qbyte" >Message base</field>
+    <field name = "dest name"    type = "char *">Destination name suffix</field>
+    <field name = "result"       type = "int *" >Pointer to result of operation</field>
+</method>
+
 <method name = "handle send">
     <field name = "handle_id"    type = "dbyte" >Channel number</field>
     <field name = "message"      type = "amq_message_t *"
@@ -404,6 +411,14 @@ static int
                 *tcb->result = AMQ_OK;
             <action name = "send handle unget" />
         </method>
+        <method name = "handle query">
+            tcb->result = handle_query_m->result;
+            if (tcb->result)
+                *tcb->result = AMQ_OK;
+            <action name = "send handle query" />
+            <action name = "read next command" />
+            <call state = "expect handle index" />
+        </method>
         <method name = "handle send">
             tcb->result = handle_send_m->result;
             if (tcb->result)
@@ -507,7 +522,7 @@ static int
     <action name = "send handle consume">
         amq_frame_free (&tcb->frame);
         tcb->frame = amq_frame_handle_consume_new (
-            handle_close_m->handle_id,
+            handle_consume_m->handle_id,
             0,                          /*  Confirm tag                      */
             handle_consume_m->prefetch,
             handle_consume_m->no_local,
@@ -528,6 +543,17 @@ static int
         send_the_frame (thread);
     </action>
 
+    <action name = "send handle query">
+        amq_frame_free (&tcb->frame);
+        tcb->frame = amq_frame_handle_query_new (
+            handle_query_m->handle_id,
+            0,                          /*  All messages                     */
+            handle_query_m->dest_name,
+            NULL,                       /*  Selector string                  */
+            NULL);                      /*  Selector MIME type               */
+        send_the_frame (thread);
+    </action>
+
     <action name = "send handle flow">
         amq_frame_free (&tcb->frame);
         tcb->frame = amq_frame_handle_flow_new (
@@ -545,7 +571,6 @@ static int
             "Closing");                 /*  Reply text                       */
         send_the_frame (thread);
     </action>
-
 
     <!--  EXPECT HANDLE NOTIFY  ---------------------------------------------->
 
@@ -623,6 +648,36 @@ static int
             <return/>
         </event>
     </state>
+
+    <!--  EXPECT HANDLE INDEX ------------------------------------------------>
+
+    <state name = "expect handle index">
+        <event name = "handle index">
+            <action name = "process handle index" />
+            <return/>
+        </event>
+
+        <!-- These AMQP commands are allowed but discarded  -->
+        <event name = "connection ping">
+            <action name = "read next command" />
+        </event>
+        <event name = "connection reply">
+            <action name = "read next command" />
+        </event>
+        <event name = "channel reply">
+            <action name = "read next command" />
+        </event>
+        <event name = "handle created">
+            <action name = "read next command" />
+        </event>
+        <event name = "handle reply">
+            <action name = "read next command" />
+        </event>
+   </state>
+
+    <action name = "process handle index">
+        ;
+    </action>
 
     <!--  EXPECT CONNECTION CLOSE  ------------------------------------------->
 

@@ -1,3 +1,15 @@
+Test case
+    - post messages to a queue
+    - HANDLE QUERY to get list of messages
+    - dispatch the messages to another client
+    - try to read the messages
+    - do for both persistent, non-persistent
+    - do for mix of non-persistent and persistent
+
+
+
+
+
 - rename amqpsrv -> openamqd
 
 Tracing
@@ -9,8 +21,8 @@ Acks
     - when dispatching
         -> work off dispatch list
         -> any not there but with clientid, redeliver
-        
-        
+
+
 Changes
 
     rfc006
@@ -42,13 +54,13 @@ Changes
     multithreading
     - one for smt
     - one for bdb
-        
+
     clients, priority
     * COM+ for demo
     * C thread-safe
     * Java
     - .NET
-    - Perl
+    * Perl
 
 
 Durable Subscriptions

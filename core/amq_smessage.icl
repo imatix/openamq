@@ -32,12 +32,15 @@
         *queue;                         /*  Persistent queue table           */
     qbyte
         spoolid;                        /*  Spooler record, if any           */
+    amq_looseref_list_t
+        *browsers;                      /*  List of browsers per message     */
 </context>
 
 <method name = "new">
     <argument name = "handle" type = "amq_handle_t *" />
-    self->handle = handle;
-    self->vhost  = handle->vhost;
+    self->handle   = handle;
+    self->vhost    = handle->vhost;
+    self->browsers = amq_looseref_list_new ();
 </method>
 
 <method name = "spooldir" return = "directory">
