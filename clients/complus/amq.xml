@@ -133,14 +133,11 @@
 
     <property name = "msg_identifier">
         <argument type = "BSTR" name = "new_value" />
-        amq_message_set_identifier (m_amq_message,
-            ipr_longstr_new (new_value, SysStringByteLen (new_value)));
+        amq_message_set_identifier (m_amq_message, OLE2T (new_value));
     </property>
     <property name = "msg_identifier">
         <return type = "BSTR" />
-        *pVal = SysAllocStringByteLen (
-            (const char *) m_amq_message->identifier->data,
-                           m_amq_message->identifier->size);
+        *pVal = SysAllocString (T2OLE (m_amq_message->identifier));
     </property>
 
     <property name = "msg_number">
