@@ -25,36 +25,36 @@ Recent Change History
 ---------------------
 
 0.7a1
-  - minor corrections to the text.
+- minor corrections to the text.
 
 0.7a
- - message identifier changed from long string to short string.
- - clarified use of HANDLE PREPARE command.
- - clarified use of restartable option in CHANNEL OPEN.
- - defined frame maximum prior to CONNECTION TUNE.
+- message identifier changed from long string to short string.
+- clarified use of HANDLE PREPARE command.
+- clarified use of restartable option in CHANNEL OPEN.
+- defined frame maximum prior to CONNECTION TUNE.
 
 0.6i
- - added 'unreliable' (no acknowledgements) option to HANDLE CONSUME.
+- added 'unreliable' (no acknowledgements) option to HANDLE CONSUME.
 
 0.6h
- - client may now specify temporary queue names.
- - corrected description of message header formatting (there is no
+- client may now specify temporary queue names.
+- corrected description of message header formatting (there is no
    length indicator).
- - fixed incorrect references to 'body-length' in text.
- - added a description of command scenarios.
- - refined documentation for partial message commands.
- - 'identifier' in CONNECTION OPEN renamed to 'client name' for clarity.
- - corrected syntax for connection-open and connection-response.
- - short strings MAY NOT contain null octets
+- fixed incorrect references to 'body-length' in text.
+- added a description of command scenarios.
+- refined documentation for partial message commands.
+- 'identifier' in CONNECTION OPEN renamed to 'client name' for clarity.
+- corrected syntax for connection-open and connection-response.
+- short strings MAY NOT contain null octets.
 
 0.6g
- - added streaming concept to HANDLE SEND and HANDLE NOTIFY.
+- added streaming concept to HANDLE SEND and HANDLE NOTIFY.
 
 0.6f
- - clarified use of 'dest-name' with partial messages.
- - 'body-length' renamed to 'body-size' for consistency with other fields.
- - corrected syntax for connection-response ('identifier' was missing).
- - client identifier moved from CONNECTION RESPONSE to CONNECTION OPEN.
+- clarified use of 'dest-name' with partial messages.
+- 'body-length' renamed to 'body-size' for consistency with other fields.
+- corrected syntax for connection-response ('identifier' was missing).
+- client identifier moved from CONNECTION RESPONSE to CONNECTION OPEN.
 
 
 Copyright Notice
@@ -94,13 +94,13 @@ Operational Scenarios
 
 These are the messaging architectures we aim to support:
 
- - Store-and-forward with N writers and 1 reader.
- - Transaction distribution with N writers and N readers.
- - Publish-subscribe with N writers and N readers.
- - Content-based routing with N writers and N readers.
- - Queued file transfer with N writers and N readers.
- - Point-to-point connection between 2 peers.
- - Market data distribution with N sources and N readers.
+- Store-and-forward with N writers and 1 reader.
+- Transaction distribution with N writers and N readers.
+- Publish-subscribe with N writers and N readers.
+- Content-based routing with N writers and N readers.
+- Queued file transfer with N writers and N readers.
+- Point-to-point connection between 2 peers.
+- Market data distribution with N sources and N readers.
 
 Design Criteria
 ---------------
@@ -470,10 +470,8 @@ and failure is treated as exceptional.
 
 For example when a client sends a message to a destination, it's very
 abnormal for the message to be refused.  So in most cases the client
-can send the message and forget about it.
-
-Remember: we're using a reliable network protocol (TCP/IP) so data does
-not get lost.
+can send the message and forget about it.  We're using a reliable network 
+protocol (TCP/IP) so data does not get lost.
 
 If there is a problem - e.g. the server has run out of space - then the
 server closes the channel, or connection.
@@ -734,17 +732,17 @@ Frame Syntax
 
 Notes:
 
- - All multi-octet integers and sizes are represented in network byte
-   order (High-low).  There is no attempt to optimise the case when two
-   low-high systems (e.g. two Intel CPUs) talk to each other.
- - Empty strings are represented by a zero length, one or two octets
-   depending on the type of string.
- - Long strings are binary-safe and may contain any octet values
-   including binary nulls.
- - Short strings are ANSI-C compatible and assumed to be in UTF-8 format.
-   They MAY NOT contain binary zero octets.
- - The command-end byte is included in the command-size.
- - Message fragmentation is explained in more detail later.
+- All multi-octet integers and sizes are represented in network byte
+  order (High-low).  There is no attempt to optimise the case when two
+  low-high systems (e.g. two Intel CPUs) talk to each other.
+- Empty strings are represented by a zero length, one or two octets
+  depending on the type of string.
+- Long strings are binary-safe and may contain any octet values
+  including binary nulls.
+- Short strings are ANSI-C compatible and assumed to be in UTF-8 format.
+  They MAY NOT contain binary zero octets.
+- The command-end byte is included in the command-size.
+- Message fragmentation is explained in more detail later.
 
 Notes
 -----
@@ -761,7 +759,7 @@ Connection Commands
 Connection Command Summary
 --------------------------
 
-Connection initiation:
+CONNECTION INITIATION:
     A special two-byte identification sequence that the client sends
     before sending or expecting any other commands.
 CONNECTION CHALLENGE:
