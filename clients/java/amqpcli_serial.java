@@ -126,7 +126,7 @@ public void setup ()
         client_open.clientName = "amqpcli_java (test)";
         client_open.options = null;
 
-        // Client name and connection open defaults
+        // Connection close defaults
         client_close = (AMQConnection.Close)mq_factory.createFrame(AMQConnection.CLOSE);
         client_close.replyCode = 200;
         client_close.replyText = "amqpcli_serial.java: bye";
@@ -156,7 +156,7 @@ public void forced_shutdown ()
             amqp_in.close();
         if (amqp_out != null)
             amqp_out.close();
-    
+
         if (exception != null)
             AMQFactory.error(exception, "amqpcli_java", module, error_message);
     }
@@ -475,19 +475,19 @@ public void raise_exception (int event, Exception e, String _class, String modul
 
 //- Auxiliary routines --------------------------------------------
 byte[] body_fill(byte[] body, int seed) {
-    for (int i = 0; i < body.length; i++) { 
+    for (int i = 0; i < body.length; i++) {
         if (i == 0)
             body[i] = (byte)(seed % Byte.MAX_VALUE);
-        else            
+        else
             body[i] = (byte)((body[i - 1] * body[i - 1]) % Byte.MAX_VALUE);
     }
-    
+
     return body;
 }
 
 void body_check(byte[] body, int seed) {
     byte[] ref = new byte[body.length];
-    
+
     ref = body_fill(ref, seed);
     for (int i = 0; i < body.length; i++) {
         if (body[i] != ref[i]) {
