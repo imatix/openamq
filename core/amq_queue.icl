@@ -163,7 +163,7 @@ ipr_db_queue class.
     if (self->outstanding > 0 || message->persistent) {
         /*  Persistent messages are saved on persistent queue storage        */
         self->outstanding++;
-        amq_smessage_save (message, self, channel->txn);
+        amq_smessage_save (message, self, NULL);
         amq_smessage_destroy (&message);
     }
     else
