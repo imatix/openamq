@@ -39,6 +39,17 @@
     self->message = message;
 </method>
 
-<method name = "selftest" />
+<method name = "selftest">
+    <local>
+    amq_browser_array_t
+        *array;
+    int
+        index;
+    </local>
+    array = amq_browser_array_new ();
+    for (index = 0; index < 5000; index++)
+        self_new (array, index, NULL, 0, NULL);
+    amq_browser_array_destroy (&array);
+</method>
 
 </class>

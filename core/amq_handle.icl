@@ -274,7 +274,10 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
         if (queue->opt_browsable) {
             amq_queue_query (queue, self->browser_set);
             amq_server_agent_handle_index (
-                self->thread, (dbyte) self->key, 0, amq_browser_array_strindex (self->browser_set));
+                self->thread,
+                (dbyte) self->key,
+                0,
+                amq_browser_array_strindex (self->browser_set, 8000));
         }
         else
             amq_global_set_error (AMQP_ACCESS_REFUSED, "Browsing not allowed on queue");

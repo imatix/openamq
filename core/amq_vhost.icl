@@ -31,6 +31,8 @@
         *ddb;                           /*  Deprecated database handle       */
     ipr_config_t
         *config;                        /*  Virtual host configuration       */
+    amq_user_table_t
+        *user_hash;                     /*  Users for this vhost             */
     amq_queue_table_t
         *queue_hash;                    /*  Queues for this vhost            */
     ipr_looseref_list_t
@@ -48,12 +50,15 @@
     <argument name = "config"    type = "ipr_config_t *"/>
 
     self->config = config;
+    self->user_hash  = amq_user_table_new ();
     self->queue_hash = amq_queue_table_new ();
     self->queue_refs = ipr_looseref_list_new ();
     ipr_shortstr_cpy (self->directory, directory);
 
+    coprintf ("I: configuring virtual host '%s'", self->key);
     s_config_workdir  (self);
     s_config_database (self);
+    s_config_users    (self);
     s_config_queues   (self);
 
     /*  ***TODO*** implement topics
@@ -62,6 +67,15 @@
 </method>
 
 <method name = "destroy">
+    /*  If we try to close a cursor during interrupt handling, BDB
+        deadlocks.  So we will attempt to leave the cursor open and
+        shutdown anyhow...
+     */
+    if (smt_signal_raised && self->db->db_cursor) {
+        coprintf ("$(selfname) E: database cursor still open, attempting recovery");
+        self->db->db_cursor = NULL;
+    }
+    amq_user_table_destroy    (&self->user_hash);
     amq_queue_table_destroy   (&self->queue_hash);
     ipr_looseref_list_destroy (&self->queue_refs);
     ipr_config_destroy        (&self->config);
@@ -98,6 +112,7 @@
 <private name = "header">
 static void s_config_workdir   ($(selftype) *self);
 static void s_config_database  ($(selftype) *self);
+static void s_config_users     ($(selftype) *self);
 static void s_config_queues    ($(selftype) *self);
 </private>
 
@@ -114,7 +129,7 @@ s_config_workdir ($(selftype) *self)
     if (strlast (self->spooldir) == '/')
         strlast (self->spooldir) = 0;
     if (!file_is_directory (self->spooldir)) {
-        coprintf ("Creating working directory '%s'", self->spooldir);
+        coprintf ("I: - creating working directory '%s'", self->spooldir);
         make_dir (self->spooldir);
     }
 
@@ -124,7 +139,7 @@ s_config_workdir ($(selftype) *self)
     if (strlast (self->storedir) == '/')
         strlast (self->storedir) = 0;
     if (!file_is_directory (self->storedir)) {
-        coprintf ("Creating working directory '%s'", self->storedir);
+        coprintf ("I: - creating working directory '%s'", self->storedir);
         make_dir (self->storedir);
     }
 }
@@ -169,11 +184,28 @@ s_config_database ($(selftype) *self)
     amq_db_dest_destroy (&dest);
 }
 
+/*  Load user table from configuration file                                  */
+
+static void
+s_config_users ($(selftype) *self)
+{
+    ipr_config_locate (self->config, "/config/users/user", NULL);
+    while (self->config->located) {
+        amq_user_new (
+            ipr_config_attr (self->config, "name", "unnamed"),
+            self,                       /*  Parent virtual host              */
+            self->config);              /*  Configuration entry              */
+        ipr_config_next (self->config);
+    }
+}
+
+
 /*  Insert or find configured queues                                         */
 
 static void
 s_config_queues ($(selftype) *self)
 {
+    coprintf ("I: - configuring and checking persistent queues...");
     ipr_config_locate (self->config, "/config/queues/queue", NULL);
     while (self->config->located) {
         amq_queue_new (

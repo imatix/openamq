@@ -213,8 +213,9 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     <argument name = "timeout" type = "qbyte"          >Timeout in milliseconds</argument>
     <declare  name = "message" type = "amq_message_t *">Message to provide</declare>
     <local>
-        int rc;
+    int rc;
     </local>
+
     amq_message_destroy (&self->msg_object);
     amq_sclient_agent_blocking_receive (self->thread_handle, timeout, &rc);
     smt_thread_execute (SMT_EXEC_FULL);

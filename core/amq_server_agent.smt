@@ -129,11 +129,12 @@ static int
     <field name = "handle id"   type = "dbyte" >Handle number</field>
     <field name = "message nbr" type = "qbyte" >Message reference</field>
     <field name = "recovery"    type = "Bool"  >Restarting large message?</field>
-    <field name = "delivered"   type = "Bool"  >Message must be acknowledged?</field>
+    <field name = "delivered"   type = "Bool"  >Message is being delivered?</field>
     <field name = "redelivered" type = "Bool"  >Message is being redelivered?</field>
     <field name = "dest name"   type = "char *">Originating destination</field>
     <field name = "message"     type = "amq_smessage_t *">Message to send</field>
     <field name = "dispatch"    type = "amq_dispatch_t *">Auto-acknowledge</field>
+    <field name = "destroy"     type = "Bool"  >Destroy message when sent?</field>
 </method>
 
 <method name = "handle index">
@@ -390,6 +391,7 @@ static int
     </state>
 
     <action name = "process connection response">
+        /*  TODO: decode longstr, check name and password                    */
         /*  For now we don't validate the response                           */
         /*  If it was not enough, raise an insufficient_event exception      */
     </action>
@@ -920,9 +922,14 @@ static int
             the_next_event = finished_event;
 
             /*  If a dispatch object was passed, acknowledge the message
-                immediately - this is used for 'unreliable' consumers        */
+                immediately - this indicates a consumer that has asked for
+                'unreliable' delivery, i.e. auto-ack'ed by the server        */
             if (handle_notify_m->dispatch)
                 amq_dispatch_ack (handle_notify_m->dispatch);
+
+            /*  If caller wants it, destroy the message                      */
+            if (handle_notify_m->destroy)
+                amq_smessage_destroy (&handle_notify_m->message);
         }
     </action>
 

@@ -141,5 +141,16 @@ amq_browser_array.c
 amq_browser_array.h
 amq_browser_array.icl
 amq_browser_array_test.c
+amq_browser_array_test
 amq_browser_test
 amq_browser_test.c
+amq_user.c
+amq_user.h
+amq_user_table.icl
+amq_user_table.c
+amq_user_table.h
+amq_user_test.c
+amq_user_test
+amq_user_table_test.c
+amq_user_table_test
+

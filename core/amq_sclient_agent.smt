@@ -267,6 +267,7 @@ static int
     </state>
 
     <action name = "send connection response">
+        /*  TODO: format name, password as longstr and send  */
         amq_frame_free (&tcb->frame);
         tcb->frame = amq_frame_connection_response_new (
             "plain", NULL);
