@@ -664,6 +664,8 @@ public void raise_exception (int event, Exception e, String _class, String modul
     this.module = module;
     this.exception = e;
 
+    if (e != null && !(e instanceof AMQException))
+        System.out.println("E: " + e.getMessage());
     System.err.println(_class + ": " + module + ": " + message + ".");
 
     // Reset message
