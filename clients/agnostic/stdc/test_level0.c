@@ -23,6 +23,9 @@ int prefetch;
 int till_acknowledge;
 int message_size;
 char *message_buffer;
+apr_byte_t persistent;
+long commit_count;
+long rollback_count;
 int stop;
 
 apr_status_t handle_close_cb (
@@ -72,16 +75,35 @@ apr_status_t send_message(apr_uint16_t confirm_tag)
     sprintf (identifier, "%s%ld", prefix, message_number);
 
     result = amqp_handle_send (sck, buffer, 32767, 1, confirm_tag, 0, 0, 0, 0, "",
-        message_size, 0, 0, 0, "", "", identifier, 0, "", message_buffer);
+        message_size, persistent, 0, 0, "", "", identifier, 0, "", message_buffer);
     if (result != APR_SUCCESS) {
         fprintf (stderr, "amqp_handle_send failed.\n%ld : %s\n",
             (long) result, amqp_strerror (result, buffer, 32767) );
         return result;
     }
 
-    message_number++;
+    if (rollback_count && message_number % rollback_count == 0) {
+        result = amqp_channel_rollback (sck, buffer, 32767, 1, 0, 0, "");
+        if (result != APR_SUCCESS) {
+            fprintf (stderr, "amqp_channel_rollback failed.\n%ld : %s\n",
+                (long) result, amqp_strerror (result, buffer, 32767) );
+            return result;
+        }
+        fprintf (stderr, "Rollbacked.\n");
+    }
+    else if (commit_count && message_number % commit_count == 0) {
+        result = amqp_channel_commit (sck, buffer, 32767, 1, 0, 0, "");
+        if (result != APR_SUCCESS) {
+            fprintf (stderr, "amqp_channel_commit failed.\n%ld : %s\n",
+                (long) result, amqp_strerror (result, buffer, 32767) );
+            return result;
+        }
+        fprintf (stderr, "Commited.\n");
+    }
 
     fprintf (stderr, "Message %s sent. (%ld bytes)\n", identifier, (long) message_size);
+
+    message_number++;
 
     return APR_SUCCESS;            
 }
@@ -171,7 +193,9 @@ apr_status_t connection_reply_cb (
 
     if (confirm_tag == 1) {
         /* reply to connection open */
-        result = amqp_channel_open (sck, buffer, 32767, 1, 2, 0, 0, 0, "", "");
+        result = amqp_channel_open (sck, buffer, 32767, 1, 2,
+            (apr_byte_t) ( (commit_count || rollback_count) ? 1 : 0),
+            0, 0, "", "");
         if (result != APR_SUCCESS) {
             fprintf (stderr, "amqp_channel_open failed.\n%ld : %s\n",
                 (long) result, amqp_strerror (result, buffer, 32767) );
@@ -312,6 +336,9 @@ int main (int argc, const char *const argv[], const char *const env[])
     prefetch = 1;
     message_size = 2;
     message_number = 0;
+    persistent = 0;
+    commit_count = 0;
+    rollback_count = 0;
 
     stop = 0;
 
@@ -326,6 +353,9 @@ int main (int argc, const char *const argv[], const char *const env[])
         if (strncmp (argv[i], "-i", 2) == 0) interval = atoi (argv [i] + 2);
         if (strncmp (argv[i], "-p", 2) == 0) prefetch = atoi (argv [i] + 2);
         if (strncmp (argv[i], "-l", 2) == 0) message_size = atoi (argv [i] + 2);
+        if (strncmp (argv[i], "-x", 2) == 0) persistent = 1;
+        if (strncmp (argv[i], "-c", 2) == 0) commit_count = atoi (argv [i] + 2);
+        if (strncmp (argv[i], "-r", 2) == 0) rollback_count = atoi (argv [i] + 2);
     }
 
     if (sender == 2) goto badparams;
@@ -452,12 +482,18 @@ badparams:
         "    -n<number of messages, 0 means infinite, default=0>\n"
         "    -i<interval between individual messages in ms, default=500>\n"
         "    -l<length of message content in bytes, default=2>\n"
+        "    -x (sends persistent messages)\n"
+        "    -c<number of messages while commit is issued>\n"
+        "    -r<number of messages while rollback is issued>\n"
         "\n"
         "  agnostic consumer\n"
         "    -s<server name/ip address, default=127.0.0.1>\n"
         "    -h<virtual host name>\n"
         "    -d<destination>\n"
-        "    -p<number of prefetched messages, default=1>\n");
+        "    -p<number of prefetched messages, default=1>\n"
+        "\n"
+        "  Note : When neither 'c' or 'r' parameter is set\n"
+        "         client works in nontransacted mode.\n");
     return -1;
 }
 
