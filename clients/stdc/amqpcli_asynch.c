@@ -46,7 +46,7 @@ main (int argc, char *argv [])
     coprintf ("AMQP asynchronous client v" CLIENT_VERSION);
     coprintf ("Connecting to %s using identity '%s'...", hostname, clientname);
 
-    amq_client = amq_aclient_new (clientname, "login", "password");
+    amq_client = amq_aclient_new (clientname, "test-login", "test-password");
     amq_aclient_register (amq_client, AMQ_ACLIENT_CONNECTED,      s_connected);
     amq_aclient_register (amq_client, AMQ_ACLIENT_HANDLE_CREATED, s_handle_created);
     amq_aclient_register (amq_client, AMQ_ACLIENT_HANDLE_NOTIFY,  s_handle_notify);

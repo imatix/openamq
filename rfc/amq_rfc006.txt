@@ -5,7 +5,7 @@ gdl
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/03/08
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.7d0
+    version   = 0.7d1
 end gdl
 
 Cover
@@ -23,6 +23,9 @@ This document is ready for review.
 
 Recent Change History
 ---------------------
+
+0.7d1
+- added definition of NONE security mechanism.
 
 0.7d0
 - confirm-tag was missing from definition of HANDLE BROWSE.
@@ -45,29 +48,6 @@ Recent Change History
 - clarified use of HANDLE PREPARE command.
 - clarified use of restartable option in CHANNEL OPEN.
 - defined frame maximum prior to CONNECTION TUNE.
-
-0.6i
-- added 'unreliable' (no acknowledgements) option to HANDLE CONSUME.
-
-0.6h
-- client may now specify temporary queue names.
-- corrected description of message header formatting (there is no
-   length indicator).
-- fixed incorrect references to 'body-length' in text.
-- added a description of command scenarios.
-- refined documentation for partial message commands.
-- 'identifier' in CONNECTION OPEN renamed to 'client name' for clarity.
-- corrected syntax for connection-open and connection-response.
-- short strings MAY NOT contain null octets.
-
-0.6g
-- added streaming concept to HANDLE SEND and HANDLE NOTIFY.
-
-0.6f
-- clarified use of 'dest-name' with partial messages.
-- 'body-length' renamed to 'body-size' for consistency with other fields.
-- corrected syntax for connection-response ('identifier' was missing).
-- client identifier moved from CONNECTION RESPONSE to CONNECTION OPEN.
 
 
 Copyright Notice
@@ -863,8 +843,8 @@ protocol-version:
     higher than the client's version.
 mechanism-list:
     A list of the security mechanisms that the server supports, delimited
-    by spaces.  Currently AMQP supports these mechanisms: PLAIN.  See below
-    for details.
+    by spaces.  Currently AMQP supports these mechanisms: NONE, PLAIN.
+    See below for details.
 challenges:
     A set of challenge fields that specify the information asked for for
     the current (or all) mechanisms.  Defined below, for each security
@@ -934,6 +914,18 @@ CONNECTION TUNE command.
 The maximum allowed size for a CONNECTION RESPONSE command frame is
 4096 octets.
 
+The NONE Security Mechanism
+...........................
+
+The NONE security mechanism does no authentication or authorisation.
+This mechanism is not secure in any way.
+
+When the server sends a CONNECTION CHALLENGE specifying the security
+mechanism "NONE", the client should respond with a CHALLENGE RESPONSE
+containing an empty responses table:
+
+    %0d %0d
+
 The PLAIN Security Mechanism
 ............................
 
@@ -941,14 +933,14 @@ The PLAIN security mechanism passes login credentials as clear text, with
 no attempt at encryption or authentication.  This mechanism is not secure
 in any way.
 
-The PLAIN security mechanism uses two fields in the responses table of
-the CONNECTION RESPONSE command:
+When the server sends a CONNECTION CHALLENGE specifying the security
+mechanism "PLAIN", the client should respond with a CHALLENGE RESPONSE
+containing a responses table with two fields, LOGIN and PASSWORD. These
+fields provide the login name and plain-text password.
 
-- "LOGIN", which specifies the login name to use.
-- "PASSWORD", which provides the password for the login name.
-
-As an example of encoding a field table, the PLAIN response for a login
-for user "Johan" with a password of "Ok" would be:
+Note that the field names used in a field table are case-sensitive. AMQP
+uses uppercase in all pre-defined field names.  Given a login "Johan"
+and a password "Ok", the binary format of the field table would be:
 
     %0d %28d
     %5d 'L' 'O' 'G' 'I' 'N' 'S' %0d %5d 'J' 'o' 'h' 'a' 'n'

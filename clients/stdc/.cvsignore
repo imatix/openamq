@@ -12,4 +12,8 @@ boomake
 boomake.bat
 gmon.out
 version.h
+chat_in
+chat_out
+chat_in.log
+chat_out.log
 
