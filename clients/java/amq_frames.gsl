@@ -920,7 +920,7 @@ public class $(AMQPFramingFactory:) {
     public byte[] consumeInBandMessageBody($(class_prefix:)Handle.Notify hnFirst, $(class_prefix:)Message.Head head) throws $(AMQPFrameException:), IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos);
-        byte[] fragment;
+        byte[] fragment, messageBody;
         
         $(class_prefix:)Handle.Notify hn = hnFirst;
         if (!hn.outOfBand && !hn.streaming) {
@@ -948,9 +948,11 @@ public class $(AMQPFramingFactory:) {
         } else {
             runtimeError(null, "$(AMQPFramingFactory:)", "consumeInBandMessageBody", "cannot consume message body if outOfBand or streaming");
         }
-        
+        messageBody = baos.toByteArray();
         hnFirst.destName = hn.destName;
-        return baos.toByteArray();
+        dos.close();
+        
+        return messageBody;
     }
     
     /**
@@ -1025,7 +1027,7 @@ public class $(AMQPFramingFactory:) {
      **/
     public void produceMessageHead($(class_prefix:)Message.Head head) throws IOException {
         head.encode();
-        produceData(head.bucket, 0, head.bucket.length);
+        produceData(head.bucket);
         if (verbose) 
             System.out.println("I: wrote " + head.bucket.length + " bytes to server (message head)");
     }
@@ -1087,15 +1089,10 @@ public class $(AMQPFramingFactory:) {
     public void produceFrame($(AMQPFrame:) frame) throws $(AMQPFrameException:) {
         frame.encode();
         try {
-            // Write frame size
-            if (frame.bucket.length >= FRAME_LONG) {
-                outgoing.writeShort(FRAME_LONG);
-                outgoing.writeInt(frame.bucket.length);
-            } else {
-                outgoing.writeShort(frame.bucket.length);
-            }
+            // Write frame header
+            produceFrameHeader(frame.bucket.length);
             // Write frame body
-            produceData(frame.bucket, 0, frame.bucket.length);
+            produceData(frame.bucket);
         } catch (IOException e) {
             error(e, "$(AMQPFramingFactory:)", "produceFrame", "IOException");
         }
@@ -1117,6 +1114,29 @@ public class $(AMQPFramingFactory:) {
 
         return frame;
     } 
+    
+    /**
+     *
+     * Frame header producer
+     *
+     **/
+    void produceFrameHeader(int frameSize) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos);
+        
+        if (frameSize >= FRAME_LONG) {
+            // Long frame
+            dos.writeShort(FRAME_LONG);
+            dos.writeInt(frameSize);
+        } else {
+            // Short frame
+            dos.writeShort(frameSize);
+        }
+    
+        produceData(baos.toByteArray());
+        
+        dos.close();
+    }
     
     /**
      *
