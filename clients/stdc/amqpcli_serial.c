@@ -64,6 +64,7 @@ main (int argc, char *argv [])
     int
         messages,
         batch_size,
+        batch_left,
         msgsize,
         repeats,
         count;
@@ -196,6 +197,7 @@ main (int argc, char *argv [])
             goto aborted;
 
         coprintf ("(%d) sending %d messages to server...", repeats, messages);
+        batch_left = batch_size;
         for (count = 0; count < messages; count++) {
             ipr_shortstr_fmt (identifier, "ID%d", count);
             message = amq_message_new ();
@@ -206,15 +208,16 @@ main (int argc, char *argv [])
             if (amq_sclient_msg_send (amq_client, out_handle, message))
                 goto aborted;
             /*  Commit as we go along                                        */
-            if (count % batch_size == 0) {
+            if (--batch_left == 0) {
                 if (!quiet_mode)
                     coprintf ("Commit batch %d...", count / batch_size);
                 amq_sclient_commit (amq_client);
+                batch_left = batch_size;
             }
         }
         /*  Commit any messages left over                                    */
-        if (amq_sclient_commit (amq_client))
-            goto aborted;
+        if (batch_left > 0)
+            amq_sclient_commit (amq_client);
 
         coprintf ("(%d) reading back messages...", repeats);
         count = 0;

@@ -1,4 +1,19 @@
-0.8b0 - 2005/03/20
+0.8b1 - 2005/03/28
+
+  - server correctly negotiates channel shut-down in case of soft
+    errors (e.g. transaction too large).
+
+  - serial and asynch clients modified to handle channel & handle
+    shut-down better.
+
+  - first version of agnostic level 2 client finished.
+
+  - now uses dynamic buckets for more efficient storage of in-memory
+    messages (previously used fixed bucket size of 32k).
+
+  - serial test client was not using accurate batch sizes - fixed.
+
+0.8b0 - 2005/03/23
 
   - transaction handling substantially rewritten to work around
     limitations of BDB subsystem.
@@ -115,7 +130,7 @@
 
 0.7b0 - 7 January 2005
     - finished testing of new queue implementation
-    
+
 0.7a2 - 3 January 2005
     - started using new queue implementation
     

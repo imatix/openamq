@@ -371,6 +371,7 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
 
         /*  Mirror it to second message using record method              */
         amq_smessage_record (diskmsg, bucket, partial);
+        amq_bucket_destroy (&bucket);
     }
     until (!partial);
     assert (body_size == 0);

@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <pdl
     name      = "OpenAMQ"
-    version   = "0.8b0"
+    version   = "0.8b1"
     copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     workflow  = "product.pwl"
     >
 
     <inherit filename = "classes.pdl" />
-    <file name = "README" class = "private resource" />
+    <file name = "README" class = "readme">Read Me file</file>
 
     <distrib name = "OpenAMQ source" type = "source">
         <project directory = "core"    />

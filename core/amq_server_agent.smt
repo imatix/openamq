@@ -2,7 +2,7 @@
 <agent
     name    = "amq_server_agent"
     script  = "smt2c.gsl"
-    animate = "1" >
+    animate = "1">
 
 <public name = "types">
 #include "amq_classes.h"
@@ -121,13 +121,13 @@ static int
 <!--  Client thread  --------------------------------------------------------->
 
 <method name = "handle created">
-    <field name = "handle id" type = "dbyte" >Handle number</field>
+    <field name = "handle id" type = "dbyte">Handle number</field>
     <field name = "dest name" type = "char *">Destination name</field>
 </method>
 
 <method name = "handle notify">
-    <field name = "handle id"   type = "dbyte" >Handle number</field>
-    <field name = "message nbr" type = "qbyte" >Message reference</field>
+    <field name = "handle id"   type = "dbyte">Handle number</field>
+    <field name = "message nbr" type = "qbyte">Message reference</field>
     <field name = "recovery"    type = "Bool"  >Restarting large message?</field>
     <field name = "delivered"   type = "Bool"  >Message is being delivered?</field>
     <field name = "redelivered" type = "Bool"  >Message is being redelivered?</field>
@@ -138,8 +138,8 @@ static int
 </method>
 
 <method name = "handle index">
-    <field name = "handle id"    type = "dbyte" >Handle number</field>
-    <field name = "message nbr"  type = "qbyte" >Top message number</field>
+    <field name = "handle id"    type = "dbyte">Handle number</field>
+    <field name = "message nbr"  type = "qbyte">Top message number</field>
     <field name = "message list" type = "ipr_longstr_t *">Message numbers</field>
 </method>
 
@@ -184,13 +184,9 @@ static int
     <handler name = "thread init">
         thread->animate  = (s_tracing > AMQP_TRACE_MED);
         the_next_event   = ok_event;
-        tcb->connection  = amq_connection_new (thread);
-        tcb->channel     = NULL;
-        tcb->handle      = NULL;
-        tcb->frame       = NULL;
         tcb->frame_max   = AMQ_BUCKET_MAX_SIZE;
+        tcb->connection  = amq_connection_new (thread);
         tcb->command     = amq_bucket_new (tcb->frame_max);
-        tcb->fragment    = amq_bucket_new (tcb->frame_max);
     </handler>
     <handler name = "thread destroy">
         smt_socket_destroy     (&tcb->socket);
@@ -448,14 +444,14 @@ static int
         connection_reply_if_needed (thread, CONNECTION_OPEN.confirm_tag);
     </action>
 
-    <action name = "wait for activity" >
+    <action name = "wait for activity">
         smt_socket_request_monitor (
             thread, tcb->socket, socket_input_event, SMT_NULL_EVENT);
     </action>
 
     <!--  CONNECTION ACTIVE  ------------------------------------------------->
 
-    <state name = "connection active" >
+    <state name = "connection active">
         <event name = "connection ping">
             <action name = "process connection ping" />
         </event>
@@ -492,6 +488,11 @@ static int
             <action name = "assert channel is open" />
             <action name = "check handle state" />
         </event>
+        <event name = "channel closing">
+            <action name = "signal not allowed for channel" />
+            <action name = "send channel close" />
+            <action name = "wait for activity" />
+        </event>
     </state>
 
     <action name = "process connection ping">
@@ -514,11 +515,14 @@ static int
     </action>
 
     <action name = "assert channel is open">
-        if (tcb->channel == NULL || tcb->channel->state != AMQ_CHANNEL_OPEN) {
+        if (tcb->channel == NULL || tcb->channel->state == AMQ_CHANNEL_CLOSED) {
             tcb->reply_code = AMQP_CHANNEL_ERROR;
             tcb->reply_text = "Channel is not open";
             smt_thread_raise_exception (thread, connection_error_event);
         }
+        else
+        if (tcb->channel->state == AMQ_CHANNEL_CLOSING)
+            smt_thread_raise_exception (thread, channel_closing_event);
     </action>
 
     <action name = "check handle state">
@@ -553,8 +557,10 @@ static int
         <event name = "open">
             <action name = "invalid connection command" />
         </event>
-        <event name = "closing">
-            <action name = "invalid connection command" />
+        <event name = "closing" nextstate = "connection active" >
+            <action name = "signal not allowed for channel" />
+            <action name = "send channel close" />
+            <action name = "wait for activity" />
         </event>
     </state>
 
@@ -582,6 +588,19 @@ static int
         channel_reply_if_needed (thread, CHANNEL_OPEN.confirm_tag);
     </action>
 
+    <action name = "signal not allowed for channel">
+        tcb->reply_code = AMQP_NOT_ALLOWED;
+        tcb->reply_text = "Channel is closing, command not allowed";
+    </action>
+
+    <action name = "send channel close">
+        amq_frame_free (&tcb->frame);
+        tcb->frame = amq_frame_channel_close_new (
+            (dbyte) tcb->channel->key, tcb->reply_code, tcb->reply_text);
+        send_the_frame (thread);
+        tcb->channel->state = AMQ_CHANNEL_CLOSING;
+    </action>
+
     <!--  HAVE CHANNEL METHOD  ----------------------------------------------->
 
     <state name = "have channel method">
@@ -592,8 +611,10 @@ static int
             <action name = "process channel method" />
             <action name = "wait for activity" />
         </event>
-        <event name = "closing">
-            <action name = "invalid connection command" />
+        <event name = "closing" nextstate = "connection active" >
+            <action name = "signal not allowed for channel" />
+            <action name = "send channel close" />
+            <action name = "wait for activity" />
         </event>
     </state>
 
@@ -646,14 +667,6 @@ static int
         tcb->reply_text = "Closing";
     </action>
 
-    <action name = "send channel close">
-        amq_frame_free (&tcb->frame);
-        tcb->frame = amq_frame_channel_close_new (
-            (dbyte) tcb->channel->key, tcb->reply_code, tcb->reply_text);
-        send_the_frame (thread);
-        tcb->channel->state = AMQ_CHANNEL_CLOSING;
-    </action>
-
     <action name = "process channel close">
         /*  We destroy the channel object                                    */
         amq_channel_destroy (&tcb->channel);
@@ -670,8 +683,10 @@ static int
         <event name = "open">
             <action name = "invalid channel command" />
         </event>
-        <event name = "closing">
-            <action name = "invalid channel command" />
+        <event name = "closing" nextstate = "connection active" >
+            <action name = "signal not allowed for handle" />
+            <action name = "send handle close" />
+            <action name = "wait for activity" />
         </event>
     </state>
 
@@ -683,6 +698,19 @@ static int
             tcb->handle->client_id = tcb->client_id;
 
         handle_reply_if_needed (thread, HANDLE_OPEN.confirm_tag);
+    </action>
+
+    <action name = "signal not allowed for handle">
+        tcb->reply_code = AMQP_NOT_ALLOWED;
+        tcb->reply_text = "Handle is closing, command not allowed";
+    </action>
+
+    <action name = "send handle close">
+        amq_frame_free (&tcb->frame);
+        tcb->frame = amq_frame_handle_close_new (
+            (dbyte) tcb->handle->key, tcb->reply_code, tcb->reply_text);
+        send_the_frame (thread);
+        tcb->handle->state = AMQ_HANDLE_CLOSING;
     </action>
 
     <!--  HAVE HANDLE METHOD  ------------------------------------------------>
@@ -768,6 +796,10 @@ static int
             tcb->reply_text = "Client sent oversized fragment";
             smt_thread_raise_exception (thread, channel_error_event);
         }
+        /*  Grab a new bucket for the incoming message data                  */
+        if (tcb->fragment)
+            amq_bucket_destroy (&tcb->fragment);
+        tcb->fragment = amq_bucket_new (HANDLE_SEND.fragment_size);
         s_sock_read (thread, tcb->fragment->data, HANDLE_SEND.fragment_size);
     </action>
 
@@ -779,9 +811,7 @@ static int
         tcb->fragment->cur_size = tcb->socket->io_size;
         amq_smessage_record (
             tcb->channel->message_in, tcb->fragment, HANDLE_SEND.partial);
-
-        /*  Grab new bucket, record method now owns our old one              */
-        tcb->fragment = amq_bucket_new (tcb->frame_max);
+        amq_bucket_destroy (&tcb->fragment);
 
         if (HANDLE_SEND.partial)
             the_next_event = continue_event;
@@ -848,6 +878,9 @@ static int
             tcb->reply_text = "Client sent oversized fragment";
             smt_thread_raise_exception (thread, channel_error_event);
         }
+        if (tcb->fragment)
+            amq_bucket_destroy (&tcb->fragment);
+        tcb->fragment = amq_bucket_new (HANDLE_PREPARE.fragment_size);
         s_sock_read (thread, tcb->fragment->data, HANDLE_PREPARE.fragment_size);
     </action>
 
@@ -862,6 +895,7 @@ static int
         /*  Check message header against known list                          */
         tcb->fragment->cur_size = tcb->socket->io_size;
         size = amq_smessage_prepare (tcb->channel->message_in, tcb->fragment);
+        amq_bucket_destroy (&tcb->fragment);
 
         /*  Send HANDLE READY in response                                    */
         amq_frame_free (&tcb->frame);
@@ -869,10 +903,7 @@ static int
             handle_notify_m->handle_id, size);
         send_the_frame (thread);
 
-        /*  Grab new bucket, record method now owns our old one              */
-        tcb->fragment = amq_bucket_new (tcb->frame_max);
-
-        /*  We pass ownership to the message handler code                    */
+        /*  Message and fragment passed on...                                */
         tcb->channel->message_in = NULL;
     </action>
 
@@ -894,14 +925,6 @@ static int
         </event>
     </state>
 
-    <action name = "send handle close">
-        amq_frame_free (&tcb->frame);
-        tcb->frame = amq_frame_handle_close_new (
-            (dbyte) tcb->handle->key, tcb->reply_code, tcb->reply_text);
-        send_the_frame (thread);
-        tcb->handle->state = AMQ_HANDLE_CLOSING;
-    </action>
-
     <action name = "process handle close">
         /*  We destroy the handle object                                     */
         amq_handle_destroy (&tcb->handle);
@@ -910,10 +933,17 @@ static int
     <!--  SENDING MESSAGE  --------------------------------------------------->
 
     <state name = "sending message">
-        <event name = "continue" >
+        <event name = "start">
+            if (tcb->fragment)
+                amq_bucket_destroy (&tcb->fragment);
+            tcb->fragment = amq_bucket_new (tcb->frame_max);
             <action name = "send message fragment" />
         </event>
-        <event name = "finished" >
+        <event name = "continue">
+            <action name = "send message fragment" />
+        </event>
+        <event name = "finished">
+            amq_bucket_destroy (&tcb->fragment);
             <return/>
         </event>
     </state>
@@ -1002,7 +1032,7 @@ static int
         <event name = "handle close">
             <action name = "invalid channel command" />
         </event>
-        <event name = "connection error" nextstate = "" >
+        <event name = "connection error" nextstate = "">
             <action name = "send connection close" />
             <action name = "close the connection" />
         </event>
@@ -1012,7 +1042,7 @@ static int
         </event>
 
         <!--  Events from SMT socket monitor  -->
-        <event name = "socket input" >
+        <event name = "socket input">
             <action name = "read next command" />
         </event>
 
@@ -1021,8 +1051,8 @@ static int
             <action name = "send handle created" />
             <action name = "wait for activity" />
         </method>
-        <method name = "handle notify" >
-            <call state = "sending message" event = "continue" />
+        <method name = "handle notify">
+            <call state = "sending message" event = "start" />
             <action name = "wait for activity" />
         </method>
         <method name = "handle index">
@@ -1071,7 +1101,7 @@ static int
 </thread>
 
 <state name = "defaults">
-    <event name = "socket error" nextstate = "" >
+    <event name = "socket error" nextstate = "">
     </event>
     <event name = "smt error" nextstate = "">
         <action name = "handle error"/>

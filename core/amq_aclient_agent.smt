@@ -173,7 +173,6 @@ static int
         tcb->channel_max = AMQ_CHANNEL_MAX;
         tcb->handle_max  = AMQ_HANDLE_MAX;
         tcb->command     = amq_bucket_new (tcb->frame_max);
-        tcb->fragment    = amq_bucket_new (tcb->frame_max);
     </handler>
 
     <handler name = "thread destroy">
@@ -408,6 +407,9 @@ static int
             coprintf ("E: oversized fragment, rejected");
             smt_thread_raise_exception (thread, channel_error_event);
         }
+        if (tcb->fragment)
+            amq_bucket_destroy (&tcb->fragment);
+        tcb->fragment = amq_bucket_new (HANDLE_NOTIFY.fragment_size);
         s_sock_read (thread, tcb->fragment->data, HANDLE_NOTIFY.fragment_size);
     </action>
 
@@ -421,9 +423,7 @@ static int
 
         tcb->fragment->cur_size = tcb->socket->io_size;
         amq_message_record (tcb->message, tcb->fragment, HANDLE_NOTIFY.partial);
-
-        /*  Grab new bucket since record method now owns our old one         */
-        tcb->fragment = amq_bucket_new (tcb->frame_max);
+        amq_bucket_destroy (&tcb->fragment);
 
         if (HANDLE_NOTIFY.partial)
             the_next_event = continue_event;
@@ -476,10 +476,17 @@ static int
     <!--  SENDING MESSAGE  --------------------------------------------------->
 
     <state name = "sending message">
-        <event name = "continue" >
+        <event name = "start">
+            if (tcb->fragment)
+                amq_bucket_destroy (&tcb->fragment);
+            tcb->fragment = amq_bucket_new (tcb->frame_max);
             <action name = "send message fragment" />
         </event>
-        <event name = "finished" >
+        <event name = "continue">
+            <action name = "send message fragment" />
+        </event>
+        <event name = "finished">
+            amq_bucket_destroy (&tcb->fragment);
             <return/>
         </event>
     </state>
@@ -609,7 +616,7 @@ static int
             <action name = "wait for activity" />
         </method>
         <method name = "handle send" >
-            <call state = "sending message" event = "continue" />
+            <call state = "sending message" event = "start" />
             <action name = "wait for activity" />
         </method>
         <method name = "handle flow">

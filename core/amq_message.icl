@@ -370,6 +370,7 @@ s_record_header ($(selftype) *self, amq_bucket_t *fragment)
         self->headers       = frame->body.message_head.headers;
         frame->body.message_head.headers = NULL;
 
+        amq_bucket_link (fragment);
         amq_frame_free (&frame);
     }
 }
@@ -433,6 +434,7 @@ s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
                 break;
         }
         $(selfname)_record (self, bucket, (Bool) (body_size > 0));
+        amq_bucket_destroy (&bucket);
         if (body_size)
             bucket = amq_bucket_new (AMQ_BUCKET_MAX_SIZE);
     }
@@ -478,6 +480,7 @@ s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
 
             /*  Mirror it to second message using record method              */
             amq_message_record (diskmsg, bucket, partial);
+            amq_bucket_destroy (&bucket);
         }
         until (!partial);
         assert (body_size == 0);

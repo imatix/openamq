@@ -90,9 +90,9 @@ main (int argc, char *argv [])
                     rc = -1;
                 }
                 if (! rc) {
-                    fragment = amq_bucket_new ();
+                    fragment = amq_bucket_new (AMQ_BUCKET_MAX_SIZE);
                     do {
-                        partial = amq_message_replay (message, fragment, AMQ_BUCKET_SIZE);
+                        partial = amq_message_replay (message, fragment, AMQ_BUCKET_MAX_SIZE);
                         amq_bucket_save (fragment, file);
                     } while (partial
                             && (!ferror (file)));

@@ -75,14 +75,14 @@ static size_t
 /*  Low-level memory allocation/deallocation functions, all inlined          */
 
 static inline $(selftype) *
-    s_$(selfname)_alloc (int idx);
+    s_$(selfname)_alloc (int idx, char *file, size_t line);
 static inline void
     s_$(selfname)_free ($(selftype) *item);
 
 /*  Object allocation functions, all cached to reduce heap access            */
 
 static inline $(selftype) *
-    s_$(selfname)_cache_alloc (int idx);
+    s_$(selfname)_cache_alloc (int idx, char *file, size_t line);
 static inline void
     s_$(selfname)_cache_free ($(selftype) *self);
 static inline void
@@ -104,6 +104,8 @@ static void
 
 <method name = "new">
     <argument name = "size" type = "size_t">Required length of data</argument>
+    <argument name = "file" type = "char *" precalc = "__FILE__">Source file for call</argument>
+    <argument name = "line" type = "size_t" precalc = "__LINE__">Line number for call</argument>
     <local>
     int
         chop_min = 0,
@@ -122,7 +124,7 @@ static void
     if (chop_min >= S_NUM_BUCKET_SIZES)
         chop_min = S_NUM_BUCKET_SIZES - 1;
 
-    self = s_$(selfname)_alloc (chop_min);
+    self = s_$(selfname)_alloc (chop_min, file, line);
     self->data     = (byte *) self + sizeof ($(selftype));
     self->idx      = chop_min;
     self->cur_size = 0;
@@ -221,7 +223,7 @@ static void
 <private name = "footer">
 /*  Allocate a new object from cached heap memory                            */
 static inline $(selftype) *
-s_$(selfname)_alloc (int idx)
+s_$(selfname)_alloc (int idx, char *file, size_t line)
 {
     $(selftype)
         *item;
@@ -238,7 +240,7 @@ s_$(selfname)_alloc (int idx)
         s_$(selfname)_cache_unused_count[idx]--;
     }
     else
-        item = s_$(selfname)_cache_alloc (idx);
+        item = s_$(selfname)_cache_alloc (idx, file, line);
 
     if (item) {
         /*  Attach object to active list                                     */
@@ -274,11 +276,11 @@ s_$(selfname)_cache_new (void)
 {
     int
         idx;
-        
+
     for (idx = 0; idx < S_NUM_BUCKET_SIZES; idx ++) {
         /*  Our list heads are empty objects                                     */
-        s_$(selfname)_cache_active[idx] = s_$(selfname)_cache_alloc (-1);
-        s_$(selfname)_cache_unused[idx] = s_$(selfname)_cache_alloc (-1);
+        s_$(selfname)_cache_active[idx] = s_$(selfname)_cache_alloc (-1, __FILE__, __LINE__);
+        s_$(selfname)_cache_unused[idx] = s_$(selfname)_cache_alloc (-1, __FILE__, __LINE__);
         s_$(selfname)_cache_active_count[idx] = 0;
         s_$(selfname)_cache_unused_count[idx] = 0;
     }
@@ -348,15 +350,15 @@ s_$(selfname)_cache_destroy (void)
 
 /*  Allocate a new object from heap memory                                   */
 static inline $(selftype) *
-s_$(selfname)_cache_alloc (int idx)
+s_$(selfname)_cache_alloc (int idx, char *file, size_t line)
 {
     $(selftype)
         *item;
 
     if (idx >= 0)
-        item = ($(selftype) *) icl_mem_alloc (sizeof ($(selftype)) + bucket_size [idx]);
+        item = ($(selftype) *) icl_mem_alloc_ (sizeof ($(selftype)) + bucket_size [idx], file, line);
     else
-        item = ($(selftype) *) icl_mem_alloc (sizeof ($(selftype)));
+        item = ($(selftype) *) icl_mem_alloc_ (sizeof ($(selftype)), file, line);
     if (item) {
         memset (item, 0, sizeof ($(selftype)));
         item->cache_next = item;

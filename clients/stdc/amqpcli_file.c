@@ -149,12 +149,12 @@ s_file_monitor (amq_aclient_monitor_t *args)
                 }
                 coprintf ("I: transferring file '%s', %ld bytes", 
                         fullname, get_file_size (fullname));
-                fragment = amq_bucket_new  ();
+                fragment = amq_bucket_new  (AMQ_BUCKET_MAX_SIZE);
                 message  = amq_message_new ();
                 amq_message_set_persistent (message, TRUE);
                 while ((!feof   (file))
                   &&  (!ferror (file))) {
-                    amq_bucket_load (fragment, file, AMQ_BUCKET_SIZE);
+                    amq_bucket_load (fragment, file, AMQ_BUCKET_MAX_SIZE);
                     amq_message_record (message, fragment, (Bool) !feof (file));
                 }
                 fileerror = ferror (file);
@@ -205,9 +205,9 @@ s_handle_notify (amq_aclient_handle_notify_t *args)
     else {
         coprintf ("I: receiving file '%s', %ld bytes", 
                   fullname, args->message->body_size);
-        fragment = amq_bucket_new  ();
+        fragment = amq_bucket_new (AMQ_BUCKET_MAX_SIZE);
         do {
-            partial = amq_message_replay (args->message, fragment, AMQ_BUCKET_SIZE);
+            partial = amq_message_replay (args->message, fragment, AMQ_BUCKET_MAX_SIZE);
             amq_bucket_save (fragment, file);
         } while (partial
              && (!ferror (file)));

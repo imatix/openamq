@@ -261,7 +261,8 @@ ipr_db_queue class.
             amq_smessage_list_queue (channel->transact_list, message);
             channel->transact_count++;
 #           ifdef TRACE_DISPATCH
-            coprintf ("$(selfname) I: queue transacted message");
+            coprintf ("$(selfname) I: queue transacted message, txn_count=%d",
+                channel->transact_count);
 #           endif
         }
         else

@@ -81,10 +81,10 @@ main (int argc, char *argv [])
             handle = amq_sclient_producer (amq_client, route);
             
             message  = amq_message_new ();
-            fragment = amq_bucket_new ();
+            fragment = amq_bucket_new (AMQ_BUCKET_MAX_SIZE);
             while ((!feof   (file))
                &&  (!ferror (file))) {
-                amq_bucket_load (fragment, file, AMQ_BUCKET_SIZE);
+                amq_bucket_load (fragment, file, AMQ_BUCKET_MAX_SIZE);
                 amq_message_record (message, fragment, (Bool) !feof (file));
             }
             amq_bucket_destroy (&fragment);
