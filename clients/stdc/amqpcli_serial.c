@@ -23,6 +23,7 @@
     "  -m number        Number of messages to send/receive (1000)\n"        \
     "  -b batch         Size of each batch (100)\n"                         \
     "  -x size          Size of each message (default = 1024)\n"            \
+    "  -r repeat        Repeat test N times (1)\n"                          \
     "  -s server        Name or address of server (localhost)\n"            \
     "  -t level         Set trace level\n"                                  \
     "  -p               Use persistent messages (no)\n"                     \
@@ -49,6 +50,7 @@ main (int argc, char *argv [])
         *opt_batch,                     /*  Size of batches                  */
         *opt_server,                    /*  Host to connect to               */
         *opt_msgsize,                   /*  Message size                     */
+        *opt_repeats,                   /*  Test repetitions                 */
         **argparm;                      /*  Argument parameter to pick-up    */
     amq_sclient_t
         *amq_client;
@@ -59,6 +61,7 @@ main (int argc, char *argv [])
         messages,
         batch_size,
         msgsize,
+        repeats,
         count;
     amq_message_t
         *message;
@@ -69,6 +72,7 @@ main (int argc, char *argv [])
     opt_batch    = "100";
     opt_server   = "localhost";
     opt_msgsize  = "1024";
+    opt_repeats  = "1";
 
     console_send     (NULL, TRUE);
     console_capture  ("amqpcli_serial.log", 'w');
@@ -105,6 +109,9 @@ main (int argc, char *argv [])
                     break;
                 case 'x':
                     argparm = &opt_msgsize;
+                    break;
+                case 'r':
+                    argparm = &opt_repeats;
                     break;
 
                 /*  These switches have an immediate effect                  */
@@ -152,8 +159,11 @@ main (int argc, char *argv [])
     messages   = atoi (opt_messages);
     batch_size = atoi (opt_batch);
     msgsize    = atoi (opt_msgsize);
+    repeats    = atoi (opt_repeats);
     if (batch_size > messages)
         batch_size = messages;
+    if (repeats < 1)
+        repeats = 1;
 
     amq_sclient_trace (atoi (opt_trace));
 
@@ -166,32 +176,36 @@ main (int argc, char *argv [])
 
     in_handle  = amq_sclient_temporary (amq_client, "temp-client", batch_size, FALSE);
     out_handle = amq_sclient_producer  (amq_client, "temp-client");
-    /*  Pause consumption on temporary queue                                 */
-    amq_sclient_flow (amq_client, in_handle, TRUE);
 
-    coprintf ("Sending %d messages to server...", messages);
-    for (count = 0; count < messages; count++) {
-        message = amq_message_new ();
-        amq_message_testfill       (message, msgsize);
-        amq_message_set_persistent (message, persistent);
-        amq_sclient_msg_send (amq_client, out_handle, message);
-    }
-    coprintf ("Reading back messages...");
-    count = 0;
-    amq_sclient_flow (amq_client, in_handle, FALSE);
-    while (count < messages) {
-        message = amq_sclient_msg_read (amq_client, 0);
-        if (message) {
-            if (!quiet_mode)
-                coprintf ("Message number %d arrived", amq_client->msg_number);
-            count++;
-            if (count % batch_size == 0) {
-                amq_sclient_msg_ack (amq_client);
-                amq_sclient_commit  (amq_client);
-            }
+    while (repeats) {
+        /*  Pause consumption on temporary queue                             */
+        amq_sclient_flow (amq_client, in_handle, TRUE);
+
+        coprintf ("Sending %d messages to server...", messages);
+        for (count = 0; count < messages; count++) {
+            message = amq_message_new ();
+            amq_message_testfill       (message, msgsize);
+            amq_message_set_persistent (message, persistent);
+            amq_sclient_msg_send (amq_client, out_handle, message);
         }
-        else
-            break;
+        coprintf ("Reading back messages...");
+        count = 0;
+        amq_sclient_flow (amq_client, in_handle, FALSE);
+        while (count < messages) {
+            message = amq_sclient_msg_read (amq_client, 0);
+            if (message) {
+                if (!quiet_mode)
+                    coprintf ("Message number %d arrived", amq_client->msg_number);
+                count++;
+                if (count % batch_size == 0) {
+                    amq_sclient_msg_ack (amq_client);
+                    amq_sclient_commit  (amq_client);
+                }
+            }
+            else
+                break;
+        }
+        repeats--;
     }
     amq_sclient_close (amq_client, 0);
     amq_sclient_destroy (&amq_client);

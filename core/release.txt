@@ -1,7 +1,8 @@
-0.7b3 -
+0.7b3 - 25 January 2005
     - client failed when receiving handle_notify during close; fixed
     - queue management got confused when persistent messages used
-    - test client changed to use temporary queue (cleaned at startup)
+    - amqpcli_serial changed to use temporary queue (cleaned at startup)
+    - amqpcli_serial now allows repeated testing (-r option)
     - temporary queues were not working - fixed
     - added HANDLE FLOW methods to serial & asynch clients
     - fixed error in framing code for HANDLE FLOW message

@@ -2,8 +2,12 @@
 #  Make full source package
 #
 VERSION=`egrep "  version" project.pdl | cut -d\" -f2`
+CVSTAG=OpenAMQ_`echo $VERSION | sed 's/\./_/'`
 PACKAGE=openamq-$VERSION-src
 echo "Building $PACKAGE..."
+
+#  CVS tag current version
+cvs tag -RF $CVSTAG
 
 echo "Preparing base..."
 cd $HOME/products/base
