@@ -596,7 +596,7 @@ object through the network.
     Throws 
         AMQFramingException - Unknown frame type.
 
-public AMQFrame consumeFrame() throws AMQFramingException, IOException 
+public AMQFrame consumeFrame()
 ..............................
 Get a command frame object from the network.
 
@@ -605,7 +605,7 @@ Get a command frame object from the network.
         AMQFramingException - Frame of incorrect size was rejected.
         IOException - Exceptions from the underlying input streams.
 
-public void produceFrame(AMQFrame frame) throws AMQFramingException, IOException 
+public void produceFrame(AMQFrame frame)
 ........................................
 Send a command frame object through the network.
 
@@ -725,15 +725,15 @@ Standard way for throwing checked exceptions from the framing code.
     Throws 
         AMQFramingException - The framing exception we are willing to throw.
 
-public static void runtimeException(Exception e, String _class, String method, String message)
+public static void runtimeException(e, _class, method, message)
 ..............................................................................................
 Standard way for throwing runtime exceptions from the framing code.
 
     Parameters
-        e - Java exception information.
-        class - Originating class.
-        method - Originating method.
-        message - Descriptive message for the warning.
+        Exception e - Java exception information.
+        String class - Originating class.
+        String method - Originating method.
+        String message - Descriptive message for the warning.
     Throws 
         RuntimeException  - The runtime exception we are willing to throw.
         
@@ -1187,8 +1187,8 @@ public AMQFrame()
 .................
 Default constructor. Sets the command type.
 
-public AMQFrame(byte[] bucket) throws AMQFramingException
-.........................................................
+public AMQFrame(byte[] bucket)
+..............................
 Decoder constructor. Sets the bucket instance variable, then calls the decode
 method.
 
@@ -1320,8 +1320,8 @@ if any, otherwise null.
     Returns
         Previous value for that name.
 
-public static String readName(DataInputStream dis) throws IOException 
-.....................................................................
+public static String readName(DataInputStream dis)
+..................................................
 Decode a field name from the passed DataInputStream.
 
     Parameters
@@ -1331,8 +1331,8 @@ Decode a field name from the passed DataInputStream.
     Throws
         Any exception generated from the passed stream.    
 
-public static void writeName(DataOutputStream dos, String name) throws IOException 
-..................................................................................
+public static void writeName(DataOutputStream dos, String name)
+...............................................................
 Write a field name to the passed DataOutputStream.
 
     Parameters
@@ -1341,8 +1341,8 @@ Write a field name to the passed DataOutputStream.
     Throws
         Any exception generated from the passed stream.    
 
-public static byte[] readString(DataInputStream dis) throws IOException 
-....................................................................... 
+public static byte[] readString(DataInputStream dis)
+....................................................
 Read a long string from the passed DataInputStream.
 
     Parameters
@@ -1352,8 +1352,8 @@ Read a long string from the passed DataInputStream.
     Throws
         Any exception generated from the passed stream.    
 
-public static void writeString(DataOutputStream dos, byte[] bytes) throws IOException
-..................................................................................... 
+public static void writeString(DataOutputStream dos, byte[] bytes)
+..................................................................
 Write a long string to the passed DataOutputStream.
 
     Parameters
@@ -1362,8 +1362,8 @@ Write a long string to the passed DataOutputStream.
     Throws
         Any exception generated from the passed stream.    
 
-public static long readInteger(DataInputStream dis) throws IOException 
-......................................................................
+public static long readInteger(DataInputStream dis)
+...................................................
 Read an integer from the passed DataInputStream.
 
     Parameters
@@ -1373,8 +1373,8 @@ Read an integer from the passed DataInputStream.
     Throws
         Any exception generated from the passed stream.    
 
-public static void writeInteger(DataOutputStream dos, long aLong) throws IOException  
-....................................................................................
+public static void writeInteger(DataOutputStream dos, long aLong)
+.................................................................
 Write an integer to the passed DataOutputStream.
 
     Parameters
@@ -1383,8 +1383,8 @@ Write an integer to the passed DataOutputStream.
     Throws
         Any exception generated from the passed stream.    
 
-public static long[] readDecimal(DataInputStream dis) throws IOException 
-........................................................................ 
+public static long[] readDecimal(DataInputStream dis)
+.....................................................
 Read a decimal from the passed DataInputStream.
 
     Parameters
@@ -1394,8 +1394,8 @@ Read a decimal from the passed DataInputStream.
     Throws
         Any exception generated from the passed stream.    
 
-public static void writeDecimal(DataOutputStream dos, long[] decimal) throws IOException
-........................................................................................  
+public static void writeDecimal(DataOutputStream dos, long[] decimal)
+.....................................................................
 Write a decimal to the passed DataOutputStream.
 
     Parameters
