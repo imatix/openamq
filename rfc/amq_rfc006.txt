@@ -57,7 +57,7 @@ Recent Change History
 Copyright Notice
 ================
 
-This document is copyright (c) 2004 JPMorgan Inc.
+This document is copyright (c) 2005 JPMorgan Inc.
 
 Authors
 =======
@@ -297,7 +297,7 @@ server.  For brevity we do not show all confirmations:
 
             #   Acknowledge messages
             C: CHANNEL ACK
-            
+
             #   Transaction management
             C: CHANNEL COMMIT
             C: CHANNEL ROLLBACK

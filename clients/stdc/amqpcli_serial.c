@@ -45,7 +45,8 @@ main (int argc, char *argv [])
         if (producer) {
             out_handle = amq_sclient_producer (amq_client, "test-small");
             message = amq_message_new ();
-            amq_message_testfill (message, 100);
+            amq_message_testfill       (message, 4000);
+            amq_message_set_persistent (message, TRUE);
             amq_sclient_msg_send (amq_client, out_handle, message);
         }
         if (consumer) {
