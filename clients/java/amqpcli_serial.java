@@ -12,6 +12,7 @@ import java.applet.*;
 import java.net.*;
 import java.util.*;
 import java.io.*;
+import java.security.*;
 import com.imatix.openamq.*;
 import com.imatix.openamq.frames.*;
 
@@ -37,7 +38,7 @@ short
 int
     socket_timeout = 0;                 /* Socket timeout im ms              */
 long
-    frame_max = 32768;
+    frame_max = 65536;
 // Test parameters
 int
     messages,                           /* Size of test set                  */
@@ -77,8 +78,10 @@ AMQFramingFactory
     amq_framing = null;                 /* Framing utility                   */
 Properties
     arguments = new Properties();       /* Command-line arguments            */
-byte[]                                  /* For checking messages read        */
-    ref;
+byte[][]
+    digests;                            /* Sha1 digests for integrity check  */
+MessageDigest
+    digest;
 
 
 ///////////////////////////   C O N T R U C T O R S  //////////////////////////
@@ -457,32 +460,36 @@ public void do_tests ()
         // Allocate the message body
         int heapMax = 1024 * 1024 * 128, done;
         message_body = new byte[(int)Math.min(message_head.bodySize, heapMax)];
-        ref = new byte[message_body.length];
+        body_fill(message_body, 1, message_body.length);
+        // Allocate the digests
+        digests = new byte[messages][];
+        digest = MessageDigest.getInstance("md5");
         for (int repeat_count = 1; repeat_count <= repeats; repeat_count++) {
             // Pause incoming messages
             handle_flow.flowPause = true;
             amq_framing.sendFrame(handle_flow);
             if (message_size > amq_framing.getFrameMax())
-                System.out.println("(" + repeat_count + ") Sending " + messages + " (fragmented) messages to server...");
+                System.out.println("(" + repeat_count + ") Sending " + messages + " (fragmented) message(s) to server...");
             else
-                System.out.println("(" + repeat_count + ") Sending " + messages + " messages to server...");
+                System.out.println("(" + repeat_count + ") Sending " + messages + " message(s) to server...");
             for (int i = 1; i <= messages; i++) {
-                OutputStream os;
+                DigestOutputStream dos;
 
                 // Set the fragment size
                 handle_send.partial = message_size > amq_framing.getFrameMax();
                 handle_send.fragmentSize = Math.min(amq_framing.getFrameMax(), message_size);
                 // Send message
-                os = amq_framing.sendMessage(handle_send, message_head, null, false);
+                dos = new DigestOutputStream(amq_framing.sendMessage(handle_send, message_head, null, false), digest);
                 done = 0;
                 while (done < message_head.bodySize) {
                     int chunk = (int)Math.min(heapMax, message_head.bodySize - done);
-                    body_fill(message_body, i, chunk);
-                    os.write(message_body, 0, chunk);
-                    os.flush();
+                    body_fill(message_body, i, Math.min(1024, message_body.length));
+                    dos.write(message_body, 0, chunk);
+                    dos.flush();
                     done += chunk;
                 }
-                os.close();
+                digests[i - 1] = dos.getMessageDigest().digest();
+                dos.close();
                 // Commit from time to time
                 if (i % batch_size == 0) {
                     amq_framing.sendFrame(channel_commit);
@@ -511,25 +518,26 @@ public void do_tests ()
             handle_consume.mimeType = "";
             // Request consume messages
             amq_framing.sendFrame(handle_consume);
-            System.out.println("(" + repeat_count + ") Reading messages back from server...");
+            System.out.println("(" + repeat_count + ") Reading message(s) back from server...");
             for (int i = 1; i <= messages; i++) {
-                InputStream is;
+                DigestInputStream dis;
 
                 // Get handle notify
                 handle_notify = (AMQHandle.Notify)amq_framing.receiveFrame();
                 message_head = amq_framing.constructMessageHead();
-                is = amq_framing.receiveMessage(handle_notify, message_head, null, false);
+                dis = new DigestInputStream(amq_framing.receiveMessage(handle_notify, message_head, null, false), digest);
                 done = 0;
                 while (done < message_head.bodySize) {
                     int chunk = (int)Math.min(heapMax, message_head.bodySize - done);
-                    done += is.read(message_body, 0, chunk);
-                    body_check(message_body, i, chunk);
+                    done += dis.read(message_body, 0, chunk);
                 }
-                is.close();
+                if (!MessageDigest.isEqual(digests[i - 1], dis.getMessageDigest().digest()))
+                    System.err.println("amqpcli_serial: do_tests: returning message contents mismatch.");
+                dis.close();
                 if ((delay_mode || messages < 100) && !quiet_mode)
                     System.out.println("Message number " + handle_notify.messageNbr + " arrived");
                 if (done != message_size - head_size) {
-                    System.err.println("amqpcli_serial: body_check: returning message size mismatch (is "
+                    System.err.println("amqpcli_serial: do_tests: returning message size mismatch (is "
                         + done + " should be " + (message_size - head_size) + ").");
                     System.exit(1);
                 }
@@ -577,6 +585,10 @@ public void do_tests ()
     catch (AMQException e)
     {
         raise_exception(exception_event, e, "amqpci_java", "do_tests", "framing error");
+    }
+    catch (NoSuchAlgorithmException e)
+    {
+        raise_exception(exception_event, e, "amqpci_java", "do_tests", "requested message digest not available");
     }
 
     the_next_event = done_event;
@@ -640,6 +652,8 @@ public void negotiate_connection_tune ()
         client_tune.options = tune_reply.storeToBucket();
         amq_framing.sendFrame(client_tune);
         amq_framing.setTuneParameters(client_tune);
+        if (verbose)
+            System.out.println("I: Frame max: " + amq_framing.getFrameMax());
     }
     catch (ClassCastException e)
     {
@@ -688,37 +702,20 @@ public void raise_exception (int event, Exception e, String _class, String modul
 
 
 //- Auxiliary routines --------------------------------------------
-byte[] body_fill(byte[] body, int seed, int len) {
+final byte[] body_fill(byte[] body, int seed, int len) {
     int a = 1664525, b = 1013904223;
-    long m = (long)1 << 32, v = seed;
+    long m = ((long)1 << 32) - 1, v = seed;
 
     if (verbose)
         System.out.println("I: Filling message of size: " + len);
     // Fill with patterns from a linear congruential generator
     for (int i = 0; i < len; i++) {
-        v = (a * v + b) & (m - 1);
-        body[i] = (byte)Math.max((byte)(v % Byte.MAX_VALUE), 1); // No zeros
+        v = (a * v + b) & m;
+        body[i] = (byte)v;
     }
 
     return body;
 }
-
-void body_check(byte[] body, int seed, int len) {
-    // Fill reference
-    ref = body_fill(ref, seed, len);
-    // Compare
-    for (int i = 0; i < len; i++) {
-        if (body[i] != ref[i]) {
-            System.out.println("Received:");
-            System.out.println(amq_framing.hexDump(body));
-            System.out.println("Reference:");
-            System.out.println(amq_framing.hexDump(ref));
-            System.err.println("amqpcli_serial: body_check: returning message contents mismatch.");
-            System.exit(1);
-        }
-    }
-}
-
 
 //%END MODULE
 }

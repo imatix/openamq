@@ -38,6 +38,9 @@ Running the test clients
 1. Simple pattern checking serial client
 
     java -cp OpenAMQJava.jar:. amqpcli_serial
+    java -Xmx256M -cp OpenAMQJava.jar:. amqpcli_serial -x 1073741824 -m 1
+
+    The second call sends a 1GB message through the server (SUN's JRE).
 
 2. Echo (chat) client
 

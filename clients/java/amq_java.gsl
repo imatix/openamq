@@ -1328,9 +1328,6 @@ public class $(AMQPTransport:) {
         incoming;                                          /* Incoming stream                  */
     DataOutputStream 
         outgoing;                                          /* Outgoing stream                  */
-    // Read retry latency    
-    static int     
-        readRetryLatency = 100;                            /* Wait this before retrying (ms)   */
     // Write command
     int 
         writeCommand = -1,                                 /* Writer thread request            */
@@ -1354,7 +1351,7 @@ public class $(AMQPTransport:) {
         writer = new Thread() {                            /* Writer thread                    */
             public void run() {
                 // Some VMs lower too much the priority of threads spawned from main
-                setPriority(priority + 1);
+                setPriority(priority);
                 synchronized(outgoing) {
                     while (outgoing != null) {
                         // Wait for write command
@@ -1418,15 +1415,6 @@ public class $(AMQPTransport:) {
         // Start the writer thread
         writer.start();
     } 
-    
-    /**
-     *
-     * Set incoming retry latency
-     *
-     **/
-    public void setIncomingRetryLatency(int latency) {
-        readRetryLatency = latency;
-    }
     
     /**
      *
@@ -1788,16 +1776,22 @@ public class $(AMQPTransport:) {
      *
      **/
     public static void readBytes(InputStream is, byte[] b, int off, int len) throws IOException {
+        int
+            retry = 0;
+
         try {
             while (len > 0) {
                 int read = is.read(b, off, len);
                 if (read != -1) {
-                    off += read;
-                    len -= read;
-                    if (len > 0) {
-                        try {
-                            Thread.sleep(readRetryLatency);
-                        } catch (InterruptedException e) {}
+                    if (read == 0) {
+                        if (retry++ > 0) {
+                            Thread.yield();
+                            retry = 0;
+                        }
+                    } else {
+                        retry = 0;
+                        off += read;
+                        len -= read;
                     }
                 } else {
                     exception(null, "$(AMQPTransport:)", "readBytes", "end of input stream");
