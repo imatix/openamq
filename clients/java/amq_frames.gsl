@@ -17,7 +17,6 @@
 class_prefix = "AMQ"
 AMQPFrameIOException = "$(class_prefix:)FramingIOException"
 AMQPFrameException = "$(class_prefix:)FramingException"
-AMQPFrameError = "$(class_prefix:)FramingError"
 AMQPFramingFactory = "$(class_prefix:)FramingFactory"
 AMQPFieldTable = "$(class_prefix:)FieldTable"
 AMQPFramable = "$(class_prefix:)Framable"
@@ -1984,7 +1983,7 @@ public class $(AMQPFramingFactory:) {
      **/
     public static void runtimeException(Exception e, String _class, String method, String message) throws RuntimeException {
         try {
-            exception(e, _class, method, "ERROR, " + message, 3); 
+            exception(e, _class, method, "ERROR, " + message, 2); 
         } catch ($(AMQPFrameException:) f) {}
     }
     
@@ -2006,8 +2005,6 @@ public class $(AMQPFramingFactory:) {
             case 1:
                 throw new $(AMQPFrameException:)(message);
             case 2:
-                throw new $(AMQPFrameError:)(message);
-            case 3:
                 throw new RuntimeException(message);
         }
     }
@@ -2218,8 +2215,8 @@ public class $(AMQPFieldTable:) extends Hashtable {
      * Get a date/time value
      *
      **/
-    public Date getDateTime(String name) {
-        return (Date)get(name);
+    public long getDateTime(String name) {
+        return ((Date)get(name)).getTime() / 1000;
     }
     
     /**
@@ -2228,7 +2225,7 @@ public class $(AMQPFieldTable:) extends Hashtable {
      *
      **/
     public Object putDateTime(String name, long value) {
-        return put(name, new Date(value));
+        return put(name, new Date(value * 1000));
     }
 
     // Read/write functions    
