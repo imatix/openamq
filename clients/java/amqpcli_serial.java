@@ -50,7 +50,7 @@ String
 Exception
     exception = null;                   /*                                  */
 // Framing utility
-AMQFactory
+AMQFramingFactory
     amq_framing = null;                 /* Framing utility                  */
 
 
@@ -114,11 +114,11 @@ public void setup ()
         amqp = new Socket(opt_server, protocol_port);
         amqp_in = amqp.getInputStream();
         amqp_out = amqp.getOutputStream();
-        amq_framing = new AMQFactory(amqp_in, amqp_out);
+        amq_framing = new AMQFramingFactory(amqp_in, amqp_out);
 
         // Client tune capabilities
         client_tune = (AMQConnection.Tune)amq_framing.createFrame(AMQConnection.TUNE);
-        client_tune.frameMax = 4000;
+        client_tune.frameMax = 2000;
         client_tune.channelMax = 128;
         client_tune.handleMax = 128;
         client_tune.heartbeat = 40;
@@ -163,7 +163,7 @@ public void forced_shutdown ()
             amqp_out.close();
 
         if (exception != null)
-            AMQFactory.error(exception, "amqpcli_java", module, error_message);
+            AMQFramingFactory.error(exception, "amqpcli_java", module, error_message);
     }
     catch (IOException e) {}
     catch (AMQFramingException e) {}
@@ -307,7 +307,7 @@ public void do_tests ()
         message_head.encoding = "";
         message_head.identifier = "";
         message_head.headers = null;
-        System.out.println("Sending " + client_tune.frameMax + " messages to server...");
+        System.out.println("Sending " + (client_tune.frameMax << 1) + " fragmented messages to server...");
         int i = 1;
         for (; true; i++) {
             // Create the message body
@@ -315,13 +315,15 @@ public void do_tests ()
             message_body = new byte[i];
             body_fill(message_body, i);
             // Set the fragment size
-            handle_send.fragmentSize = message_head.encode() + message_head.bodySize;
-            if (handle_send.fragmentSize > client_tune.frameMax)
+            handle_send.fragmentSize = (byte)(Math.random() * Math.min(i, 64)); // Data chunk to send along the header
+            handle_send.partial = handle_send.fragmentSize < message_head.bodySize; // Will there be more to send?
+            handle_send.fragmentSize += message_head.encode(); // Complete the fragment size
+            if (message_head.bodySize > (client_tune.frameMax << 1))
                 break;
             // Send message
             amq_framing.produceFrame(handle_send);
             amq_framing.produceMessageHead(message_head);
-            amq_framing.produceData(message_body);
+            amq_framing.produceInBandMessageBody(handle_send, message_head, message_body);
             // Commit from time to time
             if (i % batch_size == 0) {
                 amq_framing.produceFrame(channel_commit);
@@ -351,10 +353,16 @@ public void do_tests ()
         System.out.println("Reading messages back from the server...");
         int j = 1;
         for (i--; i > 0; i--, j++) {
+            byte[] bytes;
             // Get handle notify
             handle_notify = (AMQHandle.Notify)amq_framing.consumeFrame();
             message_head = amq_framing.consumeMessageHead();
-            body_check(amq_framing.consumeData(message_head.bodySize), j);
+            bytes = amq_framing.consumeInBandMessageBody(handle_notify, message_head);
+            if (bytes.length != j) {
+                System.err.println("amqpcli_serial: body_check: returning message size mismatch (is " + bytes.length + " should be " + j + ").");
+                System.exit(1);
+            }
+            body_check(bytes, j);
             // Acknowledge & commit from time to time
             if (j % batch_size == 0) {
                 channel_ack.messageNbr = handle_notify.messageNbr;
@@ -487,7 +495,7 @@ byte[] body_fill(byte[] body, int seed) {
         v = (a * v + b) & (m - 1);
         body[i] = (byte)(v % Byte.MAX_VALUE);
     }
-
+    
     return body;
 }
 
@@ -497,10 +505,26 @@ void body_check(byte[] body, int seed) {
     ref = body_fill(ref, seed);
     for (int i = 0; i < body.length; i++) {
         if (body[i] != ref[i]) {
-            System.err.println("amqpcli_serial: body_check: returning message mismatch.");
+            System.out.println("Received:");
+            dump_array(body);
+            System.out.println("Reference:");
+            dump_array(ref);
+            System.err.println("amqpcli_serial: body_check: returning message contents mismatch.");
             System.exit(1);
         }
     }
+}
+
+void dump_array(byte[] body) {
+    for (int i = 0; i < body.length; i++) {
+        if (body[i] < 10)
+            System.out.print("0");
+        if (body[i] < 100)
+            System.out.print("0");
+        System.out.print(body[i]);
+        System.out.print(" ");
+    }
+    System.out.println("");
 }
 
 //%END MODULE
