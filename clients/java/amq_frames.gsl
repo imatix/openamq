@@ -751,7 +751,7 @@ public class $(AMQPFramingFactory:) {
 .   endfor    
     // Verbose switch
     boolean verbose = false;
-
+    
     /**
      *
      * $(AMQPFramingFactory:) constructor
@@ -767,6 +767,16 @@ public class $(AMQPFramingFactory:) {
             this.outgoing = (DataOutputStream)outgoing;
         else
             this.outgoing = new DataOutputStream(new BufferedOutputStream(outgoing));
+    } 
+
+    /**
+     *
+     * $(AMQPFramingFactory:) constructor (specific buffers)
+     *
+     **/
+    public $(AMQPFramingFactory:)(InputStream incoming, OutputStream outgoing, int readBuff, int writeBuff) {
+        this.incoming = new DataInputStream(new BufferedInputStream(incoming, readBuff));
+        this.outgoing = new DataOutputStream(new BufferedOutputStream(outgoing, writeBuff));
     } 
     
     /**
@@ -894,7 +904,7 @@ public class $(AMQPFramingFactory:) {
      * Message head consumer method
      *
      **/
-    public $(class_prefix:)Message.Head consumeMessageHead() throws $(AMQPFrameException:) {
+    public $(class_prefix:)Message.Head consumeMessageHead() throws $(AMQPFrameException:), IOException {
         $(class_prefix:)Message.Head head = null;
         
         // Read the message header
@@ -934,7 +944,7 @@ public class $(AMQPFramingFactory:) {
      * Frame consumer method
      *
      **/
-    public $(AMQPFrame:) consumeFrame() throws $(AMQPFrameException:) {
+    public $(AMQPFrame:) consumeFrame() throws $(AMQPFrameException:), IOException {
         $(AMQPFrame:) frame = null;
         byte[] bucket = null;
         int frameSize;
