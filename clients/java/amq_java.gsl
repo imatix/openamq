@@ -283,45 +283,6 @@ function build_variables (frame, do_type)
     endfor
 endfunction
 
-function build_size (frame) 
-    my.bit_count = 0
-    for field
-        if    type <> "bit" & my.bit_count > 0
--           Prepare for new bitfield
-            my.bit_count = 0
-        endif
-        if    type = "char"
-            >            // char
-            >            size += 1;
-        elsif type = "bit"
-            if (my.bit_count = 0)
-                >            // bits
-                >            size += 1;
-            endif    
-            my.bit_count += 1
-        elsif type = "octet"
-            >            // octet
-            >            size += 1;
-        elsif type = "shortint"
-            >            // shortint
-            >            size += 2;
-        elsif type = "longint"
-            >            // longint
-            >            size += 4;
-        elsif type = "shortstr"
-            >            // shortstr
-            >            size += 1;
-            >            if ($(name:) != null) 
-            >                size += string2Bytes($(name:)).length;
-        elsif type = "longstr" | type = "table"
-            >            // table (longstr)
-            >            size += 2;
-            >            if ($(name:) != null) 
-            >                size += $(name:).length;
-        endif
-    endfor
-endfunction    
-
 function build_decoding (frame, is, inner)
     my.bit_count = 0
     for field
@@ -404,6 +365,53 @@ function build_encoding (frame, os)
         >                    $(my.os).writeByte(flags);
     endif
 endfunction
+
+function build_size (frame) 
+    my.bit_count = 0
+    for field
+        if    type <> "bit" & my.bit_count > 0
+-           Prepare for new bitfield
+            my.bit_count = 0
+        endif
+        if    type = "char"
+            >            // char
+            >            size += 1;
+        elsif type = "bit"
+            if (my.bit_count = 0)
+                >            // bits
+                >            size += 1;
+            endif    
+            my.bit_count += 1
+        elsif type = "octet"
+            >            // octet
+            >            size += 1;
+        elsif type = "shortint"
+            >            // shortint
+            >            size += 2;
+        elsif type = "longint"
+            >            // longint
+            >            size += 4;
+        elsif type = "shortstr"
+            >            // shortstr
+            >            size += 1;
+            >            if ($(name:) != null) 
+            >                size += string2Bytes($(name:)).length;
+        elsif type = "longstr" | type = "table"
+            >            // table (longstr)
+            >            size += 2;
+            >            if ($(name:) != null) 
+            >                size += $(name:).length;
+        endif
+    endfor
+endfunction  
+  
+function build_copy (frame) 
+    for field
+       if (name <> "type") 
+           >            this.$(name:) = that.$(name:);
+       endif    
+    endfor
+endfunction    
 
 function build_dumping (frame, os)
     >            $(my.os:).print("I:");
@@ -497,6 +505,7 @@ function build_framing (class, inner, AMQPException)
     >            }
     >        }
     >
+-   Size
     >        /**
     >         *
     >         * Return frame size for $(my.full_name_comments:) frames
@@ -513,6 +522,16 @@ function build_framing (class, inner, AMQPException)
     endif
     >
     >           return size;
+    >        }
+    >
+-   Cloning
+    >        /**
+    >         *
+    >         * Shallow copy from another $(my.full_name_comments:) frame
+    >         *
+    >         **/
+    >        public void cloneFrom($(my.inner:) that) {
+    build_copy (.)
     >        }
     >
 -   Dumping
@@ -589,7 +608,6 @@ package $(imatix_openamq_frames_package:);
 
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -1068,7 +1086,7 @@ public class $(AMQPFieldTable:) extends Hashtable {
      * Read a field name
      *
      **/
-    public static String readName(DataInputStream dis) throws IOException {
+    static String readName(DataInputStream dis) throws IOException {
         byte[] bytes = new byte[u(dis.readByte())];
         
         readBytes(dis, bytes, 0, bytes.length);
@@ -1081,7 +1099,7 @@ public class $(AMQPFieldTable:) extends Hashtable {
      * Write a field name
      *
      **/
-    public static void writeName(DataOutputStream dos, String name) throws IOException {
+    static void writeName(DataOutputStream dos, String name) throws IOException {
         byte[] bytes = string2Bytes(name);
         
         dos.writeByte(s((short)bytes.length));
@@ -1093,7 +1111,7 @@ public class $(AMQPFieldTable:) extends Hashtable {
      * Read string field data
      *
      **/
-    public static byte[] readString(DataInputStream dis) throws IOException  {
+    static byte[] readString(DataInputStream dis) throws IOException  {
         byte[] bytes = new byte[u(dis.readShort())];
         
         readBytes(dis, bytes, 0, bytes.length);
@@ -1106,7 +1124,7 @@ public class $(AMQPFieldTable:) extends Hashtable {
      * Write string field data
      *
      **/
-    public static void writeString(DataOutputStream dos, byte[] bytes) throws IOException {
+    static void writeString(DataOutputStream dos, byte[] bytes) throws IOException {
         dos.writeShort(s((int)bytes.length));
         writeBytes(dos, bytes, 0, bytes.length);
     }
@@ -1116,7 +1134,7 @@ public class $(AMQPFieldTable:) extends Hashtable {
      * Read an integer field value
      *
      **/
-    public static long readInteger(DataInputStream dis) throws IOException  {
+    static long readInteger(DataInputStream dis) throws IOException  {
         return u(dis.readInt());
     }
     
@@ -1125,7 +1143,7 @@ public class $(AMQPFieldTable:) extends Hashtable {
      * Write an integer field value
      *
      **/
-    public static void writeInteger(DataOutputStream dos, long aLong) throws IOException  {
+    static void writeInteger(DataOutputStream dos, long aLong) throws IOException  {
         dos.writeInt(s(aLong));
     }
     
@@ -1134,7 +1152,7 @@ public class $(AMQPFieldTable:) extends Hashtable {
      * Read decimal field value
      *
      **/
-    public static long[] readDecimal(DataInputStream dis) throws IOException  {
+    static long[] readDecimal(DataInputStream dis) throws IOException  {
        long decimals = readByte(dis);
        long integer = readInteger(dis);
        
@@ -1146,7 +1164,7 @@ public class $(AMQPFieldTable:) extends Hashtable {
      * Write decimal field value
      *
      **/
-    public static void writeDecimal(DataOutputStream dos, long[] decimal) throws IOException  {
+    static void writeDecimal(DataOutputStream dos, long[] decimal) throws IOException  {
         writeByte(dos, (short)decimal[0]);
         writeInteger(dos, decimal[1]);
     }
@@ -1156,7 +1174,7 @@ public class $(AMQPFieldTable:) extends Hashtable {
      * Read field type specification
      *
      **/
-    static char readChar(DataInputStream dis) throws IOException {
+    char readChar(DataInputStream dis) throws IOException {
         return (char)u(dis.readByte());
     }
     
@@ -1165,7 +1183,7 @@ public class $(AMQPFieldTable:) extends Hashtable {
      * Write field type specification
      *
      **/
-    static void writeChar(DataOutputStream dos, char type) throws IOException {
+    void writeChar(DataOutputStream dos, char type) throws IOException {
         dos.writeByte(s((short)type));
     }
     
@@ -1218,7 +1236,7 @@ public class $(FrugalByteArrayOutputStream:) extends OutputStream {
     
     int count;
     
-    public $(FrugalByteArrayOutputStream:) (byte[] bytes) {
+    public $(FrugalByteArrayOutputStream:)(byte[] bytes) {
         this.bytes = bytes;
         reset();
     }
@@ -1287,7 +1305,6 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import $(imatix_openamq_frames_package:).$(AMQPFramable:);
@@ -1378,10 +1395,11 @@ public class $(AMQPTransport:) {
      * $(AMQPTransport:) constructor
      *
      **/
-    public $(AMQPTransport:)(InputStream is, OutputStream os, int timeout) throws IOException {
+    public $(AMQPTransport:)(InputStream is, OutputStream os) throws IOException {
         incoming = new DataInputStream(new BufferedInputStream(is));
         outgoing = new DataOutputStream(new BufferedOutputStream(os));
-        setup(timeout);
+        // Start the writer thread
+        writer.start();
     } 
 
     /**
@@ -1389,23 +1407,12 @@ public class $(AMQPTransport:) {
      * $(AMQPTransport:) configurable buffer constructor
      *
      **/
-    public $(AMQPTransport:)(InputStream is, OutputStream os, int readBuff, int writeBuff, int timeout) throws IOException {
+    public $(AMQPTransport:)(InputStream is, OutputStream os, int readBuff, int writeBuff) throws IOException {
         incoming = new DataInputStream(new BufferedInputStream(is, readBuff));
         outgoing = new DataOutputStream(new BufferedOutputStream(os, writeBuff));
-        setup(timeout);
-    } 
-    
-    /**
-     *
-     * Setup for constructors
-     *
-     **/
-    void setup(int timeout) throws SocketException {
-        // Set the output timeout
-        this.timeout = timeout;
         // Start the writer thread
         writer.start();
-    }    
+    } 
     
     /**
      *
@@ -1414,6 +1421,15 @@ public class $(AMQPTransport:) {
      **/
     public void setIncomingRetryLatency(int latency) {
         readRetryLatency = latency;
+    }
+    
+    /**
+     *
+     * Set outgoing timeout
+     *
+     **/
+    public void setOutgoingTimeout(int timeout) {
+        this.timeout = timeout;
     }
     
     /**
@@ -1980,7 +1996,8 @@ public class $(AMQPFramingFactory:) extends $(AMQPTransport:) {
      *
      **/
     public $(AMQPFramingFactory:)(Socket socket) throws IOException {
-        super(socket.getInputStream(), socket.getOutputStream(), socket.getSoTimeout());
+        super(socket.getInputStream(), socket.getOutputStream());
+        setOutgoingTimeout(socket.getSoTimeout());
     } 
 
     /**
@@ -1989,7 +2006,8 @@ public class $(AMQPFramingFactory:) extends $(AMQPTransport:) {
      *
      **/
     public $(AMQPFramingFactory:)(Socket socket, int readBuff, int writeBuff) throws IOException {
-        super(socket.getInputStream(), socket.getOutputStream(), socket.getSoTimeout(), readBuff, writeBuff);
+        super(socket.getInputStream(), socket.getOutputStream(), readBuff, writeBuff);
+        setOutgoingTimeout(socket.getSoTimeout());
     } 
     
     /**
@@ -1997,8 +2015,8 @@ public class $(AMQPFramingFactory:) extends $(AMQPTransport:) {
      * $(AMQPFramingFactory:) constructor
      *
      **/
-    public $(AMQPFramingFactory:)(InputStream is, OutputStream os, int timeout) throws IOException {
-        super(is, os, timeout);
+    public $(AMQPFramingFactory:)(InputStream is, OutputStream os) throws IOException {
+        super(is, os);
     } 
 
     /**
@@ -2006,8 +2024,8 @@ public class $(AMQPFramingFactory:) extends $(AMQPTransport:) {
      * $(AMQPFramingFactory:) configurable buffer constructor
      *
      **/
-    public $(AMQPFramingFactory:)(InputStream is, OutputStream os, int readBuff, int writeBuff, int timeout) throws IOException {
-        super(is, os, timeout, readBuff, writeBuff);
+    public $(AMQPFramingFactory:)(InputStream is, OutputStream os, int readBuff, int writeBuff) throws IOException {
+        super(is, os, readBuff, writeBuff);
     } 
     
     /**
@@ -2153,11 +2171,11 @@ public class $(AMQPFramingFactory:) extends $(AMQPTransport:) {
      * Message head receiver method (InputStream)
      *
      **/
-    public $(class_prefix:)Message.Head receiveMessageHead(DataInputStream is) throws $(AMQPException:) {
+    public $(class_prefix:)Message.Head receiveMessageHead(DataInputStream dis) throws $(AMQPException:) {
         $(class_prefix:)Message.Head head = null;
         
         // Read the message header
-        head = ($(class_prefix:)Message.Head)message.receiveFrame((is != null) ? is : incoming());
+        head = ($(class_prefix:)Message.Head)message.receiveFrame((dis != null) ? dis : incoming());
         if (verbose) {
             System.out.println("I: read " + head.size() + " bytes from server (message head)");
             head.dump();
@@ -2200,14 +2218,16 @@ public class $(AMQPFramingFactory:) extends $(AMQPTransport:) {
     
     /**
      *
-     * This returns an InputStream for reading a message body
-     * The first handle notify and the head for this message must be supplied
+     * This returns an InputStream for receiving a message
+     * The first handle notify for this message and an empty head must be supplied
+     * If the message was NOT prepared, the passed head is filled from the network.
      * If the passed input stream is null, in-band message consumption will take place 
      * Copies the destName variable in the last handle notify to the provided hnFirst
      *
      **/
-    public InputStream getMessageBodyInputStream($(class_prefix:)Handle.Notify hnFirst, $(class_prefix:)Message.Head head, DataInputStream is, boolean prepared) {
-        return new MessageBodyInputStream(hnFirst, head, (is != null) ? is : incoming(), prepared);
+    public InputStream receiveMessage($(class_prefix:)Handle.Notify hnFirst, $(class_prefix:)Message.Head head, DataInputStream is, boolean prepared)\
+    throws IOException {
+        return new MessageInputStream(hnFirst, head, (is != null) ? is : incoming(), prepared);
     }
     
     /**
@@ -2215,7 +2235,7 @@ public class $(AMQPFramingFactory:) extends $(AMQPTransport:) {
      * This class processes handle notifies from the server, and provides the body of the message as an inputstream
      *
      **/
-    public class MessageBodyInputStream extends FilterInputStream {
+    public class MessageInputStream extends FilterInputStream {
         $(class_prefix:)Handle.Notify 
             hnFirst,                                       /* Parameters of first fragment     */
             hnCurr;                                        /* Parameters of current fragment   */
@@ -2230,15 +2250,25 @@ public class $(AMQPFramingFactory:) extends $(AMQPTransport:) {
             fNew,                                          /* Unread fragment ready            */
             empty = false;                                 /* End of stream                    */
     
-        MessageBodyInputStream($(class_prefix:)Handle.Notify hnFirst, $(class_prefix:)Message.Head head, DataInputStream is, boolean prepared) {
+        MessageInputStream($(class_prefix:)Handle.Notify hnFirst, $(class_prefix:)Message.Head head, DataInputStream is, boolean prepared) throws IOException {
             super(is);
 
-            this.hnFirst = hnCurr = hnFirst;
-            this.head = head;
-            this.is = is;
-            mRead = 0; 
-            fRead = prepared ? 0 : head.size();
-            fNew = fRead == 0;
+            try {
+                this.hnFirst = hnCurr = hnFirst;
+                this.head = head;
+                this.is = is;
+                mRead = 0; 
+                fRead = prepared ? 0 : head.size();
+                fNew = fRead == 0;
+                if (!prepared) {
+                    head = receiveMessageHead();
+                    this.head.cloneFrom(head);
+                }
+            } catch ($(AMQPException:) e) {
+                // Encapsulate the exception as $(AMQPIOException) to allow method overloading
+                throw new $(AMQPIOException)(e.getMessage());
+            }
+            
         }
         
         /**
@@ -2426,16 +2456,17 @@ public class $(AMQPFramingFactory:) extends $(AMQPTransport:) {
     
     /**
      *
-     * This returns an OutputStream for writing a message body
+     * This returns an OutputStream for sending a message
      * The first handle send and the head for this message must be supplied
+     * The constructor will NOT send the message head passed for messages that were prepared
      * If the passed output stream is null, in-band message production will take place 
      * Uses the destName variable from the provided hsFirst for the last handle send
      * Sends fragments of the size specified in hsFirst.fragmentSize 
      *
      */
-    public OutputStream getMessageBodyOutputStream($(class_prefix:)Handle.Send hsFirst, $(class_prefix:)Message.Head head, DataOutputStream os, boolean prepared)\
+    public OutputStream sendMessage($(class_prefix:)Handle.Send hsFirst, $(class_prefix:)Message.Head head, DataOutputStream os, boolean prepared)\
     throws IOException {
-        return new MessageBodyOutputStream(hsFirst, head, (os != null) ? os : outgoing(), prepared);
+        return new MessageOutputStream(hsFirst, head, (os != null) ? os : outgoing(), prepared);
     }
  
     /**
@@ -2443,7 +2474,7 @@ public class $(AMQPFramingFactory:) extends $(AMQPTransport:) {
      * This class fragments the message body generating handle sends as needed 
      *
      **/
-    public class MessageBodyOutputStream extends FilterOutputStream {
+    public class MessageOutputStream extends FilterOutputStream {
         $(class_prefix:)Handle.Send 
             hsCurr;                                        /* Parameters for current fragment  */
         $(class_prefix:)Message.Head 
@@ -2459,24 +2490,36 @@ public class $(AMQPFramingFactory:) extends $(AMQPTransport:) {
         boolean
             full = false;                                  /* The message body was written     */
     
-        MessageBodyOutputStream($(class_prefix:)Handle.Send hsFirst, $(class_prefix:)Message.Head head, DataOutputStream os, boolean prepared) {
+        MessageOutputStream($(class_prefix:)Handle.Send hsFirst, $(class_prefix:)Message.Head head, DataOutputStream os, boolean prepared) throws IOException {
             super(os);
             
-            if (hsFirst.fragmentSize > frameMax)
-                runtimeException(null, "MessageBodyOutputStream", "MessageBodyOutputStream", "oversized fragment");
-            destName = hsFirst.destName;
-            if (!hsFirst.partial) {
-                if (head.size() + head.bodySize > hsFirst.fragmentSize)
-                    runtimeException(null, "MessageBodyOutputStream", "MessageBodyOutputStream", "partial is false but message does not fit in fragment");
-            } else {
-                hsFirst.destName = "";
-            }    
-            fragmentSize = hsFirst.fragmentSize;
-            hsCurr = hsFirst;
-            this.head = head;
-            this.os = os;
-            mWritten = 0;
-            fWritten = prepared ? 0 : head.size();
+            try {
+                if (hsFirst.fragmentSize > frameMax)
+                    runtimeException(null, "MessageBodyOutputStream", "MessageBodyOutputStream", "oversized fragment");
+                destName = hsFirst.destName;
+                if (!hsFirst.partial) {
+                    if (head.size() + head.bodySize > hsFirst.fragmentSize)
+                        runtimeException(null, "MessageBodyOutputStream", "MessageBodyOutputStream", "partial is false but message does not fit in fragment");
+                } else {
+                    hsFirst.destName = "";
+                }    
+                fragmentSize = hsFirst.fragmentSize;
+                hsCurr = hsFirst;
+                this.head = head;
+                this.os = os;
+                mWritten = 0;
+                if (!prepared) {
+                    sendFrame(hsFirst);
+                    sendMessageHead(head);
+                    fWritten = head.size();
+                } else {
+                    sendFrame(hsFirst);
+                    fWritten = 0;
+                }
+            } catch ($(AMQPException:) e) {
+                // Encapsulate the exception as $(AMQPIOException) to allow method overloading
+                throw new $(AMQPIOException)(e.getMessage());
+            }
         }
         
         /**

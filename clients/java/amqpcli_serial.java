@@ -377,9 +377,7 @@ public void do_tests ()
             handle_send.partial = message_size > amq_framing.getFrameMax();
             handle_send.fragmentSize = Math.min(amq_framing.getFrameMax(), message_size);
             // Send message
-            amq_framing.sendFrame(handle_send);
-            amq_framing.sendMessageHead(message_head);
-            os = amq_framing.getMessageBodyOutputStream(handle_send, message_head, null, false);
+            os = amq_framing.sendMessage(handle_send, message_head, null, false);
             os.write(message_body);
             os.flush();
             os.close();
@@ -416,10 +414,10 @@ public void do_tests ()
 
             // Get handle notify
             handle_notify = (AMQHandle.Notify)amq_framing.receiveFrame();
-            message_head = amq_framing.receiveMessageHead();
+            message_head = amq_framing.constructMessageHead();
+            is = amq_framing.receiveMessage(handle_notify, message_head, null, false);
             head_size = message_head.size();
             bytes = new byte[(int)message_head.bodySize];
-            is = amq_framing.getMessageBodyInputStream(handle_notify, message_head, null, false);
             is.read(bytes);
             is.close();
             if (bytes.length != message_size - head_size) {

@@ -16,7 +16,7 @@
 <directory name = "com/imatix/openamq" class = "generated">
     <file name = "AMQFramingFactory.java"                                   >Glue/utility for framable objects</file>
     <file name = "AMQException.java"                                        >General exception</file>
-    <file name = "AMQIOException.java"                                      >Needed for the provided streams</file>
+    <file name = "AMQIOException.java"                                      >Thrown from the message streams</file>
 </directory>
 
 <!-- Java API generated source, framing -->
