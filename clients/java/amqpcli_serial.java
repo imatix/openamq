@@ -530,7 +530,7 @@ public void do_tests ()
                 }
                 if (delay_mode) {
                     try {
-                        Thread.sleep(1);
+                        Thread.sleep(1000);
                     } catch (InterruptedException e) {}
                 }
             }
