@@ -1245,11 +1245,11 @@ LINK32=link.exe
 $(debugtarget:) \
 .endfor
 /libpath:"$(env.get("IBASE"))/lib" \
-/nologo /subsystem:windows /dll /debug /machine:I386 /out:"../$(class.name:).dll" /pdbtype:sept
+/nologo /subsystem:windows /dll /debug /machine:I386 /out:"$(class.name:).dll" /pdbtype:sept
 # Begin Custom Build - Performing registration
 OutDir=.\\Debug
-TargetPath=..\\$(class.name:).dll
-InputPath=..\\$(class.name:).dll
+TargetPath=.\\$(class.name:).dll
+InputPath=.\\$(class.name:).dll
 SOURCE="\$(InputPath)"
 
 "\$(OutDir)\\regsvr32.trg" : \$(SOURCE) "\$(INTDIR)" "\$(OUTDIR)"
@@ -1291,11 +1291,11 @@ LINK32=link.exe
 $(target:) \
 .endfor
 /libpath:"$(env.get("IBASE"))/lib" \
-/nologo /subsystem:windows /dll /machine:I386 /out:"../$(class.name:).dll"
+/nologo /subsystem:windows /dll /machine:I386 /out:"$(class.name:).dll"
 # Begin Custom Build - Performing registration
 OutDir=.\\ReleaseMinSize
-TargetPath=..\\$(class.name:).dll
-InputPath=..\\$(class.name:).dll
+TargetPath=.\\$(class.name:).dll
+InputPath=.\\$(class.name:).dll
 SOURCE="\$(InputPath)"
 
 "\$(OutDir)\\regsvr32.trg" : \$(SOURCE) "\$(INTDIR)" "\$(OUTDIR)"
@@ -1338,11 +1338,11 @@ LINK32=link.exe
 $(target:) \
 .endfor
 /libpath:"$(env.get("IBASE"))/lib" \
-/nologo /subsystem:windows /dll /machine:I386 /out:"../$(class.name:).dll"
+/nologo /subsystem:windows /dll /machine:I386 /out:"$(class.name:).dll"
 # Begin Custom Build - Performing registration
 OutDir=.\\ReleaseMinDependency
-TargetPath=..\\$(class.name:).dll
-InputPath=..\\$(class.name:).dll
+TargetPath=.\\$(class.name:).dll
+InputPath=.\\$(class.name:).dll
 SOURCE="\$(InputPath)"
 
 "\$(OutDir)\\regsvr32.trg" : \$(SOURCE) "\$(INTDIR)" "\$(OUTDIR)"
@@ -1399,12 +1399,6 @@ SOURCE=.\\StdAfx.cpp
 .for object
 # Begin Source File
 SOURCE=.\\$(object.name:).cpp
-# End Source File
-.endfor
-
-.for additional_source
-# Begin Source File
-SOURCE=..\\sources\\$(file)
 # End Source File
 .endfor
 
