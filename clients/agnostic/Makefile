@@ -1,4 +1,4 @@
-APR_CONFIG	=/usr/local/apr/bin/apr-1-config
+APR_CONFIG	=/home/mato/work/imatix/apr-1.0.1/apr-1-config
 APR_CFLAGS	=$(shell $(APR_CONFIG) --cflags)
 APR_CPPFLAGS	=$(shell $(APR_CONFIG) --cppflags --includes)
 APR_LDFLAGS	=$(shell $(APR_CONFIG) --ldflags)
@@ -18,7 +18,7 @@ clean:
 	$(RM) -f client client.o amqp_client_api.o amqp_client_api.c amqp_client_api.h
 
 client: amqp_client_api.o client.o
-	$(CC) $(LDFLAGS) -o $@ $(LDLIBS) $+
+	$(CC) $(LDFLAGS) -o $@ $+ $(LDLIBS)
 
 client.o: client.c 
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
