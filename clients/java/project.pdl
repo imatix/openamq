@@ -1,0 +1,41 @@
+<?xml?>
+<pdl
+    name      = "OpenAMQ Java Client APIs"
+    version   = "0.1a0"
+    copyright = "Copyright (c) 2004-2005 JPMorgan"
+    workflow  = "standard.pwl"
+    >
+
+<include filename = "prelude.pdl" />
+
+<file name = "amqpcli_serial.java"   class = "private resource">Java serial pattern testing client</file>
+<file name = "EchoClient.java"       class = "private resource">Java to C component-chat demonstration client</file>
+
+<file name = "amq_frames.gsl"        class = "private resource">Java frames generator</file>
+<file name = "amqpcli_serial.java.l" class = "private resource">Simple FSM for connecting/closing in amqpcli_serial.java</file>
+<file name = "README.txt"            class = "private resource">Readme</file>
+
+<actions target = "win32">
+    <generate>
+        <execute>
+        gsl amq_frames.xml
+        </execute>
+    </generate>
+    <build>
+        <execute>
+        call boomvs --where=. --using=amq --target=amq build
+        </execute>
+    </build>
+    <clean>
+        <execute>
+        call boomvs --where=. --using=amq --target=amq clean
+        </execute>
+    </clean>
+</actions>
+
+</pdl>
+
+lr amqpcli_serial.java.l
+javac com/imatix/openamq/framing/AMQFramingFactory.java
+javac amqpcli_serial.java
+javac EchoClient.java
