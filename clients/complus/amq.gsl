@@ -6,7 +6,7 @@
 Microsoft Developer Studio Workspace File, Format Version 6.00
 # WARNING: DO NOT EDIT OR DELETE THIS WORKSPACE FILE!
 
-.for root.library
+.for root.library where defined(name)
 ###############################################################################
 
 Project: "$(library.name)"=.\\$(library.target)\\$(library.name).dsp - Package Owner=<4>

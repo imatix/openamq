@@ -24,11 +24,13 @@
 -            name = file name
 -            local = yes/no (yes means #include "...", no means #include <...>)
 -        >
--        </import>
+-        </include>
 -
 -        <interface
 -            name = interface name 
--            source = yes/no (source interface = event interface)
+-            dual = yes/no (when yes, interface is dual, otherwise it has vtable only)
+-                   ignored for source interfaces as these are always dispinterfaces
+-            source = yes/no (source interface = event dispinterface)
 -            iid = interface GUID
 -        >
 -
@@ -38,6 +40,15 @@
 -                get = yes/no (whether get function should be accessible)
 -                put = yes/no (whether put function should be accessible)
 -            >
+-
+-                <argument - defines property argument
+-                    name = argument name
+-                    type = argument type
+-                    default = optional - when defined, argument becomes optional
+-                              and has specified default value
+-                >
+-                </argument>
+-
 -            </property>
 - 
 -            <method - defines method prototype within the interface
@@ -48,6 +59,8 @@
 -                <argument - defines method argument
 -                    name = argument name
 -                    type = argument type
+-                    default = optional - when defined, argument becomes optional
+-                              and has specified default value
 -                >
 -                </argument>
 -
@@ -71,6 +84,11 @@
 -            >
 -            </include>
 -
+-            <custom - any custom code you want to add to the object
+-                      code will be placed immediately after the includes
+-                location = h/cpp (whether to add it to header or implementation file)
+-            >
+-
 -            <constructor
 -            >
 -                constructor code
@@ -82,7 +100,9 @@
 -            </destructor>
 -
 -            <implements - contains implementation for specific interface
+-                          be aware! there can be only single dual interface implemented on each object
 -                interface = interface name
+-                errorinfo = yes/no (if yes, client is responsible for setting up error object in case of error)
 -            >
 -
 -                <property - contains implementation for specific property
@@ -173,6 +193,7 @@ function cpp_param ()
     endfor
 endfunction
 
+------------------------------------------------------------------------
 function get_c_type (type, pointer)
     if my.type = "string"
         c_type = "char"
@@ -186,13 +207,14 @@ function get_c_type (type, pointer)
     endif
 endfunction
 
+------------------------------------------------------------------------
 function idl_method
     param = ""
     for argument
-        if optional ?= 1
-           param += "[in, optional] "
+        if defined (default)
+            param += "[in, optional, defaultvalue ($(default:)) ] "
         else
-           param += "[in] "
+            param += "[in] "
         endif
         param += "$(type:) $(name:)"
         if index (argument) < count (method.argument)
@@ -203,13 +225,15 @@ function idl_method
         param += ", [out, retval] $(method.type:) *pVal"
     endif
 >        [id($(method_id))] HRESULT $(name:) ($(param:));
-        method.dispid = method_id
-        method_id = method_id + 1
+    method.dispid = method_id
+    method_id = method_id + 1
 
 endfunction
 
 ------------------------------------------------------------------------
 function idl_property
+- there may be several methods for a property
+- so we shouldn't increase dispid while the name is the same
     if last_name = ""
         last_name = name
     elsif name <> last_name
@@ -218,8 +242,8 @@ function idl_property
     endif
     param = ""
     for argument
-        if optional ?= 1
-            param += "[in, optional] "
+        if defined (default)
+            param += "[in, optional, defaultvalue ($(default:)) ] "
         else
             param += "[in] "
         endif
@@ -232,6 +256,8 @@ function idl_property
     if "$(put)" = "yes"
 >        [propput, id($(method_id))] HRESULT $(name:)($(param:)[in]$(property.type:) newVal);
     endif
+    property.dispid = method_id
+
 endfunction
 
 ------------------------------------------------------------------------
@@ -249,10 +275,17 @@ function generate_idl
 >[
 >    object,
 >    uuid($(iid:)),
+    if "$(dual:)" = "yes"
 >    dual,
+    endif
 >    pointer_default(unique)
 >]
->interface $(interface.name:) : IDispatch
+>interface $(interface.name:) : \
+    if "$(dual:)" = "yes"
+>IDispatch
+    else
+>IUnknown
+    endif 
 >{
         method_id = 1
         for method
@@ -389,6 +422,10 @@ function generate_object
 >#include <$(include.name:)>
             endif
         endfor
+        for custom where location = "h"
+>$(custom.:)
+>
+        endfor
 >
         for sink
 >typedef IDispEventImpl <$(id:), class C$(object.name:), &__uuidof($(interface:)), &LIBID_$(class.name:)Lib, $(class.version_major), $(class.version_minor)> C$(object.name:)Sink$(id:);
@@ -423,7 +460,23 @@ function generate_object
         endif
 >    public CComObjectRootEx <CComSingleThreadModel>,
 >    public CComCoClass <C$(object.name:), &CLSID_$(object.name:)>,
->    public IDispatchImpl <I$(object.name:), &IID_I$(object.name:), &LIBID_$(class.name:)Lib>
+        dispatch_count = 0
+        for implements
+            for class.interface where "$(interface.name:)" = "$(implements.interface:)"
+                if "$(interface.dual:)" = "yes"
+>    public IDispatchImpl <$(interface.name:), &IID_$(interface.name:), &LIBID_$(class.name:)Lib>,
+                    if dispatch_count = 0
+                        dispatch_count = 1
+                    else
+                        echo "There can be only one dual interface in object $(object.name:) !"
+                        abort -1
+                    endif
+                else
+>    public $(interface.name:),
+                endif
+            endfor
+        endfor
+>    public ISupportErrorInfo
 >{
 >public:
 >    C$(object.name:) ();
@@ -436,7 +489,9 @@ function generate_object
 >    DECLARE_PROTECT_FINAL_CONSTRUCT ()
 >
 >    BEGIN_COM_MAP (C$(object.name:))
+        if dispatch_count = 1
 >        COM_INTERFACE_ENTRY (IDispatch)
+        endif
         for implements
 >        COM_INTERFACE_ENTRY ($(interface:))
         endfor
@@ -510,6 +565,18 @@ function generate_object
 >    DECLARE_VIEW_STATUS (VIEWSTATUS_SOLIDBKGND | VIEWSTATUS_OPAQUE)
 >
         endif
+>    STDMETHOD(InterfaceSupportsErrorInfo)(REFIID riid)
+>    {
+>        static const IID* arr[] = {
+        for implements where "$(errorinfo:)" = "yes"
+>            &IID_$(interface:)$(!last()??","?)
+        endfor
+>        };
+>        for (int i=0; i<sizeof(arr)/sizeof(arr[0]); i++) {
+>            if (InlineIsEqualGUID(*arr[i], riid) ) return S_OK;
+>        }
+>        return S_FALSE;
+>    }
         for implements
             for class.interface where "$(interface.name)" = "$(implements.interface)"
                 for method
@@ -602,6 +669,10 @@ function generate_object
             else
 >#include <$(include.name:)>
             endif
+        endfor
+        for custom where location = "cpp"
+>$(custom.:)
+>
         endfor
 >
 >/*---------------------------------------------------------------------------
@@ -1125,8 +1196,8 @@ RSC=rc.exe
 # PROP Intermediate_Dir "$(class.name:)\\Debug"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
-# ADD BASE CPP /nologo /MDd /W3 /Gm /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /Yu"stdafx.h" /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /ZI /Od /I $\(INCDIR) /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /FD /GZ /c
+# ADD BASE CPP /nologo /MTd /W3 /Gm /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /Yu"stdafx.h" /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /Gm /ZI /Od /I $\(INCDIR) /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /FD /GZ /c
 # SUBTRACT CPP /YX /Yc /Yu
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
@@ -1170,8 +1241,8 @@ SOURCE="\$(InputPath)"
 # PROP Intermediate_Dir "$(class.name:)\\ReleaseMinSize"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
-# ADD BASE CPP /nologo /MD /W3 /O1 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "_ATL_DLL" /Yu"stdafx.h" /FD /c
-# ADD CPP /nologo /MD /W3 /O1 /I $\(INCDIR) /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "_ATL_DLL" /FD /c
+# ADD BASE CPP /nologo /MT /W3 /O1 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "_ATL_DLL" /Yu"stdafx.h" /FD /c
+# ADD CPP /nologo /MT /W3 /O1 /I $\(INCDIR) /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "_ATL_DLL" /FD /c
 # SUBTRACT CPP /YX /Yc /Yu
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
@@ -1216,8 +1287,8 @@ SOURCE="\$(InputPath)"
 # PROP Intermediate_Dir "$(class.name:)\\ReleaseMinDependency"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
-# ADD BASE CPP /nologo /MD /W3 /O1 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "_ATL_STATIC_REGISTRY" /Yu"stdafx.h" /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I $\(INCDIR) /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "_ATL_STATIC_REGISTRY" /FD /c
+# ADD BASE CPP /nologo /MT /W3 /O1 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "_ATL_STATIC_REGISTRY" /Yu"stdafx.h" /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I $\(INCDIR) /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "_ATL_STATIC_REGISTRY" /FD /c
 # SUBTRACT CPP /Fr /YX /Yc /Yu
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
