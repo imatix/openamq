@@ -1,6 +1,6 @@
 <?xml?>
 <pdl
-    name      = "OpenAMQ Java framing API"
+    name      = "OpenAMQ Java API"
     version   = "0.1a0"
     copyright = "Copyright (c) 2004-2005 JPMorgan"
     workflow  = "standard.pwl"
@@ -9,8 +9,8 @@
 
 <include filename = "prelude.pdl" />
 
-<!-- Java framing API -->
-<file name = "AMQJavaFraming.jar"         class = "shared library">AMQ Java framing API</file>
+<!-- Java API -->
+<file name = "OpenAMQJava.jar"         class = "shared library">AMQ Java framing API</file>
 
 <!-- Java framing API generated source -->
 <directory name = "com/imatix/openamq/framing" class = "generated">
@@ -51,16 +51,17 @@
     </generate>
     <build>
         <execute>
-        <!-- Java framing API -->
+        <!-- Compile Java API .class files -->
         javac com/imatix/openamq/framing/AMQFramingFactory.java
         jar -cf AMQJavaFraming.jar com/imatix/openamq/framing/AMQ*.class
-        <!-- Java framing API test clients -->
+        <!-- Compile test clients .class files -->
         javac amqpcli_serial.java
         javac EchoClient.java
         </execute>
     </build>
     <clean>
         <execute>
+        <!-- Erase .class files, unix -->
         rm -f com/imatix/openamq/framing/*.class
         rm -f *.class
         </execute>
@@ -76,18 +77,19 @@
     </generate>
     <build>
         <execute>
-        <!-- Java framing API -->
+        <!-- Compile Java API .class files -->
         javac com/imatix/openamq/framing/AMQFramingFactory.java
         jar -cf AMQJavaFraming.jar com/imatix/openamq/framing/AMQ*.class
-        <!-- Java framing API test clients -->
+        <!-- Compile test clients .class files -->
         javac amqpcli_serial.java
         javac EchoClient.java
         </execute>
     </build>
     <clean>
         <execute>
-        delete com/imatix/openamq/framing/*.class
-        delete *.class
+        <!-- Erase .class files, windows -->
+        del com/imatix/openamq/framing/*.class
+        del *.class
         </execute>
     </clean>
 </actions>
