@@ -38,6 +38,8 @@ Connection-Close:
           + Terminate-The-Program
 
 Defaults:
+    (--) Timeout                                 ->
+          + Handle-Timeout
     (--) Exception                               ->
           + Forced-Shutdown
           + Terminate-The-Program
