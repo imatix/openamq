@@ -200,8 +200,14 @@ main (int argc, char *argv [])
             amq_message_set_persistent (message, persistent);
             if (amq_sclient_msg_send (amq_client, out_handle, message))
                 goto aborted;
+            /*  Commit as we go along                                        */
+            if (count % batch_size == 0) {
+                if (!quiet_mode)
+                    coprintf ("Commit batch %d...", count / batch_size);
+                amq_sclient_commit (amq_client);
+            }
         }
-        /*  Commit sent messages                                             */
+        /*  Commit any messages left over                                    */
         if (amq_sclient_commit (amq_client))
             goto aborted;
 
@@ -213,11 +219,13 @@ main (int argc, char *argv [])
         while (count < messages) {
             message = amq_sclient_msg_read (amq_client, 0);
             if (message) {
-                if (!quiet_mode)
+                if (messages < 100 && !quiet_mode)
                     coprintf ("Message number %d arrived", amq_client->msg_number);
                 amq_message_destroy (&message);
                 count++;
                 if (count % batch_size == 0) {
+                    if (!quiet_mode)
+                        coprintf ("Acknowledge batch %d...", count / batch_size);
                     if (amq_sclient_msg_ack (amq_client))
                         goto aborted;
                     if (amq_sclient_commit (amq_client))
@@ -233,7 +241,10 @@ main (int argc, char *argv [])
         }
         repeats--;
     }
-    amq_sclient_close (amq_client, 0);
+    /*  Acknowledge any messages left over                                   */
+    amq_sclient_msg_ack (amq_client);
+
+    amq_sclient_close   (amq_client, 0);
     amq_sclient_destroy (&amq_client);
     icl_system_destroy ();
 

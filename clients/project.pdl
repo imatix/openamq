@@ -1,7 +1,7 @@
 <?xml?>
 <pdl
     name      = "OpenAMQ Clients"
-    version   = "0.7b6"
+    version   = "0.7c0"
     copyright = "Copyright (c) 2004-2005 JPMorgan"
     workflow  = "standard.pwl"
     deploy    = "openamq/clients"

@@ -1,6 +1,8 @@
-0.7c0 - 14 February 2005
+0.7c0 - 17 February 2005
     - added server support for HANDLE QUERY, HANDLE BROWSE commands
     - added serial client support for HANDLE INDEX
+    - persistent messages were not dispatched correctly - fixed
+    - server was aborting when dispatching persistent messages - fixed
 
 0.7b6 - 11 February 2005
     - disconnected clients could not reconnect reliably - fixed
