@@ -27,12 +27,12 @@
     <file name = "AMQMessage.java"                                          >Utility for the message class</file>
     <file name = "AMQFramable.java"                                         >Superclass of network objects</file>
     <file name = "AMQFrame.java"                                            >Superclass of command frames</file>
+    <file name = "FrugalByteArrayOutputStream.java"                         >Simple replacement for ByteArrayOutputStream</file>
 </directory>
 
 <!-- Java API generated source, transport -->
 <directory name = "com/imatix/openamq/transport" class = "generated">
     <file name = "AMQTransport.java"                                        >Glue/utility for connection commands</file>
-    <file name = "FrugalByteArrayOutputStream.java"                         >Simple replacement for ByteArrayOutputStream</file>
 </directory>
 
 <!-- Java framing API test clients -->
@@ -71,7 +71,9 @@
     <clean>
         <execute>
         <!-- Erase .class files, unix -->
-        rm -f com/imatix/openamq/framing/*.class
+        rm -f com/imatix/openamq/*.class
+        rm -f com/imatix/openamq/frames/*.class
+        rm -f com/imatix/openamq/transport/*.class
         rm -f *.class
         </execute>
     </clean>
@@ -97,7 +99,9 @@
     <clean>
         <execute>
         <!-- Erase .class files, windows -->
-        del com/imatix/openamq/framing/*.class
+        del com/imatix/openamq/*.class
+        del com/imatix/openamq/frames/*.class
+        del com/imatix/openamq/transport/*.class
         del *.class
         </execute>
     </clean>

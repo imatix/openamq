@@ -299,7 +299,7 @@ public void do_tests ()
             message_head = (AMQMessage.Head)amq_framing.constructMessageHead();
         byte[]
             message_body;               /* Message body                     */
-        int head_size;
+        long head_size;
 
         // Open channel
         channel_open.channelId = 1;
@@ -527,11 +527,11 @@ public void negotiate_connection_tune ()
         amq_framing.sendFrame(client_tune);
         amq_framing.setTuneParameters(client_tune);
     }
-    /*catch (ClassCastException e)
+    catch (ClassCastException e)
     {
         frame.dump();
         raise_exception(exception_event, e, "amqpci_java", "negotiate_connection_tune", "unexpected frame from server");
-    }*/
+    }
     catch (SocketTimeoutException e) {
         raise_exception(timeout_event, e, "amqpci_java", "negotiate_connection_tune", "SocketTimeoutException");
     }

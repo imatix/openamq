@@ -177,7 +177,7 @@ class tfActionListener implements ActionListener {
                 message_body = AMQFramingFactory.string2Bytes(text);
                 message_head.bodySize = message_body.length;
                 // Set the fragment size
-                handle_send.fragmentSize = message_head.encode() + message_head.bodySize;
+                handle_send.fragmentSize = message_head.size() + message_head.bodySize;
                 if (handle_send.fragmentSize <= tune_reply.getInteger("FRAME_MAX")) {
                     // Send message
                     amq_framing.sendFrame(handle_send);
@@ -243,7 +243,8 @@ public void run () {
             // Get the data
             handle_notify = (AMQHandle.Notify)frame;
             message_head = amq_framing.receiveMessageHead();
-            bytes = amq_framing.receiveData((int)message_head.bodySize);
+            bytes = new byte[(int)message_head.bodySize];
+            amq_framing.receiveData(bytes);
             text = AMQFramingFactory.bytes2String(bytes);
             // Acknowledge 
             channel_ack.messageNbr = handle_notify.messageNbr;
