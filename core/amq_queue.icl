@@ -130,22 +130,20 @@ ipr_db_queue class.
                    ipr_config_attrn (config, "record-size"),
                    ipr_config_attrn (config, "extent-size"),
                    ipr_config_attrn (config, "block-size"));
-        self_open (self);
 
         /*  auto-purge option means delete all queue messages at restart     */
         if (ipr_config_attrn (config, "auto-purge"))
-            amq_queue_purge (self);
+            self_purge (self);
         else {
-            self->disk_queue_size = self_count (self);
+            if (self_exists (self))
+                self->disk_queue_size = self_count (self);
             coprintf ("I: queue %s has %d messages", key, self->disk_queue_size);
         }
     }
     else {
         /*  Temporary queue, set all non-zero defaults                       */
-        self_open (self);
         self->opt_browsable = 1;
-        self->disk_queue_size = self_count (self);
-        amq_queue_purge (self);
+        self_purge (self);
     }
     s_create_priority_lists (self);
 
@@ -173,7 +171,6 @@ ipr_db_queue class.
     if (self->dest->temporary)
         amq_db_dest_delete (self->ddb, self->dest);
     amq_db_dest_destroy (&self->dest);
-    self_close (self);
 </method>
 
 <method name = "consume" return = "queue">
@@ -385,7 +382,7 @@ ipr_db_queue class.
 
         /*  Get oldest candidate message to dispatch                         */
         self->item_id = self->last_id;
-        finished = amq_queue_fetch (self, IPR_QUEUE_GT);
+        finished = self_fetch (self, IPR_QUEUE_GT);
 #       ifdef TRACE_DISPATCH
         coprintf ("$(selfname) I: fetch last=%d rc=%d id=%d finished=%d",
             self->last_id, finished, self->item_id, finished);
@@ -403,14 +400,14 @@ ipr_db_queue class.
                     s_dispatch_message (consumer, message);
 
                     self->item_client_id = consumer->client_id;
-                    amq_queue_update (self, NULL);
+                    self_update (self, NULL);
                 }
                 else
                     break;              /*  No more consumers                */
             }
             assert (self->item_id > self->last_id);
             self->last_id = self->item_id;
-            finished = amq_queue_fetch (self, IPR_QUEUE_NEXT);
+            finished = self_fetch (self, IPR_QUEUE_NEXT);
         }
         /*  Close active cursor if any                                       */
         ipr_db_cursor_close (self->db);
@@ -459,12 +456,12 @@ ipr_db_queue class.
     if (self->disk_queue_size) {
         /*  Get oldest candidate message to dispatch                         */
         self->item_id = self->last_id;
-        finished = amq_queue_fetch (self, IPR_QUEUE_GT);
+        finished = self_fetch (self, IPR_QUEUE_GT);
         while (!finished) {
             if (self->item_client_id == 0)
                 amq_browser_new (browser_set, set_index++, self, self->item_id, NULL);
 
-            finished = amq_queue_fetch (self, IPR_QUEUE_NEXT);
+            finished = self_fetch (self, IPR_QUEUE_NEXT);
         }
         /*  Close active cursor if any                                       */
         ipr_db_cursor_close (self->db);
@@ -492,7 +489,7 @@ ipr_db_queue class.
     else
     if (browser->item_id) {
         self->item_id = browser->item_id;
-        if (amq_queue_fetch (self, IPR_QUEUE_EQ) == 0) {
+        if (self_fetch (self, IPR_QUEUE_EQ) == 0) {
             message = amq_smessage_new (handle);
             destroy_message = TRUE;
             amq_smessage_load (message, self);
@@ -644,7 +641,7 @@ s_dispatch_message (
         fullname;
     </local>
     ipr_shortstr_fmt (fullname, "%s%s", prefix, suffix);
-    queue = amq_queue_search (queues, fullname);
+    queue = self_search (queues, fullname);
 </method>
 
 <method name = "selftest" />

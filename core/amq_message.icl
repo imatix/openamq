@@ -401,12 +401,12 @@ s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
     <doc>
     Records a random binary message with the specified size.  We use the
     record method to allow unlimited message sizes and to be compatible
-    with the smessage requirement that messages are spooled.
+    with the smessage requirement that messages are spooled.  Must be
+    the last method used when generating a test message (after the other
+    'set' methods).
     </doc>
     <argument name = "body size" type = "size_t" />
     <local>
-    ipr_shortstr_t
-        identifier;
     amq_bucket_t
         *bucket;                        /*  Bucket for recording message     */
     amq_frame_t
@@ -415,10 +415,19 @@ s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
         message_nbr = 0;                /*  Unique message number            */
     </local>
     /*  Prepare message frame and encode it into a data buffer               */
-    ipr_shortstr_fmt (identifier, "ID%d", ++message_nbr);
+    if (strnull (self->identifier))
+        ipr_shortstr_fmt (self->identifier, "ID%d", ++message_nbr);
+
     bucket = amq_bucket_new (AMQ_BUCKET_MAX_SIZE);
     frame  = amq_frame_message_head_new (
-        body_size, FALSE, 0, 0, NULL, NULL, identifier, NULL);
+        body_size,
+        self->persistent,
+        self->priority,
+        self->expiration,
+        self->mime_type,
+        self->encoding,
+        self->identifier,
+        self->headers);
     amq_frame_encode (bucket, frame);
     amq_frame_free (&frame);
 

@@ -579,14 +579,14 @@ static int
     <action name = "check sufficient resources">
     if (amq_max_memory > 0
     &&  icl_mem_usage () > amq_max_memory) {
-        tcb->reply_code = AMQP_RESOURCE_ERROR;
-        tcb->reply_text = "Server is too busy - try again later";
-        smt_thread_raise_exception (thread, connection_error_event);
-        coprintf ("W: Server memory usage=%ld limit=%ld", icl_mem_usage (), amq_max_memory);
-
-        /*  TODO:
-            icl_mem_flush ();
-         */
+        coprintf ("W: active memory has reached limit (%ld bytes)", amq_max_memory);
+        icl_system_purge ();
+        coprintf ("W: -- after garbage-collection: usage=%ld", icl_mem_usage ());
+        if (icl_mem_usage () > amq_max_memory) {
+            tcb->reply_code = AMQP_RESOURCE_ERROR;
+            tcb->reply_text = "Server is too busy - try again later";
+            smt_thread_raise_exception (thread, connection_error_event);
+        }
     }
     </action>
 
