@@ -16,14 +16,16 @@
         <title>Principle authors</title>
         <head>Design</head>
         <line>John O'Hara</line>
-        <line>Mark Atwell</line>
         <line>Pieter Hintjens</line>
         <head>Engineering</head>
         <line>Pieter Hintjens</line>
         <line>Jonathan Schultz</line>
-        <line>Rakan El-Khalil</line>
         <line>Martin Lucina</line>
         <line>Martin Sustrik</line>
+        <line>Rakan El-Khalil</line>
+        <title>Contributors</title>
+        <line>Mark Atwell</line>
+        <line>James Strachan</line>
       </section>
       <footer>
         <line content = "slogan" />

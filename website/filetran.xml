@@ -6,7 +6,8 @@
     <language name = "en">
       <title content = "title"/>
       <remark>
-        <line>The OpenAMQ file transfer application</line>
+        <line>The OpenAMQ file transfer application makes it easy to
+        send information safely around the world</line>
       </remark>
       <header>
         <line>Here we have a header.</line>

@@ -6,7 +6,8 @@
     <language name = "en">
       <title content = "title"/>
       <remark>
-        <line>The OpenAMQ native C API library</line>
+        <line>The OpenAMQ native C API library gives you a simple, clean
+        set of APIs for your C applications on Unix or Windows</line>
       </remark>
       <header>
         <line>OpenAMQ includes a native ANSI C API library.</line>

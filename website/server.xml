@@ -6,7 +6,8 @@
     <language name = "en">
       <title content = "title"/>
       <remark>
-        <line>OpenAMQ Server Features</line>
+        <line>The OpenAMQ server is a portable, compact middleware
+        server that implements the AMQP specifications</line>
       </remark>
       <header>
         <line>Here we have a header.</line>

@@ -6,7 +6,8 @@
     <language name = "en">
       <title content = "title"/>
       <remark>
-        <line>Standards are the basis for everything</line>
+        <line>Standards are the basis for everything and the AMQP
+        protocol is the first wire-level standard for middleware</line>
       </remark>
       <header>
         <line>AMQP is a standard wire-level protocol.</line>

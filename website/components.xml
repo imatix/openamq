@@ -6,7 +6,8 @@
     <language name = "en">
       <title content = "title"/>
       <remark>
-        <line>The OpenAMQ standard component interface</line>
+        <line>The OpenAMQ standard component interface is a single
+        standard interface for all languages</line>
       </remark>
       <header>
         <line>Java, COM+, Perl, C: a single API.</line>

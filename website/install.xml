@@ -6,7 +6,8 @@
     <language name = "en">
       <title content = "title"/>
       <remark>
-        <line>Building and installing OpenAMQ</line>
+        <line>To build and installing OpenAMQ you need a compatible
+        C compiler and just a few minutes</line>
       </remark>
       <header>
         <line>Here we have a header.</line>
