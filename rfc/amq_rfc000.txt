@@ -119,7 +119,7 @@ do not have any appendices, you can delete this heading.]
 Comments on this Document
 *************************
 
-Comments by readers; these comments may be edited, incoporated, or removed
+Comments by readers; these comments may be edited, incorporated, or removed
 by the author(s) of the document at any time.
 
 Date, name
