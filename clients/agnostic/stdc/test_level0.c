@@ -227,7 +227,7 @@ apr_status_t connection_tune_cb (
         return result;
     }
     result = amqp_connection_open (sck, buffer, 32767, 1, host,
-        sender ? "producer" : "consumer", 0, "");
+        prefix, 0, "");
     if (result != APR_SUCCESS) {
         fprintf (stderr, "amqp_connection_open failed.\n%ld : %s\n",
             (long) result, amqp_strerror (result, buffer, 32767) );
@@ -306,7 +306,7 @@ int main (int argc, const char *const argv[], const char *const env[])
     server = "127.0.0.1";
     host = NULL;
     destination = NULL;
-    prefix = "";
+    prefix = "client";
     messages = 0;
     interval = 500;
     prefetch = 1;
@@ -448,7 +448,7 @@ badparams:
         "    -s<server name/ip address, default='127.0.0.1'>\n"
         "    -h<virtual host name>\n"
         "    -d<destination>\n"
-        "    -m<message identifier prefix, default=''>\n"
+        "    -m<client identifier, default='client'>\n"
         "    -n<number of messages, 0 means infinite, default=0>\n"
         "    -i<interval between individual messages in ms, default=500>\n"
         "    -l<length of message content in bytes, default=2>\n"
