@@ -9,8 +9,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+typedef enum
+{
+    apptype_undefined,
+    apptype_producer,
+    apptype_consumer,
+    apptype_query
+} apptype_t;
+
+apptype_t apptype;
 apr_socket_t *sck;
-int sender;
 apr_uint16_t tag;
 const char *server;
 const char *host;
@@ -39,7 +47,8 @@ typedef enum
     state_waiting_for_consume_confirmation,
     state_waiting_for_send_confirmation,
     /*  waiting for acknowledge confirmations as well  */
-    state_waiting_for_message
+    state_waiting_for_message,
+    state_waiting_for_index
 } state_t;
 
 state_t state;
@@ -129,6 +138,21 @@ apr_status_t send_message(apr_uint16_t confirm_tag)
     return APR_SUCCESS;            
 }
 
+apr_status_t handle_index_cb (
+    const void *hint,
+    const apr_uint16_t handle_id,
+    const apr_uint32_t message_nbr,
+    const apr_size_t message_list_size,
+    const char* message_list
+    )
+{
+    if (state == state_waiting_for_index) {
+        fprintf (stderr, "Result of query: %s\n", message_list);
+        return APR_SUCCESS;
+    }
+    return AMQ_FRAME_CORRUPTED;
+}
+
 apr_status_t handle_reply_cb (
     const void *hint,
     const apr_uint16_t handle_id,
@@ -145,7 +169,7 @@ apr_status_t handle_reply_cb (
 
         fprintf (stderr, "Handle opened.\n");
 
-        if (sender == 0) {
+        if (apptype == apptype_consumer) {
             result = amqp_handle_consume (sck, buffer, 32767, 1, 4,
                 (apr_uint16_t) prefetch, 0, 0, "", "", 0, "", "");
             if (result != APR_SUCCESS) {
@@ -156,9 +180,21 @@ apr_status_t handle_reply_cb (
             state = state_waiting_for_consume_confirmation;
         }
 
-        if (sender == 1) {
+        if (apptype == apptype_producer) {
             return send_message ( (apr_uint16_t) (confirm_tag + 1) );
         }
+
+        if (apptype == apptype_query) {
+            fprintf (stderr, "Issuing query.\n");
+            result = amqp_handle_query (sck, buffer, 32768, 1, 0, "", 0, "", "");
+            if (result != APR_SUCCESS) {
+                fprintf (stderr, "amqp_handle_query failed.\n%ld : %s\n",
+                    (long) result, amqp_strerror (result, buffer, 32767) );
+                return result;
+            }
+            state = state_waiting_for_index;
+        }
+
         return APR_SUCCESS;
     }
     if (state == state_waiting_for_consume_confirmation) {
@@ -370,7 +406,7 @@ int main (int argc, const char *const argv[], const char *const env[])
 
     memset ( (void*) &callbacks, 0, sizeof (amqp_callbacks_t) );
 
-    sender = -1;
+    apptype = apptype_undefined;
     server = "127.0.0.1";
     host = NULL;
     destination = NULL;
@@ -388,8 +424,9 @@ int main (int argc, const char *const argv[], const char *const env[])
     stop = 0;
 
     for (i=1; i!=argc; i++) {
-        if (strcmp (argv[i], "producer") == 0) sender = 1;
-        if (strcmp (argv[i], "consumer") == 0) sender = 0;
+        if (strcmp (argv[i], "producer") == 0) apptype = apptype_producer;
+        if (strcmp (argv[i], "consumer") == 0) apptype = apptype_consumer;
+        if (strcmp (argv[i], "query") == 0) apptype = apptype_query;
         if (strncmp (argv[i], "-s", 2) == 0) server = argv [i] + 2;
         if (strncmp (argv[i], "-h", 2) == 0) host = argv [i] + 2;
         if (strncmp (argv[i], "-d", 2) == 0) destination = argv [i] + 2;
@@ -403,7 +440,7 @@ int main (int argc, const char *const argv[], const char *const env[])
         if (strncmp (argv[i], "-r", 2) == 0) rollback_count = atoi (argv [i] + 2);
     }
 
-    if (sender == 2) goto badparams;
+    if (apptype == apptype_undefined) goto badparams;
     if (host == NULL) goto badparams;
     if (destination == NULL) goto badparams;
     till_acknowledge = prefetch;
@@ -483,6 +520,7 @@ int main (int argc, const char *const argv[], const char *const env[])
     callbacks.connection_reply = connection_reply_cb;
     callbacks.channel_reply = channel_reply_cb;
     callbacks.handle_reply = handle_reply_cb;
+    callbacks.handle_index = handle_index_cb;
     callbacks.connection_close = connection_close_cb;
     callbacks.channel_close = channel_close_cb;
     callbacks.handle_close = handle_close_cb;
@@ -537,6 +575,11 @@ badparams:
         "    -h<virtual host name>\n"
         "    -d<destination>\n"
         "    -p<number of prefetched messages, default=1>\n"
+        "\n"
+        "  agnostic query (queries for all messages and browses them one by one)\n"
+        "    -s<server name/ip address, default=127.0.0.1>\n"
+        "    -h<virtual host name>\n"
+        "    -d<destination>\n"
         "\n"
         "  Note : When neither 'c' or 'r' parameter is set\n"
         "         client works in nontransacted mode.\n");
