@@ -33,11 +33,6 @@ Package=<5>
 
 Package=<4>
 {{{
-.   for root.library
-    Begin Project Dependency
-    Project_Dep_Name $(name)
-    End Project Dependency
-.   endfor
 }}}
 
 .endfor
@@ -69,6 +64,7 @@ for root.class
     generate_idl      ()
     generate_object   ()
     generate_cp       ()
+    generate_common   ()
 endfor
 
 generate_dsw ()

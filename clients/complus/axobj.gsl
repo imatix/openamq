@@ -22,9 +22,15 @@
 -    >
 -        <include - includes files that will be shared by all objects in the library
 -            name = file name
+-            location = h/cpp (defines whether include should arrive in h or cpp file)
 -            local = yes/no (yes means #include "...", no means #include <...>)
 -        >
 -        </include>
+-
+-        <custom - any custom code you want to add to the library
+-                  added either to "<classname>.cpp" or "common.h"
+-            location = h/cpp (whether to add it to header or implementation file)
+-        >
 -
 -        <interface
 -            name = interface name 
@@ -77,7 +83,7 @@
 -             version = version of the object
 -        >
 -
--            <include
+-            <include - defines includes for individual object
 -                name = file name
 -                location = h/cpp (defines whether include should arrive in h or cpp file)
 -                local = yes/no (yes means #include "...", no means #include <...>)
@@ -411,6 +417,7 @@ function generate_object
 >#define __$(OBJECT.NAME)_H_
 >
 >#include "resource.h"
+>#include "common.h"
 >#include <atlctl.h>
         for fires
 >#include "$(fires.interface:)CP.h"
@@ -651,8 +658,7 @@ function generate_object
 
 >// $(object.name:).cpp : Implementation of C$(object.name:)
 >
->#include "sfl.h"
-        for class.include
+        for class.include where location = "cpp"
             if "$(include.local:)" = "yes"
 >#include "$(include.name:)"
             else
@@ -814,9 +820,9 @@ function generate_main_obj
     echo ("Generating $(class.name:)/$(class.name:).cpp...")
     output ("$(class.name:)/$(class.name:).cpp")
 >// $(class.name:).cpp : Implementation of DLL Exports.
-
->#include "sfl.h"
-    for class.include
+>
+>#include "common.h"
+    for class.include where location = "cpp"
         if "$(include.local:)" = "yes"
 >#include "$(include.name:)"
         else
@@ -834,6 +840,10 @@ function generate_main_obj
 >#include "$(object.name:).h"
     endfor
 >
+    for class.custom where location = "cpp"
+>$(custom.:)
+>
+    endfor
 >#ifdef _MERGE_PROXYSTUB
 >extern "C" HINSTANCE hProxyDll;
 >#endif
@@ -1115,6 +1125,31 @@ function generate_dlldatax
 endfunction
 
 ------------------------------------------------------------------------
+function generate_common
+
+    output "$(class.name:)/common.h"
+    echo "Create file $(class.name:)/common.h"
+
+>#ifndef __COMMON_H__
+>#define __COMMON_H__
+>
+    for class.include where location = "h"
+        if "$(include.local:)" = "yes"
+>#include "$(include.name:)"
+        else
+>#include <$(include.name:)>
+        endif
+    endfor
+>
+for class.custom where location = "h"
+>$(custom.:)
+>
+endfor
+>#endif
+
+endfunction
+
+------------------------------------------------------------------------
 function generate_def
 
     output "$(class.name:)/$(class.name:).def"
@@ -1210,6 +1245,7 @@ LINK32=link.exe
 .for root.library
 $(debugtarget:) \
 .endfor
+/libpath:"$(env.get("IBASE"))/lib" \
 /nologo /subsystem:windows /dll /debug /machine:I386 /out:"../$(class.name:).dll" /pdbtype:sept
 # Begin Custom Build - Performing registration
 OutDir=.\\$(class.name:)\\Debug
@@ -1255,6 +1291,7 @@ LINK32=link.exe
 .for root.library
 $(target:) \
 .endfor
+/libpath:"$(env.get("IBASE"))/lib" \
 /nologo /subsystem:windows /dll /machine:I386 /out:"../$(class.name:).dll"
 # Begin Custom Build - Performing registration
 OutDir=.\\$(class.name:)\\ReleaseMinSize
@@ -1301,6 +1338,7 @@ LINK32=link.exe
 .for root.library
 $(target:) \
 .endfor
+/libpath:"$(env.get("IBASE"))/lib" \
 /nologo /subsystem:windows /dll /machine:I386 /out:"../$(class.name:).dll"
 # Begin Custom Build - Performing registration
 OutDir=.\\$(class.name:)\\ReleaseMinDependency
@@ -1402,6 +1440,10 @@ SOURCE=.\\$(object.name:).h
 SOURCE=.\\$(interface.name:)CP.h
 # End Source File
 .endfor
+
+# Begin Source File
+SOURCE=.\\common.h
+# End Source File
 
 # End Group
 # Begin Group "Resource Files"
