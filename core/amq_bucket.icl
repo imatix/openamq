@@ -13,7 +13,7 @@
 </doc>
 
 <inherit class = "icl_alloc_cache" />
-<inherit class = "ipr_ref_count"   />
+<inherit class = "icl_ref_count"   />
 
 <public>
 #define AMQ_BUCKET_SIZE  32000

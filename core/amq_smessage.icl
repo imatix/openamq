@@ -70,12 +70,13 @@ coprintf ("$(selfname) I: save spool message, digest=%02x%02x%02x%02x",
     }
 </method>
 
-<method name = "prepare" template = "function">
+<method name = "prepare" return = "value">
     <doc>
     Checks whether a message with this header has already been partially
     uploaded; if so return the amount of data already held, else return
     zero.
     </doc>
+    <argument name = "self"     type = "$(selftype) *" />
     <argument name = "fragment" type = "amq_bucket_t *" />
     <declare  name = "value"    type = "qbyte">Returned size already loaded</declare>
     <local>
@@ -85,6 +86,8 @@ coprintf ("$(selfname) I: save spool message, digest=%02x%02x%02x%02x",
         *spool;
     </local>
 
+    ASSERT (self);
+    
     /*  Process message header - which we expect in fragment                 */
     s_record_header (self, fragment);
     if ((self->body_size + self->header_size) > AMQ_BUCKET_SIZE) {
