@@ -516,6 +516,8 @@ public void do_tests ()
                     message_body = new byte[(int)message_head.bodySize];
                 is.read(message_body);
                 is.close();
+                if ((delay_mode || messages < 100) && !quiet_mode)
+                    System.out.println("Message number " + handle_notify.messageNbr + " arrived");
                 if (message_body.length != message_size - head_size) {
                     System.err.println("amqpcli_serial: body_check: returning message size mismatch (is "
                         + message_body.length + " should be " + (message_size - head_size) + ").");
