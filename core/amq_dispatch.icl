@@ -55,7 +55,7 @@
 
     /*  Initialise other properties                                          */
     self->message     = message;        /*  We now 0wn this message          */
-    self->queue_id    = self->queue->id;
+    self->queue_id    = self->queue->item_id;
     self->message_nbr = ++(self->channel->message_nbr);
 
     amq_dispatch_list_queue (self->channel->dispatched, self);
@@ -82,7 +82,7 @@
 
     if (self->queue_id) {
         /*  Purge from persistent queue if necessary                         */
-        self->queue->id = self->queue_id;
+        self->queue->item_id = self->queue_id;
         amq_queue_delete (self->queue, self->channel->txn);
         self->queue->outstanding--;
     }
@@ -104,15 +104,15 @@
         self->consumer->window++;
     }
     else {
-        self->queue->id = self->queue_id;
+        self->queue->item_id = self->queue_id;
         amq_queue_fetch (self->queue, IPR_QUEUE_EQ);
 
-        self->queue->client_id = 0;
+        self->queue->item_client_id = 0;
         amq_queue_update (self->queue, self->channel->txn);
 
         /*  Reset last message id to cover this message                      */
-        if (self->queue->last_id > self->queue->id)
-            self->queue->last_id = self->queue->id - 1;
+        if (self->queue->last_id > self->queue->item_id)
+            self->queue->last_id = self->queue->item_id - 1;
 
         /*  Queue and consumer can accept a new message                      */
         self->queue->window++;

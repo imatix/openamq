@@ -30,7 +30,7 @@
         *db;                            /*  Database for virtual host        */
     amq_db_t
         *ddb;                           /*  Deprecated database handle       */
-    ipr_config_table_t
+    ipr_config_t
         *config;                        /*  Virtual host configuration       */
     amq_queue_table_t
         *queues;                        /*  Queues for this vhost            */
@@ -43,8 +43,8 @@
 </context>
 
 <method name = "new">
-    <argument name = "directory" type = "char *"               />
-    <argument name = "config"    type = "ipr_config_table_t *" />
+    <argument name = "directory" type = "char *"/>
+    <argument name = "config"    type = "ipr_config_t *"/>
 
     self->config = config;
     self->queues = amq_queue_table_new ();
@@ -52,23 +52,24 @@
 
     s_config_workdir  (self);
     s_config_database (self);
-    s_config_queues   (self, "queue/name");
+    s_config_queues   (self);
+
     /*  ***TODO*** implement topics
-    s_config_topics   (self, "topic/name");
+    s_config_topics   (self);
      */
 </method>
 
 <method name = "destroy">
-    amq_queue_table_destroy  (&self->queues);
-    ipr_config_table_destroy (&self->config);
-    ipr_db_destroy           (&self->db);
-    amq_db_destroy           (&self->ddb);
+    amq_queue_table_destroy (&self->queues);
+    ipr_config_destroy      (&self->config);
+    ipr_db_destroy          (&self->db);
+    amq_db_destroy          (&self->ddb);
 </method>
 
 <private name = "header">
 static void s_config_workdir   ($(selftype) *self);
 static void s_config_database  ($(selftype) *self);
-static void s_config_queues    ($(selftype) *self, char *key);
+static void s_config_queues    ($(selftype) *self);
 </private>
 
 <private name = "footer">
@@ -79,7 +80,8 @@ s_config_workdir ($(selftype) *self)
 {
     /*  Spool directory is for non-persistent or incomplete messages         */
     ipr_shortstr_fmt (self->spooldir, "%s/%s", self->directory,
-        ipr_config_table_lookup (self->config, "workdir/spool", "spool"));
+        ipr_config_locattr (self->config, "/config/directories", "spool", "spool"));
+
     if (strlast (self->spooldir) == '/')
         strlast (self->spooldir) = 0;
     if (!file_is_directory (self->spooldir)) {
@@ -89,7 +91,7 @@ s_config_workdir ($(selftype) *self)
 
     /*  Store directory is for messages saved to persistent storage          */
     ipr_shortstr_fmt (self->storedir, "%s/%s", self->directory,
-        ipr_config_table_lookup (self->config, "workdir/store", "store"));
+        ipr_config_locattr (self->config, "/config/directories", "store", "store"));
     if (strlast (self->storedir) == '/')
         strlast (self->storedir) = 0;
     if (!file_is_directory (self->storedir)) {
@@ -110,7 +112,7 @@ s_config_database ($(selftype) *self)
 
     /*  Prepare database working directory                                   */
     ipr_shortstr_fmt (database_dir, "%s/%s", self->directory,
-        ipr_config_table_lookup (self->config, "workdir/data", "data"));
+        ipr_config_locattr (self->config, "/config/directories", "data", "data"));
 
     /*  Connection to database                                               */
     self->db = ipr_db_new (database_dir);
@@ -140,22 +142,19 @@ s_config_database ($(selftype) *self)
 /*  Insert or find configured queues                                         */
 
 static void
-s_config_queues ($(selftype) *self, char *key)
+s_config_queues ($(selftype) *self)
 {
-    ipr_config_t
-        *config_entry;
-
-    config_entry = ipr_config_search (self->config, key);
-    while (config_entry) {
-        amq_queue_new (config_entry->value, self, 0, FALSE);
-        config_entry = ipr_config_next (config_entry);
+    ipr_config_locate (self->config, "/config/queues/queue", NULL);
+    while (self->config->located) {
+        amq_queue_new (ipr_config_attr (self->config, "name", "unnamed"), self, 0, FALSE);
+        ipr_config_next (self->config);
     }
 }
 </private>
 
 <method name = "selftest">
     <local>
-    ipr_config_table_t
+    ipr_config_t
         *config;
     amq_vhost_table_t
         *vhosts;
@@ -166,17 +165,17 @@ s_config_queues ($(selftype) *self, char *key)
     amq_vhost_animate (TRUE);
     amq_vhost_table_animate (TRUE);
 
-    config = ipr_config_table_new (".", AMQ_SERVER_CONFIG);
-    vhosts = amq_vhost_table_new  (config);
+    config = ipr_config_new (".", AMQ_SERVER_CONFIG);
+    vhosts = amq_vhost_table_new (config);
 
     vhost = amq_vhost_search (vhosts, "/");
     ASSERT (vhost);
     vhost = amq_vhost_search (vhosts, "/test");
     ASSERT (vhost);
 
-    amq_vhost_destroy        (&vhost);
-    amq_vhost_table_destroy  (&vhosts);
-    ipr_config_table_destroy (&config);
+    amq_vhost_destroy       (&vhost);
+    amq_vhost_table_destroy (&vhosts);
+    ipr_config_destroy      (&config);
 
     icl_system_destroy ();
     icl_mem_assert ();

@@ -17,7 +17,7 @@
 <option name = "bigtable"  value = "0" />
 
 <context>
-    ipr_config_table_t
+    ipr_config_t
         *config;                        /*  Server config table              */
 </context>
 
@@ -26,30 +26,34 @@
     Loads all virtual hosts defined in the main configuration table.  If the
     config table is null, does not create any virtual hosts.
     </doc>
-    <argument name = "config" type = "ipr_config_table_t *">Server config table</argument>
+    <argument name = "config" type = "ipr_config_t *">Server config table</argument>
     <local>
     ipr_config_t
-        *directory;
-    ipr_config_table_t
         *vhost_config;
     char
-        *vhost_name;
+        *directory,                     /*  Directory for virtual host       */
+        *vhost_name;                    /*  Extracted vhost name             */
     </local>
 
     self->config = config;
     if (config) {
-        directory = ipr_config_search (config, "vhosts/directory");
-        while (directory) {
+        ipr_config_locate (config, "/config/vhosts/vhost", NULL);
+        while (config->located) {
             /*  Load vhost config file to get vhost name                         */
-            vhost_config = ipr_config_table_new (directory->value, AMQ_VHOST_CONFIG);
-            if (vhost_config) {
-                vhost_name = ipr_config_table_lookup (vhost_config, "vhost/name", NULL);
-                if (vhost_name)
-                    amq_vhost_new (self, vhost_name, directory->value, vhost_config);
+            directory = ipr_config_attr (config, "directory", NULL);
+            if (directory) {
+                vhost_config = ipr_config_new (directory, AMQ_VHOST_CONFIG);
+                if (vhost_config) {
+                    vhost_name = ipr_config_locattr (vhost_config, "/config/vhost", "name", NULL);
+                    if (vhost_name)
+                        amq_vhost_new (self, vhost_name, directory, vhost_config);
+                    else
+                        ipr_config_destroy (&vhost_config);
+                }
                 else
-                    ipr_config_table_destroy (&vhost_config);
+                    break;
             }
-            directory = ipr_config_next (directory);
+            ipr_config_next (config);
         }
     }
 </method>

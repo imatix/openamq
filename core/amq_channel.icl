@@ -154,7 +154,7 @@
     /*  Initialise virtual host                                              */
     vhosts = amq_vhost_table_new (NULL);
     vhost  = amq_vhost_new (vhosts, "/test", "vh_test",
-        ipr_config_table_new ("vh_test", AMQ_VHOST_CONFIG));
+        ipr_config_new ("vh_test", AMQ_VHOST_CONFIG));
     ASSERT (vhost);
 
     /*  Initialise connection                                                */

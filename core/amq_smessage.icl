@@ -126,24 +126,24 @@
 
     /*  Copy message header fields into saved record so that we can use
         these without decoding the header each time.                         */
-    queue->client_id   = 0;             /*  Not dispatched                   */
-    queue->sender_id   = self->handle->client_id;
-    queue->header_size = self->header_size;
-    queue->body_size   = self->body_size;
-    queue->priority    = self->priority;
-    queue->expiration  = self->expiration;
-    queue->spool_size  = self->spool_size;
-    ipr_shortstr_cpy (queue->mime_type, *self->mime_type? self->mime_type: self->handle->mime_type);
-    ipr_shortstr_cpy (queue->encoding,  *self->encoding?  self->encoding:  self->handle->encoding);
-    ipr_shortstr_cpy (queue->identifier, self->identifier);
-    ipr_longstr_destroy (&queue->headers);
-    queue->headers = ipr_longstr_new (self->headers->data, self->headers->cur_size);
-    ipr_longstr_destroy (&queue->content);
-    queue->content = ipr_longstr_new (self->fragment->data, self->fragment->cur_size);
+    queue->item_client_id   = 0;        /*  Not dispatched                   */
+    queue->item_sender_id   = self->handle->client_id;
+    queue->item_header_size = self->header_size;
+    queue->item_body_size   = self->body_size;
+    queue->item_priority    = self->priority;
+    queue->item_expiration  = self->expiration;
+    queue->item_spool_size  = self->spool_size;
+    ipr_shortstr_cpy (queue->item_mime_type, *self->mime_type? self->mime_type: self->handle->mime_type);
+    ipr_shortstr_cpy (queue->item_encoding,  *self->encoding?  self->encoding:  self->handle->encoding);
+    ipr_shortstr_cpy (queue->item_identifier, self->identifier);
+    ipr_longstr_destroy (&queue->item_headers);
+    queue->item_headers = ipr_longstr_new (self->headers->data, self->headers->cur_size);
+    ipr_longstr_destroy (&queue->item_content);
+    queue->item_content = ipr_longstr_new (self->fragment->data, self->fragment->cur_size);
 
     /*  Write message to persistent storage                                  */
     amq_queue_insert (queue, NULL);
-    self->queue_id = queue->id;
+    self->queue_id = queue->item_id;
 
     if (self->spool_size) {
         /*  Format the stored filename for the message                       */
@@ -179,24 +179,24 @@
 
     /*  Update own reference to queue table used                             */
     self->queue    = queue;
-    self->queue_id = queue->id;
+    self->queue_id = queue->item_id;
 
     /*  Restore message properties from recorded data                    */
-    self->header_size = queue->header_size;
-    self->body_size   = queue->body_size;
-    self->priority    = queue->priority;
-    self->expiration  = queue->expiration;
-    self->spool_size  = queue->spool_size;
-    ipr_shortstr_cpy (self->mime_type,  queue->mime_type);
-    ipr_shortstr_cpy (self->encoding,   queue->encoding);
-    ipr_shortstr_cpy (self->identifier, queue->identifier);
+    self->header_size = queue->item_header_size;
+    self->body_size   = queue->item_body_size;
+    self->priority    = queue->item_priority;
+    self->expiration  = queue->item_expiration;
+    self->spool_size  = queue->item_spool_size;
+    ipr_shortstr_cpy (self->mime_type,  queue->item_mime_type);
+    ipr_shortstr_cpy (self->encoding,   queue->item_encoding);
+    ipr_shortstr_cpy (self->identifier, queue->item_identifier);
     ipr_longstr_destroy (&self->headers);
-    self->headers     = ipr_longstr_new (queue->headers->data, queue->headers->cur_size);
+    self->headers     = ipr_longstr_new (queue->item_headers->data, queue->item_headers->cur_size);
 
     /*  Get first fragment; rest is in overflow file on disk             */
     self->processed = self->body_size;
     self->fragment  = amq_bucket_new ();
-    amq_bucket_fill (self->fragment, queue->content->data, queue->content->cur_size);
+    amq_bucket_fill (self->fragment, queue->item_content->data, queue->item_content->cur_size);
 
     if (self->spool_size > 0) {
         /*  Format the stored filename for the message                   */
@@ -214,7 +214,7 @@
         file_delete (self->spool_file);
     }
     if (self->queue_id) {
-        self->queue->id = self->queue_id;
+        self->queue->item_id = self->queue_id;
         amq_queue_delete (self->queue, NULL);
         self->queue_id = 0;
     }
@@ -307,7 +307,7 @@
     /*  Initialise virtual host                                              */
     vhosts = amq_vhost_table_new (NULL);
     vhost  = amq_vhost_new (vhosts, "/test", "vh_test",
-        ipr_config_table_new ("vh_test", AMQ_VHOST_CONFIG));
+        ipr_config_new ("vh_test", AMQ_VHOST_CONFIG));
     ASSERT (vhost);
     ASSERT (vhost->db);
     ASSERT (vhost->ddb);
@@ -335,7 +335,8 @@
     ASSERT (handle);
 
     /*  Initialise queue                                                     */
-    queue = amq_queue_new ("test", vhost, 1, 1);
+    queue = amq_queue_new ("/tmp/test", vhost, 1, 1);
+    ASSERT (queue);
 
     /*  Record test message                                                  */
     message = amq_smessage_new (handle);

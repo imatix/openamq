@@ -3,7 +3,7 @@
     picture = "download.jpg"
     accent  = "#636dc2"
     >
-    <set name = "version" value = "0.7b3" />
+    <set name = "version" value = "0.7b4" />
     <language name = "en">
       <title content = "title"/>
       <remark>
@@ -20,6 +20,8 @@
         openamq-$(version)-src.tar.gz
         &lt;/a&gt;</line>
         <line>Unpack into a working directory and run './configure' and then 'make'.</line>
+        <line>The source package includes recent validated versions of the Apache
+        Portable Runtime (APR) and the Berkeley Database (BDB) as used by OpenAMQ.</line>
       </section>
       <section>
         <title>Win32 Packages</title>
@@ -29,11 +31,15 @@
         &lt;/a&gt;</line>
         <line>Unpack into a working directory and run 'configure' and then 'make'.</line>
         <line>Requires MSVC/6+.</line>
+        <line>The source package includes recent validated versions of the Apache
+        Portable Runtime (APR) and the Berkeley Database (BDB) as used by OpenAMQ.</line>
         <head>Binary package</head>
         <line>&lt;a href="http://www.openamq.org/pub/openamq-$(version)-win32.zip"&gt;
-        openamq-$(version)-win32.exe
+        openamq-$(version)-win32.zip
         &lt;/a&gt;</line>
-        <line>Download and run the executable package.</line>
+        <line>Download and unzip the package into a target directory.  The 'clients'
+        subdirectory contains OpenAMQ client tools.  The 'servers' subdirectory
+        contains the OpenAMQ server binaries.</line>
       </section>
       <footer>
         <line content = "slogan" />

@@ -72,7 +72,7 @@ static int
         char
             *addr;                          /*  To hold socket address string    */
 
-        port = ipr_config_table_lookup (amq_config, "server/port", AMQ_SERVER_PORT);
+        port = ipr_config_locattr (amq_config, "/config/server", "port", AMQ_SERVER_PORT);
         apr_pool_create (&pool, NULL);
         apr_gethostname (buffer, IPR_SHORTSTR_MAX, pool);
         apr_sockaddr_info_get (&sockaddr, buffer, APR_UNSPEC, 0, 0, pool);
@@ -85,7 +85,7 @@ static int
 
         tcb-> socket = smt_socket_passive (thread, port, 5);
         if (!tcb->socket) {
-            coprintf ("E: could not open AMQP port %s - %s", 
+            coprintf ("E: could not open AMQP port %s - %s",
                       port, smt_thread_error (thread));
             smt_thread_raise_exception (thread, error_event);
         }

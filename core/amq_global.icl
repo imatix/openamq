@@ -14,17 +14,17 @@
 <public>
 /*  These globals can be used anywhere in the OpenAMQ software               */
 
+extern ipr_config_t
+    *amq_config;                        /*  Server configuration table       */
 extern amq_vhost_table_t
     *amq_vhosts;                        /*  Virtual hosts table              */
-extern ipr_config_table_t
-    *amq_config;                        /*  Server configuration table       */
 </public>
 
 <private>
+ipr_config_t
+    *amq_config = NULL;                 /*  Server configuration table       */
 amq_vhost_table_t
     *amq_vhosts = NULL;                 /*  Virtual hosts table              */
-ipr_config_table_t
-    *amq_config = NULL;                 /*  Server configuration table       */
 </private>
 
 </class>

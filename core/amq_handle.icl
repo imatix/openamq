@@ -124,8 +124,11 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
         queue_nbr = 0;                  /*  Temporary queue number           */
 
     /*  Find queue if named                                                  */
-    if (self->dest_name && *self->dest_name)
+    if (self->dest_name && *self->dest_name) {
         self->queue = amq_queue_search (self->vhost->queues, self->dest_name);
+        if (self->queue == NULL)
+            $(selfname)_destroy (p_self);
+    }
     else
     if (temporary)
         ipr_shortstr_fmt (self->dest_name, "tmp/%09ld", ++queue_nbr);
@@ -142,12 +145,10 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
             else {
                 coprintf ("$(selfname) E: temporary queue '%s' already in use", self->dest_name);
                 self->queue = NULL;
+                $(selfname)_destroy (p_self);
             }
         }
     }
-    /*  If queue not found or not created, self-destruct handle              */
-    if (self->queue == NULL)
-        $(selfname)_destroy (p_self);
 }
 </private>
 
@@ -290,7 +291,7 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
     /*  Initialise virtual host                                              */
     vhosts = amq_vhost_table_new (NULL);
     vhost  = amq_vhost_new (vhosts, "/test", "vh_test",
-        ipr_config_table_new ("vh_test", AMQ_VHOST_CONFIG));
+        ipr_config_new ("vh_test", AMQ_VHOST_CONFIG));
     ASSERT (vhost);
     ASSERT (vhost->db);
     ASSERT (vhost->ddb);

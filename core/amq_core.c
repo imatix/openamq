@@ -140,16 +140,13 @@ amq_server_core (
     }
 
     /*  Load configuration data, if any, into the config_table               */
-    amq_config = ipr_config_table_new (".", AMQ_SERVER_CONFIG);
-    if (!amq_config) {
-        coprintf ("No configuration provided - server is halting");
-        goto failed;
-    }
+    amq_config = ipr_config_new (".", AMQ_SERVER_CONFIG);
 
     /*  Initialise arguments, taking defaults from the config_table          */
-    if (!opt_server)
-        opt_server = ipr_config_table_lookup (amq_config, "server/background", "0");
-
+    if (!opt_server) {
+        ipr_config_locate (amq_config, "/server", NULL);
+        opt_server = ipr_config_attr (amq_config, "background", "0");
+    }
     if (quiet_mode) {
         fclose (stdout);                /*  Kill standard output             */
         fclose (stderr);                /*   and standard error              */
@@ -187,8 +184,8 @@ amq_server_core (
     smt_thread_execute (SMT_EXEC_FULL);
 
     /*  Release resources                                                    */
-    ipr_config_table_destroy (&amq_config);
-    amq_vhost_table_destroy  (&amq_vhosts);
+    ipr_config_destroy (&amq_config);
+    amq_vhost_table_destroy (&amq_vhosts);
     icl_system_destroy ();
 
     /*  Report memory usage                                                  */
@@ -215,12 +212,14 @@ s_prepare_logging (void)
         *log_dir,
         *console_file;
 
-    log_dir = ipr_config_table_lookup (amq_config, "logging/directory", "./logs");
+    ipr_config_locate (amq_config, "/logging", NULL);
+
+    log_dir = ipr_config_attr (amq_config, "directory", "./logs");
     if (!file_is_directory (log_dir))
         make_dir (log_dir);
 
     console_file = file_where ('a', log_dir,
-        ipr_config_table_lookup (amq_config, "logging/console", "amq_console.log"), NULL);
+        ipr_config_attr (amq_config, "console", "amq_console.log"), NULL);
 
     console_send    (NULL, TRUE);
     console_capture (console_file, 'a');

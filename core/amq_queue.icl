@@ -168,7 +168,7 @@ ipr_db_queue class.
             amq_smessage_save    (cur_message, self);
             amq_smessage_destroy (&cur_message);
 #           ifdef TRACE_DISPATCH
-            coprintf ("$(selfname) I: insert message id=%d outstanding=%d", self->id, self->outstanding);
+            coprintf ("$(selfname) I: insert message id=%d outstanding=%d", self->item_id, self->outstanding);
 #           endif
         }
         else
@@ -182,16 +182,16 @@ ipr_db_queue class.
 #   endif
     if (self->outstanding) {
         /*  Get oldest candidate message to dispatch                         */
-        self->id = self->last_id;
+        self->item_id = self->last_id;
         finished = amq_queue_fetch (self, IPR_QUEUE_GT);
 #       ifdef TRACE_DISPATCH
-        coprintf ("$(selfname) I: fetch last=%d rc=%d id=%d", self->last_id, finished, self->id);
+        coprintf ("$(selfname) I: fetch last=%d rc=%d id=%d", self->last_id, finished, self->item_id);
 #       endif
         while (self->window && !finished) {
 #           ifdef TRACE_DISPATCH
-            coprintf ("$(selfname) I: message id=%d client=%d", self->id, self->client_id);
+            coprintf ("$(selfname) I: message id=%d client=%d", self->item_id, self->item_client_id);
 #           endif
-            if (self->client_id == 0) {
+            if (self->item_client_id == 0) {
                 consumer = s_get_next_consumer (self);
                 if (consumer) {
                     message = amq_smessage_new (consumer->handle);
@@ -199,14 +199,14 @@ ipr_db_queue class.
                     s_dispatch_message (consumer, message);
 
                     /*  Update client id, using channel transaction if any   */
-                    self->client_id = consumer->client_id;
+                    self->item_client_id = consumer->client_id;
                     amq_queue_update (self, consumer->channel->txn);
                 }
                 else
                     break;              /*  No more consumers                */
             }
-            ASSERT (self->id > self->last_id);
-            self->last_id = self->id;
+            ASSERT (self->item_id > self->last_id);
+            self->last_id = self->item_id;
             finished = amq_queue_fetch (self, IPR_QUEUE_NEXT);
         }
     }
@@ -216,7 +216,7 @@ ipr_db_queue class.
             consumer = s_get_next_consumer (self);
             if (consumer) {
                 amq_smessage_list_unlink (message);
-                self->id = 0;           /*  Non-persistent message           */
+                self->item_id = 0;      /*  Non-persistent message           */
                 s_dispatch_message (consumer, message);
                 message = amq_smessage_list_first (self->messages);
             }
