@@ -54,9 +54,10 @@ to the Java Properties class. Methods for reading and writing unsigned values
 up to 4 bytes long are available. Since Java does not provide primitive 
 unsigned types, then AMQP integer values must be stored in memory into types of
 greater capacity than the protocol specifies; in Java spirit, moving those
-values from memory to network is runtime-checked for overflows/underflows. 
+values from memory to network is runtime-checked for overflows/underflows. Long
+strings are stored as byte arrays.
 
-The java API is currently a low-level communications layer, it does not implement
+The Java API is currently a low-level communications layer, it does not implement
 client or server protocol dialogues. Specifically, the provided framing API can
 be used to:
 - Send messages as data streams
@@ -302,7 +303,7 @@ This class handles reading and writing of primitive protocol data types. The
 class manages low-level network issues such as read retries, socket timeouts,
 etc. We currently rely on SUN's documented behavior (3) for read and accept 
 timeouts, write timeouts are enforced. Higher level layers should not attempt
-to direcly write to the socket, but instead use the methods provided by this 
+to directly write to the socket, but instead use the methods provided by this 
 class.
 
 Exception summary
