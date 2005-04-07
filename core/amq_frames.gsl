@@ -8,8 +8,8 @@
 #
 #   This script generates frame structures and serialization code.
 #
-#   Copyright (c) 2004 JPMorgan
-#   Copyright (c) 1991-2004 iMatix Corporation
+#   Copyright (c) 2005 JPMorgan
+#   Copyright (c) 1991-2005 iMatix Corporation
 #  ----------------------------------------------------------------------------
 
 function abort_xml_error ()
@@ -199,9 +199,15 @@ size_t $(prefix)_frame_encode\
                                  (amq_bucket_t *bucket, $(prefix)_frame_t *frame);
 $(prefix)_frame_t *$(prefix)_frame_decode\
                                  (amq_bucket_t *bucket);
+size_t $(prefix)_frame_encode_mem
+                                 (byte *buffer, size_t max_size, $(prefix)_frame_t *frame);
+$(prefix)_frame_t *$(prefix)_frame_decode_mem
+                                 (byte *buffer, size_t cur_size);
 .   for frame where variant = 0
 $(prefix)_frame_t *$(prefix)_$(name)_decode\
                                  (amq_bucket_t *bucket);
+$(prefix)_frame_t *$(prefix)_$(name)_decode_mem\
+                                 (byte *buffer, size_t cur_size);
 .   endfor
 .   for frame
 $(prefix)_frame_t *$(prefix)_frame_$(name)_new\
@@ -253,8 +259,30 @@ void   $(prefix)_frame_free\
 size_t
 $(prefix)_frame_encode (amq_bucket_t *bucket, $(prefix)_frame_t *frame)
 {
+    size_t
+        cur_size;
+
+    cur_size = $(prefix)_frame_encode_mem (bucket->data, bucket->max_size, frame);
+    if (cur_size)
+        bucket->cur_size = cur_size;
+
+    return (cur_size);
+}
+
+
+/*  -------------------------------------------------------------------------
+    $(prefix)_frame_encode_mem
+
+    Encodes frame into supplied memory area.  Returns the number of octets
+    used in the memory area.  Returns zero if there was an error.  Long
+    strings may be null in which they are encoded as empty.
+ */
+
+size_t
+$(prefix)_frame_encode_mem (byte *buffer, size_t max_size, $(prefix)_frame_t *frame)
+{
     byte
-        *bucket_data;
+        *target;
     size_t
         string_size;
 
@@ -266,16 +294,16 @@ $(prefix)_frame_encode (amq_bucket_t *bucket, $(prefix)_frame_t *frame)
 .       last
 .       endif
 .   endfor
-    assert (bucket);
+    assert (buffer);
     assert (frame);
 
-    bucket_data = bucket->data;
+    target = buffer;
     switch (frame->type) {
 .   for frame
         case FRAME_TYPE_$(NAME):
-            if ($(NAME)_SIZE > bucket->max_size) {
-                coprintf ("E: $(name) frame needs %ld bytes, bucket too small at %ld",
-                    $(NAME)_SIZE, bucket->max_size);
+            if ($(NAME)_SIZE > max_size) {
+                coprintf ("E: $(name) frame needs %ld bytes, buffer too small at %ld",
+                    $(NAME)_SIZE, max_size);
                 return (0);
             }
 .       if count (field, type = "bit")
@@ -283,60 +311,60 @@ $(prefix)_frame_encode (amq_bucket_t *bucket, $(prefix)_frame_t *frame)
 .       endif
 .       for field
 .           if    type = "char"
-            *(char *) bucket_data = frame->body.$(frame.name).$(name);
-            bucket_data += 1;
+            *(char *) target = frame->body.$(frame.name).$(name);
+            target += 1;
 .           elsif type = "bit"
 .               if bit_count = 0
-            bucket_data += 1;
+            target += 1;
             bit_string   = 0;
 .                   bit_count = 0
 .               endif
             bit_string |= (frame->body.$(frame.name).$(name) & 1) << $(bit_count);
-            *(byte *) (bucket_data - 1) = bit_string;
+            *(byte *) (target - 1) = bit_string;
 .               bit_count += 1
 .               if bit_count = 8
 .                   bit_count = 0
 .               endif
 .-
 .           elsif type = "octet"
-            *(byte *) bucket_data = frame->body.$(frame.name).$(name);
-            bucket_data += 1;
+            *(byte *) target = frame->body.$(frame.name).$(name);
+            target += 1;
 .-
 .           elsif type = "shortint"
-            *(dbyte *) bucket_data = htons (frame->body.$(frame.name).$(name));
-            bucket_data += 2;
+            *(dbyte *) target = htons (frame->body.$(frame.name).$(name));
+            target += 2;
 .-
 .           elsif type = "longint"
-            *(qbyte *) bucket_data = htonl (frame->body.$(frame.name).$(name));
-            bucket_data += 4;
+            *(qbyte *) target = htonl (frame->body.$(frame.name).$(name));
+            target += 4;
 .-
 .           elsif type = "shortstr"
             string_size = strlen (frame->body.$(frame.name).$(name));
-            *(byte *) bucket_data = (byte) string_size;
-            bucket_data += 1;
-            memcpy (bucket_data, frame->body.$(frame.name).$(name), string_size);
-            bucket_data += string_size;
+            *(byte *) target = (byte) string_size;
+            target += 1;
+            memcpy (target, frame->body.$(frame.name).$(name), string_size);
+            target += string_size;
 .-
 .           elsif type = "longstr" | type = "table"
             if (frame->body.$(frame.name).$(name)) {
                 assert (frame->body.$(frame.name).$(name)->cur_size < 0x10000);
-                *(dbyte *) bucket_data = htons ((dbyte) frame->body.$(frame.name).$(name)->cur_size);
-                bucket_data += 2;
-                memcpy (bucket_data,
+                *(dbyte *) target = htons ((dbyte) frame->body.$(frame.name).$(name)->cur_size);
+                target += 2;
+                memcpy (target,
                         frame->body.$(frame.name).$(name)->data,
                         frame->body.$(frame.name).$(name)->cur_size);
-                bucket_data += frame->body.$(frame.name).$(name)->cur_size;
+                target += frame->body.$(frame.name).$(name)->cur_size;
             }
             else {
-                *(dbyte *) bucket_data = 0;
-                bucket_data += 2;
+                *(dbyte *) target = 0;
+                target += 2;
             }
 .           endif
 .       endfor
 .       if frame.variant = 1
         /*  Add command-end marker after frame contents                      */
-        *(byte *) bucket_data = AMQP_COMMAND_END;
-        bucket_data += 1;
+        *(byte *) target = AMQP_COMMAND_END;
+        target += 1;
 .       endif
             break;
 
@@ -345,8 +373,7 @@ $(prefix)_frame_encode (amq_bucket_t *bucket, $(prefix)_frame_t *frame)
             coprintf ("E: unrecognized frame, cannot encode");
             return (0);
     }
-    bucket->cur_size = (byte *) bucket_data - (byte *) bucket->data;
-    return (bucket->cur_size);
+    return (target - buffer);
 }
 
 
@@ -361,11 +388,26 @@ $(prefix)_frame_encode (amq_bucket_t *bucket, $(prefix)_frame_t *frame)
 $(prefix)_frame_t *
 $(prefix)_frame_decode (amq_bucket_t *bucket)
 {
+    return ($(prefix)_frame_decode_mem (bucket->data, bucket->cur_size));
+}
+
+
+/*  -------------------------------------------------------------------------
+    $(prefix)_frame_decode_mem
+
+    Decodes a frame from supplied memory area.  Allocates a frame and returns
+    the frame structure filled from the memory.  If there was a problem
+    decoding the frame, returns NULL and logs an error message.
+ */
+
+$(prefix)_frame_t *
+$(prefix)_frame_decode_mem (byte *buffer, size_t cur_size)
+{
     $(prefix)_frame_t
         *frame = NULL;
     byte
-        *bucket_data,                   /*  Pointer into bucket data         */
-        *bucket_max;                    /*  Limit of bucket data             */
+        *source,                        /*  Pointer into buffer data         */
+        *limit;                         /*  Limit of buffer data             */
     size_t
         string_size;
 .   for frame
@@ -376,31 +418,31 @@ $(prefix)_frame_decode (amq_bucket_t *bucket)
 .       endif
 .   endfor
 
-    assert (bucket);
+    assert (buffer);
     frame = icl_mem_alloc (sizeof ($(prefix)_frame_t));
     if (!frame) {
         coprintf ("E: memory allocation failed in $(prefix)_frame_decode");
         return (NULL);
     }
-    bucket_data = bucket->data;
-    bucket_max  = bucket->data + bucket->cur_size;
+    source = buffer;
+    limit  = buffer + cur_size;
 .   for frame where variant = 1
-    if (IS_$(NAME) (bucket_data)) {
+    if (IS_$(NAME) (source)) {
         frame->type = FRAME_TYPE_$(NAME);
 .       if count (field, type = "bit")
 .           bit_count = 0
 .       endif
 .       for field
-        if (bucket_data >= bucket_max)
+        if (source >= limit)
             goto underflow;
 .           if    type = "char"
-        frame->body.$(frame.name).$(name) = *(char *) bucket_data;
-        bucket_data += 1;
+        frame->body.$(frame.name).$(name) = *(char *) source;
+        source += 1;
 .-
 .           elsif type = "bit"
 .               if bit_count = 0
-        bit_string = *(byte *) bucket_data;
-        bucket_data++;
+        bit_string = *(byte *) source;
+        source++;
 .               endif
         frame->body.$(frame.name).$(name) = (bit_string >> $(bit_count)) & 1;
 .           bit_count += 1
@@ -409,32 +451,32 @@ $(prefix)_frame_decode (amq_bucket_t *bucket)
 .           endif
 .-
 .           elsif type = "octet"
-        frame->body.$(frame.name).$(name) = *(byte *) bucket_data;
-        bucket_data += 1;
+        frame->body.$(frame.name).$(name) = *(byte *) source;
+        source += 1;
 .-
 .           elsif type = "shortint"
-        frame->body.$(frame.name).$(name) = ntohs (*(dbyte *) bucket_data);
-        bucket_data += 2;
+        frame->body.$(frame.name).$(name) = ntohs (*(dbyte *) source);
+        source += 2;
 .-
 .           elsif type = "longint"
-        frame->body.$(frame.name).$(name) = ntohl (*(qbyte *) bucket_data);
-        bucket_data += 4;
+        frame->body.$(frame.name).$(name) = ntohl (*(qbyte *) source);
+        source += 4;
 .-
 .           elsif type = "shortstr"
-        string_size = *(byte *) bucket_data;
-        bucket_data += 1;
-        memcpy (frame->body.$(frame.name).$(name), bucket_data, string_size);
+        string_size = *(byte *) source;
+        source += 1;
+        memcpy (frame->body.$(frame.name).$(name), source, string_size);
         frame->body.$(frame.name).$(name) [string_size] = 0;
-        bucket_data += string_size;
+        source += string_size;
 .-
 .           elsif type = "longstr" | type = "table"
-        string_size = ntohs (*(dbyte *) bucket_data);
-        bucket_data += 2;
-        frame->body.$(frame.name).$(name) = ipr_longstr_new (bucket_data, string_size);
-        bucket_data += string_size;
+        string_size = ntohs (*(dbyte *) source);
+        source += 2;
+        frame->body.$(frame.name).$(name) = ipr_longstr_new (source, string_size);
+        source += string_size;
 .           endif
 .       endfor
-        frame->size = (byte *) bucket_data - (byte *) bucket->data;
+        frame->size = (byte *) source - (byte *) buffer;
     }
     else
 .   endfor frame
@@ -444,7 +486,7 @@ $(prefix)_frame_decode (amq_bucket_t *bucket)
         return (NULL);
     }
     /*  Check for command-end byte                                           */
-    if (*bucket_data == AMQP_COMMAND_END)
+    if (*source == AMQP_COMMAND_END)
         return (frame);
     else {
         coprintf ("E: frame missing command-end octet, cannot decode");
@@ -470,10 +512,25 @@ $(prefix)_frame_decode (amq_bucket_t *bucket)
 $(prefix)_frame_t *
 $(prefix)_$(name)_decode (amq_bucket_t *bucket)
 {
+    return ($(prefix)_$(name)_decode_mem (bucket->data, bucket->cur_size));
+}
+
+
+/*  -------------------------------------------------------------------------
+    $(prefix)_$(name)_decode_mem
+
+    Decodes a $(name)) from supplied memory area.  Allocates a frame and returns
+    the frame structure filled from the area.  If there was a problem decoding
+    the frame, returns NULL and logs an error message.
+ */
+
+$(prefix)_frame_t *
+$(prefix)_$(name)_decode_mem (byte *buffer, size_t cur_size)
+{
     $(prefix)_frame_t
         *frame = NULL;
     byte
-        *bucket_data;
+        *source;
     size_t
         string_size;
 .       if count (field, type = "bit")
@@ -481,8 +538,8 @@ $(prefix)_$(name)_decode (amq_bucket_t *bucket)
         bit_string = 0;
 .       endif
 
-    assert (bucket);
-    bucket_data = bucket->data;
+    assert (buffer);
+    source = buffer;
     frame = icl_mem_alloc (sizeof ($(prefix)_frame_t));
     if (!frame) {
         coprintf ("E: memory allocation failed in $(prefix)_$(name)_decode");
@@ -494,13 +551,13 @@ $(prefix)_$(name)_decode (amq_bucket_t *bucket)
 .       endif
 .       for field
 .           if    type = "char"
-    frame->body.$(frame.name).$(name) = *(char *) bucket_data;
-    bucket_data += 1;
+    frame->body.$(frame.name).$(name) = *(char *) source;
+    source += 1;
 .-
 .           elsif type = "bit"
 .               if bit_count = 0
-    bit_string = *(byte *) bucket_data;
-    bucket_data++;
+    bit_string = *(byte *) source;
+    source++;
 .               endif
     frame->body.$(frame.name).$(name) = (bit_string >> $(bit_count)) & 1;
 .           bit_count += 1
@@ -509,32 +566,32 @@ $(prefix)_$(name)_decode (amq_bucket_t *bucket)
 .           endif
 .-
 .           elsif type = "octet"
-    frame->body.$(frame.name).$(name) = *(byte *) bucket_data;
-    bucket_data += 1;
+    frame->body.$(frame.name).$(name) = *(byte *) source;
+    source += 1;
 .-
 .           elsif type = "shortint"
-    frame->body.$(frame.name).$(name) = ntohs (*(dbyte *) bucket_data);
-    bucket_data += 2;
+    frame->body.$(frame.name).$(name) = ntohs (*(dbyte *) source);
+    source += 2;
 .-
 .           elsif type = "longint"
-    frame->body.$(frame.name).$(name) = ntohl (*(qbyte *) bucket_data);
-    bucket_data += 4;
+    frame->body.$(frame.name).$(name) = ntohl (*(qbyte *) source);
+    source += 4;
 .-
 .           elsif type = "shortstr"
-    string_size = *(byte *) bucket_data;
-    bucket_data += 1;
-    memcpy (frame->body.$(frame.name).$(name), bucket_data, string_size);
+    string_size = *(byte *) source;
+    source += 1;
+    memcpy (frame->body.$(frame.name).$(name), source, string_size);
     frame->body.$(frame.name).$(name) [string_size] = 0;
-    bucket_data += string_size;
+    source += string_size;
 .-
 .           elsif type = "longstr" | type = "table"
-    string_size = ntohs (*(dbyte *) bucket_data);
-    bucket_data += 2;
-    frame->body.$(frame.name).$(name) = ipr_longstr_new (bucket_data, string_size);
-    bucket_data += string_size;
+    string_size = ntohs (*(dbyte *) source);
+    source += 2;
+    frame->body.$(frame.name).$(name) = ipr_longstr_new (source, string_size);
+    source += string_size;
 .           endif
 .       endfor
-    frame->size = (byte *) bucket_data - (byte *) bucket->data;
+    frame->size = source - buffer;
     return (frame);
 }
 
