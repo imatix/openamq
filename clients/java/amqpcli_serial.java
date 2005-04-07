@@ -50,7 +50,8 @@ boolean
     verbose,                            /* Verbose mode                      */
     persistent = false,                 /* Use persistent messages?          */
     quiet_mode = false,                 /* -q means suppress messages        */
-    delay_mode = false;                 /* -d means work slowly              */
+    delay_mode = false,                 /* -d means work slowly              */
+    pattern_checking = true;            /* Enable pattern checking           */
 
 
 //////////////////////////////   G L O B A L S   //////////////////////////////
@@ -114,10 +115,12 @@ public int amqpcli_serial_execute (String args[])
             "  -s server        Name or address of server (localhost)\n"              +
             "  -m number        Number of messages to send/receive (1000)\n"          +
             "  -b batch         Size of each batch (100)\n"                           +
-            "  -x size          Size of each message (default = 1024)\n"              +
+            "  -x size          Size of each message (default = 1K)\n"                +
+            "                   B=bytes, K=kilos, M=megas, G=gigas.\n"                +
             "  -r repeat        Repeat test N times (1)\n"                            +
             "  -t level         Set trace level (default = 0)\n"                      +
             "  -p               Use persistent messages (no)\n"                       +
+            "  -n               No pattern checking\n"                                +
             "  -q               Quiet mode: no messages\n"                            +
             "  -d               Delayed mode; sleeps after receiving a message\n"     +
             "  -v               Show version information\n"                           +
@@ -172,6 +175,9 @@ public int amqpcli_serial_execute (String args[])
                 case 'p':
                     persistent = true;
                     break;
+                case 'n':
+                    pattern_checking = false;
+                    break;
                 case 'q':
                     quiet_mode = true;
                     break;
@@ -208,9 +214,32 @@ public int amqpcli_serial_execute (String args[])
         System.exit(1);
     }
 
+    { // Parse the message size argument
+     String message_size_str = arguments.getProperty("opt_msgsize", "1024");
+     try {
+        message_size = Long.parseLong(message_size_str);
+     } catch(NumberFormatException e) {
+         int
+            last = message_size_str.length() - 1;
+
+         message_size = Long.parseLong(message_size_str.substring(0, last));
+         switch (message_size_str.charAt(last)) {
+            case 'g':
+            case 'G':
+                message_size *= 1024;
+            case 'm':
+            case 'M':
+                message_size *= 1024;
+            case 'k':
+            case 'K':
+                message_size *= 1024;
+            case 'b':
+            case 'B':
+         }
+     }
+    }
     messages = Integer.parseInt(arguments.getProperty("opt_messages", "1000"));
     batch_size = Integer.parseInt(arguments.getProperty("opt_batch", "100"));
-    message_size = Long.parseLong(arguments.getProperty("opt_msgsize", "1024"));
     repeats = Integer.parseInt(arguments.getProperty("opt_repeats", "1"));
     verbose = Integer.parseInt(arguments.getProperty("opt_trace", "0")) > 0;
 
@@ -473,22 +502,27 @@ public void do_tests ()
             else
                 System.out.println("(" + repeat_count + ") Sending " + messages + " message(s) to server...");
             for (int i = 1; i <= messages; i++) {
-                DigestOutputStream dos;
+                OutputStream dos;
 
                 // Set the fragment size
                 handle_send.partial = message_size > amq_framing.getFrameMax();
                 handle_send.fragmentSize = Math.min(amq_framing.getFrameMax(), message_size);
                 // Send message
-                dos = new DigestOutputStream(amq_framing.sendMessage(handle_send, message_head, null, false), digest);
+                if (pattern_checking)
+                    dos = new DigestOutputStream(amq_framing.sendMessage(handle_send, message_head, null, false), digest);
+                else
+                    dos = amq_framing.sendMessage(handle_send, message_head, null, false);
                 done = 0;
                 while (done < message_head.bodySize) {
                     int chunk = (int)Math.min(heapMax, message_head.bodySize - done);
-                    body_fill(message_body, i, Math.min(1024, message_body.length));
+                    if (pattern_checking)
+                        body_fill(message_body, i, Math.min(1024, message_body.length));
                     dos.write(message_body, 0, chunk);
                     dos.flush();
                     done += chunk;
                 }
-                digests[i - 1] = dos.getMessageDigest().digest();
+                if (pattern_checking)
+                    digests[i - 1] = ((DigestOutputStream)dos).getMessageDigest().digest();
                 dos.close();
                 // Commit from time to time
                 if (i % batch_size == 0) {
@@ -520,19 +554,24 @@ public void do_tests ()
             amq_framing.sendFrame(handle_consume);
             System.out.println("(" + repeat_count + ") Reading message(s) back from server...");
             for (int i = 1; i <= messages; i++) {
-                DigestInputStream dis;
+                InputStream dis;
 
                 // Get handle notify
                 handle_notify = (AMQHandle.Notify)amq_framing.receiveFrame();
                 message_head = amq_framing.constructMessageHead();
-                dis = new DigestInputStream(amq_framing.receiveMessage(handle_notify, message_head, null, false), digest);
+                if (pattern_checking)
+                    dis = new DigestInputStream(amq_framing.receiveMessage(handle_notify, message_head, null, false), digest);
+                else
+                    dis = amq_framing.receiveMessage(handle_notify, message_head, null, false);
                 done = 0;
                 while (done < message_head.bodySize) {
                     int chunk = (int)Math.min(heapMax, message_head.bodySize - done);
                     done += dis.read(message_body, 0, chunk);
                 }
-                if (!MessageDigest.isEqual(digests[i - 1], dis.getMessageDigest().digest()))
-                    System.err.println("amqpcli_serial: do_tests: returning message contents mismatch.");
+                if (pattern_checking) {
+                    if (!MessageDigest.isEqual(digests[i - 1], ((DigestInputStream)dis).getMessageDigest().digest()))
+                        System.err.println("amqpcli_serial: do_tests: returning message contents mismatch.");
+                }
                 dis.close();
                 if ((delay_mode || messages < 100) && !quiet_mode)
                     System.out.println("Message number " + handle_notify.messageNbr + " arrived");
