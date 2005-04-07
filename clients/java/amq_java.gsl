@@ -85,8 +85,6 @@ imatix_openamq_dir = "com/imatix/openamq"
 imatix_openamq_package = string.replace(imatix_openamq_dir, "/|.")
 imatix_openamq_frames_dir = imatix_openamq_dir + "/frames"
 imatix_openamq_frames_package = string.replace(imatix_openamq_frames_dir, "/|.")
-imatix_openamq_transport_dir = imatix_openamq_dir + "/transport"
-imatix_openamq_transport_package = string.replace(imatix_openamq_transport_dir, "/|.")
 type_type_last = undefined ? 
 type_type = undefined ?
 set_type = undefined ? 
@@ -116,8 +114,6 @@ function generate_directories ()
     directory.create (imatix_openamq_dir)
 -   Framing / Deframing code in here
     directory.create (imatix_openamq_frames_dir)
--   Transport code in here
-    directory.create (imatix_openamq_transport_dir)
 endfunction
 
 #  ------------------------------   Helper functions -------------------------
@@ -611,7 +607,7 @@ import java.io.OutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import $(imatix_openamq_transport_package:).$(AMQPTransport:);
+import $(imatix_openamq_package:).$(AMQPTransport:);
 import $(imatix_openamq_package:).$(AMQPException:);
  
 public class $(class_prefix:)$(my.outertype: Neat) {
@@ -871,7 +867,7 @@ import java.util.Hashtable;
 import java.util.Date;
 import java.util.Enumeration;
 import $(imatix_openamq_frames_package:).$(FrugalByteArrayOutputStream:);
-import $(imatix_openamq_transport_package:).$(AMQPTransport:);
+import $(imatix_openamq_package:).$(AMQPTransport:);
 import $(imatix_openamq_package:).$(AMQPException:);
 
 public class $(AMQPFieldTable:) extends Hashtable {
@@ -1228,7 +1224,7 @@ package $(imatix_openamq_frames_package:);
 
 import java.io.OutputStream;
 import java.io.IOException;
-import $(imatix_openamq_transport_package:).$(AMQPTransport:);
+import $(imatix_openamq_package:).$(AMQPTransport:);
 import $(imatix_openamq_package:).$(AMQPException:);
 
 public class $(FrugalByteArrayOutputStream:) extends OutputStream {
@@ -1279,7 +1275,7 @@ public class $(FrugalByteArrayOutputStream:) extends OutputStream {
 .-///////////////////////////   T R A N S P O R T ///////////////////////////////
 .-  Set the transport output directory
 .   directory.setcwd("../../../..")
-.   directory.setcwd(imatix_openamq_transport_dir)
+.   directory.setcwd(imatix_openamq_dir)
 .- Handles low-evel connection issues
 .echo "Generating $(AMQPTransport:).java..."
 . output "$(AMQPTransport:).java"
@@ -1295,7 +1291,7 @@ public class $(FrugalByteArrayOutputStream:) extends OutputStream {
  *
  **/
  
-package $(imatix_openamq_transport_package:);
+package $(imatix_openamq_package:);
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -1397,7 +1393,7 @@ public class $(AMQPTransport:) {
      * $(AMQPTransport:) constructor
      *
      **/
-    public $(AMQPTransport:)(InputStream is, OutputStream os) throws IOException {
+    $(AMQPTransport:)(InputStream is, OutputStream os) throws IOException {
         incoming = new DataInputStream(new BufferedInputStream(is));
         outgoing = new DataOutputStream(new BufferedOutputStream(os));
         // Start the writer thread
@@ -1409,7 +1405,7 @@ public class $(AMQPTransport:) {
      * $(AMQPTransport:) configurable buffer constructor
      *
      **/
-    public $(AMQPTransport:)(InputStream is, OutputStream os, int readBuff, int writeBuff) throws IOException {
+    $(AMQPTransport:)(InputStream is, OutputStream os, int readBuff, int writeBuff) throws IOException {
         incoming = new DataInputStream(new BufferedInputStream(is, readBuff));
         outgoing = new DataOutputStream(new BufferedOutputStream(os, writeBuff));
         // Start the writer thread
@@ -1421,7 +1417,7 @@ public class $(AMQPTransport:) {
      * Set outgoing timeout
      *
      **/
-    public void setOutgoingTimeout(int timeout) {
+    void setOutgoingTimeout(int timeout) {
         this.timeout = timeout;
     }
     
@@ -1446,7 +1442,7 @@ public class $(AMQPTransport:) {
      * Get the incoming stream
      *
      **/
-    public DataInputStream incoming() {
+    DataInputStream incoming() {
         return incoming;
     }
     
@@ -1455,7 +1451,7 @@ public class $(AMQPTransport:) {
      * Get the outgoing stream
      *
      **/
-    public DataOutputStream outgoing() {
+    DataOutputStream outgoing() {
         return outgoing;
     }
     
@@ -1818,7 +1814,7 @@ public class $(AMQPTransport:) {
      * The read timeout value established on the socket is enforced
      *
      **/
-    public void writeTimeout(OutputStream os, byte[] b, int off, int len) throws IOException {
+    void writeTimeout(OutputStream os, byte[] b, int off, int len) throws IOException {
         synchronized(writer) {
             checkWrite();
             // Request write bytes
@@ -1837,7 +1833,7 @@ public class $(AMQPTransport:) {
      * The read timeout value established on the socket is enforced
      *
      **/
-    public void writeTimeout(DataOutputStream dos, $(AMQPFramable:) framable) throws IOException {
+    void writeTimeout(DataOutputStream dos, $(AMQPFramable:) framable) throws IOException {
         synchronized(writer) {
             checkWrite();
             // Request write frame
@@ -1953,9 +1949,6 @@ public class $(AMQPTransport:) {
 
 . close
 .-///////////////////////////   I N T E R F A C E   /////////////////////////////
-.-  Set the protocol output directory
-.   directory.setcwd("../../../..")
-.   directory.setcwd(imatix_openamq_dir)
 .- Glues the frame types together onto this utility class
 .echo "Generating $(AMQPFramingFactory:).java..."
 . output "$(AMQPFramingFactory:).java"
@@ -1982,7 +1975,6 @@ import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import $(imatix_openamq_frames_package:).*;
-import $(imatix_openamq_transport_package:).$(AMQPTransport:);
 import $(imatix_openamq_package:).$(AMQPException:);
 import $(imatix_openamq_package:).$(AMQPIOException:);
 

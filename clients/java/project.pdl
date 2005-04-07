@@ -15,6 +15,7 @@
 <!-- Java API generated source, interface -->
 <directory name = "com/imatix/openamq" class = "generated">
     <file name = "AMQFramingFactory.java"                                   >Glue/utility for framable objects</file>
+    <file name = "AMQTransport.java"                                        >Glue/utility for connection commands</file>
     <file name = "AMQException.java"                                        >General exception</file>
     <file name = "AMQIOException.java"                                      >Thrown from the message streams</file>
 </directory>
@@ -28,11 +29,6 @@
     <file name = "AMQFramable.java"                                         >Superclass of network objects</file>
     <file name = "AMQFrame.java"                                            >Superclass of command frames</file>
     <file name = "FrugalByteArrayOutputStream.java"                         >Simple replacement for ByteArrayOutputStream</file>
-</directory>
-
-<!-- Java API generated source, transport -->
-<directory name = "com/imatix/openamq/transport" class = "generated">
-    <file name = "AMQTransport.java"                                        >Glue/utility for connection commands</file>
 </directory>
 
 <!-- Java framing API test clients -->
@@ -62,7 +58,7 @@
         <execute>
         <!-- Compile Java API .class files -->
         javac com/imatix/openamq/AMQFramingFactory.java
-        jar -c0f OpenAMQJava.jar com/imatix/openamq/*.class com/imatix/openamq/frames/*.class com/imatix/openamq/transport/*.class
+        jar -c0f OpenAMQJava.jar com/imatix/openamq/*.class com/imatix/openamq/frames/*.class
         <!-- Compile test clients .class files -->
         javac amqpcli_serial.java
         javac EchoClient.java
@@ -73,7 +69,6 @@
         <!-- Erase .class files, unix -->
         rm -f com/imatix/openamq/*.class
         rm -f com/imatix/openamq/frames/*.class
-        rm -f com/imatix/openamq/transport/*.class
         rm -f *.class
         </execute>
     </clean>
@@ -90,7 +85,7 @@
         <execute>
         <!-- Compile Java API .class files -->
         javac com/imatix/openamq/AMQFramingFactory.java
-        jar -c0f OpenAMQJava.jar com/imatix/openamq/*.class com/imatix/openamq/frames/*.class com/imatix/openamq/transport/*.class
+        jar -c0f OpenAMQJava.jar com/imatix/openamq/*.class com/imatix/openamq/frames/*.class
         <!-- Compile test clients .class files -->
         javac amqpcli_serial.java
         javac EchoClient.java
@@ -101,7 +96,6 @@
         <!-- Erase .class files, windows -->
         del com/imatix/openamq/*.class
         del com/imatix/openamq/frames/*.class
-        del com/imatix/openamq/transport/*.class
         del *.class
         </execute>
     </clean>
