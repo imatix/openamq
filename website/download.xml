@@ -1,0 +1,68 @@
+<page name    = "download">
+  <language name = "en">
+    <title>Download</title>
+    <content>
+      <h1>Download OpenAMQ now</h1>
+      <p>
+        Current version is $(version).
+      </p>
+      <p>
+        This is a beta release of the server and clients.
+      </p>
+      <h1>Unix Packages</h1>
+      <p/>
+      <h2>Source package</h2>
+      <p>
+        <ul>
+          <li>
+            <a href="http://www.openamq.org/pub/openamq-$(version)-src.tar.gz">
+              openamq-$(version)-src.tar.gz
+            </a>
+          </li>
+        </ul>
+      </p>
+      <p>
+        Unpack into a working directory and run <tt>./configure</tt> and then
+        <tt>make</tt>.  The source package includes recent validated versions
+        of the Apache Portable Runtime (APR) and the Berkeley Database (BDB) as
+        used by OpenAMQ.
+      </p>
+      <h1>Win32 Packages</h1>
+      <p/>
+      <h2>Source package</h2>
+      <p>
+        <ul>
+          <li>
+            <a href="http://www.openamq.org/pub/openamq-$(version)-src.zip">
+              openamq-$(version)-src.zip
+            </a>
+          </li>
+        </ul>
+      </p>
+      <p>
+        Unpack into a working directory and run <tt>configure</tt> and then
+        <tt>make</tt>.  The source package includes recent validated versions
+        of the Apache Portable Runtime (APR) and the Berkeley Database (BDB) as
+        used by OpenAMQ.
+      </p>
+      <p>
+        Requires Microsoft Visual C++ 6.0 or later.
+      </p>
+      <h2>Binary package</h2>
+      <p>
+        <ul>
+          <li>
+            <a href="http://www.openamq.org/pub/openamq-$(version)-win32.zip">
+              openamq-$(version)-win32.zip
+            </a>
+          </li>
+        </ul>
+      </p>
+      <p>
+        Download and unzip the package into a target directory.  The
+        <tt>clients</tt> subdirectory contains OpenAMQ client tools.  The
+        <tt>servers</tt> subdirectory contains the OpenAMQ server binaries.
+      </p>
+    </content>
+  </language>
+</page>
