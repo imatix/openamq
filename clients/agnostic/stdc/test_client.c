@@ -51,6 +51,9 @@ typedef struct
     long
         rollback_count;                 /*  Transaction rolled back every    */
                                         /*  N-th message                     */
+    apr_byte_t    
+        temporary;                      /*  Use temporary destination        */
+
     int
         interval;                       /*  Interval (in milliseconds)       */
                                         /*  between individual messages sent */
@@ -166,7 +169,8 @@ int main(
         message_nbr;                    /*  Individual query result          */
     char
         identifier [100];               /*  Buffer to construct message      */
-                                        /*  identifier                       */
+    char                                
+        *dest_name;                     /*  Temporary destination name       */
     amqp_frame_t
         *frame;                         /*  Frame to hold received message   */
     apr_byte_t
@@ -176,7 +180,7 @@ int main(
     client.clienttype          = clienttype_undefined;
     client.server              = "127.0.0.1";
     client.host                = NULL;
-    client.destination         = NULL;
+    client.destination         = "";
     client.client_name         = "client";
     client.messages            = 0;
     client.interval            = 500;
@@ -185,6 +189,7 @@ int main(
     client.persistent          = 0;
     client.commit_count        = 0;
     client.rollback_count      = 0;    
+    client.temporary           = 0;    
     client.last_message_number = 0;
     for (arg_pos=1; arg_pos!=argc; arg_pos++) {
         if (strcmp (argv[arg_pos], "producer") == 0)
@@ -213,6 +218,8 @@ int main(
             client.commit_count = atoi (argv [arg_pos]);
         if (strcmp (argv[arg_pos], "-r") == 0 && ++arg_pos != argc)
             client.rollback_count = atoi (argv [arg_pos]);
+        if (strcmp (argv[arg_pos], "-t") == 0 && ++arg_pos != argc)
+            client.temporary = atoi (argv [arg_pos]);
         if (strcmp (argv[arg_pos], "-x") == 0)
             client.persistent = 1;
     }
@@ -222,7 +229,7 @@ int main(
     */
     if (client.clienttype == clienttype_undefined ||
           client.host == NULL ||
-          client.destination == NULL) {
+          (client.temporary == 0 && client.destination == NULL)) {
         printf (
             "Usage: test_level1 MODE OPTIONS ...\n"
             "\n"
@@ -237,6 +244,7 @@ int main(
             "    -x (sends persistent messages)\n"
             "    -c <number of messages while commit is issued>\n"
             "    -r <number of messages while rollback is issued>\n"
+            "    -t <0/1 use a temporary destination>\n"
             "  Note : When neither 'c' or 'r' parameter is set\n"
             "         client works in nontransacted mode.\n"
             "\n"
@@ -296,10 +304,13 @@ int main(
         client.clienttype == clienttype_producer ? 1: 0,
         client.clienttype == clienttype_consumer ? 1: 0,
         client.clienttype == clienttype_query ? 1: 0,
-        0, "", "", "", 0, NULL, &handle);
+        client.temporary, "", "", "", 0, &dest_name, &handle);
     if (result != APR_SUCCESS) {
         printf ("amq_stdc_open_handle failed\n");
         return EXIT_FAILURE;
+    }
+    if (client.temporary) {
+        printf ("Using temporary destination '%s'\n", dest_name);
     }
 
     /*  Mode : PRODUCER                                                      */
