@@ -53,9 +53,5 @@
             <field name = "client id" />
             <field name = "signature" />
         </index>
-        <index name = "junkkey">
-            <field name = "client id" />
-            <field name = "signature" />
-        </index>
     </table>
 </dfl>

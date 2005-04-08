@@ -145,19 +145,22 @@ db_dest database table.
     /*  If new queue, create it now                                          */
     if (self->db_dest->id == 0) {
         ipr_shortstr_cpy (self->db_dest->key, key);
-        /*  TODO
-            - get destination filename
-        ipr_shortstr_cpy (self->db_dest->filename, xxx);
-        */
+        self_locate (self, self->db_dest->filename);
         self->db_dest->active = TRUE;
         amq_db_dest_insert (self->ddb, self->db_dest);
+    }
+    else {
+        self->db_dest->active = TRUE;
+        amq_db_dest_update (self->ddb, self->db_dest);
     }
 </method>
 
 <method name = "destroy">
     s_destroy_priority_lists (self);
-    if (self->db_dest->type == AMQ_MESGQ_TYPE_TEMPQ)
+    if (self->db_dest->type == AMQ_MESGQ_TYPE_TEMPQ) {
         amq_db_dest_delete (self->ddb, self->db_dest);
+        self_purge (self);
+    }
     amq_db_dest_destroy       (&self->db_dest);
     amq_consumer_list_destroy (&self->consumers);
     ipr_looseref_destroy      (&self->mesgq_ref);
@@ -593,10 +596,16 @@ static void
 static void
 s_get_configuration ($(selftype) *self, char *name)
 {
+    ipr_shortstr_t
+        fullname;                       /*  Disk filename for message queue  */
+
+    /*  TODO
+        - for queues and topics, look for 'template' property
+        - test that queue/topic/tempq configuration scheme works
+     */
     if (self->type == AMQ_MESGQ_TYPE_QUEUE) {
         if (ipr_config_locate (self->vhost->config, "/config/queues/queue", name) == -1)
             ipr_config_locate (self->vhost->config, "/config/template/queue", "default");
-
     }
     else
     if (self->type == AMQ_MESGQ_TYPE_TEMPQ) {
@@ -628,7 +637,8 @@ s_get_configuration ($(selftype) *self, char *name)
         ||  self->type == AMQ_MESGQ_TYPE_TEMPQ)
             self_purge (self);
         else {
-            if (self_exists (self)) {
+            self_locate (self, fullname);
+            if (file_exists (fullname)) {
                 self->disk_queue_size = self_count (self);
                 coprintf ("I: %s has %d existing messages", self->key, self->disk_queue_size);
             }

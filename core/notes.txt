@@ -1,13 +1,8 @@
 Queues
-    
 
+ - deleting - need to handle extent files as well...
+ 
 topics
-
-    . queue namespaces
-        configured
-        temporary
-        topic
-        subscription
     . load topics from config
         optionally from text file
     . create topic queues at start
@@ -17,11 +12,6 @@ restartability
     . refresh virtual hosts
     . create new queues & topics
     . leave connections alive
-
-deleting unused queues?
-
-    . currently no functionality
-    . 'delete at next restart'
 
 subscriptions
 

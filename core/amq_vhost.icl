@@ -49,13 +49,11 @@
     ipr_shortstr_cpy (self->directory, directory);
 
     coprintf ("I: configuring virtual host '%s'", self->key);
-    s_config_workdir  (self);
-    s_config_database (self);
-    s_config_queues   (self);
-
-    /*  ***TODO*** implement topics
-    s_config_topics   (self);
-     */
+    s_configure_workdir  (self);
+    s_configure_database (self);
+    s_configure_queues   (self);
+    s_configure_topics   (self);
+    s_clean_destinations (self);
 </method>
 
 <method name = "destroy">
@@ -101,16 +99,18 @@
 </method>
 
 <private name = "header">
-static void s_config_workdir   ($(selftype) *self);
-static void s_config_database  ($(selftype) *self);
-static void s_config_queues    ($(selftype) *self);
+static void s_configure_workdir  ($(selftype) *self);
+static void s_configure_database ($(selftype) *self);
+static void s_configure_queues   ($(selftype) *self);
+static void s_configure_topics   ($(selftype) *self);
+static void s_clean_destinations ($(selftype) *self);
 </private>
 
 <private name = "footer">
 /*  Prepare vhost workdir and working directories                            */
 
 static void
-s_config_workdir ($(selftype) *self)
+s_configure_workdir ($(selftype) *self)
 {
     /*  Spool directory is for non-persistent or incomplete messages         */
     ipr_shortstr_fmt (self->spooldir, "%s/%s", self->directory,
@@ -135,14 +135,14 @@ s_config_workdir ($(selftype) *self)
 }
 
 static void
-s_config_database ($(selftype) *self)
+s_configure_database ($(selftype) *self)
 {
     ipr_shortstr_t
         database_dir;
     amq_db_client_t
         *client;
     amq_db_dest_t
-        *dest;
+        *dest;                          /*  Destination record               */
 
     /*  Prepare database working directory                                   */
     ipr_shortstr_fmt (database_dir, "%s/%s", self->directory,
@@ -165,11 +165,11 @@ s_config_database ($(selftype) *self)
     }
     amq_db_client_destroy (&client);
 
-    /*  Wipe all temporary queues                                            */
+    /*  Disactivate all destinations                                         */
     dest = amq_db_dest_new ();
     while (amq_db_dest_fetch (self->ddb, dest, AMQ_DB_FETCH_GT) == 0) {
-        if (dest->type == AMQ_MESGQ_TYPE_TEMPQ)
-            amq_db_dest_delete (self->ddb, dest);
+        dest->active = FALSE;
+        amq_db_dest_update (self->ddb, dest);
     }
     amq_db_dest_destroy (&dest);
 }
@@ -178,13 +178,13 @@ s_config_database ($(selftype) *self)
 /*  Insert or find configured queues                                         */
 
 static void
-s_config_queues ($(selftype) *self)
+s_configure_queues ($(selftype) *self)
 {
     char
         *external_name;
     ipr_shortstr_t
         internal_name;
-        
+
     coprintf ("I: - configuring and checking persistent queues...");
     ipr_config_locate (self->config, "/config/queues/queue", NULL);
     while (self->config->located) {
@@ -198,6 +198,36 @@ s_config_queues ($(selftype) *self)
             0);                         /*  Owning client id, if any         */
         ipr_config_next (self->config);
     }
+}
+
+/*  Insert or find topics                                                    */
+
+static void
+s_configure_topics ($(selftype) *self)
+{
+}
+
+/*  Remove all unused destinations                                           */
+
+static void
+s_clean_destinations ($(selftype) *self)
+{
+    /*  TODO
+        clean subscriptions?
+     */
+
+    amq_db_dest_t
+        *dest;                          /*  Destination record               */
+
+    /*  Delete all inactive destinations                                     */
+    dest = amq_db_dest_new ();
+    while (amq_db_dest_fetch (self->ddb, dest, AMQ_DB_FETCH_GT) == 0) {
+        if (!dest->active) {
+            amq_db_dest_delete (self->ddb, dest);
+            file_delete (dest->filename);
+        }
+    }
+    amq_db_dest_destroy (&dest);
 }
 </private>
 
