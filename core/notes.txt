@@ -1,7 +1,9 @@
+ - complain if config file is invalid (says nothing)
+ 
 Queues
 
  - deleting - need to handle extent files as well...
- 
+
 topics
     . load topics from config
         optionally from text file
