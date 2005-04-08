@@ -1,7 +1,7 @@
 <?xml?>
 <agent
     name    = "amq_sclient_agent"
-    script  = "smt2c.gsl"
+    script  = "smt_gen.gsl"
     animate = "1">
 
 <!--include filename = "amq_common.smt" /-->
@@ -41,96 +41,96 @@ static int
 <!--  Messages  ----------------------------------------------------------->
 
 <method name = "connection open">
-    <field name = "hostname"     type = "char *">Server to connect to</field>
-    <field name = "virtual path" type = "char *">Virtual host path</field>
-    <field name = "result"       type = "int *" >Pointer to result of operation</field>
+    <argument name = "hostname"     type = "char *">Server to connect to</argument>
+    <argument name = "virtual path" type = "char *">Virtual host path</argument>
+    <argument name = "result"       type = "int *" >Pointer to result of operation</argument>
 </method>
 
 <method name = "connection close">
-    <field name = "result"       type = "int *" >Pointer to result of operation</field>
+    <argument name = "result"       type = "int *" >Pointer to result of operation</argument>
 </method>
 
 <method name = "channel open">
-    <field name = "channel id"   type = "dbyte" >Channel number</field>
-    <field name = "transacted"   type = "Bool"  >Use transacted mode?</field>
-    <field name = "restartable"  type = "Bool"  >Use restartable mode?</field>
-    <field name = "result"       type = "int *" >Pointer to result of operation</field>
+    <argument name = "channel id"   type = "dbyte" >Channel number</argument>
+    <argument name = "transacted"   type = "Bool"  >Use transacted mode?</argument>
+    <argument name = "restartable"  type = "Bool"  >Use restartable mode?</argument>
+    <argument name = "result"       type = "int *" >Pointer to result of operation</argument>
 </method>
 
 <method name = "channel ack">
-    <field name = "channel id"   type = "dbyte" >Channel number</field>
-    <field name = "message nbr"  type = "qbyte" >Message number</field>
-    <field name = "result"       type = "int *" >Pointer to result of operation</field>
+    <argument name = "channel id"   type = "dbyte" >Channel number</argument>
+    <argument name = "message nbr"  type = "qbyte" >Message number</argument>
+    <argument name = "result"       type = "int *" >Pointer to result of operation</argument>
 </method>
 
 <method name = "channel commit">
-    <field name = "channel id"   type = "dbyte" >Channel number</field>
-    <field name = "result"       type = "int *" >Pointer to result of operation</field>
+    <argument name = "channel id"   type = "dbyte" >Channel number</argument>
+    <argument name = "result"       type = "int *" >Pointer to result of operation</argument>
 </method>
 
 <method name = "channel rollback">
-    <field name = "channel id"   type = "dbyte" >Channel number</field>
-    <field name = "result"       type = "int *" >Pointer to result of operation</field>
+    <argument name = "channel id"   type = "dbyte" >Channel number</argument>
+    <argument name = "result"       type = "int *" >Pointer to result of operation</argument>
 </method>
 
 <method name = "channel close">
-    <field name = "channel id"   type = "dbyte" >Channel number</field>
-    <field name = "result"       type = "int *" >Pointer to result of operation</field>
+    <argument name = "channel id"   type = "dbyte" >Channel number</argument>
+    <argument name = "result"       type = "int *" >Pointer to result of operation</argument>
 </method>
 
 <method name = "handle open">
-    <field name = "channel id"   type = "dbyte" >Channel number</field>
-    <field name = "handle id"    type = "dbyte" >Handle number</field>
-    <field name = "temporary"    type = "Bool"  >Temporary access?</field>
-    <field name = "dest name"    type = "char *">Destination name</field>
-    <field name = "result"       type = "int *" >Pointer to result of operation</field>
+    <argument name = "channel id"   type = "dbyte" >Channel number</argument>
+    <argument name = "handle id"    type = "dbyte" >Handle number</argument>
+    <argument name = "temporary"    type = "Bool"  >Temporary access?</argument>
+    <argument name = "dest name"    type = "char *">Destination name</argument>
+    <argument name = "result"       type = "int *" >Pointer to result of operation</argument>
 </method>
 
 <method name = "handle consume">
-    <field name = "handle id"    type = "dbyte" >Handle number</field>
-    <field name = "prefetch"     type = "dbyte" >Max pending messages</field>
-    <field name = "no local"     type = "Bool"  >Don\'t deliver to self?</field>
-    <field name = "unreliable"   type = "Bool"  >Don\'t want to ack</field>
-    <field name = "dest name"    type = "char *">Destination name</field>
-    <field name = "identifier"   type = "char *">Subscription identifier</field>
-    <field name = "result"       type = "int *" >Pointer to result of operation</field>
+    <argument name = "handle id"    type = "dbyte" >Handle number</argument>
+    <argument name = "prefetch"     type = "dbyte" >Max pending messages</argument>
+    <argument name = "no local"     type = "Bool"  >Don\'t deliver to self?</argument>
+    <argument name = "unreliable"   type = "Bool"  >Don\'t want to ack</argument>
+    <argument name = "dest name"    type = "char *">Destination name</argument>
+    <argument name = "identifier"   type = "char *">Subscription identifier</argument>
+    <argument name = "result"       type = "int *" >Pointer to result of operation</argument>
 </method>
 
 <method name = "handle unget">
-    <field name = "handle id"    type = "dbyte" >Handle number</field>
-    <field name = "message nbr"  type = "qbyte" >Message number</field>
-    <field name = "result"       type = "int *" >Pointer to result of operation</field>
+    <argument name = "handle id"    type = "dbyte" >Handle number</argument>
+    <argument name = "message nbr"  type = "qbyte" >Message number</argument>
+    <argument name = "result"       type = "int *" >Pointer to result of operation</argument>
 </method>
 
 <method name = "handle query">
-    <field name = "handle id"    type = "dbyte" >Handle number</field>
-    <field name = "message nbr"  type = "qbyte" >Message base</field>
-    <field name = "dest name"    type = "char *">Destination name suffix</field>
-    <field name = "result"       type = "int *" >Pointer to result of operation</field>
+    <argument name = "handle id"    type = "dbyte" >Handle number</argument>
+    <argument name = "message nbr"  type = "qbyte" >Message base</argument>
+    <argument name = "dest name"    type = "char *">Destination name suffix</argument>
+    <argument name = "result"       type = "int *" >Pointer to result of operation</argument>
 </method>
 
 <method name = "handle send">
-    <field name = "handle_id"    type = "dbyte" >Channel number</field>
-    <field name = "message"      type = "amq_message_t *"
-                                                >Message to send</field>
-    <field name = "dest_name"    type = "char *">Destination name</field>
-    <field name = "result"       type = "int *" >Pointer to result of operation</field>
+    <argument name = "handle_id"    type = "dbyte" >Channel number</argument>
+    <argument name = "message"      type = "amq_message_t *"
+                                                >Message to send</argument>
+    <argument name = "dest_name"    type = "char *">Destination name</argument>
+    <argument name = "result"       type = "int *" >Pointer to result of operation</argument>
 </method>
 
 <method name = "handle flow">
-    <field name = "handle id"    type = "dbyte">Handle number</field>
-    <field name = "flow pause"   type = "Bool" >Pause the flow of messages?</field>
-    <field name = "result"       type = "int *">Pointer to result of operation</field>
+    <argument name = "handle id"    type = "dbyte">Handle number</argument>
+    <argument name = "flow pause"   type = "Bool" >Pause the flow of messages?</argument>
+    <argument name = "result"       type = "int *">Pointer to result of operation</argument>
 </method>
 
 <method name = "handle close">
-    <field name = "handle id"    type = "dbyte">Handle number</field>
-    <field name = "result"       type = "int *">Pointer to result of operation</field>
+    <argument name = "handle id"    type = "dbyte">Handle number</argument>
+    <argument name = "result"       type = "int *">Pointer to result of operation</argument>
 </method>
 
 <method name = "blocking receive">
-    <field name = "msecs"        type = "long" >Timeout, in msecs</field>
-    <field name = "result"       type = "int *">Pointer to result of operation</field>
+    <argument name = "msecs"        type = "long" >Timeout, in msecs</argument>
+    <argument name = "result"       type = "int *">Pointer to result of operation</argument>
 </method>
 
 <!--  Client thread  ------------------------------------------------------>

@@ -1,10 +1,10 @@
 <?xml?>
 <agent
     name    = "amq_aclient_agent"
-    script  = "smt2c.gsl"
+    script  = "smt_gen.gsl"
     animate = "1" >
 
-<include filename = "amq_common.smt" />
+<!--include filename = "amq_common.smt" /-->
 
 <public name = "types">
 #include "amq_classes.h"
@@ -31,64 +31,64 @@ static int
 <!--  Messages  ----------------------------------------------------------->
 
 <method name = "connection open" >
-    <field name = "hostname"     type = "char *">Server to connect to</field>
-    <field name = "virtual path" type = "char *">Virtual host path</field>
+    <argument name = "hostname"     type = "char *">Server to connect to</argument>
+    <argument name = "virtual path" type = "char *">Virtual host path</argument>
 </method>
 
 <method name = "connection close" />
 
 <method name = "channel open" >
-    <field name = "channel id"   type = "dbyte">Channel number</field>
-    <field name = "transacted"   type = "Bool" >Use transacted mode?</field>
-    <field name = "restartable"  type = "Bool" >Use restartable mode?</field>
+    <argument name = "channel id"   type = "dbyte">Channel number</argument>
+    <argument name = "transacted"   type = "Bool" >Use transacted mode?</argument>
+    <argument name = "restartable"  type = "Bool" >Use restartable mode?</argument>
 </method>
 
 <method name = "channel ack" >
-    <field name = "channel id"   type = "dbyte">Channel number</field>
-    <field name = "message nbr"  type = "qbyte">Message number</field>
+    <argument name = "channel id"   type = "dbyte">Channel number</argument>
+    <argument name = "message nbr"  type = "qbyte">Message number</argument>
 </method>
 
 <method name = "channel commit" >
-    <field name = "channel id"   type = "dbyte">Channel number</field>
+    <argument name = "channel id"   type = "dbyte">Channel number</argument>
 </method>
 
 <method name = "channel rollback" >
-    <field name = "channel id"   type = "dbyte">Channel number</field>
+    <argument name = "channel id"   type = "dbyte">Channel number</argument>
 </method>
 
 <method name = "channel close" >
-    <field name = "channel id"   type = "dbyte">Channel number</field>
+    <argument name = "channel id"   type = "dbyte">Channel number</argument>
 </method>
 
 <method name = "handle open" >
-    <field name = "channel id"   type = "dbyte" >Channel number</field>
-    <field name = "handle id"    type = "dbyte" >Handle number</field>
-    <field name = "temporary"    type = "Bool"  >Temporary access?</field>
-    <field name = "dest name"    type = "char *">Destination name</field>
+    <argument name = "channel id"   type = "dbyte" >Channel number</argument>
+    <argument name = "handle id"    type = "dbyte" >Handle number</argument>
+    <argument name = "temporary"    type = "Bool"  >Temporary access?</argument>
+    <argument name = "dest name"    type = "char *">Destination name</argument>
 </method>
 
 <method name = "handle consume" >
-    <field name = "handle id"    type = "dbyte" >Handle id</field>
-    <field name = "prefetch"     type = "dbyte" >Max pending messages</field>
-    <field name = "no local"     type = "Bool"  >Don\'t deliver to self?</field>
-    <field name = "unreliable"   type = "Bool"  >Don\'t want to ack</field>
-    <field name = "dest name"    type = "char *">Destination name</field>
-    <field name = "identifier"   type = "char *">Subscription identifier</field>
+    <argument name = "handle id"    type = "dbyte" >Handle id</argument>
+    <argument name = "prefetch"     type = "dbyte" >Max pending messages</argument>
+    <argument name = "no local"     type = "Bool"  >Don\'t deliver to self?</argument>
+    <argument name = "unreliable"   type = "Bool"  >Don\'t want to ack</argument>
+    <argument name = "dest name"    type = "char *">Destination name</argument>
+    <argument name = "identifier"   type = "char *">Subscription identifier</argument>
 </method>
 
 <method name = "handle send" >
-    <field name = "handle_id"    type = "dbyte"          >Channel number</field>
-    <field name = "message"      type = "amq_message_t *">Message to send</field>
-    <field name = "dest_name"    type = "char *"         >Destination name</field>
+    <argument name = "handle_id"    type = "dbyte"          >Channel number</argument>
+    <argument name = "message"      type = "amq_message_t *">Message to send</argument>
+    <argument name = "dest_name"    type = "char *"         >Destination name</argument>
 </method>
 
 <method name = "handle flow">
-    <field name = "handle id"    type = "dbyte">Handle number</field>
-    <field name = "flow pause"   type = "Bool" >Pause the flow of messages?</field>
+    <argument name = "handle id"    type = "dbyte">Handle number</argument>
+    <argument name = "flow pause"   type = "Bool" >Pause the flow of messages?</argument>
 </method>
 
 <method name = "handle close" >
-    <field name = "handle id"    type = "dbyte">Handle number</field>
+    <argument name = "handle id"    type = "dbyte">Handle number</argument>
 </method>
 
 
@@ -941,6 +941,68 @@ s_sock_read (smt_thread_t *thread, byte *buffer, size_t size)
 
 #undef  tcb
 </private>
+
+<!--
+    amq_common.smt
+
+    Common SMT functions used by AMQP servers and clients
+ -->
+
+<state name = "defaults">
+    <event name = "socket error" nextstate = "" >
+    </event>
+    <event name = "smt error" nextstate = "">
+        <action name = "handle error"/>
+    </event>
+    <event name = "shutdown" nextstate = "" />
+</state>
+
+<catch error = "SMT_SOCKET_ERROR"     event = "socket error" />
+<catch                                event = "smt error" />
+
+<action name = "handle error">
+    coprintf ("E: %s", smt_thread_error (thread));
+</action>
+
+<action name = "wait for activity" >
+    smt_socket_request_monitor (
+        thread, tcb->socket, socket_input_event, SMT_NULL_EVENT);
+</action>
+
+<action name = "read next command">
+    <action name = "read frame header normal" />
+    <action name = "read frame header escaped" />
+    <action name = "read frame body" />
+    <action name = "decode the frame" />
+</action>
+
+<action name = "read frame header normal">
+    s_sock_read (thread, tcb->frame_header, 2);
+</action>
+
+<action name = "read frame header escaped">
+    tcb->frame_size = ntohs (*(dbyte *) (tcb->frame_header));
+    if (tcb->frame_size == 0xffff) {
+        s_sock_read (thread, tcb->frame_header, 4);
+        tcb->long_frame = TRUE;
+    }
+    else
+        tcb->long_frame = FALSE;
+</action>
+
+<action name = "read frame body">
+    if (tcb->long_frame)
+        tcb->frame_size = ntohl (*(qbyte *) (tcb->frame_header));
+
+    if (tcb->frame_size > tcb->frame_max) {
+        coprintf ("E: received frame is too large (want %ld, have %ld)",
+            tcb->frame_size, tcb->frame_max);
+        smt_thread_raise_exception (thread, connection_error_event);
+    }
+    else
+        s_sock_read (thread, tcb->command->data, tcb->frame_size);
+</action>
+
 
 </agent>
 

@@ -1,7 +1,7 @@
 <?xml?>
 <agent
     name    = "amq_server_agent"
-    script  = "smt2c.gsl"
+    script  = "smt_gen.gsl"
     animate = "1">
 
 <public name = "types">
@@ -121,38 +121,38 @@ static int
 <!--  Client thread  --------------------------------------------------------->
 
 <method name = "handle created">
-    <field name = "handle id" type = "dbyte">Handle number</field>
-    <field name = "dest name" type = "char *">Destination name</field>
+    <argument name = "handle id" type = "dbyte">Handle number</argument>
+    <argument name = "dest name" type = "char *">Destination name</argument>
 </method>
 
 <method name = "handle notify">
-    <field name = "handle id"   type = "dbyte">Handle number</field>
-    <field name = "message nbr" type = "qbyte">Message reference</field>
-    <field name = "recovery"    type = "Bool"  >Restarting large message?</field>
-    <field name = "delivered"   type = "Bool"  >Message is being delivered?</field>
-    <field name = "redelivered" type = "Bool"  >Message is being redelivered?</field>
-    <field name = "dest name"   type = "char *">Originating destination</field>
-    <field name = "message"     type = "amq_smessage_t *">Message to send</field>
-    <field name = "dispatch"    type = "amq_dispatch_t *">Auto-acknowledge</field>
-    <field name = "destroy"     type = "Bool"  >Destroy message when sent?</field>
+    <argument name = "handle id"   type = "dbyte">Handle number</argument>
+    <argument name = "message nbr" type = "qbyte">Message reference</argument>
+    <argument name = "recovery"    type = "Bool"  >Restarting large message?</argument>
+    <argument name = "delivered"   type = "Bool"  >Message is being delivered?</argument>
+    <argument name = "redelivered" type = "Bool"  >Message is being redelivered?</argument>
+    <argument name = "dest name"   type = "char *">Originating destination</argument>
+    <argument name = "message"     type = "amq_smessage_t *">Message to send</argument>
+    <argument name = "dispatch"    type = "amq_dispatch_t *">Auto-acknowledge</argument>
+    <argument name = "destroy"     type = "Bool"  >Destroy message when sent?</argument>
 </method>
 
 <method name = "handle index">
-    <field name = "handle id"    type = "dbyte">Handle number</field>
-    <field name = "message nbr"  type = "qbyte">Top message number</field>
-    <field name = "message list" type = "ipr_longstr_t *">Message numbers</field>
+    <argument name = "handle id"    type = "dbyte">Handle number</argument>
+    <argument name = "message nbr"  type = "qbyte">Top message number</argument>
+    <argument name = "message list" type = "ipr_longstr_t *">Message numbers</argument>
 </method>
 
 <method name = "connection reply">
-    <field name = "confirm tag"  type = "dbyte" >Confirmation tag</field>
+    <argument name = "confirm tag"  type = "dbyte" >Confirmation tag</argument>
 </method>
 
 <method name = "channel reply">
-    <field name = "confirm tag"  type = "dbyte" >Confirmation tag</field>
+    <argument name = "confirm tag"  type = "dbyte" >Confirmation tag</argument>
 </method>
 
 <method name = "handle reply">
-    <field name = "confirm tag"  type = "dbyte" >Confirmation tag</field>
+    <argument name = "confirm tag"  type = "dbyte" >Confirmation tag</argument>
 </method>
 
 <thread name = "client">
