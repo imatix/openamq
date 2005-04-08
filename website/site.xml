@@ -1,0 +1,19 @@
+<!-- 
+    OpenAMQ website definition
+
+    A <site> has a name (user visible), some <page>s and <sections> with
+    more <page>s. The first <page> (not in a section) is the "index" page.
+
+    Each <page> will be loaded from name.xml
+-->
+<site name   = "OpenAMQ"
+      script = "site.gsl" >
+
+  <page name = "index"   />
+
+  <section name = "Software"  >
+    <page  name = "license"  />
+    <page  name = "download" />
+  </section>
+
+</site>

@@ -1,0 +1,31 @@
+.template 0
+# 
+# OpenAMQ website generator
+#
+# Loads all pages, then runs template.gsl on each one.
+#
+
+new root.content
+for site.page
+    xml to content from page.name
+endfor
+
+for site.section
+    for page
+        xml to content from page.name
+    endfor
+endfor
+endnew
+
+for root.content
+for page
+    echo "$(page->language->title)"
+    for language
+        echo "Generating $(page.name).html"
+        output "$(page.name).html"
+        include "template.gsl"
+    endfor
+endfor
+endfor
+
+.endtemplate

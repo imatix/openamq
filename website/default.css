@@ -1,0 +1,154 @@
+/* 
+
+   OpenAMQ stylesheet
+
+*/
+
+  /* Global defaults */
+  * {
+    margin: 0;
+    padding: 0;
+  }
+  BODY { 
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-size: 10pt; 
+  }
+
+  /* Left column container */
+  #left_container {
+     float: left;
+     width: 20%;
+     /* min-width: 170px; */
+  }
+
+  /* Right column container */
+  #right_container {
+     float: right;
+     /* margin-left: auto; */
+     width: 80%;
+  }
+
+  /* Logo (left, top) container */
+  #logo_container {
+     height: 100px;
+     color: black;
+     background-color: white;
+  }
+  /* Logo itself */
+  #logo {
+     display: block;
+     padding: 5pt;
+     margin-left: auto;
+     margin-right: auto;
+  }
+
+  /* Menu (left, bottom) container */
+  #menu_container {
+     padding-top: 20pt;
+     padding-bottom: 20pt;
+     color: black;
+     background-color: #b9cdd8;
+  }
+  H3.menu_heading {
+     color: white;
+     background-color: #01415c;
+     font-size: 10pt;
+     line-height: 16pt;
+     font-variant: small-caps;
+     text-transform: uppercase;
+     text-indent: 20pt;
+  }
+  UL.menu_item {
+     font-variant: normal;
+     /* text-transform: lowercase; */
+     list-style: none;
+     border-width: 2pt 0 0 0;
+     border-style: solid;
+     border-color: white;
+     line-height: 16pt;
+  }
+  UL.menu_item LI {
+     border-width: 0 0 2pt 0;
+     border-style: solid;
+     border-color: white;
+     text-indent: 20pt;
+  }
+
+  /* Tagline (right, top) container */
+  #tagline_container {
+     color: white;
+     background-color: #01415c;
+     height: 100px;
+     position: relative;
+  }
+  H1#tagline {
+     font-size: 110%;
+     position: absolute;
+     right: 0;
+     bottom: 0;
+     padding: 0.5em;
+  }
+ 
+  /* Content (right, bottom) container */
+  /* FIXME: Style more HTML elements here */
+  #content_container {
+     color: black;
+     background-color: white;
+     margin: 2em;
+     border-width: 1px;
+     border-color: #01415c;
+     border-style: solid;
+  }
+  #content_container H1 {
+     color: white;
+     background-color: #01415c;
+     font-size: 10pt;
+     line-height: 16pt;
+     font-variant: small-caps;
+     text-transform: uppercase;
+     text-indent: 10pt;
+  }
+  #content_container H2 {
+     color: #01415c; font-size: 10pt;
+     font-weight: bold;
+     padding-left: 10pt;
+  }
+  #content_container UL {
+     margin: 1em;
+     padding-left: 20pt;
+  }
+  #content_container P {
+     margin: 1em;
+  }
+
+  /* Disclaimer (bottom right, below content */
+  #disclaimer P {
+     margin: 30pt;
+     font-size: 7pt;
+     text-align: center;
+     border-width: 1pt 0 0 0;
+     border-style: solid;
+     color: #01415c;
+  }
+
+  /* Links */
+  /* FIXME: Use different link styling for the content */
+  A:active {
+    text-decoration: none;
+    color: black;
+  }
+  A:link {
+    text-decoration: none;
+    color: black;
+  }
+  A:visited {
+    text-decoration: none;
+    color: black;
+  }
+  A[HREF]:hover {
+    color: red; 
+  }
+  A:link IMG, A:visited IMG {
+    border-style: none;
+  }
+
