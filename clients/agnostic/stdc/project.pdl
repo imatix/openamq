@@ -4,8 +4,9 @@
     acronym   = "OpenAMQ_Agnostic_C"
     version   = "0.8b0"
     copyright = "Copyright (c) 1991-2005 iMatix Corporation"
-    workflow  = "standard.pwl"
-    library   = "libamqp">
+    deploy    = "openamq/clients"
+    library   = "libamqp"
+    >
 
 <include filename = "prelude.pdl" />
 
@@ -14,33 +15,29 @@
 <file name = "test_framing.c"             class = "main program"    >Framing API test program</file>
 
 <file name = "amq_stdc_fsms.gsl"          class = "private resource">Client API FSM generator</file>
-<file name = "amq_stdc_global_fsm.c"      class = "library module"  >Global state machine</file>
-<file name = "amq_stdc_global_fsm.d"      class = "generated"       >Global state machine definition</file>
-<file name = "amq_stdc_global_fsm.i"      class = "generated"       >Global state machine interface</file>
-<file name = "amq_stdc_connection_fsm.c"  class = "library module"  >Connection state machine</file>
-<file name = "amq_stdc_connection_fsm.d"  class = "generated"       >Connection state machine definition</file>
-<file name = "amq_stdc_connection_fsm.i"  class = "generated"       >Connection state machine interface</file>
-<file name = "amq_stdc_channel_fsm.c"     class = "library module"  >Channel state machine</file>
-<file name = "amq_stdc_channel_fsm.d"     class = "generated"       >Channel state machine definition</file>
-<file name = "amq_stdc_channel_fsm.i"     class = "generated"       >Channel state machine interface</file>
-<file name = "amq_stdc_handle_fsm.c"      class = "library module"  >Handle state machine</file>
-<file name = "amq_stdc_handle_fsm.d"      class = "generated"       >Handle state machine definition</file>
-<file name = "amq_stdc_handle_fsm.i"      class = "generated"       >Handle state machine interface</file>
+<file name = "amq_stdc_fsms.xml"          class = "gsl data"        >State machine definitions</file>
+<file name = "amq_stdc_global_fsm.c"      class = "state machine"   >Global state machine</file>
+<file name = "amq_stdc_connection_fsm.c"  class = "state machine"   >Connection state machine</file>
+<file name = "amq_stdc_channel_fsm.c"     class = "state machine"   >Channel state machine</file>
+<file name = "amq_stdc_handle_fsm.c"      class = "state machine"   >Handle state machine</file>
 <file name = "amq_stdc_private.c"         class = "library module"  >Common functions</file>
 <file name = "amq_stdc_client.c"          class = "library module"  >Public client API</file>
+<file name = "amq_stdc_client.h"          class = "public header"   >Client API public header</file>
 <file name = "test_client.c"              class = "main program"    >Main program</file>
 
 <!-- Deliverables -->
 <file name = "libamqp"                    class = "public library"  >Public API library</file>
-<file name = "amq_stdc_framing.h"         class = "public header"   >Framing API public header</file>
-<file name = "amq_stdc_client.h"          class = "public header"   >Client API public header</file>
 <file name = "test_framing"               class = "public command"  >Framing API test executable</file>
 <file name = "test_client"                class = "public command"  >Client API test executable</file>
 
+<class name = "state machine" inherit = "sub program">
+    <derive extension = ".i"   class = "generated" />
+    <derive extension = ".d"   class = "generated" />
+</class>
+
 <actions>
-<generate>
+  <generate>
     <execute>gsl -script:amq_stdc_framing.gsl amq_frames.xml</execute>
-    <execute>gsl -script:amq_stdc_fsms.gsl amq_stdc_fsms.xml</execute>
-</generate>
+  </generate>
 </actions>
 </pdl>
