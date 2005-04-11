@@ -124,7 +124,7 @@
         /*  Push back non-persistent message                                 */
         /*    - update window AFTER so it won't bounce to same consumer      */
         amq_mesgq_accept (self->mesgq, NULL, self->message, NULL);
-        self->message = NULL;           /*  Passed to mesgq_accept           */
+        amq_smessage_destroy (&self->message);
     }
     else {
 #       ifdef TRACE_DISPATCH

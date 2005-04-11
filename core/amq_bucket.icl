@@ -10,11 +10,12 @@
 <doc>
     Defines a bucket, being a buffer of AMQ_BUCKET_MAX bytes.  Buckets can
     be passed in messages and freed by the recipient.  Buckets are cached
-    so that heavy new/destroy use is very cheap.
+    so that heavy new/destroy use is very cheap.  We use reference counting
+    so that buckets can be freely passed between objects.
 </doc>
 
-<inherit class = "icl_ref_count"   />
-<inherit class = "icl_object"      />
+<inherit class = "icl_ref_count" />
+<inherit class = "icl_object"    />
 
 <import class = "icl_system"  />
 <import class = "icl_mem"     />

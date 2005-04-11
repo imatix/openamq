@@ -347,7 +347,8 @@ s_load_message_properties ($(selftype) *self, amq_mesgq_t *mesgq)
     mesgq = amq_mesgq_new (
             "tempq-test-00",            /*  Mapped key/filename              */
             vhost,                      /*  Parent virtual host              */
-            AMQ_MESGQ_TYPE_TEMPQ,       /*  Mesgq type                       */
+            AMQP_SERVICE_QUEUE,         /*  Service type                     */
+            TRUE,                       /*  Temporary service?               */
             "test",                     /*  External destination name        */
             1);                         /*  Owning client id, if any         */
     assert (mesgq);

@@ -1,4 +1,22 @@
-0.8b2 - 2005/04/01
+0.8b3 - 2006/04/07
+
+Changes to server:
+
+  - Server deletes (old) unused queue backing files at startup.  Previously
+    these were left in the data subdirectory.
+
+  - Destination backing files now given unique name (using a simple hash).
+    Previously two queues ("a-b", "a/b") could map to the same backing
+    file name.
+
+  - Destinations can now be configured using templates.  This lets you
+    tune large numbers of destinations (e.g. topics) by modifying a single
+    template.  The "default" template is used by default for normal
+    destinations, and "temporary" for temporary destinations.
+
+Changes to clients:
+
+0.8b2 - 2005/04/06 - internal
 
   - server now creates and opens queue persistence files 'lazily',
     allowing pure in-memory queues.

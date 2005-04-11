@@ -1,8 +1,16 @@
  - complain if config file is invalid (says nothing)
+ - change temporary queue to "mailbox" concept
+    - purge at open, optional
+    - purge at close, optional
+ - move to HUGE values for file/mesg sizes
+    - or 64-bit values
+ - way to cancel and/or purge a message being sent
+
  
 Queues
 
  - deleting - need to handle extent files as well...
+    ... does not appear to create them?
 
 topics
     . load topics from config

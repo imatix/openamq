@@ -134,7 +134,6 @@ static int
     <argument name = "dest name"   type = "char *">Originating destination</argument>
     <argument name = "message"     type = "amq_smessage_t *">Message to send</argument>
     <argument name = "dispatch"    type = "amq_dispatch_t *">Auto-acknowledge</argument>
-    <argument name = "destroy"     type = "Bool"  >Destroy message when sent?</argument>
 </method>
 
 <method name = "handle index">
@@ -811,6 +810,7 @@ static int
         /*  Grab a new bucket for the incoming message data                  */
         if (tcb->fragment)
             amq_bucket_destroy (&tcb->fragment);
+
         tcb->fragment = amq_bucket_new (HANDLE_SEND.fragment_size);
         s_sock_read (thread, tcb->fragment->data, HANDLE_SEND.fragment_size);
     </action>
@@ -830,11 +830,8 @@ static int
         else {
             amq_global_reset_error ();
             amq_handle_send (tcb->handle, &HANDLE_SEND, tcb->channel->message_in);
+            amq_smessage_destroy (&tcb->channel->message_in);
             handle_reply_if_needed (thread, HANDLE_SEND.confirm_tag);
-
-            /*  We pass ownership to the message handler code                */
-            if (amq_global_error_code () == 0)
-                tcb->channel->message_in = NULL;
             the_next_event = finished_event;
         }
     </action>
@@ -911,12 +908,13 @@ static int
 
         /*  Send HANDLE READY in response                                    */
         amq_frame_free (&tcb->frame);
-        tcb->frame = amq_frame_handle_ready_new (
-            handle_notify_m->handle_id, size);
+        tcb->frame = amq_frame_handle_ready_new (handle_notify_m->handle_id, size);
         send_the_frame (thread);
 
-        /*  Message and fragment passed on...                                */
-        tcb->channel->message_in = NULL;
+        /*  TODO
+            - this code seems wrong - should we not hold onto the message?
+         */
+        amq_smessage_destroy (&tcb->channel->message_in);
     </action>
 
     <!--  HAVE HANDLE CLOSE  ------------------------------------------------->
@@ -989,16 +987,14 @@ static int
             the_next_event = continue_event;
         else {
             the_next_event = finished_event;
+            amq_smessage_destroy (&handle_notify_m->message);
 
             /*  If a dispatch object was passed, acknowledge the message
                 immediately - this indicates a consumer that has asked for
-                'unreliable' delivery, i.e. auto-ack'ed by the server        */
+                'unreliable' delivery, i.e. auto-ack'ed by the server
+             */
             if (handle_notify_m->dispatch)
                 amq_dispatch_ack (handle_notify_m->dispatch);
-
-            /*  If caller wants it, destroy the message                      */
-            if (handle_notify_m->destroy)
-                amq_smessage_destroy (&handle_notify_m->message);
         }
     </action>
 

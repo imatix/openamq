@@ -7,6 +7,7 @@
     script    = "icl_gen"
     >
 
+<inherit class = "icl_ref_count" />
 <inherit class = "icl_alloc_cache" />
 
 <import class = "ipr"        />

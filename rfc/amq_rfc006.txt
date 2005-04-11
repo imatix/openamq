@@ -5,7 +5,7 @@ gdl
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/03/29
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.8b0
+    version   = 0.8b1
 end gdl
 
 Cover
@@ -23,6 +23,9 @@ This document is ready for review.
 
 Recent Change History
 ---------------------
+
+0.8b1
+- Temporary queues are deleted when the connection, not channel, closes.
 
 0.8b0
 - HANDLE QUERY message number requests messages GE, not GT that specified.
@@ -1904,8 +1907,8 @@ Temporary queues (and temporary topics, which work exactly the same way)
 are designed to provide clients with a place for other processes to send
 replies.  Typically, a client will create a temporary queue and then ask
 other processes to "reply to" that queue.  The value of a temporary queue
-is that it is deleted automatically; when the channel closes, the queue is
-destroyed.
+is that it is deleted automatically; when the connection closes, the queue
+is destroyed.
 
 Temporary queue names may be specified by the client, or may be chosen by
 the server.  If the client provides a queue name, the server verifies that

@@ -189,23 +189,45 @@ s_configure_queues ($(selftype) *self)
     ipr_config_locate (self->config, "/config/queues/queue", NULL);
     while (self->config->located) {
         external_name = ipr_config_attr (self->config, "name", "unnamed");
-        amq_mesgq_map_name (internal_name, external_name, AMQ_MESGQ_TYPE_QUEUE);
+        amq_mesgq_map_name (internal_name, external_name, AMQP_SERVICE_QUEUE);
         amq_mesgq_new (
             internal_name,              /*  Mapped key/filename              */
             self,                       /*  Parent virtual host              */
-            AMQ_MESGQ_TYPE_QUEUE,       /*  Message queue type               */
+            AMQP_SERVICE_QUEUE,         /*  Message queue type               */
+            FALSE,                      /*  Temporary destination?           */
             external_name,              /*  External dest name               */
             0);                         /*  Owning client id, if any         */
         ipr_config_next (self->config);
     }
 }
 
+
 /*  Insert or find topics                                                    */
 
 static void
 s_configure_topics ($(selftype) *self)
 {
+    char
+        *external_name;
+    ipr_shortstr_t
+        internal_name;
+
+    coprintf ("I: - configuring and checking topics...");
+    ipr_config_locate (self->config, "/config/topics/topic", NULL);
+    while (self->config->located) {
+        external_name = ipr_config_attr (self->config, "name", "unnamed");
+        amq_mesgq_map_name (internal_name, external_name, AMQP_SERVICE_TOPIC);
+        amq_mesgq_new (
+            internal_name,              /*  Mapped key/filename              */
+            self,                       /*  Parent virtual host              */
+            AMQP_SERVICE_TOPIC,         /*  Message queue type               */
+            FALSE,                      /*  Temporary destination?           */
+            external_name,              /*  External dest name               */
+            0);                         /*  Owning client id, if any         */
+        ipr_config_next (self->config);
+    }
 }
+
 
 /*  Remove all unused destinations                                           */
 

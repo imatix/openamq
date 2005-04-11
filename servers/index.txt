@@ -3,9 +3,9 @@ gdl
     subtitle  = Installation and Use of OpenAMQ
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/03/14
+    date      = 2005/04/10
     copyright = Copyright (c) 2004-2005 JPMorgan and iMatix Corporation
-    version   = 0.8
+    version   = 0.8b
 end gdl
 
 Introduction
@@ -38,10 +38,10 @@ The AMQP protocol was designed by Pieter Hintjens and John O'Hara
 with suggestions from Mark Atwell, James Strachan, Stewie Stewart,
 Martin Sustrik and Martin Lucina.
 
-The OpenAMQ server was designed by Pieter Hintjens and John O' Hara
+The OpenAMQ server was designed by Pieter Hintjens and John O'Hara
 and built by Pieter Hintjens and Jonathan Schultz with contributions
-from Martin Lucina, Martin Sustrik, Ewen McNeill, Rakan El-Khalil,
-Gustavo Broos, and others.
+from Martin Lucina, Martin Sustrik, Ewen McNeill, Gustavo Broos,
+Rakan El-Khalil, and others.
 
 OpenAMQ uses the iMatix Base platform, including the iMatix Class
 Language (iCL), iMatix Portability Runtime (iPR), and iMatix Simple
@@ -306,7 +306,7 @@ For example:
 
     <config>
         <resources txn-limit = "250" />
-        <security  mechanism = "PLAIN" />
+        <security mechanism = "PLAIN" />
         <users>
             <user name = "group1" password = "SYx625sA" />
             <user name = "group2" password = "USYhdh11" />
@@ -358,11 +358,12 @@ directories:store:
     <queues>
         <queue
             name = "test"
+            template = "default"
             auto-purge = "0"
             memory-queue-max = "1000"
             min-consumers = "0"
             max-consumers = "10"
-            browsable = "1"
+            protected = "0"
             persistent = "0"
             max-messages = "100000"
             max-message-size = "1073741824"
@@ -376,6 +377,10 @@ directories:store:
 queues/queue:name:
     Specifies the name of the queue.  Each queue in a virtual host must
     have a unique name.
+queues/queue:template:
+    Specifies the name of the template to use.  The template provides
+    default values for all the queue properties.  The "default" template
+    is used if no other is specified.
 queues/queue:auto-purge:
     If set to 1, the queue will be emptied of persistent messages when
     the server starts.  (Note that non-persistent messages still held by
@@ -397,9 +402,9 @@ queues/queue:max-consumers:
     Specifies the maximum number of consumers allowed for the queue.  When
     this number is reached new consumers are rejected.  Zero means "no
     limit".  Defaults to zero.
-queues/queue:browsable:
-    If 1, the queue can be browsed (AMQP HANDLE QUERY/BROWSE commands). If
-    zero, the queue cannot be browsed.  Defaults to 1 (browsable).
+queues/queue:protected:
+    If 0, the queue can be browsed (AMQP HANDLE QUERY/BROWSE commands). If
+    1, the queue cannot be browsed.  Defaults to 0 (not protected).
 queues/queue:persistent:
     If 1, all messages sent to the queue are treated as persistent, whether
     or not the client application asks for it.  Defaults to zero.
@@ -438,6 +443,65 @@ queues/queue:extent-size:
     fewer, larger files will be created.  Lowering it may reduce the amount
     of disk space assigned but not actively used.  Defaults to 25,000.
 
+    <topics>
+        <topic
+            name = "test"
+            template = "default"
+            auto-purge = "0"
+            memory-queue-max = "1000"
+            min-consumers = "0"
+            max-consumers = "10"
+            protected = "0"
+            persistent = "0"
+            max-messages = "100000"
+            max-message-size = "1073741824"
+            priority-levels = "2"
+            page-size = "4096"
+            block-size = "1000"
+            extent-size = "25000"
+        />
+    </topics>
+
+topics/topic:name:
+    Specifies the name of the topic.  Each topic in a virtual host must
+    have a unique name.
+topics/topic:template:
+    Specifies the name of the template to use.  The template provides
+    default values for all the topic properties.  The "default" template
+    is used if no other is specified.
+
+    <template>
+        <queue
+            name = "default"
+            ...options...
+        />
+        <queue
+            name = "temporary"
+            ...options...
+        />
+        <topic
+            name = "default"
+            ...options...
+        />
+        <topic
+            name = "temporary"
+            ...options...
+        />
+    </template>
+
+template/queue:
+    Templating lets you configure queues using a minimum of effort.
+    By default all queues are based on the "default" template.  The template
+    provides default values for all queue properties (except "template").
+    These can be then explicitly specified in the queue definition.
+    Temporary queues are configured using the template called "temporary".
+template/topic:
+    Templating lets you configure topics using a minimum of effort.
+    By default all topics are based on the "default" template.  The template
+    provides default values for all topic properties (except "template").
+    These can be then explicitly specified in the topic definition.
+    Temporary topics are configured using the template called "temporary".
+
 Layered Configuration Files
 ...........................
 
@@ -449,6 +513,11 @@ Administration Guide
 
 Common Tasks
 ============
+
+Deleting Unused Queues
+......................
+
+OpenAMQ automatically deletes old, unused queues when it restarts.
 
 Deleting All Queued Data
 ........................
@@ -474,5 +543,4 @@ otherwise maintained by the server.  You should ensure that there is
 sufficient space here for logs (especially if you use the tracing options
 when running the server).  You can delete these log files at any time,
 including when the server is running.
-
 

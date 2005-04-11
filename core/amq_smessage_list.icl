@@ -36,6 +36,7 @@
     while (message) {
         amq_mesgq_accept (message->mesgq, NULL, message, txn);
         current = message;              /*  Double-check accept worked       */
+        amq_smessage_destroy (&message);
         message = amq_smessage_list_first (self);
         assert (message != current);
     }

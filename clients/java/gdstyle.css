@@ -1,8 +1,19 @@
 a {
      font-family: Arial, Helvetica, sans-serif;
-     font-size: x-small;
-     color: #000000;
+     color: #0081ab;
      text-decoration: none;
+}
+a.toc_main {
+     font-family: Arial, Helvetica, sans-serif;
+     font-size: small;
+     font-weight: bold;
+     color: black;
+     list-style-type: none;
+}
+a.toc {
+     font-family: Arial, Helvetica, sans-serif;
+     font-size: x-small;
+     color: black;
      list-style-type: none;
 }
 a:hover {

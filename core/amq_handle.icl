@@ -110,68 +110,8 @@ typedef struct {
     ipr_shortstr_cpy (self->mime_type, command->mime_type);
     ipr_shortstr_cpy (self->encoding,  command->encoding);
 
-    if (self->service_type == AMQP_SERVICE_QUEUE)
-        s_find_or_create_queue (&self, command->temporary);
-    else {
-        /*  ***TODO*** implement topics
-         */
-        $(selfname)_destroy (&self);
-        amq_global_set_error (AMQP_ACCESS_REFUSED, "Access to requested destination is not allowed");
-    }
+    s_find_or_create_dest (&self, command->temporary);
 </method>
-
-<private name = "header">
-static void
-s_find_or_create_queue ($(selftype) ** p_self, Bool temporary);
-</private>
-
-<private name = "footer">
-static void
-s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
-{
-    $(selftype)
-        *self = *p_self;
-    static qbyte
-        queue_nbr = 0;                  /*  Temporary queue number           */
-    ipr_shortstr_t
-        internal_name;
-
-    /*  Find queue if named                                                  */
-    if (self->dest_name && *self->dest_name) {
-        self->mesgq = amq_mesgq_search (
-            self->vhost->mesgq_hash, self->dest_name, AMQ_MESGQ_TYPE_QUEUE);
-        if (self->mesgq == NULL && !temporary) {
-            amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
-            $(selfname)_destroy (p_self);
-        }
-    }
-    else
-    if (temporary)                      /*  Assign name automatically        */
-        ipr_shortstr_fmt (self->dest_name, "reply-%09ld", ++queue_nbr);
-
-    /*  Create, if temporary and not already present                         */
-    if (temporary) {
-        if (self->mesgq) {
-            if (self->mesgq->client_id != self->client_id) {
-                amq_global_set_error (AMQP_NOT_FOUND, "Temporary queue already in use");
-                self->mesgq = NULL;
-                $(selfname)_destroy (p_self);
-            }
-        }
-        else {
-            amq_mesgq_map_name (internal_name, self->dest_name, AMQ_MESGQ_TYPE_QUEUE);
-            amq_mesgq_new (
-                internal_name,          /*  Mapped key/filename              */
-                self->vhost,            /*  Parent virtual host              */
-                AMQ_MESGQ_TYPE_TEMPQ,   /*  Message queue type               */
-                self->dest_name,        /*  External dest name               */
-                self->client_id);       /*  Owning client id                 */
-            amq_server_agent_handle_created (
-                self->thread, (dbyte) self->key, self->dest_name);
-        }
-    }
-}
-</private>
 
 <method name = "destroy">
     <local>
@@ -206,7 +146,8 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
         self->vhost->mesgq_hash,
         self->dest_name,
         command->dest_name,
-        AMQ_MESGQ_TYPE_QUEUE);
+        AMQP_SERVICE_QUEUE);
+
     /*  TODO topic broadcasts  */
 
     if (mesgq) {
@@ -277,10 +218,10 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
         self->vhost->mesgq_hash,
         self->dest_name,
         command->dest_name,
-        AMQ_MESGQ_TYPE_QUEUE);
+        AMQP_SERVICE_QUEUE);
 
     if (mesgq) {
-        if (mesgq->opt_browsable) {
+        if (!mesgq->opt_protected) {
             amq_mesgq_query (mesgq, self->browser_set);
             amq_server_agent_handle_index (
                 self->thread,
@@ -306,6 +247,60 @@ s_find_or_create_queue ($(selftype) **p_self, Bool temporary)
     ||  amq_mesgq_browse (browser->mesgq, self, browser))
         amq_global_set_error (AMQP_MESSAGE_NOT_FOUND, "Message does not exist");
 </method>
+
+<private name = "header">
+static void
+s_find_or_create_dest ($(selftype) ** p_self, Bool temporary);
+</private>
+
+<private name = "footer">
+static void
+s_find_or_create_dest ($(selftype) **p_self, Bool temporary)
+{
+    $(selftype)
+        *self = *p_self;
+    static qbyte
+        temp_count = 0;                 /*  Temporary destination number     */
+    ipr_shortstr_t
+        internal_name;
+
+    /*  Find queue if named                                                  */
+    if (self->dest_name && *self->dest_name) {
+        self->mesgq = amq_mesgq_search (
+            self->vhost->mesgq_hash, self->dest_name, self->service_type);
+        if (self->mesgq == NULL && !temporary) {
+            amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
+            $(selfname)_destroy (p_self);
+        }
+    }
+    else
+    if (temporary)                      /*  Assign name automatically        */
+        ipr_shortstr_fmt (self->dest_name, "temp-%09ld", ++temp_count);
+
+    /*  Create, if temporary and not already present                         */
+    if (temporary) {
+        if (self->mesgq) {
+            if (self->mesgq->client_id != self->client_id) {
+                amq_global_set_error (AMQP_NOT_FOUND, "Temporary queue already in use");
+                self->mesgq = NULL;
+                $(selfname)_destroy (p_self);
+            }
+        }
+        else {
+            amq_mesgq_map_name (internal_name, self->dest_name, self->service_type);
+            amq_mesgq_new (
+                internal_name,          /*  Mapped key/filename              */
+                self->vhost,            /*  Parent virtual host              */
+                self->service_type,     /*  Service type                     */
+                temporary,              /*  Temporary destination?           */
+                self->dest_name,        /*  External dest name               */
+                self->client_id);       /*  Owning client id                 */
+            amq_server_agent_handle_created (
+                self->thread, (dbyte) self->key, self->dest_name);
+        }
+    }
+}
+</private>
 
 <method name = "selftest">
     <local>

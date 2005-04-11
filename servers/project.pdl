@@ -19,10 +19,9 @@
     <file name = "amq_vhost.cfg"  class = "public resource">Virtual host configuration</file>
 </directory>
 
-<directory name = "userguide"     class = "public binary">
-    <file name = "index.txt"      class = "gurudoc text"   >OpenAMQ servers user guide</file>
-    <file name = "gdstyle.css"    class = "web resource"   >Gurudoc style sheet</file>
-    <file name = "mainlogo.jpg"   class = "web resource"   >AMQ logo</file>
-</directory>
+<!-- Documentation -->	
+<file name = "index.txt"          class = "gurudoc text"   >OpenAMQ servers user guide</file>
+<file name = "gdstyle.css"        class = "web resource"   >Gurudoc style sheet</file>
+<file name = "mainlogo.jpg"       class = "web resource"   >AMQ logo</file>
 
 </pdl>

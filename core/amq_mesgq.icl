@@ -41,12 +41,6 @@ db_dest database table.
 <public name = "header">
 #include "amq_core.h"
 #include "amq_frames.h"
-
-/*  Types of mesgq object                                                     */
-#define AMQ_MESGQ_TYPE_QUEUE     1       /*  Shared message queue             */
-#define AMQ_MESGQ_TYPE_TEMPQ     2       /*  Temporary reply queue            */
-#define AMQ_MESGQ_TYPE_TOPIC     3       /*  Topic history queue              */
-#define AMQ_MESGQ_TYPE_VALID(t)  (t > 0 && t < 4)
 </public>
 
 <private>
@@ -64,7 +58,9 @@ db_dest database table.
 
     /*  Object properties                                                    */
     int
-        type;                           /*  Destination type                 */
+        service_type;                   /*  AMQP service - queue or topic    */
+    Bool
+        temporary;                      /*  Created/deleted dynamically      */
     amq_db_t
         *ddb;                           /*  Deprecated database handle       */
     amq_db_dest_t
@@ -102,16 +98,25 @@ db_dest database table.
     size_t
         opt_priority_levels;            /*  Number of priority levels        */
     Bool
-        opt_browsable;                  /*  Browsing allowed?                */
+        opt_protected;                  /*  Browsing disallowed?             */
     Bool
         opt_persistent;                 /*  Force persistent messages?       */
+    Bool
+        opt_auto_purge;                 /*  Purge when creating?             */
+    size_t
+        opt_record_size;                /*  Physical record size             */
+    size_t
+        opt_extent_size;                /*  Records per file extent          */
+    size_t
+        opt_block_size;                 /*  Size of Bblock, in record        */
 </context>
 
 <method name = "new">
-    <argument name = "vhost"      type = "amq_vhost_t *">Parent virtual host</argument>
-    <argument name = "type"       type = "int"          >Message queue type</argument>
-    <argument name = "name"       type = "char *"       >External name</argument>
-    <argument name = "client_id"  type = "qbyte"        >Owner, if any</argument>
+    <argument name = "vhost"        type = "amq_vhost_t *">Parent virtual host</argument>
+    <argument name = "service_type" type = "int"          >AMQP service type</argument>
+    <argument name = "temporary"    type = "Bool"         >Temporary destination?</argument>
+    <argument name = "name"         type = "char *"       >External name</argument>
+    <argument name = "client_id"    type = "qbyte"        >Owner, if any</argument>
 
     <!-- Remove these inherited arguments from the API -->
     <dismiss argument = "db"        value = "vhost->db"         />
@@ -119,26 +124,25 @@ db_dest database table.
     <dismiss argument = "table"     value = "vhost->mesgq_hash" />
 
     assert (*key);
-    assert (AMQ_MESGQ_TYPE_VALID (type));
 
     /*  De-normalise from parent object, for simplicity of use               */
     self->vhost = vhost;
     self->db    = vhost->db;
     self->ddb   = vhost->ddb;
 
-    self->type      = type;
-    self->client_id = client_id;
+    self->service_type = service_type;
+    self->temporary    = temporary;
+    self->client_id    = client_id;
     s_get_configuration (self, name);
 
     /*  Create data structures for dispatchable message queues               */
-    if (type != AMQ_MESGQ_TYPE_TOPIC) {
+    if (self->service_type == AMQP_SERVICE_QUEUE) {
         self->consumers = amq_consumer_list_new ();
         self->mesgq_ref = ipr_looseref_new (vhost->mesgq_refs, self);
         s_create_priority_lists (self);
     }
     /*  Fetch existing queue if caller specified a name                      */
-    self->db_dest       = amq_db_dest_new ();
-    self->db_dest->type = type;
+    self->db_dest = amq_db_dest_new ();
     ipr_shortstr_cpy (self->db_dest->name, name);
     amq_db_dest_fetch_byname (self->ddb, self->db_dest, AMQ_DB_FETCH_EQ);
 
@@ -157,7 +161,7 @@ db_dest database table.
 
 <method name = "destroy">
     s_destroy_priority_lists (self);
-    if (self->db_dest->type == AMQ_MESGQ_TYPE_TEMPQ) {
+    if (self->temporary) {
         amq_db_dest_delete (self->ddb, self->db_dest);
         self_purge (self);
     }
@@ -173,9 +177,9 @@ db_dest database table.
     globally unique and file-system safe (contains no special characters).
     A given external name is always mapped to the same internal name.
     </doc>
-    <argument name = "mapped" type = "char *">Mapped name</argument>
-    <argument name = "name"   type = "char *">Destination name</argument>
-    <argument name = "type"   type = "int"   >Destination type</argument>
+    <argument name = "mapped"       type = "char *">Mapped name</argument>
+    <argument name = "dest name"    type = "char *">Destination name</argument>
+    <argument name = "service type" type = "int"   >Service type</argument>
     <local>
     byte
         hash = 0;
@@ -184,28 +188,26 @@ db_dest database table.
     </local>
 
     /*  Calculate mod-255 hash for name                                      */
-    for (name_ptr = name; *name_ptr; name_ptr++)
+    for (name_ptr = dest_name; *name_ptr; name_ptr++)
         hash += *name_ptr;
 
     ipr_shortstr_fmt (mapped, "%s-%s-%02x",
-        type == AMQ_MESGQ_TYPE_QUEUE? "queue":
-        type == AMQ_MESGQ_TYPE_TEMPQ? "queue":
-        type == AMQ_MESGQ_TYPE_TOPIC? "topic": "",
-        name, hash);
+        service_type == AMQP_SERVICE_QUEUE? "queue": "topic",
+        dest_name, hash);
     for (name_ptr = mapped; *name_ptr; name_ptr++)
         if (!(isalnum (*name_ptr) || *name_ptr == '-'))
             *name_ptr = '-';
 </method>
 
 <method name = "search">
-    <argument name = "type" type = "int">Destination type</argument>
+    <argument name = "service type" type = "int">Destination service type</argument>
     <local>
     ipr_shortstr_t
         internal;                       /*  Internal mesgq name              */
     </local>
     <header>
     /*  Before searching, set correct domain for destination name            */
-    self_map_name (internal, key, type);
+    self_map_name (internal, key, service_type);
     key = internal;
     </header>
 </method>
@@ -238,16 +240,17 @@ db_dest database table.
     <argument name = "suffix"   type = "char *"          >Destination name suffix</argument>
     <declare  name = "mesgq"    type = "$(selftype) *" default = "NULL"/>
 
-    /*  Look for queue - queues and temp-queues are in same namespace        */
+    /*  Look for queue                                                       */
     mesgq = self_full_search (
         consumer->vhost->mesgq_hash,
         consumer->handle->dest_name,
         suffix,
-        AMQ_MESGQ_TYPE_QUEUE);
+        AMQP_SERVICE_QUEUE);
 
    if (mesgq) {
         /*  Allowed as consumer if shared queue or owner of tempq            */
-        if (mesgq->type == AMQ_MESGQ_TYPE_QUEUE || mesgq->client_id == consumer->client_id) {
+        if (mesgq->service_type == AMQP_SERVICE_QUEUE
+        ||  mesgq->client_id    == consumer->client_id) {
             if (mesgq->opt_max_consumers == 0
             ||  mesgq->nbr_consumers < mesgq->opt_max_consumers) {
                 amq_consumer_list_queue (mesgq->consumers, consumer);
@@ -284,7 +287,7 @@ db_dest database table.
     are saved to the persistent message queue and n-t n-p messages are saved to
     the message queue priority lists.  The channel can be specified as NULL,
     which forces non-persistent messages to be saved to the message queue memory
-    list.
+    list. The caller should destroy the message after calling this method.
     </doc>
     <argument name = "channel" type = "amq_channel_t *" >Current channel</argument>
     <argument name = "message" type = "amq_smessage_t *">Message, if any</argument>
@@ -316,6 +319,7 @@ db_dest database table.
         if (amq_txn_limit == 0 || channel->transact_count < amq_txn_limit) {
             message->mesgq = self;
             amq_smessage_list_queue (channel->transact_list, message);
+            amq_smessage_link (message);
             channel->transact_count++;
 #           ifdef TRACE_DISPATCH
             coprintf ("$(selfname) I: queue transacted message, txn_count=%d",
@@ -352,7 +356,6 @@ db_dest database table.
             /*  Persistent messages are saved on persistent queue storage    */
             self->disk_queue_size++;
             amq_smessage_save (message, self, txn);
-            amq_smessage_destroy (&message);
     #       ifdef TRACE_DISPATCH
             coprintf ("$(selfname) I: save persistent message to storage");
     #       endif
@@ -361,6 +364,7 @@ db_dest database table.
             /*  Non-persistent messages are held per message queue           */
             self->memory_queue_size++;
             amq_smessage_list_queue (self->message_list [level], message);
+            amq_smessage_link (message);
     #       ifdef TRACE_DISPATCH
             coprintf ("$(selfname) I: save non-persistent message to mesgq memory");
     #       endif
@@ -408,6 +412,8 @@ db_dest database table.
             while (self->window && message) {
                 consumer = s_get_next_consumer (self);
                 if (consumer) {
+                    /*  Keep message alive after it's been dispatched            */
+                    amq_smessage_link        (message);
                     amq_smessage_list_unlink (message);
                     self->memory_queue_size--;
                     self->item_id = 0;      /*  Non-persistent message           */
@@ -458,7 +464,6 @@ db_dest database table.
                     message = amq_smessage_new (consumer->handle);
                     amq_smessage_load  (message, self);
                     s_dispatch_message (consumer, message);
-
                     self->item_client_id = consumer->client_id;
                     self_update (self, NULL);
                 }
@@ -543,19 +548,16 @@ db_dest database table.
     <local>
     amq_smessage_t
         *message = NULL;
-    Bool
-        destroy_message = FALSE;        /*  Destroy when sent?               */
     </local>
     if (browser->message) {
         message = browser->message;
-        destroy_message = FALSE;
+        amq_smessage_link (message);    /*  Keep alive after sending         */
     }
     else
     if (browser->item_id) {
         self->item_id = browser->item_id;
         if (self_fetch (self, IPR_QUEUE_EQ) == 0) {
             message = amq_smessage_new (handle);
-            destroy_message = TRUE;
             amq_smessage_load (message, self);
         }
         /*  Close active cursor if any                                       */
@@ -569,8 +571,7 @@ db_dest database table.
             FALSE, FALSE, FALSE,
             self->key,
             message,
-            NULL,
-            destroy_message);
+            NULL);
     else
         rc = 1;                         /*  No message to dispatch           */
 </method>
@@ -578,6 +579,12 @@ db_dest database table.
 <private name = "header">
 static void
     s_get_configuration ($(selftype) *self, char *name);
+static void
+    s_load_dest_properties ($(selftype) *self,
+                            char *dest_path, char *dest_name,
+                            char *template_path, char *template_name);
+static void
+    s_load_property_set ($(selftype) *self, ipr_config_t *config);
 static void
     s_create_priority_lists ($(selftype) *self);
 static void
@@ -599,56 +606,102 @@ s_get_configuration ($(selftype) *self, char *name)
     ipr_shortstr_t
         fullname;                       /*  Disk filename for message queue  */
 
-    /*  TODO
-        - for queues and topics, look for 'template' property
-        - test that queue/topic/tempq configuration scheme works
-     */
-    if (self->type == AMQ_MESGQ_TYPE_QUEUE) {
-        if (ipr_config_locate (self->vhost->config, "/config/queues/queue", name) == -1)
-            ipr_config_locate (self->vhost->config, "/config/template/queue", "default");
+    if (self->service_type == AMQP_SERVICE_QUEUE) {
+        if (self->temporary)
+            s_load_dest_properties (self,
+                NULL, NULL,
+                "/config/template/queue", "temporary");
+        else
+            s_load_dest_properties (self,
+                "/config/queues/queue",    name,
+                "/config/template/queue", "default");
     }
     else
-    if (self->type == AMQ_MESGQ_TYPE_TEMPQ) {
-        ipr_config_locate (self->vhost->config, "/config/template/tempq", "default");
+    if (self->service_type == AMQP_SERVICE_TOPIC) {
+        if (self->temporary)
+            s_load_dest_properties (self,
+                NULL, NULL,
+                "/config/template/topic", "temporary");
+        else
+            s_load_dest_properties (self,
+                "/config/topics/topic",    name,
+                "/config/template/topic", "default");
     }
-    else
-    if (self->type == AMQ_MESGQ_TYPE_TOPIC) {
-        if (ipr_config_locate (self->vhost->config, "/config/topics/topic", name) == -1)
-            ipr_config_locate (self->vhost->config, "/config/template/topic", "default");
-    }
-    if (self->vhost->config->located) {
-        self->opt_min_consumers    = ipr_config_attrn (self->vhost->config, "min-consumers");
-        self->opt_max_consumers    = ipr_config_attrn (self->vhost->config, "max-consumers");
-        self->opt_memory_queue_max = ipr_config_attrn (self->vhost->config, "memory-queue-max");
-        self->opt_max_messages     = ipr_config_attrn (self->vhost->config, "max-messages");
-        self->opt_max_message_size = ipr_config_attrn (self->vhost->config, "max-message-size");
-        self->opt_priority_levels  = ipr_config_attrn (self->vhost->config, "priority-levels");
-        self->opt_browsable        = (Bool) ipr_config_attrn (self->vhost->config, "browsable");
-        self->opt_persistent       = (Bool) ipr_config_attrn (self->vhost->config, "persistent");
+    /*  Tune storage parameters (for physical backing file)                  */
+    self_tune (self,
+        self->opt_record_size, self->opt_extent_size, self->opt_block_size);
 
-        /*  Tune storage parameters (for physical backing file)              */
-        self_tune (self,
-                   ipr_config_attrn (self->vhost->config, "record-size"),
-                   ipr_config_attrn (self->vhost->config, "extent-size"),
-                   ipr_config_attrn (self->vhost->config, "block-size"));
-
-        /*  auto-purge option means delete all messages at restart           */
-        if (ipr_config_attrn (self->vhost->config, "auto-purge")
-        ||  self->type == AMQ_MESGQ_TYPE_TEMPQ)
-            self_purge (self);
-        else {
-            self_locate (self, fullname);
-            if (file_exists (fullname)) {
-                self->disk_queue_size = self_count (self);
-                coprintf ("I: %s has %d existing messages", self->key, self->disk_queue_size);
-            }
+    /*  auto-purge option means delete all messages at restart               */
+    if (self->opt_auto_purge || self->temporary)
+        self_purge (self);
+    else {
+        self_locate (self, fullname);
+        if (file_exists (fullname)) {
+            self->disk_queue_size = self_count (self);
+            coprintf ("I: %s has %d existing messages", self->key, self->disk_queue_size);
         }
     }
-    else {
-        /*  Set defaults if no configuration found                           */
-        self->opt_browsable = 1;
-        if (self->type == AMQ_MESGQ_TYPE_TEMPQ)
-            self_purge (self);
+}
+
+
+/*  -----------------------------------------------------------------------
+    Loads the properties for a destination, looking in various places:
+    - first, the template, if any
+        - specified by the "template" attribute of the destination
+        - or the template name specified
+    - second, the destination itself
+        - specified by a primary path and a name
+ */
+
+static void
+s_load_dest_properties (
+    $(selftype) *self,                  /*  Destination to configure         */
+    char *dest_path,                    /*  Primary config path, or NULL     */
+    char *dest_name,                    /*  Destination name, or NULL        */
+    char *template_path,                /*  Template path                    */
+    char *template_name)                /*  Default template name            */
+{
+    ipr_config_t
+        *config = self->vhost->config;
+    char
+        *template = NULL;
+
+    /*  Look for named configuration entry, and its template definition      */
+    if (dest_path) {
+        ipr_config_locate (config, dest_path, dest_name);
+        if (self->vhost->config->located)
+            template = ipr_config_attr (config, "template", template_name);
+    }
+    /*  Load template definition                                             */
+    ipr_config_locate (config, template_path, template? template: template_name);
+    s_load_property_set (self, config);
+
+    /*  Load primary definition if possible                                  */
+    if (dest_path) {
+        ipr_config_locate (config, dest_path, dest_name);
+        s_load_property_set (self, config);
+    }
+}
+
+static void
+s_load_property_set ($(selftype) *self, ipr_config_t *config)
+{
+    char
+        *value;
+
+    if (config->located) {
+        IPR_CONFIG_GETATTR_LONG (config, self->opt_min_consumers,    "min-consumers");
+        IPR_CONFIG_GETATTR_LONG (config, self->opt_max_consumers,    "max-consumers");
+        IPR_CONFIG_GETATTR_LONG (config, self->opt_memory_queue_max, "memory-queue-max");
+        IPR_CONFIG_GETATTR_LONG (config, self->opt_max_messages,     "max-messages");
+        IPR_CONFIG_GETATTR_LONG (config, self->opt_max_message_size, "max-message-size");
+        IPR_CONFIG_GETATTR_LONG (config, self->opt_priority_levels,  "priority-levels");
+        IPR_CONFIG_GETATTR_BOOL (config, self->opt_protected,        "protected");
+        IPR_CONFIG_GETATTR_BOOL (config, self->opt_persistent,       "persistent");
+        IPR_CONFIG_GETATTR_BOOL (config, self->opt_auto_purge,       "auto-purge");
+        IPR_CONFIG_GETATTR_LONG (config, self->opt_record_size,      "record-size");
+        IPR_CONFIG_GETATTR_LONG (config, self->opt_extent_size,      "extent-size");
+        IPR_CONFIG_GETATTR_LONG (config, self->opt_block_size,       "block-size");
     }
 }
 
@@ -745,8 +798,7 @@ s_dispatch_message (
         FALSE, TRUE, FALSE,
         consumer->mesgq->key,
         message,
-        consumer->unreliable? dispatch: NULL,
-        FALSE);                         /*  Don't auto-destroy message       */
+        consumer->unreliable? dispatch: NULL);
 
     /*  Move consumer to end of list to round-robin it                       */
     amq_consumer_list_unlink (consumer);

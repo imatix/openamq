@@ -164,4 +164,13 @@ amq_field_list_test
 amq_field_test
 amq_global_test
 amq_global_test.c
-
+amq_mesgq.c
+amq_mesgq.h
+amq_mesgq_table.c
+amq_mesgq_table.h
+amq_mesgq_table.icl
+amq_mesgq_table_test
+amq_mesgq_table_test.c
+amq_mesgq_test
+amq_mesgq_test.exe
+amq_mesgq_test.c
