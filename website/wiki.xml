@@ -1,0 +1,14 @@
+<page name = "wiki">
+  <language name = "en">
+    <title>Wiki</title>
+    <content>
+      <h1>Wiki</h1>
+      <p>
+          For developers, we are using a Wiki as our development "whiteboard".
+      </p>
+      <p>
+        This can be found <a href="http://wiki.openamq.org/">here</a>.
+      </p>
+    </content>
+  </language>
+</page>

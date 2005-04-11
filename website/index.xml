@@ -1,57 +1,16 @@
-<page
-    name = "index">
-    <language
-        name = "en">
-        <title>Home</title>
-        <content>
-            <h1>Strengths</h1>
-            <p>
-                <h2>Portable</h2>
-                <ul>
-                    <li>Runs on Unix and Win32.</li>
-                </ul>
-            </p>
-            <p>
-                <h2>Open</h2>
-                <ul>
-                    <li>Free software licensed under the Apache License, v2.0.</li>
-                    <li>Standard protocols: an open server and open clients.</li>
-                    <li>Supported by open source JMS providers like ActiveMQ.</li>
-                </ul>
-            </p>
-            <p>
-                <h2>Fast</h2>
-                <ul>
-                    <li>Engineered in C for speed and efficiency.</li>
-                    <li>Built around the AMQP/Fast wire-level protocol.</li>
-                </ul>
-            </p>
-            <p>
-                <h2>Reliable</h2>
-                <ul>
-                    <li>Based on standard layers: Apache Runtime, Berkeley Database.</li>
-                </ul>
-            </p>
-            <h1>Advantages</h1>
-            <p>
-                <h2>Low cost</h2>
-                <ul>
-                    <li>Deploy in any application with no software costs.</li>
-                    <li>Develop once, run anywhere.</li>
-                </ul>
-            </p>
-            <p>
-                <h2>Non-proprietary</h2>
-                <ul>
-                    <li>No vendor bottleneck.</li>
-                </ul>
-            </p>
-            <p>
-                <h2>Standard</h2>
-                <ul>
-                    <li>One wire-level protocol for all middleware.</li>
-                </ul>
-            </p>
-        </content>
-    </language>
+<page name = "index">
+  <language name = "en">
+    <title>Home</title>
+    <content>
+      <h1>Welcome</h1>
+      <p>
+          Welcome to the OpenAMQ website. Our goal is to deliver a commodity 
+          middleware for your organisation. 
+      </p>
+      <p>
+          On this website you will find an <a href="overview.html">overview</a> of the software,
+          downloadable <a href="download.html">source packages</a> and published <a href="technical.html">technical specifications</a>.
+      </p>
+    </content>
+  </language>
 </page>

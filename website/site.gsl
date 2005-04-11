@@ -19,7 +19,6 @@ endnew
 
 for root.content
 for page
-    echo "$(page->language->title)"
     for language
         echo "Generating $(page.name).html"
         output "$(page.name).html"

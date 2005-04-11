@@ -12,8 +12,13 @@
   <page name = "index"   />
 
   <section name = "Software"  >
-    <page  name = "license"  />
     <page  name = "download" />
   </section>
-
+  <section name = "Features"  >
+      <page  name = "overview" />
+  </section>
+  <section name = "Developers" >
+      <page  name = "technical" />
+      <page  name = "wiki"      />
+  </section>
 </site>

@@ -132,20 +132,37 @@
   }
 
   /* Links */
-  /* FIXME: Use different link styling for the content */
   A:active {
-    text-decoration: none;
+    text-decoration: underline;
     color: black;
   }
   A:link {
-    text-decoration: none;
+    text-decoration: underline;
     color: black;
   }
   A:visited {
-    text-decoration: none;
+    text-decoration: underline;
     color: black;
   }
   A[HREF]:hover {
+    background-color: #b9cdd8;
+    color: black; 
+  }
+ 
+
+  A.menu_item:active {
+    text-decoration: none;
+    color: black;
+  }
+  A.menu_item:link {
+    text-decoration: none;
+    color: black;
+  }
+  A.menu_item:visited {
+    text-decoration: none;
+    color: black;
+  }
+  A.menu_item[HREF]:hover {
     color: red; 
   }
   A:link IMG, A:visited IMG {
