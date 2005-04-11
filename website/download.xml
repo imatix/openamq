@@ -84,7 +84,15 @@
         Download and unzip the package into a target directory.  The
         <tt>clients</tt> subdirectory contains OpenAMQ client tools.  The
         <tt>servers</tt> subdirectory contains the OpenAMQ server binaries.
-      </p>
+    </p>
+    <h1>Previous versions</h1>
+    <p>
+    Since the product is still undergoing rapid development, we reccommend that
+    you always use the latest version available. New releases happen
+    frequently, generally once every other week. If for some reason you require
+    an older version of the software, you can find all archived packages 
+    <a href="http://www.openamq.org/pub/">here</a>.  
+    </p>
     </content>
   </language>
 </page>
