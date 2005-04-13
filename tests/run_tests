@@ -1,0 +1,113 @@
+#!/bin/sh
+# OpenAMQ tests script
+# Copyright (c) 2004-2005 JPMorgan and iMatix Corporation
+#
+
+# Test subdirectories represent test classes, and should match this pattern: 
+# 'test_*'. There are no test sub-classes for the moment. Test scripts have to 
+# match this pattern: 'test_*.sh'. If the IBASE variable is set, the base 
+# executables will be available for the called scripts. The script will attempt 
+# to start the openamqd automatically. All other executables (clients, etc.) must
+# be made available by each test script.
+#
+# Testing targets handling of timeouts (TIMELIMIT), core dumps, console exit status,
+# and reference stdout results from registered executions. The current timeout limit 
+# is 5 minutes. When core is dumped, the file is renamed to <test-script-name>.core.
+# If a test exits with a result code of 0, it passes the test; otherwise it
+# fails. If a file called <test-script-name>.ok is found along with a test script, 
+# then this file is compared to the output of the current test run (stdout + stderr), 
+# any differences mean failure.
+#
+# For each script run, either PASS or FAIL will be printed to console. The latter will
+# cause an exit status of 1 for this run_tests script. When a test fails, the standard 
+# output is copied to <test-script-name>.fail; otherwise a file called 
+# <test-script-name>.out will be present.
+#
+
+# Global error status
+error=0
+
+# Abort a test after TIMELIMIT has elapsed
+TIMELIMIT=300
+timeout() {
+    sleep $TIMELIMIT
+    echo "FAIL: TIMEOUT" >> $1 
+    kill $2
+}
+
+run() {
+    env PATH="$PATH:$IBASE/bin" sh $1 >$2 2>&1
+    if test "$?" != "0"; then
+        echo 1 > FAIL
+    fi    
+}
+
+
+# Run a test script
+runtest()
+{
+    # Run a test
+    OUTPUT="$1.out"
+    run $1 $OUTPUT &
+    # Handle timeout
+    pid=$!
+    timeout $OUTPUT $pid &
+    wait $pid
+    if test -f FAIL; then
+        error=1
+        rm -f FAIL
+    fi
+    kill $!
+    # Check result
+    if test -f core; then
+        error=1
+        echo "FAIL: $1"
+        mv core "$1.core"
+        echo "FAIL: CORE" >> $OUTPUT 
+        mv "$OUTPUT" "$1.fail"
+    elif test ! -f "$1.ok"; then
+        if test "$error" = 0; then
+            echo "PASS: $1"
+        else
+            error=1
+            echo "FAIL: $1"
+            echo "FAIL: EXIT STATUS" >> $OUTPUT 
+            mv "$OUTPUT" "$1.fail"
+        fi
+    elif cmp -s "$OUTPUT" "$1.ok"; then
+        echo "PASS: $1"
+    else
+        error=1
+        echo "FAIL: $1"
+        echo "FAIL: UNEXPECTED RESULTS" >> $OUTPUT 
+        mv "$OUTPUT" "$1.fail"
+    fi
+}
+
+if test "$(ps -A | grep openamqd)" = "" ; then 
+    # Start the daemon
+    echo "Starting the OpenAMQ daemon..."
+    cd ../servers/
+    openamqd &
+    cd ../test/
+    if test "$?" != "0"; then
+        echo "Warning, could not start the OpenAMQ daemon."
+    fi
+    sleep 5
+fi
+
+# Run all test sets
+for test_dir in $(find -name 'test_*' -maxdepth 1); do
+    echo "Entering $test_dir directory..."
+    cd $test_dir
+    for a_test in $(find -name 'test_*.sh' -maxdepth 1); do
+        echo testing $a_test
+        runtest "$a_test"
+    done
+    cd ..
+done
+
+# Result
+exit $error
+
+
