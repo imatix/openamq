@@ -1,6 +1,6 @@
 <?xml?>
 <pdl
-    name      = "OpenAMQ Servers"
+    name      = "OpenAMQ tests"
     version   = "0.1a0"
     copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     workflow  = "standard.pwl"
