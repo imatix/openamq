@@ -212,7 +212,7 @@ package com.imatix.openamq.frames
     
 Transport level
 ...............
-package com.imatix.openamq.transport
+package com.imatix.openamq
 
     AMQTransport                          /* Low-level connection handling     */
 
@@ -1058,32 +1058,6 @@ if any, otherwise null.
 
 AMQTransport
 ------------ 
-
-public AMQTransport(InputStream is, OutputStream os) 
-....................................................
-This constructs an AMQTransport object with the provided input streams.
-
-    Parameters
-        is - Input stream to use.
-        os - Output stream to use.
-    Throws
-        IOException - If network streams wrapping (buffering, data input) fails.
-
-public AMQTransport(is, os, readBuff, writeBuff)
-................................................
-This constructs an AMQTransport object with the provided input streams 
-wrapped around with buffers of custom capacity. 
-    
-    Parameters
-        InputStream is - Input stream to use.
-        OutputStream os - Output stream to use.
-        int readBuff - Requested size for input buffer.
-        int writeBuff - Requested size for output buffer.
-    Throws
-        IOException - If network streams wrapping (buffering, data input) fails.
-
-    Parameters
-        timeout - Time in milliseconds.
 
 public void flush() 
 ...................
