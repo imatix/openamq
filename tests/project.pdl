@@ -1,0 +1,16 @@
+<?xml?>
+<pdl
+    name      = "OpenAMQ Servers"
+    version   = "0.1a0"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
+    workflow  = "standard.pwl"
+    deploy    = "openamq/tests"
+    >
+
+<include filename = "prelude.pdl" />
+
+<file name = "run_tests"                   class = "public resource" >Runs test sets</file>
+<directory name = "test_api">
+    <file name = "test_serial_1000_1K.sh"  class = "public resource" >Test case</file>
+</directory>
+</pdl>
