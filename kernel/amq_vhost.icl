@@ -93,7 +93,7 @@
         *queue;                          /*  Message queue object            */
     </local>
 
-    /*  Dispatch all dirty message queues until we hit the last one          */
+    /*  Dispatch all dirty message queues, which come at start of list       */
     queue_ref = ipr_looseref_list_first (self->queue_refs);
     while (queue_ref) {
         queue = (amq_queue_t *) queue_ref->object;

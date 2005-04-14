@@ -6,9 +6,43 @@ iCL issues
     - e.g. amq_mesgq, search method
  - can't generate abstract classes, 'target not found'
  - enable trace on grammar, icl generation fails with errors
- - footer in child class comes _after_ footer in parent ?! 
+ - footer in child class comes _after_ footer in parent ?!
  - <data> is not inherited, should be
 
+
+consume -> update subscription set
+    implementation 1 - quick&dirty:
+
+    request object
+        - topic name
+        - subsc reference
+
+    handle consume on topic
+        - calculate full topic name
+        - create request object
+        - add to vhost list
+
+    handle send
+        - check all request objects
+        - distribute messages to subscs
+        - dispatch subscs
+
+    implementation 2 - faster matching
+    - kill request object
+
+    handle consume on topic
+        -
+
+
+vhost->queues   accept, dispatch
+     ->topics   accept
+     ->subs     dispatch
+
+    smessage-> topic, queue
+    dispatch-> queue, sub
+
+
+Stuff to fix
 
  - complain if config file is invalid (says nothing)
  - change temporary queue to "mailbox" concept
@@ -18,32 +52,17 @@ iCL issues
     - or 64-bit values
  - way to cancel and/or purge a message being sent
     - HANDLE STOP / PURGE command
- 
-vhost->queues   accept, dispatch
-     ->topics   accept
-     ->subs     dispatch
-
-    smessage-> topic, queue
-    dispatch-> queue, sub
-
 
 Queues
  - deleting - need to handle extent files as well...
     ... does not appear to create them?
 
-topics
-    . load topics from config
-        optionally from text file
-    . create topic queues at start
-
 restartability
-
     . refresh virtual hosts
     . create new queues & topics
     . leave connections alive
 
 subscriptions
-
     . subscription table
     . persistent / non-persistent
     . each subscription is a queue

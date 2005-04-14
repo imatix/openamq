@@ -2099,17 +2099,16 @@ mime-type:
 
 The HANDLE CONSUME command creates a subscription.  There are two types
 of subscription: temporary, and durable.  Durable subscriptions are
-allowed only for topic services.  Temporary subscriptions last until the
-client closes the destination, channel, or connection.
+allowed only for topic services.  Temporary subscriptions are allowed
+on both topics and queues and last until the client closes the destination,
+channel, or connection.
 
-Durable subscriptions are named and continue after the channel is closed
-(they may be implemented on the server as queues).  Durable subscriptions
-that are active, but which were made on a channel and destination that is
-no longer open, will not send messages to the client. In order for a
-client to collect messages from an active subscription it must open a
-connection, a channel, and a destination, and then send the HANDLE
-CONSUME command with the correct identifier.
-
+Durable subscriptions are named and continue after the channel is closed.
+Durable subscriptions that are active, but which were made on a channel
+and destination that is no longer open, will not send messages to the
+client. In order for a client to collect messages from an active
+subscription it must open a connection, a channel, and a destination,
+and then send the HANDLE CONSUME command with the correct identifier.
 The server responds to a HANDLE CONSUME command by sending a HANDLE REPLY
 if wanted by the client, then a series of HANDLE NOTIFY commands over
 time until the subscription ends.

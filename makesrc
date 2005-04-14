@@ -18,6 +18,7 @@ for PRODUCT in $PRODUCTS; do
 done
 
 echo "Tagging CVS for $openamq_version..."
+cvs commit -m "$openamq_version"
 cvs -Q tag -RF `echo $openamq_version | sed 's/\./_/'`
 
 echo "Building $openamq_version full package ($PRODUCTS)..."

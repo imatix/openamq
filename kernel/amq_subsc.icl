@@ -36,7 +36,7 @@ be backed up onto a persistent database using ipr_db_queue serialisation.
     qbyte
         last_id;                        /*  Last dispatched message          */
     Bool
-        dirty;                          /*  Subsc needs dispatching          */
+        dirty;                          /*  Subscription needs dispatching   */
 </context>
 
 <method name = "new">
