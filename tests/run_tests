@@ -2,27 +2,7 @@
 # OpenAMQ tests script
 # Copyright (c) 2004-2005 JPMorgan and iMatix Corporation
 #
-
-#
-# Test subdirectories represent test classes, and should match this pattern: 
-# 'tests_*'. For the moment, there is only one sub-class level. Test scripts have 
-# to match this pattern: 'test_*.sh'. If the IBASE variable is set, the base 
-# executables will be available for the called scripts. The script will attempt 
-# to start the openamqd automatically. All other executables (clients, etc.) 
-# must be made available by each test script.
-#
-# Testing targets handling of timeouts (TIMELIMIT), core dumps, console exit 
-# status, and reference stdout results from registered executions. The current 
-# timeout limit is 5 minutes. When core is dumped, the file is renamed to 
-# <test-script-name>.core. If a test exits with a result code of 0, it passes 
-# the test; otherwise it fails. If a file called <test-script-name>.ok is found
-# along with a test script, then this file is compared to the output of the 
-# current test run (stdout + stderr), any differences mean failure.
-#
-# For each script run, either PASS or FAIL will be printed to console. The 
-# latter will cause an exit status of 1 for this run_tests script. When a test
-# fails, the standard output is copied to <test-script-name>.fail; otherwise a
-# file called <test-script-name>.out will be present.
+# See: readme.txt
 #
 
 # Verbose sxitch
@@ -41,6 +21,7 @@ timeout()
     kill $2
 }
 
+
 # Handle a failure
 fail() 
 {
@@ -49,6 +30,7 @@ fail()
         tail $2
     fi
 }
+
 
 # Handle a pass
 pass() 
@@ -59,6 +41,7 @@ pass()
     fi
 }
 
+
 # Run a script
 runscript() 
 {
@@ -67,6 +50,7 @@ runscript()
         echo 1 > FAIL
     fi    
 }
+
 
 # Run a test script
 runtest()
@@ -109,6 +93,7 @@ runtest()
     fi
 }
 
+
 # Run a test set
 testset()
 {
@@ -125,6 +110,7 @@ testset()
         fi
     done
 }
+
 
 # Check arguments
 if test "$1" = "-h"; then 
@@ -174,8 +160,7 @@ for test_dir in tests_*; do
         echo ""
         echo ">> Entering $test_dir directory..."
         cd $test_dir
-        
-        if (test ! -f $test_dir) || $test_dir;
+        if test ! -f $test_dir -o $test_dir; then
             testset $test_dir $subs
             subs=0
             for test_subdir in tests_*; do
@@ -184,14 +169,15 @@ for test_dir in tests_*; do
                     echo ""
                     echo "  >> Entering $test_subdir subdirectory..."
                     cd $test_subdir
-                    testset $test_subdir
+                    if test ! -f $test_subdir -o $test_subdir; then
+                        testset $test_subdir
+                    fi
                     cd ..
                     echo ""
                     echo "  << Leaving $test_subdir directory..."
                 fi
             done
         fi
-        
         cd ..
         echo ""
         echo "<< Leaving $test_dir directory..."
