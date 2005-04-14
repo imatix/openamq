@@ -174,3 +174,14 @@ amq_mesgq_table_test.c
 amq_mesgq_test
 amq_mesgq_test.exe
 amq_mesgq_test.c
+amq_subsc.c
+amq_subsc.h
+amq_subsc_test.c
+amq_topic.c
+amq_topic.h
+amq_topic_table.c
+amq_topic_table.h
+amq_topic_table.icl
+amq_topic_table_test.c
+amq_topic_test.c
+
