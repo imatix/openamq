@@ -27,9 +27,9 @@
     amq_handle_t
         *handle;                        /*  Parent handle                    */
     qbyte
-        mesgq_id;                       /*  ID in database, if saved         */
-    amq_mesgq_t
-        *mesgq;                         /*  Message queue                    */
+        queue_id;                       /*  ID in database, if saved         */
+    amq_queue_t
+        *queue;                         /*  Message queue                    */
     qbyte
         spoolid;                        /*  Spooler record, if any           */
     ipr_looseref_list_t
@@ -143,24 +143,24 @@
     Saves the message to persistent storage.  The message must contain data
     loaded using the $(selfname)_record method.
     </doc>
-    <argument name = "mesgq" type = "amq_mesgq_t *">Mesgq to save to</argument>
+    <argument name = "queue" type = "amq_queue_t *" >Queue to save to</argument>
     <argument name = "txn"   type = "ipr_db_txn_t *">Transaction, if any</argument>
     assert (self->fragment);            /*  Must be loaded, or die           */
 
-    /*  Update own reference to mesgq used                                   */
-    self->mesgq = mesgq;
+    /*  Update own reference to queue used                                   */
+    self->queue = queue;
     self->store_size = self->spool_size;
-    s_save_message_properties (self, mesgq);
+    s_save_message_properties (self, queue);
 
     /*  Write message to persistent storage                                  */
-    amq_mesgq_insert (mesgq, txn);
-    self->mesgq_id = mesgq->item_id;
+    amq_queue_insert (queue, txn);
+    self->queue_id = queue->item_id;
 
     /*  Save spooled data into persistent store if necessary                 */
     if (self->spool_size) {
         /*  Format the stored filename for the message                       */
         ipr_shortstr_fmt (self->store_file,
-            "%s/%09ld.msg", self->vhost->storedir, self->mesgq_id);
+            "%s/%09ld.msg", self->vhost->storedir, self->queue_id);
 
         /*  Prepare to move file into store directory                        */
         if (self->spool_fh) {
@@ -184,28 +184,28 @@
     <doc>
     Loads the message from persistent storage. The message must have been
     created using $(selfname)_new but otherwise be empty.  Returns 0 if the
-    message was loaded, else returns 1.  The mesgq must hold the message
+    message was loaded, else returns 1.  The queue must hold the message
     loaded from the database.
     </doc>
-    <argument name = "mesgq" type = "amq_mesgq_t *" />
+    <argument name = "queue" type = "amq_queue_t *" />
     assert (self->fragment == NULL);
 
-    /*  Update own reference to mesgq used                                   */
-    self->mesgq    = mesgq;
-    self->mesgq_id = mesgq->item_id;
+    /*  Update own reference to queue used                                   */
+    self->queue    = queue;
+    self->queue_id = queue->item_id;
 
-    s_load_message_properties (self, mesgq);
+    s_load_message_properties (self, queue);
     if (self->store_size > 0) {
         /*  Format the stored filename for the message                       */
         ipr_shortstr_fmt (self->store_file,
-            "%s/%09ld.msg", self->vhost->storedir, self->mesgq_id);
+            "%s/%09ld.msg", self->vhost->storedir, self->queue_id);
     }
 </method>
 
 <method name = "purge" template = "function">
     <doc>
     Removes persistent storage for a specified message.  The message
-    must have been loaded from the mesgq using the load method.
+    must have been loaded from the queue using the load method.
     </doc>
     /*  Delete persistent file storage if any                                */
     if (self->store_size > 0)
@@ -214,9 +214,9 @@
 
 <private name = "header">
 static void
-    s_save_message_properties ($(selftype) *self, amq_mesgq_t *mesgq);
+    s_save_message_properties ($(selftype) *self, amq_queue_t *queue);
 static void
-    s_load_message_properties ($(selftype) *self, amq_mesgq_t *mesgq);
+    s_load_message_properties ($(selftype) *self, amq_queue_t *queue);
 </private>
 
 <private name = "footer">
@@ -224,50 +224,50 @@ static void
     these without decoding the header each time.
  */
 static void
-s_save_message_properties ($(selftype) *self, amq_mesgq_t *mesgq)
+s_save_message_properties ($(selftype) *self, amq_queue_t *queue)
 {
-    mesgq->item_client_id   = 0;        /*  Not dispatched                   */
-    mesgq->item_sender_id   = self->handle->client_id;
-    mesgq->item_header_size = self->header_size;
-    mesgq->item_body_size   = self->body_size;
-    mesgq->item_priority    = self->priority;
-    mesgq->item_expiration  = self->expiration;
-    mesgq->item_store_size  = self->store_size;
+    queue->item_client_id   = 0;        /*  Not dispatched                   */
+    queue->item_sender_id   = self->handle->client_id;
+    queue->item_header_size = self->header_size;
+    queue->item_body_size   = self->body_size;
+    queue->item_priority    = self->priority;
+    queue->item_expiration  = self->expiration;
+    queue->item_store_size  = self->store_size;
 
-    ipr_shortstr_cpy (mesgq->item_mime_type, *self->mime_type? self->mime_type: self->handle->mime_type);
-    ipr_shortstr_cpy (mesgq->item_encoding,  *self->encoding?  self->encoding:  self->handle->encoding);
-    ipr_shortstr_cpy (mesgq->item_identifier, self->identifier);
+    ipr_shortstr_cpy (queue->item_mime_type, *self->mime_type? self->mime_type: self->handle->mime_type);
+    ipr_shortstr_cpy (queue->item_encoding,  *self->encoding?  self->encoding:  self->handle->encoding);
+    ipr_shortstr_cpy (queue->item_identifier, self->identifier);
 
-    ipr_longstr_destroy (&mesgq->item_headers);
-    mesgq->item_headers = ipr_longstr_new (self->headers->data, self->headers->cur_size);
+    ipr_longstr_destroy (&queue->item_headers);
+    queue->item_headers = ipr_longstr_new (self->headers->data, self->headers->cur_size);
 
-    ipr_longstr_destroy (&mesgq->item_content);
-    mesgq->item_content = ipr_longstr_new (self->fragment->data, self->fragment->cur_size);
+    ipr_longstr_destroy (&queue->item_content);
+    queue->item_content = ipr_longstr_new (self->fragment->data, self->fragment->cur_size);
 }
 
 
 /*  Restore message properties from recorded data                            */
 
 static void
-s_load_message_properties ($(selftype) *self, amq_mesgq_t *mesgq)
+s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
 {
-    self->header_size = mesgq->item_header_size;
-    self->body_size   = mesgq->item_body_size;
-    self->priority    = mesgq->item_priority;
-    self->expiration  = mesgq->item_expiration;
-    self->store_size  = mesgq->item_store_size;
+    self->header_size = queue->item_header_size;
+    self->body_size   = queue->item_body_size;
+    self->priority    = queue->item_priority;
+    self->expiration  = queue->item_expiration;
+    self->store_size  = queue->item_store_size;
 
-    ipr_shortstr_cpy (self->mime_type,  mesgq->item_mime_type);
-    ipr_shortstr_cpy (self->encoding,   mesgq->item_encoding);
-    ipr_shortstr_cpy (self->identifier, mesgq->item_identifier);
+    ipr_shortstr_cpy (self->mime_type,  queue->item_mime_type);
+    ipr_shortstr_cpy (self->encoding,   queue->item_encoding);
+    ipr_shortstr_cpy (self->identifier, queue->item_identifier);
 
     ipr_longstr_destroy (&self->headers);
-    self->headers = ipr_longstr_new (mesgq->item_headers->data, mesgq->item_headers->cur_size);
+    self->headers = ipr_longstr_new (queue->item_headers->data, queue->item_headers->cur_size);
 
     /*  Get first fragment; rest is in overflow file on disk                 */
     self->processed = self->body_size;
     self->fragment  = amq_bucket_new (AMQ_BUCKET_MAX_SIZE);
-    amq_bucket_fill (self->fragment, mesgq->item_content->data, mesgq->item_content->cur_size);
+    amq_bucket_fill (self->fragment, queue->item_content->data, queue->item_content->cur_size);
 }
 </private>
 
@@ -299,8 +299,8 @@ s_load_message_properties ($(selftype) *self, amq_mesgq_t *mesgq)
     amq_handle_table_t
         *handles;
 
-    amq_mesgq_t
-        *mesgq;
+    amq_queue_t
+        *queue;
 
     amq_smessage_t
         *message,
@@ -343,27 +343,27 @@ s_load_message_properties ($(selftype) *self, amq_mesgq_t *mesgq)
     handle  = amq_handle_new (handles, handle_open.handle_id, channel, &handle_open);
     assert (handle);
 
-    /*  Initialise mesgq                                                     */
-    mesgq = amq_mesgq_new (
+    /*  Initialise queue                                                     */
+    queue = amq_queue_new (
             "tempq-test-00",            /*  Mapped key/filename              */
             vhost,                      /*  Parent virtual host              */
             AMQP_SERVICE_QUEUE,         /*  Service type                     */
             TRUE,                       /*  Temporary service?               */
             "test",                     /*  External destination name        */
             1);                         /*  Owning client id, if any         */
-    assert (mesgq);
+    assert (queue);
 
     /*  Record test message                                                  */
     message = amq_smessage_new (handle);
     amq_smessage_testfill (message, TEST_SIZE);
 
     /*  Save to persistent storage                                           */
-    amq_smessage_save (message, mesgq, NULL);
+    amq_smessage_save (message, queue, NULL);
     amq_smessage_destroy (&message);
 
     /*  Load from persistent storage                                         */
     message = amq_smessage_new (handle);
-    amq_smessage_load (message, mesgq);
+    amq_smessage_load (message, queue);
 
     /*  Replay test message                                                  */
     diskmsg = amq_smessage_new (handle);
@@ -394,7 +394,7 @@ s_load_message_properties ($(selftype) *self, amq_mesgq_t *mesgq)
     amq_smessage_purge (message);
 
     /*  Release resources                                                    */
-    amq_mesgq_destroy         (&mesgq);
+    amq_queue_destroy         (&queue);
     amq_bucket_destroy        (&bucket);
     amq_smessage_destroy      (&diskmsg);
     amq_smessage_destroy      (&message);

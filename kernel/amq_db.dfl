@@ -28,11 +28,10 @@
     Defines a temporary or long-lived destination.
         <field name = "id"          domain = "recordid" >Record id</field>
         <field name = "active"      domain = "boolean"  >Currently active?</field>
-        <field name = "name"        domain = "shortstr" >External dest name</field>
-        <field name = "key"         domain = "shortstr" >Internal key name</field>
+        <field name = "key"         domain = "shortstr" >Internal dest name</field>
         <field name = "filename"    domain = "shortstr" >Physical file name</field>
-        <index name = "byname">
-            <field name = "name" />
+        <index name = "bykey">
+            <field name = "key" />
         </index>
     </table>
 

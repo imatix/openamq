@@ -772,8 +772,10 @@ static int
                     confirm_tag = HANDLE_BROWSE.confirm_tag;
                     amq_frame_free (&tcb->frame);
                     tcb->frame = amq_frame_handle_reply_new (
-                        (dbyte) tcb->handle->key, confirm_tag,
-                            amq_global_error_code (), amq_global_error_text ());
+                        (dbyte) tcb->handle->key,
+                        (dbyte) confirm_tag,
+                        (dbyte) amq_global_error_code (),
+                                amq_global_error_text ());
                     send_the_frame (thread);
                 }
                 break;

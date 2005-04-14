@@ -10,14 +10,14 @@
     <file name = "README" class = "readme">Read Me file</file>
 
     <distrib name = "OpenAMQ source" type = "source">
-        <project directory = "core"    />
+        <project directory = "kernel"  />
         <project directory = "servers" />
         <project directory = "clients" />
         <project directory = "rfc"     />
     </distrib>
 
     <distrib name = "OpenAMQ install" type = "install">
-        <project directory = "core"    />
+        <project directory = "kernel"  />
         <project directory = "servers" />
         <project directory = "clients" />
         <project directory = "rfc"     />

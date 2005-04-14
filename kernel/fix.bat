@@ -12,13 +12,14 @@ if %1.==. goto exit
     call c %1
     call c -r libamq %1
     call c -l %1_test
+    call c -L amqpsrv
     goto done
 
 :smt
     gsl %1.smt
     call c %1
     call c -r libamq %1
-    call c -L amqpsrv amqpcli_asynch amqpcli_serial
+    call c -L amqpsrv
     goto done
 
 :xml

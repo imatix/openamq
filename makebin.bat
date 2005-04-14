@@ -1,5 +1,5 @@
 @echo off
-set VERSION=0.8a0
+set VERSION=0.8b1
 set PACKAGE=openamq-%VERSION%-win32
 set HOME=c:\home
 
@@ -14,4 +14,6 @@ xcopy /s/q/i %HOME%\openamq\servers %PACKAGE%\servers >nul
 zip -rqm %PACKAGE%.zip %PACKAGE%
 
 echo %PACKAGE%.zip
+if exist upload.bat call upload %PACKAGE%.zip
+
 :exit

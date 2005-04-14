@@ -1,3 +1,15 @@
+iCL issues
+ - icl loops if class inherits self
+    - inheritence unstable
+        a->b, b folds after a
+        c->a->b, b folds after c but before a
+    - e.g. amq_mesgq, search method
+ - can't generate abstract classes, 'target not found'
+ - enable trace on grammar, icl generation fails with errors
+ - footer in child class comes _after_ footer in parent ?! 
+ - <data> is not inherited, should be
+
+
  - complain if config file is invalid (says nothing)
  - change temporary queue to "mailbox" concept
     - purge at open, optional
@@ -5,10 +17,17 @@
  - move to HUGE values for file/mesg sizes
     - or 64-bit values
  - way to cancel and/or purge a message being sent
-
+    - HANDLE STOP / PURGE command
  
-Queues
+vhost->queues   accept, dispatch
+     ->topics   accept
+     ->subs     dispatch
 
+    smessage-> topic, queue
+    dispatch-> queue, sub
+
+
+Queues
  - deleting - need to handle extent files as well...
     ... does not appear to create them?
 
@@ -84,3 +103,34 @@ Durable Subscriptions
     durable subscriptions it finds...
         - these are destinations marked as SUBSCRIPTION
 
+
+Clustering
+    a. for resiliency (failure)
+        - using master-slave model
+        - possibly hierarchical model
+    b. for load-balancing
+        - using multi-master model
+        - possibly hierarchical model
+    c. for geographical distribution
+        - using other means
+        
+    - client connects to server
+    - server can kick client, with 'reconnect to different server'
+    - server provides list of known alternative servers
+        - masters and backups
+    - client may try servers randomly/serially
+        - this is for load-balancing
+    - client can connect with 'please don't kick me'
+        - if it was already working with that server
+
+    master-slave:
+        - agressive heartbeating allows slave to monitor master & vv
+        - various strategies for replication
+            - repeat all AMQP commands to slave
+                - get confirmation before doing own processing thereof
+            - repeat internal structures to slave
+                - all created objects replicate themselves
+            - repeat only stored data
+                - messages, subscriptions
+       
+    

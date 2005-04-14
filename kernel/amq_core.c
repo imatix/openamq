@@ -280,17 +280,13 @@ s_prepare_security (void)
         *mechanism;
 
     ipr_config_locate (amq_config, "/config/security", NULL);
-    mechanism = ipr_config_attr (amq_config, "mechanism", "NONE");
-    if (streq (mechanism, "NONE"))
-        amq_global_set_mechanism (AMQ_MECHANISM_NONE);
-    else
+    mechanism = ipr_config_attr (amq_config, "mechanism", "PLAIN");
     if (streq (mechanism, "PLAIN"))
         amq_global_set_mechanism (AMQ_MECHANISM_PLAIN);
     else {
         coprintf ("E: invalid security mechanism, '%s'", mechanism);
-        amq_global_set_mechanism (AMQ_MECHANISM_NONE);
+        amq_global_set_mechanism (AMQ_MECHANISM_PLAIN);
     }
-
     /*  Load user table from configuration file                              */
     ipr_config_locate (amq_config, "/config/users/user", NULL);
     while (amq_config->located) {

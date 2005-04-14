@@ -21,8 +21,8 @@
 </public>
 
 <context>
-    amq_mesgq_t
-        *mesgq;                         /*  Message queue holding message    */
+    amq_queue_t
+        *queue;                         /*  Message queue holding message    */
     qbyte
         item_id;                        /*  Queue ID if persistent           */
     amq_smessage_t
@@ -30,10 +30,10 @@
 </context>
 
 <method name = "new">
-    <argument name = "mesgq"   type = "amq_mesgq_t *"   >Message queue</argument>
+    <argument name = "queue"   type = "amq_queue_t *"   >Message queue</argument>
     <argument name = "item id" type = "qbyte"           >Key for persistent storage</argument>
     <argument name = "message" type = "amq_smessage_t *">Key for memory storage</argument>
-    self->mesgq   = mesgq;
+    self->queue   = queue;
     self->item_id = item_id;
     self->message = message;
 </method>

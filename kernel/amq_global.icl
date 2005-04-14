@@ -29,8 +29,7 @@ extern size_t
 
 /*  Server security mechanisms                                               */
 
-#define AMQ_MECHANISM_NONE          1
-#define AMQ_MECHANISM_PLAIN         2
+#define AMQ_MECHANISM_PLAIN         1
 </public>
 
 <private>
@@ -50,7 +49,7 @@ static int
 static char
     *s_error_text = "";                 /*  Last error text                  */
 static int
-    s_mechanism = AMQ_MECHANISM_NONE;   /*  Current security mechanism       */
+    s_mechanism = AMQ_MECHANISM_PLAIN;  /*  Current security mechanism       */
 </private>
 
 <method name = "set error">
@@ -88,8 +87,6 @@ static int
     <declare name = "mechanism" type = "char *" />
     if (s_mechanism == AMQ_MECHANISM_PLAIN)
         mechanism = "PLAIN";
-    else
-        mechanism = "NONE";
 </method>
 
 <method name = "selftest">

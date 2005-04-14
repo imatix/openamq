@@ -34,7 +34,9 @@
     </local>
     message = amq_smessage_list_first (self);
     while (message) {
-        amq_mesgq_accept (message->mesgq, NULL, message, txn);
+        /*  TODO
+            topics  */
+        amq_queue_accept (message->queue, NULL, message, txn);
         current = message;              /*  Double-check accept worked       */
         amq_smessage_destroy (&message);
         message = amq_smessage_list_first (self);

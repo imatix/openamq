@@ -6,6 +6,11 @@
     copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
+<doc>
+The consumer class defines a single consumer for a queue or subscription.
+It manages the window (i.e. how many unacknowledged messages can be pending),
+and other properties of the consumer.
+</doc>
 
 <inherit class = "ipr_list_item" />
 
@@ -28,8 +33,8 @@
         *channel;                       /*  Parent channel                   */
     amq_handle_t
         *handle;                        /*  Parent handle                    */
-    amq_mesgq_t
-        *mesgq;                         /*  Parent message queue             */
+    amq_queue_t
+        *queue;                         /*  Parent message queue             */
     qbyte
         client_id;                      /*  Parent client record             */
 
@@ -74,14 +79,38 @@
     ipr_shortstr_cpy (self->identifier, command->identifier);
 
     /*  Attach to message queue                                              */
-    self->mesgq = amq_mesgq_consume (self, command->dest_name);
-    if (!self->mesgq)
+    self->queue = amq_queue_consume (self, command->dest_name);
+    if (!self->queue)
         $(selfname)_destroy (&self);
 </method>
 
 <method name = "destroy">
-    if (self->mesgq)
-        amq_mesgq_cancel (self->mesgq, self);
+    if (self->queue)
+        amq_queue_cancel (self->queue, self);
+</method>
+
+<method name = "window close" template = "function">
+    <doc>
+    Updates the consumer and destination windowing for a dispatched
+    message.
+    </doc>
+    /*  Dispatched message decrements message windows                        */
+    if (self->window > 0) {
+        self->queue->window--;
+        self->window--;
+    }
+</method>
+
+<method name = "window open" template = "function">
+    <doc>
+    Updates the consumer and destination windowing for an acknowledged
+    message.
+    </doc>
+    /*  Message queue and consumer can accept a new message              */
+    if (self->window < self->prefetch) {
+        self->window++;
+        self->queue->window++;
+    }
 </method>
 
 <method name = "cancel" template = "function">

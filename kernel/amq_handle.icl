@@ -32,8 +32,8 @@
     in an array for easy access via HANDLE BROWSE                            */
 
 typedef struct {
-    amq_mesgq_t
-        *mesgq;                         /*  Message queue                    */
+    amq_queue_t
+        *queue;                         /*  Message queue                    */
     amq_smessage_t
         *message;                       /*  Message, if non-persistent       */
     qbyte
@@ -61,8 +61,8 @@ typedef struct {
         *ddb;                           /*  Deprecated database handle       */
     ipr_looseref_list_t
         *consumers;                     /*  List of consumers per handle     */
-    amq_mesgq_t
-        *mesgq;                         /*  If refers to message queue       */
+    amq_queue_t
+        *queue;                         /*  If refers to message queue       */
     amq_browser_array_t
         *browser_set;                   /*  Results of last HANDLE QUERY     */
     int
@@ -137,23 +137,23 @@ typedef struct {
     <argument name = "command" type = "amq_handle_send_t *" />
     <argument name = "message" type = "amq_smessage_t *"    />
     <local>
-    amq_mesgq_t
-        *mesgq;
+    amq_queue_t
+        *queue;
     </local>
 
-    /*  Look for the mesgq using the destination name specified              */
-    mesgq = amq_mesgq_full_search (
-        self->vhost->mesgq_hash,
+    /*  Look for the queue using the destination name specified              */
+    queue = amq_queue_full_search (
+        self->vhost->queue_hash,
         self->dest_name,
         command->dest_name,
         AMQP_SERVICE_QUEUE);
 
     /*  TODO topic broadcasts  */
 
-    if (mesgq) {
-        amq_mesgq_accept (mesgq, self->channel, message, NULL);
-        if (mesgq->dirty)
-            amq_mesgq_dispatch (mesgq);
+    if (queue) {
+        amq_queue_accept (queue, self->channel, message, NULL);
+        if (queue->dirty)
+            amq_queue_dispatch (queue);
     }
     else
         amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
@@ -169,7 +169,7 @@ typedef struct {
     consumer = amq_consumer_new (self, command);
     if (consumer) {
         ipr_looseref_new (self->consumers, consumer);
-        amq_mesgq_dispatch (consumer->mesgq);
+        amq_queue_dispatch (consumer->queue);
     }
 </method>
 
@@ -188,11 +188,11 @@ typedef struct {
     </local>
 
     self->paused = command->flow_pause;
-    /*  If switching on, dispatch all mesgqs for handle                     */
+    /*  If switching on, dispatch all queues for handle                     */
     if (!self->paused) {
         consumer = ipr_looseref_list_first (self->consumers);
         while (consumer) {
-            amq_mesgq_dispatch (((amq_consumer_t *) consumer->object)->mesgq);
+            amq_queue_dispatch (((amq_consumer_t *) consumer->object)->queue);
             consumer = ipr_looseref_list_next (self->consumers, consumer);
         }
     }
@@ -206,34 +206,35 @@ typedef struct {
 <method name = "query" template = "function" >
     <argument name = "command" type = "amq_handle_query_t *" />
     <local>
-    amq_mesgq_t
-        *mesgq;
+    amq_queue_t
+        *queue;
     </local>
 
-    /*  TODO:
-        - check service type for query
-     */
-    /*  Look for the mesgq using the destination name specified             */
-    mesgq = amq_mesgq_full_search (
-        self->vhost->mesgq_hash,
-        self->dest_name,
-        command->dest_name,
-        AMQP_SERVICE_QUEUE);
+    if (self->service_type == AMQP_SERVICE_QUEUE) {
+        /*  Look for the queue using the destination name specified         */
+        queue = amq_queue_full_search (
+            self->vhost->queue_hash,
+            self->dest_name,
+            command->dest_name,
+            self->service_type);
 
-    if (mesgq) {
-        if (!mesgq->opt_protected) {
-            amq_mesgq_query (mesgq, self->browser_set);
-            amq_server_agent_handle_index (
-                self->thread,
-                (dbyte) self->key,
-                0,
-                amq_browser_array_strindex (self->browser_set, 8000));
+        if (queue) {
+            if (!queue->opt_protected) {
+                amq_queue_query (queue, self->browser_set);
+                amq_server_agent_handle_index (
+                    self->thread,
+                    (dbyte) self->key,
+                    0,
+                    amq_browser_array_strindex (self->browser_set, 8000));
+            }
+            else
+                amq_global_set_error (AMQP_ACCESS_REFUSED, "Browsing not allowed on queue");
         }
         else
-            amq_global_set_error (AMQP_ACCESS_REFUSED, "Browsing not allowed on destination");
+            amq_global_set_error (AMQP_NOT_FOUND, "No such queue defined");
     }
-    else
-        amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
+    else 
+        amq_global_set_error (AMQP_COMMAND_INVALID, "Cannot query topics");
 </method>
 
 <method name = "browse" template = "function" >
@@ -242,10 +243,15 @@ typedef struct {
     amq_browser_t
         *browser;
     </local>
-    browser = amq_browser_array_fetch (self->browser_set, command->message_nbr);
-    if (browser == NULL
-    ||  amq_mesgq_browse (browser->mesgq, self, browser))
-        amq_global_set_error (AMQP_MESSAGE_NOT_FOUND, "Message does not exist");
+
+    if (self->service_type == AMQP_SERVICE_QUEUE) {
+        browser = amq_browser_array_fetch (self->browser_set, command->message_nbr);
+        if (browser == NULL
+        ||  amq_queue_browse (browser->queue, self, browser))
+            amq_global_set_error (AMQP_MESSAGE_NOT_FOUND, "Message does not exist");
+    }
+    else 
+        amq_global_set_error (AMQP_COMMAND_INVALID, "Cannot browse topics");
 </method>
 
 <private name = "header">
@@ -266,9 +272,12 @@ s_find_or_create_dest ($(selftype) **p_self, Bool temporary)
 
     /*  Find queue if named                                                  */
     if (self->dest_name && *self->dest_name) {
-        self->mesgq = amq_mesgq_search (
-            self->vhost->mesgq_hash, self->dest_name, self->service_type);
-        if (self->mesgq == NULL && !temporary) {
+//        self->queue = amq_queue_search (
+//            self->vhost->queue_hash, self->dest_name, self->service_type);
+        self->queue = amq_queue_search (
+            self->service_type, self->vhost->queue_hash, self->dest_name);
+            
+        if (self->queue == NULL && !temporary) {
             amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
             $(selfname)_destroy (p_self);
         }
@@ -279,16 +288,16 @@ s_find_or_create_dest ($(selftype) **p_self, Bool temporary)
 
     /*  Create, if temporary and not already present                         */
     if (temporary) {
-        if (self->mesgq) {
-            if (self->mesgq->client_id != self->client_id) {
+        if (self->queue) {
+            if (self->queue->client_id != self->client_id) {
                 amq_global_set_error (AMQP_NOT_FOUND, "Temporary queue already in use");
-                self->mesgq = NULL;
+                self->queue = NULL;
                 $(selfname)_destroy (p_self);
             }
         }
         else {
-            amq_mesgq_map_name (internal_name, self->dest_name, self->service_type);
-            amq_mesgq_new (
+            amq_queue_map_name (internal_name, self->dest_name, self->service_type);
+            amq_queue_new (
                 internal_name,          /*  Mapped key/filename              */
                 self->vhost,            /*  Parent virtual host              */
                 self->service_type,     /*  Service type                     */
@@ -354,7 +363,7 @@ s_find_or_create_dest ($(selftype) **p_self, Bool temporary)
     /*  Initialise handle                                                    */
     memset (&handle_open, 0, sizeof (handle_open));
     handle_open.channel_id   = 1;
-    handle_open.service_type = 1;
+    handle_open.service_type = AMQP_SERVICE_QUEUE;
     handle_open.handle_id    = 1;
     handles = amq_handle_table_new ();
     handle  = amq_handle_new (

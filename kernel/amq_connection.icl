@@ -100,10 +100,6 @@
         *user;                          /*  Defined user profile             */
     </local>
 
-    if (amq_global_mechanism () == AMQ_MECHANISM_NONE)
-        self->authorised = TRUE;
-
-    else
     if (amq_global_mechanism () == AMQ_MECHANISM_PLAIN) {
         self->authorised = FALSE;
 
@@ -145,15 +141,15 @@
     <local>
     amq_field_list_t
         *fields;                        /*  Decoded responses                */
-    int
+    dbyte
         frame_max,                      /*  Field value                      */
         heartbeat;
     </local>
 
     fields = amq_field_list_new ();
     amq_field_list_parse (fields, command->options);
-    frame_max = amq_field_list_integer (fields, "FRAME_MAX");
-    heartbeat = amq_field_list_integer (fields, "HEARTBEAT");
+    frame_max = (dbyte) amq_field_list_integer (fields, "FRAME_MAX");
+    heartbeat = (dbyte) amq_field_list_integer (fields, "HEARTBEAT");
     amq_field_list_destroy (&fields);
 
     /*  Lower limits if client asks for that                                 */

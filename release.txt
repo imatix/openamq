@@ -1,3 +1,14 @@
+0.8b4
+
+Changes to server kernel:
+
+  - amq_queue class broken into class hierarchy: amq_mesgq, amq_dest,
+    amq_queue, amq_topic, and amq_subsc.
+
+  - 'core' project renamed to 'kernel'.
+
+  - removed NONE security mechanism; all clients must now login correctly.
+
 0.8b3 - 2006/04/07
 
 Changes to server:

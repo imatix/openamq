@@ -269,19 +269,15 @@ static int
             *fields;
         ipr_longstr_t
             *responses = NULL;
-        char
-            *mechanism = "NONE";
 
-        if (streq (CONNECTION_CHALLENGE.mechanisms, "PLAIN")) {
-            fields = amq_field_list_new ();
-            amq_field_new_string  (fields, "LOGIN",    tcb->login);
-            amq_field_new_string  (fields, "PASSWORD", tcb->password);
-            responses = amq_field_list_flatten (fields);
-            amq_field_list_destroy (&fields);
-            mechanism = "PLAIN";
-        }
+        fields = amq_field_list_new ();
+        amq_field_new_string  (fields, "LOGIN",    tcb->login);
+        amq_field_new_string  (fields, "PASSWORD", tcb->password);
+        responses = amq_field_list_flatten (fields);
+        amq_field_list_destroy (&fields);
+
         amq_frame_free (&tcb->frame);
-        tcb->frame = amq_frame_connection_response_new (mechanism, responses);
+        tcb->frame = amq_frame_connection_response_new ("PLAIN", responses);
         send_the_frame (thread);
 
         ipr_longstr_destroy (&responses);
@@ -300,7 +296,7 @@ static int
     <action name = "process connection tune">
         amq_field_list_t
             *fields;                    /*  Decoded responses                */
-        int
+        dbyte
             frame_max,                  /*  Field value                      */
             channel_max,                /*  Field value                      */
             handle_max,                 /*  Field value                      */
@@ -308,10 +304,10 @@ static int
 
         fields = amq_field_list_new ();
         amq_field_list_parse (fields, CONNECTION_TUNE.options);
-        frame_max   = amq_field_list_integer (fields, "FRAME_MAX");
-        channel_max = amq_field_list_integer (fields, "CHANNEL_MAX");
-        handle_max  = amq_field_list_integer (fields, "HANDLE_MAX");
-        heartbeat   = amq_field_list_integer (fields, "HEARTBEAT");
+        frame_max   = (dbyte) amq_field_list_integer (fields, "FRAME_MAX");
+        channel_max = (dbyte) amq_field_list_integer (fields, "CHANNEL_MAX");
+        handle_max  = (dbyte) amq_field_list_integer (fields, "HANDLE_MAX");
+        heartbeat   = (dbyte) amq_field_list_integer (fields, "HEARTBEAT");
         amq_field_list_destroy (&fields);
 
         /*  Lower limits if server asks for that                             */

@@ -182,7 +182,7 @@ main (int argc, char *argv [])
     amq_sclient_trace (atoi (opt_trace));
 
     coprintf ("Connecting to %s...", opt_server);
-    amq_client = amq_sclient_new (opt_client, "test-login", "test-password");
+    amq_client = amq_sclient_new (opt_client, "guest", "guest");
 
     if (amq_client == NULL
     ||  amq_sclient_connect (amq_client, opt_server, "/test"))

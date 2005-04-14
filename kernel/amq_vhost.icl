@@ -27,10 +27,14 @@
         *ddb;                           /*  Deprecated database handle       */
     ipr_config_t
         *config;                        /*  Virtual host configuration       */
-    amq_mesgq_table_t
-        *mesgq_hash;                    /*  Message queues for this vhost    */
+    amq_queue_table_t
+        *queue_hash;                    /*  Queues for this vhost            */
+    amq_topic_table_t
+        *topic_hash;                    /*  Topics for this vhost            */
     ipr_looseref_list_t
-        *mesgq_refs;                    /*  Message queues, as list          */
+        *queue_refs;                    /*  Queues, for dispatching          */
+    ipr_looseref_list_t
+        *subsc_refs;                    /*  Subscriptions, for dispatching   */
     ipr_shortstr_t
         directory;                      /*  Location for virtual host        */
     ipr_shortstr_t
@@ -44,8 +48,10 @@
     <argument name = "config"    type = "ipr_config_t *"/>
 
     self->config = config;
-    self->mesgq_hash = amq_mesgq_table_new ();
-    self->mesgq_refs = ipr_looseref_list_new ();
+    self->queue_hash = amq_queue_table_new ();
+    self->topic_hash = amq_topic_table_new ();
+    self->queue_refs = ipr_looseref_list_new ();
+    self->subsc_refs = ipr_looseref_list_new ();
     ipr_shortstr_cpy (self->directory, directory);
 
     coprintf ("I: configuring virtual host '%s'", self->key);
@@ -65,8 +71,10 @@
         coprintf ("$(selfname) E: database cursor still open, attempting recovery");
         self->db->db_cursor = NULL;
     }
-    amq_mesgq_table_destroy   (&self->mesgq_hash);
-    ipr_looseref_list_destroy (&self->mesgq_refs);
+    amq_queue_table_destroy   (&self->queue_hash);
+    amq_topic_table_destroy   (&self->topic_hash);
+    ipr_looseref_list_destroy (&self->queue_refs);
+    ipr_looseref_list_destroy (&self->subsc_refs);
     ipr_config_destroy        (&self->config);
     ipr_db_destroy            (&self->db);
     amq_db_destroy            (&self->ddb);
@@ -76,22 +84,22 @@
     <doc>
     Dispatches all queues that have received new messages, i.e. have the
     'dirty' property.  All dirty queues are at the start of the vhost
-    mesgq list - see amq_mesgq_accept ().
+    queue list - see amq_queue_accept ().
     </doc>
     <local>
     ipr_looseref_t
-        *mesgq_ref;                      /*  Entry into mesgq list           */
-    amq_mesgq_t
-        *mesgq;                          /*  Message queue object            */
+        *queue_ref;                      /*  Entry into queue list           */
+    amq_queue_t
+        *queue;                          /*  Message queue object            */
     </local>
 
     /*  Dispatch all dirty message queues until we hit the last one          */
-    mesgq_ref = ipr_looseref_list_first (self->mesgq_refs);
-    while (mesgq_ref) {
-        mesgq = (amq_mesgq_t *) mesgq_ref->object;
-        if (mesgq->dirty) {
-            amq_mesgq_dispatch (mesgq);
-            mesgq_ref = ipr_looseref_list_next (self->mesgq_refs, mesgq_ref);
+    queue_ref = ipr_looseref_list_first (self->queue_refs);
+    while (queue_ref) {
+        queue = (amq_queue_t *) queue_ref->object;
+        if (queue->dirty) {
+            amq_queue_dispatch (queue);
+            queue_ref = ipr_looseref_list_next (self->queue_refs, queue_ref);
         }
         else
             break;
@@ -189,8 +197,8 @@ s_configure_queues ($(selftype) *self)
     ipr_config_locate (self->config, "/config/queues/queue", NULL);
     while (self->config->located) {
         external_name = ipr_config_attr (self->config, "name", "unnamed");
-        amq_mesgq_map_name (internal_name, external_name, AMQP_SERVICE_QUEUE);
-        amq_mesgq_new (
+        amq_queue_map_name (internal_name, external_name, AMQP_SERVICE_QUEUE);
+        amq_queue_new (
             internal_name,              /*  Mapped key/filename              */
             self,                       /*  Parent virtual host              */
             AMQP_SERVICE_QUEUE,         /*  Message queue type               */
@@ -216,8 +224,8 @@ s_configure_topics ($(selftype) *self)
     ipr_config_locate (self->config, "/config/topics/topic", NULL);
     while (self->config->located) {
         external_name = ipr_config_attr (self->config, "name", "unnamed");
-        amq_mesgq_map_name (internal_name, external_name, AMQP_SERVICE_TOPIC);
-        amq_mesgq_new (
+        amq_queue_map_name (internal_name, external_name, AMQP_SERVICE_TOPIC);
+        amq_queue_new (
             internal_name,              /*  Mapped key/filename              */
             self,                       /*  Parent virtual host              */
             AMQP_SERVICE_TOPIC,         /*  Message queue type               */

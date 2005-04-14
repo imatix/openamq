@@ -5,7 +5,7 @@ gdl
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/03/29
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.8b1
+    version   = 0.8b2
 end gdl
 
 Cover
@@ -24,6 +24,10 @@ This document is ready for review.
 Recent Change History
 ---------------------
 
+0.8b2
+- Removed NONE security mechanism - all access requires a login, even if it
+  is a well-known login.
+  
 0.8b1
 - Temporary queues are deleted when the connection, not channel, closes.
 
@@ -871,7 +875,7 @@ protocol-version:
     higher than the client's version.
 mechanism-list:
     A list of the security mechanisms that the server supports, delimited
-    by spaces.  Currently AMQP supports these mechanisms: NONE, PLAIN.
+    by spaces.  Currently AMQP supports these mechanisms: PLAIN.
     See below for details.
 challenges:
     A set of challenge fields that specify the information asked for for
@@ -955,18 +959,6 @@ CONNECTION TUNE command.
 
 The maximum allowed size for a CONNECTION RESPONSE command frame is
 4096 octets.
-
-The NONE Security Mechanism
-...........................
-
-The NONE security mechanism does no authentication or authorisation.
-This mechanism is not secure in any way.
-
-When the server sends a CONNECTION CHALLENGE specifying the security
-mechanism "NONE", the client should respond with a CHALLENGE RESPONSE
-containing an empty responses table:
-
-    %0d %0d
 
 The PLAIN Security Mechanism
 ............................
