@@ -67,7 +67,7 @@ String
         "Java serial test client";
 // Outcomes
 String
-    error_message,                      /* Error details                     */
+    error_message = null,               /* Error details                     */
     module;                             /* Module in which error occured     */
 Exception
     exception = null;                   /* Exception                         */
@@ -319,7 +319,6 @@ public void setup ()
 public void handle_timeout ()
 {
     forced_shutdown ();
-    System.out.println("java/amqpcli_serial currently does not handle network timeout, terminating.");
     System.exit(1);
 }
 
@@ -346,7 +345,7 @@ public void forced_shutdown ()
 
 public void terminate_the_program ()
 {
-    System.exit(exception != null ? 1 : 0);
+    System.exit(error_message != null ? 1 : 0);
 }
 
 
@@ -723,17 +722,15 @@ public void shutdown ()
 //- Standard dialog routines --------------------------------------------
 public void raise_exception (int event, Exception e, String _class, String module, String message)
 {
-    this.error_message = message;
+    error_message = message;
     this.module = module;
-    this.exception = e;
+    exception = e;
 
     if (e != null && !(e instanceof AMQException) && !(e instanceof AMQIOException))
         System.out.println("E: " + e.getMessage());
     System.err.println(_class + ": " + module + ": " + message + ".");
 
-    // Reset message
-    error_message = null;
-    module = null;
+    // Reset exception
     exception = null;
 
     raise_exception (event);
