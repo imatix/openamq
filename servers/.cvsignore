@@ -18,8 +18,8 @@ boomake*
 configure*
 Makefile*
 msmake*
-userguide.gdl
-userguide*.htm
+*.gdl
+*.html
 *.lst
 amqpsrv
 
