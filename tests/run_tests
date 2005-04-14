@@ -3,111 +3,201 @@
 # Copyright (c) 2004-2005 JPMorgan and iMatix Corporation
 #
 
+#
 # Test subdirectories represent test classes, and should match this pattern: 
-# 'test_*'. There are no test sub-classes for the moment. Test scripts have to 
-# match this pattern: 'test_*.sh'. If the IBASE variable is set, the base 
+# 'tests_*'. For the moment, there is only one sub-class level. Test scripts have 
+# to match this pattern: 'test_*.sh'. If the IBASE variable is set, the base 
 # executables will be available for the called scripts. The script will attempt 
-# to start the openamqd automatically. All other executables (clients, etc.) must
-# be made available by each test script.
+# to start the openamqd automatically. All other executables (clients, etc.) 
+# must be made available by each test script.
 #
-# Testing targets handling of timeouts (TIMELIMIT), core dumps, console exit status,
-# and reference stdout results from registered executions. The current timeout limit 
-# is 5 minutes. When core is dumped, the file is renamed to <test-script-name>.core.
-# If a test exits with a result code of 0, it passes the test; otherwise it
-# fails. If a file called <test-script-name>.ok is found along with a test script, 
-# then this file is compared to the output of the current test run (stdout + stderr), 
-# any differences mean failure.
+# Testing targets handling of timeouts (TIMELIMIT), core dumps, console exit 
+# status, and reference stdout results from registered executions. The current 
+# timeout limit is 5 minutes. When core is dumped, the file is renamed to 
+# <test-script-name>.core. If a test exits with a result code of 0, it passes 
+# the test; otherwise it fails. If a file called <test-script-name>.ok is found
+# along with a test script, then this file is compared to the output of the 
+# current test run (stdout + stderr), any differences mean failure.
 #
-# For each script run, either PASS or FAIL will be printed to console. The latter will
-# cause an exit status of 1 for this run_tests script. When a test fails, the standard 
-# output is copied to <test-script-name>.fail; otherwise a file called 
-# <test-script-name>.out will be present.
+# For each script run, either PASS or FAIL will be printed to console. The 
+# latter will cause an exit status of 1 for this run_tests script. When a test
+# fails, the standard output is copied to <test-script-name>.fail; otherwise a
+# file called <test-script-name>.out will be present.
 #
 
+# Verbose sxitch
+verbose=0
 # Global error status
 error=0
 
+
 # Abort a test after TIMELIMIT has elapsed
-TIMELIMIT=300
-timeout() {
-    sleep $TIMELIMIT
+timelimit=300
+timeout() 
+{
+    sleep $timelimit
     echo "FAIL: TIMEOUT" >> $1 
+    echo 1 > FAIL
     kill $2
 }
 
-run() {
+# Handle a failure
+fail() 
+{
+    echo "[FAIL] $1"
+    if test "$verbose" = "1"; then
+        tail $2
+    fi
+}
+
+# Handle a pass
+pass() 
+{
+    echo "[PASS] $1"
+    if test "$verbose" = "1"; then
+        tail $2
+    fi
+}
+
+# Run a script
+runscript() 
+{
     env PATH="$PATH:$IBASE/bin" sh $1 >$2 2>&1
     if test "$?" != "0"; then
         echo 1 > FAIL
     fi    
 }
 
-
 # Run a test script
 runtest()
 {
     # Run a test
     OUTPUT="$1.out"
-    run $1 $OUTPUT &
+    runscript $1 $OUTPUT &
     # Handle timeout
     pid=$!
     timeout $OUTPUT $pid &
     wait $pid
+    kill $!
     if test -f FAIL; then
         error=1
         rm -f FAIL
     fi
-    kill $!
     # Check result
     if test -f core; then
         error=1
-        echo "FAIL: $1"
-        mv core "$1.core"
+        fail $1 $OUTPUT
         echo "FAIL: CORE" >> $OUTPUT 
+        mv core "$1.core"
         mv "$OUTPUT" "$1.fail"
     elif test ! -f "$1.ok"; then
-        if test "$error" = 0; then
-            echo "PASS: $1"
+        if test "$error" = "0"; then
+            pass $1 $OUTPUT
         else
             error=1
-            echo "FAIL: $1"
+            fail $1 $OUTPUT
             echo "FAIL: EXIT STATUS" >> $OUTPUT 
             mv "$OUTPUT" "$1.fail"
         fi
     elif cmp -s "$OUTPUT" "$1.ok"; then
-        echo "PASS: $1"
+        pass $1 $OUTPUT
     else
         error=1
-        echo "FAIL: $1"
+        fail $1 $OUTPUT
         echo "FAIL: UNEXPECTED RESULTS" >> $OUTPUT 
         mv "$OUTPUT" "$1.fail"
     fi
 }
 
-if test "$(ps -A | grep openamqd)" = "" ; then 
-    # Start the daemon
+# Run a test set
+testset()
+{
+    for a_test in $(find -name 'test_*.sh' -maxdepth 1); do
+        if test "$a_test" != "test_*.sh"; then 
+            rm -f FAIL
+            echo ""
+            echo "[TEST] $a_test"
+            runtest "$a_test"
+        else
+            if test "$2" != "1"; then
+                echo "!! Nothing to do for $1" 
+            fi
+        fi
+    done
+}
+
+# Check arguments
+if test "$1" = "-h"; then 
+    echo "OpenAMQP tester"
+    echo ""
+    echo "Copyright (c) 2004-2005 JPMorgan"
+    echo "This is free software; see the source for copying conditions.  There is NO"
+    echo "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+    echo ""
+    echo "Provisional syntax: run_tests [options...]"
+    echo "Options:"
+    echo  "  -h               Show summary of command-line options"
+    echo  "  verbose|quiet    Print to console the last lines of output (default = quiet)"
+    echo  "  timeout          The number of seconds to wait before a timeout failure triggers (default = 300)"
+    echo ""      
+    echo "The order of arguments IS important (provisionally). Switches and filenames" 
+    echo "are case sensitive."
+    exit 0
+else
+    if test "$1" = "verbose"; then 
+        verbose=1 
+    fi    
+    if test "$2" != ""; then 
+        timelimit=$2 
+    fi
+fi    
+
+
+# Start the daemon
+if ps -A | grep openamqd; then
+    echo "OpenAMQ daemon found running..."
+else 
     echo "Starting the OpenAMQ daemon..."
     cd ../servers/
-    openamqd &
-    cd ../test/
+    ./openamqd &
+    cd ../tests/
     if test "$?" != "0"; then
         echo "Warning, could not start the OpenAMQ daemon."
     fi
     sleep 5
 fi
 
+
 # Run all test sets
-for test_dir in $(find -name 'test_*' -maxdepth 1); do
-    echo "Entering $test_dir directory..."
-    cd $test_dir
-    for a_test in $(find -name 'test_*.sh' -maxdepth 1); do
-        echo testing $a_test
-        runtest "$a_test"
-    done
-    cd ..
+for test_dir in tests_*; do
+    if test "$test_dir" != "tests_*"; then 
+        echo ""
+        echo ">> Entering $test_dir directory..."
+        cd $test_dir
+        
+        if (test ! -f $test_dir) || $test_dir;
+            testset $test_dir $subs
+            subs=0
+            for test_subdir in tests_*; do
+                if test "$test_subdir" != "tests_*"; then 
+                    subs=1
+                    echo ""
+                    echo "  >> Entering $test_subdir subdirectory..."
+                    cd $test_subdir
+                    testset $test_subdir
+                    cd ..
+                    echo ""
+                    echo "  << Leaving $test_subdir directory..."
+                fi
+            done
+        fi
+        
+        cd ..
+        echo ""
+        echo "<< Leaving $test_dir directory..."
+    fi
 done
+
 
 # Result
 exit $error
-
-

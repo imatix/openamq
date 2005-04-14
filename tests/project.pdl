@@ -9,8 +9,20 @@
 
 <include filename = "prelude.pdl" />
 
-<file name = "run_tests"                   class = "public resource" >Runs test sets</file>
-<directory name = "test_api">
-    <file name = "test_serial_1000_1K.sh"  class = "public resource" >Test case</file>
+<file name = "run_tests"                          class = "public resource" >Runs test sets</file>
+<directory name = "tests_api">
+    <file name = "test_syn_que_tem_1000_1K_1.sh"  class = "public resource" >Simple test template</file>
+</directory>
+<directory name = "tests_api/tests_java">
+    <file name = "test_syn_que_tem_10000_1K_2.sh" class = "public resource" >Java simple small messages test (10M)</file>
+    <file name = "test_syn_que_tem_10_1M_3.sh"    class = "public resource" >Java simple big messages test (10M)</file>
+    <file name = "test_syn_que_tem_100_1M_3.sh"   class = "public resource" >Java simple big messages test (100M)</file>
+    <file name = "test_syn_que_tem_1_1G_4.sh"     class = "public resource" >Java simple huge message test (1G)</file>
+</directory>
+<directory name = "tests_api/tests_stdc">
+    <file name = "test_syn_que_tem_10000_1K_2.sh" class = "public resource" >Stdc simple small messages test (10M)</file>
+    <file name = "test_syn_que_tem_10_1M_3.sh"    class = "public resource" >Stdc simple big messages test (10M)</file>
+    <file name = "test_syn_que_tem_100_1M_3.sh"   class = "public resource" >Stdc simple big messages test (100M)</file>
+    <file name = "test_syn_que_tem_1_1G_4.sh"     class = "public resource" >Stdc simple huge message test (1G)</file>
 </directory>
 </pdl>
