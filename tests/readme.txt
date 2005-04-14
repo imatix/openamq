@@ -30,8 +30,17 @@ core file is renamed to <test-script-name>.core.
 
 run_tests
 ---------
-Will run the test classes currently present (subdirectories) and active.
+Will run the test classes currently present (subdirectories) and active. Please 
+refer to the readme in this directory for particular test requirements.
 
 tests_api
 ---------
-Client API test set.
+Client API test set. 
+
+tests_api/tests_java
+....................
+Java client API test set. 
+
+tests_api/tests_stdc
+....................
+Standard C client API test set.

@@ -160,7 +160,10 @@ for test_dir in tests_*; do
         echo ""
         echo ">> Entering $test_dir directory..."
         cd $test_dir
-        if test ! -f $test_dir -o $test_dir; then
+        if test -f $test_dir; then
+            sh $test_dir
+        fi    
+        if test ! -f $test_dir -o "$?" = "0"; then
             testset $test_dir $subs
             subs=0
             for test_subdir in tests_*; do
@@ -169,14 +172,23 @@ for test_dir in tests_*; do
                     echo ""
                     echo "  >> Entering $test_subdir subdirectory..."
                     cd $test_subdir
-                    if test ! -f $test_subdir -o $test_subdir; then
+                    if test -f $test_subdir; then
+                        sh $test_subdir
+                    fi    
+                    if test ! -f $test_subdir -o "$?" = "0"; then
                         testset $test_subdir
+                    else    
+                       echo ""
+                       echo "  ** Skiping test subset $1" 
                     fi
                     cd ..
                     echo ""
                     echo "  << Leaving $test_subdir directory..."
                 fi
             done
+        else
+            echo ""
+            echo "** Skiping test set $1" 
         fi
         cd ..
         echo ""

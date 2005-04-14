@@ -14,6 +14,7 @@
     <file name = "test_syn_que_tem_1000_1K_1.sh"  class = "public resource" >Simple test template</file>
 </directory>
 <directory name = "tests_api/tests_java">
+    <file name = "tests_java"                     class = "public resource" >Determines if to perform the Java tests</file>
     <file name = "test_syn_que_tem_10000_1K_2.sh" class = "public resource" >Java simple small messages test (10M)</file>
     <file name = "test_syn_que_tem_10_1M_3.sh"    class = "public resource" >Java simple big messages test (10M)</file>
     <file name = "test_syn_que_tem_100_1M_3.sh"   class = "public resource" >Java simple big messages test (100M)</file>
