@@ -85,8 +85,7 @@ static int
 
 <method name = "mechanism_str" return = "mechanism">
     <declare name = "mechanism" type = "char *" />
-    if (s_mechanism == AMQ_MECHANISM_PLAIN)
-        mechanism = "PLAIN";
+    mechanism = "PLAIN";
 </method>
 
 <method name = "selftest">

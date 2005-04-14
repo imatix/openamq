@@ -56,7 +56,7 @@ data type.  This class provides functions at a per-field level.
     strcpy (self->name, name);
     self->type   = AMQ_FIELD_TYPE_STRING;
     self->string = ipr_longstr_new (value, strlen (value) + 1);
-    self->string->data [strlen (value)] = '\0';
+    self->string->data [strlen (value)] = '\\0';
     amq_field_list_queue (list, self);
 </method>
 
@@ -149,7 +149,7 @@ data type.  This class provides functions at a per-field level.
         string_size = ntohs (*(dbyte *) input);
         input += 2;
         self->string = ipr_longstr_new (input, string_size + 1);
-        self->string->data [string_size] = '\0';
+        self->string->data [string_size] = '\\0';
         input += string_size;
         field_end = input;
     }

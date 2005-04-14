@@ -434,8 +434,7 @@ static int
                 ipr_shortstr_cpy (args.dest_name, HANDLE_NOTIFY.dest_name);
                 tcb->handle_notify_callback (&args);
             }
-            else
-                amq_message_destroy (&tcb->message);
+            amq_message_destroy (&tcb->message);
             the_next_event = finished_event;
         }
     </action>

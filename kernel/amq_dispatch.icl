@@ -76,7 +76,7 @@
 
     next = amq_dispatch_list_next (self->channel->dispatch_list, self);
     if (!self->acknowledged) {
-        amq_consumer_window_close (self->consumer);
+        amq_consumer_window_open (self->consumer);
         amq_queue_dispatch (self->queue);
 
         /*  Now commit the acknowledgement if not transacted                 */

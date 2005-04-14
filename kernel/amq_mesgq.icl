@@ -20,12 +20,6 @@ virtual host.
 #include "amq_frames.h"
 </public>
 
-<private>
-#include "amq_server_agent.h"
-#define TRACE_DISPATCH                  /*  Trace dispatching progress?      */
-#undef  TRACE_DISPATCH
-</private>
-
 <context>
     /*  References to parent objects                                         */
     amq_vhost_t

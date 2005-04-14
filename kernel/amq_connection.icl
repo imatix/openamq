@@ -105,7 +105,6 @@
 
         fields = amq_field_list_new ();
         amq_field_list_parse (fields, command->responses);
-
         field = amq_field_list_search (fields, "LOGIN");
         if (field) {
             ipr_shortstr_ncpy (login, field->string->data, field->string->cur_size);

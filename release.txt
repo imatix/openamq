@@ -2,6 +2,9 @@
 
 Changes to server kernel:
 
+  - login/password validation was broken due to error in amq_field class, 
+    fixed.
+
   - amq_queue class broken into class hierarchy: amq_mesgq, amq_dest,
     amq_queue, amq_topic, and amq_subsc.
 

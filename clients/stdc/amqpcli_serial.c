@@ -228,7 +228,7 @@ main (int argc, char *argv [])
             if (message) {
                 if ((delay_mode || messages < 100) && !quiet_mode)
                     coprintf ("Message number %d arrived", amq_client->msg_number);
-                amq_message_destroy (&message);
+                amq_message_destroy (&amq_client->msg_object);
                 count++;
                 if (count % batch_size == 0) {
                     if (!quiet_mode)

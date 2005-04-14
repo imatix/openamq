@@ -215,8 +215,6 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     <local>
     int rc;
     </local>
-
-    amq_message_destroy (&self->msg_object);
     amq_sclient_agent_blocking_receive (self->thread_handle, timeout, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
 
@@ -318,8 +316,8 @@ s_class_terminate (void)
 
 /*  This callback populates the object context with the notification
     properties including the message itself.  The caller gets possession
-    of the message and has to destroy it when finished with it.              */
-
+    of the message and must destroy it when finished with it.
+ */
 static void
 s_handle_notify (amq_sclient_handle_notify_t *args)
 {
@@ -333,6 +331,7 @@ s_handle_notify (amq_sclient_handle_notify_t *args)
     ipr_shortstr_cpy (self->msg_sender, args->dest_name);
     self->msg_delivered   = args->delivered;
     self->msg_redelivered = args->redelivered;
+    amq_message_link (self->msg_object);
 }
 </private>
 

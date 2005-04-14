@@ -648,8 +648,7 @@ static int
                 ipr_shortstr_cpy (args.dest_name, HANDLE_NOTIFY.dest_name);
                 tcb->handle_notify_callback (&args);
             }
-            else
-                amq_message_destroy (&tcb->message);
+            amq_message_destroy (&tcb->message);
             the_next_event = finished_event;
         }
     </action>
@@ -837,8 +836,7 @@ static int
             FALSE,                      /*  Out of band data?                */
             FALSE,                      /*  Restarting large message?        */
             FALSE,                      /*  Working in streaming mode?       */
-            partial? NULL:
-              handle_send_m->dest_name);
+            partial? NULL: handle_send_m->dest_name);
         send_the_frame (thread);
 
         /*  Send data buffer (without any frame header)                      */
@@ -1008,14 +1006,12 @@ static int
         </event>
         <event name = "socket error" nextstate = "" >
             <action name = "handle error"/>
-            coprintf ("socket error event");
             if (tcb->result)
                 *tcb->result = AMQ_SOCKET_ERROR;
         </event>
         <event name = "socket timeout" nextstate = "" >
             <action name = "handle error"/>
-            coprintf ("socket timeout event");
-            coprintf ("Connection to server timed out - shutting-down");
+            coprintf ("E: connection to server timed out - shutting-down");
             if (tcb->result)
                 *tcb->result = AMQ_TIMEOUT;
         </event>
@@ -1200,7 +1196,6 @@ s_sock_read (smt_thread_t *thread, byte *buffer, size_t size)
 
 <state name = "defaults">
     <event name = "smt error" nextstate = "">
-        coprintf ("smt error event");
         <action name = "handle error"/>
     </event>
 </state>

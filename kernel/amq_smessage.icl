@@ -95,7 +95,7 @@
     <footer>
     if (self->store_size) {
         self->spool_size = 0;
-        self->spool_file [0] = '\0';
+        self->spool_file [0] = '\\0';
     }
     </footer>
 </method>
@@ -173,7 +173,7 @@
 
         /*  No spool file, so clear spool file properties                    */
         self->spool_size = 0;
-        self->spool_file [0] = '\0';
+        self->spool_file [0] = '\\0';
 
         /*  No longer need recovery on the message, so clean-up spool table  */
         amq_db_spool_delete_fast (self->vhost->ddb, self->spoolid);

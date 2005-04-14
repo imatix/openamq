@@ -54,7 +54,6 @@ the db_dest table, and serialisation of messages.
     self->db      = db;
     self->db_dest = amq_db_dest_new ();
     ipr_shortstr_cpy (self->db_dest->key, key);
-//XXX    amq_db_dest_fetch_bykey (self->vhost->ddb, self->db_dest, AMQ_DB_FETCH_EQ);
     amq_db_dest_fetch_bykey (vhost->ddb, self->db_dest, AMQ_DB_FETCH_EQ);
 
     /*  If new queue, create it now                                          */

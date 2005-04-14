@@ -167,6 +167,8 @@ formats, and lookup and operate on field lists.
     amq_field_new_integer (list, "testfield1", 1234567890);
     amq_field_new_decimal (list, "testfield2", 199900, 2);
     amq_field_new_time    (list, "testfield3", time (NULL));
+    amq_field_new_string  (list, "testfield4", "S1");
+    amq_field_new_string  (list, "testfield5", "P12");
     amq_field_list_print  (list);
 
     string = amq_field_list_flatten (list);
