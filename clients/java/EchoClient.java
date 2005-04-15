@@ -243,7 +243,7 @@ class tfActionListener implements ActionListener {
                 message_head.bodySize = message_body.length;
                 // Set the fragment size
                 handle_send.fragmentSize = message_head.size() + message_head.bodySize;
-                if (handle_send.fragmentSize <= tune_reply.getInteger("FRAME_MAX")) {
+                if (handle_send.fragmentSize <= amq_framing.getFrameMax()) {
                     // Send message
                     amq_framing.sendFrame(handle_send);
                     amq_framing.sendMessageHead(message_head);

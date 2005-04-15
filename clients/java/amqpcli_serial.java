@@ -26,7 +26,7 @@ public class amqpcli_serial extends amqpcli_seriali
 AMQConnection.Tune
     client_tune;                        /* Tune parameters                   */
 AMQFieldTable
-    tune_reply;                         /* Tune parameters                   */
+    a_table;                            /* A field table                     */
 AMQConnection.Open
     client_open;                        /* Connection parameters             */
 AMQConnection.Close
@@ -645,8 +645,11 @@ public void face_connection_challenge ()
         AMQConnection.Response          /* our response                      */
             response = (AMQConnection.Response)amq_framing.constructFrame(AMQConnection.RESPONSE);
         // Send the response
-        response.mechanism = "none";
-        response.responses = null;
+        response.mechanism = "PLAIN";
+        a_table = new AMQFieldTable();
+        a_table.putString("LOGIN", amq_framing.string2Bytes("guest"));
+        a_table.putString("PASSWORD", amq_framing.string2Bytes("guest"));
+        response.responses = a_table.storeToBucket();
         amq_framing.sendFrame(response);
     }
     catch (ClassCastException e)
@@ -684,10 +687,10 @@ public void negotiate_connection_tune ()
         tune_server = (AMQConnection.Tune)frame;
         amq_framing.setTuneParameters(tune_server);
         // Send the reply
-        tune_reply = new AMQFieldTable();
-        tune_reply.putInteger("FRAME_MAX", Math.min(frame_max, amq_framing.getFrameMax()));
-        tune_reply.putInteger("HEARTBEAT", 0);
-        client_tune.options = tune_reply.storeToBucket();
+        a_table = new AMQFieldTable();
+        a_table.putInteger("FRAME_MAX", Math.min(frame_max, amq_framing.getFrameMax()));
+        a_table.putInteger("HEARTBEAT", 0);
+        client_tune.options = a_table.storeToBucket();
         amq_framing.sendFrame(client_tune);
         amq_framing.setTuneParameters(client_tune);
         if (verbose)
