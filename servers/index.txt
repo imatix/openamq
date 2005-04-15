@@ -273,11 +273,10 @@ vhosts/vhost:directory:
     Specifies the virtual host directory.
 
     <security
-        mechanism = "NONE" />
+        mechanism = "PLAIN" />
 
 security:mechanism:
-    Can be one of "NONE" (no authorisation), or "PLAIN" (plain login and
-    password).
+    Currently "PLAIN" is available (plain login and password).
 
     <users>
         <user name = "test-login" password = "test-password" />
