@@ -16,9 +16,8 @@ timelimit=300
 timeout() 
 {
     sleep $timelimit
-    echo "FAIL: TIMEOUT" >> $1 
-    echo 1 > FAIL
-    kill $2
+    kill -9 $2
+    echo 1 > TIMEOUT
 }
 
 
@@ -46,7 +45,8 @@ pass()
 runscript() 
 {
     env PATH="$PATH:$IBASE/bin" sh $1 >$2 2>&1
-    if test "$?" != "0"; then
+    status=$?
+    if test "$status" != "0"; then
         echo 1 > FAIL
     fi    
 }
@@ -56,26 +56,34 @@ runscript()
 runtest()
 {
     # Run a test
+    fail=0
+    rm -f TIMEOUT
+    rm -f FAIL
     OUTPUT="$1.out"
     runscript $1 $OUTPUT &
     # Handle timeout
     pid=$!
     timeout $OUTPUT $pid &
+    killer=$!
     wait $pid
-    kill $!
+    kill $killer
     if test -f FAIL; then
-        error=1
-        rm -f FAIL
+        fail=1
     fi
     # Check result
-    if test -f core; then
+    if test -f TIMEOUT; then
+        error=1
+        fail $1 $OUTPUT
+        echo "FAIL: TIMEOUT" >> $OUTPUT 
+        mv "$OUTPUT" "$1.timeout"
+    elif test -f core; then
         error=1
         fail $1 $OUTPUT
         echo "FAIL: CORE" >> $OUTPUT 
         mv core "$1.core"
         mv "$OUTPUT" "$1.fail"
     elif test ! -f "$1.ok"; then
-        if test "$error" = "0"; then
+        if test "$fail" = "0"; then
             pass $1 $OUTPUT
         else
             error=1
