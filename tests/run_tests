@@ -61,12 +61,13 @@ runtest()
     rm -f FAIL
     OUTPUT="$1.out"
     runscript $1 $OUTPUT &
-    # Handle timeout
     pid=$!
+    # Handle timeout
     timeout $OUTPUT $pid &
     killer=$!
     wait $pid
-    kill $killer
+    kill -9 $pid
+    kill -9 $killer
     if test -f FAIL; then
         fail=1
     fi
