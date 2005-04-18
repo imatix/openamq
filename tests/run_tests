@@ -5,7 +5,10 @@
 # See: readme.txt
 #
 
-# Verbose sxitch
+
+# Script version
+version="0.0a2"
+# Verbose switch
 verbose=0
 # Global error status
 error=0
@@ -20,12 +23,14 @@ timeout()
     echo 1 > AMQPTEST_TIMEOUT
 }
 
+
 # Kills processes the hard way ...
 killhard() 
 {
     disown $1
     kill -9 $1
 }
+
 
 # Try to do some clean-up
 cleanup()
@@ -43,12 +48,35 @@ cleanup()
     fi
 }
 
+
+# Print to console the head and tail from the generated output
+hint() 
+{
+    h=$(($2 / 2))
+    if test $h -gt 0; then
+        head -n $h $1 > AMQPTEST_HEAD
+        tail -n $h $1 > AMQPTEST_TAIL
+        if cmp -s AMQPTEST_HEAD AMQPTEST_TAIL; then
+            cat AMQPTEST_HEAD
+        else    
+            cat AMQPTEST_HEAD
+            echo "..."
+            cat AMQPTEST_TAIL
+        fi
+        rm -f AMQPTEST_HEAD
+        rm -f AMQPTEST_TAIL
+    else
+        cat $1    
+    fi
+}
+
+
 # Handle a failure
 fail() 
 {
     echo "[FAIL] $1"
     if test "$verbose" = "1"; then
-        tail $2
+        hint $2 $(wc -l $2)
     fi
 }
 
@@ -58,7 +86,7 @@ pass()
 {
     echo "[PASS] $1"
     if test "$verbose" = "1"; then
-        tail $2
+        hint $2 $(wc -l $2)
     fi
 }
 
@@ -66,6 +94,7 @@ pass()
 # Run a script
 runscript() 
 {
+    echo "[TEST] $a_test"
     env PATH="$PATH:$IBASE/bin" sh $1 >$2 2>&1
     status=$?
     if test "$status" != "0"; then
@@ -133,7 +162,6 @@ testset()
     for a_test in $(find -name 'test_*.sh' -maxdepth 1); do
         if test "$a_test" != "test_*.sh"; then 
             echo ""
-            echo "[TEST] $a_test"
             runtest "$a_test"
             rm -f AMQPTEST_TIMEOUT
             rm -f AMQPTEST_FAIL
@@ -152,7 +180,7 @@ trap "cleanup user" SIGINT
 
 # Check arguments
 if test "$1" = "-h"; then 
-    echo "OpenAMQP tester"
+    echo "OpenAMQP tester $version"
     echo ""
     echo "Copyright (c) 2004-2005 JPMorgan"
     echo "This is free software; see the source for copying conditions.  There is NO"
@@ -161,7 +189,7 @@ if test "$1" = "-h"; then
     echo "Provisional syntax: run_tests [options...]"
     echo "Options:"
     echo  "  -h               Show summary of command-line options"
-    echo  "  verbose|quiet    Print to console the last lines of output (default = quiet)"
+    echo  "  verbose|quiet    Print to console the head and tail from test output (default = quiet)"
     echo  "  timeout          The number of seconds to wait before a timeout failure triggers (default = 300)"
     echo ""      
     echo "The order of arguments IS important (provisionally). Switches and filenames" 
@@ -176,14 +204,19 @@ else
     fi
 fi    
 
+echo ""
+echo "OpenAMQ tester $version"
+echo ""
 
 # Start the daemon
+dpid=0
 if ps -A | grep openamqd; then
     echo "OpenAMQ daemon found running..."
 else 
     echo "Starting the OpenAMQ daemon..."
     cd ../servers/
     ./openamqd &
+    dpid=$!
     cd ../tests/
     if test "$?" != "0"; then
         echo "Warning, could not start the OpenAMQ daemon."
@@ -191,12 +224,11 @@ else
     sleep 5
 fi
 
-
 # Run all test sets
 for test_dir in tests_*; do
     if test "$test_dir" != "tests_*"; then 
         echo ""
-        echo ">> Entering $test_dir directory..."
+        echo "(>>) Entering $test_dir directory..."
         cd $test_dir
         if test -f $test_dir; then
             sh $test_dir
@@ -208,7 +240,7 @@ for test_dir in tests_*; do
                 if test "$test_subdir" != "tests_*"; then 
                     subs=1
                     echo ""
-                    echo "  >> Entering $test_subdir subdirectory..."
+                    echo "  (>>) Entering $test_subdir subdirectory..."
                     cd $test_subdir
                     if test -f $test_subdir; then
                         sh $test_subdir
@@ -216,24 +248,28 @@ for test_dir in tests_*; do
                     if test ! -f $test_subdir -o "$?" = "0"; then
                         testset $test_subdir
                     else    
-                       echo ""
-                       echo "  ** Skiping test subset $1" 
+                       echo "  (WW) Skiping test subset $test_subdir" 
                     fi
                     cd ..
                     echo ""
-                    echo "  << Leaving $test_subdir directory..."
+                    echo "  (<<) Leaving $test_subdir directory"
                 fi
             done
         else
-            echo ""
-            echo "** Skiping test set $1" 
+            echo "(WW) Skiping test set $test_dir" 
         fi
         cd ..
         echo ""
-        echo "<< Leaving $test_dir directory..."
+        echo "(<<) Leaving $test_dir directory"
     fi
 done
 
+# Stop the daemon
+if test "$dpid" != "0"; then
+    echo ""
+    echo "Stoping the OpenAMQ daemon..."
+    kill $dpid
+fi
 
 # Result
 exit $error
