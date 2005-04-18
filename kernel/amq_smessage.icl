@@ -26,6 +26,8 @@
         *vhost;                         /*  Parent vhost                     */
     amq_handle_t
         *handle;                        /*  Parent handle                    */
+    ipr_shortstr_t
+        dest_name;                      /*  Name of destination              */
     qbyte
         queue_id;                       /*  ID in database, if saved         */
     amq_queue_t
@@ -234,6 +236,7 @@ s_save_message_properties ($(selftype) *self, amq_queue_t *queue)
     queue->item_expiration  = self->expiration;
     queue->item_store_size  = self->store_size;
 
+    ipr_shortstr_cpy (queue->item_dest_name,  self->dest_name);
     ipr_shortstr_cpy (queue->item_mime_type, *self->mime_type? self->mime_type: self->handle->mime_type);
     ipr_shortstr_cpy (queue->item_encoding,  *self->encoding?  self->encoding:  self->handle->encoding);
     ipr_shortstr_cpy (queue->item_identifier, self->identifier);
@@ -257,6 +260,7 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
     self->expiration  = queue->item_expiration;
     self->store_size  = queue->item_store_size;
 
+    ipr_shortstr_cpy (self->dest_name,  queue->item_dest_name);
     ipr_shortstr_cpy (self->mime_type,  queue->item_mime_type);
     ipr_shortstr_cpy (self->encoding,   queue->item_encoding);
     ipr_shortstr_cpy (self->identifier, queue->item_identifier);
@@ -299,8 +303,8 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
     amq_handle_table_t
         *handles;
 
-    amq_queue_t
-        *queue;
+    amq_dest_t
+        *dest;
 
     amq_smessage_t
         *message,
@@ -343,27 +347,27 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
     handle  = amq_handle_new (handles, handle_open.handle_id, channel, &handle_open);
     assert (handle);
 
-    /*  Initialise queue                                                     */
-    queue = amq_queue_new (
-            "tempq-test-00",            /*  Mapped key/filename              */
+    /*  Initialise destination                                               */
+    dest = amq_dest_new (
+            vhost->queue_hash,          /*  Queues for virtual host          */
             vhost,                      /*  Parent virtual host              */
             AMQP_SERVICE_QUEUE,         /*  Service type                     */
-            TRUE,                       /*  Temporary service?               */
+            TRUE,                       /*  Temporary destination?           */
             "test",                     /*  External destination name        */
             1);                         /*  Owning client id, if any         */
-    assert (queue);
+    assert (dest);
 
     /*  Record test message                                                  */
     message = amq_smessage_new (handle);
     amq_smessage_testfill (message, TEST_SIZE);
 
     /*  Save to persistent storage                                           */
-    amq_smessage_save (message, queue, NULL);
+    amq_smessage_save (message, dest->queue, NULL);
     amq_smessage_destroy (&message);
 
     /*  Load from persistent storage                                         */
     message = amq_smessage_new (handle);
-    amq_smessage_load (message, queue);
+    amq_smessage_load (message, dest->queue);
 
     /*  Replay test message                                                  */
     diskmsg = amq_smessage_new (handle);
@@ -394,7 +398,7 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
     amq_smessage_purge (message);
 
     /*  Release resources                                                    */
-    amq_queue_destroy         (&queue);
+    amq_dest_destroy          (&dest);
     amq_bucket_destroy        (&bucket);
     amq_smessage_destroy      (&diskmsg);
     amq_smessage_destroy      (&message);

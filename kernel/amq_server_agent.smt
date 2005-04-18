@@ -993,7 +993,7 @@ static int
 
             /*  If a dispatch object was passed, acknowledge the message
                 immediately - this indicates a consumer that has asked for
-                'unreliable' delivery, i.e. auto-ack'ed by the server
+                'unreliable' delivery, i.e. messages are not acknowledged.
              */
             if (handle_notify_m->dispatch)
                 amq_dispatch_ack (handle_notify_m->dispatch);

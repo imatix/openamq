@@ -1,24 +1,40 @@
 if test -f $1.icl; then
-    for a in $1*.icl; do gsl -q $a; done
-    c    $1*.c | head -10
+    gsl $1.icl
+    for a in $1*.icl; do
+        gsl -q $a;
+    done
+    for a in $1*.c; do
+        c $a
+        test $? -ne 0 && exit
+        c -r libamq $a.o
+    done
     c -r libamq $1*.o
     for a in $1*_test.c; do c -l $a; done
     c -L amqpsrv
 
 elif test -f $1.smt; then
     gsl -q $1.smt
-    c    $1*.c | head -10
-    c -r libamq $1*.o
+    for a in $1*.c; do
+        c $a
+        test $? -ne 0 && exit
+        c -r libamq $a.o
+    done
     c -L amqpsrv
 
 elif test -f $1.xml; then
     gsl -q $1.xml
-    c    $1*.c | head -10
-    c -r libamq $1*.o
+    for a in $1*.c; do
+        c $a
+        test $? -ne 0 && exit
+        c -r libamq $a.o
+    done
     c -L amqpsrv
 
 elif test -f $1.c; then
-    c    $1*.c | head -10
-    c -r libamq $1*.o
+    for a in $1*.c; do
+        c $a
+        test $? -ne 0 && exit
+        c -r libamq $a.o
+    done
     c -L amqpsrv
 fi

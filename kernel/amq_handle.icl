@@ -25,20 +25,7 @@
 </public>
 
 <private>
-#include "amq_server_agent.h"
-
-/*  This structure holds one queued message reference
-    We collect these when the client uses HANDLE QUERY and we hold them
-    in an array for easy access via HANDLE BROWSE                            */
-
-typedef struct {
-    amq_queue_t
-        *queue;                         /*  Message queue                    */
-    amq_smessage_t
-        *message;                       /*  Message, if non-persistent       */
-    qbyte
-        item_id;                        /*  Stored item id, if persistent    */
-} AMQ_QUEUED_MESSAGE_REF;
+#include "amq_server_agent.h"           /*  Server agent methods             */
 </private>
 
 <context>
@@ -47,22 +34,16 @@ typedef struct {
         *thread;                        /*  Parent thread                    */
     amq_vhost_t
         *vhost;                         /*  Parent virtual host              */
-    amq_connection_t
-        *connection;                    /*  Parent connection                */
     amq_channel_t
         *channel;                       /*  Parent channel                   */
     qbyte
         client_id;                      /*  Parent client record             */
 
     /*  Object properties                                                    */
-    ipr_db_t
-        *db;                            /*  Database for virtual host        */
-    amq_db_t
-        *ddb;                           /*  Deprecated database handle       */
-    ipr_looseref_list_t
-        *consumers;                     /*  List of consumers per handle     */
-    amq_queue_t
-        *queue;                         /*  If refers to message queue       */
+    amq_consumer_by_handle_t
+        *consumers;                     /*  Consumers for this handle        */
+    amq_dest_t
+        *dest;                          /*  If specific destination          */
     amq_browser_array_t
         *browser_set;                   /*  Results of last HANDLE QUERY     */
     int
@@ -92,16 +73,11 @@ typedef struct {
     /*  De-normalise from parent object, for simplicity of use               */
     self->channel     = channel;
     self->client_id   = channel->client_id;
-    self->connection  = channel->connection;
     self->vhost       = channel->vhost;
     self->thread      = channel->thread;
-    self->db          = channel->db;
-    self->ddb         = channel->ddb;
-    assert (self->db);                  /*  Database must be open            */
-    assert (self->ddb);
 
     /*  Initialise other properties                                          */
-    self->consumers    = ipr_looseref_list_new ();
+    self->consumers    = amq_consumer_by_handle_new ();
     self->browser_set  = amq_browser_array_new ();
     self->state        = AMQ_HANDLE_OPEN;
     self->channel_id   = command->channel_id;
@@ -110,90 +86,73 @@ typedef struct {
     ipr_shortstr_cpy (self->mime_type, command->mime_type);
     ipr_shortstr_cpy (self->encoding,  command->encoding);
 
-    s_find_or_create_dest (&self, command->temporary);
+    self->dest = amq_dest_resolve (self, command->temporary);
+    //TODO: purge temporary dest if wanted
 </method>
 
 <method name = "destroy">
-    <local>
-    ipr_looseref_t
-        *consumer;
-    </local>
-
-    consumer = ipr_looseref_list_first (self->consumers);
-    while (consumer) {
-        amq_consumer_destroy ((amq_consumer_t **) &consumer->object);
-        consumer = ipr_looseref_list_next (self->consumers, consumer);
-    }
-    ipr_looseref_list_destroy (&self->consumers);
+    amq_consumer_by_handle_destroy (&self->consumers);
     amq_browser_array_destroy (&self->browser_set);
 </method>
 
 <method name = "send" template = "function" >
     <doc>
     Processes a HANDLE SEND command.  Sends the message to the specified
-    destination; transacted messages are held in memory until the client
-    commits or rolls-back the channel.
+    destination queue; transacted messages are held in memory until the
+    client commits or rolls-back the channel. The caller should destroy
+    the message after calling this method.
     </doc>
     <argument name = "command" type = "amq_handle_send_t *" />
     <argument name = "message" type = "amq_smessage_t *"    />
     <local>
-    amq_queue_t
-        *queue;
+    amq_dest_t
+        *dest;
     </local>
+    dest = amq_dest_search (
+        self->service_type == AMQP_SERVICE_QUEUE?
+            self->vhost->queue_hash: self->vhost->topic_hash,
+            self->dest_name, command->dest_name);
 
-    /*  Look for the queue using the destination name specified              */
-    queue = amq_queue_full_search (
-        self->vhost->queue_hash,
-        self->dest_name,
-        command->dest_name,
-        AMQP_SERVICE_QUEUE);
-
-    /*  TODO topic broadcasts  */
-
-    if (queue) {
-        amq_queue_accept (queue, self->channel, message, NULL);
-        if (queue->dirty)
-            amq_queue_dispatch (queue);
+    if (dest) {
+        /*  Stamp message with destination name and save to queue            */
+        ipr_shortstr_cpy   (message->dest_name, dest->key);
+        amq_queue_accept   (dest->queue, self->channel, message, NULL);
+        amq_vhost_dispatch (self->vhost);
     }
     else
         amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
 </method>
 
 <method name = "consume" template = "function" >
+    <doc>
+    Processes a HANDLE CONSUME command.  The consumer class handles the
+    actual queue and topic consumer implementation.  For queues, the command
+    must refer to an existing destination; for topics it may refer to a
+    topic name pattern.
+    </doc>
     <argument name = "command" type = "amq_handle_consume_t *" />
-    <local>
-    amq_consumer_t
-        *consumer;
-    </local>
-
-    consumer = amq_consumer_new (self, command);
-    if (consumer) {
-        ipr_looseref_new (self->consumers, consumer);
-        amq_queue_dispatch (consumer->queue);
-    }
+    amq_consumer_new (self, command);
 </method>
 
 <method name = "cancel" template = "function" >
     <argument name = "command" type = "amq_handle_cancel_t *" />
-    /*  ***TODO*** implement topics
-     */
+    //TODO: cancel subscription
     amq_global_set_error (AMQP_NOT_IMPLEMENTED, "Topics are not implemented");
 </method>
 
 <method name = "flow" template = "function" >
     <argument name = "command" type = "amq_handle_flow_t *" />
     <local>
-    ipr_looseref_t
+    amq_consumer_t
         *consumer;
     </local>
-
     self->paused = command->flow_pause;
-    /*  If switching on, dispatch all queues for handle                     */
+    /*  If switching on, dispatch all consumer queues for handle             */
     if (!self->paused) {
-        consumer = ipr_looseref_list_first (self->consumers);
+        consumer = amq_consumer_by_handle_first (self->consumers);
         while (consumer) {
-            amq_queue_dispatch (((amq_consumer_t *) consumer->object)->queue);
-            consumer = ipr_looseref_list_next (self->consumers, consumer);
+            amq_queue_dispatch (consumer->queue);
+            consumer = amq_consumer_by_handle_next (self->consumers, consumer);
         }
     }
 </method>
@@ -206,21 +165,17 @@ typedef struct {
 <method name = "query" template = "function" >
     <argument name = "command" type = "amq_handle_query_t *" />
     <local>
-    amq_queue_t
-        *queue;
+    amq_dest_t
+        *dest;
     </local>
 
     if (self->service_type == AMQP_SERVICE_QUEUE) {
         /*  Look for the queue using the destination name specified         */
-        queue = amq_queue_full_search (
-            self->vhost->queue_hash,
-            self->dest_name,
-            command->dest_name,
-            self->service_type);
-
-        if (queue) {
-            if (!queue->opt_protected) {
-                amq_queue_query (queue, self->browser_set);
+        dest = amq_dest_search (
+            self->vhost->queue_hash, self->dest_name, command->dest_name);
+        if (dest) {
+            if (!dest->opt_protected) {
+                amq_queue_query (dest->queue, self->browser_set);
                 amq_server_agent_handle_index (
                     self->thread,
                     (dbyte) self->key,
@@ -228,12 +183,12 @@ typedef struct {
                     amq_browser_array_strindex (self->browser_set, 8000));
             }
             else
-                amq_global_set_error (AMQP_ACCESS_REFUSED, "Browsing not allowed on queue");
+                amq_global_set_error (AMQP_ACCESS_REFUSED, "Browsing not allowed on destination");
         }
         else
-            amq_global_set_error (AMQP_NOT_FOUND, "No such queue defined");
+            amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
     }
-    else 
+    else
         amq_global_set_error (AMQP_COMMAND_INVALID, "Cannot query topics");
 </method>
 
@@ -250,66 +205,9 @@ typedef struct {
         ||  amq_queue_browse (browser->queue, self, browser))
             amq_global_set_error (AMQP_MESSAGE_NOT_FOUND, "Message does not exist");
     }
-    else 
+    else
         amq_global_set_error (AMQP_COMMAND_INVALID, "Cannot browse topics");
 </method>
-
-<private name = "header">
-static void
-s_find_or_create_dest ($(selftype) ** p_self, Bool temporary);
-</private>
-
-<private name = "footer">
-static void
-s_find_or_create_dest ($(selftype) **p_self, Bool temporary)
-{
-    $(selftype)
-        *self = *p_self;
-    static qbyte
-        temp_count = 0;                 /*  Temporary destination number     */
-    ipr_shortstr_t
-        internal_name;
-
-    /*  Find queue if named                                                  */
-    if (self->dest_name && *self->dest_name) {
-//        self->queue = amq_queue_search (
-//            self->vhost->queue_hash, self->dest_name, self->service_type);
-        self->queue = amq_queue_search (
-            self->service_type, self->vhost->queue_hash, self->dest_name);
-            
-        if (self->queue == NULL && !temporary) {
-            amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
-            $(selfname)_destroy (p_self);
-        }
-    }
-    else
-    if (temporary)                      /*  Assign name automatically        */
-        ipr_shortstr_fmt (self->dest_name, "temp-%09ld", ++temp_count);
-
-    /*  Create, if temporary and not already present                         */
-    if (temporary) {
-        if (self->queue) {
-            if (self->queue->client_id != self->client_id) {
-                amq_global_set_error (AMQP_NOT_FOUND, "Temporary queue already in use");
-                self->queue = NULL;
-                $(selfname)_destroy (p_self);
-            }
-        }
-        else {
-            amq_queue_map_name (internal_name, self->dest_name, self->service_type);
-            amq_queue_new (
-                internal_name,          /*  Mapped key/filename              */
-                self->vhost,            /*  Parent virtual host              */
-                self->service_type,     /*  Service type                     */
-                temporary,              /*  Temporary destination?           */
-                self->dest_name,        /*  External dest name               */
-                self->client_id);       /*  Owning client id                 */
-            amq_server_agent_handle_created (
-                self->thread, (dbyte) self->key, self->dest_name);
-        }
-    }
-}
-</private>
 
 <method name = "selftest">
     <local>

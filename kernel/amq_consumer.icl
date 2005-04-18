@@ -9,10 +9,16 @@
 <doc>
 The consumer class defines a single consumer for a queue or subscription.
 It manages the window (i.e. how many unacknowledged messages can be pending),
-and other properties of the consumer.
+and other properties of the consumer.  Consumers are attached to a handle
+and to a queue.
 </doc>
 
-<inherit class = "ipr_list_item" />
+<inherit class = "ipr_list_item" >
+    <option name = "prefix" value = "by_handle"/>
+</inherit>
+<inherit class = "ipr_list_item" >
+    <option name = "prefix" value = "by_queue"/>
+</inherit>
 
 <import class = "amq_global" />
 
@@ -23,26 +29,14 @@ and other properties of the consumer.
 
 <context>
     /*  References to parent objects                                         */
-    smt_thread_handle_t
-        *thread;                        /*  Parent thread                    */
-    amq_vhost_t
-        *vhost;                         /*  Parent virtual host              */
-    amq_connection_t
-        *connection;                    /*  Parent connection                */
-    amq_channel_t
-        *channel;                       /*  Parent channel                   */
     amq_handle_t
         *handle;                        /*  Parent handle                    */
+    amq_dest_t
+        *dest;                          /*  Parent destination               */
     amq_queue_t
-        *queue;                         /*  Parent message queue             */
-    qbyte
-        client_id;                      /*  Parent client record             */
+        *queue;                         /*  Parent queue                     */
 
     /*  Object properties                                                    */
-    ipr_db_t
-        *db;                            /*  Database for virtual host        */
-    amq_db_t
-        *ddb;                           /*  Deprecated database handle       */
     int
         prefetch;                       /*  Max prefetch size                */
     int
@@ -50,43 +44,29 @@ and other properties of the consumer.
     Bool
         no_local;                       /*  Don't deliver own msgs to self   */
     Bool
-        unreliable;                     /*  No ACKs are required             */
-
-    /*  For topic subscriptions                                              */
-    ipr_shortstr_t
-        identifier;                     /*  Name of persistent subscription  */
+        no_ack;                         /*  No ACKs are required             */
 </context>
 
 <method name = "new">
-    <argument name = "handle"  type = "amq_handle_t *" />
-    <argument name = "command" type = "amq_handle_consume_t *" />
+    <argument name = "handle"  type = "amq_handle_t *"        >Current handle</argument>
+    <argument name = "command" type = "amq_handle_consume_t *">Passed command</argument>
+    self->handle   = handle;
+    self->prefetch = command->prefetch? command->prefetch: 1;
+    self->window   = self->prefetch;
+    self->no_local = command->no_local;
+    self->no_ack   = command->no_ack;
 
-    /*  De-normalise from parent object, for simplicity of use               */
-    self->handle      = handle;
-    self->client_id   = handle->client_id;
-    self->channel     = handle->channel;
-    self->connection  = handle->connection;
-    self->vhost       = handle->vhost;
-    self->thread      = handle->thread;
-    self->db          = handle->db;
-    self->ddb         = handle->ddb;
+    if (handle->service_type == AMQP_SERVICE_QUEUE)
+        s_init_queue_consumer (self, command);
+    else
+        s_init_topic_consumer (self, command);
 
-    /*  Initialise other properties                                          */
-    self->prefetch   = command->prefetch? command->prefetch: 1;
-    self->window     = self->prefetch;
-    self->no_local   = command->no_local;
-    self->unreliable = command->unreliable;
-    ipr_shortstr_cpy (self->identifier, command->identifier);
-
-    /*  Attach to message queue                                              */
-    self->queue = amq_queue_consume (self, command->dest_name);
-    if (!self->queue)
-        $(selfname)_destroy (&self);
+    if (!self->dest)
+        self_destroy (&self);
 </method>
 
 <method name = "destroy">
-    if (self->queue)
-        amq_queue_cancel (self->queue, self);
+    amq_queue_detach (self->queue, self);
 </method>
 
 <method name = "window close" template = "function">
@@ -114,11 +94,81 @@ and other properties of the consumer.
 </method>
 
 <method name = "cancel" template = "function">
-    /*  TODO
-        - remove subscription criteria from matching list
-     */
-    amq_consumer_destroy (&self);
+    //TODO: remove subscription criteria from match list
+    self_destroy (&self);
 </method>
+
+<private name = "header">
+static void
+    s_init_queue_consumer ($(selftype) *self, amq_handle_consume_t *command);
+static void
+    s_init_topic_consumer ($(selftype) *self, amq_handle_consume_t *command);
+</private>
+
+<private>
+/*  For a queue service the consumer references a specific destination.
+    We look for this destination in the queue_hash, and if we find it
+    we initialise the consumer and then dispatch the destination queue.
+ */
+
+static void
+s_init_queue_consumer ($(selftype) *self, amq_handle_consume_t *command)
+{
+    /*  For queues the destination must exist                            */
+    self->dest = amq_dest_search (
+        self->handle->vhost->queue_hash, self->handle->dest_name, command->dest_name);
+
+    if (self->dest) {
+        //TODO: access controls on consumer
+        /*  We can consume on non-temporary queues
+            Or on temporary queues that we also own
+        */
+        if (self->dest->temporary == FALSE
+        ||  self->dest->client_id == self->handle->client_id) {
+            if (self->dest->opt_max_consumers == 0
+            ||  self->dest->opt_max_consumers > self->dest->queue->nbr_consumers) {
+                amq_queue_attach (self->dest->queue, self);
+                amq_consumer_by_handle_queue (self->handle->consumers, self);
+            }
+            else
+                amq_global_set_error (AMQP_NOT_ALLOWED, "Destination consumer limit reached");
+        }
+        else
+            amq_global_set_error (AMQP_ACCESS_REFUSED, "Not owner of temporary queue");
+    }
+    else
+        amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
+}
+
+/*  For a topic service the consumer has its own subscription destination.
+    (It does not reference a specific topic destination because the consumer
+    can take messages from multiple topics.)
+
+    For now we only implement temporary (unnamed) subscriptions.
+ */
+
+//TODO: implement named subscriptions.
+static void
+s_init_topic_consumer ($(selftype) *self, amq_handle_consume_t *command)
+{
+    ipr_shortstr_t
+        dest_name;
+    static int
+        subsc_nbr = 0;                  /*  Generate unique subscriptions    */
+
+    ipr_shortstr_fmt (dest_name, "subsc-%d", ++subsc_nbr);
+    self->dest = amq_dest_new (
+        self->handle->vhost->subsc_hash,
+        self->handle->vhost,
+        AMQP_SERVICE_SUBSC,
+        TRUE,                           /*  Temporary                        */
+        dest_name,
+        self->handle->client_id);       /*  Owner client                     */
+
+    amq_queue_attach (self->dest->queue, self);
+    amq_consumer_by_handle_queue (self->handle->consumers, self);
+}
+</private>
 
 <method name = "selftest">
 </method>

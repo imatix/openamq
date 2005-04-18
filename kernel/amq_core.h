@@ -26,7 +26,8 @@
 
 #define AMQP_SERVICE_QUEUE          1
 #define AMQP_SERVICE_TOPIC          2
-#define AMQP_SERVICE_PEER           3
+#define AMQP_SERVICE_PEER           3       /*  Will be deprecated  */
+#define AMQP_SERVICE_SUBSC          999     /*  Internal use only            */
 
 #define AMQP_REPLY_SUCCESS          200
 #define AMQP_MESSAGE_NOT_FOUND      310

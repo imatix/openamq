@@ -1,6 +1,11 @@
 <?xml?>
 <!-- frame definitions for AMQP/Fast -->
 
+<!-- Changes
+    0.9
+    HANDLE CONSUME:
+        'unreliable' renamed to 'no ack'
+  -->
 <frames
     name   = "amq_frames"
     prefix = "amq"
@@ -150,7 +155,7 @@
         <field type = "shortint" name = "confirm tag"  >Confirmation tag</field>
         <field type = "shortint" name = "prefetch"     >Max pending messages</field>
         <field type = "bit"      name = "no local"     >Don't deliver to self?</field>
-        <field type = "bit"      name = "unreliable"   >Unreliable mode</field>
+        <field type = "bit"      name = "no ack"       >Don't acknowledge messages</field>
         <field type = "shortstr" name = "dest name"    >Destination name</field>
         <field type = "shortstr" name = "identifier"   >Subscription identifier</field>
         <field type = "longstr"  name = "selector"     >Destination selector</field>

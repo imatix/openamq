@@ -3,9 +3,9 @@ gdl
     subtitle  = The AMQP/Fast Wire-Level Protocol
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/03/29
+    date      = 2005/04/16
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.8b2
+    version   = 0.9a0
 end gdl
 
 Cover
@@ -24,10 +24,13 @@ This document is ready for review.
 Recent Change History
 ---------------------
 
+0.9a0
+- in HANDLE CONSUME, 'unreliable' flag renamed to 'no ack' for clarity.
+
 0.8b2
 - Removed NONE security mechanism - all access requires a login, even if it
   is a well-known login.
-  
+
 0.8b1
 - Temporary queues are deleted when the connection, not channel, closes.
 
@@ -44,35 +47,6 @@ Recent Change History
 - CONNECTION TUNE command format revised to be more general.
 - CONNECTION TUNE from client to server can now be sent 0+ times.
 - introduced the concept of definition of field dictionaries.
-
-0.7d2
-- clarified order of HANDLE REPLY when mixed with other reply commands.
-
-0.7d1
-- added definition of NONE security mechanism.
-
-0.7d0
-- confirm-tag was missing from definition of HANDLE BROWSE.
-- added description of 'field table' structures.
-- added definition of PLAIN security mechanism.
-- clarified format of HANDLE INDEX.
-
-0.7c0
-- clarified format of frame header (improved description).
-
-0.7b0
-- removed confirmation conflating mechanism; too complex and not needed.
-- added some clarifications about confirmations.
-
-0.7a1
-- minor corrections to the text.
-
-0.7a
-- message identifier changed from long string to short string.
-- clarified use of HANDLE PREPARE command.
-- clarified use of restartable option in CHANNEL OPEN.
-- defined maximum size of frames prior to connection tuning.
-
 
 Copyright Notice
 ================
@@ -705,11 +679,11 @@ Frame Syntax
     streaming            = BIT
 
     handle-consume       = %d32 handle-id confirm-tag prefetch no-local
-                           unreliable dest-name identifier selector
+                           no-ack dest-name identifier selector
                            mime-type
     prefetch             = short-integer
     no-local             = BIT
-    unreliable           = BIT
+    no-ack               = BIT
     identifier           = short-string
     selector             = long-string
 
@@ -1896,6 +1870,7 @@ Temporary Queues and Topics
 ...........................
 
 Temporary queues (and temporary topics, which work exactly the same way)
+**PH: 'exactly the same way'?
 are designed to provide clients with a place for other processes to send
 replies.  Typically, a client will create a temporary queue and then ask
 other processes to "reply to" that queue.  The value of a temporary queue
@@ -2059,7 +2034,7 @@ sending the HANDLE CONSUME command:
         confirm-tag             short integer
         prefetch                short integer
         no-local                bit
-        unreliable              bit
+        no-ack                  bit
         dest-name               short string
         identifier              short string
         selector                long string
@@ -2077,11 +2052,10 @@ prefetch:
 no-local:
     If 1, the client will not receive messages sent on the same
     connection.  This field is used only for topic services.
-unreliable:
+no-ack:
     If 1, the client will not acknowledge messages received from
-    this destination. The client can specify 'unreliable' mode when
-    it can tolerate lost messages, but wants the highest possible
-    throughput.
+    this destination. The client can specify 'no ack' when it wants the
+    highest possible throughput and can tolerate lost messages.
 dest-name:
     The name of the destination to listen to. May be empty, see section
     on 'Destination Name Hierarchies'.
@@ -2097,6 +2071,7 @@ mime-type:
     The MIME type for the selector. Standard MIME types are defined
     later.
 
+[ph: creates subscription when used on topic]
 The HANDLE CONSUME command creates a subscription.  There are two types
 of subscription: temporary, and durable.  Durable subscriptions are
 allowed only for topic services.  Temporary subscriptions are allowed

@@ -28,10 +28,13 @@
     Defines a temporary or long-lived destination.
         <field name = "id"          domain = "recordid" >Record id</field>
         <field name = "active"      domain = "boolean"  >Currently active?</field>
-        <field name = "key"         domain = "shortstr" >Internal dest name</field>
-        <field name = "filename"    domain = "shortstr" >Physical file name</field>
-        <index name = "bykey">
-            <field name = "key" />
+        <field name = "type"        domain = "shortint" >Destination type</field>
+        <field name = "name"        domain = "shortstr" >Destination name</field>
+        <field name = "temporary"   domain = "boolean"  >Temporary?</field>
+        <field name = "client id"   domain = "id"       >Owned by this client</field>
+        <index name = "byname">
+            <field name = "type" />
+            <field name = "name" />
         </index>
     </table>
 

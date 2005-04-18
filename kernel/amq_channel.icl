@@ -122,7 +122,7 @@
         ipr_db_log_flush   (self->db);
         self->transact_count = 0;
 
-        /*  TODO: only if transaction finished successfully...               */
+        //TODO: only purge if transaction finished successfully
         amq_dispatch_list_purge (self->dispatch_list);
 
         /*  Now dispatch the resulting messages, if any                      */

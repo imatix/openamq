@@ -286,7 +286,8 @@
     }
     else
     if (self->fragment) {
-        /*  ***TODO*** rewrite code to create header from current message
+        //TODO: rewrite code to create header from current message
+        /*
             - replay header into temporary fragment
             - write from that fragment
             - write rest from original fragment after old header

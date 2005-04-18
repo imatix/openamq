@@ -543,3 +543,13 @@ sufficient space here for logs (especially if you use the tracing options
 when running the server).  You can delete these log files at any time,
 including when the server is running.
 
+Limitations
+***********
+
+Names
+=====
+
+Destination Names
+.................
+
+The maximum size of a destination name is 127 characters.

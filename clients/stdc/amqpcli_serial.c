@@ -28,6 +28,7 @@
     "  -r repeat        Repeat test N times (1)\n"                          \
     "  -t level         Set trace level (default = 0)\n"                    \
     "                   0=none, 1=low, 2=medium, 3=high\n"                  \
+    "  -T               Use topic service (default is queue)\n"             \
     "  -p               Use persistent messages (no)\n"                     \
     "  -q               Quiet mode: no messages\n"                          \
     "  -d               Delayed mode; sleeps after receiving a message\n"   \
@@ -62,6 +63,7 @@ main (int argc, char *argv [])
         in_handle = 0,
         out_handle = 0;
     int
+        service_type,                   /*  Service type                     */
         messages,
         batch_size,
         batch_left,
@@ -81,6 +83,7 @@ main (int argc, char *argv [])
     opt_batch    = "100";
     opt_msgsize  = "1024";
     opt_repeats  = "1";
+    service_type = AMQP_SERVICE_QUEUE;
 
     console_send     (NULL, TRUE);
     console_capture  ("amqpcli_serial.log", 'w');
@@ -135,6 +138,9 @@ main (int argc, char *argv [])
                 case 'd':
                     delay_mode = TRUE;
                     break;
+                case 'T':
+                    service_type = AMQP_SERVICE_TOPIC;
+                    break;
                 case 'v':
                     puts (CLIENT_NAME);
                     puts (COPYRIGHT);
@@ -188,8 +194,8 @@ main (int argc, char *argv [])
     ||  amq_sclient_connect (amq_client, opt_server, "/test"))
         goto failed;
 
-    in_handle  = amq_sclient_temporary (amq_client, "temp-client", batch_size, FALSE);
-    out_handle = amq_sclient_producer  (amq_client, "temp-client");
+    in_handle  = amq_sclient_temporary (amq_client, service_type, "temp.client", batch_size, FALSE);
+    out_handle = amq_sclient_producer  (amq_client, service_type, "temp.client");
 
     while (repeats) {
         /*  Pause consumption on temporary queue                             */

@@ -1,52 +1,45 @@
 <?xml?>
 <class
     name      = "amq_subsc"
-    comment   = "Topic subscription class"
+    comment   = "Subscription class"
     version   = "1.0"
     copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 <doc>
-This class holds the subscription for a consumer and can optionally
-be backed up onto a persistent database using ipr_db_queue serialisation.
+Defines a subscription class.  This is an interim implementation of
+topic pub/sub subscriptions, slow but simple.  Subscriptions are
+defined per vhost.
 </doc>
 
-<inherit class = "amq_mesgq"    />
-<inherit class = "ipr_db_queue" />
+<inherit class = "ipr_list_item" />
 
-<import class = "amq_db" />
+<import class = "amq_global" />
 
-<data>
-    <!-- reference to message in topic -->
-</data>
-
-<private>
-#include "amq_server_agent.h"
-#define TRACE_DISPATCH                  /*  Trace dispatching progress?      */
-#undef  TRACE_DISPATCH
-</private>
+<public name = "header">
+#include "amq_core.h"
+#include "amq_frames.h"
+</public>
 
 <context>
-    ipr_looseref_t
-        *subsc_ref;                     /*  Item in vhost subsc list         */
-    amq_consumer_list_t
-        *consumers;                     /*  Consumers for this subsc         */
-    qbyte
-        window;                         /*  Total window availability        */
-    qbyte
-        last_id;                        /*  Last dispatched message          */
-    Bool
-        dirty;                          /*  Subscription needs dispatching   */
+    amq_consumer_t
+        *consumer;                      /*  Consumer for this subscription   */
+    ipr_shortstr_t
+        dest_name;                      /*  Topic name for subscription      */
 </context>
 
 <method name = "new">
-    self->subsc_ref = ipr_looseref_new (vhost->subsc_refs, self);
+    <doc>
+    Creates a new subscription as specified.
+    </doc>
+    <argument name = "dest_name" type = "char *"    >Parent channel</argument>
+    <argument name = "consumer"  type = "amq_handle_open_t *">Handle open command</argument>
 </method>
 
 <method name = "destroy">
-    ipr_looseref_destroy (&self->subsc_ref);
 </method>
 
-<method name = "selftest" />
+<method name = "selftest">
+</method>
 
 </class>

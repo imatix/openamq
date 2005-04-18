@@ -29,18 +29,15 @@
     <argument name = "txn" type = "ipr_db_txn_t *">Current transaction</argument>
     <local>
     amq_smessage_t
-        *current,
         *message;
     </local>
     message = amq_smessage_list_first (self);
     while (message) {
-        /*  TODO
-            topics  */
+        //TODO: commit topics & publish
+        self_unlink (message);
         amq_queue_accept (message->queue, NULL, message, txn);
-        current = message;              /*  Double-check accept worked       */
         amq_smessage_destroy (&message);
         message = amq_smessage_list_first (self);
-        assert (message != current);
     }
 </method>
 

@@ -184,4 +184,23 @@ amq_topic_table.h
 amq_topic_table.icl
 amq_topic_table_test.c
 amq_topic_test.c
+amq_consumer_by_handle.c
+amq_consumer_by_handle.h
+amq_consumer_by_handle.icl
+amq_consumer_by_handle_test.c
+amq_consumer_by_queue.c
+amq_consumer_by_queue.h
+amq_consumer_by_queue.icl
+amq_consumer_by_queue_test.c
+amq_dest.c
+amq_dest.h
+amq_dest_table.c
+amq_dest_table.h
+amq_dest_table.icl
+amq_dest_table_test.c
+amq_dest_test.c
+amq_queue_list.c
+amq_queue_list.h
+amq_queue_list.icl
+amq_queue_list_test.c
 

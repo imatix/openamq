@@ -134,7 +134,7 @@ data type.  This class provides functions at a per-field level.
     self = self_new ();
 
     /*  Copy field name                                                      */
-    /*  TODO: validate that the field name is SQL-92 compliant               */
+    //TODO: validate that the field name is SQL-92 compliant
     string_size = *(byte *) input;
     input += 1;
     memcpy (self->name, input, string_size);

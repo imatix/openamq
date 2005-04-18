@@ -1,24 +1,24 @@
 <?xml?>
 <class
     name      = "amq_queue"
-    comment   = "Queue destination class"
+    comment   = "Message queue class"
     version   = "1.3"
     copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 <doc>
-This class defines an AMQP queue destination, which holds messages and
-distributes them to a set of consumers on a round-robin basis.  Each queue
-is recorded in the db_dest table, so can be referenced by its id in this
-table.  Queues are also optionally backed-up onto persistent storage if
-the queue has persistent messages and/or is configured as persistent.
-This class provides the methods needed to send messages to a queue and
-dispatch pending messages to consumers.
+This class defines a message queue.
+Queues hold messages received from publishers and messages being sent
+to subscribers.  This class implements both point-to-point queues and
+publish-and-subscribe topics.  A queue holds messages in memory and/or
+on disk using persistent storage.
 </doc>
 
-<inherit class = "amq_dest" />
+<inherit class = "ipr_db_queue"  />
 
 <data>
+    <!-- These are the properties of a persistent message -->
+    <field name = "dest name"   type = "shortstr">Destination name</field>
     <field name = "sender id"   type = "longint" >Original sender</field>
     <field name = "client id"   type = "longint" >Owned by this client</field>
     <field name = "header size" type = "longint" >Saved header size</field>
@@ -33,6 +33,14 @@ dispatch pending messages to consumers.
     <field name = "store size"  type = "longint" >Stored file size, or 0</field>
 </data>
 
+<import class = "amq_global" />
+<import class = "amq_db" />
+
+<public name = "header">
+#include "amq_core.h"
+#include "amq_frames.h"
+</public>
+
 <private>
 #include "amq_server_agent.h"
 #define TRACE_DISPATCH                  /*  Trace dispatching progress?      */
@@ -40,82 +48,118 @@ dispatch pending messages to consumers.
 </private>
 
 <context>
-    ipr_looseref_t
-        *queue_ref;                     /*  Item in vhost queue list         */
-    amq_consumer_list_t
+    /*  References to parent objects                                         */
+    amq_vhost_t
+        *vhost;                         /*  Parent virtual host              */
+    amq_dest_t
+        *dest;                          /*  Parent destination               */
+
+    /*  Object properties                                                    */
+    amq_consumer_by_queue_t
         *consumers;                     /*  Consumers for this queue         */
-    amq_smessage_list_t
+    size_t
+        nbr_consumers;                  /*  Number of consumers              */
+    ipr_looseref_list_t
         **message_list;                 /*  Pending non-persistent messages  */
     qbyte
         window;                         /*  Total window availability        */
     qbyte
         last_id;                        /*  Last dispatched message          */
     size_t
-        nbr_consumers;                  /*  Number of consumers              */
+        disk_queue_size;                /*  Size of disk queue               */
+    size_t
+        memory_queue_size;              /*  Size of memory queue             */
     Bool
         dirty;                          /*  Queue needs dispatching          */
 </context>
 
 <method name = "new">
-    <dismiss argument = "table" value = "vhost->queue_hash" />
-    self->consumers = amq_consumer_list_new ();
-    self->queue_ref = ipr_looseref_new (vhost->queue_refs, self);
-    s_create_priority_lists (self);
+    <doc>
+    Creates a new queue object.  Each queue has a list of consumers, and
+    various message lists.
+    </doc>
+    <argument name = "vhost" type = "amq_vhost_t *">Parent virtual host</argument>
+    <argument name = "dest"  type = "amq_dest_t *" >Parent destination</argument>
+    <dismiss argument = "db" value = "vhost->db" />
+        <local>
+    uint
+        level;
+    </local>
+    assert (dest);
+
+    self->vhost     = vhost;
+    self->dest      = dest;
+    self->consumers = amq_consumer_by_queue_new ();
+
+    /*  Create 1..n priority lists                                           */
+    self->message_list = icl_mem_alloc (
+        self->dest->opt_priority_levels * sizeof (ipr_looseref_t *));
+    for (level = 0; level < self->dest->opt_priority_levels; level++)
+        self->message_list [level] = ipr_looseref_list_new ();
+
+    /*  Tune physical backing file storage parameters                        */
+    self_tune (self,
+        self->dest->opt_record_size,
+        self->dest->opt_extent_size,
+        self->dest->opt_block_size);
+
+    /*  auto-purge option means delete all messages at restart               */
+    //TODO: purge temporary destinations only if requested
+    //TODO: queues should not get temporary flag from dests
+    if (self->dest->opt_auto_purge || self->dest->temporary)
+        self_purge (self);
+    else {
+        self_locate (self, filename);
+        if (file_exists (filename)) {
+            self->disk_queue_size = self_count (self);
+            coprintf ("I: %s has %d existing messages", filename, self->disk_queue_size);
+        }
+    }
 </method>
 
 <method name = "destroy">
-    s_destroy_priority_lists (self);
-    amq_consumer_list_destroy (&self->consumers);
-    ipr_looseref_destroy      (&self->queue_ref);
-</method>
-
-<method name = "consume" return = "queue">
-    <doc>
-    Lookup and return queue, if any, for specified name. Concats the handle
-    destination with the supplied suffix to give a full destination name.
-    </doc>
-    <argument name = "consumer" type = "amq_consumer_t *">Parent consumer</argument>
-    <argument name = "suffix"   type = "char *"          >Destination name suffix</argument>
-    <declare  name = "queue"    type = "$(selftype) *" default = "NULL"/>
-
-    /*  Look for queue                                                       */
-    queue = self_full_search (
-        consumer->vhost->queue_hash,
-        consumer->handle->dest_name,
-        suffix,
-        AMQP_SERVICE_QUEUE);
-
-   if (queue) {
-        /*  Allowed as consumer if shared queue or owner of tempq            */
-        if (queue->temporary == FALSE
-        ||  queue->client_id == consumer->client_id) {
-            if (queue->opt_max_consumers == 0
-            ||  queue->nbr_consumers < queue->opt_max_consumers) {
-                amq_consumer_list_queue (queue->consumers, consumer);
-                queue->nbr_consumers++;
-                queue->window += consumer->window;
-            }
-            else {
-                amq_global_set_error (AMQP_NOT_ALLOWED, "Destination consumer limit reached");
-                queue = NULL;
-            }
+    <local>
+    uint
+        level;
+    ipr_looseref_t
+        *message_ref;                   /*  Reference to message             */
+    </local>
+    /*  Destroy message lists                                                */
+    for (level = 0; level < self->dest->opt_priority_levels; level++) {
+        /*  Destroy the messages referred to by each list                    */
+        message_ref = ipr_looseref_list_first (self->message_list [level]);
+        while (message_ref) {
+            amq_smessage_destroy ((amq_smessage_t **) &message_ref->object);
+            message_ref = ipr_looseref_list_next (self->message_list [level], message_ref);
         }
-        else {
-            amq_global_set_error (AMQP_ACCESS_REFUSED, "Not owner of temporary queue");
-            queue = NULL;
-        }
+        ipr_looseref_list_destroy (&self->message_list [level]);
     }
-    else
-        amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
+    icl_mem_free (self->message_list);
+    amq_consumer_by_queue_destroy (&self->consumers);
 </method>
 
-<method name = "cancel" template = "function">
+<method name = "attach" template = "function">
     <doc>
-    Cancels a consumer on a specific queue, updating the queue as needed.
+    Attach consumer to queue and dispatch any outstanding messages on the
+    queue.
     </doc>
-    <argument name = "consumer" type = "amq_consumer_t *">Parent consumer</argument>
+    <argument name = "consumer" type = "amq_consumer_t *">Consumer</argument>
+    consumer->queue = self;
+    self->nbr_consumers++;
+    self->window += consumer->window;
+    amq_consumer_by_queue_queue (self->consumers, consumer);
+    amq_queue_dispatch (self);
+</method>
+
+<method name = "detach" template = "function">
+    <doc>
+    Detach consumer from queue.
+    </doc>
+    <argument name = "consumer" type = "amq_consumer_t *">Consumer</argument>
     self->nbr_consumers--;
     self->window -= consumer->window;
+    if (self->window < 0)
+        self->window = 0;
 </method>
 
 <method name = "accept" template = "function">
@@ -136,19 +180,19 @@ dispatch pending messages to consumers.
     </local>
 
     assert (message);
-    if (self->opt_persistent)
+    if (self->dest->opt_persistent)
         message->persistent = TRUE;     /*  Force message to be persistent   */
 
     /*  First check that posting to this queue is currently allowed          */
-    if (self->nbr_consumers < self->opt_min_consumers)
+    if (self->nbr_consumers < self->dest->opt_min_consumers)
         amq_global_set_error (AMQP_NOT_ALLOWED, "Destination needs consumers but has none");
     else
-    if (self->opt_max_messages > 0
-    &&  self->disk_queue_size + self->memory_queue_size > self->opt_max_messages)
+    if (self->dest->opt_max_messages > 0
+    &&  self->disk_queue_size + self->memory_queue_size > self->dest->opt_max_messages)
         amq_global_set_error (AMQP_NOT_ALLOWED, "Destination is filled to capacity");
     else
-    if (self->opt_max_message_size > 0
-    &&  message->body_size > self->opt_max_message_size)
+    if (self->dest->opt_max_message_size > 0
+    &&  message->body_size > self->dest->opt_max_message_size)
         amq_global_set_error (AMQP_NOT_ALLOWED, "Message exceeds limits for destination");
     else
 
@@ -176,8 +220,8 @@ dispatch pending messages to consumers.
                 force the message to disk unless it has the highest
                 priority
              */
-            if (self->opt_memory_queue_max > 0
-            &&  self->memory_queue_size >= self->opt_memory_queue_max
+            if (self->dest->opt_memory_queue_max > 0
+            &&  self->memory_queue_size >= self->dest->opt_memory_queue_max
             &&  message->priority &lt; AMQP_MAX_PRIORITIES)
                 message->persistent = TRUE;
 
@@ -201,17 +245,17 @@ dispatch pending messages to consumers.
         else {
             /*  Non-persistent messages are held per message queue           */
             self->memory_queue_size++;
-            amq_smessage_list_queue (self->message_list [level], message);
+            ipr_looseref_new (self->message_list [level], message);
             amq_smessage_link (message);
     #       ifdef TRACE_DISPATCH
             coprintf ("$(selfname) I: save non-persistent message to queue memory");
     #       endif
         }
+        /*  Mark queue as 'dirty' and push destination to front of list
+            for eventual dispatching
+         */
         self->dirty = TRUE;             /*  Message queue has new data       */
-
-        /*  We move all dirty queues to the start of the vhost list so
-            that dispatching can be rapid when the vhost has lots of them    */
-        ipr_looseref_list_push (self->vhost->queue_refs, self->queue_ref);
+        amq_dest_list_push (self->vhost->dest_list, self->dest);
     }
 </method>
 
@@ -225,7 +269,8 @@ dispatch pending messages to consumers.
     amq_consumer_t
         *consumer;                      /*  Next consumer to process         */
     ipr_looseref_t
-        *browser_ref;
+        *message_ref,                   /*  Message on list (reference)      */
+        *browser_ref;                   /*  Browsed message                  */
     int
         finished;
     uint
@@ -243,33 +288,35 @@ dispatch pending messages to consumers.
 #       endif
 
         /*  Start with highest-priority messages                             */
-        level = self->opt_priority_levels;
+        level = self->dest->opt_priority_levels;
         while (level) {
             level--;
-            message = amq_smessage_list_first (self->message_list [level]);
-            while (self->window && message) {
+            message_ref = ipr_looseref_list_first (self->message_list [level]);
+            while (self->window && message_ref) {
                 consumer = s_get_next_consumer (self);
                 if (consumer) {
                     /*  Keep message alive after it's been dispatched            */
-                    amq_smessage_link        (message);
-                    amq_smessage_list_unlink (message);
+                    message = (amq_smessage_t *) message_ref->object;
+                    ipr_looseref_destroy (&message_ref);
+                    amq_smessage_link (message);
                     self->memory_queue_size--;
                     self->item_id = 0;      /*  Non-persistent message           */
                     s_dispatch_message (consumer, message);
 
                     /*  Invalidate any browsers for this message                 */
+                    //TODO: browser per mesgref, not message
                     browser_ref = ipr_looseref_list_first (message->browsers);
                     while (browser_ref) {
                         amq_browser_destroy ((amq_browser_t **) &browser_ref->object);
                         browser_ref = ipr_looseref_list_next (message->browsers, browser_ref);
                     }
                     /*  Get next message (is now first on queue)                 */
-                    message = amq_smessage_list_first (self->message_list [level]);
+                    message_ref = ipr_looseref_list_first (self->message_list [level]);
 
                     /*  Work down to next priority level if needed               */
-                    while (message == NULL && level > 0) {
+                    while (message_ref == NULL && level > 0) {
                         level--;
-                        message = amq_smessage_list_first (self->message_list [level]);
+                        message_ref = ipr_looseref_list_first (self->message_list [level]);
                     }
                 }
                 else
@@ -302,7 +349,7 @@ dispatch pending messages to consumers.
                     message = amq_smessage_new (consumer->handle);
                     amq_smessage_load  (message, self);
                     s_dispatch_message (consumer, message);
-                    self->item_client_id = consumer->client_id;
+                    self->item_client_id = consumer->handle->client_id;
                     self_update (self, NULL);
                 }
                 else
@@ -325,11 +372,11 @@ dispatch pending messages to consumers.
     </doc>
     <argument name = "browser_set" type = "amq_browser_array_t *">Query set</argument>
     <local>
-    /*  TODO
-        implement maximum query size (0 = all)
-     */
+    //TODO: implement maximum query size (0 = all)
     amq_smessage_t
         *message;
+    ipr_looseref_t
+        *message_ref;                   /*  Message on list (reference)      */
     amq_browser_t
         *browser;
     qbyte
@@ -347,16 +394,17 @@ dispatch pending messages to consumers.
     amq_browser_array_reset (browser_set);
 
     /*  Process highest priority messages first                              */
-    level = self->opt_priority_levels;
+    level = self->dest->opt_priority_levels;
     while (level) {
         level--;
-        message = amq_smessage_list_first (self->message_list [level]);
-        while (message) {
+        message_ref = ipr_looseref_list_first (self->message_list [level]);
+        while (message_ref) {
             /*  Track browser for message so we can invalidate it if/when
                 we dispatch the message.                                     */
+            message = (amq_smessage_t *) message_ref->object;
             browser = amq_browser_new (browser_set, set_index++, self, 0, message);
             ipr_looseref_new (message->browsers, browser);
-            message = amq_smessage_list_next (self->message_list [level], message);
+            message_ref = ipr_looseref_list_next (self->message_list [level], message_ref);
         }
     }
     /*  Now process any messages on disk                                     */
@@ -377,9 +425,9 @@ dispatch pending messages to consumers.
 
 <method name = "browse" template = "function">
     <doc>
-    Sends a single message to the user, where the message is specified
-    by an amq_browse_t object.  If the message does not exist or has already
-    been dispatched to another user, sends the user a 310 error.
+    Sends a single message to the user, where the message is specified by an
+    amq_browse_t object.  If the message does not exist or has already been
+    dispatched to another user, sends the user a 310 error.
     </doc>
     <argument name = "handle"  type = "amq_handle_t *" >Parent handle</argument>
     <argument name = "browser" type = "amq_browser_t *">Browser reference</argument>
@@ -407,7 +455,7 @@ dispatch pending messages to consumers.
             (dbyte) handle->key,
             browser->index,
             FALSE, FALSE, FALSE,
-            self->key,
+            message->dest_name,
             message,
             NULL);
     else
@@ -428,42 +476,6 @@ static void
 </private>
 
 <private name = "footer">
-/*  Create 1 to AMQP_MAX_PRIORITIES priority lists for dispatching           */
-
-static void
-s_create_priority_lists ($(selftype) *self)
-{
-    uint
-        level;
-
-    /*  Create one to 10 priority queues                                     */
-    if (self->opt_priority_levels > AMQP_MAX_PRIORITIES)
-        self->opt_priority_levels = AMQP_MAX_PRIORITIES;
-    else
-    if (self->opt_priority_levels == 0)
-        self->opt_priority_levels = 1;
-
-    self->message_list = icl_mem_alloc (
-        self->opt_priority_levels * sizeof (amq_smessage_list_t *));
-
-    for (level = 0; level < self->opt_priority_levels; level++)
-        self->message_list [level] = amq_smessage_list_new ();
-}
-
-/*  Destroy the message queue's priority lists                               */
-
-static void
-s_destroy_priority_lists ($(selftype) *self)
-{
-    uint
-        level;
-
-    for (level = 0; level < self->opt_priority_levels; level++)
-        amq_smessage_list_destroy (&self->message_list [level]);
-
-    icl_mem_free (self->message_list);
-}
-
 /*  Calculate priority level for this message                                */
 
 static int
@@ -472,27 +484,31 @@ s_priority_level ($(selftype) *self, amq_smessage_t *message)
     uint
         level;
 
-    level = message->priority / (AMQP_MAX_PRIORITIES / self->opt_priority_levels);
-    if (level > self->opt_priority_levels - 1)
-        level = self->opt_priority_levels - 1;
+    level = message->priority / (AMQP_MAX_PRIORITIES / self->dest->opt_priority_levels);
+    if (level > self->dest->opt_priority_levels - 1)
+        level = self->dest->opt_priority_levels - 1;
 
     return (level);
 }
 
 
 /*  Return next consumer for queue, NULL if there are none                   */
+//TODO: maintain inactive consumers on a separate list
 
-static amq_consumer_t
-*s_get_next_consumer ($(selftype) *self)
+static amq_consumer_t *
+s_get_next_consumer ($(selftype) *self)
 {
     amq_consumer_t
-        *consumer;                      /*  Next consumer to process         */
+        *consumer;
 
-    consumer = amq_consumer_list_first (self->consumers);
+    /*  When a consumer is used we move it to the end of the list, so the
+        next consumer will be at start start of the list.
+     */
+    consumer = amq_consumer_by_queue_first (self->consumers);
     while (consumer) {
         if (consumer->window && !consumer->handle->paused)
             break;
-        consumer = amq_consumer_list_next (self->consumers, consumer);
+        consumer = amq_consumer_by_queue_next (self->consumers, consumer);
     }
     return (consumer);
 }
@@ -514,17 +530,16 @@ s_dispatch_message (
     coprintf ("$(selfname) I: ==> dispatch nbr=%d", dispatch->message_nbr);
 #   endif
     amq_server_agent_handle_notify (
-        consumer->thread,
+        consumer->handle->thread,
         (dbyte) consumer->handle->key,
         dispatch->message_nbr,
         FALSE, TRUE, FALSE,
-        consumer->queue->key,
+        message->dest_name,
         message,
-        consumer->unreliable? dispatch: NULL);
+        consumer->no_ack? dispatch: NULL);
 
     /*  Move consumer to end of list to round-robin it                       */
-    amq_consumer_list_unlink (consumer);
-    amq_consumer_list_queue  (consumer->queue->consumers, consumer);
+    amq_consumer_by_queue_queue (consumer->queue->consumers, consumer);
 }
 </private>
 

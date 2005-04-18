@@ -63,6 +63,7 @@ static int
 <method name = "handle open" >
     <argument name = "channel id"   type = "dbyte" >Channel number</argument>
     <argument name = "handle id"    type = "dbyte" >Handle number</argument>
+    <argument name = "service type" type = "int"   >AMQP service type</argument>
     <argument name = "temporary"    type = "Bool"  >Temporary access?</argument>
     <argument name = "dest name"    type = "char *">Destination name</argument>
 </method>
@@ -71,7 +72,7 @@ static int
     <argument name = "handle id"    type = "dbyte" >Handle id</argument>
     <argument name = "prefetch"     type = "dbyte" >Max pending messages</argument>
     <argument name = "no local"     type = "Bool"  >Don\'t deliver to self?</argument>
-    <argument name = "unreliable"   type = "Bool"  >Don\'t want to ack</argument>
+    <argument name = "no ack"       type = "Bool"  >Don\'t want to ack</argument>
     <argument name = "dest name"    type = "char *">Destination name</argument>
     <argument name = "identifier"   type = "char *">Subscription identifier</argument>
 </method>
@@ -699,7 +700,7 @@ static int
         tcb->frame = amq_frame_handle_open_new (
             handle_open_m->channel_id,
             handle_open_m->handle_id,
-            AMQP_SERVICE_QUEUE,         /*  Service type                     */
+            handle_open_m->service_type,
             0,                          /*  Confirmation tag                 */
             TRUE,                       /*  Request producer access          */
             TRUE,                       /*  Request consumer access          */
@@ -719,7 +720,7 @@ static int
             0,                          /*  Confirm tag                      */
             handle_consume_m->prefetch,
             handle_consume_m->no_local,
-            handle_consume_m->unreliable,
+            handle_consume_m->no_ack,
             handle_consume_m->dest_name,
             handle_consume_m->identifier,
             NULL,                       /*  Selector string                  */

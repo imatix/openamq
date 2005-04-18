@@ -1,3 +1,61 @@
+
+    - publish to topic
+        - save in topic queue
+        - publish to all matching subscrs
+            - in queue_accept?
+
+    - no_local means don't get own messages
+    -> slow but simple
+        - use message reference
+            - in memory: reference to message
+                - list of references - looseref?
+            - on disk: reference to message
+                - store queue id + message id
+    then...
+        improve matching to use bitmaps
+
+
+Generalising point-to-point (queue) and pub-sub (topic) models:
+
+    - write to queue
+        - optionally publish from queue to queue
+    - read from queue
+    - acknowledge from queue
+
+    - use single object, amq_queue for holding messages
+    - support named temporary queues
+    - use for both queue and topic services
+
+    - handle send:
+        queue:
+            save to hierarchy
+        topic:
+            save to hierarchy
+            publish to subscribed queues
+
+    - for pubsub we have to add two things
+        1. subscriptions (fanout)
+        2. references (zero copy)
+
+
+temporary queues
+    - explicit clear option
+        - by any consumer
+temporary subscriptions
+    - explicit clear option
+        - by consumer
+persistent subscriptions
+    - saved in db_dest
+    - consumer must also be saved
+    - and recompiled when server starts
+
+
+
+
+
+
+
+
 iCL issues
  - icl loops if class inherits self
     - inheritence unstable
@@ -8,7 +66,7 @@ iCL issues
  - enable trace on grammar, icl generation fails with errors
  - footer in child class comes _after_ footer in parent ?!
  - <data> is not inherited, should be
-
+    - amq_queue, amq_dest
 
 consume -> update subscription set
     implementation 1 - quick&dirty:

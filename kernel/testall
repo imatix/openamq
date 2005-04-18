@@ -11,7 +11,6 @@ test_one amq_vhost
 test_one amq_connection
 test_one amq_channel
 test_one amq_handle
-test_one amq_consumer
 test_one amq_message
 test_one amq_smessage
 test_one amq_bucket

@@ -27,14 +27,16 @@
         *ddb;                           /*  Deprecated database handle       */
     ipr_config_t
         *config;                        /*  Virtual host configuration       */
-    amq_queue_table_t
-        *queue_hash;                    /*  Queues for this vhost            */
-    amq_topic_table_t
-        *topic_hash;                    /*  Topics for this vhost            */
-    ipr_looseref_list_t
-        *queue_refs;                    /*  Queues, for dispatching          */
-    ipr_looseref_list_t
-        *subsc_refs;                    /*  Subscriptions, for dispatching   */
+    amq_dest_list_t
+        *dest_list;                     /*  Destinations for dispatching     */
+    amq_dest_table_t
+        *queue_hash;                    /*  Queues for vhost, hash table     */
+    amq_dest_table_t
+        *topic_hash;                    /*  Topics for vhost, hash table     */
+    amq_dest_table_t
+        *subsc_hash;                    /*  Subscriptions for vhost          */
+    amq_subsc_list_t
+        *subsc_list;                    /*  Subscriptions for vhost          */
     ipr_shortstr_t
         directory;                      /*  Location for virtual host        */
     ipr_shortstr_t
@@ -47,11 +49,11 @@
     <argument name = "directory" type = "char *"/>
     <argument name = "config"    type = "ipr_config_t *"/>
 
-    self->config = config;
-    self->queue_hash = amq_queue_table_new ();
-    self->topic_hash = amq_topic_table_new ();
-    self->queue_refs = ipr_looseref_list_new ();
-    self->subsc_refs = ipr_looseref_list_new ();
+    self->config     = config;
+    self->dest_list  = amq_dest_list_new ();
+    self->queue_hash = amq_dest_table_new ();
+    self->topic_hash = amq_dest_table_new ();
+    self->subsc_hash = amq_dest_table_new ();
     ipr_shortstr_cpy (self->directory, directory);
 
     coprintf ("I: configuring virtual host '%s'", self->key);
@@ -71,35 +73,32 @@
         coprintf ("$(selfname) E: database cursor still open, attempting recovery");
         self->db->db_cursor = NULL;
     }
-    amq_queue_table_destroy   (&self->queue_hash);
-    amq_topic_table_destroy   (&self->topic_hash);
-    ipr_looseref_list_destroy (&self->queue_refs);
-    ipr_looseref_list_destroy (&self->subsc_refs);
-    ipr_config_destroy        (&self->config);
-    ipr_db_destroy            (&self->db);
-    amq_db_destroy            (&self->ddb);
+    amq_dest_table_destroy (&self->queue_hash);
+    amq_dest_table_destroy (&self->topic_hash);
+    amq_dest_table_destroy (&self->subsc_hash);
+    amq_dest_list_destroy  (&self->dest_list);
+    ipr_config_destroy     (&self->config);
+    ipr_db_destroy         (&self->db);
+    amq_db_destroy         (&self->ddb);
 </method>
 
 <method name = "dispatch" template = "function">
     <doc>
-    Dispatches all queues that have received new messages, i.e. have the
-    'dirty' property.  All dirty queues are at the start of the vhost
-    queue list - see amq_queue_accept ().
+    Dispatches all destination queues that have received new messages,
+    i.e. have the 'dirty' property.  All dirty destination queues are at
+    the start of the vhost destination list - see amq_queue_accept ().
     </doc>
     <local>
-    ipr_looseref_t
-        *queue_ref;                      /*  Entry into queue list           */
-    amq_queue_t
-        *queue;                          /*  Message queue object            */
+    amq_dest_t
+        *dest;                           /*  Destination object              */
     </local>
 
     /*  Dispatch all dirty message queues, which come at start of list       */
-    queue_ref = ipr_looseref_list_first (self->queue_refs);
-    while (queue_ref) {
-        queue = (amq_queue_t *) queue_ref->object;
-        if (queue->dirty) {
-            amq_queue_dispatch (queue);
-            queue_ref = ipr_looseref_list_next (self->queue_refs, queue_ref);
+    dest = amq_dest_list_first (self->dest_list);
+    while (dest) {
+        if (dest->queue->dirty) {
+            amq_queue_dispatch (dest->queue);
+            dest = amq_dest_list_next (self->dest_list, dest);
         }
         else
             break;
@@ -159,8 +158,7 @@ s_configure_database ($(selftype) *self)
     /*  Connection to database                                               */
     self->db = ipr_db_new (database_dir);
 
-    /*  ***TODO*** (iPR) rewrite BDB database access to use new model
-    */
+    //TODO: rewrite BDB access using new model
     ipr_shortstr_fmt (database_dir, "%s/%s", self->directory, "ddata");
     make_dir (database_dir);
     self->ddb = amq_db_new (database_dir);
@@ -189,22 +187,24 @@ static void
 s_configure_queues ($(selftype) *self)
 {
     char
-        *external_name;
-    ipr_shortstr_t
-        internal_name;
+        *dest_name;
 
-    coprintf ("I: - configuring and checking persistent queues...");
+    coprintf ("I: - configuring and checking configured queues...");
     ipr_config_locate (self->config, "/config/queues/queue", NULL);
     while (self->config->located) {
-        external_name = ipr_config_attr (self->config, "name", "unnamed");
-        amq_queue_map_name (internal_name, external_name, AMQP_SERVICE_QUEUE);
-        amq_queue_new (
-            internal_name,              /*  Mapped key/filename              */
-            self,                       /*  Parent virtual host              */
-            AMQP_SERVICE_QUEUE,         /*  Message queue type               */
-            FALSE,                      /*  Temporary destination?           */
-            external_name,              /*  External dest name               */
-            0);                         /*  Owning client id, if any         */
+        dest_name = ipr_config_attr (self->config, "name", NULL);
+        if (dest_name) {
+            amq_dest_new (
+                self->queue_hash,           /*  Queue table                      */
+                self,                       /*  Parent virtual host              */
+                AMQP_SERVICE_QUEUE,         /*  Message queue type               */
+                FALSE,                      /*  Temporary destination?           */
+                dest_name,                  /*  Destination name                 */
+                0);                         /*  Owning client id, if any         */
+        }
+        else
+            coprintf ("W: error in queue definitions - 'name' not defined");
+
         ipr_config_next (self->config);
     }
 }
@@ -216,22 +216,24 @@ static void
 s_configure_topics ($(selftype) *self)
 {
     char
-        *external_name;
-    ipr_shortstr_t
-        internal_name;
+        *dest_name;
 
-    coprintf ("I: - configuring and checking topics...");
+    coprintf ("I: - configuring and checking configured topics...");
     ipr_config_locate (self->config, "/config/topics/topic", NULL);
     while (self->config->located) {
-        external_name = ipr_config_attr (self->config, "name", "unnamed");
-        amq_queue_map_name (internal_name, external_name, AMQP_SERVICE_TOPIC);
-        amq_queue_new (
-            internal_name,              /*  Mapped key/filename              */
-            self,                       /*  Parent virtual host              */
-            AMQP_SERVICE_TOPIC,         /*  Message queue type               */
-            FALSE,                      /*  Temporary destination?           */
-            external_name,              /*  External dest name               */
-            0);                         /*  Owning client id, if any         */
+        dest_name = ipr_config_attr (self->config, "name", NULL);
+        if (dest_name) {
+            amq_dest_new (
+                self->topic_hash,           /*  Topic table                      */
+                self,                       /*  Parent virtual host              */
+                AMQP_SERVICE_TOPIC,         /*  Message topic type               */
+                FALSE,                      /*  Temporary destination?           */
+                dest_name,                  /*  Destination name                 */
+                0);                         /*  Owning client id, if any         */
+        }
+        else
+            coprintf ("W: error in topic definitions - 'name' not defined");
+
         ipr_config_next (self->config);
     }
 }
@@ -242,10 +244,6 @@ s_configure_topics ($(selftype) *self)
 static void
 s_clean_destinations ($(selftype) *self)
 {
-    /*  TODO
-        clean subscriptions?
-     */
-
     amq_db_dest_t
         *dest;                          /*  Destination record               */
 
@@ -253,8 +251,8 @@ s_clean_destinations ($(selftype) *self)
     dest = amq_db_dest_new ();
     while (amq_db_dest_fetch (self->ddb, dest, AMQ_DB_FETCH_GT) == 0) {
         if (!dest->active) {
+            //TODO: delete persistent file associated with destination
             amq_db_dest_delete (self->ddb, dest);
-            file_delete (dest->filename);
         }
     }
     amq_db_dest_destroy (&dest);

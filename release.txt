@@ -1,3 +1,13 @@
+0.9a0 - 2005/04/16
+
+Changes to server kernel:
+
+  - started implementation of topics.
+
+Changes to client kernel:
+
+  - kernel client layer now supports topic destinations.
+
 0.8b4 - 2005/04/14
 
 Changes to server kernel:

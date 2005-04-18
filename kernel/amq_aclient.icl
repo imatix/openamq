@@ -166,6 +166,7 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
 <method name = "handle open" return = "handle_id" >
     <argument name = "self"       type = "$(selftype) *"/>
     <argument name = "channel id" type = "dbyte" >Channel id</argument>
+    <argument name = "type"       type = "int"   >AMQP service type</argument>
     <argument name = "temporary"  type = "Bool"  >Temporary access?</argument>
     <argument name = "dest name"  type = "char *">Destination name</argument>
 
@@ -173,7 +174,7 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
 
     handle_id = ++self->top_handle;
     amq_aclient_agent_handle_open (
-        self->thread_handle, channel_id, handle_id, temporary, dest_name);
+        self->thread_handle, channel_id, handle_id, type, temporary, dest_name);
 </method>
 
 <method name = "handle consume" template = "function" >

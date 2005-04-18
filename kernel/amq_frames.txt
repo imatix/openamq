@@ -92,10 +92,10 @@
     recovery             = BIT
     streaming            = BIT
 
-    handle-consume       = %d32 handle-id confirm-tag prefetch no-local unreliable dest-name identifier selector mime-type
+    handle-consume       = %d32 handle-id confirm-tag prefetch no-local no-ack dest-name identifier selector mime-type
     prefetch             = short-integer
     no-local             = BIT
-    unreliable           = BIT
+    no-ack               = BIT
     identifier           = short-string
     selector             = long-string
 

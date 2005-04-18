@@ -47,9 +47,9 @@
     /*  De-normalise from parent object, for simplicity of use               */
     self->consumer    = consumer;
     self->handle      = consumer->handle;
-    self->channel     = consumer->channel;
+    self->channel     = consumer->handle->channel;
     self->queue       = consumer->queue;
-    self->db          = consumer->db;
+    self->db          = consumer->handle->channel->db;
 
     /*  Initialise other properties                                          */
     self->message     = message;        /*  We now 0wn this message          */
