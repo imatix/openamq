@@ -16,10 +16,32 @@ timelimit=300
 timeout() 
 {
     sleep $timelimit
-    kill -9 $2
-    echo 1 > TIMEOUT
+    killhard $2
+    echo 1 > AMQPTEST_TIMEOUT
 }
 
+# Kills processes the hard way ...
+killhard() 
+{
+    disown $1
+    kill -9 $1
+}
+
+# Try to do some clean-up
+cleanup()
+{
+    if test -f AMQPTEST_PIDS; then
+        kill -9 $(cat AMQPTEST_PIDS)
+    fi
+    rm -f AMQPTEST_TIMEOUT
+    rm -f AMQPTEST_FAIL
+    rm -f AMQPTEST_PIDS
+    if test "$1" = "user"; then
+        echo ""
+        echo "Tests interrupted by user."
+        exit 0
+    fi
+}
 
 # Handle a failure
 fail() 
@@ -47,7 +69,7 @@ runscript()
     env PATH="$PATH:$IBASE/bin" sh $1 >$2 2>&1
     status=$?
     if test "$status" != "0"; then
-        echo 1 > FAIL
+        echo 1 > AMQPTEST_FAIL
     fi    
 }
 
@@ -57,22 +79,21 @@ runtest()
 {
     # Run a test
     fail=0
-    rm -f TIMEOUT
-    rm -f FAIL
     OUTPUT="$1.out"
     runscript $1 $OUTPUT &
     pid=$!
     # Handle timeout
     timeout $OUTPUT $pid &
     killer=$!
+    echo "$pid" >> AMQPTEST_PIDS
+    echo "$killer" >> AMQPTEST_PIDS
     wait $pid
-    kill -9 $pid
-    kill -9 $killer
-    if test -f FAIL; then
+    killhard $killer
+    if test -f AMQPTEST_FAIL; then
         fail=1
     fi
     # Check result
-    if test -f TIMEOUT; then
+    if test -f AMQPTEST_TIMEOUT; then
         error=1
         fail $1 $OUTPUT
         echo "FAIL: TIMEOUT" >> $OUTPUT 
@@ -106,12 +127,17 @@ runtest()
 # Run a test set
 testset()
 {
+    rm -f AMQPTEST_TIMEOUT
+    rm -f AMQPTEST_FAIL
+    rm -f AMQPTEST_PIDS
     for a_test in $(find -name 'test_*.sh' -maxdepth 1); do
         if test "$a_test" != "test_*.sh"; then 
-            rm -f FAIL
             echo ""
             echo "[TEST] $a_test"
             runtest "$a_test"
+            rm -f AMQPTEST_TIMEOUT
+            rm -f AMQPTEST_FAIL
+            rm -f AMQPTEST_PIDS
         else
             if test "$2" != "1"; then
                 echo "!! Nothing to do for $1" 
@@ -120,6 +146,9 @@ testset()
     done
 }
 
+
+# Trap Control-c
+trap "cleanup user" SIGINT
 
 # Check arguments
 if test "$1" = "-h"; then 
