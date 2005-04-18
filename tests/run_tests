@@ -53,6 +53,9 @@ cleanup()
 hint() 
 {
     h=$(($2 / 2))
+    if test $h -gt 5; then
+        h=5
+    fi
     if test $h -gt 0; then
         head -n $h $1 > AMQPTEST_HEAD
         tail -n $h $1 > AMQPTEST_TAIL
