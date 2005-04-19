@@ -31,7 +31,7 @@ core file is renamed to <test-script-name>.core.
 run_tests
 ---------
 Will run the test classes currently present (subdirectories) and active. Please 
-refer to the readme in this directory for particular test requirements.
+refer to the readme in each directory for particular test requirements.
 
 tests_api
 ---------
