@@ -73,32 +73,5 @@
         </execute>
     </clean>
 </actions>
-
-<actions target = "win32">
-    <generate>
-        <execute>
-        gsl -script:amq_java amq_frames.xml
-        lr amqpcli_serial.java.l
-        </execute>
-    </generate>
-    <build>
-        <execute>
-        <!-- Compile Java API .class files -->
-        javac com/imatix/openamq/AMQFramingFactory.java
-        jar -c0f OpenAMQJava.jar com/imatix/openamq/*.class com/imatix/openamq/frames/*.class
-        <!-- Compile test clients .class files -->
-        javac amqpcli_serial.java
-        javac EchoClient.java
-        </execute>
-    </build>
-    <clean>
-        <execute>
-        <!-- Erase .class files, windows -->
-        del com/imatix/openamq/*.class
-        del com/imatix/openamq/frames/*.class
-        del *.class
-        </execute>
-    </clean>
-</actions>
 </pdl>
 

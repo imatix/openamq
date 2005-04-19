@@ -544,7 +544,6 @@ public void do_tests ()
             handle_consume.confirmTag = 0;
             handle_consume.prefetch = batch_size;
             handle_consume.noLocal = false;
-            handle_consume.unreliable = false;
             handle_consume.destName = "";
             handle_consume.identifier = "";
             handle_consume.selector = null;
