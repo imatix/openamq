@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<pdl
+    name      = "GTW API"
+    acronym   = "GTW_API"
+    version   = "0.8a1"
+    copyright = "Copyright (c) 1991-2005 iMatix Corporation"
+    workflow  = "standard.pwl"
+    library   = "libgtw">
+
+<inherit filename = "classes.pdl"     />
+<inherit filename = "icl_classes.pdl" />
+
+<file name = "gtw_ll.icl"    class = "icl private class" />
+<file name = "gtw_hash.icl"  class = "icl private class" />
+<file name = "gtw.c"         class = "library module"    />
+
+<!-- Deliverables -->
+<file name = "libgtw"        class = "public library"/>
+<file name = "gtw.h"         class = "public header"/>
+
+</pdl>
