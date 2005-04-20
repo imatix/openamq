@@ -27,6 +27,7 @@
 #include "amq_handle.h"
 #include "amq_message.h"
 #include "amq_smessage.h"
+#include "amq_mesgref.h"
 #include "amq_queue.h"
 #include "amq_dest.h"
 #include "amq_user.h"

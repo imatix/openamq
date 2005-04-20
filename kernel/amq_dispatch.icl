@@ -56,6 +56,8 @@
     self->queue_id    = self->queue->item_id;
     self->message_nbr = ++(self->channel->message_nbr);
 
+    /*  Keep message alive after it's been dispatched                        */
+    amq_smessage_link (message);
     amq_dispatch_list_queue (self->channel->dispatch_list, self);
     amq_consumer_window_close (self->consumer);
 </method>

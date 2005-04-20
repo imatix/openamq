@@ -7,7 +7,7 @@
     script    = "icl_gen"
     >
 <doc>
-    This class implements hash table container for amq_vhost
+Container class for the virtual hosts defined for the server.
 </doc>
 
 <inherit class = "ipr_hash_table" />

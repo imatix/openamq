@@ -59,7 +59,7 @@ on disk using persistent storage.
         *consumers;                     /*  Consumers for this queue         */
     size_t
         nbr_consumers;                  /*  Number of consumers              */
-    ipr_looseref_list_t
+    amq_mesgref_list_t
         **message_list;                 /*  Pending non-persistent messages  */
     qbyte
         window;                         /*  Total window availability        */
@@ -93,9 +93,9 @@ on disk using persistent storage.
 
     /*  Create 1..n priority lists                                           */
     self->message_list = icl_mem_alloc (
-        self->dest->opt_priority_levels * sizeof (ipr_looseref_t *));
+        self->dest->opt_priority_levels * sizeof (amq_mesgref_t *));
     for (level = 0; level < self->dest->opt_priority_levels; level++)
-        self->message_list [level] = ipr_looseref_list_new ();
+        self->message_list [level] = amq_mesgref_list_new ();
 
     /*  Tune physical backing file storage parameters                        */
     self_tune (self,
@@ -121,18 +121,18 @@ on disk using persistent storage.
     <local>
     uint
         level;
-    ipr_looseref_t
+    amq_mesgref_t
         *message_ref;                   /*  Reference to message             */
     </local>
     /*  Destroy message lists                                                */
     for (level = 0; level < self->dest->opt_priority_levels; level++) {
         /*  Destroy the messages referred to by each list                    */
-        message_ref = ipr_looseref_list_first (self->message_list [level]);
+        message_ref = amq_mesgref_list_first (self->message_list [level]);
         while (message_ref) {
-            amq_smessage_destroy ((amq_smessage_t **) &message_ref->object);
-            message_ref = ipr_looseref_list_next (self->message_list [level], message_ref);
+            amq_smessage_destroy (&message_ref->message);
+            message_ref = amq_mesgref_list_next (self->message_list [level], message_ref);
         }
-        ipr_looseref_list_destroy (&self->message_list [level]);
+        amq_mesgref_list_destroy (&self->message_list [level]);
     }
     icl_mem_free (self->message_list);
     amq_consumer_by_queue_destroy (&self->consumers);
@@ -245,7 +245,7 @@ on disk using persistent storage.
         else {
             /*  Non-persistent messages are held per message queue           */
             self->memory_queue_size++;
-            ipr_looseref_new (self->message_list [level], message);
+            amq_mesgref_new (self->message_list [level], message);
             amq_smessage_link (message);
     #       ifdef TRACE_DISPATCH
             coprintf ("$(selfname) I: save non-persistent message to queue memory");
@@ -268,9 +268,8 @@ on disk using persistent storage.
         *message;
     amq_consumer_t
         *consumer;                      /*  Next consumer to process         */
-    ipr_looseref_t
-        *message_ref,                   /*  Message on list (reference)      */
-        *browser_ref;                   /*  Browsed message                  */
+    amq_mesgref_t
+        *message_ref;                   /*  Message on list (reference)      */
     int
         finished;
     uint
@@ -291,32 +290,22 @@ on disk using persistent storage.
         level = self->dest->opt_priority_levels;
         while (level) {
             level--;
-            message_ref = ipr_looseref_list_first (self->message_list [level]);
+            message_ref = amq_mesgref_list_first (self->message_list [level]);
             while (self->window && message_ref) {
                 consumer = s_get_next_consumer (self);
                 if (consumer) {
-                    /*  Keep message alive after it's been dispatched            */
-                    message = (amq_smessage_t *) message_ref->object;
-                    ipr_looseref_destroy (&message_ref);
-                    amq_smessage_link (message);
+                    s_dispatch_message (consumer, message_ref->message);
+                    amq_mesgref_destroy (&message_ref);
                     self->memory_queue_size--;
                     self->item_id = 0;      /*  Non-persistent message           */
-                    s_dispatch_message (consumer, message);
 
-                    /*  Invalidate any browsers for this message                 */
-                    //TODO: browser per mesgref, not message
-                    browser_ref = ipr_looseref_list_first (message->browsers);
-                    while (browser_ref) {
-                        amq_browser_destroy ((amq_browser_t **) &browser_ref->object);
-                        browser_ref = ipr_looseref_list_next (message->browsers, browser_ref);
-                    }
                     /*  Get next message (is now first on queue)                 */
-                    message_ref = ipr_looseref_list_first (self->message_list [level]);
+                    message_ref = amq_mesgref_list_first (self->message_list [level]);
 
                     /*  Work down to next priority level if needed               */
                     while (message_ref == NULL && level > 0) {
                         level--;
-                        message_ref = ipr_looseref_list_first (self->message_list [level]);
+                        message_ref = amq_mesgref_list_first (self->message_list [level]);
                     }
                 }
                 else
@@ -347,8 +336,9 @@ on disk using persistent storage.
                 consumer = s_get_next_consumer (self);
                 if (consumer) {
                     message = amq_smessage_new (consumer->handle);
-                    amq_smessage_load  (message, self);
-                    s_dispatch_message (consumer, message);
+                    amq_smessage_load    (message, self);
+                    s_dispatch_message   (consumer, message);
+                    amq_smessage_destroy (&message);
                     self->item_client_id = consumer->handle->client_id;
                     self_update (self, NULL);
                 }
@@ -373,14 +363,12 @@ on disk using persistent storage.
     <argument name = "browser_set" type = "amq_browser_array_t *">Query set</argument>
     <local>
     //TODO: implement maximum query size (0 = all)
-    amq_smessage_t
-        *message;
-    ipr_looseref_t
+    amq_mesgref_t
         *message_ref;                   /*  Message on list (reference)      */
-    amq_browser_t
-        *browser;
     qbyte
         set_index = 0;                  /*  Index into query set             */
+    amq_browser_t
+        *browser;                       /*  Browser for message              */
     int
         finished;
     uint
@@ -397,14 +385,14 @@ on disk using persistent storage.
     level = self->dest->opt_priority_levels;
     while (level) {
         level--;
-        message_ref = ipr_looseref_list_first (self->message_list [level]);
+        message_ref = amq_mesgref_list_first (self->message_list [level]);
         while (message_ref) {
             /*  Track browser for message so we can invalidate it if/when
                 we dispatch the message.                                     */
-            message = (amq_smessage_t *) message_ref->object;
-            browser = amq_browser_new (browser_set, set_index++, self, 0, message);
-            ipr_looseref_new (message->browsers, browser);
-            message_ref = ipr_looseref_list_next (self->message_list [level], message_ref);
+            browser = amq_browser_new (
+                browser_set, set_index++, self, 0, message_ref->message);
+            ipr_looseref_new (message_ref->browsers, browser);
+            message_ref = amq_mesgref_list_next (self->message_list [level], message_ref);
         }
     }
     /*  Now process any messages on disk                                     */

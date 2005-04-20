@@ -34,8 +34,6 @@
         *queue;                         /*  Message queue                    */
     qbyte
         spoolid;                        /*  Spooler record, if any           */
-    ipr_looseref_list_t
-        *browsers;                      /*  List of browsers per message     */
     ipr_shortstr_t
         store_file;                     /*  Store filename if any            */
     size_t
@@ -46,7 +44,6 @@
     <argument name = "handle" type = "amq_handle_t *" />
     self->handle   = handle;
     self->vhost    = handle->vhost;
-    self->browsers = ipr_looseref_list_new ();
 </method>
 
 <method name = "destroy">
@@ -55,7 +52,6 @@
         amq_db_spool_delete_fast (self->vhost->ddb, self->spoolid);
         self->spoolid = 0;
     }
-    ipr_looseref_list_destroy (&self->browsers);
 </method>
 
 <method name = "spooldir" return = "directory">

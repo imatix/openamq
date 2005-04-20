@@ -6,6 +6,12 @@
     copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
+<doc>
+Defines a virtual host.  Virtual hosts are held in a hash table and accessed
+by name.  Each virtual host has its own working directory for persistent
+data, and holds the queues, topics, and subscriptions defined for that
+virtual host.    
+</doc>
 
 <inherit class = "ipr_hash_str" />
 
@@ -27,6 +33,12 @@
         *ddb;                           /*  Deprecated database handle       */
     ipr_config_t
         *config;                        /*  Virtual host configuration       */
+    ipr_shortstr_t
+        directory;                      /*  Location for virtual host        */
+    ipr_shortstr_t
+        spooldir;                       /*  Message spool directory          */
+    ipr_shortstr_t
+        storedir;                       /*  Message store directory          */
     amq_dest_list_t
         *dest_list;                     /*  Destinations for dispatching     */
     amq_dest_table_t
@@ -35,14 +47,9 @@
         *topic_hash;                    /*  Topics for vhost, hash table     */
     amq_dest_table_t
         *subsc_hash;                    /*  Subscriptions for vhost          */
+    //TODO: these will be moved to a hashed bit array for matching
     amq_subsc_list_t
         *subsc_list;                    /*  Subscriptions for vhost          */
-    ipr_shortstr_t
-        directory;                      /*  Location for virtual host        */
-    ipr_shortstr_t
-        spooldir;                       /*  Message spool directory          */
-    ipr_shortstr_t
-        storedir;                       /*  Message store directory          */
 </context>
 
 <method name = "new">

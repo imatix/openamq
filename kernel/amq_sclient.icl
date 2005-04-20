@@ -122,12 +122,12 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 </method>
 
 <method name = "producer" template = "function">
-    <argument name = "type"        type = "int"   >AMQP service type</argument>
-    <argument name = "destination" type = "char *">Destination to work with</argument>
+    <argument name = "service type" type = "int"   >AMQP service type</argument>
+    <argument name = "destination"  type = "char *">Destination to work with</argument>
     assert (destination && *destination);
 
     amq_sclient_agent_handle_open (
-        self->thread_handle, CHANNEL_ID, ++self->cur_handle, type, FALSE, destination, &rc);
+        self->thread_handle, CHANNEL_ID, ++self->cur_handle, (dbyte) service_type, FALSE, destination, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
 
     if (rc == AMQ_OK)
@@ -137,14 +137,14 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 </method>
 
 <method name = "consumer" template = "function">
-    <argument name = "type"        type = "int"   >AMQP service type</argument>
-    <argument name = "destination" type = "char *">Destination to work with</argument>
-    <argument name = "prefetch"    type = "int"   >Prefetch window size</argument>
-    <argument name = "noack"       type = "Bool"  >No acknowledgements required</argument>
+    <argument name = "service type" type = "int"   >AMQP service type</argument>
+    <argument name = "destination"  type = "char *">Destination to work with</argument>
+    <argument name = "prefetch"     type = "int"   >Prefetch window size</argument>
+    <argument name = "noack"        type = "Bool"  >No acknowledgements required</argument>
     assert (destination && *destination);
 
     amq_sclient_agent_handle_open (
-        self->thread_handle, CHANNEL_ID, ++self->cur_handle, type, FALSE, destination, &rc);
+        self->thread_handle, CHANNEL_ID, ++self->cur_handle, (dbyte) service_type, FALSE, destination, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
 
     if (rc == AMQ_OK) {
@@ -163,14 +163,14 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 </method>
 
 <method name = "temporary" template = "function">
-    <argument name = "type"        type = "int"   >AMQP service type</argument>
-    <argument name = "destination" type = "char *">Destination to create</argument>
-    <argument name = "prefetch"    type = "int"   >Prefetch window size</argument>
-    <argument name = "noack"       type = "Bool"  >No acknowledgements required</argument>
+    <argument name = "service type" type = "int"   >AMQP service type</argument>
+    <argument name = "destination"  type = "char *">Destination to create</argument>
+    <argument name = "prefetch"     type = "int"   >Prefetch window size</argument>
+    <argument name = "noack"        type = "Bool"  >No acknowledgements required</argument>
     assert (destination && *destination);
 
     amq_sclient_agent_handle_open (
-        self->thread_handle, CHANNEL_ID, ++self->cur_handle, type, TRUE, destination, &rc);
+        self->thread_handle, CHANNEL_ID, ++self->cur_handle, (dbyte) service_type, TRUE, destination, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
 
     if (rc == AMQ_OK) {

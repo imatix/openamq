@@ -63,7 +63,7 @@ static int
 <method name = "handle open" >
     <argument name = "channel id"   type = "dbyte" >Channel number</argument>
     <argument name = "handle id"    type = "dbyte" >Handle number</argument>
-    <argument name = "service type" type = "int"   >AMQP service type</argument>
+    <argument name = "service type" type = "dbyte" >AMQP service type</argument>
     <argument name = "temporary"    type = "Bool"  >Temporary access?</argument>
     <argument name = "dest name"    type = "char *">Destination name</argument>
 </method>
