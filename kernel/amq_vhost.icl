@@ -61,6 +61,7 @@ virtual host.
     self->queue_hash = amq_dest_table_new ();
     self->topic_hash = amq_dest_table_new ();
     self->subsc_hash = amq_dest_table_new ();
+    self->subsc_list = amq_subsc_list_new ();
     ipr_shortstr_cpy (self->directory, directory);
 
     coprintf ("I: configuring virtual host '%s'", self->key);
@@ -84,6 +85,7 @@ virtual host.
     amq_dest_table_destroy (&self->topic_hash);
     amq_dest_table_destroy (&self->subsc_hash);
     amq_dest_list_destroy  (&self->dest_list);
+    amq_subsc_list_destroy (&self->subsc_list);
     ipr_config_destroy     (&self->config);
     ipr_db_destroy         (&self->db);
     amq_db_destroy         (&self->ddb);
@@ -109,6 +111,28 @@ virtual host.
         }
         else
             break;
+    }
+</method>
+
+<method name = "publish" template = "function">
+    <doc>
+    Publishes a specified message to all interested subscribers in the
+    virtual host.
+    </doc>
+    <argument name = "dest name" type = "char *">Topic destination name</argument>
+    <argument name = "message"   type = "amq_smessage_t *">Message, if any</argument>
+    <local>
+    amq_subsc_t
+        *subsc;                          /*  Subscriber object               */
+    </local>
+
+    /*  Slow and horrible matching of subscribers with topic name            */
+    subsc = amq_subsc_list_first (self->subsc_list);
+    while (subsc) {
+        if (streq (subsc->dest_name, dest_name)) {
+            amq_queue_accept (subsc->consumer->queue, NULL, message, NULL);
+            subsc = amq_subsc_list_next (self->subsc_list, subsc);
+        }
     }
 </method>
 

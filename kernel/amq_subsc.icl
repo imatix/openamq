@@ -13,7 +13,6 @@ defined per vhost.
 </doc>
 
 <inherit class = "ipr_list_item" />
-
 <import class = "amq_global" />
 
 <public name = "header">
@@ -32,8 +31,12 @@ defined per vhost.
     <doc>
     Creates a new subscription as specified.
     </doc>
-    <argument name = "dest_name" type = "char *"    >Parent channel</argument>
-    <argument name = "consumer"  type = "amq_handle_open_t *">Handle open command</argument>
+    <argument name = "consumer" type = "amq_consumer_t *"      >Consumer object</argument>
+    <argument name = "command"  type = "amq_handle_consume_t *">Passed command</argument>
+    self->consumer = consumer;
+    ipr_shortstr_fmt (self->dest_name,
+        "%s%s", consumer->handle->dest_name, command->dest_name);
+    amq_subsc_list_queue (consumer->handle->vhost->subsc_list, self);
 </method>
 
 <method name = "destroy">

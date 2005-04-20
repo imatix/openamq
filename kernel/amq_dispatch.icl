@@ -56,9 +56,8 @@
     self->queue_id    = self->queue->item_id;
     self->message_nbr = ++(self->channel->message_nbr);
 
-    /*  Keep message alive after it's been dispatched                        */
-    amq_smessage_link (message);
-    amq_dispatch_list_queue (self->channel->dispatch_list, self);
+    amq_smessage_link         (self->message);
+    amq_dispatch_list_queue   (self->channel->dispatch_list, self);
     amq_consumer_window_close (self->consumer);
 </method>
 
@@ -106,15 +105,18 @@
     else {
         /*  Ensure message is no longer assigned to this client              */
         self->queue->item_id = self->queue_id;
-        amq_queue_fetch (self->queue, IPR_QUEUE_EQ);
-        if (self->queue->item_client_id) {
-            self->queue->item_client_id = 0;
-            amq_queue_update (self->queue, NULL);
+        if (amq_queue_fetch (self->queue, IPR_QUEUE_EQ) == 0) {
+            if (self->queue->item_client_id) {
+                self->queue->item_client_id = 0;
+                amq_queue_update (self->queue, NULL);
+            }
+            /*  Reset queue properties to cover this message                     */
+            self->queue->disk_queue_size++;
+            if (self->queue->last_id >= self->queue->item_id)
+                self->queue->last_id  = self->queue->item_id - 1;
         }
-        /*  Reset queue properties to cover this message                     */
-        self->queue->disk_queue_size++;
-        if (self->queue->last_id >= self->queue->item_id)
-            self->queue->last_id  = self->queue->item_id - 1;
+        else
+            coprintf ("E: message not found for update (dest=%s)", self->queue->dest->key);
     }
     /*  After ungetting we can dispatch the queue again; we update the
         window after dispatching so that this message won't go back to
@@ -175,9 +177,12 @@
         self->acknowledged = FALSE;
         if (self->queue_id) {
             self->queue->item_id = self->queue_id;
-            amq_queue_fetch (self->queue, IPR_QUEUE_EQ);
-            self->queue->item_client_id = 0;
-            amq_queue_update (self->queue, txn);
+            if (amq_queue_fetch (self->queue, IPR_QUEUE_EQ) == 0) {
+                self->queue->item_client_id = 0;
+                amq_queue_update (self->queue, txn);
+            }
+            else
+                coprintf ("E: message not found for update (dest=%s)", self->queue->dest->key);
         }
         amq_consumer_window_close (self->consumer);
     }

@@ -1,3 +1,6 @@
+    - design subscription API
+        - subscription class
+        
 
     - publish to topic
         - save in topic queue

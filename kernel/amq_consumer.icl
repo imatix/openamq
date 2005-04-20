@@ -37,6 +37,8 @@ and to a queue.
         *queue;                         /*  Parent queue                     */
 
     /*  Object properties                                                    */
+    amq_subsc_t
+        *subsc;                         /*  Subscription, if any             */
     int
         prefetch;                       /*  Max prefetch size                */
     int
@@ -67,6 +69,7 @@ and to a queue.
 
 <method name = "destroy">
     amq_queue_detach (self->queue, self);
+    amq_subsc_destroy (&self->subsc);
 </method>
 
 <method name = "window close" template = "function">
@@ -78,6 +81,8 @@ and to a queue.
     if (self->window > 0) {
         self->queue->window--;
         self->window--;
+        if (self->window == 0)
+            self_deactivate (self);
     }
 </method>
 
@@ -90,11 +95,28 @@ and to a queue.
     if (self->window < self->prefetch) {
         self->window++;
         self->queue->window++;
+        if (self->window == 1)
+            self_activate (self);       /*  Just activated               */
     }
 </method>
 
+<method name = "activate" template = "function">
+    <doc>
+    Moves the consumer to its queue's active list.
+    </doc>
+    amq_consumer_by_queue_unlink (self);
+    amq_consumer_by_queue_queue  (self->queue->active_consumers, self);
+</method>
+
+<method name = "deactivate" template = "function">
+    <doc>
+    Moves the consumer to its queue's inactive list.
+    </doc>
+    amq_consumer_by_queue_unlink (self);
+    amq_consumer_by_queue_queue  (self->queue->inactive_consumers, self);
+</method>
+
 <method name = "cancel" template = "function">
-    //TODO: remove subscription criteria from match list
     self_destroy (&self);
 </method>
 
@@ -128,7 +150,6 @@ s_init_queue_consumer ($(selftype) *self, amq_handle_consume_t *command)
             if (self->dest->opt_max_consumers == 0
             ||  self->dest->opt_max_consumers > self->dest->queue->nbr_consumers) {
                 amq_queue_attach (self->dest->queue, self);
-                amq_consumer_by_handle_queue (self->handle->consumers, self);
             }
             else
                 amq_global_set_error (AMQP_NOT_ALLOWED, "Destination consumer limit reached");
@@ -156,6 +177,7 @@ s_init_topic_consumer ($(selftype) *self, amq_handle_consume_t *command)
     static int
         subsc_nbr = 0;                  /*  Generate unique subscriptions    */
 
+    /*  Subscription is a destination held in the vhost subsc_hash table     */
     ipr_shortstr_fmt (dest_name, "subsc-%d", ++subsc_nbr);
     self->dest = amq_dest_new (
         self->handle->vhost->subsc_hash,
@@ -165,8 +187,11 @@ s_init_topic_consumer ($(selftype) *self, amq_handle_consume_t *command)
         dest_name,
         self->handle->client_id);       /*  Owner client                     */
 
+    /*  Attach consumer to subscription queue - will be only consumer        */
     amq_queue_attach (self->dest->queue, self);
-    amq_consumer_by_handle_queue (self->handle->consumers, self);
+
+    /*  Create new subscription                                              */
+    amq_subsc_new (self, command);
 }
 </private>
 

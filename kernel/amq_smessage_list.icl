@@ -33,7 +33,6 @@
     </local>
     message = amq_smessage_list_first (self);
     while (message) {
-        //TODO: commit topics & publish
         self_unlink (message);
         amq_queue_accept (message->queue, NULL, message, txn);
         amq_smessage_destroy (&message);

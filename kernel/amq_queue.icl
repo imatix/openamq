@@ -43,8 +43,8 @@ on disk using persistent storage.
 
 <private>
 #include "amq_server_agent.h"
-#define TRACE_DISPATCH                  /*  Trace dispatching progress?      */
 #undef  TRACE_DISPATCH
+#define TRACE_DISPATCH                  /*  Trace dispatching progress?      */
 </private>
 
 <context>
@@ -56,7 +56,8 @@ on disk using persistent storage.
 
     /*  Object properties                                                    */
     amq_consumer_by_queue_t
-        *consumers;                     /*  Consumers for this queue         */
+        *active_consumers,              /*  Active consumers                 */
+        *inactive_consumers;            /*  Inactive or busy consumers       */
     size_t
         nbr_consumers;                  /*  Number of consumers              */
     amq_mesgref_list_t
@@ -87,9 +88,10 @@ on disk using persistent storage.
     </local>
     assert (dest);
 
-    self->vhost     = vhost;
-    self->dest      = dest;
-    self->consumers = amq_consumer_by_queue_new ();
+    self->vhost = vhost;
+    self->dest  = dest;
+    self->active_consumers   = amq_consumer_by_queue_new ();
+    self->inactive_consumers = amq_consumer_by_queue_new ();
 
     /*  Create 1..n priority lists                                           */
     self->message_list = icl_mem_alloc (
@@ -135,19 +137,21 @@ on disk using persistent storage.
         amq_mesgref_list_destroy (&self->message_list [level]);
     }
     icl_mem_free (self->message_list);
-    amq_consumer_by_queue_destroy (&self->consumers);
+    amq_consumer_by_queue_destroy (&self->active_consumers);
+    amq_consumer_by_queue_destroy (&self->inactive_consumers);
 </method>
 
 <method name = "attach" template = "function">
     <doc>
-    Attach consumer to queue and dispatch any outstanding messages on the
-    queue.
+    Attach consumer to queue and to handle, and dispatch any outstanding
+    messages on the queue.
     </doc>
     <argument name = "consumer" type = "amq_consumer_t *">Consumer</argument>
     consumer->queue = self;
     self->nbr_consumers++;
     self->window += consumer->window;
-    amq_consumer_by_queue_queue (self->consumers, consumer);
+    amq_consumer_by_queue_queue  (self->active_consumers,      consumer);
+    amq_consumer_by_handle_queue (consumer->handle->consumers, consumer);
     amq_queue_dispatch (self);
 </method>
 
@@ -204,8 +208,8 @@ on disk using persistent storage.
             amq_smessage_link (message);
             channel->transact_count++;
 #           ifdef TRACE_DISPATCH
-            coprintf ("$(selfname) I: queue transacted message, txn_count=%d",
-                channel->transact_count);
+            coprintf ("$(selfname) I: %s - queue transacted message, txn_count=%d",
+                self->dest->key, channel->transact_count);
 #           endif
         }
         else
@@ -239,16 +243,19 @@ on disk using persistent storage.
             self->disk_queue_size++;
             amq_smessage_save (message, self, txn);
     #       ifdef TRACE_DISPATCH
-            coprintf ("$(selfname) I: save persistent message to storage");
+            coprintf ("$(selfname) I: %s - save persistent message to storage",
+                self->dest->key);
     #       endif
         }
         else {
             /*  Non-persistent messages are held per message queue           */
             self->memory_queue_size++;
             amq_mesgref_new (self->message_list [level], message);
-            amq_smessage_link (message);
+            if (self->dest->service_type == AMQP_SERVICE_TOPIC)
+                amq_vhost_publish (self->vhost, self->dest->key, message);
     #       ifdef TRACE_DISPATCH
-            coprintf ("$(selfname) I: save non-persistent message to queue memory");
+            coprintf ("$(selfname) I: %s - save non-persistent message to queue memory",
+                self->dest->key);
     #       endif
         }
         /*  Mark queue as 'dirty' and push destination to front of list
@@ -282,8 +289,8 @@ on disk using persistent storage.
      */
     if (self->window && self->memory_queue_size) {
 #       ifdef TRACE_DISPATCH
-        coprintf ("$(selfname) I: dispatching non-persistent window=%d pending=%d",
-            self->window, self->memory_queue_size);
+        coprintf ("$(selfname) I: %s - dispatching non-persistent window=%d pending=%d",
+            self->dest->key, self->window, self->memory_queue_size);
 #       endif
 
         /*  Start with highest-priority messages                             */
@@ -316,21 +323,22 @@ on disk using persistent storage.
     /*  Now process any messages on disk                                     */
     if (self->window && self->disk_queue_size) {
 #       ifdef TRACE_DISPATCH
-        coprintf ("$(selfname) I: dispatching persistent window=%d pending=%d",
-            self->window, self->disk_queue_size);
+        coprintf ("$(selfname) I: %s - dispatching persistent window=%d pending=%d",
+            self->dest->key, self->window, self->disk_queue_size);
 #       endif
 
         /*  Get oldest candidate message to dispatch                         */
         self->item_id = self->last_id;
         finished = self_fetch (self, IPR_QUEUE_GT);
 #       ifdef TRACE_DISPATCH
-        coprintf ("$(selfname) I: fetch last=%d rc=%d id=%d finished=%d",
-            self->last_id, finished, self->item_id, finished);
+        coprintf ("$(selfname) I: %s - fetch last=%d rc=%d id=%d finished=%d",
+            self->dest->key, self->last_id, finished, self->item_id, finished);
 #       endif
 
         while (self->window && !finished) {
 #           ifdef TRACE_DISPATCH
-            coprintf ("$(selfname) I: message id=%d client=%d", self->item_id, self->item_client_id);
+            coprintf ("$(selfname) I: %s - message id=%d client=%d",
+                self->dest->key, self->item_id, self->item_client_id);
 #           endif
             if (self->item_client_id == 0) {
                 consumer = s_get_next_consumer (self);
@@ -492,11 +500,11 @@ s_get_next_consumer ($(selftype) *self)
     /*  When a consumer is used we move it to the end of the list, so the
         next consumer will be at start start of the list.
      */
-    consumer = amq_consumer_by_queue_first (self->consumers);
+    consumer = amq_consumer_by_queue_first (self->active_consumers);
     while (consumer) {
         if (consumer->window && !consumer->handle->paused)
             break;
-        consumer = amq_consumer_by_queue_next (self->consumers, consumer);
+        consumer = amq_consumer_by_queue_next (self->active_consumers, consumer);
     }
     return (consumer);
 }
@@ -527,7 +535,7 @@ s_dispatch_message (
         consumer->no_ack? dispatch: NULL);
 
     /*  Move consumer to end of list to round-robin it                       */
-    amq_consumer_by_queue_queue (consumer->queue->consumers, consumer);
+    amq_consumer_by_queue_queue (consumer->queue->active_consumers, consumer);
 }
 </private>
 

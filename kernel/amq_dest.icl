@@ -137,14 +137,7 @@ forward messages.
         dest_name;
     </local>
     <header>
-    if (prefix && suffix)
-        ipr_shortstr_fmt (dest_name, "%s%s", prefix, suffix);
-    else
-    if (prefix)
-        key = prefix;
-    else
-    if (suffix)
-        key = suffix;
+    ipr_shortstr_fmt (dest_name, "%s%s", prefix, suffix);
     </header>
 </method>
 
@@ -171,7 +164,7 @@ forward messages.
 
     /*  Look for destination as specified                                    */
     if (strused (handle->dest_name))
-        self = self_search (table, handle->dest_name, NULL);
+        self = self_search (table, handle->dest_name, "");
 
     /*  The 'temporary' flag asks to create & own the destination            */
     if (temporary) {

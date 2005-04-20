@@ -989,11 +989,8 @@ static int
             the_next_event = continue_event;
         else {
             the_next_event = finished_event;
-            amq_smessage_destroy (&handle_notify_m->message);
-
-            /*  If a dispatch object was passed, acknowledge the message
-                immediately - this indicates a consumer that has asked for
-                'unreliable' delivery, i.e. messages are not acknowledged.
+            /*  The consumer 'no ack' option is signalled by the queue
+                passing us the address of a dispatch object to acknowledge.
              */
             if (handle_notify_m->dispatch)
                 amq_dispatch_ack (handle_notify_m->dispatch);

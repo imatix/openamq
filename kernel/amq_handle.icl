@@ -147,13 +147,16 @@
         *consumer;
     </local>
     self->paused = command->flow_pause;
-    /*  If switching on, dispatch all consumer queues for handle             */
-    if (!self->paused) {
-        consumer = amq_consumer_by_handle_first (self->consumers);
-        while (consumer) {
+    consumer = amq_consumer_by_handle_first (self->consumers);
+    while (consumer) {
+        /*  Move consumer to queue active/inactive list as needed            */
+        if (self->paused)
+            amq_consumer_deactivate (consumer);
+        else {
+            amq_consumer_activate (consumer);
             amq_queue_dispatch (consumer->queue);
-            consumer = amq_consumer_by_handle_next (self->consumers, consumer);
         }
+        consumer = amq_consumer_by_handle_next (self->consumers, consumer);
     }
 </method>
 

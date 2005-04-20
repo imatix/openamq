@@ -30,10 +30,10 @@
 <method name = "new">
     <argument name = "list"    type = "$(selfname)_list_t *">List to attach to</argument>
     <argument name = "message" type = "amq_smessage_t *"    >Message object</argument>
-    self->message = message;
-    amq_mesgref_list_queue (list, self);
-    amq_smessage_link (self->message);
+    self->message  = message;
     self->browsers = ipr_looseref_list_new ();
+    amq_smessage_link      (self->message);
+    amq_mesgref_list_queue (list, self);
 </method>
 
 <method name = "destroy">
