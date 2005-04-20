@@ -37,4 +37,8 @@
     <file name = "test_syn_que_per_100_1M_3.sh"   class = "public resource" >Java simple big messages test (100M, persistent)</file>
     <file name = "test_syn_que_per_1_1G_4.sh"     class = "public resource" >Java simple huge message test (1G, persistent)</file>
 </directory>
+<directory name = "tests_scenarios/tests_java">
+    <file name = "tests_java"                     class = "public resource" >Determines if to perform the Java tests</file>
+    <file name = "test_produce_rollback.sh"       class = "public resource" >Test rollback on messages sent (queue empties)</file>
+</directory>
 </pdl>
