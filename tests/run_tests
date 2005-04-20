@@ -12,38 +12,43 @@ version="0.0a2"
 verbose=0
 # Global error status
 error=0
-
-
-# Abort a test after TIMELIMIT has elapsed
+# Time to wait for server to initialize/shutdown
+updown=5
+# Time limit for the timeout feature
 timelimit=300
+
+# Abort a test after the time limit has elapsed
 timeout() 
 {
     sleep $timelimit
-    killhard $2
+    echo "Timeout expired..."
     echo 1 > AMQPTEST_TIMEOUT
+    kill $1
 }
-
-
-# Kills processes the hard way ...
-killhard() 
-{
-    disown $1
-    kill -9 $1
-}
-
 
 # Try to do some clean-up
 cleanup()
 {
-    if test -f AMQPTEST_PIDS; then
-        kill -9 $(cat AMQPTEST_PIDS)
+    # Shut down the daemon
+    if test -f $DPATH/../tests/AMQPTEST_DPID; then
+        dpid=$(cat $DPATH/../tests/AMQPTEST_DPID)
+        kill $dpid
+        wait $dpid
+        if test "$1" = "timeout"; then
+            echo "Respawning server..."
+            startdaemon
+        fi
     fi
-    rm -f AMQPTEST_TIMEOUT
-    rm -f AMQPTEST_FAIL
-    rm -f AMQPTEST_PIDS
     if test "$1" = "user"; then
+        rm -f AMQPTEST_DPID
         echo ""
-        echo "Tests interrupted by user."
+        echo "Tests interrupted by user"
+        exit 0
+    fi
+    if test "$1" = "bye"; then
+        rm -f AMQPTEST_DPID
+        echo ""
+        echo "Finished testing"
         exit 0
     fi
 }
@@ -115,17 +120,26 @@ runtest()
     runscript $1 $OUTPUT &
     pid=$!
     # Handle timeout
-    timeout $OUTPUT $pid &
+    timeout $pid &
     killer=$!
-    echo "$pid" >> AMQPTEST_PIDS
-    echo "$killer" >> AMQPTEST_PIDS
+    echo "$killer" >> AMQPTEST_KPID
     wait $pid
-    killhard $killer
     if test -f AMQPTEST_FAIL; then
         fail=1
     fi
+    if test -f AMQPTEST_TIMEOUT; then
+        wait $killer
+    else
+        disown $killer
+        kill $killer
+    fi    
     # Check result
     if test -f AMQPTEST_TIMEOUT; then
+        # Respawn server
+        CPATH=$(pwd)
+        cleanup "timeout"
+        cd $CPATH
+        # Handle timeout
         error=1
         fail $1 $OUTPUT
         echo "FAIL: TIMEOUT" >> $OUTPUT 
@@ -161,14 +175,12 @@ testset()
 {
     rm -f AMQPTEST_TIMEOUT
     rm -f AMQPTEST_FAIL
-    rm -f AMQPTEST_PIDS
     for a_test in $(find -name 'test_*.sh' -maxdepth 1); do
         if test "$a_test" != "test_*.sh"; then 
             echo ""
             runtest "$a_test"
             rm -f AMQPTEST_TIMEOUT
             rm -f AMQPTEST_FAIL
-            rm -f AMQPTEST_PIDS
         else
             if test "$2" != "1"; then
                 echo "!! Nothing to do for $1" 
@@ -177,6 +189,30 @@ testset()
     done
 }
 
+# AMQP daemon starter
+startdaemon()
+{
+    if ps -A | grep openamqd; then
+        echo "OpenAMQ daemon found running"
+        echo "WARNING: The script will not manage shutting down the daemon"
+    else 
+        echo "Starting the OpenAMQ daemon..."
+        if test "$DPATH" = ""; then cd ../servers; else cd $DPATH; fi
+        export DPATH="$(pwd)"
+        ./openamqd -q & 
+        dpid=$!
+        cd $DPATH/../tests
+        echo $dpid > AMQPTEST_DPID
+        echo "Sleeping $updown seconds ..."
+        sleep $updown
+    fi
+    if ps -A | grep openamqd; then
+        :
+    else
+        echo "Could not start the OpenAMQ daemon!"
+        exit 1
+    fi
+}
 
 # Trap Control-c
 trap "cleanup user" SIGINT
@@ -212,20 +248,7 @@ echo "OpenAMQ tester $version"
 echo ""
 
 # Start the daemon
-dpid=0
-if ps -A | grep openamqd; then
-    echo "OpenAMQ daemon found running..."
-else 
-    echo "Starting the OpenAMQ daemon..."
-    cd ../servers/
-    ./openamqd &
-    dpid=$!
-    cd ../tests/
-    if test "$?" != "0"; then
-        echo "Warning, could not start the OpenAMQ daemon."
-    fi
-    sleep 5
-fi
+startdaemon
 
 # Run all test sets
 for test_dir in tests_*; do
@@ -268,10 +291,10 @@ for test_dir in tests_*; do
 done
 
 # Stop the daemon
-if test "$dpid" != "0"; then
+if test -f AMQPTEST_DPID; then
     echo ""
     echo "Stoping the OpenAMQ daemon..."
-    kill $dpid
+    cleanup
 fi
 
 # Result
