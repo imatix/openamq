@@ -36,11 +36,12 @@
 <file name = "EchoClient*.class"                 class = "public command"   >Java to C component-chat demonstration client</file>
 
 <!-- Java framing API test clients source -->
+<file name = "amqpcli_serial.java.l"             class = "private resource" >Simple FSM for connecting/closing in amqpcli_serial.java</file>
 <file name = "amqpcli_seriali.java"              class = "generated"        >FSM implementation for amqpcli_serial.java</file>
 <file name = "amqpcli_serial.java"               class = "private resource" >Java pattern testing client</file>
-<file name = "amqpcli_serial.java.l"             class = "private resource" >Simple FSM for connecting/closing in amqpcli_serial.java</file>
+<file name = "amqpcli_transactions.java"         class = "private resource" >Java transactions testing client</file>
 <file name = "EchoClient.java"                   class = "private resource" >Java to C component-chat demonstration client</file>
-<file name = "amq_java.gsl"                    class = "private resource" >Java framing API generator</file>
+<file name = "amq_java.gsl"                      class = "private resource" >Java framing API generator</file>
 
 <!-- Documentation -->
 <file name = "index.txt"                         class = "gurudoc text"     >Java framing layer API documentation</file>
@@ -61,6 +62,7 @@
         jar -c0f OpenAMQJava.jar com/imatix/openamq/*.class com/imatix/openamq/frames/*.class
         <!-- Compile test clients .class files -->
         javac amqpcli_serial.java
+        javac amqpcli_transactions.java
         javac EchoClient.java
         </execute>
     </build>
