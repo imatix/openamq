@@ -40,5 +40,6 @@
 <directory name = "tests_scenarios/tests_java">
     <file name = "tests_java"                     class = "public resource" >Determines if to perform the Java tests</file>
     <file name = "test_produce_rollback.sh"       class = "public resource" >Test rollback on messages sent (queue empties)</file>
+    <file name = "test_consume_rollback.sh"       class = "public resource" >Test rollback on messages received (queue remains full)</file>
 </directory>
 </pdl>
