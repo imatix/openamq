@@ -1,7 +1,7 @@
 <?xml?>
 <pdl
     name      = "OpenAMQ RFC"
-    version   = "0.2"
+    version   = "0.8c0"
     copyright = "Copyright (c) 2004 JPMorgan"
     workflow  = "scripted.pwl"
     >
