@@ -7,7 +7,7 @@
 
 
 # Script version
-version="0.0a2"
+version="0.0a5"
 # Verbose switch
 verbose=0
 # Global error status
