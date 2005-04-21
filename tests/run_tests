@@ -40,6 +40,10 @@ cleanup()
         fi
     fi
     if test "$1" = "user"; then
+        if test -f AMQPTEST_KPID; then
+            kill $(cat AMQPTEST_KPID)
+            rm -f AMQPTEST_KPID
+        fi
         rm -f AMQPTEST_DPID
         echo ""
         echo "Tests interrupted by user"
@@ -187,6 +191,7 @@ testset()
             fi
         fi
     done
+    rm -f AMQPTEST_KPID
 }
 
 # AMQP daemon starter
