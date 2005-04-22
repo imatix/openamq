@@ -203,4 +203,24 @@ amq_queue_list.c
 amq_queue_list.h
 amq_queue_list.icl
 amq_queue_list_test.c
+amq_dest_list.c
+amq_dest_list.h
+amq_dest_list.icl
+amq_dest_list_test.c
+amq_mesgref.c
+amq_mesgref.h
+amq_mesgref_list.c
+amq_mesgref_list.h
+amq_mesgref_list.icl
+amq_mesgref_list_test.c
+amq_mesgref_test.c
+amq_subscr.c
+amq_subscr.h
+amq_subscr_list.c
+amq_subscr_list.h
+amq_subscr_list.icl
+amq_subscr_list_test
+amq_subscr_list_test.c
+amq_subscr_test
+amq_subscr_test.c
 
