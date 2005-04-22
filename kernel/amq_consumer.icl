@@ -37,8 +37,8 @@ and to a queue.
         *queue;                         /*  Parent queue                     */
 
     /*  Object properties                                                    */
-    amq_subsc_t
-        *subsc;                         /*  Subscription, if any             */
+    amq_subscr_t
+        *subscr;                        /*  Subscription, if any             */
     int
         prefetch;                       /*  Max prefetch size                */
     int
@@ -69,7 +69,7 @@ and to a queue.
 
 <method name = "destroy">
     amq_queue_detach (self->queue, self);
-    amq_subsc_destroy (&self->subsc);
+    amq_subscr_destroy (&self->subscr);
 </method>
 
 <method name = "window close" template = "function">
@@ -175,14 +175,14 @@ s_init_topic_consumer ($(selftype) *self, amq_handle_consume_t *command)
     ipr_shortstr_t
         dest_name;
     static int
-        subsc_nbr = 0;                  /*  Generate unique subscriptions    */
+        subscr_nbr = 0;                 /*  Generate unique subscriptions    */
 
-    /*  Subscription is a destination held in the vhost subsc_hash table     */
-    ipr_shortstr_fmt (dest_name, "subsc-%d", ++subsc_nbr);
+    /*  Subscription is a destination held in the vhost subscr_hash table    */
+    ipr_shortstr_fmt (dest_name, "sub-%d", ++subscr_nbr);
     self->dest = amq_dest_new (
-        self->handle->vhost->subsc_hash,
+        self->handle->vhost->subscr_hash,
         self->handle->vhost,
-        AMQP_SERVICE_SUBSC,
+        AMQP_SERVICE_SUBSCR,
         TRUE,                           /*  Temporary                        */
         dest_name,
         self->handle->client_id);       /*  Owner client                     */
@@ -191,7 +191,7 @@ s_init_topic_consumer ($(selftype) *self, amq_handle_consume_t *command)
     amq_queue_attach (self->dest->queue, self);
 
     /*  Create new subscription                                              */
-    amq_subsc_new (self, command);
+    amq_subscr_new (self, command);
 }
 </private>
 

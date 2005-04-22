@@ -102,7 +102,7 @@ forward messages.
     s_get_configuration (self, name);
     ipr_shortstr_fmt (filename, "%s-%s",
         service_type == AMQP_SERVICE_QUEUE? "queue":
-        service_type == AMQP_SERVICE_TOPIC? "topic": "subsc", name);
+        service_type == AMQP_SERVICE_TOPIC? "topic": "subscr", name);
 
     amq_dest_list_queue (vhost->dest_list, self);
     self->queue   = amq_queue_new   (filename, vhost, self);
@@ -229,7 +229,7 @@ s_get_configuration ($(selftype) *self, char *name)
                 "/config/template/topic", "default");
     }
     else
-    if (self->service_type == AMQP_SERVICE_SUBSC) {
+    if (self->service_type == AMQP_SERVICE_SUBSCR) {
         s_load_dest_properties (self,
             NULL, NULL,
             "/config/template/subscription", "default");

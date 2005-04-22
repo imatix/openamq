@@ -46,22 +46,22 @@ virtual host.
     amq_dest_table_t
         *topic_hash;                    /*  Topics for vhost, hash table     */
     amq_dest_table_t
-        *subsc_hash;                    /*  Subscriptions for vhost          */
+        *subscr_hash;                   /*  Subscriptions for vhost          */
     //TODO: these will be moved to a hashed bit array for matching
-    amq_subsc_list_t
-        *subsc_list;                    /*  Subscriptions for vhost          */
+    amq_subscr_list_t
+        *subscr_list;                   /*  Subscriptions for vhost          */
 </context>
 
 <method name = "new">
     <argument name = "directory" type = "char *"/>
     <argument name = "config"    type = "ipr_config_t *"/>
 
-    self->config     = config;
-    self->dest_list  = amq_dest_list_new ();
-    self->queue_hash = amq_dest_table_new ();
-    self->topic_hash = amq_dest_table_new ();
-    self->subsc_hash = amq_dest_table_new ();
-    self->subsc_list = amq_subsc_list_new ();
+    self->config      = config;
+    self->dest_list   = amq_dest_list_new ();
+    self->queue_hash  = amq_dest_table_new ();
+    self->topic_hash  = amq_dest_table_new ();
+    self->subscr_hash = amq_dest_table_new ();
+    self->subscr_list = amq_subscr_list_new ();
     ipr_shortstr_cpy (self->directory, directory);
 
     coprintf ("I: configuring virtual host '%s'", self->key);
@@ -81,14 +81,14 @@ virtual host.
         coprintf ("$(selfname) E: database cursor still open, attempting recovery");
         self->db->db_cursor = NULL;
     }
-    amq_dest_table_destroy (&self->queue_hash);
-    amq_dest_table_destroy (&self->topic_hash);
-    amq_dest_table_destroy (&self->subsc_hash);
-    amq_dest_list_destroy  (&self->dest_list);
-    amq_subsc_list_destroy (&self->subsc_list);
-    ipr_config_destroy     (&self->config);
-    ipr_db_destroy         (&self->db);
-    amq_db_destroy         (&self->ddb);
+    amq_dest_table_destroy  (&self->queue_hash);
+    amq_dest_table_destroy  (&self->topic_hash);
+    amq_dest_table_destroy  (&self->subscr_hash);
+    amq_dest_list_destroy   (&self->dest_list);
+    amq_subscr_list_destroy (&self->subscr_list);
+    ipr_config_destroy      (&self->config);
+    ipr_db_destroy          (&self->db);
+    amq_db_destroy          (&self->ddb);
 </method>
 
 <method name = "dispatch" template = "function">
@@ -121,17 +121,21 @@ virtual host.
     </doc>
     <argument name = "dest name" type = "char *">Topic destination name</argument>
     <argument name = "message"   type = "amq_smessage_t *">Message, if any</argument>
+    <argument name = "txn"       type = "ipr_db_txn_t *"  >Transaction, if any</argument>
     <local>
-    amq_subsc_t
-        *subsc;                          /*  Subscriber object               */
+    amq_subscr_t
+        *subscr;                         /*  Subscriber object               */
     </local>
 
     /*  Slow and horrible matching of subscribers with topic name            */
-    subsc = amq_subsc_list_first (self->subsc_list);
-    while (subsc) {
-        if (streq (subsc->dest_name, dest_name)) {
-            amq_queue_accept (subsc->consumer->queue, NULL, message, NULL);
-            subsc = amq_subsc_list_next (self->subsc_list, subsc);
+    subscr = amq_subscr_list_first (self->subscr_list);
+    while (subscr) {
+        if (streq (subscr->dest_name, dest_name)) {
+            if (subscr->no_local == FALSE
+            ||  subscr->client_id != message->handle->client_id) {
+                amq_queue_publish (subscr->consumer->queue, message, txn);
+                subscr = amq_subscr_list_next (self->subscr_list, subscr);
+            }
         }
     }
 </method>

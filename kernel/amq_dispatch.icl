@@ -140,9 +140,9 @@
     if (self->acknowledged) {
         if (self->queue_id) {
             /*  Purge from persistent queue if necessary                     */
+            amq_queue_delete_message (self->queue, txn);
             self->queue->item_id = self->queue_id;
             self->queue->disk_queue_size--;
-            amq_queue_delete (self->queue, txn);
         }
     }
 </method>
@@ -157,7 +157,12 @@
 
     next = amq_dispatch_list_next (self->channel->dispatch_list, self);
     if (self->acknowledged) {
-        amq_smessage_purge (self->message);
+        /*  We can have multiple references to the same message, so we purge
+            only when this is the last reference... hopefully there won't be
+            dangling references somewhere else apart from dispatch objects.
+         */
+        if (self->message->links == 1)
+            amq_smessage_purge (self->message);
         self_destroy (&self);
     }
 </method>

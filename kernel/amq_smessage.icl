@@ -42,8 +42,8 @@
 
 <method name = "new">
     <argument name = "handle" type = "amq_handle_t *" />
-    self->handle   = handle;
-    self->vhost    = handle->vhost;
+    self->handle = handle;
+    self->vhost  = handle->vhost;
 </method>
 
 <method name = "destroy">

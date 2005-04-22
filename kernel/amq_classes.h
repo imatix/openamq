@@ -31,5 +31,5 @@
 #include "amq_queue.h"
 #include "amq_dest.h"
 #include "amq_user.h"
-#include "amq_subsc.h"
+#include "amq_subscr.h"
 #include "amq_vhost.h"

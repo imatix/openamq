@@ -31,6 +31,15 @@ on disk using persistent storage.
     <field name = "headers"     type = "longstr" >Application headers</field>
     <field name = "content"     type = "longstr" >First body fragment</field>
     <field name = "store size"  type = "longint" >Stored file size, or 0</field>
+    <field name = "links"       type = "longint" >Reference count</field>
+
+    <!-- These are the properties of a persistent message reference
+         The dest id is the key of a db_dest which lets us find the
+         queue object for the original message even after a server
+         stop/restart.  Kind of complex.
+      -->
+    <field name = "dest id"     type = "longint" >Identifier of db_dest</field>
+    <field name = "message id"  type = "longint" >Message identifier in queue</field>
 </data>
 
 <import class = "amq_global" />
@@ -82,7 +91,7 @@ on disk using persistent storage.
     <argument name = "vhost" type = "amq_vhost_t *">Parent virtual host</argument>
     <argument name = "dest"  type = "amq_dest_t *" >Parent destination</argument>
     <dismiss argument = "db" value = "vhost->db" />
-        <local>
+    <local>
     uint
         level;
     </local>
@@ -126,6 +135,7 @@ on disk using persistent storage.
     amq_mesgref_t
         *message_ref;                   /*  Reference to message             */
     </local>
+
     /*  Destroy message lists                                                */
     for (level = 0; level < self->dest->opt_priority_levels; level++) {
         /*  Destroy the messages referred to by each list                    */
@@ -219,29 +229,24 @@ on disk using persistent storage.
         /*  In certain cases we force the message to be persistent           */
         level = s_priority_level (self, message);
         if (!message->persistent) {
-
-            /*  If we have reached the limit for in-memory messages,
-                force the message to disk unless it has the highest
-                priority
+            /*  If we have reached the limit for in-memory messages, force
+                the message to disk unless it has the highest priority
              */
             if (self->dest->opt_memory_queue_max > 0
             &&  self->memory_queue_size >= self->dest->opt_memory_queue_max
             &&  message->priority &lt; AMQP_MAX_PRIORITIES)
                 message->persistent = TRUE;
-
-            /*  If there are already messages on disk, send all low
-                priority messages to disk as well so they are delivered
-                in order
-              */
+            /*  If there are already messages on disk, send low priority
+                messages to disk as well so they are delivered in order
+             */
             else
-            if (self->disk_queue_size > 0
-            &&  level == 0)
+            if (self->disk_queue_size > 0 && level == 0)
                 message->persistent = TRUE;
         }
         if (message->persistent) {
             /*  Persistent messages are saved on persistent queue storage    */
-            self->disk_queue_size++;
             amq_smessage_save (message, self, txn);
+            self->disk_queue_size++;
     #       ifdef TRACE_DISPATCH
             coprintf ("$(selfname) I: %s - save persistent message to storage",
                 self->dest->key);
@@ -249,10 +254,8 @@ on disk using persistent storage.
         }
         else {
             /*  Non-persistent messages are held per message queue           */
-            self->memory_queue_size++;
             amq_mesgref_new (self->message_list [level], message);
-            if (self->dest->service_type == AMQP_SERVICE_TOPIC)
-                amq_vhost_publish (self->vhost, self->dest->key, message);
+            self->memory_queue_size++;
     #       ifdef TRACE_DISPATCH
             coprintf ("$(selfname) I: %s - save non-persistent message to queue memory",
                 self->dest->key);
@@ -263,7 +266,47 @@ on disk using persistent storage.
          */
         self->dirty = TRUE;             /*  Message queue has new data       */
         amq_dest_list_push (self->vhost->dest_list, self->dest);
+
+        /*  If we just saved to a topic queue, publish to all subscribers    */
+        if (self->dest->service_type == AMQP_SERVICE_TOPIC)
+            amq_vhost_publish (self->vhost, self->dest->key, message, txn);
     }
+</method>
+
+<method name = "publish" template = "function">
+    <doc>
+    Publishes a message to a subscriber queue.
+    </doc>
+    <argument name = "message" type = "amq_smessage_t *">Message, if any</argument>
+    <argument name = "txn"     type = "ipr_db_txn_t *"  >Transaction, if any</argument>
+    <local>
+    uint
+        level;                          /*  Priority level                   */
+    </local>
+    assert (message);
+
+    /*  If there are already messages on disk, send low priority
+        messages to disk as well so they are delivered in order
+    */
+    level = s_priority_level (self, message);
+    if (self->dest->opt_persistent
+    || (self->disk_queue_size > 0 && level == 0))
+        message->persistent = TRUE;
+
+    if (message->persistent) {
+        s_insert_byreference (self, message, txn);
+        self->disk_queue_size++;
+    }
+    else {
+        /*  Non-persistent references are held per message queue             */
+        amq_mesgref_new (self->message_list [level], message);
+        self->memory_queue_size++;
+    }
+    /*  Mark queue as 'dirty' and push destination to front of list
+        for eventual dispatching
+    */
+    self->dirty = TRUE;                 /*  Message queue has new data       */
+    amq_dest_list_push (self->vhost->dest_list, self->dest);
 </method>
 
 <method name = "dispatch" template = "function">
@@ -304,19 +347,19 @@ on disk using persistent storage.
                     s_dispatch_message (consumer, message_ref->message);
                     amq_mesgref_destroy (&message_ref);
                     self->memory_queue_size--;
-                    self->item_id = 0;      /*  Non-persistent message           */
+                    self->item_id = 0;  /*  Non-persistent message           */
 
-                    /*  Get next message (is now first on queue)                 */
+                    /*  Get next message (is now first on queue)             */
                     message_ref = amq_mesgref_list_first (self->message_list [level]);
 
-                    /*  Work down to next priority level if needed               */
+                    /*  Work down to next priority level if needed           */
                     while (message_ref == NULL && level > 0) {
                         level--;
                         message_ref = amq_mesgref_list_first (self->message_list [level]);
                     }
                 }
                 else
-                    break;                  /*  No more consumers                */
+                    break;              /*  No more consumers                */
             }
         }
     }
@@ -343,8 +386,7 @@ on disk using persistent storage.
             if (self->item_client_id == 0) {
                 consumer = s_get_next_consumer (self);
                 if (consumer) {
-                    message = amq_smessage_new (consumer->handle);
-                    amq_smessage_load    (message, self);
+                    message = s_fetch_byreference (self, consumer->handle);
                     s_dispatch_message   (consumer, message);
                     amq_smessage_destroy (&message);
                     self->item_client_id = consumer->handle->client_id;
@@ -438,10 +480,9 @@ on disk using persistent storage.
     else
     if (browser->item_id) {
         self->item_id = browser->item_id;
-        if (self_fetch (self, IPR_QUEUE_EQ) == 0) {
-            message = amq_smessage_new (handle);
-            amq_smessage_load (message, self);
-        }
+        if (self_fetch (self, IPR_QUEUE_EQ) == 0)
+            message = s_fetch_byreference (self, handle);
+
         /*  Close active cursor if any                                       */
         ipr_db_cursor_close (self->db);
     }
@@ -458,6 +499,15 @@ on disk using persistent storage.
         rc = 1;                         /*  No message to dispatch           */
 </method>
 
+<method name = "delete message" template = "function">
+    <doc>
+    Deletes a persistent message or a persistent reference along with the
+    message if it's the last reference.
+    </doc>
+    <argument name = "txn" type = "ipr_db_txn_t *">Transaction, if any</argument>
+    s_delete_byreference (self, txn);
+</method>
+
 <private name = "header">
 static void
     s_create_priority_lists ($(selftype) *self);
@@ -469,6 +519,12 @@ static amq_consumer_t *
     s_get_next_consumer ($(selftype) *self);
 static void
     s_dispatch_message (amq_consumer_t *consumer, amq_smessage_t *message);
+static void
+    s_insert_byreference ($(selftype) *self, amq_smessage_t *message, ipr_db_txn_t *txn);
+static amq_smessage_t *
+    s_fetch_byreference ($(selftype) *self, amq_handle_t *handle);
+static void
+    s_delete_byreference ($(selftype) *self, ipr_db_txn_t *txn);
 </private>
 
 <private name = "footer">
@@ -489,7 +545,6 @@ s_priority_level ($(selftype) *self, amq_smessage_t *message)
 
 
 /*  Return next consumer for queue, NULL if there are none                   */
-//TODO: maintain inactive consumers on a separate list
 
 static amq_consumer_t *
 s_get_next_consumer ($(selftype) *self)
@@ -536,6 +591,102 @@ s_dispatch_message (
 
     /*  Move consumer to end of list to round-robin it                       */
     amq_consumer_by_queue_queue (consumer->queue->active_consumers, consumer);
+}
+
+/*  Insert persistent reference to message                                   */
+
+static void
+s_insert_byreference (
+    $(selftype)    *self,               /*  Queue to insert into             */
+    amq_smessage_t *message,            /*  Message to refer to              */
+    ipr_db_txn_t   *txn                 /*  Transaction, if any              */
+)
+{
+    /*  Insert reference in this queue                                       */
+    /*  This code looks a little like smessage_save                          */
+    self->item_client_id  = 0;
+    self->item_sender_id  = message->handle->client_id;
+    self->item_dest_id    = message->queue->dest->db_dest->id;
+    self->item_message_id = message->queue_id;
+    amq_queue_insert (self, txn);
+
+    /*  We keep a reference count in the original persistent message         */
+    amq_queue_fetch (message->queue, IPR_QUEUE_EQ);
+    message->queue->item_links++;
+    amq_queue_update (message->queue, txn);
+}
+
+/*  Create message fetched directly or via persistent reference              */
+
+static amq_smessage_t
+*s_fetch_byreference (
+    $(selftype)  *self,                 /*  Queue holding reference          */
+    amq_handle_t *handle                /*  Handle that owns message         */
+)
+{
+    amq_smessage_t
+        *message;                       /*  Populated message object         */
+    amq_db_dest_t
+        *db_dest;                       /*  Entry in db_dest table           */
+    amq_dest_t
+        *dest;                          /*  Resolved destination object      */
+
+    message = amq_smessage_new (handle);
+    if (self->item_dest_id) {
+        /*  We need to translate the dest_id into a queue object...          */
+        db_dest = amq_db_dest_new ();
+        db_dest->id = self->item_dest_id;
+
+        if (amq_db_dest_fetch (self->vhost->ddb, db_dest, AMQ_DB_FETCH_EQ))
+            coprintf ("E: destination not found (id=%ld)", db_dest->id);
+        else {
+            dest = amq_dest_search (self->vhost->topic_hash, db_dest->name, "");
+            assert (dest);
+            assert (dest->queue);
+            dest->queue->item_id = self->item_message_id;
+            amq_smessage_load (message, dest->queue);
+        }
+        amq_db_dest_destroy (&db_dest);
+    }
+    else
+        amq_smessage_load (message, self);
+
+    return (message);
+}
+
+/*  Delete persistent reference and possibly original message                */
+
+static void
+s_delete_byreference (
+    $(selftype)  *self,                 /*  Queue holding reference          */
+    ipr_db_txn_t *txn                   /*  Transaction, if any              */
+)
+{
+    amq_db_dest_t
+        *db_dest;
+    amq_dest_t
+        *dest;
+
+    /*  We need to translate the dest_id into a queue object...              */
+    db_dest = amq_db_dest_new ();
+    db_dest->id = self->item_dest_id;
+
+    if (amq_db_dest_fetch (self->vhost->ddb, db_dest, AMQ_DB_FETCH_EQ))
+        coprintf ("E: destination not found (id=%ld)", db_dest->id);
+    else {
+        dest = amq_dest_search (self->vhost->topic_hash, db_dest->name, "");
+        assert (dest);
+        assert (dest->queue);
+
+        dest->queue->item_id = self->item_message_id;
+        amq_queue_fetch (dest->queue, IPR_QUEUE_EQ);
+        dest->queue->item_links--;
+        if (dest->queue->item_links == 0)
+            amq_queue_delete (dest->queue, txn);
+        else
+            amq_queue_update (dest->queue, txn);
+    }
+    amq_db_dest_destroy (&db_dest);
 }
 </private>
 
