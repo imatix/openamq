@@ -140,9 +140,9 @@
     if (self->acknowledged) {
         if (self->queue_id) {
             /*  Purge from persistent queue if necessary                     */
-            amq_queue_delete_message (self->queue, txn);
             self->queue->item_id = self->queue_id;
             self->queue->disk_queue_size--;
+            amq_queue_delete_message (self->queue, txn);
         }
     }
 </method>

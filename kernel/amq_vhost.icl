@@ -134,9 +134,9 @@ virtual host.
             if (subscr->no_local == FALSE
             ||  subscr->client_id != message->handle->client_id) {
                 amq_queue_publish (subscr->consumer->queue, message, txn);
-                subscr = amq_subscr_list_next (self->subscr_list, subscr);
             }
         }
+        subscr = amq_subscr_list_next (self->subscr_list, subscr);
     }
 </method>
 

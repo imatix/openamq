@@ -175,7 +175,7 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 
     if (rc == AMQ_OK) {
         amq_sclient_agent_handle_consume (
-            self->thread_handle, self->cur_handle, (dbyte) prefetch, TRUE, noack, NULL, NULL, &rc);
+            self->thread_handle, self->cur_handle, (dbyte) prefetch, FALSE, noack, NULL, NULL, &rc);
         smt_thread_execute (SMT_EXEC_FULL);
     }
     else

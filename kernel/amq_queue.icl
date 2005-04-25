@@ -6,6 +6,7 @@
     copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
+
 <doc>
 This class defines a message queue.
 Queues hold messages received from publishers and messages being sent
@@ -52,8 +53,8 @@ on disk using persistent storage.
 
 <private>
 #include "amq_server_agent.h"
-#undef  TRACE_DISPATCH
 #define TRACE_DISPATCH                  /*  Trace dispatching progress?      */
+#undef  TRACE_DISPATCH
 </private>
 
 <context>
@@ -115,15 +116,15 @@ on disk using persistent storage.
         self->dest->opt_block_size);
 
     /*  auto-purge option means delete all messages at restart               */
-    //TODO: purge temporary destinations only if requested
-    //TODO: queues should not get temporary flag from dests
-    if (self->dest->opt_auto_purge || self->dest->temporary)
-        self_purge (self);
-    else {
-        self_locate (self, filename);
-        if (file_exists (filename)) {
-            self->disk_queue_size = self_count (self);
-            coprintf ("I: %s has %d existing messages", filename, self->disk_queue_size);
+    //TODO: purge temporary destinations only when requested
+    self_locate (self, filename);
+    if (file_exists (filename)) {
+        self->disk_queue_size = self_count (self);
+        if (self->disk_queue_size) {
+            if (self->dest->opt_auto_purge || self->dest->temporary)
+                self_purge (self);
+            else
+                coprintf ("I: %s has %d existing messages", filename, self->disk_queue_size);
         }
     }
 </method>
@@ -508,6 +509,11 @@ on disk using persistent storage.
     s_delete_byreference (self, txn);
 </method>
 
+<method name = "purge">
+    coprintf ("I: purging %ld messages from %s", self->disk_queue_size, self->dest->key);
+    self->disk_queue_size = 0;
+</method>
+
 <private name = "header">
 static void
     s_create_priority_lists ($(selftype) *self);
@@ -611,9 +617,8 @@ s_insert_byreference (
     amq_queue_insert (self, txn);
 
     /*  We keep a reference count in the original persistent message         */
-    amq_queue_fetch (message->queue, IPR_QUEUE_EQ);
-    message->queue->item_links++;
-    amq_queue_update (message->queue, txn);
+    message->queue->item_id = message->queue_id;
+    amq_queue_link (message->queue, txn);
 }
 
 /*  Create message fetched directly or via persistent reference              */
@@ -667,26 +672,23 @@ s_delete_byreference (
     amq_dest_t
         *dest;
 
-    /*  We need to translate the dest_id into a queue object...              */
-    db_dest = amq_db_dest_new ();
-    db_dest->id = self->item_dest_id;
+    if (self->item_dest_id) {
+        /*  We need to translate the dest_id into a queue object...          */
+        db_dest = amq_db_dest_new ();
+        db_dest->id = self->item_dest_id;
 
-    if (amq_db_dest_fetch (self->vhost->ddb, db_dest, AMQ_DB_FETCH_EQ))
-        coprintf ("E: destination not found (id=%ld)", db_dest->id);
-    else {
-        dest = amq_dest_search (self->vhost->topic_hash, db_dest->name, "");
-        assert (dest);
-        assert (dest->queue);
-
-        dest->queue->item_id = self->item_message_id;
-        amq_queue_fetch (dest->queue, IPR_QUEUE_EQ);
-        dest->queue->item_links--;
-        if (dest->queue->item_links == 0)
+        if (amq_db_dest_fetch (self->vhost->ddb, db_dest, AMQ_DB_FETCH_EQ))
+            coprintf ("E: destination not found (id=%ld)", db_dest->id);
+        else {
+            dest = amq_dest_search (self->vhost->topic_hash, db_dest->name, "");
+            assert (dest);
+            assert (dest->queue);
+            dest->queue->item_id = self->item_message_id;
             amq_queue_delete (dest->queue, txn);
-        else
-            amq_queue_update (dest->queue, txn);
+        }
+        amq_db_dest_destroy (&db_dest);
     }
-    amq_db_dest_destroy (&db_dest);
+    amq_queue_delete (self, txn);
 }
 </private>
 
