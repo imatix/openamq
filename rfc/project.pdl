@@ -25,7 +25,7 @@
 <file name = "amq_rfc014.txt" class = "gurudoc text"     >AMQP Agnostic Client Design</file>
 <file name = "amq_rfc015.txt" class = "gurudoc text"     >AMQ Client Component API</file>
 
-<file name = "index.htm"      class = "private resource" >Main RFC index</file>
+<file name = "index.html"      class = "private resource" >Main RFC index</file>
 <file name = "icl_doc.txt"    class = "private resource" >iCL grammar</file>
 <file name = "gdstyle.css"    class = "web resource"     >Gurudoc style sheet</file>
 <file name = "mainlogo.jpg"   class = "web resource"     >AMQ logo</file>
