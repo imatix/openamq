@@ -179,15 +179,16 @@ testset()
 {
     rm -f AMQPTEST_TIMEOUT
     rm -f AMQPTEST_FAIL
-    for a_test in $(find -name 'test_*.sh' -maxdepth 1); do
+    for a_test in test_*.sh; do
         if test "$a_test" != "test_*.sh"; then 
             echo ""
             runtest "$a_test"
             rm -f AMQPTEST_TIMEOUT
             rm -f AMQPTEST_FAIL
         else
-            if test "$2" != "1"; then
-                echo "!! Nothing to do for $1" 
+            if test tests_* = "tests_*"; then 
+                echo ""
+                echo "(WW) Nothing to do for $1" 
             fi
         fi
     done
@@ -265,11 +266,9 @@ for test_dir in tests_*; do
             sh $test_dir
         fi    
         if test ! -f $test_dir -o "$?" = "0"; then
-            testset $test_dir $subs
-            subs=0
+            testset $test_dir
             for test_subdir in tests_*; do
                 if test "$test_subdir" != "tests_*"; then 
-                    subs=1
                     echo ""
                     echo "  (>>) Entering $test_subdir subdirectory..."
                     cd $test_subdir
