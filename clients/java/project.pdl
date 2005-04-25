@@ -33,6 +33,7 @@
 
 <!-- Java framing API test clients -->
 <file name = "amqpcli_serial*.class"             class = "public command"   >Java pattern testing client</file>
+<file name = "amqpcli_transactions*.class"       class = "public command"   >Java transactions testing client</file>
 <file name = "EchoClient*.class"                 class = "public command"   >Java to C component-chat demonstration client</file>
 
 <!-- Java framing API test clients source -->
@@ -57,10 +58,10 @@
     </generate>
     <build>
         <execute>
-        <!-- Compile Java API .class files -->
+        <!-- Compile Java API -->
         javac com/imatix/openamq/AMQFramingFactory.java
         jar -c0f OpenAMQJava.jar com/imatix/openamq/*.class com/imatix/openamq/frames/*.class
-        <!-- Compile test clients .class files -->
+        <!-- Compile test clients -->
         javac amqpcli_serial.java
         javac amqpcli_transactions.java
         javac EchoClient.java

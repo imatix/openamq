@@ -11,8 +11,13 @@ public class EchoClient extends amqpcli_serial implements Runnable {
 ///////////////////////////   P A R A M E T E R S   ///////////////////////////
 // Some queue defaults for this client
 String
-    read_queue = "java-in",             /* Queue to read from               */
-    write_queue = "c-in";               /* Queue to write to                */
+    read_queue = "java-in",            /* Queue to read from                */
+    write_queue = "c-in";              /* Queue to write to                 */
+boolean
+    input = true,                      /* Verbose mode                      */
+    sampleOutput = false;              /* Sample output switch (no AWT)     */
+int
+    test_dialog;    
 
     
 //////////////////////////////   G L O B A L S   //////////////////////////////
@@ -78,7 +83,9 @@ public EchoClient(String[] args) {
             "  -s server        Name or address of server (localhost)\n"               +
             "  -t level         Set trace level (default = 0)\n"                       +
             "  -r name          Set read queue (default = '" + read_queue + "')\n"     +
-            "  -w name          Set trace level (default = '" + write_queue + "')\n"   +
+            "  -w name          Set write queue (default = '" + write_queue + "')\n"   +
+            "  -i               Disable the input field\n"                             +
+            "  -o               Produce sample messages (no AWT)\n"                    +
             "  -q               Quiet mode: no messages\n"                             +
             "  -v               Show version information\n"                            +
             "  -h               Show summary of command-line options\n"                +
@@ -119,8 +126,17 @@ public EchoClient(String[] args) {
                 case 'w':
                     argparm = "write_queue";
                     break;
+                case 'd':
+                    argparm = "test_dialog";
+                    break;
 
                 /*  These switches have an immediate effect                  */
+                case 'i':
+                    input = false;
+                    break;
+                case 'o':
+                    sampleOutput = true;
+                    break;
                 case 'q':
                     quiet_mode = true;
                     break;
@@ -157,61 +173,80 @@ public EchoClient(String[] args) {
     read_queue = arguments.getProperty("read_queue", "java-in");
     write_queue = arguments.getProperty("write_queue", "c-in");
     verbose = Integer.parseInt(arguments.getProperty("opt_trace", "0")) > 0;
+    test_dialog = Integer.parseInt(arguments.getProperty("test_dialog", "-1"));
     
     // UI
     GridBagLayout 
         gbl;                            /* Frame's layout                   */
     GridBagConstraints 
         gbc;                            /* Layout configuration             */
-        
-    gbl = new GridBagLayout();
-    gbc = new GridBagConstraints();
-    ea = new TextArea("", 20, 80, TextArea.SCROLLBARS_VERTICAL_ONLY);
-    ea.setEditable(false);
-    tf = new TextField("type here (/quit to quit)", 80);
-    // Configure the upper text area
-    gbc.fill = GridBagConstraints.BOTH;
-    gbc.gridwidth = GridBagConstraints.REMAINDER;
-    gbc.weightx = 1;
-    gbc.weighty = 1;
-    gbl.setConstraints(ea, gbc);
-    // Configure the lower text field
-    gbc.fill = GridBagConstraints.HORIZONTAL;
-    gbc.weightx = 0;
-    gbc.weighty = 0;
-    gbl.setConstraints(tf, gbc);
-    // Configure the frame
-    f = new Frame(CLIENT_NAME + " - " + AMQFramingFactory.VERSION);
-    f.addWindowListener(new WindowAdapter() {
-        public void windowClosing(WindowEvent e) {
-            if (receive_thread != null) {
-                try {
-                    // Say bye
-                    channel_close.channelId = 1;
-                    channel_close.replyCode = 200;
-                    channel_close.replyText = "EchoClient.java: I'll be back";
-                    amq_framing.sendFrame(channel_close);
-                } 
-                catch (IOException f)
-                {
-                    raise_exception(exception_event, f, "EchoClient", "windowClosing", "error writing to server.\n");
+    
+    if (!sampleOutput) {        
+        gbl = new GridBagLayout();
+        gbc = new GridBagConstraints();
+        ea = new TextArea("", 20, 80, TextArea.SCROLLBARS_VERTICAL_ONLY);
+        ea.setEditable(false);
+        tf = new TextField("type here (/quit to quit)", 80);
+        // Configure the upper text area
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        gbc.weightx = 1;
+        gbc.weighty = 1;
+        gbl.setConstraints(ea, gbc);
+        // Configure the lower text field
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 0;
+        gbc.weighty = 0;
+        if (input)
+            gbl.setConstraints(tf, gbc);
+        // Configure the frame
+        f = new Frame(CLIENT_NAME + " - " + AMQFramingFactory.VERSION);
+        f.addWindowListener(new WindowAdapter() {
+            public void windowClosing(WindowEvent e) {
+                if (receive_thread != null) {
+                    try {
+                        // Say bye
+                        channel_close.channelId = 1;
+                        channel_close.replyCode = 200;
+                        channel_close.replyText = "EchoClient.java: I'll be back";
+                        amq_framing.sendFrame(channel_close);
+                    } 
+                    catch (IOException f)
+                    {
+                        raise_exception(exception_event, f, "EchoClient", "windowClosing", "error writing to server.\n");
+                    }
+                    catch (AMQException f)
+                    {
+                        raise_exception(exception_event, f, "EchoClient", "windowClosing", "framing error");
+                    }
+                } else {
+                    System.exit(0);
                 }
-                catch (AMQException f)
-                {
-                    raise_exception(exception_event, f, "EchoClient", "windowClosing", "framing error");
-                }
-            } else {
-                System.exit(0);
             }
-        }
-    });
-    f.setLayout(gbl);
-    f.add(ea);
-    f.add(tf);
-    f.pack();
-    // Show window
-    f.setVisible(true);
-    tf.requestFocus();
+        });
+        f.setLayout(gbl);
+        f.add(ea);
+        if (input)
+            f.add(tf);
+        f.pack();
+        // Show window
+        f.setVisible(true);
+        tf.requestFocus();
+    } else if (test_dialog == 1) {
+        PassFailFrame pf = new PassFailFrame("Queue distribution", "Did the received messages got distributed among the two consumer windows?", 
+            new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    if (!e.getActionCommand().equals("PASS")) 
+                        error_message = "FAIL: user audit";
+                    synchronized (receive_thread) {
+                        receive_thread.notify();
+                    }
+                }
+            }
+        );
+        pf.setVisible(true);
+    }
+    
     // Start AMQ layer
     amqpcli_serial_execute(args);
 }
@@ -221,13 +256,20 @@ public EchoClient(String[] args) {
 
 class tfActionListener implements ActionListener {
     public void actionPerformed(ActionEvent e) {
-        try {
-            String                      /* Text to send to the server       */
-                text = e.getActionCommand();
+        String                      /* Text to send to the server       */
+            text = e.getActionCommand();
             
-            // Echo local text in the echo area
-            ea.append("< " + text + "\n");
-
+        // Echo local text in the echo area
+        ea.append("< " + text + "\n");
+        
+        actionPerformed(text);
+        
+        // Clear the textfield   
+        tf.setText("");
+    }
+    
+    public void actionPerformed(String text) {
+        try {
             if (text.equals("/quit")) {
                 // Say bye
                 channel_close.channelId = 1;
@@ -253,8 +295,6 @@ class tfActionListener implements ActionListener {
                     System.err.println("EchoClient: text size not supported by EchoClient");
                 }   
             }     
-            // Clear the textfield   
-            tf.setText("");
         }
         catch (ClassCastException f)
         {
@@ -281,8 +321,6 @@ public void run () {
         byte[] 
             bytes;                      /* Bytes received from the server   */
         
-        // Request consume messages
-        amq_framing.sendFrame(handle_consume);
         while(true) {
             AMQFrame frame;
             int close = 0; 
@@ -301,10 +339,18 @@ public void run () {
                 if (close > 1)         
                     System.out.println("Channel closing, server says: " + channel_close.replyText + ".");
                 System.out.println("Connection closing, server says: " + client_close.replyText + ".");
-                 synchronized (receive_thread) {
-                    receive_thread.notify();
-                 }
-                 break;
+                if (test_dialog == -1) {
+                    synchronized (receive_thread) {
+                        receive_thread.notify();
+                    }
+                    break;
+                } else {
+                    try {
+                        synchronized (receive_thread) {
+                            receive_thread.wait();
+                        }
+                    } catch (InterruptedException e) {} 
+                }
             }
             // Get the data
             handle_notify = (AMQHandle.Notify)frame;
@@ -426,13 +472,36 @@ public void do_tests ()
         handle_consume.selector = null;
         handle_consume.mimeType = "";
         
+        // Request consume messages
+        amq_framing.sendFrame(handle_consume);
+        
         // Read text thread
         receive_thread = new Thread(this);
         receive_thread.start();
         
-        // Send text in AWT thread
-        tf.addActionListener(new tfActionListener());
-        
+        tfActionListener tfa = new tfActionListener();
+        if (!sampleOutput) {
+            // Send text in AWT thread
+            tf.addActionListener(tfa);
+        } else {
+            // Send some sample text
+            tfa.actionPerformed(" 1 Science! true daughter of Old Time thou art!");
+            tfa.actionPerformed(" 2    Who alterest all things with thy peering eyes.");
+            tfa.actionPerformed(" 3 Why preyest thou thus upon the poet's heart,");
+            tfa.actionPerformed(" 4    Vulture, whose wings are dull realities?");
+            tfa.actionPerformed(" 5 How should he love thee? or how deem thee wise,");
+            tfa.actionPerformed(" 6    Who wouldst not leave him in his wandering");
+            tfa.actionPerformed(" 7 To seek for treasure in the jewelled skies,");
+            tfa.actionPerformed(" 8    Albeit he soared with an undaunted wing?");
+            tfa.actionPerformed(" 9 Hast thou not dragged Diana from her car?");
+            tfa.actionPerformed("10    And driven the Hamadryad from the wood");
+            tfa.actionPerformed("11 To seek a shelter in some happier star?");
+            tfa.actionPerformed("12    Hast thou not torn the Naiad from her flood,");
+            tfa.actionPerformed("13 The Elfin from the green grass, and from me");
+            tfa.actionPerformed("14 The summer dream beneath the tamarind tree?");         
+            tfa.actionPerformed("15 Edgar Allan Poe");
+            tfa.actionPerformed("/quit");     
+        }
         synchronized (receive_thread) {
             try {
                 receive_thread.wait();
@@ -457,6 +526,29 @@ public void do_tests ()
 
     the_next_event = done_event;
 }
+
+class PassFailFrame extends Frame {
+
+  Button 
+    pass = new Button("PASS");
+  Button 
+    fail = new Button("FAIL");
+
+  public PassFailFrame(String title, String message, ActionListener al) {
+    super(title);
+    setLayout(new BorderLayout());
+    add(BorderLayout.CENTER, new Label(message));
+    Panel p = new Panel();
+    p.setLayout(new FlowLayout());
+    fail.addActionListener(al);
+    p.add(fail);
+    pass.addActionListener(al);
+    p.add(pass);
+    add(BorderLayout.SOUTH, p);
+    pack();
+  }  
+}        
+
 
 // End EchoClient
 }
