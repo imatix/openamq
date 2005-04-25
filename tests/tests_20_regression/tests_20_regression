@@ -1,0 +1,5 @@
+#!/bin/bash
+
+echo ""
+echo "(II) No regression tests yet"    
+exit 1
