@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if test "$(which java)" != ""; then
+    if test -f ../../../clients/java/OpenAMQJava.jar; then
+        # we have Java
+        exit 0
+    else
+        echo ""
+        echo "  (II) OpenAMQ Java is not installed"    
+        exit 1
+    fi
+else
+    echo ""
+    echo "  (II) Cannot find the java runtime"    
+    exit 1
+fi
