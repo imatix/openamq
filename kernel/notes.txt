@@ -1,6 +1,55 @@
-        - use message reference
-            - on disk: reference to message
-                - store queue id + message id
+
+
+consumer_new
+    - get new consumer index
+        - look in vhost consumer set
+        - get first free bit
+    - dest_name-> list of criteria
+        - match dest_name to all topics for vhost
+
+consumer_destroy
+    - clear vhost consumer bit
+    - clear all terms that consumer uses
+
+dest_new
+    - if topic service
+        - match to all existing consumers
+            - possibly extend consumers criteria
+
+dest_destroy
+    - if topic service
+        - remove criteria from database
+
+amq_criteria
+    - based on hash_str
+
+    name            destname
+    value           a.b.c...
+    data            <consumer set>
+
+amq_criteria
+
+    add consumer
+
+amq_criteria_list
+    parse dest
+        name
+        name.name
+        name.*.name
+        name.*
+        name.#
+            etc.
+
+handle send
+    - destination name -> list of criteria?
+
+
+
+
+
+
+
+---------------------------------------------------
 
 
 mailbox concept
@@ -28,18 +77,6 @@ persistent subscriptions
 
 
 
-
-iCL issues
- - icl loops if class inherits self
-    - inheritence unstable
-        a->b, b folds after a
-        c->a->b, b folds after c but before a
-    - e.g. amq_mesgq, search method
- - can't generate abstract classes, 'target not found'
- - enable trace on grammar, icl generation fails with errors
- - footer in child class comes _after_ footer in parent ?!
- - <data> is not inherited, should be
-    - amq_queue, amq_dest
 
 consume -> update subscription set
     implementation 1 - quick&dirty:

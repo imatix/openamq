@@ -47,6 +47,8 @@ and to a queue.
         no_local;                       /*  Don't deliver own msgs to self   */
     Bool
         no_ack;                         /*  No ACKs are required             */
+    int
+        index;                          /*  Unique index per vhost           */
 </context>
 
 <method name = "new">
