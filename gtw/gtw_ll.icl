@@ -1,170 +1,238 @@
 <?xml?>
-<class
-    name    = "gtw_ll"
-    script  = "icl_gen"
-    animate = "1"
-    >
-
-    <import class = "gtw_types"/>
+<class name = "gtw_ll" script  = "icl_gen">
     
-    <inherit class = "icl_alloc_plain"/>
+    <public>
+    typedef struct tag_gtw_ll_item_t
+    {
+        JAMQ_tsNCharcb 
+            key;
+        void
+            *value;
+        struct tag_gtw_ll_item_t
+            *prev;
+        struct tag_gtw_ll_item_t
+            *next;
+    } gtw_ll_item_t;
+    </public>
+
+    <inherit class = "gtw_object"/>
 
     <context>
-        gtw_ll_item_t
-            *first;
-        gtw_ll_item_t
-            *current;
-        gtw_ll_item_t
-            *last;
-        int
+        qbyte
             count;
         JAMQ_tsLlParams
             params;
+        gtw_ll_item_t
+            *first;
+        gtw_ll_item_t
+            *last;
+        gtw_ll_item_t
+            *current;
+        byte
+            is_deleted;
+        gtw_ll_item_t
+            *deleted;
     </context>
 
-    <method name = "new">
+    <method name = "open"  template = "function">
+        <argument name = "out" type = "gtw_ll_t**"/>
         <argument name = "params" type = "JAMQ_tsLlParams*"/>
         <argument name = "retcode" type = "int*"/>
-        
-        if (!params || !retcode) {
-            *retcode = JAMQ_LL_INPUT_ERR;
-        }
-        else {
-            self->first = NULL;
-            self->current = NULL;
-            self->last = NULL;
-            self->count = 0;
-            self->params = *params;
-            *retcode = 0;
-        }
+        <declare name = "self" type = "gtw_ll_t*"/>
+        if (!retcode)
+            return NOT_OK;
 
-    </method>
-
-    <method name = "destroy">
-
-        while (self->first) {
-            self->current = self->first;
-            self->first = self->first->next;
-            free ((void*) self->current);        
-        }
-
-    </method>
-
-    <method name = "delete" template = "function">
-        <argument name = "key" type = "JAMQ_tsNCharcb*"/>
-        <argument name = "value" type = "void**"/>
-        <argument name = "retcode" type = "int*"/>
-
-        <local>
-            gtw_ll_item_t
-                *current;
-        </local>
-
-        /*  If there are invalid pointers among params, return error         */
-        if (!key || !value || !retcode) {
+        if (!out || !params ||
+              (params->iType != JAMQ_LL_TYPE_1 && params->iType !=
+              JAMQ_LL_TYPE_2 && params->iType != JAMQ_LL_TYPE_3) ||
+              params->p_LinkedList_Hndl != JAMQ_OS_NO_MEM_MGR) {
             *retcode = JAMQ_LL_INPUT_ERR;
             return NOT_OK;
         }
 
-        current = self->current;
+        if (*out) {
+            *retcode = JAMQ_LL_HANDLE_ACTIVE;
+            return NOT_OK;
+        }
 
-        /*  If there are no items in list, return error                      */
-        if (!current) {
+        self = malloc (sizeof (gtw_ll_t));
+        if (!self) {
+            *retcode = JAMQ_LL_MEM_ERR;
+            return NOT_OK;
+        }
+
+        self->count = 0;
+        self->params = *params;
+        self->first = NULL;
+        self->last = NULL;
+        self->current = NULL;
+        self->is_deleted = 0;
+        self->deleted = NULL;
+
+        *out = self;
+        *retcode = 0;
+        return OK;
+    </method>
+
+    <method name = "close" template = "function">
+        <argument name = "self" type = "gtw_ll_t**"/>
+        <argument name = "retcode" type = "int*"/>
+        if (!retcode)
+            return NOT_OK;
+
+        if (!self) {
+            *retcode = JAMQ_LL_INPUT_ERR;
+            return NOT_OK;
+        }
+
+        if (!*self) {
+            *retcode = JAMQ_LL_HANDLE_INVALID;
+            return NOT_OK;
+        }
+
+        /*  If there are items in the list, it can't be closed.              */
+        if ((*self)->count) {
+            *retcode = JAMQ_LL_HANDLE_ACTIVE;
+            return NOT_OK;
+        }
+
+        free ((void*) (*self));
+        
+        *self = NULL;
+        *retcode = 0;
+        return OK;
+    </method>
+
+    <method name = "delete" template = "function">
+        <argument name = "self" type = "gtw_ll_t*"/>
+        <argument name = "key" type = "JAMQ_tsNCharcb*"/>
+        <argument name = "value" type = "void**"/>
+        <argument name = "retcode" type = "int*"/>
+        if (!retcode)
+            return NOT_OK;
+
+        if (!self) {
+            *retcode = JAMQ_LL_HANDLE_INVALID;
+            return NOT_OK;
+        }
+
+        if (!key || !value) {
+            *retcode = JAMQ_LL_INPUT_ERR;
+            return NOT_OK;
+        }
+
+        if (!self->current) {
             *retcode = JAMQ_LL_DATA_UNV;
             return NOT_OK;
         }
 
-        /*  Unlink current item from the list                                */
-        if (current->prev)
-           current->prev->next = current->next;
-        else
-           self->first = current->next;
-        if (current->next)
-           current->next->prev = current->prev;
-        else
-           self->last = current->prev;
-         self->count--;
+        /*  Return key and value to caller                                   */
+        *key = self->current->key;
+        *value = self->current->value;
 
-        /*  Move cursor to the next position                                 */
-        self->current = current->next;
+        /*  Remove item from the list                                        */
+        if (self->first == self->current)
+            self->first = self->current->next;
+        if (self->last == self->current)
+            self->last = self->current->prev;
+        if (self->current->prev)
+            self->current->prev->next = self->current->next;
+        if (self->current->next)
+            self->current->next->prev = self->current->prev;
+        self->count--;
 
-        /*  Return key and value to the client                               */
-        *key = current->key;
-        *value = current->value;
-        
-        /*  Deallocate the item                                              */
-        free ((void*) current);
+        /*  Adjust the cursors and deallocate the item                       */
+        self->is_deleted = 1;
+        self->deleted = self->current->prev;
+        free ((void*) self->current);
+        self->current = NULL;
 
         *retcode = 0;
         return OK;
-
     </method>
 
     <method name = "insert" template = "function">
+        <argument name = "self" type = "gtw_ll_t*"/>
         <argument name = "key" type = "JAMQ_tsNCharcb*"/>
         <argument name = "value" type = "void*"/> 
         <argument name = "retcode" type = "int*"/>
-        <local>
-            gtw_ll_item_t
-                *new;
-        </local>
+        <declare name = "new" type = "gtw_ll_item_t*"/>
+        if (!retcode)
+            return NOT_OK;
 
-        /*  If there are invalid pointers among params, return error         */
-        if (!key || !value || !retcode) {
+        if (!self) {
+            *retcode = JAMQ_LL_HANDLE_INVALID;
+            return NOT_OK;
+        }
+
+        if (!key || !value || !key->pData) {
             *retcode = JAMQ_LL_INPUT_ERR;
             return NOT_OK;
         }
 
-        /*  Allocate and fill in new list item                               */
+        /*  If item was deleted recently, set cursor to point to that place  */
+        if (self->is_deleted)
+            self->current = self->deleted;
+
+        /*  If cursor was on the end of the list, so set it to the last item */
+        else if (!self->current)
+            self->current = self->last;
+
+        /*  Allocate the item, fill it in and insert it into the list        */
         new = (gtw_ll_item_t*) malloc (sizeof (gtw_ll_item_t));
         if (!new) {
-            *retcode = JAMQ_LL_MEM_UNV;
+            *retcode = JAMQ_LL_MEM_ERR;
             return NOT_OK;
         }
         new->key = *key;
         new->value = value;
-        
-        /*  Link it into the list                                            */
         new->prev = self->current;
-        if (!self->current) {
+        new->next = self->current ? self->current->next : self->first;
+        if (new->prev)
+            new->prev->next = new;
+        if (new->next)
+            new->next->prev = new;
+        if (!self->current)
             self->first = new;
+        if (self->current == self->last)
             self->last = new;
-        }
-        else {
-            new->next = self->current->next;
-            self->current->next = new;
-            if (self->current->next)
-                self->current->next->prev = new;
-            else
-                self->last = new;
-        }
-
         self->count++;
+
+        /*  Adjust the cursors                                               */
+        self->current = new;
+        self->is_deleted = 0;
+        self->deleted = NULL;
         
         *retcode = 0;
         return OK;
-
     </method>
 
     <method name = "count" template = "function">
-        <argument name = "count" type = "int*"/>
-
-        *count = self->count;
-        return OK;
-
+        <argument name = "self" type = "gtw_ll_t*"/>
+        if (!self) return 0;
+        else return self->count;
     </method>
 
-    <method name = "first_by_key" template = "function">
+    <method name = "keyed_first_item" template = "function">
+        <argument name = "self" type = "gtw_ll_t*"/>
         <argument name = "key" type = "JAMQ_tsNCharcb*"/>
         <argument name = "value" type = "void**"/>
         <argument name = "retcode" type = "int*"/>
+        if (!retcode)
+            return NOT_OK;
 
-        /*  If there are invalid pointers among params, return error         */
-        if (!key || !value || !retcode) {
+        if (!self) {
+            *retcode = JAMQ_LL_HANDLE_INVALID;
+            return NOT_OK;
+        }
+
+        if (!key || !value) {
             *retcode = JAMQ_LL_INPUT_ERR;
             return NOT_OK;
         }
 
+        /*  Find the item                                                    */
+        self->current = self->first;
         while (self->current) {
             if (self->params.iType == JAMQ_LL_TYPE_1) {
                 if (key->iDataLen == self->current->key.iDataLen &&
@@ -181,112 +249,141 @@
                 if (key->pData == self->current->key.pData)
                     break;
             }
-            else {
-                *retcode = JAMQ_LL_INPUT_ERR;
-                return NOT_OK;
-            }
             self->current = self->current->next;
-        }    
+        }
 
         if (!self->current) {
             *retcode = JAMQ_LL_DATA_UNV;
             return NOT_OK;
         }
 
+        /*  Return the value to the caller                                   */
         *value = self->current->value;
+
+        /*  Adjust the cursors                                               */
+        self->is_deleted = 0;
+        self->deleted = NULL;
+
         *retcode = 0;
         return OK;
-
     </method>
 
-    <method name = "first_item" template = "function">
+    <method name = "seq_first_item" template = "function">
+        <argument name = "self" type = "gtw_ll_t*"/>
         <argument name = "key" type = "JAMQ_tsNCharcb*"/>
         <argument name = "value" type = "void**"/>
         <argument name = "retcode" type = "int*"/>
+        if (!retcode)
+            return NOT_OK;
 
-        /*  If there are invalid pointers among params, return error         */
-        if (!key || !value || !retcode) {
+        if (!self) {
+            *retcode = JAMQ_LL_HANDLE_INVALID;
+            return NOT_OK;
+        }
+
+        if (!key || !value) {
             *retcode = JAMQ_LL_INPUT_ERR;
             return NOT_OK;
         }
 
-        /*  If there is no first element (list is empty), return error       */
         if (!self->first) {
             *retcode = JAMQ_LL_DATA_UNV;
             return NOT_OK;
         }
 
-        /*  Set current position to the beginning of the list                */
-        self->current = self->first;
-
-        /*  Return key and value                                             */
-        *key = self->first->key;
+        /*  Return the value to the caller                                   */
         *value = self->first->value;
+
+        /*  Adjust the cursors                                               */
+        self->current = self->first;
+        self->is_deleted = 0;
+        self->deleted = NULL;
+
         *retcode = 0;
         return OK;
-
     </method>
 
-    <method name = "next_item" template = "function">
+    <method name = "seq_next_item" template = "function">
+        <argument name = "self" type = "gtw_ll_t*"/>
         <argument name = "key" type = "JAMQ_tsNCharcb*"/>
         <argument name = "value" type = "void**"/>
         <argument name = "retcode" type = "int*"/>
+        if (!retcode)
+            return NOT_OK;
 
-        /*  If there are invalid pointers among params, return error         */
-        if (!key || !value || !retcode) {
+        if (!self) {
+            *retcode = JAMQ_LL_HANDLE_INVALID;
+            return NOT_OK;
+        }
+
+        if (!key || !value) {
             *retcode = JAMQ_LL_INPUT_ERR;
             return NOT_OK;
         }
 
-        /*  If end-of-list, return error                                     */
+        /*  If item was recently deleted, start the search from that place   */
+        if (self->is_deleted)
+            self->current = self->deleted;
+
+        /*  If the cursor was on the end of the list, return error           */
+        else if (!self->current) {
+            *retcode = JAMQ_LL_DATA_UNV;
+            return NOT_OK;
+        }
+
+        /*  Move cursor to the next position                                 */
+        self->current = self->current ? self->current->next : self->first;
         if (!self->current) {
             *retcode = JAMQ_LL_DATA_UNV;
             return NOT_OK;
         }
 
-        /*  Move cursor to the next element                                  */
-        self->current = self->current->next;
-
-        /*  If there is no next element, return error                        */
-        if (!self->current) {
-            *retcode = JAMQ_LL_DATA_UNV;
-            return NOT_OK;
-        }
-
-        /*  Return key and value                                             */
-        *key = self->current->key;
+        /*  Return value to the caller                                       */
         *value = self->current->value;
+
+        /*  Adjust the cursors                                               */
+        self->is_deleted = 0;
+        self->deleted = NULL;
+
         *retcode = 0;
-        return NOT_OK;
-
-
+        return OK;
     </method>
 
     <method name = "set_key" template = "function">
+        <argument name = "self" type = "gtw_ll_t*"/>
         <argument name = "key_out" type = "JAMQ_tsNCharcb*"/>
         <argument name = "key_in" type = "JAMQ_tsNCharcb*"/>
         <argument name = "retcode" type = "int*"/>
+        if (!retcode)
+            return NOT_OK;
 
-        /*  If there are invalid pointers among params, return error         */
-        if (!key_in || !key_out || !retcode) {
+        if (!self) {
+            *retcode = JAMQ_LL_HANDLE_INVALID;
+            return NOT_OK;
+        }
+
+        if (!key_in || !key_in->pData || !key_out) {
             *retcode = JAMQ_LL_INPUT_ERR;
             return NOT_OK;
         }
 
-        /*  If end-of-list, return error                                     */
         if (!self->current) {
             *retcode = JAMQ_LL_DATA_UNV;
             return NOT_OK;
         }
 
         /*  Exchange the keys                                                */
-        *key_out =self->current->key;
+        *key_out = self->current->key;
         self->current->key = *key_in;
+
+        /*  Adjust the cursors                                               */
+        self->is_deleted = 0;
+        self->deleted = NULL;
+
         *retcode = 0;
         return OK;
-
     </method>
- 
+
     <method name = "selftest">
         <local>
             void
@@ -299,10 +396,11 @@
                 key;
             void
                 *value;
+            int
+                size;
         </local>
-
         params.iType = JAMQ_LL_TYPE_1;
-        params.pLinkedList_Hndl = JAMQ_OS_NO_MEM_MGR;
+        params.p_LinkedList_Hndl = JAMQ_OS_NO_MEM_MGR;
 
         if (!JAMQ_ll_open (&list, &params, &retcode)) {
             printf ("JAMQ_ll_open failed (%ld)\\n", (long) retcode);
@@ -334,7 +432,7 @@
             printf ("JAMQ_ll_seq_first_item failed (%ld)\\n", (long) retcode);
             exit (EXIT_FAILURE);
         }
-        assert (value == (void*) 0x3);
+        assert (value == (void*) 0x1);
 
         key.iDataLen = 5;
         key.pData = "test2";
@@ -350,10 +448,43 @@
         }
         assert (value == (void*) 0x2);
 
+        size = JAMQ_ll_item_count (list);
+        assert (size == 2);
+
+        if (!JAMQ_ll_seq_first_item (list, &key, &value, &retcode)) {
+            printf ("JAMQ_ll_seq_first_item failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+        assert (value == (void*) 0x1);
+
+        if (!JAMQ_ll_seq_next_item (list, &key, &value, &retcode)) {
+            printf ("JAMQ_ll_seq_next_item failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+        assert (value == (void*) 0x3);
+
+        if (!JAMQ_ll_delete_item (list, &key, &value, &retcode)) {
+            printf ("JAMQ_ll_delete_item failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+        assert (value == (void*) 0x3);
+
+        if (!JAMQ_ll_seq_first_item (list, &key, &value, &retcode)) {
+            printf ("JAMQ_ll_seq_first_item failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+        assert (value == (void*) 0x1);
+
+        if (!JAMQ_ll_delete_item (list, &key, &value, &retcode)) {
+            printf ("JAMQ_ll_delete_item failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+        assert (value == (void*) 0x1);
+
         if (!JAMQ_ll_close (&list, &retcode)) {
             printf ("JAMQ_ll_close failed (%ld)\\n", (long) retcode);
             exit (EXIT_FAILURE);
-        }
-        
+        }        
     </method>
-</class>
+
+</class>        

@@ -23,11 +23,11 @@ typedef struct JAMQ_sNCharcb
  *  Linked list
  *---------------------------------------------------------------------------*/
 
-#define JAMQ_LL_HANDLE_INVALID 1
-#define JAMQ_LL_HANDLE_DUPLICATE 2
-#define JAMQ_LL_MEM_UNV 3
-#define JAMQ_LL_INPUT_ERR 4
-#define JAMQ_LL_DATA_UNV 5
+#define JAMQ_LL_HANDLE_INVALID   001
+#define JAMQ_LL_HANDLE_ACTIVE    002
+#define JAMQ_LL_MEM_ERR          003
+#define JAMQ_LL_INPUT_ERR        004
+#define JAMQ_LL_DATA_UNV         005
 
 #define JAMQ_LL_TYPE_1 1
 #define JAMQ_LL_TYPE_2 2
@@ -38,7 +38,7 @@ typedef struct JAMQ_sLlParams
     int
         iType;
     void
-        * pLinkedList_Hndl;
+        *p_LinkedList_Hndl;
 } JAMQ_tsLlParams;
 
 int JAMQ_ll_open (
@@ -102,14 +102,15 @@ int JAMQ_ll_set_key (
  *  Hash table
  *---------------------------------------------------------------------------*/
 
-#define JAMQ_HASH_HANDLE_INVALID 6
-#define JAMQ_HASH_HANDLE_DUPLICATE 7
-#define JAMQ_HASH_INPUT_ERR 8
-#define JAMQ_HASH_MEM_ERR 9
-#define JAMQ_HASH_ALREADY_EXISTS 10
-#define JAMQ_HASH_DATA_UNV 11
+#define JAMQ_HASH_HANDLE_INVALID   100
+#define JAMQ_HASH_HANDLE_ACTIVE    101
+#define JAMQ_HASH_INPUT_ERR        102
+#define JAMQ_HASH_MEM_ERR          103
+#define JAMQ_HASH_ALREADY_EXISTS   104
+#define JAMQ_HASH_DATA_UNV         105
 
-#define LTW_HASH_TOREK_ROUTINE_NAME NULL
+#define LTW_HASH_TOREK_ROUTINE_NAME "hashr_torek"
+#define LTW_HASH_TOREK_ROUTINE_NAME_LEN 11
 
 typedef struct JAMQ_sHashParams    
 {
@@ -167,5 +168,98 @@ int JAMQ_hash_close(
     void  **aphash_Hndl,
     int   *aireturn_Code
     );
+
+/*---------------------------------------------------------------------------
+ *  Table
+ *---------------------------------------------------------------------------*/
+
+#define JAMQ_TBL_HANDLE_INVALID   200
+#define JAMQ_TBL_HANDLE_ACTIVE    201
+#define JAMQ_TBL_INPUT_ERR        202
+#define JAMQ_TBL_MEM_ERR          203
+#define JAMQ_TBL_LOC_MEM_ERR      204
+#define JAMQ_TBL_TOKEN_ERR        205
+#define JAMQ_TBL_DATA_UNV         206
+
+#define JAMQ_DOS_FILE  1
+#define JAMQ_UNIX_FILE 2
+
+typedef struct JAMQ_sTblParams     
+{
+    int
+        iRowIncrement;
+} JAMQ_tsTblParams;
+
+int JAMQ_tbl_open (
+    void              **apTableHandle,
+    JAMQ_tsTblParams  *pTableParams,  
+    int               *aireturn_Code
+    );
+
+int JAMQ_tbl_load_ssv (
+    void            *pTableHandle,
+    JAMQ_tsNCharcb  *pJAMQ_FileName,
+    int             iJAMQ_FileType, 
+    int             *aireturn_Code
+    );
+
+int JAMQ_tbl_load_tbl (
+    void            *pTableHandle,
+    JAMQ_tsNCharcb  *pJAMQ_FileName,
+    int             *aireturn_Code
+    );
+
+int JAMQ_tbl_find_first_match (
+    void            *pTableHandle,
+    int             iTableCol,
+    JAMQ_tsNCharcb  *pTableItem,
+    int             *aiTableRow,
+    int             *aireturn_Code
+    );
+
+int JAMQ_tbl_get_item (
+    void            *pTableHandle,
+    int             iTableRow,
+    int             iTableCol,
+    JAMQ_tsNCharcb  *pTableItem,
+    int             *aireturn_Code
+    );
+
+int JAMQ_tbl_update_item (
+    void            *pTableHandle,
+    int             iTableRow,
+    int             iTableCol,
+    JAMQ_tsNCharcb  *pTableItem,
+    int             *aireturn_Code
+    );
+
+int JAMQ_tbl_get_size(
+    void  *pTableHandle,
+    int   *aiTableRows,
+    int   *aiTableCols,
+    int   *aireturn_Code
+    );
+
+int JAMQ_tbl_write_tbl(
+    void            *pTableHandle,
+    JAMQ_tsNCharcb  *pJAMQFileName, 
+    int             *aireturn_Code
+    );
+
+int JAMQ_tbl_delete_item(
+    void  *pTableHandle,
+    int   iTableRow,
+    int   iTableCol,
+    int   *aireturn_Code
+    );
+
+int JAMQ_tbl_close(
+    void  **apTableHandle,
+    int   *aireturn_Code
+    );
+
+/*---------------------------------------------------------------------------
+ *  Miscellaneous
+ *---------------------------------------------------------------------------*/
 
 #endif

@@ -1,90 +1,164 @@
 <?xml?>
-<class
-    name    = "gtw_hash"
-    script  = "icl_gen"
-    animate = "1"
-    >
-
-    <import class = "gtw_types"/>
+<class name = "gtw_hash" script  = "icl_gen">
     
-    <inherit class = "icl_alloc_plain"/>
+    <public>
+    typedef struct tag_gtw_hash_item_t
+    {
+        JAMQ_tsNCharcb 
+            key;
+        void
+            *value;
+        struct tag_gtw_hash_item_t
+            *next;
+        struct tag_gtw_hash_item_t
+            *prev;
+    } gtw_hash_item_t;
+    </public>
+
+    <private>
+    static inline qbyte torek (const char *str, int length)
+    {
+        qbyte
+            res = 0x3BE07A42;
+        int
+            pos = 0;
+
+        while (pos != length)
+        res = res * 33 + (byte) (str [pos++]);
+        return res;
+    }
+    </private>
+
+    <inherit class = "gtw_object"/>
 
     <context>
         gtw_hash_item_t
             **table;
-        gtw_hash_item_t
-            *current_item;
-        int current_slot;
         JAMQ_tsHashParams
             params;
+        gtw_hash_item_t
+            *current_item;
+        int
+            current_slot;
+        byte
+            is_deleted;
+        gtw_hash_item_t
+            *deleted_item;
+        int
+            deleted_slot;
     </context>
 
-    <method name = "new">
+    <method name = "open" template = "function">
+        <argument name = "out" type = "gtw_hash_t**"/>
         <argument name = "params" type = "JAMQ_tsHashParams*"/>
         <argument name = "retcode" type = "int*"/>
-        
-        if (!params || !retcode) {
+        <declare name = "self" type = "gtw_hash_t*"/>
+     
+        if (!retcode)
+            return NOT_OK;
+
+        if (!params || params->shash_RoutineName.iDataLen !=
+              LTW_HASH_TOREK_ROUTINE_NAME_LEN ||
+              memcmp (LTW_HASH_TOREK_ROUTINE_NAME,
+              params->shash_RoutineName.pData,
+              params->shash_RoutineName.iDataLen) != 0) {
             *retcode = JAMQ_LL_INPUT_ERR;
-        }
-        else {
-            self->table = calloc (params->ihash_TableSize,
-                sizeof (gtw_hash_item_t*));
-            if (!self->table) {
-                *retcode = JAMQ_HASH_MEM_ERR;
-            }
-            else {
-                self->current_slot = 0;
-                self->current_item = NULL;
-                self->params = *params;
-                *retcode = 0;
-            }
+            return NOT_OK;
         }
 
+        if (*out) {
+            *retcode = JAMQ_HASH_HANDLE_ACTIVE;
+            return NOT_OK;
+        }
+
+        self = malloc (sizeof (gtw_hash_t));
+        if (!self) {
+            *retcode = JAMQ_HASH_MEM_ERR;
+            return NOT_OK;
+        }
+      
+        self->params = *params;
+        self->current_item = NULL;
+        self->current_slot = 0;
+        self->is_deleted = 0;
+        self->deleted_item = NULL;
+        self->deleted_slot = 0;
+
+        self->table = calloc (params->ihash_TableSize,
+            sizeof (gtw_hash_item_t*));
+        if (!self->table) {
+            free ((void*) self);
+            *retcode = JAMQ_HASH_MEM_ERR;
+            return NOT_OK;
+        }
+        
+        *out = self;
+        *retcode = 0;
+        return OK;
     </method>
 
-    <method name = "destroy">
-        <local>
-            int
-                counter;
-            gtw_hash_item_t
-                *to_destroy;
-            gtw_hash_item_t
-                *next;
-        </local>
+    <method name = "close" template = "function">
+        <argument name = "self" type = "gtw_hash_t**"/>
+        <argument name = "retcode" type = "int*"/>
+        <declare name = "counter" type = "int"/>
+        <declare name = "to_destroy" type = "gtw_hash_item_t*"/>
+        <declare name = "next" type = "gtw_hash_item_t*"/>
+        if (!retcode)
+            return NOT_OK;
 
-        for (counter = 0; counter != self->params.ihash_TableSize; counter++) {
-            next = self->table [counter];
+        if (!self) {
+            *retcode = JAMQ_HASH_INPUT_ERR;
+            return NOT_OK;
+        }
+
+        if (!*self) {
+            *retcode = JAMQ_HASH_HANDLE_INVALID;
+            return NOT_OK;
+        }
+        
+        /*  Deallocate what needed                                           */
+        for (counter = 0;
+              counter != (*self)->params.ihash_TableSize; counter++) {
+            next = (*self)->table [counter];
             while (next) {
                 to_destroy = next;
                 next = next->next;
                 free ((void*) to_destroy);
             }
         }
+        free ((void*) (*self)->table);
+
+        *self = NULL;
+        *retcode = 0;
+        return OK;
     </method>
 
     <method name = "add" template = "function">
+        <argument name = "self" type = "gtw_hash_t*"/>
         <argument name = "key" type = "JAMQ_tsNCharcb*"/>
         <argument name = "value" type = "void*"/>
         <argument name = "retcode" type = "int*"/>
-        <local>
-            qbyte
-                hash_value;
-            gtw_hash_item_t
-                *pos;
-        </local>
+        <declare name = "slot" type = "qbyte"/>
+        <declare name = "pos" type = "gtw_hash_item_t*"/>
+        if (!retcode)
+            return NOT_OK;
 
-        /*  If there are invalid pointers among params, return error         */
-        if (!key || !value || !retcode) {
+        if (!self) {
+            *retcode = JAMQ_HASH_HANDLE_INVALID;
+            return NOT_OK;
+        }
+
+        if (!key || !value) {
             *retcode = JAMQ_HASH_INPUT_ERR;
             return NOT_OK;
         }
 
         /*  Compute slot in hash table                                       */
-        hash_value = torek (key->pData, key->iDataLen) %
+        slot = torek (key->pData, key->iDataLen) %
             self->params.ihash_TableSize;
 
         /*  Test whether item with specified key already exists              */
-        pos = self->table [hash_value];
+        pos = self->table [slot];
         while (pos) {
             if (key->iDataLen == pos->key.iDataLen &&
                   memcmp ((void*) key->pData, (void*) pos->key.pData,
@@ -103,45 +177,47 @@
        }
        pos->key = *key;
        pos->value = value;
-       pos->next = self->table [hash_value]; 
-       self->table [hash_value] = pos;
+       pos->next = self->table [slot]; 
+       self->table [slot] = pos;
 
-       /*  Move cursor to the newly created item                             */
-       self->current_item = pos;
-       self->current_slot = hash_value;
+       /*  Adjust cursors                                                    */
+       self->is_deleted = 0;
+       self->deleted_item = NULL;
+       self->deleted_slot = 0;
 
        *retcode = 0;
        return OK;
-
     </method>
 
     <method name = "delete" template = "function">
+        <argument name = "self" type = "gtw_hash_t*"/>
         <argument name = "key_in" type = "JAMQ_tsNCharcb*"/>
         <argument name = "key_out" type = "JAMQ_tsNCharcb*"/>
         <argument name = "value" type = "void**"/>
         <argument name = "retcode" type = "int*"/>
-        <local>
-            qbyte
-                hash_value;
-            gtw_hash_item_t
-                *pos;
-            gtw_hash_item_t
-                **prev_pos;
-        </local>
+        <declare name = "slot" type = "qbyte"/>
+        <declare name = "pos" type = "gtw_hash_item_t*"/>
+        <declare name = "prev_pos" type = "gtw_hash_item_t**"/>
+        if (!retcode)
+            return NOT_OK;
 
-        /*  If there are invalid pointers among params, return error         */
-        if (!key_in || !key_out || !value || !retcode) {
+        if (!self) {
+            *retcode = JAMQ_HASH_HANDLE_INVALID;
+            return NOT_OK;
+        }
+
+        if (!key_in || !key_out || !value) {
             *retcode = JAMQ_HASH_INPUT_ERR;
             return NOT_OK;
         }
 
         /*  Compute slot in hash table                                       */
-        hash_value = torek (key_in->pData, key_in->iDataLen) %
+        slot = torek (key_in->pData, key_in->iDataLen) %
             self->params.ihash_TableSize;
 
         /*  Test whether item with specified key exists                      */
-        pos = self->table [hash_value];
-        prev_pos = &(self->table [hash_value]);
+        pos = self->table [slot];
+        prev_pos = &(self->table [slot]);
         while (pos) {
             if (key_in->iDataLen == pos->key.iDataLen &&
                   memcmp ((void*) key_in->pData, (void*) pos->key.pData,
@@ -157,6 +233,13 @@
                 /*  Free the item                                            */
                 free ((void*) pos);
 
+                /*  Adjust cursors                                           */
+                self->current_slot = 0;
+                self->current_item = NULL;
+                self->is_deleted = 1;
+                self->deleted_slot = slot;
+                self->deleted_item = pos;
+
                 *retcode = 0;
                 return OK;
             }
@@ -166,32 +249,34 @@
 
         *retcode = JAMQ_HASH_DATA_UNV;
         return NOT_OK;
-
     </method>
- 
+
     <method name = "find" template = "function">
+        <argument name = "self" type = "gtw_hash_t*"/>
         <argument name = "key" type = "JAMQ_tsNCharcb*"/>
         <argument name = "value" type = "void**"/>
         <argument name = "retcode" type = "int*"/>
-        <local>
-            qbyte
-                hash_value;
-            gtw_hash_item_t
-                *pos;
-        </local>
+        <declare name = "slot" type = "qbyte"/>
+        <declare name = "pos" type = "gtw_hash_item_t*"/>
+        if (!retcode)
+            return NOT_OK;
 
-        /*  If there are invalid pointers among params, return error         */
-        if (!key || !value || !retcode) {
+        if (!self) {
+            *retcode = JAMQ_HASH_HANDLE_INVALID;
+            return NOT_OK;
+        }
+
+        if (!key || !value) {
             *retcode = JAMQ_HASH_INPUT_ERR;
             return NOT_OK;
         }
 
         /*  Compute slot in hash table                                       */
-        hash_value = torek (key->pData, key->iDataLen) %
+        slot = torek (key->pData, key->iDataLen) %
             self->params.ihash_TableSize;
 
         /*  Find the key                                                     */
-        pos = self->table [hash_value];
+        pos = self->table [slot];
         while (pos) {
             if (key->iDataLen == pos->key.iDataLen &&
                   memcmp ((void*) key->pData, (void*) pos->key.pData,
@@ -199,41 +284,64 @@
 
                 /*  Return the value                                         */
                 *value = pos->value;
+
+                /*  Adjust the cursors                                       */
+                self->current_slot = slot;
+                self->current_item = pos;
+                self->is_deleted = 0;
+                self->deleted_slot = 0;
+                self->deleted_item = NULL;
+
                 *retcode = 0;
                 return OK;
             }
             pos = pos->next;
         }
 
+        /*  Key not found, adjust the cursors                                */
+        self->current_slot = 0;
+        self->current_item = NULL;
+        self->is_deleted = 0;
+        self->deleted_slot = 0;
+        self->deleted_item = NULL;
+
         *retcode = JAMQ_HASH_DATA_UNV;
         return NOT_OK;
-
     </method>
 
     <method name = "first_item" template = "function">
+        <argument name = "self" type = "gtw_hash_t*"/>
         <argument name = "key" type = "JAMQ_tsNCharcb*"/>
         <argument name = "value" type = "void**"/>
         <argument name = "retcode" type = "int*"/>
-        <local>
-            qbyte
-                slot = 0;
-        </local>
+        <declare name = "slot" type = "qbyte"/>
+        if (!retcode)
+            return NOT_OK;
 
-        /*  If there are invalid pointers among params, return error         */
-        if (!key || !value || !retcode) {
+        if (!self) {
+            *retcode = JAMQ_HASH_HANDLE_INVALID;
+            return NOT_OK;
+        }
+
+        if (!key || !value) {
             *retcode = JAMQ_HASH_INPUT_ERR;
             return NOT_OK;
         }
 
+        /*  Find first filled-in slot                                        */
+        slot = 0;
         while (slot != self->params.ihash_TableSize) {
             if (self->table [slot]) {
                 /*  Return the values                                        */
                 *key = self->table [slot]->key;
                 *value = self->table [slot]->value;
 
-                /*  Set current pointer                                      */
+                /*  Adjust the cursors                                       */
                 self->current_slot = slot;
                 self->current_item = self->table [slot];
+                self->is_deleted = 0;
+                self->deleted_slot = 0;
+                self->deleted_item = NULL;
 
                 *retcode = 0;
                 return OK;
@@ -241,59 +349,161 @@
             slot++;
         }
 
+        /*  No item found, adjust the cursors                                */
+        self->is_deleted = 0;
+        self->deleted_slot = 0;
+        self->deleted_item = NULL;
+
         *retcode = JAMQ_HASH_DATA_UNV;
         return NOT_OK;
-
     </method>
 
     <method name = "next_item" template = "function">
+        <argument name = "self" type = "gtw_hash_t*"/>
         <argument name = "key" type = "JAMQ_tsNCharcb*"/>
         <argument name = "value" type = "void**"/>
         <argument name = "retcode" type = "int*"/>
-        <local>
-            qbyte
-                slot;
-            gtw_hash_item_t
-                *item;
-        </local>
+        <declare name = "slot" type = "qbyte"/>
+        <declare name = "item" type = "gtw_hash_item_t*"/>
+        if (!retcode)
+            return NOT_OK;
 
-        /*  If there are invalid pointers among params, return error         */
-        if (!key || !value || !retcode) {
+        if (!self) {
+            *retcode = JAMQ_HASH_HANDLE_INVALID;
+            return NOT_OK;
+        }
+
+        if (!key || !value) {
             *retcode = JAMQ_HASH_INPUT_ERR;
             return NOT_OK;
         }
 
-        /*  If cursor is on the end of the table, return error               */
-        if (!self->current_item) {
-            *retcode = JAMQ_HASH_DATA_UNV;
-            return NOT_OK;
-        }
+        if (self->is_deleted) {
 
-        /*  Find next item                                                   */
-        slot = self->current_slot;
-        item = self->current_item->next;
-        while (slot != self->params.ihash_TableSize) {
-            if (item) {
+            /*  If an item was recently deleted, use item next to it         */
+            if (self->deleted_item) {
+
                 /*  Return the values                                        */
-                *key = item->key;
-                *value = item->value;
+                *key = self->deleted_item->key;
+                *value = self->deleted_item->value;
 
-                /*  Set current pointer                                      */
-                self->current_slot = slot;
-                self->current_item = item;
+                /*  Adjust the cursors                                       */
+                self->current_slot = self->deleted_slot;
+                self->current_item = self->deleted_item;
+                self->is_deleted = 0;
+                self->deleted_slot = 0;
+                self->deleted_item = NULL;
 
                 *retcode = 0;
                 return OK;
             }
-            slot++;
-            item = self->table [slot];
         }
+        else {
+
+            /*  Find next item                                               */
+            slot = self->current_slot;
+            item = self->current_item->next;
+            while (slot != self->params.ihash_TableSize) {
+                if (item) {
+
+                    /*  Return the values                                    */
+                    *key = item->key;
+                    *value = item->value;
+
+                    /*  Adjust cursors                                       */
+                    self->current_slot = slot;
+                    self->current_item = item;
+                    self->is_deleted = 0;
+                    self->deleted_slot = 0;
+                    self->deleted_item = NULL;
+
+                    *retcode = 0;
+                    return OK;
+                }
+                slot++;
+                item = self->table [slot];
+            }
+        }
+
+        /*  No item found, adjust the cursors                                */
+        self->current_slot = 0;
+        self->current_item = NULL;
+        self->is_deleted = 0;
+        self->deleted_slot = 0;
+        self->deleted_item = NULL;
 
         *retcode = JAMQ_HASH_DATA_UNV;
         return NOT_OK;
-
     </method>
 
     <method name = "selftest">
+        <local>
+            void
+                *list = NULL;
+            int
+                retcode;
+            JAMQ_tsHashParams
+                params;
+            JAMQ_tsNCharcb
+                key;
+            void
+                *value;
+        </local>
+
+        params.ihash_TableSize            = 3;
+        params.shash_RoutineName.pData    = LTW_HASH_TOREK_ROUTINE_NAME;
+        params.shash_RoutineName.iDataLen = LTW_HASH_TOREK_ROUTINE_NAME_LEN;
+        params.p_hash_mem_Hndl            = JAMQ_OS_NO_MEM_MGR;
+
+        if (!JAMQ_hash_open (&list, &params, &retcode)) {
+            printf ("JAMQ_hash_open failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+
+        key.pData = "Test1";
+        key.iDataLen = 5;
+        if (!JAMQ_hash_add (list, &key, (void*) 0x1, &retcode)) {
+            printf ("JAMQ_hash_add failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+
+        key.pData = "Test2";
+        key.iDataLen = 5;
+        if (!JAMQ_hash_add (list, &key, (void*) 0x2, &retcode)) {
+            printf ("JAMQ_hash_add failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+
+        key.pData = "Ohdj";
+        key.iDataLen = 4;
+        if (!JAMQ_hash_add (list, &key, (void*) 0x3, &retcode)) {
+            printf ("JAMQ_hash_add failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+
+        key.pData = "Test1";
+        key.iDataLen = 5;
+        if (!JAMQ_hash_delete (list, &key, &key, &value, &retcode)) {
+            printf ("JAMQ_hash_delete failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+
+        if (!JAMQ_hash_first_item (list, &key, &value, &retcode)) {
+            printf ("JAMQ_hash_first_item failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+        assert (value == (void*) 0x2);
+
+        if (!JAMQ_hash_next_item (list, &key, &value, &retcode)) {
+            printf ("JAMQ_hash_next_item failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+        assert (value == (void*) 0x3);
+
+        if (!JAMQ_hash_close (&list, &retcode)) {
+            printf ("JAMQ_hash_close failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
     </method>
+
 </class>
