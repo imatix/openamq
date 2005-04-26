@@ -1,3 +1,7 @@
+0.8c1 - 2005/04/26
+
+ - porting to Solaris/sparc (ARP changes)
+
 0.8c0 - 2005/04/16
 
 Changes to server kernel:

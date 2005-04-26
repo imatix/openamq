@@ -47,8 +47,6 @@ virtual host.
         *topic_hash;                    /*  Topics for vhost, hash table     */
     amq_dest_table_t
         *subscr_hash;                   /*  Subscriptions for vhost          */
-    ipr_bits_t
-        *consumer_set;                  /*  Set of consumers, as bitstring   */
     //TODO: these will be moved to a hashed bit array for matching
     amq_subscr_list_t
         *subscr_list;                   /*  Subscriptions for vhost          */
@@ -64,7 +62,6 @@ virtual host.
     self->topic_hash   = amq_dest_table_new ();
     self->subscr_hash  = amq_dest_table_new ();
     self->subscr_list  = amq_subscr_list_new ();
-    self->consumer_set = ipr_bits_new ();
     ipr_shortstr_cpy (self->directory, directory);
 
     coprintf ("I: configuring virtual host '%s'", self->key);
@@ -90,7 +87,6 @@ virtual host.
     amq_dest_table_destroy  (&self->topic_hash);
     amq_dest_table_destroy  (&self->subscr_hash);
     amq_subscr_list_destroy (&self->subscr_list);
-    ipr_bits_destroy        (&self->consumer_set);
     ipr_db_destroy          (&self->db);
     amq_db_destroy          (&self->ddb);
 </method>
