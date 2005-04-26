@@ -83,7 +83,7 @@ s_connected (amq_aclient_connected_t *args)
 #endif
 
     /*  Open pre-configured test queues                                      */
-    smallq_id = amq_aclient_handle_open (args->client, channel_id, FALSE, "test-small");
+    smallq_id = amq_aclient_handle_open (args->client, channel_id, AMQP_SERVICE_QUEUE, FALSE, "test-small");
 
 #if 0
     dbyte

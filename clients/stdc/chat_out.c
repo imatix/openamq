@@ -137,7 +137,7 @@ main (int argc, char *argv [])
     signal (SIGINT,  s_handle_signal);
     signal (SIGTERM, s_handle_signal);
 
-    out_handle = amq_sclient_producer (amq_client, "java-in");
+    out_handle = amq_sclient_producer (amq_client, AMQP_SERVICE_QUEUE, "java-in");
     coprintf ("Enter text and press Enter, type 'bye' to finish\n");
 
     while (TRUE) {

@@ -78,7 +78,7 @@ main (int argc, char *argv [])
         if (amq_client
         &&  amq_sclient_connect (amq_client, hostname, virtual_path)) {
     
-            handle = amq_sclient_producer (amq_client, route);
+            handle = amq_sclient_producer (amq_client, AMQP_SERVICE_QUEUE, route);
             
             message  = amq_message_new ();
             fragment = amq_bucket_new (AMQ_BUCKET_MAX_SIZE);

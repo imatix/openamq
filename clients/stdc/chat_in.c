@@ -130,7 +130,7 @@ main (int argc, char *argv [])
         goto failed;
 
     /*  We ask the server to auto-acknowledge messages (unreliable)          */
-    in_handle = amq_sclient_consumer (amq_client, "c-in", 1, TRUE);
+    in_handle = amq_sclient_consumer (amq_client, AMQP_SERVICE_QUEUE, "c-in", 1, TRUE);
     while (TRUE) {
         message = amq_sclient_msg_read (amq_client, 0);
         if (message) {

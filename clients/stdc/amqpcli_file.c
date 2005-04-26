@@ -86,6 +86,7 @@ s_connected (amq_aclient_connected_t *args)
     handle_id  = amq_aclient_handle_open  (args->client,
                                            channel_id, 
                                            FALSE, 
+                                           AMQP_SERVICE_QUEUE,
                                            dest_name);
                                                             
     /*  Register server-driven close feedbacks                               */
