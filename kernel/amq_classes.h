@@ -25,6 +25,7 @@
 #include "amq_field.h"
 #include "amq_global.h"
 #include "amq_handle.h"
+#include "amq_match.h"
 #include "amq_message.h"
 #include "amq_smessage.h"
 #include "amq_mesgref.h"
@@ -32,4 +33,5 @@
 #include "amq_dest.h"
 #include "amq_user.h"
 #include "amq_subscr.h"
+#include "amq_term.h"
 #include "amq_vhost.h"

@@ -6,9 +6,10 @@
     copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
-
+<doc>
 Provides functionality to implement the AMQ RFC 006 'Field Table'
 data type.  This class provides functions at a per-field level.
+</doc>
 
 <inherit class = "ipr_list_item" />
 

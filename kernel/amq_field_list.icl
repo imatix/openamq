@@ -6,12 +6,13 @@
     copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
-
+<doc>
 Provides functionality to implement the AMQ RFC 006 'Field Table'
 data type.  This class provides functions at the field-table level.
 Each field table is represented as a list of fields.  This class
 provides methods to transform field lists to and from AMQP binary
 formats, and lookup and operate on field lists.
+</doc>
 
 <inherit class = "ipr_list_head" />
 

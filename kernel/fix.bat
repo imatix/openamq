@@ -8,29 +8,29 @@ if %1.==. goto exit
     goto exit
 
 :icl
-    gsl %1.icl
-    call c %1
-    call c -r libamq %1
-    call c -l %1_test
+    for %%a in (%1*.icl) do gsl -q %%a
+    for %%a in (%1*.c)   do call c -q %%a
+    for %%a in (%1*.obj) do call c -q -r libamq %%a
+    call c -L %1_test
     call c -L amqpsrv
     goto done
 
 :smt
-    gsl %1.smt
-    call c %1
-    call c -r libamq %1
+    gsl -q %1.smt
+    call c -q %1
+    call c -q -r libamq %1 
     call c -L amqpsrv
     goto done
 
 :xml
-    gsl %1.xml
-    call c %1
-    call c -r libamq %1
+    gsl -q %1.xml
+    call c -q %1
+    call c -q -r libamq %1
     goto done
 
 :c
-    call c %1
-    call c -r libamq %1
+    call c -q %1
+    call c -q -r libamq %1
     shift
     goto done
 

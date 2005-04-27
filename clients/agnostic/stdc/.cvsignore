@@ -10,3 +10,6 @@ configure*
 *.i
 test_framing
 test_client
+amqp_level0.c
+amqp_level0.h
+

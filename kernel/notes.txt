@@ -1,15 +1,34 @@
+queue index
+    - each subscription queue has a unique index
+    - this is a low number - 0 to IPR_BITS_SIZE_BITS-1
+    - hash queue address -> index & find spare slot
+    - at queue destroy time, clear slot to zero
+    OK
+    
+matching engine
+    amq_matcher
+        - key (name, value, type)
+        - data: ipr_bits_t *
+    OK
+    subscription new
+        matcher parse topic pattern
+        add reference to subscription
+    OK
+    subscription destroy
+        clear from all match entries
+    OK
+    
+publish
+    - find match entry
+    - send to all subscription
+        - filter on no-local subscription
 
 
-consumer_new
-    - get new consumer index
-        - look in vhost consumer set
-        - get first free bit
-    - dest_name-> list of criteria
-        - match dest_name to all topics for vhost
-
-consumer_destroy
-    - clear vhost consumer bit
-    - clear all terms that consumer uses
+durable subscriptions
+    - stored in subscription table
+    - rebuilt when server restarts
+    - not deleted when consumer disconnects
+    
 
 dest_new
     - if topic service
@@ -20,31 +39,9 @@ dest_destroy
     - if topic service
         - remove criteria from database
 
-amq_criteria
-    - based on hash_str
 
-    name            destname
-    value           a.b.c...
-    data            <consumer set>
-
-amq_criteria
-
-    add consumer
-
-amq_criteria_list
-    parse dest
-        name
-        name.name
-        name.*.name
-        name.*
-        name.#
-            etc.
-
-handle send
-    - destination name -> list of criteria?
-
-
-
+in dest_new
+    - validate dest name using regexp
 
 
 
@@ -220,4 +217,26 @@ Clustering
             - repeat only stored data
                 - messages, subscriptions
        
+
+    amq foundation
+        - charitable status
+        - educational charter
+            - promote the development & use of amq protocol, software, etc.
+            - may assist with any legal costs associated with use of amq
+        - board members
+            - sponsoring companies
+            - industry partners
+        - rules & regulations
+            - adding new board members
+            - annual meetings
+            - accounting procedures
+            - donations
+            - termination
+        - funding
+            - sponsorship & memberships
+        - voting members (council)
+        - non-voting members (assembly)
+        - board (...)
+        - chair, treasurer
+
     

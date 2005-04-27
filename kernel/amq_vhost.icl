@@ -22,10 +22,6 @@ virtual host.
 #include "amq_frames.h"
 </public>
 
-<private>
-#include "amq_server_agent.h"
-</private>
-
 <context>
     ipr_db_t
         *db;                            /*  Database for virtual host        */
@@ -34,22 +30,22 @@ virtual host.
     ipr_config_t
         *config;                        /*  Virtual host configuration       */
     ipr_shortstr_t
-        directory;                      /*  Location for virtual host        */
-    ipr_shortstr_t
-        spooldir;                       /*  Message spool directory          */
-    ipr_shortstr_t
+        directory,                      /*  Location for virtual host        */
+        spooldir,                       /*  Message spool directory          */
         storedir;                       /*  Message store directory          */
     amq_dest_list_t
         *dest_list;                     /*  Destinations for dispatching     */
     amq_dest_table_t
-        *queue_hash;                    /*  Queues for vhost, hash table     */
-    amq_dest_table_t
-        *topic_hash;                    /*  Topics for vhost, hash table     */
-    amq_dest_table_t
-        *subscr_hash;                   /*  Subscriptions for vhost          */
-    //TODO: these will be moved to a hashed bit array for matching
+        *queue_hash,                    /*  Queues for vhost, hash table     */
+        *topic_hash,                    /*  Topics for vhost, hash table     */
+        *subscr_hash;                   /*  Subscriptions destinations       */
     amq_subscr_list_t
-        *subscr_list;                   /*  Subscriptions for vhost          */
+        *subscr_list;                   /*  Subscriptions definitions        */
+    ipr_index_t
+        *subscr_index;                  /*  Subscription index               */
+    amq_match_table_t
+        *match_topics,                  /*  Match table for topic routing    */ 
+        *match_fields;                  /*  Match table for field routing    */ 
 </context>
 
 <method name = "new">
@@ -62,6 +58,10 @@ virtual host.
     self->topic_hash   = amq_dest_table_new ();
     self->subscr_hash  = amq_dest_table_new ();
     self->subscr_list  = amq_subscr_list_new ();
+    self->subscr_index = ipr_index_new ();
+    self->match_topics = amq_match_table_new ();
+    self->match_fields = amq_match_table_new ();
+    
     ipr_shortstr_cpy (self->directory, directory);
 
     coprintf ("I: configuring virtual host '%s'", self->key);
@@ -87,6 +87,9 @@ virtual host.
     amq_dest_table_destroy  (&self->topic_hash);
     amq_dest_table_destroy  (&self->subscr_hash);
     amq_subscr_list_destroy (&self->subscr_list);
+    ipr_index_destroy       (&self->subscr_index);
+    amq_match_table_destroy (&self->match_topics);
+    amq_match_table_destroy (&self->match_fields);
     ipr_db_destroy          (&self->db);
     amq_db_destroy          (&self->ddb);
 </method>
@@ -121,22 +124,27 @@ virtual host.
     </doc>
     <argument name = "dest name" type = "char *">Topic destination name</argument>
     <argument name = "message"   type = "amq_smessage_t *">Message, if any</argument>
-    <argument name = "txn"       type = "ipr_db_txn_t *"  >Transaction, if any</argument>
+    <argument name = "txn"       type = "ipr_db_txn_t *">Transaction, if any</argument>
     <local>
     amq_subscr_t
         *subscr;                         /*  Subscriber object               */
+    amq_match_t
+        *match;                         /*  Match item                       */
+    int
+        bit;
     </local>
 
-    /*  Slow and horrible matching of subscribers with topic name            */
-    subscr = amq_subscr_list_first (self->subscr_list);
-    while (subscr) {
-        if (streq (subscr->dest_name, dest_name)) {
+    /*  Lookup topic name in match table, if found publish to subscribers    */
+    match = amq_match_search (self->match_topics, dest_name);
+    if (match) {
+        coprintf ("$(selfname): found subscriptions for %s", dest_name);
+        for (bit = ipr_bits_first (match->bits); bit >= 0; bit = ipr_bits_next (match->bits, bit)) {
+            subscr = (amq_subscr_t *) self->subscr_index->data [bit];
             if (subscr->no_local == FALSE
             ||  subscr->client_id != message->handle->client_id) {
                 amq_queue_publish (subscr->consumer->queue, message, txn);
             }
         }
-        subscr = amq_subscr_list_next (self->subscr_list, subscr);
     }
 </method>
 

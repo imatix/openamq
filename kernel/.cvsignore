@@ -223,4 +223,10 @@ amq_subscr_list_test
 amq_subscr_list_test.c
 amq_subscr_test
 amq_subscr_test.c
+amq_match.c
+amq_match.h
+amq_match_table.c
+amq_match_table.h
+amq_match_table_test.c
+amq_match_test.c
 

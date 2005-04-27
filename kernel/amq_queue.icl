@@ -8,11 +8,18 @@
     >
 
 <doc>
-This class defines a message queue.
-Queues hold messages received from publishers and messages being sent
-to subscribers.  This class implements both point-to-point queues and
-publish-and-subscribe topics.  A queue holds messages in memory and/or
-on disk using persistent storage.
+This class defines a message queue.  Message queues are used for several
+purposes in the server: for point to point queues (AMQP_SERVICE_QUEUE),
+for topic destinations (AMQP_SERVICE_TOPIC), and for subscriptions. For
+topics (aka pubsub), there is one primary queue and one queue per
+subscription.  Subscription queues hold references rather than complete
+messages.  We use reference counting to track these references and delete
+the original message when the last reference has been dispatched, ack'd
+and deleted.  A queue holds messages in memory and/or on disk using
+persistent storage depending on its configuration, size, and the types
+of messages (persistent or not) passed to it.  Each instance of this
+object is tied to a single matching instance of amq_dest.  The two classes
+were split to keep the code within sane limits.
 </doc>
 
 <inherit class = "ipr_db_queue"  />

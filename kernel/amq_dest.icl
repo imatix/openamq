@@ -18,7 +18,7 @@ Destinations are named and contained in hash tables.  Destinations are
 parameterised from the virtual host configuration file.  Each destination
 is recorded in the db_dest database table so that we can administer these
 at restart time.  Note that all destination message handling is done by
-amq_queue. Note that 'queue' is used to mean two things: the
+amq_queue. Note that 'queue' is used to cover two concepts: the
 point-to-point service type, and the amq_queue class used to store and
 forward messages.
 </doc>
