@@ -59,6 +59,7 @@ static global_fsm_t
     Synopsis:
     Initialises API module.
     -------------------------------------------------------------------------*/
+
 apr_status_t amq_stdc_init ()
 {
     apr_status_t
@@ -79,6 +80,7 @@ apr_status_t amq_stdc_init ()
     Deinitialises API module. If there are objects still opened attempts to
     shut them down gracefuly.
     -------------------------------------------------------------------------*/
+
 apr_status_t amq_stdc_term ()
 {
     apr_status_t
@@ -108,10 +110,12 @@ apr_status_t amq_stdc_term ()
         in_heartbeat_mode     specifies how heartbeats are to be received
                               from server
         in_heartbeat_interval interval in which client wants server to send
-                              heartbeats  
+                              heartbeats
+        options               options table passed to CONNECTION OPEN command  
         async                 if 1, doesn't wait for confirmation
         connection            out parameter; new connection object
     -------------------------------------------------------------------------*/
+
 apr_status_t amq_stdc_open_connection (
     const char                  *server,
     const char                  *host,
@@ -119,7 +123,8 @@ apr_status_t amq_stdc_open_connection (
     amq_stdc_heartbeat_model_t  out_heartbeat_model,
     amq_stdc_heartbeat_model_t  in_heartbeat_model,
     apr_interval_time_t         in_heartbeat_interval,
-    apr_byte_t                  async,
+    amq_stdc_table_t            options,
+    byte                        async,
     amq_stdc_connection_t       *out
     )
 {
@@ -129,7 +134,7 @@ apr_status_t amq_stdc_open_connection (
         lock;
 
     result = global_fsm_create_connection (global, server, host, client_name,
-        async, &lock);
+        options, async, &lock);
     AMQ_ASSERT_STATUS (result, global_fsm_create_connection);
     result = wait_for_lock (lock, (void**) out);
     AMQ_ASSERT_STATUS (result, wait_for_lock);
@@ -146,6 +151,7 @@ apr_status_t amq_stdc_open_connection (
     Arguments:
         connection          connection object to close
     -------------------------------------------------------------------------*/
+
 apr_status_t amq_stdc_close_connection (
     amq_stdc_connection_t  context
     )
@@ -175,14 +181,19 @@ apr_status_t amq_stdc_close_connection (
         connection          parent connection for the channel
         transacted          whether channel is to be transacted
         restartable         whether channel supports restartable messages
+        options             options table to be passed to CHANNEL OPEN
+        out_of_band         specifies how out of band transfer should work
         async               if 1, don't wait for confirmation
         channel             output parameter; new channel object
     -------------------------------------------------------------------------*/
+
 apr_status_t amq_stdc_open_channel (
     amq_stdc_connection_t  context,
-    apr_byte_t             transacted,
-    apr_byte_t             restartable,
-    apr_byte_t             async,
+    byte                   transacted,
+    byte                   restartable,
+    amq_stdc_table_t       options,
+    const char             *out_of_band,
+    byte                   async,
     amq_stdc_channel_t     *out)
 {
     apr_status_t
@@ -191,7 +202,7 @@ apr_status_t amq_stdc_open_channel (
         lock;
 
     result = connection_fsm_create_channel (context, transacted, restartable,
-        async, &lock);
+        options, out_of_band, async, &lock);
     AMQ_ASSERT_STATUS (result, connection_fsm_create_channel);
     result = wait_for_lock (lock, (void**) out);
     AMQ_ASSERT_STATUS (result, wait_for_lock);
@@ -210,10 +221,11 @@ apr_status_t amq_stdc_open_channel (
         message_nbr         highest message number to be acknowledged
         async               if 1, don't wait for confirmation
     -------------------------------------------------------------------------*/
+
 apr_status_t amq_stdc_acknowledge (
     amq_stdc_channel_t  context,
-    apr_uint32_t        message_nbr,
-    apr_byte_t          async
+    qbyte               message_nbr,
+    byte                async
     )
 {
     apr_status_t
@@ -237,11 +249,14 @@ apr_status_t amq_stdc_acknowledge (
 
     Arguments:
         channel             channel to do commit on
+        options             options table to be passed to CHANNEL COMMIT
         async               if 1, don't wait for confirmation
     -------------------------------------------------------------------------*/
+
 apr_status_t amq_stdc_commit (
     amq_stdc_channel_t  context,
-    apr_byte_t          async
+    amq_stdc_table_t    options,
+    byte                async
     )
 {
     apr_status_t
@@ -249,7 +264,7 @@ apr_status_t amq_stdc_commit (
     lock_t
         lock;
 
-    result = channel_fsm_commit (context, async, &lock);
+    result = channel_fsm_commit (context, options, async, &lock);
     AMQ_ASSERT_STATUS (result, channel_fsm_commit)
     result = wait_for_lock (lock, NULL);
     AMQ_ASSERT_STATUS (result, wait_for_lock)
@@ -265,11 +280,14 @@ apr_status_t amq_stdc_commit (
 
     Arguments:
         channel             channel to do rollback on
+        options             options table to be passed to CHANNEL ROLLBACK
         async               if 1, don't wait for confirmation
     -------------------------------------------------------------------------*/
+
 apr_status_t amq_stdc_rollback (
     amq_stdc_channel_t  context,
-    apr_byte_t          async
+    amq_stdc_table_t    options,
+    byte                async
     )
 {
     apr_status_t
@@ -277,11 +295,46 @@ apr_status_t amq_stdc_rollback (
     lock_t
         lock;
 
-    result = channel_fsm_rollback (context, async, &lock);
+    result = channel_fsm_rollback (context, options, async, &lock);
     AMQ_ASSERT_STATUS (result, channel_fsm_rollback)
     result = wait_for_lock (lock, NULL);
     AMQ_ASSERT_STATUS (result, wait_for_lock)
     
+    return APR_SUCCESS;
+}
+
+/*  -------------------------------------------------------------------------
+    Function: amq_stdc_get_message
+    -------------------------------------------------------------------------*/
+
+apr_status_t amq_stdc_get_message (
+    amq_stdc_channel_t       channel,
+    byte                     wait,
+    amq_stdc_message_desc_t  **message_desc,
+    amq_stdc_message_t       *message
+    )
+{
+    apr_status_t
+        result;
+    lock_t
+        lock;
+    void
+        *msg;
+
+    result = channel_fsm_get_message (channel, wait, message_desc, message,
+        &lock);
+    AMQ_ASSERT_STATUS (result, channel_fsm_get_message)
+    if (wait) {
+        result = wait_for_lock (lock, &msg);
+        AMQ_ASSERT_STATUS (result, wait_for_lock)
+    }
+
+    if (message)
+        *message = *((amq_stdc_message_t*)
+            (msg + sizeof (amq_stdc_message_desc_t)));
+    if (message_desc)
+        *message_desc = (amq_stdc_message_desc_t*) msg;
+
     return APR_SUCCESS;
 }
 
@@ -294,6 +347,7 @@ apr_status_t amq_stdc_rollback (
     Arguments:
         channel             channel object to close
     -------------------------------------------------------------------------*/
+
 apr_status_t amq_stdc_close_channel (
     amq_stdc_channel_t  context
     )
@@ -329,22 +383,25 @@ apr_status_t amq_stdc_close_channel (
         dest_name             destination name
         mime_type             MIME type
         encoding              content encoding
+        options               options table passed to HANDLE OPEN command
         async                 if 1, doesn't wait for confirmation
         dest_name_out         out parameter; name of newly created temporary
                               destination; filled only when temporary = 1
         handle                out parameter; new handle object
     -------------------------------------------------------------------------*/
+
 apr_status_t amq_stdc_open_handle (
     amq_stdc_channel_t       context,
     amq_stdc_service_type_t  service_type,
-    apr_byte_t               producer,
-    apr_byte_t               consumer,
-    apr_byte_t               browser,
-    apr_byte_t               temporary,
+    byte                     producer,
+    byte                     consumer,
+    byte                     browser,
+    byte                     temporary,
     char                     *dest_name,
     char                     *mime_type,
     char                     *encoding,
-    apr_byte_t               async,
+    amq_stdc_table_t         options,
+    byte                     async,
     char                     **dest_name_out,
     amq_stdc_handle_t        *out
     )
@@ -357,8 +414,8 @@ apr_status_t amq_stdc_open_handle (
         created_lock;
 
     result = channel_fsm_create_handle (context, service_type, producer,
-        consumer, browser, temporary, dest_name, mime_type, encoding, async,
-        &created_lock, &lock);
+        consumer, browser, temporary, dest_name, mime_type, encoding, options,
+        async, &created_lock, &lock);
     AMQ_ASSERT_STATUS (result, channel_fsm_create_handle);
 
     /*  Wait for HANDLE CREATED                                              */
@@ -386,18 +443,21 @@ apr_status_t amq_stdc_open_handle (
         unreliable            if 1, client won't acknowledge messages
         dest_name             destination name
         idnetifier            durable subscription name
+        selector              selector string
         mime_type             MIME type
         async                 if 1, doesn't wait for confirmation
     -------------------------------------------------------------------------*/
+
 apr_status_t amq_stdc_consume (
     amq_stdc_handle_t  context,
-    apr_uint16_t       prefetch,
-    apr_byte_t         no_local,
-    apr_byte_t         unreliable,
+    dbyte              prefetch,
+    byte               no_local,
+    byte               unreliable,
     const char         *dest_name,
     const char         *identifier,
+    const char         *selector,
     const char         *mime_type,
-    apr_byte_t         async
+    byte               async
     )
 {
     apr_status_t
@@ -406,56 +466,11 @@ apr_status_t amq_stdc_consume (
         lock;
 
     result = handle_fsm_consume (context, prefetch, no_local, unreliable,
-        dest_name, identifier, mime_type, async, &lock);
+        dest_name, identifier, selector, mime_type, async, &lock);
     AMQ_ASSERT_STATUS (result, handle_fsm_consume)
     result = wait_for_lock (lock, NULL);
     AMQ_ASSERT_STATUS (result, wait_for_lock)
     
-    return APR_SUCCESS;
-}
-
-/*  -------------------------------------------------------------------------
-    Function: amq_stdc_receive_message
-
-    Synopsis:
-    Gets one message. If no message is available, this is a blocking call.
-
-    Arguments:
-        handle                handle object
-        message               out parameter; message returned
-    -------------------------------------------------------------------------*/
-apr_status_t amq_stdc_get_message (
-    amq_stdc_handle_t  handle,
-    amqp_frame_t       **message
-    )
-{
-    apr_status_t
-        result;
-    lock_t
-        lock;
-
-    result = handle_fsm_get_message (handle, &lock);
-    AMQ_ASSERT_STATUS (result, handle_fsm_get_message)
-    result = wait_for_lock (lock, (void**) message);
-    AMQ_ASSERT_STATUS (result, wait_for_lock)
-    
-    return APR_SUCCESS;
-}
-
-/*  -------------------------------------------------------------------------
-    Function: amq_stdc_destroy_message
-
-    Synopsis:
-    Deallocates resources associated with message.
-
-    Arguments:
-        message              message to be destroyed
-    -------------------------------------------------------------------------*/
-apr_status_t amq_stdc_destroy_message (
-    amqp_frame_t  *message
-    )
-{
-    amq_free ((void*) message);
     return APR_SUCCESS;
 }
 
@@ -482,21 +497,22 @@ apr_status_t amq_stdc_destroy_message (
         data                  position from which to read data
         async                 if 1, doesn't wait for confirmation
     -------------------------------------------------------------------------*/
+
 apr_status_t amq_stdc_send_message (
     amq_stdc_handle_t  context,
-    apr_byte_t         out_of_band,
-    apr_byte_t         recovery,
-    apr_byte_t         streaming,
+    byte               out_of_band,
+    byte               recovery,
+    byte               streaming,
     const char         *dest_name,
-    apr_byte_t         persistent,
-    apr_byte_t         priority,
-    apr_uint32_t       expiration,
+    byte               persistent,
+    byte               priority,
+    qbyte              expiration,
     const char         *mime_type,
     const char         *encoding,
     const char         *identifier,
     apr_size_t         data_size,
     void               *data,
-    apr_byte_t         async
+    byte               async
     )
 {
     apr_status_t
@@ -525,10 +541,11 @@ apr_status_t amq_stdc_send_message (
         pause                 if 1, suspend, if 0, restart
         async                 if 1, doesn't wait for confirmation
     -------------------------------------------------------------------------*/
+
 apr_status_t amq_stdc_flow (
     amq_stdc_handle_t  context,
-    apr_byte_t         pause,
-    apr_byte_t         async
+    byte               pause,
+    byte               async
     )
 {
     apr_status_t
@@ -556,11 +573,12 @@ apr_status_t amq_stdc_flow (
         identifier            subscription name
         async                 if 1, doesn't wait for confirmation
     -------------------------------------------------------------------------*/
+
 apr_status_t amq_stdc_cancel_subscription (
     amq_stdc_handle_t  context,
     const char         *dest_name,
     const char         *identifier,
-    apr_byte_t         async
+    byte               async
     )
 {
     apr_status_t
@@ -587,10 +605,11 @@ apr_status_t amq_stdc_cancel_subscription (
         message_nbr           number of message to return          
         async                 if 1, doesn't wait for confirmation
     -------------------------------------------------------------------------*/
+
 apr_status_t amq_stdc_unget_message (
     amq_stdc_handle_t  context,
-    apr_uint32_t       message_nbr,
-    apr_byte_t         async
+    qbyte              message_nbr,
+    byte               async
     )
 {
     apr_status_t
@@ -615,6 +634,7 @@ apr_status_t amq_stdc_unget_message (
     Arguments:
         handle              handle object
     -------------------------------------------------------------------------*/
+
 apr_status_t amq_stdc_close_handle (
     amq_stdc_handle_t  context
     )
@@ -645,16 +665,19 @@ apr_status_t amq_stdc_close_handle (
         message_nbr         request for messages with number over this value;
                             0 means all messages
         dest_name           destination name
+        selector            selector string
         mime_type           MIME type
         partial             if 1 reads only single batch of results from server
         resultset           out parameter; returned resultset
     -------------------------------------------------------------------------*/
+
 apr_status_t amq_stdc_query (
     amq_stdc_handle_t  context,
-    apr_uint32_t       message_nbr,
+    qbyte              message_nbr,
     const char         *dest_name,
+    const char         *selector,
     const char         *mime_type,
-    apr_byte_t         partial,
+    byte               partial,
     char               **resultset
     )
 {
@@ -665,8 +688,8 @@ apr_status_t amq_stdc_query (
 
     result = get_exclusive_access_to_query_dialogue (context);
     AMQ_ASSERT_STATUS (result, get_exclusive_access_to_query_dialogue);
-    result = handle_fsm_query (context, message_nbr, dest_name, mime_type,
-        &lock);
+    result = handle_fsm_query (context, message_nbr, dest_name, selector,
+        mime_type, &lock);
     AMQ_ASSERT_STATUS (result, handle_fsm_query)
     result = wait_for_lock (lock, (void**) resultset);
     AMQ_ASSERT_STATUS (result, wait_for_lock)
@@ -683,6 +706,7 @@ apr_status_t amq_stdc_query (
     Arguments:
         query                query resultset to destroy
     -------------------------------------------------------------------------*/
+
 apr_status_t amq_stdc_destroy_query (
     char  *query
     )
@@ -705,13 +729,14 @@ apr_status_t amq_stdc_destroy_query (
                             message will be returned via standard
                             amq_stdc_get_message function
     -------------------------------------------------------------------------*/
+
 apr_status_t amq_stdc_browse (
     amq_stdc_handle_t  context,
-    apr_uint32_t       message_nbr,
-    apr_byte_t         async,
-    amqp_frame_t       **message
+    qbyte              message_nbr,
+    byte               async
     )
 {
+#if 0
     apr_status_t
         result;
     lock_t
@@ -721,6 +746,48 @@ apr_status_t amq_stdc_browse (
     AMQ_ASSERT_STATUS (result, handle_fsm_browse)
     result = wait_for_lock (lock, (void**) message);
     AMQ_ASSERT_STATUS (result, wait_for_lock)
-    
+#endif    
     return APR_SUCCESS;
 }
+
+
+
+
+
+size_t amq_stdc_read (
+    amq_stdc_message_t message,
+    void *destination,
+    size_t size
+    )
+{
+    apr_status_t
+        result;
+    qbyte
+        out_size;
+
+    result = message_fsm_read (message, destination, size, &out_size);
+    AMQ_ASSERT_STATUS (result, message_fsm_read)
+
+    return out_size;
+}
+
+size_t amq_stdc_skip (
+    amq_stdc_message_t message,
+    size_t size
+    )
+{
+    apr_status_t
+        result;
+    qbyte
+        out_size;
+
+    result = message_fsm_read (message, NULL, size, &out_size);
+    AMQ_ASSERT_STATUS (result, message_fsm_read)
+
+    return out_size;
+}
+
+apr_status_t amq_stdc_close_message (
+    amq_stdc_message_t message,
+    byte               async
+    );

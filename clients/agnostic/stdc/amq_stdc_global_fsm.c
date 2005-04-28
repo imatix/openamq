@@ -12,7 +12,7 @@
  *  Globals
  *---------------------------------------------------------------------------*/
 
-apr_byte_t global_context_exists = 0;
+byte global_context_exists = 0;
 
 /*---------------------------------------------------------------------------
  *  State machine definitions
@@ -22,13 +22,13 @@ typedef struct tag_lock_context_t
 {
     apr_thread_mutex_t
         *mutex;
-    apr_uint16_t
+    dbyte
         lock_id;
-    apr_uint16_t
+    dbyte
         connection_id;
-    apr_uint16_t
+    dbyte
         channel_id;
-    apr_uint16_t
+    dbyte
         handle_id;
     void
         *result;
@@ -45,18 +45,18 @@ typedef struct tag_connection_list_item_t
         *next;
 } connection_list_item_t;
 
-#define GLOBAL_OBJECT_ID 0
+#define GLOBAL_FSM_OBJECT_ID 0
 
 DEFINE_GLOBAL_FSM_CONTEXT_BEGIN
-    apr_uint16_t
+    dbyte
         last_lock_id;               /*  Last lock id used                    */
-    apr_uint16_t
+    dbyte
         last_connection_id;         /*  Last connection id used - connection */
                                     /*  id is not a part of AMQP protocol    */
                                     /*  To be used for debugging purposes    */
-    apr_uint16_t
+    dbyte
         last_channel_id;            /*  Last channel id used                 */
-    apr_uint16_t
+    dbyte
         last_handle_id;             /*  Last handle id used                  */
     lock_context_t
         *locks;                     /*  Linked list of existing locks        */
@@ -112,12 +112,13 @@ inline static apr_status_t do_destruct (
                             connection; may be used as confirm tag
         lock                out parameter; newly created lock
     -------------------------------------------------------------------------*/
+
 apr_status_t register_lock (
     global_fsm_t  context,
-    apr_uint16_t  connection_id,
-    apr_uint16_t  channel_id,
-    apr_uint16_t  handle_id,
-    apr_uint16_t  *lock_id,
+    dbyte         connection_id,
+    dbyte         channel_id,
+    dbyte         handle_id,
+    dbyte         *lock_id,
     lock_t        *lock
     )
 {
@@ -125,7 +126,7 @@ apr_status_t register_lock (
         result;
     lock_context_t
         *temp;
-    apr_uint16_t
+    dbyte
         id;
 
     result = global_fsm_sync_begin (context);
@@ -153,7 +154,50 @@ apr_status_t register_lock (
     if (lock) *lock = (lock_t) (context->locks);
     if (lock_id) *lock_id = id;
 #   ifdef AMQTRACE_LOCKS
-        printf ("# Lock %ld registered.\n", (long)id);
+        printf ("# Lock %ld registered. "
+            "(connection %ld, channel %ld, handle %ld)\n", (long) id,
+            (long) connection_id, (long) channel_id, (long) handle_id);
+#   endif
+    return APR_SUCCESS;
+}
+
+/*  -------------------------------------------------------------------------
+    Function: register_dummy_lock
+
+    Synopsis:
+    Creates lock that hasn't be released. It is unlocked from beginning.
+    Waiting for it returns 'result' immediately.
+
+    Arguments:
+        ctx                 global object handle
+        result              generic handle that will be passed to thread
+                            waiting for the lock
+        lock                out parameter; newly created lock
+    -------------------------------------------------------------------------*/
+
+apr_status_t register_dummy_lock (
+    global_fsm_t context,
+    void         *result,
+    lock_t       *out_lock
+    )
+{
+    lock_context_t
+        *lock;
+
+    lock = amq_malloc (sizeof (lock_context_t));
+    if (!lock)
+        AMQ_ASSERT (Not enough memory)
+    lock->mutex = NULL;
+    lock->lock_id = 0;
+    lock->connection_id = 0;
+    lock->channel_id = 0;
+    lock->handle_id = 0;
+    lock->next = NULL;
+    lock->result = result;
+    lock->error = APR_SUCCESS;
+    if (out_lock) *out_lock = (lock_t) lock;
+#   ifdef AMQTRACE_LOCKS
+        printf ("# Dummy lock created.\n");
 #   endif
     return APR_SUCCESS;
 }
@@ -170,9 +214,10 @@ apr_status_t register_lock (
         res                 generic handle that will be passed to thread
                             waiting for the lock
     -------------------------------------------------------------------------*/
+
 apr_status_t release_lock (
     global_fsm_t  context,
-    apr_uint16_t  lock_id,
+    dbyte         lock_id,
     void          *res
     )
 {
@@ -231,6 +276,7 @@ apr_status_t release_lock (
         res                 out parameter; generic handle provided by thread
                             releasing the lock
     -------------------------------------------------------------------------*/
+
 apr_status_t wait_for_lock (
     lock_t  lck,
     void    **res
@@ -247,6 +293,17 @@ apr_status_t wait_for_lock (
         return APR_SUCCESS;
     }
 
+    /*  Dummy lock - don't wait, return result immediately                   */
+    if (!lck->mutex) {
+        if (res)
+            *res = lck->result;
+        amq_free ((void*) lck);
+#   ifdef AMQTRACE_LOCKS
+        printf ("# Dummy lock destroyed.\n");
+#   endif
+        return APR_SUCCESS;
+    }
+
 #   ifdef AMQTRACE_LOCKS
         printf ("# Waiting for lock %ld beginning.\n", (long) (lock->lock_id));
 #   endif
@@ -260,7 +317,6 @@ apr_status_t wait_for_lock (
         printf ("# Waiting for lock %ld ended.\n", (long) (lock->lock_id));
 #   endif
     if (lock->error != APR_SUCCESS) {
-        result = lock->error;
         if (res)
             *res = NULL;
     }
@@ -269,6 +325,7 @@ apr_status_t wait_for_lock (
             *res = lock->result;
     }
 
+    result = lock->error;
     /*  TODO : free resources... destroy mutex, destroy(pool_local)  etc.    */
     amq_free ((void*) lock);
     return result;
@@ -288,13 +345,14 @@ apr_status_t wait_for_lock (
                             if 0, does nothing
         handle_id           release all locks associated with this handle;
                             if 0, does nothing
-    -------------------------------------------------------------------------*/    
+    -------------------------------------------------------------------------*/
+    
 apr_status_t release_all_locks (
     global_fsm_t  context,
-    apr_uint16_t  connection_id,
-    apr_uint16_t  channel_id,
-    apr_uint16_t  handle_id,
-    apr_uint16_t  except_lock_id,
+    dbyte         connection_id,
+    dbyte         channel_id,
+    dbyte         handle_id,
+    dbyte         except_lock_id,
     apr_status_t  error
     )
 {
@@ -306,14 +364,23 @@ apr_status_t release_all_locks (
     result = global_fsm_sync_begin (context);
     AMQ_ASSERT_STATUS (result, global_fsm_sync_begin)
 
+#   ifdef AMQTRACE_LOCKS
+        printf ("# All locks for connection %ld, channel %ld and "
+            "handle %ld released except lock %ld:\n", (long) connection_id,
+            (long) channel_id, (long) handle_id, (long) except_lock_id);
+#   endif
+
     lock = context->locks;
     while (lock) {
         if (((connection_id == 0 && channel_id == 0 && handle_id == 0) ||
-              (lock->connection_id == connection_id) ||
-              (lock->channel_id == channel_id) ||
-              (lock->handle_id == handle_id)) &&
+              (connection_id && lock->connection_id == connection_id) ||
+              (channel_id && lock->channel_id == channel_id) ||
+              (handle_id && lock->handle_id == handle_id)) &&
               lock->lock_id != except_lock_id) {
             lock->error = error;
+#           ifdef AMQTRACE_LOCKS
+                printf ("#     Lock %ld released.\n", (long) lock->lock_id);
+#           endif
             result = apr_thread_mutex_unlock (lock->mutex);
             AMQ_ASSERT_STATUS (result, apr_thread_mutex_unlock);
 
@@ -344,7 +411,8 @@ inline static apr_status_t do_create_connection (
     const char            *server,
     const char            *host,
     const char            *client_name,
-    apr_byte_t            async,
+    amq_stdc_table_t      options,
+    byte                  async,
     lock_t                *lock
     )
 {
@@ -372,7 +440,7 @@ inline static apr_status_t do_create_connection (
     /*  Start it                                                             */
     result = connection_fsm_init (connection, (global_fsm_t) context,
         ++(context->last_connection_id), server, host, client_name,
-        async, lock);
+        options, async, lock);
     AMQ_ASSERT_STATUS (result, connection_init)
     return APR_SUCCESS;
 }
@@ -407,7 +475,7 @@ inline static apr_status_t do_remove_connection (
 
 inline static apr_status_t do_assign_new_handle_id (
     global_fsm_t  context,
-    apr_uint16_t  *handle_id
+    dbyte         *handle_id
     )
 {
     context->last_handle_id++;
@@ -418,7 +486,7 @@ inline static apr_status_t do_assign_new_handle_id (
 
 inline static apr_status_t do_assign_new_channel_id (
     global_fsm_t  context,
-    apr_uint16_t  *channel_id
+    dbyte         *channel_id
     )
 {
     context->last_channel_id++;

@@ -14,19 +14,22 @@
     <event name = "create connection">
         Request to create new connection
         <arg type = "const char *" name = "server">
-            Server to connect to, IP address or name
+             Server to connect to, IP address or name
         </arg>
         <arg type = "const char *" name = "host">
-            Virtual host to connect to
+             Virtual host to connect to
         </arg>
         <arg type = "const char *" name = "client_name">
-            Client name to use to connect to server
+             Client name to use to connect to server
         </arg>
-        <arg type = "apr_byte_t" name = "async">
-            When 1, don't wait for confirmation from server
+        <arg type = "amq_stdc_table_t" name = "options">
+             Options to be passed to CONNECTION OPEN command
+        </arg>
+        <arg type = "byte" name = "async">
+             When 1, don't wait for confirmation from server
         </arg>
         <arg type = "lock_t *" name = "lock">
-            Output parameter, to be used to wait for operation completion
+             Output parameter, to be used to wait for operation completion
         </arg>
     </event>
     <event name = "remove connection">
@@ -37,20 +40,20 @@
     </event>
     <event name = "assign new channel id">
         Request to assign new channel id
-        <arg type = "apr_uint16_t *" name = "channel_id">
+        <arg type = "dbyte *" name = "channel_id">
             Output parameter, new channel id
         </arg>
     </event>
     <event name = "assign new handle id">
         Request to assign new handle id
-        <arg type = "apr_uint16_t *" name = "handle_id">
+        <arg type = "dbyte *" name = "handle_id">
             Output parameter, new handle id
         </arg>
     </event>
     <event name = "terminate">
         Request to shut down the API
         <arg type = "lock_t *" name = "lock">
-            Output parameter, to be used to wait for operation completion
+             Output parameter, to be used to wait for operation completion                
         </arg>
     </event>
 
@@ -89,7 +92,7 @@
         <arg type = "global_fsm_t" name = "global">
             Global object handle
         </arg>
-        <arg type = "apr_uint16_t" name = "connection_id">
+        <arg type = "dbyte" name = "connection_id">
             Connection id for new connection
         </arg>
         <arg type = "const char *" name = "server">
@@ -101,47 +104,83 @@
         <arg type = "const char *" name = "client_name">
             Client name to use to connect to server
         </arg>
-        <arg type = "apr_byte_t" name = "async">
-            When 1, don't wait for confirmation from server
+        <arg type = "amq_stdc_table_t" name = "options">
+            Options table to be passed to OPEN CONNECTION command
+        </arg>
+        <arg type = "byte" name = "async">
+             When 1, don't wait for confirmation from server
         </arg>
         <arg type = "lock_t *" name ="lock">
-            Output parameter, to be used to wait for operation completion
+             Output parameter, to be used to wait for operation completion
+        </arg>
+    </event>
+    <event name = "get chunk">
+        Used by sender thread to receive next chunk to send
+        <arg type = "lock_t *" name = "lock">
+            Out parameter; used by sender thread to wait while next chunk
+            is available
+        </arg>
+    </event>
+    <event name = "send chunk">
+        Used to send chunks of data tos server via sender thread
+        <arg type = "char *" name = "data">
+            Chunk to be send by send. Chunk has to be allocated via
+            amq_malloc and will be freed by sender thread.
+        </arg>
+        <arg type = "qbyte" name = "size">
+            Number of bytes to send.
+        </arg>
+        <arg type = "lock_t *" name = "lock">
+            Out parameter; can be used to wait for sending completion;
+            if NULL, no lock is created
         </arg>
     </event>
     <event name = "challenge">
         CONNECTION CHALLENGE received from server
+        <arg type = "byte" name = "version">
+            Version of AMQ protocol proposed by server
+        </arg>
     </event>
     <event name = "tune">
         CONNECTION TUNE received from server
     </event>
     <event name = "create channel">
         Request to open new channel within the connection
-        <arg type = "apr_byte_t" name = "transacted">
+        <arg type = "byte" name = "transacted">
             If 1, channel will be opened in transacted mode
         </arg>
-        <arg type = "apr_byte_t" name = "restartable">
+        <arg type = "byte" name = "restartable">
             If 1, channel will be opened in restartable mode
         </arg>
-        <arg type = "apr_byte_t" name = "async">
-            When 1, don't wait for confirmation from server
+        <arg type = "amq_stdc_table_t" name = "options">
+             Options to be passed to CHANNEL OPEN command
+        </arg>
+        <arg type = "const char *" name = "out_of_band">
+             Specifies how out of band transfer should work
+        </arg>
+        <arg type = "byte" name = "async">
+             When 1, don't wait for confirmation from server
         </arg>
         <arg type = "lock_t *" name = "lock">
-            Output parameter, to be used to wait for operation completion
+             Output parameter, to be used to wait for operation completion
         </arg>
     </event>
     <event name = "remove channel">
         Request to remove channel from connection's list of opened channels
         <arg type = "channel_fsm_t" name = "channel">
-            Channel to be removed
+             Channel to be removed
         </arg>
     </event>
     <event name = "reply">
         CONNECTION REPLY received
-        <arg type = "apr_uint16_t" name = "confirm_tag">
+        <arg type = "dbyte" name = "confirm_tag">
             Confirm tag
         </arg>
-        <arg type = "apr_uint16_t" name = "reply_code">
+        <arg type = "dbyte" name = "reply_code">
             Reply code received from server
+        </arg>
+        <arg type = "dbyte" name = "reply_text_size">
+            Size of reply text received from server
         </arg>
         <arg type = "const char *" name = "reply_text">
             Reply text received from server
@@ -150,7 +189,7 @@
     <event name = "terminate">
         Request to shut down the connection
         <arg type = "lock_t *" name = "lock">
-            Output parameter, to be used to wait for operation completion
+             Output parameter, to be used to wait for operation completion
         </arg>
     </event>
     <event name = "close">
@@ -187,6 +226,8 @@
         Default state
         <event name = "terminate" action = "do terminate" next = "expect close"/>
         <event name = "close" action = "do server requested close" next = "terminal"/>
+        <event name = "get chunk" action = "do get chunk"/>
+        <event name = "send chunk" action = "do send chunk"/>
     </state>
 </machine>
 
@@ -204,43 +245,46 @@
         <arg type = "connection_fsm_t" name = "connection">
             Connection channel belongs to
         </arg>
-        <arg type = "apr_socket_t *" name = "socket">
-            Socket
-        </arg>
-        <arg type = "apr_uint16_t" name = "connection_id">
+        <arg type = "dbyte" name = "connection_id">
             Id of connection channel belongs to
         </arg>
-        <arg type = "apr_uint16_t" name = "channel_id">
+        <arg type = "dbyte" name = "channel_id">
             Id of this channel
         </arg>
-        <arg type = "apr_byte_t" name = "transacted">
+        <arg type = "byte" name = "transacted">
             If 1, channel will operate in transacted mode
         </arg>
-        <arg type = "apr_byte_t" name = "restartable">
+        <arg type = "byte" name = "restartable">
             If 1, channel will operate in restartable mode
         </arg>
-        <arg type = "apr_byte_t" name = "async">
-            When 1, don't wait for confirmation from server
+        <arg type = "amq_stdc_table_t" name = "options">
+             Options to be passed to CHANNEL OPEN command
+        </arg>
+        <arg type = "const char *" name = "out_of_band">
+             Specifies how out of band transfer should work
+        </arg>
+        <arg type = "byte" name = "async">
+             When 1, don't wait for confirmation from server
         </arg>
         <arg type = "lock_t *" name = "lock">
-            Output parameter, to be used to wait for operation completion
+             Output parameter, to be used to wait for operation completion
         </arg>
     </event>
     <event name = "create handle">
         Request to open new handle
-        <arg type = "apr_uint16_t" name = "service_type">
+        <arg type = "dbyte" name = "service_type">
             Service type (queue, topic, peer to peer, ...)
         </arg>
-        <arg type = "apr_byte_t" name = "producer">
+        <arg type = "byte" name = "producer">
             If 1, handle may be used to produce messages
         </arg>
-        <arg type = "apr_byte_t" name = "consumer">
+        <arg type = "byte" name = "consumer">
             If 1, handle may be used to consume messages
         </arg>
-        <arg type = "apr_byte_t" name = "browser">
+        <arg type = "byte" name = "browser">
             If 1, handle may be used to browse for messages
         </arg>
-        <arg type = "apr_byte_t" name = "temporary">
+        <arg type = "byte" name = "temporary">
             If 1, temporary destination will be created
         </arg>
         <arg type = "const char *" name = "dest_name">
@@ -252,15 +296,18 @@
         <arg type = "const char *" name = "encoding">
             Content encoding
         </arg>
-        <arg type = "apr_byte_t" name = "async">
-            When 1, don't wait for confirmation from server
+        <arg type = "amq_stdc_table_t" name = "options">
+             Options to be passed to HANDLE OPEN command
+        </arg>
+        <arg type = "byte" name = "async">
+             When 1, don't wait for confirmation from server
         </arg>
         <arg type = "lock_t *" name = "created_lock">
-            Output parameter, to be used to wait for confirmation of
-            temporary destination creation
+             Output parameter, to be used to wait for confirmation of
+             temporary destination creation
         </arg>
         <arg type = "lock_t *" name = "lock">
-            Output parameter, to be used to wait for operation completion
+             Output parameter, to be used to wait for operation completion
         </arg>
     </event>
     <event name = "remove handle">
@@ -270,41 +317,89 @@
     </event>
     <event name = "acknowledge">
         Request for message acknowledgement
-        <arg type = "apr_uint32_t" name = "message_nbr">
-            Number of message to acknowledge
+        <arg type = "qbyte" name = "message_nbr">
+             Number of message to acknowledge
         </arg>
-        <arg type = "apr_byte_t" name = "async">
-            When 1, don't wait for confirmation from server
+        <arg type = "byte" name = "async">
+             When 1, don't wait for confirmation from server
         </arg>
         <arg type = "lock_t *" name = "lock">
-            Output parameter, to be used to wait for operation completion
+             Output parameter, to be used to wait for operation completion
         </arg>
     </event>
     <event name = "commit">
         Request to commit work done
-        <arg type = "apr_byte_t" name = "async">
-            When 1, don't wait for confirmation from server
+        <arg type = "amq_stdc_table_t" name = "options">
+             Options to be passed to CHANNEL COMMIT command
+        </arg>
+        <arg type = "byte" name = "async">
+             When 1, don't wait for confirmation from server
         </arg>
         <arg type = "lock_t *" name = "lock">
-            Output parameter, to be used to wait for operation completion
+             Output parameter, to be used to wait for operation completion
         </arg>
     </event>
     <event name = "rollback">
         Request to roll back work done
-        <arg type = "apr_byte_t" name = "async">
-            When 1, don't wait for confirmation from server
+        <arg type = "amq_stdc_table_t" name = "options">
+             Options to be passed to CHANNEL ROLLBACK command
+        </arg>
+        <arg type = "byte" name = "async">
+             When 1, don't wait for confirmation from server
         </arg>
         <arg type = "lock_t *" name = "lock">
-            Output parameter, to be used to wait for operation completion
+             Output parameter, to be used to wait for operation completion
+        </arg>
+    </event>
+    <event name = "receive message">
+        Message received from server
+        <arg type = "amq_stdc_handle_notify_t *" name = "command">
+            Corresponding handle notify command
+        </arg>
+        <arg type = "const char *" name = "header_buffer">
+            Pointer to the buffer where message header is stored
+        </arg>
+        <arg type = "qbyte" name = "header_buffer_size">
+            Size of message header
+        </arg>
+        <arg type = "char *" name = "body">
+            Pointer to newly allocated block with message content.
+            There are FRAGMENT_HEADER_SIZE bytes free at the beginning
+            of the block
+        </arg>
+        <arg type = "qbyte" name = "body_size">
+            Size of message content
+        </arg>
+    </event>
+    <event name = "get message">
+        Request to dispatch message to client
+        <arg type = "byte" name = "wait">
+             If 1, waits for message to arrive, if 0 returns immediately
+             whether message is present or not
+        </arg>
+        <arg type = "amq_stdc_message_desc_t **" name = "message_desc">
+             Output parameter; if no-wait mode is on and message
+             is present contains message descriptor, otherwise NULL
+        </arg>
+        <arg type = "amq_stdc_message_t *" name = "message">
+             Output parameter; if no-wait mode is on and message
+             is present contains message handle, otherwise NULL
+        </arg>
+        <arg type = "lock_t *" name = "lock">
+             Output parameter, to be used to wait (in wait mode)
+             for operation completion; in no-wait mode NULL
         </arg>
     </event>
     <event name = "reply">
         CHANNEL REPLY received from server
-        <arg type = "apr_uint16_t" name = "confirm_tag">
+        <arg type = "dbyte" name = "confirm_tag">
             Confirm tag
         </arg>
-        <arg type = "apr_uint16_t" name = "reply_code">
+        <arg type = "dbyte" name = "reply_code">
             Reply code received from server
+        </arg>
+        <arg type = "dbyte" name = "reply_text_size">
+            Size of reply text received from server
         </arg>
         <arg type = "const char *" name = "reply_text">
             Reply text received from server
@@ -313,7 +408,7 @@
     <event name = "terminate">
         Request to shut down the channel
         <arg type = "lock_t *" name = "lock">
-            Output parameter, to be used to wait for operation completion
+             Output parameter, to be used to wait for operation completion
         </arg>
     </event>
     <event name = "close">
@@ -331,6 +426,8 @@
         <event name = "acknowledge" action = "do acknowledge"/>
         <event name = "commit" action = "do commit"/>
         <event name = "rollback" action = "do rollback"/>
+        <event name = "receive message" action = "do receive message"/>
+        <event name = "get message" action = "do get message"/>
         <event name = "reply" action = "do reply"/>
     </state>
     <state name = "expect close">
@@ -359,31 +456,31 @@
         <arg type = "global_fsm_t" name = "global">
             Global object handle
         </arg>
+        <arg type = "connection_fsm_t" name = "connection">
+            Connection handle belongs to
+        </arg>
         <arg type = "channel_fsm_t" name = "channel">
             Channel handle belongs to
         </arg>
-        <arg type = "apr_socket_t *" name = "socket">
-            Socket
-        </arg>
-        <arg type = "apr_uint16_t" name = "connection_id">
+        <arg type = "dbyte" name = "connection_id">
             Id of connection handle belongs to
         </arg>
-        <arg type = "apr_uint16_t" name = "channel_id">
+        <arg type = "dbyte" name = "channel_id">
             Id of channel handle belongs to
         </arg>
-        <arg type = "apr_uint16_t" name = "handle_id">
+        <arg type = "dbyte" name = "handle_id">
             Id of this handle
         </arg>
-        <arg type = "apr_uint16_t" name = "service_type">
+        <arg type = "dbyte" name = "service_type">
             Service type (queue, topic, peer to peer, ...)
         </arg>
-        <arg type = "apr_byte_t" name = "producer">
+        <arg type = "byte" name = "producer">
             If 1, client may produce messages
         </arg>
-        <arg type = "apr_byte_t" name = "consumer">
+        <arg type = "byte" name = "consumer">
             If 1, client may consume messages
         </arg>
-        <arg type = "apr_byte_t" name = "browser">
+        <arg type = "byte" name = "browser">
             If 1, client may browse for messages
         </arg>
         <arg type = "const char *" name = "dest_name">
@@ -395,11 +492,14 @@
         <arg type = "const char *" name = "encoding">
             Content encoding
         </arg>
-        <arg type = "apr_byte_t" name = "async">
-            When 1, don't wait for confirmation from server
+        <arg type = "amq_stdc_table_t" name = "options">
+             Options to be passed to HANDLE OPEN command
+        </arg>
+        <arg type = "byte" name = "async">
+             When 1, don't wait for confirmation from server
         </arg>
         <arg type = "lock_t *" name = "lock">
-            Output parameter, to be used to wait for operation completion
+             Output parameter, to be used to wait for operation completion
         </arg>
     </event>
     <event name = "init temporary">
@@ -407,28 +507,31 @@
         <arg type = "global_fsm_t" name = "global">
             Global object handle
         </arg>
+        <arg type = "connection_fsm_t" name = "connection">
+            Connection handle belongs to
+        </arg>
         <arg type = "channel_fsm_t" name = "channel">
             Channel handle belongs to
         </arg>
-        <arg type = "apr_socket_t *" name = "socket">
-            Socket
+        <arg type = "dbyte" name = "connection_id">
+            Id of connection handle belongs to
         </arg>
-        <arg type = "apr_uint16_t" name = "channel_id">
+        <arg type = "dbyte" name = "channel_id">
             Id of channel handle belongs to
         </arg>
-        <arg type = "apr_uint16_t" name = "handle_id">
+        <arg type = "dbyte" name = "handle_id">
             Id of this handle
         </arg>
-        <arg type = "apr_uint16_t" name = "service_type">
+        <arg type = "dbyte" name = "service_type">
             Service type (queue, topic, peer to peer, ...)
         </arg>
-        <arg type = "apr_byte_t" name = "producer">
+        <arg type = "byte" name = "producer">
             If 1, client may produce messages
         </arg>
-        <arg type = "apr_byte_t" name = "consumer">
+        <arg type = "byte" name = "consumer">
             If 1, client may consume messages
         </arg>
-        <arg type = "apr_byte_t" name = "browser">
+        <arg type = "byte" name = "browser">
             If 1, client may browse messages
         </arg>
         <arg type = "const char *" name = "dest_name">
@@ -440,32 +543,38 @@
         <arg type = "const char *" name = "encoding">
             Content encoding
         </arg>
-        <arg type = "apr_byte_t" name = "async">
-            When 1, don't wait for confirmation from server
+        <arg type = "amq_stdc_table_t" name = "options">
+             Options to be passed to HANDLE OPEN command
+        </arg>
+        <arg type = "byte" name = "async">
+             When 1, don't wait for confirmation from server
         </arg>
         <arg type = "lock_t *" name = "created_lock">
-            Output parameter, to be used to wait for confirmation of
-            temporary destination creation
+             Output parameter, to be used to wait for confirmation of
+             temporary destination creation
         </arg>
         <arg type = "lock_t *" name = "lock">
-            Output parameter, to be used to wait for operation completion
+             Output parameter, to be used to wait for operation completion
         </arg>
     </event>
     <event name = "created">
         HANDLE CREATED received from server
+        <arg type = "dbyte" name = "dest_name_size">
+            Size of temporary destination name
+        </arg>
         <arg type = "const char *" name = "dest_name">
             Temporary destination name
         </arg>
     </event>
     <event name = "consume">
         Request to consume data from destination
-        <arg type = "apr_uint16_t" name = "prefetch">
+        <arg type = "dbyte" name = "prefetch">
             Number of messages to prefetch
         </arg>
-        <arg type = "apr_byte_t" name = "no_local">
+        <arg type = "byte" name = "no_local">
             If 1, messages sent from this connection won't be received
         </arg>
-        <arg type = "apr_byte_t" name = "unreliable">
+        <arg type = "byte" name = "unreliable">
             If 1, client won't acknowledge messages
         </arg>
         <arg type = "const char *" name = "dest_name">
@@ -474,37 +583,40 @@
         <arg type = "const char *" name = "identifier">
             Durable subsription name
         </arg>
+        <arg type = "const char *" name = "selector">
+            Selector string
+        </arg>
         <arg type = "const char *" name = "mime_type">
             MIME type
         </arg>
-        <arg type = "apr_byte_t" name = "async">
-            When 1, don't wait for confirmation from server
+        <arg type = "byte" name = "async">
+             When 1, don't wait for confirmation from server
         </arg>
         <arg type = "lock_t *" name = "lock">
-            Output parameter, to be used to wait for operation completion
+             Output parameter, to be used to wait for operation completion
         </arg>
     </event>
     <event name = "send message">
         Request to send message
-        <arg type = "apr_byte_t" name = "out_of_band">
+        <arg type = "byte" name = "out_of_band">
             If 1, message content will be transferred out of band
         </arg>
-        <arg type = "apr_byte_t" name = "recovery">
+        <arg type = "byte" name = "recovery">
             If 1, recovery is going on
         </arg>
-        <arg type = "apr_byte_t" name = "streaming">
+        <arg type = "byte" name = "streaming">
             If 1, message is a stream
         </arg>
         <arg type = "const char *" name = "dest_name">
             Destination name
         </arg>
-        <arg type = "apr_byte_t" name = "persistent">
+        <arg type = "byte" name = "persistent">
             If 1, message is persistent
         </arg>
-        <arg type = "apr_byte_t" name = "priority">
+        <arg type = "byte" name = "priority">
             Message priority 
         </arg>
-        <arg type = "apr_uint32_t" name = "expiration">
+        <arg type = "qbyte" name = "expiration">
             Message expiration
         </arg>
         <arg type = "const char *" name = "mime_type">
@@ -522,37 +634,23 @@
         <arg type = "void *" name = "data">
             Message body
         </arg>
-        <arg type = "apr_byte_t" name = "async">
-            When 1, don't wait for confirmation from server
+        <arg type = "byte" name = "async">
+             When 1, don't wait for confirmation from server
         </arg>
         <arg type = "lock_t *" name = "lock">
-            Output parameter, to be used to wait for operation completion
-        </arg>
-    </event>
-    <event name = "get message">
-        Request to dispatch message to client
-        <arg type = "lock_t *" name = "lock">
-            Output parameter, to be used to wait for operation completion
-        </arg>
-    </event>
-    <event name = "receive message">
-        Message received from server
-        TODO: Is it called only when first fragment of message arrives
-        or is it called with every incomming fragment ?
-        <arg type = "amqp_frame_t *" name = "message">
-            Out parameter; received message
+             Output parameter, to be used to wait for operation completion
         </arg>
     </event>
     <event name = "flow">
         Request to suspend or resume message flow from server
-        <arg type = "apr_byte_t" name = "pause">
-            If 1, flow should be suspended, if 0, it should be resumed
+        <arg type = "byte" name = "pause">
+             If 1, flow should be suspended, if 0, it should be resumed
         </arg>
-        <arg type = "apr_byte_t" name = "async">
-            When 1, don't wait for confirmation from server
+        <arg type = "byte" name = "async">
+             When 1, don't wait for confirmation from server
         </arg>
         <arg type = "lock_t *" name = "lock">
-            Output parameter, to be used to wait for operation completion
+             Output parameter, to be used to wait for operation completion
         </arg>
     </event>
     <event name = "cancel">
@@ -563,7 +661,7 @@
         <arg type = "const char *" name = "identifier">
             Durable subscription name
         </arg>
-        <arg type = "apr_byte_t" name = "async">
+        <arg type = "byte" name = "async">
             When 1, don't wait for confirmation from server
         </arg>
         <arg type = "lock_t *" name = "lock">
@@ -572,10 +670,10 @@
     </event>
     <event name = "unget">
         Request to push received message back to server
-        <arg type = "apr_uint32_t" name = "message_nbr">
+        <arg type = "qbyte" name = "message_nbr">
             Number of message to push back to server
         </arg>
-        <arg type = "apr_byte_t" name = "async">
+        <arg type = "byte" name = "async">
             When 1, don't wait for confirmation from server
         </arg>
         <arg type = "lock_t *" name = "lock">
@@ -584,11 +682,14 @@
     </event>
     <event name = "query">
         Request to query server for messages present
-        <arg type = "apr_uint32_t" name = "message_nbr">
+        <arg type = "qbyte" name = "message_nbr">
             Query messages with message number greater than this value
         </arg>
         <arg type = "const char *" name = "dest_name">
             Destination name
+        </arg>
+        <arg type = "const char *" name = "selector">
+            Selector string
         </arg>
         <arg type = "const char *" name = "mime_type">
             MIME type
@@ -599,8 +700,11 @@
     </event>
     <event name = "index">
         HANDLE INDEX received from server
-        <arg type = "apr_uint32_t" name = "message_nbr">
+        <arg type = "qbyte" name = "message_nbr">
             Last message number received
+        </arg>
+        <arg type = "qbyte" name = "message_list_size">
+            Size of list of message numbers
         </arg>
         <arg type = "const char *" name = "message_list">
             List of message numbers
@@ -608,23 +712,26 @@
     </event>
     <event name = "browse">
         Request to browse server for specific message
-        <arg type = "apr_uint32_t" name = "message_nbr">
-            Number of message to browse
+        <arg type = "qbyte" name = "message_nbr">
+             Number of message to browse
         </arg>
-        <arg type = "apr_byte_t" name = "async">
-            When 1, don't wait for confirmation from server
+        <arg type = "byte" name = "async">
+             When 1, don't wait for confirmation from server
         </arg>
         <arg type = "lock_t *" name = "lock">
-            Output parameter, to be used to wait for operation completion
+             Output parameter, to be used to wait for operation completion
         </arg>
     </event>
     <event name = "reply">
         HANDLE REPLY received from server
-        <arg type = "apr_uint16_t" name = "confirm_tag">
+        <arg type = "dbyte" name = "confirm_tag">
             Confirm tag
         </arg>
-        <arg type = "apr_uint16_t" name = "reply_code">
+        <arg type = "dbyte" name = "reply_code">
             Reply code received from server
+        </arg>
+        <arg type = "dbyte" name = "reply_text_size">
+            Size of reply text received from server
         </arg>
         <arg type = "const char *" name = "reply_text">
             Reply text received from server
@@ -633,7 +740,7 @@
     <event name = "terminate">
         Request to shut down the handle
         <arg type = "lock_t *" name = "lock">
-            Output parameter, to be used to wait for operation completion
+             Output parameter, to be used to wait for operation completion
         </arg>
     </event>
     <event name = "close">
@@ -654,8 +761,6 @@
         Handle is opened and functional
         <event name = "consume" action = "do consume"/>
         <event name = "send message" action = "do send message"/>
-        <event name = "get message" action = "do get message"/>
-        <event name = "receive message" action = "do receive message"/>
         <event name = "flow" action = "do flow"/>
         <event name = "cancel" action = "do cancel"/>
         <event name = "unget" action = "do unget"/>
@@ -676,6 +781,75 @@
         Default state
         <event name = "terminate" action = "do terminate" next = "expect close"/>
         <event name = "close" action = "do server requested close" next = "terminal"/>
+    </state>
+</machine>
+
+<machine name = "message_fsm" output = "amq_stdc_message_fsm">
+    Holds state and additional data of individual message
+
+    <constructor action = "do construct"/>
+    <destructor action = "do destruct"/>
+
+    <event name = "init">
+    </event>
+    <event name = "receive fragment">
+        <arg type = "char *" name = "body">
+            Block with fragment content. There are FRAGMENT_HEADER_SIZE
+            bytes free at the beginning of the block
+        </arg>
+        <arg type = "qbyte" name = "body_size">
+            Size of fragment content
+        </arg>
+    </event>
+    <event name = "receive last fragment">
+        <arg type = "char *" name = "body">
+            Block with frgament content. There are FRAGMENT_HEADER_SIZE
+            bytes free at the beginning of the block
+        </arg>
+        <arg type = "qbyte" name = "body_size">
+            Size of fragment content
+        </arg>
+    </event>
+    <event name = "read">
+        <arg type = "char *" name = "destination">
+            Destination where to read the data, if NULL function just skips
+            apropriate number of bytes in stream
+        </arg>
+        <arg type = "qbyte" name = "size">
+            Number of bytes to read
+        </arg>
+        <arg type = "qbyte*" name = "out_size">
+            Number of bytes actually read
+        </arg> 
+    </event>
+    <event name = "term">
+    </event>
+
+    <state name = "initial">
+        State message is in before first fragment is received
+        <event name = "init" action = "do_init" next = "incomplete"/>
+    </state>
+    <state name = "incomplete">
+        Some fragments already received but still waiting for the last one
+        <event name = "receive fragment" action = "do_receive_fragment"/>
+        <event name = "receive last fragment" action = "do_receive_fragment" next = "complete"/>
+        <event name = "read" action = "do_read"/>
+        <event name = "term" action = "do_term" next = "zombie"/>
+    </state>
+    <state name = "complete">
+        All fragments already received
+        <event name = "read" action = "do_read"/>
+        <event name = "term" action = "do_term" next = "terminal"/>
+    </state>
+    <state name = "zombie">
+        Still receiving fragments, but user already closed the message 
+        <event name = "receive fragment" action = "do_ignore_fragment"/>
+        <event name = "receive last fragment" action = "do_ignore_fragment" next = "terminal"/>
+    </state>
+    <state name = "terminal">
+        Message is already shut down
+    </state>
+    <state name = "default">
     </state>
 </machine>
 

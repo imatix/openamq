@@ -1,626 +1,181 @@
-.template 0
-# ------------------------------------------------------------------------------
-#  amq_stdc_framing.gsl - source file that generates AMQP/C client API
-#  gsl -script:amq_stdc_framing.gsl amq_frames.xml
-# 
-#  Copyright (c) 2004-2005 JPMorgan
-#  Copyright (c) 1991-2005 iMatix Corporation
-# ------------------------------------------------------------------------------
-
-# gets access to the field, either on stack or inside the amqp_frame_t structure
-.macro getfield (struct, frmname)
-.    if "$(my.struct)" = "0" | "$(name:)" = "fragment size"
-$(name:c)\
-.    else
-.        if "$(name:)" = "type"
-frame->type\
-.        else
-frame->fields.$(my.frmname:c).$(name:c)\
+.-------------------------------------------------------------------------------
+.- amq_stdc_framing.gsl - source file that generates AMQP/C client API
+.- gsl -script:amq_stdc_framing.gsl amq_frames.xml
+.-
+.- Copyright (c) 2004-2005 JPMorgan
+.- Copyright (c) 1991-2005 iMatix Corporation
+.-------------------------------------------------------------------------------
+.template 1
+.macro make_size ()
+.    if "$(type)" <> "bit"
+.        if bitshift <> 0
+sizeof (byte) + \
+.            bitshift = 0
 .        endif
 .    endif
-.endmacro
-
-#  Converts type as described in XML to native C type
-function makectype (prefix, postfix, comment, local, const)
-    if "$(my.const)" = "1"
-        cnst = "const "
-    else
-        cnst = ""
-    endif
-    if "$(type)" = "octet"
->$(my.prefix)$(cnst)apr_byte_t\
-    elsif "$(type)" = "shortstr"
->$(my.prefix)$(cnst)char*\
-    elsif "$(type)" = "longstr" | "$(type)" = "table"
->$(my.prefix)$(cnst)char*\
-    elsif "$(type)" = "shortint"
->$(my.prefix)$(cnst)apr_uint16_t\
-    elsif "$(type)" = "longint"
->$(my.prefix)$(cnst)apr_uint32_t\
-    elsif "$(type)" = "bit"
->$(my.prefix)$(cnst)apr_byte_t\
-    else
-        echo "'$(type)' : unsupported type"
-    endif
-    if "$(my.local)" = "1"
->
->$(my.prefix)    \
-    else
-> \
-    endif
->$(name:c)\
-    if "$(my.comment)" = "1"
-> /*  $(field)  */\
-    endif
->$(my.postfix)\
-endfunction
- 
-function makectypesize (prefix, postfix, comment, local, const)
-    if "$(my.const)" = "1"
-        cnst = "const "
-    else
-        cnst = ""
-    endif
-    if "$(type)" = "octet"
-    elsif "$(type)" = "shortstr"
-    elsif "$(type)" = "longstr" | "$(type)" = "table"
->$(my.prefix)$(cnst)apr_size_t\
-        if "$(my.local)" = "1"
->
->$(my.prefix)    \
-        else
-> \
-        endif
->$(name:c)_size\
-        if "$(my.comment)" = "1"
-> /*  $(name) size  */\
-        endif
->$(my.postfix)
-    elsif "$(type)" = "shortint"
-    elsif "$(type)" = "longint"
-    elsif "$(type)" = "bit"
-    else
-        echo "'$(type)' : unsupported type"
-    endif
-endfunction
-
-#  Creates header for function sending specific frame type to server
-function makeheader (comment)
->apr_status_t amqp_$(name:c) (
->    apr_socket_t *socket\
-    if "$(my.comment)" = "1"
-> /*  amqp socket  */\
-    endif
->,
->    char *buffer\
-    if "$(my.comment)" = "1"
-> /*  buffer used to compose the command  */\
-    endif
->,
->    apr_size_t buffer_size\
-    if "$(my.comment)" = "1"
-> /*  buffer size  */\
-    endif
-    for field where "$(name)" <> "type" & ("$(frame.name)" <> "handle send" | "$(name)" <> "fragment size")
->,
-        makectypesize ("    ", ",", "$(my.comment)", "0", "1")
-        makectype ("    ", "", "$(my.comment)", "0", "1")
-    endfor
-    if "$(name)" = "handle send"
-        for frames.frame where name = "message head"
-            for field
->,
-                makectypesize ("    ", ",", "$(my.comment)", "0", "1")
-                makectype ("    ", "", "$(my.comment)", "0", "1")
-            endfor
-        endfor
->,
->    char* data\
-    endif
->
->    )\
-endfunction
- 
-#  Generates code for writing single field into buffer
-.macro writeargument (struct, frmname)
-    /*  writes '$(name)' field into buffer  */
 .    if "$(type)" = "octet"
-.        if "$(bitshift)" <> "0"
-.            bitshift = 0
-    pos += sizeof (apr_byte_t);
-.        endif
-    if (pos + sizeof (apr_byte_t) > buffer_size) 
-        return AMQ_BUFFER_OVERFLOW;
-    buffer [pos] = \
-.        getfield ("$(my.struct)", "$(my.frmname)")
-;
-    pos += sizeof (apr_byte_t);
-#   if defined(AMQTRACE)
-        fprintf (stderr, "    $(name) = %ld\\n", (long) \
-.        getfield ("$(my.struct)", "$(my.frmname)")
-); 
-#   endif
-
-.    elsif "$(type)" = "shortint"
-.        if "$(bitshift)" <> "0"
-.            bitshift = 0
-    pos += sizeof (apr_byte_t);
-.        endif
-    if ( (pos + sizeof (apr_uint16_t) ) > buffer_size) 
-        return AMQ_BUFFER_OVERFLOW;
-    *( (apr_uint16_t *) (buffer + pos) ) =
-        htons (\
-.        getfield ("$(my.struct)", "$(my.frmname)")
-);
-    pos += sizeof (apr_uint16_t);
-#   if defined(AMQTRACE)
-        fprintf (stderr, "    $(name) = %ld\\n", (long) \
-.        getfield ("$(my.struct)", "$(my.frmname)")
-);
-#   endif
-
-.    elsif "$(type)" = "longint"
-.        if "$(bitshift)" <> "0"
-.            bitshift = 0
-    pos += sizeof (apr_byte_t);
-.        endif
-    if (pos + sizeof (apr_uint32_t) > buffer_size)
-        return AMQ_BUFFER_OVERFLOW;
-    *( (apr_uint32_t *) (buffer + pos) ) =
-        htonl (\
-.        getfield ("$(my.struct)", "$(my.frmname)")
-);
-    pos += sizeof(apr_uint32_t);
-#   if defined(AMQTRACE)
-        fprintf (stderr, "    $(name) = %ld\\n", (long) \
-.        getfield ("$(my.struct)", "$(my.frmname)")
-);
-#   endif
-
+sizeof (byte) + \
 .    elsif "$(type)" = "shortstr"
-.        if "$(bitshift)" <> "0"
-.            bitshift = 0
-    pos += sizeof (apr_byte_t);
-.        endif
-    len = strlen (\
-.        getfield ("$(my.struct)", "$(my.frmname)")
-);
-    if (len > 0xff)
-        return APR_EINVAL;
-    if (pos + sizeof (apr_byte_t) > buffer_size )
-        return AMQ_BUFFER_OVERFLOW;
-    buffer [pos] = (apr_byte_t) len;
-    pos += sizeof (apr_byte_t);
-    if (pos + len > buffer_size)
-        return AMQ_BUFFER_OVERFLOW;
-    memmove (buffer + pos, \
-.        getfield ("$(my.struct)", "$(my.frmname)")
-, len);
-    pos += len;
-#   if defined(AMQTRACE)
-        fprintf (stderr, "    $(name) = %s\\n", \
-.        getfield ("$(my.struct)", "$(my.frmname)")
-);
-#   endif
-
+sizeof (byte) + \
 .    elsif "$(type)" = "longstr" | "$(type)" = "table"
-.        if "$(bitshift)"<>"0"
-.            bitshift=0
-    pos += sizeof (apr_byte_t);
-.        endif
-    if (\
-.        getfield ("$(my.struct)", "$(my.frmname)")
-_size > 0xffff)
-        return APR_EINVAL;
-    if (pos + sizeof (apr_uint16_t) > buffer_size )
-        return AMQ_BUFFER_OVERFLOW;
-    *( (apr_uint16_t *) (buffer+pos) ) =
-        htons ( (apr_uint16_t) \
-.        getfield ("$(my.struct)", "$(my.frmname)")
-_size);
-    pos += sizeof (apr_uint16_t);
-    if (pos + \
-.        getfield ("$(my.struct)", "$(my.frmname)")
-_size > buffer_size )
-        return AMQ_BUFFER_OVERFLOW;
-    memmove (buffer + pos, \
-.        getfield ("$(my.struct)", "$(my.frmname)")
-, \
-.        getfield ("$(my.struct)", "$(my.frmname)")
-_size);
-    pos += \
-.        getfield ("$(my.struct)", "$(my.frmname)")
-_size;
-#   if defined(AMQTRACE)
-        fprintf (stderr, "    $(name) = %ld B\\n", (long) \
-.        getfield ("$(my.struct)", "$(my.frmname)")
-_size);
-#   endif
-
+sizeof (dbyte) + \
+.    elsif "$(type)" = "shortint"
+sizeof (dbyte) + \
+.    elsif "$(type)" = "longint"
+sizeof (qbyte) + \
 .    elsif "$(type)" = "bit"
-.        if "$(bitshift)" = "0"
-    buffer [pos] = \
-.        getfield ("$(my.struct)", "$(my.frmname)")
- ? 1 : 0;
-.        else 
-    buffer [pos] |= ( (\
-.        getfield ("$(my.struct)", "$(my.frmname)")
- ? 1 : 0) << $(bitshift));
-.        endif
 .        bitshift = bitshift + 1
 .        if bitshift = 8
+sizeof (byte) + \
 .            bitshift = 0
-    if (pos + sizeof(apr_byte_t) > buffer_size)
-        return AMQ_BUFFER_OVERFLOW;
 .        endif
-#   if defined(AMQTRACE)
-        fprintf (stderr, "    $(name) = %ld\\n", (long) \
-.        getfield ("$(my.struct)", "$(my.frmname)")
-);
-#   endif
-
 .    else
-.        echo "'$(type)' : unsupported type"
+.        abort "'$(type)' : unsupported type"
 .    endif
 .endmacro
-
-#  Generates code for reading single field from buffer
-.macro readargument (struct, frmname)
-            /*  decodes '$(name)' field  */
+.macro make_varsize ()
+.    if "$(type)" = "shortstr" | "$(type)" = "longstr" | "$(type)" = "table"
+ + $(name:c)_size\
+.    endif
+.endmacro
+.macro make_field ()
 .    if "$(type)" = "octet"
-.        if "$(bitshift)" <> "0"
-.            bitshift = 0
-            pos+=sizeof(apr_byte_t);
-.        endif
-            \
-.        getfield ("$(my.struct)", "$(my.frmname)")
- = (apr_byte_t) buffer [pos];
-            pos += sizeof (apr_byte_t);
-#           if defined(AMQTRACE)
-                fprintf (stderr, "    $(name) = %ld\\n", (long) \
-.        getfield ("$(my.struct)", "$(my.frmname)")
-);
-#           endif
-
-.    elsif "$(type)" = "shortint"
-.        if "$(bitshift)" <> "0"
-.            bitshift = 0
-            pos += sizeof (apr_byte_t);
-.        endif
-            \
-.        getfield ("$(my.struct)", "$(my.frmname)")
- = ntohs (*( (apr_uint16_t *) (buffer + pos) ) );
-            pos += sizeof (apr_uint16_t);
-#           if defined(AMQTRACE)
-                fprintf (stderr, "    $(name) = %ld\\n", (long) \
-.        getfield ("$(my.struct)", "$(my.frmname)")
-);
-#           endif
-
-.    elsif "$(type)" = "longint"
-.        if "$(bitshift)" <> "0"
-.            bitshift = 0
-            pos += sizeof (apr_byte_t);
-.        endif
-            \
-.        getfield ("$(my.struct)", "$(my.frmname)")
- = ntohl (*( (apr_uint32_t *) (buffer + pos) ) );
-            pos += sizeof(apr_uint32_t);
-#           if defined(AMQTRACE)
-                fprintf (stderr, "    $(name) = %ld\\n", (long) \
-.        getfield ("$(my.struct)", "$(my.frmname)")
-);
-#           endif
-
+    byte $(name:c);
 .    elsif "$(type)" = "shortstr"
-.    if "$(bitshift)" <> "0"
-.        bitshift = 0
-            pos += sizeof (apr_byte_t);
-.        endif
-            \
-.        getfield ("$(my.struct)", "$(my.frmname)")
- = (char *) (buffer + pos + sizeof (apr_byte_t) );
-            pos += sizeof(apr_byte_t) + (apr_byte_t) (buffer [pos] );
-            if (command_length + 1 >= buffer_size)
-                return AMQ_BUFFER_OVERFLOW;
-            memmove (buffer + pos + 1, buffer + pos, full_size - pos);
-            buffer [pos] = 0;
-            pos++;
-            full_size++;
-#           if defined(AMQTRACE)
-                fprintf (stderr, "    $(name) = %s\\n", \
-.        getfield ("$(my.struct)", "$(my.frmname)")
-);
-#           endif
-
+    byte $(name:c)_size;
+    const char *$(name:c);
 .    elsif "$(type)" = "longstr" | "$(type)" = "table"
-.        if "$(bitshift)" <> "0"
-.        bitshift = 0
-            pos += sizeof (apr_byte_t);
-.        endif
-            \
-.        getfield ("$(my.struct)", "$(my.frmname)")
-_size = ntohs (*( (apr_uint16_t*) (buffer+pos) ) );
-            buffer += sizeof (apr_uint16_t);
-            \
-.        getfield ("$(my.struct)", "$(my.frmname)")
- = buffer + pos;
-#           if defined(AMQTRACE)
-                fprintf (stderr, "    $(name) = %ld B\\n", (long) \
-.        getfield ("$(my.struct)", "$(my.frmname)")
-_size);
-#           endif
-            pos += \
-.        getfield ("$(my.struct)", "$(my.frmname)")
-_size;
-            if (command_length + 1 >= buffer_size) 
-                return AMQ_BUFFER_OVERFLOW;
-            memmove (buffer + pos + 1, buffer + pos, full_size - pos);
-            buffer [pos] = 0;
-            pos++;
-            full_size++;
-
+    dbyte $(name:c)_size;
+    const char *$(name:c);
+.    elsif "$(type)" = "shortint"
+    dbyte $(name:c);
+.    elsif "$(type)" = "longint"
+    qbyte $(name:c);
 .    elsif "$(type)" = "bit"
-            \
-.        getfield ("$(my.struct)", "$(my.frmname)")
- =
-                ( ( (apr_byte_t) buffer [pos] ) >> $(bitshift))&0x01;
-.        bitshift = bitshift + 1
-.        if "$(bitshift)" = "8"
+    byte $(name:c);
+.    else
+.        abort "'$(type)' : unsupported type"
+.    endif
+.endmacro
+.macro make_arg ()
+.    if "$(type)" = "octet"
+    byte $(name:c)\
+.    elsif "$(type)" = "shortstr"
+    byte $(name:c)_size,
+    const char *$(name:c)\
+.    elsif "$(type)" = "longstr" | "$(type)" = "table"
+    dbyte $(name:c)_size,
+    const char *$(name:c)\
+.    elsif "$(type)" = "shortint"
+    dbyte $(name:c)\
+.    elsif "$(type)" = "longint"
+    qbyte $(name:c)\
+.    elsif "$(type)" = "bit"
+    byte $(name:c)\
+.    else
+.        abort "'$(type)' : unsupported type"
+.    endif
+.endmacro
+.macro make_decoder (frame)
+.    if "$(type)" <> "bit"
+.        if bitshift <> 0
 .            bitshift = 0
-            pos += sizeof (apr_byte_t);
+        pos += sizeof (byte);
 .        endif
-#           if defined(AMQTRACE)
-                fprintf (stderr, "    $(name) = %ld\\n", (long) \
-.        getfield ("$(my.struct)", "$(my.frmname)")
-);
-#           endif
-
+.    endif
+.    if "$(type)" = "octet"
+        if (pos + sizeof (byte) > size)
+            return 0;
+        $(my.frame)$(name:c) = *((byte*) (buffer + pos));
+        pos += sizeof (byte);
+.    elsif "$(type)" = "shortstr"
+        if (pos + sizeof (byte) > size)
+            return 0;
+        $(my.frame)$(name:c)_size = *((byte*) (buffer + pos));
+        pos += sizeof (byte);
+        if (pos + $(my.frame)$(name:c)_size > size)
+            return 0;
+        $(my.frame)$(name:c) = buffer + pos;
+        pos += $(my.frame)$(name:c)_size;
+.    elsif "$(type)" = "longstr" | "$(type)" = "table"
+        if (pos + sizeof (dbyte) > size)
+            return 0;
+        $(my.frame)$(name:c)_size = ntohs (*((dbyte*) (buffer + pos)));
+        pos += sizeof (dbyte);
+        if (pos + $(my.frame)$(name:c)_size > size)
+            return 0;
+        $(my.frame)$(name:c) = buffer + pos;
+        pos += $(my.frame)$(name:c)_size;
+.    elsif "$(type)" = "shortint"
+        if (pos + sizeof (dbyte) > size)
+            return 0;
+        $(my.frame)$(name:c) = ntohs (*((dbyte*) (buffer + pos)));
+        pos += sizeof (dbyte);
+.    elsif "$(type)" = "longint"
+        if (pos + sizeof (qbyte) > size)
+            return 0;
+        $(my.frame)$(name:c) = ntohl (*((qbyte*) (buffer + pos)));
+        pos += sizeof (qbyte);
+.    elsif "$(type)" = "bit"
+.        if bitshift = 8
+.            bitshift = 0
+        pos += sizeof (byte);
+.        endif
+.        if bitshift = 0
+        if (pos + sizeof (byte) > size)
+            return 0;
+.        endif
+        $(my.frame)$(name:c) = (*((byte*) (buffer + pos)) >> $(bitshift)) & 0x01;
+.        bitshift = bitshift + 1
 .    else
-.        echo "'$(type)' : unsupported type"
+.        abort "'$(type)' : unsupported type"
 .    endif
 .endmacro
-
-.macro recv_body (struct)
-    apr_status_t
-        result;
-    apr_uint32_t
-        command_length = 0;
-    apr_uint32_t
-        full_size = 0;
-    apr_uint32_t
-        pos = 0;
-    apr_size_t
-        sz;
-.    if "$(my.struct)" = "0"
-    amqp_frame_type_t
-        frame_type;
-.    endif
-
-    /*  get all frame data from socket  */
-    sz = sizeof (apr_uint16_t);
-    result = apr_socket_recv (socket, buffer, &sz);
-    if(result != APR_SUCCESS)
-        return result;
-    pos += sizeof (apr_uint16_t);
-    command_length = ntohs (*( (apr_uint16_t *) buffer) );
-    full_size = command_length + sizeof (apr_uint16_t);
-    if (command_length == 0xffff) {
-        sz = sizeof (apr_uint32_t);
-        result = apr_socket_recv (socket, buffer + pos, &sz);
-        if (result!=APR_SUCCESS)
-            return result;
-        pos += sizeof (apr_uint32_t);
-        command_length =
-            ntohl (*( (apr_uint32_t*) (buffer + sizeof(apr_uint16_t) ) ) );
-        full_size = command_length + sizeof (apr_uint16_t) + sizeof (apr_uint32_t);
-    }
-    if (command_length > buffer_size)
-        return AMQ_BUFFER_OVERFLOW;
-    sz = command_length;
-    result = apr_socket_recv (socket, buffer + pos, &sz);
-    if (result != APR_SUCCESS) return result;
-    if (*(apr_byte_t *) (buffer + pos + command_length - sizeof (apr_byte_t) ) != (apr_byte_t) 0xce)
-        return AMQ_FRAME_CORRUPTED;
-
-    /*  parse individual command types  */
-.    if "$(my.struct)" = "0"
-    frame_type = (amqp_frame_type_t) buffer [pos];
-.    else
-    frame->type = (amqp_frame_type_t) buffer [pos];
-.    endif
-    pos += sizeof(apr_byte_t);
-.    if "$(my.struct)" = "0"
-    switch (frame_type)
-.    else
-    switch (frame->type)
-.    endif
-    {
-.- generates code to dispatch individual frame type
-.for frame where defined (frame->sender (role = "server") )
-    case amqp_$(name:c)_type:
-        {
-            /*  decodes and dispatches '$(name)' command  */
-
-.    bitshift = 0
-.    if "$(my.struct)" = "0"
-.        for field where "$(name)" <> "type"
-.            makectypesize ("            ", ";", "0", "1", "0")
-.            makectype ("            ", "", "0", "1", "0")
-;
-.        endfor
-.        if "$(name)" = "handle notify"
-.            for frames.frame where name = "message head"
-.                for field
-.                    makectypesize ("            ", ";", "0", "1", "0")
-.                    makectype ("            ", "", "0", "1", "0")
-;
-.                endfor
-.            endfor
-            char*
-                data;
+.macro make_encoder ()
+.    if "$(type)" <> "bit"
+.        if bitshift <> 0
+.            bitshift = 0
+    buffer += sizeof (byte);
 .        endif
-
 .    endif
-.    for field where "$(name)" <> "type"
-.        readargument ("$(my.struct)", "$(frame.name)")
-.    endfor
-.- handle notify frame is followed by message head
-.- following lines generate code to decode it
-.    if "$(name)" = "handle notify"
-.        for frames.frame where name = "message head"
-            /*  decodes message head  */
-            sz = fragment_size;
-            result = apr_socket_recv (socket, buffer + pos, &sz );
-            if (result != APR_SUCCESS)
-                return result;
-            full_size = pos + fragment_size;
-
-.            for field
-.                readargument ("$(my.struct)", "handle notify")
-.            endfor
-.        endfor
-            /*  decodes message data  */
-.        if "$(my.struct)" = "0"
-            data = (char *) (buffer + pos);
-            pos += body_size;
-.        else
-            frame->fields.handle_notify.data = (char *) (buffer + pos);
-            pos += frame->fields.handle_notify.body_size;
+.    if "$(type)" = "octet"
+    *((byte*) buffer) = $(name:c);
+    buffer += sizeof (byte);
+.    elsif "$(type)" = "shortstr"
+    *((byte*) buffer) = $(name:c)_size;
+    buffer += sizeof (byte);
+    memcpy ((void*) buffer, (void*) $(name:c), $(name:c)_size);
+    buffer += $(name:c)_size;
+.    elsif "$(type)" = "longstr" | "$(type)" = "table"
+    *((dbyte*) buffer) = htons ($(name:c)_size);
+    buffer += sizeof (dbyte);
+    memcpy ((void*) buffer, (void*) $(name:c), $(name:c)_size);
+    buffer += $(name:c)_size;
+.    elsif "$(type)" = "shortint"
+    *((dbyte*) buffer) = htons ($(name:c));
+    buffer += sizeof (dbyte);
+.    elsif "$(type)" = "longint"
+    *((qbyte*) buffer) = htonl ($(name:c));
+    buffer += sizeof (qbyte);
+.    elsif "$(type)" = "bit"
+.        if bitshift = 8
+.            bitshift = 0
+    buffer += sizeof (byte);
 .        endif
-
-.    endif
-            /*  dispatches command  */
-#           if defined(AMQTRACE)
-                fprintf (stderr, "$(name) received.\\n\\n"); 
-#           endif
-.    if "$(my.struct)" = "0"
-            if (callbacks->$(name:c))
-                return callbacks->$(name:c) (
-                    hint,\
-.        for field where "$(name)" <> "type" & ("$(frame.name)" <> "handle notify" | "$(name)" <> "fragment size")
-
-.            if "$(type)" = "longstr" | "$(type)" = "table"
-                    $(name:c)_size,
-.            endif
-                    $(name:c)$(!last()??","?)\
-.        endfor
-.        if "$(name)" = "handle notify"
-,
-.            for frames.frame where name = "message head"
-.                for field
-.                    if "$(type)" = "longstr" | "$(type)" = "table"
-                    $(name:c)_size,
-.                    endif
-                    $(name:c),
-.                endfor
-.            endfor
-                    data\
+.        if bitshift = 0
+    *((byte*) buffer) = 0;
 .        endif
-
-                    );
-            else return APR_SUCCESS;
+    *((byte*) buffer) |= ($(name:c) ? 1 : 0) << $(bitshift);
+.        bitshift = bitshift + 1
 .    else
-            return APR_SUCCESS;
+.        abort "'$(type)' : unsupported type"
 .    endif
-        }
-.endfor
-    default:
-        return AMQ_FRAME_CORRUPTED;
-    }
 .endmacro
-
-.macro send_body (struct)
-    /*  writes '$(name)' command into buffer  */
-
-    type = amqp_$(name:c)_type;
-
-.    bitshift = 0
-.    for field
-.        if "$(frame.name)" = "handle send" & "$(name)" = "fragment size"
-    fragment_size_pos = pos;
-.        endif
-.        writeargument ("$(my.struct)", "$(frame.name)")
-.    endfor
-.    if "$(bitshift)" <> "0"
-.        bitshift = 0
-    pos += sizeof (apr_byte_t);
-.    endif
-    /*  writes terminal byte into buffer  */
-    if (pos + sizeof(apr_byte_t) > buffer_size)
-        return AMQ_BUFFER_OVERFLOW;
-    buffer [pos] = (apr_byte_t) 0xce;
-    pos += sizeof (apr_byte_t);
-
-    /*  adjusts size  */
-    if (pos - sizeof (apr_uint32_t) - sizeof (apr_uint16_t) < 0xffff) {
-        *( (apr_uint16_t *) (buffer + sizeof (apr_uint32_t) ) ) =
-            htons ( (apr_uint16_t) (pos - sizeof (apr_uint32_t) - sizeof (apr_uint16_t) ) );
-        start_pos = sizeof (apr_uint32_t);
-    }
-    else {
-        *( (apr_uint16_t *) buffer) = 0xffff;
-        *( (apr_uint32_t *) (buffer + sizeof (apr_uint16_t) ) ) =
-            htonl (pos - sizeof (apr_uint32_t) - sizeof (apr_uint16_t) );
-        sz = pos;
-        start_pos = sizeof (apr_uint16_t);
-    }
-.- handle send command is followed by message head
-.- following lines generate code to write it into buffer
-.    if "$(name)" = "handle send"
-    
-    /*  writes message head  */
-	message_head_pos = pos;
-
-.        frmname = "$(frame.name)"
-.        bitshift = 0
-.        for frames.frame where name = "message head"
-.            for field
-.                writeargument ("$(my.struct)", "$(frmname)")
-.            endfor
-.        endfor
-    /*  writes message data  */
-    if (pos + \
-.        if "$(my.struct)" = "0"
-body_size\
-.        else
-frame->fields.handle_send.body_size\
-.        endif
- > buffer_size)
-        return AMQ_BUFFER_OVERFLOW;
-.        if "$(my.struct)" = "0"
-    memmove (buffer + pos, data, body_size);
-    pos += body_size;
-.        else
-    memmove (buffer + pos, frame->fields.handle_send.data, frame->fields.handle_send.body_size);
-    pos += frame->fields.handle_send.body_size;
-.        endif
-.    endif
-.    if "$(name)" = "handle send"
-
-    /*  adjusts fragment size  */
-    *( (apr_uint32_t*) (buffer + fragment_size_pos) ) =
-        htonl (pos - message_head_pos);
-.    endif
-
-    /*  sends command to server  */
-    sz = pos - start_pos;
-    result = apr_socket_send (socket, buffer + start_pos, &sz);
-    if (result != APR_SUCCESS)
-        return result;
-#   if defined(AMQTRACE)
-        fprintf (stderr, "$(name) issued.\\n\\n");
-#   endif
-
-    return APR_SUCCESS;
-.endmacro
-
-.macro generate_interface ()
 .output "amq_stdc_framing.h"
 /*---------------------------------------------------------------------------
  *  amq_stdc_framing.h - headers for AMQP client API (Level 0)
  *
- *  Generated from amq_frames.xml by amq_stdc_framing.gsl using GSL/4.
+ *  Generated from amq_frames.xml by amq_stdc_framing_old.gsl using GSL/4.
  *  DO NOT MODIFY THIS FILE.
  *
  *  For documentation and updates see http://www.imatix.com.
@@ -628,182 +183,94 @@ frame->fields.handle_send.body_size\
  *  Copyright (c) 1991-2005 iMatix Corporation
  *---------------------------------------------------------------------------*/
 
-#ifndef AMQ_STDC_FRAMING_INCLUDED       /* Prevent multiple inclusions       */
+#ifndef AMQ_STDC_FRAMING_INCLUDED
 #define AMQ_STDC_FRAMING_INCLUDED
 
-#include "base.h"                       /* Base definitions                  */
-#include "base_apr.h"                   /* APR definitions                   */
+#include "base.h"
 
-/*  error value received when frame non coforming to  */
-/*  AMQP protocol is received from the server.  */
-#define AMQ_FRAME_CORRUPTED (APR_OS_START_USERERR + 0)
-/*  error value received when supplied buffer is too small to either :  */
-/*      1. store whole frame received from the server  */
-/*      2. store whole frame to be sent to the server  */
-#define AMQ_BUFFER_OVERFLOW (APR_OS_START_USERERR + 1)
-/*  error value received when object (connection, channel, handle) was  */
-/*  closed by server or another thread during or prior to function      */
-/*  execution                                                           */
-#define AMQ_OBJECT_CLOSED (APR_OS_START_USERERR +2)
+#define COMMAND_SIZE_MAX_SIZE \\
+    (sizeof (dbyte) + sizeof (qbyte))
+.for frame where name <> "message head"
+#define AMQ_STDC_$(name:c,UPPER)_CONSTANT_SIZE \\
+    (\
+.    bitshift = 0
+.    for field
+.        make_size ()
+.    endfor
+.    if bitshift <> 0
+sizeof (byte) + \
+.    endif
+sizeof (byte))
+.endfor
+.for frame where name = "message head"
+#define AMQ_STDC_$(name:c,UPPER)_CONSTANT_SIZE \\
+    (\
+.    bitshift = 0
+.    for field
+.        make_size ()
+.    endfor
+.    if bitshift <> 0
+sizeof (byte) + \
+.    endif
+0)
+.endfor
 
-/*  types of amqp frames  */
 typedef enum
 {
 .for frame where name <> "message head"
-    amqp_$(name:c)_type = $(frame->field (name = "type").value)$(!last()??","?)
+    amq_stdc_$(name:c)_type = $(frame->field (name = "type").value)$(!last()??","?)
 .endfor
-} amqp_frame_type_t;
+} amq_stdc_frame_type_t;
 
-/*  structure corresponding to the generic amqp frame  */
+.for frame
 typedef struct
 {
-    amqp_frame_type_t type;
+.for field where name <> "type"
+.    make_field ()
+.endfor
+} amq_stdc_$(name:c)_t;
+
+.endfor
+
+typedef struct
+{
+    amq_stdc_frame_type_t type;
     union
     {
-.for frame where "$(name)" <> "message head"
-        struct
-        {
-.    for field where "$(name)" <> "type" & ("$(frame.name)" <> "handle notify" | "$(name)" <> "fragment size")
-.        makectypesize ("            ", ";", "1", "0", "0") 
-.        makectype ("            ", ";\n", "1", "0", "0") 
-.    endfor
-.    if "$(name)" = "handle notify" | "$(name)" = "handle send"
-.        for frames.frame where name = "message head"
-.            for field
-.                makectypesize ("            ", ";", "1", "0", "0") 
-.                makectype ("            ", ";\n", "1", "0", "0")
-.            endfor
-.        endfor
-            char *data;
-.    endif
-        } $(name:c);
+.for frame where name <> "message head"
+        amq_stdc_$(name:c)_t $(name:c);
 .endfor
     } fields;
-} amqp_frame_t;
+} amq_stdc_frame_t;
 
-.for frame where defined (frame->sender (role = "server") )
-/*  prototype of callback function corresponding to '$(name)' command  */
-typedef apr_status_t (*amqp_$(name:c)_t) (
-    const void *hint /*  hint passed to amqp_recv  */,\
-.    for field where "$(name)" <> "type" & ("$(frame.name)" <> "handle notify" | "$(name)" <> "fragment size")
+qbyte amq_stdc_decode_command (
+    const char *buffer,
+    qbyte size,
+    amq_stdc_frame_t *frame
+    );
 
-.        makectypesize ("    ", ",", "1", "0", "1") 
-.        makectype ("    ", "", "1", "0", "1") 
-$(!last()??","?)\
+.for frame where name = "message head"
+qbyte amq_stdc_decode_$(name:c) (
+    const char *buffer,
+    qbyte size,
+    amq_stdc_$(name:c)_t *frame
+    );
+
+.endfor
+
+.for frame
+qbyte amq_stdc_encode_$(name:c) (
+    char *buffer,
+    qbyte size,
+.    for field where name <> "type"
+.        make_arg ()
+$(!last()??","?)
 .    endfor
-.    if "$(name)" = "handle notify"
-,\
-.        for frames.frame where name = "message head"
-.            for field
-
-.                makectypesize ("    ", ",", "1", "0", "1")
-.                makectype ("    ", "", "1", "0", "1") 
-,\
-.            endfor
-.        endfor
-
-    const char *data\
-.    endif
-
     );
 
 .endfor
-/*  structure that keeps callback function pointers  */
-/*  if field is equal to NULL, no callback will be called  */
-typedef struct
-{
-.for frame where defined (frame->sender (role = "server") )
-    amqp_$(name:c)_t $(name:c);
-.endfor
-} amqp_callbacks_t;
-
-/*  ---------------------------------------------------------------------[<]-
-    Function: amqp_init
-
-    Synopsis:
-    Sends initiation bytes to the server.
-    ---------------------------------------------------------------------[>]-*/
-apr_status_t amqp_init (
-    apr_socket_t *socket /*  amqp socket  */
-    );
-
-/*  ---------------------------------------------------------------------[<]-
-    Function: amqp_term
-
-    Synopsis:
-    Uninitializes AMQP client API (dummy function for now)
-    ---------------------------------------------------------------------[>]-*/
-apr_status_t amqp_term (
-    apr_socket_t *socket /*  amqp socket  */
-    );
-
-/*  ---------------------------------------------------------------------[<]-
-    Function: amqp_recv_struct
-
-    Synopsis:
-    Returns single command frame received from server
-    ---------------------------------------------------------------------[>]-*/
-apr_status_t amqp_recv_struct (
-    apr_socket_t *socket /*  amqp socket  */,
-    char *buffer /*  buffer used to store the strings  */,
-    apr_size_t buffer_size /*  buffer size  */,
-    amqp_frame_t *frame /*  frame that will be filled in  */
-    );
-
-/*  ---------------------------------------------------------------------[<]-
-    Function: amqp_send_struct
-
-    Synopsis:
-    Sends single command to the server
-    ---------------------------------------------------------------------[>]-*/
-apr_status_t amqp_send_struct (
-    apr_socket_t *socket /*  amqp socket  */,
-    char *buffer /*  buffer used to compose the command  */,
-    apr_size_t buffer_size /*  buffer size  */,
-    amqp_frame_t *frame /*  frame to send  */
-    );
-
-/*  ---------------------------------------------------------------------[<]-
-    Function: amqp_recv
-
-    Synopsis:
-    Dispatches single command to apropriate callback function (if registered).
-    ---------------------------------------------------------------------[>]-*/
-apr_status_t amqp_recv (
-    apr_socket_t *socket /*  amqp socket  */,
-    char *buffer /*  buffer used to store the command  */,
-    apr_size_t buffer_size /*  buffer size  */,
-    amqp_callbacks_t *callbacks /*  contians pointers to callback functions for individual commands  */,
-    void *hint /*  hint to be passed to callback function  */
-    );
-    
-.for frame where defined(frame->sender(role="client"))
-/*  ---------------------------------------------------------------------[<]-
-    Function: amqp_$(name:c)
-
-    Synopsis:
-    Sends $(name) command to the server.
-    ---------------------------------------------------------------------[>]-*/
-.    makeheader ("1")
-;
-
-.endfor
-/*  ---------------------------------------------------------------------[<]-
-    Function: amqp_strerror
-
-    Synopsis:
-    Translates error code into human readable string.
-    ---------------------------------------------------------------------[>]-*/
-char *amqp_strerror (
-    apr_status_t statcode /*  status to be translated to string  */,
-    char *buffer /*  buffer to hold the result  */,
-    apr_size_t buffer_size /*  buffer size  */
-    );
-
-#endif                                  /* AMQP_LEVEL0_INCLUDED              */
-.endmacro
-
-.macro generate_implementation ()
+#endif
+.close
 .output "amq_stdc_framing.c"
 /*---------------------------------------------------------------------------
  *  amq_stdc_framing.c - implementation for AMQP client API
@@ -818,163 +285,118 @@ char *amqp_strerror (
 
 #include "amq_stdc_framing.h"
 
-apr_status_t amqp_init (
-    apr_socket_t *socket
+qbyte amq_stdc_decode_command (
+    const char *buffer,
+    qbyte size,
+    amq_stdc_frame_t *frame
     )
 {
-    apr_status_t
-        result;
-    char
-        data [2];
-    apr_size_t
-        sz;
+    qbyte
+        pos = 0;
 
-    /*  send initiation bytes to server  */
-    data [0] = (char) 128;
-    data [1] = (char) 1;
-    sz = 2;
-    result = apr_socket_send (socket, data, &sz);
-    if (result != APR_SUCCESS)
-        return result;
-    return APR_SUCCESS;
-};
-
-apr_status_t amqp_term (
-    apr_socket_t *socket
-    )
-{
-    return APR_SUCCESS;
-};
-
-apr_status_t amqp_recv_struct (
-    apr_socket_t *socket,
-    char *buffer,
-    apr_size_t buffer_size,
-    amqp_frame_t *frame
-    )
-{
-    apr_uint32_t
-        fragment_size;
-.recv_body ("1")
-}
-
-apr_status_t amqp_send_struct (
-    apr_socket_t *socket,
-    char *buffer,
-    apr_size_t buffer_size,
-    amqp_frame_t *frame
-    )
-{
-    apr_status_t
-        result;
-    apr_uint32_t
-        pos = sizeof (apr_uint16_t) + sizeof(apr_uint32_t);
-    apr_uint32_t
-        len = 0;
-    apr_size_t
-        sz;
-    amqp_frame_type_t
-        type;
-    apr_uint32_t
-        start_pos;
-    apr_uint32_t
-        fragment_size_pos;
-    apr_uint32_t
-        fragment_size = 0;
-    apr_uint32_t
-        message_head_pos;
-
+    if (pos + sizeof (byte) > size)
+        return 0;
+    frame->type = *((byte*) (buffer + pos));
+    pos += sizeof (byte);
     switch (frame->type)
     {
-.for frame where defined (frame->sender (role = "client") )
-    case amqp_$(name:c)_type:
-.    send_body ("1")
-
-.endfor
-    default:
-        return AMQ_FRAME_CORRUPTED;
-    }
-}
-
-apr_status_t amqp_recv (
-    apr_socket_t *socket,
-    char *buffer,
-    apr_size_t buffer_size,
-    amqp_callbacks_t *callbacks,
-    void *hint
-    )
-{
-.recv_body ("0")
-}
-
-.- generates functions to send individual command types to server
-.for frame where defined(frame->sender(role="client"))
-.    makeheader ("0")
-
-{
-    apr_status_t
-        result;
-    apr_uint32_t
-        pos = sizeof (apr_uint16_t) + sizeof(apr_uint32_t);
-.    shortstrcount = 0
-.    for field where type = "shortstr"
-.        shortstrcount = shortstrcount + 1
+.for frame where name <> "message head"
+    case amq_stdc_$(name:c)_type:
+.    bitshift = 0
+.    for field where name <> "type"
+.        make_decoder ("frame->fields.$(frame.name:c).")
 .    endfor
-.    if shortstrcount > 0
-    apr_uint32_t
-        len = 0;
+.    if bitshift <> 0
+        pos += sizeof (byte);
 .    endif
-    apr_size_t
-        sz;
-    amqp_frame_type_t
-        type;
-    apr_uint32_t
-        start_pos;
-.    if "$(name)" = "handle send"
-    apr_uint32_t
-        fragment_size_pos;
-    apr_uint32_t
-        fragment_size = 0;
-    apr_uint32_t
-        message_head_pos;
-.    endif
-
-.    send_body ("0")
-};
-
+        break;
 .endfor
-char *amqp_strerror (
-    apr_status_t statcode,
-    char *buffer,
-    apr_size_t buffer_size
+    default:
+        return 0;
+    }
+    if (pos + sizeof (byte) > size)
+        return 0;
+    if (*((byte*) (buffer + pos)) != 0xce)
+        return 0;
+    pos += sizeof (byte);
+    return pos;
+}
+
+.for frame where name = "message head"
+qbyte amq_stdc_decode_$(name:c) (
+    const char *buffer,
+    qbyte size,
+    amq_stdc_$(name:c)_t *frame
     )
 {
-    const char*
-        str = NULL;
+    qbyte
+        pos = 0;
 
-    switch (statcode)
-    {
-    case AMQ_FRAME_CORRUPTED:
-        str = "Received corrupted frame.";
-        break;
-    case AMQ_BUFFER_OVERFLOW:
-        str = "Received or trying to send frame bigger than available buffer.";
-        break;
-    case AMQ_OBJECT_CLOSED:
-        str = "Object was closed by server or another thread.";
-        break;
-    default:
-        return apr_strerror (statcode, buffer, buffer_size);
-    }
-    return strncpy(buffer, str, buffer_size);
+.    bitshift = 0
+.    for field
+.        make_decoder ("frame->")
+.    endfor
+.    if bitshift <> 0
+        pos += sizeof (byte);
+.    endif
+    return pos;
 }
-.endmacro
 
+.endfor
+#define ENCODE_SIZE \\
+    if (sz < 0xffff) {\\
+        if (sz + sizeof (dbyte) > size)\\
+            return 0;\\
+        *((dbyte*) buffer) = htons (sz);\\
+        buffer += sizeof (dbyte);\\
+        sz += sizeof (dbyte);\\
+    }\\
+    else {\\
+        if (sz + sizeof (dbyte) + sizeof (qbyte) > size)\\
+            return 0;\\
+        *((dbyte*) buffer) = 0xffff;\\
+        buffer += sizeof (dbyte);\\
+        *((qbyte*) buffer) = htonl (sz);\\
+        buffer += sizeof (qbyte);\\
+        sz += sizeof (dbyte) + sizeof (qbyte);\\
+    }
 
-#
-#  Main Program 
-#
-generate_interface ()
-generate_implementation ()
+.for frame
+qbyte amq_stdc_encode_$(name:c) (
+    char *buffer,
+    qbyte size,
+.    for field where name <> "type"
+.        make_arg ()
+$(!last()??","?)
+.    endfor
+    )
+{
+    qbyte
+        sz = AMQ_STDC_$(name:c,UPPER)_CONSTANT_SIZE\
+.    for field where name <> "type"
+.        make_varsize ()
+.    endfor
+;
 
-endtemplate  
+.    if "$(name)" <> "message head"
+    ENCODE_SIZE
+    *((byte*) buffer) = amq_stdc_$(name:c)_type;
+    buffer += sizeof (byte);
+.    endif
+.    bitshift = 0
+.    for field where name <> "type"
+.        make_encoder ()
+.    endfor
+.    if bitshift <> 0
+    buffer += sizeof (byte);
+.    endif
+.    if "$(name)" <> "message head"
+    *((byte*) buffer) = 0xce;
+    buffer += sizeof (byte);
+.    endif
+    return sz;
+}
+
+.endfor
+.close
+.endtemplate

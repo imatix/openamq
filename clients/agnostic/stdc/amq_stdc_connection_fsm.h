@@ -12,6 +12,7 @@
 
 typedef struct tag_connection_fsm_context_t* connection_fsm_t;
 
+#include "amq_stdc_table.h"
 #include "amq_stdc_global_fsm.h"
 #include "amq_stdc_channel_fsm.h"
 #include "amq_stdc_handle_fsm.h"
@@ -24,13 +25,18 @@ typedef struct tag_connection_fsm_context_t* connection_fsm_t;
 
 apr_status_t connection_get_channel (
     connection_fsm_t  context,
-    apr_uint16_t      channel_id,
+    dbyte             channel_id,
     channel_fsm_t     *channel);
 
 apr_status_t connection_get_handle (
     connection_fsm_t  context,
-    apr_uint16_t      handle_id,
+    dbyte             handle_id,
     handle_fsm_t      *handle
     );
+
+apr_status_t connection_get_channel_from_handle (
+    connection_fsm_t  context,
+    dbyte             handle_id,
+    channel_fsm_t     *channel);
 
 #endif

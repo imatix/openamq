@@ -13,6 +13,7 @@
 typedef struct tag_handle_fsm_context_t* handle_fsm_t;
 
 #include "amq_stdc_channel_fsm.h"
+#include "amq_stdc_message_fsm.h"
 
 #include "amq_stdc_handle_fsm.i"
 

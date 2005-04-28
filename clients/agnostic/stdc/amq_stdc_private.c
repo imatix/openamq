@@ -10,7 +10,7 @@
 
 #ifdef AMQTRACE_MEMORY
 
-static apr_uint32_t s_allocated_blocks = 0;
+static qbyte s_allocated_blocks = 0;
 
 void *amq_malloc_trace (size_t sz, const char *file, long line)
 {
@@ -22,6 +22,19 @@ void *amq_malloc_trace (size_t sz, const char *file, long line)
         (long) sz, (long) p, file, line);
     s_allocated_blocks++;
     return p;
+}
+
+void *amq_realloc_trace (void *p, size_t sz, const char *file, long line)
+{
+    void 
+        *pnew;
+
+    pnew = realloc (p, sz);
+    printf ("> memory block on adress %lx reallocated to size %ld; "
+        "now on address %lx (%s:%ld)\n", 
+        (long) p, (long) sz, (long) pnew, file, line);
+    if (!p) s_allocated_blocks++;
+    return pnew;
 }
 
 void amq_free_trace (void *p, const char *file, long line)
@@ -47,9 +60,9 @@ void amq_stdc_assert (
     )
 {
     char
-        buffer [BUFFER_SIZE];
+        buffer [1024];
 
-    amqp_strerror (result, buffer, BUFFER_SIZE);
+    apr_strerror (result, buffer, 1024);
     printf ("%s:%ld - %s (%ld: %s)\n", file, line, text, (long) result, buffer);
     assert (0);
 }

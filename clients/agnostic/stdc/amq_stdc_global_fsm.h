@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------
- *  amq_stdc_global.h - Interface of GLOBAL object 
+ *  amq_stdc_global_fsm.h - Interface of GLOBAL object 
  *
  *  Copyright (c) 2004-2005 JPMorgan
  *  Copyright (c) 1991-2005 iMatix Corporation
@@ -23,16 +23,22 @@ typedef struct tag_global_fsm_context_t* global_fsm_t;
 
 apr_status_t register_lock (
     global_fsm_t  context,
-    apr_uint16_t  connection_id,
-    apr_uint16_t  channel_id,
-    apr_uint16_t  handle_id,
-    apr_uint16_t  *lock_id,
+    dbyte         connection_id,
+    dbyte         channel_id,
+    dbyte         handle_id,
+    dbyte         *lock_id,
     lock_t        *lock
+    );
+
+apr_status_t register_dummy_lock (
+    global_fsm_t context,
+    void         *result,
+    lock_t       *lock
     );
 
 apr_status_t release_lock (
     global_fsm_t  context,
-    apr_uint16_t  lock_id,
+    dbyte         lock_id,
     void          *result
     );
 
@@ -43,10 +49,10 @@ apr_status_t wait_for_lock (
 
 apr_status_t release_all_locks (
     global_fsm_t  context,
-    apr_uint16_t  connection_id,
-    apr_uint16_t  channel_id,
-    apr_uint16_t  handle_id,
-    apr_uint16_t  except_lock_id,
+    dbyte         connection_id,
+    dbyte         channel_id,
+    dbyte         handle_id,
+    dbyte         except_lock_id,
     apr_status_t  error
     );
 

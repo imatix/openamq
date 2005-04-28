@@ -68,7 +68,8 @@ apr_status_t amq_stdc_open_connection (
     amq_stdc_heartbeat_model_t  out_heartbeat_model,
     amq_stdc_heartbeat_model_t  in_heartbeat_model,
     apr_interval_time_t         in_heartbeat_interval,
-    apr_byte_t                  async,
+    amq_stdc_table_t            options,
+    byte                        async,
     amq_stdc_connection_t       *out
     )
 
@@ -86,6 +87,8 @@ in_heartbeat_mode:
     Specifies how heartbeats are to be received from server
 in_heartbeat_interval:
     Interval in which client wants server to send heartbeats  
+options:
+    Options table passed to CONNECTION OPEN command  
 async:
     If 1, doesn't wait for confirmation
 connection:
@@ -99,9 +102,11 @@ amq_stdc_open channel
 
 apr_status_t amq_stdc_open_channel (
     amq_stdc_connection_t  context,
-    apr_byte_t             transacted,
-    apr_byte_t             restartable,
-    apr_byte_t             async,
+    byte                   transacted,
+    byte                   restartable,
+    amq_stdc_table_t       options,
+    cont char              *out_of_band,
+    byte                   async,
     amq_stdc_channel_t     *out)
 
 Opens channel.
@@ -112,6 +117,10 @@ transacted:
     Whether channel is to be transacted
 restartable:
     Whether channel supports restartable messages
+options:
+    Options table to be passed to CHANNEL OPEN
+out_if_band:
+    Specifies how out of band transfer should work
 async:
     If 1, don't wait for confirmation
 channel:
@@ -137,8 +146,8 @@ amq_stdc_acknowledge
 
 apr_status_t amq_stdc_acknowledge (
     amq_stdc_channel_t  context,
-    apr_uint32_t        message_nbr,
-    apr_byte_t          async
+    qbyte               message_nbr,
+    byte                async
     )
 
 Acknowledges message(s).
@@ -155,13 +164,16 @@ amq_stdc_commit
 
 apr_status_t amq_stdc_commit (
     amq_stdc_channel_t  context,
-    apr_byte_t          async
+    amq_stdc_table_t    options
+    byte          async
     )
 
 Commits work done.
 
 channel:
     Channel to do commit on
+options:
+    Options table to be sent to CHANNEL COMMIT
 async:
     If 1, don't wait for confirmation
 
@@ -170,13 +182,16 @@ amq_stdc_rollback
 
 apr_status_t amq_stdc_rollback (
     amq_stdc_channel_t  context,
-    apr_byte_t          async
+    amq_sdc_table_t     options
+    byte                async
     )
 
 Rolls back work done.
 
 channel:
     Channel to do rollback on
+options:
+    Options table to be sent to CHANNEL ROLLBACK
 async:
     If 1, don't wait for confirmation
 
@@ -186,14 +201,15 @@ amq_stdc_open_handle
 apr_status_t amq_stdc_open_handle (
     amq_stdc_channel_t       context,
     amq_stdc_service_type_t  service_type,
-    apr_byte_t               producer,
-    apr_byte_t               consumer,
-    apr_byte_t               browser,
-    apr_byte_t               temporary,
+    byte                     producer,
+    byte                     consumer,
+    byte                     browser,
+    byte                     temporary,
     char                     *dest_name,
     char                     *mime_type,
     char                     *encoding,
-    apr_byte_t               async,
+    amq_stdc_table_t         options,
+    byte                     async,
     char                     **dest_name_out,
     amq_stdc_handle_t        *out
     )
@@ -221,6 +237,8 @@ mime_type:
     MIME type
 encoding:
     Content encoding
+options:
+    Options table passed to HANDLE OPEN command
 async:
     If 1, doesn't wait for confirmation
 dest_name_out:
@@ -249,13 +267,14 @@ amq_stdc_consume
 
 apr_status_t amq_stdc_consume (
     amq_stdc_handle_t  context,
-    apr_uint16_t       prefetch,
-    apr_byte_t         no_local,
-    apr_byte_t         unreliable,
+    dbyte              prefetch,
+    byte               no_local,
+    byte               unreliable,
     const char         *dest_name,
     const char         *identifier,
+    const char         *selector
     const char         *mime_type,
-    apr_byte_t         async
+    byte               async
     )
 
 Starts message consumption.
@@ -272,6 +291,8 @@ dest_name:
     Destination name
 idnetifier:
     Durable subscription name
+selector:
+    Selector string
 mime_type:
     MIME type
 async:
@@ -282,6 +303,7 @@ amq_stdc_get_message
 
 apr_status_t amq_stdc_get_message (
     amq_stdc_handle_t  handle,
+    byte               wait,
     amqp_frame_t       **message
     )
 
@@ -289,6 +311,9 @@ Gets one message. If no message is available, this is a blocking call.
 
 handle:
     Handle object
+wait:
+    if 1, waits for message if not present; if 0 returns immediately
+    if message isn't present (message contians NULL in that case)
 message:
     Out parameter; message returned
 
@@ -297,19 +322,19 @@ amq_stdc_send_message
 
 apr_status_t amq_stdc_send_message (
     amq_stdc_handle_t  context,
-    apr_byte_t         out_of_band,
-    apr_byte_t         recovery,
-    apr_byte_t         streaming,
+    byte               out_of_band,
+    byte               recovery,
+    byte               streaming,
     const char         *dest_name,
-    apr_byte_t         persistent,
-    apr_byte_t         priority,
-    apr_uint32_t       expiration,
+    byte               persistent,
+    byte               priority,
+    qbyte              expiration,
     const char         *mime_type,
     const char         *encoding,
     const char         *identifier,
     apr_size_t         data_size,
     void               *data,
-    apr_byte_t         async
+    byte               async
     )
 
 Sends message to server.
@@ -348,8 +373,8 @@ amq_stdc_flow
 
 apr_status_t amq_stdc_flow (
     amq_stdc_handle_t  context,
-    apr_byte_t         pause,
-    apr_byte_t         async
+    byte               pause,
+    byte               async
     )
 
 Suspends or restards message flow.
@@ -368,7 +393,7 @@ apr_status_t amq_stdc_cancel_subscription (
     amq_stdc_handle_t  context,
     const char         *dest_name,
     const char         *identifier,
-    apr_byte_t         async
+    byte               async
     )
 
 Cancels durable subscription.
@@ -387,8 +412,8 @@ amq_stdc_unget_message
 
 apr_status_t amq_stdc_unget_message (
     amq_stdc_handle_t  context,
-    apr_uint32_t       message_nbr,
-    apr_byte_t         async
+    qbyte              message_nbr,
+    byte               async
     )
 
 Returns a message to the server.
@@ -405,10 +430,11 @@ amq_stdc_query
 
 apr_status_t amq_stdc_query (
     amq_stdc_handle_t  context,
-    apr_uint32_t       message_nbr,
+    qbyte              message_nbr,
     const char         *dest_name,
+    const char         *selector,
     const char         *mime_type,
-    apr_byte_t         partial,
+    byte               partial,
     char               **resultset
     )
 
@@ -420,6 +446,8 @@ message_nbr:
     Request for messages with number over this value; 0 means all messages
 dest_name:
     Destination name
+selector:
+    Selector string
 mime_type:
     MIME type
 partial:
@@ -432,8 +460,8 @@ amq_stdc_browse
 
 apr_status_t amq_stdc_browse (
     amq_stdc_handle_t  context,
-    apr_uint32_t       message_nbr,
-    apr_byte_t         async,
+    qbyte              message_nbr,
+    byte               async,
     amqp_frame_t       **message
     )
 

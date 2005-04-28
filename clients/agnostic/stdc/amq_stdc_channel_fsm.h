@@ -23,7 +23,7 @@ typedef struct tag_channel_fsm_context_t* channel_fsm_t;
 
 apr_status_t channel_get_handle (
     channel_fsm_t     context,
-    apr_uint16_t      handle_id,
+    dbyte             handle_id,
     handle_fsm_t      *handle);
 
 #endif

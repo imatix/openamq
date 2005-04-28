@@ -13,6 +13,9 @@
 /*  TODO: to be removed !!!  */
 #include "amq_stdc_framing.h"
 
+#include "amq_stdc_error.h"
+#include "amq_stdc_table.h"
+
 /*---------------------------------------------------------------------------
  *  Public API prototype
  *---------------------------------------------------------------------------*/
@@ -20,6 +23,17 @@
 typedef struct tag_connection_fsm_context_t* amq_stdc_connection_t;
 typedef struct tag_channel_fsm_context_t*    amq_stdc_channel_t;
 typedef struct tag_handle_fsm_context_t*     amq_stdc_handle_t;
+typedef struct tag_message_fsm_context_t*    amq_stdc_message_t;
+
+typedef struct
+{
+    qbyte
+        message_nbr;
+    const char
+        *dest_name;
+    const char
+        *identifier;
+} amq_stdc_message_desc_t;
 
 typedef enum
 {
@@ -61,7 +75,8 @@ apr_status_t amq_stdc_open_connection (
     amq_stdc_heartbeat_model_t  out_heartbeat_model,
     amq_stdc_heartbeat_model_t  in_heartbeat_model,
     apr_interval_time_t         in_heartbeat_interval,
-    apr_byte_t                  async,
+    amq_stdc_table_t            options,
+    byte                        async,
     amq_stdc_connection_t       *connection
     );
 
@@ -71,25 +86,36 @@ apr_status_t amq_stdc_close_connection (
 
 apr_status_t amq_stdc_open_channel (
     amq_stdc_connection_t  connection,
-    apr_byte_t         transacted,
-    apr_byte_t         restartable,
-    apr_byte_t         async,
+    byte                   transacted,
+    byte                   restartable,
+    amq_stdc_table_t       options,
+    const char             *out_of_band,
+    byte                   async,
     amq_stdc_channel_t     *channel);
 
 apr_status_t amq_stdc_acknowledge (
     amq_stdc_channel_t  channel,
-    apr_uint32_t    message_nbr,
-    apr_byte_t      async
+    qbyte               message_nbr,
+    byte                async
     );
 
 apr_status_t amq_stdc_commit (
     amq_stdc_channel_t  channel,
-    apr_byte_t      async
+    amq_stdc_table_t    options,
+    byte                async
     );
 
 apr_status_t amq_stdc_rollback (
     amq_stdc_channel_t  channel,
-    apr_byte_t      async
+    amq_stdc_table_t    options,
+    byte                async
+    );
+
+apr_status_t amq_stdc_get_message (
+    amq_stdc_channel_t       channel,
+    byte                     wait,
+    amq_stdc_message_desc_t  **message_desc,
+    amq_stdc_message_t       *message
     );
 
 apr_status_t amq_stdc_close_channel (
@@ -99,72 +125,65 @@ apr_status_t amq_stdc_close_channel (
 apr_status_t amq_stdc_open_handle (
     amq_stdc_channel_t       channel,
     amq_stdc_service_type_t  service_type,
-    apr_byte_t               producer,
-    apr_byte_t               consumer,
-    apr_byte_t               browser,
-    apr_byte_t               temporary,
+    byte                     producer,
+    byte                     consumer,
+    byte                     browser,
+    byte                     temporary,
     char                     *dest_name,
     char                     *mime_type,
     char                     *encoding,
-    apr_byte_t               async,
+    amq_stdc_table_t         options,
+    byte                     async,
     char                     **dest_name_out,
     amq_stdc_handle_t        *handle
     );
 
 apr_status_t amq_stdc_consume (
     amq_stdc_handle_t  handle,
-    apr_uint16_t   prefetch,
-    apr_byte_t     no_local,
-    apr_byte_t     unreliable,
-    const char     *dest_name,
-    const char     *identifier,
-    const char     *mime_type,
-    apr_byte_t     async
-    );
-
-apr_status_t amq_stdc_get_message (
-    amq_stdc_handle_t  handle,
-    amqp_frame_t   **message
-    );
-
-apr_status_t amq_stdc_destroy_message (
-    amqp_frame_t  *message
+    dbyte              prefetch,
+    byte               no_local,
+    byte               unreliable,
+    const char         *dest_name,
+    const char         *identifier,
+    const char         *selector,
+    const char         *mime_type,
+    byte               async
     );
 
 apr_status_t amq_stdc_send_message (
     amq_stdc_handle_t  handle,
-    apr_byte_t     out_of_band,
-    apr_byte_t     recovery,
-    apr_byte_t     streaming,
-    const char     *dest_name,
-    apr_byte_t     persistent,
-    apr_byte_t     priority,
-    apr_uint32_t   expiration,
-    const char     *mime_type,
-    const char     *encoding,
-    const char     *identifier,
-    apr_size_t     data_size,
-    void           *data,
-    apr_byte_t     async
+    byte               out_of_band,
+    byte               recovery,
+    byte               streaming,
+    const char         *dest_name,
+    byte               persistent,
+    byte               priority,
+    qbyte              expiration,
+    const char         *mime_type,
+    const char         *encoding,
+    const char         *identifier,
+    apr_size_t         data_size,
+    void               *data,
+    byte               async
     );
 
 apr_status_t amq_stdc_flow (
     amq_stdc_handle_t  handle,
-    apr_byte_t     pause,
-    apr_byte_t     async
+    byte               pause,
+    byte               async
     );
 
 apr_status_t amq_stdc_cancel_subscription (
     amq_stdc_handle_t  handle,
-    const char     *dest_name,
-    const char     *identifier,
-    apr_byte_t     async
+    const char         *dest_name,
+    const char         *identifier,
+    byte               async
     );
 
 apr_status_t amq_stdc_unget_message (
     amq_stdc_handle_t  handle,
-    apr_uint32_t   message_nbr,
-    apr_byte_t     async
+    qbyte              message_nbr,
+    byte               async
     );
 
 apr_status_t amq_stdc_close_handle (
@@ -173,11 +192,12 @@ apr_status_t amq_stdc_close_handle (
 
 apr_status_t amq_stdc_query (
     amq_stdc_handle_t  handle,
-    apr_uint32_t   message_nbr,
-    const char     *dest_name,
-    const char     *mime_type,
-    apr_byte_t     partial,
-    char           **resultset
+    qbyte              message_nbr,
+    const char         *dest_name,
+    const char         *selector,
+    const char         *mime_type,
+    byte               partial,
+    char               **resultset
     );
 
 apr_status_t amq_stdc_destroy_query (
@@ -186,9 +206,37 @@ apr_status_t amq_stdc_destroy_query (
 
 apr_status_t amq_stdc_browse (
     amq_stdc_handle_t  handle,
-    apr_uint32_t   message_nbr,
-    apr_byte_t     async,
-    amqp_frame_t   **message
+    qbyte              message_nbr,
+    byte               async
     );
+
+
+
+
+
+
+
+
+
+
+
+
+
+size_t amq_stdc_read (
+    amq_stdc_message_t message,
+    void *destination,
+    size_t size
+    );
+
+size_t amq_stdc_skip (
+    amq_stdc_message_t message,
+    size_t size
+    );
+
+apr_status_t amq_stdc_close_message (
+    amq_stdc_message_t message,
+    byte               async
+    );
+    
 
 #endif

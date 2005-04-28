@@ -42,7 +42,7 @@ typedef struct
         *message_buffer;                /*  Stores message data to be sent   */
     apr_size_t
         message_size;                   /*  Size of message data             */
-    apr_byte_t
+    byte
         persistent;                     /*  1 for persistent messages to be  */
                                         /*  sent, 0 for nonpersistent        */
     long
@@ -57,7 +57,7 @@ typedef struct
     int
         interval;                       /*  Interval (in milliseconds)       */
                                         /*  between individual messages sent */
-    apr_uint16_t
+    dbyte
         prefetch;                       /*  Number of messages that server   */
                                         /*  prefetches                       */
     char
@@ -88,7 +88,7 @@ typedef struct
         client_t *client  Client object
     -------------------------------------------------------------------------*/
 
-apr_uint32_t s_move_to_next_query_result (
+qbyte s_move_to_next_query_result (
     client_t *client
     )
 {
@@ -165,17 +165,28 @@ int main(
         channel;                        /*  Channel object                   */
     amq_stdc_handle_t
         handle;                         /*  Handle object                    */
-    apr_uint32_t
+    qbyte
         message_nbr;                    /*  Individual query result          */
     char
         identifier [100];               /*  Buffer to construct message      */
+                                        /*  identifier                       */
     char                                
         *dest_name;                     /*  Temporary destination name       */
-    amqp_frame_t
-        *frame;                         /*  Frame to hold received message   */
-    apr_byte_t
+    byte
         transacted;                     /*  Whether channel has to be        */
                                         /*  transacted                       */
+    amq_stdc_message_desc_t
+        *message_desc;                  /*  Received message descriptor      */
+    amq_stdc_message_t
+        message;                        /*  Received message                 */
+    char
+        data_buffer [10];               /*  Buffer for incomming message     */
+                                        /*  content                          */
+    size_t
+        size;                           /*  Used for reading from stream and */
+                                        /*  writing to stream                */
+    int
+        data_pos;                       /*  Position within data buffer      */
 
     client.clienttype          = clienttype_undefined;
     client.server              = "127.0.0.1";
@@ -287,14 +298,15 @@ int main(
 
     result = amq_stdc_open_connection (client.server, client.host,
         client.client_name, amq_stdc_heartbeats_off, amq_stdc_heartbeats_off,
-        0, 0, &connection);
+        0, NULL, 0, &connection);
     if (result != APR_SUCCESS) {
         printf ("amq_stdc_open_connection failed\n");
         return EXIT_FAILURE;
     }
-    transacted = (apr_byte_t) ((client.clienttype == clienttype_consumer ||
+    transacted = (byte) ((client.clienttype == clienttype_consumer ||
             client.commit_count || client.rollback_count) ? 1 : 0);
-    result = amq_stdc_open_channel (connection, transacted, 0, 0, &channel);
+    result = amq_stdc_open_channel (connection, transacted, 0, NULL, "", 0,
+        &channel);
     if (result != APR_SUCCESS) {
         printf ("amq_stdc_open_channel_failed\n");
         return EXIT_FAILURE;
@@ -304,7 +316,7 @@ int main(
         client.clienttype == clienttype_producer ? 1: 0,
         client.clienttype == clienttype_consumer ? 1: 0,
         client.clienttype == clienttype_query ? 1: 0,
-        client.temporary, "", "", "", 0, &dest_name, &handle);
+        client.temporary, "", "", "", NULL, 0, &dest_name, &handle);
     if (result != APR_SUCCESS) {
         printf ("amq_stdc_open_handle failed\n");
         return EXIT_FAILURE;
@@ -333,7 +345,7 @@ int main(
             /*  Rollback transaction if needed                               */
             if (client.rollback_count && ((client.last_message_number + 1) %
                   client.rollback_count) == 0) {
-                result = amq_stdc_rollback (channel, 0);
+                result = amq_stdc_rollback (channel, NULL, 0);
                 if (result != APR_SUCCESS) {
                     printf ("amq_stdc_rollback failed\n");
                     return EXIT_FAILURE;
@@ -343,7 +355,7 @@ int main(
             else 
             if (client.commit_count && ((client.last_message_number + 1) %
                   client.commit_count) == 0) {
-                result = amq_stdc_commit (channel, 0);
+                result = amq_stdc_commit (channel, NULL, 0);
                 if (result != APR_SUCCESS) {
                     printf ("amq_stdc_commit failed\n");
                     return EXIT_FAILURE;
@@ -364,31 +376,49 @@ int main(
     /*  Mode : CONSUMER                                                      */
     if (client.clienttype == clienttype_consumer) {
         result = amq_stdc_consume (handle, client.prefetch, 0, 0,
-            client.destination, "", "", 0);
+            client.destination, "", "", "", 0);
         if (result != APR_SUCCESS) {
             printf ("amq_stdc_consume failed\n");
             return EXIT_FAILURE;
         }
 
         while ((!client.messages) || client.messages--) {
-            result = amq_stdc_get_message (handle, &frame);
+            result = amq_stdc_get_message (channel, 1, &message_desc,
+                &message);
             if (result != APR_SUCCESS) {
                 printf ("amq_stdc_receive_message failed\n");
                 return EXIT_FAILURE;
             }
             
-            printf ("Message %s received.\n",
-                frame->fields.handle_notify.identifier);
+            printf ("Message %s received.\n", message_desc->identifier);
 
+            while (1) {
+                size = amq_stdc_read (message, data_buffer, 10);
+                if (!size)
+                    break;
+                printf ("    [");
+                for (data_pos=0; data_pos!= size; data_pos++)
+                    printf ("%2lx ", (long) (data_buffer [data_pos]));
+                printf ("]\n");
+                if (size < 10)
+                    break;
+            }
+/*
+            result = amq_stdc_close_message (message, 0);
+            if (result != APR_SUCCESS) {
+                printf ("amq_stdc_close_message failed\n");
+                return EXIT_FAILURE;
+            }
+*/
             if (--client.till_acknowledge == 0) {
                 result = amq_stdc_acknowledge (channel,
-                    frame->fields.handle_notify.message_nbr, 0);
+                    message_desc->message_nbr, 0);
                 if (result != APR_SUCCESS) {
                     printf ("amq_stdc_acknowledge failed\n");
                     return EXIT_FAILURE;
                 }
 
-                result = amq_stdc_commit (channel, 0);
+                result = amq_stdc_commit (channel, NULL, 0);
                 if (result != APR_SUCCESS) {
                     printf ("amq_stdc_commit failed\n");
                     return EXIT_FAILURE;
@@ -396,18 +426,12 @@ int main(
 
                 client.till_acknowledge = client.prefetch;
             }
-            
-            result = amq_stdc_destroy_message (frame);
-            if (result != APR_SUCCESS) {
-                printf ("amq_stdc_destroy_message failed\n");
-                return EXIT_FAILURE;
-            } 
         }
     }
 
     /*  Mode : QUERY                                                         */
     if (client.clienttype == clienttype_query) {
-        result = amq_stdc_query (handle, 0, client.destination, "", 1,
+        result = amq_stdc_query (handle, 0, client.destination, "", "", 1,
             &(client.query_result));
         if (result != APR_SUCCESS) {
             printf ("amq_stdc_query failed\n");
@@ -425,20 +449,13 @@ int main(
             if (message_nbr == -1)
                 break;
 
-            result = amq_stdc_browse (handle, message_nbr, 0, &frame);
+            result = amq_stdc_browse (handle, message_nbr, 0);
             if (result != APR_SUCCESS) {
                 printf ("amq_stdc_browse failed\n");
                 return EXIT_FAILURE;
             }
             
-            printf ("Message %s browsed.\n",
-                frame->fields.handle_notify.identifier);
-
-            result = amq_stdc_destroy_message (frame);
-            if (result != APR_SUCCESS) {
-                printf ("amq_stdc_destroy_message failed\n");
-                return EXIT_FAILURE;
-            } 
+            printf ("Message X browsed.\n");
         }
 
         result = amq_stdc_destroy_query (client.query_result);
