@@ -59,7 +59,7 @@ levels respectively).
         "%s%s", consumer->handle->dest_name, command->dest_name);
 
     /*  Parse the topic name into the match table                            */
-    amq_match_table_match_topic (
+    amq_match_table_parse_topic (
         self->vhost->match_topics,      /*  Match table to populate          */
         self->vhost->dest_list,         /*  List of known destinations       */
         self->dest_name,                /*  This destination specifier       */
