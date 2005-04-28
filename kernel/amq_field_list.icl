@@ -160,29 +160,27 @@ formats, and lookup and operate on field lists.
     amq_field_list_t
         *list;
     ipr_longstr_t
-        *string;
+        *string1,
+        *string2;
     </local>
-
     list = amq_field_list_new ();
-    amq_field_new_string  (list, "testfield0", "Commodity middleware");
+    amq_field_new_string  (list, "testfield0", "Commodity Middleware");
     amq_field_new_integer (list, "testfield1", 1234567890);
     amq_field_new_decimal (list, "testfield2", 199900, 2);
     amq_field_new_time    (list, "testfield3", time (NULL));
     amq_field_new_string  (list, "testfield4", "S1");
     amq_field_new_string  (list, "testfield5", "P12");
-    amq_field_list_print  (list);
-
-    string = amq_field_list_flatten (list);
+    string1 = amq_field_list_flatten (list);
     amq_field_list_destroy (&list);
 
     list = amq_field_list_new ();
-    amq_field_list_parse (list, string);
-
-    coprintf (" - should be identical:");
-    amq_field_list_print (list);
-
+    amq_field_list_parse (list, string1);
+    string2 = amq_field_list_flatten (list);
     amq_field_list_destroy (&list);
-    ipr_longstr_destroy (&string);
+
+    assert (string1->cur_size == string2->cur_size);
+    ipr_longstr_destroy (&string1);
+    ipr_longstr_destroy (&string2);
 
     icl_system_destroy ();
     icl_mem_assert ();

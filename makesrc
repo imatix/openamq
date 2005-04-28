@@ -91,7 +91,7 @@ echo bin>>response
 echo put $openamq_version.zip>>response
 echo put $openamq_version.tar.gz>>response
 echo quit>>response
-#ftp openamq.org < response
+ftp openamq.org < response
 rm response
 echo "    Unix sources: http://openamq.org/pub/${openamq_version}.tar.gz"
 echo "    Win32 sources: http://openamq.org/pub/${openamq_version}.zip"

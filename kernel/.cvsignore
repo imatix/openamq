@@ -229,4 +229,14 @@ amq_match_table.c
 amq_match_table.h
 amq_match_table_test.c
 amq_match_test.c
+amq_consumer_by_handle_test
+amq_consumer_by_queue_test
+amq_dest_list_test
+amq_dest_table_test
+amq_dest_test
+amq_mesgref_list_test
+amq_mesgref_test
+amq_match_table_test
+amq_match_test
+amq_test_matching
 

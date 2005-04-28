@@ -151,6 +151,7 @@ data type.  This class provides functions at a per-field level.
         input += 2;
         self->string = ipr_longstr_new (input, string_size + 1);
         self->string->data [string_size] = '\\0';
+        self->string->cur_size = string_size;
         input += string_size;
         field_end = input;
     }

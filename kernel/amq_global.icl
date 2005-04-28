@@ -45,6 +45,8 @@ size_t
     amq_txn_limit = 0;                  /*  Configured txn limit, if any     */
 
 static int
+    s_verbose = FALSE;                  /*  Verbose server                   */
+static int
     s_error_code = 0;                   /*  Last error code                  */
 static char
     *s_error_text = "";                 /*  Last error text                  */
@@ -81,6 +83,16 @@ static int
 <method name = "mechanism" return = "mechanism">
     <declare name = "mechanism" type = "int" />
     mechanism = s_mechanism;
+</method>
+
+<method name = "set verbose">
+    <argument name = "verbose" type = "Bool" />
+    s_verbose = verbose;
+</method>
+
+<method name = "verbose" return = "verbose">
+    <declare name = "verbose" type = "Bool" />
+    verbose = s_verbose;
 </method>
 
 <method name = "mechanism_str" return = "mechanism">

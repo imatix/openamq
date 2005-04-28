@@ -473,13 +473,11 @@ s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
     </local>
 
     /*  Record test message                                                  */
-    coprintf ("Recording test message...");
     message = amq_message_new ();
     amq_message_testfill (message, TEST_SIZE);
 
     /*  Replay test message with different frame sizes                       */
     for (test_index = 0; test_index &lt; tblsize (frame_max); test_index++) {
-        coprintf ("Checking test message for frame size %d...", frame_max [test_index]);
         diskmsg = amq_message_new ();
 
         body_size = TEST_SIZE + amq_message_header_size (message);

@@ -33,5 +33,4 @@
 #include "amq_dest.h"
 #include "amq_user.h"
 #include "amq_subscr.h"
-#include "amq_term.h"
 #include "amq_vhost.h"

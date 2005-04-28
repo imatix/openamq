@@ -182,45 +182,6 @@ static void
     fwrite (self->data, 1, self->cur_size, file);
 </method>
 
-<method name = "selftest">
-    <local>
-    $(selftype)
-        *item;
-    </local>
-    item = $(selfname)_new (511);
-    coprintf ("511 - %u", item->max_size);
-    memset (item->data, 0, item->max_size);
-    $(selfname)_destroy (&item);
-
-    item = $(selfname)_new (512);
-    coprintf ("512 - %u", item->max_size);
-    memset (item->data, 0, item->max_size);
-    $(selfname)_destroy (&item);
-
-    item = $(selfname)_new (513);
-    coprintf ("513 - %u", item->max_size);
-    memset (item->data, 0, item->max_size);
-    $(selfname)_destroy (&item);
-
-    item = $(selfname)_new (32767);
-    coprintf ("32767 - %u", item->max_size);
-    memset (item->data, 0, item->max_size);
-    $(selfname)_destroy (&item);
-
-    item = $(selfname)_new (32768);
-    coprintf ("32768 - %u", item->max_size);
-    memset (item->data, 0, item->max_size);
-    $(selfname)_destroy (&item);
-
-    item = $(selfname)_new (32769);
-    coprintf ("32769 - %u", item->max_size);
-    memset (item->data, 0, item->max_size);
-    $(selfname)_destroy (&item);
-
-    icl_system_destroy ();
-    icl_mem_assert ();
-</method>
-
 <private name = "footer">
 /*  Allocate a new object from cached heap memory                            */
 static inline $(selftype) *
@@ -376,5 +337,44 @@ s_$(selfname)_cache_free ($(selftype) *item)
     icl_mem_free (item);
 }
 </private>
+
+<method name = "selftest">
+    <local>
+    $(selftype)
+        *item;
+    </local>
+    item = $(selfname)_new (511);
+    assert (item->max_size == 512);
+    memset (item->data, 0, item->max_size);
+    $(selfname)_destroy (&item);
+
+    item = $(selfname)_new (512);
+    assert (item->max_size == 512);
+    memset (item->data, 0, item->max_size);
+    $(selfname)_destroy (&item);
+
+    item = $(selfname)_new (513);
+    assert (item->max_size == 1024);
+    memset (item->data, 0, item->max_size);
+    $(selfname)_destroy (&item);
+
+    item = $(selfname)_new (32767);
+    assert (item->max_size == 32768);
+    memset (item->data, 0, item->max_size);
+    $(selfname)_destroy (&item);
+
+    item = $(selfname)_new (32768);
+    assert (item->max_size == 32768);
+    memset (item->data, 0, item->max_size);
+    $(selfname)_destroy (&item);
+
+    item = $(selfname)_new (32769);
+    assert (item->max_size == 32768);
+    memset (item->data, 0, item->max_size);
+    $(selfname)_destroy (&item);
+
+    icl_system_destroy ();
+    icl_mem_assert ();
+</method>
 
 </class>

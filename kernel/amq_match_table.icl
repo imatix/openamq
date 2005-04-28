@@ -20,11 +20,6 @@ This class implements the message matching.
 <method name = "new">
 </method>
 
-<private name = "header">
-#define S_WILDCARD_SINGLE     "[a-zA-Z0-9]+"
-#define S_WILDCARD_MULTIPLE   "[a-zA-Z0-9]+(`.[a-zA-Z0-9]+)*"
-</private>
-
 <method name = "parse topic" template = "function">
     <doc>
     Parse a topic name specifier and derive topic terms from it.  We compare
@@ -36,10 +31,7 @@ This class implements the message matching.
     <argument name = "subscr"    type = "amq_subscr_t *">Subscription to register</argument>
     <local>
     ipr_shortstr_t
-        pattern;
-    char
-        *from_ptr,
-        *to_ptr;
+        regexp;
     amq_dest_t
         *dest;                          /*  Vhost destination                */
     amq_match_t
@@ -48,42 +40,12 @@ This class implements the message matching.
     assert (dest_list);
     assert (dest_name);
     assert (subscr);
-    
-    /*  We want a regexp starting with ^, ending with $, and with the
-        * and # topic wildcards replaced by appropriate regexp chars.
-        We also filter out any non-alphanum characters.  We may allow
-        full RE matching on topic names at a later stage.
-     */
-    to_ptr = pattern;
-    *to_ptr++ = '^';                    /*  Match start of topic name        */
-    for (from_ptr = dest_name; *from_ptr; from_ptr++) {
-        if (isalnum (*from_ptr))
-            *to_ptr++ = *from_ptr;
-        else
-        if (*from_ptr == '.') {
-            *to_ptr++ = '`';
-            *to_ptr++ = '.';
-        }
-        else
-        if (*from_ptr == '*') {
-            strcpy (to_ptr, S_WILDCARD_SINGLE);
-            to_ptr += strlen (S_WILDCARD_SINGLE);
-        }
-        else
-        if (*from_ptr == '#') {
-            strcpy (to_ptr, S_WILDCARD_MULTIPLE);
-            to_ptr += strlen (S_WILDCARD_MULTIPLE);
-        }
-    }
-    *to_ptr++ = '$';                    /*  Match end of topic name          */
-    *to_ptr++ = 0;
-    
+
+    amq_match_topic (regexp, dest_name);
     dest = amq_dest_list_first (dest_list);
     while (dest) {
         if (dest->service_type == AMQP_SERVICE_TOPIC) {
-            if (ipr_regexp_parse (dest->key, pattern, NULL)) {
-
-                coprintf ("$(selfname): pattern=%s topic=%s", dest_name, dest->key);
+            if (ipr_regexp_parse (dest->key, regexp, NULL)) {
                 match = amq_match_search (self, dest->key);
                 if (match == NULL)
                     match = amq_match_new (self, dest->key);
@@ -99,9 +61,6 @@ This class implements the message matching.
     }
 </method>
 
-<method name = "selftest">
-    <local>
-    </local>
-</method>
+<method name = "selftest" />
 
 </class>

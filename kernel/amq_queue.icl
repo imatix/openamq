@@ -131,7 +131,8 @@ were split to keep the code within sane limits.
             if (self->dest->opt_auto_purge || self->dest->temporary)
                 self_purge (self);
             else
-                coprintf ("I: %s has %d existing messages", filename, self->disk_queue_size);
+               if (amq_global_verbose ())
+                    coprintf ("I: %s has %d existing messages", filename, self->disk_queue_size);
         }
     }
 </method>
@@ -517,7 +518,8 @@ were split to keep the code within sane limits.
 </method>
 
 <method name = "purge">
-    coprintf ("I: purging %ld messages from %s", self->disk_queue_size, self->dest->key);
+    if (amq_global_verbose ())
+        coprintf ("I: purging %ld messages from %s", self->disk_queue_size, self->dest->key);
     self->disk_queue_size = 0;
 </method>
 

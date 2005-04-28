@@ -1,3 +1,7 @@
+0.8c2 - 2005/04/28
+
+ - added matching test program, first implementation of matching code.
+
 0.8c1 - 2005/04/26
 
  - porting to Solaris/sparc (ARP changes)

@@ -255,6 +255,7 @@ s_prepare_logging (void)
         *log_dir,
         *console_file;
 
+    amq_global_set_verbose (TRUE);
     ipr_config_locate (amq_config, "/config/logging", NULL);
 
     log_dir = ipr_config_attr (amq_config, "directory", "./logs");

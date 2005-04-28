@@ -59,12 +59,12 @@ levels respectively).
         "%s%s", consumer->handle->dest_name, command->dest_name);
 
     /*  Parse the topic name into the match table                            */
-    amq_match_table_parse_topic (
+    amq_match_table_match_topic (
         self->vhost->match_topics,      /*  Match table to populate          */
         self->vhost->dest_list,         /*  List of known destinations       */
         self->dest_name,                /*  This destination specifier       */
         self);                          /*  Subscription to register         */
-        
+
     /*  Attach subscription to vhost list                                    */
     amq_subscr_list_queue (self->vhost->subscr_list, self);
 </method>
@@ -78,7 +78,7 @@ levels respectively).
     /*  Invalidate any matches for this subscription                         */
     match_ref = ipr_looseref_list_first (self->matches);
     while (match_ref) {
-        ipr_bits_clear (((amq_match_t *) match_ref->object)->bits, self->index); 
+        ipr_bits_clear (((amq_match_t *) match_ref->object)->bits, self->index);
         match_ref = ipr_looseref_list_next (self->matches, match_ref);
     }
     ipr_index_delete (self->vhost->subscr_index, self->index);

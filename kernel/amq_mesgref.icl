@@ -1,4 +1,4 @@
-@<?xml?>
+<?xml?>
 <class
     name      = "amq_mesgref"
     comment   = "Message reference class"

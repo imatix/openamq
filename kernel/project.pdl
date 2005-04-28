@@ -1,7 +1,7 @@
 <?xml?>
 <pdl
     name      = "OpenAMQ Core"
-    version   = "0.8c1"
+    version   = "0.8c2"
     copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     workflow  = "standard.pwl"
     library   = "libamq"
@@ -70,6 +70,7 @@
 <file name = "amq_aclient_agent.smt" class = "fat module"       >AMQP asynch client agent</file>
 <file name = "amq_server_agent.smt"  class = "fat module"       >AMQP/Fast server agent</file>
 <file name = "amq_common.smt"        class = "private resource" >AMQP/Fast common functions</file>
+<file name = "amq_test_matching.c"   class = "main program"     >Test topic matching engine</file>
 
 <file name = "amqpsrv.c"             class = "main program"     >OpenAMQ test server</file>
 <file name = "amq_server.cfg"        class = "private resource" >Server configuration</file>

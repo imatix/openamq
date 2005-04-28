@@ -44,8 +44,8 @@ virtual host.
     ipr_index_t
         *subscr_index;                  /*  Subscription index               */
     amq_match_table_t
-        *match_topics,                  /*  Match table for topic routing    */ 
-        *match_fields;                  /*  Match table for field routing    */ 
+        *match_topics,                  /*  Match table for topic routing    */
+        *match_fields;                  /*  Match table for field routing    */
 </context>
 
 <method name = "new">
@@ -61,10 +61,11 @@ virtual host.
     self->subscr_index = ipr_index_new ();
     self->match_topics = amq_match_table_new ();
     self->match_fields = amq_match_table_new ();
-    
+
     ipr_shortstr_cpy (self->directory, directory);
 
-    coprintf ("I: configuring virtual host '%s'", self->key);
+    if (amq_global_verbose ())
+        coprintf ("I: configuring virtual host '%s'", self->key);
     s_configure_workdir  (self);
     s_configure_database (self);
     s_configure_queues   (self);
@@ -137,7 +138,7 @@ virtual host.
     /*  Lookup topic name in match table, if found publish to subscribers    */
     match = amq_match_search (self->match_topics, dest_name);
     if (match) {
-        coprintf ("$(selfname): found subscriptions for %s", dest_name);
+        coprintf ("$(selfname) T: found subscriptions for %s", dest_name);
         for (bit = ipr_bits_first (match->bits); bit >= 0; bit = ipr_bits_next (match->bits, bit)) {
             subscr = (amq_subscr_t *) self->subscr_index->data [bit];
             if (subscr->no_local == FALSE
@@ -169,7 +170,8 @@ s_configure_workdir ($(selftype) *self)
     if (strlast (self->spooldir) == '/')
         strlast (self->spooldir) = 0;
     if (!file_is_directory (self->spooldir)) {
-        coprintf ("I: - creating working directory '%s'", self->spooldir);
+        if (amq_global_verbose ())
+            coprintf ("I: - creating working directory '%s'", self->spooldir);
         make_dir (self->spooldir);
     }
 
@@ -179,7 +181,8 @@ s_configure_workdir ($(selftype) *self)
     if (strlast (self->storedir) == '/')
         strlast (self->storedir) = 0;
     if (!file_is_directory (self->storedir)) {
-        coprintf ("I: - creating working directory '%s'", self->storedir);
+        if (amq_global_verbose ())
+            coprintf ("I: - creating working directory '%s'", self->storedir);
         make_dir (self->storedir);
     }
 }
@@ -232,7 +235,8 @@ s_configure_queues ($(selftype) *self)
     char
         *dest_name;
 
-    coprintf ("I: - configuring and checking configured queues...");
+    if (amq_global_verbose ())
+        coprintf ("I: - configuring and checking configured queues...");
     ipr_config_locate (self->config, "/config/queues/queue", NULL);
     while (self->config->located) {
         dest_name = ipr_config_attr (self->config, "name", NULL);
@@ -261,7 +265,8 @@ s_configure_topics ($(selftype) *self)
     char
         *dest_name;
 
-    coprintf ("I: - configuring and checking configured topics...");
+    if (amq_global_verbose ())
+        coprintf ("I: - configuring and checking configured topics...");
     ipr_config_locate (self->config, "/config/topics/topic", NULL);
     while (self->config->located) {
         dest_name = ipr_config_attr (self->config, "name", NULL);
@@ -311,9 +316,6 @@ s_clean_destinations ($(selftype) *self)
     amq_vhost_t
         *vhost;
     </local>
-
-    amq_vhost_animate (TRUE);
-    amq_vhost_table_animate (TRUE);
 
     config = ipr_config_new (".", AMQ_SERVER_CONFIG);
     vhosts = amq_vhost_table_new (config);
