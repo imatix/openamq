@@ -29,7 +29,6 @@
 
 <!-- Deliverables -->
 <file name = "libamqp"                    class = "public library"  >Public API library</file>
-<file name = "test_framing"               class = "public command"  >Framing API test executable</file>
 <file name = "test_client"                class = "public command"  >Client API test executable</file>
 
 <class name = "state machine" inherit = "sub program">
