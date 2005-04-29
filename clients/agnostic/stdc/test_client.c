@@ -75,6 +75,10 @@ typedef struct
         last_query_result;              /*  When s_move_to_next_query_result */
                                         /*  is called, this variable stores  */
                                         /*  the result                       */
+    amq_stdc_service_type_t
+        service_type;                   /*  Service type to use              */
+    byte
+        no_local;                       /*  Used in HANDLE CONSUME           */
 } client_t;
 
 /*  -------------------------------------------------------------------------
@@ -202,6 +206,8 @@ int main(
     client.rollback_count      = 0;    
     client.temporary           = 0;    
     client.last_message_number = 0;
+    client.service_type        = amq_stdc_service_type_queue;
+    client.no_local            = 1;
     for (arg_pos=1; arg_pos!=argc; arg_pos++) {
         if (strcmp (argv[arg_pos], "producer") == 0)
             client.clienttype = clienttype_producer;
@@ -233,6 +239,12 @@ int main(
             client.temporary = atoi (argv [arg_pos]);
         if (strcmp (argv[arg_pos], "-x") == 0)
             client.persistent = 1;
+        if (strcmp (argv[arg_pos], "-e") == 0 && ++arg_pos != argc)
+            client.service_type =
+                (amq_stdc_service_type_t) atoi (argv [arg_pos]);
+        if (strcmp (argv[arg_pos], "-o") == 0 && ++arg_pos != argc)
+            client.no_local = atoi (argv [arg_pos]);
+
     }
     client.till_acknowledge = client.prefetch;
 
@@ -247,6 +259,7 @@ int main(
             "  MODE: producer\n"
             "    -s <server name/ip address, default='127.0.0.1'>\n"
             "    -h <virtual host name>\n"
+            "    -e <1/2/3 service type, default 1>\n"
             "    -d <destination>\n"
             "    -m <client identifier, default='client'>\n"
             "    -n <number of messages, 0 means infinite, default=0>\n"
@@ -262,12 +275,15 @@ int main(
             "  MODE: consumer\n"
             "    -s <server name/ip address, default=127.0.0.1>\n"
             "    -h <virtual host name>\n"
+            "    -e <1/2/3 service type, default 1>\n"
             "    -d <destination>\n"
             "    -p <number of prefetched messages, default=1>\n"
+            "    -o <0/1 if 1 messages sent are not received back, default 1>\n"
             "\n"
             "  MODE: query (queries for all messages and browses them one by one)\n"
             "    -s <server name/ip address, default=127.0.0.1>\n"
             "    -h <virtual host name>\n"
+            "    -e <1/2/3 service type, default 1>\n"
             "    -d <destination>\n"
             "\n"
             );
@@ -312,7 +328,7 @@ int main(
         return EXIT_FAILURE;
     }
 
-    result = amq_stdc_open_handle (channel, amq_stdc_service_type_queue,
+    result = amq_stdc_open_handle (channel, client.service_type,
         client.clienttype == clienttype_producer ? 1: 0,
         client.clienttype == clienttype_consumer ? 1: 0,
         client.clienttype == clienttype_query ? 1: 0,
@@ -375,8 +391,8 @@ int main(
 
     /*  Mode : CONSUMER                                                      */
     if (client.clienttype == clienttype_consumer) {
-        result = amq_stdc_consume (handle, client.prefetch, 0, 0,
-            client.destination, "", "", "", 0);
+        result = amq_stdc_consume (handle, client.prefetch, client.no_local,
+            0, client.destination, "", "", "", 0);
         if (result != APR_SUCCESS) {
             printf ("amq_stdc_consume failed\n");
             return EXIT_FAILURE;
