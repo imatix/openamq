@@ -6,6 +6,9 @@
     copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
+<doc>
+This class implements the AMQP HANDLE commands.
+</doc>
 
 <inherit class = "ipr_hash_int"  />
 
@@ -24,7 +27,7 @@
 #define AMQ_HANDLE_CLOSING      2
 </public>
 
-<private>
+<private name = "header">
 #include "amq_server_agent.h"           /*  Server agent methods             */
 </private>
 

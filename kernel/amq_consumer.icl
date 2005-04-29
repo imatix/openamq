@@ -193,7 +193,7 @@ s_init_topic_consumer ($(selftype) *self, amq_handle_consume_t *command)
     amq_queue_attach (self->dest->queue, self);
 
     /*  Create new subscription                                              */
-    amq_subscr_new (self, command);
+    self->subscr = amq_subscr_new (self, command);
 }
 </private>
 

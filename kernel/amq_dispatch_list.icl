@@ -7,7 +7,8 @@
     script    = "icl_gen"
     >
 <doc>
-    This class implements list head container for amq_dispatch
+This class holds the list of dispatched messages, i.e. a messages sent to a
+client for which acknowledgements are still pending.
 </doc>
 
 <inherit class = "ipr_list_head" />

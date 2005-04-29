@@ -6,6 +6,9 @@
     copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
+<doc>
+This class implements the AMQP CHANNEL commands.
+</doc>
 
 <inherit class = "ipr_hash_int" />
 

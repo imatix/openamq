@@ -140,7 +140,8 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     <argument name = "service type" type = "int"   >AMQP service type</argument>
     <argument name = "destination"  type = "char *">Destination to work with</argument>
     <argument name = "prefetch"     type = "int"   >Prefetch window size</argument>
-    <argument name = "noack"        type = "Bool"  >No acknowledgements required</argument>
+    <argument name = "no local"     type = "Bool"  >Don't want own messages</argument>
+    <argument name = "no ack"       type = "Bool"  >No acknowledgements required</argument>
     assert (destination && *destination);
 
     amq_sclient_agent_handle_open (
@@ -149,7 +150,7 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 
     if (rc == AMQ_OK) {
         amq_sclient_agent_handle_consume (
-            self->thread_handle, self->cur_handle, (dbyte) prefetch, TRUE, noack, NULL, NULL, &rc);
+            self->thread_handle, self->cur_handle, (dbyte) prefetch, no_local, no_ack, NULL, NULL, &rc);
         smt_thread_execute (SMT_EXEC_FULL);
     }
     else
@@ -166,7 +167,8 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     <argument name = "service type" type = "int"   >AMQP service type</argument>
     <argument name = "destination"  type = "char *">Destination to create</argument>
     <argument name = "prefetch"     type = "int"   >Prefetch window size</argument>
-    <argument name = "noack"        type = "Bool"  >No acknowledgements required</argument>
+    <argument name = "no local"     type = "Bool"  >Don't want own messages</argument>
+    <argument name = "no ack"       type = "Bool"  >No acknowledgements required</argument>
     assert (destination && *destination);
 
     amq_sclient_agent_handle_open (
@@ -175,7 +177,7 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 
     if (rc == AMQ_OK) {
         amq_sclient_agent_handle_consume (
-            self->thread_handle, self->cur_handle, (dbyte) prefetch, FALSE, noack, NULL, NULL, &rc);
+            self->thread_handle, self->cur_handle, (dbyte) prefetch, no_local, no_ack, NULL, NULL, &rc);
         smt_thread_execute (SMT_EXEC_FULL);
     }
     else

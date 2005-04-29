@@ -121,29 +121,33 @@ virtual host.
 <method name = "publish" template = "function">
     <doc>
     Publishes a specified message to all interested subscribers in the
-    virtual host.
+    virtual host.  Returns number of times message was published.  If the
+    publish option is false, does not actually publish but only reports
+    the number of susbcribers.
     </doc>
     <argument name = "dest name" type = "char *">Topic destination name</argument>
     <argument name = "message"   type = "amq_smessage_t *">Message, if any</argument>
     <argument name = "txn"       type = "ipr_db_txn_t *">Transaction, if any</argument>
+    <argument name = "publish"   type = "Bool">Actually publish message?</argument>
     <local>
     amq_subscr_t
         *subscr;                         /*  Subscriber object               */
     amq_match_t
         *match;                         /*  Match item                       */
     int
-        bit;
+        subscr_nbr;
     </local>
 
     /*  Lookup topic name in match table, if found publish to subscribers    */
     match = amq_match_search (self->match_topics, dest_name);
     if (match) {
-        coprintf ("$(selfname) T: found subscriptions for %s", dest_name);
-        for (bit = ipr_bits_first (match->bits); bit >= 0; bit = ipr_bits_next (match->bits, bit)) {
-            subscr = (amq_subscr_t *) self->subscr_index->data [bit];
+        for (IPR_BITS_EACH (subscr_nbr, match->bits)) {
+            subscr = (amq_subscr_t *) self->subscr_index->data [subscr_nbr];
             if (subscr->no_local == FALSE
             ||  subscr->client_id != message->handle->client_id) {
-                amq_queue_publish (subscr->consumer->queue, message, txn);
+                if (publish)
+                    amq_queue_publish (subscr->consumer->queue, message, txn);
+                rc++;
             }
         }
     }

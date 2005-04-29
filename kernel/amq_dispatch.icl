@@ -6,6 +6,10 @@
     copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
+<doc>
+This class holds one dispatched message, i.e. a message sent to a client
+for which an acknowledgement is still pending.
+</doc>
 
 <inherit class = "ipr_list_item" />
 
@@ -141,8 +145,8 @@
         if (self->queue_id) {
             /*  Purge from persistent queue if necessary                     */
             self->queue->item_id = self->queue_id;
-            self->queue->disk_queue_size--;
             amq_queue_delete_message (self->queue, txn);
+            self->queue->disk_queue_size--;
         }
     }
 </method>
