@@ -194,8 +194,17 @@ main (int argc, char *argv [])
     ||  amq_sclient_connect (amq_client, opt_server, "/test"))
         goto failed;
 
-    in_handle  = amq_sclient_temporary (amq_client, service_type, "temp.client", batch_size, FALSE);
-    out_handle = amq_sclient_producer  (amq_client, service_type, "temp.client");
+    in_handle = amq_sclient_temporary (
+        amq_client,
+        service_type,
+        "temp.client",
+        batch_size,
+        FALSE,                          /*  No-local                         */
+        FALSE);                         /*  No-ack                           */
+    out_handle = amq_sclient_producer (
+        amq_client,
+        service_type,
+        "temp.client");
 
     while (repeats) {
         /*  Pause consumption on temporary queue                             */
