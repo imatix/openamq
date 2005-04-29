@@ -85,7 +85,7 @@ apr_status_t amq_stdc_term ()
 {
     apr_status_t
         result;
-    lock_t
+    amq_stdc_lock_t
         lock;
 
     result = global_fsm_terminate (global, &lock);
@@ -130,7 +130,7 @@ apr_status_t amq_stdc_open_connection (
 {
     apr_status_t
         result;
-    lock_t
+    amq_stdc_lock_t
         lock;
 
     result = global_fsm_create_connection (global, server, host, client_name,
@@ -158,7 +158,7 @@ apr_status_t amq_stdc_close_connection (
 {
     apr_status_t
         result;
-    lock_t
+    amq_stdc_lock_t
         lock;
 
     result = connection_fsm_terminate (context, &lock);
@@ -198,7 +198,7 @@ apr_status_t amq_stdc_open_channel (
 {
     apr_status_t
         result;
-    lock_t
+    amq_stdc_lock_t
         lock;
 
     result = connection_fsm_create_channel (context, transacted, restartable,
@@ -230,7 +230,7 @@ apr_status_t amq_stdc_acknowledge (
 {
     apr_status_t
         result;
-    lock_t
+    amq_stdc_lock_t
         lock;
 
     result = channel_fsm_acknowledge (context, message_nbr, async, &lock);
@@ -261,7 +261,7 @@ apr_status_t amq_stdc_commit (
 {
     apr_status_t
         result;
-    lock_t
+    amq_stdc_lock_t
         lock;
 
     result = channel_fsm_commit (context, options, async, &lock);
@@ -292,7 +292,7 @@ apr_status_t amq_stdc_rollback (
 {
     apr_status_t
         result;
-    lock_t
+    amq_stdc_lock_t
         lock;
 
     result = channel_fsm_rollback (context, options, async, &lock);
@@ -316,7 +316,7 @@ apr_status_t amq_stdc_get_message (
 {
     apr_status_t
         result;
-    lock_t
+    amq_stdc_lock_t
         lock;
     void
         *msg;
@@ -354,7 +354,7 @@ apr_status_t amq_stdc_close_channel (
 {
     apr_status_t
         result;
-    lock_t
+    amq_stdc_lock_t
         lock;
 
     result = channel_fsm_terminate (context, &lock);
@@ -408,9 +408,9 @@ apr_status_t amq_stdc_open_handle (
 {
     apr_status_t
         result;
-    lock_t
+    amq_stdc_lock_t
         lock;
-    lock_t
+    amq_stdc_lock_t
         created_lock;
 
     result = channel_fsm_create_handle (context, service_type, producer,
@@ -462,7 +462,7 @@ apr_status_t amq_stdc_consume (
 {
     apr_status_t
         result;
-    lock_t
+    amq_stdc_lock_t
         lock;
 
     result = handle_fsm_consume (context, prefetch, no_local, unreliable,
@@ -517,7 +517,7 @@ apr_status_t amq_stdc_send_message (
 {
     apr_status_t
         result;
-    lock_t
+    amq_stdc_lock_t
         lock;
 
     result = handle_fsm_send_message (context, out_of_band, recovery,
@@ -550,7 +550,7 @@ apr_status_t amq_stdc_flow (
 {
     apr_status_t
         result;
-    lock_t
+    amq_stdc_lock_t
         lock;
 
     result = handle_fsm_flow (context, pause, async, &lock);
@@ -583,7 +583,7 @@ apr_status_t amq_stdc_cancel_subscription (
 {
     apr_status_t
         result;
-    lock_t
+    amq_stdc_lock_t
         lock;
 
     result = handle_fsm_cancel (context, dest_name, identifier, async, &lock);
@@ -614,7 +614,7 @@ apr_status_t amq_stdc_unget_message (
 {
     apr_status_t
         result;
-    lock_t
+    amq_stdc_lock_t
         lock;
 
     result = handle_fsm_unget (context, message_nbr, async, &lock);
@@ -641,7 +641,7 @@ apr_status_t amq_stdc_close_handle (
 {
     apr_status_t
         result;
-    lock_t
+    amq_stdc_lock_t
         lock;
 
     result = handle_fsm_terminate (context, &lock);
@@ -683,7 +683,7 @@ apr_status_t amq_stdc_query (
 {
     apr_status_t
         result;
-    lock_t
+    amq_stdc_lock_t
         lock;
 
     result = get_exclusive_access_to_query_dialogue (context);
@@ -739,7 +739,7 @@ apr_status_t amq_stdc_browse (
 #if 0
     apr_status_t
         result;
-    lock_t
+    amq_stdc_lock_t
         lock;
  
     result = handle_fsm_browse (context, message_nbr, async, &lock);

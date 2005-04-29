@@ -136,7 +136,7 @@ inline static apr_status_t do_init (
     const char            *encoding,
     amq_stdc_table_t      options,
     byte                  async,
-    lock_t                *lock
+    amq_stdc_lock_t       *lock
     )
 {
     apr_status_t
@@ -207,8 +207,8 @@ inline static apr_status_t do_init_temporary (
     const char            *encoding,
     amq_stdc_table_t      options,
     byte                  async,
-    lock_t                *created_lock,
-    lock_t                *lock
+    amq_stdc_lock_t       *created_lock,
+    amq_stdc_lock_t       *lock
     )
 {
     apr_status_t
@@ -298,7 +298,7 @@ inline static apr_status_t do_consume (
     const char            *selector,
     const char            *mime_type,
     byte                  async,
-    lock_t                *lock
+    amq_stdc_lock_t       *lock
     )
 {
     apr_status_t
@@ -360,7 +360,7 @@ inline static apr_status_t do_send_message (
     apr_size_t            data_size,
     void                  *data,
     byte                  async,
-    lock_t                *lock
+    amq_stdc_lock_t       *lock
     )
 {
     apr_status_t
@@ -421,7 +421,7 @@ inline static apr_status_t do_flow (
     handle_fsm_context_t  *context,
     byte                  pause,
     byte                  async,
-    lock_t                *lock
+    amq_stdc_lock_t       *lock
     )
 {
     apr_status_t
@@ -461,7 +461,7 @@ inline static apr_status_t do_cancel (
     const char            *dest_name,
     const char            *identifier,
     byte                  async,
-    lock_t                *lock
+    amq_stdc_lock_t       *lock
     )
 {
     apr_status_t
@@ -504,7 +504,7 @@ inline static apr_status_t do_unget (
     handle_fsm_context_t  *context,
     qbyte                 message_nbr,
     byte                  async,
-    lock_t                *lock
+    amq_stdc_lock_t       *lock
     )
 {
     apr_status_t
@@ -545,7 +545,7 @@ inline static apr_status_t do_query (
     const char            *dest_name,
     const char            *selector,
     const char            *mime_type,
-    lock_t                *lock
+    amq_stdc_lock_t       *lock
     )
 {
     apr_status_t
@@ -625,7 +625,7 @@ inline static apr_status_t do_browse (
     handle_fsm_context_t  *context,
     qbyte                 message_nbr,
     byte                  async,
-    lock_t                *lock
+    amq_stdc_lock_t       *lock
     )
 {
     apr_status_t
@@ -721,7 +721,7 @@ inline static apr_status_t do_reply (
 
 inline static apr_status_t do_terminate (
     handle_fsm_context_t  *context,
-    lock_t                *lock
+    amq_stdc_lock_t       *lock
     )
 {
     apr_status_t
@@ -754,7 +754,7 @@ inline static apr_status_t do_terminate (
 
 inline static apr_status_t do_duplicate_terminate (
     handle_fsm_context_t  *context,
-    lock_t                *lock
+    amq_stdc_lock_t       *lock
     )
 {
     /*  This must be an explicit error; if not defined, it would fall        */

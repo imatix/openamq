@@ -405,7 +405,7 @@ static void *s_sender_thread (
        result;
    connection_fsm_context_t
        *context = (connection_fsm_context_t*) data;
-   lock_t
+   amq_stdc_lock_t
        lock;
    chunk_list_item_t
        *chunk;
@@ -669,7 +669,7 @@ inline static apr_status_t do_init (
     const char                *client_name,
     amq_stdc_table_t          options,
     byte                      async,
-    lock_t                    *lock
+    amq_stdc_lock_t           *lock
     )
 {
     apr_status_t
@@ -740,7 +740,7 @@ inline static apr_status_t do_init (
 
 inline static apr_status_t do_get_chunk (
     connection_fsm_context_t  *context,    
-    lock_t                    *lock
+    amq_stdc_lock_t           *lock
     )
 {
     apr_status_t
@@ -796,7 +796,7 @@ inline static apr_status_t do_send_chunk (
     connection_fsm_context_t  *context,
     char                      *data,
     qbyte                     size,    
-    lock_t                    *lock
+    amq_stdc_lock_t           *lock
     )
 {
     apr_status_t
@@ -950,7 +950,7 @@ inline static apr_status_t do_create_channel (
     amq_stdc_table_t          options,
     const char                *out_of_band,
     byte                      async,
-    lock_t                    *lock
+    amq_stdc_lock_t           *lock
     )
 {
     apr_status_t
@@ -1033,7 +1033,7 @@ inline static apr_status_t do_reply (
 
 inline static apr_status_t do_terminate (
     connection_fsm_context_t  *context,
-    lock_t                    *lock
+    amq_stdc_lock_t           *lock
     )
 {
     apr_status_t
@@ -1068,7 +1068,7 @@ inline static apr_status_t do_terminate (
 
 inline static apr_status_t do_duplicate_terminate (
     connection_fsm_context_t  *context,
-    lock_t                    *lock
+    amq_stdc_lock_t           *lock
     )
 {
     /*  This must be an explicit error; if not defined, it would fall        */
@@ -1115,7 +1115,7 @@ inline static apr_status_t do_server_requested_close (
         chunk_size;
     char
         *chunk;
-    lock_t
+    amq_stdc_lock_t
         lock;
 
     /*  Server request connection shutdown                                   */

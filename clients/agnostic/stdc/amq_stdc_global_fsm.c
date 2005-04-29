@@ -114,12 +114,12 @@ inline static apr_status_t do_destruct (
     -------------------------------------------------------------------------*/
 
 apr_status_t register_lock (
-    global_fsm_t  context,
-    dbyte         connection_id,
-    dbyte         channel_id,
-    dbyte         handle_id,
-    dbyte         *lock_id,
-    lock_t        *lock
+    global_fsm_t    context,
+    dbyte           connection_id,
+    dbyte           channel_id,
+    dbyte           handle_id,
+    dbyte           *lock_id,
+    amq_stdc_lock_t *lock
     )
 {
     apr_status_t
@@ -151,7 +151,7 @@ apr_status_t register_lock (
     result = global_fsm_sync_end (context);
     AMQ_ASSERT_STATUS (result, global_fsm_sync_end)
 
-    if (lock) *lock = (lock_t) (context->locks);
+    if (lock) *lock = (amq_stdc_lock_t) (context->locks);
     if (lock_id) *lock_id = id;
 #   ifdef AMQTRACE_LOCKS
         printf ("# Lock %ld registered. "
@@ -176,9 +176,9 @@ apr_status_t register_lock (
     -------------------------------------------------------------------------*/
 
 apr_status_t register_dummy_lock (
-    global_fsm_t context,
-    void         *result,
-    lock_t       *out_lock
+    global_fsm_t    context,
+    void            *result,
+    amq_stdc_lock_t *out_lock
     )
 {
     lock_context_t
@@ -195,7 +195,7 @@ apr_status_t register_dummy_lock (
     lock->next = NULL;
     lock->result = result;
     lock->error = APR_SUCCESS;
-    if (out_lock) *out_lock = (lock_t) lock;
+    if (out_lock) *out_lock = (amq_stdc_lock_t) lock;
 #   ifdef AMQTRACE_LOCKS
         printf ("# Dummy lock created.\n");
 #   endif
@@ -278,8 +278,8 @@ apr_status_t release_lock (
     -------------------------------------------------------------------------*/
 
 apr_status_t wait_for_lock (
-    lock_t  lck,
-    void    **res
+    amq_stdc_lock_t  lck,
+    void             **res
     )
 {
     apr_status_t
@@ -413,7 +413,7 @@ inline static apr_status_t do_create_connection (
     const char            *client_name,
     amq_stdc_table_t      options,
     byte                  async,
-    lock_t                *lock
+    amq_stdc_lock_t       *lock
     )
 {
     apr_status_t
@@ -497,7 +497,7 @@ inline static apr_status_t do_assign_new_channel_id (
 
 inline static apr_status_t do_terminate (
     global_fsm_context_t  *context,
-    lock_t                *lock
+    amq_stdc_lock_t       *lock
     )
 {
     /*  TODO:                                                                */
@@ -513,7 +513,7 @@ inline static apr_status_t do_terminate (
 
 inline static apr_status_t do_duplicate_terminate (
     global_fsm_context_t  *context,
-    lock_t                *lock
+    amq_stdc_lock_t       *lock
     )
 {
     /*  TODO:                                                                */

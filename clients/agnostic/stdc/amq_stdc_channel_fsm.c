@@ -231,7 +231,7 @@ inline static apr_status_t do_init (
     amq_stdc_table_t       options,
     const char             *out_of_band,
     byte                   async,
-    lock_t                 *lock
+    amq_stdc_lock_t        *lock
     )
 {
     apr_status_t
@@ -289,8 +289,8 @@ inline static apr_status_t do_create_handle (
     const char             *encoding,
     amq_stdc_table_t       options,
     byte                   async,
-    lock_t                 *created_lock,
-    lock_t                 *lock
+    amq_stdc_lock_t        *created_lock,
+    amq_stdc_lock_t        *lock
     )
 {
     apr_status_t
@@ -371,7 +371,7 @@ inline static apr_status_t do_acknowledge (
     channel_fsm_context_t  *context,
     qbyte                  message_nbr,
     byte                   async,
-    lock_t                 *lock
+    amq_stdc_lock_t        *lock
     )
 {
     apr_status_t
@@ -410,7 +410,7 @@ inline static apr_status_t do_commit (
     channel_fsm_context_t  *context,
     amq_stdc_table_t       options,
     byte                   async,
-    lock_t                 *lock
+    amq_stdc_lock_t        *lock
     )
 {
     apr_status_t
@@ -451,7 +451,7 @@ inline static apr_status_t do_rollback (
     channel_fsm_context_t  *context,
     amq_stdc_table_t       options,
     byte                   async,
-    lock_t                 *lock
+    amq_stdc_lock_t        *lock
     )
 {
     apr_status_t
@@ -629,7 +629,7 @@ inline static apr_status_t do_get_message (
     byte                     wait,
     amq_stdc_message_desc_t  **message_desc,
     amq_stdc_message_t       *message,
-    lock_t                   *lock
+    amq_stdc_lock_t          *lock
     )
 {
     apr_status_t
@@ -706,7 +706,7 @@ inline static apr_status_t do_reply (
 
 inline static apr_status_t do_terminate (
     channel_fsm_context_t  *context,
-    lock_t                 *lock
+    amq_stdc_lock_t        *lock
     )
 {
     apr_status_t
@@ -742,7 +742,7 @@ inline static apr_status_t do_terminate (
 
 inline static apr_status_t do_duplicate_terminate (
     channel_fsm_context_t  *context,
-    lock_t                 *lock
+    amq_stdc_lock_t        *lock
     )
 {
     /*  This must be an explicit error; if not defined, it would fall        */

@@ -28,7 +28,7 @@
         <arg type = "byte" name = "async">
              When 1, don't wait for confirmation from server
         </arg>
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
@@ -52,7 +52,7 @@
     </event>
     <event name = "terminate">
         Request to shut down the API
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait for operation completion                
         </arg>
     </event>
@@ -110,13 +110,13 @@
         <arg type = "byte" name = "async">
              When 1, don't wait for confirmation from server
         </arg>
-        <arg type = "lock_t *" name ="lock">
+        <arg type = "amq_stdc_lock_t *" name ="lock">
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
     <event name = "get chunk">
         Used by sender thread to receive next chunk to send
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
             Out parameter; used by sender thread to wait while next chunk
             is available
         </arg>
@@ -130,7 +130,7 @@
         <arg type = "qbyte" name = "size">
             Number of bytes to send.
         </arg>
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
             Out parameter; can be used to wait for sending completion;
             if NULL, no lock is created
         </arg>
@@ -161,7 +161,7 @@
         <arg type = "byte" name = "async">
              When 1, don't wait for confirmation from server
         </arg>
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
@@ -188,7 +188,7 @@
     </event>
     <event name = "terminate">
         Request to shut down the connection
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
@@ -266,7 +266,7 @@
         <arg type = "byte" name = "async">
              When 1, don't wait for confirmation from server
         </arg>
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
@@ -302,11 +302,11 @@
         <arg type = "byte" name = "async">
              When 1, don't wait for confirmation from server
         </arg>
-        <arg type = "lock_t *" name = "created_lock">
+        <arg type = "amq_stdc_lock_t *" name = "created_lock">
              Output parameter, to be used to wait for confirmation of
              temporary destination creation
         </arg>
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
@@ -323,7 +323,7 @@
         <arg type = "byte" name = "async">
              When 1, don't wait for confirmation from server
         </arg>
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
@@ -335,7 +335,7 @@
         <arg type = "byte" name = "async">
              When 1, don't wait for confirmation from server
         </arg>
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
@@ -347,7 +347,7 @@
         <arg type = "byte" name = "async">
              When 1, don't wait for confirmation from server
         </arg>
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
@@ -385,7 +385,7 @@
              Output parameter; if no-wait mode is on and message
              is present contains message handle, otherwise NULL
         </arg>
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait (in wait mode)
              for operation completion; in no-wait mode NULL
         </arg>
@@ -407,7 +407,7 @@
     </event>
     <event name = "terminate">
         Request to shut down the channel
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
@@ -498,7 +498,7 @@
         <arg type = "byte" name = "async">
              When 1, don't wait for confirmation from server
         </arg>
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
@@ -549,11 +549,11 @@
         <arg type = "byte" name = "async">
              When 1, don't wait for confirmation from server
         </arg>
-        <arg type = "lock_t *" name = "created_lock">
+        <arg type = "amq_stdc_lock_t *" name = "created_lock">
              Output parameter, to be used to wait for confirmation of
              temporary destination creation
         </arg>
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
@@ -592,7 +592,7 @@
         <arg type = "byte" name = "async">
              When 1, don't wait for confirmation from server
         </arg>
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
@@ -637,7 +637,7 @@
         <arg type = "byte" name = "async">
              When 1, don't wait for confirmation from server
         </arg>
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
@@ -649,7 +649,7 @@
         <arg type = "byte" name = "async">
              When 1, don't wait for confirmation from server
         </arg>
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
@@ -664,7 +664,7 @@
         <arg type = "byte" name = "async">
             When 1, don't wait for confirmation from server
         </arg>
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
             Output parameter, to be used to wait for operation completion
         </arg>
     </event>
@@ -676,7 +676,7 @@
         <arg type = "byte" name = "async">
             When 1, don't wait for confirmation from server
         </arg>
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
             Output parameter, to be used to wait for operation completion
         </arg>
     </event>
@@ -694,7 +694,7 @@
         <arg type = "const char *" name = "mime_type">
             MIME type
         </arg>
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
             Output parameter, to be used to wait for operation completion
         </arg>
     </event>
@@ -718,7 +718,7 @@
         <arg type = "byte" name = "async">
              When 1, don't wait for confirmation from server
         </arg>
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
@@ -739,7 +739,7 @@
     </event>
     <event name = "terminate">
         Request to shut down the handle
-        <arg type = "lock_t *" name = "lock">
+        <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
