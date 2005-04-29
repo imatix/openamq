@@ -1,10 +1,11 @@
 0.8c2 - 2005/04/28
 
  - added matching test program, first implementation of matching code.
+ - matching on topic name now implemented in server.
 
 0.8c1 - 2005/04/26
 
- - porting to Solaris/sparc (ARP changes)
+ - porting to Solaris/sparc (APR changes)
 
 0.8c0 - 2005/04/16
 
