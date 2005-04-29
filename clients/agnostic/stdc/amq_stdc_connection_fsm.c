@@ -856,12 +856,13 @@ inline static apr_status_t do_challenge (
 
     /*  Send CONNECTION RESPONSE                                             */    
     chunk_size = COMMAND_SIZE_MAX_SIZE +
-        AMQ_STDC_CONNECTION_RESPONSE_CONSTANT_SIZE + 5 + 0;
+        AMQ_STDC_CONNECTION_RESPONSE_CONSTANT_SIZE + 5 + 0 + 31;
     chunk = (char*) amq_malloc (chunk_size);
     if (!chunk)
         AMQ_ASSERT (Not enough memory)
     chunk_size = amq_stdc_encode_connection_response (chunk, chunk_size,
-        5, "plain", 0, "");
+        5, "plain", 31,
+        "\x005LOGINS\x000\x005guest\x008PASSWORDS\x000\x005guest");
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
     result = connection_fsm_send_chunk (context, chunk, chunk_size, NULL);
