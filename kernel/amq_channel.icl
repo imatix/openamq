@@ -84,11 +84,16 @@ This class implements the AMQP CHANNEL commands.
 </method>
 
 <method name = "destroy">
+    <local>
+    amq_handle_t
+        *handle;
+    </local>
+
     /*  Destroy all handles for this channel                                 */
     for (table_idx = 0; table_idx &lt; AMQ_HANDLE_TABLE_MAXSIZE; table_idx++) {
-        if (self->connection->handles->item_table [table_idx]
-        &&  self->connection->handles->item_table [table_idx]->channel == self)
-            amq_handle_destroy (&self->connection->handles->item_table [table_idx]);
+        handle = self->connection->handles->item_table [table_idx];
+        if (handle && handle != AMQ_HANDLE_DELETED && handle->channel == self)
+            amq_handle_destroy (&handle);
     }
     if (self->transacted)
         self_rollback (self);

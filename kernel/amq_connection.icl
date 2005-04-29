@@ -60,19 +60,27 @@
 </method>
 
 <method name = "destroy">
+    <local>
+    amq_handle_t
+        *handle;
+    amq_channel_t
+        *channel;
     uint
         table_idx;
-
+    </local>
     /*  Destroy all handles for this connection                              */
-    for (table_idx = 0; table_idx &lt; AMQ_HANDLE_TABLE_MAXSIZE; table_idx++)
-        if (self->handles->item_table [table_idx])
-            amq_handle_destroy (&self->handles->item_table [table_idx]);
+    for (table_idx = 0; table_idx &lt; AMQ_HANDLE_TABLE_MAXSIZE; table_idx++) {
+        handle = self->handles->item_table [table_idx];
+        if (handle && handle != AMQ_HANDLE_DELETED)
+            amq_handle_destroy (&handle);
+    }
 
     /*  Destroy all channels for this connection                             */
-    for (table_idx = 0; table_idx &lt; AMQ_CHANNEL_TABLE_MAXSIZE; table_idx++)
-        if (self->channels->item_table [table_idx])
-            amq_channel_destroy (&self->channels->item_table [table_idx]);
-
+    for (table_idx = 0; table_idx &lt; AMQ_CHANNEL_TABLE_MAXSIZE; table_idx++) {
+        channel = self->channels->item_table [table_idx];
+        if (channel && channel != AMQ_CHANNEL_DELETED)
+            amq_channel_destroy (&channel);
+    }
     amq_channel_table_destroy (&self->channels);
     amq_handle_table_destroy  (&self->handles);
     smt_thread_handle_destroy (&self->thread);
