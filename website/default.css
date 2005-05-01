@@ -124,7 +124,7 @@ H1#tagline {
 
 /* Disclaimer (bottom right, below content */
 #disclaimer P {
-    margin: 30pt;
+    margin: 20pt;
     font-size: 7pt;
     text-align: center;
     border-width: 1pt 0 0 0;
