@@ -1,7 +1,5 @@
 /*
-
    OpenAMQ stylesheet
-
 */
 
 /* Global defaults */
@@ -17,35 +15,29 @@ BODY {
 /* Left column container */
 #left_container {
     float: left;
-    width: 20%;
-    /* min-width: 170px; */
+    width: 220px;
+    margin: 0;
 }
 
 /* Right column container */
 #right_container {
-    float: right;
-    /* margin-left: auto; */
-    width: 80%;
+    margin-left: 220px;
 }
 
 /* Logo (left, top) container */
 #logo_container {
     height: 100px;
-    color: black;
-    background-color: white;
 }
 /* Logo itself */
 #logo {
     display: block;
-    padding: 5pt;
+    padding: 6pt;
     margin-left: auto;
     margin-right: auto;
 }
 
 /* Menu (left, bottom) container */
 #menu_container {
-    padding-top: 20pt;
-    padding-bottom: 20pt;
     color: black;
     background-color: #b9cdd8;
 }
@@ -55,12 +47,10 @@ H3.menu_heading {
     font-size: 10pt;
     line-height: 16pt;
     font-variant: small-caps;
-    text-transform: uppercase;
-    text-indent: 20pt;
+    text-indent: 10pt;
 }
 UL.menu_item {
     font-variant: normal;
-    /* text-transform: lowercase; */
     list-style: none;
     border-width: 2pt 0 0 0;
     border-style: solid;
@@ -74,43 +64,37 @@ UL.menu_item LI {
     text-indent: 20pt;
 }
 
-/* Tagline (right, top) container */
-#tagline_container {
+#title_container {
     color: white;
     background-color: #01415c;
     height: 100px;
     position: relative;
 }
-
-H1#tagline {
-    font-size: 110%;
+H1#title {
+    width: 80%;
     position: absolute;
-    right: 0;
-    bottom: 0;
-    padding: 0.5em;
+    font-variant: small-caps;
+    padding: 20pt;
 }
 
 /* Content (right, bottom) container */
 /* FIXME: Style more HTML elements here */
 #content_container {
-    color: black;
-    background-color: white;
-    margin: 2em;
-    border-width: 1px;
-    border-color: #01415c;
-    border-style: solid;
+    width: 80%;
+    margin: 20pt;
 }
 #content_container H1 {
-    color: white;
-    background-color: #01415c;
-    font-size: 10pt;
+    color: #01415c;
+    background-color: #b9cdd8;
+    font-size: 12pt;
+    font-weight: bold;
     line-height: 16pt;
     font-variant: small-caps;
-    text-transform: uppercase;
     text-indent: 10pt;
 }
 #content_container H2 {
-    color: #01415c; font-size: 10pt;
+    color: #01415c;
+    font-size: 10pt;
     font-weight: bold;
     padding-left: 10pt;
 }
@@ -124,26 +108,28 @@ H1#tagline {
 
 /* Disclaimer (bottom right, below content */
 #disclaimer P {
-    margin: 20pt;
     font-size: 7pt;
-    text-align: center;
-    border-width: 1pt 0 0 0;
+    background-color: #b9cdd8;
+    border-width: 1pt 1pt 1pt 1pt;
     border-style: solid;
+    border-color: #b9cdd8;
+    margin: 0pt;
+    padding: 1em;
     color: #01415c;
 }
 
 /* Links */
 A:active {
-    text-decoration: underline;
-    color: black;
+    text-decoration: none;
+    color: #01415c;
 }
 A:link {
-    text-decoration: underline;
-    color: black;
+    text-decoration: none;
+    color: #01415c;
 }
 A:visited {
-    text-decoration: underline;
-    color: black;
+    text-decoration: none;
+    color: #01415c;
 }
 A[HREF]:hover {
     background-color: #b9cdd8;
@@ -164,9 +150,8 @@ A.menu_item:visited {
     color: black;
 }
 A.menu_item[HREF]:hover {
-    color: red; 
+    color: red;
 }
 A:link IMG, A:visited IMG {
     border-style: none;
 }
-

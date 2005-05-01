@@ -14,7 +14,10 @@
       <a href="index.html"><img id="logo" width="155" height="80" src="logo.png"/></a>
     </div>
     <div id="menu_container">
-.- Generate menu from <site> item in root
+      <h3 class="menu_heading">OpenAMQ.org</h3>
+      <ul class="menu_item">
+        <li><a class="menu_item" href="index.html">Home</a></li>
+      </ul>
 .for root->site.section
       <h3 class="menu_heading">$(name:)</h3>
       <ul class="menu_item">
@@ -27,32 +30,32 @@
 .   endfor
       </ul>
 .endfor
-    </div>
-  </div>
-
-  <div id="right_container">
-    <div id="tagline_container">
-      <h1 id="tagline">Commodity Middleware Working For You</h1>
-    </div>
-    <div id="content_container">
-
-    <!-- Page content -->
-.   for . as content
-.       content_string = content.string()
-.   endfor
-    $(content_string:)
-    <!-- End page content -->
-
+      <h3 class="menu_heading">Copyright & Disclaimer</h3>
     </div>
     <div id="disclaimer">
-      <p>
-      Access to this website and all materials it contains is restricted to
+      <p>Access to this website and all materials it contains is restricted to
       authorised personnel.  Layout and content copyright &copy; 2004-2005
       JPMorgan. The names "AMQ" and "OpenAMQ" and the AMQ and OpenAMQ logos are
       trademarks protected in the United States, United Kingdom. Unauthorized
       use is strictly prohibited. The information herein is provided for
       information purposes only.
       </p>
+    </div>
+    <h3 class="menu_heading">&nbsp;</h3>
+  </div>
+
+  <div id="right_container">
+    <div id="title_container">
+      <h1 id="title">$(->title:)</h1>
+    </div>
+    <div id="content_container">
+
+    <!-- Page content -->
+.for . as content
+.   content_string = content.string()
+.endfor
+    $(content_string:)
+    <!-- End page content -->
     </div>
   </div>
 </body>
