@@ -4,13 +4,41 @@
     <content>
       <h1>Welcome</h1>
       <p>
-          Welcome to the OpenAMQ website. Our goal is to deliver a commodity
-          middleware for your organisation.
+      Welcome to the OpenAMQ website.  OpenAMQ is a commodity middleware platform
+      that implements an industry-standard protocol - AMQP - as a high-performance
+      server and client API.
+      </p>
+      <h2>The AMQP Protocol</h2>
+      <p>AMQP is a standardised wire-protocol for high-performance message exchange
+      between a server and a set of clients.  It supports the standard models of
+      point-to-point queuing, publish-subscribe, and file-transfer, in a modern and
+      language-independent manner.
+      </p>
+      <h2>The OpenAMQ Server</h2>
+      <p>This is a fast open source implementation of AMQP that runs on all
+      modern platforms (Linux, Win32, Solaris, other Unixes).  OpenAMQ is written
+      in ANSI C and is highly configurable for specific messaging scenarios or
+      memory/performance constraints.  It covers the spectrum from high performance
+      in-memory pub-sub (handling tens of thousands of messages per second) to
+      highly-reliable file-transfer (guaranteed delivery across falible networks).
+      </p>
+      <h2>The OpenAMQ Clients</h2>
+      <p>Whatever your preferred language, you will find an OpenAMQ library or API
+      that gives you seamless access to AMQP services.  Most of the OpenAMQ clients
+      use the standard JMS (Java Messaging Services) model, with extensions.  It
+      typically takes 1-2 days to start using OpenAMQ in your applications.
+      </p>
+      <p>Of course, since AMQP is an open standard, you can write your own client
+      layers.  The average effort is about 10-20 days.
+      </p>
+      <h1>Next Steps</h1>
+      <p>
+      On this website you will find an <a href="overview.html">overview</a> of the
+      software, downloadable <a href="download.html">source packages</a>
+      and published <a href="technical.html">technical specifications</a>.
       </p>
       <p>
-          On this website you will find an <a href="overview.html">overview</a> of the
-          software, downloadable <a href="download.html">source packages</a>
-          and published <a href="technical.html">technical specifications</a>.
+      Use the index at left to jump directly to a section of interest.
       </p>
     </content>
   </language>
