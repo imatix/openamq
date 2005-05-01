@@ -1,0 +1,12 @@
+<?xml?>
+<pdl
+    name      = "OpenAMQ Website"
+    version   = "0.8c2"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
+    workflow  = "scripted.pwl"
+    >
+
+<include filename = "prelude.pdl" />
+<file name = "site.xml" class = "gsl data">Site cover file</file>
+<file name = "*.html"   class = "generated">HTML output</file>
+</pdl>

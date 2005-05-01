@@ -1,4 +1,4 @@
-<!-- 
+<!--
     OpenAMQ website definition
 
     A <site> has a name (user visible), some <page>s and <sections> with
@@ -6,19 +6,22 @@
 
     Each <page> will be loaded from name.xml
 -->
-<site name   = "OpenAMQ"
-      script = "site.gsl" >
+<site
+    name   = "OpenAMQ"
+    script = "site.gsl" 
+    >
+    <page name = "index" />
 
-  <page name = "index"   />
+    <section name = "Software"  >
+        <page name = "download" />
+    </section>
 
-  <section name = "Software"  >
-    <page  name = "download" />
-  </section>
-  <section name = "Features"  >
-      <page  name = "overview" />
-  </section>
-  <section name = "Developers" >
-      <page  name = "technical" />
-      <page  name = "wiki"      />
-  </section>
+    <section name = "Features"  >
+        <page name = "overview" />
+    </section>
+
+    <section name = "Developers" >
+        <page name = "technical" />
+        <page name = "wiki"      />
+    </section>
 </site>

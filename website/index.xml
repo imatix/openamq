@@ -4,12 +4,13 @@
     <content>
       <h1>Welcome</h1>
       <p>
-          Welcome to the OpenAMQ website. Our goal is to deliver a commodity 
-          middleware for your organisation. 
+          Welcome to the OpenAMQ website. Our goal is to deliver a commodity
+          middleware for your organisation.
       </p>
       <p>
-          On this website you will find an <a href="overview.html">overview</a> of the software,
-          downloadable <a href="download.html">source packages</a> and published <a href="technical.html">technical specifications</a>.
+          On this website you will find an <a href="overview.html">overview</a> of the
+          software, downloadable <a href="download.html">source packages</a>
+          and published <a href="technical.html">technical specifications</a>.
       </p>
     </content>
   </language>

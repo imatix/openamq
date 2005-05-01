@@ -27,7 +27,8 @@
       <p>
         <h2>Reliable</h2>
         <ul>
-            <li>Based on standard layers: <a href="http://apr.apache.org/">Apache Portable Runtime</a>, <a href="http://www.sleepcat.com/">Berkeley Database Library</a>.</li>
+            <li>Based on standard layers: <a href="http://apr.apache.org/">Apache Portable Runtime</a>,
+            <a href="http://www.sleepcat.com/">Berkeley Database Library</a>.</li>
         </ul>
       </p>
       <h1>Advantages</h1>

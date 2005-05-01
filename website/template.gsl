@@ -1,56 +1,60 @@
 .template 1
-.- 
-.- Run once for each page.xml (and in theory language, but I haven't 
-.- implemented that yet).
+.-
+.- Run once for each page and language
 .-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html>
   <head>
-.- FIXME Why is this $(->title) and not just $(title)?
-    <title>$(root->site.name:) : $(->title)</title>
+    <title>$(root->site.name:): $(->title.)</title>
     <link rel="stylesheet" href="default.css" type="text/css"/>
   </head>
 <body>
- <div id="left_container">
-   <div id="logo_container">
-     <a href="index.html"><img id="logo" width="155" height="80" src="logo.png"/></a>
-   </div>
-   <div id="menu_container">
+  <div id="left_container">
+    <div id="logo_container">
+      <a href="index.html"><img id="logo" width="155" height="80" src="logo.png"/></a>
+    </div>
+    <div id="menu_container">
 .- Generate menu from <site> item in root
 .for root->site.section
-     <h3 class="menu_heading">$(name:)</h3>
-     <ul class="menu_item">
-.for page
-       <li><a class="menu_item" href="$(name:).html">$(name:)</a></li>
-.endfor
-     </ul>
+      <h3 class="menu_heading">$(name:)</h3>
+      <ul class="menu_item">
+.   for page as section_page
+.       for root->content.page where name = section_page.name
+.           for language
+        <li><a class="menu_item" href="$(section_page.name:).html">$(->title.:)</a></li>
+.           endfor
+.       endfor
+.   endfor
+      </ul>
 .endfor
     </div>
   </div>
-<div id="right_container">
-  <div id="tagline_container">
-    <h1 id="tagline">Commodity middleware working for you</h1>
-  </div>
-  <div id="content_container">
-.- Stick <content> from page in here verbatim, it's just XML
-.- How do I get GSL to indent the XML produced by content.string() nicely?
-.for . as content
-.    content_string = content.string()
-.endfor
+
+  <div id="right_container">
+    <div id="tagline_container">
+      <h1 id="tagline">Commodity Middleware Working For You</h1>
+    </div>
+    <div id="content_container">
+
+    <!-- Page content -->
+.   for . as content
+.       content_string = content.string()
+.   endfor
     $(content_string:)
-  </div>
-  <div id="disclaimer">
-    <p>
-      Confidential material. Access to this website and all materials it
-      contains is restricted to authorised personnel. Unauthorised accesses
-      will be subject to sanction. Layout and content copyright &copy; 2005
+    <!-- End page content -->
+
+    </div>
+    <div id="disclaimer">
+      <p>
+      Access to this website and all materials it contains is restricted to
+      authorised personnel.  Layout and content copyright &copy; 2004-2005
       JPMorgan. The names "AMQ" and "OpenAMQ" and the AMQ and OpenAMQ logos are
       trademarks protected in the United States, United Kingdom. Unauthorized
       use is strictly prohibited. The information herein is provided for
       information purposes only.
-    </p>
+      </p>
+    </div>
   </div>
-</div>
 </body>
 </html>
 .endtemplate
