@@ -13,7 +13,6 @@ have requested it.  The actual matching logic is in amq_match_table.
 </doc>
 
 <inherit class = "ipr_hash_str" />
-<option name = "bigtable" value = "1" />
 
 <import class = "amq_global" />
 <import class = "amq_db" />

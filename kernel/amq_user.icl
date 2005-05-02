@@ -8,7 +8,7 @@
     >
 
 <inherit class = "ipr_hash_str" />
-<option name = "bigtable" value = "1" />
+<option name = "hash_size" value = "65535" />
 
 <import class = "amq_global" />
 

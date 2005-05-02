@@ -1,15 +1,105 @@
 <page name = "build">
   <language name = "en">
     <title>Installation</title>
-    <subtitle>building and installing the openamq packages</subtitle>
+    <subtitle>building and installing openamq</subtitle>
     <content>
-      <h1></h1>
-      <p>
-        <h2></h2>
+
+      <h1>Source kits</h1>
+        <p>The .tar.gz package and .zip packages are identical except that
+        the text files they contain are formatted for POSIX and Win32
+        respectively.  You can convert line endings using zip (-l and -a
+        options) but we suggest you simply unpack the appropriate file.
+        </p>
+
+      <h1>POSIX - Linux, Solaris, Unix</h1>
+
+      <h2>Requirements</h2>
         <ul>
-          <li></li>
+          <li>Solaris 8 or later, or Linux 2.4 or later</li>
+          <li>GNU development tools: tar, gunzip, make, gcc, ar</li>
         </ul>
-      </p>
+
+      <h2>Building from the Source Package</h2>
+        <p>Select an installation directory.  For instance, $HOME.
+        This is where the compiled/linked programs will be installed.
+        We call this the IBASE directory.
+        </p>
+        <p>After detarring, change to the freshly created directory and
+        run the 'configure' command:
+        </p>
+        <pre>configure --with-ibase=IBASE-DIRECTORY</pre>
+        <p>Alternatively, define an environment variable 'IBASE' with
+        this directory as its value, and then run 'configure':</p>
+        <pre>configure</pre>
+        <p>Now build using this command:</p>
+        <pre>make</pre>
+
+      <h2>Installing the Server and Clients</h2>
+        <p>Install into the IBASE directory using this command:</p>
+        <pre>make install</pre>
+
+      <h1>Windows 32</h1>
+
+      <h2>Requirements</h2>
+        <ul>
+          <li>MSVC 6.x or later configured for command-line compilation</li>
+          <li>A standard unzip tool</li>
+        </ul>
+        <p>Under Win32 the MS C/C++ compiler must be configured for command-line
+        use.  During MSVC installation, make sure you register the environment
+        variables needed for command-line use of the compiler.  Check the
+        vcvars32.bat script for correctness.  When you open a console box, the
+        MSVCDir variable must point correctly to the MSVC application directory.
+        You can set this in the system environment variables.
+        </p>
+        <p>Select an installation directory.  For instance, C:\Home.
+        This is where the compiled/linked programs will be installed.
+        We call this the IBASE directory.
+        </p>
+        <p>After unzipping, change to the freshly created directory and
+        run the 'configure' command:
+        </p>
+        <pre>configure --with-ibase=IBASE-DIRECTORY</pre>
+        <p>Alternatively, define an environment variable 'IBASE' with
+        this directory as its value, and then run 'configure':</p>
+        <pre>configure</pre>
+        <p>Now build using this command:</p>
+        <pre>nmake</pre>
+
+      <h2>Installing the Server and Clients</h2>
+        <p>Install into the IBASE directory using this command:</p>
+        <pre>nmake install</pre>
+
+      <h1>Installed Components</h1>
+        <p>All installed components are placed under the IBASE directory;
+        you can delete the OpenAMQ installation by deleting this directory.
+        The working directory used during building is not needed to run
+        OpenAMQ.
+        </p>
+        <p>The IBASE directory has these subdirectories:
+        </p>
+        <ul>
+          <li>openamq/server - the OpenAMQ server along with a demo configuration</li>
+          <li>openamq/clients - the OpenAMQ clients</li>
+          <li>openamq/tests - a set of regression tests</li>
+          <li>bin - tools</li>
+          <li>lib - libraries, including the OpenAMQ client API libraries</li>
+          <li>include - C header files, including the OpenAMQ client API headers</li>
+          <li>doc - all available project documentation</li>
+        </ul>
+
+      <h1>Testing your Server Installation</h1>
+        <p>We are still preparing the regression test suite.  In the meantime:
+        </p>
+        <ul>
+          <li>Go to the IBASE/openamq/server directory and run <tt>openamqd</tt>.
+          </li>
+          <li>In a second window, go to the IBASE/openamq/clients/stdc directory and
+          run <tt>amqpcli_serial</tt>.  This sends 1000 messages to a queue on the
+          server and reads them back.
+          </li>
+        </ul>
+
     </content>
   </language>
 </page>

@@ -3,13 +3,33 @@
     <title>Mailing Lists</title>
     <subtitle>getting support and information by email</subtitle>
     <content>
-      <h1></h1>
-      <p>
-        <h2></h2>
+      <h1>OpenAMQ Email Lists</h1>
+
+      <h2>amq-announce</h2>
+        <p>For persons who want to track the AMQ project without being
+        involved in the development process.
+        </p>
+        <p>This is a private list.  Your subscription will be verified
+        by the list manager before you are allowed to join.
+        </p>
         <ul>
-          <li></li>
+          <li><a href="http://amq.imatix.net/mailman/listinfo/amq-announce">Subscribe</a></li>
+          <li><a href="http://amq.imatix.net/mailman/admin/amq-announce">Administration
+          interface</a></li>
         </ul>
-      </p>
+
+      <h2>amq-dev</h2>
+        <p>For developers involved in the AMQ project or using it in their
+        applications.
+        </p>
+        <p>This is a private list.  Your subscription will be verified by the
+        list manager before you are allowed to join.
+        </p>
+        <ul>
+          <li><a href="http://amq.imatix.net/mailman/listinfo/amq-dev">Subscribe</a></li>
+          <li><a href="http://amq.imatix.net/mailman/admin/amq-dev">Administration interface</a></li>
+        </ul>
+
     </content>
   </language>
 </page>

@@ -52,16 +52,17 @@ H3.menu_heading {
 UL.menu_item {
     font-variant: normal;
     list-style: none;
-    border-width: 1pt 0 0 0;
+    border-width: 0 0 1pt 0;
     border-style: solid;
     border-color: white;
     line-height: 16pt;
 }
 UL.menu_item LI {
-    border-width: 0 0 1pt 0;
+    border-width: 1pt 0 0 0;
     border-style: solid;
     border-color: white;
     text-indent: 15pt;
+    line-height: 15pt;
 }
 
 #title_container {
@@ -87,6 +88,9 @@ H2#title {
     margin-top: 45pt;
     margin-left: 20pt;
     font-size: 12pt;
+    border-width: 1pt 0 0 0;
+    border-style: dashed;
+    border-color: #b9cdd8;
 }
 
 /* Content (right, bottom) container */
@@ -96,7 +100,7 @@ H2#title {
     margin: 20pt;
 }
 #content_container H1 {
-    color: #01415c;
+    margin-top: 12pt;
     background-color: #b9cdd8;
     line-height: 16pt;
     font-size: 12pt;
@@ -104,8 +108,10 @@ H2#title {
     text-indent: 10pt;
 }
 #content_container H2 {
-    color: #01415c;
-    font-size: 10pt;
+    margin-top: 12pt;
+    margin-bottom: 12pt;
+    font-variant: small-caps;
+    font-size: 11pt;
     padding-left: 10pt;
 }
 #content_container UL {
@@ -114,6 +120,12 @@ H2#title {
 }
 #content_container P {
     margin: 1em;
+}
+#content_container PRE {
+    background-color: #E0E0E0;
+    margin-left: 30pt;
+    margin-right: 30pt;
+    margin-bottom: 12pt;
 }
 
 /* Disclaimer (bottom right, below content */
@@ -131,14 +143,17 @@ H2#title {
 /* Links */
 A:active {
     text-decoration: none;
+    font-weight: bold;
     color: #01415c;
 }
 A:link {
     text-decoration: none;
+    font-weight: bold;
     color: #01415c;
 }
 A:visited {
     text-decoration: none;
+    font-weight: bold;
     color: #01415c;
 }
 A[HREF]:hover {

@@ -3,97 +3,48 @@
     <title>Download</title>
     <subtitle>downloading and installing the openamq software</subtitle>
     <content>
-      <h1>Software License</h1>
-      <p>
-        OpenAMQ is free software licensed under the Apache License, version 2.0.
-        You may only use this software in compliance with the License.
-      </p>
-      <p>
-        <ul>
-          <li><a href="http://apache.org/licenses/LICENSE-2.0">Apache License, version 2.0</a></li>
-        </ul>
-      </p>
-      <p>
-        <h2>Permissions and Limitations</h2>
-      </p>
-      <p>
-        <b>No Warranty</b>
-      </p>
-      <p>
-        Unless required by applicable law or agreed to in writing, software
-        distributed under the License is distributed on an "AS IS" BASIS,
-        WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-        implied.
-      </p>
+
+      <h1>Terms of Use</h1>
+        <p>OpenAMQ is currently a JPMC confidential project and restricted to
+        use under the <a href="license.html">terms of the License agreement</a>.
+        By downloading this software you confirm that you understand and accept
+        the terms described here.
+        </p>
+
       <h1>Download OpenAMQ</h1>
-      <p>
-        Current version is 0.8b1.
-      </p>
-      <p>
-        This is a beta release of the server and clients.
-      </p>
-      <h1>Unix Packages</h1>
-      <p/>
-      <h2>Source package</h2>
-      <p>
+        <p>The current version is 0.8b1.  This is a beta release of the server
+        and clients.
+        </p>
+
+      <h2>Source Packages</h2>
         <ul>
-          <li>
-            <a href="http://www.openamq.org/pub/openamq-latest-src.tar.gz">
-              openamq-latest-src.tar.gz
-            </a>
-          </li>
+          <li><a href="http://www.openamq.org/pub/openamq-latest-src.tar.gz">
+          POSIX (Linux, Solaris, Unix) source package</a></li>
+          <li><a href="http://www.openamq.org/pub/openamq-latest-src.zip">
+          Win32 source package</a></li>
         </ul>
-      </p>
-      <p>
-        Unpack into a working directory and run <tt>./configure</tt> and then
+        <p>Unpack into a working directory and run <tt>configure</tt> and then
         <tt>make</tt>.  The source package includes recent validated versions
         of the Apache Portable Runtime (APR) and the Berkeley Database (BDB) as
         used by OpenAMQ.
-      </p>
-      <h1>Win32 Packages</h1>
-      <p/>
-      <h2>Source package</h2>
-      <p>
+        </p>
+        <p>See: <a href="build.html">Building and installing OpenAMQ.</a>
+        <br/>See: <a href="deply.html">Running and managing an OpenAMQ server.</a>
+        </p>
+
+      <h2>Binary Packages</h2>
         <ul>
-          <li>
-            <a href="http://www.openamq.org/pub/openamq-latest-src.zip">
-              openamq-latest-src.zip
-            </a>
-          </li>
+          <li><a href="http://www.openamq.org/pub/openamq-latest-win32.zip">
+          Win32 executables</a></li>
         </ul>
-      </p>
-      <p>
-        Unpack into a working directory and run <tt>configure</tt> and then
-        <tt>make</tt>.  The source package includes recent validated versions
-        of the Apache Portable Runtime (APR) and the Berkeley Database (BDB) as
-        used by OpenAMQ.
-      </p>
-      <p>
-        Requires Microsoft Visual C++ 6.0 or later.
-      </p>
-      <h2>Binary package</h2>
-      <p>
-        <ul>
-          <li>
-            <a href="http://www.openamq.org/pub/openamq-latest-win32.zip">
-              openamq-latest-win32.zip
-            </a>
-          </li>
-        </ul>
-      </p>
-      <p>
-        Download and unzip the package into a target directory.  The
-        <tt>clients</tt> subdirectory contains OpenAMQ client tools.  The
-        <tt>servers</tt> subdirectory contains the OpenAMQ server binaries.
-    </p>
-    <h1>Previous versions</h1>
-    <p>
-    Since the product is still undergoing rapid development, we reccommend that
-    you always use the latest version available. New releases happen
-    frequently, generally once every other week. If for some reason you require
-    an older version of the software, you can find all archived packages 
-    <a href="http://www.openamq.org/pub/">here</a>.  
-    </p>
+        <p>Unpack into a final directory, e.g. c:\openamq.  The <tt>clients</tt>
+        subdirectory contains OpenAMQ client tools.  The <tt>servers</tt>
+        subdirectory contains the OpenAMQ server executables and a demonstration
+        configuration.
+        </p>
+        <p>See: <a href="deply.html">Running and managing an OpenAMQ server.</a>
+        </p>
+
     </content>
   </language>
 </page>

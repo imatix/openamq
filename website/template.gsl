@@ -4,10 +4,10 @@
 .-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html>
-  <head>
-    <title>$(root->site.name:): $(->title.)</title>
-    <link rel="stylesheet" href="default.css" type="text/css"/>
-  </head>
+<head>
+  <title>$(root->site.name:): $(->title.)</title>
+  <link rel="stylesheet" href="default.css" type="text/css"/>
+</head>
 <body>
   <div id="left_container">
     <div id="logo_container">
@@ -48,7 +48,7 @@
     <div id="content_container">
 
     <!-- Page content -->
-.for . as content
+.for content
 .   content_string = content.string()
 .endfor
     $(content_string:)

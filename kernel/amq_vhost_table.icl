@@ -15,7 +15,7 @@ Container class for the virtual hosts defined for the server.
 <import class = "amq_global" />
 <option name = "childname" value = "amq_vhost" />
 <option name = "childtype" value = "amq_vhost_t" />
-<option name = "bigtable"  value = "0" />
+<option name = "hash_size" value = "65535" />
 
 <context>
     ipr_config_t

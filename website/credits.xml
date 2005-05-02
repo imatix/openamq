@@ -3,13 +3,46 @@
     <title>Credits</title>
     <subtitle>the people behind openamq</subtitle>
     <content>
-      <h1></h1>
-      <p>
-        <h2></h2>
+      <h1>The Producer</h1>
         <ul>
-          <li></li>
+          <li>John O'Hara</li>
         </ul>
-      </p>
+
+      <h1>The Director</h1>
+        <ul>
+          <li>Pieter Hintjens</li>
+        </ul>
+
+      <h1>The Crew - Brussels, Bratislava & Beyond</h1>
+        <ul>
+          <li>Jonathan Schultz</li>
+          <li>Martin Sustrik</li>
+          <li>Martin Lucina</li>
+          <li>Gustavo Broos</li>
+          <li>Rakan El-Khalil</li>
+        </ul>
+
+      <h1>The Crew - London</h1>
+        <ul>
+          <li>Mark Atwell</li>
+          <li>James Strachan</li>
+          <li>Stewie Stewart</li>
+        </ul>
+
+      <h1>Artwork</h1>
+        <ul>
+          <li>Lubica Segecova</li>
+        </ul>
+
+      <h1>Supporting Technologies</h1>
+        <ul>
+          <li>GNU tools and languages</li>
+          <li>iMatix Class Language (iCL)</li>
+          <li>iMatix Portability Runtime (iPR)</li>
+          <li>iMatix Simple Multithreading Kernel (SMT)</li>
+          <li>Apache Foundation's Apache Portable Runtime (APR)</li>
+          <li>Sleepycat Software's Berkeley Database (BDB)</li>
+        </ul>
     </content>
   </language>
 </page>

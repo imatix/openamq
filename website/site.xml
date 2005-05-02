@@ -33,6 +33,7 @@
     <section name = "Support"     >
         <page name = "maillist"  />
         <page name = "library"   />
+        <page name = "faq"       />
     </section>
 
     <section name = "Developers"  >

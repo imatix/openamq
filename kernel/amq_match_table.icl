@@ -12,7 +12,7 @@ This class implements the message matching.
 <inherit class = "ipr_hash_table" />
 <import class = "amq_match" />
 <option name = "childname" value = "amq_match" />
-<option name = "bigtable"  value = "1" />
+<option name = "hash_size" value = "65535" />
 
 <context>
 </context>
