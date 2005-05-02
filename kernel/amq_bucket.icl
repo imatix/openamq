@@ -5,7 +5,6 @@
     version   = "2.0"
     copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
-    role      = "allocator"
     >
 <doc>
     Defines a bucket, being a buffer of AMQ_BUCKET_MAX bytes.  Buckets can
@@ -15,7 +14,7 @@
 </doc>
 
 <inherit class = "icl_ref_count" />
-<inherit class = "icl_object"    />
+<inherit class = "icl_base"      />
 
 <import class = "icl_system"  />
 <import class = "icl_mem"     />
@@ -103,10 +102,8 @@ static void
     byte  *data;
 </context>
 
-<method name = "new">
+<method name = "new" template = "constructor">
     <argument name = "size" type = "size_t">Required length of data</argument>
-    <argument name = "file" type = "char *" precalc = "__FILE__">Source file for call</argument>
-    <argument name = "line" type = "size_t" precalc = "__LINE__">Line number for call</argument>
     <local>
     int
         chop_min = 0,
@@ -141,7 +138,7 @@ static void
     s_$(selfname)_cache_destroy ();
 </method>
 
-<method name = "destroy">
+<method name = "destroy" template = "destructor">
     s_$(selfname)_free (self);
 </method>
 
