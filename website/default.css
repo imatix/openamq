@@ -52,16 +52,16 @@ H3.menu_heading {
 UL.menu_item {
     font-variant: normal;
     list-style: none;
-    border-width: 2pt 0 0 0;
+    border-width: 1pt 0 0 0;
     border-style: solid;
     border-color: white;
     line-height: 16pt;
 }
 UL.menu_item LI {
-    border-width: 0 0 2pt 0;
+    border-width: 0 0 1pt 0;
     border-style: solid;
     border-color: white;
-    text-indent: 20pt;
+    text-indent: 15pt;
 }
 
 #title_container {
@@ -74,7 +74,19 @@ H1#title {
     width: 80%;
     position: absolute;
     font-variant: small-caps;
-    padding: 20pt;
+    margin-left: 20pt;
+    margin-top: 15pt;
+    font-size: 24pt;
+}
+H2#title {
+    width: 80%;
+    color: #b9cdd8;
+    position: absolute;
+    font-variant: small-caps;
+    text-align: right;
+    margin-top: 45pt;
+    margin-left: 20pt;
+    font-size: 12pt;
 }
 
 /* Content (right, bottom) container */
@@ -86,16 +98,14 @@ H1#title {
 #content_container H1 {
     color: #01415c;
     background-color: #b9cdd8;
-    font-size: 12pt;
-    font-weight: bold;
     line-height: 16pt;
+    font-size: 12pt;
     font-variant: small-caps;
     text-indent: 10pt;
 }
 #content_container H2 {
     color: #01415c;
     font-size: 10pt;
-    font-weight: bold;
     padding-left: 10pt;
 }
 #content_container UL {

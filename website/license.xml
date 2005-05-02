@@ -1,33 +1,40 @@
-<page name    = "license">
+<page name = "license">
   <language name = "en">
-    <title>License</title>
+    <title>Legal Stuff</title>
+    <subtitle>conditions of use</subtitle>
     <content>
-      <h1>License</h1>
+      <h1>Restricted Access</h1>
       <p>
-        OpenAMQ is free software licensed under the Apache License, version 2.0.
-        You may only use this software in compliance with the License.
+        The OpenAMQ source code and executables, the AMQP protocol specifications,
+        this web site, and all other related materials and information are currently
+        restricted for use by JPMC personnel, members of the OpenAMQ development
+        team, and third parties that have signed a non-disclosure agreement with
+        JPMC or otherwise committed to maintaining the confidentiality of this
+        project.
       </p>
+      <h1>Planned Licensing Terms</h1>
       <p>
+        OpenAMQ is intended to be licensed as an open source product under the
+        terms of the Apache License, version 2.0.  Note that this license DOES
+        NOT APPLY to OpenAMQ at present.
         <ul>
           <li><a href="http://apache.org/licenses/LICENSE-2.0">Apache License v2.0, HTML format</a></li>
           <li><a href="http://apache.org/licenses/LICENSE-2.0.txt">Apache License v2.0, text format</a></li>
         </ul>
       </p>
+      <h1>Under Development</h1>
       <p>
-        <h2>Permissions and Limitations</h2>
+        OpenAMQ is under development and the current versions of the software
+        are likely to be unstable and insufficiently tested for production use.
+        While we welcome all feedback on the software and specifications, the
+        software should not be used for live data until it has been officially
+        released as a 1.0 version.
       </p>
+      <h1>No Warranty</h1>
       <p>
-        <b>No Warranty</b>
-      </p>
-      <p>
-        Unless required by applicable law or agreed to in writing, software
-        distributed under the License is distributed on an "AS IS" BASIS,
-        WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-        implied.
-      </p>
-      <p> 
-        See the License for the specific language governing permissions and
-        limitations under the License.
+        Unless required by applicable law or agreed to in writing, the software
+        is provided on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+        KIND, either express or implied.
       </p>
     </content>
   </language>

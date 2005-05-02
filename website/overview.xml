@@ -1,6 +1,7 @@
 <page name = "overview">
   <language name = "en">
     <title>Overview</title>
+    <subtitle>an overview of openamq</subtitle>
     <content>
       <h1>Strengths</h1>
       <p>

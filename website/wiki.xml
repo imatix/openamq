@@ -1,6 +1,7 @@
 <page name = "Wiki">
   <language name = "en">
     <title>Wiki</title>
+    <subtitle>the openamq whiteboard</subtitle>
     <content>
       <h1>Wiki</h1>
       <p>

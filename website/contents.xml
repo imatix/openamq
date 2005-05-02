@@ -1,0 +1,59 @@
+<page name = "contents">
+  <language name = "en">
+    <title>Package Contents</title>
+    <subtitle>what you get when you download openamq</subtitle>
+    <content>
+      <h1>Source Packages</h1>
+      <p>
+        <h2>OpenAMQ Source Code</h2>
+        <p>
+        The openamq directory contains the full source code for the OpenAMQ project.
+        </p>
+        <ul>
+          <li>openamq/kernel - The OpenAMQ server kernel code (ANSI C)</li>
+          <li>openamq/clients - The OpenAMQ client API implementations (ANSI C, C++, COM, Java)</li>
+          <li>openamq/server - A sample server configuration</li>
+        </ul>
+        <h2>iMatix Technology Packages</h2>
+        <p>
+        A set of software engineering tools focussing on infrastructure design and
+        development.  We use these tools extensively in the OpenAMQ server and clients.
+        </p>
+        <ul>
+          <li>base - a package of ANSI-C tools and libraries</li>
+          <li>base2 - XML-based code generation frameworks</li>
+          <li>gsl4 - the iMatix XML-based code generator</li>
+        </ul>
+        <h2>3rd Party Packages</h2>
+        <p>
+        We use a number of external open source packages in OpenAMQ.  We include
+        the most recent validated versions of these in the OpenAMQ source packages.
+        (see source directory "base2/foreign").
+        </p>
+        <ul>
+          <li>base2/foreign/apr - the Apache Portable Runtime</li>
+          <li>base2/foreign/bdb - the Berkeley Database system</li>
+        </ul>
+        <h2>Documentation</h2>
+        <p>
+        The source packages include the current OpenAMQ documentation set.
+        </p>
+        <ul>
+          <li>openamq/server/index.html - installing and configuring the OpenAMQ server</li>
+          <li>openamq/rfc/index.html - all AMQ RFCs (formal specification documents)</li>
+        </ul>
+      </p>
+      <h1>Binary Packages</h1>
+      <p>
+        <h2>Win32 Binary Packages</h2>
+        <p>
+        These are provided as a simple zip file (a more sophisticated installer will
+        be provided at a future date).
+        <ul>
+          <li>openamq/server - server executable, as console process</li>
+          <li>openamq/clients - client executables and COM component</li>
+        </ul>
+      </p>
+    </content>
+  </language>
+</page>

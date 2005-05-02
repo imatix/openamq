@@ -1,6 +1,7 @@
 <page name = "download">
   <language name = "en">
     <title>Download</title>
+    <subtitle>downloading and installing the openamq software</subtitle>
     <content>
       <h1>Software License</h1>
       <p>

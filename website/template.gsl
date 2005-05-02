@@ -14,10 +14,6 @@
       <a href="index.html"><img id="logo" width="155" height="80" src="logo.png"/></a>
     </div>
     <div id="menu_container">
-      <h3 class="menu_heading">OpenAMQ.org</h3>
-      <ul class="menu_item">
-        <li><a class="menu_item" href="index.html">Home</a></li>
-      </ul>
 .for root->site.section
       <h3 class="menu_heading">$(name:)</h3>
       <ul class="menu_item">
@@ -47,6 +43,7 @@
   <div id="right_container">
     <div id="title_container">
       <h1 id="title">$(->title:)</h1>
+      <h2 id="title">$(->subtitle?:)</h2>
     </div>
     <div id="content_container">
 

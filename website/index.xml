@@ -1,10 +1,11 @@
 <page name = "index">
   <language name = "en">
-    <title>Commodity Middleware Working for You</title>
+    <title>Welcome</title>
+    <subtitle>commodity middleware working for you</subtitle>
     <content>
       <h1>Welcome</h1>
       <p>
-      Welcome to the OpenAMQ website.  OpenAMQ is a commodity middleware platform
+      Welcome to the OpenAMQ website. OpenAMQ is a commodity middleware platform
       that implements an industry-standard protocol - AMQP - as a high-performance
       server and client API.
       </p>
@@ -12,15 +13,13 @@
       <p>AMQP is a standardised wire-protocol for high-performance message exchange
       between a server and a set of clients.  It supports the standard models of
       point-to-point queuing, publish-subscribe, and file-transfer, in a modern and
-      language-independent manner.
+      language-independent manner. <a href="protocol.html">More information...</a>
       </p>
       <h2>The OpenAMQ Server</h2>
       <p>This is a fast open source implementation of AMQP that runs on all
       modern platforms (Linux, Win32, Solaris, other Unixes).  OpenAMQ is written
       in ANSI C and is highly configurable for specific messaging scenarios or
-      memory/performance constraints.  It covers the spectrum from high performance
-      in-memory pub-sub (handling tens of thousands of messages per second) to
-      highly-reliable file-transfer (guaranteed delivery across falible networks).
+      memory/performance constraints.  <a href="protocol.html">More information...</a>
       </p>
       <h2>The OpenAMQ Clients</h2>
       <p>Whatever your preferred language, you will find an OpenAMQ library or API
