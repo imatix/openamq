@@ -233,27 +233,27 @@ int JAMQ_tbl_update_item (
     int             *aireturn_Code
     );
 
-int JAMQ_tbl_get_size(
+int JAMQ_tbl_get_size (
     void  *pTableHandle,
     int   *aiTableRows,
     int   *aiTableCols,
     int   *aireturn_Code
     );
 
-int JAMQ_tbl_write_tbl(
+int JAMQ_tbl_write_tbl (
     void            *pTableHandle,
     JAMQ_tsNCharcb  *pJAMQFileName, 
     int             *aireturn_Code
     );
 
-int JAMQ_tbl_delete_item(
+int JAMQ_tbl_delete_item (
     void  *pTableHandle,
     int   iTableRow,
     int   iTableCol,
     int   *aireturn_Code
     );
 
-int JAMQ_tbl_close(
+int JAMQ_tbl_close (
     void  **apTableHandle,
     int   *aireturn_Code
     );
@@ -262,4 +262,35 @@ int JAMQ_tbl_close(
  *  Miscellaneous
  *---------------------------------------------------------------------------*/
 
+#define JAMQ_MISC_INPUT_ERR 300
+
+int JAMQ_m_chars_to_double (
+    double          *pDouble, 
+    JAMQ_tsNCharcb  *pNumber,
+    int             *aireturn_Code
+    );
+
+int JAMQ_m_chars_to_int (
+    int             *aiInt, 
+    JAMQ_tsNCharcb  *pChars,
+    int             *aireturn_Code
+    );
+ /*
+int JAMQ_m_get_buffer (
+    JAMQ_tsBufcb  **apBufferHandle,
+    int           iPhysicalLen, 
+    int           *aireturn_Code
+    );
+
+int JAMQ_m_put_buffer (
+    JAMQ_tsBufcb  **apBufferHandle,
+    int           *aireturn_Code
+    );
+
+int JAMQ_m_mem_nchar_dup (
+    JAMQ_tsNCharcb  *pNCharOut,
+    JAMQ_tsNCharcb  *pNCharIn,
+    int             *aireturn_Code
+    );
+*/
 #endif

@@ -1,5 +1,11 @@
 <?xml?>
-<class name = "gtw_hash" script  = "icl_gen">
+<class
+    name      = "gtw_hash"
+    comment   = "Hash table"
+    version   = "1.0"
+    copyright = "Copyright (c) 2005 JPMorgan and iMatix Corporation"
+    script    = "icl_gen"
+    >
     
     <public>
     typedef struct tag_gtw_hash_item_t
@@ -148,7 +154,7 @@
             return NOT_OK;
         }
 
-        if (!key || !value) {
+        if (!key || key->iDataLen < 0 || !key->pData || !value) {
             *retcode = JAMQ_HASH_INPUT_ERR;
             return NOT_OK;
         }
@@ -206,7 +212,8 @@
             return NOT_OK;
         }
 
-        if (!key_in || !key_out || !value) {
+        if (!key_in || key_in->iDataLen < 0 || !key_in->pData || !key_out ||
+              !value) {
             *retcode = JAMQ_HASH_INPUT_ERR;
             return NOT_OK;
         }
@@ -266,7 +273,7 @@
             return NOT_OK;
         }
 
-        if (!key || !value) {
+        if (!key || key->iDataLen < 0 || !key->pData || !value) {
             *retcode = JAMQ_HASH_INPUT_ERR;
             return NOT_OK;
         }

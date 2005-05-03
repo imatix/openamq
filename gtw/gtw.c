@@ -281,3 +281,190 @@ int JAMQ_tbl_delete_item (
         iTableCol, aireturn_Code);
 }
 
+/*---------------------------------------------------------------------------*/
+
+int JAMQ_m_chars_to_double (
+    double          *pDouble, 
+    JAMQ_tsNCharcb  *pNumber,
+    int             *aireturn_Code
+    )
+{
+    qbyte
+        pos = 0;
+    byte
+        negative = 0;
+    int
+        number;
+    int
+        fraction1;
+    int
+        fraction2;
+
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!pDouble || !pNumber || pNumber->iDataLen < 0 || !pNumber->pData) {
+        *aireturn_Code = JAMQ_MISC_INPUT_ERR;
+        return NOT_OK;
+    }
+
+    while (1) {
+        if (pos == pNumber->iDataLen)
+            goto err;
+        if ( pNumber->pData [pos] != ' ')
+            break; 
+        pos++;      
+    }
+
+    if (pNumber->pData [pos] == '+')
+        negative = 0, pos++;
+    else if (pNumber->pData [pos] == '-')
+        negative = 1, pos++;
+
+    number = -1;
+    while (1) {
+        if (pos == pNumber->iDataLen)
+            break;
+        if (pNumber->pData [pos] < '0' || pNumber->pData [pos] > '9')
+            break;
+        if (number == -1)
+            number = pNumber->pData [pos] - '0';
+        else
+            number = number * 10 + pNumber->pData [pos] - '0';
+        pos++;
+    }
+    if (number == -1)
+        goto err;
+
+    if (pos == pNumber->iDataLen) {
+
+        /*  Integer                                                          */
+        *pDouble = (double) number;
+    }
+    else if (pNumber->pData [pos] == '.') {
+
+        /*  Floating point                                                   */
+        pos++;
+        fraction1 = 0;
+        fraction2 = 1;
+        if (pos != pNumber->iDataLen) {
+            while (1) {
+                if (pos == pNumber->iDataLen)
+                    break;
+                if (pNumber->pData [pos] < '0' || pNumber->pData [pos] > '9')
+                    break;
+                fraction1 = fraction1 * 10 + pNumber->pData [pos] - '0';
+                pos++;
+                fraction2 *= 10;
+            }
+        }
+        *pDouble = (double) number + (double) fraction1 / (double) fraction2;
+    }
+    else if (pNumber->pData [pos] == ' ') {
+
+        /*  Fraction                                                         */
+        while (1) {
+            if (pos == pNumber->iDataLen)
+                goto err;
+            if ( pNumber->pData [pos] != ' ')
+                break; 
+            pos++;
+        }        
+
+        fraction1 = -1;
+        while (1) {
+            if (pos == pNumber->iDataLen)
+                break;
+            if (pNumber->pData [pos] < '0' || pNumber->pData [pos] > '9')
+                break;
+            if (fraction1 == -1)
+                fraction1 = pNumber->pData [pos] - '0';
+            else
+                fraction1 = fraction1 * 10 + pNumber->pData [pos] - '0';
+            pos++;
+        }
+        if (fraction1 == -1)
+            goto err;
+        if (pNumber->pData [pos++] != '/')
+            goto err;
+        fraction2 = -1;
+        while (1) {
+            if (pos == pNumber->iDataLen)
+                break;
+            if (pNumber->pData [pos] < '0' || pNumber->pData [pos] > '9')
+                break;
+            if (fraction2 == -1)
+                fraction2 = pNumber->pData [pos] - '0';
+            else
+                fraction2 = fraction2 * 10 + pNumber->pData [pos] - '0';
+            pos++;
+        }
+        if (fraction2 == -1 || fraction2 == 0)
+            goto err;
+        if (!pos == pNumber->iDataLen)
+            goto err;
+        *pDouble = (double) number + (double) fraction1 / (double) fraction2;
+    }
+    else
+        goto err;
+    
+    if (negative)
+        *pDouble *= (double) -1;
+    *aireturn_Code = 0;
+    return OK;
+
+err:
+    *aireturn_Code = JAMQ_MISC_INPUT_ERR;
+    return NOT_OK;
+}
+
+
+int JAMQ_m_chars_to_int (
+    int             *aiInt, 
+    JAMQ_tsNCharcb  *pNumber,
+    int             *aireturn_Code
+    )
+{
+    qbyte
+        pos = 0;
+    byte
+        negative = 0;
+    int
+        number;
+
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!aiInt || !pNumber || pNumber->iDataLen < 0 || !pNumber->pData) {
+        *aireturn_Code = JAMQ_MISC_INPUT_ERR;
+        return NOT_OK;
+    }
+
+    if (pNumber->pData [pos] == '+')
+        negative = 0, pos++;
+    else if (pNumber->pData [pos] == '-')
+        negative = 1, pos++;
+
+    number = -1;
+    while (1) {
+        if (pos == pNumber->iDataLen)
+            break;
+        if (pNumber->pData [pos] < '0' || pNumber->pData [pos] > '9')
+            goto err;
+        if (number == -1)
+            number = pNumber->pData [pos] - '0';
+        else
+            number = number * 10 + pNumber->pData [pos] - '0';
+        pos++;
+    }
+    if (number == -1)
+        goto err;
+
+    *aiInt = negative ? -number : number;
+    *aireturn_Code = 0;
+    return OK;
+
+err:
+    *aireturn_Code = JAMQ_MISC_INPUT_ERR;
+    return NOT_OK;
+}

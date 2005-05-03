@@ -1,5 +1,11 @@
 <?xml?>
-<class name = "gtw_ll" script  = "icl_gen">
+<class
+    name      = "gtw_ll"
+    comment   = "Linked list"
+    version   = "1.0"
+    copyright = "Copyright (c) 2005 JPMorgan and iMatix Corporation"
+    script    = "icl_gen"
+    >
     
     <public>
     typedef struct tag_gtw_ll_item_t
@@ -165,7 +171,7 @@
             return NOT_OK;
         }
 
-        if (!key || !value || !key->pData) {
+        if (!key || !value || key->iDataLen < 0 || !key->pData) {
             *retcode = JAMQ_LL_INPUT_ERR;
             return NOT_OK;
         }
@@ -226,7 +232,7 @@
             return NOT_OK;
         }
 
-        if (!key || !value) {
+        if (!key || key->iDataLen < 0 || !key->pData || !value) {
             *retcode = JAMQ_LL_INPUT_ERR;
             return NOT_OK;
         }
@@ -362,7 +368,7 @@
             return NOT_OK;
         }
 
-        if (!key_in || !key_in->pData || !key_out) {
+        if (!key_in || key_in->iDataLen < 0 || !key_in->pData || !key_out) {
             *retcode = JAMQ_LL_INPUT_ERR;
             return NOT_OK;
         }
