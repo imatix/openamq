@@ -279,6 +279,7 @@ int main(
             "    -d <destination>\n"
             "    -p <number of prefetched messages, default=1>\n"
             "    -o <0/1 if 1 messages sent are not received back, default 1>\n"
+            "    -n <number of messages, 0 means infinite, default=0>\n"
             "\n"
             "  MODE: query (queries for all messages and browses them one by one)\n"
             "    -s <server name/ip address, default=127.0.0.1>\n"
@@ -312,13 +313,14 @@ int main(
         return EXIT_FAILURE;
     }
 
-    result = amq_stdc_open_connection (client.server, client.host,
+    result = amq_stdc_open_connection (client.server, 7654, client.host,
         client.client_name, amq_stdc_heartbeats_off, amq_stdc_heartbeats_off,
         0, NULL, 0, &connection);
     if (result != APR_SUCCESS) {
         printf ("amq_stdc_open_connection failed\n");
         return EXIT_FAILURE;
     }
+
     transacted = (byte) ((client.clienttype == clienttype_consumer ||
             client.commit_count || client.rollback_count) ? 1 : 0);
     result = amq_stdc_open_channel (connection, transacted, 0, NULL, "", 0,
@@ -398,7 +400,8 @@ int main(
             return EXIT_FAILURE;
         }
 
-        while ((!client.messages) || client.messages--) {
+        while (1) {
+
             result = amq_stdc_get_message (channel, 1, &message_desc,
                 &message);
             if (result != APR_SUCCESS) {
@@ -419,13 +422,13 @@ int main(
                 if (size < 10)
                     break;
             }
-/*
+
             result = amq_stdc_close_message (message, 0);
             if (result != APR_SUCCESS) {
                 printf ("amq_stdc_close_message failed\n");
                 return EXIT_FAILURE;
             }
-*/
+
             if (--client.till_acknowledge == 0) {
                 result = amq_stdc_acknowledge (channel,
                     message_desc->message_nbr, 0);
@@ -442,6 +445,10 @@ int main(
 
                 client.till_acknowledge = client.prefetch;
             }
+
+            if (client.messages)
+                if(--client.messages == 0)
+                    break;
         }
     }
 

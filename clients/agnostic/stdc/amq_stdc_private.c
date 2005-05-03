@@ -18,8 +18,8 @@ void *amq_malloc_trace (size_t sz, const char *file, long line)
         *p;
 
     p = malloc (sz);
-    printf ("> memory block of size %ld allocated on address %lx (%s:%ld)\n",
-        (long) sz, (long) p, file, line);
+    printf ("> + %lx : %ldb (%s:%ld)\n",
+        (long) p, (long) sz, file, line);
     s_allocated_blocks++;
     return p;
 }
@@ -30,9 +30,9 @@ void *amq_realloc_trace (void *p, size_t sz, const char *file, long line)
         *pnew;
 
     pnew = realloc (p, sz);
-    printf ("> memory block on adress %lx reallocated to size %ld; "
-        "now on address %lx (%s:%ld)\n", 
-        (long) p, (long) sz, (long) pnew, file, line);
+    if (p)
+        printf ("> - %lx (%s:%ld)\n", (long) p, file, line);
+    printf ("> + %lx : %ldb (%s:%ld)\n", (long) pnew, (long) sz, file, line);
     if (!p) s_allocated_blocks++;
     return pnew;
 }
@@ -40,8 +40,7 @@ void *amq_realloc_trace (void *p, size_t sz, const char *file, long line)
 void amq_free_trace (void *p, const char *file, long line)
 {
     free (p);
-    printf ("> memory block freed on adress %lx (%s:%ld)\n", (long) p,
-        file, line);
+    printf ("> - %lx (%s:%ld)\n", (long) p, file, line);
     s_allocated_blocks--;
 }
 

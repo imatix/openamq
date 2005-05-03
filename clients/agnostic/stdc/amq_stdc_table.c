@@ -15,8 +15,8 @@ static apr_status_t s_table_add_field (
     const char       *name,
     char             type,
     size_t           size,
-    void             **data            /*  Out parameter; pointer to newly    */
-                                       /*  allocated data part of the string  */
+    void             **data           /*  Out parameter; pointer to newly    */
+                                      /*  allocated data part of the string  */
     )
 {
     void
@@ -209,7 +209,8 @@ apr_status_t amq_stdc_table_destroy (
     amq_stdc_table_t  table
     )
 {
-    amq_free ((void*) (table->data));
+    if (table->data)
+        amq_free ((void*) (table->data));
     amq_free ((void*) table);
 
     return APR_SUCCESS;

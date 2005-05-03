@@ -26,6 +26,10 @@ typedef struct tag_message_list_item_t
 {
     amq_stdc_message_desc_t
         desc;                          /*  Message descriptor                */
+                                       /*  Should be first item of the       */
+                                       /*  structure so that message_desc    */
+                                       /*  can be casted directly to         */
+                                       /*  message_list_item_t               */
     message_fsm_t
         message;                       /*  Message object                    */ 
     char
@@ -33,6 +37,12 @@ typedef struct tag_message_list_item_t
                                        /*  while message is opened           */
     char
         identifier [256];              /*  Buffer to hold message identifier */
+                                       /*  while message is opened           */
+    char
+        mime_type [256];               /*  Buffer to hold MIME type          */
+                                       /*  while message is opened           */
+    char
+        encoding [256];                /*  Buffer to hold encoding           */
                                        /*  while message is opened           */
     struct tag_message_list_item_t
         *prev;
@@ -101,6 +111,15 @@ inline static apr_status_t do_destruct (
     apr_status_t
         result;
 
+    /*  TODO: Close all handles, clear handle list, close all messages,      */
+    /*  clear message desc list, etc.                                        */
+
+    /*  Deallocate all messages still existing                               */
+    while (context->first_message) {
+        result = message_fsm_terminate (context->first_message->message);
+        AMQ_ASSERT_STATUS (result, message_fsm_terminate)
+    }
+
     /*  Remove channel from connection's list                                */
     result = connection_fsm_remove_channel (context->connection, context);
     AMQ_ASSERT_STATUS (result, connection_fsm_remove_channel)
@@ -161,7 +180,7 @@ static apr_status_t s_pair_lock_and_message (
 
         /*  Deallocate lock list item                                        */
         /*  Message list item will be deallocated when client destroys the   */
-        /*  message (amq_stdc_close_message)                                 */
+        /*  message                                                          */
         amq_free ((void*) lock);
     }
     return APR_SUCCESS;
@@ -238,12 +257,15 @@ inline static apr_status_t do_init (
         result;
     dbyte
         confirm_tag;
-    byte
+    qbyte
         out_of_band_size = strlen (out_of_band);
     qbyte
         chunk_size;
     char
         *chunk;
+
+    if (out_of_band_size > 255)
+        AMQ_ASSERT (Out of band field longer than 255 characters)
     
     /*  Save values that will be needed in future                            */
     context->global = global;
@@ -565,17 +587,32 @@ inline static apr_status_t do_receive_message (
 
         /*  Fill in message descriptor                                       */
         message->desc.message_nbr = command->message_nbr;
+        message->desc.delivered = command->delivered;
+        message->desc.redelivered = command->redelivered;
+        message->desc.streaming = command->streaming;
         memcpy (message->dest_name, command->dest_name,
             command->dest_name_size);
         (message->dest_name) [command->dest_name_size] = 0;
         message->desc.dest_name = message->dest_name;
+        memcpy (message->mime_type, header.mime_type,
+            header.mime_type_size);
+        (message->mime_type) [header.mime_type_size] = 0;
+        message->desc.mime_type = message->mime_type;
+        memcpy (message->encoding, header.encoding,
+            header.encoding_size);
+        (message->encoding) [header.encoding_size] = 0;
+        message->desc.encoding = message->encoding;
         memcpy (message->identifier, header.identifier,
             header.identifier_size);
         (message->identifier) [header.identifier_size] = 0;
         message->desc.identifier = message->identifier;
+        result = amq_stdc_table_create (header.headers_size, header.headers,
+            &(message->desc.headers));
+        AMQ_ASSERT_STATUS (result, amq_stdc_table_create);
         result = message_fsm_create (&(message->message));
         AMQ_ASSERT_STATUS (result, message_fsm_create)
-        result = message_fsm_init (message->message);
+        result = message_fsm_init (message->message, context,
+            &(message->desc));
         AMQ_ASSERT_STATUS (result, message_fsm_init)
 
         /*  Append it to the end of the queue                                */
@@ -683,6 +720,34 @@ inline static apr_status_t do_get_message (
                 *message = NULL;
         }
     }
+
+    return APR_SUCCESS;
+}
+
+inline static apr_status_t do_remove_message_desc (
+    channel_fsm_context_t    *context,
+    amq_stdc_message_desc_t  *message_desc
+    )
+{
+    apr_status_t
+        result;
+    message_list_item_t
+        *item = (message_list_item_t*) message_desc;   
+
+    /*  Remove item from the list                                            */
+    if (!item->prev)
+        context->first_message = item->next;
+    else
+        item->prev->next = item->next;
+    if (!item->next)
+        context->last_message = item->prev;
+    else
+        item->next->prev = item->prev;
+
+    /*  Deallocate it                                                        */
+    result = amq_stdc_table_destroy (item->desc.headers);
+    AMQ_ASSERT_STATUS (result, amq_stdc_table_destroy);
+    amq_free ((void*) item);
 
     return APR_SUCCESS;
 }

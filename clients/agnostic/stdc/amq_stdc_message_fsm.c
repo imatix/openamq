@@ -49,6 +49,10 @@ typedef struct tag_fragment_list_item_t
 #define MESSAGE_FSM_OBJECT_ID 0 /* TODO: message number here */
 
 DEFINE_MESSAGE_FSM_CONTEXT_BEGIN
+    channel_fsm_t
+        channel;
+    amq_stdc_message_desc_t
+        *message_desc;
     fragment_list_item_t
         *current_fragment;
     qbyte
@@ -66,6 +70,8 @@ inline static apr_status_t do_construct (
 {
     if (sizeof (fragment_list_item_t) > FRAGMENT_HEADER_SIZE)
         AMQ_ASSERT (Fragment header to small to hold the data)
+    context->channel = NULL;
+    context->message_desc = NULL;
     context->current_fragment = NULL;
     context->current_pos = 0;
     context->first_fragment = NULL;
@@ -85,10 +91,13 @@ inline static apr_status_t do_destruct (
  *---------------------------------------------------------------------------*/
 
 inline static apr_status_t do_init (
-    message_fsm_context_t *context
+    message_fsm_context_t    *context,
+    channel_fsm_t            channel,
+    amq_stdc_message_desc_t  *message_desc
     )
 {
-    /*  Does nothing so far                                                  */
+    context->channel = channel;
+    context->message_desc = message_desc;
     return APR_SUCCESS;
 }
 
@@ -178,7 +187,26 @@ inline static apr_status_t do_term (
     message_fsm_context_t *context
     )
 {
-    /*  TODO: cleanup fragment list, release all locks waiting on the object */
-    /*  etc.                                                                 */
+    apr_status_t
+        result;
+    fragment_list_item_t
+        *to_delete;
+
+    /*  Deallocate message body                                              */
+    while (context->first_fragment) {
+        to_delete = context->first_fragment;
+        context->first_fragment = context->first_fragment->next;
+        amq_free ((void*) to_delete);
+    }
+    context->current_fragment = NULL;
+    context->last_fragment = NULL;
+
+    /*  Deallocate message descriptor stored by channel object               */
+    result = channel_fsm_remove_message_desc (context->channel,
+        context->message_desc);
+    AMQ_ASSERT_STATUS (result, channel_fsm_remove_message_desc);
+   
+    /*  TODO: release all locks waiting on the object                        */
+
     return APR_SUCCESS;
 }

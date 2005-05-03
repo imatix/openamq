@@ -147,13 +147,20 @@ inline static apr_status_t do_init (
         chunk_size;
     dbyte
         confirm_tag;
-    byte
+    qbyte
         dest_name_size = strlen (dest_name);
-    byte
+    qbyte
         mime_type_size = strlen (mime_type);
-    byte
+    qbyte
         encoding_size = strlen (encoding);
 
+    if (dest_name_size > 255)
+        AMQ_ASSERT (Destination name exceeds 255 characters)
+    if (mime_type_size > 255)
+        AMQ_ASSERT (MIME type field exceeds 255 characters)
+    if (encoding_size > 255)
+        AMQ_ASSERT (Encoding field name exceeds 255 characters)
+ 
     /*  Save values that will be needed in future                            */
     context->global = global;
     context->connection = connection;
@@ -219,12 +226,19 @@ inline static apr_status_t do_init_temporary (
         chunk_size;
     dbyte
         confirm_tag;
-    byte
+    qbyte
         dest_name_size = strlen (dest_name);
-    byte
+    qbyte
         mime_type_size = strlen (mime_type);
-    byte
+    qbyte
         encoding_size = strlen (encoding);
+
+    if (dest_name_size > 255)
+        AMQ_ASSERT (Destination name exceeds 255 characters)
+    if (mime_type_size > 255)
+        AMQ_ASSERT (MIME type field exceeds 255 characters)
+    if (encoding_size > 255)
+        AMQ_ASSERT (Encoding field name exceeds 255 characters)
     
     /*  Save values that will be needed in future                            */
     context->global = global;
@@ -309,14 +323,23 @@ inline static apr_status_t do_consume (
         chunk_size;
     dbyte
         confirm_tag;
-    byte
+    qbyte
         dest_name_size = strlen (dest_name);
-    byte
+    qbyte
         identifier_size = strlen (identifier);
-    dbyte
+    qbyte
         selector_size = strlen (selector);
-    byte
+    qbyte
         mime_type_size = strlen (mime_type);
+
+    if (dest_name_size > 255)
+        AMQ_ASSERT (Destination name field exceeds 255 characters)
+    if (identifier_size > 255)
+        AMQ_ASSERT (Identifier field exceeds 255 characters)
+    if (selector_size > 65535)
+        AMQ_ASSERT (Selector field exceeds 65535 characters)
+    if (mime_type_size > 255)
+        AMQ_ASSERT (MIME type field exceeds 255 characters)
 
     confirm_tag = 0;
     if (!async) {
@@ -373,14 +396,23 @@ inline static apr_status_t do_send_message (
         header_size;
     dbyte
         confirm_tag;
-    byte
+    qbyte
         dest_name_size = strlen (dest_name);
-    byte
+    qbyte
         mime_type_size = strlen (mime_type);
-    byte
+    qbyte
         encoding_size = strlen (encoding);
-    byte
+    qbyte
         identifier_size = strlen (identifier);
+
+    if (dest_name_size > 255)
+        AMQ_ASSERT (Destination name field exceeds 255 characters)
+    if (mime_type_size > 255)
+        AMQ_ASSERT (MIME type field exceeds 255 characters)
+    if (encoding_size > 255)
+        AMQ_ASSERT (Encoding field exceeds 255 characters)
+    if (identifier_size > 255)
+        AMQ_ASSERT (Identifier field exceeds 255 characters)
     
     confirm_tag = 0;
     if (!async) {
@@ -472,10 +504,15 @@ inline static apr_status_t do_cancel (
         chunk_size;
     dbyte
         confirm_tag;
-    byte
+    qbyte
         dest_name_size = strlen (dest_name);
-    byte
+    qbyte
         identifier_size = strlen (identifier);
+
+    if (dest_name_size > 255)
+        AMQ_ASSERT (Destination name field exceeds 255 characters)
+    if (identifier_size > 255)
+        AMQ_ASSERT (Identifier field exceeds 255 characters)
 
     confirm_tag = 0;
     if (!async) {
@@ -554,12 +591,19 @@ inline static apr_status_t do_query (
         *chunk;
     qbyte
         chunk_size;
-    byte
+    qbyte
         dest_name_size = strlen (dest_name);
-    dbyte
+    qbyte
         selector_size = strlen (selector);
-    byte
+    qbyte
         mime_type_size = strlen (mime_type);
+
+    if (dest_name_size > 255)
+        AMQ_ASSERT (Destination name field exceeds 255 characters)
+    if (selector_size > 65535)
+        AMQ_ASSERT (Selector field exceeds 65535 characters)
+    if (mime_type_size > 255)
+        AMQ_ASSERT (MIME type field exceeds 255 characters)
 
     /*  Send HANDLE QUERY                                                    */
     chunk_size = COMMAND_SIZE_MAX_SIZE + AMQ_STDC_HANDLE_QUERY_CONSTANT_SIZE +

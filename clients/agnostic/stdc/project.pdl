@@ -25,11 +25,11 @@
 <file name = "amq_stdc_table.c"           class = "library module"  >Table field object</file>
 <file name = "amq_stdc_client.c"          class = "library module"  >Public client API</file>
 <file name = "amq_stdc_client.h"          class = "public header"   >Client API public header</file>
-<file name = "test_client.c"              class = "main program"    >Main program</file>
+<file name = "amq_stdc_client_test.c"     class = "main program"    >Main program</file>
 
 <!-- Deliverables -->
 <file name = "libamqp"                    class = "public library"  >Public API library</file>
-<file name = "test_client"                class = "public command"  >Client API test executable</file>
+<file name = "amq_stdc_client_test"       class = "public command"  >Client API test executable</file>
 
 <class name = "state machine" inherit = "sub program">
     <derive extension = ".i"   class = "generated" />

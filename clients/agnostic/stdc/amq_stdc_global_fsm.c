@@ -409,6 +409,7 @@ inline static apr_status_t do_init (
 inline static apr_status_t do_create_connection (
     global_fsm_context_t  *context,
     const char            *server,
+    dbyte                 port,
     const char            *host,
     const char            *client_name,
     amq_stdc_table_t      options,
@@ -439,7 +440,7 @@ inline static apr_status_t do_create_connection (
 
     /*  Start it                                                             */
     result = connection_fsm_init (connection, (global_fsm_t) context,
-        ++(context->last_connection_id), server, host, client_name,
+        ++(context->last_connection_id), server, port, host, client_name,
         options, async, lock);
     AMQ_ASSERT_STATUS (result, connection_init)
     return APR_SUCCESS;

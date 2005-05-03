@@ -104,6 +104,7 @@ apr_status_t amq_stdc_term ()
 
     Arguments:
         server                server to connect to
+        port                  port to use
         host                  virtual host to connect to
         client_name           client name to use when connecting
         out_heartbeat_model   specifies how heartbeats are to be sent to server
@@ -118,6 +119,7 @@ apr_status_t amq_stdc_term ()
 
 apr_status_t amq_stdc_open_connection (
     const char                  *server,
+    dbyte                       port,
     const char                  *host,
     const char                  *client_name,
     amq_stdc_heartbeat_model_t  out_heartbeat_model,
@@ -133,8 +135,8 @@ apr_status_t amq_stdc_open_connection (
     amq_stdc_lock_t
         lock;
 
-    result = global_fsm_create_connection (global, server, host, client_name,
-        options, async, &lock);
+    result = global_fsm_create_connection (global, server, port, host,
+        client_name, options, async, &lock);
     AMQ_ASSERT_STATUS (result, global_fsm_create_connection);
     result = wait_for_lock (lock, (void**) out);
     AMQ_ASSERT_STATUS (result, wait_for_lock);
@@ -790,4 +792,13 @@ size_t amq_stdc_skip (
 apr_status_t amq_stdc_close_message (
     amq_stdc_message_t message,
     byte               async
-    );
+    )
+{
+    apr_status_t
+        result;
+
+    result = message_fsm_terminate (message);
+    AMQ_ASSERT_STATUS (result, message_fsm_read)
+
+    return APR_SUCCESS;
+}

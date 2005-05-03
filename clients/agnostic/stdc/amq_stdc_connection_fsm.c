@@ -476,7 +476,8 @@ static void *s_sender_thread (
 
 static apr_status_t s_open_socket (
     connection_fsm_context_t  *context,
-    const char                *server
+    const char                *server,
+    dbyte                     port
     )
 {
     apr_status_t
@@ -487,12 +488,10 @@ static apr_status_t s_open_socket (
         *addr = NULL;                   /*  Contains hostname                */
     char
         *scope_id = NULL;               /*  Contains scope id                */
-    apr_port_t
-        port;                           /*  APR port object                  */
     apr_sockaddr_t
         *sockaddr = NULL;               /*  APR socket address object        */
 
-    sprintf (buffer, "%s:7654", server);
+    sprintf (buffer, "%s:%ld", server, (long) port);
     result = apr_parse_addr_port (&addr, &scope_id, &port,
         buffer, context->pool);
     AMQ_ASSERT_STATUS (result, apr_parse_addr_port)
@@ -665,6 +664,7 @@ inline static apr_status_t do_init (
     global_fsm_t              global,
     dbyte                     connection_id,
     const char                *server,
+    dbyte                     port,
     const char                *host,
     const char                *client_name,
     amq_stdc_table_t          options,
@@ -680,23 +680,31 @@ inline static apr_status_t do_init (
         *threadattr_sender;
     char
         *init_chunk;
+    qbyte
+        host_size = strlen (host);
+    qbyte
+        client_name_size = strlen (client_name);
+
+    if (host_size > 255)
+        AMQ_ASSERT (Host size longer than 255 characters)
+    if (client_name_size > 255)
+        AMQ_ASSERT (Client name longer than 255 characters)
 
     /*  Store info that will be needed later                                 */
     context->global = global;
     context->id = connection_id;
     context->async = async;
-    context->host_size = strlen (host);
-    context->host = apr_palloc (context->pool, context->host_size);
+    context->host_size = host_size;
+    context->host = apr_palloc (context->pool, host_size);
     if (context->host == NULL)
         AMQ_ASSERT (Not enough memory)
-    memcpy ((void*) context->host, (void*) host, context->host_size);
-    context->client_name_size = strlen (client_name);
-    context->client_name = apr_palloc (context->pool,
-        context->client_name_size);
+    memcpy ((void*) context->host, (void*) host, host_size);
+    context->client_name_size = client_name_size;
+    context->client_name = apr_palloc (context->pool, client_name_size);
     if (context->client_name == NULL)
         AMQ_ASSERT (Not enough memory)
     memcpy ((void*) context->client_name, (void*) client_name,
-        context->client_name_size);
+        client_name_size);
     if (options) {
         result = amq_stdc_table_create (amq_stdc_table_size (options),
             amq_stdc_table_data (options), &(context->options));
@@ -704,7 +712,7 @@ inline static apr_status_t do_init (
     }
 
     /*  Open socket                                                          */
-    result = s_open_socket (context, server);
+    result = s_open_socket (context, server, port);
     AMQ_ASSERT_STATUS (result, open_socket);
 
     /*  Run receiver thread                                                  */

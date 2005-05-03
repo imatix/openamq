@@ -8,10 +8,8 @@
 #ifndef AMQ_STDC_CLIENT_H_INCLUDED
 #define AMQ_STDC_CLIENT_H_INCLUDED
 
-#include <base_apr.h>
-
-/*  TODO: to be removed !!!  */
-#include "amq_stdc_framing.h"
+#include "base.h"
+#include "base_apr.h"
 
 #include "amq_stdc_error.h"
 #include "amq_stdc_table.h"
@@ -29,10 +27,22 @@ typedef struct
 {
     qbyte
         message_nbr;
+    byte
+        delivered;
+    byte
+        redelivered;
+    byte
+        streaming;
     const char
         *dest_name;
     const char
+        *mime_type;
+    const char
+        *encoding;
+    const char
         *identifier;
+    amq_stdc_table_t
+        headers;
 } amq_stdc_message_desc_t;
 
 typedef enum
@@ -70,6 +80,7 @@ apr_status_t amq_stdc_term ();
 
 apr_status_t amq_stdc_open_connection (
     const char                  *server,
+    dbyte                       port,
     const char                  *host,
     const char                  *client_name,
     amq_stdc_heartbeat_model_t  out_heartbeat_model,

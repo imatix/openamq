@@ -12,6 +12,8 @@
 
 typedef struct tag_message_fsm_context_t* message_fsm_t;
 
+#include "amq_stdc_channel_fsm.h"
+
 #include "amq_stdc_message_fsm.i"
 
 #endif

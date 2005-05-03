@@ -29,6 +29,8 @@
 /*  for internal use of message state machine                                */
 #define FRAGMENT_HEADER_SIZE 18
 
+#define AMQTRACE_MEMORY
+
 #ifdef AMQTRACE_MEMORY
 void *amq_malloc_trace (size_t sz, const char *file, long line);
 void *amq_realloc_trace (void *p, size_t sz, const char *file, long line);
