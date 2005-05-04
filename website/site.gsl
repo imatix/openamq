@@ -18,7 +18,9 @@ endnew
 for root.content
     for page
         for language
-            echo "Generating $(page.name).html"
+            if !defined (switches.quiet)
+                echo "Generating $(page.name).html"
+            endif
             output "$(page.name).html"
             include "template.gsl"
         endfor

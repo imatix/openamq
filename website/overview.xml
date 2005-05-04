@@ -26,23 +26,19 @@
 
       <h2>Create an Open Source Project</h2>
         <p>OpenAMQ is designed as an open source project that will promote the
-        AMQP protocol and the AMQ standard architecture.
+        AMQP wire-level protocol and the AMQ standard architecture.
         </p>
 
-      <h1>The AMQP Specifications</h1>
+      <h1>The AMQP Wire-Level Protocol</h1>
         <p>AMQP has these features:</p>
         <ul>
-          <li>Multiplexes channels over a single socket connection</li>
-          <li>Handles messages of any size by fragmentation</li>
-          <li>Messages are handled as opaque binary data, tagged with
-          MIME types for application use</li>
-          <li>All data is length-specified binary</li>
-          <li>Security is negotiated using SASL</li>
-          <li>Standard 3-digit reply codes</li>
-          <li>Fully asynchronous flow of data between client and server</li>
-          <li>Supports command batches and transactions</li>
-          <li>Negotiation of server and client capabilities</li>
-          <li>Ability to pass data using out-of-band techniques (zero-copy)</li>
+          <li>High-level: implements a set of generic primitives that
+          can be easily mapped to standard message-oriented middleware use cases.</li>
+          <li>Modern: uses channel multiplexing, security negotiation, MIME typing,
+          and many other 'best of breed' techniques.</li>
+          <li>Efficient: uses fast binary data structures.</li> 
+          <li>Pervasive: portable to any operating system with network I/O.</li>
+          <li>Standard: will be proposed as an IETF standard.</li>
         </ul>
         <p>See: <a href="protocol.html">The AMQP protocol</a>
         </p>

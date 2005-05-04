@@ -25,7 +25,7 @@
         We call this the IBASE directory.
         </p>
         <p>After detarring, change to the freshly created directory and
-        run the 'configure' command:
+        run this command:
         </p>
         <pre>configure --with-ibase=IBASE-DIRECTORY</pre>
         <p>Alternatively, define an environment variable 'IBASE' with
@@ -57,7 +57,7 @@
         We call this the IBASE directory.
         </p>
         <p>After unzipping, change to the freshly created directory and
-        run the 'configure' command:
+        run this command:
         </p>
         <pre>configure --with-ibase=IBASE-DIRECTORY</pre>
         <p>Alternatively, define an environment variable 'IBASE' with

@@ -17,13 +17,13 @@
         server and client API.
         </p>
 
-      <h2>The AMQP Protocol</h2>
+      <h2>The Advanced Message Queues Protocol (AMQP)</h2>
         <p>AMQP is a standardised wire-protocol for high-performance message exchange
         between a server and a set of clients.  It supports the standard models of
         point-to-point queuing, publish-subscribe, and file-transfer, in a modern and
         language-independent manner.
         </p>
-        <p>See: <a href="protocol.html">The AMQP protocol.</a>
+        <p>See: <a href="protocol.html">The AMQ protocol</a>
         </p>
 
       <h2>The OpenAMQ Server</h2>
@@ -32,7 +32,7 @@
         in ANSI C and is highly configurable for specific messaging scenarios or
         memory/performance constraints.
         </p>
-        <p>See: <a href="server.html">The OpenAMQ server.</a>
+        <p>See: <a href="server.html">The OpenAMQ server</a>
         </p>
 
       <h2>The OpenAMQ Clients</h2>
@@ -44,7 +44,7 @@
         <p>Since AMQP is an open standard, you can write your own client layers.
         The average effort is about 10-20 days.
         </p>
-        <p>See: <a href="clients.html">The AMQP client APIs.</a>
+        <p>See: <a href="clients.html">The AMQP clients</a>
         </p>
     </content>
   </language>

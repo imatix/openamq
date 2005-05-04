@@ -29,7 +29,7 @@
         used by OpenAMQ.
         </p>
         <p>See: <a href="build.html">Building and installing OpenAMQ.</a>
-        <br/>See: <a href="deply.html">Running and managing an OpenAMQ server.</a>
+        <br/>See: <a href="deploy.html">Running and managing an OpenAMQ server.</a>
         </p>
 
       <h2>Binary Packages</h2>
@@ -42,7 +42,7 @@
         subdirectory contains the OpenAMQ server executables and a demonstration
         configuration.
         </p>
-        <p>See: <a href="deply.html">Running and managing an OpenAMQ server.</a>
+        <p>See: <a href="deploy.html">Running and managing an OpenAMQ server.</a>
         </p>
 
     </content>
