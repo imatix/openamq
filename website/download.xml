@@ -1,50 +1,53 @@
 <page name = "download">
-  <language name = "en">
-    <title>Download</title>
-    <subtitle>downloading and installing the openamq software</subtitle>
-    <content>
+<language name = "en">
+<title>Download</title>
+<subtitle>downloading and installing the openamq software</subtitle>
+<content>
 
-      <h1>Terms of Use</h1>
-        <p>OpenAMQ is currently a JPMC confidential project and restricted to
-        use under the <a href="license.html">terms of the License agreement</a>.
-        By downloading this software you confirm that you understand and accept
-        the terms described here.
-        </p>
+Terms of Use
+************
 
-      <h1>Download OpenAMQ</h1>
-        <p>The current version is 0.8b1.  This is a beta release of the server
-        and clients.
-        </p>
+OpenAMQ is currently a JPMC confidential project and restricted to
+use under the [/license.html:terms of the License agreement].
+By downloading this software you confirm that you understand and accept
+the terms described here.
 
-      <h2>Source Packages</h2>
-        <ul>
-          <li><a href="http://www.openamq.org/pub/openamq-latest-src.tar.gz">
-          POSIX (Linux, Solaris, Unix) source package</a></li>
-          <li><a href="http://www.openamq.org/pub/openamq-latest-src.zip">
-          Win32 source package</a></li>
-        </ul>
-        <p>Unpack into a working directory and run <tt>configure</tt> and then
-        <tt>make</tt>.  The source package includes recent validated versions
-        of the Apache Portable Runtime (APR) and the Berkeley Database (BDB) as
-        used by OpenAMQ.
-        </p>
-        <p>See: <a href="build.html">Building and installing OpenAMQ.</a>
-        <br/>See: <a href="deploy.html">Running and managing an OpenAMQ server.</a>
-        </p>
+Download OpenAMQ
+****************
+The current version is 0.8c1.  This is a beta release of the server
+and clients.
 
-      <h2>Binary Packages</h2>
-        <ul>
-          <li><a href="http://www.openamq.org/pub/openamq-latest-win32.zip">
-          Win32 executables</a></li>
-        </ul>
-        <p>Unpack into a final directory, e.g. c:\openamq.  The <tt>clients</tt>
-        subdirectory contains OpenAMQ client tools.  The <tt>servers</tt>
-        subdirectory contains the OpenAMQ server executables and a demonstration
-        configuration.
-        </p>
-        <p>See: <a href="deploy.html">Running and managing an OpenAMQ server.</a>
-        </p>
+Source Packages
+===============
 
-    </content>
-  </language>
+ - [http://www.openamq.org/pub/openamq-latest-src.tar.gz]
+   POSIX (Linux, Solaris, Unix) source package
+ - [http://www.openamq.org/pub/openamq-latest-src.zip]
+   Win32 source package
+
+Unpack into a working directory and run configure and then
+make.  The source package includes recent validated versions
+of the Apache Portable Runtime (APR) and the Berkeley Database (BDB) as
+used by OpenAMQ.
+
+See: [/build.html:Building and installing OpenAMQ].
+
+See: [/deploy.html:Running and managing an OpenAMQ server].
+
+
+Binary Packages
+=============
+
+ - [http://www.openamq.org/pub/openamq-latest-win32.zip]
+   Win32 executables
+
+Unpack into a final directory, e.g. c:\openamq.  The clients
+subdirectory contains OpenAMQ client tools.  The servers
+subdirectory contains the OpenAMQ server executables and a demonstration
+configuration.
+
+See: [/deploy.html:Running and managing an OpenAMQ server].
+
+</content>
+</language>
 </page>

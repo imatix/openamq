@@ -1,175 +1,193 @@
 <page name = "protocol">
-  <language name = "en">
-    <title>The AMQ Protocol</title>
-    <subtitle>features and functionality</subtitle>
-    <content>
+<language name = "en">
+<title>The AMQ Protocol</title>
+<subtitle>features and functionality</subtitle>
+<content>
 
-      <h1>Design Goal</h1>
-        <p>To design a standard portable wire-level protocol capable of
-        supporting industrial-strength messaging.
-        </p>
+Design Goal
+***********
 
-      <h1>Main Characteristics</h1>
+To design a standard portable wire-level protocol capable of
+supporting industrial-strength messaging.
 
-      <h2>High-level Commands</h2>
-        <p>AMQP provides a commmand-set that maps cleanly to existing
-        messaging standards such as JMS.  The protocol explicitly defines
-        the form and meaning of all data needed to express messaging
-        operations.
-        </p>
-        <p>All message data itself is carried in opaque MIME-typed blocks.
-        AMQP thus makes a strong separation between the messaging protocol
-        and the messages it carries.
-        </p>
-        
-      <h2>Multiplexing</h2>
-        <p>AMQP uses the concept of "channel" to carry multiple virtual
-        connections across a single socket.  Channels correspond to threads
-        in the client applications.
-        </p>
-        <p>Large messages are broken into "fragments" so that channels get
-        fair use of the socket connection.
-        </p>
-        <p>AMQP is based on standard TCP/IP and does not implement any
-        traffic control mechanisms.
-        </p>
-        
-      <h2>Negotiation</h2>
-        <p>The client and server negotiate to agree on critical aspects of
-        the protocol such as the protocol version, the maximum size of frames,
-        and security parameters.
-        </p>
-        <p>Multiple variants of AMQP (in the future) can co-exist on a single
-        socket.
-        </p>
-        
-      <h2>Asynchrony</h2>
-        <p>Clients and servers exchange commands and messages asynchronously.
-        There is no polling.
-        </p>
-        <p>Clients can batch commands, both implicitly by sending ahead of
-        an expected response, and explicitly by telling the server to not
-        respond in case of success.
-        </p>
-        
-      <h2>Robustness</h2>
-        <p>All data is length-specified so that applications can allocate
-        memory in advance and avoid deadlocks. Length-specified strings
-        protect against buffer-overflow attacks.
-        </p>
-        <p>AMQP handles errors by returning a response code and then closing
-        the channel or connection. This avoids ambiguous states after errors.
-        </p>
-        
-      <h1>Operational Model</h1>
+Main Characteristics
+********************
 
-      <h2>Opening a Connection</h2>
-        <p>The client connects to a well-known or pre-agreed port and sends
-        an initial sequence that identifies the protocol it wishes to use.
-        The server replies with an authentication challenge.  The client
-        responds, and the two parties then negotiate protocol options (such
-        as maximum frame size).
-        </p>
-        <p>At this stage the client can open one or more channels, use these
-        to send commands to the server and receive commands back, and close
-        channels.
-        </p>
-        <p>The "channel" concept is designed to support a single application
-        thread that can work with many different queues and topics
-        ("destinations"), but does so in a serial manner.
-        </p>
-        <p>A good metaphor for a "channel" is a bidirectional data stream.
-        Everything that happens on a channel is serial, with asynchronous
-        activity in both directions.  Parallelism means using multiple
-        channels at once. A single-threaded application would use a single
-        channel.
-        </p>
-        
-      <h2>Publishing Data</h2>
-        <p>To publish data the client opens a "handle", then sends messages
-        to destinations using that handle.  Handles are local to a specific
-        channel.  When a client publishes to several handles within a channel,
-        it does this one after the other.
-        </p>
-        <p>Large messages are split into fragments.  This gives different
-        channels - but not handles - the ability to share a single socket
-        connection.
-        </p>
-        <p>There is no practical limit to the size of a message, and AMQP
-        allows streamed data - I.E. messages that never end.
-        </p>
-        <p>Handles exist mainly to allow access control on part of a
-        destination hierarchy.  If such access controls are not needed, all
-        work on a channel can be done using a single handle.
-        </p>
+High-level Commands
+===================
 
-      <h2>Consuming Data</h2>
-        <p>To consume data, the client opens a handle, then asks to consume
-        messages from destinations using that handle.
-        </p>
-        <p>The server sends messages using a dispatching model that depends
-        on the type of destination.  For queues, messages are distributed
-        between the consumers.  For topics, messages are copied to each of
-        the consumers.
-        </p>
-        <p>We control the number of unacknowledged messages sent to any
-        single client using windowing.
-        </p>
+AMQP provides a commmand-set that maps cleanly to existing
+messaging standards such as JMS.  The protocol explicitly defines
+the form and meaning of all data needed to express messaging
+operations.
 
-      <h2>Command Batching and Transactions</h2>
-        <p>Clients can send command without waiting for a server response.
-        In most cases the client can actively solicit a response or tell
-        the server to respond only on failure.
-        </p>
-        <p>As a natural wrapping of command batches, we support transactional
-        processing.  Typically the client will use the 'commit' command at
-        the end of a batch of messages and acknowledgements.
-        </p>
-        <p>Transactions are applied to channels.
-        </p>
-                
-      <h2>Error Handling</h2>
-        <p>The basic server response to any error is to respond with an reply
-        code and a 'close' command.  For example, if the client tries to open
-        a handle to a non-existent destination, the server will respond with
-        a close command carrying the reply code '404'.
-        </p>
-        <p>Depending on the severity of the error the server may close the
-        handle, the channel, or the connection.
-        </p>
-    
-      <h1>Special Features</h1>
+All message data itself is carried in opaque MIME-typed blocks.
+AMQP thus makes a strong separation between the messaging protocol
+and the messages it carries.
 
-      <h2>Zero Copy</h2>
-        <p>The fastest network performance comes from using 'zero copy'
-        techniques such as RDMA where the network card will transfer data
-        without any copying or remapping by the OS.  AMQP supports zero
-        copy techniques for message data (not for command frames).
-        </p>
+Multiplexing
+============
 
-      <h2>Virtual Hosts</h2>
-        <p>A single server instance can support multiple "virtual hosts".
-        A virtual host has its own set of destinations and access controls.
-        The client application chooses the virtual host by specifying a
-        path after connecting and authenticating itself.
-        </p>
+AMQP uses the concept of "channel" to carry multiple virtual
+connections across a single socket.  Channels correspond to threads
+in the client applications.
 
-      <h2>Heartbeating</h2>
-        <p>Although TCP/IP guarantees that data is not dropped or corrupted
-        it can be slow to detect that a peer process has gone "offline".
-        AMQP provides a heartbeat mechanism that can be tuned to allow rapid
-        fail-over.
-        </p>
-        
-      <h2>Multi-part Messages</h2>
-        <p>From version 0.9, AMQP will allow multi-part messages.  For
-        example a binary data file could be sent together with an XML
-        description, as two parts of a single message.  The XML description
-        might be used for routing, without the need to inspect or unpack
-        the binary data, and AMQP will always deliver the multiple parts as
-        as single message.
-        </p>
-        
-    </content>
-  </language>
+Large messages are broken into "fragments" so that channels get
+fair use of the socket connection.
+
+AMQP is based on standard TCP/IP and does not implement any
+traffic control mechanisms.
+
+Negotiation
+===========
+
+The client and server negotiate to agree on critical aspects of
+the protocol such as the protocol version, the maximum size of frames,
+and security parameters.
+
+Multiple variants of AMQP (in the future) can co-exist on a single
+socket.
+
+Asynchrony
+==========
+
+Clients and servers exchange commands and messages asynchronously.
+There is no polling.
+
+Clients can batch commands, both implicitly by sending ahead of
+an expected response, and explicitly by telling the server to not
+respond in case of success.
+
+Robustness
+==========
+
+All data is length-specified so that applications can allocate
+memory in advance and avoid deadlocks. Length-specified strings
+protect against buffer-overflow attacks.
+
+AMQP handles errors by returning a response code and then closing
+the channel or connection. This avoids ambiguous states after errors.
+
+Operational Model
+*****************
+
+Opening a Connection
+====================
+
+The client connects to a well-known or pre-agreed port and sends
+an initial sequence that identifies the protocol it wishes to use.
+The server replies with an authentication challenge.  The client
+responds, and the two parties then negotiate protocol options (such
+as maximum frame size).
+
+At this stage the client can open one or more channels, use these
+to send commands to the server and receive commands back, and close
+channels.
+
+The "channel" concept is designed to support a single application
+thread that can work with many different queues and topics
+("destinations"), but does so in a serial manner.
+
+A good metaphor for a "channel" is a bidirectional data stream.
+Everything that happens on a channel is serial, with asynchronous
+activity in both directions.  Parallelism means using multiple
+channels at once. A single-threaded application would use a single
+channel.
+
+Publishing Data
+===============
+
+To publish data the client opens a "handle", then sends messages
+to destinations using that handle.  Handles are local to a specific
+channel.  When a client publishes to several handles within a channel,
+it does this one after the other.
+
+Large messages are split into fragments.  This gives different
+channels - but not handles - the ability to share a single socket
+connection.
+
+There is no practical limit to the size of a message, and AMQP
+allows streamed data - I.E. messages that never end.
+
+Handles exist mainly to allow access control on part of a
+destination hierarchy.  If such access controls are not needed, all
+work on a channel can be done using a single handle.
+
+Consuming Data
+==============
+
+To consume data, the client opens a handle, then asks to consume
+messages from destinations using that handle.
+
+The server sends messages using a dispatching model that depends
+on the type of destination.  For queues, messages are distributed
+between the consumers.  For topics, messages are copied to each of
+the consumers.
+
+We control the number of unacknowledged messages sent to any
+single client using windowing.
+
+Command Batching and Transactions
+=================================
+
+Clients can send command without waiting for a server response.
+In most cases the client can actively solicit a response or tell
+the server to respond only on failure.
+
+As a natural wrapping of command batches, we support transactional
+processing.  Typically the client will use the 'commit' command at
+the end of a batch of messages and acknowledgements.
+
+Transactions are applied to channels.
+
+Error Handling
+==============
+
+The basic server response to any error is to respond with an reply
+code and a 'close' command.  For example, if the client tries to open
+a handle to a non-existent destination, the server will respond with
+a close command carrying the reply code '404'.
+
+Depending on the severity of the error the server may close the
+handle, the channel, or the connection.
+
+Special Features
+****************
+
+Zero Copy
+=========
+
+The fastest network performance comes from using 'zero copy'
+techniques such as RDMA where the network card will transfer data
+without any copying or remapping by the OS.  AMQP supports zero
+copy techniques for message data (not for command frames).
+
+Virtual Hosts
+=============
+
+A single server instance can support multiple "virtual hosts".
+A virtual host has its own set of destinations and access controls.
+The client application chooses the virtual host by specifying a
+path after connecting and authenticating itself.
+
+Heartbeating
+============
+
+Although TCP/IP guarantees that data is not dropped or corrupted
+it can be slow to detect that a peer process has gone "offline".
+AMQP provides a heartbeat mechanism that can be tuned to allow rapid
+fail-over.
+
+Multi-part Messages
+===================
+
+From version 0.9, AMQP will allow multi-part messages.  For
+example a binary data file could be sent together with an XML
+description, as two parts of a single message.  The XML description
+might be used for routing, without the need to inspect or unpack
+the binary data, and AMQP will always deliver the multiple parts as
+as single message.
+
+</content>
+</language>
 </page>

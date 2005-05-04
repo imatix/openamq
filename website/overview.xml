@@ -1,73 +1,82 @@
 <page name = "overview">
-  <language name = "en">
-    <title>Overview</title>
-    <subtitle>an overview of openamq</subtitle>
-    <content>
+<language name = "en">
+<title>Overview</title>
+<subtitle>an overview of openamq</subtitle>
+<content>
 
-      <h1>The Goals of the Project</h1>
+The Goals of the Project
+************************
 
-      <h2>Define a Standard Protocol</h2>
-        <p>There is no industry standard middleware protocol.  A standard
-        protocol is necessary for interoperability and competition between
-        vendors' implementations.
-        </p>
+Define a Standard Protocol
+==========================
 
-      <h2>Build a Reference Server</h2>
-        <p>A reference server implementation is the only way to verify that
-        the standard wire-level protocol is well-formed and feasible to
-        implement.
-        </p>
+There is no industry standard middleware protocol.  A standard
+protocol is necessary for interoperability and competition between
+vendors' implementations.
 
-      <h2>Build a Set of Client APIs</h2>
-        <p>Creating a set of client APIs saves developers the cost of learning
-        the wire-level protocol.  There exist industry-standard APIs, such as
-        JMS, which we (will) conform to.
-        </p>
+Build a Reference Server
+========================
 
-      <h2>Create an Open Source Project</h2>
-        <p>OpenAMQ is designed as an open source project that will promote the
-        AMQP wire-level protocol and the AMQ standard architecture.
-        </p>
+A reference server implementation is the only way to verify that
+the standard wire-level protocol is well-formed and feasible to
+implement.
 
-      <h1>The AMQP Wire-Level Protocol</h1>
-        <p>AMQP has these features:</p>
-        <ul>
-          <li>High-level: implements a set of generic primitives that
-          can be easily mapped to standard message-oriented middleware use cases.</li>
-          <li>Modern: uses channel multiplexing, security negotiation, MIME typing,
-          and many other 'best of breed' techniques.</li>
-          <li>Efficient: uses fast binary data structures.</li> 
-          <li>Pervasive: portable to any operating system with network I/O.</li>
-          <li>Standard: will be proposed as an IETF standard.</li>
-        </ul>
-        <p>See: <a href="protocol.html">The AMQP protocol</a>
-        </p>
+Build a Set of Client APIs
+==========================
 
-      <h1>The Reference Server</h1>
-        <p>The OpenAMQ server has these features:</p>
-        <ul>
-          <li>Small, fast, efficient single-process server</li>
-          <li>A complete implementation of AMQP</li>
-          <li>Portable to Linux, Solaris, Unix, Win32</li>
-          <li>Built in ANSI C, using iMatix technology</li>
-        </ul>
-        <p>See: <a href="server.html">The OpenAMQ server</a>
-        </p>
+Creating a set of client APIs saves developers the cost of learning
+the wire-level protocol.  There exist industry-standard APIs, such as
+JMS, which we (will) conform to.
 
-      <h1>The Client APIs</h1>
-        <p>The OpenAMQ client APIs have these features:</p>
-        <ul>
-          <li>Providing a JMS-like interface, with extensions</li>
-          <li>Implemented in Java, C, COM</li>
-          <li>Planned implementations: Perl, C++</li>
-        </ul>
-        <p>See: <a href="clients.html">The OpenAMQ clients</a>
-        </p>
+Create an Open Source Project
+=============================
 
-      <h1>The Open Source Project</h1>
-        <p>The OpenAMQ open source project is still under construction.
-        </p>
+OpenAMQ is designed as an open source project that will promote the
+AMQP wire-level protocol and the AMQ standard architecture.
 
-    </content>
-  </language>
+The AMQP Wire-Level Protocol
+****************************
+
+AMQP has these features:
+
+ - High-level: implements a set of generic primitives that
+   can be easily mapped to standard message-oriented middleware use cases.
+ - Modern: uses channel multiplexing, security negotiation, MIME typing,
+   and many other 'best of breed' techniques.
+ - Efficient: uses fast binary data structures.
+ - Pervasive: portable to any operating system with network I/O.
+ - Standard: will be proposed as an IETF standard.
+
+See: [/protocol.html:The AMQP protocol]
+
+The Reference Server
+********************
+
+The OpenAMQ server has these features:
+
+ - Small, fast, efficient single-process server
+ - A complete implementation of AMQP
+ - Portable to Linux, Solaris, Unix, Win32
+ - Built in ANSI C, using iMatix technology
+
+See: [/server.html:The OpenAMQ server]
+
+The Client APIs
+***************
+
+The OpenAMQ client APIs have these features:
+
+ - Providing a JMS-like interface, with extensions
+ - Implemented in Java, C, COM
+ - Planned implementations: Perl, C++
+
+See: [/clients.html:The OpenAMQ clients]
+
+The Open Source Project
+***********************
+
+The OpenAMQ open source project is still under construction.
+
+</content>
+</language>
 </page>

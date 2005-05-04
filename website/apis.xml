@@ -1,17 +1,14 @@
 <page name = "apis">
-  <language name = "en">
-    <title>Developer APIs</title>
-    <subtitle>Using openamq in your applications</subtitle>
-    <content>
+<language name = "en">
+<title>Developer APIs</title>
+<subtitle>Using openamq in your applications</subtitle>
+<content>
 
-      <h1>Under Construction</h1>
+Under Construction
+******************
 
-      <h2>Under Construction</h2>
-      <p>This page has deliberately been left blank.
-      </p>
-      <ul>
-        <li>No content.</li>
-      </ul>
-    </content>
-  </language>
+This page has deliberately been left blank.
+
+</content>
+</language>
 </page>

@@ -1,8 +1,9 @@
 .template 0
 #
-# OpenAMQ website generator
+#   OpenAMQ website generator
 #
-# Loads all pages, then runs template.gsl on each one.
+#   Loads all pages, then runs template.gsl on each one.
+#   Page content can be XHTML or Gurudoc or a combination of the two.
 #
 
 new root.content
@@ -15,12 +16,29 @@ new root.content
         endfor
     endfor
 endnew
+
 for root.content
     for page
         for language
             if !defined (switches.quiet)
                 echo "Generating $(page.name).html"
             endif
+
+            #   Convert gurudoc content to XHTML
+            output "temp.txt"
+            for content
+                >$(content.?)
+            endfor
+            close
+            process = proc.new ("perl -S gd2xhtml", ".", "temp.txt", "temp.xml")
+            process.run ()
+            new content to language
+                content.load_file ("temp.xml")
+            endnew
+            file.delete ("temp.txt")
+            file.delete ("temp.xml")
+
+            #   Generate the page
             output "$(page.name).html"
             include "template.gsl"
         endfor

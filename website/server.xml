@@ -1,57 +1,59 @@
 <page name = "server">
-  <language name = "en">
-    <title>The OpenAMQ Server</title>
-    <subtitle>features and functionality</subtitle>
-    <content>
+<language name = "en">
+<title>The OpenAMQ Server</title>
+<subtitle>features and functionality</subtitle>
+<content>
 
-      <h1>General Features</h1>
+General Features
+****************
 
-      <h2>Current Functionality (v0.8)</h2>
-        <ul>
-          <li>Configured message queues (point-to-point messaging)</li>
-          <li>Topic hierarchies (publish/subscribe)</li>
-          <li>Persistent and non-persistent messages</li>
-          <li>Named and unnamed temporary queues and topics</li>
-          <li>Message sizes from 0 octets to 4 gigaoctets</li>
-          <li>Batched operation with commit/rollback per batch</li>
-          <li>Multiple readers per queue with round-robin dispatching</li>
-          <li>Configurable queue limits (messages, consumers, etc.)</li>
-          <li>Up to 255 virtual hosts per server</li>
-          <li>Restartable message transfer for large messages</li>
-          <li>Browsable queues</li>
-          <li>Simple authorisation via login and password</li>
-          <li>Message prioritisation (up to 10 levels per queue)</li>
-          <li>AMQP multiplexing with up to 255 channels per socket</li>
-          <li>XML-based configuration files</li>
-          <li>Configurable persistent message storage</li>
-        </ul>
+Current Functionality (v0.8)
+============================
 
-      <h2>Planned Functionality (v0.9, v1.0)</h2>
-        <ul>
-          <li>Durable subscriptions</li>
-          <li>Dynamic destinations</li>
-          <li>Content-based routing</li>
-          <li>JMS-compatible message selectors</li>
-          <li>Full OS multithreading</li>
-          <li>Remote web-based administration</li>
-        </ul>
+ - Configured message queues (point-to-point messaging)
+ - Topic hierarchies (publish/subscribe)
+ - Persistent and non-persistent messages
+ - Named and unnamed temporary queues and topics
+ - Message sizes from 0 octets to 4 gigaoctets
+ - Batched operation with commit/rollback per batch
+ - Multiple readers per queue with round-robin dispatching
+ - Configurable queue limits (messages, consumers, etc.)
+ - Up to 255 virtual hosts per server
+ - Restartable message transfer for large messages
+ - Browsable queues
+ - Simple authorisation via login and password
+ - Message prioritisation (up to 10 levels per queue)
+ - AMQP multiplexing with up to 255 channels per socket
+ - XML-based configuration files
+ - Configurable persistent message storage
 
-      <h2>Server Architecture</h2>
-        <p>The openamqd server is designed as single-process server with
-        internal multithreading (using pseudo-threads).  The technical
-        platform for this is provided by the iMatix SMT kernel.  While
-        this model gives excellent performance for single-CPU boxes, we
-        are working on a fully multithreaded version for multi-way boxes.
-        </p>
-        <p>openamqd uses Apache APR for socket access, and a select/poll loop
-        for multiplexing between its virtual threads.  Each thread follows
-        a state machine (FSM) model.
-        </p>
-        <p>Internally, openamqd is designed as an SMT protocol handler (the
-        FSM model) and a set of classes that implement the primary AMQP
-        objects - channels, handles, messages, acknowledgments, etc.
-        </p>
+Planned Functionality (v0.9, v1.0)
+==================================
 
-    </content>
-  </language>
+ - Durable subscriptions
+ - Dynamic destinations
+ - Content-based routing
+ - JMS-compatible message selectors
+ - Full OS multithreading
+ - Remote web-based administration
+
+Server Architecture
+===================
+
+The openamqd server is designed as single-process server with
+internal multithreading (using pseudo-threads).  The technical
+platform for this is provided by the iMatix SMT kernel.  While
+this model gives excellent performance for single-CPU boxes, we
+are working on a fully multithreaded version for multi-way boxes.
+
+openamqd uses Apache APR for socket access, and a select/poll loop
+for multiplexing between its virtual threads.  Each thread follows
+a state machine (FSM) model.
+
+Internally, openamqd is designed as an SMT protocol handler (the
+FSM model) and a set of classes that implement the primary AMQP
+objects - channels, handles, messages, acknowledgments, etc.
+
+</content>
+</language>
 </page>

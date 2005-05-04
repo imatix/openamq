@@ -1,59 +1,62 @@
 <page name = "deploy">
-  <language name = "en">
-    <title>Deployment</title>
-    <subtitle>running and managing an openamq installation</subtitle>
-    <content>
+<language name = "en">
+<title>Deployment</title>
+<subtitle>running and managing an openamq installation</subtitle>
+<content>
 
-      <h1>Getting Started</h1>
-        <p>To run the OpenAMQ server you need (a) the openamqd server binary
-        somewhere on your path, and (b) a configured directory. To make life
-        easy, we provide these together in a single place, the
-        <tt>openamq/servers</tt> install directory.
-        </p>
-        <p>The demo configuration has two virtual hosts, <tt>test</tt> and
-        <tt>demo</tt>.  The overall server configuration is in the
-        <tt>amq_server.cfg</tt> file, and the virtual host configurations
-        are in <tt>amq_vhost.cfg</tt> in each virtual host directory.
-        </p>
-        <p>At present, the correct way to modify the configuration is to use
-        a simple text editor.
-        </p>
-        <p>To avoid the problem of editing a configuration file that will be
-        replaced with each new version, OpenAMQ uses "layered configuration
-        files".  In each directory where you want to make changes, create a
-        new file called <tt>amq_custom.cfg</tt> and place your custom settings
-        inthat file.
-        </p>
+Getting Started
+**************
 
-      <h1>Starting and Stopping the Server</h1>
-        <p>The simplest way to start and stop the server is to run it using
-        the command:
-        </p>
-        <pre>openamqd</pre>
-        <p>and to stop it by typing <tt>Ctrl-C</tt>.
-        </p>
-        <p>Under Unix/Linux the server can be run as a detached background
-        process using the command:
-        </p>
-        <pre>openamqd -s</pre>
-        <p>Under Win32 you can use the <tt>srvany</tt> tool (part of the
-        Windows Resource Kit) to register openamqd as a service.  Future
-        versions of openamqd will provide their own service management
-        interface.
-        </p>
+To run the OpenAMQ server you need (a) the openamqd server binary
+somewhere on your path, and (b) a configured directory. To make life
+easy, we provide these together in a single place, the openamq/servers
+install directory.
 
-      <h1>Server Administration</h1>
-        <p>The server holds persistent message data in the <tt>data</tt>
-        subdirectory of each virtual host.  You may find it useful to
-        delete this data as a way of 'resetting' all the queues for a
-        server.  Do not do this while the server is running.
-        </p>
-        <p>There are no other administration tools at present.  We foresee
-        a web-based administation interface in the future.
-        </p>
-        
-      <p>See: server documentation.
-      </p>
-    </content>
-  </language>
+The demo configuration has two virtual hosts, test and demo.  The
+overall server configuration is in the amq_server.cfg file, and the
+virtual host configurations are in amq_vhost.cfg in each virtual host
+directory.
+
+At present, the correct way to modify the configuration is to use
+a simple text editor.
+
+To avoid the problem of editing a configuration file that will be
+replaced with each new version, OpenAMQ uses "layered configuration
+files".  In each directory where you want to make changes, create a
+new file called amq_custom.cfg and place your custom settings
+inthat file.
+
+Starting and Stopping the Server
+********************************
+
+The simplest way to start and stop the server is to run it using
+the command:
+
+    openamqd
+
+and to stop it by typing Ctrl-C.
+
+Under Unix/Linux the server can be run as a detached background
+process using the command:
+
+    openamqd -s
+
+Under Win32 you can use the srvany tool (part of the Windows Resource Kit)
+to register openamqd as a service.  Future versions of openamqd will
+provide their own service management interface.
+
+Server Administration
+**********************
+The server holds persistent message data in the data
+subdirectory of each virtual host.  You may find it useful to
+delete this data as a way of 'resetting' all the queues for a
+server.  Do not do this while the server is running.
+
+There are no other administration tools at present.  We foresee
+a web-based administation interface in the future.
+
+See: server documentation.
+
+</content>
+</language>
 </page>

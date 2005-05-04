@@ -1,17 +1,14 @@
 <page name = "library">
-  <language name = "en">
-    <title>Documentation</title>
-    <subtitle>catalogue of on-line documentation</subtitle>
-    <content>
+<language name = "en">
+<title>Documentation</title>
+<subtitle>catalogue of on-line documentation</subtitle>
+<content>
 
-      <h1>Under Construction</h1>
+Under Construction
+******************
 
-      <h2>Under Construction</h2>
-      <p>This page has deliberately been left blank.
-      </p>
-      <ul>
-        <li>No content.</li>
-      </ul>
-    </content>
-  </language>
+This page has deliberately been left blank.
+
+</content>
+</language>
 </page>

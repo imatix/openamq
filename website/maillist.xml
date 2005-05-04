@@ -1,35 +1,37 @@
 <page name = "maillist">
-  <language name = "en">
-    <title>Mailing Lists</title>
-    <subtitle>getting support and information by email</subtitle>
-    <content>
-      <h1>OpenAMQ Email Lists</h1>
+<language name = "en">
+<title>Mailing Lists</title>
+<subtitle>getting support and information by email</subtitle>
+<content>
 
-      <h2>amq-announce</h2>
-        <p>For persons who want to track the AMQ project without being
-        involved in the development process.
-        </p>
-        <p>This is a private list.  Your subscription will be verified
-        by the list manager before you are allowed to join.
-        </p>
-        <ul>
-          <li><a href="http://amq.imatix.net/mailman/listinfo/amq-announce">Subscribe</a></li>
-          <li><a href="http://amq.imatix.net/mailman/admin/amq-announce">Administration
-          interface</a></li>
-        </ul>
+OpenAMQ Email Lists
+*******************
 
-      <h2>amq-dev</h2>
-        <p>For developers involved in the AMQ project or using it in their
-        applications.
-        </p>
-        <p>This is a private list.  Your subscription will be verified by the
-        list manager before you are allowed to join.
-        </p>
-        <ul>
-          <li><a href="http://amq.imatix.net/mailman/listinfo/amq-dev">Subscribe</a></li>
-          <li><a href="http://amq.imatix.net/mailman/admin/amq-dev">Administration interface</a></li>
-        </ul>
+amq-announce
+============
 
-    </content>
-  </language>
+For persons who want to track the AMQ project without being
+involved in the development process.
+
+This is a private list.  Your subscription will be verified
+by the list manager before you are allowed to join.
+
+ - [http://amq.imatix.net/mailman/listinfo/amq-announce:Subscribe]
+ - [http://amq.imatix.net/mailman/admin/amq-announce:Administration interface]
+
+
+amq-dev
+=======
+
+For developers involved in the AMQ project or using it in their
+applications.
+
+This is a private list.  Your subscription will be verified by the
+list manager before you are allowed to join.
+
+ - [http://amq.imatix.net/mailman/listinfo/amq-dev:Subscribe]
+ - [http://amq.imatix.net/mailman/admin/amq-dev:Administration interface]
+
+</content>
+</language>
 </page>

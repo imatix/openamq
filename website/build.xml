@@ -1,105 +1,126 @@
 <page name = "build">
-  <language name = "en">
-    <title>Installation</title>
-    <subtitle>building and installing openamq</subtitle>
-    <content>
+<language name = "en">
+<title>Installation</title>
+<subtitle>building and installing openamq</subtitle>
+<content>
 
-      <h1>Source kits</h1>
-        <p>The .tar.gz package and .zip packages are identical except that
-        the text files they contain are formatted for POSIX and Win32
-        respectively.  You can convert line endings using zip (-l and -a
-        options) but we suggest you simply unpack the appropriate file.
-        </p>
+Source kits
+***********
 
-      <h1>POSIX - Linux, Solaris, Unix</h1>
+The .tar.gz package and .zip packages are identical except that
+the text files they contain are formatted for POSIX and Win32
+respectively.  You can convert line endings using zip (-l and -a
+options) but we suggest you simply unpack the appropriate file.
 
-      <h2>Requirements</h2>
-        <ul>
-          <li>Solaris 8 or later, or Linux 2.4 or later</li>
-          <li>GNU development tools: tar, gunzip, make, gcc, ar</li>
-        </ul>
+POSIX - Linux, Solaris, Unix
+****************************
 
-      <h2>Building from the Source Package</h2>
-        <p>Select an installation directory.  For instance, $HOME.
-        This is where the compiled/linked programs will be installed.
-        We call this the IBASE directory.
-        </p>
-        <p>After detarring, change to the freshly created directory and
-        run this command:
-        </p>
-        <pre>configure --with-ibase=IBASE-DIRECTORY</pre>
-        <p>Alternatively, define an environment variable 'IBASE' with
-        this directory as its value, and then run 'configure':</p>
-        <pre>configure</pre>
-        <p>Now build using this command:</p>
-        <pre>make</pre>
+Requirements
+============
 
-      <h2>Installing the Server and Clients</h2>
-        <p>Install into the IBASE directory using this command:</p>
-        <pre>make install</pre>
+ - Solaris 8 or later, or Linux 2.4 or later
+ - GNU development tools: tar, gunzip, make, gcc, ar
 
-      <h1>Windows 32</h1>
+Building from the Source Package
+================================
 
-      <h2>Requirements</h2>
-        <ul>
-          <li>MSVC 6.x or later configured for command-line compilation</li>
-          <li>A standard unzip tool</li>
-        </ul>
-        <p>Under Win32 the MS C/C++ compiler must be configured for command-line
-        use.  During MSVC installation, make sure you register the environment
-        variables needed for command-line use of the compiler.  Check the
-        vcvars32.bat script for correctness.  When you open a console box, the
-        MSVCDir variable must point correctly to the MSVC application directory.
-        You can set this in the system environment variables.
-        </p>
-        <p>Select an installation directory.  For instance, C:\Home.
-        This is where the compiled/linked programs will be installed.
-        We call this the IBASE directory.
-        </p>
-        <p>After unzipping, change to the freshly created directory and
-        run this command:
-        </p>
-        <pre>configure --with-ibase=IBASE-DIRECTORY</pre>
-        <p>Alternatively, define an environment variable 'IBASE' with
-        this directory as its value, and then run 'configure':</p>
-        <pre>configure</pre>
-        <p>Now build using this command:</p>
-        <pre>nmake</pre>
+Select an installation directory.  For instance, $HOME.
+This is where the compiled/linked programs will be installed.
+We call this the IBASE directory.
 
-      <h2>Installing the Server and Clients</h2>
-        <p>Install into the IBASE directory using this command:</p>
-        <pre>nmake install</pre>
+After detarring, change to the freshly created directory and
+run this command:
 
-      <h1>Installed Components</h1>
-        <p>All installed components are placed under the IBASE directory;
-        you can delete the OpenAMQ installation by deleting this directory.
-        The working directory used during building is not needed to run
-        OpenAMQ.
-        </p>
-        <p>The IBASE directory has these subdirectories:
-        </p>
-        <ul>
-          <li>openamq/server - the OpenAMQ server along with a demo configuration</li>
-          <li>openamq/clients - the OpenAMQ clients</li>
-          <li>openamq/tests - a set of regression tests</li>
-          <li>bin - tools</li>
-          <li>lib - libraries, including the OpenAMQ client API libraries</li>
-          <li>include - C header files, including the OpenAMQ client API headers</li>
-          <li>doc - all available project documentation</li>
-        </ul>
+    configure --with-ibase=IBASE-DIRECTORY
 
-      <h1>Testing your Server Installation</h1>
-        <p>We are still preparing the regression test suite.  In the meantime:
-        </p>
-        <ul>
-          <li>Go to the IBASE/openamq/server directory and run <tt>openamqd</tt>.
-          </li>
-          <li>In a second window, go to the IBASE/openamq/clients/stdc directory and
-          run <tt>amqpcli_serial</tt>.  This sends 1000 messages to a queue on the
-          server and reads them back.
-          </li>
-        </ul>
+Alternatively, define an environment variable 'IBASE' with
+this directory as its value, and then run 'configure':
 
-    </content>
-  </language>
+    configure
+
+Now build using this command:
+
+    make
+
+Installing the Server and Clients
+=================================
+
+Install into the IBASE directory using this command:
+
+    make install
+
+Windows 32
+**********
+
+Requirements
+============
+
+ - MSVC 6.x or later configured for command-line compilation
+ - A standard unzip tool (note: WinZip does not handle the supplied
+   tar.gz files correctly).
+
+Under Win32 the MS C/C++ compiler must be configured for command-line
+use.  During MSVC installation, make sure you register the environment
+variables needed for command-line use of the compiler.  Check the
+vcvars32.bat script for correctness.  When you open a console box, the
+MSVCDir variable must point correctly to the MSVC application directory.
+You can set this in the system environment variables.
+
+Select an installation directory.  For instance, C:\Home.
+This is where the compiled/linked programs will be installed.
+We call this the IBASE directory.
+
+After unzipping, change to the freshly created directory and
+run this command:
+
+    configure --with-ibase=IBASE-DIRECTORY
+
+Alternatively, define an environment variable 'IBASE' with
+this directory as its value, and then run 'configure':
+
+    configure
+
+Now build using this command:
+
+    nmake
+
+Installing the Server and Clients
+=================================
+
+Install into the IBASE directory using this command:
+
+    nmake install
+
+Installed Components
+********************
+
+All installed components are placed under the IBASE directory;
+you can delete the OpenAMQ installation by deleting this directory.
+The working directory used during building is not needed to run
+OpenAMQ.
+
+The IBASE directory has these subdirectories:
+
+ - openamq/server - the OpenAMQ server along with a demo configuration
+ - openamq/clients - the OpenAMQ clients
+ - openamq/tests - a set of regression tests
+ - bin - tools
+ - lib - libraries, including the OpenAMQ client API libraries
+ - include - C header files, including the OpenAMQ client API headers
+ - doc - all available project documentation
+
+
+Testing your Server Installation
+********************************
+
+We are still preparing the regression test suite.  In the meantime:
+
+ - Go to the IBASE/openamq/server directory and run openamqd.
+
+ - In a second window, go to the IBASE/openamq/clients/stdc directory and
+   run amqpcli_serial.  This sends 1000 messages to a queue on the
+   server and reads them back.
+
+</content>
+</language>
 </page>

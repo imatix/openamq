@@ -1,18 +1,20 @@
 <page name = "wiki">
-  <language name = "en">
-    <title>Wiki</title>
-    <subtitle>the openamq whiteboard</subtitle>
-    <content>
+<language name = "en">
+<title>Wiki</title>
+<subtitle>the openamq whiteboard</subtitle>
+<content>
 
-      <h1>OpenAMQ.org Wiki</h1>
-        <p>This is the developer's whiteboard.</p>
-        <ul>
-          <li>The wiki is currently accessible to everyone who visits this site.</li>
-          <li>Anyone can edit the wiki.</li>
-          <li>The OpenAMQ team may undo edits that they do not feel are useful.</li>
-        </ul>
-        <p>Go <a href="http://wiki.openamq.org/cgi-bin/wiki">here</a>.
-      </p>
-    </content>
-  </language>
+OpenAMQ.org Wiki
+****************
+
+This is the developer's whiteboard.
+
+ - The wiki is currently accessible to everyone who visits this site.
+ - Anyone can edit the wiki.
+ - The OpenAMQ team may undo edits that they do not feel are useful.
+
+[http://wiki.openamq.org/cgi-bin/wiki:Go to the developer's wiki].
+
+</content>
+</language>
 </page>
