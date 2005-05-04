@@ -226,28 +226,20 @@ apr_status_t amq_stdc_browse (
 
 
 
-
-
-
-
-
-
-
 size_t amq_stdc_read (
-    amq_stdc_message_t message,
-    void *destination,
-    size_t size
+    amq_stdc_message_t  message,
+    void                *destination,
+    size_t              size
     );
 
 size_t amq_stdc_skip (
-    amq_stdc_message_t message,
-    size_t size
+    amq_stdc_message_t  message,
+    size_t              size
     );
 
 apr_status_t amq_stdc_close_message (
-    amq_stdc_message_t message,
-    byte               async
+    amq_stdc_message_t  message,
+    byte                async
     );
-    
 
 #endif

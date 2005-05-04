@@ -752,6 +752,8 @@ apr_status_t amq_stdc_browse (
     return APR_SUCCESS;
 }
 
+/*---------------------------------------------------------------------------*/
+
 
 
 
@@ -790,8 +792,8 @@ size_t amq_stdc_skip (
 }
 
 apr_status_t amq_stdc_close_message (
-    amq_stdc_message_t message,
-    byte               async
+    amq_stdc_message_t  message,
+    byte                async
     )
 {
     apr_status_t

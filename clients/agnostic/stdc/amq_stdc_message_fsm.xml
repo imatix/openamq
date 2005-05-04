@@ -1,0 +1,78 @@
+<root script = "amq_stdc_fsms">
+
+<machine name = "message_fsm" output = "amq_stdc_message_fsm">
+    Holds state and additional data of individual message
+
+    <constructor action = "do construct"/>
+    <destructor action = "do destruct"/>
+
+    <event name = "init">
+        <arg type = "channel_fsm_t" name = "channel">
+            Channel message belongs to
+        </arg>
+        <arg type = "amq_stdc_message_desc_t*" name = "message_desc">
+            Message descriptor
+        </arg>
+    </event>
+    <event name = "receive fragment">
+        <arg type = "char *" name = "body">
+            Block with fragment content. There are FRAGMENT_HEADER_SIZE
+            bytes free at the beginning of the block
+        </arg>
+        <arg type = "qbyte" name = "body_size">
+            Size of fragment content
+        </arg>
+    </event>
+    <event name = "receive last fragment">
+        <arg type = "char *" name = "body">
+            Block with frgament content. There are FRAGMENT_HEADER_SIZE
+            bytes free at the beginning of the block
+        </arg>
+        <arg type = "qbyte" name = "body_size">
+            Size of fragment content
+        </arg>
+    </event>
+    <event name = "read">
+        <arg type = "char *" name = "destination">
+            Destination where to read the data, if NULL function just skips
+            apropriate number of bytes in stream
+        </arg>
+        <arg type = "qbyte" name = "size">
+            Number of bytes to read
+        </arg>
+        <arg type = "qbyte*" name = "out_size">
+            Number of bytes actually read
+        </arg> 
+    </event>
+    <event name = "terminate">
+    </event>
+
+    <state name = "initial">
+        State message is in before first fragment is received
+        <event name = "init" action = "do_init" next = "incomplete"/>
+    </state>
+    <state name = "incomplete">
+        Some fragments already received but still waiting for the last one
+        <event name = "receive fragment" action = "do_receive_fragment"/>
+        <event name = "receive last fragment" action = "do_receive_fragment" next = "complete"/>
+        <event name = "read" action = "do_read"/>
+        <event name = "terminate" action = "do_term" next = "zombie"/>
+    </state>
+    <state name = "complete">
+        All fragments already received
+        <event name = "read" action = "do_read"/>
+        <event name = "terminate" action = "do_term" next = "terminal"/>
+    </state>
+    <state name = "zombie">
+        Still receiving fragments, but user already closed the message 
+        <event name = "receive fragment" action = "do_ignore_fragment"/>
+        <event name = "receive last fragment" action = "do_ignore_fragment" next = "terminal"/>
+    </state>
+    <state name = "terminal">
+        Message is already shut down
+    </state>
+    <state name = "default">
+    </state>
+</machine>
+
+</root>
