@@ -5,7 +5,7 @@
     version   = "0.8b0"
     copyright = "Copyright (c) 1991-2005 iMatix Corporation"
     deploy    = "openamq/clients"
-    library   = "libamqp"
+    library   = "libamq_stdc"
     workflow  = "standard.pwl"
     >
 
@@ -32,8 +32,8 @@
 <file name = "amq_stdc_client_test.c"       class = "main program"    >Main program</file>
 
 <!-- Deliverables -->
-<file name = "libamqp"                    class = "public library"  >Public API library</file>
-<file name = "amq_stdc_client_test"       class = "public command"  >Client API test executable</file>
+<file name = "libamq_stdc"                  class = "public library"  >Public API library</file>
+<file name = "amq_stdc_client_test"         class = "public command"  >Client API test executable</file>
 
 <class name = "state machine" inherit = "sub program">
     <derive extension = ".i"   class = "generated" />
