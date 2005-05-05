@@ -733,22 +733,38 @@ apr_status_t amq_stdc_destroy_query (
     -------------------------------------------------------------------------*/
 
 apr_status_t amq_stdc_browse (
-    amq_stdc_handle_t  context,
-    qbyte              message_nbr,
-    byte               async
+    amq_stdc_handle_t        context,
+    qbyte                    message_nbr,
+    byte                     async,
+    amq_stdc_message_desc_t  **message_desc,
+    amq_stdc_message_t       *message
     )
 {
     apr_status_t
         result;
     amq_stdc_lock_t
         lock;
+    void
+        *msg;
  
     result = handle_fsm_browse (context, message_nbr, async, &lock);
     AMQ_ASSERT_STATUS (result, handle_fsm_browse)
-    /*  TODO: Message should be returned here                                */
-    /*  If NULL is returned, message is not found, error                     */
-    result = wait_for_lock (lock, NULL);
+    result = wait_for_lock (lock, (void**) &msg);
     AMQ_ASSERT_STATUS (result, wait_for_lock)
+
+    if (!msg) {
+        if (message)
+            *message = NULL;
+        if (message_desc)
+            *message_desc = NULL;
+    }
+    else {
+        if (message)
+            *message = *((amq_stdc_message_t*)
+                (msg + sizeof (amq_stdc_message_desc_t)));
+        if (message_desc)
+            *message_desc = (amq_stdc_message_desc_t*) msg;
+    }
    
     return APR_SUCCESS;
 }

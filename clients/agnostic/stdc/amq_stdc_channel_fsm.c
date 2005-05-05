@@ -552,130 +552,121 @@ inline static apr_status_t do_receive_message (
         **prev_browse_request;
     byte
         processed = 0;
+    byte
+        first_fragment = !context->read_message;
 
-    if (command->delivered == 0) {
+    if (first_fragment) {
 
-        /*  It is a reply to browse command                                  */
-        browse_request = context->browse_requests;
-        prev_browse_request = &(context->browse_requests);
-        while (browse_request) {
-            if (browse_request->message_nbr ==
-                  command->message_nbr) {
+        /*  Allocate and fill in new message item                            */
+        message = (message_list_item_t*)
+            amq_malloc (sizeof (message_list_item_t));
 
-                /*  It is a reply to sync browse command                     */
-#if 0
-                /*  Make a copy of message and unsuspend the thread          */
-                /*  that's waiting for it                                    */
-                new_item = (message_list_item_t*)
-                    amq_malloc (sizeof (message_list_item_t));
-                memcpy ((void*) (new_item->buffer), (void*) message,
-                    BUFFER_SIZE);
-                new_item->frame = (amqp_frame_t*) (new_item->buffer);
-                new_item->next = NULL;
-                new_item->prev = NULL;
-                result = release_lock (context->global,
-                    browse_request->lock_id, (void*) new_item);
-#endif
-                printf ("Message browsed!\n");
+        /*  Decode message header                                            */
+        size = amq_stdc_decode_message_head (header_buffer, header_buffer_size,
+            &header);
+        if (!size)
+            AMQ_ASSERT (Corrupted frame received from server)
 
-                /*  Remove the request from the list                         */
-                *prev_browse_request = browse_request->next;
-                amq_free ((void*) browse_request);
-                processed = 1;
-                break;
-            }
-            prev_browse_request = &(browse_request->next);
-            browse_request = browse_request->next;
-        }
+        /*  Fill in message descriptor                                       */
+        message->desc.message_nbr = command->message_nbr;
+        message->desc.delivered = command->delivered;
+        message->desc.redelivered = command->redelivered;
+        message->desc.streaming = command->streaming;
+        memcpy (message->dest_name, command->dest_name,
+            command->dest_name_size);
+        (message->dest_name) [command->dest_name_size] = 0;
+        message->desc.dest_name = message->dest_name;
+        memcpy (message->mime_type, header.mime_type,
+            header.mime_type_size);
+        (message->mime_type) [header.mime_type_size] = 0;
+        message->desc.mime_type = message->mime_type;
+        memcpy (message->encoding, header.encoding,
+            header.encoding_size);
+        (message->encoding) [header.encoding_size] = 0;
+        message->desc.encoding = message->encoding;
+        memcpy (message->identifier, header.identifier,
+            header.identifier_size);
+        (message->identifier) [header.identifier_size] = 0;
+        message->desc.identifier = message->identifier;
+        result = amq_stdc_table_create (header.headers_size, header.headers,
+            &(message->desc.headers));
+        AMQ_ASSERT_STATUS (result, amq_stdc_table_create);
+        result = message_fsm_create (&(message->message));
+        AMQ_ASSERT_STATUS (result, message_fsm_create)
+        result = message_fsm_init (message->message, context,
+            &(message->desc));
+        AMQ_ASSERT_STATUS (result, message_fsm_init)
+
+        /*  Append it to the end of the queue                                */
+        message->next = NULL;
+        message->prev = context->last_message;
+        if (context->last_message)
+            context->last_message->next = message;
+        context->last_message = message;
+        if (!context->first_message)
+            context->first_message = message;
+
+        /*  Switch handle to reading 'state'                                 */
+        context->read_message = message;
+    }
+    else {
+        message = context->read_message;
+
+        /*  Check whether fragment received belongs to the same message that */
+        /*  we are currently reading                                         */
+        if (message->desc.message_nbr != command->message_nbr)
+            AMQ_ASSERT (Message fragment from another message received)
     }
 
-    if (!processed) {
+    if (command->partial) {
+        result = message_fsm_receive_fragment (message->message, body,
+            body_size);
+        AMQ_ASSERT_STATUS (result, message_fsm_receive_fragment)
+    }
+    else {
+        result = message_fsm_receive_last_fragment (message->message, body,
+            body_size);
+        AMQ_ASSERT_STATUS (result, message_fsm_receive_last_fragment)
+        /* TODO:                                                             */        
+        /* if (message_fsm_terminated (message->desc.stream))                */
+        /*     message_fsm_destroy (message->desc.stream);                   */
 
-        /*  Is it a first fragment of a message ?                                */
-        if (!context->read_message) {
+        /*  Switch handle to non-reading 'state'                             */
+        context->read_message = NULL;
+    }
 
-            /*  Allocate and fill in new message item                            */
-            message = (message_list_item_t*)
-                amq_malloc (sizeof (message_list_item_t));
+    /*  Pair message with corresponding request                              */
+    if (first_fragment) {
 
-            /*  Decode message header                                            */
-            size = amq_stdc_decode_message_head (header_buffer, header_buffer_size,
-                &header);
-            if (!size)
-                AMQ_ASSERT (Corrupted frame received from server)
+        if (command->delivered == 0) {
 
-            /*  Fill in message descriptor                                       */
-            message->desc.message_nbr = command->message_nbr;
-            message->desc.delivered = command->delivered;
-            message->desc.redelivered = command->redelivered;
-            message->desc.streaming = command->streaming;
-            memcpy (message->dest_name, command->dest_name,
-                command->dest_name_size);
-            (message->dest_name) [command->dest_name_size] = 0;
-            message->desc.dest_name = message->dest_name;
-            memcpy (message->mime_type, header.mime_type,
-                header.mime_type_size);
-            (message->mime_type) [header.mime_type_size] = 0;
-            message->desc.mime_type = message->mime_type;
-            memcpy (message->encoding, header.encoding,
-                header.encoding_size);
-            (message->encoding) [header.encoding_size] = 0;
-            message->desc.encoding = message->encoding;
-            memcpy (message->identifier, header.identifier,
-                header.identifier_size);
-            (message->identifier) [header.identifier_size] = 0;
-            message->desc.identifier = message->identifier;
-            result = amq_stdc_table_create (header.headers_size, header.headers,
-                &(message->desc.headers));
-            AMQ_ASSERT_STATUS (result, amq_stdc_table_create);
-            result = message_fsm_create (&(message->message));
-            AMQ_ASSERT_STATUS (result, message_fsm_create)
-            result = message_fsm_init (message->message, context,
-                &(message->desc));
-            AMQ_ASSERT_STATUS (result, message_fsm_init)
+            /*  It is a reply to browse command                              */
+            browse_request = context->browse_requests;
+            prev_browse_request = &(context->browse_requests);
+            while (browse_request) {
+                if (browse_request->message_nbr ==
+                      command->message_nbr) {
 
-            /*  Append it to the end of the queue                                */
-            message->next = NULL;
-            message->prev = context->last_message;
-            if (context->last_message)
-                context->last_message->next = message;
-            context->last_message = message;
-            if (!context->first_message)
-                context->first_message = message;
+                    /*  It is a reply to sync browse command                 */
+                    result = release_lock (context->global,
+                        browse_request->lock_id, (void*) message);
 
-            /*  Switch handle to reading 'state'                                 */
-            context->read_message = message;
-        }
-        else {
-            message = context->read_message;
-
-            /*  Check whether fragment received belongs to the same message that */
-            /*  we are currently reading                                         */
-            if (message->desc.message_nbr != command->message_nbr)
-                AMQ_ASSERT (Message fragment from another message received)
+                    /*  Remove the request from the list                     */
+                    *prev_browse_request = browse_request->next;
+                    amq_free ((void*) browse_request);
+                    processed = 1;
+                    break;
+                }
+                prev_browse_request = &(browse_request->next);
+                browse_request = browse_request->next;
+            }
         }
 
-        if (command->partial) {
-            result = message_fsm_receive_fragment (message->message, body,
-                body_size);
-            AMQ_ASSERT_STATUS (result, message_fsm_receive_fragment)
+        if (!processed) {
+            /*  If there's a thread waiting for message, dispatch it         */
+            result = s_pair_lock_and_message (context);
+            AMQ_ASSERT_STATUS (result, s_pair_lock_and_message)
         }
-        else {
-            result = message_fsm_receive_last_fragment (message->message, body,
-                body_size);
-            AMQ_ASSERT_STATUS (result, message_fsm_receive_last_fragment)
-            /* TODO:                                                             */        
-            /* if (message_fsm_terminated (message->desc.stream))                */
-            /*     message_fsm_destroy (message->desc.stream);                   */
-
-            /*  Switch handle to non-reading 'state'                             */
-            context->read_message = NULL;
-        }
-
-        /*  If there's a thread waiting for message, dispatch it                 */
-        /*  TODO: Maybe only first fragment should be paired, is it so ?         */
-        result = s_pair_lock_and_message (context);
-        AMQ_ASSERT_STATUS (result, s_pair_lock_and_message)
     }
 
     return APR_SUCCESS;

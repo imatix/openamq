@@ -216,12 +216,12 @@ apr_status_t amq_stdc_destroy_query (
     );
 
 apr_status_t amq_stdc_browse (
-    amq_stdc_handle_t  handle,
-    qbyte              message_nbr,
-    byte               async
+    amq_stdc_handle_t        handle,
+    qbyte                    message_nbr,
+    byte                     async,
+    amq_stdc_message_desc_t  **message_desc,
+    amq_stdc_message_t       *message
     );
-
-
 
 
 

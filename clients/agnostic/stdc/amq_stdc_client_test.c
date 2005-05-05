@@ -110,7 +110,6 @@ qbyte s_move_to_next_query_result (
         there are no more results
     */
     if (client->query_result [client->query_result_pos] == '\0') {
-        free (client->query_result);
         client->last_query_result = -1;
         return client->last_query_result;
     }
@@ -150,10 +149,11 @@ qbyte s_move_to_next_query_result (
     }
 }
  
-int main(
+int main (
     int        argc,
     const char *const argv[],
-    const char *const env[]) 
+    const char *const env[]
+    ) 
 {
     apr_status_t
         result;                         /*  Stores return values             */
@@ -472,15 +472,33 @@ int main(
             if (message_nbr == -1)
                 break;
 
-            result = amq_stdc_browse (handle, message_nbr, 0);
+            result = amq_stdc_browse (handle, message_nbr, 0, &message_desc,
+                &message);
             if (result != APR_SUCCESS) {
                 printf ("amq_stdc_browse failed\n");
                 return EXIT_FAILURE;
             }
             
-            printf ("Message X browsed.\n");
-        }
+            printf ("Message %s browsed.\n", message_desc->identifier);
 
+            while (1) {
+                size = amq_stdc_read (message, data_buffer, 10);
+                if (!size)
+                    break;
+                printf ("    [");
+                for (data_pos=0; data_pos!= size; data_pos++)
+                    printf ("%2lx ", (long) (data_buffer [data_pos]));
+                printf ("]\n");
+                if (size < 10)
+                    break;
+            }
+
+            result = amq_stdc_close_message (message, 0);
+            if (result != APR_SUCCESS) {
+                printf ("amq_stdc_close_message failed\n");
+                return EXIT_FAILURE;
+            }
+        }
         result = amq_stdc_destroy_query (client.query_result);
         if (result != APR_SUCCESS) {
             printf ("amq_stdc_destroy_query failed\n");
