@@ -2,7 +2,7 @@
 .- amq_stdc_fsms.gsl - source file that generates state machines for
 .-   AMQP Client API
 .-
-.- gsl -script:amq_stdc_fsms.gsl amq_stdc_fsms.xml
+.- gsl -script:amq_stdc_fsms.gsl <FSM definition file>
 .-
 .- Copyright (c) 2004-2005 JPMorgan
 .- Copyright (c) 1991-2005 iMatix Corporation
@@ -14,7 +14,7 @@
 /*---------------------------------------------------------------------------
  *  $(output:).i - header for $(name:UPPER) state machine
  *
- *  Generated from amqp_fsms.xml by amq_stdc_fsms.gsl using GSL/4.
+ *  Generated from $(output:).xml by amq_stdc_fsms.gsl using GSL/4.
  *  DO NOT MODIFY THIS FILE.
  *
  *  For documentation and updates see http://www.imatix.com.
@@ -54,7 +54,7 @@ apr_status_t $(machine.name:c)_$(event.name:c) (
  *  Include it into your c file and expand the macros.
  *  Define AMQTRACE_FSMS prior to including this file to trace control flow.
  *
- *  Generated from amqp_fsms.xml by amqp_fsms.gsl using GSL/4.
+ *  Generated from $(output:).xml by amq_stdc_fsms.gsl using GSL/4.
  *  DO NOT MODIFY THIS FILE.
  *
  *  For documentation and updates see http://www.imatix.com.

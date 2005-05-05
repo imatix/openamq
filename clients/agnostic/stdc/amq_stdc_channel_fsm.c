@@ -576,7 +576,7 @@ inline static apr_status_t do_receive_message (
                 result = release_lock (context->global,
                     browse_request->lock_id, (void*) new_item);
 #endif
-                printf ("Message browsed!/n");
+                printf ("Message browsed!\n");
 
                 /*  Remove the request from the list                         */
                 *prev_browse_request = browse_request->next;

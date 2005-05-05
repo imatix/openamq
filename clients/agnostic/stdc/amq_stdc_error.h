@@ -1,4 +1,9 @@
-
+/*---------------------------------------------------------------------------
+ *  amq_stdc_error.h - AMQ Client API error codes
+ *
+ *  Copyright (c) 2004-2005 JPMorgan
+ *  Copyright (c) 1991-2005 iMatix Corporation
+ *---------------------------------------------------------------------------*/
 
 #ifndef AMQ_STDC_ERROR_H_INCLUDED
 #define AMQ_STDC_ERROR_H_INCLUDED

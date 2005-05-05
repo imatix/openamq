@@ -1,3 +1,9 @@
+/*---------------------------------------------------------------------------
+ *  amq_stdc_table.c - Field table object header file
+ *
+ *  Copyright (c) 2004-2005 JPMorgan
+ *  Copyright (c) 1991-2005 iMatix Corporation
+ *---------------------------------------------------------------------------*/
 
 #include "amq_stdc_private.h"
 #include "amq_stdc_table.h"

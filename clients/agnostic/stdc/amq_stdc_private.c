@@ -1,6 +1,5 @@
 /*---------------------------------------------------------------------------
- *  amqp_common.h - common definitions for AMQ client API level 1 project
- *  File is to be removed during developement phase
+ *  amq_stdc_private.h - Common definitions for AMQ client API project
  *
  *  Copyright (c) 2004-2005 JPMorgan
  *  Copyright (c) 1991-2005 iMatix Corporation
