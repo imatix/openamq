@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------
- *  amq_stdc_private.h - Common definitions for AMQ client API project
+ *  amq_stdc_private.c - Common definitions for AMQ client API project
  *
  *  Copyright (c) 2004-2005 JPMorgan
  *  Copyright (c) 1991-2005 iMatix Corporation

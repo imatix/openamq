@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------
- *  amq_stdc_table.c - Field table object implementation
+ *  amq_stdc_table.h - Field table object header file
  *
  *  Copyright (c) 2004-2005 JPMorgan
  *  Copyright (c) 1991-2005 iMatix Corporation
