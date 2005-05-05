@@ -127,6 +127,12 @@ H2#title {
     margin-right: 30pt;
     margin-bottom: 12pt;
 }
+#content_container TABLE {
+    margin-left: 3em;
+}
+#content_container TD {
+    padding-left: 1em;
+}
 
 /* Disclaimer (bottom right, below content */
 #disclaimer P {

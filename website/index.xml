@@ -26,7 +26,7 @@ between a server and a set of clients.  It supports the standard models of
 point-to-point queuing, publish-subscribe, and file-transfer, in a modern and
 language-independent manner.
 
-See: [/protocol.html:The AMQ protocol]
+More information: [/protocol.html:The AMQ protocol]
 
 The OpenAMQ Server
 ===================
@@ -36,7 +36,7 @@ modern platforms (Linux, Win32, Solaris, other Unixes).  OpenAMQ is written
 in ANSI C and is highly configurable for specific messaging scenarios or
 memory/performance constraints.
 
-See: [/server.html:The OpenAMQ server]
+More information: [/server.html:The OpenAMQ server]
 
 The OpenAMQ Clients
 ===================
@@ -49,7 +49,7 @@ typically takes 1-2 days to start using OpenAMQ in your applications.
 Since AMQP is an open standard, you can write your own client layers.
 The average effort is about 10-20 days.
 
-See: [/clients.html:The AMQP clients]
+More information: [/clients.html:The AMQP clients]
 
 </content>
 </language>

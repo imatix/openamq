@@ -30,9 +30,9 @@ make.  The source package includes recent validated versions
 of the Apache Portable Runtime (APR) and the Berkeley Database (BDB) as
 used by OpenAMQ.
 
-See: [/build.html:Building and installing OpenAMQ].
+More information: [/build.html:Building and installing OpenAMQ].
 
-See: [/deploy.html:Running and managing an OpenAMQ server].
+More information: [/deploy.html:Running and managing an OpenAMQ server].
 
 
 Binary Packages
@@ -46,7 +46,7 @@ subdirectory contains OpenAMQ client tools.  The servers
 subdirectory contains the OpenAMQ server executables and a demonstration
 configuration.
 
-See: [/deploy.html:Running and managing an OpenAMQ server].
+More information: [/deploy.html:Running and managing an OpenAMQ server].
 
 </content>
 </language>

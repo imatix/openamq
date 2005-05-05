@@ -47,7 +47,7 @@ AMQP has these features:
  - Pervasive: portable to any operating system with network I/O.
  - Standard: will be proposed as an IETF standard.
 
-See: [/protocol.html:The AMQP protocol]
+More information: [/protocol.html:The AMQP protocol]
 
 The Reference Server
 ********************
@@ -59,7 +59,7 @@ The OpenAMQ server has these features:
  - Portable to Linux, Solaris, Unix, Win32
  - Built in ANSI C, using iMatix technology
 
-See: [/server.html:The OpenAMQ server]
+More information: [/server.html:The OpenAMQ server]
 
 The Client APIs
 ***************
@@ -70,7 +70,7 @@ The OpenAMQ client APIs have these features:
  - Implemented in Java, C, COM
  - Planned implementations: Perl, C++
 
-See: [/clients.html:The OpenAMQ clients]
+More information: [/clients.html:The OpenAMQ clients]
 
 The Open Source Project
 ***********************
