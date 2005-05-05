@@ -71,6 +71,9 @@
         <arg type = "byte" name = "async">
              When 1, don't wait for confirmation from server
         </arg>
+        <arg type = "handle_fsm_t *" name = "out">
+             Connection created
+        </arg>
         <arg type = "amq_stdc_lock_t *" name = "created_lock">
              Output parameter, to be used to wait for confirmation of
              temporary destination creation
@@ -164,8 +167,26 @@
         <arg type = "amq_stdc_message_desc_t *" name = "message_desc">
         </arg>
     </event>
+    <event name = "browse">
+        Request to browse server for specific message
+        <arg type = "dbyte" name = "handle_id">
+             Handle to use
+        </arg>
+        <arg type = "qbyte" name = "message_nbr">
+             Number of message to browse
+        </arg>
+        <arg type = "byte" name = "async">
+             When 1, don't wait for confirmation from server
+        </arg>
+        <arg type = "amq_stdc_lock_t *" name = "lock">
+             Output parameter, to be used to wait for operation completion
+        </arg>
+    </event>
     <event name = "reply">
-        CHANNEL REPLY received from server
+        CHANNEL REPLY or HANDLE REPLY received from server
+        <arg type = "dbyte" name = "handle_id">
+            0 for CHANNEL REPLY, id of handle for HANDLE REPLY
+        </arg>
         <arg type = "dbyte" name = "confirm_tag">
             Confirm tag
         </arg>
@@ -202,6 +223,7 @@
         <event name = "rollback" action = "do rollback"/>
         <event name = "receive message" action = "do receive message"/>
         <event name = "get message" action = "do get message"/>
+        <event name = "browse" action = "do browse"/>
         <event name = "reply" action = "do reply"/>
     </state>
     <state name = "expect close">

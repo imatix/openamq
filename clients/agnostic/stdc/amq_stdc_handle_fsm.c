@@ -12,16 +12,6 @@
  *  State machine definitions
  *---------------------------------------------------------------------------*/
 
-typedef struct tag_browse_list_item_t
-{
-    qbyte
-        message_nbr;
-    dbyte
-        lock_id;
-    struct tag_browse_list_item_t
-        *next;
-} browse_list_item_t;
-
 #define HANDLE_FSM_OBJECT_ID context->id
 
 DEFINE_HANDLE_FSM_CONTEXT_BEGIN
@@ -52,9 +42,6 @@ DEFINE_HANDLE_FSM_CONTEXT_BEGIN
                                     /*  HANDLE QUERY at the same time        */ 
     char
         *dest_name;                 /*  Name of temporary destination        */
-    browse_list_item_t
-        *browse_requests;           /*  Linked list of requests for          */
-                                    /*  synchronous HANDLE BROWSEs           */
 DEFINE_HANDLE_FSM_CONTEXT_END
 
 inline static apr_status_t do_construct (
@@ -64,7 +51,6 @@ inline static apr_status_t do_construct (
     apr_status_t
         result;
 
-    context->browse_requests = NULL;
     result = apr_thread_mutex_create (&(context->query_sync),
         APR_THREAD_MUTEX_UNNESTED, context->pool);
     AMQ_ASSERT_STATUS (result, apr_thread_mutex_create)
@@ -672,95 +658,8 @@ inline static apr_status_t do_browse (
     amq_stdc_lock_t       *lock
     )
 {
-    apr_status_t
-        result;
-    char
-        *chunk;
-    qbyte
-        chunk_size;
-    browse_list_item_t
-        *new_item;
-    dbyte
-        confirm_tag;
-
-    if (!async) {
-
-        /*  Register that we are waiting for reply                           */
-        result = register_lock (context->global, context->connection_id,
-            context->channel_id, context->id, &confirm_tag, lock);
-        AMQ_ASSERT_STATUS (result, register_lock)
-
-        /*  Register that we are waiting for specific message                */
-        new_item = (browse_list_item_t*)
-            amq_malloc (sizeof (browse_list_item_t));
-        if (!new_item)
-            AMQ_ASSERT (Not enough memory)
-        new_item->message_nbr = message_nbr;
-        new_item->lock_id = confirm_tag;
-        new_item->next = context->browse_requests;
-        context->browse_requests = new_item;
-    }
-
-    /*  Send HANDLE BROWSE                                                   */
-    chunk_size = COMMAND_SIZE_MAX_SIZE + AMQ_STDC_HANDLE_BROWSE_CONSTANT_SIZE;
-    chunk = (char*) amq_malloc (chunk_size);
-    if (!chunk)
-        AMQ_ASSERT (Not enough memory)
-    chunk_size = amq_stdc_encode_handle_browse (chunk, chunk_size, context->id,
-        confirm_tag, message_nbr);
-    if (!chunk_size)
-        AMQ_ASSERT (Framing error)
-    result = connection_fsm_send_chunk (context->connection, chunk,
-        chunk_size, async ? lock : NULL);
-    AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
-
-    return APR_SUCCESS; 
-}
-
-inline static apr_status_t do_reply (
-    handle_fsm_context_t  *context,
-    dbyte                 confirm_tag,
-    dbyte                 reply_code,
-    dbyte                 reply_text_size,
-    const char            *reply_text
-    )
-{
-
-    apr_status_t
-        result;
-    byte
-        processed;
-    browse_list_item_t
-        *browse_request;
-    browse_list_item_t
-        **prev_browse_request;
-    
-    /*  If this is negative response to HANDLE BROWSE, remove                */
-    /*  corresponding item from browse request list and return NULL          */
-    browse_request = context->browse_requests;
-    prev_browse_request = &(context->browse_requests);
-    processed = 0;
-    while (browse_request)
-    {
-        if (browse_request->lock_id == confirm_tag) {
-            *prev_browse_request = browse_request->next;
-            amq_free ((void*) browse_request);
-            result = release_lock (context->global, confirm_tag, NULL);
-            AMQ_ASSERT_STATUS (result, release_lock)
-            processed = 1;
-            break;
-        }
-        prev_browse_request = &(browse_request->next);
-        browse_request = browse_request->next;
-    }
-    if (!processed) {
-
-        /*  Resume the thread waiting for this confirmation                  */
-        result = release_lock (context->global, confirm_tag,
-            (void*) context);
-        AMQ_ASSERT_STATUS (result, release_lock)
-    }
-    return APR_SUCCESS;
+    return channel_fsm_browse (context->channel, context->id, message_nbr,
+        async, lock);
 }
 
 inline static apr_status_t do_terminate (

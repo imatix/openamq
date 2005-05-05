@@ -12,6 +12,16 @@
  *  State machine definitions
  *---------------------------------------------------------------------------*/
 
+typedef struct tag_browse_list_item_t
+{
+    qbyte
+        message_nbr;
+    dbyte
+        lock_id;
+    struct tag_browse_list_item_t
+        *next;
+} browse_list_item_t;
+
 typedef struct tag_lock_list_item_t
 {
     dbyte
@@ -88,7 +98,10 @@ DEFINE_CHANNEL_FSM_CONTEXT_BEGIN
                                     /*  messages                             */
     message_list_item_t
         *read_message;              /*  Message actually being read          */
-                                    /*  NULL if no message is being read     */         
+                                    /*  NULL if no message is being read     */
+    browse_list_item_t
+        *browse_requests;           /*  Linked list of requests for          */
+                                    /*  synchronous HANDLE BROWSEs           */
 DEFINE_CHANNEL_FSM_CONTEXT_END
 
 inline static apr_status_t do_construct (
@@ -101,6 +114,7 @@ inline static apr_status_t do_construct (
     context->first_lock = NULL;
     context->last_lock = NULL;
     context->handles = NULL;
+    context->browse_requests = NULL;
     return APR_SUCCESS;
 }
 
@@ -311,6 +325,7 @@ inline static apr_status_t do_create_handle (
     const char             *encoding,
     amq_stdc_table_t       options,
     byte                   async,
+    handle_fsm_t           *out,
     amq_stdc_lock_t        *created_lock,
     amq_stdc_lock_t        *lock
     )
@@ -359,6 +374,9 @@ inline static apr_status_t do_create_handle (
             dest_name, mime_type, encoding, options, async, created_lock, lock);
         AMQ_ASSERT_STATUS (result, handle_fsm_init_temporary)
     }
+
+    if (out) *out = handle;
+
     return APR_SUCCESS;
 }
 
@@ -528,24 +546,24 @@ inline static apr_status_t do_receive_message (
         header;
     size_t
         size;
-
-#if 0
     browse_list_item_t
         *browse_request;
     browse_list_item_t
         **prev_browse_request;
+    byte
+        processed = 0;
 
-    processed = 0;
-    if (message->fields.handle_notify.delivered == 0) {
+    if (command->delivered == 0) {
 
         /*  It is a reply to browse command                                  */
         browse_request = context->browse_requests;
         prev_browse_request = &(context->browse_requests);
         while (browse_request) {
             if (browse_request->message_nbr ==
-                  message->fields.handle_notify.message_nbr) {
+                  command->message_nbr) {
 
                 /*  It is a reply to sync browse command                     */
+#if 0
                 /*  Make a copy of message and unsuspend the thread          */
                 /*  that's waiting for it                                    */
                 new_item = (message_list_item_t*)
@@ -557,6 +575,8 @@ inline static apr_status_t do_receive_message (
                 new_item->prev = NULL;
                 result = release_lock (context->global,
                     browse_request->lock_id, (void*) new_item);
+#endif
+                printf ("Message browsed!/n");
 
                 /*  Remove the request from the list                         */
                 *prev_browse_request = browse_request->next;
@@ -570,93 +590,93 @@ inline static apr_status_t do_receive_message (
     }
 
     if (!processed) {
-#endif
 
-    /*  Is it a first fragment of a message ?                                */
-    if (!context->read_message) {
+        /*  Is it a first fragment of a message ?                                */
+        if (!context->read_message) {
 
-        /*  Allocate and fill in new message item                            */
-        message = (message_list_item_t*)
-            amq_malloc (sizeof (message_list_item_t));
+            /*  Allocate and fill in new message item                            */
+            message = (message_list_item_t*)
+                amq_malloc (sizeof (message_list_item_t));
 
-        /*  Decode message header                                            */
-        size = amq_stdc_decode_message_head (header_buffer, header_buffer_size,
-            &header);
-        if (!size)
-            AMQ_ASSERT (Corrupted frame received from server)
+            /*  Decode message header                                            */
+            size = amq_stdc_decode_message_head (header_buffer, header_buffer_size,
+                &header);
+            if (!size)
+                AMQ_ASSERT (Corrupted frame received from server)
 
-        /*  Fill in message descriptor                                       */
-        message->desc.message_nbr = command->message_nbr;
-        message->desc.delivered = command->delivered;
-        message->desc.redelivered = command->redelivered;
-        message->desc.streaming = command->streaming;
-        memcpy (message->dest_name, command->dest_name,
-            command->dest_name_size);
-        (message->dest_name) [command->dest_name_size] = 0;
-        message->desc.dest_name = message->dest_name;
-        memcpy (message->mime_type, header.mime_type,
-            header.mime_type_size);
-        (message->mime_type) [header.mime_type_size] = 0;
-        message->desc.mime_type = message->mime_type;
-        memcpy (message->encoding, header.encoding,
-            header.encoding_size);
-        (message->encoding) [header.encoding_size] = 0;
-        message->desc.encoding = message->encoding;
-        memcpy (message->identifier, header.identifier,
-            header.identifier_size);
-        (message->identifier) [header.identifier_size] = 0;
-        message->desc.identifier = message->identifier;
-        result = amq_stdc_table_create (header.headers_size, header.headers,
-            &(message->desc.headers));
-        AMQ_ASSERT_STATUS (result, amq_stdc_table_create);
-        result = message_fsm_create (&(message->message));
-        AMQ_ASSERT_STATUS (result, message_fsm_create)
-        result = message_fsm_init (message->message, context,
-            &(message->desc));
-        AMQ_ASSERT_STATUS (result, message_fsm_init)
+            /*  Fill in message descriptor                                       */
+            message->desc.message_nbr = command->message_nbr;
+            message->desc.delivered = command->delivered;
+            message->desc.redelivered = command->redelivered;
+            message->desc.streaming = command->streaming;
+            memcpy (message->dest_name, command->dest_name,
+                command->dest_name_size);
+            (message->dest_name) [command->dest_name_size] = 0;
+            message->desc.dest_name = message->dest_name;
+            memcpy (message->mime_type, header.mime_type,
+                header.mime_type_size);
+            (message->mime_type) [header.mime_type_size] = 0;
+            message->desc.mime_type = message->mime_type;
+            memcpy (message->encoding, header.encoding,
+                header.encoding_size);
+            (message->encoding) [header.encoding_size] = 0;
+            message->desc.encoding = message->encoding;
+            memcpy (message->identifier, header.identifier,
+                header.identifier_size);
+            (message->identifier) [header.identifier_size] = 0;
+            message->desc.identifier = message->identifier;
+            result = amq_stdc_table_create (header.headers_size, header.headers,
+                &(message->desc.headers));
+            AMQ_ASSERT_STATUS (result, amq_stdc_table_create);
+            result = message_fsm_create (&(message->message));
+            AMQ_ASSERT_STATUS (result, message_fsm_create)
+            result = message_fsm_init (message->message, context,
+                &(message->desc));
+            AMQ_ASSERT_STATUS (result, message_fsm_init)
 
-        /*  Append it to the end of the queue                                */
-        message->next = NULL;
-        message->prev = context->last_message;
-        if (context->last_message)
-            context->last_message->next = message;
-        context->last_message = message;
-        if (!context->first_message)
-            context->first_message = message;
+            /*  Append it to the end of the queue                                */
+            message->next = NULL;
+            message->prev = context->last_message;
+            if (context->last_message)
+                context->last_message->next = message;
+            context->last_message = message;
+            if (!context->first_message)
+                context->first_message = message;
 
-        /*  Switch handle to reading 'state'                                 */
-        context->read_message = message;
+            /*  Switch handle to reading 'state'                                 */
+            context->read_message = message;
+        }
+        else {
+            message = context->read_message;
+
+            /*  Check whether fragment received belongs to the same message that */
+            /*  we are currently reading                                         */
+            if (message->desc.message_nbr != command->message_nbr)
+                AMQ_ASSERT (Message fragment from another message received)
+        }
+
+        if (command->partial) {
+            result = message_fsm_receive_fragment (message->message, body,
+                body_size);
+            AMQ_ASSERT_STATUS (result, message_fsm_receive_fragment)
+        }
+        else {
+            result = message_fsm_receive_last_fragment (message->message, body,
+                body_size);
+            AMQ_ASSERT_STATUS (result, message_fsm_receive_last_fragment)
+            /* TODO:                                                             */        
+            /* if (message_fsm_terminated (message->desc.stream))                */
+            /*     message_fsm_destroy (message->desc.stream);                   */
+
+            /*  Switch handle to non-reading 'state'                             */
+            context->read_message = NULL;
+        }
+
+        /*  If there's a thread waiting for message, dispatch it                 */
+        /*  TODO: Maybe only first fragment should be paired, is it so ?         */
+        result = s_pair_lock_and_message (context);
+        AMQ_ASSERT_STATUS (result, s_pair_lock_and_message)
     }
-    else {
-        message = context->read_message;
-
-        /*  Check whether fragment received belongs to the same message that */
-        /*  we are currently reading                                         */
-        if (message->desc.message_nbr != command->message_nbr)
-            AMQ_ASSERT (Message fragment from another message received)
-    }
-
-    if (command->partial) {
-        result = message_fsm_receive_fragment (message->message, body,
-            body_size);
-        AMQ_ASSERT_STATUS (result, message_fsm_receive_fragment)
-    }
-    else {
-        result = message_fsm_receive_last_fragment (message->message, body,
-            body_size);
-        AMQ_ASSERT_STATUS (result, message_fsm_receive_last_fragment)
-        /* TODO:                                                             */        
-        /* if (message_fsm_terminated (message->desc.stream))                */
-        /*     message_fsm_destroy (message->desc.stream);                   */
-
-        /*  Switch handle to non-reading 'state'                             */
-        context->read_message = NULL;
-    }
-
-    /*  If there's a thread waiting for message, dispatch it                 */
-    /*  TODO: Maybe only first fragment should be paired, is it so ?         */
-    result = s_pair_lock_and_message (context);
-    AMQ_ASSERT_STATUS (result, s_pair_lock_and_message)
 
     return APR_SUCCESS;
 }
@@ -752,8 +772,62 @@ inline static apr_status_t do_remove_message_desc (
     return APR_SUCCESS;
 }
 
+inline static apr_status_t do_browse (
+    channel_fsm_context_t  *context,
+    dbyte                  handle_id,
+    qbyte                  message_nbr,
+    byte                   async,
+    amq_stdc_lock_t        *lock
+    )
+{
+    apr_status_t
+        result;
+    char
+        *chunk;
+    qbyte
+        chunk_size;
+    browse_list_item_t
+        *new_item;
+    dbyte
+        confirm_tag;
+
+    if (!async) {
+
+        /*  Register that we are waiting for reply                           */
+        result = register_lock (context->global, context->connection_id,
+            context->id, handle_id, &confirm_tag, lock);
+        AMQ_ASSERT_STATUS (result, register_lock)
+
+        /*  Register that we are waiting for specific message                */
+        new_item = (browse_list_item_t*)
+            amq_malloc (sizeof (browse_list_item_t));
+        if (!new_item)
+            AMQ_ASSERT (Not enough memory)
+        new_item->message_nbr = message_nbr;
+        new_item->lock_id = confirm_tag;
+        new_item->next = context->browse_requests;
+        context->browse_requests = new_item;
+    }
+
+    /*  Send HANDLE BROWSE                                                   */
+    chunk_size = COMMAND_SIZE_MAX_SIZE + AMQ_STDC_HANDLE_BROWSE_CONSTANT_SIZE;
+    chunk = (char*) amq_malloc (chunk_size);
+    if (!chunk)
+        AMQ_ASSERT (Not enough memory)
+    chunk_size = amq_stdc_encode_handle_browse (chunk, chunk_size, context->id,
+        confirm_tag, message_nbr);
+    if (!chunk_size)
+        AMQ_ASSERT (Framing error)
+    result = connection_fsm_send_chunk (context->connection, chunk,
+        chunk_size, async ? lock : NULL);
+    AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
+
+    return APR_SUCCESS; 
+}
+
 inline static apr_status_t do_reply (
     channel_fsm_context_t  *context,
+    dbyte                  handle_id,
     dbyte                  confirm_tag,
     dbyte                  reply_code,
     dbyte                  reply_text_size,
@@ -762,10 +836,37 @@ inline static apr_status_t do_reply (
 {
     apr_status_t
         result;
+    byte
+        processed;
+    browse_list_item_t
+        *browse_request;
+    browse_list_item_t
+        **prev_browse_request;
+    
+    /*  If this is negative response to HANDLE BROWSE, remove                */
+    /*  corresponding item from browse request list and return NULL          */
+    browse_request = context->browse_requests;
+    prev_browse_request = &(context->browse_requests);
+    processed = 0;
+    while (browse_request)
+    {
+        if (browse_request->lock_id == confirm_tag) {
+            *prev_browse_request = browse_request->next;
+            amq_free ((void*) browse_request);
+            result = release_lock (context->global, confirm_tag, NULL);
+            AMQ_ASSERT_STATUS (result, release_lock)
+            processed = 1;
+            break;
+        }
+        prev_browse_request = &(browse_request->next);
+        browse_request = browse_request->next;
+    }
+    if (!processed) {
 
-    result = release_lock (context->global, confirm_tag,
-        (void*) context);
-    AMQ_ASSERT_STATUS (result, release_lock)
+        /*  Resume the thread waiting for this confirmation                  */
+        result = release_lock (context->global, confirm_tag, NULL);
+        AMQ_ASSERT_STATUS (result, release_lock)
+    }
     return APR_SUCCESS;
 }
 

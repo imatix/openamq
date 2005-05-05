@@ -264,7 +264,7 @@ static void *s_receiver_thread (
            result =connection_get_channel (
                context, frame.fields.channel_reply.channel_id, &channel);
            AMQ_ASSERT_STATUS (result, connection_get_channel)
-           result = channel_fsm_reply (channel, 
+           result = channel_fsm_reply (channel, 0,
                 frame.fields.channel_reply.confirm_tag,
                 frame.fields.channel_reply.reply_code,
                 frame.fields.channel_reply.reply_text_size,
@@ -288,9 +288,9 @@ static void *s_receiver_thread (
            AMQ_ASSERT_STATUS (result, handle_fsm_created)
            break;
        case amq_stdc_handle_notify_type:
-           result =connection_get_handle (
-               context, frame.fields.handle_notify.handle_id, &handle);
-           AMQ_ASSERT_STATUS (result, connection_get_handle)
+           result =connection_get_channel_from_handle (
+               context, frame.fields.handle_notify.handle_id, &channel);
+           AMQ_ASSERT_STATUS (result, connection_get_channel_from_handle)
 
            /*  TODO: switch to another instream if out-of-band = 1           */
 
@@ -350,10 +350,11 @@ static void *s_receiver_thread (
            assert (0);
            break;
        case amq_stdc_handle_reply_type:
-           result =connection_get_handle (
-               context, frame.fields.handle_reply.handle_id, &handle);
-           AMQ_ASSERT_STATUS (result, connection_get_handle)
-           result = handle_fsm_reply (handle,
+           result =connection_get_channel_from_handle (
+               context, frame.fields.handle_notify.handle_id, &channel);
+           AMQ_ASSERT_STATUS (result, connection_get_channel_from_handle)
+           result = channel_fsm_reply (channel,
+                frame.fields.handle_reply.handle_id,
                 frame.fields.handle_reply.confirm_tag,
                 frame.fields.handle_reply.reply_code,
                 frame.fields.handle_reply.reply_text_size,
@@ -629,7 +630,7 @@ apr_status_t connection_get_channel_from_handle (
     channel_list_item_t
         *item;
     handle_fsm_t
-        *handle;
+        handle;
 
     result = connection_fsm_sync_begin (context);
     AMQ_ASSERT_STATUS (result, connection_fsm_sync_begin);
@@ -640,8 +641,8 @@ apr_status_t connection_get_channel_from_handle (
             if (channel) *channel = NULL;
             break;
         }
-        channel_get_handle (item->channel, handle_id, handle);
-        if (*handle)
+        channel_get_handle (item->channel, handle_id, &handle);
+        if (handle)
         {
             if (channel) *channel = item->channel;
             break;
@@ -958,6 +959,7 @@ inline static apr_status_t do_create_channel (
     amq_stdc_table_t          options,
     const char                *out_of_band,
     byte                      async,
+    channel_fsm_t             *out,
     amq_stdc_lock_t           *lock
     )
 {
@@ -993,6 +995,9 @@ inline static apr_status_t do_create_channel (
         context->id, channel_id, transacted, restartable,
         options, out_of_band, async, lock);
     AMQ_ASSERT_STATUS (result, channel_fsm_init)
+
+    if (out) *out = channel;
+
     return APR_SUCCESS;    
 }
 
@@ -1034,7 +1039,7 @@ inline static apr_status_t do_reply (
     apr_status_t
         result;
 
-    result = release_lock (context->global, confirm_tag, (void*) context);
+    result = release_lock (context->global, confirm_tag, NULL);
     AMQ_ASSERT_STATUS (result, release_lock)
     return APR_SUCCESS;
 }

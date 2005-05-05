@@ -136,9 +136,9 @@ apr_status_t amq_stdc_open_connection (
         lock;
 
     result = global_fsm_create_connection (global, server, port, host,
-        client_name, options, async, &lock);
+        client_name, options, async, out, &lock);
     AMQ_ASSERT_STATUS (result, global_fsm_create_connection);
-    result = wait_for_lock (lock, (void**) out);
+    result = wait_for_lock (lock, NULL);
     AMQ_ASSERT_STATUS (result, wait_for_lock);
 
     return APR_SUCCESS;
@@ -204,9 +204,9 @@ apr_status_t amq_stdc_open_channel (
         lock;
 
     result = connection_fsm_create_channel (context, transacted, restartable,
-        options, out_of_band, async, &lock);
+        options, out_of_band, async, out, &lock);
     AMQ_ASSERT_STATUS (result, connection_fsm_create_channel);
-    result = wait_for_lock (lock, (void**) out);
+    result = wait_for_lock (lock, NULL);
     AMQ_ASSERT_STATUS (result, wait_for_lock);
 
     return APR_SUCCESS;
@@ -417,7 +417,7 @@ apr_status_t amq_stdc_open_handle (
 
     result = channel_fsm_create_handle (context, service_type, producer,
         consumer, browser, temporary, dest_name, mime_type, encoding, options,
-        async, &created_lock, &lock);
+        async, out, &created_lock, &lock);
     AMQ_ASSERT_STATUS (result, channel_fsm_create_handle);
 
     /*  Wait for HANDLE CREATED                                              */
@@ -425,7 +425,7 @@ apr_status_t amq_stdc_open_handle (
     AMQ_ASSERT_STATUS (result, wait_for_lock);
 
     /*  Wait for confirmation                                                */
-    result = wait_for_lock (lock, (void**) out);
+    result = wait_for_lock (lock, NULL);
     AMQ_ASSERT_STATUS (result, wait_for_lock);
 
     return APR_SUCCESS;
@@ -738,7 +738,6 @@ apr_status_t amq_stdc_browse (
     byte               async
     )
 {
-#if 0
     apr_status_t
         result;
     amq_stdc_lock_t
@@ -746,9 +745,11 @@ apr_status_t amq_stdc_browse (
  
     result = handle_fsm_browse (context, message_nbr, async, &lock);
     AMQ_ASSERT_STATUS (result, handle_fsm_browse)
-    result = wait_for_lock (lock, (void**) message);
+    /*  TODO: Message should be returned here                                */
+    /*  If NULL is returned, message is not found, error                     */
+    result = wait_for_lock (lock, NULL);
     AMQ_ASSERT_STATUS (result, wait_for_lock)
-#endif    
+   
     return APR_SUCCESS;
 }
 

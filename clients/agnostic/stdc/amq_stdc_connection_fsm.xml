@@ -83,6 +83,9 @@
         <arg type = "byte" name = "async">
              When 1, don't wait for confirmation from server
         </arg>
+        <arg type = "channel_fsm_t *" name = "out">
+             Connection created
+        </arg>
         <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait for operation completion
         </arg>

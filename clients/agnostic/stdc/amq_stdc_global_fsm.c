@@ -414,6 +414,7 @@ inline static apr_status_t do_create_connection (
     const char            *client_name,
     amq_stdc_table_t      options,
     byte                  async,
+    connection_fsm_t      *out,
     amq_stdc_lock_t       *lock
     )
 {
@@ -443,6 +444,9 @@ inline static apr_status_t do_create_connection (
         ++(context->last_connection_id), server, port, host, client_name,
         options, async, lock);
     AMQ_ASSERT_STATUS (result, connection_init)
+
+    if (out) *out = connection;
+
     return APR_SUCCESS;
 }
 

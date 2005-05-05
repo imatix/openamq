@@ -277,21 +277,6 @@
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
-    <event name = "reply">
-        HANDLE REPLY received from server
-        <arg type = "dbyte" name = "confirm_tag">
-            Confirm tag
-        </arg>
-        <arg type = "dbyte" name = "reply_code">
-            Reply code received from server
-        </arg>
-        <arg type = "dbyte" name = "reply_text_size">
-            Size of reply text received from server
-        </arg>
-        <arg type = "const char *" name = "reply_text">
-            Reply text received from server
-        </arg>
-    </event>
     <event name = "terminate">
         Request to shut down the handle
         <arg type = "amq_stdc_lock_t *" name = "lock">
@@ -322,7 +307,6 @@
         <event name = "query" action = "do query"/>
         <event name = "index" action = "do index"/>
         <event name = "browse" action = "do browse"/>
-        <event name = "reply" action = "do reply"/>
     </state>
     <state name = "expect close">
         Handle is shutting down
