@@ -14,7 +14,7 @@ for PRODUCT in $PRODUCTS; do
     cd $HOME/products/$PRODUCT
  #   rm -f *.tar.gz *.zip
  #   boom configure
-    boom distsrc
+ #   boom distsrc
     eval ${PRODUCT}_version=`boom version`
 done
 
@@ -54,16 +54,16 @@ if "%IBASE%"=="" (
 END
 
 for PRODUCT in $PRODUCTS; do
-    tar -xzf $HOME/products/$PRODUCT/*.tar.gz
-    eval SUBDIR="\$${PRODUCT}_version"
+    eval ARCHIVE="\$${PRODUCT}_version"
+    tar -xzf $HOME/products/$PRODUCT/$ARCHIVE-src.tar.gz
 
-    echo "cd $SUBDIR"                >>build.sh
+    echo "cd $ARCHIVE"               >>build.sh
     echo "sh ./boomake build install">>build.sh
     echo "cd .."                     >>build.sh
 
-    echo "cd $SUBDIR"           >>build.bat
-    echo "boomake build install">>build.bat
-    echo "cd .."                >>build.bat
+    echo "cd $ARCHIVE"           >>build.bat
+    echo "boomake build install" >>build.bat
+    echo "cd .."                 >>build.bat
 done
 
 cat<<END>>build.sh
