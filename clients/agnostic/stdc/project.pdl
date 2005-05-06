@@ -18,12 +18,10 @@
 <file name = "amq_stdc_global_fsm.xml"      class = "gsl data"        >State machine definitions</file>
 <file name = "amq_stdc_connection_fsm.xml"  class = "gsl data"        >State machine definitions</file>
 <file name = "amq_stdc_channel_fsm.xml"     class = "gsl data"        >State machine definitions</file>
-<file name = "amq_stdc_handle_fsm.xml"      class = "gsl data"        >State machine definitions</file>
 <file name = "amq_stdc_message_fsm.xml"     class = "gsl data"        >State machine definitions</file>
 <file name = "amq_stdc_global_fsm.c"        class = "state machine"   >Global state machine</file>
 <file name = "amq_stdc_connection_fsm.c"    class = "state machine"   >Connection state machine</file>
 <file name = "amq_stdc_channel_fsm.c"       class = "state machine"   >Channel state machine</file>
-<file name = "amq_stdc_handle_fsm.c"        class = "state machine"   >Handle state machine</file>
 <file name = "amq_stdc_message_fsm.c"       class = "state machine"   >Message state machine</file>
 <file name = "amq_stdc_private.c"           class = "library module"  >Common functions</file>
 <file name = "amq_stdc_table.c"             class = "library module"  >Table field object</file>

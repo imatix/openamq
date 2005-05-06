@@ -13,7 +13,7 @@
 typedef struct tag_channel_fsm_context_t* channel_fsm_t;
 
 #include "amq_stdc_connection_fsm.h"
-#include "amq_stdc_handle_fsm.h"
+#include "amq_stdc_message_fsm.h"
 
 #include "amq_stdc_channel_fsm.i"
 
@@ -21,9 +21,14 @@ typedef struct tag_channel_fsm_context_t* channel_fsm_t;
  *  Helper functions (public)
  *---------------------------------------------------------------------------*/
 
-apr_status_t channel_get_handle (
+byte channel_has_handle (
     channel_fsm_t     context,
-    dbyte             handle_id,
-    handle_fsm_t      *handle);
+    dbyte             handle_id
+    );
+
+apr_status_t get_exclusive_access_to_query_dialogue (
+    channel_fsm_t  ctx
+    );
+
 
 #endif

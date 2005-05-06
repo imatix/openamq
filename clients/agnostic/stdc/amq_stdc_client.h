@@ -20,7 +20,6 @@
 
 typedef struct tag_connection_fsm_context_t* amq_stdc_connection_t;
 typedef struct tag_channel_fsm_context_t*    amq_stdc_channel_t;
-typedef struct tag_handle_fsm_context_t*     amq_stdc_handle_t;
 typedef struct tag_message_fsm_context_t*    amq_stdc_message_t;
 
 typedef struct
@@ -102,7 +101,29 @@ apr_status_t amq_stdc_open_channel (
     amq_stdc_table_t       options,
     const char             *out_of_band,
     byte                   async,
-    amq_stdc_channel_t     *channel);
+    amq_stdc_channel_t     *channel
+    );
+
+apr_status_t amq_stdc_open_handle (
+    amq_stdc_channel_t       channel,
+    amq_stdc_service_type_t  service_type,
+    byte                     producer,
+    byte                     consumer,
+    byte                     browser,
+    byte                     temporary,
+    char                     *dest_name,
+    char                     *mime_type,
+    char                     *encoding,
+    amq_stdc_table_t         options,
+    byte                     async,
+    char                     **dest_name_out,
+    dbyte                    *handle_id
+    );
+
+apr_status_t amq_stdc_close_handle (
+    amq_stdc_channel_t  channel,
+    dbyte               handle_id
+    );
 
 apr_status_t amq_stdc_acknowledge (
     amq_stdc_channel_t  channel,
@@ -122,6 +143,37 @@ apr_status_t amq_stdc_rollback (
     byte                async
     );
 
+apr_status_t amq_stdc_send_message (
+    amq_stdc_channel_t  channel,
+    dbyte               handle_id,
+    byte                out_of_band,
+    byte                recovery,
+    byte                streaming,
+    const char          *dest_name,
+    byte                persistent,
+    byte                priority,
+    qbyte               expiration,
+    const char          *mime_type,
+    const char          *encoding,
+    const char          *identifier,
+    apr_size_t          data_size,
+    void                *data,
+    byte                async
+    );
+
+apr_status_t amq_stdc_consume (
+    amq_stdc_channel_t  channel,
+    dbyte               handle_id,
+    dbyte               prefetch,
+    byte                no_local,
+    byte                unreliable,
+    const char          *dest_name,
+    const char          *identifier,
+    const char          *selector,
+    const char          *mime_type,
+    byte                async
+    );
+
 apr_status_t amq_stdc_get_message (
     amq_stdc_channel_t       channel,
     byte                     wait,
@@ -129,102 +181,61 @@ apr_status_t amq_stdc_get_message (
     amq_stdc_message_t       *message
     );
 
-apr_status_t amq_stdc_close_channel (
-    amq_stdc_channel_t  channel
-    );
-
-apr_status_t amq_stdc_open_handle (
-    amq_stdc_channel_t       channel,
-    amq_stdc_service_type_t  service_type,
-    byte                     producer,
-    byte                     consumer,
-    byte                     browser,
-    byte                     temporary,
-    char                     *dest_name,
-    char                     *mime_type,
-    char                     *encoding,
-    amq_stdc_table_t         options,
-    byte                     async,
-    char                     **dest_name_out,
-    amq_stdc_handle_t        *handle
-    );
-
-apr_status_t amq_stdc_consume (
-    amq_stdc_handle_t  handle,
-    dbyte              prefetch,
-    byte               no_local,
-    byte               unreliable,
-    const char         *dest_name,
-    const char         *identifier,
-    const char         *selector,
-    const char         *mime_type,
-    byte               async
-    );
-
-apr_status_t amq_stdc_send_message (
-    amq_stdc_handle_t  handle,
-    byte               out_of_band,
-    byte               recovery,
-    byte               streaming,
-    const char         *dest_name,
-    byte               persistent,
-    byte               priority,
-    qbyte              expiration,
-    const char         *mime_type,
-    const char         *encoding,
-    const char         *identifier,
-    apr_size_t         data_size,
-    void               *data,
-    byte               async
-    );
-
-apr_status_t amq_stdc_flow (
-    amq_stdc_handle_t  handle,
-    byte               pause,
-    byte               async
-    );
-
-apr_status_t amq_stdc_cancel_subscription (
-    amq_stdc_handle_t  handle,
-    const char         *dest_name,
-    const char         *identifier,
-    byte               async
-    );
-
-apr_status_t amq_stdc_unget_message (
-    amq_stdc_handle_t  handle,
-    qbyte              message_nbr,
-    byte               async
-    );
-
-apr_status_t amq_stdc_close_handle (
-    amq_stdc_handle_t  handle
-    );
-
-apr_status_t amq_stdc_query (
-    amq_stdc_handle_t  handle,
-    qbyte              message_nbr,
-    const char         *dest_name,
-    const char         *selector,
-    const char         *mime_type,
-    byte               partial,
-    char               **resultset
-    );
-
-apr_status_t amq_stdc_destroy_query (
-    char  *query
-    );
-
 apr_status_t amq_stdc_browse (
-    amq_stdc_handle_t        handle,
+    amq_stdc_channel_t       channel,
+    dbyte                    handle_id,
     qbyte                    message_nbr,
     byte                     async,
     amq_stdc_message_desc_t  **message_desc,
     amq_stdc_message_t       *message
     );
 
+apr_status_t amq_stdc_flow (
+    amq_stdc_channel_t  channel,
+    dbyte               handle_id,
+    byte                pause,
+    byte                async
+    );
+
+apr_status_t amq_stdc_cancel_subscription (
+    amq_stdc_channel_t  channel,
+    dbyte               handle_id,
+    const char          *dest_name,
+    const char          *identifier,
+    byte                async
+    );
+
+apr_status_t amq_stdc_unget_message (
+    amq_stdc_channel_t  channel,
+    dbyte               handle_id,
+    qbyte               message_nbr,
+    byte                async
+    );
+
+apr_status_t amq_stdc_query (
+    amq_stdc_channel_t  channel,
+    dbyte               handle_id,
+    qbyte               message_nbr,
+    const char          *dest_name,
+    const char          *selector,
+    const char          *mime_type,
+    byte                partial,
+    char                **resultset
+    );
+
+apr_status_t amq_stdc_close_channel (
+    amq_stdc_channel_t  channel
+    );
+
+/*---------------------------------------------------------------------------*/
 
 
+apr_status_t amq_stdc_destroy_query (
+    char  *query
+    );
+
+
+/*---------------------------------------------------------------------------*/
 
 size_t amq_stdc_read (
     amq_stdc_message_t  message,

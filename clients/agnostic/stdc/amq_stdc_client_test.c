@@ -167,8 +167,8 @@ int main (
         connection;                     /*  Connection object                */
     amq_stdc_channel_t
         channel;                        /*  Channel object                   */
-    amq_stdc_handle_t
-        handle;                         /*  Handle object                    */
+    dbyte
+        handle_id;                      /*  Id of handle to use              */
     qbyte
         message_nbr;                    /*  Individual query result          */
     char
@@ -334,7 +334,7 @@ int main (
         client.clienttype == clienttype_producer ? 1: 0,
         client.clienttype == clienttype_consumer ? 1: 0,
         client.clienttype == clienttype_query ? 1: 0,
-        client.temporary, "", "", "", NULL, 0, &dest_name, &handle);
+        client.temporary, "", "", "", NULL, 0, &dest_name, &handle_id);
     if (result != APR_SUCCESS) {
         printf ("amq_stdc_open_handle failed\n");
         return EXIT_FAILURE;
@@ -350,7 +350,7 @@ int main (
             sprintf (identifier, "%s-%ld", client.client_name,
                 client.last_message_number);
 
-            result = amq_stdc_send_message (handle, 0, 0, 0,
+            result = amq_stdc_send_message (channel, handle_id, 0, 0, 0,
                 client.destination, client.persistent, 0, 0, "", "",
                 identifier, client.message_size, client.message_buffer, 0);
             if (result != APR_SUCCESS) {
@@ -393,8 +393,8 @@ int main (
 
     /*  Mode : CONSUMER                                                      */
     if (client.clienttype == clienttype_consumer) {
-        result = amq_stdc_consume (handle, client.prefetch, client.no_local,
-            0, client.destination, "", "", "", 0);
+        result = amq_stdc_consume (channel, handle_id, client.prefetch,
+            client.no_local, 0, client.destination, "", "", "", 0);
         if (result != APR_SUCCESS) {
             printf ("amq_stdc_consume failed\n");
             return EXIT_FAILURE;
@@ -454,8 +454,8 @@ int main (
 
     /*  Mode : QUERY                                                         */
     if (client.clienttype == clienttype_query) {
-        result = amq_stdc_query (handle, 0, client.destination, "", "", 1,
-            &(client.query_result));
+        result = amq_stdc_query (channel, handle_id, 0, client.destination,
+            "", "", 1, &(client.query_result));
         if (result != APR_SUCCESS) {
             printf ("amq_stdc_query failed\n");
             return EXIT_FAILURE;
@@ -472,8 +472,8 @@ int main (
             if (message_nbr == -1)
                 break;
 
-            result = amq_stdc_browse (handle, message_nbr, 0, &message_desc,
-                &message);
+            result = amq_stdc_browse (channel, handle_id, message_nbr, 0,
+                &message_desc, &message);
             if (result != APR_SUCCESS) {
                 printf ("amq_stdc_browse failed\n");
                 return EXIT_FAILURE;
@@ -506,7 +506,7 @@ int main (
         }
     }
 
-    result = amq_stdc_close_handle (handle);
+    result = amq_stdc_close_handle (channel, handle_id);
     if (result != APR_SUCCESS) {
         printf ("amq_stdc_close_handle failed\n");
         return EXIT_FAILURE;

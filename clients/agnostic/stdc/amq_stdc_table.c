@@ -96,7 +96,7 @@ apr_status_t amq_stdc_table_add_string (
     result = s_table_add_field (table, name, 'S', sizeof (dbyte) + size,
         &dest);
     AMQ_ASSERT_STATUS (result, s_table_add_field)
-    *((dbyte*) dest) = htons (size);
+    PUT_SHORT ((char*) dest, size)
     memcpy (dest + sizeof (dbyte), (void*) string, size);
 
     return APR_SUCCESS;
@@ -116,7 +116,7 @@ apr_status_t amq_stdc_table_add_integer (
     result = s_table_add_field (table, name, 'I', sizeof (long),
         (void**) &dest);
     AMQ_ASSERT_STATUS (result, s_table_add_field)
-    *dest = htonl (integer);
+    PUT_LONG ((char*) dest, integer)
 
     return APR_SUCCESS;
 }
@@ -137,7 +137,7 @@ apr_status_t amq_stdc_table_add_decimal (
         sizeof (long), &dest);
     AMQ_ASSERT_STATUS (result, s_table_add_field)
     *((byte*) dest) = decimals;
-    *((long*) (dest + sizeof (byte))) = htonl (value);
+    PUT_LONG ((char*) (dest + sizeof (byte)), (qbyte) value) 
 
     return APR_SUCCESS;
 
@@ -158,6 +158,7 @@ apr_status_t amq_stdc_table_add_time (
         (void**) &dest);
     AMQ_ASSERT_STATUS (result, s_table_add_field)
     *dest = htonl (time);
+    PUT_LONG ((char*) dest, (qbyte) time)
 
     return APR_SUCCESS;
 }

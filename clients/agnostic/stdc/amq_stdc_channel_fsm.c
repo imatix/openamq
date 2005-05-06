@@ -62,10 +62,14 @@ typedef struct tag_message_list_item_t
 
 typedef struct tag_handle_list_item_t
 {
-    handle_fsm_t
-        handle;
     dbyte
         handle_id;
+    dbyte
+        created_tag;
+    dbyte
+        shutdown_tag;
+    char
+        *dest_name;
     struct tag_handle_list_item_t
         *next;
 } handle_list_item_t;
@@ -86,6 +90,13 @@ DEFINE_CHANNEL_FSM_CONTEXT_BEGIN
     dbyte
         shutdown_tag;               /*  Id of lock that's used for waiting   */
                                     /*  for CHANNEL CLOSE                    */
+    dbyte
+        index_tag;                  /*  Id of lock that's used for waiting   */
+                                    /*  for HANDLE INDEX                     */
+    apr_thread_mutex_t
+        *query_sync;                /*  Critical section allowing only       */
+                                    /*  single thread to perform             */
+                                    /*  HANDLE QUERY at the same time        */
     lock_list_item_t
         *first_lock;                /*  First lock waiting for message       */
     lock_list_item_t
@@ -108,6 +119,9 @@ inline static apr_status_t do_construct (
     channel_fsm_context_t *context
     )
 {
+    apr_status_t
+        result;
+
     context->first_message = NULL;
     context->last_message = NULL;
     context->read_message = NULL;
@@ -115,6 +129,13 @@ inline static apr_status_t do_construct (
     context->last_lock = NULL;
     context->handles = NULL;
     context->browse_requests = NULL;
+    context->shutdown_tag = 0;
+    context->index_tag = 0;
+
+    result = apr_thread_mutex_create (&(context->query_sync),
+        APR_THREAD_MUTEX_UNNESTED, context->pool);
+    AMQ_ASSERT_STATUS (result, apr_thread_mutex_create)
+
     return APR_SUCCESS;
 }
 
@@ -205,39 +226,66 @@ static apr_status_t s_pair_lock_and_message (
  *---------------------------------------------------------------------------*/
 
 /*  -------------------------------------------------------------------------
-    Function: channel_get_handle
+    Function: get_exclusive_access_to_query_dialogue
 
     Synopsis:
-    Converts handle id into handle handle.
-    Used by connection_get_handle.
+    Waits till currently running query is ended, then suspends all other
+    threads that may be requesting to do a query.
+
+    Arguments:
+        context              channel handle
+    -------------------------------------------------------------------------*/
+
+apr_status_t get_exclusive_access_to_query_dialogue (
+    channel_fsm_t  context
+    )
+{
+    apr_status_t
+        result;
+
+    /*  Wait for exclusive access to query/index dialogue                    */
+    result = apr_thread_mutex_lock (context->query_sync);
+    AMQ_ASSERT_STATUS (result, apr_thread_mutex_lock);
+#   ifdef AMQTRACE_LOCKS
+        printf ("# Exclusive access to QUERY/INDEX dialogue gained\n");
+#   endif
+    return APR_SUCCESS;
+}
+
+/*  -------------------------------------------------------------------------
+    Function: channel_has_handle
+
+    Synopsis:
+    Determines whether channel has handle with specified id opened.
+    If so returns 1, otherwise 0.
+    Used by connection_get_channel_from_handle
 
     Arguments:
         ctx                  channel handle
         handle_id            id to map
-        handle               out parameter; mapped handle
     -------------------------------------------------------------------------*/
 
-apr_status_t channel_get_handle (
+byte channel_has_handle (
     channel_fsm_t     context,
-    dbyte             handle_id,
-    handle_fsm_t      *handle)
+    dbyte             handle_id
+    )
 {
     apr_status_t
         result;
     handle_list_item_t
         *item;
+    byte
+        rc = 0;
 
     result = channel_fsm_sync_begin (context);
     AMQ_ASSERT_STATUS (result, channel_fsm_sync_begin);
 
     item = context->handles;
     while (1) {
-        if (!item) {
-            if (handle) *handle = NULL;
+        if (!item)
             break;
-        }
         if (item->handle_id == handle_id) {
-            if (handle) *handle = item->handle;
+            rc = 1;
             break;
         }
         item = item->next;
@@ -246,7 +294,7 @@ apr_status_t channel_get_handle (
     result = channel_fsm_sync_end (context);
     AMQ_ASSERT_STATUS (result, channel_fsm_sync_end);
 
-    return APR_SUCCESS;
+    return rc;
 }
 
 /*---------------------------------------------------------------------------
@@ -313,7 +361,7 @@ inline static apr_status_t do_init (
     return APR_SUCCESS;
 }
 
-inline static apr_status_t do_create_handle (
+inline static apr_status_t do_open_handle (
     channel_fsm_context_t  *context,
     dbyte                  service_type,
     byte                   producer,
@@ -325,66 +373,185 @@ inline static apr_status_t do_create_handle (
     const char             *encoding,
     amq_stdc_table_t       options,
     byte                   async,
-    handle_fsm_t           *out,
+    dbyte                  *handle_id,
     amq_stdc_lock_t        *created_lock,
     amq_stdc_lock_t        *lock
     )
 {
     apr_status_t
         result;
-    handle_fsm_t
-        handle;
+    dbyte
+        id;
     handle_list_item_t
         *item;
+    char
+        *chunk;
+    qbyte
+        chunk_size;
     dbyte
-        handle_id;
+        confirm_tag;
+    qbyte
+        dest_name_size = strlen (dest_name);
+    qbyte
+        mime_type_size = strlen (mime_type);
+    qbyte
+        encoding_size = strlen (encoding);
+
+    if (dest_name_size > 255)
+        AMQ_ASSERT (Destination name exceeds 255 characters)
+    if (mime_type_size > 255)
+        AMQ_ASSERT (MIME type field exceeds 255 characters)
+    if (encoding_size > 255)
+        AMQ_ASSERT (Encoding field name exceeds 255 characters)
+
+    if (lock)
+        *lock = NULL;
+    if (created_lock)
+        *created_lock = NULL;
 
     /*  Assign new handle id                                                 */
-    result = global_fsm_assign_new_handle_id (context->global, &handle_id);
+    result = global_fsm_assign_new_handle_id (context->global, &id);
     AMQ_ASSERT_STATUS (result, global_fsm_assign_new_handle_id)
-
-    /*  Create handle object                                                 */
-    result = handle_fsm_create (&handle);
-    AMQ_ASSERT_STATUS (result, handle_fsm_create)
 
     /*  Insert it into linked list of existing handles                       */
     item = (handle_list_item_t*)
         amq_malloc (sizeof (handle_list_item_t));
     if (!item)
         AMQ_ASSERT (Not enough memory)
-    item->handle = handle;
-    item->handle_id = handle_id;
+    item->handle_id = id;
+    item->created_tag = 0;
+    item->shutdown_tag = 0;
+    item->dest_name = NULL;
     item->next = context->handles;
     context->handles = item;
 
-    /*  Start it                                                         */
-    if (!temporary) {
-        result = handle_fsm_init (handle, context->global, context->connection,
-            context, context->connection_id, context->id, handle_id,
-            service_type, producer, consumer, browser, dest_name,
-            mime_type, encoding, options, async, lock);
-        AMQ_ASSERT_STATUS (result, handle_fsm_init)
-        if (created_lock)
-            *created_lock = NULL;
-    }
-    else {
-        result = handle_fsm_init_temporary (handle, context->global,
-            context->connection, context, context->connection_id,
-            context->id, handle_id, service_type, producer, consumer, browser,
-            dest_name, mime_type, encoding, options, async, created_lock, lock);
-        AMQ_ASSERT_STATUS (result, handle_fsm_init_temporary)
+    /*  Register that we will be waiting for handle open completion          */
+    confirm_tag = 0;
+    if (!async) {
+        result = register_lock (context->global, context->connection_id,
+            context->id, 0, &confirm_tag, lock);
+        AMQ_ASSERT_STATUS (result, register_lock)
     }
 
-    if (out) *out = handle;
+    /*  We have to wait for HANDLE CREATED                                   */
+    if (temporary) {
+        result = register_lock (context->global, context->connection_id,
+            context->id, 0, &(item->created_tag), created_lock);
+        AMQ_ASSERT_STATUS (result, register_lock)
+    }
+
+    /*  Send HANDLE OPEN                                                     */    
+    chunk_size = COMMAND_SIZE_MAX_SIZE + AMQ_STDC_HANDLE_OPEN_CONSTANT_SIZE +
+        dest_name_size + mime_type_size + encoding_size;
+    chunk = (char*) amq_malloc (chunk_size);
+    if (!chunk)
+        AMQ_ASSERT (Not enough memory)
+    chunk_size = amq_stdc_encode_handle_open (chunk, chunk_size, context->id,
+        id, service_type, confirm_tag, producer, consumer, browser, temporary,
+        dest_name_size, dest_name, mime_type_size, mime_type, encoding_size,
+        encoding, amq_stdc_table_size (options),
+        amq_stdc_table_data (options));
+    if (!chunk_size)
+        AMQ_ASSERT (Framing error)
+    result = connection_fsm_send_chunk (context->connection, chunk,
+        chunk_size, async ? lock : NULL);
+    AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
+
+    if (handle_id)
+        *handle_id = id;
 
     return APR_SUCCESS;
 }
 
-inline static apr_status_t do_remove_handle (
-    channel_fsm_t  context,
-    handle_fsm_t   handle
+inline static apr_status_t do_created (
+    channel_fsm_context_t  *context,
+    dbyte                  handle_id,
+    dbyte                  dest_name_size,
+    const char             *dest_name
     )
 {
+    apr_status_t
+        result;
+    handle_list_item_t
+        *item;
+
+    /*  Find apropriate handle                                               */
+    item = context->handles;
+    while (1) {
+        if (!item)
+            AMQ_ASSERT (Handle specified does not exist)
+        if (item->handle_id == handle_id)
+            break;
+        item = item->next;
+    }
+
+    /*  Store temporary destination name                                     */
+    item->dest_name = (char*) amq_malloc (dest_name_size + 1);
+    if (!item->dest_name)
+        AMQ_ASSERT (Not enough memory)
+    memcpy ((void*) item->dest_name, (void*) dest_name, dest_name_size);
+    (item->dest_name) [dest_name_size] = 0;
+
+    /*  Unsuspend thread waiting for temporary queue creation                */
+    result = release_lock (context->global, item->created_tag,
+        (void*) item->dest_name);
+    AMQ_ASSERT_STATUS (result, release_lock)
+    return APR_SUCCESS; 
+}
+
+inline static apr_status_t do_close_handle (
+    channel_fsm_t    context,
+    dbyte            handle_id,
+    amq_stdc_lock_t  *lock
+    )
+{
+    apr_status_t
+        result;
+    char
+        *chunk;
+    qbyte
+        chunk_size;
+    handle_list_item_t
+        *item;
+
+    /*  Find apropriate handle                                               */
+    item = context->handles;
+    while (1) {
+        if (!item)
+            AMQ_ASSERT (Handle specified does not exist)
+        if (item->handle_id == handle_id)
+            break;
+        item = item->next;
+    }
+
+    result = register_lock (context->global, context->connection_id,
+        context->id, 0, &(item->shutdown_tag), lock);
+    AMQ_ASSERT_STATUS (result, register_lock)
+
+    /*  Send HANDLE CLOSE                                                    */
+    chunk_size = COMMAND_SIZE_MAX_SIZE +
+        AMQ_STDC_HANDLE_CLOSE_CONSTANT_SIZE + 0;
+    chunk = (char*) amq_malloc (chunk_size);
+    if (!chunk)
+        AMQ_ASSERT (Not enough memory)
+    chunk_size = amq_stdc_encode_handle_close (chunk, chunk_size, handle_id,
+        200, 0, "");
+    if (!chunk_size)
+        AMQ_ASSERT (Framing error)
+    result = connection_fsm_send_chunk (context->connection, chunk,
+        chunk_size, NULL);
+    AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
+
+    return APR_SUCCESS;
+}
+
+inline static apr_status_t do_handle_closed (
+    channel_fsm_t  context,
+    dbyte          handle_id
+    )
+{
+    apr_status_t
+        result;
     handle_list_item_t
         *item;
     handle_list_item_t
@@ -395,14 +562,26 @@ inline static apr_status_t do_remove_handle (
     while (1) {
         if (!item)
             AMQ_ASSERT (Handle specified does not exist)
-        if (item->handle == handle) {
-            *prev = item->next;
-            amq_free (item);
+        if (item->handle_id == handle_id)
             break;
-        }
         prev = &(item->next);
         item = item->next;
     }
+
+    /* TODO: Unlock all locks waiting on this handle                         */
+    /* Should be specified whether close_handle drops all pending results    */
+    /* for QUERY, BROWSE, etc.                                               */
+
+    /*  Resume thread waiting for close completion                           */
+    if (item->shutdown_tag)
+        result = release_lock (context->global, item->shutdown_tag, NULL);
+    AMQ_ASSERT_STATUS (result, release_lock)
+
+    /*  Remove handle from the list                                          */
+    if (item->dest_name)
+        amq_free ((void*) item->dest_name);
+    *prev = item->next;
+        amq_free (item);
 
     return APR_SUCCESS;
 }
@@ -525,6 +704,155 @@ inline static apr_status_t do_rollback (
     result = connection_fsm_send_chunk (context->connection, chunk,
         chunk_size, async ? lock : NULL);
     AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);    
+
+    return APR_SUCCESS;
+}
+
+inline static apr_status_t do_send_message (
+    channel_fsm_context_t  *context,
+    dbyte                  handle_id,
+    byte                   out_of_band,
+    byte                   recovery,
+    byte                   streaming,
+    const char             *dest_name,
+    byte                   persistent,
+    byte                   priority,
+    qbyte                  expiration,
+    const char             *mime_type,
+    const char             *encoding,
+    const char             *identifier,
+    apr_size_t             data_size,
+    void                   *data,
+    byte                   async,
+    amq_stdc_lock_t        *lock
+    )
+{
+    apr_status_t
+        result;
+    char
+        *chunk;
+    qbyte
+        command_size;
+    qbyte
+        header_size;
+    dbyte
+        confirm_tag;
+    qbyte
+        dest_name_size = strlen (dest_name);
+    qbyte
+        mime_type_size = strlen (mime_type);
+    qbyte
+        encoding_size = strlen (encoding);
+    qbyte
+        identifier_size = strlen (identifier);
+
+    if (dest_name_size > 255)
+        AMQ_ASSERT (Destination name field exceeds 255 characters)
+    if (mime_type_size > 255)
+        AMQ_ASSERT (MIME type field exceeds 255 characters)
+    if (encoding_size > 255)
+        AMQ_ASSERT (Encoding field exceeds 255 characters)
+    if (identifier_size > 255)
+        AMQ_ASSERT (Identifier field exceeds 255 characters)
+    
+    confirm_tag = 0;
+    if (!async) {
+        result = register_lock (context->global, context->connection_id,
+            context->id, 0, &confirm_tag, lock);
+        AMQ_ASSERT_STATUS (result, register_lock)
+    }
+
+    /*  Send HANDLE SEND + MESSAGE HEAD + data                               */
+    command_size = COMMAND_SIZE_MAX_SIZE +
+        AMQ_STDC_HANDLE_SEND_CONSTANT_SIZE + dest_name_size;
+    header_size = AMQ_STDC_MESSAGE_HEAD_CONSTANT_SIZE + mime_type_size +
+        encoding_size + identifier_size;
+    chunk = (char*) amq_malloc (command_size + header_size + data_size);
+    if (!chunk)
+        AMQ_ASSERT (Not enough memory)
+    command_size = amq_stdc_encode_handle_send (chunk, command_size,
+        handle_id, confirm_tag, header_size + data_size, 0, out_of_band,
+        recovery, streaming, dest_name_size, dest_name);
+    if (!command_size)
+        AMQ_ASSERT (Framing error)
+    header_size = amq_stdc_encode_message_head (chunk + command_size,
+        header_size, data_size, persistent, priority, expiration,
+        mime_type_size, mime_type, encoding_size, encoding, identifier_size,
+        identifier, 0, "");
+    if (!header_size)
+        AMQ_ASSERT (Framing error)
+    memcpy ((void*) (chunk + command_size + header_size), (void*) data,
+        data_size);
+    result = connection_fsm_send_chunk (context->connection, chunk,
+        command_size + header_size + data_size, async ? lock : NULL);
+    AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
+
+    return APR_SUCCESS;
+}
+
+inline static apr_status_t do_consume (
+    channel_fsm_context_t  *context,
+    dbyte                  handle_id,
+    dbyte                  prefetch,
+    byte                   no_local,
+    byte                   unreliable,
+    const char             *dest_name,
+    const char             *identifier,
+    const char             *selector,
+    const char             *mime_type,
+    byte                   async,
+    amq_stdc_lock_t        *lock
+    )
+{
+    apr_status_t
+        result;
+    char
+        *chunk;
+    qbyte
+        chunk_size;
+    dbyte
+        confirm_tag;
+    qbyte
+        dest_name_size = strlen (dest_name);
+    qbyte
+        identifier_size = strlen (identifier);
+    qbyte
+        selector_size = strlen (selector);
+    qbyte
+        mime_type_size = strlen (mime_type);
+
+    if (dest_name_size > 255)
+        AMQ_ASSERT (Destination name field exceeds 255 characters)
+    if (identifier_size > 255)
+        AMQ_ASSERT (Identifier field exceeds 255 characters)
+    if (selector_size > 65535)
+        AMQ_ASSERT (Selector field exceeds 65535 characters)
+    if (mime_type_size > 255)
+        AMQ_ASSERT (MIME type field exceeds 255 characters)
+
+    confirm_tag = 0;
+    if (!async) {
+        result = register_lock (context->global, context->connection_id,
+            context->id, 0, &confirm_tag, lock);
+        AMQ_ASSERT_STATUS (result, register_lock)
+    }
+
+    /*  Send HANDLE CONSUME                                                  */
+    chunk_size = COMMAND_SIZE_MAX_SIZE +
+        AMQ_STDC_HANDLE_CONSUME_CONSTANT_SIZE + dest_name_size +
+        identifier_size + selector_size + mime_type_size;
+    chunk = (char*) amq_malloc (chunk_size);
+    if (!chunk)
+        AMQ_ASSERT (Not enough memory)
+    chunk_size = amq_stdc_encode_handle_consume (chunk, chunk_size, context->id,
+        confirm_tag, prefetch, no_local, unreliable, dest_name_size,
+        dest_name, identifier_size, identifier, selector_size, selector,
+        mime_type_size, mime_type);
+    if (!chunk_size)
+        AMQ_ASSERT (Framing error)
+    result = connection_fsm_send_chunk (context->connection, chunk,
+        chunk_size, async ? lock : NULL);
+    AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
 
     return APR_SUCCESS;
 }
@@ -761,6 +1089,227 @@ inline static apr_status_t do_remove_message_desc (
     amq_free ((void*) item);
 
     return APR_SUCCESS;
+}
+
+inline static apr_status_t do_flow (
+    channel_fsm_context_t  *context,
+    dbyte                  handle_id,
+    byte                   pause,
+    byte                   async,
+    amq_stdc_lock_t        *lock
+    )
+{
+    apr_status_t
+        result;
+    char
+        *chunk;
+    qbyte
+        chunk_size;
+    dbyte
+        confirm_tag;
+    
+    confirm_tag = 0;
+    if (!async) {
+        result = register_lock (context->global, context->connection_id,
+            context->id, 0, &confirm_tag, lock);
+        AMQ_ASSERT_STATUS (result, register_lock)
+    }
+
+    /*  Send HANDLE FLOW                                                     */
+    chunk_size = COMMAND_SIZE_MAX_SIZE + AMQ_STDC_HANDLE_FLOW_CONSTANT_SIZE;
+    chunk = (char*) amq_malloc (chunk_size);
+    if (!chunk)
+        AMQ_ASSERT (Not enough memory)
+    chunk_size = amq_stdc_encode_handle_flow (chunk, chunk_size, handle_id,
+          confirm_tag, pause);
+    if (!chunk_size)
+        AMQ_ASSERT (Framing error)
+    result = connection_fsm_send_chunk (context->connection, chunk,
+        chunk_size, async ? lock : NULL);
+    AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
+
+    return APR_SUCCESS;
+}
+
+inline static apr_status_t do_cancel (
+    channel_fsm_context_t  *context,
+    dbyte                  handle_id,
+    const char             *dest_name,
+    const char             *identifier,
+    byte                   async,
+    amq_stdc_lock_t        *lock
+    )
+{
+    apr_status_t
+        result;
+    char
+        *chunk;
+    qbyte
+        chunk_size;
+    dbyte
+        confirm_tag;
+    qbyte
+        dest_name_size = strlen (dest_name);
+    qbyte
+        identifier_size = strlen (identifier);
+
+    if (dest_name_size > 255)
+        AMQ_ASSERT (Destination name field exceeds 255 characters)
+    if (identifier_size > 255)
+        AMQ_ASSERT (Identifier field exceeds 255 characters)
+
+    confirm_tag = 0;
+    if (!async) {
+        result = register_lock (context->global, context->connection_id,
+            context->id, 0, &confirm_tag, lock);
+        AMQ_ASSERT_STATUS (result, register_lock)
+    }
+
+    /*  Send HANDLE CANCEL                                                   */
+    chunk_size = COMMAND_SIZE_MAX_SIZE + AMQ_STDC_HANDLE_CANCEL_CONSTANT_SIZE;
+    chunk = (char*) amq_malloc (chunk_size);
+    if (!chunk)
+        AMQ_ASSERT (Not enough memory)
+    chunk_size = amq_stdc_encode_handle_cancel (chunk, chunk_size, handle_id,
+        confirm_tag, dest_name_size, dest_name, identifier_size, identifier);
+    if (!chunk_size)
+        AMQ_ASSERT (Framing error)
+    result = connection_fsm_send_chunk (context->connection, chunk,
+        chunk_size, async ? lock : NULL);
+    AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
+
+    return APR_SUCCESS;
+}
+
+inline static apr_status_t do_unget (
+    channel_fsm_context_t  *context,
+    dbyte                  handle_id,
+    qbyte                  message_nbr,
+    byte                   async,
+    amq_stdc_lock_t        *lock
+    )
+{
+    apr_status_t
+        result;
+    char
+        *chunk;
+    qbyte
+        chunk_size;
+    dbyte
+        confirm_tag;
+    
+    confirm_tag = 0;
+    if (!async) {
+        result = register_lock (context->global, context->connection_id,
+            context->id, 0, &confirm_tag, lock);
+        AMQ_ASSERT_STATUS (result, register_lock)
+    }
+
+    /*  Send HANDLE UNGET                                                    */
+    chunk_size = COMMAND_SIZE_MAX_SIZE + AMQ_STDC_HANDLE_UNGET_CONSTANT_SIZE;
+    chunk = (char*) amq_malloc (chunk_size);
+    if (!chunk)
+        AMQ_ASSERT (Not enough memory)
+    chunk_size = amq_stdc_encode_handle_unget (chunk, chunk_size, handle_id,
+        confirm_tag, message_nbr);
+    if (!chunk_size)
+        AMQ_ASSERT (Framing error)
+    result = connection_fsm_send_chunk (context->connection, chunk,
+        chunk_size, async ? lock : NULL);
+    AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
+
+    return APR_SUCCESS;
+}
+
+inline static apr_status_t do_query (
+    channel_fsm_context_t  *context,
+    dbyte                  handle_id,
+    qbyte                  message_nbr,
+    const char             *dest_name,
+    const char             *selector,
+    const char             *mime_type,
+    amq_stdc_lock_t        *lock
+    )
+{
+    apr_status_t
+        result;
+    char
+        *chunk;
+    qbyte
+        chunk_size;
+    qbyte
+        dest_name_size = strlen (dest_name);
+    qbyte
+        selector_size = strlen (selector);
+    qbyte
+        mime_type_size = strlen (mime_type);
+
+    if (dest_name_size > 255)
+        AMQ_ASSERT (Destination name field exceeds 255 characters)
+    if (selector_size > 65535)
+        AMQ_ASSERT (Selector field exceeds 65535 characters)
+    if (mime_type_size > 255)
+        AMQ_ASSERT (MIME type field exceeds 255 characters)
+
+    /*  Create lock to wait for HANDLE INDEX                                 */
+    result = register_lock (context->global, context->connection_id,
+        context->id, 0, &(context->index_tag), lock);
+    AMQ_ASSERT_STATUS (result, register_lock)
+
+    /*  Send HANDLE QUERY                                                    */
+    chunk_size = COMMAND_SIZE_MAX_SIZE + AMQ_STDC_HANDLE_QUERY_CONSTANT_SIZE +
+        dest_name_size + selector_size + mime_type_size;
+    chunk = (char*) amq_malloc (chunk_size);
+    if (!chunk)
+        AMQ_ASSERT (Not enough memory)
+    chunk_size = amq_stdc_encode_handle_query (chunk, chunk_size, handle_id,
+        message_nbr, dest_name_size, dest_name, selector_size, selector,
+        mime_type_size, mime_type);
+    if (!chunk_size)
+        AMQ_ASSERT (Framing error)
+    result = connection_fsm_send_chunk (context->connection, chunk,
+        chunk_size, NULL);
+    AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
+
+    return APR_SUCCESS;
+}
+
+inline static apr_status_t do_index (
+    channel_fsm_context_t  *context,
+    dbyte                  handle_id,
+    qbyte                  message_nbr,
+    qbyte                  message_list_size,
+    const char             *message_list
+    )
+{
+    apr_status_t
+        result;
+    char
+        *out;
+    
+    if (!context->index_tag)
+        AMQ_ASSERT (HANDLE INDEX received when no HANDLE QUERY was issued)
+
+    /*  Make copy of result                                                  */
+    out = (char*) amq_malloc (message_list_size + 1);
+    if (!out)
+        AMQ_ASSERT (Not enough memory)
+    strncpy (out, message_list, message_list_size);
+    out [message_list_size] = 0;
+
+    /*  Resume thread waiting for the HANDLE INDEX                           */
+    result = release_lock (context->global, context->index_tag,
+        (void*) out);
+    AMQ_ASSERT_STATUS (result, release_lock)
+
+    /*  Release exclusive access to QUERY/INDEX dialogue                     */
+    context->index_tag = 0;
+#   ifdef AMQTRACE_LOCKS
+        printf ("# Exclusive access to QUERY/INDEX dialogue released\n");
+#   endif
+    result = apr_thread_mutex_unlock (context->query_sync);
+    AMQ_ASSERT_STATUS (result, apr_thread_mutex_unlock)
+    return APR_SUCCESS;    
 }
 
 inline static apr_status_t do_browse (

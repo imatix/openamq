@@ -171,8 +171,6 @@ static void *s_receiver_thread (
        *context = (connection_fsm_context_t*) data;
    channel_fsm_t
        channel;
-   handle_fsm_t
-       handle;
    apr_size_t
        size;
    char
@@ -282,10 +280,11 @@ static void *s_receiver_thread (
            result =connection_get_channel_from_handle (
                context, frame.fields.handle_created.handle_id, &channel);
            AMQ_ASSERT_STATUS (result, connection_get_handle)
-           result = handle_fsm_created (handle,
+           result = channel_fsm_created (channel,
+               frame.fields.handle_created.handle_id,
                frame.fields.handle_created.dest_name_size,
                frame.fields.handle_created.dest_name);
-           AMQ_ASSERT_STATUS (result, handle_fsm_created)
+           AMQ_ASSERT_STATUS (result, channel_fsm_created)
            break;
        case amq_stdc_handle_notify_type:
            result =connection_get_channel_from_handle (
@@ -330,18 +329,19 @@ static void *s_receiver_thread (
            result = channel_fsm_receive_message (channel,
                &(frame.fields.handle_notify), message_header_buffer_ptr,
                header_size, fragment, body_size);
-           AMQ_ASSERT_STATUS (result, handle_fsm_receive_message)
+           AMQ_ASSERT_STATUS (result, channel_fsm_receive_message)
 
            break;
        case amq_stdc_handle_index_type:
-           result =connection_get_handle (
-               context, frame.fields.handle_index.handle_id, &handle);
+           result =connection_get_channel_from_handle (
+               context, frame.fields.handle_index.handle_id, &channel);
            AMQ_ASSERT_STATUS (result, connection_get_handle)
-           result = handle_fsm_index (handle,
+           result = channel_fsm_index (channel,
+               frame.fields.handle_index.handle_id,
                frame.fields.handle_index.message_nbr,
                frame.fields.handle_index.message_list_size,
                frame.fields.handle_index.message_list);
-           AMQ_ASSERT_STATUS (result, handle_fsm_index)
+           AMQ_ASSERT_STATUS (result, channel_fsm_index)
            break;
        case amq_stdc_handle_prepare_type:
            assert (0);
@@ -359,14 +359,15 @@ static void *s_receiver_thread (
                 frame.fields.handle_reply.reply_code,
                 frame.fields.handle_reply.reply_text_size,
                 frame.fields.handle_reply.reply_text);
-           AMQ_ASSERT_STATUS (result, handle_fsm_reply)
+           AMQ_ASSERT_STATUS (result, channel_fsm_reply)
            break;
        case amq_stdc_handle_close_type:
-           result = connection_get_handle (context,
-               frame.fields.handle_reply.handle_id, &handle);
+           result = connection_get_channel_from_handle (context,
+               frame.fields.handle_reply.handle_id, &channel);
            AMQ_ASSERT_STATUS (result, connection_get_handle)
-           result = handle_fsm_close (handle);
-           AMQ_ASSERT_STATUS (result, handle_fsm_close)
+           result = channel_fsm_handle_closed (channel,
+               frame.fields.handle_reply.handle_id);
+           AMQ_ASSERT_STATUS (result, channel_fsm_close_handle)
            break;
        default:
            AMQ_ASSERT (Unexpected frame type received from server)
@@ -560,52 +561,6 @@ apr_status_t connection_get_channel (
 }
 
 /*  -------------------------------------------------------------------------
-    Function: connection_get_handle
-
-    Synopsis:
-    Converts handle id into handle handle.
-    Used by command dispatcher to redirect AMQP handle commands to apropriate
-    Level 1 handle object.
-
-    Arguments:
-        ctx                connection handle
-        handle_id          id to map
-        handle             out parameter; mapped handle
-    -------------------------------------------------------------------------*/
-
-apr_status_t connection_get_handle (
-    connection_fsm_t  context,
-    dbyte             handle_id,
-    handle_fsm_t      *handle
-    )
-{
-    apr_status_t
-        result;
-    channel_list_item_t
-        *item;
-
-    result = connection_fsm_sync_begin (context);
-    AMQ_ASSERT_STATUS (result, connection_fsm_sync_begin);
-
-    item = context->channels;
-    while (1) {
-        if (!item) {
-            if (handle) *handle = NULL;
-            break;
-        }
-        channel_get_handle (item->channel, handle_id, handle);
-        if (*handle)
-            break;
-        item = item->next;
-    }
-
-    result = connection_fsm_sync_end (context);
-    AMQ_ASSERT_STATUS (result, connection_fsm_sync_end);
-
-    return APR_SUCCESS;
-}
-
-/*  -------------------------------------------------------------------------
     Function: connection_get_channel_from_handle
 
     Synopsis:
@@ -629,8 +584,6 @@ apr_status_t connection_get_channel_from_handle (
         result;
     channel_list_item_t
         *item;
-    handle_fsm_t
-        handle;
 
     result = connection_fsm_sync_begin (context);
     AMQ_ASSERT_STATUS (result, connection_fsm_sync_begin);
@@ -641,8 +594,7 @@ apr_status_t connection_get_channel_from_handle (
             if (channel) *channel = NULL;
             break;
         }
-        channel_get_handle (item->channel, handle_id, &handle);
-        if (handle)
+        if (channel_has_handle (item->channel, handle_id))
         {
             if (channel) *channel = item->channel;
             break;

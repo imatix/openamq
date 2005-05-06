@@ -39,7 +39,7 @@
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
-    <event name = "create handle">
+    <event name = "open handle">
         Request to open new handle
         <arg type = "dbyte" name = "service_type">
             Service type (queue, topic, peer to peer, ...)
@@ -71,7 +71,7 @@
         <arg type = "byte" name = "async">
              When 1, don't wait for confirmation from server
         </arg>
-        <arg type = "handle_fsm_t *" name = "out">
+        <arg type = "dbyte*" name = "handle_id">
              Connection created
         </arg>
         <arg type = "amq_stdc_lock_t *" name = "created_lock">
@@ -82,9 +82,31 @@
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
-    <event name = "remove handle">
-        Request to remove handle from channel's list of opened handles
-        <arg type = "handle_fsm_t" name = "handle">
+    <event name = "created">
+        HANDLE CREATED received from server
+        <arg type = "dbyte" name = "handle_id">
+             Id of handle created
+        </arg>
+        <arg type = "dbyte" name = "dest_name_size">
+            Size of temporary destination name
+        </arg>
+        <arg type = "const char *" name = "dest_name">
+            Temporary destination name
+        </arg>
+    </event>
+    <event name = "close handle">
+        Closes handle
+        <arg type = "dbyte" name = "handle_id">
+             Id of handle to close
+        </arg>
+        <arg type = "amq_stdc_lock_t *" name = "lock">
+             Output parameter, used to wait while server confirms the close
+        </arg>
+    </event>
+    <event name = "handle closed">
+        HANDLE CLOSE received from server
+        <arg type = "dbyte" name = "handle_id">
+            Id of handle closed
         </arg>
     </event>
     <event name = "acknowledge">
@@ -115,6 +137,87 @@
         Request to roll back work done
         <arg type = "amq_stdc_table_t" name = "options">
              Options to be passed to CHANNEL ROLLBACK command
+        </arg>
+        <arg type = "byte" name = "async">
+             When 1, don't wait for confirmation from server
+        </arg>
+        <arg type = "amq_stdc_lock_t *" name = "lock">
+             Output parameter, to be used to wait for operation completion
+        </arg>
+    </event>
+    <event name = "send message">
+        Request to send message
+        <arg type = "dbyte" name = "handle_id">
+            Id of handle to use
+        </arg>
+        <arg type = "byte" name = "out_of_band">
+            If 1, message content will be transferred out of band
+        </arg>
+        <arg type = "byte" name = "recovery">
+            If 1, recovery is going on
+        </arg>
+        <arg type = "byte" name = "streaming">
+            If 1, message is a stream
+        </arg>
+        <arg type = "const char *" name = "dest_name">
+            Destination name
+        </arg>
+        <arg type = "byte" name = "persistent">
+            If 1, message is persistent
+        </arg>
+        <arg type = "byte" name = "priority">
+            Message priority 
+        </arg>
+        <arg type = "qbyte" name = "expiration">
+            Message expiration
+        </arg>
+        <arg type = "const char *" name = "mime_type">
+            MIME type
+        </arg>
+        <arg type = "const char *" name = "encoding">
+            Content encoding
+        </arg>
+        <arg type = "const char *" name = "identifier">
+            Message identifier
+        </arg>
+        <arg type = "apr_size_t" name = "data_size">
+            Number of bytes in message body
+        </arg>
+        <arg type = "void *" name = "data">
+            Message body
+        </arg>
+        <arg type = "byte" name = "async">
+             When 1, don't wait for confirmation from server
+        </arg>
+        <arg type = "amq_stdc_lock_t *" name = "lock">
+             Output parameter, to be used to wait for operation completion
+        </arg>
+    </event>
+    <event name = "consume">
+        Request to consume data from destination
+        <arg type = "dbyte" name = "handle_id">
+            Id of handle to use
+        </arg>
+        <arg type = "dbyte" name = "prefetch">
+            Number of messages to prefetch
+        </arg>
+        <arg type = "byte" name = "no_local">
+            If 1, messages sent from this connection won't be received
+        </arg>
+        <arg type = "byte" name = "unreliable">
+            If 1, client won't acknowledge messages
+        </arg>
+        <arg type = "const char *" name = "dest_name">
+            Destination name
+        </arg>
+        <arg type = "const char *" name = "identifier">
+            Durable subsription name
+        </arg>
+        <arg type = "const char *" name = "selector">
+            Selector string
+        </arg>
+        <arg type = "const char *" name = "mime_type">
+            MIME type
         </arg>
         <arg type = "byte" name = "async">
              When 1, don't wait for confirmation from server
@@ -167,6 +270,90 @@
         <arg type = "amq_stdc_message_desc_t *" name = "message_desc">
         </arg>
     </event>
+    <event name = "flow">
+        Request to suspend or resume message flow from server
+        <arg type = "dbyte" name = "handle_id">
+            Id of handle to use
+        </arg>
+        <arg type = "byte" name = "pause">
+             If 1, flow should be suspended, if 0, it should be resumed
+        </arg>
+        <arg type = "byte" name = "async">
+             When 1, don't wait for confirmation from server
+        </arg>
+        <arg type = "amq_stdc_lock_t *" name = "lock">
+             Output parameter, to be used to wait for operation completion
+        </arg>
+    </event>
+    <event name = "cancel">
+        Request to cancel persistent subscription
+        <arg type = "dbyte" name = "handle_id">
+            Id of handle to use
+        </arg>
+        <arg type = "const char *" name = "dest_name">
+            Destination name
+        </arg>
+        <arg type = "const char *" name = "identifier">
+            Durable subscription name
+        </arg>
+        <arg type = "byte" name = "async">
+            When 1, don't wait for confirmation from server
+        </arg>
+        <arg type = "amq_stdc_lock_t *" name = "lock">
+            Output parameter, to be used to wait for operation completion
+        </arg>
+    </event>
+    <event name = "unget">
+        Request to push received message back to server
+        <arg type = "dbyte" name = "handle_id">
+            Id of handle to use
+        </arg>
+        <arg type = "qbyte" name = "message_nbr">
+            Number of message to push back to server
+        </arg>
+        <arg type = "byte" name = "async">
+            When 1, don't wait for confirmation from server
+        </arg>
+        <arg type = "amq_stdc_lock_t *" name = "lock">
+            Output parameter, to be used to wait for operation completion
+        </arg>
+    </event>
+    <event name = "query">
+        Request to query server for messages present
+        <arg type = "dbyte" name = "handle_id">
+            Id of handle to use
+        </arg>
+        <arg type = "qbyte" name = "message_nbr">
+            Query messages with message number greater than this value
+        </arg>
+        <arg type = "const char *" name = "dest_name">
+            Destination name
+        </arg>
+        <arg type = "const char *" name = "selector">
+            Selector string
+        </arg>
+        <arg type = "const char *" name = "mime_type">
+            MIME type
+        </arg>
+        <arg type = "amq_stdc_lock_t *" name = "lock">
+            Output parameter, to be used to wait for operation completion
+        </arg>
+    </event>
+    <event name = "index">
+        HANDLE INDEX received from server
+        <arg type = "dbyte" name = "handle_id">
+            Id of handle on which corresponding QUERY was issued
+        </arg>
+        <arg type = "qbyte" name = "message_nbr">
+            Last message number received
+        </arg>
+        <arg type = "qbyte" name = "message_list_size">
+            Size of list of message numbers
+        </arg>
+        <arg type = "const char *" name = "message_list">
+            List of message numbers
+        </arg>
+    </event>
     <event name = "browse">
         Request to browse server for specific message
         <arg type = "dbyte" name = "handle_id">
@@ -216,13 +403,22 @@
     </state>
     <state name = "active">
         Channel is opened and functional
-        <event name = "create handle" action = "do create handle"/>
-        <event name = "remove handle" action = "do remove handle"/>
+        <event name = "open handle" action = "do open handle"/>
+        <event name = "close handle" action = "do close handle"/>
+        <event name = "handle closed" action = "do handle closed"/>
+        <event name = "created" action = "do created"/>
         <event name = "acknowledge" action = "do acknowledge"/>
         <event name = "commit" action = "do commit"/>
         <event name = "rollback" action = "do rollback"/>
+        <event name = "send message" action = "do send message"/>
+        <event name = "consume" action = "do_consume"/>
         <event name = "receive message" action = "do receive message"/>
         <event name = "get message" action = "do get message"/>
+        <event name = "flow" action = "do flow"/>
+        <event name = "cancel" action = "do cancel"/>
+        <event name = "unget" action = "do unget"/>
+        <event name = "query" action = "do query"/>
+        <event name = "index" action = "do index"/>
         <event name = "browse" action = "do browse"/>
         <event name = "reply" action = "do reply"/>
     </state>

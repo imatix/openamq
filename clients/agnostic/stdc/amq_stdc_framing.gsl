@@ -100,7 +100,7 @@ sizeof (byte) + \
 .    elsif "$(type)" = "longstr" | "$(type)" = "table"
         if (pos + sizeof (dbyte) > size)
             return 0;
-        $(my.frame)$(name:c)_size = ntohs (*((dbyte*) (buffer + pos)));
+        GET_SHORT ($(my.frame)$(name:c)_size, buffer + pos)
         pos += sizeof (dbyte);
         if (pos + $(my.frame)$(name:c)_size > size)
             return 0;
@@ -109,12 +109,12 @@ sizeof (byte) + \
 .    elsif "$(type)" = "shortint"
         if (pos + sizeof (dbyte) > size)
             return 0;
-        $(my.frame)$(name:c) = ntohs (*((dbyte*) (buffer + pos)));
+        GET_SHORT ($(my.frame)$(name:c), buffer + pos)
         pos += sizeof (dbyte);
 .    elsif "$(type)" = "longint"
         if (pos + sizeof (qbyte) > size)
             return 0;
-        $(my.frame)$(name:c) = ntohl (*((qbyte*) (buffer + pos)));
+        GET_LONG ($(my.frame)$(name:c), buffer + pos)
         pos += sizeof (qbyte);
 .    elsif "$(type)" = "bit"
 .        if bitshift = 8
@@ -147,15 +147,15 @@ sizeof (byte) + \
     memcpy ((void*) buffer, (void*) $(name:c), $(name:c)_size);
     buffer += $(name:c)_size;
 .    elsif "$(type)" = "longstr" | "$(type)" = "table"
-    *((dbyte*) buffer) = htons ($(name:c)_size);
+    PUT_SHORT (buffer, $(name:c)_size)
     buffer += sizeof (dbyte);
     memcpy ((void*) buffer, (void*) $(name:c), $(name:c)_size);
     buffer += $(name:c)_size;
 .    elsif "$(type)" = "shortint"
-    *((dbyte*) buffer) = htons ($(name:c));
+    PUT_SHORT (buffer, $(name:c));
     buffer += sizeof (dbyte);
 .    elsif "$(type)" = "longint"
-    *((qbyte*) buffer) = htonl ($(name:c));
+    PUT_LONG (buffer, $(name:c));
     buffer += sizeof (qbyte);
 .    elsif "$(type)" = "bit"
 .        if bitshift = 8
@@ -187,6 +187,22 @@ sizeof (byte) + \
 #define AMQ_STDC_FRAMING_INCLUDED
 
 #include "base.h"
+
+#define GET_SHORT(host, net) \\
+    (host) = ((net) [0] << 8) + (net) [1];
+
+#define GET_LONG(host, net) \\
+    (host) = ((net) [0] << 24) + ((net) [1] << 16) + ((net) [2] << 8) + (net) [3];
+
+#define PUT_SHORT(net, host) \\
+    (net) [0] = (byte) (((host) >> 8) & 255); \\
+    (net) [1] = (byte) ((host)      & 255);
+
+#define PUT_LONG(net, host) \\
+    (net) [0] = (byte) (((host) >> 24) & 255); \\
+    (net) [1] = (byte) (((host) >> 16) & 255); \\
+    (net) [2] = (byte) (((host) >> 8)  & 255); \\
+    (net) [3] = (byte) ((host)       & 255);
 
 #define COMMAND_SIZE_MAX_SIZE \\
     (sizeof (dbyte) + sizeof (qbyte))
@@ -347,16 +363,16 @@ qbyte amq_stdc_decode_$(name:c) (
     if (sz < 0xffff) {\\
         if (sz + sizeof (dbyte) > size)\\
             return 0;\\
-        *((dbyte*) buffer) = htons (sz);\\
+        PUT_SHORT (buffer, sz)\\
         buffer += sizeof (dbyte);\\
         sz += sizeof (dbyte);\\
     }\\
     else {\\
         if (sz + sizeof (dbyte) + sizeof (qbyte) > size)\\
             return 0;\\
-        *((dbyte*) buffer) = 0xffff;\\
+        PUT_SHORT (buffer, 0xffff)\\
         buffer += sizeof (dbyte);\\
-        *((qbyte*) buffer) = htonl (sz);\\
+        PUT_LONG (buffer, sz)\\
         buffer += sizeof (qbyte);\\
         sz += sizeof (dbyte) + sizeof (qbyte);\\
     }
