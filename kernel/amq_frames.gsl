@@ -371,8 +371,7 @@ $(prefix)_frame_encode_mem (byte *buffer, size_t max_size, $(prefix)_frame_t *fr
                 target += frame->body.$(frame.name).$(name)->cur_size;
             }
             else {
-                *(dbyte *) target = 0;
-                target += 2;
+                PUT_SHORT (target, 0);
             }
 .           endif
 .       endfor

@@ -157,7 +157,7 @@ data type.  This class provides functions at a per-field level.
 
     /*  Copy field name                                                      */
     //TODO: validate that the field name is SQL-92 compliant
-    string_size = *(byte *) input;
+    string_size = *input;
     input += 1;
     memcpy (self->name, input, string_size);
     self->name [string_size] = 0;
@@ -182,7 +182,7 @@ data type.  This class provides functions at a per-field level.
     }
     else
     if (self->type == AMQ_FIELD_TYPE_DECIMAL) {
-        self->decimals = *(byte *) input;
+        self->decimals = *input;
         input += 1;
         GET_LONG (self->integer, input);
         field_end = input;
@@ -287,7 +287,7 @@ data type.  This class provides functions at a per-field level.
 
         /*  Write field name                                                 */
         name_length = strlen (self->name);
-        *(byte *) output = (byte) name_length;
+        *output = (byte) name_length;
         output += 1;
         memcpy (output, self->name, name_length);
         output += name_length;
@@ -308,7 +308,7 @@ data type.  This class provides functions at a per-field level.
         }
         else
         if (self->type == AMQ_FIELD_TYPE_DECIMAL) {
-            *(byte *) output = self->decimals;
+            *output = self->decimals;
             output += 1;
             PUT_LONG (output, self->integer);
         }
