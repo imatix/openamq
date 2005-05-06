@@ -15,13 +15,34 @@ data type.  This class provides functions at a per-field level.
 
 <import class = "ipr" />
 
-<public>
+<public name = "header">
 #define AMQ_FIELD_TYPE_STRING       'S'
 #define AMQ_FIELD_TYPE_INTEGER      'I'
 #define AMQ_FIELD_TYPE_DECIMAL      'D'
 #define AMQ_FIELD_TYPE_TIME         'T'
 #define AMQ_FIELD_NAME_MAX          128
 </public>
+
+<private name = "header">
+/*  Network byte ordering                                                    */
+
+#define GET_SHORT(host, net) \\
+    (host) = (net [0] << 8) + net [1]; \\
+    net += 2
+#define GET_LONG(host, net) \\
+    (host) = (net [0] << 24) + (net [1] << 16) + (net [2] << 8) + net [3]; \\
+    net += 4
+#define PUT_SHORT(net, host) \\
+    net [0] = (byte) ((host >> 8) & 255); \\
+    net [1] = (byte) ((host)      & 255); \\
+    net += 2
+#define PUT_LONG(net, host) \\
+    net [0] = (byte) ((host >> 24) & 255); \\
+    net [1] = (byte) ((host >> 16) & 255); \\
+    net [2] = (byte) ((host >> 8)  & 255); \\
+    net [3] = (byte) ((host)       & 255); \\
+    net += 4
+</private>
 
 <context>
     ipr_shortstr_t
@@ -147,8 +168,7 @@ data type.  This class provides functions at a per-field level.
     input += 1;
 
     if (self->type == AMQ_FIELD_TYPE_STRING) {
-        string_size = ntohs (*(dbyte *) input);
-        input += 2;
+        GET_SHORT (string_size, input);
         self->string = ipr_longstr_new (input, string_size + 1);
         self->string->data [string_size] = '\\0';
         self->string->cur_size = string_size;
@@ -157,22 +177,19 @@ data type.  This class provides functions at a per-field level.
     }
     else
     if (self->type == AMQ_FIELD_TYPE_INTEGER) {
-        self->integer = ntohl (*(qbyte *) input);
-        input += 4;
+        GET_LONG (self->integer, input);
         field_end = input;
     }
     else
     if (self->type == AMQ_FIELD_TYPE_DECIMAL) {
         self->decimals = *(byte *) input;
         input += 1;
-        self->integer = ntohl (*(qbyte *) input);
-        input += 4;
+        GET_LONG (self->integer, input);
         field_end = input;
     }
     else
     if (self->type == AMQ_FIELD_TYPE_TIME) {
-        self->integer = (time_t) ntohl (*(qbyte *) input);
-        input += 4;
+        GET_LONG (self->integer, input);
         field_end = input;
     }
     else {
@@ -281,27 +298,23 @@ data type.  This class provides functions at a per-field level.
 
         if (self->type == AMQ_FIELD_TYPE_STRING) {
             assert (self->string->cur_size < 0x10000);
-            *(dbyte *) output = htons ((dbyte) self->string->cur_size);
-            output += 2;
+            PUT_SHORT (output, self->string->cur_size);
             memcpy (output, self->string->data, self->string->cur_size);
             output += self->string->cur_size;
         }
         else
         if (self->type == AMQ_FIELD_TYPE_INTEGER) {
-            *(qbyte *) output = htonl ((int) self->integer);
-            output += 4;
+            PUT_LONG (output, self->integer);
         }
         else
         if (self->type == AMQ_FIELD_TYPE_DECIMAL) {
             *(byte *) output = self->decimals;
             output += 1;
-            *(qbyte *) output = htonl ((int) self->integer);
-            output += 4;
+            PUT_LONG (output, self->integer);
         }
         else
         if (self->type == AMQ_FIELD_TYPE_TIME) {
-            *(qbyte *) output = htonl ((time_t) self->integer);
-            output += 4;
+            PUT_LONG (output, self->integer);
         }
         else
             rc = -1;
