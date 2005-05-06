@@ -11,9 +11,9 @@ PRODUCTS="base base2 gsl4 openamq"
 for PRODUCT in $PRODUCTS; do
     echo "Preparing $PRODUCT sources..."
     cd $HOME/products/$PRODUCT
-#    rm -f *.tar.gz *.zip
-#    boom configure
-#    boom distsrc
+    rm -f *.tar.gz *.zip
+    boom configure
+    boom distsrc
     eval ${PRODUCT}_version=`boom version`
 done
 
@@ -83,8 +83,8 @@ END
 cd ..
 echo "Building $openamq_version packages..."
 rm *.zip *.tar.gz
-tar -czf  $openamq_version.tar.gz $openamq_version
-zip -lqrm $openamq_version.zip    $openamq_version
+pax -w $openamq_version | gzip -c > $openamq_version.tar.gz
+zip -lqrm $openamq_version.zip $openamq_version
 
 echo cd pub>response
 echo bin>>response

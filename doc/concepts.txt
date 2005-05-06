@@ -11,6 +11,16 @@ end gdl
 Introduction
 ************
 
+Aim of this Document
+====================
+
+This is a general introduction to AMQ, intended for a technically-minded
+readership.  It explains the basic AMQ concepts, and goes into medium
+detail on all significant aspects of the architecture and technology.
+
+Seperate documents provide reference guides to individual aspects of the
+architecture and technology.
+
 Advanced Message Queues
 =======================
 
@@ -149,8 +159,8 @@ for event notification should be able to handle 10,000 topics with
 50% of traffic volume going through 10% of the topics and delivered
 to 1,000 subscribers.
 
-Challenges
-**********
+Challenges and Architectures
+****************************
 
 Designing a Successful Project
 ==============================
@@ -273,15 +283,119 @@ We discuss the specific chosen solution to each of these in the "AMQ
 Protocol" section.  In most cases our choice was driven by the desire
 to make the most general-possible solution.
 
-Server Architecture
-===================
+Quality and Standards
+=====================
 
-What Makes a Good Server?
--------------------------
+Our first step in starting the project was to define a standard for
+defining standards, a document titled: "AMQ RFC001 - The OpenAMQ RFC
+system."  The second step was "AMQ RFC002 - C Coding Standards".
 
-The key to building a fast server is to eliminate the overhead of
-servicing individual connections, and the key to building a reliable
-server is to use finite state machines (FSMs).
+Hand-Written Code
+-----------------
+
+All programming needs to follow a strict style guide to remain readable.
+Our style guide for ANSI C has been developed over some time, and is
+remorselessly tuned for legibility.  This is an extract from the RFC:
+
+Spacing
+.......
+
+- Code should be formatted to fit an 80 character width terminal [may
+  push that to at most 90 char width].
+- Indent with 4 spaces, never use tabs.
+- Spaces outside () and [], not inside.
+- Space after commas.
+- No space after -> or . in accessing pointers/structs.
+
+Naming Conventions
+..................
+
+- All names are in English.
+- Variable names are always lowercase with '_' as delimiter.
+- Exported functions and variables are prefixed as lib_module_func.
+- In rare cases, may abbreviate to lib_func.
+- Macros are always capitalized.
+- Type names end in _t,
+- Functions or variables that are static to a single file are prefixed
+  with s_,
+- It is permissible to use short variable names within functions, as
+  long as their definition is reasonably close to their place of
+  use. (And functions should not be very long anyway.)
+- Use xxx_nbr and xxx_ptr for local array indices and pointers in functions.
+- Filenames are named lib_module.{c, h}.
+
+Generated Code
+--------------
+
+GSL - the iMatix code generation language - is perhaps unique in that it
+is deliberately designed to produce highly readable code.  There are some
+exceptions - for instance the code that implements the SMT state machines
+is very fast and very ugly.  The code that implements the iCL classes is
+sometimes poorly-indented.
+
+But in general the code generation frameworks that we use so extensively
+produce code that a human programmer would be proud to write.  Here is a
+random fragment of code generated for an OpenAMQ class (this code does
+topic publishing):
+
+    /*  -------------------------------------------------------------------------
+        amq_vhost_publish
+
+        Type: Component method
+        Accepts a amq_vhost_t reference and returns zero in case of success,
+        1 in case of errors.
+        Publishes a specified message to all interested subscribers in the
+        virtual host.  Returns number of times message was published.  If the
+        publish option is false, does not actually publish but only reports
+        the number of susbcribers.
+        -------------------------------------------------------------------------
+    */
+
+    int
+        amq_vhost_publish (
+        amq_vhost_t *  self,                /*  Reference to object              */
+        char *   dest_name,                 /*  Topic destination name           */
+        amq_smessage_t *  message,          /*  Message, if any                  */
+        ipr_db_txn_t *  txn,                /*  Transaction, if any              */
+        Bool     publish)                   /*  Actually publish message?        */
+    {
+        amq_subscr_t
+            *subscr;                        /*  Subscriber object                */
+        amq_match_t
+            *match;                         /*  Match item                       */
+        int
+            subscr_nbr;
+        int
+            rc = 0;                         /*  Return code                      */
+
+        assert (self);
+
+        /*  Lookup topic name in match table, if found publish to subscribers    */
+        match = amq_match_search (self->match_topics, dest_name);
+        if (match) {
+            for (IPR_BITS_EACH (subscr_nbr, match->bits)) {
+                subscr = (amq_subscr_t *) self->subscr_index->data [subscr_nbr];
+                if (subscr->no_local == FALSE
+                ||  subscr->client_id != message->handle->client_id) {
+                    if (publish)
+                        amq_queue_publish (subscr->consumer->queue, message, txn);
+                    rc++;
+                }
+            }
+        }
+        return (rc);
+    }
+
+The Server Architecture
+=======================
+
+What Makes a Fast, Reliable Server?
+-----------------------------------
+
+Apart from the obvious requirements of writing good code that is
+reasonably efficient, the key to building a fast server is to eliminate
+the overhead of servicing individual connections, and the key to
+building a reliable server is to use finite state machines (FSMs).
 
 Server Connection Handling
 --------------------------
@@ -314,8 +428,14 @@ and switching between them.
 
 Thus, a modern server must use multiple system threads.  We are (as this
 text is being written) modifying SMT to use a separate system thread per
-pseudo-thread.  We are also replacing the poll system calls with true
-asynchronous I/O.
+pseudo-thread.
+
+Finally, to handle very large numbers of connections (the so-called "C10K
+problem"), we have to move to a more radical model still: a small number
+of OS threads handling multiple connections, and a fully asynchronous
+I/O model.  A portable solution for this is somewhat beyond the state of
+the art (e.g. the Linux 2.6 kernel supports asynch. I/O but not for
+sockets), but we are developing a solution.
 
 The predecessor to SMT, a pseudo multi-threading framework for OpenVMS
 written in 1991 (and still used today) was entirely based on asynchronous
@@ -324,28 +444,27 @@ I/O and could handle 500-1000 connections on a modest server.
 Finite State Machines
 ---------------------
 
-Underlying all these different I/O and threading models is a finite
-state machine architecture.  FSMs are particularly good for servers
-because they can be made fully stable.  That is, a well-designed FSM
-handles errors so explicitly that the server never falls into the type
-of ambiguities that generally cause failure.
+Underlying all these different I/O and threading models is a finite state
+machine architecture.  FSMs are particularly good for servers because we
+can make them fully stable.  That is, a well-designed FSM handles errors
+so explicitly that the server never falls into the type of ambiguities
+that generally cause failure.
 
-Our FSM model is based on work done in several software engineering
-tools (ETK, Libero) since 1985.  The model is simple and generic, based
-on this elementary design unit:
+Our FSM model is based on work done in several software engineering tools
+(ETK, Libero) since 1985.  The model is simple and generic, based on this
+elementary design unit:
 
     state
         event -> next-state
             action
 
-Where a state consists of 1 or more events, each which take the FSM
-to a new 'next state', after executing zero or more actions.  We add
-concepts such as state and event inheritence, exception events, and
-called states.
+Where a state consists of 1 or more events, each which take the FSM to a
+new 'next state', after executing zero or more actions.  We add concepts
+such as state and event inheritence, exception events, and called states.
 
 The core of the server consists of this state machine:
 
-    [Figure server_fsm.png]
+    [amq_server_agent.png]
 
 The source code of the state machine is an XML 'program'.  Here is a
 fragment of this code:
@@ -369,40 +488,59 @@ fragment of this code:
 Note the ANSI C code wrapped inside XML tags.  We use this technique
 extensively in our code, as we describe later.
 
+The server finite-state machine is explained in more detail in the
+"OpenAMQ Server Architecture" document.
+
 Server Classes
 --------------
 
-The server is built as a hierarchy of classes:
+The server is built as a hierarchy of classes.  The following figure
+shows the way classes use each other.  We show two types of usage,
+classes that hold a single instance of another class, and classes
+that act as containers for a set of child classes:
 
-    [Figure server_classes.png]
+    [server_classes.png]
 
+We use the iCL framework to write the classes.  This framework is
+described in more detail later.  Its advantage for our work is that
+we can maintain a very formal organisation of code.  The fact that
+iCL generates huge amounts of perfect C code for free is useful too.
 
-
-
-
-
+The server classes are explained in more detail in the "OpenAMQ
+Server Architecture" document.
 
 Client Architecture
 ===================
 
+There are several different client architectures:
 
+- a full general-use Java client
+- a full general-use ANSI C client
+- a COM client
+- an asynchronous SMT-based client
+- a synchronous SMT-based client
 
+We discuss each one briefly.
 
-Code Quality
-------------
+The General-use Java Client
+---------------------------
 
+The General-use ANSI C Client
+-----------------------------
 
-- portability
-- fast / cheap development
-- mature / demanding user base
+The COM Client
+--------------
 
+The Asynchronous SMT Client
+---------------------------
 
+    [amq_aclient_agent.png]
 
-General Approach of the Project
-===============================
+The Synchronous SMT Client
+---------------------------
 
-Technical Choices
-=================
+    [amq_sclient_agent.png]
+
 
 History of the Project
 ======================
@@ -541,10 +679,10 @@ AMQP handles errors by returning a response code and then closing
 the channel or connection. This avoids ambiguous states after errors.
 
 Operational Model
-*****************
+=================
 
 Opening a Connection
-====================
+--------------------
 
 The client connects to a well-known or pre-agreed port and sends
 an initial sequence that identifies the protocol it wishes to use.
@@ -567,7 +705,7 @@ channels at once. A single-threaded application would use a single
 channel.
 
 Publishing Data
-===============
+---------------
 
 To publish data the client opens a "handle", then sends messages
 to destinations using that handle.  Handles are local to a specific
@@ -586,7 +724,7 @@ destination hierarchy.  If such access controls are not needed, all
 work on a channel can be done using a single handle.
 
 Consuming Data
-==============
+--------------
 
 To consume data, the client opens a handle, then asks to consume
 messages from destinations using that handle.
@@ -600,7 +738,7 @@ We control the number of unacknowledged messages sent to any
 single client using windowing.
 
 Command Batching and Transactions
-=================================
+---------------------------------
 
 Clients can send command without waiting for a server response.
 In most cases the client can actively solicit a response or tell
@@ -613,7 +751,7 @@ the end of a batch of messages and acknowledgements.
 Transactions are applied to channels.
 
 Error Handling
-==============
+--------------
 
 The basic server response to any error is to respond with an reply
 code and a 'close' command.  For example, if the client tries to open
@@ -624,10 +762,10 @@ Depending on the severity of the error the server may close the
 handle, the channel, or the connection.
 
 Special Features
-****************
+================
 
 Zero Copy
-=========
+---------
 
 The fastest network performance comes from using 'zero copy'
 techniques such as RDMA where the network card will transfer data
@@ -635,7 +773,7 @@ without any copying or remapping by the OS.  AMQP supports zero
 copy techniques for message data (not for command frames).
 
 Virtual Hosts
-=============
+-------------
 
 A single server instance can support multiple "virtual hosts".
 A virtual host has its own set of destinations and access controls.
@@ -643,7 +781,7 @@ The client application chooses the virtual host by specifying a
 path after connecting and authenticating itself.
 
 Heartbeating
-============
+------------
 
 Although TCP/IP guarantees that data is not dropped or corrupted
 it can be slow to detect that a peer process has gone "offline".
@@ -651,7 +789,7 @@ AMQP provides a heartbeat mechanism that can be tuned to allow rapid
 fail-over.
 
 Multi-part Messages
-===================
+-------------------
 
 From version 0.9, AMQP will allow multi-part messages.  For
 example a binary data file could be sent together with an XML
@@ -660,20 +798,6 @@ might be used for routing, without the need to inspect or unpack
 the binary data, and AMQP will always deliver the multiple parts as
 as single message.
 
-Server Architecture
-===================
-
-The openamqd server is designed as single-process server with
-internal multithreading (using pseudo-threads).  The technical
-platform for this is provided by the iMatix SMT kernel.  While
-this model gives excellent performance for single-CPU boxes, we
-are working on a fully multithreaded version for multi-way boxes.
-
-openamqd uses Apache APR for socket access, and a select/poll loop
-for multiplexing between its virtual threads.  Each thread follows
-a state machine (FSM) model.
-
-Internally, openamqd is designed as an SMT protocol handler (the
-FSM model) and a set of classes that implement the primary AMQP
-objects - channels, handles, messages, acknowledgments, etc.
+Project Directory Organisation
+******************************
 

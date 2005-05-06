@@ -1,7 +1,7 @@
 <?xml?>
 <pdl
     name      = "OpenAMQ Servers"
-    version   = "0.8c2"
+    version   = "0.8c3"
     copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     workflow  = "standard.pwl"
     deploy    = "openamq/servers"

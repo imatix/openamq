@@ -1,3 +1,7 @@
+0.8c3 - 2005/05/06
+
+ - fixed Sparc bus errors
+
 0.8c2 - 2005/04/28
 
  - added matching test program, first implementation of matching code.

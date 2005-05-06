@@ -28,6 +28,7 @@ levels respectively).
         *vhost;                         /*  Parent virtual host              */
     amq_consumer_t
         *consumer;                      /*  Consumer for this subscription   */
+
     qbyte
         client_id;                      /*  Parent client record             */
     ipr_shortstr_t

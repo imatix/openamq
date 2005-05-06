@@ -1,7 +1,7 @@
 <?xml?>
 <pdl
     name      = "OpenAMQ Clients"
-    version   = "0.8c2"
+    version   = "0.8c3"
     copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     deploy    = "openamq/clients"
     >
@@ -42,6 +42,7 @@
             gsl amq.gsl
             </execute>
         </generate>
+        <!--  not working on vs.dev
         <build>
             <execute>
             call boomvs --where=. --using=amq --target=amq build
@@ -52,6 +53,7 @@
             call boomvs --where=. --using=amq --target=amq clean
             </execute>
         </clean>
+       -->
     </actions>
 </directory>
 </pdl>

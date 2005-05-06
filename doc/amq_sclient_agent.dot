@@ -1,0 +1,24 @@
+digraph {
+   size = "8,8";
+    subgraph client {
+        initialise_connection -> expect_connection_challenge;
+        expect_connection_challenge -> expect_connection_tune;
+        expect_connection_tune -> after_connection_open;
+        after_connection_open -> connection_active;
+        after_connection_open -> initialise_connection;
+        connection_active -> connection_active;
+        connection_active -> initialise_connection;
+        connection_active -> sending_message;
+        connection_active -> expect_channel_notify;
+        connection_active -> expect_channel_close;
+        connection_active -> expect_channel_index;
+        expect_channel_notify -> after_channel_notify;
+        after_channel_notify -> expect_channel_notify;
+        after_channel_notify -> connection_active;
+        expect_channel_close -> expect_channel_close;
+        expect_channel_close -> connection_active;
+        expect_channel_index -> connection_active;
+        sending_message -> sending_message;
+        sending_message -> connection_active;
+    }
+}

@@ -1,11 +1,11 @@
 gdl
-    title     = OpenAMQ
-    subtitle  = Installation and Use of OpenAMQ
+    title     = OpenAMQ Server
+    subtitle  = Installation and Use of the OpenAMQ Server
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/04/10
+    date      = 2005/05/05
     copyright = Copyright (c) 2004-2005 JPMorgan and iMatix Corporation
-    version   = 0.8b
+    version   = 0.8c
 end gdl
 
 Introduction

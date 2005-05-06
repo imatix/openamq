@@ -131,7 +131,7 @@ virtual host.
     <argument name = "publish"   type = "Bool">Actually publish message?</argument>
     <local>
     amq_subscr_t
-        *subscr;                         /*  Subscriber object               */
+        *subscr;                        /*  Subscriber object                */
     amq_match_t
         *match;                         /*  Match item                       */
     int
