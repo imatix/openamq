@@ -1,0 +1,679 @@
+gdl
+    title     = Concepts and Vision
+    subtitle  = A Background to the AMQ Project
+    product   = OpenAMQ
+    author    = iMatix Corporation <amq@imatix.com>
+    date      = 2005/05/05
+    copyright = Copyright (c) 2004-2005 JPMorgan and iMatix Corporation
+    version   = 1.0
+end gdl
+
+Introduction
+************
+
+Advanced Message Queues
+=======================
+
+AMQ ("Advanced Message Queues") is a broad and long-term project with the
+overall goal of creating commodity middleware for use in large-scale
+business and financial applications.  The AMQ project has these specific
+short term goals:
+
+1. To define an industry-standard wire-level protocol (AMQP).
+2. To build a widely-usable reference implementation (OpenAMQ).
+
+And these longer term goals:
+
+1. To create a standard architecture for service-oriented networks.
+2. To create a thriving open-source community (openamq.org).
+
+What is "Middleware"?
+=====================
+
+"Middleware" is a generic term for software that interconnects systems.
+We use the term specifically to mean software that passes messages
+between applications. The key characteristics of middleware, as we
+define it, are:
+
+- application-level messages: the objects passed across the network
+  are meaningful to client applications.
+- queuing and routing: the middleware must be able to queue messages
+  internally, and route them to different clients in various ways.
+- asynchronous operation: messages are pushed through the network
+  as fast as possible, with queues acting to buffer slower parts of
+  the network.
+- selectable service levels: the client applications can explicitly
+  choose between different levels of speed and reliability.
+
+An ideal middleware system must be able to:
+
+- handle all kinds of data, opaquely, and without preconceptions as
+  to encoding or representation.
+- handle messages of any size up to multi-gigabytes.
+- handle both high-volume and high-reliability scenarios.  In the
+  first case throughput is critical but messages can be lost.  In
+  the latter case messages can never be lost, period.
+- provide several types of routing, including queues (where messages
+  are distributed between consumers), pub/sub (where messages are
+  published to as many susbcribers as ask for them), topics (where
+  messages are published according to a hierarchy of names, and
+  content-based routing (where messages are routed according to
+  key field values).
+- work fully asynchronously so that clients do not poll for messages
+  but receive data via callbacks or other asynchronous mechanisms.
+
+And further:
+
+- to interoperate with or simulate other middleware systems.
+- to run well on all boxes, from small clients to large servers.
+- to be cheap enough to deploy without licensing concerns.
+- to be easily adapted, extended, and if necessary, repaired.
+
+And finally:
+
+- to allow the creation of an abstract network of services.
+
+While there exist several large commercial middleware systems that
+provide all of the first set of requirements, there are no middleware
+systems - commercial or open - that also provide the second set.
+
+There are quite a number of products that satisfy the last criteria
+but without addressing the others.  In our opinion it's possible
+to build abstract networks out of robust, fast, cheap components,
+but not vice-versa.
+
+Open Source Middleware
+======================
+
+There is a fair amount of open source middleware.  Mostly Java,
+mostly implementations of existing standard middleware APIs such
+as CORBA and JMS.
+
+What is strikingly lacking in the open source middleware world is
+a robust answer to the problems actually facing enterprise software
+integration.  There are no proposals for standard middleware
+protocols, there are no attempts to build commodity middleware
+servers such as the NSCA web server that became Apache.
+
+The main reason is probably the gulf between the academic and small
+open source teams, and the business world that builds systems large
+enough to need serious middleware.
+
+AMQ is, to our knowledge, the first attempt to solve this problem
+using standards from the wire up to the application.  As a project,
+it is long overdue: middleware is the last significant slice of
+software infrastructure that is still dominated by commercial vendor
+solutions and not moving in any serious way towards commodity open
+source.
+
+Using Middleware in Real Life
+=============================
+
+Scales of Deployment
+--------------------
+
+The scope of AMQ covers deployment at different levels of scale:
+
+1. Developer/casual use: 1 server, 1 user, 10 queues, 1 message per
+second.
+
+2. Production application: 2 servers, 10-100 users, 10-50 queues,
+30 messages per second (100K/hour).
+
+3. Departmental mission critical application: 4 servers, 100-500
+users, 50-100 queues, 60 messages per second (250K/hour).
+
+4. Regional mission critical application: 16 servers, 500-2,000
+users, 100-500 queues and topics, 250 messages per second (1M/hour).
+
+5. Global mission critical application: 64 servers, 2K-10K users,
+500-1000 queues and topics, 2,500 messages per second (10M/hour).
+
+6. Market data (trading): 200 servers, 5K users, 10K topics, 100K
+messages per second (360M/hour).
+
+Extreme Scenario - Market Data
+------------------------------
+
+Market data is an extreme scenario at the upper-end of what we are
+aiming for with AMQ.  We have set the benchmark at 100,000 events
+per second between a producer application and a consumer application.
+The occasional dropped message is acceptable, but dropout should be
+measurable.
+
+To achieve this rate of messaging requires high-specification
+hardware, gigabit networking and significant tuning at all levels.
+Experience from existing projects shows that even OS context-switch
+time becomes significant at this rate of messaging.  The topic space
+for event notification should be able to handle 10,000 topics with
+50% of traffic volume going through 10% of the topics and delivered
+to 1,000 subscribers.
+
+Challenges
+**********
+
+Designing a Successful Project
+==============================
+
+The AMQ project has had to face the same kinds of challenges that face
+all projects: to deliver high-quality results in a short time and with
+a minimalistic budget.
+
+Software projects tend to succeed or fail according to three main
+criteria:
+
+1. The quality and relevant experience of the team.
+2. The competence of the client.
+3. The leverage and transparency of the toolkit.
+
+In every failing software project (anything up to 75% of all projects
+by some estimates), one or more of these key criteria have failed.
+Most often, the people involved in a failing project are simply not
+very good. Often, they are forced to use unfamiliar or unstable
+technologies for political reasons (management saw a nice presentation).
+
+It is rare to see projects fail for purely budgetary or planning reasons.
+The details of a project plan are far less important than ensuring that
+the team can ask questions freely, receive competent answers rapidly,
+and implement solutions with freedom of approach.
+
+Tight deadlines and budgets can often improve the overall process by
+uncovering problems earlier.  This is, perhaps why "low-budget" movies
+can often be so much better than well-financed affairs.
+
+Generality
+==========
+
+It's a truism in software design that a general solution works better,
+is easier to maintain, and is often cheaper than a specific solution.
+
+So it goes with AMQ - at every level we have tried to ignore the
+specifics of the problem to build general solutions.  For example when
+designing the AMQ protocol we decided to treat messages as opaque binary
+MIME-typed blobs.  This is more general than saying: "messages will be
+XML documents that may encapsulate binary data".
+
+Another example of generality: the tools we built to allow us to build
+OpenAMQ are for the most part totally general and reusable tools.
+
+A Commodity Platform
+====================
+
+A commodity product must use a commodity platform. That is, there is no
+benefit in developing a commodity product that exotic dependencies.
+OpenAMQ must be able to build and run on a simple box with little more
+than a compatible compiler and standard libraries.
+
+The platform we chose for our work was:
+
+ - ANSI C (mainly dictated by the need for performance and stability)
+ - A commodity OS: Linux, Solaris, or Win32 (dictated by our target
+   users)
+ - TCP/IP (at least initially)
+
+There are many useful libraries that fit into this mix: PCRE (perl
+compatible regular expressions), zlib, BDB (Berkeley DB), APR (Apache
+Portable Runtime), and we have added these into our project as needed.
+
+The use of commodity technology is not the same as the use of commodity
+tools.  We have made use of an extensive and sophisticated toolset, as
+explained in a separate section of this document.
+
+Portability
+===========
+
+Our target platforms are: Solaris, Linux, other POSIX boxes, and Win32.
+By "portability" we mean that the same code packages will build and work
+identically on all target platforms.
+
+The iMatix approach to portability, defined in 1995 or so, is to put all
+non-portable code into a separate library that can be tuned for specific
+platforms.  Application code then becomes 100% portable, with none of
+the conditional code that plagues most "portable" software.
+
+The Apache project took a similar direction in 1999, building a portable
+runtime.  Other projects such as Mozilla have done the same.
+
+The OpenAMQ software uses both the Apache portable runtime, with some
+patches (this layer is not entirely mature) and iMatix portability
+libraries.
+
+Protocol Design
+===============
+
+A good discussion of protocol design can be found in RFC 3117, "On
+the Design of Application Protocols".  The author of this RFC, Marshal
+T. Rose, contributed several IETF standards, including a protocol
+framework (BEEP, defined in RFC3080).
+
+We did not use BEEP for AMQ, for several reasons: it uses XML wrapping
+that we felt was unnecessary and it does not have an actively-developed
+C implementation.
+
+However, AMQP embodies many of the key design elements of BEEP.  The
+main challenges are:
+
+1. How to negotiate new sessions, including encryption, protocols
+   and versions, capabilities, etc.
+
+2. How to frame requests on a connection (defining how each request
+   starts and ends).
+
+3. How to allow many requests to work asynchronously in parallel
+   (multiplexing).
+
+4. How to allow many outstanding requests (pipelining).
+
+5. How to report success/failure.
+
+6. How to implement a functional model, i.e. at what "level" the
+   protocol should operate.
+
+We discuss the specific chosen solution to each of these in the "AMQ
+Protocol" section.  In most cases our choice was driven by the desire
+to make the most general-possible solution.
+
+Server Architecture
+===================
+
+What Makes a Good Server?
+-------------------------
+
+The key to building a fast server is to eliminate the overhead of
+servicing individual connections, and the key to building a reliable
+server is to use finite state machines (FSMs).
+
+Server Connection Handling
+--------------------------
+
+When iMatix began designing server toolkits in 1995, the classic model
+was "one connection, one process", possibly with process pooling.  This
+model breaks-down rapidly, with a limit of 30-100 connections per
+server (at which point system memory gets full).
+
+We designed a single-process architecture (SMT) which uses pseudo-threads
+(internally managed by the architecture, with no help from the operating
+system) to eliminate process duplication.  A server built on this model
+(e.g. our Xitami web server) can handle hundreds or thousands of
+connections with no serious impact on system memory.
+
+When we reach several hundred connections, a new problem arises, namely
+the use of system calls like "select" that involve linear searching.  We
+can use alternate system calls like "poll" that are more efficient, and
+our current version of SMT does this.  Servers built on this design are
+rapid even with very many connections.
+
+On larger boxes, however, a single-process server shows another weakness:
+it cannot exploit multiple CPUs.  Even the fastest single-process server
+will be out-performed by a less efficient server that can run on 4 or 8
+CPUs.
+
+Modern software uses multiple system threads to exploit multiple CPUs.
+Operating systems like Linux are extremely good at scheduling threads
+and switching between them.
+
+Thus, a modern server must use multiple system threads.  We are (as this
+text is being written) modifying SMT to use a separate system thread per
+pseudo-thread.  We are also replacing the poll system calls with true
+asynchronous I/O.
+
+The predecessor to SMT, a pseudo multi-threading framework for OpenVMS
+written in 1991 (and still used today) was entirely based on asynchronous
+I/O and could handle 500-1000 connections on a modest server.
+
+Finite State Machines
+---------------------
+
+Underlying all these different I/O and threading models is a finite
+state machine architecture.  FSMs are particularly good for servers
+because they can be made fully stable.  That is, a well-designed FSM
+handles errors so explicitly that the server never falls into the type
+of ambiguities that generally cause failure.
+
+Our FSM model is based on work done in several software engineering
+tools (ETK, Libero) since 1985.  The model is simple and generic, based
+on this elementary design unit:
+
+    state
+        event -> next-state
+            action
+
+Where a state consists of 1 or more events, each which take the FSM
+to a new 'next state', after executing zero or more actions.  We add
+concepts such as state and event inheritence, exception events, and
+called states.
+
+The core of the server consists of this state machine:
+
+    [Figure server_fsm.png]
+
+The source code of the state machine is an XML 'program'.  Here is a
+fragment of this code:
+
+    <state name = "initialise connection">
+        <event name = "ok" nextstate = "expect connection response">
+            <action name = "read protocol header" />
+            <action name = "check protocol header" />
+            <action name = "send connection challenge" />
+            <action name = "read next command" />
+        </event>
+        <event name = "connection error" nextstate = "">
+            <action name = "close the connection" />
+        </event>
+    </state>
+
+    <action name = "read protocol header">
+        s_sock_read (thread, tcb->frame_header, 2);
+    </action>
+
+Note the ANSI C code wrapped inside XML tags.  We use this technique
+extensively in our code, as we describe later.
+
+Server Classes
+--------------
+
+The server is built as a hierarchy of classes:
+
+    [Figure server_classes.png]
+
+
+
+
+
+
+
+Client Architecture
+===================
+
+
+
+
+Code Quality
+------------
+
+
+- portability
+- fast / cheap development
+- mature / demanding user base
+
+
+
+General Approach of the Project
+===============================
+
+Technical Choices
+=================
+
+History of the Project
+======================
+
+What Goes Into Version 1?
+=========================
+
+
+
+The Toolset
+***********
+
+Standard Libraries
+==================
+
+Apache Portable Runtime
+-----------------------
+
+Berkeley Database
+-----------------
+
+Hazel's PCRE
+------------
+
+iMatix SFL
+----------
+
+Languages
+=========
+
+iMatix GSL
+----------
+
+Perl
+----
+
+Code Generation Frameworks
+==========================
+
+iMatix Class Library
+--------------------
+
+iMatix SMT/4
+------------
+
+Ad-Hoc Frameworks
+-----------------
+
+iMatix XNF
+----------
+
+Documentation
+=============
+
+iMatix Gurudoc
+--------------
+
+LaTeX
+-----
+
+AT&T Graphviz
+-------------
+
+Wiki
+----
+
+Project Management
+==================
+
+iMatix Boom
+-----------
+
+
+
+
+
+
+
+
+The AMQ Protocol
+****************
+
+High-level Commands
+===================
+
+AMQP provides a commmand-set that maps cleanly to existing
+messaging standards such as JMS.  The protocol explicitly defines
+the form and meaning of all data needed to express messaging
+operations.
+
+All message data itself is carried in opaque MIME-typed blocks.
+AMQP thus makes a strong separation between the messaging protocol
+and the messages it carries.
+
+Multiplexing
+============
+
+AMQP uses the concept of "channel" to carry multiple virtual
+connections across a single socket.  Channels correspond to threads
+in the client applications.
+
+Large messages are broken into "fragments" so that channels get
+fair use of the socket connection.
+
+AMQP is based on standard TCP/IP and does not implement any
+traffic control mechanisms.
+
+Negotiation
+===========
+
+The client and server negotiate to agree on critical aspects of
+the protocol such as the protocol version, the maximum size of frames,
+and security parameters.
+
+Multiple variants of AMQP (in the future) can co-exist on a single
+socket.
+
+Asynchrony
+==========
+
+Clients and servers exchange commands and messages asynchronously.
+There is no polling.
+
+Clients can batch commands, both implicitly by sending ahead of
+an expected response, and explicitly by telling the server to not
+respond in case of success.
+
+Robustness
+==========
+
+All data is length-specified so that applications can allocate
+memory in advance and avoid deadlocks. Length-specified strings
+protect against buffer-overflow attacks.
+
+AMQP handles errors by returning a response code and then closing
+the channel or connection. This avoids ambiguous states after errors.
+
+Operational Model
+*****************
+
+Opening a Connection
+====================
+
+The client connects to a well-known or pre-agreed port and sends
+an initial sequence that identifies the protocol it wishes to use.
+The server replies with an authentication challenge.  The client
+responds, and the two parties then negotiate protocol options (such
+as maximum frame size).
+
+At this stage the client can open one or more channels, use these
+to send commands to the server and receive commands back, and close
+channels.
+
+The "channel" concept is designed to support a single application
+thread that can work with many different queues and topics
+("destinations"), but does so in a serial manner.
+
+A good metaphor for a "channel" is a bidirectional data stream.
+Everything that happens on a channel is serial, with asynchronous
+activity in both directions.  Parallelism means using multiple
+channels at once. A single-threaded application would use a single
+channel.
+
+Publishing Data
+===============
+
+To publish data the client opens a "handle", then sends messages
+to destinations using that handle.  Handles are local to a specific
+channel.  When a client publishes to several handles within a channel,
+it does this one after the other.
+
+Large messages are split into fragments.  This gives different
+channels - but not handles - the ability to share a single socket
+connection.
+
+There is no practical limit to the size of a message, and AMQP
+allows streamed data - I.E. messages that never end.
+
+Handles exist mainly to allow access control on part of a
+destination hierarchy.  If such access controls are not needed, all
+work on a channel can be done using a single handle.
+
+Consuming Data
+==============
+
+To consume data, the client opens a handle, then asks to consume
+messages from destinations using that handle.
+
+The server sends messages using a dispatching model that depends
+on the type of destination.  For queues, messages are distributed
+between the consumers.  For topics, messages are copied to each of
+the consumers.
+
+We control the number of unacknowledged messages sent to any
+single client using windowing.
+
+Command Batching and Transactions
+=================================
+
+Clients can send command without waiting for a server response.
+In most cases the client can actively solicit a response or tell
+the server to respond only on failure.
+
+As a natural wrapping of command batches, we support transactional
+processing.  Typically the client will use the 'commit' command at
+the end of a batch of messages and acknowledgements.
+
+Transactions are applied to channels.
+
+Error Handling
+==============
+
+The basic server response to any error is to respond with an reply
+code and a 'close' command.  For example, if the client tries to open
+a handle to a non-existent destination, the server will respond with
+a close command carrying the reply code '404'.
+
+Depending on the severity of the error the server may close the
+handle, the channel, or the connection.
+
+Special Features
+****************
+
+Zero Copy
+=========
+
+The fastest network performance comes from using 'zero copy'
+techniques such as RDMA where the network card will transfer data
+without any copying or remapping by the OS.  AMQP supports zero
+copy techniques for message data (not for command frames).
+
+Virtual Hosts
+=============
+
+A single server instance can support multiple "virtual hosts".
+A virtual host has its own set of destinations and access controls.
+The client application chooses the virtual host by specifying a
+path after connecting and authenticating itself.
+
+Heartbeating
+============
+
+Although TCP/IP guarantees that data is not dropped or corrupted
+it can be slow to detect that a peer process has gone "offline".
+AMQP provides a heartbeat mechanism that can be tuned to allow rapid
+fail-over.
+
+Multi-part Messages
+===================
+
+From version 0.9, AMQP will allow multi-part messages.  For
+example a binary data file could be sent together with an XML
+description, as two parts of a single message.  The XML description
+might be used for routing, without the need to inspect or unpack
+the binary data, and AMQP will always deliver the multiple parts as
+as single message.
+
+Server Architecture
+===================
+
+The openamqd server is designed as single-process server with
+internal multithreading (using pseudo-threads).  The technical
+platform for this is provided by the iMatix SMT kernel.  While
+this model gives excellent performance for single-CPU boxes, we
+are working on a fully multithreaded version for multi-way boxes.
+
+openamqd uses Apache APR for socket access, and a select/poll loop
+for multiplexing between its virtual threads.  Each thread follows
+a state machine (FSM) model.
+
+Internally, openamqd is designed as an SMT protocol handler (the
+FSM model) and a set of classes that implement the primary AMQP
+objects - channels, handles, messages, acknowledgments, etc.
+

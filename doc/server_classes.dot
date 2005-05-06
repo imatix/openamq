@@ -1,0 +1,42 @@
+//  Build using dot
+digraph {
+    size = "8,8";
+    amq_browser             -> amq_smessage;
+    amq_browser_array       -> amq_browser  [label = "contains"];
+    amq_browser_list        -> amq_browser  [label = "contains"];
+    amq_channel             -> amq_dispatch_list;
+    amq_channel             -> amq_smessage_list;
+    amq_channel             -> amq_consumer;
+    amq_channel             -> amq_browser_array;
+    amq_channel_table       -> amq_channel  [label = "contains"];
+    amq_connection          -> amq_channel_table;
+    amq_consumer            -> amq_subscr;
+    amq_consumer_list       -> amq_consumer [label = "contains"];
+    amq_dest                -> amq_queue;
+    amq_dest_table          -> amq_dest     [label = "contains"];
+    amq_dispatch            -> amq_smessage;
+    amq_dispatch_list       -> amq_dispatch [label = "contains"];
+    amq_global              -> amq_user_table;
+    amq_global              -> amq_vhost_table;
+    amq_global              -> ipr_config;
+    amq_match               -> ipr_bits;
+    amq_match_list          -> amq_match    [label = "contains"];
+    amq_match_table         -> amq_match    [label = "contains"];
+    amq_mesgref             -> amq_smessage;
+    amq_mesgref             -> amq_browser_list;
+    amq_mesgref_list        -> amq_mesgref  [label = "contains"];
+    amq_queue               -> amq_consumer_list;
+    amq_queue               -> amq_mesgref_list;
+    amq_smessage            -> amq_bucket;
+    amq_smessage_list       -> amq_smessage [label = "contains"];
+    amq_subscr              -> amq_match_list;
+    amq_subscr_list         -> amq_subscr   [label = "contains"];
+    amq_user_table          -> amq_user     [label = "contains"];
+    amq_user                -> amq_connection;
+    amq_vhost               -> ipr_db;
+    amq_vhost               -> ipr_config;
+    amq_vhost               -> amq_dest_table;
+    amq_vhost               -> amq_subscr_list;
+    amq_vhost               -> amq_match_table;
+    amq_vhost_table         -> amq_vhost    [label = "contains"];
+}

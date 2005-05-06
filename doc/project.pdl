@@ -1,0 +1,28 @@
+<?xml?>
+<pdl
+    name      = "OpenAMQ Documentation"
+    version   = "0.8c2"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
+    workflow  = "standard.pwl"
+    >
+
+<include filename = "prelude.pdl" />
+
+<file name = "concepts.txt"         class = "gurudoc text"      >OpenAMQ servers user guide</file>
+<file name = "gdstyle.css"          class = "web resource"      >Gurudoc style sheet</file>
+<file name = "mainlogo.jpg"         class = "web resource"      >AMQ logo</file>
+<file name = "server_fsm.dot"       class = "private resource"  >OpenAMQ FSM</file>
+<file name = "server_classes.dot"   class = "private resource"  >OpenAMQ server classes</file>
+<file name = "server_fsm.png"       class = "generated"         >OpenAMQ FSM</file>
+<file name = "server_classes.png"   class = "generated"         >OpenAMQ server classes</file>
+
+<actions>
+  <generate>
+    <execute>
+    fdp -Tpng server_fsm.dot     -oserver_fsm.png
+    dot -Tpng server_classes.dot -oserver_classes.png
+    </execute>
+  </generate>
+</actions>
+
+</pdl>
