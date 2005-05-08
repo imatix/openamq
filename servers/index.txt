@@ -149,7 +149,7 @@ Operating Environments
 ======================
 
 OpenAMQ runs on Linux and win32 (Windows 95/98/XP/2000/2003).  The server
-uses about 10-20 Mb of memory depending on whether it is built with debug
+uses about 10-20MB of memory depending on whether it is built with debug
 information or not.
 
 A Solaris version of OpenAMQ will be available in the near future.  The
@@ -165,7 +165,7 @@ For operation on win32 you can either build from source (you then need
 MSVC 6 or 7) or use the pre-built binaries.
 
 OpenAMQ does not need any further software.  For its operation you should
-provide sufficient memory (we recommend at least 256Mb) depending on the
+provide sufficient memory (we recommend at least 256MB) depending on the
 total estimated number of messages to be held in memory.
 
 Required Files

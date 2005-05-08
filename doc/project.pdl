@@ -20,7 +20,7 @@
 <file name = "amq_sclient_agent.png" class = "generated"         >OpenAMQ client FSM</file>
 <file name = "amq_aclient_agent.png" class = "generated"         >OpenAMQ client FSM</file>
 
-<actions>
+<actions target = "unix">
   <generate>
     <execute>
     dot -Tpng amq_server_agent.dot  -oamq_server_agent.png

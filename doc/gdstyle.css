@@ -1,101 +1,68 @@
-a {
-     font-family: Arial, Helvetica, sans-serif;
-     color: #0081ab;
-     text-decoration: none;
-}
-a.toc_main {
-     font-family: Arial, Helvetica, sans-serif;
-     font-size: small;
-     font-weight: bold;
-     color: black;
-     list-style-type: none;
-}
-a.toc {
-     font-family: Arial, Helvetica, sans-serif;
-     font-size: x-small;
-     color: black;
-     list-style-type: none;
-}
-a:hover {
-     color:blue;
-     text-decoration:underline;
+BODY {
+    font-family: Verdana, Arial, Helvetica, sans-serif;
 }
 
 h1 {
-     font-family: Arial, Helvetica, sans-serif;
-     font-size: 18pt;
-     font-weight: bold;
-     letter-spacing: 3pt;
-     color: #CC3333;
-     background-color: #DDDDDD;
-     margin-top: 0px;
-     margin-right: 30px;
-     margin-bottom: 30px;
-     text-align: right;
-     text-transform: uppercase;
+    margin-top: 12pt;
+    background-color: #b9cdd8;
+    line-height: 16pt;
+    font-size: 14pt;
+    font-variant: small-caps;
+    text-indent: 10pt;
 }
 h2 {
-     font-family: Arial, Helvetica, sans-serif;
-     font-size: 14pt;
-     font-weight: bold;
-     letter-spacing: 1pt;
-     color: #CC3333;
-     background-color: #DDDDDD;
-     margin-top: 30px;
-     margin-right: 30px;
-     text-align: right;
-     text-indent: 2px;
+    margin-top: 12pt;
+    font-variant: small-caps;
+    font-size: 12pt;
+    padding-left: 10pt;
 }
 h3 {
-     font-family: Arial, Helvetica, sans-serif;
-     font-weight: bold;
-     color: #000000;
-     margin-left: 10px;
+    font-size: 11pt;
+    font-variant: small-caps;
+    margin-top: 1em;
+    padding-left: 10pt;
 }
 h4 {
-     font-family: Arial, Helvetica, sans-serif;
-     font-weight: bold;
-     color: #000000;
-     margin-left: 10px;
+    font-size: 10pt;
+    font-variant: small-caps;
+    margin-top: 1em;
+    padding-left: 10pt;
 }
 p {
-     font-family: Arial, Helvetica, sans-serif;
-     color: #000000;
-     margin-right: 30px;
-     margin-left: 30px;
+    font-size: 10pt;
+    margin: 1em;
 }
 pre {
-     font-size: 10pt;
-     background-color: #EEEEEE;
-     margin-right: 30px;
-     margin-left: 30px;
-     color: #000000;
+    background-color: #E0E0E0;
+    margin-left: 30pt;
+    margin-right: 30pt;
+    margin-bottom: 12pt;
+}
+ul {
+    margin: 1em;
+}
+ol {
+    margin: 1em;
 }
 dt {
-     font-family: Arial, Helvetica, sans-serif;
      margin-top: 6px;
      margin-right: 30px;
      margin-left: 30px;
 }
 dd {
-     font-family: Arial, Helvetica, sans-serif;
      margin-right: 60px;
      margin-left: 60px;
 }
 blockquote {
-     font-family: Arial, Helvetica, sans-serif;
-     color: #000000;
      font-size: 10pt;
      font-weight: bold;
      margin-right: 60px;
      margin-left: 60px;
 }
 .toc_1 {
-     font-family: Arial, Helvetica, sans-serif;
-     font-size: 12pt;
+     font-size: 11pt;
      font-variant: small-caps;
      font-weight: bold;
-     letter-spacing: 1pt;
      margin-top:   10px;
      margin-left:  12px;
      margin-right: 15px;
@@ -103,8 +70,6 @@ blockquote {
      background-color: #DDDDDD;
 }
 .toc_2 {
-     font-family: Arial, Helvetica, sans-serif;
-     font-size: 10pt;
      margin-top:    3px;
      margin-left:  24px;
      margin-right:  0px;
@@ -121,7 +86,6 @@ blockquote {
      background-color: #FFFFFF;
 }
 .toc_4 {
-     font-family: Arial, Helvetica, sans-serif;
      font-size: 8pt;
      margin-left:  48px;
      margin-top:    0px;
@@ -130,28 +94,53 @@ blockquote {
      background-color: #FFFFFF;
 }
 .header {
-     font-family: Arial, Helvetica, sans-serif;
-     font-variant: small-caps;
      font-size: x-small;
-     letter-spacing: 1pt;
-     color: #333333;
 }
 .footer {
-     font-family: Arial, Helvetica, sans-serif;
      font-variant: small-caps;
      font-size: x-small;
-     letter-spacing: 1pt;
      background-color: #DDDDDD;
      color: #000000;
 }
-li {
-     font-family: Arial, Helvetica, sans-serif;
-}
 .tdbgcolor {
-     background-color: #CC3333;
+     background-color: #b9cdd8;
 }
 .bodybgcolor {
      background-color: #FFFFFF;
 }
+
+
+/* Links */
+A:active {
+    text-decoration: none;
+    font-weight: bold;
+    color: #01415c;
+}
+A:link {
+    text-decoration: none;
+    font-weight: bold;
+    color: #01415c;
+}
+A:visited {
+    text-decoration: none;
+    font-weight: bold;
+    color: #01415c;
+}
+A[HREF]:hover {
+    background-color: #b9cdd8;
+    color: black;
+}
+a.toc_main {
+    font-size: small;
+    font-weight: bold;
+    list-style-type: none;
+    text-indent: 1em;
+}
+a.toc {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: x-small;
+    list-style-type: none;
+}
+
 
 

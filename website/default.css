@@ -102,16 +102,26 @@ H2#title {
 #content_container H1 {
     margin-top: 12pt;
     background-color: #b9cdd8;
-    line-height: 16pt;
-    font-size: 12pt;
+    font-size: 14pt;
     font-variant: small-caps;
     text-indent: 10pt;
 }
 #content_container H2 {
     margin-top: 12pt;
-    margin-bottom: 12pt;
+    font-variant: small-caps;
+    font-size: 12pt;
+    padding-left: 10pt;
+}
+#content_container H3 {
+    margin-top: 11pt;
     font-variant: small-caps;
     font-size: 11pt;
+    padding-left: 10pt;
+}
+#content_container H4 {
+    margin-top: 10pt;
+    font-variant: small-caps;
+    font-size: 10pt;
     padding-left: 10pt;
 }
 #content_container UL {
