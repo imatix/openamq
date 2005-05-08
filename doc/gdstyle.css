@@ -31,18 +31,24 @@ h4 {
 p {
     font-size: 10pt;
     margin: 1em;
+    margin-left: 2em;
+    margin-right: 2em;
 }
 pre {
     background-color: #E0E0E0;
-    margin-left: 30pt;
-    margin-right: 30pt;
-    margin-bottom: 12pt;
+    margin: 1em;
+    margin-left: 4em;
+    margin-right: 4em;
 }
 ul {
     margin: 1em;
+    margin-left: 2em;
+    margin-right: 2em;
 }
 ol {
     margin: 1em;
+    margin-left: 2em;
+    margin-right: 2em;
 }
 dt {
      margin-top: 6px;

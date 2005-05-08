@@ -45,52 +45,56 @@ We use the term specifically to mean software that passes messages
 between applications. The key characteristics of middleware, as we
 define it, are:
 
-- application-level messages: the objects passed across the network
+- Application-level messages: the objects passed across the network
   are meaningful to client applications.
-- queuing and routing: the middleware must be able to queue messages
+- Queuing and routing: the middleware must be able to queue messages
   internally, and route them to different clients in various ways.
-- asynchronous operation: messages are pushed through the network
+- Asynchronous operation: messages are pushed through the network
   as fast as possible, with queues acting to buffer slower parts of
   the network.
-- selectable service levels: the client applications can explicitly
+- Selectable service levels: the client applications can explicitly
   choose between different levels of speed and reliability.
 
 An ideal middleware system must be able to:
 
-- handle all kinds of data, opaquely, and without preconceptions as
+- Handle all kinds of data, opaquely, and without preconceptions as
   to encoding or representation.
-- handle messages of any size up to multi-gigabytes.
-- handle both high-volume and high-reliability scenarios.  In the
+- Handle messages of any size up to multi-gigabytes.
+- Handle both high-volume and high-reliability scenarios.  In the
   first case throughput is critical but messages can be lost.  In
   the latter case messages can never be lost, period.
-- provide several types of routing, including queues (where messages
+- Provide several types of routing, including queues (where messages
   are distributed between consumers), pub/sub (where messages are
   published to as many susbcribers as ask for them), topics (where
   messages are published according to a hierarchy of names, and
   content-based routing (where messages are routed according to
   key field values).
-- work fully asynchronously so that clients do not poll for messages
+- Work fully asynchronously so that clients do not poll for messages
   but receive data via callbacks or other asynchronous mechanisms.
 
 And further:
 
-- to interoperate with or simulate other middleware systems.
-- to run well on all boxes, from small clients to large servers.
-- to be cheap enough to deploy without licensing concerns.
-- to be easily adapted, extended, and if necessary, repaired.
+- To interoperate with or simulate other middleware systems.
+- To run well on all boxes, from small clients to large servers.
+- To be cheap enough to deploy without licensing concerns.
+- To be easily adapted, extended, and if necessary, repaired.
 
 And finally:
 
-- to allow the creation of an abstract network of services.
+- To allow the creation of an abstract network of services.
+- To provide ways for application developers to add services to the
+  network.
+- To provide ways for replicating data throughout such a network.
 
 While there exist several large commercial middleware systems that
 provide all of the first set of requirements, there are no middleware
-systems - commercial or open - that also provide the second set.
+systems - commercial or open - that also provide the second set.  There
+are of course many other requirements for any kind of server.
 
-There are quite a number of products that satisfy the last criteria but
-without addressing the others. In our opinion it's possible to build
-abstract networks out of robust, fast, cheap components, but not
-vice-versa.
+The basic plan for making middleware from scratch is this: we start by
+making fast, reliable boxes that do the kinds of message passing we need.
+We then organise these boxes into more and more sophisticated networks
+by adding layers of services.  To put it tritely: we build AMQ using AMQ.
 
 Open Source Middleware
 ======================
@@ -121,22 +125,22 @@ Using Middleware in Real Life
 Scales of Deployment
 --------------------
 
-The scope of AMQ covers deployment at different levels of scale: 
+The scope of AMQ covers deployment at different levels of scale:
 
 1. Developer/casual use: 1 server, 1 user, 10 queues, 1 message per
-   second. 
+   second.
 
 2. Production application: 2 servers, 10-100 users, 10-50 queues, 30
-   messages per second (100K/hour). 
+   messages per second (100K/hour).
 
 3. Departmental mission critical application: 4 servers, 100-500 users,
-   50-100 queues, 60 messages per second (250K/hour). 
+   50-100 queues, 60 messages per second (250K/hour).
 
 4. Regional mission critical application: 16 servers, 500-2,000 users,
-   100-500 queues and topics, 250 messages per second (1M/hour). 
+   100-500 queues and topics, 250 messages per second (1M/hour).
 
 5. Global mission critical application: 64 servers, 2K-10K users,
-   500-1000 queues and topics, 2,500 messages per second (10M/hour). 
+   500-1000 queues and topics, 2,500 messages per second (10M/hour).
 
 6. Market data (trading): 200 servers, 5K users, 10K topics, 100K
    messages per second (360M/hour).
@@ -387,8 +391,8 @@ What Makes a Fast, Reliable Server?
 -----------------------------------
 
 Apart from the obvious requirements of writing good code that is
-reasonably efficient, the key to building a fast server is to eliminate
-the overhead of servicing individual connections, and the key to
+reasonably efficient, the key to building a fast server is to reduce
+the cost of servicing individual connections, and the key to
 building a reliable server is to use finite state machines (FSMs).
 
 Server Connection Handling
@@ -508,37 +512,158 @@ Architecture" document.
 Client Architecture
 ===================
 
+General Client Architecture
+---------------------------
+
+The OpenAMQ clients form a large part of the whole project.  In theory
+we could make a full from-the-wire implementation for each programming
+language - C, C++, Java, Perl, .NET, COM.
+
+What we have chosen to do is to define a general architecture that can
+be applied to all clients, and then to standardise and generate as
+much of this as we can.
+
+Our goal is that all OpenAMQ clients, whatever the language, use a
+similar set of concepts and tools, and provide the application programmer
+with a similar API.  This is not yet entirely the case.
+
+The Framing Layer
+.................
+
+AMQP defines a set of commands that map onto frames (each command is a
+specific frame).  The frames are formally defined in the amq_frames.xml
+document.  For example:
+
+    <frame name = "connection challenge">
+        <field type = "octet"    name = "type"      value = "10" />
+        <field type = "octet"    name = "version"   >Negotiated protocol version</field>
+        <field type = "shortstr" name = "mechanisms">Available security mechanisms</field>
+        <field type = "table"    name = "challenges">Challenge fields</field>
+    </frame>
+
+Using GSL code generation, it is a fairly simple matter to turn the
+formal frame definitions into marshalling code.  We have done this in
+C, Perl, Java.  This is a snippet of the generated C marshalling code:
+
+    if (IS_CONNECTION_CHALLENGE (source)) {
+        frame->type = FRAME_TYPE_CONNECTION_CHALLENGE;
+        frame->body.connection_challenge.type = *source++;
+        frame->body.connection_challenge.version = *source++;
+        string_size = *source++;
+        memcpy (frame->body.connection_challenge.mechanisms, source, string_size);
+        frame->body.connection_challenge.mechanisms [string_size] = 0;
+        source += string_size;
+        GET_SHORT (string_size, source);
+        frame->body.connection_challenge.challenges = ipr_longstr_new (source, string_size);
+        source += string_size;
+        frame->size = source - buffer;
+    }
+
+The framing layer is entirely generated.  The same XML specifications
+are used in the server and in the clients, and to produce the AMQP
+RFC specifications.  As well as eliminating a lot of redundant work,
+this ensures that frame fields are consistently named in all our
+AMQP implementations.
+
+The Transport Layer
+...................
+
+The transport layer handles socket connections to the server, and reads
+and writes raw frames.
+
+This layer is specific to each language, and even in a single language
+there may be several implementations.  For instance in C we have an SMT
+implementation and a 'classic' implementation using OS threads.
+
+The Protocol Layer
+..................
+
+The protocol layer consists of one or more FSMs, defining the connection
+and channel states, and the valididity of frames in each state.  It must
+also handle API requests ('methods') and their valididity in each state.
+
+We are working to define a single set of "categorical" FSMs for the
+protocol layer, in the same way as we have a single specification for
+frames.  At present the FSMs are built by hand using different tools.
+GSL lets one write an ad-hoc FSM generator in a few hours, so the real
+cost is not the burden of maintaining extra tools, but of maintaining
+multiple instances of what should be the same FSMs.
+
+The External API
+................
+
+The Protocol Layer exports an API to the calling applications. This API
+may itself be wrapped to provide something more familiar to nice
+developers.
+
+AMQ aims to be a standard and we also prefer to use existing standards
+where possible.  In the middleware domain, the dominant standard is JMS,
+the Java Messaging System, defined by Sun and large middleware vendors.
+
+JMS has several strong advantages:
+
+ - It is widely used and well-known, so supporting JMS means we gain
+   instant credibility and entry into an existing skill pool.
+
+ - JMS implements most mature middleware models.  Basically, if we can
+   "do JMS", we satisfy a large portion of the market.
+
+JMS has two serious disadvantages:
+
+ - It is in principle licensed only for Java use.  We expect that it is
+   possible to build a JMS-like API without falling foul of these license
+   terms but we are not 100% certain at this stage.
+
+ - JMS was designed with weaknesses.  This was, we think, a deliberate
+   policy to maintain a gap between JMS providers and "real" middleware
+   products.  All serious JMS implementations make their own extensions.
+   JMS is not standard unless the developer stays away from these
+   extensions.
+
+Our goal is to support a JMS-like API.  In Java, this should look as close
+to JMS as the JMS license and copyrights will allow.  In other languages,
+we will use the same names and class hierachies.
+
+We will have to extend JMS to fill the "gaps" in the specification and
+to support functionality such as streaming that is specific to AMQP.
+
+At the time of writing, we are still working on this API.  The existing
+clients do not implement JMS but somewhat simpler, cleaner APIs.
+
+Existing Client Implementations
+-------------------------------
+
 There are several different client architectures:
 
-- a full general-use Java client
-- a full general-use ANSI C client
-- a COM client
-- an asynchronous SMT-based client
-- a synchronous SMT-based client
+- A full general-use Java client.  This provides an API compatible with
+  AMQ RFC014/0.1.  This client is built using a generated framing layer,
+  FSMs for the protocol layer, and it uses Java streams for the transport
+  layer.
 
-We discuss each one briefly.
+- A full general-use ANSI C client.  This provides an API compatible with
+  AMQ RFC014/0.1.  This client is built using a generated framing layer,
+  FSMs for the protocol layer, and it uses OS multithreading over sockets
+  for the transport layer.
 
-The General-use Java Client
----------------------------
+- A COM client.  This client provides an API compatible with AMQ RFC015/0.4.
+  It uses the synchronous SMT-based client (described below).
 
+- An asynchronous kernel client in C.  (The "kernel" is the core library
+  used to construct OpenAMQ.)  This uses the same technology as, and is
+  designed to be integrated into, the OpenAMQ server.  It implements the
+  AMQ RFC015/0.4 API.
 
+- a synchronous kernel client in C.  This uses the OpenAMQ server
+  technology but is intended for general use.
 
-The General-use ANSI C Client
------------------------------
-
-The COM Client
---------------
-
-The Asynchronous SMT Client
----------------------------
+This are some FSM diagrams for the clients.  This is the asynchronous
+kernel client:
 
     [amq_aclient_agent.png]
 
-The Synchronous SMT Client
----------------------------
+This is the synchronous kernel client:
 
     [amq_sclient_agent.png]
-
 
 An Open Source Project
 ======================
@@ -546,68 +671,255 @@ An Open Source Project
 Goals and Economics
 -------------------
 
-AMQ was conceived from the start as an open source project. This vision
-is probably the most radical part of the entire project. The AMQ
-project, funded by a large institution and built by a specialist
-engineering firm, represents a new way of building software systems. If
-successful, AMQ will draw support from many other institutions and
-firms. To a large firm, even a significant investment in such a project
-is much cheaper than the tangible cost of commercial alternatives and
-the intangible costs of working with arbitrary, incompatible, and closed
-systems.
+AMQ was conceived from the start as an open source product. This vision
+is probably the most radical and defining aspect of the entire project.
+
+The AMQ project, funded by a large institution and built by a specialist
+engineering firm, represents a new way of building software systems.
+As it grows, AMQ will draw support from many other institutions and
+firms. To a large middleware consuming firm, even a significant investment
+in such a project is much cheaper than the tangible cost of commercial
+alternatives and the intangible costs of working with arbitrary,
+incompatible, and closed systems.
 
 The economics of the AMQ project are simple: every dollar spent on
 creating this product will generate ten, a hundred dollars of value as
 the cost of interconnecting applications comes down to zero, allowing
 larger and more efficient software architectures.
 
-We believe that in a decade, this way of building large software
-applications will be commonplace, even normal. But today the sponsorship
-of AMQ by JPMorgan Chase is a bold innovation.
+Using proprietary infrastructure gives no advantages but rather many
+disadvantages.
 
+We believe that in a decade, this model of collaboration between large
+software consumers and smaller open source producers will be commonplace,
+even conventional.  Software is expensive to make, and open source is a
+way - perhaps the only long-term way - to spread these costs effectively.
 
+But in today's world, the sponsorship of AMQ by JPMorgan Chase is a bold
+innovation.
 
+How Open Source Works
+---------------------
 
+Open source, or free software, is a phenomenon that has arisen
+spontaneously as the cost of communications has fallen over the last
+decades.  One can almost say that as communications get cheaper,
+programmers will tend to collaborate, building the tools they need,
+then building infrastructure, then entire systems.
 
-The goal is
-nothing less than the creation of a new standard, and it was clear that
-only an open source protocol and product can define a new standard today.
+The attitude of commercial software producers towards this phenomenon
+is mixed: some see open source as a fashion, a threat, or a left-wing
+conspiracy.  Others see it as an opportunity.  It seems clear that
+open source (or rather, the commoditization process that it represents)
+splits the industry into two distinct halves: those who see the future
+as a sea of cheap software supporting flottilas of services, and those
+who make their money from selling expensive water.
 
-Open source products get immediate access to a large pool of skilled
-technical help.  This help usually comes in the form of people who download,
-build, test, and experiment with the software, providing feedback on a
-scale and of a quality that turns the software into a hardened, proven
-product (or burns-out the team as they try to keep up).
+While open source seems a somewhat chaotic, and definitely anarchic
+process, and while asking ten open source developers "why they do it"
+will result in twelve different answers, the mechanisms of the
+process are, in my opinion, quite simple.
 
-At iMatix we've gone through this process many times, with numerous open
-source products, some like Xitami wildly popular, others like GSL limited
-to a niche market.
+First, individual programmers always look to work on projects that
+will maximise their opportunity for growth and new opportunities.
+In a technical career, success comes from being an expert.  The best
+programmers seek the hardest challenges.
 
-After about 15 years of open source ("free software", in our case) work,
-we can make these conclusions about the value and costs of open source:
+Second, since the IT world is vast, and complex, and mostly filled
+with junk (following Sturgeon's Law), smart programmers look for other
+smart programmers with whom to work, and (importantly) against whom
+to compete.  It is not possible to measure one's success in a vacuum,
+nor in a crowd.
 
-- people don't contribute core work unless they started the project
-- people do contribute support, bug reports & fixes, addons, ports
-- people do contribute graphics, skins
+Third, the cheaper that communications become, the easier it is for
+these smart programmers to find each other, work together on small
+projects, and collaborate over long periods of time on larger
+projects.  Cheap communications bring people together.
 
-- core project must be complete and well documented
-- maturity: 9-18 months of release
-- one major version per month during that time
-- bsd better license
+Fourth, when a group of elite programmers get together, they start to
+look for "interesting" challenges to work on.  Long before open source
+became an obvious trend, there were many very successful collaborative
+projects.  Most of these filled niches: fractint, the Scandinavian
+"demo" culture, emacs.  In each case competition with other projects
+was a key driver.
 
+The Internet boom that started in the mid-1990's pushed this process
+exponentially.
 
+So open source developers are mainly an elite - the very best
+programmers - who enjoy working on the edges of IT, where there
+is an active R&D process, risk, and potential reward.  They compete
+to build the most elegant, and the most useful, structures.
 
+Open source / free software (as compared to other types of collaborative
+project) is particularly effective because every improvement is added
+back into the process.  There is no proof as yet, but I'd argue that
+the GPL license creates better software, faster, than the BSD license,
+because of this effect.
+
+Open Source as an Economy
+-------------------------
+
+A common misconception about open source is that because it is "free"
+it is somehow a charity operation where programmers work bene-vola
+because they want "to contribute".
+
+This is totally wrong.  When Adam Smith said: "It is not from the
+benevolence of the butcher, the brewer, or the baker, that we expect
+our dinner, but from their regard to their own interest", he was
+accurately describing a world in which self-interest creates
+mutually-beneficial structures.
+
+Open source contributors are attracted for different reasons, depending
+on how far they understand and identify with the technology at hand.
+We can identify the self-interest of each role, while seeing that the
+overall structure serves everyone:
+
+- "users" will evangelise (seeking security in the company of others
+  using the same technology).
+
+- "expert users" will help others who have problems (seeking the kudos
+  that comes from helping others).
+
+- "pundits" will discuss the technology in public forums (seeking the
+  fame that comes from being able to accurately identify trends and
+  future winners).
+
+- "insiders" will take on parts of the testing process (seeking better
+  familiarity with a technology that may become an important part of
+  their skill set).
+
+- "players" will delve into the technology itself, taking on smaller
+  roles in the process (seeking the kudos and fame that can come from
+  being on a winning team).
+
+- "elite players" will take on major roles in the project (seeking to
+  impose their ideas, turn a small project into a major success, or
+  otherwise earn a global reputation).
+
+- "patrons" will provide financial support to the project (looking to
+  sell services, often to the users, that require the technology to
+  succeed and be widely used).
+
+The naive view of open source focuses only on the players, ignoring
+the wider economy of interests.  A successful open source project must
+attract and support all these classes of people (and others, such as
+the "troll", who vocally attacks the project in public forums, thus
+stiffening the resolve of the users and pundits who defend it).
+
+Thus:
+
+- users need a pleasant and pretty product so they can feel proud
+  about showing it to others.
+
+- expert users need forums and mailing lists where they can answer
+  questions.
+
+- pundits need pre-packaged press releases, insider tips, and the
+  occasional free lunch.  Some controversy also helps.
+
+- insiders need regular releases, frequent improvements, and forums
+  where they can propose ideas for the project.
+
+- players need extension frameworks where they can write their (often
+  sub-standard) code without affecting the primary project.
+
+- elite players need badges of membership, and access to the right
+  tools and support.
+
+- patrons need a high-quality functional product that supports their
+  services and additional products.
+
+The only people working full time, and usually professionally, on an
+open source project are the elite players.  All the others will take
+part in the project as a side-effect of their on-going work or hobbies.
+
+While a traditional software company must pay everyone in this economy,
+an open source economy must only pay the elite players, who make up
+perhaps 2-5% of the total. Further, the elite players will work for
+significantly less than the market rate, since they also derive a real
+benefit from working on successful projects, which I call the "open
+source payload".  The most important part of programmer's CV of the
+future is the section titled "Open Source Projects".  This is the
+payload.  It translates directly into dollars, proportional to the
+impact and importance of the open source projects involved.
+
+When compensation plus payload does not cover the cost of working on
+a project (in terms of loss of compensation for alternative work), the
+elite player will suffer "burnout" after 12-18 months.
 
 Open Source Models
 ------------------
 
+Eric S. Raymond's famous essay "The Cathedral and The Bazaar" was the
+first major description of the different open source models.  He
+describes two extremes:
+
+- The Cathedral, in which a small team produces code according to a
+  disciplined top-down model.
+- The Bazaar, in which a chaotic anarchy of individuals collaborate
+  to produce code bottom-up.
+
+Although the distinction between the two models felt right a few
+years ago - e.g. comparing the Free Software Foundation's ex-cathedra
+work on GNU with the anarchic development of Linux - the distinction
+is probably only valid for immature projects.
+
+Certain kinds of work - such as developing a new compiler - demand
+a concentration of elite players.  Other kinds of work can spread
+much more rapidly into an full economy.
+
+But both the GNU and Linux projects are mature, and probably have
+a similar proportion of different roles, and both actually have a
+similar organisation: look at how the Linux kernel development
+process drives the rest of the project.
+
 Key Requirements
 ----------------
+
+We can summarise the above discussion into a set of key requirements
+for a successful open source project:
+
+1. Quality at all levels.  The product must look and feel like a
+   perfect machine: our target users are mostly male and identify
+   with technology, not cosmetics.
+
+2. An arena for discussions, at least email lists, and probably also
+   interactive forums.
+
+3. A clean web site with downloadable presentations, press releases,
+   documents, flyers, and other material.
+
+4. A regular release schedule with raw, fresh, and well-cooked packages
+   (I.e. satisfying pioneers, early adopters, and late adopters).
+
+5. An extensible software framework which provides players with a
+   way to write addons of all types without wasting the time of the
+   elite players.
+
+6. A forum or distribution channel for players to exchange and discuss
+   their contributions.
+
+7. A project identity and financial structure that attracts elite
+   players and protects them from burn-out.
+
+8. A clear financial rationale for the project that attracts patrons
+   and ensures they get value for money.
+
+9. Some arbitrary and controversial technical and/or licensing choices
+   that keep the trolls happy and ensure the project gets discussed
+   often on popular forums like Slashdot.
+
+Insofar as we can "market" an open source project like OpenAMQ into
+success, the categories I've defined are the market segments that need
+to be addressed.  For instance, a project's web site should viewed from
+the perspective of each of these roles and the question asked, "does
+this make sense to me?"
 
 The Version 2 Syndrome
 ======================
 
-A project like AMQ solves a problem that is fairly well defined and for
+A project like AMQ solves a problem that is very well defined and for
 which there is a huge market. In a large global enterprise, there are
 dozens, perhaps hundreds of potential applications where commercial or
 ad-hoc middleware can be placed aside in favour of a simpler standard
@@ -689,6 +1001,7 @@ The main functionality planned for version 1.0 of OpenAMQ is:
 Functionality that will probably not be included in version 1.0:
 
 - XA transactions
+- JMS selectors
 
 And functionality that we still have to look at in more detail:
 
@@ -702,29 +1015,89 @@ And functionality that we still have to look at in more detail:
 The Toolset
 ***********
 
+In which we identify and name the giants upon who's shoulders we are
+standing.
+
+    [openamq_tools.png]
+
 Standard Libraries
 ==================
 
 Apache Portable Runtime
 -----------------------
 
+APR provides a fairly rich set of functions for encapsulating
+non-portable system functionality such as socket access, threading,
+and so on.  We use APR moderately, mainly in the SMT framework.
+
+APR is solid and clearly designed to support a communications
+project such as OpenAMQ.  It is immature in several areas: weak
+documentation, incomplete APIs, and some portability issues, but
+overall we feel it's worth using.
+
 Berkeley Database
 -----------------
 
-Hazel's PCRE
-------------
+BDB is a mature ISAM system.  Our experience with it is somewhat
+contradictory.  On the one hand, the product is well documented, widely
+used in other projects, and very stable in operation.  On the other
+hand, it is literally painful to program.  If you use the wrong sequence
+of calls, it will simply abort, without any explanation.  Writing BDB
+code is often a matter of trial and error.  All our calls to BDB are
+in generated classes, so the cost of using it is one-time only.
 
-iMatix SFL
-----------
+We use BDB for message persistence, and for object persistence.
+
+We are not entirely satisfied with BDB's performance: in order to get
+a stable application, transactions must be used for all operations
+(or we get those famous aborts).  Thus even database reads are
+transactional, and the transaction logs tend to grow.  We will probably
+write our own persistence layer at some stage.
+
+Hazel's Perl Compatible Regular Expressions
+-------------------------------------------
+
+The PCRE library is a small and useful library that we use for parsing
+and matching.  For instance in OpenAMQ this library does the parsing
+and matching of topic names.
+
+iMatix Standard Function Library
+--------------------------------
+
+SFL provides a similar library to APR.  It is more mature, and ported
+to many platforms.  SFL is considered "legacy", in the sense that we
+are not adding new functionality to it.
+
+iMatix Portable Runtime
+-----------------------
+
+iPR is our modern replacement for those functions in SFL that we want
+to use, and which are not provided by APR.  iPR is written using the
+iCL framework (see below).
 
 Languages
 =========
 
-iMatix GSL
-----------
+ANSI C
+------
+
+We use ANSI 1989 C with a small set of necessary extensions that are
+portable to our target systems (inlined functions, 64 bit integers).
+
+iMatix Generator Scripting Language
+-----------------------------------
+
+We use the GSL code generator construction language to build the
+many code generators that we use.  In most cases we actually generate
+the code generators using the XNF framework (see below).
 
 Perl
 ----
+
+We use Perl in some parts of the process where GSL is not flexible
+enough, mainly for document preparation.  Perl is widely available
+and very useful, but tends to produce unmaintainable code, so we
+do not rely on it very heavily.
 
 Code Generation Frameworks
 ==========================
@@ -732,14 +1105,165 @@ Code Generation Frameworks
 iMatix Class Library
 --------------------
 
-iMatix SMT/4
-------------
+iCL is a software development methodology and toolkit aimed at constructing
+very large and very high-quality applications in ANSI C.  We use C in
+infrastructure projects because it is portable, fast and operationally stable.
+However, C lacks modern facilities such as:
+
+1. inheritance (where functionality can be added by extending and building on
+   existing components)
+2. templating (where variations on a standard model can be produced cheaply)
+3. API standardization (where the structure of APIs is enforced by the
+   language).
+4. literate coding (where documentation can be written together with the code)
+5. logical modelling (where we define abstract models such as finite state
+   machines directly in the code)
+
+These can be done manually, and usually are, but that is expensive and
+demanding.
+
+These facilities are helpful because they allow us to work faster and with
+better results.  We can make larger and more ambitious designs with less risk
+of losing control over them. iCL adds these facilities to C by wrapping it
+into a higher level class library (1 - 3) which is self-descriptive (4),
+simple, extensible and language independent. iCL adds a stage to the deployment
+process, but unlike interpreted paradigms, portability and efficiency are
+guaranteed as an atomic quality that follows as a natural consequence of the
+target language, ANSI C. Our solution aims to leverage skills which are
+normally part of the essential training of any IT professional (C, XML).
+
+We write our programs as iCL classes, using a simple XML language. The XML
+language (called "iCL") is designed to be easy to read and write by hand - no
+special editors are needed. An iCL class consists mainly of a set of
+properties and a set of methods. The properties define an object's state. The
+methods define an object's functionality.
+
+iCL classes compile into C code, which we then compile and link as usual.
+In a best-case scenario, we can see up to a 10-to-1 ratio between the final
+C code and the hand-written iCL classes, but coding effort compression is
+typically non-negligible. The generated C code is perhaps 20-30% larger than a
+comparable hand-written application, but we typically get less complex and
+highly optimized code.
+
+iCL does not attempt to create a full OO model. It aims to remove much of the
+administrative burden from writing large-scale C applications, to produce
+high-quality code (5), and to ensure that certain problems - such as memory
+management - can be totally abstracted and thus solved "correctly" once and for
+all.
+
+iMatix Simple Multithreading Kernel
+-----------------------------------
+
+SMT/4 is the latest version of this kernel, which has driven our servers for
+about a decade.  SMT/4 is built as an iCL application with a custom code
+generator.  It provides:
+
+- A finite-state model for writing "agents", which implement protocol
+  handlers and other FSM-defined components.
+- Functions for starting and stopping threads of control in an agent.
+- Functions for communicating between threads, and between non-SMT code
+  and SMT threads.
+- Asynchronous socket i/o functions.
+- Private context areas for each thread.
+- Standard agents for logging, timer alarms, error handling, etc.
+- The ability to package arbitrary agents together into applications.
+- Overall management functions for starting and stopping SMT applications.
+
+The OpenAMQ server, and the kernel clients, are written as SMT agents.
+SMT/4 is quite a radical improvement over SMT/3, which used the Libero
+code generation tool.  SMT/4 is full XML, and generates extremely flat
+and fast finite-state machines (avoiding loops for most cases).  An SMT/4
+application runs about twice as fast as an SMT/3 application.
+
+iMatix XML Normal Form
+----------------------
+
+The iMatix team has been making XML-driven code generators for about
+a decade, and more exotic code generators since 1985 or so.  In that
+time, we've written several dozen major code generators and extracted
+some basic principles:
+
+- XML is without doubt the best language for abstract models, the
+  input for code generation.
+
+- Each XML file should represent a single "program", being a natural
+  unit of work in whatever XML modelling language we are inventing.
+  Trying to put multiple programs (state machines, classes, agents,
+  whatever) into one XML file is counter-productive. Naturally one
+  XML program can produce an arbitrary number of output files.
+
+- The XML syntax should use attributes for item properties, items
+  for structure, and item body content for code.  Using items for
+  everything is verbose and confusing.
+
+- We do not need to use schemas, stylesheets, paths, namespaces, or
+  any of the more sophisticated XML paraphanalia.  We want simple XML
+  that is easy to read and edit.  We do not want to have to use
+  complex tools to read and edit our XML programs - just any text
+  editor.
+
+- The easiest way of mixing implementation code bodies and models is
+  to write the code bodies in the XML, as item body content.  It
+  helps if you use a tweaked XML parser that allows - for example -
+  < and > inside an item body without complaining.
+
+- The XML language should use inheritence to achieve abstraction.
+  For example, in an finite-state model, states should be able to
+  inherit events and their action lists from other 'abstract' states.
+  Since XML is a hierarchical language, inheritence is a natural way
+  of eliminating reduncancy in an XML program (something you might
+  do in other languages using functions, classes, etc.)
+
+- Doing all the above cleanly is sufficiently hard work that it's
+  worthwhile generating the code generator from an abstract grammar.
+  Using an abstract grammar makes it very cheap to extend and change
+  the XML language so that it becomes suitably powerful.
+
+XNF is thus a grammar tool and a code generator for building code
+generators.  XNF is the meta grammar for iCL, SMT, the boom languages
+- see later - and XNF itself.
+
+This is a summary syntax for XNF:
+
+    <xnf name version [before] [after] [abstract] [script] [copyright] [role]>
+       <option name value/>
+       <inherit name>
+          <option .../>
+       </inherit>
+       <include filename/>
+       <produce filename type/>
+       <entity name [abstract] [template] [tag] [cdata] [key] [unique] [inherit] [sequence]
+            [disconnect] [export]>
+          <option .../>
+          <inherit .../>
+          <allow entity [occurs] [inherit] [sequence] [export]/>
+          <rule [phase] [when]/>
+          <attr name [required] [default] [inherit] [phase]>
+             <restrict value/>
+          </attr>
+          <link from [entity] [field] [required] [disconnect]>
+             <rule [phase] [when]/>
+          </link>
+       </entity>
+       <errorhandler/>
+       <rule [phase] [when]/>
+    </xnf>
+
+The only problem we find with XNF is that it is a meta tool and thus
+difficult for some people to understand.  As a tool for generating code
+generators it is very powerful and it abstracts concepts such as
+inheritence that are very difficult to do well by hand.
 
 Ad-Hoc Frameworks
 -----------------
 
-iMatix XNF
-----------
+OpenAMQ has a number of ad-hoc code generation frameworks that are not
+large enough to be worth defining with XNF:
+
+- The AMQP frames generators, in versions that produce C, Java, and Perl
+  code respectively.
+
+- The openamq.org web site generator.
 
 Documentation
 =============
@@ -747,14 +1271,44 @@ Documentation
 iMatix Gurudoc
 --------------
 
+iMatix gurudoc is a refinement of the htmlpp tool we used for our
+websites for many years.
+
+Gurudoc works by recognising layout in a simple text file, and converting
+this to an internal XML language - GDL.  A set of code generators then
+turn GDL into lots of different output formats.  Several varieties of
+HTML (with frames, without frames), LaTeX (allowing PDF generation),
+simple text, OpenOffice.org, RTF, etc.
+
+Gurudoc keeps a balance between features and complexity, to give you
+something useful without becoming too formal. Basically, gurudoc relies
+on layout rules that also help to make the text readable in any case.
+For example, blank lines and indentation are significant in most places.
+One consequence of this is that the plain text file is very readable
+even before it is converted to any target.
+
+This document - like all the OpenAMQ documentation - is written as a
+gurudoc text file.
+
 LaTeX
 -----
+
+LaTeX is used to produce PDFs.  It's a huge system and does not build
+on all our workstations.  But it produces very elegant PDFs.
 
 AT&T Graphviz
 -------------
 
+Graphviz turns simple diagraphs into elegant images.  We use Graphviz
+to produce the state and class diagrams used in this document.  Graphviz
+is integrated into the gurudoc toolchain.
+
 Wiki
 ----
+
+The openamq.org web site provides a wiki whiteboard for developers.  We
+use the Oddmuse wiki which is a simple and functional implementation.
+We have modified the code to support gurudoc markup for wiki pages.
 
 Project Management
 ==================
@@ -762,12 +1316,88 @@ Project Management
 iMatix Boom
 -----------
 
+Boom is a portable command-line toolkit that automates the build process
+for software projects. In simple terms, boom takes a project description
+and turns this into various platform-dependent scripts and makefiles
+that do the hard work of turning source code into executable files.
 
+The short answer to the standard question "why use boom instead of make
+or autoconf" is that make files are not portable, autoconf is complex,
+and the build process requires more than these tools provide.
 
+The longer answer is that boom projects are particularly cheap to make
+maintain since files' properties are abstracted (using inheritence, as
+usual) and relationships between files are extracted automatically.
+Further, boom produces packages (source & binary) at no extra cost.
 
+Boom produces make and configure scripts to give people a familiar
+user interface.  This is a typical project definition (for the
+documentation project, including this document):
 
+    <?xml?>
+    <pdl name = "OpenAMQ Documentation" version = "0.8c3">
+    <include filename = "prelude.pdl" />
+    <file name = "concepts.txt"          class = "gurudoc text">OpenAMQ servers user guide</file>
+    <file name = "gdstyle.css"           class = "web resource">Gurudoc style sheet</file>
+    <file name = "mainlogo.jpg"          class = "web resource">AMQ logo</file>
+    <file name = "amq_server_agent.dot"  class = "digraph"     >OpenAMQ server FSM</file>
+    <file name = "amq_sclient_agent.dot" class = "digraph"     >OpenAMQ client FSM</file>
+    <file name = "amq_aclient_agent.dot" class = "digraph"     >OpenAMQ client FSM</file>
+    <file name = "server_classes.dot"    class = "digraph"     >OpenAMQ server classes</file>
+    <class name = "digraph" inherit = "private resource">
+        <derive extension = ".png"  class = "generated" />
+        <generate target = "unix">
+            <execute command = "builddot" />
+        </generate>
+    </class>
+    </pdl>
 
+Here is an edited fragment of the generated code (this implements the
+'distsrc' command that builds a source package):
 
+    rm -f _package.lst
+    echo concepts.txt>>_package.lst
+    echo gdstyle.css>>_package.lst
+    echo mainlogo.jpg>>_package.lst
+    echo amq_server_agent.dot>>_package.lst
+    echo amq_sclient_agent.dot>>_package.lst
+    echo amq_aclient_agent.dot>>_package.lst
+    echo server_classes.dot>>_package.lst
+    echo prelude.pdl>>_package.lst
+    echo license.gpl>>_package.lst
+    echo project.pdl>>_package.lst
+    echo readme.txt>>_package.lst
+    for file in `echo concepts*.html`; do
+        echo $file>>_package.lst
+    done
+    echo amq_server_agent.png>>_package.lst
+    echo amq_sclient_agent.png>>_package.lst
+    echo amq_aclient_agent.png>>_package.lst
+    echo server_classes.png>>_package.lst
+    echo stamp_generate>>_package.lst
+    echo configure>>_package.lst
+    echo boomconf>>_package.lst
+    echo Makefile_dev.unix>>_package.lst
+    echo Makefile_src.unix>>_package.lst
+    echo boomake>>_package.lst
+    echo configure.bat>>_package.lst
+    echo boomconf.bat>>_package.lst
+    echo Makefile_dev.win32>>_package.lst
+    echo Makefile_src.win32>>_package.lst
+    echo boomake.bat>>_package.lst
+    echo "Building OpenAMQ_Documentation-0.8c3-src.tar.gz..."
+    zip  -rq _package.zip -@<_package.lst
+    unzip -q _package.zip -d OpenAMQ_Documentation-0.8c3
+    rm -f OpenAMQ_Documentation-0.8c3-src.tar.gz
+    tar -czf  OpenAMQ_Documentation-0.8c3-src.tar.gz OpenAMQ_Documentation-0.8c3
+    rm -f OpenAMQ_Documentation-0.8c3-src.zip
+    carp "Building OpenAMQ_Documentation-0.8c3-src.zip..."
+    zip -lrmq OpenAMQ_Documentation-0.8c3-src.zip OpenAMQ_Documentation-0.8c3
+    rm _package.zip
+    rm _package.lst
+
+In typical projects boom produces about 100 lines of build code for one
+line of project definition.  That is good leverage.
 
 The AMQ Protocol
 ****************
@@ -940,7 +1570,4 @@ binary data file could be sent together with an XML description, as two
 parts of a single message. The XML description might be used for
 routing, without the need to inspect or unpack the binary data, and AMQP
 will always deliver the multiple parts as as single message.
-
-Project Directory Organisation
-******************************
 

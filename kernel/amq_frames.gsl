@@ -450,8 +450,7 @@ $(prefix)_frame_decode_mem (byte *buffer, size_t cur_size)
         if (source >= limit)
             goto underflow;
 .           if    type = "char"
-        frame->body.$(frame.name).$(name) = *(char *) source;
-        source += 1;
+        frame->body.$(frame.name).$(name) = *(char *) source++;
 .-
 .           elsif type = "bit"
 .               if bit_count = 0
@@ -465,8 +464,7 @@ $(prefix)_frame_decode_mem (byte *buffer, size_t cur_size)
 .           endif
 .-
 .           elsif type = "octet"
-        frame->body.$(frame.name).$(name) = *source;
-        source += 1;
+        frame->body.$(frame.name).$(name) = *source++;
 .-
 .           elsif type = "shortint"
         GET_SHORT (frame->body.$(frame.name).$(name), source);
@@ -475,8 +473,7 @@ $(prefix)_frame_decode_mem (byte *buffer, size_t cur_size)
         GET_LONG (frame->body.$(frame.name).$(name), source);
 .-
 .           elsif type = "shortstr"
-        string_size = *source;
-        source += 1;
+        string_size = *source++;
         memcpy (frame->body.$(frame.name).$(name), source, string_size);
         frame->body.$(frame.name).$(name) [string_size] = 0;
         source += string_size;
@@ -562,8 +559,7 @@ $(prefix)_$(name)_decode_mem (byte *buffer, size_t cur_size)
 .       endif
 .       for field
 .           if    type = "char"
-    frame->body.$(frame.name).$(name) = *(char *) source;
-    source += 1;
+    frame->body.$(frame.name).$(name) = *(char *) source++;
 .-
 .           elsif type = "bit"
 .               if bit_count = 0
@@ -577,8 +573,7 @@ $(prefix)_$(name)_decode_mem (byte *buffer, size_t cur_size)
 .           endif
 .-
 .           elsif type = "octet"
-    frame->body.$(frame.name).$(name) = *source;
-    source += 1;
+    frame->body.$(frame.name).$(name) = *source++;
 .-
 .           elsif type = "shortint"
     GET_SHORT (frame->body.$(frame.name).$(name), source);
@@ -587,8 +582,7 @@ $(prefix)_$(name)_decode_mem (byte *buffer, size_t cur_size)
     GET_LONG (frame->body.$(frame.name).$(name), source);
 .-
 .           elsif type = "shortstr"
-    string_size = *source;
-    source += 1;
+    string_size = *source++;
     memcpy (frame->body.$(frame.name).$(name), source, string_size);
     frame->body.$(frame.name).$(name) [string_size] = 0;
     source += string_size;
