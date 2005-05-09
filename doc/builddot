@@ -1,0 +1,6 @@
+#! /bin/sh
+#
+#   Build PNG from dot file
+
+FILE=`basename $1 .dot`
+dot -Tpng $FILE.dot -o$FILE.png

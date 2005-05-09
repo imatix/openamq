@@ -1,0 +1,40 @@
+//  OpenAMQ technology dependency tree
+//  Build using dot
+digraph {
+    size = "8,12";
+    OS [label = "Native O/S"];
+    C  [label = "ANSI C"];
+    C       -> OS;
+    SFL     -> OS;
+    SFL     -> C;
+    APR     -> OS;
+    APR     -> C;
+    BDB     -> OS;
+    BDB     -> C;
+    GSL     -> SFL;
+    SMT     -> SFL;
+    SMT     -> APR;
+    SMT     -> XNF;
+    SMT     -> Boom;
+    SMT     -> GSL;
+    XNF     -> GSL;
+    XNF     -> Boom;
+    iCL     -> XNF;
+    iCL     -> Boom;
+    iCL     -> APR;
+    iCL     -> GSL;
+    iPR     -> Boom;
+    iPR     -> iCL;
+    Boom    -> Boom;
+    Boom    -> XNF;
+    Boom    -> GSL;
+    OpenAMQ -> SMT;
+    OpenAMQ -> SFL;
+    OpenAMQ -> iCL;
+    OpenAMQ -> iPR;
+    OpenAMQ -> BDB;
+    OpenAMQ -> GSL;
+    OpenAMQ -> Boom;
+    OpenAMQ -> PCRE;
+    PCRE    -> C;
+}

@@ -5,12 +5,13 @@ digraph {
         expect_connection_challenge -> expect_connection_tune;
         expect_connection_tune -> connection_active;
         connection_active -> connection_active;
-        connection_active -> after_channel_notify;
         connection_active -> sending_message;
+        connection_active -> after_channel_notify;
+        connection_active -> expect_channel_index;
+        expect_channel_index -> connection_active;
         after_channel_notify -> expect_channel_notify;
         after_channel_notify -> connection_active;
         expect_channel_notify -> after_channel_notify;
-        expect_channel_notify -> connection_active;
         sending_message -> sending_message;
     }
 }

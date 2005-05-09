@@ -7,14 +7,14 @@ digraph {
         after_connection_open -> connection_active;
         after_connection_open -> initialise_connection;
         connection_active -> connection_active;
-        connection_active -> initialise_connection;
         connection_active -> sending_message;
-        connection_active -> expect_channel_notify;
+        connection_active -> after_channel_notify;
         connection_active -> expect_channel_close;
         connection_active -> expect_channel_index;
-        expect_channel_notify -> after_channel_notify;
+        connection_active -> initialise_connection;
         after_channel_notify -> expect_channel_notify;
         after_channel_notify -> connection_active;
+        expect_channel_notify -> after_channel_notify;
         expect_channel_close -> expect_channel_close;
         expect_channel_close -> connection_active;
         expect_channel_index -> connection_active;
