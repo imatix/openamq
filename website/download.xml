@@ -14,15 +14,15 @@ the terms described here.
 
 Download OpenAMQ
 ****************
-The current version is 0.8c3.  This is a beta release of the server
+The current version is 0.8c5.  This is a beta release of the server
 and clients.
 
 Source Packages
 ===============
 
- - [http://www.openamq.org/pub/OpenAMQ-0.8c3.tar.gz]
+ - [http://www.openamq.org/pub/OpenAMQ-0.8c5.tar.gz]
    POSIX (Linux, Solaris, Unix) source package
- - [http://www.openamq.org/pub/OpenAMQ-0.8c3.zip]
+ - [http://www.openamq.org/pub/OpenAMQ-0.8c5.zip]
    Win32 source package
 
 Unpack into a working directory and run configure and then
@@ -38,7 +38,7 @@ More information: [/deploy.html:Running and managing an OpenAMQ server].
 Binary Packages
 =============
 
- - [http://www.openamq.org/pub/openamq-latest-win32.zip]
+ - (currently unavailable)
    Win32 executables
 
 Unpack into a final directory, e.g. c:\openamq.  The clients

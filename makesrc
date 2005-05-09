@@ -2,7 +2,7 @@
 #
 #   Make OpenAMQ source packages
 #
-#   Modified 2005/03/18 - ph@imatix.com
+#   Modified 2005/05/09 - mato@imatix.com
 #
 #   Creates OpenAMQ source package including base, base2, and gsl4.
 #
@@ -13,7 +13,7 @@ for PRODUCT in $PRODUCTS; do
     cd $HOME/products/$PRODUCT
     rm -f *.tar.gz *.zip
     boom configure
-    boom distsrc
+    boom clean distsrc
     eval ${PRODUCT}_version=`boom version`
 done
 

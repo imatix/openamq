@@ -1,3 +1,7 @@
+0.8c5 - 2005/05/09
+
+ - correct packaging of 0.8c4
+
 0.8c4 - 2005/05/08
 
  - fixed build problems under Windows.
