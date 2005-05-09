@@ -19,7 +19,7 @@
 
 <class name = "digraph" inherit = "private resource">
     <derive extension = ".png"  class = "generated" />
-    <generate target = "unix">
+    <generate>
         <execute command = "builddot" />
     </generate>
 </class>

@@ -2,4 +2,6 @@
 :-
 :-  Build PNG from dot file
 
-dot -Tpng %1.dot -o%1.png
+set FILE=%1
+set FILE=%FILE:.dot=%
+dot -Tpng %FILE%.dot -o%FILE%.png
