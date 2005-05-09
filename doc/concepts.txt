@@ -852,8 +852,8 @@ depending on the person's tenacity.
 Key Requirements
 ----------------
 
-We can summarise the above discussion into a set of key requirements
-for a successful open source project:
+We can summarise the above discussion into a set of key requirements for
+a successful open source project:
 
 1. Quality at all levels.  The product must look and feel like a
    perfect machine: our target users identify with technology, not
@@ -887,53 +887,52 @@ for a successful open source project:
 
 Insofar as we can "market" an open source project like OpenAMQ into
 success, the categories I've defined are the market segments that need
-to be addressed.  For instance, a project's web site should viewed from
+to be addressed. For instance, a project's web site should viewed from
 the perspective of each of these roles and the question asked, "does
 this make sense to me?"
 
 Open Source Licenses
 --------------------
 
-There are numerous open source licenses, but modern projects tend to
-use one of two main alternatives.  On the one hand there is the BSD
-model, also used by Apache, which says "this code is free to use and
-share but you must respect our copyright notices".  On the other hand
-there is the GPL model, the basis of Linux, which says "this code is
-free to use and share, and any modifications you distribute as binary
-must also be shared as source."
+There are numerous open source licenses, but modern projects tend to use
+one of two main alternatives. On the one hand there is the BSD model,
+also used by Apache, which says "this code is free to use and share but
+you must respect our copyright notices". On the other hand there is the
+GPL model, the basis of Linux, which says "this code is free to use and
+share, and any modifications you distribute as binary must also be
+shared as source."
 
 The two approaches are strongly influenced by philosophies. The BSDL
 originates from an academic desire to spread knowledge widely. The GPL
 originates from the viewpoint that software-as-property is somehow evil.
-It even promotes the notion of "copyleft" as an alternative to copyright,
-though the license is only enforceable through copyright law.
+It even promotes the notion of "copyleft" as an alternative to
+copyright, though the license is only enforceable through copyright law.
 
-Many academics and most commercial interests dislike the GPL because
-it "infects" projects.  Even iMatix, who distribute their own projects
-as free software under the GPL, prefer to work with BSDL libraries.
-Why?  Because we can safely provide these to our commercial customers.
+Many academics and most commercial interests dislike the GPL because it
+"infects" projects. Even iMatix, who distribute their own projects as
+free software under the GPL, prefer to work with BSDL libraries. Why?
+Because we can safely provide these to our commercial customers.
 
 From the viewpoint of the success of open source projects, there is
-contradictory evidence.  On the one hand, BSDL projects like Apache
-have held a market lead against GPL alternatives.  On the other hand,
-Linux has beaten the originally superior OpenBSD and FreeBSD systems
-into obscurity.
+contradictory evidence. On the one hand, BSDL projects like Apache have
+held a market lead against GPL alternatives. On the other hand, Linux
+has beaten the originally superior OpenBSD and FreeBSD systems into
+obscurity.
 
 There is much debate about the fine points of these two licenses, but
 the truth appears to be that the BSDL suits better-funded, top-down
 organisations while the GPL suits smaller, more distributed projects.
-The successful GPL projects consist of many smaller pieces, each with
-a few authors.  The successful BSD projects tend to be monolithic,
-with larger teams.
+The successful GPL projects consist of many smaller pieces, each with a
+few authors. The successful BSD projects tend to be monolithic, with
+larger teams.
 
 The choice of license is probably both cause and effect.
 
 For AMQ, we'd prefer to use the GPL as it fits our view of open source
-as an economy.  The argument is that the GPL, though harder to "sell"
-to our users, would create a more viable long-term economy around the
-AMQ technologies.  However, we'd recommend using the BSDL (rather, the
-Apache License) for practical reasons: it's what our target users will
-want.
+as an economy. The argument is that the GPL, though harder to "sell" to
+our users, would create a more viable long-term economy around the AMQ
+technologies. However, we'd recommend using the BSDL (rather, the Apache
+License) for practical reasons: it's what our target users will want.
 
 The Version 2 Syndrome
 ======================
@@ -1046,53 +1045,53 @@ Apache Portable Runtime
 -----------------------
 
 APR provides a fairly rich set of functions for encapsulating
-non-portable system functionality such as socket access, threading,
-and so on.  We use APR moderately, mainly in the SMT framework.
+non-portable system functionality such as socket access, threading, and
+so on. We use APR moderately, mainly in the SMT framework.
 
-APR is solid and clearly designed to support a communications
-project such as OpenAMQ.  It is immature in several areas: weak
-documentation, incomplete APIs, and some portability issues, but
-overall we feel it's worth using.
+APR is solid and clearly designed to support a communications project
+such as OpenAMQ. It is immature in several areas: weak documentation,
+incomplete APIs, and some portability issues, but overall we feel it's
+worth using.
 
 Berkeley Database
 -----------------
 
-BDB is a mature ISAM system.  Our experience with it is somewhat
-contradictory.  On the one hand, the product is well documented, widely
-used in other projects, and very stable in operation.  On the other
-hand, it is literally painful to program.  If you use the wrong sequence
-of calls, it will simply abort, without any explanation.  Writing BDB
-code is often a matter of trial and error.  All our calls to BDB are
-in generated classes, so the pain of writing BDB code is one-time only.
+BDB is a mature ISAM system. Our experience with it is somewhat
+contradictory. On the one hand, the product is well documented, widely
+used in other projects, and very stable in operation. On the other hand,
+it is literally painful to program. If you use the wrong sequence of
+calls, it will simply abort, without any explanation. Writing BDB code
+is often a matter of trial and error. All our calls to BDB are in
+generated classes, so the pain of writing BDB code is one-time only.
 
 We use BDB for message persistence, and for object persistence.
 
-We are not entirely satisfied with BDB's performance: in order to get
-a stable application, transactions must be used for all operations
-(or we get those famous aborts).  Thus even database reads are
-transactional, and the transaction logs tend to grow.  We will probably
-write our own persistence layer at some stage.
+We are not entirely satisfied with BDB's performance: in order to get a
+stable application, transactions must be used for all operations (or we
+get those famous aborts). Thus even database reads are transactional,
+and the transaction logs tend to grow. We will probably write our own
+persistence layer at some stage.
 
 Hazel's Perl Compatible Regular Expressions
 -------------------------------------------
 
 The PCRE library is a small and useful library that we use for parsing
-and matching.  For instance in OpenAMQ this library does the parsing
-and matching of topic names.
+and matching. For instance in OpenAMQ this library does the parsing and
+matching of topic names.
 
 iMatix Standard Function Library
 --------------------------------
 
-SFL provides a similar library to APR.  It is more mature, and ported
-to many platforms.  SFL is considered "legacy", in the sense that we
-are not adding new functionality to it.
+SFL provides a similar library to APR. It is more mature, and ported to
+many platforms. SFL is considered "legacy", in the sense that we are not
+adding new functionality to it.
 
 iMatix Portable Runtime
 -----------------------
 
-iPR is our modern replacement for those functions in SFL that we want
-to use, and which are not provided by APR.  iPR is written using the
-iCL framework (see below).
+iPR is our modern replacement for those functions in SFL that we want to
+use, and which are not provided by APR. iPR is written using the iCL
+framework (see below).
 
 Languages
 =========
@@ -1106,17 +1105,17 @@ portable to our target systems (inlined functions, 64 bit integers).
 iMatix Generator Scripting Language
 -----------------------------------
 
-We use the GSL code generator construction language to build the
-many code generators that we use.  In most cases we actually generate
-the code generators using the XNF framework (see below).
+We use the GSL code generator construction language to build the many
+code generators that we use. In most cases we actually generate the code
+generators using the XNF framework (see below).
 
 Perl
 ----
 
 We use Perl in some parts of the process where GSL is not flexible
-enough, mainly for document preparation.  Perl is widely available
-and very useful, but tends to produce unmaintainable code, so we
-do not rely on it very heavily.
+enough, mainly for document preparation. Perl is widely available and
+very useful, but tends to produce unmaintainable code, so we do not rely
+on it very heavily.
 
 Code Generation Frameworks
 ==========================
@@ -1124,10 +1123,10 @@ Code Generation Frameworks
 iMatix Class Library
 --------------------
 
-iCL is a software development methodology and toolkit aimed at constructing
-very large and very high-quality applications in ANSI C.  We use C in
-infrastructure projects because it is portable, fast and operationally stable.
-However, C lacks modern facilities such as:
+iCL is a software development methodology and toolkit aimed at
+constructing very large and very high-quality applications in ANSI C. We
+use C in infrastructure projects because it is portable, fast and
+operationally stable. However, C lacks modern facilities such as:
 
 1. inheritance (where functionality can be added by extending and building on
    existing components)
@@ -1141,41 +1140,42 @@ However, C lacks modern facilities such as:
 These can be done manually, and usually are, but that is expensive and
 demanding.
 
-These facilities are helpful because they allow us to work faster and with
-better results.  We can make larger and more ambitious designs with less risk
-of losing control over them. iCL adds these facilities to C by wrapping it
-into a higher level class library (1 - 3) which is self-descriptive (4),
-simple, extensible and language independent. iCL adds a stage to the deployment
-process, but unlike interpreted paradigms, portability and efficiency are
-guaranteed as an atomic quality that follows as a natural consequence of the
-target language, ANSI C. Our solution aims to leverage skills which are
-normally part of the essential training of any IT professional (C, XML).
+These facilities are helpful because they allow us to work faster and
+with better results. We can make larger and more ambitious designs with
+less risk of losing control over them. iCL adds these facilities to C by
+wrapping it into a higher level class library (1 - 3) which is
+self-descriptive (4), simple, extensible and language independent. iCL
+adds a stage to the deployment process, but unlike interpreted
+paradigms, portability and efficiency are guaranteed as an atomic
+quality that follows as a natural consequence of the target language,
+ANSI C. Our solution aims to leverage skills which are normally part of
+the essential training of any IT professional (C, XML).
 
 We write our programs as iCL classes, using a simple XML language. The XML
 language (called "iCL") is designed to be easy to read and write by hand - no
 special editors are needed. An iCL class consists mainly of a set of
-properties and a set of methods. The properties define an object's state. The
-methods define an object's functionality.
+properties and a set of methods. The properties define an object's
+state. The methods define an object's functionality. 
 
-iCL classes compile into C code, which we then compile and link as usual.
-In a best-case scenario, we can see up to a 10-to-1 ratio between the final
-C code and the hand-written iCL classes, but coding effort compression is
-typically non-negligible. The generated C code is perhaps 20-30% larger than a
-comparable hand-written application, but we typically get less complex and
-highly optimized code.
+iCL classes compile into C code, which we then compile and link as
+usual. In a best-case scenario, we can see up to a 10-to-1 ratio between
+the final C code and the hand-written iCL classes, but coding effort
+compression is typically non-negligible. The generated C code is perhaps
+20-30% larger than a comparable hand-written application, but we
+typically get less complex and highly optimized code. 
 
-iCL does not attempt to create a full OO model. It aims to remove much of the
-administrative burden from writing large-scale C applications, to produce
-high-quality code (5), and to ensure that certain problems - such as memory
-management - can be totally abstracted and thus solved "correctly" once and for
-all.
+iCL does not attempt to create a full OO model. It aims to remove much
+of the administrative burden from writing large-scale C applications, to
+produce high-quality code (5), and to ensure that certain problems -
+such as memory management - can be totally abstracted and thus solved
+"correctly" once and for all.
 
 iMatix Simple Multithreading Kernel
 -----------------------------------
 
-SMT/4 is the latest version of this kernel, which has driven our servers for
-about a decade.  SMT/4 is built as an iCL application with a custom code
-generator.  It provides:
+SMT/4 is the latest version of this kernel, which has driven our servers
+for about a decade. SMT/4 is built as an iCL application with a custom
+code generator. It provides:
 
 - A finite-state model for writing "agents", which implement protocol
   handlers and other FSM-defined components.
@@ -1190,17 +1190,17 @@ generator.  It provides:
 
 The OpenAMQ server, and the kernel clients, are written as SMT agents.
 SMT/4 is quite a radical improvement over SMT/3, which used the Libero
-code generation tool.  SMT/4 is full XML, and generates extremely flat
-and fast finite-state machines (avoiding loops for most cases).  An SMT/4
+code generation tool. SMT/4 is full XML, and generates extremely flat
+and fast finite-state machines (avoiding loops for most cases). An SMT/4
 application runs about twice as fast as an SMT/3 application.
 
 iMatix XML Normal Form
 ----------------------
 
-The iMatix team has been making XML-driven code generators for about
-a decade, and more exotic code generators since 1985 or so.  In that
-time, we've written several dozen major code generators and extracted
-some basic principles:
+The iMatix team has been making XML-driven code generators for about a
+decade, and more exotic code generators since 1985 or so. In that time,
+we've written several dozen major code generators and extracted some
+basic principles:
 
 - XML is without doubt the best language for abstract models, the
   input for code generation.
@@ -1239,8 +1239,7 @@ some basic principles:
   the XML language so that it becomes suitably powerful.
 
 XNF is thus a grammar tool and a code generator for building code
-generators.  XNF is the meta grammar for iCL, SMT, boom, and XNF
-itself.
+generators. XNF is the meta grammar for iCL, SMT, boom, and XNF itself.
 
 This is a summary syntax for XNF:
 
@@ -1270,7 +1269,7 @@ This is a summary syntax for XNF:
     </xnf>
 
 The only problem we find with XNF is that it is a meta tool and thus
-difficult for some people to understand.  As a tool for generating code
+difficult for some people to understand. As a tool for generating code
 generators it is very powerful and it abstracts concepts such as
 inheritence that are very difficult to do well by hand.
 
@@ -1294,18 +1293,18 @@ iMatix Gurudoc
 iMatix gurudoc is a refinement of the htmlpp tool we used for our
 websites for many years.
 
-Gurudoc works by recognising layout in a simple text file, and converting
-this to an internal XML language - GDL.  A set of code generators then
-turn GDL into lots of different output formats.  Several varieties of
-HTML (with frames, without frames), LaTeX (allowing PDF generation),
-simple text, OpenOffice.org, RTF, etc.
+Gurudoc works by recognising layout in a simple text file, and
+converting this to an internal XML language - GDL. A set of code
+generators then turn GDL into lots of different output formats. Several
+varieties of HTML (with frames, without frames), LaTeX (allowing PDF
+generation), simple text, OpenOffice.org, RTF, etc.
 
 Gurudoc keeps a balance between features and complexity, to give you
-something useful without becoming too formal. Basically, gurudoc relies
-on layout rules that also help to make the text readable in any case.
-For example, blank lines and indentation are significant in most places.
-One consequence of this is that the plain text file is very readable
-even before it is converted to any target.
+something useful without becoming too formal. Gurudoc relies on layout
+rules that also help to make the text readable in any case. For example,
+blank lines and indentation are significant in most places. One
+consequence of this is that the plain text file is very readable even
+before it is converted to any target.
 
 This document - like all the OpenAMQ documentation - is written as a
 gurudoc text file.
@@ -1313,22 +1312,22 @@ gurudoc text file.
 LaTeX
 -----
 
-LaTeX is used to produce PDFs.  It's a huge system and does not build
-on all our workstations.  But it produces very elegant PDFs.
+LaTeX is used to produce PDFs. It's a huge system and does not build on
+all our workstations. But it produces very elegant PDFs.
 
 AT&T Graphviz
 -------------
 
-Graphviz turns simple diagraphs into elegant images.  We use Graphviz
-to produce the state and class diagrams used in this document.  Graphviz
-is integrated into the gurudoc toolchain.
+Graphviz turns simple diagraphs into elegant images. We use Graphviz to
+produce the state and class diagrams used in this document. Graphviz is
+integrated into the gurudoc toolchain.
 
 Wiki
 ----
 
-The openamq.org web site provides a wiki whiteboard for developers.  We
-use the Oddmuse wiki which is a simple and functional implementation.
-We have modified the code to support gurudoc markup for wiki pages.
+The openamq.org web site provides a wiki whiteboard for developers. We
+use the Oddmuse wiki which is a simple and functional implementation. We
+have modified the code to support gurudoc markup for wiki pages.
 
 Project Management
 ==================
@@ -1417,13 +1416,13 @@ Here is an edited fragment of the generated code (this implements the
     rm _package.lst
 
 In typical projects boom produces about 100 lines of build code for one
-line of project definition.  That is good leverage.
+line of project definition. That is good leverage.
 
 The AMQ Protocol
 ****************
 
 This section is an extract from AMQ RFC 006, which defines the AMQ
-Protocol.  [Note: this RFC is undergoing modifications.]
+Protocol. [Note: this RFC is undergoing modifications.]
 
 Overview
 ========
@@ -1432,13 +1431,13 @@ Purpose and Goals
 -----------------
 
 AMQP is intended to be a standardised general-use message-oriented
-middleware wire-level protocol.  Such a thing does not yet exist, even
+middleware wire-level protocol. Such a thing does not yet exist, even
 with fewer buzzwords.
 
 A "wire-level protocol" can be a simple as a "this is how we define
-packets on the wire".  AMQP is more ambitious than that.  It tries
-to provide formal answers to a series of questions that we must
-answer in order to implement useful messaging between protocols.
+packets on the wire". AMQP is more ambitious than that. It tries to
+provide formal answers to a series of questions that we must answer in
+order to implement useful messaging between protocols.
 
 We want to be able to:
 
@@ -1475,8 +1474,8 @@ Goals and Principles
 
 Negotiation means that one party in a discussion declares an intention
 or capability and the other party either acknowledges it, modifies it,
-or rejects it.  In AMQP, we negotiate a number of specific aspects of
-the protocol:
+or rejects it. In AMQP, we negotiate a number of specific aspects of the
+protocol:
 
 1. The actual protocol and version.
 2. Encryption arguments and the authentication of both parties.
@@ -1485,8 +1484,8 @@ the protocol:
 Protocol and Version
 ....................
 
-AMQP can co-exist with other (still to be defined) protocols on the
-same socket.  These protocols would have to respect the AMQP protocol
+AMQP can co-exist with other (still to be defined) protocols on the same
+socket. These protocols would have to respect the AMQP protocol
 negotiation model.
 
 Protocol negotiation works as follows:
@@ -1501,13 +1500,13 @@ The protocol negotiation model is compatible with existing protocols
 such as HTTP that initiate a connection with an constant text string.
 
 Protocol negotiation gives us the freedom to run multiple versions of
-the same protocol, and multiple protocols, on a single socket, given
-a server capable of doing this.
+the same protocol, and multiple protocols, on a single socket, given a
+server capable of doing this.
 
 Encryption and Authentication
 .............................
 
-AMQP uses the SASL architecture for security.  SASL encapsulates TLS,
+AMQP uses the SASL architecture for security. SASL encapsulates TLS,
 GSSAPI, Kerberos, and other encryption and authentication technologies.
 
 Security is negotiated between server and client as follows:
@@ -1525,15 +1524,15 @@ Security is negotiated between server and client as follows:
 The "relevant information" is an opaque binary blob that is passed
 between the SASL layers embedded in the client and in the server.
 
-SASL gives us the freedom to replace the security libraries with
-better (more secure or faster) technologies at a later date without
-modifying the protocol, the client, or the server implementations.
+SASL gives us the freedom to replace the security libraries with better
+(more secure or faster) technologies at a later date without modifying
+the protocol, the client, or the server implementations.
 
 Client and Server Limits
 ........................
 
-The protocol defines limits to ensure operational stability.  So, the
-maximum size of a frame (explained later) is agreed in advance.  This
+The protocol defines limits to ensure operational stability. So, the
+maximum size of a frame (explained later) is agreed in advance. This
 avoids deadlocks where one party sends data that is too large for the
 other to handle.
 
@@ -1542,8 +1541,8 @@ Limits are negotiated as follows:
 1. The server tells the client what limits it proposes.
 2. The client can respond to lower the limits for its connection.
 
-This gives us the flexibility of increasing limits such as buffer
-sizes for better performance if both parties can handle it.
+This gives us the flexibility of increasing limits such as buffer sizes
+for better performance if both parties can handle it.
 
 Command Framing
 ---------------
@@ -1694,11 +1693,11 @@ Message Body
 Multi-Part Messages
 ...................
 
-For example a
-binary data file could be sent together with an XML description, as two
-parts of a single message. The XML description might be used for
-routing, without the need to inspect or unpack the binary data, and AMQP
-will always deliver the multiple parts as as single message.
+For example a binary data file could be sent together with an XML
+description, as two parts of a single message. The XML description might
+be used for routing, without the need to inspect or unpack the binary
+data, and AMQP will always deliver the multiple parts as as single
+message.
 
 Empty Messages
 ..............
