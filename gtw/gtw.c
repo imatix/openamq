@@ -5,6 +5,7 @@
 #include "gtw_ll.h"
 #include "gtw_hash.h"
 #include "gtw_tbl.h"
+#include "gtw_oum.h"
 
 int JAMQ_ll_open (
     void             **ap_link_List,
@@ -467,4 +468,54 @@ int JAMQ_m_chars_to_int (
 err:
     *aireturn_Code = JAMQ_MISC_INPUT_ERR;
     return NOT_OK;
+}
+
+int JAMQ_oum_open (
+    void              **apoumHandle,
+    JAMQ_tsoumParams  *poumParams,
+    int               *aireturn_Code
+    )
+{
+    return gtw_oum_open ((gtw_oum_t**) apoumHandle, poumParams, aireturn_Code);
+}
+
+int JAMQ_oum_get_nchars (
+    void            *poumHandle,
+    int             iKey,
+    JAMQ_tsNCharcb  *pString,
+    int             *aireturn_Code
+    )
+{
+    return gtw_oum_get_nchars ((gtw_oum_t*) poumHandle, iKey, pString,
+        aireturn_Code);
+}
+
+
+int JAMQ_oum_get_int_key (
+    void            *poumHandle,
+    JAMQ_tsNCharcb  *pString,
+    int             *pKey,
+    int             *aireturn_Code)
+{
+    return gtw_oum_get_int_key ((gtw_oum_t*) poumHandle, pString, pKey,
+        aireturn_Code);
+}
+
+int JAMQ_oum_put_int_key (
+    void  *poumHandle,
+    int   iKey,
+    int   *aireturn_Code
+    )
+{
+    return gtw_oum_put_int_key ((gtw_oum_t*) poumHandle, iKey,
+        aireturn_Code);
+}
+
+
+int JAMQ_oum_close (
+    void  **apoumHandle,
+    int   *aireturn_Code
+    )
+{
+    return gtw_oum_close ((gtw_oum_t**) apoumHandle, aireturn_Code);
 }

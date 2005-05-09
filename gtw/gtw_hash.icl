@@ -122,7 +122,7 @@
             return NOT_OK;
         }
         
-        /*  Deallocate what needed                                           */
+        /*  Deallocate what's needed                                         */
         for (counter = 0;
               counter != (*self)->params.ihash_TableSize; counter++) {
             next = (*self)->table [counter];
@@ -133,6 +133,7 @@
             }
         }
         free ((void*) (*self)->table);
+        free ((void*) (*self));
 
         *self = NULL;
         *retcode = 0;
@@ -154,7 +155,7 @@
             return NOT_OK;
         }
 
-        if (!key || key->iDataLen < 0 || !key->pData || !value) {
+        if (!key || key->iDataLen < 0 || !key->pData) {
             *retcode = JAMQ_HASH_INPUT_ERR;
             return NOT_OK;
         }

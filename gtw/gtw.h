@@ -292,5 +292,65 @@ int JAMQ_m_mem_nchar_dup (
     JAMQ_tsNCharcb  *pNCharIn,
     int             *aireturn_Code
     );
+
+int JAMQ_m_mem_nchar_undup (
+    JAMQ_tsNCharcb  *pBuffer,
+    int             *iRetCode
+    );
 */
+
+/*---------------------------------------------------------------------------
+ *  Ordered unique map
+ *---------------------------------------------------------------------------*/
+
+#define JAMQ_OUM_HANDLE_INVALID  400
+#define JAMQ_OUM_HANDLE_ACTIVE   401
+#define JAMQ_OUM_INPUT_ERR       402
+#define JAMQ_OUM_MEM_ERR         403
+#define JAMQ_OUM_HASH_ERR        404
+#define JAMQ_OUM_DATA_UNV        405
+#define JAMQ_OUM_LOC_MEM_ERR     406
+
+typedef struct JAMQ_soumParams
+{
+    JAMQ_tsHashParams
+        sHashParams;
+    int
+        iKeyStartCount;
+    int
+        iKeyIncrement;
+    int
+        iNCharCount;
+}JAMQ_tsoumParams;
+
+int JAMQ_oum_open (
+    void              **apoumHandle,
+    JAMQ_tsoumParams  *poumParams,
+    int               *aireturn_Code
+    );
+
+int JAMQ_oum_get_nchars (
+    void            *poumHandle,
+    int             iKey,
+    JAMQ_tsNCharcb  *pString,
+    int             *aireturn_Code
+    );
+
+int JAMQ_oum_get_int_key (
+    void            *poumHandle,
+    JAMQ_tsNCharcb  *pString,
+    int             *pKey,
+    int             *aireturn_Code);
+
+int JAMQ_oum_put_int_key (
+    void  *poumHandle,
+    int   iKey,
+    int   *aireturn_Code
+    );
+
+int JAMQ_oum_close (
+    void  **apoumHandle,
+    int   *aireturn_Code
+    );
+
 #endif

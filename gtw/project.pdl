@@ -13,6 +13,7 @@
 <file name = "gtw_ll.icl"    class = "icl private class" />
 <file name = "gtw_hash.icl"  class = "icl private class" />
 <file name = "gtw_tbl.icl"   class = "icl private class" />
+<file name = "gtw_oum.icl"   class = "icl private class" />
 <file name = "gtw.c"         class = "library module"    />
 
 <!-- Deliverables -->
