@@ -43,52 +43,61 @@ What is "Middleware"?
 "Middleware" is a generic term for software that interconnects systems.
 We use the term specifically to mean software that passes messages
 between applications. The key characteristics of middleware, as we
-define it, are:
+define the term, are:
 
 - Application-level messages: the objects passed across the network
   are meaningful to client applications.
+
 - Queuing and routing: the middleware must be able to queue messages
   internally, and route them to different clients in various ways.
+
 - Asynchronous operation: messages are pushed through the network
-  as fast as possible, with queues acting to buffer slower parts of
+  rather than pulled, with queues acting to buffer slower parts of
   the network.
+  
 - Selectable service levels: the client applications can explicitly
-  choose between different levels of speed and reliability.
+  choose between different combinations of speed and reliability.
 
-An ideal middleware system must be able to:
+An ideal middleware system must also be able to:
 
-- Handle all kinds of data, opaquely, and without preconceptions as
-  to encoding or representation.
+- Handle all kinds of data, opaquely, and without imposing any encoding
+  or representation.
+
 - Handle messages of any size up to multi-gigabytes.
-- Handle both high-volume and high-reliability scenarios.  In the
-  first case throughput is critical but messages can be lost.  In
-  the latter case messages can never be lost, period.
-- Provide several types of routing, including queues (where messages
-  are distributed between consumers), pub/sub (where messages are
-  published to as many susbcribers as ask for them), topics (where
-  messages are published according to a hierarchy of names, and
-  content-based routing (where messages are routed according to
-  key field values).
-- Work fully asynchronously so that clients do not poll for messages
-  but receive data via callbacks or other asynchronous mechanisms.
 
+- Handle both extremes of high-volume and high-reliability scenarios
+  plus all sensible graduations in-between. In the first case throughput
+  is critical but messages can be lost. In the latter case messages can
+  never be lost, period.
+
+- Provide several types of routing, including queues (where messages are
+  distributed between consumers), pub/sub (where messages are published
+  to as many susbcribers as ask for them), topics (where messages are
+  published according to a hierarchy of names, and content-based routing
+  (where messages are routed according to key field values).
+  
 And further:
 
 - To interoperate with or simulate other middleware systems.
+
 - To run well on all boxes, from small clients to large servers.
+
 - To be cheap enough to deploy without licensing concerns.
+
 - To be easily adapted, extended, and if necessary, repaired.
 
 And finally:
 
 - To allow the creation of an abstract network of services.
+
 - To provide ways for application developers to add services to the
   network.
+
 - To provide ways for replicating data throughout such a network.
 
 While there exist several large commercial middleware systems that
 provide all of the first set of requirements, there are no middleware
-systems - commercial or open - that also provide the second set.  There
+systems - commercial or open - that also provide the second set. There
 are of course many other requirements for any kind of server.
 
 The basic plan for making middleware from scratch is this: we start by
@@ -107,17 +116,27 @@ What is strikingly lacking in the open source middleware world is a
 robust answer to the problems actually facing enterprise software
 integration. There are no proposals for standard middleware protocols,
 there are no attempts to build commodity middleware servers such as the
-NSCA web server that became Apache.
+NSCA web server that became Apache.  There are very few IETF working
+drafts and almost no attempt at standardisation except at the API level.
+CORBA seems to have been the last attempt at interoperability before
+the whole world moved to web services.
 
-The main reason is probably the gulf between the academic and small
-open source teams, and the business world that builds systems large
-enough to need serious middleware.
+The main reason for the lack of classic open source / standards oriented
+developments in the middleware sector is probably the gulf between the
+academic and small open source teams, and the business world that builds
+systems large enough to need serious middleware. The small teams that
+might develop middleware are overwhelmed by Java, web services, and J2EE
+complexity. The larger businesses that sell middleware have had
+absolutely no incentive to break what is still a very lucrative market.
+And the client community is just starting to realise that they can,
+actually, solve this problem themselves.
 
-AMQ is, to our knowledge, the first attempt to solve this problem using
-standards from the wire up to the application. As a project, it is long
-overdue: middleware is the last significant slice of software
-infrastructure that is still dominated by commercial vendor solutions
-and not moving in any serious way towards commodity open source.
+AMQ is, to our knowledge, the first attempt to solve the middleware
+problem using standards from the wire up to the application. As a
+project, it is long overdue: middleware is a significant slice of
+software infrastructure that is still dominated by commercial vendor
+solutions and not moving in any serious way towards commodity open
+source.
 
 Using Middleware in Real Life
 =============================
@@ -125,7 +144,8 @@ Using Middleware in Real Life
 Scales of Deployment
 --------------------
 
-The scope of AMQ covers deployment at different levels of scale:
+The scope of AMQ covers deployment at different levels of scale from
+the trivial to the mind-boggling:
 
 1. Developer/casual use: 1 server, 1 user, 10 queues, 1 message per
    second.
@@ -149,18 +169,18 @@ Extreme Scenario - Market Data
 ------------------------------
 
 Market data is an extreme scenario at the upper-end of what we are
-aiming for with AMQ. We have set the benchmark at 100,000 events per
-second between a producer application and a consumer application. The
-occasional dropped message is acceptable, but dropout should be
-measurable.
+aiming for with AMQ. We have set the benchmark at 100,000 events passing
+through a server (or server cluster) per second between a set of
+producer applications and a set of consumer applications. The occasional
+dropped message is acceptable, but dropout should be measurable.
 
-To achieve this rate of messaging requires high-specification
-hardware, gigabit networking and significant tuning at all levels.
-Experience from existing projects shows that even OS context-switch
-time becomes significant at this rate of messaging.  The topic space
-for event notification should be able to handle 10,000 topics with
-50% of traffic volume going through 10% of the topics and delivered
-to 1,000 subscribers.
+To achieve this rate of messaging requires high-specification hardware,
+gigabit networking and significant tuning at all levels. Experience from
+existing projects shows that even OS context-switch time becomes
+significant at this rate of messaging. The topic space for event
+notification should be able to handle 10,000 topics with 50% of traffic
+volume going through 10% of the topics and delivered to 1,000
+subscribers.
 
 Challenges and Architectures
 ****************************
@@ -182,8 +202,10 @@ criteria:
 In every failing software project (anything up to 75% of all projects by
 some estimates), one or more of these key criteria have failed. Most
 often, the people involved in a failing project are simply not very
-good. Often, they are forced to use unfamiliar or unstable technologies
-for political reasons (management saw a nice presentation).
+good. However, there are well-understood ways of handling mediocrity, if
+it is recognised. More often, perhaps very good people are forced to use
+unfamiliar or unstable technologies for political reasons (management
+saw a nice presentation).
 
 It is rare to see projects fail for purely budgetary or planning
 reasons. The details of a project plan are far less important than
@@ -191,8 +213,9 @@ ensuring that the team can ask questions freely, receive competent
 answers rapidly, and implement solutions with freedom of approach.
 
 Tight deadlines and budgets can often improve the overall process by
-uncovering problems earlier. This is, perhaps why "low-budget" movies
-can often be so much better than well-financed affairs.
+uncovering problems earlier. This is, perhaps why "low-budget" projects
+can often be so much better than well-financed affairs.  Not only
+in software - this applies to many other endeavours as well.
 
 The General Solution
 ====================
@@ -208,6 +231,20 @@ XML documents that may encapsulate binary data".
 
 Another example of generality: the tools we built to allow us to build
 OpenAMQ are for the most part totally general and reusable tools.
+
+Simplicity
+==========
+
+Complexity is easy, but simplicity is truly valuable. The role of a
+software architect is largely about designing the most general
+structures that can be used in the most simple manner. The AMQ designs -
+for the protocol, server, and clients, have gone through numerous
+iterations so that we could remove unneeded concepts, turn specific
+cases into more general solutions, and in general attempt to do more
+with less.
+
+The project is still complex. Middleware is not a trivial problem. But
+we have worked consistently to factor out all redundant funtionality.
 
 A Commodity Platform
 ====================
@@ -274,7 +311,7 @@ challenges are:
    (multiplexing).
 4. How to allow many outstanding requests (pipelining).
 5. How to report success/failure.
-6. How to implement a functional model, i.e. at what "level" the
+6. How to implement a functional model, I.E. at what "level" the
    protocol should operate.
 
 We discuss the specific chosen solution to each of these in the "AMQ
@@ -319,7 +356,8 @@ Naming Conventions
 - It is permissible to use short variable names within functions, as
   long as their definition is reasonably close to their place of
   use. (And functions should not be very long anyway.)
-- Use xxx_nbr and xxx_ptr for local array indices and pointers in functions.
+- Use somevar_nbr and somevar_ptr for local array indices and pointers in
+  functions.
 - Filenames are named lib_module.{c, h}.
 
 Generated Code
@@ -340,8 +378,6 @@ topic publishing):
         amq_vhost_publish
 
         Type: Component method
-        Accepts a amq_vhost_t reference and returns zero in case of success,
-        1 in case of errors.
         Publishes a specified message to all interested subscribers in the
         virtual host.  Returns number of times message was published.  If the
         publish option is false, does not actually publish but only reports
@@ -384,6 +420,41 @@ topic publishing):
         return (rc);
     }
 
+Reading this code, you may wonder how on earth a code generator - surely
+a dumb thing - can produce something as intricate and specific as this
+function.  The easy answer is "magic".  The full answer is that the
+generated code is a layered mix of fully hand-written code, it is the
+mixing and layering techniques that supply the "magic".
+
+Assertions
+----------
+
+We make liberal use of assertions to make the code robust. Assertions
+also simplify error handling considerably. We do not remove assertions
+in production builds: they remain in the code permanently. Thus the
+example method shown above will assert that it is passed a valid object
+reference. If it ever gets an invalid reference, the server will abort.
+
+Error Handling
+--------------
+
+Basically, we try to not handle internal errors. Wherever possible,
+errors in arguments, memory allocation, etc. are treated either as
+fatal, or as inconsequential. Our internal APIs return only success or
+failure (0 or non-zero), or in some cases a count or size.
+
+When a particular layer detects an error it immediately reports the
+error to the console (so that it is captured in a log file) and then
+returns a 'failure' result. If the error is probably caused by a bug in
+the calling code, the program fails with an assertion.
+
+Memory allocation failures are considered fatal. We do not attempt to
+recover from a failed malloc. We really do not want the server to start
+to swap on the way to running out of heap memory. Our strategy is to
+track the amount of memory used and reject new connections and/or
+messages when the memory is "full". This lets the system administrator
+set a resource limit for the server. 
+
 The Server Architecture
 =======================
 
@@ -393,7 +464,8 @@ What Makes a Fast, Reliable Server?
 Apart from the obvious requirements of writing good code that is
 reasonably efficient, the key to building a fast server is to reduce
 the cost of servicing individual connections, and the key to
-building a reliable server is to use finite state machines (FSMs).
+building a reliable server is to use finite state machines (FSMs)
+that operate and communicate asynchronously.
 
 Server Connection Handling
 --------------------------
@@ -406,7 +478,7 @@ model breaks-down rapidly, with a limit of 30-100 connections per server
 We designed a single-process architecture (SMT) which uses
 pseudo-threads (internally managed by the architecture, with no help
 from the operating system) to eliminate process duplication. A server
-built on this model (e.g. our Xitami web server) can handle hundreds or
+built on this model (E.G. our Xitami web server) can handle hundreds or
 thousands of connections with no serious impact on system memory.
 
 When we reach several hundred connections, a new problem arises, namely
@@ -432,7 +504,7 @@ Finally, to handle very large numbers of connections (the so-called
 "C10K problem"), we have to move to a more radical model still: a small
 number of OS threads handling multiple connections, and a fully
 asynchronous I/O model. A portable solution for this is somewhat beyond
-the state of the art (e.g. the Linux 2.6 kernel supports asynch. I/O but
+the state of the art (E.G. the Linux 2.6 kernel supports asynch. I/O but
 not for sockets), but we are developing a solution.
 
 The predecessor to SMT, a pseudo multi-threading framework for OpenVMS
@@ -515,31 +587,33 @@ Client Architecture
 General Client Architecture
 ---------------------------
 
-The OpenAMQ clients form a large part of the whole project.  In theory
-we could make a full from-the-wire implementation for each programming
+The OpenAMQ clients form a large part of the whole project. In theory we
+could make a full from-the-wire implementation for each programming
 language - C, C++, Java, Perl, .NET, COM.
 
 What we have chosen to do is to define a general architecture that can
-be applied to all clients, and then to standardise and generate as
-much of this as we can.
+be implemented in all clients, and then to standardise and generate as
+much of this architecture as we can.
 
 Our goal is that all OpenAMQ clients, whatever the language, use a
-similar set of concepts and tools, and provide the application programmer
-with a similar API.  This is not yet entirely the case.
+similar set of concepts and tools, and provide the application
+programmer with a similar API. This is not yet entirely the case.
 
 The Framing Layer
 .................
 
 AMQP defines a set of commands that map onto frames (each command is a
-specific frame).  The frames are formally defined in the amq_frames.xml
-document.  For example:
+specific frame). The frames are formally defined in the amq_frames.xml
+document. For example:
 
     <frame name = "connection challenge">
         <field type = "octet"    name = "type"      value = "10" />
-        <field type = "octet"    name = "version"   >Negotiated protocol version</field>
-        <field type = "shortstr" name = "mechanisms">Available security mechanisms</field>
+        <field type = "octet"    name = "version"   >Protocol version</field>
+        <field type = "shortstr" name = "mechanisms">Security mechanisms</field>
         <field type = "table"    name = "challenges">Challenge fields</field>
     </frame>
+
+//TODO: amq_frames.xml will be replaced with an IDLRich definition.
 
 Using GSL code generation, it is a fairly simple matter to turn the
 formal frame definitions into marshalling code.  We have done this in
@@ -554,16 +628,17 @@ C, Perl, Java.  This is a snippet of the generated C marshalling code:
         frame->body.connection_challenge.mechanisms [string_size] = 0;
         source += string_size;
         GET_SHORT (string_size, source);
-        frame->body.connection_challenge.challenges = ipr_longstr_new (source, string_size);
+        frame->body.connection_challenge.challenges =
+            ipr_longstr_new (source, string_size);
         source += string_size;
         frame->size = source - buffer;
     }
 
-The framing layer is entirely generated.  The same XML specifications
-are used in the server and in the clients, and to produce the AMQP
-RFC specifications.  As well as eliminating a lot of redundant work,
-this ensures that frame fields are consistently named in all our
-AMQP implementations.
+The framing layer is entirely generated. The same XML specifications are
+used in the server and in the clients, and to produce the AMQP RFC
+specifications. As well as eliminating a lot of redundant work, this
+ensures that frame fields are consistently named in all our AMQP
+implementations.
 
 The Transport Layer
 ...................
@@ -572,14 +647,14 @@ The transport layer handles socket connections to the server, and reads
 and writes raw frames.
 
 This layer is specific to each language, and even in a single language
-there may be several implementations.  For instance in C we have an SMT
+there may be several implementations. For instance in C we have an SMT
 implementation and a 'classic' implementation using OS threads.
 
 The Protocol Layer
 ..................
 
 The protocol layer consists of one or more FSMs, defining the connection
-and channel states, and the valididity of frames in each state.  It must
+and channel states, and the valididity of frames in each state. It must
 also handle API requests ('methods') and their valididity in each state.
 
 We are working to define a single set of "categorical" FSMs for the
@@ -614,7 +689,7 @@ JMS has two serious disadvantages:
    possible to build a JMS-like API without falling foul of these license
    terms but we are not 100% certain at this stage.
 
- - JMS was designed with weaknesses.  This was, we think, a deliberate
+ - JMS was designed with weaknesses.  This was, we assume, a deliberate
    policy to maintain a gap between JMS providers and "real" middleware
    products.  All serious JMS implementations make their own extensions.
    JMS is not standard unless the developer stays away from these
@@ -630,8 +705,8 @@ to support functionality such as streaming that is specific to AMQP.
 At the time of writing, we are still working on this API.  The existing
 clients do not implement JMS but somewhat simpler, cleaner APIs.
 
-Existing Client Implementations
--------------------------------
+OpenAMQ Client Implementations
+------------------------------
 
 There are several different client architectures:
 
@@ -653,10 +728,10 @@ There are several different client architectures:
   designed to be integrated into, the OpenAMQ server.  It implements the
   AMQ RFC015/0.4 API.
 
-- a synchronous kernel client in C.  This uses the OpenAMQ server
+- A synchronous kernel client in C.  This uses the OpenAMQ server
   technology but is intended for general use.
 
-This are some FSM diagrams for the clients.  This is the asynchronous
+This are some FSM diagrams for the clients. This is the asynchronous
 kernel client:
 
 [amq_aclient_agent.png]
@@ -701,153 +776,169 @@ innovation.
 How Open Source Works
 ---------------------
 
+Most people by now understand what open source (aka free software) is,
+at least superficially - communities of dedicated programmers who for
+some alien reason decide there is more fun, interest, or ironically,
+profit to be had in giving their hard-written software away to all
+and sundry, rather than doing the right and natural thing and charging
+people money to use it.
+
+What few people understand is how this process works. Since we at iMatix
+have been writing open source as an essential part of our business
+activities for almost 15 years, it is safe to say that we have a certain
+understanding, or at least opinion backed up by long experience, on this
+matter.
+
 Open source, or free software, is a phenomenon that has arisen
 spontaneously as the cost of communications has fallen over the last
-decades.  One can almost say that as communications get cheaper,
-programmers will tend to collaborate, building the tools they need,
-then building infrastructure, then entire systems.
+decades. There were no government initiatives, no great academic
+sponsors. (The first free software philosophers were rebelling against
+the academic tradition of turning student and PhD work into commercial
+spin-offs.) One can almost say that as communications get cheaper,
+programmers will tend to collaborate, building the tools they need, then
+building infrastructure, then entire systems.
 
-The attitude of commercial software producers towards this phenomenon
-is mixed: some see open source as a fashion, a threat, or a left-wing
-conspiracy.  Others see it as an opportunity.  It seems clear that
-open source (or rather, the commoditization process that it represents)
-splits the industry into two distinct halves: those who see the future
-as a sea of cheap software supporting flottilas of services, and those
-who make their money from selling expensive water.
+The attitude of commercial software producers towards this phenomenon is
+mixed: some see open source as a fashion, a threat, or a left-wing
+conspiracy. Others see it as a rather perplexing opportunity. It seems
+clear that open source (or rather, the commoditization process that it
+represents) splits the industry into two distinct halves: those who see
+the future as a sea of cheap software supporting flottilas of services,
+and those who make their money from selling expensive water.
 
 While open source seems a somewhat chaotic, and definitely anarchic
 process, and while asking ten open source developers "why they do it"
-will result in twelve different answers, the mechanisms of the
-process are, in my opinion, quite simple.
+will result in twelve different answers, the mechanisms of the process
+are quite simple.
 
-First, individual programmers always look to work on projects that
-will maximise their opportunity for growth and new opportunities.
-In a technical career, success comes from being an expert.  The best
-programmers seek the hardest challenges.
+First, individual programmers always look to work on projects that will
+maximise their opportunity for growth and new opportunities. In a
+technical career, success comes from being an expert (even an expert
+generalist). The best programmers seek the hardest challenges.
 
-Second, since the IT world is vast, and complex, and mostly filled
-with junk (following Sturgeon's Law), smart programmers look for other
-smart programmers with whom to work, and (importantly) against whom
-to compete.  It is not possible to measure one's success in a vacuum,
-nor in a crowd.
+Second, since the IT world is vast, and complex, and mostly filled with
+junk (following Sturgeon's Law), smart programmers look for other smart
+programmers with whom to work, and (importantly) against whom to
+compete. It is not possible to measure one's success in a vacuum, nor in
+a crowd.
 
 Third, the cheaper that communications become, the easier it is for
 these smart programmers to find each other, work together on small
-projects, and collaborate over long periods of time on larger
-projects.  Cheap communications bring people together.
+projects, and collaborate over long periods of time on larger projects.
+Cheap communications bring people together.
 
 Fourth, when a group of elite programmers get together, they start to
-look for "interesting" challenges to work on.  Long before open source
+look for "interesting" challenges to work on. Long before open source
 became an obvious trend, there were many very successful collaborative
-projects.  Most of these filled niches: fractint, the Scandinavian
-"demo" culture, emacs.  In each case competition with other projects
-was a key driver.
+projects. Most of these filled niches: fractint, the Scandinavian "demo"
+culture, emacs. In each case competition with other projects was a key
+driver.
 
 The Internet boom that started in the mid-1990's pushed this process
 exponentially.
 
 So open source developers are mainly an elite - the very best
 programmers - who enjoy working on the cutting edges of IT, where there
-is an active R&D process, risk, and potentially huge reward.  They
+is an active R&D process, risk, and potentially huge reward. They
 compete to build the most elegant, and the most useful, structures.
 
 Open source / free software (as compared to other types of collaborative
 project) is particularly effective because every improvement is added
-back into the process.  There is no proof as yet, but I'd argue that
+back into the process. There is no proof as yet, but it is arguable that
 the GPL license creates better software, faster, than the BSD license,
-because of this effect.
+because of this effect.  We'll come back to this argument.
 
 Open Source as an Economy
 -------------------------
 
-A common misconception about open source is that because it is "free"
-it is somehow a charity operation where programmers work bene-vola
-because they want "to contribute".
+A common misconception about open source is that because it is "free" it
+is somehow a charity operation where programmers work bene-vola because
+they want "to contribute".
 
-This is totally wrong.  When Adam Smith said: "It is not from the
-benevolence of the butcher, the brewer, or the baker, that we expect
-our dinner, but from their regard to their own interest", he was
-accurately describing a world in which self-interest creates
-mutually-beneficial structures.
+This is totally wrong. When Adam Smith said: "It is not from the
+benevolence of the butcher, the brewer, or the baker, that we expect our
+dinner, but from their regard to their own interest", he was accurately
+describing a world in which self-interest creates mutually-beneficial
+structures.
 
 Open source contributors are attracted for different reasons, depending
-on how far they understand and identify with the technology at hand.
-We can identify the self-interest of each role, while seeing that the
+on how far they understand and identify with the technology at hand. We
+can identify the self-interest of each role, while seeing that the
 overall structure serves everyone:
 
-- "users" will evangelise (seeking security in the company of others
+- "Users" will evangelise (seeking security in the company of others
   using the same technology).
 
-- "expert users" will help others who have problems (seeking the kudos
+- "Power users" will help others who have problems (seeking the kudos
   that comes from helping others).
 
-- "pundits" will discuss the technology in public forums (seeking the
+- "Pundits" will discuss the technology in public forums (seeking the
   fame that comes from being able to accurately identify trends and
   future winners).
 
-- "insiders" will take on parts of the testing process (seeking better
+- "Insiders" will take on parts of the testing process (seeking better
   familiarity with a technology that may become an important part of
   their skill set).
 
-- "players" will delve into the technology itself, taking on smaller
+- "Players" will delve into the technology itself, taking on smaller
   roles in the process (seeking the kudos and fame that can come from
   being on a winning team).
 
-- "key players" will take on major roles in the project (seeking to
+- "Key players" will take on major roles in the project (seeking to
   impose their ideas, turn a small project into a major success, or
   otherwise earn a global reputation).
 
-- "patrons" will provide financial support to the project (looking to
+- "Patrons" will provide financial support to the project (looking to
   sell services, often to the users, that require the technology to
   succeed and be widely used).
 
-The naive view of open source focuses only on the players, ignoring
-the wider economy of interests.  A successful open source project must
-attract and support all these classes of people (and others, such as
-the "troll", who vocally attacks the project in public forums, thus
+The naive view of open source focuses only on the players, ignoring the
+wider economy of interests. A successful open source project must
+attract and support all these classes of people (and others, such as the
+"troll", who vocally attacks the project in public forums, thus
 stiffening the resolve of the users and pundits who defend it).
 
 Thus we can understand the needs of each role:
 
-- users need a pleasant and impressive product so they can feel proud
+- Users need a pleasant and impressive product so they can feel proud
   about showing it to others.
 
-- expert users need forums and mailing lists where they can answer
+- Power users need forums and mailing lists where they can answer
   questions.
 
-- pundits need pre-packaged press releases, insider tips, and the
+- Pundits need pre-packaged press releases, insider tips, and the
   occasional free lunch.  Some controversy also helps.
 
-- insiders need regular releases, frequent improvements, and forums
+- Insiders need regular releases, frequent improvements, and forums
   where they can propose ideas for the project.
 
-- players need extension frameworks where they can write their (often
+- Players need extension frameworks where they can write their (often
   sub-standard) code without affecting the primary project.
 
-- key players need badges of membership, and access to the right
+- Key players need badges of membership, and access to the right
   tools and support.
 
-- patrons need a high-quality functional product that supports their
+- Patrons need a high-quality and stable product that supports their
   services and additional products.
 
 The only people working full time, and usually professionally, on an
-open source project are the key players.  All the others will take
-part in the project as a side-effect of their on-going work or hobbies.
+open source project are the key players. All the others will take part
+in the project as a side-effect of their on-going work or hobbies.
 
 While a traditional software company must pay everyone in this economy
 except the users, an open source economy must only pay the key players,
 who make up perhaps 2-5% of the total. Further, the key players will
 work for significantly less than the market rate, since they also derive
 a real benefit from working on successful projects, which I call the
-open source "payload".  The most important part of programmer's CV of
-the future is the section titled "Open Source Projects".  This is the
-payload.  It translates directly into dollars, proportional to the
-impact and importance of the open source projects involved.
+open source "payload". The most important part of programmer's CV of the
+future is the section titled "Open Source Projects". This is the
+payload. It translates directly into dollars, proportional to the impact
+and importance of the open source projects involved.
 
-When compensation plus payload does not cover the cost of working on
-a project (in terms of loss of compensation for alternative work), the
-key player will suffer "burnout" after 12-18 months, more or less
-depending on the person's tenacity.
+When compensation plus payload does not cover the cost of working on a
+project (in terms of loss of compensation for alternative work), the key
+player will suffer "burnout" after 12-18 months, more or less depending
+on the person's tenacity.
 
 Key Requirements
 ----------------
@@ -866,7 +957,7 @@ a successful open source project:
    documents, flyers, and other material.
 
 4. A regular release schedule with raw, fresh, and well-cooked packages
-   (I.e. satisfying pioneers, early adopters, and late adopters).
+   (I.E. satisfying pioneers, early adopters, and late adopters).
 
 5. An extensible software framework which provides players with a
    way to write addons of all types without wasting the time of the
@@ -875,15 +966,17 @@ a successful open source project:
 6. A forum or distribution channel for players to exchange and discuss
    their contributions.
 
-7. A project identity and financial structure that attracts elite
-   players and protects them from burn-out.
+7. A project identity and personality that attracts key players and
+   patrons.
+   
+8. A project financial structure protects the key players from burn-out.
 
-8. A clear financial rationale for the project that attracts patrons
+9. A clear financial rationale for the project that attracts patrons
    and ensures they get value for money.
 
-9. Some arbitrary and controversial technical and/or licensing choices
-   that keep the trolls happy and ensure the project gets discussed
-   often on popular forums like Slashdot.
+10. Some arbitrary and controversial technical and/or licensing choices
+    that keep the trolls happy and ensure the project gets discussed
+    often on popular forums like Slashdot.
 
 Insofar as we can "market" an open source project like OpenAMQ into
 success, the categories I've defined are the market segments that need
@@ -919,23 +1012,28 @@ held a market lead against GPL alternatives. On the other hand, Linux
 has beaten the originally superior OpenBSD and FreeBSD systems into
 obscurity.
 
-There is much debate about the fine points of these two licenses, but
-the truth appears to be that the BSDL suits better-funded, top-down
-organisations while the GPL suits smaller, more distributed projects.
-The successful GPL projects consist of many smaller pieces, each with a
-few authors. The successful BSD projects tend to be monolithic, with
-larger teams.
-
-The choice of license is probably both cause and effect.
+It is hard to generalise about the kinds of project that each license
+attracts but annecdotal evidence suggests that BSDL projects for the
+most part are more conservative than GPL projects. That is, over time
+they have clearer goals, more consistent structure and quality, and less
+chaos. GPL projects tend to be messier but more lively. Perhaps the GPL
+attracts more extreme mindsets, or the "contribute everything" approach
+means more people necessarily get involved. Also, GPL projects can
+absorb BSDL source code, but not vice-versa. Whether the choice of
+license is cause or effect, it does appear that the GPL coincides with a
+more dynamic, risk tolerant, and overall more productive open source
+economy.
 
 For AMQ, we'd prefer to use the GPL as it fits our view of open source
 as an economy. The argument is that the GPL, though harder to "sell" to
 our users, would create a more viable long-term economy around the AMQ
 technologies. However, we'd recommend using the BSDL (rather, the Apache
-License) for practical reasons: it's what our target users will want.
+License) for practical reasons: it is what our target users will want.
 
-The Version 2 Syndrome
-======================
+//TODO: update when we've actually released OpenAMQ/1.0.
+
+Escaping the "Version 2 Syndrome"
+=================================
 
 A project like AMQ solves a problem that is very well defined and for
 which there is a huge market. In a large global enterprise, there are
@@ -1005,30 +1103,726 @@ What Ships in Version 1.0?
 
 The main functionality planned for version 1.0 of OpenAMQ is:
 
-- queues and topics
-- persistent and non-persistent messages
-- routing by queue name, topic hierarchy, message header fields
-- transaction management
-- various types of message: simple, multi-part, streaming
-- virtual hosts
-- client APIs for C, C++, Java, COM, Perl
-- project support structures: web site et al.
-- SASL security
-- access-control lists
+- Queues and topics.
+- Persistent and non-persistent messages.
+- Routing by queue name, topic hierarchy, message header fields.
+- Transaction management.
+- Various types of message: simple, multi-part, streaming.
+- Virtual hosts.
+- Client APIs for C, C++, Java, COM, Perl.
+- Project support structures: web site et al.
+- SASL security.
+- Access-control lists.
 
 Functionality that will probably not be included in version 1.0:
 
-- XA transactions
-- JMS selectors
+- XA transactions.
+- JMS selectors.
 
 And functionality that we still have to look at in more detail:
 
-- system queues for remote administration
-- web-based administration interface
-- clustering and replication
-- dynamic cluster organisation facilities
-- server-side applications
-- server plugins and filters
+- System queues for remote administration.
+- Web-based administration interface.
+- Clustering and replication.
+- Dynamic cluster organisation facilities.
+- Server-side applications.
+- Server plugins and filters.
+
+The AMQ Protocol
+****************
+
+This section is an extract from AMQ RFC 006, which defines the AMQ
+Protocol. [Note: this RFC is undergoing modifications.]
+
+Overview
+========
+
+Purpose and Goals
+-----------------
+
+AMQP is intended to be a standardised general-use high-performance
+message-oriented middleware wire-level protocol. Such a thing does
+not yet exist, except with fewer buzzwords.
+
+A "wire-level protocol" can be a simple as a "this is how we define
+packets on the wire". AMQP is more ambitious than that. It tries to
+provide formal answers to a series of questions that we must answer in
+order to implement useful messaging between protocols.
+
+We want to be able to:
+
+- Construct logical "messages" out of data of any type and size, and
+  move these message efficiently across a network of clients and
+  servers.
+
+- Provide queuing and routing semantics for messages so that the
+  behaviour of the server is unambiguously defined by the protocol.
+
+- Define service levels semantics so client applications can explicitly
+  choose between different levels of speed and reliability.
+
+- Create a fully-asynchronous network so that messages can be queued
+  when clients are disconnected, and forwarded when they are connected.
+
+- Allow interoperation and bridging with other middleware systems.
+
+- Allow implementation in any language, on any kind of hardware.
+
+- Avoid license and patent concerns that might hinder adoption of the
+  protocol as a standard.
+
+- Create an architecture that is easy to maintain and extend over time.
+
+- Allow the creation of an abstract network where services, and their
+  data, can move around the network opaquely to the clients.
+
+Negotiating a Connection
+------------------------
+
+Goals and Principles
+....................
+
+Negotiation means that one party in a discussion declares an intention
+or capability and the other party either acknowledges it, modifies it,
+or rejects it. In AMQP, we negotiate a number of specific aspects of the
+protocol:
+
+1. The actual protocol and version.
+2. Encryption arguments and the authentication of both parties.
+3. Operational constraints.
+
+Protocol and Version
+....................
+
+AMQP can co-exist with other (still to be defined) protocols on the same
+socket. These protocols would have to respect the AMQP protocol
+negotiation model.
+
+Protocol negotiation works as follows:
+
+1. The client opens a new socket connection on a well-known or configured
+   port and and sends the text "AMQP" followed by a protocol ID and
+   protocol version (each a double-octet value).
+
+2. The server accepts the protocol by sending a valid response according
+   to the protocol in question, or rejects the protocol by closing the
+   connection.
+
+The protocol negotiation model is compatible with existing protocols
+such as HTTP that initiate a connection with an constant text string,
+and with firewalls that sniff the start of a protocol in order to
+decide what rules to apply to it.
+
+Protocol negotiation gives us the freedom to run multiple versions of
+the same protocol, and multiple protocols, on a single socket, given a
+server capable of doing this.
+
+Encryption and Authentication
+.............................
+
+AMQP uses the SASL architecture for security. SASL encapsulates TLS,
+GSSAPI, Kerberos, and other encryption and authentication technologies.
+
+Security is negotiated between server and client as follows:
+
+1. The server sends a challenge to the client. The challenge lists the
+   security mechanisms that the server supports.
+2. The client selects a suitable security mechanism and responds to the
+   server with relevant information for that security mechanism.
+3. The server can send another challenge, and the client another
+   response, until the SASL layer at each end has received enough
+   information.
+4. The server can now use the selected security mechanism and
+   authenticated client identity to perform access controls on its
+   data and services.
+
+The "relevant information" is an opaque binary blob that is passed
+between the SASL layers embedded in the client and in the server.
+
+SASL gives us the freedom to replace the security libraries with better
+(more secure or faster) technologies at a later date without modifying
+the protocol, the client, or the server implementations.
+
+Client and Server Limits
+........................
+
+The protocol allows the client and server to agree on limits to ensure
+operational stability. Limits allow both parties to pre-allocate key
+buffers, avoiding deadlocks. Every incoming command either obeys the
+agreed limits, so is "safe", or exceeds them, in which case the other
+party is faulty and can be disconnected.
+
+Rather than fix the limits in the protocol, we negotiate them. This lets
+us tune the protocol dynamically for different types of efficiency, E.G.
+minimal memory consumption vs. maximum performance.
+
+Limits are negotiated to the lowest agreed value as follows:
+
+1. The server tells the client what limits it proposes.
+2. The client can respond to lower the limits for its connection.
+
+Connection States
+.................
+
+The connection progresses through a fixed set of states (here shown
+from the client's point of view):
+
+1. The client opens a connection and sends the protocol ID and
+   version.  It now expects the server to respond with a connection
+   challenge.  (State = "Initialising")
+
+2. The server responds with a connection challenge.  The client
+   sends a connection response.  It expects the server to send either
+   another connection challenge or a connection tune command.
+   (State = "Tuning")
+
+3. The server responds with a connection tune command. The client
+   replies with a tune command, and then sends a connection open
+   command.  The connection is now open, and the client can send
+   other commands on it. (State = "Open")
+
+4. At some stage the server or the client sends a connection close
+   command.  The connection now closes (using a handshake mechanism
+   we describe later).  (State = "Closed")
+   
+The Framing Design
+------------------
+
+Goals and Principles
+....................
+
+Framing is the part of the protocol where we define how data is sent "to
+the wire".
+
+The framing design used in AMQP is designed to be compact, easy and very
+fast to parse, and robust. Further, it has to support higher level
+concepts such as multiplexing.
+
+The key parts of this design are:
+
+- How the transport layer carries data.
+- How frames are delimited on the connection.
+- How frames carry data.
+- How we marshal data to and from frames.
+
+The Transport Layer
+...................
+
+We assume a reliable stream-oriented network transport layer (TCP/IP or
+equivalent). If an unreliable transport layer is used, we
+assume that the AMQP frames would be wrapped with additional
+traffic-control information such as windowing.
+
+AMQP explicitly excludes any support for traffic control but does not
+disallow this to be implemented in an additional layer. We may at a
+future point provide protocol wrappers that wrap AMQP frames with
+traffic management to allow reliable transfer over multicast and
+point-to-point UDP.
+
+Delimiting Frames
+.................
+
+There are several ways that a protocol could delimit commands on a
+connection:
+
+- Sending a single command per connection. This is simple but adds
+  considerable overhead to the protocol due to the opening and closing
+  of connections.
+
+- Adding command delimiters to the stream. This is used in protocols
+  such as SMTP but has the disadvantage that the stream must be parsed
+  to find the delimiters. This makes implementations of the protocol
+  slow.
+
+- Counting the size of commands and sending the size in front of each
+  command. This is the fastest approach, and our choice.
+
+Each command is thus sent as a "frame header" which is basically the
+frame size encoded for portability, followed by a "frame body" of the
+specified size (the header is not counted). Frames can carry commands or
+other data. To read a command frame we use this logic:
+
+1. Read the frame header and decode to get the size of the frame body.
+2. If the frame body is larger than the agreed limit, close the
+   connection with a suitable error reply code.
+3. Otherwise, read the specified number of octets into a frame buffer. 
+4. Demarshal the frame buffer into a command structure.
+
+To write a command frame we use this logic:
+
+1. Marshal the command structure into a frame buffer.
+2. Encode the length of this buffer as a frame header and write it.
+3. Write the frame buffer contents, the frame body.
+
+Carrying Data
+.............
+
+Frames carry two types of data:
+
+1. Commands.
+2. Message fragments.
+
+The command frame design is intended to be fast to read and write, and
+compact when only partly filled. We use a small set of basic data types
+that are guaranteed to work on all platforms:
+
+- Bit values, which are accumulated into octets.
+
+- Unsigned octet, short, long, and long long integers (8, 16, 32, and
+  64 bits respectively).
+
+- Short and long strings, stored as a length (1 or 2 octets) followed
+  by zero or more octets of data.  Short strings are assumed to be in
+  UTF-8 format, and may not contain binary zero octets.  Long strings
+  can contain any data.
+
+- Field tables, stored as long strings holding name-value pairs with
+  basic typing.
+
+Integers and string lengths are always unsigned and held in network byte
+order. We make no attempt to optimise the case when two low-high systems
+(E.G. two Intel CPUs) talk to each other.
+
+Message fragments are opaque data chunks of message data.  Fragments can
+come after specific commands, I.E. those which "carry" messages. Thus the
+frames on the wire might look like this:
+
+    [command]
+    [command] [fragment]
+    [command] [fragment]
+    [command]
+    [command] [fragment]
+    ...
+
+Message data could be carried by command frames, but we choose to place
+it in separate fragments. There are two reasons for this. First, it lets
+us use out-of-band transport techniques at a future stage. By this we
+mean passing message data via shared memory, remote-DMA networking, etc.
+Second, it lets us read and write message data directly from application
+buffers, avoiding the extra copy step that marshalling would require.
+
+Marshalling Frame Data
+......................
+
+Frames are invariant. They contain no conditional or repeated fields.
+Thus the marshalling code can be fast. In the OpenAMQ server and clients
+this code is generated from the frame specifications.
+
+Connection Multiplexing
+-----------------------
+
+Goals and Principles
+....................
+
+Connection multiplexing allows multiple threads of communication to
+share a single socket connection. This is valuable when threads are
+short-lived since the cost of opening and closing TCP/IP sockets can be
+relatively high.
+
+AMQP uses the concept of "channel" to carry a virtual connection.  It
+provides commands to open, use, and close channels.  Large messages are
+broken into fragments so that channels get fair (round-robin) use of the
+socket connection.
+
+AMQP defines two families of commands.  There are connection commands,
+which govern the entire connection, and channel commands, which govern
+specific channels.  Some protocols define a "special" channel, usually
+zero, for connection commands.  In AMQP frames for connection commands,
+there is simply no channel number.
+
+Channel States
+..............
+
+A channel progresses through a fixed set of states (here shown from the
+client's point of view):
+
+1. The channel is unused and the server will reject any commands on it
+   except channel open. (State = "Closed")
+
+2. The client sends a channel open command. The channel is now open, and
+   the client can send other commands on it. (State = "Open")
+
+3. At some stage the server or the client sends a channel close command.
+   The channel now closes (using a handshake mechanism we describe
+   later).  (State = "Closed")
+
+Pipelining
+----------
+
+Goals and Principles
+....................
+
+Pipelining means that the client can send commands asynchronously
+without waiting for the server to acknowledge each one. This is an
+important facility because it greatly improves performance.
+
+There are many ways to achieve pipelining. We chose a simple and obvious
+design based on channel multiplexing and the inherent ability of TCP/IP
+to queue outgoing data.
+
+Implementation
+..............
+
+AMQP's pipelining is based on three basic principles:
+
+1. TCP/IP provides queueing mechanisms that allow data to be sent
+   faster than it can be processed.  We need no special mechanisms
+   of our own.
+
+2. Most operations succeed.  We can thus optimise traffic by
+   stating that "no response" means "successful".
+
+3. Channels represent serial streams, where the order of commands
+   and their acknowledgements is stable.
+
+These principles provide the basis for a simple and efficient pipelining
+design based on selective confrmation. Each command is tagged with an ID
+that the sender chooses. Each command then has a flag indicating "please
+confirm". If the flag is set, the recipient sends a confirmation reply
+when the command is fully processed. If the flag is left unset, the
+recipient does not confirm the command.
+
+The recipient indicates an error by closing the channel. The close
+command includes the ID of the command that caused the error.
+
+Commands on a specific channel are processed strictly in order. Thus the
+client can set "synchronisation points" by asking for a confirmation,
+and handle errors unambiguously (all commands up to but not including
+the failed command will have succeeded).
+
+We use 64-bit command tags to eliminate the issue of wrap-around.
+Command tags are numbered on a per-connection basis.  (At a billion
+messages per second, sufficient for about 600 years.)  Note that
+message data fragments are not tagged.
+
+Error Handling
+--------------
+
+Goals and Principles
+....................
+
+Error handling is a delicate part of any protocol. We need a clear way
+of reporting errors. Second, we need a formal definition of what happens
+after an error so that protocol implementations do not get into
+ambiguous states.
+
+The AMQP error handling model is based on these principles:
+
+1. Use existing standards - this problem has been solved many times.
+2. Use an assertion model - don't try to recover from errors. 
+3. Handshaked closure - shutdown a channel or connection gracefully.
+
+Existing Standards
+..................
+
+The standard for error handling (defined semi-independently in several
+IETF RFCs) is the 3-digit reply code. This format has evolved into a
+fine-grained tool for comunicating success or failure.  It is also
+well-structured for expansion as a protocol gets more mature.
+
+The current AMQP reply codes and are defined in AMQ RFC 011.
+
+The reply code is constructed as follows:
+
+- The first digit - the completion indicator - reports whether the
+  request succeeded or not.
+- The second digit - the category indicator - provides more information
+  on failures.
+- The third digit - the instance indicator - distinguishes different
+  situations with the same completion/category.
+
+The completion indicator has one of these values:
+
+    1 = ready to be performed, pending some confirmation.
+    2 = successful.
+    3 = ready to be performed, pending more information.
+    4 = failed, but may succeed later.
+    5 = failed, requires intervention.
+
+The category indicator has one of these values:
+
+    0 = error in syntax.
+    1 = the reply provides general information.
+    2 = problem with session or connection.
+    3 = problem with security.
+    4 = application-specific.
+
+The instance indicator is 0 to 9 as needed to distinguish different
+situations.
+
+The Assertion Model
+...................
+
+An assertion is a programming construct that demands a condition. If the
+condition fails, the assertion prints a diagnostic message and halts the
+process (ending the program without further ado). Assertions appear to
+be contradictory: they cause the program to die when it detects an
+error. And yet they are used in order to make program code more robust.
+
+Assertions work because they make errors visible and force them to be
+fixed. The alternative - "handling" errors in some way - allows buggy
+code to operate, causing problems that are much harder to detect and
+often much more serious.  Assertions say "this works correctly, or it
+does not work at all".
+
+In AMQP we similarly use assertions to ensure robustness. We don't abort
+the server, but we close the channel and/or the connection if there is
+an error of any kind. The AMQP assertion is "every command works
+correctly, or we close the channel and/or connection".
+
+Some errors are minor - the client application may be incorrectly
+configured - in which case the server closes the channel. Other errors
+are serious - like badly formatted fragments - in which case the server
+closes the connection and may ban the client if it suspects foul play.
+
+Handshaked Closure
+..................
+
+Closing a channel or connection as part of error handling or as part of
+normal activity must be done carefully. If the server sends a close
+command with reply code to the client, the socket must remain open long
+enough for the client to read this command.
+
+Furthermore since commands are moving asynchronously in both directions
+it may take a while for the client to read the close command and process
+it. In the meantime it may receive other commands (sent before the
+error) and respond to them. Thus the server may continue to receive
+commands from the client after sending the close command.  It cannot
+process these commands.
+
+The situation is symetrical for a client closing its connection. The
+server may be sending commands to the client, and these may continue to
+arrive after the client has sent a close command to the server. The
+client cannot process these commands.
+
+
+xxx
+
+- Either party can send CONNECTION CLOSE when they need to close the
+  connection.
+- The correct response to an unexpected CONNECTION CLOSE is to rollback
+  any open transactions, close all destinations, close all channels, and
+  then reply with a CONNECTION CLOSE command.
+- The initiating party should then read commands until it receives a
+  CONNECTION CLOSE in reply.  It should discard any commands it receives
+  (except CONNECTION CLOSE) and respond to any command except CONNECTION
+  CLOSE with another CONNECTION CLOSE.  This is to ensure that faulty
+  implementations of clients or servers (which may have lost the first
+  close command) are correctly closed.
+- When it receives CONNECTION CLOSE the initiating party should rollback
+  any open transactions, close all destinations, close all channels, and
+  then close the network connection.
+
+
+
+
+
+The basic server response to any error is to respond with an reply code
+and a 'close' command. For example, if the client tries to open a handle
+to a non-existent destination, the server will respond with a close
+command carrying the reply code '404'.
+
+Depending on the severity of the error the server may close the handle,
+the channel, or the connection.
+
+
+Message Definition
+------------------
+
+Goals and Principles
+....................
+
+Message Properties
+..................
+
+MIME Types
+..........
+
+Content-Type	The MIME content type of the message body.  The default value is ?application/octet-stream?.
+Transfer-Encoding	The transfer encoding for the message body.  The default value is ?binary?.
+
+Content-Identifier	The business identifier of the message body, for instance a filename or database key.  The Content-Identifier must have a valid meaning to all parties processing the message, within the context of the current destination.
+
+Message Body
+............
+
+Multi-Part Messages
+...................
+
+For example a binary data file could be sent together with an XML
+description, as two parts of a single message. The XML description might
+be used for routing, without the need to inspect or unpack the binary
+data, and AMQP will always deliver the multiple parts as as single
+message.
+
+Empty Messages
+..............
+
+Message Priorities
+..................
+
+Restartable Transfer
+....................
+
+Streamed Messages
+.................
+
+Queueing and Routing Models
+---------------------------
+
+Goals and Principles
+....................
+
+Service Types
+.............
+
+To publish data the client opens a "handle", then sends messages to
+destinations using that handle. Handles are local to a specific channel.
+When a client publishes to several handles within a channel, it does
+this one after the other.
+
+Large messages are split into fragments. This gives different channels -
+but not handles - the ability to share a single socket connection.
+
+There is no practical limit to the size of a message, and AMQP allows
+streamed data - I.E. messages that never end.
+
+Handles exist mainly to allow access control on part of a destination
+hierarchy. If such access controls are not needed, all work on a channel
+can be done using a single handle.
+
+Topic Hierarchies
+.................
+
+Content-Based Routing
+.....................
+
+Programmable Routing
+....................
+
+Message Browsing
+................
+
+Destinations
+------------
+
+Goals and Principles
+....................
+
+Queues and Topics
+.................
+
+Consumers
+.........
+
+Transactions
+............
+
+Clients can send command without waiting for a server response. In most
+cases the client can actively solicit a response or tell the server to
+respond only on failure.
+
+As a natural wrapping of command batches, we support transactional
+processing. Typically the client will use the 'commit' command at the
+end of a batch of messages and acknowledgements.
+
+Transactions are applied to channels.
+
+Message Acknowledgements
+........................
+
+To consume data, the client opens a handle, then asks to consume
+messages from destinations using that handle.
+
+The server sends messages using a dispatching model that depends on the
+type of destination. For queues, messages are distributed between the
+consumers. For topics, messages are copied to each of the consumers.
+
+We control the number of unacknowledged messages sent to any single
+client using windowing.
+
+
+
+Dynamic Destinations
+....................
+
+Virtual Hosts
+-------------
+
+Goals and Principles
+....................
+
+A single server instance can support multiple "virtual hosts". A virtual
+host has its own set of destinations and access controls. The client
+application chooses the virtual host by specifying a path after
+connecting and authenticating itself.
+
+Security
+--------
+
+Goals and Principles
+....................
+
+We guard against buffer-overflow exploits by using length-specified
+buffers in all places.  All externally-provided data can be verified
+against maximum allowed lengths whenever any data is read.
+
+Invalid data can be handled unambiguously, by closing the channel or
+the connection.
+
+
+Buffer Overflows
+................
+
+All data is length-specified so that applications can allocate memory in
+advance and avoid deadlocks. Length-specified strings protect against
+buffer-overflow attacks.
+
+Denial of Service Attacks
+.........................
+
+AMQP handles errors by returning a reply code and then closing the
+channel or connection. This avoids ambiguous states after errors.
+
+
+It should be assumed that any exceptional conditions at this stage
+are due to an hostile attempt to gain access to the server. The general
+response to any exceptional condition in the connection negotiation is
+to pause that connection (presumably a thread) for a period of several
+seconds and then to close the network connection.  This includes syntax
+errors, over-sized data, or failed attempts to authenticate.  The server
+implementation should log all such exceptions and flag or block multiple
+failures originating with the same IP address.
+
+
+Performance
+-----------
+
+Goals and Principles
+....................
+
+Zero Copy
+.........
+
+The fastest network performance comes from using 'zero copy' techniques
+such as RDMA where the network card will transfer data without any
+copying or remapping by the OS. AMQP supports zero copy techniques for
+message data (not for command frames).
+
+Heartbeating
+............
+
+Although TCP/IP guarantees that data is not dropped or corrupted it can
+be slow to detect that a peer process has gone "offline". AMQP provides
+a heartbeat mechanism that can be tuned to allow rapid fail-over.
+
+Unclassified
+------------
+
+- firewall friendly
+    - protocol header
+    - multiple protocols on same port
+
 
 The Toolset
 ***********
@@ -1041,28 +1835,64 @@ standing.
 Standard Libraries
 ==================
 
-Apache Portable Runtime
------------------------
+Goals and Principles
+--------------------
 
-APR provides a fairly rich set of functions for encapsulating
-non-portable system functionality such as socket access, threading, and
-so on. We use APR moderately, mainly in the SMT framework.
+The use of standard libraries is a critical choice in the architecture
+of any product.  The wrong choices can create an unstable product that
+is difficult to build and install and ultimately unsatisfying for its
+users.  Underuse of standard libraries creates larger code bases with
+no real benefit.
 
-APR is solid and clearly designed to support a communications project
+We work with these principles when choosing and writing standard
+libraries:
+
+1. Our products must be entirely self-supporting, able to build on a
+   "raw" box with only the basic tools (compiler and linker).
+
+2. Any external libaries we use must use a BSD-style or public-domain
+   license so that we do not risk GPL "contamination".  (This is ironic
+   because we use the GPL for our own iMatix libraries except in the
+   context of OpenAMQ.)
+
+3. Any external libraries we use must be entirely stable and portable
+   to all our target systems, which means Linux, Solaris and other
+   modern Unixes, and Win32.
+
+4. Any non-portable code must be isolated in a portability library
+   module.  That is, our application code does not use conditional
+   compilations for portability.
+   
+5. If we cannot find external libraries that do what we need, we write
+   our own libraries.
+
+The above principles are well-tested.  We have successfully used them
+to write high-quality portable servers that run on many different OSes.
+
+Apache Portable Runtime (APR)
+-----------------------------
+
+APR (apr.apache.org) provides a fairly rich set of functions for
+encapsulating non-portable system functionality such as socket access,
+threading, and so on. We use APR moderately but increasingly as we
+develop OpenAMQ.
+
+APR is solid and clearly designed to support a communications product
 such as OpenAMQ. It is immature in several areas: weak documentation,
 incomplete APIs, and some portability issues, but overall we feel it's
 worth using.
 
-Berkeley Database
------------------
+Sleepycat Berkeley Database (BDB)
+---------------------------------
 
-BDB is a mature ISAM system. Our experience with it is somewhat
-contradictory. On the one hand, the product is well documented, widely
-used in other projects, and very stable in operation. On the other hand,
-it is literally painful to program. If you use the wrong sequence of
-calls, it will simply abort, without any explanation. Writing BDB code
-is often a matter of trial and error. All our calls to BDB are in
-generated classes, so the pain of writing BDB code is one-time only.
+BDB (sleepcat.com) is a mature ISAM system. Our experience with it is
+somewhat contradictory. On the one hand, the product is well documented,
+widely used in other projects, and very stable in operation. On the
+other hand, it is literally painful to program. If you use the wrong
+sequence of calls, it will simply abort, without any explanation.
+Writing BDB code is often a matter of trial and error. All our calls to
+BDB are in generated classes, so the pain of writing BDB code is
+one-time only.
 
 We use BDB for message persistence, and for object persistence.
 
@@ -1072,22 +1902,23 @@ get those famous aborts). Thus even database reads are transactional,
 and the transaction logs tend to grow. We will probably write our own
 persistence layer at some stage.
 
-Hazel's Perl Compatible Regular Expressions
--------------------------------------------
+Hazel's Perl Compatible Regular Expressions (PCRE)
+--------------------------------------------------
 
 The PCRE library is a small and useful library that we use for parsing
 and matching. For instance in OpenAMQ this library does the parsing and
 matching of topic names.
 
-iMatix Standard Function Library
---------------------------------
+iMatix Standard Function Library (SFL)
+--------------------------------------
 
 SFL provides a similar library to APR. It is more mature, and ported to
 many platforms. SFL is considered "legacy", in the sense that we are not
-adding new functionality to it.
+adding new functionality to it.  However we hold SFL as a backup for
+portability to systems that APR may not yet support.
 
-iMatix Portable Runtime
------------------------
+iMatix Portable Runtime (iPR)
+-----------------------------
 
 iPR is our modern replacement for those functions in SFL that we want to
 use, and which are not provided by APR. iPR is written using the iCL
@@ -1096,45 +1927,160 @@ framework (see below).
 Languages
 =========
 
+Goals and Principles
+--------------------
+
+Our choice of languages is driven by these principles:
+
+1. Our languages must be portable and mature.
+2. All production software must be written in C.
+    
+The choice of C is somewhat driven by conservative ideas about writing
+code that is very fast, and predictably so. A C operator is entirely
+predictable.  A C++ operator may be overloaded in ways that are not
+obvious.
+
+The choice of C is also comforted by the observation that the language
+is not a factor in writing good, well-abstracted code. I.E. the choice
+of C, C++, ObjectiveC, etc. matters much less than the choice of tools.
+It is, we think, a naive notion to expect the language to solve the
+abstraction problems we face unless we can scale the language
+considerably above the level most compilers provide. LISP is an
+interesting language, being scalable in the way we like. But there are
+few LISP programmers. Open source must be accessible. We therefore
+choose C and scale the language using code generation.
+
 ANSI C
 ------
 
 We use ANSI 1989 C with a small set of necessary extensions that are
 portable to our target systems (inlined functions, 64 bit integers).
+On Linux and Unix systems we use gcc.
 
-iMatix Generator Scripting Language
------------------------------------
+iMatix Generator Scripting Language (GSL)
+-----------------------------------------
 
 We use the GSL code generator construction language to build the many
-code generators that we use. In most cases we actually generate the code
-generators using the XNF framework (see below).
+code generators that we use.  GSL is the result of some 20 years of
+research into code generation, and highly tuned to the job.  In 1991
+we wrote a code generator - Libero - that turns finite-state diagrams
+into code, a very useful tool for writing servers, parsers, and such.
+The code generator took several months to write (not including extensive
+documentation, a Windows GUI and so on).  In 2005, we can write a
+Libero-equivalent code generator in GSL in a matter of a few hours.
+
+In most cases we actually generate the code generators - parsers,
+inheritors, and command-line wrappers - using the XNF framework (see
+below).
 
 Perl
 ----
 
 We use Perl in some parts of the process where GSL is not flexible
 enough, mainly for document preparation. Perl is widely available and
-very useful, but tends to produce unmaintainable code, so we do not rely
-on it very heavily.
+very useful, but tends to produce unmaintainable code with exotic and
+complex package dependencies, so we do not rely on it very heavily.
 
 Code Generation Frameworks
 ==========================
 
-iMatix Class Library
---------------------
+Theological Principles
+----------------------
 
-iCL is a software development methodology and toolkit aimed at
-constructing very large and very high-quality applications in ANSI C. We
-use C in infrastructure projects because it is portable, fast and
-operationally stable. However, C lacks modern facilities such as:
+iMatix has a long tradition of building and using tools to support our
+software development process.  Our principle technology is code
+generation, which has evolved over the years as follows:
 
-1. inheritance (where functionality can be added by extending and building on
+1. Hard-coded code generators that produce specific outputs given
+   specific input files. (ETK, 1985-1991).  Clues: the code generator
+   uses "print" statements or templates with fixed structures.
+
+2. Template-based code generators that produce arbitrary outputs
+   from specific input files (Libero, 1991-present).  Clues: the
+   code generator has some type of templating language.
+
+3. Template-based code generators that produce arbitrary outputs
+   from arbitrary structured input in XML or a similar language
+   (GSL, 1995-present).
+
+4. The definition of standard abstraction models and techniques to
+   turn this "arbitrary structured input" into something resembling
+   a programming language (Aqua, Changeflow, 2000).
+
+5. The definition of meta-languages that allow these XML languages
+   to be formally defined and validated (Boom, 2002).
+
+6. The automatic generation of GSL code generators to implement such
+   XML languages (XNF, 2004).
+
+Other projects use code generation too. For instance Samba/4 is 57% code
+generated according to its author. The Samba/4 code generator, pidl,
+generates marshalling code, test cases, documentation, and other outputs
+from IDL (interface definition languages) specifications. While pidl is
+a remarkable achievement, it is at stage 1 of the code generation
+journey.
+
+Our use of code generation has a profound impact on the quality and cost
+of the software we make. While code generation is starting to become a
+standard part of a professional's toolbox, it is generally limited to
+IDLs, and class structures (as produced by analysis models such as UML).
+We use code generation to implement "fat languages", a kind of macro
+programming that produces - in our experience - superb results. In the
+words of the author of Samba/4, "code generation is addictive. I wish
+we'd started ten years ago."
+
+The advantages of a mature code generation technology are:
+
+- Rapid and cheap improvement of the code generation templates, so that
+  the generated code can be incrementally improved until it is as good
+  as hand-written code.
+
+- Ability to create new models and macro languages cheaply, so that we
+  can solve problem domains rapidly.
+
+- Use of simple XML for all models, including XML grammars, so that we
+  can use XML validation and meta-validation on all inputs.
+
+- Ability to produce any text output: programming languages,
+  documentation, test cases, etc., so that we can extend the code
+  generation process beyond pure source code.
+
+- Ability to build large-scale code generation frameworks out of
+  smaller individual code generators.
+
+We can measure the power ratio of a code generation framework by
+comparing the cost of writing the abstract model against the cost of
+writing the code by hand. Not all generated code is worth having, of
+course, but then not all hand-written code is worth having either.
+
+The power comes from abstraction. I.E. defining standard models and then
+deriving specific instances from these. All our modern code generators
+are heavily based on the concept of inheritence.
+
+Here is the typical leverage provided by the code generation frameworks
+described in this section:
+
+- XNF, generating GSL parsers and generators - 500%
+- SMT, generating state machine engines - 750%
+- iCL, generating class hierarchies - 750%
+- AMQP frames generator, generating marshalling code - 1,500%
+- Boom, generating makefiles and build scripts - 10,000%
+
+iMatix Class Library (iCL)
+--------------------------
+
+iCL is a software development methodology and toolkit aimed at building
+very large and very high-quality applications in ANSI C. We use C in
+infrastructure projects because it is portable, fast and operationally
+stable. However, C lacks modern facilities such as:
+
+1. Inheritance (where functionality can be added by extending and building on
    existing components)
-2. templating (where variations on a standard model can be produced cheaply)
+2. Templating (where variations on a standard model can be produced cheaply)
 3. API standardization (where the structure of APIs is enforced by the
    language).
-4. literate coding (where documentation can be written together with the code)
-5. logical modelling (where we define abstract models such as finite state
+4. Literate coding (where documentation can be written together with the code)
+5. Logical modelling (where we define abstract models such as finite state
    machines directly in the code)
 
 These can be done manually, and usually are, but that is expensive and
@@ -1143,35 +2089,35 @@ demanding.
 These facilities are helpful because they allow us to work faster and
 with better results. We can make larger and more ambitious designs with
 less risk of losing control over them. iCL adds these facilities to C by
-wrapping it into a higher level class library (1 - 3) which is
-self-descriptive (4), simple, extensible and language independent. iCL
-adds a stage to the deployment process, but unlike interpreted
-paradigms, portability and efficiency are guaranteed as an atomic
-quality that follows as a natural consequence of the target language,
-ANSI C. Our solution aims to leverage skills which are normally part of
-the essential training of any IT professional (C, XML).
+wrapping it into a higher level class library which is self-documenting,
+simple, extensible and language independent. iCL adds a stage to the
+deployment process, but unlike interpreted paradigms, portability and
+efficiency are guaranteed as an atomic quality that follows as a natural
+consequence of the target language, ANSI C. Our solution aims to
+leverage skills which are normally part of the essential training of any
+IT professional (C, XML).
 
-We write our programs as iCL classes, using a simple XML language. The XML
-language (called "iCL") is designed to be easy to read and write by hand - no
-special editors are needed. An iCL class consists mainly of a set of
-properties and a set of methods. The properties define an object's
-state. The methods define an object's functionality. 
+We write our programs as iCL classes, using a simple XML language. The
+XML language (called "iCL") is designed to be easy to read and write by
+hand - no special editors are needed. An iCL class consists mainly of a
+set of properties and a set of methods. The properties define an
+object's state. The methods define an object's functionality. 
 
 iCL classes compile into C code, which we then compile and link as
 usual. In a best-case scenario, we can see up to a 10-to-1 ratio between
 the final C code and the hand-written iCL classes, but coding effort
 compression is typically non-negligible. The generated C code is perhaps
-20-30% larger than a comparable hand-written application, but we
-typically get less complex and highly optimized code. 
+20-30% larger than a comparable hand-written application, but this
+code is typically flatter - more inlined - and produces faster programs.
 
 iCL does not attempt to create a full OO model. It aims to remove much
 of the administrative burden from writing large-scale C applications, to
-produce high-quality code (5), and to ensure that certain problems -
-such as memory management - can be totally abstracted and thus solved
+produce high-quality code, and to ensure that certain problems - such as
+memory management - can be totally abstracted and thus solved
 "correctly" once and for all.
 
-iMatix Simple Multithreading Kernel
------------------------------------
+iMatix Simple Multithreading Kernel (SMT)
+-----------------------------------------
 
 SMT/4 is the latest version of this kernel, which has driven our servers
 for about a decade. SMT/4 is built as an iCL application with a custom
@@ -1180,8 +2126,8 @@ code generator. It provides:
 - A finite-state model for writing "agents", which implement protocol
   handlers and other FSM-defined components.
 - Functions for starting and stopping threads of control in an agent.
-- Functions for communicating between threads, and between non-SMT code
-  and SMT threads.
+- Functions for communicating between threads and between non-SMT code
+  and SMT threads, using event queues,
 - Asynchronous socket i/o functions.
 - Private context areas for each thread.
 - Standard agents for logging, timer alarms, error handling, etc.
@@ -1194,52 +2140,55 @@ code generation tool. SMT/4 is full XML, and generates extremely flat
 and fast finite-state machines (avoiding loops for most cases). An SMT/4
 application runs about twice as fast as an SMT/3 application.
 
-iMatix XML Normal Form
-----------------------
+iMatix XML Normal Form (XNF)
+----------------------------
 
-The iMatix team has been making XML-driven code generators for about a
-decade, and more exotic code generators since 1985 or so. In that time,
-we've written several dozen major code generators and extracted some
-basic principles:
+XNF is a technology that we started building in 1998 to support very
+large-scale code generation frameworks. It is similar to a compiler
+construction toolkit such as Yacc, but working within the XML/GSL
+domain.
 
-- XML is without doubt the best language for abstract models, the
-  input for code generation.
+An XNF specification describes a specific XML language and a set of
+rules about the code generators that use it. The XNF compiler turns
+these specifications into complete working code generators. XNF embodies
+our "best practice" for code generators. For small ad-hoc code
+generators it is rather a complex tool. For major code generators such
+as iCL, it automates much of the most complex work at low cost.
 
-- Each XML file should represent a single "program", being a natural
-  unit of work in whatever XML modelling language we are inventing.
-  Trying to put multiple programs (state machines, classes, agents,
-  whatever) into one XML file is counter-productive. Naturally one
-  XML program can produce an arbitrary number of output files.
+Our standard code generation model compiles a high-level XML program
+into native code as follows:
 
-- The XML syntax should use attributes for item properties, items
-  for structure, and item body content for code.  Using items for
-  everything is verbose and confusing.
+- Load the XML tree and perform basic XML syntax validation.
+- Perform XML content validation and set default values where possible.
+- Resolve inheritence rules between different parts of the XML tree.
+- Run one or more target scripts that produce the final output.
 
-- We do not need to use schemas, stylesheets, paths, namespaces, or
-  any of the more sophisticated XML paraphanalia.  We want simple XML
-  that is easy to read and edit.  We do not want to have to use
-  complex tools to read and edit our XML programs - just any text
-  editor.
+XNF solves these parts of the process:
 
-- The easiest way of mixing implementation code bodies and models is
-  to write the code bodies in the XML, as item body content.  It
-  helps if you use a tweaked XML parser that allows - for example -
-  < and > inside an item body without complaining.
+1. Defining a grammar for the XML language so that it can be validated.
+   XNF generates a preprocessing parser in GSL which validates the XML,
+   provides default values for attributes, etc.  The XNF grammar can
+   also be used - in theory - to drive XML-aware IDEs such as Eclipse.
 
-- The XML language should use inheritence to achieve abstraction.
-  For example, in an finite-state model, states should be able to
-  inherit events and their action lists from other 'abstract' states.
-  Since XML is a hierarchical language, inheritence is a natural way
-  of eliminating reduncancy in an XML program (something you might
-  do in other languages using functions, classes, etc.)
+2. Documenting the language.  An XNF specification contains textual
+   explanations for every item, every attribute, and XNF produces
+   gurudoc output containing presentable documentation.
 
-- Doing all the above cleanly is sufficiently hard work that it's
-  worthwhile generating the code generator from an abstract grammar.
-  Using an abstract grammar makes it very cheap to extend and change
-  the XML language so that it becomes suitably powerful.
+3. Resolving inheritence.  XML languages are hierarchical and we use
+   inheritence as a way of eliminating redundancy.  For instance in a
+   complex finite-state machine, several states could inherit their
+   structure from an abstract parent state.  Or in a class structure,
+   methods can inherit their structure from a method template.  XNF
+   defines a set of inheritence mechanisms which may be applied to
+   each tag in the language, and it generates a GSL program that
+   executes the inheritence rules on a validated XML tree.
 
-XNF is thus a grammar tool and a code generator for building code
-generators. XNF is the meta grammar for iCL, SMT, boom, and XNF itself.
+4. Wrapping the whole process in a command-line GSL script that
+   loads and validates the XML, resolves inheritence, and runs the
+   target scripts to produce final output.   
+
+XNF is thus a code generator for building code generators. iCL, SMT,
+boom, and XNF itself are all built using XNF.
 
 This is a summary syntax for XNF:
 
@@ -1268,11 +2217,7 @@ This is a summary syntax for XNF:
        <rule [phase] [when]/>
     </xnf>
 
-The only problem we find with XNF is that it is a meta tool and thus
-difficult for some people to understand. As a tool for generating code
-generators it is very powerful and it abstracts concepts such as
-inheritence that are very difficult to do well by hand.
-
+xxx
 Ad-Hoc Frameworks
 -----------------
 
@@ -1290,29 +2235,23 @@ Documentation
 iMatix Gurudoc
 --------------
 
-iMatix gurudoc is a refinement of the htmlpp tool we used for our
-websites for many years.
+Gurudoc is our standard way of producing documentation and web sites. It
+has the particular advantage of being extremely lightweight and fast to
+use, while producing high-quality output in different formats.
 
-Gurudoc works by recognising layout in a simple text file, and
-converting this to an internal XML language - GDL. A set of code
-generators then turn GDL into lots of different output formats. Several
-varieties of HTML (with frames, without frames), LaTeX (allowing PDF
-generation), simple text, OpenOffice.org, RTF, etc.
+A gurudoc document looks like a neatly-formatted text file. The gurudoc
+parser recognises simple layout rules in the text and uses those to
+produce a formally structured document that can be turned into
+higher-quality outputs. This document is written using gurudoc. 
 
-Gurudoc keeps a balance between features and complexity, to give you
-something useful without becoming too formal. Gurudoc relies on layout
-rules that also help to make the text readable in any case. For example,
-blank lines and indentation are significant in most places. One
-consequence of this is that the plain text file is very readable even
-before it is converted to any target.
-
-This document - like all the OpenAMQ documentation - is written as a
-gurudoc text file.
+Various gurudoc templates produce varieties of HTML (with frames,
+without frames), LaTeX (allowing PDF generation), simple text,
+OpenOffice.org, RTF, etc.
 
 LaTeX
 -----
 
-LaTeX is used to produce PDFs. It's a huge system and does not build on
+LaTeX is used to produce PDFs. It is a huge system and does not build on
 all our workstations. But it produces very elegant PDFs.
 
 AT&T Graphviz
@@ -1417,427 +2356,4 @@ Here is an edited fragment of the generated code (this implements the
 
 In typical projects boom produces about 100 lines of build code for one
 line of project definition. That is good leverage.
-
-The AMQ Protocol
-****************
-
-This section is an extract from AMQ RFC 006, which defines the AMQ
-Protocol. [Note: this RFC is undergoing modifications.]
-
-Overview
-========
-
-Purpose and Goals
------------------
-
-AMQP is intended to be a standardised general-use message-oriented
-middleware wire-level protocol. Such a thing does not yet exist, even
-with fewer buzzwords.
-
-A "wire-level protocol" can be a simple as a "this is how we define
-packets on the wire". AMQP is more ambitious than that. It tries to
-provide formal answers to a series of questions that we must answer in
-order to implement useful messaging between protocols.
-
-We want to be able to:
-
-- Construct logical "messages" out of data of any type and size, and
-  move these message efficiently across a network of clients and
-  servers.
-
-- Provide queuing and routing semantics for messages so that the
-  behaviour of the server is unambiguously defined by the protocol.
-
-- Define service levels semantics so client applications can explicitly
-  choose between different levels of speed and reliability.
-
-- Create a fully-asynchronous network so that messages can be queued
-  when clients are disconnected, and forwarded when they are connected.
-
-- Allow interoperation and bridging with other middleware systems.
-
-- Allow implementation in any language, on any kind of hardware.
-
-- Avoid license and patent concerns that might hinder adoption of the
-  protocol as a standard.
-
-- Create an architecture that is easy to maintain and extend over time.
-
-- Allow the creation of an abstract network where services, and their
-  data, can move around the network opaquely to the clients.
-
-Negotiating a Connection
-------------------------
-
-Goals and Principles
-....................
-
-Negotiation means that one party in a discussion declares an intention
-or capability and the other party either acknowledges it, modifies it,
-or rejects it. In AMQP, we negotiate a number of specific aspects of the
-protocol:
-
-1. The actual protocol and version.
-2. Encryption arguments and the authentication of both parties.
-3. Operational constraints.
-
-Protocol and Version
-....................
-
-AMQP can co-exist with other (still to be defined) protocols on the same
-socket. These protocols would have to respect the AMQP protocol
-negotiation model.
-
-Protocol negotiation works as follows:
-
-1. The client opens a new socket connection and sends a protocol ID and
-   protocol version (each a double-octet value).
-2. The server accepts the protocol by sending a valid response according
-   to the protocol in question, or rejects the protocol by closing the
-   connection.
-
-The protocol negotiation model is compatible with existing protocols
-such as HTTP that initiate a connection with an constant text string.
-
-Protocol negotiation gives us the freedom to run multiple versions of
-the same protocol, and multiple protocols, on a single socket, given a
-server capable of doing this.
-
-Encryption and Authentication
-.............................
-
-AMQP uses the SASL architecture for security. SASL encapsulates TLS,
-GSSAPI, Kerberos, and other encryption and authentication technologies.
-
-Security is negotiated between server and client as follows:
-
-1. The server sends a challenge to the client which lists the security
-   mechanisms that the server supports.
-2. The client selects a suitable security mechanism and responds to the
-   server with relevant information for that security mechanism.
-3. The server can send another challenge, and the client another
-   response, until the SASL layer has received enough information.
-4. The server can now use the selected security mechanism and
-   authenticated client identity to perform access controls on its
-   data and services.
-
-The "relevant information" is an opaque binary blob that is passed
-between the SASL layers embedded in the client and in the server.
-
-SASL gives us the freedom to replace the security libraries with better
-(more secure or faster) technologies at a later date without modifying
-the protocol, the client, or the server implementations.
-
-Client and Server Limits
-........................
-
-The protocol defines limits to ensure operational stability. So, the
-maximum size of a frame (explained later) is agreed in advance. This
-avoids deadlocks where one party sends data that is too large for the
-other to handle.
-
-Limits are negotiated as follows:
-
-1. The server tells the client what limits it proposes.
-2. The client can respond to lower the limits for its connection.
-
-This gives us the flexibility of increasing limits such as buffer sizes
-for better performance if both parties can handle it.
-
-Command Framing
----------------
-
-Goals and Principles
-....................
-
-There are several ways to define how commands start and stop on
-connections:
-
-- Sending a single command per connection.
-- Adding command delimiters to the stream.
-- Counting the size of commands and sending the size in front
-  of each command.
-
-AMQP uses the last technique.  Each command is formatted as a
-
-
-
-Data Types
-..........
-bit	A single-bit value.  Bit values are accumulated into whole octets.
-octet	An unsigned 8-bit integer.
-short integer	An unsigned 16-bit integer held in network order.
-long integer	An unsigned 32-bit integer held in network order.
-short string	A string of 0 to 255 octets holding UTF-8 data. A short string is represented as a single octet followed by between 0 and 255 octets of data.  There is no trailing null character.  Short strings can contain any data including binary zero octets.
-long string	A string of 0 to 216-1 octets holding UTF-8 data.  A long string is represented as a short integer followed by 0 or more octets of data.  There is no trailing null character.    Long strings can contain any data including binary zero octets.
-blob	A binary object of up to 232-1 octets of data.  A blob is represented as a long integer specifying the blob length. Depending on the protocol implementation the blob contents may follow the frame, or may be provide by other means (such as through shared memory).
-
-Code Generation
-...............
-
-
-Connection Multiplexing
------------------------
-
-Goals and Principles
-....................
-
-AMQP uses the concept of "channel" to carry multiple virtual connections
-across a single socket. Channels correspond to threads in the client
-applications.
-
-Large messages are broken into "fragments" so that channels get fair use
-of the socket connection.
-
-AMQP is based on standard TCP/IP and does not implement any traffic
-control mechanisms.
-
-Connection States
-.................
-
-The client connects to a well-known or pre-agreed port and sends an
-initial sequence that identifies the protocol it wishes to use. The
-server replies with an authentication challenge. The client responds,
-and the two parties then negotiate protocol options (such as maximum
-frame size).
-
-At this stage the client can open one or more channels, use these to
-send commands to the server and receive commands back, and close
-channels.
-
-The "channel" concept is designed to support a single application thread
-that can work with many different queues and topics ("destinations"),
-but does so in a serial manner.
-
-A good metaphor for a "channel" is a bidirectional data stream.
-Everything that happens on a channel is serial, with asynchronous
-activity in both directions. Parallelism means using multiple channels
-at once. A single-threaded application would use a single channel.
-
-
-Channel States
-..............
-
-
-Pipelining
-----------
-
-Goals and Principles
-....................
-
-Clients and servers exchange commands and messages asynchronously. There
-is no polling.
-
-Clients can batch commands, both implicitly by sending ahead of an
-expected response, and explicitly by telling the server to not respond
-in case of success.
-
-Command Batching
-................
-
-Command Confirmations
-.....................
-
-
-Error Handling
---------------
-
-Goals and Principles
-....................
-
-The basic server response to any error is to respond with an reply code
-and a 'close' command. For example, if the client tries to open a handle
-to a non-existent destination, the server will respond with a close
-command carrying the reply code '404'.
-
-Depending on the severity of the error the server may close the handle,
-the channel, or the connection.
-
-Response Code Families
-......................
-We use a standard 3-digit reply code that is compatible with BEEP.  The reply code is constructed as follows:
-First digit ? completion ? reports whether the request succeeded or not:
-1 = ready to be performed, pending some confirmation.
-2 = successful.
-3 = ready to be performed, pending more information.
-4 = failed, but may succeed later.
-5 = failed, requires intervention.
-Second digit ? category ? provides more information on failures:
-0 = error in syntax.
-1 = the reply provides general information.
-2 = problem with session or connection.
-3 = problem with security.
-4 = application-specific.
-Third digit ? instance ? distinguishes different situations with the same completion/category.
-
-Message Definition
-------------------
-
-Goals and Principles
-....................
-
-Message Properties
-..................
-
-MIME Types
-..........
-
-Content-Type	The MIME content type of the message body.  The default value is ?application/octet-stream?.
-Transfer-Encoding	The transfer encoding for the message body.  The default value is ?binary?.
-
-Content-Identifier	The business identifier of the message body, for instance a filename or database key.  The Content-Identifier must have a valid meaning to all parties processing the message, within the context of the current destination.
-
-Message Body
-............
-
-Multi-Part Messages
-...................
-
-For example a binary data file could be sent together with an XML
-description, as two parts of a single message. The XML description might
-be used for routing, without the need to inspect or unpack the binary
-data, and AMQP will always deliver the multiple parts as as single
-message.
-
-Empty Messages
-..............
-
-Message Priorities
-..................
-
-Queueing and Routing Models
----------------------------
-
-Goals and Principles
-....................
-
-Service Types
-.............
-
-To publish data the client opens a "handle", then sends messages to
-destinations using that handle. Handles are local to a specific channel.
-When a client publishes to several handles within a channel, it does
-this one after the other.
-
-Large messages are split into fragments. This gives different channels -
-but not handles - the ability to share a single socket connection.
-
-There is no practical limit to the size of a message, and AMQP allows
-streamed data - I.E. messages that never end.
-
-Handles exist mainly to allow access control on part of a destination
-hierarchy. If such access controls are not needed, all work on a channel
-can be done using a single handle.
-
-Topic Hierarchies
-.................
-
-Content-Based Routing
-.....................
-
-Programmable Routing
-....................
-
-Message Browsing
-................
-
-Destinations
-------------
-
-Goals and Principles
-....................
-
-Queues and Topics
-.................
-
-Consumers
-.........
-
-Transactions
-............
-
-Clients can send command without waiting for a server response. In most
-cases the client can actively solicit a response or tell the server to
-respond only on failure.
-
-As a natural wrapping of command batches, we support transactional
-processing. Typically the client will use the 'commit' command at the
-end of a batch of messages and acknowledgements.
-
-Transactions are applied to channels.
-
-Message Acknowledgements
-........................
-
-To consume data, the client opens a handle, then asks to consume
-messages from destinations using that handle.
-
-The server sends messages using a dispatching model that depends on the
-type of destination. For queues, messages are distributed between the
-consumers. For topics, messages are copied to each of the consumers.
-
-We control the number of unacknowledged messages sent to any single
-client using windowing.
-
-
-
-Dynamic Destinations
-....................
-
-Virtual Hosts
--------------
-
-Goals and Principles
-....................
-
-A single server instance can support multiple "virtual hosts". A virtual
-host has its own set of destinations and access controls. The client
-application chooses the virtual host by specifying a path after
-connecting and authenticating itself.
-
-Security
---------
-
-Goals and Principles
-....................
-
-Buffer Overflows
-................
-
-All data is length-specified so that applications can allocate memory in
-advance and avoid deadlocks. Length-specified strings protect against
-buffer-overflow attacks.
-
-Denial of Service Attacks
-.........................
-
-AMQP handles errors by returning a response code and then closing the
-channel or connection. This avoids ambiguous states after errors.
-
-Performance
------------
-
-Goals and Principles
-....................
-
-Zero Copy
-.........
-
-The fastest network performance comes from using 'zero copy' techniques
-such as RDMA where the network card will transfer data without any
-copying or remapping by the OS. AMQP supports zero copy techniques for
-message data (not for command frames).
-
-Heartbeating
-............
-
-Although TCP/IP guarantees that data is not dropped or corrupted it can
-be slow to detect that a peer process has gone "offline". AMQP provides
-a heartbeat mechanism that can be tuned to allow rapid fail-over.
-
-
-
-
-
-
 
