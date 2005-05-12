@@ -581,6 +581,54 @@ generates huge amounts of perfect C code for free is useful too.
 The server classes are explained in more detail in the "OpenAMQ Server
 Architecture" document.
 
+The Matching Engine
+-------------------
+
+The key to the performance of the matching is the use of "inverted
+bitmaps", in which search tables are pre-calculated and stored as
+result bitmaps.  The matching engine relies on these specific
+components:
+
+1. A parsing module that extracts search terms from a subscription
+   or from a message header.
+
+2. A bitmap module that provides read/write/search and logical
+   operations on large bitmaps (16k bits).
+
+3. A hash table that holds search terms and their corresponding
+   bitmaps.
+
+The basic algorithm is broken into two phases - subscription
+indexation and message matching.  Indexation works as follows:
+
+1. Subscriptions are numbered from 0 upwards.  The numbering
+   scheme re-uses numbers when subcriptions are cancelled.
+   This guarantees an upper limit on the subscription number.
+
+2. On a new subscription we parse the key fields on which the
+   subscription acts into a set of search terms.
+
+3. For each search term, we load the corresponding bitmap and
+   set the bit corresponding to the subscription.  We save the
+   modified bitmap.
+
+Message matching works as follows:
+
+1. We parse the message header into a set of search terms.
+
+2. For each search term we load the corresponding bitmap, if
+   any.
+
+3. We logically AND or OR the bitmap with a rolling result
+   bitmap, depending on how the subscription was constructed.
+
+4. After processing all search terms for the message we are
+   left with a bitmap that indicates the subscriptions that
+   should receive this message.
+
+In tests, the basic matching algorithm can perform about 2 million
+matches per second real-time on a 1Ghz CPU.
+
 Client Architecture
 ===================
 
@@ -1128,24 +1176,50 @@ And functionality that we still have to look at in more detail:
 - Server-side applications.
 - Server plugins and filters.
 
-The AMQ Protocol
-****************
+Prior Art
+=========
+
+The OpenAMQ Matching Engine
+---------------------------
+
+The OpenAMQ matching engine is based on work done in 1980-81 by
+Leif Svalgaard and Bo Tveden, who built the Directory Assistance System
+for the New York Telephone company. The system consisted of 20 networked
+computers serving 2000 terminals, handling more than 2 million lookups
+per day.  In 1982 Svalgaard and Tveden adapted the system for use in
+the Pentagon (Defense Telephone Service).  This system is still in
+operation.
+
+The SMT Multithreaded Kernel
+----------------------------
+
+The SMT multithreaded kernel is based on work done in 1993 as part
+of the ETK Toolkit implementation for OpenVMS/ACMS.  This work formed
+the basis of a transaction-processing front-end used by Delight
+Information Systems, processing several million travel bookings
+per year.
+
+The AMQP/Fast Protocol
+**********************
 
 This section is an extract from AMQ RFC 006, which defines the AMQ
 Protocol. [Note: this RFC is undergoing modifications.]
 
+Discussion
+==========
+
 Overview
-========
+--------
 
-Purpose and Goals
------------------
+Purpose and Goals of AMQP/Fast
+..............................
 
-AMQP is intended to be a standardised general-use high-performance
-message-oriented middleware wire-level protocol. Such a thing does
-not yet exist, except with fewer buzzwords.
+AMQP/Fast is designed to be the high-performance member of the AMQP
+family of standardised general-purpose message-oriented middleware
+wire-level protocols.
 
 A "wire-level protocol" can be a simple as a "this is how we define
-packets on the wire". AMQP is more ambitious than that. It tries to
+packets on the wire". AMQP/Fast is more ambitious than that. It tries to
 provide formal answers to a series of questions that we must answer in
 order to implement useful messaging between protocols.
 
@@ -1176,6 +1250,115 @@ We want to be able to:
 - Allow the creation of an abstract network where services, and their
   data, can move around the network opaquely to the clients.
 
+AMQP Standard Models
+....................
+
+All AMQP protocols including AMQP/Fast implement a common and
+interoperable queueing and routing model based on these concepts:
+
+1. Application-level messages.
+2. Persistent and non-persistent message storage ("destination").
+3. A distributor mechanism ("queue").
+4. A multiplier mechanism ("topic").
+5. A way for clients to send messages to destinations ("publish").
+6. A way for clients to request messages from destinations ("subscribe").
+7. A way for clients to request individual messages from destinations
+   ("browse").
+8. A way for clients to inform the server when a message has been
+   successfully processed ("acknowledge").
+
+The AMQP "queue" concept acts to distribute messages ("m1", "m2", "m3")
+between a set of consumers ("c1", "c2", "c3"):
+
+                      .-- m1 => c1
+    m1,m2,m3 => [Queue]-- m2 => c2
+                      `-- m3 => c3
+
+The AMQP "topic" concept acts to multiply messages to a set of
+consumers:
+
+                      .-- m1,m2,m3 => c1
+    m1,m2,m3 => [Topic]-- m1,m2,m3 => c2
+                      `-- m1,m2,m3 => c3
+
+The AMQP "subscription" concept acts like a queue:
+
+                                                   .-- m1 => c1a
+                      .-- m1,m2,m3 => [Subscription]-- m2 => c1b
+    m1,m2,m3 => [Topic]-- m1,m2,m3 => c2           `-- m3 => c1c
+                      `-- m1,m2,m3 => c3
+
+Definitions
+...........
+
+Channel:
+    A bi-directional stream of communications between two AMQP/Fast
+    peers. Channels are multiplexed so that a single network connection
+    can carry multiple channels.
+Connection:
+    A network connection, E.G. a TCP/IP socket connection.
+Client:
+    The initiator of an AMQP/Fast connection or channel.  AMQP/Fast is
+    not symetrical.  Clients produce and consume messages while servers
+    queues and route messages.
+Server:
+    The party that accepts client connections and implements the
+    standard AMQ queuing and routing functions.
+Peer:
+    Either party in an AMQP/Fast connection.  An AMQP/Fast connection
+    involves exactly two peers (one is the client, one is the server).
+Frame:
+    A formally-defined package of connection data.  Frames are
+    always written and read contiguously - as a single unit - on the
+    connection.
+Command:
+    A specific type of frame that passes instructions from one peer
+    to the other.
+Content:
+    Application data passed from client to server and from server to
+    client.  AMQP/Fast content can be structured into multiple parts.
+Header:
+    A specific type of frame that describes content.
+Body:
+    A specific type of frame that contains raw application data.
+    Body frames are entirely opaque - the server does not examine
+    or modify these in any way.
+Message:
+    A specific type of content, the application-to-application message.
+Streaming:
+    The process by which the server will send content to the client at
+    a pre-arranged rate.  Streamed content is normally "endless".
+Staging:
+    The process by which a peer will transfer a large message to a
+    temporary holding area before formally handing it over to the
+    recipient.  This is how AMQP/Fast implements restartable file
+    transfers.
+Out-of-band:
+    The technique by which data is exchanged outside the network
+    connection.  For example, two peers can exchange frames across a
+    TCP/IP connection and then switch to using shared memory if they
+    discover they are on the same system.
+Zero_copy:
+    The technique of transferring data without copying it to or from
+    intermediate buffers.  Zero copy requires that the protocol allow
+    the transfer of data as opaque blocks, which AMQP/Fast does.
+
+Limitations
+...........
+
+These limitations are formally defined in the AMQP/Fast specifications:
+
+1. Maximum size of a frame: 65535 octets.
+2. Maximum number of channels per connection: 255.
+3. Maximum size of a string: 65535 octets.
+
+Guidelines for Implementors
+...........................
+
+We use the terms MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY as defined
+by IETF RFC 2119.  Where possible we note the security implications of
+the guidelines.
+
 Negotiating a Connection
 ------------------------
 
@@ -1184,8 +1367,8 @@ Goals and Principles
 
 Negotiation means that one party in a discussion declares an intention
 or capability and the other party either acknowledges it, modifies it,
-or rejects it. In AMQP, we negotiate a number of specific aspects of the
-protocol:
+or rejects it. In AMQP/Fast, we negotiate a number of specific aspects
+of the protocol:
 
 1. The actual protocol and version.
 2. Encryption arguments and the authentication of both parties.
@@ -1194,33 +1377,52 @@ protocol:
 Protocol and Version
 ....................
 
-AMQP can co-exist with other (still to be defined) protocols on the same
-socket. These protocols would have to respect the AMQP protocol
-negotiation model.
+An AMQP client and server agree on a protocol and version using this
+negotiation model:
 
-Protocol negotiation works as follows:
+1. The client opens a new socket connection on a well-known or
+   configured port and and sends an initiation sequence consisting
+   of the text "AMQP" followed by a protocol ID (2 octets) and a
+   protocol version (2 octets holding the high and low version numbers).
 
-1. The client opens a new socket connection on a well-known or configured
-   port and and sends the text "AMQP" followed by a protocol ID and
-   protocol version (each a double-octet value).
+2. The server either accepts or rejects the initiation sequence.  If
+   it rejects the initiation sequence it closes the connection.
+   Otherwise it leaves the connection open and implements the protocol
+   accordingly.
 
-2. The server accepts the protocol by sending a valid response according
-   to the protocol in question, or rejects the protocol by closing the
-   connection.
+For AMQP/Fast the protocol ID is 1, and the protocol version is 0.9. The
+correct initiation sequence is:
+
+    'A' 'M' 'Q' 'P' %d0 %d1 %d0 %d9
+
+An AMQP server MAY accept multiple AMQP protocols including AMQP/Fast
+on the same socket.  An AMQP server MAY accept non-AMQP protocols such
+as HTTP.  An AMQP server MUST accept AMQP/Fast.
+
+If the server does not recognise the first 4 octets of data on the
+socket, or does not support the specific protocol version that the
+client requests, it MUST close the socket without sending any response
+back to the client.
+
+An AMQP client MAY detect the server protocol version by attempting to
+connect with its highest supported version and decreasing this if the
+server rejects the connection.
+
+An AMQP server MUST NOT ban or delay a client that requests an
+unsupported protocol version.
+
+An AMQP server MAY ban or delay a client that requests unknown protocol
+IDs.
 
 The protocol negotiation model is compatible with existing protocols
 such as HTTP that initiate a connection with an constant text string,
 and with firewalls that sniff the start of a protocol in order to
 decide what rules to apply to it.
 
-Protocol negotiation gives us the freedom to run multiple versions of
-the same protocol, and multiple protocols, on a single socket, given a
-server capable of doing this.
-
 Encryption and Authentication
 .............................
 
-AMQP uses the SASL architecture for security. SASL encapsulates TLS,
+AMQP/Fast uses the SASL architecture for security. SASL encapsulates TLS,
 GSSAPI, Kerberos, and other encryption and authentication technologies.
 
 Security is negotiated between server and client as follows:
@@ -1264,152 +1466,183 @@ Limits are negotiated to the lowest agreed value as follows:
 Connection States
 .................
 
-The connection progresses through a fixed set of states (here shown
-from the client's point of view):
+The connection negotiation progresses through these states when seen
+from the client point of view:
 
-1. The client opens a connection and sends the protocol ID and
-   version.  It now expects the server to respond with a connection
-   challenge.  (State = "Initialising")
+    Start:
+        OK - - - - - - - - - - - - - - - -> Expect Challenge
+            + Open Connection
+            + Send Protocol Header
+            + Read Command Frame
 
-2. The server responds with a connection challenge.  The client
-   sends a connection response.  It expects the server to send either
-   another connection challenge or a connection tune command.
-   (State = "Tuning")
+    Expect Challenge:
+        Challenge  - - - - - - - - - - - -> Tuning
+            + Send Connection Response
+            + Read Command Frame
 
-3. The server responds with a connection tune command. The client
-   replies with a tune command, and then sends a connection open
-   command.  The connection is now open, and the client can send
-   other commands on it. (State = "Open")
+    Tuning:
+        Challenge  - - - - - - - - - - - -> Tuning
+            + Send Connection Response
+            + Read Command Frame
+        Tune - - - - - - - - - - - - - - -> Ready
+            + Send Connection Tune
+            + Send Connection Open
 
-4. At some stage the server or the client sends a connection close
-   command.  The connection now closes (using a handshake mechanism
-   we describe later).  (State = "Closed")
-   
-The Framing Design
-------------------
+    Ready:
+        ...
+
+And from the server's point of view:
+
+    Start:
+        OK - - - - - - - - - - - - - - - -> Expect Response
+            + Read Protocol Header
+            + Check Protocol Header
+            + Send Connection Challenge
+            + Read Command Frame
+
+    Expect Response:
+        Response - - - - - - - - - - - - -> Validated
+            + Validate Response
+
+    Validated:
+        Sufficient - - - - - - - - - - - -> Tuning
+            + Send Connection Tune
+            + Read Command Frame
+        Insufficient - - - - - - - - - - -> Expect Response
+            + Send Connection Challenge
+            + Read Command Frame
+
+    Tuning:
+        Tune - - - - - - - - - - - - - - -> Tuning
+            + Read Command Frame
+        Open - - - - - - - - - - - - - - -> Ready
+            + Read Command Frame
+
+    Ready:
+        ...
+
+The syntax we use here is based on the state machine syntax used by
+Libero:
+
+    Statename:
+        Event  - - - - - - - - - - - - - -> Next State
+            + Action to execute
+
+Data Type Representation
+------------------------
 
 Goals and Principles
 ....................
 
-Framing is the part of the protocol where we define how data is sent "to
-the wire".
+We use a small set of basic data types that are guaranteed to work on
+all platforms and be easily implemented in all languages.  More
+sophisticated data types can be packaged using the basic AMQP/Fast data
+types.
 
-The framing design used in AMQP is designed to be compact, easy and very
-fast to parse, and robust. Further, it has to support higher level
-concepts such as multiplexing.
+Formal Grammar for AMQP/Fast Fields
+..............................
 
-The key parts of this design are:
+This formal grammar defines the AMQP/Fast data types:
 
-- How the transport layer carries data.
-- How frames are delimited on the connection.
-- How frames carry data.
-- How we marshal data to and from frames.
+    amqp-field          = BIT
+                        / OCTET
+                        / short-integer
+                        / long-integer
+                        / long-long-integer
+                        / short-string
+                        / long-string
+                        / field-table
+    short-integer       = 2*OCTET
+    long-integer        = 4*OCTET
+    long-long-integer   = 8*OCTET
+    short-string        = OCTET *char
+    char                = %d1 .. %d255
+    long-string         = short-integer *OCTET
+    field-table         = short-integer *field-value-pair
+    field-value-pair    = field-name field-value
+    field-name          = short-string
+    field-value         = 'S' long-string
+                        / 'B' binary-string
+                        / 'I' long-integer
+                        / 'D' decimal-value
+                        / 'T' long-integer
+    decimal-value       = decimals long-integer
+    decimals            = OCTET
 
-The Transport Layer
-...................
+Integers
+........
 
-We assume a reliable stream-oriented network transport layer (TCP/IP or
-equivalent). If an unreliable transport layer is used, we
-assume that the AMQP frames would be wrapped with additional
-traffic-control information such as windowing.
-
-AMQP explicitly excludes any support for traffic control but does not
-disallow this to be implemented in an additional layer. We may at a
-future point provide protocol wrappers that wrap AMQP frames with
-traffic management to allow reliable transfer over multicast and
-point-to-point UDP.
-
-Delimiting Frames
-.................
-
-There are several ways that a protocol could delimit commands on a
-connection:
-
-- Sending a single command per connection. This is simple but adds
-  considerable overhead to the protocol due to the opening and closing
-  of connections.
-
-- Adding command delimiters to the stream. This is used in protocols
-  such as SMTP but has the disadvantage that the stream must be parsed
-  to find the delimiters. This makes implementations of the protocol
-  slow.
-
-- Counting the size of commands and sending the size in front of each
-  command. This is the fastest approach, and our choice.
-
-Each command is thus sent as a "frame header" which is basically the
-frame size encoded for portability, followed by a "frame body" of the
-specified size (the header is not counted). Frames can carry commands or
-other data. To read a command frame we use this logic:
-
-1. Read the frame header and decode to get the size of the frame body.
-2. If the frame body is larger than the agreed limit, close the
-   connection with a suitable error reply code.
-3. Otherwise, read the specified number of octets into a frame buffer. 
-4. Demarshal the frame buffer into a command structure.
-
-To write a command frame we use this logic:
-
-1. Marshal the command structure into a frame buffer.
-2. Encode the length of this buffer as a frame header and write it.
-3. Write the frame buffer contents, the frame body.
-
-Carrying Data
-.............
-
-Frames carry two types of data:
-
-1. Commands.
-2. Message fragments.
-
-The command frame design is intended to be fast to read and write, and
-compact when only partly filled. We use a small set of basic data types
-that are guaranteed to work on all platforms:
+An AMQP/Fast implementation MUST support these integer types:
 
 - Bit values, which are accumulated into octets.
+- Unsigned octet (8 bits).
+- Unsigned short integers (16 bits).
+- Unsigned long integers (32 bits).
+- Unsigned long long integers (64 bits).
 
-- Unsigned octet, short, long, and long long integers (8, 16, 32, and
-  64 bits respectively).
+Integers and string lengths are always unsigned and held in network
+byte order. We make no attempt to optimise the case when two low-high
+systems (E.G. two Intel CPUs) talk to each other.
 
-- Short and long strings, stored as a length (1 or 2 octets) followed
-  by zero or more octets of data.  Short strings are assumed to be in
-  UTF-8 format, and may not contain binary zero octets.  Long strings
-  can contain any data.
+Implementors MUST NOT assume that integers encoded in a frame are
+aligned on memory word boundaries.
 
-- Field tables, stored as long strings holding name-value pairs with
-  basic typing.
+Strings
+.......
 
-Integers and string lengths are always unsigned and held in network byte
-order. We make no attempt to optimise the case when two low-high systems
-(E.G. two Intel CPUs) talk to each other.
+All strings are variable-length and represented by an integer length
+followed by zero or more octets of data.  An AMQP/Fast implementation MUST
+support:
 
-Message fragments are opaque data chunks of message data.  Fragments can
-come after specific commands, I.E. those which "carry" messages. Thus the
-frames on the wire might look like this:
+- Short strings, stored as a 1-octet length followed by zero or more
+  octets of data.  Short strings are assumed to be in UTF-8 format,
+  and may not contain binary zero octets.
 
-    [command]
-    [command] [fragment]
-    [command] [fragment]
-    [command]
-    [command] [fragment]
-    ...
+- Long strings, stored as a short integer length followed by zero or
+  more octets of data.  Long strings can contain any data.
 
-Message data could be carried by command frames, but we choose to place
-it in separate fragments. There are two reasons for this. First, it lets
-us use out-of-band transport techniques at a future stage. By this we
-mean passing message data via shared memory, remote-DMA networking, etc.
-Second, it lets us read and write message data directly from application
-buffers, avoiding the extra copy step that marshalling would require.
+Field Tables
+............
 
-Marshalling Frame Data
-......................
+Field tables are long strings that contain name-value pairs.  Each
+name-value pair is a structure that provides a field name, a field
+type, and a field value.  Fields can store a text string, a binary
+string, an integer, a decimal, or a date and/or time.
 
-Frames are invariant. They contain no conditional or repeated fields.
-Thus the marshalling code can be fast. In the OpenAMQ server and clients
-this code is generated from the frame specifications.
+Implementation notes:
 
-Connection Multiplexing
------------------------
+- Field names MUST start with a letter, '$' or '#' and may continue with
+  letters, '$' or '#', digits, or underlines, to a maximum length of 128
+  characters.  An AMQP/Fast implementation SHOULD validate field names.
+
+- Binary strings are formatted as long strings.
+
+- Specifically in field tables, integer values are signed (31 bits plus
+  sign bit).
+
+- Decimal values are not intended to support floating point values,
+  but rather business values such as currency rates and amounts.
+  The 'decimals' octet is not signed.
+
+- Time values are held in the POSIX time_t format with an accuracy of
+  one second.
+
+As a convention when documenting values allowed in field tables we will
+use this syntax:
+
+    Name=(Type)Content
+
+For example:
+
+    EXPIRATION-TIME=(Time)
+    IDENTIFIER=(String)01-ABCD-9876
+    MAXIMUM-SIZE=(Integer)
+
+An AMQP/Fast implementation MUST handle duplicate fields by using only the
+first instance.
+
+Multiplexing and Pipelining
+---------------------------
 
 Goals and Principles
 ....................
@@ -1419,61 +1652,32 @@ share a single socket connection. This is valuable when threads are
 short-lived since the cost of opening and closing TCP/IP sockets can be
 relatively high.
 
-AMQP uses the concept of "channel" to carry a virtual connection.  It
-provides commands to open, use, and close channels.  Large messages are
-broken into fragments so that channels get fair (round-robin) use of the
-socket connection.
-
-AMQP defines two families of commands.  There are connection commands,
-which govern the entire connection, and channel commands, which govern
-specific channels.  Some protocols define a "special" channel, usually
-zero, for connection commands.  In AMQP frames for connection commands,
-there is simply no channel number.
-
-Channel States
-..............
-
-A channel progresses through a fixed set of states (here shown from the
-client's point of view):
-
-1. The channel is unused and the server will reject any commands on it
-   except channel open. (State = "Closed")
-
-2. The client sends a channel open command. The channel is now open, and
-   the client can send other commands on it. (State = "Open")
-
-3. At some stage the server or the client sends a channel close command.
-   The channel now closes (using a handshake mechanism we describe
-   later).  (State = "Closed")
-
-Pipelining
-----------
-
-Goals and Principles
-....................
-
-Pipelining means that the client can send commands asynchronously
-without waiting for the server to acknowledge each one. This is an
+Pipelining means that each AMQP/Fast peer can send frames asynchronously
+without waiting for the recipient to acknowledge each one. This is an
 important facility because it greatly improves performance.
 
-There are many ways to achieve pipelining. We chose a simple and obvious
-design based on channel multiplexing and the inherent ability of TCP/IP
-to queue outgoing data.
+Multiplexing Design
+...................
 
-Implementation
-..............
+AMQP/Fast uses the concept of "channel" to carry bi-directional streams
+of communication between peers.  AMQP/Fast provides commands to open,
+use, and close channels.  Large messages are broken into smaller frames
+so that channels get fair (round-robin) use of the socket connection.
 
-AMQP's pipelining is based on three basic principles:
+Pipelining Design
+.................
 
-1. TCP/IP provides queueing mechanisms that allow data to be sent
-   faster than it can be processed.  We need no special mechanisms
-   of our own.
+Our design is based on these principles:
 
-2. Most operations succeed.  We can thus optimise traffic by
-   stating that "no response" means "successful".
+1. Most operations succeed.  We can thus optimise traffic in many cases
+   by stating that "no response" means "successful".
 
-3. Channels represent serial streams, where the order of commands
+2. Channels represent serial streams, where the order of commands
    and their acknowledgements is stable.
+
+3. In general we want to send data as fast as possible in an asynchronous
+   fashion.  Where necessary, we can implement windowing and throttling
+   at a higher level.
 
 These principles provide the basis for a simple and efficient pipelining
 design based on selective confrmation. Each command is tagged with an ID
@@ -1491,9 +1695,344 @@ and handle errors unambiguously (all commands up to but not including
 the failed command will have succeeded).
 
 We use 64-bit command tags to eliminate the issue of wrap-around.
-Command tags are numbered on a per-connection basis.  (At a billion
-messages per second, sufficient for about 600 years.)  Note that
-message data fragments are not tagged.
+Command tags are numbered on a per-connection basis.
+
+The Framing Design
+------------------
+
+Goals and Principles
+....................
+
+Framing is the part of the protocol where we define how data is sent "to
+the wire".  The framing design used in AMQP/Fast is designed to be compact,
+easy and very fast to parse, extensible, and robust.
+
+The key parts of this design are:
+
+- How the transport layer carries data.
+- How we delimit frames on the connection.
+- How we multiplex frames on the connection.
+- How different types of frame carry data.
+- How we handle out-of-band transport.
+
+The Transport Layer
+...................
+
+We assume a reliable stream-oriented network transport layer (TCP/IP or
+equivalent). If an unreliable transport layer is used, we assume that
+the AMQP/Fast frames would be wrapped with additional traffic-control
+information such as windowing.
+
+AMQP/Fast explicitly excludes any support for traffic control but does not
+disallow this to be implemented in an additional layer. We may at a
+future point provide protocol wrappers that wrap AMQP/Fast frames with
+traffic management to allow reliable transfer over multicast and
+point-to-point UDP.
+
+Delimiting Frames
+.................
+
+TCP/IP is a stream protocol, I.E. there is no in-built mechanism for
+delimiting frames.  Existing protocols solve this in several different
+ways:
+
+- Sending a single frame per connection. This is simple but adds
+  considerable overhead to the protocol due to the opening and closing
+  of connections.
+
+- Adding frame delimiters to the stream. This is used in protocols
+  such as SMTP but has the disadvantage that the stream must be parsed
+  to find the delimiters. This makes implementations of the protocol
+  slow.
+
+- Counting the size of frames and sending the size in front of each
+  frame. This is the fastest approach, and our choice.
+
+Each frame is thus sent as a "frame header" which contains the frame
+size, followed by a "frame body" of the specified size (the header is
+not counted). Frames can carry commands and other data. To read a frame
+we use this logic:
+
+1. Read and decode the frame header to get the size of the frame body.
+2. If the frame body is larger than the agreed limit, close the
+   connection with a suitable error reply code.
+3. Otherwise, read the specified number of octets into a frame buffer.
+4. Decode the frame buffer as needed.
+
+To write a frame we use this logic:
+
+1. Marshal the frame buffer as needed.
+2. Encode the length of this buffer into a frame header and write it.
+3. Write the frame buffer contents, being the frame body.
+
+The Frame Header
+................
+
+All frames start with a 4-octet header composed of a one-octet type
+indicator and a 3-octet size indicator:
+
+    +-------+---------+------------+-------------- - -
+    | type  | channel | frame-size | frame body...
+    +-------+---------+------------+-------------- - -
+      octet   octet     short int   'frame-size' octets
+
+AMQP/Fast defines several types of frame, with different type indicators:
+
+- Type = %d1, "COMMAND": command frame.
+- Type = %d2, "HEADER": content header frame.
+- Type = %d3, "BODY": content body frame.
+- Type = %d4, "OOB COMMAND": out-of-band command frame.
+- Type = %d5, "OOB HEADER": out-of-band band header frame.
+- Type = %d6, "OOB BODY": out-of-band body frame.
+- Type = %d7, "TRACE": trace frame.
+- Type = %d8, "HEARTBEAT": heartbeat frame.
+
+If an AMQP/Fast implementation receives a frame with a type that is not one
+of these defined types, it MUST treat this as a fatal protocol error
+and close the connection without sending any further data on it.
+
+The channel number is 0 for all frames which are global to the
+connection, and 1-255 for frames that refer to specific channels.
+
+Command Frames
+..............
+
+The command frame design is intended to be fast to read and write, and
+compact when only partly filled.
+
+Command frames (also called "commands" in the following discussion, for
+brevity) are invariant. They contain no conditional or repeated fields.
+Commands are constructed out of a constant series of AMQP/Fast data fields
+(bits, integers, strings and string tables).  Thus the marshalling code
+can be easily generated, and can be very rapid. In the OpenAMQ server
+and clients this code is generated directly from the protocol
+specifications.
+
+Content Frames
+..............
+
+Certain commands signal to the recipient that there is content arriving
+on the connection.  Simple content consists of a header frame followed
+by zero or more body frames.  Structured content may consist of a series
+of header frames followed by the appropriate body frames.
+
+Looking at the frames as they pass on the wire, we might see something
+like this:
+
+    [command]
+    [command] [header] [body] [body]
+    [command] [header] [body] [body]
+    [trace]
+    [command]
+    ...
+
+There is a specific reason for placing content body in distinct frames
+as compared to including the header and body in the command.  We want to
+support "zero copy" techniques in which content is never marshalled or
+encoded, and can be sent via out-of-band transport such as shared memory
+or remote DMA.
+
+The channel number in content frames MUST NOT be zero.  Content frames
+on a specific channel form an strict stream.  That is, they may be
+mixed with frames of different types or on different channels, but
+two contents may not be mixed or overlapped on a single channel.
+
+Out-of-Band Frames
+..................
+
+Command, content header, and content body frames can be sent
+out-of-band.  The frame header is sent on the normal connection
+but the frame body is sent via another mechanism.  The specific
+out-of-band transport used, and its configuration, is defined when
+a channel is opened.
+
+Trace Frames
+............
+
+Trace frames are intended for a "trace handler" embedded in the
+recipient.  Both server and client MAY send trace frames at any point
+in the connection after protocol negotiation.  When the recipient
+of a trace frame does not have a suitable trace handler, it MUST discard
+the trace frame without signalling any error or fault.
+
+The semantics and structure and of trace frames including the channel
+number are not formally defined by AMQP/Fast and implementations MUST NOT
+assume any interoperability with respect to trace frames unless and until
+formal standards are defined for these.
+
+Heartbeat Frames
+................
+
+Although TCP/IP guarantees that data is not dropped or corrupted it can
+be slow to detect that a peer process has gone "offline".  The heartbeat
+frame allows AMQP/Fast peers to detect network failure rapidly.  This frame
+has no body.
+
+The AMQP/Fast peers negotiate heartbeat parameters at the start of a
+connection.
+
+The channel number in a heartbeat frame MUST be zero.  An AMQP peer
+MUST handle a non-zero channel number as a connection assertion failure.
+
+Abstract Content Model
+----------------------
+
+AMQP/Fast uses an abstract content model that has these goals and features:
+
+- It supports tree-structured content in which each content can
+  contain further content ("child-content"), to any level.
+
+- It provides multiple content types to allow optimal encoding
+  for different applications.
+
+- It supports content bodies of any size from zero octets up to
+  infinity.
+
+- Content body can be read and written directly from application
+  memory with no formatting or copying ("zero copy").
+
+- Content headers are sent before content body so that the
+  recipient can selectively discard content that it does not want
+  to process.
+
+- Content body is sent in separate frames to support the AMQP/Fast
+  channel multiplexing model.
+
+Formal Grammar for Content Frames
+.................................
+
+This is the formal grammar for the AMQP/Fast content model:
+
+    content         = header-frame child-content *body-frame
+    header-frame    = HEADER frame-size header-payload
+    frame-size      = 3*OCTET
+    header-payload  = domain weight body-size
+                      property-flags property-list
+    domain          = OCTET
+    weight          = OCTET
+    body-size       = long-long-integer
+    property-flags  = 15*BIT %b0 / 15*BIT %b1 property-flags
+    property-list   = amqp-field
+    child-content   = weight*content
+    body-frame      = BODY frame-size body-payload
+    body-payload    = *OCTET
+
+Content Header Frame Format
+...........................
+
+A content header frame has this format:
+
+    +--------+--------+-----------+----------------+------------- - -
+    | domain | weight | body size | property flags | property list...
+    +--------+--------+-----------+----------------+------------- - -
+      octet    octet    long long   short int        remainder...
+
+- The content domain specifies the set of properties (with a predefined
+  syntax and semantics) that the header frame may hold. The standard
+  AMQP/Fast content domains are defined later.
+
+- The weight field specifies whether the content is structured or not.
+  Unstructured content has a weight of zero.  Structured content has a
+  weight of 1 to 255.  This is the number of child-contents that the
+  content contains.
+
+- The body size is a
+- The property flags are a bit array that indicates the presence or
+  absence of each property value.
+
+- The property values are domain-specific data fields.  The properties
+  are formatted as AMQP/Fast data types (integers, strings, field tables).
+
+The set of properties for a content domain can be any size.  Properties
+are defined in a specific order with the most "significant" properties
+defined first.
+
+As an example, we take a content domain "D" which has three octet
+properties, A, B and C.  Imagine a simple content that has properties
+B and C.  The header frame will be formatted thus:
+
+     domain    weight   body size   property flags   property list
+    +--------+--------+-----------+----------------+-------+
+    |   D    |   0    |    nnn    | 011...         | B | C |
+    +--------+--------+-----------+----------------+-------+
+
+The property flags can specify more than 16 properties.  The last bit
+of the 2-octet property flags indicates "more": if this is set, the
+property flags are extended by 2 more octets, and so on:
+
+     property flags 1  property flags 2 ...
+    +-----------------+----------------+
+    |xxxxxxxxxxxxxxxx1|xxxxxxxxxxxxxxxx|
+    +-----------------+----------------+
+         2 octets          2 octets
+
+Structured Content
+..................
+
+The "weight" field in the content header frame indicates whether the
+content has child-contents or not. In the simplest case (weight = zero)
+content consists of a header frame plus zero or more body frames:
+
+    [header] [body] [body]...
+
+If the content has child-contents, these are inserted between the
+header and body of the parent content:
+
+    [parent-header]
+        [child-header] [child-body] ...
+    [parent-body]
+
+Multiplexed Channel Content
+...........................
+
+Content consists of one or more frames.  These frames MUST be sent
+on a single channel, and MAY be intermixed with non-content frames
+(command, trace, and heartbeat frames).  They MUST NOT be intermixed
+with frames of a different content.
+
+The recipient of content that has been sent in multiple frames can
+unambiguously reconstruct it using the following state machine,
+which uses a stack to handle content nesting:
+
+    Expect Content Header:
+        Content Header - - - - - - - - - -> Have Content Weight
+            + Extract Body Size
+            + Extract Content Weight
+
+    Have Content Weight:
+        Pending  - - - - - - - - - - - - -> Expect Content Header
+            + Stack Content Weight
+            + Read Content Frame
+        Empty  - - - - - - - - - - - - - -> Expect Content Body
+            + Read Content Frame
+
+    Expect Content Body:
+        Content Body - - - - - - - - - - -> Have Content Body
+            + Store Content Body
+            + Check Remaining Body Size
+
+    Have Content Body
+        Pending  - - - - - - - - - - - - -> Expect Content Body
+            + Read Content Frame
+        Complete - - - - - - - - - - - - -> Have Content Weight
+            + Unstack Content Weight
+
+We have ignored non-content frames, error handling.  The real FSM
+would be more complex than this.
+
+Content Domains
+...............
+
+Note that the content domain is not intended to provide data typing
+or encoding information.  Its purpose is to allow flexibility in the
+property sets that we define per message.
+
+AMQP/Fast defines these content domains:
+
+- Domain = %d1, "AMQJMS": the content is a JMS-compliant message.
+- Domain = %d2, "STREAM": the content is a streamed message.
+
+These domains are defined in the section Message Transport.
 
 Error Handling
 --------------
@@ -1506,11 +2045,11 @@ of reporting errors. Second, we need a formal definition of what happens
 after an error so that protocol implementations do not get into
 ambiguous states.
 
-The AMQP error handling model is based on these principles:
+The AMQP/Fast error handling model is based on these principles:
 
-1. Use existing standards - this problem has been solved many times.
-2. Use an assertion model - don't try to recover from errors. 
-3. Handshaked closure - shutdown a channel or connection gracefully.
+1. Use existing standards.
+2. Use an assertion-based model.
+3. Use hand-shaking on closures.
 
 Existing Standards
 ..................
@@ -1520,7 +2059,8 @@ IETF RFCs) is the 3-digit reply code. This format has evolved into a
 fine-grained tool for comunicating success or failure.  It is also
 well-structured for expansion as a protocol gets more mature.
 
-The current AMQP reply codes and are defined in AMQ RFC 011.
+The current AMQP reply codes are standard to all protocols in the AMQP
+family and are defined in AMQ RFC 011.
 
 The reply code is constructed as follows:
 
@@ -1565,75 +2105,236 @@ code to operate, causing problems that are much harder to detect and
 often much more serious.  Assertions say "this works correctly, or it
 does not work at all".
 
-In AMQP we similarly use assertions to ensure robustness. We don't abort
+In AMQP/Fast we similarly use assertions to ensure robustness. We don't abort
 the server, but we close the channel and/or the connection if there is
-an error of any kind. The AMQP assertion is "every command works
+an error of any kind. The AMQP/Fast assertion is "every command works
 correctly, or we close the channel and/or connection".
 
 Some errors are minor - the client application may be incorrectly
 configured - in which case the server closes the channel. Other errors
-are serious - like badly formatted fragments - in which case the server
+are serious - like badly formatted frames - in which case the server
 closes the connection and may ban the client if it suspects foul play.
 
-Handshaked Closure
-..................
+We call these "connection assertion" failures and "channel assertion"
+failures.  The formal specification of each command - see later -
+includes the assertions it makes.
+
+Hand-shaked Closure
+...................
 
 Closing a channel or connection as part of error handling or as part of
-normal activity must be done carefully. If the server sends a close
-command with reply code to the client, the socket must remain open long
-enough for the client to read this command.
+normal activity must be done carefully.  We cannot, for instance, just
+send a close command and then close the socket, or the other party may
+not receive the data.
 
-Furthermore since commands are moving asynchronously in both directions
-it may take a while for the client to read the close command and process
-it. In the meantime it may receive other commands (sent before the
-error) and respond to them. Thus the server may continue to receive
-commands from the client after sending the close command.  It cannot
-process these commands.
+To close a channel or connection we ask that the other party confirms
+the closure by replying with a matching close command.  Anything we
+get in the meantime can be thrown away.
 
-The situation is symetrical for a client closing its connection. The
-server may be sending commands to the client, and these may continue to
-arrive after the client has sent a close command to the server. The
-client cannot process these commands.
+This is how we close a connection or channel after (E.G.) the server
+detects an error:
 
+- The server sends a close command to the client.
+- The client may be sending other commands to the server.
+- The server reads these and discards them, responding with a close
+  command each time.
+- The client at some stage read the first close command and replies
+  with a close command to the server.  It then closes its end of the
+  connection or channel.
+- When the server receives the close command from the client, it
+  closes its end of the connection or channel, discards any open
+  transactions, etc.
 
-xxx
+Any work the client tries to do after the server decides to close is
+therefore lost.  If the client decides to close its end of a connection
+or channel, the scenario is exactly the same, in the other direction.
 
-- Either party can send CONNECTION CLOSE when they need to close the
-  connection.
-- The correct response to an unexpected CONNECTION CLOSE is to rollback
-  any open transactions, close all destinations, close all channels, and
-  then reply with a CONNECTION CLOSE command.
-- The initiating party should then read commands until it receives a
-  CONNECTION CLOSE in reply.  It should discard any commands it receives
-  (except CONNECTION CLOSE) and respond to any command except CONNECTION
-  CLOSE with another CONNECTION CLOSE.  This is to ensure that faulty
-  implementations of clients or servers (which may have lost the first
-  close command) are correctly closed.
-- When it receives CONNECTION CLOSE the initiating party should rollback
-  any open transactions, close all destinations, close all channels, and
-  then close the network connection.
+Here is the state diagram showing how the client responds to a
+connection close command coming from the server:
 
+    Ready:
+        Close  - - - - - - - - - - - - - ->
+            + Send Connection Close
+            + Close The Connection
 
+Here is how the client would actively close the connection, e.g. if the
+calling application were to request a shutdown (we'll invent this event
+for the purposes of our diagram):
 
+    Ready:
+        Shutdown - - - - - - - - - - - - -> Closing
+            + Send Connection Close
+            + Read Command Frame
 
+    Closing:
+        Close  - - - - - - - - - - - - - ->
+            + Send Connection Close
+            + Close The Connection
+        Other  - - - - - - - - - - - - - -> Closing
+            + Send Connection Close
+            + Read Command Frame
 
-The basic server response to any error is to respond with an reply code
-and a 'close' command. For example, if the client tries to open a handle
-to a non-existent destination, the server will respond with a close
-command carrying the reply code '404'.
+Where 'Other' is a short-hand for any other command from the server
+except close.
 
-Depending on the severity of the error the server may close the handle,
-the channel, or the connection.
+The server's implementation is exactly the same except that as well
+as a "shutdown", it will close the connection if a connection assertion
+fails.
 
-
-Message Definition
-------------------
+Message Transport
+-----------------
 
 Goals and Principles
 ....................
 
-Message Properties
+
+xxx
+
+When we get past framing and content structuring, AMQP/Fast is basically
+a way of moving application messages between different points of a
+network.
+
+An AMQP/Fast message is defined in terms of the abstract content model.
+That is, messages are content. Messages are sent as header and body
+frames, can contain child messages and so on.
+
+Messages are transported by a specific set of AMQP/Fast commands.  These
+commands are explained later, for now we can call them, generically,
+the "send command".  There are two types of send command:
+
+1. Carrying messages from the client to the server.
+2. Carrying messages from the server to the client.
+
+
+
+The send command carries information that is domain-independent. This
+includes all information that the AMQP/Fast client provides the server in
+order to store and route the message, and all information that the AMQP/Fast
+server provides the client in order to process the message.
+
+None of the properties defined in a content header may be mandatory
+to the processing of a message by either party with respect to the
+AMQP/Fast specifications.  The content header properties may be used by
+client applications to process the messages in ways that are not
+specified here.
+
+
+
+    persistent          y/n             server read
+    priority            octet           server read
+    out-of-band
+
+- Staging
+- Streaming
+- Access paths
+
+xxx
+
+The definition of a "message" in AMQP/Fast starts to enter the application
+domain.  Our goals here are to:
+
+- Avoid any preconceptions about the maximum size, content, or format
+  of messages.
+- Allow different kinds of message to mix safely on the same connection.
+- Keep the cost of transmitting and processing messages as low as
+  possible.
+
+Our design is based on these elements:
+
+7. Message data may be "streamed", I.E. defined as an unending stream
+   of frames.  Streamed data is equivalent to an infinitely large
+   message.
+
+8. Transmission of a message can be stopped and restarted at a later
+   stage.  We call this "restartable transfer".
+
+9. The type and encoding of a message body is defined using the MIME
+   standard.  The MIME type and encoding are standard properties.
+
+
+Out-of-Band Transport
+....................
+
+Out-of-band transport (OOBT) is when the message is sent by some other
+means than the current open channel.  This can be used with certain
+network protocols (RDMA) or shared-memory protocols to gain performance.
+
+When we use OOBT only the command frames are sent on the connection:
+
+    [send]
+
+The out-of-band frame size is defined independently from the
+in-band (normal) frame-size.  The OOB channel may have a frame
+limit (typical if it is shared memory), in which case we will see
+multiple command frames:
+
+    [send]
+    [send]
+    [send]
+    ...
+
+
+AMQP/Fast supports full zero copy, assuming an OOBT server and client.
+
+The Message Header
 ..................
+
+- data common to all content domains in command
+
+common:
+
+
+    delivered           y/n             server set
+    redelivered         y/n             server set
+
+
+- all properties that the server needs to route messages are in
+the command
+- all standard properties are in the header, not modified by the
+server
+- custom properties are in the header
+
+
+
+
+
+
+
+
+
+
+Streamed Messages
+.................
+
+may be structured
+    - multiple parallel streams ok
+
+
+Restartable Transfer
+....................
+
+
+
+The Message Content Domain
+--------------------------
+
+domain properties:
+
+    correlation id      property
+    reply to queue      property
+    destination         property
+    expiration          property
+    message id          property
+    time stamp          property
+    type                property
+    user id             property
+    app id              property
+    mime type           property
+    encoding            property
+    user values         field table
+
+
+
 
 MIME Types
 ..........
@@ -1643,29 +2344,7 @@ Transfer-Encoding	The transfer encoding for the message body.  The default value
 
 Content-Identifier	The business identifier of the message body, for instance a filename or database key.  The Content-Identifier must have a valid meaning to all parties processing the message, within the context of the current destination.
 
-Message Body
-............
 
-Multi-Part Messages
-...................
-
-For example a binary data file could be sent together with an XML
-description, as two parts of a single message. The XML description might
-be used for routing, without the need to inspect or unpack the binary
-data, and AMQP will always deliver the multiple parts as as single
-message.
-
-Empty Messages
-..............
-
-Message Priorities
-..................
-
-Restartable Transfer
-....................
-
-Streamed Messages
-.................
 
 Queueing and Routing Models
 ---------------------------
@@ -1681,10 +2360,10 @@ destinations using that handle. Handles are local to a specific channel.
 When a client publishes to several handles within a channel, it does
 this one after the other.
 
-Large messages are split into fragments. This gives different channels -
+Large messages are split into frames. This gives different channels -
 but not handles - the ability to share a single socket connection.
 
-There is no practical limit to the size of a message, and AMQP allows
+There is no practical limit to the size of a message, and AMQP/Fast allows
 streamed data - I.E. messages that never end.
 
 Handles exist mainly to allow access control on part of a destination
@@ -1694,6 +2373,7 @@ can be done using a single handle.
 Topic Hierarchies
 .................
 
+
 Content-Based Routing
 .....................
 
@@ -1702,6 +2382,10 @@ Programmable Routing
 
 Message Browsing
 ................
+
+Message Priorities
+..................
+
 
 Destinations
 ------------
@@ -1781,7 +2465,7 @@ buffer-overflow attacks.
 Denial of Service Attacks
 .........................
 
-AMQP handles errors by returning a reply code and then closing the
+AMQP/Fast handles errors by returning a reply code and then closing the
 channel or connection. This avoids ambiguous states after errors.
 
 
@@ -1801,20 +2485,10 @@ Performance
 Goals and Principles
 ....................
 
-Zero Copy
-.........
-
-The fastest network performance comes from using 'zero copy' techniques
-such as RDMA where the network card will transfer data without any
-copying or remapping by the OS. AMQP supports zero copy techniques for
-message data (not for command frames).
 
 Heartbeating
 ............
 
-Although TCP/IP guarantees that data is not dropped or corrupted it can
-be slow to detect that a peer process has gone "offline". AMQP provides
-a heartbeat mechanism that can be tuned to allow rapid fail-over.
 
 Unclassified
 ------------
@@ -1822,6 +2496,11 @@ Unclassified
 - firewall friendly
     - protocol header
     - multiple protocols on same port
+- server to server
+- access control
+- message templating
+
+
 
 
 The Toolset
@@ -2063,7 +2742,7 @@ described in this section:
 - XNF, generating GSL parsers and generators - 500%
 - SMT, generating state machine engines - 750%
 - iCL, generating class hierarchies - 750%
-- AMQP frames generator, generating marshalling code - 1,500%
+- AMQP/Fast frames generator, generating marshalling code - 1,500%
 - Boom, generating makefiles and build scripts - 10,000%
 
 iMatix Class Library (iCL)
@@ -2217,14 +2896,13 @@ This is a summary syntax for XNF:
        <rule [phase] [when]/>
     </xnf>
 
-xxx
 Ad-Hoc Frameworks
 -----------------
 
 OpenAMQ has a number of ad-hoc code generation frameworks that are not
 large enough to be worth defining with XNF:
 
-- The AMQP frames generators, in versions that produce C, Java, and Perl
+- The AMQP/Fast frames generators, in versions that produce C, Java, and Perl
   code respectively.
 
 - The openamq.org web site generator.
@@ -2286,7 +2964,7 @@ and the build process requires more than these tools provide.
 The longer answer is that boom projects are particularly cheap to make
 maintain since files' properties are abstracted (using inheritence, as
 usual) and relationships between files are extracted automatically.
-Further, boom produces packages (source & binary) at no extra cost.
+Further, boom produces packages (source & binarThis is no longer done.y) at no extra cost.
 
 Boom produces make and configure scripts to give people a familiar
 user interface.  Here is a typical project definition (for the
