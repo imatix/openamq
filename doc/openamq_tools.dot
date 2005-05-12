@@ -2,6 +2,7 @@
 //  Build using dot
 digraph {
     size = "5,12";
+    node [fontname=Helvetica, fontsize=30];
     OS [label = "Native O/S"];
     C  [label = "ANSI C"];
     C       -> OS;

@@ -1,6 +1,7 @@
 //  Build using dot
 digraph {
-    size = "6,12";
+    size = "5,12";
+    node [fontname=Helvetica, fontsize=24];
     amq_browser             -> amq_smessage;
     amq_browser_array       -> amq_browser  [label = "contains"];
     amq_browser_list        -> amq_browser  [label = "contains"];

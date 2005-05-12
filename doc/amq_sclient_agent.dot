@@ -1,5 +1,6 @@
 digraph {
-    size = "5,8";
+    size = "5.5,8";
+    node [fontname=Helvetica, fontsize=30];
     subgraph client {
         initialise_connection -> expect_connection_challenge;
         expect_connection_challenge -> expect_connection_tune;

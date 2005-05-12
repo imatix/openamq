@@ -1,5 +1,6 @@
 digraph {
-    size = "6.5,8";
+    size = "5.8,8";
+    node [fontname=Helvetica, fontsize=30];
     subgraph master {
         initialise_master -> new_connection;
         new_connection -> new_connection;
