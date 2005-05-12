@@ -1,5 +1,6 @@
 digraph {
-   size = "8,8";
+    size = "7.5,8";
+    center = 1;
     subgraph master {
         initialise_master -> new_connection;
         new_connection -> new_connection;

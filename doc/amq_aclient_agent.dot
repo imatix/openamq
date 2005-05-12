@@ -1,5 +1,6 @@
 digraph {
-   size = "8,8";
+    size = "7.5,8";
+    center = 1;
     subgraph client {
         initialise_connection -> expect_connection_challenge;
         expect_connection_challenge -> expect_connection_tune;
