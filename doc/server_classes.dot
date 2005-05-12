@@ -1,7 +1,6 @@
 //  Build using dot
 digraph {
-    size = "7.5,12";
-    center = 1;
+    size = "6,12";
     amq_browser             -> amq_smessage;
     amq_browser_array       -> amq_browser  [label = "contains"];
     amq_browser_list        -> amq_browser  [label = "contains"];

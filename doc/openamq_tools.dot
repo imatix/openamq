@@ -1,8 +1,7 @@
 //  OpenAMQ technology dependency tree
 //  Build using dot
 digraph {
-    size = "7.5,12";
-    center = 1;
+    size = "5,12";
     OS [label = "Native O/S"];
     C  [label = "ANSI C"];
     C       -> OS;
