@@ -355,9 +355,13 @@
             return NOT_OK;
         }
 
-        if (row < 0 || col < 0 || !item ||
-              item->iDataLen < 0 || !item->pData) {
+        if (row < 0 || col < 0) {
             *retcode = JAMQ_TBL_INPUT_ERR;
+            return NOT_OK;
+        }
+
+        if (!item || item->iDataLen <= 0 || !item->pData) {
+            *retcode = JAMQ_TBL_DATA_UNV;
             return NOT_OK;
         }
 

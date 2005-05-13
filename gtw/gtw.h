@@ -38,7 +38,7 @@ typedef struct JAMQ_sLlParams
     int
         iType;
     void
-        *p_LinkedList_Hndl;
+        *pMemHndl;
 } JAMQ_tsLlParams;
 
 int JAMQ_ll_open (

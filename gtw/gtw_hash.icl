@@ -25,7 +25,7 @@
     static inline qbyte torek (const char *str, int length)
     {
         qbyte
-            res = 0x3BE07A42;
+            res = 0;
         int
             pos = 0;
 

@@ -51,7 +51,7 @@
         if (!out || !params ||
               (params->iType != JAMQ_LL_TYPE_1 && params->iType !=
               JAMQ_LL_TYPE_2 && params->iType != JAMQ_LL_TYPE_3) ||
-              params->p_LinkedList_Hndl != JAMQ_OS_NO_MEM_MGR) {
+              params->pMemHndl != JAMQ_OS_NO_MEM_MGR) {
             *retcode = JAMQ_LL_INPUT_ERR;
             return NOT_OK;
         }
@@ -406,7 +406,7 @@
                 size;
         </local>
         params.iType = JAMQ_LL_TYPE_1;
-        params.p_LinkedList_Hndl = JAMQ_OS_NO_MEM_MGR;
+        params.pMemHndl = JAMQ_OS_NO_MEM_MGR;
 
         if (!JAMQ_ll_open (&list, &params, &retcode)) {
             printf ("JAMQ_ll_open failed (%ld)\\n", (long) retcode);
