@@ -7,7 +7,7 @@
  *
  **/
 
-package com.imatix.openamq.jms;
+package org.openamq.jmsclient;
 
 import javax.jms.Connection;
 import javax.jms.ExceptionListener;
@@ -22,8 +22,8 @@ import javax.jms.JMSException;
 import java.net.*;
 import java.util.*;
 import java.io.*;
-import com.imatix.openamq.*;
-import com.imatix.openamq.frames.*;
+import org.openamq.*;
+import org.openamq.frames.*;
 
 public class JMSConnection implements Connection {
     static int

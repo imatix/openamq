@@ -7,7 +7,7 @@
  *
  **/
 
-package com.imatix.openamq.jms;
+package org.openamq.jmsclient;
 
 import javax.jms.MessageProducer;
 import javax.jms.Session;
@@ -16,8 +16,8 @@ import javax.jms.Message;
 import javax.jms.JMSException;
 
 import java.io.*;
-import com.imatix.openamq.*;
-import com.imatix.openamq.frames.*;
+import org.openamq.*;
+import org.openamq.frames.*;
 
 public class JMSMessageProducer implements MessageProducer {
     JMSSession

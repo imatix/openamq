@@ -13,7 +13,7 @@
 <file name = "OpenAMQJava.jar"                   class = "shared library"   >AMQ Java API</file>
 
 <!-- Java API generated source, interface -->
-<directory name = "com/imatix/openamq" class = "generated">
+<directory name = "org/openamq" class = "generated">
     <file name = "AMQFramingFactory.java"                                   >Glue/utility for framable objects</file>
     <file name = "AMQTransport.java"                                        >Glue/utility for connection commands</file>
     <file name = "AMQException.java"                                        >General exception</file>
@@ -21,7 +21,7 @@
 </directory>
 
 <!-- Java API generated source, framing -->
-<directory name = "com/imatix/openamq/frames"   class = "generated">
+<directory name = "org/openamq/frames"   class = "generated">
     <file name = "AMQConnection.java"                                       >Glue/utility for connection commands</file>
     <file name = "AMQChannel.java"                                          >Glue/utility for channel commands</file>
     <file name = "AMQHandle.java"                                           >Glue/utility for handle commands</file>
@@ -59,8 +59,8 @@
     <build>
         <execute>
         <!-- Compile Java API -->
-        javac com/imatix/openamq/AMQFramingFactory.java
-        jar -c0f OpenAMQJava.jar com/imatix/openamq/*.class com/imatix/openamq/frames/*.class
+        javac org/openamq/AMQFramingFactory.java
+        jar -c0f OpenAMQJava.jar org/openamq/*.class org/openamq/frames/*.class
         <!-- Compile test clients -->
         javac amqpcli_serial.java
         javac amqpcli_transactions.java
@@ -70,8 +70,8 @@
     <clean>
         <execute>
         <!-- Erase .class files, unix -->
-        rm -f com/imatix/openamq/*.class
-        rm -f com/imatix/openamq/frames/*.class
+        rm -f org/openamq/*.class
+        rm -f org/openamq/frames/*.class
         rm -f *.class
         </execute>
     </clean>

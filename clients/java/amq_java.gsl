@@ -81,10 +81,11 @@ error_handling ="
     static void runtimeException(Exception e, String _class, String method, String message) throws RuntimeException {
         $(AMQPTransport:).runtimeException(e, _class, method, message); 
     }"
-imatix_openamq_dir = "com/imatix/openamq"
-imatix_openamq_package = string.replace(imatix_openamq_dir, "/|.")
-imatix_openamq_frames_dir = imatix_openamq_dir + "/frames"
-imatix_openamq_frames_package = string.replace(imatix_openamq_frames_dir, "/|.")
+org_openamq_dir = "org/openamq"
+org_openamq_frames2root = "../../.."
+org_openamq_package = string.replace(org_openamq_dir, "/|.")
+org_openamq_frames_dir = org_openamq_dir + "/frames"
+org_openamq_frames_package = string.replace(org_openamq_frames_dir, "/|.")
 type_type_last = undefined ? 
 type_type = undefined ?
 set_type = undefined ? 
@@ -111,9 +112,9 @@ endfunction
 
 function generate_directories ()
 -   Java API for Imatix's openamq project in here
-    directory.create (imatix_openamq_dir)
+    directory.create (org_openamq_dir)
 -   Framing / Deframing code in here
-    directory.create (imatix_openamq_frames_dir)
+    directory.create (org_openamq_frames_dir)
 endfunction
 
 #  ------------------------------   Helper functions -------------------------
@@ -547,7 +548,7 @@ endfunction
 . scope my.frames
 .-///////////////////////////   F R A M E S   ///////////////////////////////////
 .-  Set the frames output directory
-.   directory.setcwd(imatix_openamq_frames_dir)
+.   directory.setcwd(org_openamq_frames_dir)
 .-  outertype refers to one of connection, channel, handle or message
 .-  Iterate through frames and generate .java files for outertypes (realted types must be together)
 .   for frame
@@ -600,15 +601,15 @@ $(error_handling:)
  *
  **/
  
-package $(imatix_openamq_frames_package:);
+package $(org_openamq_frames_package:);
 
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import $(imatix_openamq_package:).$(AMQPTransport:);
-import $(imatix_openamq_package:).$(AMQPException:);
+import $(org_openamq_package:).$(AMQPTransport:);
+import $(org_openamq_package:).$(AMQPException:);
  
 public class $(class_prefix:)$(my.outertype: Neat) {
     // Constants
@@ -737,11 +738,11 @@ $(error_handling:)
  *
  **/
  
-package $(imatix_openamq_frames_package:);
+package $(org_openamq_frames_package:);
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import $(imatix_openamq_package:).$(AMQPException:);
+import $(org_openamq_package:).$(AMQPException:);
 
 public abstract class $(AMQPFramable:) {
 
@@ -807,10 +808,10 @@ public abstract class $(AMQPFramable:) {
  *
  **/
  
-package $(imatix_openamq_frames_package:);
+package $(org_openamq_frames_package:);
 
 import java.io.DataInputStream;
-import $(imatix_openamq_package:).$(AMQPException:);
+import $(org_openamq_package:).$(AMQPException:);
 
 public abstract class $(AMQPFrame:) extends $(AMQPFramable:) {
 .   for frame
@@ -854,7 +855,7 @@ public abstract class $(AMQPFrame:) extends $(AMQPFramable:) {
  *
  **/
  
-package $(imatix_openamq_frames_package:);
+package $(org_openamq_frames_package:);
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -866,9 +867,9 @@ import java.io.IOException;
 import java.util.Hashtable;
 import java.util.Date;
 import java.util.Enumeration;
-import $(imatix_openamq_frames_package:).$(FrugalByteArrayOutputStream:);
-import $(imatix_openamq_package:).$(AMQPTransport:);
-import $(imatix_openamq_package:).$(AMQPException:);
+import $(org_openamq_frames_package:).$(FrugalByteArrayOutputStream:);
+import $(org_openamq_package:).$(AMQPTransport:);
+import $(org_openamq_package:).$(AMQPException:);
 
 public class $(AMQPFieldTable:) extends Hashtable {
     /**
@@ -1220,12 +1221,12 @@ public class $(AMQPFieldTable:) extends Hashtable {
  *
  **/
  
-package $(imatix_openamq_frames_package:);
+package $(org_openamq_frames_package:);
 
 import java.io.OutputStream;
 import java.io.IOException;
-import $(imatix_openamq_package:).$(AMQPTransport:);
-import $(imatix_openamq_package:).$(AMQPException:);
+import $(org_openamq_package:).$(AMQPTransport:);
+import $(org_openamq_package:).$(AMQPException:);
 
 public class $(FrugalByteArrayOutputStream:) extends OutputStream {
     byte[] bytes;
@@ -1274,8 +1275,8 @@ public class $(FrugalByteArrayOutputStream:) extends OutputStream {
 . close
 .-///////////////////////////   T R A N S P O R T ///////////////////////////////
 .-  Set the transport output directory
-.   directory.setcwd("../../../..")
-.   directory.setcwd(imatix_openamq_dir)
+.   directory.setcwd(org_openamq_frames2root)
+.   directory.setcwd(org_openamq_dir)
 .- Handles low-evel connection issues
 .echo "Generating $(AMQPTransport:).java..."
 . output "$(AMQPTransport:).java"
@@ -1291,7 +1292,7 @@ public class $(FrugalByteArrayOutputStream:) extends OutputStream {
  *
  **/
  
-package $(imatix_openamq_package:);
+package $(org_openamq_package:);
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -1303,9 +1304,9 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
-import $(imatix_openamq_frames_package:).$(AMQPFramable:);
-import $(imatix_openamq_package:).$(AMQPIOException:);
-import $(imatix_openamq_package:).$(AMQPException:);
+import $(org_openamq_frames_package:).$(AMQPFramable:);
+import $(org_openamq_package:).$(AMQPIOException:);
+import $(org_openamq_package:).$(AMQPException:);
 
 public class $(AMQPTransport:) {
     // Constants
@@ -1314,6 +1315,7 @@ public class $(AMQPTransport:) {
     final static String 
         STRING_ENC = "UTF-8";                              /* Prefered string encoding         */
     final static int 
+        WRITE_END = -2,                                    /* Writer thread must stop          */
         WRITE_IDLE = -1,                                   /* Writer thread is idle            */
         WRITE_FLUSH = 0,                                   /* Writer thread flush request      */
         WRITE_BYTES = 1,                                   /* Writer thread write request      */
@@ -1348,17 +1350,18 @@ public class $(AMQPTransport:) {
             public void run() {
                 // Some VMs lower too much the priority of threads spawned from main
                 setPriority(priority);
-                synchronized(outgoing) {
-                    while (outgoing != null) {
-                        // Wait for write command
-                        synchronized(writer) {
-                            while (writeCommand == WRITE_IDLE) {
-                                try {
-                                    writer.notify();
+                while (outgoing != null) {
+                    // Wait for write command
+                    synchronized(writer) {
+                        while (writeCommand == WRITE_IDLE) {
+                            writer.notify();
+                            try {
+                                if (outgoing != null)
                                     writer.wait();
-                                } catch (InterruptedException e) {}
-                            }
+                            } catch (InterruptedException e) {}
                         }
+                    }
+                    if (outgoing != null) {
                         // Perform write command
                         try {
                             writeOs = (writeOs == null) ? outgoing : writeOs;
@@ -1383,7 +1386,7 @@ public class $(AMQPTransport:) {
                             writeCommand = WRITE_IDLE;
                             writer.notify();
                         }
-                    }
+                    }  
                 }
             }
         };
@@ -1890,6 +1893,19 @@ public class $(AMQPTransport:) {
              throw aux;
          }
      }
+     
+     /**
+      *
+      * Stop the writer thread
+      *
+      **/
+     public void stopWriter() {
+         outgoing = null;
+         synchronized(writer) {
+             writeCommand = WRITE_END;
+             writer.notify();
+         }
+     }
     
     // Exception/warning handling
     
@@ -1964,7 +1980,7 @@ public class $(AMQPTransport:) {
  *
  **/
  
-package $(imatix_openamq_package:);
+package $(org_openamq_package:);
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -1974,9 +1990,9 @@ import java.io.FilterInputStream;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import $(imatix_openamq_frames_package:).*;
-import $(imatix_openamq_package:).$(AMQPException:);
-import $(imatix_openamq_package:).$(AMQPIOException:);
+import $(org_openamq_frames_package:).*;
+import $(org_openamq_package:).$(AMQPException:);
+import $(org_openamq_package:).$(AMQPIOException:);
 
 public class $(AMQPFramingFactory:) extends $(AMQPTransport:) {
     // Variabes
@@ -2688,7 +2704,7 @@ public class $(AMQPFramingFactory:) extends $(AMQPTransport:) {
  *
  **/
  
-package $(imatix_openamq_package);
+package $(org_openamq_package);
  
 .if (defined (my.current_import))
 import $(my.current_import:)

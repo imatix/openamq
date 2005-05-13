@@ -13,8 +13,8 @@ import java.net.*;
 import java.util.*;
 import java.io.*;
 import java.security.*;
-import com.imatix.openamq.*;
-import com.imatix.openamq.frames.*;
+import org.openamq.*;
+import org.openamq.frames.*;
 
 public class amqpcli_transactions extends amqpcli_serial
 {

@@ -2,8 +2,8 @@ import java.net.*;
 import java.io.*;
 import java.awt.*;
 import java.awt.event.*;
-import com.imatix.openamq.*;
-import com.imatix.openamq.frames.*;
+import org.openamq.*;
+import org.openamq.frames.*;
 
 public class EchoClient extends amqpcli_serial implements Runnable {
 

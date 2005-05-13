@@ -7,7 +7,7 @@
  *
  **/
 
-package com.imatix.openamq.jms;
+package org.openamq.jmsclient;
 
 import java.util.Enumeration;
 import java.util.Properties;
@@ -18,8 +18,8 @@ import javax.jms.DeliveryMode;
 
 import java.net.*;
 import java.io.*;
-import com.imatix.openamq.*;
-import com.imatix.openamq.frames.*;
+import org.openamq.*;
+import org.openamq.frames.*;
 
 public class JMSMessage implements Message {
 

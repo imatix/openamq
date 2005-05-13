@@ -7,7 +7,7 @@
  *
  **/
 
-package com.imatix.openamq.jms;
+package org.openamq.jmsclient;
 
 import java.io.Serializable;
 import javax.jms.Session;
@@ -31,8 +31,8 @@ import javax.jms.JMSException;
 
 import java.io.*;
 import java.util.*;
-import com.imatix.openamq.*;
-import com.imatix.openamq.frames.*;
+import org.openamq.*;
+import org.openamq.frames.*;
 
 public class JMSSession implements Session, Runnable {
 

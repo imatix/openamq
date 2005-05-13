@@ -7,12 +7,11 @@
  *
  **/
 
-package com.imatix.openamq.jms;
+package org.openamq.jmsclient;
 
 import java.io.*;
 import javax.jms.TextMessage;
 import javax.jms.JMSException;
-
 
 public class JMSTextMessage extends JMSMessage implements TextMessage {
     String

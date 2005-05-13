@@ -7,11 +7,10 @@
  *
  **/
 
-package com.imatix.openamq.jms;
+package org.openamq.jmsclient;
 
 import javax.jms.Queue;
 import javax.jms.JMSException;
-
 
 public class JMSQueue implements Queue { 
     String 
