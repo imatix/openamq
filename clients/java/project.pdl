@@ -38,6 +38,7 @@
 <file name = "amqpcli_serial*.class"             class = "public command"   >Java pattern testing client</file>
 <file name = "amqpcli_transactions*.class"       class = "public command"   >Java transactions testing client</file>
 <file name = "EchoClient*.class"                 class = "public command"   >Java to C component-chat demonstration client</file>
+<file name = "JMSHelloWorld*.class"              class = "public command"   >JMS Hello World client</file>
 
 <!-- Java framing API test clients source -->
 <file name = "amqpcli_serial.java.l"             class = "private resource" >Simple FSM for connecting/closing in amqpcli_serial.java</file>
@@ -66,11 +67,12 @@
             # we have JDK
             <!-- Compile Java API -->
             javac org/openamq/AMQFramingFactory.java
-            jar -c0f OpenAMQJava.jar org/openamq/*.class org/openamq/frames/*.class
+            jar -c0f OpenAMQJava.jar org/openamq/*.class org/openamq/frames/*.class org/openamq/jmsclient/*.class
             <!-- Compile test clients -->
             javac amqpcli_serial.java
             javac amqpcli_transactions.java
             javac EchoClient.java
+            javac -cp jms.jar:. JMSHelloWorld.java
         else
             echo ""
             echo "Warning: Cannot find the JDK, not building java modules."

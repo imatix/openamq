@@ -112,7 +112,6 @@ public class JMSHelloWorld {
         }
     
         messages = Integer.parseInt(arguments.getProperty("opt_messages", "1000"));
-        verbose = Integer.parseInt(arguments.getProperty("opt_trace", "0")) > 0;
     
         test(destName, messages);
     }
@@ -148,8 +147,8 @@ public class JMSHelloWorld {
                         "It would be quite difficult for the JMS API to support all of these message models.";
 
                 message.setText(text);
-                //if (verbose)
-                    System.out.println("I: Sending text message #" + (i + 1) + " to server.");
+                if (verbose && ((i + 1) % 100 == 0))
+                    System.out.println("Sending text message " + (i + 1) + " to server...");
                 producer.send(message);
             }
 
