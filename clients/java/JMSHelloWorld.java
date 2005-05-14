@@ -14,7 +14,7 @@ import org.openamq.jmsclient.*;
 
 public class JMSHelloWorld {
     static boolean
-        verbose = false;                /* Verbose mode                      */
+        verbose = true;                 /* Verbose mode                      */
 
     public static void main(String[] args) {
         final String
@@ -79,7 +79,7 @@ public class JMSHelloWorld {
     
                     /*  These switches have an immediate effect              */
                     case 'q':
-                        verbose = true;
+                        verbose = false;
                         break;
                     case 'v':
                         System.out.println(CLIENT_NAME_PRINT);
@@ -148,7 +148,7 @@ public class JMSHelloWorld {
                         "It would be quite difficult for the JMS API to support all of these message models.";
 
                 message.setText(text);
-                if (verbose)
+                //if (verbose)
                     System.out.println("I: Sending text message #" + (i + 1) + " to server.");
                 producer.send(message);
             }

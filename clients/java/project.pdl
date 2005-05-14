@@ -12,6 +12,9 @@
 <!-- Java API -->
 <file name = "OpenAMQJava.jar"                   class = "shared library"   >AMQ Java API</file>
 
+<!-- javax.jms interfaces -->
+<file name = "jms.jar"                           class = "public binary"    >Compiled JMS interfaces (javax)</file>
+
 <!-- Java API generated source, interface -->
 <directory name = "org/openamq"                  class = "generated">
     <file name = "AMQFramingFactory.java"                                   >Glue/utility for framable objects</file>
@@ -59,7 +62,7 @@
     </generate>
     <build>
         <execute>
-        if test "$(which javac)" != "" -a "$(which jar)" != ""; then
+        if test "\$(which javac)" != "" -a "\$(which jar)" != ""; then
             # we have JDK
             <!-- Compile Java API -->
             javac org/openamq/AMQFramingFactory.java
