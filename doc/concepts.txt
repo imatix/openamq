@@ -1352,7 +1352,7 @@ Connection:
     A network connection, e.g. a TCP/IP socket connection.
 Client:
     The initiator of an AMQP/Fast connection or channel.  AMQP/Fast is
-    not symetrical.  Clients produce and consume messages while servers
+    not symmetrical.  Clients produce and consume messages while servers
     queues and route messages.
 Server:
     The party that accepts client connections and implements the
@@ -2014,54 +2014,115 @@ Protocol Classes and Methods
 Goals and Principles
 ....................
 
-The AMQP/Fast protocol is pseudo-symetrical with client-initiated
-virtual connections.  While certain actions
-such as closing a channel work symetrically in either direction, the
-other actions are specifically client-to-server or server-to-client.
+AMQP/Fast allows two peers to connect and exchange data.  There are
+several types of data and several ways of exchanging this data.  The
+combinations rapidly get complex.  Worse, it is not always clear
+which replies depend on which requests, since the exchange of data
+is often asynchronous, pipelined, and generally hard to follow.
 
-To keep the distinction clear, we use the metaphor of Classes and
-Methods.  That is:
+Rather than attempt to formalise the exact flow of data from client
+to server and back, we use an metaphor taken from the software world,
+namely the object-oriented metaphor of "classes" and "methods".
 
-- Each peer supports a set of classes.
-- Each class covers a well-defined area of functionality.
-- Each class provides a set of "methods" that allow the other peer to
-  do useful work.  Methods are the AMQP/Fast equivalent of commands.
+We build this as follows:
 
-We can thus look at the protocol with a conventional component-based or
-object-oriented viewpoint: the classes accept methods from the outside
-world (i.e. the other peer), do some work, and may return some results
-(either immediately or at some later stage). This is more flexible, and
-easier to understand than the alternative, where we describe the
-commands that each peer may send.
+1. Each peer supports a set of classes.  These classes have names
+   and cover specific areas of functionality.  A peer can support
+   all the AMQP/Fast classes, or a subset of them.  Since the
+   operational functionality of the protocol depends on the classes,
+   the operational functionality of a particular implementation is
+   clear to see.
 
-Classes and methods are given standard names but internally they are
-numbered.  These numbers are defined as part of the AMQP/Fast standard.
+2. Each class supports a set of methods.  These methods have names
+   and provide specific functionalities.  A peer can support all
+   the AMQP/Fast methods in a particular class, or a subset of them.
+   As with classes, this unambiguously defines the operational
+   functionality of an AMQP/Fast peer.
+
+3. The methods are either synchronous or asynchronous.  A synchronous
+   method replies immediately.  An asynchronous method replies at some
+   later time and may send multiple replies.  A method "replies" by
+   invoking the appropriate method in the requesting peer.  A request
+   and reply always involves two methods: one to implement the request
+   and one to implement the reply.
+
+4. Each method is either a client method, server method, or a general
+   method (provided by both client and server).  A particular method
+   in a particular class always has an identical behaviour whether it
+   is in an AMQP/Fast "client" or "server".
+
+5. An AMQP/Fast peer can thus combine the roles of client and server
+   in various degrees by implementing the necessary classes and methods.
+   At any point the operational functionality of the AMQP/Fast peer
+   can be unambiguously defined by the methods that it supports.
 
 Client and Server Roles
-.......................
+........................
 
-While we generally split the AMQP/Fast peers into "client" and "server",
-the division of roles is only essential during negotiation. After that,
-it is possible, and in some cases useful, to allow the peers to switch
-client and server roles.
+The AMQP/Fast protocol is pseudo-symmetrical with client-initiated
+connections.  We can visualise the protocol as governing two levels
+of connection - network connections (sockets) and virtual connections
+(channels):
 
-- channel open defines client & server
+    +-----------+-----------+-----------+-----------+
+    |           |           |           |           |
+    |  channel  |  channel  |  channel  |  channel  |
+    |           |           |           |           |
+    +-----------------------------------------------+
+    |                                               |
+    |                    socket                     |
+    |                                               |
+    +-----------------------------------------------+
 
+Each connection (socket and channel) has a clear client role - the
+peer that initiated the connection, and a clear server role - the
+peer that accepted the connection.  For both network and virtual
+connections the general protocol model is the same:
 
-Synchronous vs. Asynchronous Methods
-....................................
+1. The client requests the server to open connection.
+2. The server responds and the peers negotiate the connection.
+3. The client and the server exchange information.
+4. Either peer requests to close the connection.
+5. The other peer responds and they negotiate the shut-down.
 
-- each method is
-    synchronous with specific reply, or
-    asynchronous with optional confirmation
-- some methods provoke long-term return methods
+AMQP/Fast forsees two main architectures that use this model:
 
+1. Client-server, in which the same peer acts as client in all
+   connections.  This is the "usual" architecture.
+2. Peer-to-peer, in which one peer acts as client in the network
+   connection but the peers can take either role in the virtual
+   connection.
+
+The peer-to-peer architecture requires that both peers can act as
+both client and server.  An AMQP/Fast implementation MUST support
+either the client or server role.  AMQP/Fast implementations MAY
+support both roles.
+
+Class and Method Numbers
+........................
+
+Classes and methods are given standard names but internally they are
+numbered.  AMQP/Fast implementations MUST use these and only these
+class numbers:
+
+Class:  Name:           Functionality:
+1:      Connection:     Open and work with a network connection.
+2:      Channel:        Open and work with a virtual connection.
+3:      Access:         Access control to destinations.
+4:      Destination:    Work with queues and topics.
+5:      Subscription:   Work with subscriptions.
+6:      Domain:         Work with content domains.
+7:      JMS:            Work with JMS message content.
+8:      File:           Work with file content.
+9:      Stream:         Work with streamed content.
+
+Methods are numbered locally per class.
 
 The Connection Class
 ....................
 
 Server Methods
-    
+
 
 Client Methods
 
