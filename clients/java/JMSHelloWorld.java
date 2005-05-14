@@ -156,7 +156,7 @@ public class JMSHelloWorld {
             /* Send an end-of-queue message                                  */
             producer.send(session.createMessage());
         } catch (JMSException e) {
-            System.out.println("JMSHelloWorld: " + "test: " + e.toString());
+            e.printStackTrace();
             System.exit(1);
         } finally {
             if (connection != null) {

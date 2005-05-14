@@ -34,6 +34,10 @@ to:
 Running the test clients
 ========================
 
+1. JMS Hello World client
+
+    java -cp OpenAMQJava.jar:jms.jar:. JMSHelloWorld
+
 1. Simple pattern checking serial client
 
     java -cp OpenAMQJava.jar:. amqpcli_serial
@@ -47,6 +51,3 @@ Running the test clients
 
     In separate windows, run the openamq/clients/stdc/chat_in and chat_out
     clients.
-
-
-
