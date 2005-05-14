@@ -2008,14 +2008,15 @@ The sender MUST NOT send intervening frames between the meta frame and
 the extended frame. The meta frame channel number and size MUST be zero.
 After a meta frame all frame types are valid except a meta frame.
 
-Classes and Methods
--------------------
+Protocol Classes and Methods
+----------------------------
 
 Goals and Principles
 ....................
 
-The AMQP/Fast protocol is pseudo-symetrical.  That is, certain actions
-(such as closing a channel) appear to work in either direction while
+The AMQP/Fast protocol is pseudo-symetrical with client-initiated
+virtual connections.  While certain actions
+such as closing a channel work symetrically in either direction, the
 other actions are specifically client-to-server or server-to-client.
 
 To keep the distinction clear, we use the metaphor of Classes and
