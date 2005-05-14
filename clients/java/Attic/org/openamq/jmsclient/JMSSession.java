@@ -66,7 +66,7 @@ public class JMSSession implements Session, Runnable {
     AMQChannel.Open
         channelOpen;                        /* Channel open command              */
 
-    public JMSSession(JMSConnection connection, boolean transacted, int acknowledgeMode) {
+    public JMSSession(JMSConnection connection, boolean transacted, int acknowledgeMode) throws JMSException {
         try {
             this.connection = connection;
             amqFraming = connection.amqFraming;
@@ -90,9 +90,9 @@ public class JMSSession implements Session, Runnable {
             session = new Thread(this);
             session.start();
         } catch (IOException e) {
-            System.err.println("JMSSession: " + "JMSSession: " + e.getMessage());
+            throw new JMSException("JMSSession: " + "JMSSession: " + e.getMessage());
         } catch (AMQException e) {
-            System.err.println("JMSSession: " + "JMSSession: " + e.getMessage());
+            throw new JMSException("JMSSession: " + "JMSSession: " + e.getMessage());
         }
     }
     

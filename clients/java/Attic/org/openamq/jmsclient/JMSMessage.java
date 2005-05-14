@@ -38,7 +38,7 @@ public class JMSMessage implements Message {
     InputStream
         body;                               /* Message body                      */
 
-    public JMSMessage(JMSSession session) {
+    public JMSMessage(JMSSession session) throws JMSException{
         this.session = session;
         body = null;
 
@@ -53,7 +53,7 @@ public class JMSMessage implements Message {
             head.identifier = "";
             head.headers = null;
         } catch (AMQException e) {
-            System.err.println("JMSMessage: " + "JMSMessage: " + e.getMessage());
+            throw new JMSException("JMSMessage: " + "JMSMessage: " + e.getMessage());
         }
     }
 

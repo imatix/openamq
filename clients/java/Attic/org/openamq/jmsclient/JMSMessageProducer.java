@@ -72,11 +72,11 @@ public class JMSMessageProducer implements MessageProducer {
             handle.streaming = false;
             handle.destName = "";
         } catch (ClassCastException e) {
-            System.err.println("JMSMessageProducer: " + "JMSMessageProducer: " + "unexpected frame from server");
+            throw new JMSException("JMSMessageProducer: " + "JMSMessageProducer: " + "unexpected frame from server");
         } catch (IOException e) {
-            System.err.println("JMSMessageProducer: " + "JMSMessageProducer: " + e.getMessage());
+            throw new JMSException("JMSMessageProducer: " + "JMSMessageProducer: " + e.getMessage());
         } catch (AMQException e) {
-            System.err.println("JMSMessageProducer: " + "JMSMessageProducer: " + e.getMessage());
+            throw new JMSException("JMSMessageProducer: " + "JMSMessageProducer: " + e.getMessage());
         }
     }
 

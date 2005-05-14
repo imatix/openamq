@@ -49,7 +49,7 @@ public class JMSConnection implements Connection {
     AMQConnection.Close
         clientClose;                        /* Default close parameters          */
 
-    public JMSConnection(String server, int port) {
+    public JMSConnection(String server, int port) throws JMSException {
 
         try
         {
@@ -88,17 +88,17 @@ public class JMSConnection implements Connection {
             clientOpen.virtualPath = "/";
             amqFraming.sendFrame(clientOpen);
         } catch (UnknownHostException e) {
-            System.err.println("JMSConnection: " + "JMSConnection: " + "unknown host");
+            throw new JMSException("JMSConnection: " + "JMSConnection: " + "unknown host");
         } catch (SocketTimeoutException e) {
-            System.err.println("JMSConnection: " + "JMSConnection: " + "SocketTimeoutException");
+            throw new JMSException("JMSConnection: " + "JMSConnection: " + "SocketTimeoutException");
         } catch (IOException e) {
-            System.out.println("JMSConnection: " + "JMSConnection: " + e.getMessage());
+            throw new JMSException("JMSConnection: " + "JMSConnection: " + e.getMessage());
         } catch (AMQException e) {
-            System.err.println("JMSConnection: " + "JMSConnection: " + e.getMessage());
+            throw new JMSException("JMSConnection: " + "JMSConnection: " + e.getMessage());
         }
     }
 
-    void authenticate () {
+    void authenticate() throws JMSException {
         try {
             AMQConnection.Challenge         /* Challenge from server             */
                 challenge = (AMQConnection.Challenge)amqFraming.receiveFrame();
@@ -112,17 +112,17 @@ public class JMSConnection implements Connection {
             response.responses = table.storeToBucket();
             amqFraming.sendFrame(response);
         } catch (ClassCastException e) {
-            System.err.println("JMSConnection: " + "authenticate: " + "unexpected frame from server");
+            throw new JMSException("JMSConnection: " + "authenticate: " + "unexpected frame from server");
         } catch (SocketTimeoutException e) {
-            System.err.println("JMSConnection: " + "authenticate: " + "SocketTimeoutException");
+            throw new JMSException("JMSConnection: " + "authenticate: " + "SocketTimeoutException");
         } catch (IOException e) {
-            System.err.println("JMSConnection: " + "authenticate: " + e.getMessage());
+            throw new JMSException("JMSConnection: " + "authenticate: " + e.getMessage());
         } catch (AMQException e) {
-            System.err.println("JMSConnection: " + "authenticate: " + e.getMessage());
+            throw new JMSException("JMSConnection: " + "authenticate: " + e.getMessage());
         }
     }
 
-    void tune() {
+    void tune() throws JMSException {
         try {
             AMQConnection.Tune              /* Tune parameters from server       */
                 tune_server = null;
@@ -136,13 +136,13 @@ public class JMSConnection implements Connection {
             amqFraming.sendFrame(clientTune);
             amqFraming.setTuneParameters(clientTune);
         } catch (ClassCastException e) {
-            System.err.println("JMSConnection: " + "tune: " + "unexpected frame from server");
+            throw new JMSException("JMSConnection: " + "tune: " + "unexpected frame from server");
         } catch (SocketTimeoutException e) {
-            System.err.println("JMSConnection: " + "tune: " + "SocketTimeoutException");
+            throw new JMSException("JMSConnection: " + "tune: " + "SocketTimeoutException");
         } catch (IOException e) {
-            System.err.println("JMSConnection: " + "tune: " + e.getMessage());
+            throw new JMSException("JMSConnection: " + "tune: " + e.getMessage());
         } catch (AMQException e) {
-            System.err.println("JMSConnection: " + "tune: " + e.getMessage());
+            throw new JMSException("JMSConnection: " + "tune: " + e.getMessage());
         }
     }
 
@@ -211,11 +211,11 @@ public class JMSConnection implements Connection {
                 amqFraming.stopWriter();
             }
         } catch (ClassCastException e) {
-            System.err.println("JMSConnection: " + "close: " + "unexpected frame from server");
+            throw new JMSException("JMSConnection: " + "close: " + "unexpected frame from server");
         } catch (IOException e) {
-            System.err.println("JMSConnection: " + "close: " + e.getMessage());
+            throw new JMSException("JMSConnection: " + "close: " + e.getMessage());
         } catch (AMQException e) {
-            System.err.println("JMSConnection: " + "close: " + e.getMessage());
+            throw new JMSException("JMSConnection: " + "close: " + e.getMessage());
         }
     }
     
