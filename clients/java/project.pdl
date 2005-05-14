@@ -13,7 +13,7 @@
 <file name = "OpenAMQJava.jar"                   class = "shared library"   >AMQ Java API</file>
 
 <!-- Java API generated source, interface -->
-<directory name = "org/openamq" class = "generated">
+<directory name = "org/openamq"                  class = "generated">
     <file name = "AMQFramingFactory.java"                                   >Glue/utility for framable objects</file>
     <file name = "AMQTransport.java"                                        >Glue/utility for connection commands</file>
     <file name = "AMQException.java"                                        >General exception</file>
@@ -21,7 +21,7 @@
 </directory>
 
 <!-- Java API generated source, framing -->
-<directory name = "org/openamq/frames"   class = "generated">
+<directory name = "org/openamq/frames"           class = "generated">
     <file name = "AMQConnection.java"                                       >Glue/utility for connection commands</file>
     <file name = "AMQChannel.java"                                          >Glue/utility for channel commands</file>
     <file name = "AMQHandle.java"                                           >Glue/utility for handle commands</file>
@@ -42,6 +42,7 @@
 <file name = "amqpcli_serial.java"               class = "private resource" >Java pattern testing client</file>
 <file name = "amqpcli_transactions.java"         class = "private resource" >Java transactions testing client</file>
 <file name = "EchoClient.java"                   class = "private resource" >Java to C component-chat demonstration client</file>
+<file name = "JMSHelloWorld.java"                class = "private resource" >JMS Hello World client</file>
 <file name = "amq_java.gsl"                      class = "private resource" >Java framing API generator</file>
 
 <!-- Documentation -->
@@ -58,13 +59,20 @@
     </generate>
     <build>
         <execute>
-        <!-- Compile Java API -->
-        javac org/openamq/AMQFramingFactory.java
-        jar -c0f OpenAMQJava.jar org/openamq/*.class org/openamq/frames/*.class
-        <!-- Compile test clients -->
-        javac amqpcli_serial.java
-        javac amqpcli_transactions.java
-        javac EchoClient.java
+        if test "$(which javac)" != "" -a "$(which jar)" != ""; then
+            # we have JDK
+            <!-- Compile Java API -->
+            javac org/openamq/AMQFramingFactory.java
+            jar -c0f OpenAMQJava.jar org/openamq/*.class org/openamq/frames/*.class
+            <!-- Compile test clients -->
+            javac amqpcli_serial.java
+            javac amqpcli_transactions.java
+            javac EchoClient.java
+        else
+            echo ""
+            echo "Warning: Cannot find the JDK, not building java modules."
+        fi
+        
         </execute>
     </build>
     <clean>
