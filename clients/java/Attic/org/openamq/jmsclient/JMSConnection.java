@@ -204,10 +204,12 @@ public class JMSConnection implements Connection {
         }
 
         try {
-            amqFraming.sendFrame(clientClose);
-            clientClose = (AMQConnection.Close)amqFraming.receiveFrame();
-
-            amqFraming.stopWriter();
+            if (amqFraming != null) {
+                amqFraming.sendFrame(clientClose);
+                clientClose = (AMQConnection.Close)amqFraming.receiveFrame();
+    
+                amqFraming.stopWriter();
+            }
         } catch (ClassCastException e) {
             System.err.println("JMSConnection: " + "close: " + "unexpected frame from server");
         } catch (IOException e) {
