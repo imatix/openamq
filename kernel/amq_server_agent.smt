@@ -746,8 +746,9 @@ static int
         amq_global_reset_error ();
         switch (tcb->frame->type) {
             case FRAME_TYPE_HANDLE_CONSUME:
-                amq_handle_consume (tcb->handle, &HANDLE_CONSUME);
+                /*  Reply _before_ any confirmations                         */
                 handle_reply_if_needed (thread, HANDLE_CONSUME.confirm_tag);
+                amq_handle_consume (tcb->handle, &HANDLE_CONSUME);
                 break;
             case FRAME_TYPE_HANDLE_CANCEL:
                 amq_handle_cancel (tcb->handle, &HANDLE_CANCEL);
