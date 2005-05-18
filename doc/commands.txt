@@ -1,0 +1,138 @@
+<class name = "connection">
+
+<method name = "challenge" >
+    <argument name = "version"    type = "short"   >Negotiated protocol version</argument>
+    <argument name = "mechanisms" type = "tinystr" >Available security mechanisms</argument>
+    <argument name = "challenges" type = "table"   >Challenge arguments</argument>
+</method>
+
+<method name = "response" >
+    <argument type = "shortstr" name = "mechanism"    >Selected security mechanism</argument>
+    <argument type = "table"    name = "responses"    >Response arguments</argument>
+</method>
+
+<method name = "tune" >
+    <argument type = "table"    name = "options"      >Tuning options</argument>
+    <argument type = "table"    name = "dictionary"   >Client-supplied dictionary</argument>
+</method>
+
+<method name = "retune" >
+    <argument type = "table"    name = "options"      >Tuning options</argument>
+    <argument type = "table"    name = "dictionary"   >Client-supplied dictionary</argument>
+</method>
+
+<method name = "open" >
+        <argument type = "shortint" name = "confirm tag"  >Confirmation tag</argument>
+        <argument type = "shortstr" name = "virtual path" >Virtual server path</argument>
+        <argument type = "shortstr" name = "client name"  >Client identifier</argument>
+        <argument type = "table"    name = "options"      >Connection options</argument>
+</method>
+
+<method name = "ready" >
+</method>
+
+
+
+CONNECTION
+    OPEN
+        
+    TUNE            synch
+        - which content domains supported
+        - max. channels
+        window limit, octets
+        
+
+TEST
+    RESULT
+        - string
+    INTEGERS
+        - octet, short, long, longlong integers
+    STRINGS
+        - tiny, short, long string: calculate hash
+    TABLES
+        - table, argument, get value of
+    CONTENT
+        - content, hash of body
+        
+CHANNEL
+    OPEN
+        window limit, octets, transaction type
+    SYNCH
+        class, method, synchtag
+    REPORT
+        class, method, synchtag, reply code, reply text
+    CLOSE
+        class, method, synchtag, reply code, reply text
+
+ACCESS
+    REQUEST
+        path, mode, queue/topic
+    GRANT
+        reply code, reply text
+
+DESTINATION
+    CREATE
+        name?, queue/topic, private, reuse, template, temporary, domain
+    READY
+        name, size
+
+SUBSCRIPTION
+    CREATE
+        name?, private, reuse, template, temporary
+        topic name pattern
+    READY
+        name, size
+
+JMS
+    CONSUME
+        prefetch octets
+        prefetch messages
+    BROWSE
+        deliver             y/n
+    NOTIFY
+        browse-token        tiny-string
+        delivered           y/n             
+        redelivered         y/n           
+    
+FILE
+    CONSUME
+        prefetch octets
+        prefetch messages
+    
+STREAM
+    CONSUME
+        prefetch octets
+        prefetch messages
+        rate
+        frame size
+    
+
+
+
+-- message content templating
+    - delivery mode
+    - priority
+    - destination
+    - arguments
+    -> specified by name, nbr?
+    
+
+AMQP/Fast topic names form a hierarchy of names delimited by dots, e.g.
+
+    a
+    a.b.c
+    a.b.c.d
+
+Pattern matching on this hierarchy uses the special characters '*' and
+'#', which match one and any number of topic name parts respectively.
+
+- 
+xxx define topic patterns
+xxx wildcards within partial names?
+xxx number of matches & topics to support?
+
+//TODO: define the formal class/method specification language in
+an AMQ RFC.
+//TODO: reorganise the AMQ RFC directory to separate working drafts
+from RFCs, rename all unused RFCs as working drafts.
+
