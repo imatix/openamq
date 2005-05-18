@@ -1,46 +1,16 @@
-<class name = "connection">
-
-<method name = "challenge" >
-    <argument name = "version"    type = "short"   >Negotiated protocol version</argument>
-    <argument name = "mechanisms" type = "tinystr" >Available security mechanisms</argument>
-    <argument name = "challenges" type = "table"   >Challenge arguments</argument>
-</method>
-
-<method name = "response" >
-    <argument type = "shortstr" name = "mechanism"    >Selected security mechanism</argument>
-    <argument type = "table"    name = "responses"    >Response arguments</argument>
-</method>
-
-<method name = "tune" >
-    <argument type = "table"    name = "options"      >Tuning options</argument>
-    <argument type = "table"    name = "dictionary"   >Client-supplied dictionary</argument>
-</method>
-
-<method name = "retune" >
-    <argument type = "table"    name = "options"      >Tuning options</argument>
-    <argument type = "table"    name = "dictionary"   >Client-supplied dictionary</argument>
-</method>
-
-<method name = "open" >
-        <argument type = "shortint" name = "confirm tag"  >Confirmation tag</argument>
-        <argument type = "shortstr" name = "virtual path" >Virtual server path</argument>
-        <argument type = "shortstr" name = "client name"  >Client identifier</argument>
-        <argument type = "table"    name = "options"      >Connection options</argument>
-</method>
-
-<method name = "ready" >
-</method>
-
+method
+    - generate lookup table for class - method
+        - 
 
 
 CONNECTION
     OPEN
-        
+
     TUNE            synch
         - which content domains supported
         - max. channels
         window limit, octets
-        
+
 
 TEST
     RESULT
@@ -53,7 +23,7 @@ TEST
         - table, argument, get value of
     CONTENT
         - content, hash of body
-        
+
 CHANNEL
     OPEN
         window limit, octets, transaction type

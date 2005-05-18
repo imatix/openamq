@@ -1,0 +1,161 @@
+<?xml version="1.0"?>
+
+<xnf
+    name    = "asl"
+    script  = "xnf_gen.gsl"
+    version = "0.1"
+    >
+ASL is the iMatix Abstract Syntax Language.  ASL is used to define
+protocol methods and grammars, principally for the AMQP/Fast protocol.
+
+<inherit xnf = "xnf_base" />
+
+<produce filename = "asl_gen.gsl"     type = "wrap"    />
+<produce filename = "asl_preproc.gsl" type = "preproc" />
+<produce filename = "asl_inherit.gsl" type = "inherit" />
+<produce filename = "asl_parse.gsl"   type = "parse"   />
+
+<rule phase = "wrap" when = "after">
+if global.errno = 0
+    [gsl].include ("asl_$(target).gsl")
+endif
+</rule>
+
+<entity name = "asl" tag = "protocol" template = "top">
+    Defines the protocol.  One MDF file defines exactly one protocol
+    which may consist of many classes, each with appropriate methods.
+    <allow entity = "include"   />
+    <allow entity = "class"     />
+    <attr name = "name" required = "1" short = "class name">
+    Specifies the name of the class.  This name will be used to prefix all
+    function names and will also be used as the filename for generated code.
+    </attr>
+    <attr name = "comment" short = "Short description">
+    An optional one-line comment that describes the class.
+    </attr>
+    <attr name = "version" required = "1" short = "Version number">
+    Specifies the version of the class. This text can take any format but we
+    recommend this standard format: '2.4b1' which is major version 2, minor version
+    4, release b, update 1.  This string is stamped into the project sources.
+    </attr>
+    <attr name = "copyright" default = "Copyright(c) iMatix Corporation">
+    This specifies the copyright string for the class. This string is stamped
+    into the project sources. The copyright can be inherited from a parent
+    class.
+    </attr>
+</entity>
+
+<entity name = "include" >
+    The 'include' element permits textual-inclusion from another file.
+    <attr name = "filename" required = "1" >
+    The name of the XML-format file to be included in place of the
+    'include' element.
+    </attr>
+    <rule when = "attrs" phase = "preproc">
+    if !defined (asl.load_file (filename))
+        preproc_error ("Error loading include file: $(filename): $(xml.error?)")
+    endif
+    </rule>
+</entity>
+
+<entity name = "class" tag = "class">
+    The class tag defines the class.
+    <allow entity = "doc"       inherit = "none" />
+    <allow entity = "method"    />
+    <allow entity = "todo"      />
+
+    <attr name = "name" required = "1" short = "class name">
+    Specifies the name of the class.  This name will be used to prefix all
+    function names and will also be used as the filename for generated code.
+    </attr>
+    <attr name = "comment" short = "Short description">
+    An optional one-line comment that describes the class.
+    </attr>
+</entity>
+
+<entity name = "doc" tag = "doc" cdata = "1">
+    Documentation for the current element: this is included in the
+    generated documentation files in a suitable form.  Should be in
+    iMatix gurudoc format.
+
+    <attr name = "domain" short = "documentation domain">
+    Allows documentation of different types to be included in the ASL
+    definitions.
+    </attr>
+</entity>
+
+<entity name = "grammar" tag = "grammar" cdata = "1">
+    A grammar for the current element: this is included in the
+    generated documentation in a suitable form.
+</entity>
+
+<entity name = "method" tag = "method" cdata = "1">
+    Methods provide functionality for the component class.  All
+    methods inherit basic arguments from the default method.
+    <allow entity = "doc"     />
+    <allow entity = "chassis"/>
+    <allow entity = "argument"/>
+
+    <attr name = "name" required = "1" short = "method name">
+    The name of the method, used in the API.
+    </attr>
+    <attr name = "template" default = "default">
+    The method template.
+    </attr>
+    <attr name = "synchronous" default = "0">
+    Defines a synchronous method, for the purposes of documentation. We
+    do not expect to generate parsers for these methods at the current
+    level of technology. Synchronous methods can be chained by using
+    the 'expect' attribute.
+    </attr>
+    <attr name = "expect">
+    For a synchronous request, defines the expected reply method. If
+    this is not defined, a synchronous method is assumed to be a reply.
+    </attr>
+</entity>
+
+<entity name = "chassis" tag = "chassis" cdata = "1">
+    Defines a chassis, which can be 'server' or 'client'.  This is the
+    role of the peer that must or may accept and handle the method.
+    <attr name = "name" required = "1" short = "name of argument">
+    The name of the argument.
+    </attr>
+    <attr name = "implement" short = "implementation rule">
+        <restrict value = "MUST"  >MUST be implemented</restrict>
+        <restrict value = "SHOULD">SHOULD be implemented</restrict>
+        <restrict value = "MAY"   >MAY be implemented</restrict>
+    </attr>
+</entity>
+
+<entity name = "argument" tag = "argument" cdata = "1">
+    Defines one argument passed to the method. The body of this entity is
+    used to document the argument.
+
+    <attr name = "name" required = "1" short = "name of argument">
+    The name of the argument.
+    </attr>
+    <attr name = "type" default = "" short = "type of argument">
+    The type of the argument, which is a native type name.
+    </attr>
+    <attr name = "export" default = "default" >
+    Specifies how this item may be inherited.
+        <restrict value = "none" >may not be inherited</restrict>
+        <restrict value = "default">inherited in the default manner</restrict>
+        <restrict value = "before" >inherited before existing items</restrict>
+        <restrict value = "after" >inherited after existing items</restrict>
+    </attr>
+    <allow entity = "doc"     />
+</entity>
+
+<entity name = "todo" tag = "todo" cdata = "1">
+    Defines a change request, bug or other issue that needs changing in
+    the iCL class.  Todo items are formalised so that they can be
+    extracted and processed mechanically.
+
+    <attr name = "owner" short = "issue owner">
+    The developer who registered the issue and will deal with it, specified
+    as an email address.
+    </attr>
+</entity>
+
+</xnf>

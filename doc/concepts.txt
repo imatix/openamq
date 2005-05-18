@@ -1515,9 +1515,8 @@ These limitations are formally part of the AMQP/Fast specifications:
 
 - Number of channels per connection, normal frames: 255.
 - Number of channels per connection, extended frames: 64K-1.
-- Size of a tiny string: 0 to 255 octets.
-- Size of a short string: 0 to 64K-1 octets.
-- Size of a long string: 0 to 4G-1 octets.
+- Size of a short string: 0 to 255 octets.
+- Size of a long string: 0 to 64K-1 octets.
 - Size of a normal frame: 0 to 64K-1 octets.
 - Size of an extended frame: 0 to 2e64-1 octets.
 - Number of possible content domains: 255.
@@ -1542,27 +1541,24 @@ Formal Grammar for AMQP/Fast Fields
 This formal grammar defines the AMQP/Fast data types:
 
     amqp-field          = BIT
-                        / tiny-integer
+                        / OCTET
                         / short-integer
                         / long-integer
                         / long-long-integer
-                        / tiny-string
                         / short-string
                         / long-string
                         / field-table
-    tiny-integer        = 1*OCTET
     short-integer       = 2*OCTET
     long-integer        = 4*OCTET
     long-long-integer   = 8*OCTET
-    tiny-string         = tiny-integer *string-char
+    short-string        = OCTET *string-char
     string-char         = %d1 .. %d255
-    short-string        = short-integer *OCTET
-    long-string         = long-integer *OCTET
+    long-string         = short-integer *OCTET
     field-table         = long-integer *field-value-pair
     field-value-pair    = field-name field-value
     field-name          = short-string
-    field-value         = 'T' tiny-string
-                        / 'S' short-string
+    field-value         = 'S' short-string
+                        / 'L' long-string
                         / 'I' signed-integer
                         / 'D' decimal-value
                         / 'T' time-stamp
@@ -1603,15 +1599,12 @@ All strings are variable-length and represented by an integer length
 followed by zero or more octets of data.  AMQP/Fast defines these
 string types:
 
-- Tiny strings, stored as a 1-octet length followed by zero or more
-  octets of data.  Tiny strings are assumed to be in UTF-8 format,
+- Short strings, stored as a 1-octet length followed by zero or more
+  octets of data.  Short strings are assumed to be in UTF-8 format,
   and may not contain binary zero octets.
 
-- Short strings, stored as a short integer length followed by zero or
-  more octets of data.  Short strings can contain any data.
-
-- Long strings, stored as a long integer length followed by zero or
-  more octets of data.  long strings can contain any data.
+- Long strings, stored as a short integer length followed by zero or
+  more octets of data.  Long strings can contain any data.
 
 Field Tables
 ............
@@ -1641,7 +1634,7 @@ Guidelines for implementors:
   of one second.
 
 - A peer MUST handle duplicate fields by using only the first instance.
-  
+
 As a convention when documenting values allowed in field tables we will
 use this syntax:
 
@@ -1681,9 +1674,8 @@ negotiation model:
    numbers).
 
 2. The server either accepts or rejects the initiation sequence.  If
-   it rejects the initiation sequence it closes the connection.
-   Otherwise it leaves the connection open and implements the protocol
-   accordingly.
+   it rejects the initiation sequence it closes the socket. Otherwise it
+   leaves the socket open and implements the protocol accordingly.
 
 For AMQP/Fast the protocol ID is 1, and the protocol version is 0.9. The
 correct initiation sequence is 8 octets as follows:
@@ -2016,7 +2008,8 @@ is implementation-defined.
 Guidelines for implementors:
 
 - Both server and client MAY send trace frames at any point in the
-  connection after protocol negotiation.
+  connection after protocol negotiation and before a CONNECTION CLOSE
+  method.
 
 - If the recipient of a trace frame does not have a suitable trace
   handler, it MUST discard the trace frame without signalling any error
@@ -2080,6 +2073,10 @@ Guidelines for implementors:
 
 - The "flags" octet is reserved for future use and MUST be be set to
   zero.
+
+- The frame body is not affected in any way by the presence or absence
+  of a meta frame, except that the frame body MAY be larger than 64KB
+  after a meta frame.
 
 The Abstract Content Model
 --------------------------
@@ -2399,18 +2396,18 @@ A method frame body has this format:
     +-------+--------+----------+-------+----------+-------------- - -
     | class | method | revision | flags | synchtag | properties...
     +-------+--------+----------+-------+----------+-------------- - -
-      octet   octet    octet      octet   long      
+      octet   octet    octet      octet   long
 
 - The class and method are protocol-constant values.
 
 - The revision is a version number for the method.  It indicates a
   revision of the method with new or modified properties.
-  
+
 - The flags provide a set of operational indicators.
 
 - The synchtag is an arbitrary value that the sender chooses to
   identify the method instance.
-  
+
 - The properties are a set of AMQP/Fast fields that specific to each
   method.
 
@@ -2420,7 +2417,7 @@ The flags are defined as follows:
                   +---+---+---+---+---+---+---+---+
                   | X | X | X | X | X | 0   0   0 |
                   +---+---+---+---+---+---+---+---+
-                    |   |   |   |   |  |         |  
+                    |   |   |   |   |  |         |
     SYNCHREQ -------'   |   |   |   |  |         |
                         |   |   |   |  `----+----'
     IFTEST -------------'   |   |   |       |
@@ -2428,7 +2425,7 @@ The flags are defined as follows:
     TESTED -----------------'   |   |       |
                                 |   |
     DTRACE ---------------------'   |   Reserved
-                                    | 
+                                    |
     TRACED -------------------------'
                       
 - 7 = SYNCHREQ - if 1, requests a "synchpoint", turning an asynchronous
@@ -2454,7 +2451,7 @@ Guidelines for implementors:
 - The method MUST be one of the methods defined for the class.
 
 - The revision is reserved for future use and MUST be zero.
-  
+
 - Synchtags SHOULD BE unique since the last synchpoint (we explain
   synchpoints later).
 
@@ -2482,7 +2479,9 @@ Guidelines for implementors:
 - The server MUST ignore the SYNCHREQ flag on synchronous methods, which
   are all methods that solicit a synchronous reply.
 
-- The client MUST ignore the SYNCHREQ flag on all methods.
+- The server MUST NOT set the SYNCHREQ flag on methods sent to the client,
+  and the client MUST treat any method with the SYNCHREQ flag as a fatal
+  connection error.
 
 The methods that solicit a synchronous reply are:
 
@@ -2573,16 +2572,16 @@ Protocol Classes
 
 AMQP/Fast defines these protocol classes:
 
-- 1 = CONNECTION: open and work with a network connection.
-- 2 = CHANNEL: open and work with a virtual connection.
-- 3 = ACCESS: access control to destinations.
-- 4 = DESTINATION: work with queues and topics.
-- 5 = SUBSCRIPTION: work with subscriptions.
-- 6 = JMS: work with JMS message content.
-- 7 = FILE: work with file transfer content.
-- 8 = STREAM: work with streamed content.
-- 9 = TEST: test peer functionality.
-- 10 = XA: XA transaction functionality.
+- CONNECTION: open and work with a network connection.
+- CHANNEL: open and work with a virtual connection.
+- ACCESS: access control to destinations.
+- DESTINATION: work with queues and topics.
+- SUBSCRIPTION: work with subscriptions.
+- JMS: work with JMS message content.
+- FILE: work with file transfer content.
+- STREAM: work with streamed content.
+- XA: XA transaction functionality.
+- TEST: test peer functionality.
 
 Methods are numbered locally per class and there is no attempt to keep a
 consistent numbering for similar methods in different classes, nor to
@@ -2595,23 +2594,25 @@ The CONNECTION Class
 
 The connection class provides methods for a client to establish a
 network connection to a server, and for both peers to operate the
-connection thereafter. 
+connection thereafter.
 
 These are the CONNECTION server methods:
 
-- 1 = CLOSE (syn request or syn reply for CLOSE): close the connection.
-- 3 = RESPONSE (syn reply for CHALLENGE): negotiate a security profile.
-- 5 = RETUNE (syn reply for TUNE): negotiate connection parameters.
-- 6 = OPEN (syn request): open connection to virtual host.
-- 8 = IFFAIL (syn response to unsupported IFTEST method).
+- CLOSE (syn request): request connection close.
+- CLOSED (syn reply for CLOSED): confirm connection close.
+- RESPONSE (syn reply for CHALLENGE): negotiate a security profile.
+- RETUNE (syn reply for TUNE): negotiate connection parameters.
+- OPEN (syn request): open connection to virtual host.
+- IFFAIL (syn response to unsupported IFTEST method).
 
 These are the CONNECTION client methods:
 
-- 1 = CLOSE (syn request or syn reply for CLOSE): close the connection.
-- 2 = CHALLENGE (syn request): negotiate a security profile.
-- 4 = TUNE (syn request): negotiate connection parameters.
-- 7 = READY (syn response to OPEN): virtual host connection ready.
-- 8 = IFFAIL (syn response to unsupported IFTEST method).
+- CLOSE (syn request): request connection close.
+- CLOSED (syn reply for CLOSED): confirm connection close.
+- CHALLENGE (syn request): negotiate a security profile.
+- TUNE (syn request): negotiate connection parameters.
+- READY (syn response to OPEN): virtual host connection ready.
+- IFFAIL (syn response to unsupported IFTEST method).
 
 Guidelines for implementors:
 
@@ -2621,25 +2622,24 @@ Guidelines for implementors:
 
 Connection class grammar:
 
-    connection          = open-connection *use-connection close-connection
+    connection          = open-connection *channel close-connection
     open-connection     = C:protocol-header
                           S:WELCOME C:LOGIN
                           +( S:CHALLENGE C:LOGIN )
                           S:TUNE *C:RETUNE
                           C:OPEN S:READY
     protocol-header     = 'AMQP' protocol-id protocol-version
-    protocol-id         = short 
-    protocol-version    = short 
-    use-connection      = channel
-    close-connection    = C:CLOSE S:CLOSE
-                        / S:CLOSE C:CLOSE
+    protocol-id         = short
+    protocol-version    = short
+    close-connection    = C:CLOSE S:CLOSED
+                        / S:CLOSE C:CLOSED
 
 Explanatory notes:
 
 - 'S:' indicates data or a method sent from the server to the client.
 - 'C:' indicates data or a method sent from the client to the server.
-- The +(...) expression means '1 or more instances'.
-- The *(...) expression means 'zero or more instances'.
+- +term or +(...) expression means '1 or more instances'.
+- *term or *(...) expression means 'zero or more instances'.
 - Methods are indicated by uppercase names, e.g. OPEN.
 
 The specifics of the connection methods are explained in the Methods
@@ -2655,21 +2655,21 @@ virtual connection thereafter.
 
 These are the CHANNEL server methods:
 
-- 1 = OPEN (syn request): open a channel.
-- 2 = CLOSE (syn request or syn reply for CLOSE): close the channel.
-- 4 = FLOW (async): pause/continue a channel.
-- 5 = COMMIT (async): commit channel transaction.
-- 6 = ROLLBACK (async): rollback channel transaction.
-- 8 = REPORT (syn reply): result of a method with the IFTEST flag set.
+- OPEN (syn request): open a channel.
+- CLOSE (syn request): request channel close.
+- CLOSED (syn reply for CLOSED): confirm channel close.
+- FLOW (async): pause/continue a channel.
+- COMMIT (async): commit channel transaction.
+- ROLLBACK (async): rollback channel transaction.
 
 These are the CHANNEL client methods:
 
-- 2 = CLOSE (syn request or syn reply for CLOSE): close the channel.
-- 3 = READY (syn reply to OPEN): confirm a channel open.
-- 4 = FLOW (async): pause/continue a channel.
-- 7 = SYNCH (syn reply): synchpoint, result of a method with the
+- CLOSE (syn request): request channel close.
+- CLOSED (syn reply for CLOSED): confirm channel close.
+- READY (syn reply to OPEN): confirm a channel open.
+- FLOW (async): pause/continue a channel.
+- SYNCH (syn reply): synchpoint, result of a method with the
   SYNCHREQ flag set.
-- 8 = REPORT (syn reply): result of a method with the IFTEST flag set.
 
 Guidelines for implementors:
 
@@ -2680,41 +2680,14 @@ Channel class grammar:
 
     channel             = open-channel *use-channel close-channel
     open-channel        = C:OPEN S:READY
-
-    use-channel         = C:FLOW
-                        / S:FLOW
-                        / C:COMMIT
-                        / C:ROLLBACK
+    use-channel         = C:FLOW / S:FLOW
+                        / C:COMMIT / C:ROLLBACK
                         / S:SYNCH
-                        / S:
-
-    close-channel       = C:CLOSE S:CLOSE
-                        / S:CLOSE C:CLOSE
-    
-    connection          = open-connection *use-connection close-connection
-    open-connection     = C:protocol-header
-                          S:WELCOME C:LOGIN
-                          +( S:CHALLENGE C:LOGIN )
-                          S:TUNE *C:RETUNE
-                          C:OPEN S:READY
-    protocol-header     = 'AMQP' protocol-id protocol-version
-    protocol-id         = short 
-    protocol-version    = short
-
-    c
-    use-connection      = channel
-    close-connection    = client-close / server-close
-    client-close        = C:CLOSE S:CLOSE
-    server-close        = S:CLOSE C:CLOSE
-
-                        / access
-                        / destination
-                        / subscription
-                        / jms
-                        / file
-                        / stream
+                        / access / destination / subscription
+                        / jms / file / stream / xa
                         / test
-                        / xa
+    close-channel       = C:CLOSE S:CLOSED
+                        / S:CLOSE C:CLOSED
 
 The ACCESS Class
 ................
@@ -2724,19 +2697,23 @@ set of destinations.
 
 These are the ACCESS server methods:
 
-- 1 = REQUEST (syn request): request access to a set of destinations and
+- REQUEST (syn request): request access to a set of destinations and
   set a routing semantic (queue or topic) for publish methods.
 
 These are the ACCESS client methods:
 
-- 2 = GRANT (syn reply to REQUEST): confirm access granted.
+- GRANT (syn reply to REQUEST): confirm access granted.
 
 Guidelines for implementors:
 
 - The server SHOULD implement access controls on the
-  destinations that it manages. 
+  destinations that it manages.
 - A server MUST support all ACCESS server methods.
 - A client SHOULD support all ACCESS client methods.
+
+Access class grammar:
+
+    access              = C:REQUEST S:GRANT
 
 The DESTINATION Class
 .....................
@@ -2745,22 +2722,28 @@ Destinations are queues or topics, capable of storing and routing all
 types of content. AMQP/Fast lets clients create and work with private or
 shared destinations that share a common namespace with configured
 destinations. The DESTINATION class provides methods for a client to
-work with destinations. 
+work with destinations.
 
 These are the DESTINATION server methods:
 
-- 1 = CREATE (syn request): create a new destination.
-- 3 = PURGE (async): purge a destination of all messages.
-- 4 = DESTROY (async): destroy a destination. 
+- CREATE (syn request): create a new destination.
+- PURGE (async): purge a destination of all messages.
+- DESTROY (async): destroy a destination.
 
 These are the DESTINATION client methods:
 
-- 2 = READY (async reply to CREATE): confirm destination created.
+- READY (async reply to CREATE): confirm destination created.
 
 Guidelines for implementors:
 
 - A server MUST support all DESTINATION server methods.
 - A client SHOULD support all DESTINATION client methods.
+
+Destination class grammar:
+
+    destination         = C:CREATE S:READY
+                        / C:PURGE
+                        / C:DESTROY
 
 The SUBSCRIPTION Class
 ......................
@@ -2773,22 +2756,19 @@ a subscription.
 
 Note that subscriptions are largely orthogonal with queues. That is,
 they can be named or unnamed objects, private to one consumer or shared
-between consumers.
+between consumers. A single subscription can hold content of different
+domains.
 
 These are the SUBSCRIPTION server methods:
 
-- 1 = CREATE (syn request): create a new subscription and start to
-  receive messages from it.
-- 2 = CONSUME (syn request): join an existing subscription or create a
-  private, temporary subscription.
-- 4 = PURGE (async): purge a subscription of all messages.
-- 5 = CANCEL (async): cancel a subscription.
-- 6 = DESTROY (async): destroy a subscription and any messages
+- CREATE (syn request): create a new subscription.
+- PURGE (async): purge a subscription of all messages.
+- DESTROY (async): destroy a subscription and any messages
   it may hold.
 
 These are the SUBSCRIPTION client methods:
 
-- 3 = READY (syn reply to CREATE or CONSUME): confirm subscription
+- READY (syn reply to CREATE or CONSUME): confirm subscription
   created.
 
 Guidelines for implementors:
@@ -2796,40 +2776,53 @@ Guidelines for implementors:
 - A server MUST support all SUBSCRIPTION server methods.
 - A client SHOULD support all SUBSCRIPTION client methods.
 
+Subscription class grammar:
+
+    subscription        = C:CREATE S:READY
+                        / C:PURGE
+                        / C:DESTROY
+
 The JMS Class
 .............
 
 The JMS class provides methods that support the JMS operational model.
 JMS messages have a specific set of properties that are required for
 interoperability with JMS providers and consumers.  JMS messages and
-acknowledgements may be covered by channel transactions. 
+acknowledgements may be covered by channel transactions.
 
 These are the JMS server methods:
 
-- 1 = CONSUME (syn request): create a JMS queue consumer, i.e. request
+- CONSUME (async): create a JMS queue consumer, i.e. request
   to receive JMS messages from a queue.
-- 2 = CANCEL (async): cancel a JMS queue consumer.
-- 5 = PUBLISH (async): publish a JMS message to a queue or topic
+- CANCEL (async): cancel a JMS queue consumer.
+- PUBLISH (async): publish a JMS message to a queue or topic
   destination.
-- 6 = BROWSE (syn request): request the next JMS message from a queue
+- BROWSE (syn request): request the next JMS message from a queue
   or subscription.
-- 8 = UNGET (async): push a JMS message back onto a queue.
-- 9 = ACK (async): acknowledge processing of one or more JMS messages.
+- UNGET (async): push a JMS message back onto a queue.
+- ACK (async): acknowledge processing of one or more JMS messages.
 
 These are the JMS client methods:
 
-- 3 = READY (syn reply to CONSUME): confirm JMS consumer created. 
-- 4 = NOTIFY (async): notify client of a new JMS message to process.
-- 7 = BROWSED (syn reply to BROWSE): provide client with results of
+- NOTIFY (async): notify client of a new JMS message to process.
+- BROWSED (syn reply to BROWSE): provide client with results of
   a BROWSE method.
 
 Guidelines for implementors:
 
 - A server MUST support either none of or all of the JMS server methods.
-  
 - A client MUST support either none of or all of the JMS client methods.
-  
 - Clients and servers MUST only use these methods for JMS content.
+
+JMS class grammar:
+
+    jms                 = C:CONSUME
+                        / C:CANCEL
+                        / C:PUBLISH
+                        / S:NOTIFY
+                        / C:BROWSE S:BROWSED
+                        / C:UNGET
+                        / C:ACK
 
 The FILE Class
 ..............
@@ -2846,39 +2839,51 @@ operational model.
 
 These are the FILE server methods:
 
-- 1 = CONSUME (syn request): create a FILE queue consumer, i.e. request
-  to receive FILE messages from a queue.
-- 2 = CANCEL (async): cancel a FILE queue consumer.
-- 4 = OPEN (syn request): request permission to stage a FILE message,
+- OPEN (syn request): request permission to stage a FILE message,
   i.e. to send the content to a temporary holding area.
-- 6 = WRITE (async): stage a FILE message.
-- 8 = PUBLISH (async): publish a staged FILE message to a queue or
+- READY (syn reply to OPEN): confirm ready to stage FILE message.
+- STAGE (async): stage a FILE message.
+- CONSUME (asybnc): create a FILE queue consumer, i.e. request
+  to receive FILE messages from a queue.
+- CANCEL (async): cancel a FILE queue consumer.
+- PUBLISH (async): publish a staged FILE message to a queue or
   topic destination.
-- 9 = BROWSE (syn request): request the next FILE message from a queue
+- BROWSE (syn request): request the next FILE message from a queue
   or subscription.
-- 11 = UNGET (async): push a JMS message back onto a queue.
-- 12 = ACK (async): acknowledge processing of one or more FILE messages.
+- UNGET (async): push a JMS message back onto a queue.
+- ACK (async): acknowledge processing of one or more FILE messages.
 
 These are the FILE client methods:
 
-- 3 = READY (syn reply to CONSUME): confirm FILE consumer created. 
-- 5 = STAGE (syn reply to OPEN): confirm ready to stage FILE message. 
-- 4 = OPEN (syn request): request permission to stage a FILE message,
+- OPEN (syn request): request permission to stage a FILE message,
   i.e. to send the content to a temporary holding area.
-- 6 = WRITE (async): stage a FILE message.
-- 7 = NOTIFY (async): notify client of a new FILE message to process.
-- 10 = BROWSED (syn reply to BROWSE): provide client with results of
+- READY (syn reply to OPEN): confirm ready to stage FILE message.
+- STAGE (async): stage a FILE message.
+- NOTIFY (async): notify client of a new FILE message to process.
+- BROWSED (syn reply to BROWSE): provide client with results of
   a BROWSE method.
 
 Guidelines for implementors:
 
 - A server MUST support either none of or all of the FILE server
   methods.
-  
 - A client MUST support either none of or all of the FILE client
   methods.
-  
 - Clients and servers MUST only use these methods for FILE content.
+
+File class grammar:
+
+    file                = C:OPEN S:READY
+                        / S:OPEN C:READY
+                        / C:STAGE
+                        / S:STAGE
+                        / C:CONSUME
+                        / C:CANCEL
+                        / C:PUBLISH
+                        / S:NOTIFY
+                        / C:BROWSE S:BROWSED
+                        / C:UNGET
+                        / C:ACK
 
 The STREAM Class
 ................
@@ -2896,55 +2901,34 @@ producers and consumed by one or more consumers.  Streamed messages
 can thus use all the AMQP/Fast queueing and routing functionality.
 
 The STREAM class provides methods that support the streaming operational
-model. 
+model.
 
 These are the STREAM server methods:
 
-- 1 = CONSUME (syn request): create a STREAM consumer, i.e. request to
+- CONSUME (async): create a STREAM consumer, i.e. request to
   receive STREAM messages from a destination.
-- 3 = CANCEL (async): cancel a STREAM consumer.
-- 4 = PUBLISH (async): publish a STREAM message to a queue or topic
+- CANCEL (async): cancel a STREAM consumer.
+- PUBLISH (async): publish a STREAM message to a queue or topic
   destination.
 
 These are the STREAM client methods:
 
-- 2 = READY (syn reply to CONSUME): confirm STREAM consumer created.
-- 5 = NOTIFY (async): notify client of a new STREAM message to process.
+- NOTIFY (async): notify client of a new STREAM message to process.
 
 Guidelines for implementors:
 
 - A server MUST support either none of or all of the STREAM server
   methods.
-  
 - A client MUST support either none of or all of the STREAM client
   methods.
-  
 - Clients and servers MUST only use these methods for STREAM content.
 
-The TEST Class
-................
+Stream class grammar:
 
-The test class provides methods for a peer to test the basic operational
-correctness of another peer. The test methods are intended to ensure
-that all peers respect at least the basic elements of the protocol, such
-as frame and content organisation and field types. We assume that a
-specially-designed peer, a "monitor client" will perform the tests. 
-
-These are the TEST methods:
-
-- 2 = INTEGERS (syn request): test handling of integer fields.
-- 3 = STRINGS (syn request): test handling of string fields.
-- 4 = TABLES (syn request): test handling of field tables.
-- 5 = CONTENT (syn request): test handling of content.
-
-These are the TEST monitor methods:
-
-- 1 = RESULT (syn reply to all methods): result of test.
-
-Guidelines for implementors:
-
-- A peer SHOULD support all TEST methods.
-- A monitor client MUST support the TEST monitor methods.
+    stream              = C:CONSUME
+                        / C:CANCEL
+                        / C:PUBLISH
+                        / S:NOTIFY
 
 The XA Class
 ............
@@ -2955,6 +2939,31 @@ methods for this class are still being defined.
 Guidelines for implementors:
 
 - A peer MAY support the XA methods.
+
+The TEST Class
+................
+
+The test class provides methods for a peer to test the basic operational
+correctness of another peer. The test methods are intended to ensure
+that all peers respect at least the basic elements of the protocol, such
+as frame and content organisation and field types. We assume that a
+specially-designed peer, a "monitor client" will perform the tests.
+
+These are the TEST methods:
+
+- INTEGERS (syn request): test handling of integer fields.
+- STRINGS (syn request): test handling of string fields.
+- TABLES (syn request): test handling of field tables.
+- CONTENT (syn request): test handling of content.
+
+These are the TEST monitor methods:
+
+- RESULT (syn reply to all methods): result of test.
+
+Guidelines for implementors:
+
+- A peer SHOULD support all TEST methods.
+- A monitor client MUST support the TEST monitor methods.
 
 AMQP Queuing and Routing Mechanisms
 -----------------------------------
@@ -3320,57 +3329,47 @@ error. And yet they are used in order to make program code more robust.
 Assertions work because they make errors visible and force them to be
 fixed. The alternative - "handling" errors in some way - allows buggy
 code to operate, causing problems that are much harder to detect and
-often much more serious. Assertions say "this works correctly, or it
+often much more serious.  Assertions say "this works correctly, or it
 does not work at all".
 
-In AMQP/Fast we similarly use assertions to ensure robustness. We don't
-abort the server, but we close the channel and/or the connection if
-there is an error of any kind. The AMQP/Fast assertion is "every method
-works correctly, or we close the channel and/or connection".
+AMQP/Fast defines assertions on two types of conditions:
 
-Some errors are minor - the client application may be incorrectly
-configured - in which case the server closes the channel. Other errors
-are serious - like badly formatted frames - in which case the server
-closes the connection and may ban the client if it suspects foul play.
+1. Channel conditions. These are conditions that must be satisfied
+   for the channel to remain open.  If a peer detects that channel
+   condition is not satisfied, it signals a "channel fault" and
+   closes the channel.
 
-We call these "connection assertion" failures and "channel assertion"
-failures. The formal specification of each method - see later -
-includes the assertions it makes.
+2. Connection conditions.  These are analogous to channel conditions
+   but work at the socket connection level.
+
+Some examples of the types of assertion that AMQP/Fast defines are:
+
+- Unsupported functionality - channel fault.
+- Unknown resource - channel fault.
+- Unauthorised access to specific resource - channel fault.
+- Syntax or framing error - connection fault.
 
 Hand-shaked Closure
 ...................
 
-Closing a channel or connection as part of error handling or as part of
-normal activity must be done carefully. We cannot, for instance, just
-send a close method and then close the socket, or the other party may
-not receive the data.
+Closing a connection for any reason - normal or exceptional - must be
+done carefully.  Abrupt closure is not always detected rapidly, and
+in the case of errors, it means that error responses can be lost. The
+correct design is to hand-shake all closure so that we close only after
+we are sure the other party is aware of the situation.
 
-To close a channel or connection we ask that the other party confirms
-the closure by replying with a matching close method. Any method we
-get in the meantime MUST be thrown away.
-
-This is how we close a connection or channel after (e.g.) the server
-detects an error:
-
-- The server sends a close method to the client.
-- The client may be sending other methods to the server.
-- The server reads these and discards them, responding with a close
-  method each time.
-- The client at some stage read the first close method and replies
-  with a close method to the server.  It then closes its end of the
-  connection or channel.
-- When the server receives the close method from the client, it
-  closes its end of the connection or channel, discards any open
-  transactions, etc.
-
-Any work the client tries to do after the server decides to close is
-therefore lost. If the client decides to close its end of a connection
-or channel, the scenario is exactly the same, in the other direction.
+A peer can close a channel or connection at any time for internal
+reasons, or as a reaction to an error.  It sends a CLOSE method to
+the other party.  The receiving peer must respond to a CLOSE with a
+CLOSED method.  The closing peer reads methods back until it gets a
+CLOSED, at which point it closes the connection and frees resources.
 
 Guidelines for implementors:
 
-- The peer closing the channel or connection MAY use a counter or
-  timeout to detect failure of the other peer to respond correctly.
+- After sending a CLOSE, any received method MUST be discarded.
+
+- The peer sending CLOSE MAY use a counter or timeout to detect failure
+  of the other peer to respond correctly with CLOSED.
 
 - A peer that detects a socket closure without having received a
   correct close handshake SHOULD log the error.
