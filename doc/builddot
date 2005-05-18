@@ -6,6 +6,5 @@ FILE=`basename $1 .dot`
 dot -Tpng $FILE.dot -o$FILE.png
 
 #   Build PDF from dot file
-FILE=`basename $1 .dot`
 dot -Tps2 $FILE.dot -o$FILE.ps
 epstopdf $FILE.ps
