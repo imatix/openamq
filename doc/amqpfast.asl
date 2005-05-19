@@ -15,10 +15,12 @@
 <include filename = "test.asl"          />
 
 <!-- All methods start with this header  -->
-<method name = "default" abstract = "1">
+<method name = "header" abstract = "1">
     <argument name = "method class"     type = "octet"  >Method class</argument>
     <argument name = "method id"        type = "octet"  >Method ID</argument>
     <argument name = "method revision"  type = "octet"  >Method revision</argument>
     <argument name = "method flags"     type = "octet"  >Method flags</argument>
     <argument name = "method synchtag"  type = "long"   >Method synchtag</argument>
 </method>
+
+

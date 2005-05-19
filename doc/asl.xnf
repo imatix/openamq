@@ -5,8 +5,11 @@
     script  = "xnf_gen.gsl"
     version = "0.1"
     >
-ASL is the iMatix Abstract Syntax Language.  ASL is used to define
-protocol methods and grammars, principally for the AMQP/Fast protocol.
+ASL is the AMQ Syntax Language.  ASL an abstract syntax language
+specifically designed to document and define the AMQP family of
+protocols.  The ASL specifications are used as input to code
+generators that produce framing code, class and method handlers,
+and documentation.
 
 <inherit xnf = "xnf_base" />
 
@@ -26,6 +29,7 @@ endif
     which may consist of many classes, each with appropriate methods.
     <allow entity = "include"   />
     <allow entity = "class"     />
+    
     <attr name = "name" required = "1" short = "class name">
     Specifies the name of the class.  This name will be used to prefix all
     function names and will also be used as the filename for generated code.
@@ -47,6 +51,7 @@ endif
 
 <entity name = "include" >
     The 'include' element permits textual-inclusion from another file.
+    
     <attr name = "filename" required = "1" >
     The name of the XML-format file to be included in place of the
     'include' element.
@@ -60,7 +65,7 @@ endif
 
 <entity name = "class" tag = "class">
     The class tag defines the class.
-    <allow entity = "doc"       inherit = "none" />
+    <allow entity = "doc"       />
     <allow entity = "method"    />
     <allow entity = "todo"      />
 
@@ -70,6 +75,10 @@ endif
     </attr>
     <attr name = "comment" short = "Short description">
     An optional one-line comment that describes the class.
+    </attr>
+    <attr name = "handler" short = "Exception handler">
+    The exception level for errors detected by this class. Should be the name
+    of a class that is able to handle exceptions.
     </attr>
 </entity>
 
@@ -91,15 +100,15 @@ endif
 
 <entity name = "method" tag = "method" cdata = "1">
     Methods provide functionality for the component class.  All
-    methods inherit basic arguments from the default method.
-    <allow entity = "doc"     />
-    <allow entity = "chassis"/>
-    <allow entity = "argument"/>
+    methods inherit basic fields from the default method.
+    <allow entity = "doc"       />
+    <allow entity = "chassis"   />
+    <allow entity = "field"     />
 
     <attr name = "name" required = "1" short = "method name">
     The name of the method, used in the API.
     </attr>
-    <attr name = "template" default = "default">
+    <attr name = "template" default = "header">
     The method template.
     </attr>
     <attr name = "synchronous" default = "0">
@@ -117,8 +126,9 @@ endif
 <entity name = "chassis" tag = "chassis" cdata = "1">
     Defines a chassis, which can be 'server' or 'client'.  This is the
     role of the peer that must or may accept and handle the method.
-    <attr name = "name" required = "1" short = "name of argument">
-    The name of the argument.
+    
+    <attr name = "name" required = "1" short = "name of chassis">
+    The name of the chassis.
     </attr>
     <attr name = "implement" short = "implementation rule">
         <restrict value = "MUST"  >MUST be implemented</restrict>
@@ -127,15 +137,25 @@ endif
     </attr>
 </entity>
 
-<entity name = "argument" tag = "argument" cdata = "1">
-    Defines one argument passed to the method. The body of this entity is
-    used to document the argument.
+<entity name = "field" tag = "field" cdata = "1">
+    Defines one field passed to the method. The body of this entity is
+    used to document the field.
+    <allow entity = "field assertion" />
+    <allow entity = "doc"   />
 
-    <attr name = "name" required = "1" short = "name of argument">
-    The name of the argument.
+    <attr name = "name" required = "1" short = "name of field">
+    The name of the field.
     </attr>
-    <attr name = "type" default = "" short = "type of argument">
-    The type of the argument, which is a native type name.
+    <attr name = "type" default = "" short = "type of field">
+    The type of the field, which is a type primitive name.
+        <restrict value = "bit"     >single bit</restrict>
+        <restrict value = "octet"   >single octet</restrict>
+        <restrict value = "short"   >16-bit integer</restrict>
+        <restrict value = "long"    >32-bit integer</restrict>
+        <restrict value = "longlong">64-bit integer</restrict>
+        <restrict value = "shortstr">short string</restrict>
+        <restrict value = "longstr" >long string</restrict>
+        <restrict value = "table"   >field table</restrict>
     </attr>
     <attr name = "export" default = "default" >
     Specifies how this item may be inherited.
@@ -144,7 +164,32 @@ endif
         <restrict value = "before" >inherited before existing items</restrict>
         <restrict value = "after" >inherited after existing items</restrict>
     </attr>
-    <allow entity = "doc"     />
+</entity>
+
+<entity name = "field assertion" tag = "assert">
+    Defines a field-level assertion that should be executed on incoming
+    method fields.
+
+    <attr name = "check" required = "1" short = "type of assertion">
+    The type of the assertion.
+        <restrict value = "eq" >equal to some value</restrict>
+        <restrict value = "ne" >not equal to some value</restrict>
+        <restrict value = "gt" >greater than some value</restrict>
+        <restrict value = "ge" >greater than or equal to some value</restrict>
+        <restrict value = "lt" >less than some value</restrict>
+        <restrict value = "le" >less than or equal to some value</restrict>
+    </attr>
+    <attr name = "value" short = "value to compare with">
+    If specified, compare against this value. For string fields, the value
+    "NULL" can be used to indicate an empty string.
+    </attr>
+    <attr name = "method" short = "method holding field to compare with">
+    If specified, compare with the specified field from this class.
+    </attr>
+    <attr name = "field" short = "field to compare with">
+    If specified, compare with this field.  Must have the same or a compatible
+    type as the field being asserted.
+    </attr>
 </entity>
 
 <entity name = "todo" tag = "todo" cdata = "1">

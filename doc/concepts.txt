@@ -1268,6 +1268,9 @@ We want to be able to:
 - Avoid license and patent concerns that might hinder adoption of the
   protocol as a standard.
 
+- Allow the marshalling layers of protocol implementations to be easily
+  generated using code generation technology.
+  
 - Allow the creation of an abstract network where services, and their
   data, can move around the network opaquely to the clients.
 
@@ -1507,6 +1510,11 @@ Zero_copy:
     The technique of transferring data without copying it to or from
     intermediate buffers.  Zero copy requires that the protocol allow
     the transfer of data as opaque blocks, which AMQP/Fast does.
+Assertion:
+    A condition that must be true for processing to continue.
+Exception:
+    A failed assertion, handled by closing either the channel or the
+    connection.
 
 Limitations
 ...........
@@ -1677,11 +1685,25 @@ negotiation model:
    it rejects the initiation sequence it closes the socket. Otherwise it
    leaves the socket open and implements the protocol accordingly.
 
-For AMQP/Fast the protocol ID is 1, and the protocol version is 0.9. The
-correct initiation sequence is 8 octets as follows:
+Protocol grammar:
+
+    protocol-header     = 'AMQP' protocol-id protocol-version
+    protocol-id         = protocol-class protocol-instance
+    protocol-class      = OCTET
+    protocol-instance   = OCTET
+    protocol-version    = protocol-major protocol-minor
+    protocol-major      = OCTET
+    protocol-minor      = OCTET
+    
+For AMQP/Fast these are the correct values:
+
+- protocol-class = 1 (this is the class of all AMQP/Fast protocols)
+- protocol-instance = 1 (this is the instance of AMQP/Fast over TCP/IP)
+- protocol-major = 0
+- protocol-minor = 9
 
     +---+---+---+---+---+---+---+---+
-    |'A'|'M'|'Q'|'P'| 0 | 1 | 0 | 9 |
+    |'A'|'M'|'Q'|'P'| 1 | 1 | 0 | 9 |
     +---+---+---+---+---+---+---+---+
 
 Guidelines for implementors:
@@ -1691,7 +1713,8 @@ Guidelines for implementors:
 
 - An AMQP server MAY accept non-AMQP protocols such as HTTP.
 
-- An AMQP server MUST accept AMQP/Fast.
+- An AMQP server MUST accept the AMQP/Fast protocol as defined by
+  class = 1, instance = 1.
 
 - If the server does not recognise the first 4 octets of data on the
   socket, or does not support the specific protocol version that the
@@ -2035,7 +2058,7 @@ Guidelines for implementors:
 - The channel number in a heartbeat frame MUST be zero.
 
 - An AMQP peer MUST handle a non-zero channel number as a connection
-  assertion failure.
+  exception.
 
 Meta Frames
 ...........
@@ -2400,8 +2423,8 @@ A method frame body has this format:
 
 - The class and method are protocol-constant values.
 
-- The revision is a version number for the method.  It indicates a
-  revision of the method with new or modified properties.
+- The revision number indicates a revision of the method with new or
+  modified properties.
 
 - The flags provide a set of operational indicators.
 
@@ -2450,7 +2473,11 @@ Guidelines for implementors:
 
 - The method MUST be one of the methods defined for the class.
 
-- The revision is reserved for future use and MUST be zero.
+- The revision MUST be zero in major releases of the protocol. It is
+  used to indicate revised methods in minor releases of the protocol.
+  A peer MAY support multiple revisions of a protocol.  A peer MUST
+  support the specific method revisions defined in the protocol
+  minor version number agreed during connection negotiation.
 
 - Synchtags SHOULD BE unique since the last synchpoint (we explain
   synchpoints later).
@@ -2628,9 +2655,6 @@ Connection class grammar:
                           +( S:CHALLENGE C:LOGIN )
                           S:TUNE *C:RETUNE
                           C:OPEN S:READY
-    protocol-header     = 'AMQP' protocol-id protocol-version
-    protocol-id         = short
-    protocol-version    = short
     close-connection    = C:CLOSE S:CLOSED
                         / S:CLOSE C:CLOSED
 
@@ -3274,7 +3298,7 @@ handling that leaves both peers in a clear state.
 The AMQP/Fast error handling model is based on an answer to each of these
 questions:
 
-1. Use an assertion-based model to define protocol correctness.
+1. Use an exception-based model to define protocol correctness.
 2. Use existing standards for error reporting.
 3. Use a hand-shaked close to handle errors.
 
@@ -3317,37 +3341,28 @@ The category indicator has one of these values:
 The instance indicator is 0 to 9 as needed to distinguish different
 situations.
 
-The Assertion Model
-...................
+The Assertion/Exception Model
+.............................
 
-An assertion is a programming construct that demands a condition. If the
-condition fails, the assertion prints a diagnostic message and halts the
-process (ending the program without further ado). Assertions appear to
-be contradictory: they cause the program to die when it detects an
-error. And yet they are used in order to make program code more robust.
+AMQP/Fast uses an assertion/exception model that has these goals:
 
-Assertions work because they make errors visible and force them to be
-fixed. The alternative - "handling" errors in some way - allows buggy
-code to operate, causing problems that are much harder to detect and
-often much more serious.  Assertions say "this works correctly, or it
-does not work at all".
+- identify and document all protocol preconditions ("assertions").
+- define the exception level caused by any assertion failure.
+- define a formal procedure for handling such exceptions.
 
-AMQP/Fast defines assertions on two types of conditions:
+AMQP/Fast defines two exception levels:
 
-1. Channel conditions. These are conditions that must be satisfied
-   for the channel to remain open.  If a peer detects that channel
-   condition is not satisfied, it signals a "channel fault" and
-   closes the channel.
+1. Channel exceptions.  These close a single virtual connection.
+   A channel exception is raised when a peer cannot complete some
+   request because of transient or configuration errors.
+   
+2. Connection exceptions.  These close the socket connection.
+   A connection exception is raised when a peer detects a syntax
+   error, badly-formed frame, or other indicator that the other
+   peer is not conformant with AMQP/Fast.
 
-2. Connection conditions.  These are analogous to channel conditions
-   but work at the socket connection level.
-
-Some examples of the types of assertion that AMQP/Fast defines are:
-
-- Unsupported functionality - channel fault.
-- Unknown resource - channel fault.
-- Unauthorised access to specific resource - channel fault.
-- Syntax or framing error - connection fault.
+We document the assertions formally in the definition of each class
+and method.
 
 Hand-shaked Closure
 ...................
