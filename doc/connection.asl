@@ -4,8 +4,9 @@
     name = "connection"
     handler = "connection"
     >
+Work with socket connections.
 
-<doc domain = "general">
+<doc domain = "long">
 The connection class provides methods for a client to establish a
 network connection to a server, and for both peers to operate the
 connection thereafter.
@@ -16,18 +17,32 @@ connection thereafter.
     open-connection     = C:protocol-header
                           S:WELCOME C:LOGIN
                           *( S:CHALLENGE C:LOGIN )
-                          S:TUNE *C:RETUNE
+                          S:TUNE C:RETUNE
                           C:OPEN S:READY
     use-connection      = IFFAIL / *channel     
     close-connection    = ( C:CLOSE S:CLOSED ) / ( S:CLOSE C:CLOSED )
 </doc>
 
 <method name = "welcome" synchronous = "1" expect = "login">
-    <doc>
-    Signal to a connecting client that the server is ready to negotiate
-    a connection.
+    Start connection negotiation.
+
+    <doc domain = "long">
+    This method starts the connection negotiation process by telling
+    the client the protocol version that the server proposes, along
+    with a list of security mechanisms which the client can use for
+    authentication.
     </doc>
-    <chassis = "client" implement = "MUST" />
+    <doc domain = "rule">
+    If the client cannot handle the protocol version suggested by the
+    server it MUST close the socket connection.
+    </doc>
+    <doc domain = "rule">
+    The server MUST provide a protocol version that is lower than or
+    equal to that requested by the client in the protocol header. If
+    the server cannot support the specified protocol it MUST NOT send
+    this method, but MUST close the socket connection.
+    </doc>
+    <chassis name = "client" implement = "MUST" />
 
     <field name = "version major" type = "octet">
     Negotiated protocol major version
@@ -58,12 +73,20 @@ connection thereafter.
 </method>
 
 <method name = "login" synchronous = "1">
-    <doc>
-    AMQP/Fast uses SASL (RFC2222) to negotiate authentication and encryption.
-    Select a SASL security mechanism and attempt to authenticate, passing
-    a block of data for the security mechanism at the server side.
+    Attempt to authenticate.
+
+    <doc domain = "long">
+    This method selects a SASL security mechanism and attempts to
+    authenticate, passing a block of data for the security mechanism
+    at the server side. AMQP/Fast uses SASL (RFC2222) to negotiate
+    authentication and encryption.
     </doc>
-    <chassis = "server" implement = "MUST" />
+    <doc domain = "rule">
+    The client SHOULD authenticate using the highest-level security profile
+    it can handle from the list provided by the server.
+    </doc>
+
+    <chassis name = "server" implement = "MUST" />
 
     <field name = "mechanism" type = "shortstr">
     Selected security mechanism
@@ -85,10 +108,14 @@ connection thereafter.
 </method>
 
 <method name = "challenge" synchronous = "1" expect = "login">
-    <doc>
-    Request additional security information for the mechanism.
+    Request additional security information.
+
+    <doc domain = "long">
+    The SASL protocol works by exchanging challenges and responses until
+    both peers have received sufficient information to authenticate each
+    other.  This method challenges the client to provide more information.
     </doc>
-    <chassis = "client" implement = "MUST" />
+    <chassis name = "client" implement = "MUST" />
 
     <field name = "challenge" type = "longstr" see = "security mechanisms">
     Security challenge data
@@ -101,10 +128,13 @@ connection thereafter.
 </method>
 
 <method name = "tune" synchronous = "1" expect = "retune">
-    <doc>
-    Propose a set of connection configuration values to the client.
+    Propose connection tuning parameters.
+
+    <doc domain = "long">
+    This method proposes a set of connection configuration values
+    to the client.  The client can accept and/or adjust these.
     </doc>
-    <chassis = "client" implement = "MUST" />
+    <chassis name = "client" implement = "MUST" />
 
     <field name = "frame max" type = "long">
     Maximum frame size
@@ -174,10 +204,14 @@ connection thereafter.
 </method>
 
 <method name = "retune" synchronous = "1">
-    <doc>
-    Confirm a set of connection configuration values to the server.
+    Negotiate connection tuning parameters.
+
+    <doc domain = "long">
+    This method sends the client's connection tuning parameters to the
+    server. Certain fields are negotiated, others provide capability
+    information.
     </doc>
-    <chassis = "server" implement = "MUST" />
+    <chassis name = "server" implement = "MUST" />
 
     <field name = "frame max" type = "long">
     Maximum frame size
@@ -238,21 +272,28 @@ connection thereafter.
       If this is zero, the client MUST NOT use the stream class methods.
       </doc>
     </field>
-
-    <field name = "dictionary" type = "table" see = "dictionaries">
-    Field dictionary
-      <doc>
-      A client-defined set of aliases for field names used in messages.
-      </doc>
-    </field>
 </method>
 
 <method name = "open" synchronous = "1" expect = "ready">
-    <doc>
-    Open a path to a virtual host. This can be done exactly once per
-    connection, after tuning.
+    Open a path to a virtual host.
+
+    <doc domain = "long">
+    This method opens a path to a virtual host on the server. The virtual
+    host is a collection of destinations, and acts to separate multiple
+    application domains on the server.
     </doc>
-    <chassis = "server" implement = "MUST" />
+    <doc domain = "rule">
+    The server MUST support the default virtual host, "/". 
+    </doc>
+    <doc domain = "rule">
+    The server SHOULD verify that the client has permission to access the
+    specified virtual host, using the authenticated client identity.
+    </doc>
+    <doc domain = "rule">
+    The client MUST open a path to a virtual host before doing any work
+    on the connection.
+    </doc>
+    <chassis name = "server" implement = "MUST" />
 
     <field name = "virtual path" type = "shortstr">
     Virtual server path
@@ -279,34 +320,45 @@ connection thereafter.
 </method>
 
 <method name = "ready" synchronous = "1">
-    <doc>
-    Signals that the connection is ready for use.
+    Signal that the connection is ready.
+
+    <doc domain = "long">
+    This method signals to the client that the connection is ready for
+    use.
     </doc>
-    <chassis = "client" implement = "MUST" />
+    <chassis name = "client" implement = "MUST" />
 </method>
 
 <method name = "iffail">
-    <doc>
-    Signals that an interface test method has failed.
+    Signal that an interface test method has failed.
+
+    <doc domain = "long">
+    This method signals that an interface test method has failed. This
+    may happen after a method is sent with the IFTEST flag set.
     </doc>
-    <chassis = "client" implement = "SHOULD" />
-    <chassis = "server" implement = "SHOULD" />
+    <doc domain = "rule">
+    A peer that uses the IFTEST flag MUST implement this method.
+    </doc>
+    <chassis name = "client" implement = "SHOULD" />
+    <chassis name = "server" implement = "SHOULD" />
     
-    <field name = "fail class" type = "octet">
+    <field name = "class" type = "octet">
     Failing method class
       <doc>
       The class id of the interface test method that failed.
       </doc>
+      <assert check = "ne" value = "0" />
     </field>
 
-    <field name = "fail method" type = "octet">
+    <field name = "method" type = "octet">
     Failing method ID
       <doc>
       The method id of the interface test method that failed.
       </doc>
+      <assert check = "ne" value = "0" />
     </field>
 
-    <field name = "fail synchtag" type = "short">
+    <field name = "synchtag" type = "short">
     Failing method synchtag
       <doc>
       The synchtag the interface test method that failed.
@@ -318,6 +370,7 @@ connection thereafter.
       <doc>
       A reply code indicating the cause of the failure.
       </doc>
+      <assert check = "ne" value = "0" />
     </field>
 
     <field name = "reply text" type = "shortstr">
@@ -330,19 +383,33 @@ connection thereafter.
 </method>
 
 <method name = "close" synchronous = "1" expect = "closed">
-    <doc>
-    Indicates that the sender wants to close the connection.  This may
-    be due to internal conditions (e.g. a forced shut-down) or due to
-    an error handling a specific method, i.e. an exception.  When a
-    close is due to an exception, the sender provides the class, method
-    id, and synchtag of the method which caused the exception.
+    Request a connection close.
+
+    <doc domain = "long">
+    This method indicates that the sender wants to close the connection.
+    This may be due to internal conditions (e.g. a forced shut-down) or
+    due to an error handling a specific method, i.e. an exception.  When
+    a close is due to an exception, the sender provides the class,
+    method id, and synchtag of the method which caused the exception.
     </doc>
+    <doc domain = "rule">
+    After sending this method any received method except
+    Connection.Closed MUST be discarded.
+    </doc>
+    <doc domain = "rule">
+    The peer sending this method MAY use a counter or timeout to detect
+    failure of the other peer to respond correctly with Connection.Closed.
+    </doc>
+    
+    <chassis name = "client" implement = "MUST" />
+    <chassis name = "server" implement = "MUST" />
 
     <field name = "reply code" type = "short">
     Reply code
       <doc>
       The reply code. The AMQ reply codes are defined in AMQ RFC 011.
       </doc>
+      <assert check = "ne" value = "0" />
     </field>
 
     <field name = "reply text" type = "shortstr">
@@ -350,41 +417,50 @@ connection thereafter.
       <doc>
       The localised reply text.
       </doc>
+      <assert check = "ne" value = "NULL" />
     </field>
 
-    <field name = "exception class" type = "octet">Failing method class
+    <field name = "class" type = "octet">
+    Failing method class
       <doc>
+      When the close is provoked by a method exception, this is the
+      class of the method.
       </doc>
     </field>
 
-    <field name = "exception method" type = "octet">Failing method ID
+    <field name = "method" type = "octet">
+    Failing method ID
       <doc>
+      When the close is provoked by a method exception, this is the
+      ID of the method.
       </doc>
     </field>
 
-    <field name = "exception synchtag" type = "short">Failing method synchtag
+    <field name = "synchtag" type = "short">
+    Failing method synchtag
       <doc>
+      When the close is provoked by a method exception, this is the
+      synchtag of the method.
       </doc>
     </field>
 </method>
 
 <method name = "closed" synchronous = "1">
-    <doc>
+    Confirm a connection close.
+    
+    <doc domain = "long">
+    This method confirms a connection close request and tells the
+    recipient that it is safe to release resources for the connection
+    and close the socket.
     </doc>
+    <doc domain = "rule">
+    A peer that detects a socket closure without having received a
+    Connection.Closed handshake method SHOULD log the error.
+    </doc>
+    <chassis name = "client" implement = "MUST" />
+    <chassis name = "server" implement = "MUST" />
 </method>
 
+</class>
 
 
-Connection class grammar:
-
-Explanatory notes:
-
-- 'S:' indicates data or a method sent from the server to the client.
-- 'C:' indicates data or a method sent from the client to the server.
-- +term or +(...) expression means '1 or more instances'.
-- *term or *(...) expression means 'zero or more instances'.
-- Methods are indicated by uppercase names, e.g. OPEN.
-
-The specifics of the connection methods are explained in the Methods
-Reference section - each method has a full "man page" that explains what
-it does and how it must be implemented.

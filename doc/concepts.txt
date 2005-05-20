@@ -678,8 +678,8 @@ Using GSL code generation, it is a fairly simple matter to turn the
 formal frame definitions into marshalling code.  We have done this in
 C, Perl, Java.  This is a snippet of the generated C marshalling code:
 
-    if (IS_CONNECTION_CHALLENGE (source)) {
-        frame->type = FRAME_TYPE_CONNECTION_CHALLENGE;
+    if (IS_Connection_CHALLENGE (source)) {
+        frame->type = FRAME_TYPE_Connection_CHALLENGE;
         frame->body.connection_challenge.type = *source++;
         frame->body.connection_challenge.version = *source++;
         string_size = *source++;
@@ -728,7 +728,7 @@ The External APIs
 
 The Protocol Layer exports one or more APIs to the calling applications.
 These APIs may themselves be wrapped to provide something more familiar
-to nice developers.
+to naive developers.
 
 AMQ aims to be a standard and we also prefer to use existing standards
 where possible.  In the middleware domain, the dominant standard is JMS,
@@ -742,7 +742,7 @@ JMS has several strong advantages:
  - JMS implements most mature middleware models.  Basically, if we can
    "do JMS", we satisfy a large portion of the market.
 
-JMS has two serious disadvantages:
+JMS has two disadvantages:
 
  - It is in principle licensed only for Java use.  We expect that it is
    possible to build a JMS-like API without falling foul of these license
@@ -782,13 +782,19 @@ There are several different client architectures:
 - A COM client.  This client provides an API compatible with AMQ RFC015/0.4.
   It uses the synchronous SMT-based client (described below).
 
-- An asynchronous kernel client in C.  (The "kernel" is the core library
-  used to construct OpenAMQ.)  This uses the same technology as, and is
-  designed to be integrated into, the OpenAMQ server.  It implements the
-  AMQ RFC015/0.4 API.
+- An asynchronous kernel client in C/SMT.  (The "kernel" is the core
+  library used to construct OpenAMQ.)  This uses the same iMatix SMT
+  threading technology as, and is designed to be integrated into, the
+  OpenAMQ server.
 
 - A synchronous kernel client in C.  This uses the OpenAMQ server
   technology but is intended for general use.
+
+The full general-use clients are based on similar architectures and
+intended for use in standard single or multi-threaded applications. The
+C/SMT client is specifically for C/SMT applications, which includes the
+OpenAMQ server itself but could also mean other servers we build using
+C/SMT.
 
 This are some FSM diagrams for the clients. This is the asynchronous
 kernel client:
@@ -810,14 +816,14 @@ is probably the most radical and defining aspect of the entire project.
 
 The AMQ project, funded by a large institution and built by a specialist
 engineering firm, represents a new way of building software systems.
-As it grows, AMQ will draw support from many other institutions and
+As it grows, AMQ should draw support from many other institutions and
 firms. To a large middleware consuming firm, even a significant investment
 in such a project is much cheaper than the tangible cost of commercial
 alternatives and the intangible costs of working with arbitrary,
 incompatible, and closed systems.
 
-The economics of the AMQ project are simple: every dollar spent on
-creating this product will generate ten, a hundred dollars of value as
+The economics of the AMQ project are simple: every Dollar spent on
+creating this product will generate ten, a hundred Dollars of value as
 the cost of interconnecting applications comes down to zero, allowing
 larger and more efficient software architectures.
 
@@ -1101,11 +1107,13 @@ License) for practical reasons: it is what our target users will want.
 Escaping the "Version 2 Syndrome"
 =================================
 
-A project like AMQ solves a problem that is very well defined and for
-which there is a huge market. In a large global enterprise, there are
-dozens, perhaps hundreds of potential applications where commercial or
-ad-hoc middleware can be placed aside in favour of a simpler standard
-solution.
+A project like AMQ solves a problem that is very well defined - after
+twenty or more years of work, middleware can basically be reduced to a
+fixed set of queuing and routing mechanisms with a large amount of
+wrapping - and for which there is a huge market. In a large global
+enterprise, there are dozens, perhaps hundreds of potential applications
+where commercial or ad-hoc middleware can be placed aside in favour of a
+simpler standard solution.
 
 The user community is sophisticated, having worked with middleware of
 all flavours, and able to rapidly define the most ambitious goals in
@@ -1116,7 +1124,7 @@ many mistakes while discovering the ideal solutions to the many problems
 we have to solve.
 
 On the other hand, this maturity of vision can become a danger to the
-banality realities of building the project.  Too many features, added
+banal realities of building the project.  Too many features, added
 too soon, turn the best source code into mush.
 
 We describe our process for filtering functionality while keeping the
@@ -1179,11 +1187,12 @@ The main functionality planned for version 1.0 of OpenAMQ is:
 - Project support structures: web site et al.
 - SASL security.
 - Access-control lists.
+- Simplified selectors.
 
 Functionality that will probably not be included in version 1.0:
 
 - XA transactions.
-- JMS selectors.
+- Full JMS selectors.
 
 And functionality that we still have to look at in more detail:
 
@@ -1303,10 +1312,10 @@ eliminate potential future bottlenecks, specifically for:
    64-bit sized packets in 50 years.
 
 3. Sequencing: we use method sequencing to allow matching of replies
-   and errors with requests.  The method sequence number is 32 bits.
-   This allows 4G methods to be exchanged between synchpoints.  We
-   do not see this as a limitation in any scenario, present or
-   future.
+   and errors with requests, so called "synchpoints".  The method
+   sequence number is 32 bits. This allows 4G methods to be exchanged
+   between synchpoints.  We do not see this as a limitation in any
+   scenario, present or future.
    
 4. Protocol classes and methods: the current protocol defines about
    ten classes and about ten or fewer methods per class.  We
@@ -1478,10 +1487,12 @@ Destination:
     managed by clients via the protocol methods.
 Subscription:
     A long-running request from a client to receive messages from one
-    or more topic destinations. Subscriptions can be shared between
-    clients.  Subscriptions are explicitly durable so that clients do
-    not have to be connected to ensure that messages are queued for
-    them.
+    or more topic destinations.  Subscriptions are defined on the topic
+    name and on content-based routing rules, and may be private or
+    shared between multiple clients (achieving load balancing).
+    Subscriptions are explicitly durable and asynchronous so that
+    clients do not have to be connected to ensure that messages are
+    queued for them.
 Consumer:
     A client that requests messages from a destination.
 Producer:
@@ -1840,7 +1851,7 @@ Our design is based on these principles:
    at a higher level.
 
 These principles provide the basis for a simple and efficient pipelining
-design based on "selective synchronisation".  Some methods are explicitly
+design based on "selective synchronisation". Some methods are explicitly
 synchronous - a specific request is always paired with a specific reply
 unless there is an error - and other methods are asychronous unless the
 sender asks for a synchronisation reponse.
@@ -1850,11 +1861,8 @@ method includes the ID of the method that caused the error.
 
 Methods on a specific channel are processed strictly in order. Thus the
 client can set "synchronisation points" by asking for a confirmation,
-and handle errors unambiguously (all methods up to but not including
-the failed method will have succeeded).
-
-We use 64-bit method tags to eliminate the issue of wrap-around.
-Method tags are numbered on a per-connection basis.
+and handle errors unambiguously (all methods up to but not including the
+failed method will have succeeded).
 
 The Framing Design
 ------------------
@@ -2031,7 +2039,7 @@ is implementation-defined.
 Guidelines for implementors:
 
 - Both server and client MAY send trace frames at any point in the
-  connection after protocol negotiation and before a CONNECTION CLOSE
+  connection after protocol negotiation and before a Connection.Close
   method.
 
 - If the recipient of a trace frame does not have a suitable trace
@@ -2284,8 +2292,8 @@ programmer needs to see.
 AMQP/Fast defines these standard content domains:
 
 - Domain = 1, "JMS": the content is a JMS-compliant message.
-- Domain = 2, "FILE": the content is a file.
-- Domain = 3, "STREAM": the content is a streamed message.
+- Domain = 2, "File": the content is a file.
+- Domain = 3, "Stream": the content is a streamed message.
 
 Each domain has a specific access model, though they all share the basic
 AMQP queuing and routing mechanisms including topic multipliers. These
@@ -2443,9 +2451,9 @@ The flags are defined as follows:
                     |   |   |   |   |  |         |
     SYNCHREQ -------'   |   |   |   |  |         |
                         |   |   |   |  `----+----'
-    IFTEST -------------'   |   |   |       |
+    IFTest -------------'   |   |   |       |
                             |   |   |       |
-    TESTED -----------------'   |   |       |
+    TestED -----------------'   |   |       |
                                 |   |
     DTRACE ---------------------'   |   Reserved
                                     |
@@ -2454,11 +2462,11 @@ The flags are defined as follows:
 - 7 = SYNCHREQ - if 1, requests a "synchpoint", turning an asynchronous
   method into a synchronous one. Has no effect on a synchronous method.
 
-- 6 = IFTEST - if 1, requests an "interface test", in which the
+- 6 = IFTest - if 1, requests an "interface test", in which the
   recipient responds with an echo of the method but does not otherwise
   execute the method.
 
-- 5 = TESTED - if 1, indicates the result of an "interface test".
+- 5 = TestED - if 1, indicates the result of an "interface test".
 
 - 4 = DTRACE - if 1, requests a "distributed trace", in which the
   recipient will trace all responses to this and other clients which
@@ -2489,10 +2497,10 @@ The Synchpoint Function
 .......................
 
 A client can request a synchpoint when sending an asynchronous request
-method. The server responds with a CHANNEL SYNCH method when it finishes
+method. The server responds with a Channel SYNCH method when it finishes
 processing the request method. Synchpoints are only sent if the method
 completes successfully. If the method fails, the server replies with a
-CHANNEL CLOSE or CONNECTION CLOSE depending on the severity of the
+Channel.Close or Connection.Close depending on the severity of the
 error.
 
 Clients can use synchpoints to force occasional synchronisation or to
@@ -2512,46 +2520,46 @@ Guidelines for implementors:
 
 The methods that solicit a synchronous reply are:
 
-- All CONNECTION methods.
-- All TEST methods.
-- The CHANNEL OPEN and CLOSE methods.
-- All ACCESS methods.
-- The DESTINATION CREATE method.
-- The SUBSCRIPTION CREATE and CONSUME methods.
+- All Connection methods.
+- All Test methods.
+- The Channel OPEN and CLOSE methods.
+- All Access methods.
+- The Destination CREATE method.
+- The Subscription CREATE and CONSUME methods.
 - The JMS CONSUME and BROWSE methods.
-- The FILE CONSUME, OPEN, and BROWSE methods.
-- The STREAM CONSUME method.
+- The File CONSUME, OPEN, and BROWSE methods.
+- The Stream CONSUME method.
 
 The Interface Test Function
 ...........................
 
 A peer can test the capability of the other peer by sending methods with
-the IFTEST flag set. When a peer receives a message with this flag set
-it de-marshals the frame, reconstructs it with the same arguments, and
+the IFTest flag set. When a peer receives a message with this flag set
+it de-marshals the frame, reconstructs it with the same fields, and
 sends it back to the requesting peer. We assume that a
 specially-designed peer, a "monitor client" will perform the tests. 
 
-The goal of the IFTEST flag is to allow a monitor client to determing
+The goal of the IFTest flag is to allow a monitor client to determing
 what methods a peer supports.
 
 Guidelines for implementors:
 
-- A peer MUST respect the IFTEST flag on all methods that it supports.
+- A peer MUST respect the IFTest flag on all methods that it supports.
 
-- A peer MUST reply to unsupported methods with the IFTEST flag set
-  with a CONNECTION IFFAIL method.
+- A peer MUST reply to unsupported methods with the IFTest flag set
+  with a Connection IFFAIL method.
 
-- A peer MUST treat an unsupported methods with the IFTEST flag
+- A peer MUST treat an unsupported methods with the IFTest flag
   cleared as a fatal error and close the connection.
 
 - A peer MAY use interface testing to adapt its behaviour dynamically.
 
-- A peer MUST respond to a supported method with the IFTEST flag set as
+- A peer MUST respond to a supported method with the IFTest flag set as
   follows: (a) decode the method and perform syntactic validation. (b)
   recreate the method with the same arguments and send it with the
-  TESTED flag set.
+  TestED flag set.
 
-- A peer SHOULD treat an unexpected TESTED flag as a fatal error and
+- A peer SHOULD treat an unexpected TestED flag as a fatal error and
   close the connection.
 
 The Distributed Trace Function
@@ -2599,16 +2607,16 @@ Protocol Classes
 
 AMQP/Fast defines these protocol classes:
 
-- CONNECTION: open and work with a network connection.
-- CHANNEL: open and work with a virtual connection.
-- ACCESS: access control to destinations.
-- DESTINATION: work with queues and topics.
-- SUBSCRIPTION: work with subscriptions.
+- Connection: open and work with a network connection.
+- Channel: open and work with a virtual connection.
+- Access: access control to destinations.
+- Destination: work with queues and topics.
+- Subscription: work with subscriptions.
 - JMS: work with JMS message content.
-- FILE: work with file transfer content.
-- STREAM: work with streamed content.
+- File: work with file transfer content.
+- Stream: work with streamed content.
 - XA: XA transaction functionality.
-- TEST: test peer functionality.
+- Test: test peer functionality.
 
 Methods are numbered locally per class and there is no attempt to keep a
 consistent numbering for similar methods in different classes, nor to
@@ -2616,36 +2624,36 @@ distinguish client or server methods through special numbering schemes.
 Method numbering has no significance beyong uniquely identifying the
 method.
 
-The CONNECTION Class
+The Connection Class
 ....................
 
 The connection class provides methods for a client to establish a
 network connection to a server, and for both peers to operate the
 connection thereafter.
 
-These are the CONNECTION server methods:
+These are the Connection server methods:
 
 - CLOSE (syn request): request connection close.
 - CLOSED (syn reply for CLOSED): confirm connection close.
 - RESPONSE (syn reply for CHALLENGE): negotiate a security profile.
 - RETUNE (syn reply for TUNE): negotiate connection parameters.
 - OPEN (syn request): open connection to virtual host.
-- IFFAIL (syn response to unsupported IFTEST method).
+- IFFAIL (syn response to unsupported IFTest method).
 
-These are the CONNECTION client methods:
+These are the Connection client methods:
 
 - CLOSE (syn request): request connection close.
 - CLOSED (syn reply for CLOSED): confirm connection close.
 - CHALLENGE (syn request): negotiate a security profile.
 - TUNE (syn request): negotiate connection parameters.
 - READY (syn response to OPEN): virtual host connection ready.
-- IFFAIL (syn response to unsupported IFTEST method).
+- IFFAIL (syn response to unsupported IFTest method).
 
 Guidelines for implementors:
 
-- A server MUST support all CONNECTION server methods except IFFAIL.
-- A client MUST support all CONNECTION client methods except IFFAIL.
-- A peer MUST support IFFAIL if it uses the IFTEST flag.
+- A server MUST support all Connection server methods except IFFAIL.
+- A client MUST support all Connection client methods except IFFAIL.
+- A peer MUST support IFFAIL if it uses the IFTest flag.
 
 Connection class grammar:
 
@@ -2670,14 +2678,14 @@ The specifics of the connection methods are explained in the Methods
 Reference section - each method has a full "man page" that explains what
 it does and how it must be implemented.
 
-The CHANNEL Class
+The Channel Class
 .................
 
 The channel class provides methods for a client to establish a virtual
 connection - a channel - to a server and for both peers to operate the
 virtual connection thereafter.
 
-These are the CHANNEL server methods:
+These are the Channel server methods:
 
 - OPEN (syn request): open a channel.
 - CLOSE (syn request): request channel close.
@@ -2686,7 +2694,7 @@ These are the CHANNEL server methods:
 - COMMIT (async): commit channel transaction.
 - ROLLBACK (async): rollback channel transaction.
 
-These are the CHANNEL client methods:
+These are the Channel client methods:
 
 - CLOSE (syn request): request channel close.
 - CLOSED (syn reply for CLOSED): confirm channel close.
@@ -2697,8 +2705,8 @@ These are the CHANNEL client methods:
 
 Guidelines for implementors:
 
-- A server MUST support all CHANNEL server methods.
-- A client MUST support all CHANNEL client methods.
+- A server MUST support all Channel server methods.
+- A client MUST support all Channel client methods.
 
 Channel class grammar:
 
@@ -2713,18 +2721,18 @@ Channel class grammar:
     close-channel       = C:CLOSE S:CLOSED
                         / S:CLOSE C:CLOSED
 
-The ACCESS Class
+The Access Class
 ................
 
-The ACCESS class provides methods for a clients to request access to a
+The Access class provides methods for a clients to request access to a
 set of destinations.
 
-These are the ACCESS server methods:
+These are the Access server methods:
 
 - REQUEST (syn request): request access to a set of destinations and
   set a routing semantic (queue or topic) for publish methods.
 
-These are the ACCESS client methods:
+These are the Access client methods:
 
 - GRANT (syn reply to REQUEST): confirm access granted.
 
@@ -2732,36 +2740,36 @@ Guidelines for implementors:
 
 - The server SHOULD implement access controls on the
   destinations that it manages.
-- A server MUST support all ACCESS server methods.
-- A client SHOULD support all ACCESS client methods.
+- A server MUST support all Access server methods.
+- A client SHOULD support all Access client methods.
 
 Access class grammar:
 
     access              = C:REQUEST S:GRANT
 
-The DESTINATION Class
+The Destination Class
 .....................
 
 Destinations are queues or topics, capable of storing and routing all
 types of content. AMQP/Fast lets clients create and work with private or
 shared destinations that share a common namespace with configured
-destinations. The DESTINATION class provides methods for a client to
+destinations. The Destination class provides methods for a client to
 work with destinations.
 
-These are the DESTINATION server methods:
+These are the Destination server methods:
 
 - CREATE (syn request): create a new destination.
 - PURGE (async): purge a destination of all messages.
 - DESTROY (async): destroy a destination.
 
-These are the DESTINATION client methods:
+These are the Destination client methods:
 
 - READY (async reply to CREATE): confirm destination created.
 
 Guidelines for implementors:
 
-- A server MUST support all DESTINATION server methods.
-- A client SHOULD support all DESTINATION client methods.
+- A server MUST support all Destination server methods.
+- A client SHOULD support all Destination client methods.
 
 Destination class grammar:
 
@@ -2769,11 +2777,11 @@ Destination class grammar:
                         / C:PURGE
                         / C:DESTROY
 
-The SUBSCRIPTION Class
+The Subscription Class
 ......................
 
 Subscriptions are durable requests to receive messages from a specific
-set of topic destinations. The SUBSCRIPTION class provides methods for
+set of topic destinations. The Subscription class provides methods for
 clients to work with subscriptions. Note that a client uses the CONSUME
 method in the various content classes to actually receive messages from
 a subscription.
@@ -2783,22 +2791,22 @@ they can be named or unnamed objects, private to one consumer or shared
 between consumers. A single subscription can hold content of different
 domains.
 
-These are the SUBSCRIPTION server methods:
+These are the Subscription server methods:
 
 - CREATE (syn request): create a new subscription.
 - PURGE (async): purge a subscription of all messages.
 - DESTROY (async): destroy a subscription and any messages
   it may hold.
 
-These are the SUBSCRIPTION client methods:
+These are the Subscription client methods:
 
 - READY (syn reply to CREATE or CONSUME): confirm subscription
   created.
 
 Guidelines for implementors:
 
-- A server MUST support all SUBSCRIPTION server methods.
-- A client SHOULD support all SUBSCRIPTION client methods.
+- A server MUST support all Subscription server methods.
+- A client SHOULD support all Subscription client methods.
 
 Subscription class grammar:
 
@@ -2848,52 +2856,52 @@ JMS class grammar:
                         / C:UNGET
                         / C:ACK
 
-The FILE Class
+The File Class
 ..............
 
 File transfer is a staged content delivery method. That is, the sender
 of a file first "stages" the file by sending it to a temporary holding
 area provided by the recipient. When the file is fully staged, it is
 published using semantics identical to those of the JMS class.  Staging
-is how AMQP/Fast implements restartable file transfer. FILE messages
+is how AMQP/Fast implements restartable file transfer. File messages
 and acknowledgements may be covered by channel transactions.
 
-The FILE class provides methods that support the file transfer
+The File class provides methods that support the file transfer
 operational model.
 
-These are the FILE server methods:
+These are the File server methods:
 
-- OPEN (syn request): request permission to stage a FILE message,
+- OPEN (syn request): request permission to stage a File message,
   i.e. to send the content to a temporary holding area.
-- READY (syn reply to OPEN): confirm ready to stage FILE message.
-- STAGE (async): stage a FILE message.
-- CONSUME (asybnc): create a FILE queue consumer, i.e. request
-  to receive FILE messages from a queue.
-- CANCEL (async): cancel a FILE queue consumer.
-- PUBLISH (async): publish a staged FILE message to a queue or
+- READY (syn reply to OPEN): confirm ready to stage File message.
+- STAGE (async): stage a File message.
+- CONSUME (asybnc): create a File queue consumer, i.e. request
+  to receive File messages from a queue.
+- CANCEL (async): cancel a File queue consumer.
+- PUBLISH (async): publish a staged File message to a queue or
   topic destination.
-- BROWSE (syn request): request the next FILE message from a queue
+- BROWSE (syn request): request the next File message from a queue
   or subscription.
 - UNGET (async): push a JMS message back onto a queue.
-- ACK (async): acknowledge processing of one or more FILE messages.
+- ACK (async): acknowledge processing of one or more File messages.
 
-These are the FILE client methods:
+These are the File client methods:
 
-- OPEN (syn request): request permission to stage a FILE message,
+- OPEN (syn request): request permission to stage a File message,
   i.e. to send the content to a temporary holding area.
-- READY (syn reply to OPEN): confirm ready to stage FILE message.
-- STAGE (async): stage a FILE message.
-- NOTIFY (async): notify client of a new FILE message to process.
+- READY (syn reply to OPEN): confirm ready to stage File message.
+- STAGE (async): stage a File message.
+- NOTIFY (async): notify client of a new File message to process.
 - BROWSED (syn reply to BROWSE): provide client with results of
   a BROWSE method.
 
 Guidelines for implementors:
 
-- A server MUST support either none of or all of the FILE server
+- A server MUST support either none of or all of the File server
   methods.
-- A client MUST support either none of or all of the FILE client
+- A client MUST support either none of or all of the File client
   methods.
-- Clients and servers MUST only use these methods for FILE content.
+- Clients and servers MUST only use these methods for File content.
 
 File class grammar:
 
@@ -2909,7 +2917,7 @@ File class grammar:
                         / C:UNGET
                         / C:ACK
 
-The STREAM Class
+The Stream Class
 ................
 
 Streaming is a simplified content delivery method. It is aimed at
@@ -2924,28 +2932,28 @@ have designed it as a series of messages produced by one or more
 producers and consumed by one or more consumers.  Streamed messages
 can thus use all the AMQP/Fast queueing and routing functionality.
 
-The STREAM class provides methods that support the streaming operational
+The Stream class provides methods that support the streaming operational
 model.
 
-These are the STREAM server methods:
+These are the Stream server methods:
 
-- CONSUME (async): create a STREAM consumer, i.e. request to
-  receive STREAM messages from a destination.
-- CANCEL (async): cancel a STREAM consumer.
-- PUBLISH (async): publish a STREAM message to a queue or topic
+- CONSUME (async): create a Stream consumer, i.e. request to
+  receive Stream messages from a destination.
+- CANCEL (async): cancel a Stream consumer.
+- PUBLISH (async): publish a Stream message to a queue or topic
   destination.
 
-These are the STREAM client methods:
+These are the Stream client methods:
 
-- NOTIFY (async): notify client of a new STREAM message to process.
+- NOTIFY (async): notify client of a new Stream message to process.
 
 Guidelines for implementors:
 
-- A server MUST support either none of or all of the STREAM server
+- A server MUST support either none of or all of the Stream server
   methods.
-- A client MUST support either none of or all of the STREAM client
+- A client MUST support either none of or all of the Stream client
   methods.
-- Clients and servers MUST only use these methods for STREAM content.
+- Clients and servers MUST only use these methods for Stream content.
 
 Stream class grammar:
 
@@ -2964,7 +2972,7 @@ Guidelines for implementors:
 
 - A peer MAY support the XA methods.
 
-The TEST Class
+The Test Class
 ................
 
 The test class provides methods for a peer to test the basic operational
@@ -2973,21 +2981,21 @@ that all peers respect at least the basic elements of the protocol, such
 as frame and content organisation and field types. We assume that a
 specially-designed peer, a "monitor client" will perform the tests.
 
-These are the TEST methods:
+These are the Test methods:
 
 - INTEGERS (syn request): test handling of integer fields.
 - STRINGS (syn request): test handling of string fields.
 - TABLES (syn request): test handling of field tables.
 - CONTENT (syn request): test handling of content.
 
-These are the TEST monitor methods:
+These are the Test monitor methods:
 
 - RESULT (syn reply to all methods): result of test.
 
 Guidelines for implementors:
 
-- A peer SHOULD support all TEST methods.
-- A monitor client MUST support the TEST monitor methods.
+- A peer SHOULD support all Test methods.
+- A monitor client MUST support the Test monitor methods.
 
 AMQP Queuing and Routing Mechanisms
 -----------------------------------
@@ -3056,7 +3064,7 @@ is is being resent after a failure or rejection.
 Note that mixed content on a queue is generally sent asynchronously
 using the appropriate NOTIFY methods, to those clients that have asked
 for it.  The BROWSE method allows clients to selectively receive single
-JMS or FILE messages but not STREAM messages.
+JMS or File messages but not Stream messages.
 
 Guidelines for implementors:
 
@@ -3066,7 +3074,7 @@ Guidelines for implementors:
   queue, in any mix, depending on the access rights of the producing
   client.
 
-- The STREAM CONSUME method MUST not allow more than one stream consumer
+- The Stream CONSUME method MUST not allow more than one stream consumer
   per queue and SHOULD reject messages sent to a queue where there are
   no stream consumers.
 
@@ -3110,7 +3118,7 @@ Guidelines for implementors:
 - A server MUST allow any content domain to be sent to any subscription,
   depending on the access rights of the producing client.
 
-- The STREAM CONSUME method MUST not allow more than one STREAM consumer
+- The Stream CONSUME method MUST not allow more than one Stream consumer
   per subscription.
 
 Selection and Routing
@@ -3148,8 +3156,8 @@ Messages may be persistent or not, depending on several criteria:
 
 1. In the JMS content domain, messages are individually marked as
    "persistent" or not.
-2. In the FILE content domain, messages are always persistent.
-3. In the STREAM content domain, messages are never persistent.
+2. In the File content domain, messages are always persistent.
+3. In the Stream content domain, messages are never persistent.
 
 Guidelines for implementors:
 
@@ -3157,12 +3165,12 @@ Guidelines for implementors:
   messages on persistent storage.
 
 - The server MUST NOT discard persistent messages but SHOULD use the
-  CHANNEL FLOW method to slow or stop a producer when necessary.
+  Channel FLOW method to slow or stop a producer when necessary.
 
-- The server MAY overflow non-persistent JMS or STREAM messages to
+- The server MAY overflow non-persistent JMS or Stream messages to
   persistent storage if the queue exceeds some configured size.
 
-- The server MAY alternatively discard non-persistent JMS or STREAM
+- The server MAY alternatively discard non-persistent JMS or Stream
   messages if the queue exceeds some configured size.
 
 Message Priorities
@@ -3201,7 +3209,7 @@ Guidelines for implementors:
 - A server SHOULD implement browse timeouts with a msec or better
   accuracy but MAY implement these with a second accuracy.
 
-- The STREAM content class does not allow browsing and server
+- The Stream content class does not allow browsing and server
   implementations SHOULD optimise stream content to take advantage
   of this.
 
@@ -3233,7 +3241,7 @@ AMQP/Fast flow control is based on these concepts:
    flow control".
 
 2. Allowing one peer to halt and restart a flow of messages coming
-   from the other peer, using the CHANNEL FLOW method, which we call
+   from the other peer, using the Channel FLOW method, which we call
    "channel flow control".
 
 Since the PUBLISH method is not acknowledged, there is no window-based
@@ -3274,7 +3282,7 @@ slower, more complex, and more reliable:
 3. XA 2-phase transactions, using the XA class.  This is still under
    construction.
 
-The transaction type is chosen on a per-channel basis in the CHANNEL
+The transaction type is chosen on a per-channel basis in the Channel
 OPEN method.
 
 Guidelines for implementors:
@@ -3282,7 +3290,7 @@ Guidelines for implementors:
 - A server SHOULD enforce a limit on the number of messages that may be
   outstanding in a transaction.  The server implements such a limit it
   MUST inform the client via the TXN_LIMIT tuning option (see definition
-  of CONNECTION TUNE).
+  of Connection TUNE).
 
 Error Handling
 --------------
@@ -3379,16 +3387,6 @@ the other party.  The receiving peer must respond to a CLOSE with a
 CLOSED method.  The closing peer reads methods back until it gets a
 CLOSED, at which point it closes the connection and frees resources.
 
-Guidelines for implementors:
-
-- After sending a CLOSE, any received method MUST be discarded.
-
-- The peer sending CLOSE MAY use a counter or timeout to detect failure
-  of the other peer to respond correctly with CLOSED.
-
-- A peer that detects a socket closure without having received a
-  correct close handshake SHOULD log the error.
-
 The JMS Operational Model
 ------------------------
 
@@ -3437,7 +3435,7 @@ file transfer based on the AMQP/Fast queuing and routing models.  For
 instance, routing files via the publish and subscribe functionality
 of topics and subscriptions.
 
-FILE content is specifically different from JMS content in that:
+File content is specifically different from JMS content in that:
 
 - Files are always persistent.
 - File transfer is restartable: if a file has been
@@ -3451,13 +3449,13 @@ File transfers always happen in two steps:
 2. The sender notifies the recipient of the file, using PUBLISH (a
    client to a server), or NOTIFY (a server to a client).
 
-A FILE message is persistent and optimised for restartable transfers
+A File message is persistent and optimised for restartable transfers
 across possibly unreliable network connections.
 
-FILE Content Properties
+File Content Properties
 .......................
 
-These are the properties defined for FILE content:
+These are the properties defined for File content:
 
 - ContentType (tiny string)
 - ContentEncoding (tiny string)
@@ -3504,10 +3502,10 @@ A stream consumer can specify:
 - Prefetch size in octets and/or messages.
 - Desired rate in octets per second.
 
-STREAM Content Properties
+Stream Content Properties
 .........................
 
-These are the properties defined for STREAM content:
+These are the properties defined for Stream content:
 
 - ContentType (tiny string)
 - ContentEncoding (tiny string)

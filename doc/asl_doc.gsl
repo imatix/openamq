@@ -1,0 +1,93 @@
+#  ----------------------------------------------------------------------------
+#   ASL documentation target
+#   Generates a gurudoc document from the ASL specifications.
+#
+#   Copyright (c) 1991-2005 iMatix Corporation, JPMorganChase
+#
+#   All output spacing (blank line) is done at the start of the output block.
+#  ----------------------------------------------------------------------------
+
+function output_title (title, linetype)
+    >
+    >$(my.title)
+    >$((my.linetype + "") * string.length (my.title))
+endfunction
+
+function output_doc (domain, header, reformat)
+    my.reformat ?= 1
+    for doc where domain = my.domain
+        if defined (my.header) & index () = 1
+            >
+            >$(my.header):
+        endif
+        >
+        if my.reformat
+            >$(string.trim (.):justify                                              )
+        else
+            >$(string.trim (.))
+        endif
+    endfor
+endfunction
+
+function output_rules (force)
+    if count (doc, domain = "rule") | my.force ?= 1
+        >
+        >Guidelines for implementors:
+    endif
+    for doc where domain = "rule"
+        >
+        >$("-":block) \
+        >$(.:justify,block                                                   )
+    endfor
+endfunction
+
+
+#################################   MAIN   #################################
+
+if !defined (switches.quiet)
+    echo "Generating $(protocol.name) documentation..."
+endif
+
+output "$(protocol.name)_classes.txt"
+for class 
+    output_title ("The $(class.name:neat) Class", "-")
+    output_doc   ("long")
+    output_doc   ("grammar", "This is the formal grammar for the class", 0)
+    output_rules ()
+    
+    for method 
+        method.full_name = "$(class.name:neat).$(method.name:neat)"
+    
+        output_title ("The $(full_name) Method", ".")
+        output_doc   ("long")
+        output_rules (1)
+        for chassis
+            >
+            >- The $(name) $(implement) implement this method.
+        endfor
+        if method.synchronous
+            >
+            if defined (expect)
+                >- This method is a synchronous request. The sender MUST expect a
+                >  $(class.name:neat).$(expect:neat) method in return, unless there is an exception.
+            else
+                >- This method is a synchronous response.  The sender MUST NOT
+                >  expect a specific method in return, except as defined by the
+                >  class grammar.
+            endif
+        else
+            >- This method is asynchronous.  The recipient MUST handle it
+            >  at any point as defined by the class grammar.  The sender
+            >  MUST not expect any specific reply unless the SYNCHREQ flag
+            >  is set (which will solicit a Channel.Synch reply).
+        endif
+        >
+        >The $(full_name) method has the following fields:
+        >
+        for field
+            > - $(name) ($(type)): $(string.justify (., 255))
+        endfor
+    endfor
+endfor
+
+

@@ -1,5 +1,4 @@
 <?xml version="1.0"?>
-
 <xnf
     name    = "asl"
     script  = "xnf_gen.gsl"
@@ -73,6 +72,9 @@ endif
     Specifies the name of the class.  This name will be used to prefix all
     function names and will also be used as the filename for generated code.
     </attr>
+    <attr name = "template" default = "template">
+    The class template.
+    </attr>
     <attr name = "comment" short = "Short description">
     An optional one-line comment that describes the class.
     </attr>
@@ -108,7 +110,7 @@ endif
     <attr name = "name" required = "1" short = "method name">
     The name of the method, used in the API.
     </attr>
-    <attr name = "template" default = "header">
+    <attr name = "template" default = "template">
     The method template.
     </attr>
     <attr name = "synchronous" default = "0">
