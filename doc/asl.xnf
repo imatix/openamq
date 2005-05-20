@@ -62,7 +62,7 @@ endif
     </rule>
 </entity>
 
-<entity name = "class" tag = "class">
+<entity name = "class" tag = "class" template = "default">
     The class tag defines the class.
     <allow entity = "doc"       />
     <allow entity = "method"    />
@@ -72,7 +72,7 @@ endif
     Specifies the name of the class.  This name will be used to prefix all
     function names and will also be used as the filename for generated code.
     </attr>
-    <attr name = "template" default = "template">
+    <attr name = "template" default = "template" phase = "preproc">
     The class template.
     </attr>
     <attr name = "comment" short = "Short description">
@@ -100,7 +100,7 @@ endif
     generated documentation in a suitable form.
 </entity>
 
-<entity name = "method" tag = "method" cdata = "1">
+<entity name = "method" tag = "method" cdata = "1" template = "default">
     Methods provide functionality for the component class.  All
     methods inherit basic fields from the default method.
     <allow entity = "doc"       />
@@ -110,7 +110,7 @@ endif
     <attr name = "name" required = "1" short = "method name">
     The name of the method, used in the API.
     </attr>
-    <attr name = "template" default = "template">
+    <attr name = "template" default = "template" phase = "preproc">
     The method template.
     </attr>
     <attr name = "synchronous" default = "0">
