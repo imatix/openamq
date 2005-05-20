@@ -1705,7 +1705,7 @@ Protocol grammar:
     protocol-version    = protocol-major protocol-minor
     protocol-major      = OCTET
     protocol-minor      = OCTET
-    
+
 For AMQP/Fast these are the correct values:
 
 - protocol-class = 1 (this is the class of all AMQP/Fast protocols)
@@ -2139,7 +2139,7 @@ Formal Grammar for Content Frames
 This is the formal grammar for the AMQP/Fast content model:
 
     content         = header-frame child-content *body-frame
-    header-frame    = HEADER channel frame-size header-payload  
+    header-frame    = HEADER channel frame-size header-payload
     channel         = octet
     frame-size      = short-integer
     header-payload  = domain weight body-size
@@ -2932,7 +2932,7 @@ have designed it as a series of messages produced by one or more
 producers and consumed by one or more consumers.  Streamed messages
 can thus use all the AMQP/Fast queueing and routing functionality.
 
-The Stream class provides methods that support the streaming operational
+The Stream class provides methods that support the stream operational
 model.
 
 These are the Stream server methods:
@@ -2997,8 +2997,8 @@ Guidelines for implementors:
 - A peer SHOULD support all Test methods.
 - A monitor client MUST support the Test monitor methods.
 
-AMQP Queuing and Routing Mechanisms
------------------------------------
+Queuing and Routing Mechanisms
+------------------------------
 
 Goals and Principles
 ....................
@@ -3278,7 +3278,7 @@ slower, more complex, and more reliable:
    transaction starts when the channel is opened and after every commit
    or rollback. If the channel is closed without a commit, all pending
    work is rolled-back. Nested transactions are not allowed.
-   
+
 3. XA 2-phase transactions, using the XA class.  This is still under
    construction.
 
@@ -3467,8 +3467,8 @@ These are the properties defined for File content:
 - Timestamp (tiny string)
 - Headers (field table)
 
-The Streaming Operational Model
--------------------------------
+The Stream Operational Model
+----------------------------
 
 Goals and Principles
 ....................
