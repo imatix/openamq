@@ -22,8 +22,8 @@
 -->
 
 <!-- All methods start with this header  -->
-<class name = "template" abstract = "1">
-    <method name = "template" abstract = "1">
+<class name = "template" abstract = "1" inherit = "none">
+    <method name = "template" abstract = "1" inherit = "none">
         <field name = "method class"     type = "octet"  >Method class</field>
         <field name = "method id"        type = "octet"  >Method ID</field>
         <field name = "method revision"  type = "octet"  >Method revision</field>
