@@ -1482,9 +1482,15 @@ Message:
     A specific type of content, the application-to-application message.
 Destination:
     A queue or topic, able to hold and route messages of various types.
-    A server manages access to a set of destinations. Destinations are
-    either configured by the server administrator, or are created and
-    managed by clients via the protocol methods.
+    A server manages access to a set of destinations.
+Static_Destination:
+    Destinations that are configured by the server administrator.
+Dynamic_Destination:
+    Destinations that are created and managed by clients via protocol
+    methods. Unlike "temporary" destinations, dynamic destinations
+    provide true disconnected asynchronous processing in which a
+    client can create a response queue, then continue to receive
+    queued messages even when going offline. 
 Subscription:
     A long-running request from a client to receive messages from one
     or more topic destinations.  Subscriptions are defined on the topic
@@ -1501,6 +1507,10 @@ Virtual_host:
     A collection of destinations and associated subscriptions,
     consumers, etc. Virtual hosts are independent server domains that
     share a common authentication and encryption environment.
+Realm:
+    A group of destinations covered by a single security policy and
+    access control.  Applications ask for access to realms, rather
+    than to individual destinations.
 Streaming:
     The process by which the server will send messages to the client at
     a pre-arranged rate.  
@@ -1619,8 +1629,10 @@ followed by zero or more octets of data.  AMQP/Fast defines these
 string types:
 
 - Short strings, stored as a 1-octet length followed by zero or more
-  octets of data.  Short strings are assumed to be in UTF-8 format,
-  and may not contain binary zero octets.
+  octets of data.  Short strings are capable of carrying UTF-8 data,
+  and may not contain binary zero octets.  In the current version of
+  the protocol short strings may only contain US-ASCII (ISO-8859-1)
+  characters.
 
 - Long strings, stored as a short integer length followed by zero or
   more octets of data.  Long strings can contain any data.
@@ -2446,34 +2458,31 @@ The flags are defined as follows:
 
                     7   6   5   4   3   2   1   0
                   +---+---+---+---+---+---+---+---+
-                  | X | X | X | X | X | 0   0   0 |
+                  | X | X | X | X |   revision    |
                   +---+---+---+---+---+---+---+---+
-                    |   |   |   |   |  |         |
-    SYNCHREQ -------'   |   |   |   |  |         |
-                        |   |   |   |  `----+----'
-    IFTest -------------'   |   |   |       |
-                            |   |   |       |
-    TestED -----------------'   |   |       |
-                                |   |
-    DTRACE ---------------------'   |   Reserved
-                                    |
-    TRACED -------------------------'
-                      
+                    |   |   |   | 
+    SYNCHREQ -------'   |   |   | 
+                        |   |   |
+    UNREAL -------------'   |   |
+                            |   |
+    TRACER -----------------'   |
+                                |   
+    UNUSED ---------------------'
+                                 
 - 7 = SYNCHREQ - if 1, requests a "synchpoint", turning an asynchronous
   method into a synchronous one. Has no effect on a synchronous method.
 
-- 6 = IFTest - if 1, requests an "interface test", in which the
+- 6 = UNREAL - if 1, requests an "interface test", in which the
   recipient responds with an echo of the method but does not otherwise
   execute the method.
 
-- 5 = TestED - if 1, indicates the result of an "interface test".
-
-- 4 = DTRACE - if 1, requests a "distributed trace", in which the
+- 5 = TRACER - if 1, requests a "distributed trace", in which the
   recipient will trace all responses to this and other clients which
   the method provokes.
 
-- 3 = TRACED - if 1, indicates that the method is being traced, i.e. is
-  the direct or indirect result of a system wide trace.
+- 4 = UNUSED - this bit is not used.
+
+- 3-0 = revision - must be zero in this protocol.
 
 Guidelines for implementors:
 
@@ -2511,56 +2520,42 @@ scenarios than a normal asynchronous exchange of methods.
 
 Guidelines for implementors:
 
-- The server MUST ignore the SYNCHREQ flag on synchronous methods, which
-  are all methods that solicit a synchronous reply.
+- The server MUST ignore the SYNCHREQ flag on all methods that require
+  a synchronous reply.
 
 - The server MUST NOT set the SYNCHREQ flag on methods sent to the client,
   and the client MUST treat any method with the SYNCHREQ flag as a fatal
   connection error.
 
-The methods that solicit a synchronous reply are:
-
-- All Connection methods.
-- All Test methods.
-- The Channel OPEN and CLOSE methods.
-- All Access methods.
-- The Destination CREATE method.
-- The Subscription CREATE and CONSUME methods.
-- The JMS CONSUME and BROWSE methods.
-- The File CONSUME, OPEN, and BROWSE methods.
-- The Stream CONSUME method.
-
 The Interface Test Function
 ...........................
 
+//TODO: changed
 A peer can test the capability of the other peer by sending methods with
-the IFTest flag set. When a peer receives a message with this flag set
+the UNREAL flag set. When a peer receives a message with this flag set
 it de-marshals the frame, reconstructs it with the same fields, and
 sends it back to the requesting peer. We assume that a
 specially-designed peer, a "monitor client" will perform the tests. 
 
-The goal of the IFTest flag is to allow a monitor client to determing
+The goal of the UNREAL flag is to allow a monitor client to determing
 what methods a peer supports.
 
 Guidelines for implementors:
 
-- A peer MUST respect the IFTest flag on all methods that it supports.
+- A peer MUST respect the UNREAL flag on all methods that it supports.
 
-- A peer MUST reply to unsupported methods with the IFTest flag set
-  with a Connection IFFAIL method.
+- A peer MUST reply to unsupported methods with the UNREAL flag set,
+  with a Connection.Unknown method.
 
-- A peer MUST treat an unsupported methods with the IFTest flag
+- A peer MUST treat an unsupported methods with the UNREAL flag
   cleared as a fatal error and close the connection.
 
 - A peer MAY use interface testing to adapt its behaviour dynamically.
 
-- A peer MUST respond to a supported method with the IFTest flag set as
+- A peer MUST respond to a supported method with the UNREAL flag set as
   follows: (a) decode the method and perform syntactic validation. (b)
   recreate the method with the same arguments and send it with the
-  TestED flag set.
-
-- A peer SHOULD treat an unexpected TestED flag as a fatal error and
-  close the connection.
+  UNREAL flag set.
 
 The Distributed Trace Function
 ..............................
@@ -2615,7 +2610,8 @@ AMQP/Fast defines these protocol classes:
 - JMS: work with JMS message content.
 - File: work with file transfer content.
 - Stream: work with streamed content.
-- XA: XA transaction functionality.
+- TX: local transaction functionality.
+- DTX: distributed-transaction functionality.
 - Test: test peer functionality.
 
 Methods are numbered locally per class and there is no attempt to keep a
@@ -2638,7 +2634,7 @@ These are the Connection server methods:
 - RESPONSE (syn reply for CHALLENGE): negotiate a security profile.
 - RETUNE (syn reply for TUNE): negotiate connection parameters.
 - OPEN (syn request): open connection to virtual host.
-- IFFAIL (syn response to unsupported IFTest method).
+- IFFAIL (syn response to unsupported UNREAL method).
 
 These are the Connection client methods:
 
@@ -2647,13 +2643,13 @@ These are the Connection client methods:
 - CHALLENGE (syn request): negotiate a security profile.
 - TUNE (syn request): negotiate connection parameters.
 - READY (syn response to OPEN): virtual host connection ready.
-- IFFAIL (syn response to unsupported IFTest method).
+- IFFAIL (syn response to unsupported UNREAL method).
 
 Guidelines for implementors:
 
 - A server MUST support all Connection server methods except IFFAIL.
 - A client MUST support all Connection client methods except IFFAIL.
-- A peer MUST support IFFAIL if it uses the IFTest flag.
+- A peer MUST support IFFAIL if it uses the UNREAL flag.
 
 Connection class grammar:
 

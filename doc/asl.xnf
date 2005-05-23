@@ -28,6 +28,7 @@ endif
     which may consist of many classes, each with appropriate methods.
     <allow entity = "include"   />
     <allow entity = "class"     />
+    <allow entity = "domain"    />
     
     <attr name = "name" required = "1" short = "class name">
     Specifies the name of the class.  This name will be used to prefix all
@@ -46,6 +47,14 @@ endif
     into the project sources. The copyright can be inherited from a parent
     class.
     </attr>
+    <rule phase = "parse" when = "after">
+    for class where !abstract
+        class.index = index ()
+        for method where !abstract
+            method.index = index ()
+        endfor
+    endfor
+    </rule>
 </entity>
 
 <entity name = "include" >
@@ -55,16 +64,18 @@ endif
     The name of the XML-format file to be included in place of the
     'include' element.
     </attr>
-    <rule when = "attrs" phase = "preproc">
+    <rule phase = "preproc" when = "attrs">
     if !defined (asl.load_file (filename))
         preproc_error ("Error loading include file: $(filename): $(xml.error?)")
     endif
     </rule>
 </entity>
 
-<entity name = "class" tag = "class" template = "default">
+<entity name = "class" template = "default">
     The class tag defines the class.
     <allow entity = "doc"       />
+    <allow entity = "see"       />
+    <allow entity = "chassis"   />
     <allow entity = "method"    />
     <allow entity = "todo"      />
 
@@ -84,26 +95,45 @@ endif
     </attr>
 </entity>
 
-<entity name = "doc" tag = "doc" cdata = "1">
+<entity name = "doc" cdata = "1" unique = "0">
     Documentation for the current element: this is included in the
     generated documentation files in a suitable form.  Should be in
     iMatix gurudoc format.
 
-    <attr name = "domain" short = "documentation domain">
+    <attr name = "name" short = "documentation domain" default = "">
     Allows documentation of different types to be included in the ASL
     definitions.
     </attr>
 </entity>
 
-<entity name = "grammar" tag = "grammar" cdata = "1">
-    A grammar for the current element: this is included in the
-    generated documentation in a suitable form.
+<entity name = "see" cdata = "1">
+    Defines a reference to an external definition of some kind.
+
+    <attr name = "name" short = "name of term">
+    The name of an external reference.
+    </attr>
 </entity>
 
-<entity name = "method" tag = "method" cdata = "1" template = "default">
+<entity name = "chassis" tag = "chassis" cdata = "1">
+    Defines a chassis, which can be 'server' or 'client'.  This is the
+    role of the peer that must or may accept and handle the class or
+    method.
+    
+    <attr name = "name" required = "1" short = "name of chassis">
+    The name of the chassis.
+    </attr>
+    <attr name = "implement" short = "implementation rule">
+        <restrict value = "MUST"  >MUST be implemented</restrict>
+        <restrict value = "SHOULD">SHOULD be implemented</restrict>
+        <restrict value = "MAY"   >MAY be implemented</restrict>
+    </attr>
+</entity>
+
+<entity name = "method" cdata = "1" template = "default">
     Methods provide functionality for the component class.  All
     methods inherit basic fields from the default method.
     <allow entity = "doc"       />
+    <allow entity = "see"       />
     <allow entity = "chassis"   />
     <allow entity = "field"     />
 
@@ -123,32 +153,27 @@ endif
     For a synchronous request, defines the expected reply method. If
     this is not defined, a synchronous method is assumed to be a reply.
     </attr>
+    <link from = "expect" entity = "method" disconnect = "1"/>
+
+    <rule phase = "parse">
+    method.fullname = "$(class.name:neat).$(method.name:neat)"
+    </rule>
 </entity>
 
-<entity name = "chassis" tag = "chassis" cdata = "1">
-    Defines a chassis, which can be 'server' or 'client'.  This is the
-    role of the peer that must or may accept and handle the method.
-    
-    <attr name = "name" required = "1" short = "name of chassis">
-    The name of the chassis.
-    </attr>
-    <attr name = "implement" short = "implementation rule">
-        <restrict value = "MUST"  >MUST be implemented</restrict>
-        <restrict value = "SHOULD">SHOULD be implemented</restrict>
-        <restrict value = "MAY"   >MAY be implemented</restrict>
-    </attr>
-</entity>
-
-<entity name = "field" tag = "field" cdata = "1">
+<entity name = "field" cdata = "1">
     Defines one field passed to the method. The body of this entity is
     used to document the field.
-    <allow entity = "field assertion" />
-    <allow entity = "doc"   />
+    <allow entity = "assert"    />
+    <allow entity = "doc"       />
+    <allow entity = "see"       />
 
     <attr name = "name" required = "1" short = "name of field">
     The name of the field.
     </attr>
-    <attr name = "type" default = "" short = "type of field">
+    <attr name = "domain" short = "field domain">
+    The domain for the field.
+    </attr>
+    <attr name = "type" short = "type of field">
     The type of the field, which is a type primitive name.
         <restrict value = "bit"     >single bit</restrict>
         <restrict value = "octet"   >single octet</restrict>
@@ -159,18 +184,40 @@ endif
         <restrict value = "longstr" >long string</restrict>
         <restrict value = "table"   >field table</restrict>
     </attr>
-    <attr name = "export" default = "default" >
-    Specifies how this item may be inherited.
-        <restrict value = "none" >may not be inherited</restrict>
-        <restrict value = "default">inherited in the default manner</restrict>
-        <restrict value = "before" >inherited before existing items</restrict>
-        <restrict value = "after" >inherited after existing items</restrict>
+    <attr name = "standard" default = "0" short = "standard field">
+    Set to 1 for all fields that are standard in every method so do
+    not need to be re-explained in each method.
+    </attr>
+    <link from = "domain" />
+</entity>
+
+<entity name = "domain">
+    A field domain, like a type definition.
+    <allow entity = "assert"    />
+    <allow entity = "doc"       />
+    <allow entity = "see"       />
+
+    <attr name = "name" required = "1" short = "name of domain">
+    The name of the domain.
+    </attr>
+    <attr name = "type" required = "1" short = "type of domain">
+    The type of the domain, which is a type primitive name.
+    This is the same type list as for fields.
+        <restrict value = "bit"     >single bit</restrict>
+        <restrict value = "octet"   >single octet</restrict>
+        <restrict value = "short"   >16-bit integer</restrict>
+        <restrict value = "long"    >32-bit integer</restrict>
+        <restrict value = "longlong">64-bit integer</restrict>
+        <restrict value = "shortstr">short string</restrict>
+        <restrict value = "longstr" >long string</restrict>
+        <restrict value = "table"   >field table</restrict>
     </attr>
 </entity>
 
-<entity name = "field assertion" tag = "assert">
+<entity name = "assert">
     Defines a field-level assertion that should be executed on incoming
     method fields.
+    <allow entity = "value" />
 
     <attr name = "check" required = "1" short = "type of assertion">
     The type of the assertion.
@@ -180,10 +227,14 @@ endif
         <restrict value = "ge" >greater than or equal to some value</restrict>
         <restrict value = "lt" >less than some value</restrict>
         <restrict value = "le" >less than or equal to some value</restrict>
+        <restrict value = "length" >max length, for strings</restrict>
+        <restrict value = "notnull">not null, for strings</restrict>
+        <restrict value = "null"   >null, for strings</restrict>
+        <restrict value = "enum"   >one of a set of values</restrict>
+        <restrict value = "syntax" >validate data syntax</restrict>
     </attr>
     <attr name = "value" short = "value to compare with">
-    If specified, compare against this value. For string fields, the value
-    "NULL" can be used to indicate an empty string.
+    If specified, compare against this value.
     </attr>
     <attr name = "method" short = "method holding field to compare with">
     If specified, compare with the specified field from this class.
@@ -192,9 +243,72 @@ endif
     If specified, compare with this field.  Must have the same or a compatible
     type as the field being asserted.
     </attr>
+    <attr name = "rule" short = "syntax rule">
+    For syntax checks, the name of a standard rule that defines the allowed
+    syntax of the field.
+    </attr>
+
+    <rule phase = "parse" when = "before">
+    root.last_enum = 0
+    </rule>
+    
+    <rule phase = "parse" when = "after">
+    if defined (assert.field)
+        assert.value = "the value of '$(assert.field)' in the last received $(class.name:neat).$(assert.method:neat) method"
+    endif
+    if check = "eq"
+        assert.text = "MUST be equal to " + value
+    elsif check = "ne"
+        assert.text = "MUST NOT be equal to " + value
+    elsif check = "gt"
+        assert.text = "MUST be greater than " + value
+    elsif check = "ge"
+        assert.text = "MUST be greater than or equal to " + value
+    elsif check = "lt"
+        assert.text = "MUST be less than " + value
+    elsif check = "le"
+        assert.text = "MUST be less than or equal to " + value
+    elsif check = "length"
+        assert.text = "MUST not be longer than " + value + " octets"
+    elsif check = "notnull"
+        assert.text = "MUST not be empty"
+    elsif check = "null"
+        assert.text = "MUST be empty"
+    elsif check = "enum"
+        assert.text = "MUST be one of:"
+        for value
+            if index () > 1
+                assert.text += ","
+            endif
+            assert.text += " $(.value)=$(.name)"
+        endfor
+    endif
+    </rule>
 </entity>
 
-<entity name = "todo" tag = "todo" cdata = "1">
+<entity name = "value">
+    Defines one of the valid values for a field, when used with the
+    assert check "enum".
+
+    <attr name = "name" required = "1" short = "name of enumerated value">
+    The name of the enumerated value.  Note that enumerations are
+    always numbered in order.
+    </attr>
+    <attr name = "value" short = "value for enumerated value">
+    The value of the enumerated value. If not defined, is automatically
+    assigned from 1 or the previous enum value upwards.
+    </attr>
+    <rule phase = "parse">
+    if defined (.value)
+        root.last_enum = .value
+    else
+        .value = (root.last_enum?0) + 1
+        root.last_enum = .value
+    endif
+    </rule>
+</entity>
+
+<entity name = "todo" cdata = "1">
     Defines a change request, bug or other issue that needs changing in
     the iCL class.  Todo items are formalised so that they can be
     extracted and processed mechanically.

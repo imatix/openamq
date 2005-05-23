@@ -1,14 +1,15 @@
-? concepts.gdl
-? concepts.html
-? concepts_1.html
-? concepts_2.html
-? concepts_3.html
-? concepts_4.html
-? concepts_5.html
-? concepts_6.html
-? concepts_bot.html
-? concepts_toc.html
-? concepts_top.html
-? server_classes.png
-? *.png
+*.gdl
+*.html
+*.pdf
+*.ps
+*.log
+*.tex
+*.aux
+*.toc
+asl_gen.gsl
+asl_parse.gsl
+asl_inherit.gsl
+asl_preproc.gsl
+protocol.xml
+amq_rfc006_classes.txt
 

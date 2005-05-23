@@ -1,0 +1,26 @@
+gdl
+    title     = Protocol 
+    subtitle  = Protocol
+    product   = OpenAMQ
+    author    = iMatix Corporation <amq@imatix.com>
+    date      = 2005/05/05
+    copyright = Copyright (c) 2004-2005 JPMorgan and iMatix Corporation
+    version   = 0.9
+end gdl
+
+Class Definitions
+*****************
+
+[see amq_rfc006_full.txt]
+
+Technology
+**********
+
+AMQP/Fast Protocol
+==================
+
+Classes and Methods
+-------------------
+
+[see amq_rfc006_short.txt]
+

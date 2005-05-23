@@ -4,7 +4,6 @@ BODY {
 
 h1 {
     margin-top: 12pt;
-    background-color: #b9cdd8;
     line-height: 16pt;
     font-size: 14pt;
     font-variant: small-caps;
@@ -51,70 +50,74 @@ ol {
     margin-right: 2em;
 }
 dt {
-     margin-top: 6px;
-     margin-right: 30px;
-     margin-left: 30px;
+    font-size: 10pt;
+    margin-top: 6px;
+    margin-right: 30px;
+    margin-left: 30px;
 }
 dd {
-     margin-right: 60px;
-     margin-left: 60px;
+    font-size: 10pt;
+    margin-right: 60px;
+    margin-left: 60px;
+}
+th {
+    font-size: 10pt;
+}
+td {
+    font-size: 10pt;
 }
 blockquote {
-     font-size: 10pt;
-     font-weight: bold;
-     margin-right: 60px;
-     margin-left: 60px;
+    font-size: 10pt;
+    font-weight: bold;
+    margin-right: 60px;
+    margin-left: 60px;
 }
 .toc_1 {
-     font-size: 11pt;
-     font-variant: small-caps;
-     font-weight: bold;
-     margin-top:   10px;
-     margin-left:  12px;
-     margin-right: 15px;
-     margin-bottom: 0px;
-     background-color: #DDDDDD;
+    font-variant: small-caps;
+    margin:       0px;
+    text-indent:  6px;
+    line-height: 16pt;
+    background-color: #01415c;
+    border-width: 0 0 1px 0;
+    border-style: solid;
+    border-color: white;
 }
 .toc_2 {
-     margin-top:    3px;
-     margin-left:  24px;
-     margin-right:  0px;
-     margin-bottom: 0px;
-     background-color: #FFFFFF;
+    margin:        0px;
+    padding-left:  10px;
+    padding-right: 10px;
+    padding-top:   4px;
 }
 .toc_3 {
-     font-family: Arial, Helvetica, sans-serif;
-     font-size: 9pt;
-     margin-left:  36px;
-     margin-top:    0px;
-     margin-right:  0px;
-     margin-bottom: 0px;
-     background-color: #FFFFFF;
+    margin:        0px;
+    padding-left:  20px;
+    padding-right: 10px;
 }
 .toc_4 {
-     font-size: 8pt;
-     margin-left:  48px;
-     margin-top:    0px;
-     margin-right:  0px;
-     margin-bottom: 0px;
-     background-color: #FFFFFF;
+    margin:        0px;
+    padding-left:  30px;
+    padding-right: 10px;
 }
 .header {
-     font-size: x-small;
+    font-weight: bold;
+    font-size: small;
+    padding-top:    4pt;
+    padding-left:  10pt;
+    padding-bottom: 4pt;
+    color: #ffffff;
+    background-color: #01415c;
 }
 .footer {
-     font-variant: small-caps;
-     font-size: x-small;
-     background-color: #DDDDDD;
-     color: #000000;
+    text-align: center;
+    font-variant: small-caps;
+    font-size: x-small;
 }
 .tdbgcolor {
-     background-color: #b9cdd8;
+    background-color: #b9cdd8;
 }
 .bodybgcolor {
-     background-color: #FFFFFF;
+    background-color: #FFFFFF;
 }
-
 
 /* Links */
 A:active {
@@ -134,19 +137,17 @@ A:visited {
 }
 A[HREF]:hover {
     background-color: #b9cdd8;
-    color: black;
+    color: blue;
 }
 a.toc_main {
     font-size: small;
     font-weight: bold;
     list-style-type: none;
-    text-indent: 1em;
+    color: white;
 }
 a.toc {
     font-family: Arial, Helvetica, sans-serif;
     font-size: x-small;
     list-style-type: none;
 }
-
-
 

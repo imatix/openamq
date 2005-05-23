@@ -9,35 +9,230 @@
 
 function output_title (title, linetype)
     >
-    >$(my.title)
+    >$(my.title:neat)
     >$((my.linetype + "") * string.length (my.title))
 endfunction
 
-function output_doc (domain, header, reformat)
+function output_doc (name, header, reformat)
     my.reformat ?= 1
-    for doc where domain = my.domain
+    for doc where name = my.name?""
         if defined (my.header) & index () = 1
             >
             >$(my.header):
         endif
         >
         if my.reformat
-            >$(string.trim (.):justify                                              )
+            >$(string.trim (doc.?''):justify                                         )
         else
-            >$(string.trim (.))
+            >$(string.trim (doc.?''))
         endif
     endfor
 endfunction
 
 function output_rules (force)
-    if count (doc, domain = "rule") | my.force ?= 1
+    if count (doc, name = "rule") | my.force ?= 1
         >
         >Guidelines for implementors:
     endif
-    for doc where domain = "rule"
+    for doc where name = "rule"
         >
         >$("-":block) \
-        >$(.:justify,block                                                   )
+        >$(doc.?'':justify,block                                             )
+    endfor
+endfunction
+
+function output_chassis (chassis)
+    >
+    >This class contains the following $(my.chassis) methods:
+    for method where count (chassis, name = my.chassis)
+        my.text = fullname + " - " + string.justify (method.?'', 9999)
+        my.text += " (ID = $(method.index))"
+        if method.synchronous
+            if defined (expect)
+                my.text += " (sync request for $(class.name:neat).$(expect:neat))"
+            else
+                my.text += " (sync reply)"
+            endif
+        else
+            my.text += " (async)"
+        endif
+        >
+        >$("-":block) \
+        >$(my.text:justify,block                                             )
+    endfor
+endfunction
+
+
+##############################################################################
+
+function full_reference
+    output "$(protocol.name)_full.txt"
+    for class 
+        output_title   ("The $(class.name) Class", "=")
+        output_doc     ()
+        >The ID of the $(class.name:neat) class is $(class.index).
+        output_doc     ("grammar", "This is the formal grammar for the class", 0)
+        output_chassis ("server")
+        output_chassis ("client")
+        output_rules   (1)
+        for chassis
+            >
+            >- The $(name) $(implement) implement this class.  Each method may
+            >  have specific guidelines.
+        endfor
+        >
+        >- Any assertion failures in the $(class.name:neat) methods MUST BE treated
+        >  as $(handler) exceptions - i.e. the peer that detects the error MUST
+        >  respond with $(handler:neat).Close.
+    
+        for method 
+            output_title ("The $(fullname) Method", "-")
+            >
+            output_doc ()
+            for field where !standard
+                if index () = 1
+                    >
+                    >The $(fullname) method has the following specific fields:
+                endif
+                text = "$(name:c) ($(type)) - "
+                for doc
+                    text += .
+                endfor
+                >
+                >$("-":block) \
+                >$(text:justify,block                                                )
+            else
+                >This method has no fields apart from the standard method header.
+            endfor
+
+            >
+            >This is the $(fullname) pseudo-structure:
+            >
+            >    define $(fullname) {
+            for field
+                >        $(name:c)          $(type)     #  $(string.justify (field., 255))
+            endfor
+                >    }
+        
+            output_rules (1)
+            for chassis
+                >
+                >- The $(name) $(implement) implement this method.
+            endfor
+            if method.synchronous
+                if defined (expect)
+                    >
+                    >- This method is a synchronous request. The sender MUST expect a
+                    >  $(class.name:neat).$(expect:neat) method in return, unless there is an exception.
+                else
+                    >
+                    >- This method is a synchronous response.  The sender MUST NOT
+                    >  expect a specific method in return, except as defined by the
+                    >  class grammar.
+                endif
+            else
+                >
+                >- This method is asynchronous.  The recipient MUST handle it
+                >  at any point as defined by the class grammar.  The sender
+                >  MUST not expect any specific reply unless the SYNCHREQ flag
+                >  is set (which will solicit a Channel.Synch reply).
+            endif
+            for field
+                for assert where defined (assert.text)
+                    >
+                    >- The "$(field.name:c)" field $(assert.text).
+                endfor
+                for doc where name = "rule"
+                    >
+                    >$("-":block) \
+                    >$(doc.?'':justify,block                                             )
+                endfor
+            endfor
+        endfor
+    endfor
+endfunction
+
+
+##############################################################################
+
+function short_summary
+    output "$(protocol.name)_short.txt"
+
+    >Protocol Classes
+    >................
+    >
+    >AMQP/Fast defines these protocol classes:
+
+    for class
+        >- $(name:neat): $(string.justify (class.?'', 9999)) (ID = $(class.index)).
+    endfor
+    
+    for class
+        output_title ("The $(class.name) Class", ".")
+        output_doc     ()
+        output_doc     ("grammar", "This is the formal grammar for the class", 0)
+        output_chassis ("server")
+        output_chassis ("client")
+        
+        for method 
+            >
+            >$(fullname):
+            for doc where name = ""
+            >  $(doc.?'':justify,block                                               )
+            endfor
+            for field where !standard
+                if index () = 1
+                    >
+                endif
+                >    $(name:c)          $(type)     #  $(string.justify (field., 255))
+            else
+                >  This method has no fields apart from the standard method header.
+            endfor
+        endfor
+    endfor
+endfunction
+
+##############################################################################
+
+function quick_reference
+    output "$(protocol.name)_quick.txt"
+
+    >
+    >Quick Reference
+    >===============
+    for class
+        output_title ("$(class.name) Class - $(string.trim (class.))", "-")
+        for method
+            text = ""
+            if count (chassis, name = "server")
+                text = "ID=$(class.index)/$(method.index) - server, "
+            endif
+            if count (chassis, name = "client")
+                text = "ID=$(class.index)/$(method.index) - client, "
+            endif
+            if method.synchronous
+                if defined (expect)
+                    text += "sync request for $(expect:neat), "
+                else
+                    text += "sync reply, "
+                endif
+            else
+                text += "async, "
+            endif
+            text += string.trim (method.?'no desc') + "."
+            >
+            >$(fullname):
+            >  $(text:justify,block                                         )
+
+            for field where !standard
+                if index () = 1
+                    >
+                endif
+                >    $(name:c)          $(type)     #  $(string.justify (field., 255))
+            else
+                >  No specific fields.
+            endfor
+        endfor
     endfor
 endfunction
 
@@ -46,48 +241,9 @@ endfunction
 
 if !defined (switches.quiet)
     echo "Generating $(protocol.name) documentation..."
+    full_reference  ()
+    short_summary   ()
+    quick_reference ()
 endif
-
-output "$(protocol.name)_classes.txt"
-for class 
-    output_title ("The $(class.name:neat) Class", "-")
-    output_doc   ("long")
-    output_doc   ("grammar", "This is the formal grammar for the class", 0)
-    output_rules ()
-    
-    for method 
-        method.full_name = "$(class.name:neat).$(method.name:neat)"
-    
-        output_title ("The $(full_name) Method", ".")
-        output_doc   ("long")
-        output_rules (1)
-        for chassis
-            >
-            >- The $(name) $(implement) implement this method.
-        endfor
-        if method.synchronous
-            >
-            if defined (expect)
-                >- This method is a synchronous request. The sender MUST expect a
-                >  $(class.name:neat).$(expect:neat) method in return, unless there is an exception.
-            else
-                >- This method is a synchronous response.  The sender MUST NOT
-                >  expect a specific method in return, except as defined by the
-                >  class grammar.
-            endif
-        else
-            >- This method is asynchronous.  The recipient MUST handle it
-            >  at any point as defined by the class grammar.  The sender
-            >  MUST not expect any specific reply unless the SYNCHREQ flag
-            >  is set (which will solicit a Channel.Synch reply).
-        endif
-        >
-        >The $(full_name) method has the following fields:
-        >
-        for field
-            > - $(name) ($(type)): $(string.justify (., 255))
-        endfor
-    endfor
-endfor
 
 
