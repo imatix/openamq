@@ -50,7 +50,7 @@ resources - called a "realm" - in specific ways.
     request publish rights
       <doc>
       Request publisher rights to the specified access realm. A publisher
-      can send messages to all queues and topics in the realm.
+      can send messages to all destinations in the realm.
       </doc>
     </field>
 
@@ -58,7 +58,7 @@ resources - called a "realm" - in specific ways.
     request consume rights
       <doc>
       Request consumer rights to the specified access realm. A consumer
-      can receive and delete messages from all queues in the realm.
+      can receive and process messages from all destinations in the realm.
       </doc>
     </field>
 
@@ -81,9 +81,8 @@ resources - called a "realm" - in specific ways.
     <field name = "purge" type = "bit">
     request purge rights
       <doc>
-      Request the right to purge queue destinations in the specified
-      access realm.  There is no functionality to purge topic
-      destinations - this is handled at the subscription level.
+      Request the right to purge destinations and subscriptions in the
+      specified access realm.
       </doc>
     </field>
 </method>

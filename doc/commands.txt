@@ -1,16 +1,3 @@
-method
-    - generate lookup table for class - method
-        - 
-
-
-CONNECTION
-    OPEN
-
-    TUNE            synch
-        - which content domains supported
-        - max. channels
-        window limit, octets
-
 
 TEST
     RESULT
@@ -23,35 +10,6 @@ TEST
         - table, argument, get value of
     CONTENT
         - content, hash of body
-
-CHANNEL
-    OPEN
-        window limit, octets, transaction type
-    SYNCH
-        class, method, synchtag
-    REPORT
-        class, method, synchtag, reply code, reply text
-    CLOSE
-        class, method, synchtag, reply code, reply text
-
-ACCESS
-    REQUEST
-        path, mode, queue/topic
-    GRANT
-        reply code, reply text
-
-DESTINATION
-    CREATE
-        name?, queue/topic, private, reuse, template, temporary, domain
-    READY
-        name, size
-
-SUBSCRIPTION
-    CREATE
-        name?, private, reuse, template, temporary
-        topic name pattern
-    READY
-        name, size
 
 JMS
     CONSUME

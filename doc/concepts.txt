@@ -2820,8 +2820,8 @@ acknowledgements may be covered by channel transactions.
 
 These are the JMS server methods:
 
-- CONSUME (async): create a JMS queue consumer, i.e. request
-  to receive JMS messages from a queue.
+- CONSUME (async): create a JMS consumer, i.e. request
+  to receive JMS messages from a queue or topic.
 - CANCEL (async): cancel a JMS queue consumer.
 - PUBLISH (async): publish a JMS message to a queue or topic
   destination.
@@ -2871,8 +2871,8 @@ These are the File server methods:
   i.e. to send the content to a temporary holding area.
 - READY (syn reply to OPEN): confirm ready to stage File message.
 - STAGE (async): stage a File message.
-- CONSUME (asybnc): create a File queue consumer, i.e. request
-  to receive File messages from a queue.
+- CONSUME (asybnc): create a File consumer, i.e. request
+  to receive File messages from a queue or topic.
 - CANCEL (async): cancel a File queue consumer.
 - PUBLISH (async): publish a staged File message to a queue or
   topic destination.
@@ -2934,7 +2934,7 @@ model.
 These are the Stream server methods:
 
 - CONSUME (async): create a Stream consumer, i.e. request to
-  receive Stream messages from a destination.
+  receive Stream messages from a queue or topic.
 - CANCEL (async): cancel a Stream consumer.
 - PUBLISH (async): publish a Stream message to a queue or topic
   destination.

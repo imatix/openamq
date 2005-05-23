@@ -11,5 +11,7 @@ asl_parse.gsl
 asl_inherit.gsl
 asl_preproc.gsl
 protocol.xml
-amq_rfc006_classes.txt
+amq_rfc006_full.txt
+amq_rfc006_quick.txt
+amq_rfc006_short.txt
 
