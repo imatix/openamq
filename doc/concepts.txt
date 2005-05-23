@@ -1223,8 +1223,18 @@ The SMT Multithreaded Kernel
 The SMT multithreaded kernel is based on work done in 1993 as part
 of the ETK Toolkit implementation for OpenVMS/ACMS.  This work formed
 the basis of a transaction-processing front-end used by Delight
-Information Systems, processing several million travel bookings
-per year.
+Information Systems, processing several million travel bookings per
+year.
+
+Code Generation Technology
+--------------------------
+
+iMatix code generation technology is based on research and development
+done by Leif Svalgaard and Pieter Hintjens from 1985 to the present day
+in the ETK toolkit (Sema Group Belgium, 1985-1995), and by Pieter
+Hintjens and Jonathan Schultz from 1995 to the present day in these
+iMatix products: Libero, htmlpp, GSL, iAF, Aqua, UltraSource, XNF, iCL,
+and SMT.
 
 The AMQP/Fast Protocol
 **********************
