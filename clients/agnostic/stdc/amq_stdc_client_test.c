@@ -183,6 +183,8 @@ int main (
         *message_desc;                  /*  Received message descriptor      */
     amq_stdc_message_t
         message;                        /*  Received message                 */
+    amq_stdc_inpipe_t
+        inpipe;                         /*  Inpipe used to read the message  */
     char
         data_buffer [10];               /*  Buffer for incomming message     */
                                         /*  content                          */
@@ -198,7 +200,7 @@ int main (
     client.destination         = "";
     client.client_name         = "client";
     client.messages            = 0;
-    client.interval            = 500;
+    client.interval            = 0;
     client.prefetch            = 1;
     client.message_size        = 2;
     client.persistent          = 0;
@@ -263,7 +265,7 @@ int main (
             "    -d <destination>\n"
             "    -m <client identifier, default='client'>\n"
             "    -n <number of messages, 0 means infinite, default=0>\n"
-            "    -i <interval between individual messages in ms, default=500>\n"
+            "    -i <interval between individual messages in ms, default=0>\n"
             "    -l <length of message content in bytes, default=2>\n"
             "    -x (sends persistent messages)\n"
             "    -c <number of messages while commit is issued>\n"
@@ -411,22 +413,23 @@ int main (
             
             printf ("Message %s received.\n", message_desc->identifier);
 
+            result = amq_stdc_open_inpipe (message, &inpipe);
+            if (result != APR_SUCCESS) {
+                printf ("amq_stdc_open_inpipe failed\n");
+                return EXIT_FAILURE;
+            }
+
             while (1) {
-                size = amq_stdc_read (message, data_buffer, 10);
+                size = amq_stdc_pread (inpipe, data_buffer, 10, 1, 1);
                 if (!size)
                     break;
                 printf ("    [");
                 for (data_pos=0; data_pos!= size; data_pos++)
-                    printf ("%2lx ", (long) (data_buffer [data_pos]));
+                    printf ("%2lx ", (long) (unsigned char)
+                        (data_buffer [data_pos]));
                 printf ("]\n");
                 if (size < 10)
                     break;
-            }
-
-            result = amq_stdc_close_message (message, 0);
-            if (result != APR_SUCCESS) {
-                printf ("amq_stdc_close_message failed\n");
-                return EXIT_FAILURE;
             }
 
             if (--client.till_acknowledge == 0) {
@@ -444,6 +447,12 @@ int main (
                 }
 
                 client.till_acknowledge = client.prefetch;
+            }
+
+            result = amq_stdc_close_message (message, 0);
+            if (result != APR_SUCCESS) {
+                printf ("amq_stdc_close_message failed\n");
+                return EXIT_FAILURE;
             }
 
             if (client.messages)
@@ -481,13 +490,20 @@ int main (
             
             printf ("Message %s browsed.\n", message_desc->identifier);
 
+            result = amq_stdc_open_inpipe (message, &inpipe);
+            if (result != APR_SUCCESS) {
+                printf ("amq_stdc_open_inpipe failed\n");
+                return EXIT_FAILURE;
+            }
+
             while (1) {
-                size = amq_stdc_read (message, data_buffer, 10);
+                size = amq_stdc_pread (inpipe, data_buffer, 10, 1, 1);
                 if (!size)
                     break;
                 printf ("    [");
                 for (data_pos=0; data_pos!= size; data_pos++)
-                    printf ("%2lx ", (long) (data_buffer [data_pos]));
+                    printf ("%2lx ", (long) (unsigned char)
+                        (data_buffer [data_pos]));
                 printf ("]\n");
                 if (size < 10)
                     break;

@@ -23,12 +23,10 @@
 #define COMMAND_BUFFER_SIZE 1024
 /*  Size of preallocated buffer used to read message headers; if size        */
 /*  of header exceeds this value, auxiliary buffer is allocated dynamically  */
-/*  Should be aligned at least to 4 bytes                                    */
 #define MESSAGE_HEADER_BUFFER_SIZE 1024
-/*  Number of bytes to be left free at the beginning of fragment buffer      */
-/*  for internal use of message state machine                                */
-/*  Should be aligned at least to 4 bytes                                    */
-#define FRAGMENT_HEADER_SIZE 24
+/*  Number of bytes to use as allocation unit for message content. Message   */
+/*  is written/read from socket in blocks of this size.                      */
+#define CONTENT_CHUNK_SIZE 1024
 
 #ifdef AMQTRACE_MEMORY
 void *amq_malloc_trace (size_t sz, const char *file, long line);

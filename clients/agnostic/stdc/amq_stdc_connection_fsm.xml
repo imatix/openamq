@@ -38,19 +38,24 @@
     </event>
     <event name = "get chunk">
         Used by sender thread to receive next chunk to send
-        <arg type = "amq_stdc_lock_t *" name = "lock">
-            Out parameter; used by sender thread to wait while next chunk
-            is available
-        </arg>
     </event>
     <event name = "send chunk">
         Used to send chunks of data tos server via sender thread
         <arg type = "char *" name = "data">
-            Chunk to be send by send. Chunk has to be allocated via
-            amq_malloc and will be freed by sender thread.
+            Chunk to be send by send.
+        </arg>
+        <arg type = "qbyte" name = "data_size">
+            Number of bytes to send from data
+        </arg>
+        <arg type = "content_chunk_t *" name = "chunks">
+            Chunk list to be send.
         </arg>
         <arg type = "qbyte" name = "size">
-            Number of bytes to send.
+            Number of bytes to send from chunks
+        </arg>
+        <arg type = "byte" name = "deallocate">
+            If 1, sender thread will deallocate chunk(s), otherwise
+            responsibility is left to client.
         </arg>
         <arg type = "amq_stdc_lock_t *" name = "lock">
             Out parameter; can be used to wait for sending completion;

@@ -226,8 +226,8 @@
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
-    <event name = "receive message">
-        Message received from server
+    <event name = "receive fragment">
+        HANDLE NOTIFY received from server
         <arg type = "amq_stdc_handle_notify_t *" name = "command">
             Corresponding handle notify command
         </arg>
@@ -237,15 +237,18 @@
         <arg type = "qbyte" name = "header_buffer_size">
             Size of message header
         </arg>
-        <arg type = "char *" name = "body">
-            Pointer to newly allocated block with message content.
-            There are FRAGMENT_HEADER_SIZE bytes free at the beginning
-            of the block
+    </event>
+    <event name = "receive content chunk">
+        Message data chunk read from socket. Caller allocates the chunk,
+        FSM is responsible for deallocating it.
+        <arg type = "content_chunk_t *" name = "chunk">
+            Chunk read
         </arg>
-        <arg type = "qbyte" name = "body_size">
-            Size of message content
+        <arg type = "byte" name = "last">
+            If 1, it is the last chunk of message, otherwise 0
         </arg>
     </event>
+
     <event name = "get message">
         Request to dispatch message to client
         <arg type = "byte" name = "wait">
@@ -412,7 +415,8 @@
         <event name = "rollback" action = "do rollback"/>
         <event name = "send message" action = "do send message"/>
         <event name = "consume" action = "do_consume"/>
-        <event name = "receive message" action = "do receive message"/>
+        <event name = "receive fragment" action = "do receive fragment"/>
+        <event name = "receive content chunk" action = "do receive content chunk"/>
         <event name = "get message" action = "do get message"/>
         <event name = "flow" action = "do flow"/>
         <event name = "cancel" action = "do cancel"/>
@@ -423,7 +427,8 @@
         <event name = "reply" action = "do reply"/>
     </state>
     <state name = "expect close">
-        Channel is shutting down
+        Channel is shutting down (Server-emmited events should be ignored)
+        <event name = "receive content chunk" action = "do receive content chunk"/>
         <event name = "terminate" action = "do duplicate terminate"/>
         <event name = "close" action = "do client requested close" next = "terminal"/>
     </state>

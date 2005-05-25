@@ -65,6 +65,11 @@ apr_status_t amq_stdc_init ()
     apr_status_t
         result;
 
+    /*  TODO: Number of initiations should be refcounted here and apr_init   */
+    /*  should be called, but there's a vicious circle here:                 */
+    /*  apr initialization isn't thread safe so we have to make amq_init     */
+    /*  threadsafe... to do it we need a mutex, but apr isn't initialised    */
+    /*  yet so we cannot create a mutex...                                   */
     result = global_fsm_create (&global);
     AMQ_ASSERT_STATUS (result, global_fsm_create)
     result = global_fsm_init (global);
@@ -88,6 +93,7 @@ apr_status_t amq_stdc_term ()
     amq_stdc_lock_t
         lock;
 
+    /*  TODO: See TODO note in amq_stdc_init                                 */
     result = global_fsm_terminate (global, &lock);
     AMQ_ASSERT_STATUS (result, global_fsm_terminate)
     result = wait_for_lock (lock, NULL);
@@ -539,13 +545,20 @@ apr_status_t amq_stdc_get_message (
     if (wait) {
         result = wait_for_lock (lock, &msg);
         AMQ_ASSERT_STATUS (result, wait_for_lock)
+        if (msg) {
+            if (message)
+                *message = *((amq_stdc_message_t*)
+                    (msg + sizeof (amq_stdc_message_desc_t)));
+            if (message_desc)
+                *message_desc = (amq_stdc_message_desc_t*) msg;
+        }
+        else {
+            if (message)
+                *message = NULL;
+            if (message_desc)
+                *message_desc = NULL;
+        }
     }
-
-    if (message)
-        *message = *((amq_stdc_message_t*)
-            (msg + sizeof (amq_stdc_message_desc_t)));
-    if (message_desc)
-        *message_desc = (amq_stdc_message_desc_t*) msg;
 
     return APR_SUCCESS;
 }
@@ -703,7 +716,7 @@ apr_status_t amq_stdc_unget_message (
         lock;
 
     result = channel_fsm_unget (context, handle_id, message_nbr, async, &lock);
-    AMQ_ASSERT_STATUS (result, handle_fsm_unget)
+    AMQ_ASSERT_STATUS (result, message_fsm_unget)
     result = wait_for_lock (lock, NULL);
     AMQ_ASSERT_STATUS (result, wait_for_lock)
     
@@ -784,28 +797,6 @@ apr_status_t amq_stdc_close_channel (
     return APR_SUCCESS;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /*  -------------------------------------------------------------------------
     Function: amq_stdc_destroy_query
 
@@ -826,38 +817,27 @@ apr_status_t amq_stdc_destroy_query (
 
 /*---------------------------------------------------------------------------*/
 
-size_t amq_stdc_read (
-    amq_stdc_message_t message,
-    void *destination,
-    size_t size
+size_t amq_stdc_open_inpipe (
+    amq_stdc_message_t  message,
+    amq_stdc_inpipe_t   *inpipe
     )
 {
-    apr_status_t
-        result;
-    qbyte
-        out_size;
+    if (inpipe)
+        *inpipe = (amq_stdc_inpipe_t) message;
 
-    result = message_fsm_read (message, destination, size, &out_size);
-    AMQ_ASSERT_STATUS (result, message_fsm_read)
-
-    return out_size;
+    return APR_SUCCESS;
 }
 
-size_t amq_stdc_skip (
-    amq_stdc_message_t message,
-    size_t size
-    )
-{
-    apr_status_t
-        result;
-    qbyte
-        out_size;
+size_t amq_stdc_open_outpipe (
+    amq_stdc_message_t  message,
+    amq_stdc_outpipe_t   *outpipe
+    );
 
-    result = message_fsm_read (message, NULL, size, &out_size);
-    AMQ_ASSERT_STATUS (result, message_fsm_read)
+size_t amq_stdc_open_stream (
+    amq_stdc_message_t  message,
+    amq_stdc_stream_t   *stream
+    );
 
-    return out_size;
-}
 
 apr_status_t amq_stdc_close_message (
     amq_stdc_message_t  message,
@@ -871,4 +851,80 @@ apr_status_t amq_stdc_close_message (
     AMQ_ASSERT_STATUS (result, message_fsm_read)
 
     return APR_SUCCESS;
+}
+
+/*---------------------------------------------------------------------------*/
+
+size_t amq_stdc_pread (
+    amq_stdc_inpipe_t  inpipe,
+    void               *destination,
+    size_t             size,
+    byte               wait,
+    byte               complete
+    )
+{
+    apr_status_t
+        result;
+    qbyte
+        out_size;
+    amq_stdc_lock_t
+        lock;
+    void
+        *out;
+
+    result = message_fsm_pread ((amq_stdc_message_t) inpipe, destination, size,
+        wait, complete, &out_size, &lock);
+    AMQ_ASSERT_STATUS (result, message_fsm_read)
+
+    if (wait && lock) {
+        result = wait_for_lock (lock, &out);
+        AMQ_ASSERT_STATUS (result, wait_for_lock)
+        out_size = (qbyte) out;
+    }
+
+    return out_size;
+}
+
+size_t amq_stdc_pskip (
+    amq_stdc_inpipe_t  inpipe,
+    size_t             size,
+    byte               wait,
+    byte               complete
+    )
+{
+    apr_status_t
+        result;
+    qbyte
+        out_size;
+    amq_stdc_lock_t
+        lock;
+    void
+        *out;
+
+    result = message_fsm_pread ((amq_stdc_message_t) inpipe, NULL, size,
+        wait, complete, &out_size, &lock);
+    AMQ_ASSERT_STATUS (result, message_fsm_read)
+
+    if (wait && lock) {
+        result = wait_for_lock (lock, &out);
+        AMQ_ASSERT_STATUS (result, wait_for_lock)
+        out_size = (qbyte) out;
+    }
+
+    return out_size;
+}
+
+byte amq_stdc_peof (
+    amq_stdc_inpipe_t  inpipe
+    )
+{
+    apr_status_t
+        result;
+    byte
+        out;
+
+    result = message_fsm_peof ((amq_stdc_message_t) inpipe, &out);
+    AMQ_ASSERT_STATUS (result, message_fsm_peof)
+
+    return out;
 }

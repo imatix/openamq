@@ -28,8 +28,8 @@ typedef struct tag_lock_context_t
         connection_id;
     dbyte
         channel_id;
-    dbyte
-        handle_id;
+    byte
+        permanent;
     void
         *result;
     apr_status_t
@@ -105,9 +105,9 @@ inline static apr_status_t do_destruct (
         channel_id          channel owning the lock; when shuting down the
                             channel, lock will be released; if 0, lock doesn't
                             belong to any channel
-        handle_id           handle owning the lock; when shuting down the
-                            handle, lock will be released; if 0, lock doesn't
-                            belong to any handle
+        permanent           if 0, lock will be destroyed once waiting for it
+                            ended, otherwise can be reused and must be 
+                            unregistered (destroyed) explicitely
         lock_id             out parameter, lock id, unique within the
                             connection; may be used as confirm tag
         lock                out parameter; newly created lock
@@ -117,7 +117,7 @@ apr_status_t register_lock (
     global_fsm_t    context,
     dbyte           connection_id,
     dbyte           channel_id,
-    dbyte           handle_id,
+    byte            permanent,
     dbyte           *lock_id,
     amq_stdc_lock_t *lock
     )
@@ -144,7 +144,7 @@ apr_status_t register_lock (
     context->locks->lock_id = id;
     context->locks->connection_id = connection_id;
     context->locks->channel_id = channel_id;
-    context->locks->handle_id = handle_id;
+    context->locks->permanent = permanent;
     context->locks->next = temp;
     context->locks->result = NULL;
     context->locks->error = APR_SUCCESS;
@@ -157,47 +157,6 @@ apr_status_t register_lock (
         printf ("# Lock %ld registered. "
             "(connection %ld, channel %ld, handle %ld)\n", (long) id,
             (long) connection_id, (long) channel_id, (long) handle_id);
-#   endif
-    return APR_SUCCESS;
-}
-
-/*  -------------------------------------------------------------------------
-    Function: register_dummy_lock
-
-    Synopsis:
-    Creates lock that hasn't be released. It is unlocked from beginning.
-    Waiting for it returns 'result' immediately.
-
-    Arguments:
-        ctx                 global object handle
-        result              generic handle that will be passed to thread
-                            waiting for the lock
-        lock                out parameter; newly created lock
-    -------------------------------------------------------------------------*/
-
-apr_status_t register_dummy_lock (
-    global_fsm_t    context,
-    void            *result,
-    amq_stdc_lock_t *out_lock
-    )
-{
-    lock_context_t
-        *lock;
-
-    lock = amq_malloc (sizeof (lock_context_t));
-    if (!lock)
-        AMQ_ASSERT (Not enough memory)
-    lock->mutex = NULL;
-    lock->lock_id = 0;
-    lock->connection_id = 0;
-    lock->channel_id = 0;
-    lock->handle_id = 0;
-    lock->next = NULL;
-    lock->result = result;
-    lock->error = APR_SUCCESS;
-    if (out_lock) *out_lock = (amq_stdc_lock_t) lock;
-#   ifdef AMQTRACE_LOCKS
-        printf ("# Dummy lock created.\n");
 #   endif
     return APR_SUCCESS;
 }
@@ -241,8 +200,9 @@ apr_status_t release_lock (
         /*  Confirmation that someone is waiting for arrived.                */
         if (temp->lock_id == lock_id) {
 
-            /*  Remove item from the linked list                             */
-            *last = temp->next;
+            /*  Remove item from the linked list if nedded                   */
+            if (!temp->permanent)
+                *last = temp->next;
 
             /*  Add result value to the lock                                 */
             temp->result = res;
@@ -252,9 +212,6 @@ apr_status_t release_lock (
                 printf ("# Lock %ld released.\n", (long)lock_id);
 #           endif
             result = apr_thread_mutex_unlock (temp->mutex);
-            if (!temp) {
-                AMQ_ASSERT (Unexpected confirmation arrived)
-            }
             break;
         }
         last = &(temp->next);
@@ -293,17 +250,6 @@ apr_status_t wait_for_lock (
         return APR_SUCCESS;
     }
 
-    /*  Dummy lock - don't wait, return result immediately                   */
-    if (!lck->mutex) {
-        if (res)
-            *res = lck->result;
-        amq_free ((void*) lck);
-#   ifdef AMQTRACE_LOCKS
-        printf ("# Dummy lock destroyed.\n");
-#   endif
-        return APR_SUCCESS;
-    }
-
 #   ifdef AMQTRACE_LOCKS
         printf ("# Waiting for lock %ld beginning.\n", (long) (lock->lock_id));
 #   endif
@@ -327,7 +273,8 @@ apr_status_t wait_for_lock (
 
     result = lock->error;
     /*  TODO : free resources... destroy mutex, destroy(pool_local)  etc.    */
-    amq_free ((void*) lock);
+    if (!lock->permanent)
+        amq_free ((void*) lock);
     return result;
 }
 
@@ -343,15 +290,12 @@ apr_status_t wait_for_lock (
                             if 0, does nothing
         channel_id          release all locks associated with this channel;
                             if 0, does nothing
-        handle_id           release all locks associated with this handle;
-                            if 0, does nothing
     -------------------------------------------------------------------------*/
     
 apr_status_t release_all_locks (
     global_fsm_t  context,
     dbyte         connection_id,
     dbyte         channel_id,
-    dbyte         handle_id,
     dbyte         except_lock_id,
     apr_status_t  error
     )
@@ -372,10 +316,9 @@ apr_status_t release_all_locks (
 
     lock = context->locks;
     while (lock) {
-        if (((connection_id == 0 && channel_id == 0 && handle_id == 0) ||
+        if (((connection_id == 0 && channel_id == 0) ||
               (connection_id && lock->connection_id == connection_id) ||
-              (channel_id && lock->channel_id == channel_id) ||
-              (handle_id && lock->handle_id == handle_id)) &&
+              (channel_id && lock->channel_id == channel_id)) &&
               lock->lock_id != except_lock_id) {
             lock->error = error;
 #           ifdef AMQTRACE_LOCKS
@@ -385,10 +328,66 @@ apr_status_t release_all_locks (
             AMQ_ASSERT_STATUS (result, apr_thread_mutex_unlock);
 
             /*  TODO: deallocate resources; destroy mutex, etc.              */
+            /*  permanent as well ?                                          */
         }
         lock = lock->next;
     }
 
+    result = global_fsm_sync_end (context);
+    AMQ_ASSERT_STATUS (result, global_fsm_sync_end)
+    return APR_SUCCESS;
+}
+
+/*  -------------------------------------------------------------------------
+    Function: unregister_lock
+
+    Synopsis:
+    Destroys permanent lock
+
+    Arguments:
+        ctx                 global object handle
+        lock_id             id of lock to destroy
+    -------------------------------------------------------------------------*/
+
+apr_status_t unregister_lock (
+    global_fsm_t  context,
+    dbyte         lock_id
+    )
+{
+    lock_context_t
+        *temp,
+        **last;
+    apr_status_t
+        result;
+
+    result = global_fsm_sync_begin (context);
+    AMQ_ASSERT_STATUS (result, global_fsm_sync_begin)
+    temp = (lock_context_t*) (context->locks);
+    last = (lock_context_t**) &(context->locks);
+    while (1) {
+        if (!temp)
+            AMQ_ASSERT (Permanent lock not registered)
+
+        /*  Confirmation that someone is waiting for arrived.                */
+        if (temp->lock_id == lock_id && temp->permanent) {
+
+            /*  Remove item from the linked list if nedded                   */
+            *last = temp->next;
+
+            /*  Resume execution of waiting thread                           */
+#           ifdef AMQTRACE_LOCKS
+                printf ("# Lock %ld unregistered.\n", (long)lock_id);
+#           endif
+            result = apr_thread_mutex_unlock (temp->mutex);
+            AMQ_ASSERT_STATUS (result, apr_thread_mutex_unlock)
+
+            /*  TODO: Destroy the lock !!!!                                  */
+            amq_free ((void*) temp);
+            break;
+        }
+        last = &(temp->next);
+        temp = temp->next;
+    }
     result = global_fsm_sync_end (context);
     AMQ_ASSERT_STATUS (result, global_fsm_sync_end)
     return APR_SUCCESS;

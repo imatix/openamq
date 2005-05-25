@@ -12,6 +12,32 @@
  *  State machine definitions
  *---------------------------------------------------------------------------*/
 
+typedef struct tag_chunk_list_item_t
+{
+    byte
+        send_ping;                     /*  Set, whan sender thread has to    */
+                                       /*  send PING to server; filled in    */
+                                       /*  when chank is passed to sender    */
+                                       /*  thread                            */
+    void
+        *data;                         /*  Data to send (single chunk)       */
+    qbyte
+        data_size;                     /*  Number of bytes to send           */
+    content_chunk_t
+        *chunks;                       /*  Data to send (chunk list)         */
+    qbyte
+        chunks_size;                   /*  Number of bytes from chunks list  */
+                                       /*  to send                           */
+    dbyte
+        lock_id;                       /*  Id of lock waiting while chunk    */
+                                       /*  is sent; if 0, no lock is waiting */
+    byte
+        deallocate;                    /*  If 1, sender thread deallocates   */
+                                       /*  chunk (data member) after send    */ 
+    struct tag_chunk_list_item_t
+        *next;
+} chunk_list_item_t;
+
 typedef struct tag_channel_list_item_t
 {
     channel_fsm_t
@@ -21,24 +47,6 @@ typedef struct tag_channel_list_item_t
     struct tag_channel_list_item_t
         *next;
 } channel_list_item_t;
-
-typedef struct tag_chunk_list_item_t
-{
-    byte
-        send_ping;                     /*  Set, whan sender thread has to    */
-                                       /*  send PING to server; filled in    */
-                                       /*  when chank is passed to sender    */
-                                       /*  thread                            */
-    char
-        *data;                         /*  Data to send                      */
-    qbyte
-        size;                          /*  Number of bytes to send           */
-    dbyte
-        lock_id;                       /*  Id of lock waiting while chunk    */
-                                       /*  is sent; if 0, no lock is waiting */
-    struct tag_chunk_list_item_t
-        *next;
-} chunk_list_item_t;
 
 #define CONNECTION_FSM_OBJECT_ID context->id
 
@@ -85,6 +93,9 @@ DEFINE_CONNECTION_FSM_CONTEXT_BEGIN
     apr_uint16_t
         sender_tag;                 /*  Lock sender thread uses to wait on   */
                                     /*  when it has nothing to do            */
+    amq_stdc_lock_t
+        sender_lock;                /*  Lock object associated with          */
+                                    /*  sender tag                           */
     byte
         stop;                       /*  When 1, threads associated with      */
                                     /*  connection should terminate          */
@@ -108,6 +119,7 @@ inline static apr_status_t do_construct (
     context->last_chunk = NULL;
     context->send_ping = 0;
     context->sender_tag = 0;
+    context->sender_lock = NULL;
 
     return APR_SUCCESS;
 }
@@ -141,6 +153,7 @@ inline static apr_status_t do_destruct (
     }
 
     /*  TODO: do deallocation properly                                       */
+    /*  deallocate chunk list for example...                                 */
     return APR_SUCCESS;
 }
 
@@ -183,14 +196,14 @@ static void *s_receiver_thread (
        *message_header_buffer_ptr;
    amq_stdc_frame_t
        frame;
+   content_chunk_t
+       *content_chunk;
    qbyte
        command_size;
    qbyte
        header_size;
    qbyte
        body_size;
-   char
-       *fragment;
    dbyte
        dsize;
    qbyte
@@ -316,20 +329,33 @@ static void *s_receiver_thread (
                message_header_buffer_ptr + sizeof (qbyte), &size);
            AMQ_ASSERT_STATUS (result, apr_socket_recv)
            
-           /*  Allocate a buffer and read message content into it            */
-           fragment = (char*) amq_malloc (FRAGMENT_HEADER_SIZE + body_size);
-           if (!fragment)
-               AMQ_ASSERT (Not enough memory)
-           size = body_size;
-           result = apr_socket_recv (context->socket,
-               fragment + FRAGMENT_HEADER_SIZE, &size);
-           AMQ_ASSERT_STATUS (result, apr_socket_receive)
-           
-           /*  Send event to FSM                                             */
-           result = channel_fsm_receive_message (channel,
+           /*  Send fragment header                                          */
+           result = channel_fsm_receive_fragment (channel,
                &(frame.fields.handle_notify), message_header_buffer_ptr,
-               header_size, fragment, body_size);
-           AMQ_ASSERT_STATUS (result, channel_fsm_receive_message)
+               header_size);
+           AMQ_ASSERT_STATUS (result, channel_fsm_receive_fragment)
+           
+           /*  Send fragment content to FSM                                  */
+           while (body_size) {
+               size = CONTENT_CHUNK_SIZE < body_size ? CONTENT_CHUNK_SIZE :
+                   body_size;
+               content_chunk = (content_chunk_t*) amq_malloc (
+                   sizeof (content_chunk_t));
+               if (!content_chunk)
+                   AMQ_ASSERT (Not enough memory)
+               result = apr_socket_recv (context->socket, content_chunk->data,
+                   &size);
+               AMQ_ASSERT_STATUS (result, apr_socket_receive)
+               content_chunk->size = size;
+               content_chunk->prev = NULL;
+               content_chunk->next = NULL;
+               body_size -= size;
+
+               result = channel_fsm_receive_content_chunk (channel,
+                   content_chunk,
+                   !body_size && !frame.fields.handle_notify.partial);
+               AMQ_ASSERT_STATUS (result, channel_fsm_receive_content_chunk)
+           }
 
            break;
        case amq_stdc_handle_index_type:
@@ -407,17 +433,19 @@ static void *s_sender_thread (
        result;
    connection_fsm_context_t
        *context = (connection_fsm_context_t*) data;
-   amq_stdc_lock_t
-       lock;
    chunk_list_item_t
        *chunk;
    apr_size_t
        size;
+   qbyte
+       to_send;
    char
        ping_data [COMMAND_SIZE_MAX_SIZE +
            AMQ_STDC_CONNECTION_PING_CONSTANT_SIZE];
    qbyte
        ping_data_size;
+   content_chunk_t
+       *content_chunk;
 
     /*  Prepare single instance of PING command to be used repeatedly       */
     ping_data_size = amq_stdc_encode_connection_ping (ping_data,
@@ -427,9 +455,9 @@ static void *s_sender_thread (
 
     while (1) {
 
-       result = connection_fsm_get_chunk (context, &lock);
+       result = connection_fsm_get_chunk (context);
        AMQ_ASSERT_STATUS (result, connection_fsm_get_chunk)
-       result = wait_for_lock (lock, (void**) &chunk);
+       result = wait_for_lock (context->sender_lock, (void**) &chunk);
        AMQ_ASSERT_STATUS (result, wait_for_lock)
 
        /*  Conection requested to stop                                       */
@@ -445,9 +473,27 @@ static void *s_sender_thread (
 
        /*  Is chunk to be sent ? If so, send it.                             */
        if (chunk->data) {
-           size = chunk->size;
-           result = apr_socket_send (context->socket, chunk->data, &size);
-           AMQ_ASSERT_STATUS (result, apr_socket_send)
+           if (chunk->data) {
+               size = chunk->data_size;
+               result = apr_socket_send (context->socket, chunk->data, &size);
+               AMQ_ASSERT_STATUS (result, apr_socket_send)
+           }
+           if (chunk->chunks) {
+               to_send = chunk->chunks_size;
+               content_chunk = chunk->chunks;
+               while (1) {
+                   size = content_chunk->size < to_send ?
+                       content_chunk->size : to_send;
+                   result = apr_socket_send (context->socket,
+                       (void*) content_chunk->data, &size);
+                   AMQ_ASSERT_STATUS (result, apr_socket_send)
+                   to_send -= size;
+                   if (!to_send)
+                       break;
+                   content_chunk = content_chunk->next;
+                   assert (content_chunk);
+               }
+           }
        }
 
        /*  Is there a lock waiting while chunk is sent ?                     */
@@ -457,8 +503,19 @@ static void *s_sender_thread (
            AMQ_ASSERT_STATUS (result, release_lock)
        }
 
-       /*  Deallocate chunk data as well as chunk descriptor                 */
-       amq_free ((void*) (chunk->data));
+       /*  Deallocate chunk data if requested                                */
+       if (chunk->deallocate) {
+           if (chunk->data)
+               amq_free ((void*) (chunk->data));
+           content_chunk = chunk->chunks;
+           while (content_chunk) {
+               chunk->chunks = content_chunk->next;
+               amq_free ((void*) content_chunk);
+               content_chunk = chunk->chunks;
+           }
+       }
+
+       /*  Deallocate chunk descriptor                                       */
        amq_free ((void*) chunk);
     }
 
@@ -485,7 +542,7 @@ static apr_status_t s_open_socket (
     apr_status_t
         result;                         /*  Stores return values             */
     char
-        buffer[APRMAXHOSTLEN + 6];      /*  Buffer to build hostname in      */
+        buffer[APRMAXHOSTLEN + 32];      /*  Buffer to build hostname in      */
     char
         *addr = NULL;                   /*  Contains hostname                */
     char
@@ -675,6 +732,11 @@ inline static apr_status_t do_init (
         s_receiver_thread, (void*) context, context->pool);
     AMQ_ASSERT_STATUS (result, apr_thread_create)
 
+    /*  Create sender lock                                                   */
+    result = register_lock (context->global, context->id, 0, 1,
+        &(context->sender_tag), &(context->sender_lock));
+    AMQ_ASSERT_STATUS (result, register_lock)   
+
     /*  Run sender thread                                                    */
     result = apr_threadattr_create (&threadattr_sender, context->pool);
     AMQ_ASSERT_STATUS (result, apr_threadattr_create)
@@ -685,6 +747,7 @@ inline static apr_status_t do_init (
     /*  Register that we will be waiting for connection open completion      */
     result = register_lock (context->global, context->id, 0, 0,
         &(context->open_tag), lock) ;
+    AMQ_ASSERT_STATUS (result, register_lock)
 
     /*  Send initiation bytes                                                */
     init_chunk = (char*) amq_malloc (sizeof(byte) + sizeof (byte));
@@ -693,15 +756,14 @@ inline static apr_status_t do_init (
     *((byte*) init_chunk) = PROTOCOL_ID;
     *((byte*) (init_chunk + sizeof (byte))) = PROTOCOL_VERSION;
     result = connection_fsm_send_chunk (context, init_chunk,
-        sizeof (byte) + sizeof (byte), NULL);
+        sizeof (byte) + sizeof (byte), NULL, 0, 1, NULL);
     AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
 
     return APR_SUCCESS;
 }
 
 inline static apr_status_t do_get_chunk (
-    connection_fsm_context_t  *context,    
-    amq_stdc_lock_t           *lock
+    connection_fsm_context_t  *context
     )
 {
     apr_status_t
@@ -719,10 +781,13 @@ inline static apr_status_t do_get_chunk (
         context->first_chunk = chunk->next;
         chunk->send_ping = context->send_ping;
         chunk->next = NULL;
-        result = register_dummy_lock (context->global, (void*) chunk, lock);
-        AMQ_ASSERT_STATUS (result, register_dummy_lock)
+        result = release_lock (context->global, context->sender_tag,
+            (void*) chunk);
+        AMQ_ASSERT_STATUS (result, release_lock)
+
+        /*  Frame is sent, so no need to send PING even if requested by      */
+        /*  server                                                           */
         context->send_ping = 0;
-        context->sender_tag = 0;
     }
     else if (context->send_ping) {
 
@@ -733,21 +798,14 @@ inline static apr_status_t do_get_chunk (
             AMQ_ASSERT (Not enough memory)
         chunk->send_ping = 1;
         chunk->data = NULL;
-        chunk->size = 0;
+        chunk->data_size = 0;
+        chunk->chunks = NULL;
+        chunk->chunks_size = 0;
         chunk->next = NULL;
-        result = register_dummy_lock (context->global, (void*) chunk, lock);
-        AMQ_ASSERT_STATUS (result, register_dummy_lock)
+        result = release_lock (context->global, context->sender_tag,
+            (void*) chunk);
+        AMQ_ASSERT_STATUS (result, release_lock)
         context->send_ping = 0;
-        context->sender_tag = 0;
-    }
-    else {
-
-        /*  Nothing to be done. Sender thread has to wait till something     */
-        /*  happens (chunk to be sent arrives, ping has to be send, thread   */
-        /*  has to be terminated).                                           */ 
-        result = register_lock (context->global, context->id, 0, 0,
-            &(context->sender_tag), lock);
-        AMQ_ASSERT_STATUS (result, register_lock)
     }
 
     return APR_SUCCESS;
@@ -756,7 +814,10 @@ inline static apr_status_t do_get_chunk (
 inline static apr_status_t do_send_chunk (
     connection_fsm_context_t  *context,
     char                      *data,
-    qbyte                     size,    
+    qbyte                     data_size,
+    content_chunk_t           *chunks,
+    qbyte                     chunks_size,
+    byte                      deallocate,    
     amq_stdc_lock_t           *lock
     )
 {
@@ -771,7 +832,10 @@ inline static apr_status_t do_send_chunk (
         AMQ_ASSERT (No enough memory)
     chunk->send_ping = 0;
     chunk->data = data;
-    chunk->size = size;
+    chunk->data_size = data_size;
+    chunk->chunks = chunks;
+    chunk->chunks_size = chunks_size;
+    chunk->deallocate = deallocate;
     chunk->lock_id = 0;
     chunk->next = NULL;
 
@@ -783,7 +847,7 @@ inline static apr_status_t do_send_chunk (
         AMQ_ASSERT_STATUS (result, register_lock)
     }
 
-    if (!context->sender_tag) {
+    if (context->first_chunk) {
         /*  If sender thread isn't waiting, add chunk to the list            */
         context->last_chunk = chunk;
         if (!context->first_chunk)
@@ -793,7 +857,6 @@ inline static apr_status_t do_send_chunk (
         /* If seder thread is waiting, release it                            */
         result = release_lock (context->global, context->sender_tag,
             (void*) chunk);
-        context->sender_tag = 0;
         AMQ_ASSERT_STATUS (result, release_lock)
     }
 
@@ -826,7 +889,8 @@ inline static apr_status_t do_challenge (
         "\x005LOGINS\x000\x005guest\x008PASSWORDS\x000\x005guest");
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
-    result = connection_fsm_send_chunk (context, chunk, chunk_size, NULL);
+    result = connection_fsm_send_chunk (context, chunk, chunk_size, NULL, 0,
+        1, NULL);
     AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
 
     return APR_SUCCESS;
@@ -851,7 +915,7 @@ inline static apr_status_t do_tune (
     result = amq_stdc_table_create (0, NULL, &options);
     AMQ_ASSERT_STATUS (result, amq_stdc_table_create)
     /*  TODO: should be adjusted dyncamically  */
-    result = amq_stdc_table_add_integer (options, "FRAME_MAX", 1024);
+    result = amq_stdc_table_add_integer (options, "FRAME_MAX", 0x8000);
     AMQ_ASSERT_STATUS (result, amq_stdc_table_add_integer)
 
     /*  Send CONNECTION TUNE                                                 */
@@ -866,7 +930,8 @@ inline static apr_status_t do_tune (
         0, "");
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
-    result = connection_fsm_send_chunk (context, chunk, chunk_size, NULL);
+    result = connection_fsm_send_chunk (context, chunk, chunk_size, NULL, 0,
+        1, NULL);
     AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
 
     /*  Destroy the options table                                            */
@@ -890,7 +955,8 @@ inline static apr_status_t do_tune (
         amq_stdc_table_data (context->options));
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
-    result = connection_fsm_send_chunk (context, chunk, chunk_size, NULL);
+    result = connection_fsm_send_chunk (context, chunk, chunk_size, NULL, 0,
+        1, NULL);
     AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
 
     /*  If client opted for asynchronous open, client thread should be       */
@@ -900,7 +966,7 @@ inline static apr_status_t do_tune (
     /*  by sender thread, but that doesn't matter as there cna be only       */
     /*  one such situation per connection.)                                  */
     if (context->async)
-        release_lock (context->global, context->open_tag, (void*) context);
+        release_lock (context->global, context->open_tag, NULL);
     return APR_SUCCESS;
 }
 
@@ -1010,7 +1076,7 @@ inline static apr_status_t do_terminate (
 
     /*  TODO: Close handles, rollback transactions, close channels           */
 
-    /*  Release all threads waiting within the connection                    */
+    /*  Register lock to wait for server close confirmation                  */
     result = register_lock (context->global, context->id, 0, 0,
         &(context->shutdown_tag), lock);
     AMQ_ASSERT_STATUS (result, register_lock)
@@ -1025,7 +1091,8 @@ inline static apr_status_t do_terminate (
         200, 0, "");
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
-    result = connection_fsm_send_chunk (context, chunk, chunk_size, NULL);
+    result = connection_fsm_send_chunk (context, chunk, chunk_size, NULL, 0,
+        1, NULL);
     AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
 
     return APR_SUCCESS;    
@@ -1052,15 +1119,16 @@ inline static apr_status_t do_client_requested_close (
 
     /*  Stop connection threads                                              */
     context->stop = 1;
+
     /*  Release sender thread so that it can shut down                       */
     if (context->sender_tag) {
-        result = release_lock (context->global, context->sender_tag, NULL);
-        AMQ_ASSERT_STATUS (result, release_lock)
+        result = unregister_lock (context->global, context->sender_tag);
+        AMQ_ASSERT_STATUS (result, unregister_lock)
     }
   
     /*  Resume with error all waiting threads except one requesting          */
     /*  connection termination                                               */
-    result = release_all_locks (context->global, context->id, 0, 0,
+    result = release_all_locks (context->global, context->id, 0,
         context->shutdown_tag, AMQ_OBJECT_CLOSED);
     AMQ_ASSERT_STATUS (result, release_all_locks)
 
@@ -1096,7 +1164,8 @@ inline static apr_status_t do_server_requested_close (
         200, 0, "");
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
-    result = connection_fsm_send_chunk (context, chunk, chunk_size, &lock);
+    result = connection_fsm_send_chunk (context, chunk, chunk_size, NULL, 0,
+        1, &lock);
     AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
 
     /*  Wait till CONNECTION CLOSE is physically sent; we cannot shutdown    */
@@ -1111,12 +1180,12 @@ inline static apr_status_t do_server_requested_close (
 
     /*  Release sender thread so that it can shutdown                        */
     if (context->sender_tag) {
-        result = release_lock (context->global, context->sender_tag, NULL);
-        AMQ_ASSERT_STATUS (result, release_lock)
+        result = unregister_lock (context->global, context->sender_tag);
+        AMQ_ASSERT_STATUS (result, unregister_lock)
     }
 
     /*  Resume with error all waiting threads                                */
-    result = release_all_locks (context->global, context->id, 0, 0, 0,
+    result = release_all_locks (context->global, context->id, 0, 0,
         AMQ_OBJECT_CLOSED);
     AMQ_ASSERT_STATUS (result, release_all_locks)
 

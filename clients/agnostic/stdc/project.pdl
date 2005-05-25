@@ -28,6 +28,8 @@
 <file name = "amq_stdc_client.c"            class = "library module"  >Public client API</file>
 <file name = "amq_stdc_client.h"            class = "public header"   >Client API public header</file>
 <file name = "amq_stdc_client_test.c"       class = "main program"    >Main program</file>
+<file name = "amq_stdc_table.h"             class = "public header"   >Header for table class</file>
+<file name = "amq_stdc_error.h"             class = "public header"   >Header defining AMQ errors</file>
 
 <!-- Deliverables -->
 <file name = "libamq_stdc"                  class = "public library"  >Public API library</file>

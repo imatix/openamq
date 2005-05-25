@@ -21,6 +21,9 @@
 typedef struct tag_connection_fsm_context_t* amq_stdc_connection_t;
 typedef struct tag_channel_fsm_context_t*    amq_stdc_channel_t;
 typedef struct tag_message_fsm_context_t*    amq_stdc_message_t;
+typedef struct tag_inpipe_context_t*         amq_stdc_inpipe_t;
+typedef struct tag_outpipe_context_t*        amq_stdc_outpipe_t;
+typedef struct tag_stream_context_t*         amq_stdc_stream_t;
 
 typedef struct
 {
@@ -206,7 +209,7 @@ apr_status_t amq_stdc_cancel_subscription (
     );
 
 apr_status_t amq_stdc_unget_message (
-    amq_stdc_channel_t  channel,
+    amq_stdc_channel_t  message,
     dbyte               handle_id,
     qbyte               message_nbr,
     byte                async
@@ -229,28 +232,53 @@ apr_status_t amq_stdc_close_channel (
 
 /*---------------------------------------------------------------------------*/
 
-
 apr_status_t amq_stdc_destroy_query (
     char  *query
     );
 
-
 /*---------------------------------------------------------------------------*/
 
-size_t amq_stdc_read (
+size_t amq_stdc_open_inpipe (
     amq_stdc_message_t  message,
-    void                *destination,
-    size_t              size
+    amq_stdc_inpipe_t   *inpipe
     );
 
-size_t amq_stdc_skip (
+size_t amq_stdc_open_outpipe (
     amq_stdc_message_t  message,
-    size_t              size
+    amq_stdc_outpipe_t   *outpipe
+    );
+
+size_t amq_stdc_open_stream (
+    amq_stdc_message_t  message,
+    amq_stdc_stream_t   *stream
     );
 
 apr_status_t amq_stdc_close_message (
     amq_stdc_message_t  message,
     byte                async
     );
+
+/*---------------------------------------------------------------------------*/
+
+size_t amq_stdc_pread (
+    amq_stdc_inpipe_t   inpipe,
+    void                *destination,
+    size_t              size,
+    byte                wait,
+    byte                complete
+    );
+
+size_t amq_stdc_pskip (
+    amq_stdc_inpipe_t   inpipe,
+    size_t              size,
+    byte                wait,
+    byte                complete
+    );
+
+byte amq_stdc_peof (
+    amq_stdc_inpipe_t  inpipe
+    );
+
+/*---------------------------------------------------------------------------*/
 
 #endif

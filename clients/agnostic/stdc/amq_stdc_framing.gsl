@@ -87,6 +87,9 @@ sizeof (byte) + \
         if (pos + sizeof (byte) > size)
             return 0;
         $(my.frame)$(name:c) = *((byte*) (buffer + pos));
+         #ifdef AMQTRACE_FRAMING
+             printf ("%ld\\n", (long) ($(my.frame)$(name:c)));
+         #endif
         pos += sizeof (byte);
 .    elsif "$(type)" = "shortstr"
         if (pos + sizeof (byte) > size)
@@ -96,6 +99,9 @@ sizeof (byte) + \
         if (pos + $(my.frame)$(name:c)_size > size)
             return 0;
         $(my.frame)$(name:c) = buffer + pos;
+         #ifdef AMQTRACE_FRAMING
+             printf ("%ldb\\n", (long) ($(my.frame)$(name:c)_size));
+         #endif
         pos += $(my.frame)$(name:c)_size;
 .    elsif "$(type)" = "longstr" | "$(type)" = "table"
         if (pos + sizeof (dbyte) > size)
@@ -105,16 +111,25 @@ sizeof (byte) + \
         if (pos + $(my.frame)$(name:c)_size > size)
             return 0;
         $(my.frame)$(name:c) = buffer + pos;
+         #ifdef AMQTRACE_FRAMING
+             printf ("%ldb\\n", (long) ($(my.frame)$(name:c)_size));
+         #endif
         pos += $(my.frame)$(name:c)_size;
 .    elsif "$(type)" = "shortint"
         if (pos + sizeof (dbyte) > size)
             return 0;
         GET_SHORT ($(my.frame)$(name:c), buffer + pos)
+         #ifdef AMQTRACE_FRAMING
+             printf ("%ld\\n", (long) ($(my.frame)$(name:c)));
+         #endif
         pos += sizeof (dbyte);
 .    elsif "$(type)" = "longint"
         if (pos + sizeof (qbyte) > size)
             return 0;
         GET_LONG ($(my.frame)$(name:c), buffer + pos)
+         #ifdef AMQTRACE_FRAMING
+             printf ("%ld\\n", (long) ($(my.frame)$(name:c)));
+         #endif
         pos += sizeof (qbyte);
 .    elsif "$(type)" = "bit"
 .        if bitshift = 8
@@ -126,6 +141,9 @@ sizeof (byte) + \
             return 0;
 .        endif
         $(my.frame)$(name:c) = (*((byte*) (buffer + pos)) >> $(bitshift)) & 0x01;
+         #ifdef AMQTRACE_FRAMING
+             printf ("%ld\\n", (long) ($(my.frame)$(name:c)));
+         #endif
 .        bitshift = bitshift + 1
 .    else
 .        abort "'$(type)' : unsupported type"
@@ -141,22 +159,37 @@ sizeof (byte) + \
 .    if "$(type)" = "octet"
     *((byte*) buffer) = $(name:c);
     buffer += sizeof (byte);
+    #ifdef AMQTRACE_FRAMING
+        printf ("%ld\\n", (long) $(name:c));
+    #endif
 .    elsif "$(type)" = "shortstr"
     *((byte*) buffer) = $(name:c)_size;
     buffer += sizeof (byte);
     memcpy ((void*) buffer, (void*) $(name:c), $(name:c)_size);
     buffer += $(name:c)_size;
+    #ifdef AMQTRACE_FRAMING
+        printf ("%ldb\\n", (long) $(name:c)_size);
+    #endif
 .    elsif "$(type)" = "longstr" | "$(type)" = "table"
     PUT_SHORT (buffer, $(name:c)_size)
     buffer += sizeof (dbyte);
     memcpy ((void*) buffer, (void*) $(name:c), $(name:c)_size);
     buffer += $(name:c)_size;
+    #ifdef AMQTRACE_FRAMING
+        printf ("%ldb\\n", (long) $(name:c)_size);
+    #endif
 .    elsif "$(type)" = "shortint"
     PUT_SHORT (buffer, $(name:c));
     buffer += sizeof (dbyte);
+    #ifdef AMQTRACE_FRAMING
+        printf ("%ld\\n", (long) $(name:c));
+    #endif
 .    elsif "$(type)" = "longint"
     PUT_LONG (buffer, $(name:c));
     buffer += sizeof (qbyte);
+    #ifdef AMQTRACE_FRAMING
+        printf ("%ld\\n", (long) $(name:c));
+    #endif
 .    elsif "$(type)" = "bit"
 .        if bitshift = 8
 .            bitshift = 0
@@ -167,6 +200,9 @@ sizeof (byte) + \
 .        endif
     *((byte*) buffer) |= ($(name:c) ? 1 : 0) << $(bitshift);
 .        bitshift = bitshift + 1
+    #ifdef AMQTRACE_FRAMING
+        printf ("%ld\\n", (long) $(name:c));
+    #endif
 .    else
 .        abort "'$(type)' : unsupported type"
 .    endif
@@ -187,6 +223,8 @@ sizeof (byte) + \
 #define AMQ_STDC_FRAMING_INCLUDED
 
 #include "base.h"
+
+#define AMQTRACE_FRAMING
 
 #define GET_SHORT(host, net) \\
     (host) = ((net) [0] << 8) + (net) [1];
@@ -260,14 +298,14 @@ typedef struct
 } amq_stdc_frame_t;
 
 qbyte amq_stdc_decode_command (
-    const char *buffer,
+    const byte *buffer,
     qbyte size,
     amq_stdc_frame_t *frame
     );
 
 .for frame where name = "message head"
 qbyte amq_stdc_decode_$(name:c) (
-    const char *buffer,
+    const byte *buffer,
     qbyte size,
     amq_stdc_$(name:c)_t *frame
     );
@@ -276,7 +314,7 @@ qbyte amq_stdc_decode_$(name:c) (
 
 .for frame
 qbyte amq_stdc_encode_$(name:c) (
-    char *buffer,
+    byte *buffer,
     qbyte size,
 .    for field where name <> "type"
 .        make_arg ()
@@ -302,7 +340,7 @@ $(!last()??","?)
 #include "amq_stdc_framing.h"
 
 qbyte amq_stdc_decode_command (
-    const char *buffer,
+    const byte *buffer,
     qbyte size,
     amq_stdc_frame_t *frame
     )
@@ -318,8 +356,14 @@ qbyte amq_stdc_decode_command (
     {
 .for frame where name <> "message head"
     case amq_stdc_$(name:c)_type:
+         #ifdef AMQTRACE_FRAMING
+             printf ("DECODING $(name:UPPER)\\n");
+         #endif
 .    bitshift = 0
 .    for field where name <> "type"
+         #ifdef AMQTRACE_FRAMING
+             printf ("    $(name:) : ");
+         #endif
 .        make_decoder ("frame->fields.$(frame.name:c).")
 .    endfor
 .    if bitshift <> 0
@@ -340,7 +384,7 @@ qbyte amq_stdc_decode_command (
 
 .for frame where name = "message head"
 qbyte amq_stdc_decode_$(name:c) (
-    const char *buffer,
+    const byte *buffer,
     qbyte size,
     amq_stdc_$(name:c)_t *frame
     )
@@ -348,8 +392,14 @@ qbyte amq_stdc_decode_$(name:c) (
     qbyte
         pos = 0;
 
+    #ifdef AMQTRACE_FRAMING
+        printf ("DECODING $(name:UPPER)\\n");
+    #endif
 .    bitshift = 0
 .    for field
+         #ifdef AMQTRACE_FRAMING
+             printf ("    $(name:) : ");
+         #endif
 .        make_decoder ("frame->")
 .    endfor
 .    if bitshift <> 0
@@ -379,7 +429,7 @@ qbyte amq_stdc_decode_$(name:c) (
 
 .for frame
 qbyte amq_stdc_encode_$(name:c) (
-    char *buffer,
+    byte *buffer,
     qbyte size,
 .    for field where name <> "type"
 .        make_arg ()
@@ -394,6 +444,9 @@ $(!last()??","?)
 .    endfor
 ;
 
+    #ifdef AMQTRACE_FRAMING
+        printf ("ENCODING $(name:UPPER)\\n");
+    #endif
 .    if "$(name)" <> "message head"
     ENCODE_SIZE
     *((byte*) buffer) = amq_stdc_$(name:c)_type;
@@ -401,6 +454,9 @@ $(!last()??","?)
 .    endif
 .    bitshift = 0
 .    for field where name <> "type"
+    #ifdef AMQTRACE_FRAMING
+        printf ("    $(name:) : "); 
+    #endif
 .        make_encoder ()
 .    endfor
 .    if bitshift <> 0

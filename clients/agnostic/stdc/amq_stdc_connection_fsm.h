@@ -12,6 +12,18 @@
 
 typedef struct tag_connection_fsm_context_t* connection_fsm_t;
 
+typedef struct tag_content_chunk_t
+{
+    struct tag_content_chunk_t
+        *prev;
+    struct tag_content_chunk_t
+        *next;
+    qbyte
+        size;
+    char
+        data [CONTENT_CHUNK_SIZE];
+} content_chunk_t;
+
 #include "amq_stdc_table.h"
 #include "amq_stdc_global_fsm.h"
 #include "amq_stdc_channel_fsm.h"
