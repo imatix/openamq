@@ -136,6 +136,7 @@ endif
     <allow entity = "see"       />
     <allow entity = "chassis"   />
     <allow entity = "field"     />
+    <allow entity = "response"  />
 
     <attr name = "name" required = "1" short = "method name">
     The name of the method, used in the API.
@@ -149,15 +150,27 @@ endif
     level of technology. Synchronous methods can be chained by using
     the 'expect' attribute.
     </attr>
-    <attr name = "expect">
-    For a synchronous request, defines the expected reply method. If
-    this is not defined, a synchronous method is assumed to be a reply.
+    <attr name = "content" default = "0">
+    Defines a content method. Content methods should be followed by a
+    content block in one or more frames.
     </attr>
-    <link from = "expect" entity = "method" disconnect = "1"/>
 
     <rule phase = "parse">
     method.fullname = "$(class.name:neat).$(method.name:neat)"
+    if abstract = 0 & count (chassis) = 0
+        parse_error ("Method '$(fullname)' needs a chassis")
+    endif
     </rule>
+</entity>
+
+<entity name = "response">
+    For a synchronous request, defines the expected reply method. If
+    this is not defined, a synchronous method is assumed to be a reply.
+
+    <attr name = "name" required = "1" short = "name of response method">
+    The name of the response method.
+    </attr>
+    <link from = "name" entity = "method" disconnect = "1"/>
 </entity>
 
 <entity name = "field" cdata = "1">

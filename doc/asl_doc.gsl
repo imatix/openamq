@@ -7,6 +7,8 @@
 #   All output spacing (blank line) is done at the start of the output block.
 #  ----------------------------------------------------------------------------
 
+content?
+
 function output_title (title, linetype)
     >
     >$(my.title:neat)
@@ -46,27 +48,36 @@ function output_chassis (chassis)
     >This class contains the following $(my.chassis) methods:
     for method where count (chassis, name = my.chassis)
         my.text = fullname + " - " + string.justify (method.?'', 9999)
-        my.text += " (ID = $(method.index))"
-        if method.synchronous
-            if defined (expect)
-                my.text += " (sync request for $(class.name:neat).$(expect:neat))"
-            else
-                my.text += " (sync reply)"
-            endif
-        else
-            my.text += " (async)"
-        endif
+        my.text += " (ID = $(method.index)) ($(method_sync ()))"
         >
         >$("-":block) \
         >$(my.text:justify,block                                             )
     endfor
 endfunction
 
+function method_sync
+    if method.synchronous
+        if count (response)
+            my.text = "sync request"
+        else
+            my.text = "sync reply for"
+            for class.method as caller
+                for response where response.name = method.name
+                    my.text += " $(caller.name:neat)"
+                endfor
+            endfor
+        endif
+    else
+        my.text = "async"
+    endif
+    return (my.text)
+endfunction
+
 
 ##############################################################################
 
 function full_reference
-    output "$(protocol.name)_full.txt"
+    quick_reference ()
     for class 
         output_title   ("The $(class.name) Class", "=")
         output_doc     ()
@@ -87,7 +98,6 @@ function full_reference
     
         for method 
             output_title ("The $(fullname) Method", "-")
-            >
             output_doc ()
             for field where !standard
                 if index () = 1
@@ -110,6 +120,10 @@ function full_reference
             >
             >    define $(fullname) {
             for field
+                if !defined (field.)
+                    echo "No comment for field '$(field.name)' in $(fullname)"
+                    field. = "no comment"
+                endif
                 >        $(name:c)          $(type)     #  $(string.justify (field., 255))
             endfor
                 >    }
@@ -120,10 +134,13 @@ function full_reference
                 >- The $(name) $(implement) implement this method.
             endfor
             if method.synchronous
-                if defined (expect)
+                if count (response)
                     >
-                    >- This method is a synchronous request. The sender MUST expect a
-                    >  $(class.name:neat).$(expect:neat) method in return, unless there is an exception.
+                    >- This method is a synchronous request that expects one of:
+                    for response
+                        >  $(class.name:neat).$(name:neat)
+                    endfor
+                    >  unless there is an exception.
                 else
                     >
                     >- This method is a synchronous response.  The sender MUST NOT
@@ -156,8 +173,6 @@ endfunction
 ##############################################################################
 
 function short_summary
-    output "$(protocol.name)_short.txt"
-
     >Protocol Classes
     >................
     >
@@ -195,34 +210,32 @@ endfunction
 ##############################################################################
 
 function quick_reference
-    output "$(protocol.name)_quick.txt"
-
     >
-    >Quick Reference
-    >===============
+    >Summary of Methods and Classes
+    >==============================
+    >
+    >Overall Grammar
+    >---------------
     for class
-        output_title ("$(class.name) Class - $(string.trim (class.))", "-")
+        for doc where name = "grammar"
+            >
+            >$(string.trim (doc.?''))
+        endfor
+    endfor
+    for class
+        output_title ("$(class.name) Class - $(string.justify (class., 255))", "-")
         for method
-            text = ""
+            my.text = ""
             if count (chassis, name = "server")
-                text = "ID=$(class.index)/$(method.index) - server, "
+                my.text = "ID=$(class.index)/$(method.index) - server, "
             endif
             if count (chassis, name = "client")
-                text = "ID=$(class.index)/$(method.index) - client, "
+                my.text = "ID=$(class.index)/$(method.index) - client, "
             endif
-            if method.synchronous
-                if defined (expect)
-                    text += "sync request for $(expect:neat), "
-                else
-                    text += "sync reply, "
-                endif
-            else
-                text += "async, "
-            endif
-            text += string.trim (method.?'no desc') + "."
+            my.text += "$(method_sync ()), $(string.trim (method.?'no desc'))."
             >
             >$(fullname):
-            >  $(text:justify,block                                         )
+            >  $(my.text:justify,block                                         )
 
             for field where !standard
                 if index () = 1
@@ -241,8 +254,11 @@ endfunction
 
 if !defined (switches.quiet)
     echo "Generating $(protocol.name) documentation..."
+    output "$(protocol.name)_full.txt"
     full_reference  ()
+    output "$(protocol.name)_short.txt"
     short_summary   ()
+    output "$(protocol.name)_quick.txt"
     quick_reference ()
 endif
 

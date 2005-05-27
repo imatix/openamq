@@ -1484,8 +1484,8 @@ Trace_Frame:
 Message:
     A specific type of content, the application-to-application message.
 Destination:
-    A queue or topic, able to hold and route messages of various types.
-    A server manages access to a set of destinations.
+    A queue, topic, or subscription, able to hold and route messages of
+    various types. A server manages access to a set of destinations.
 Static_Destination:
     Destinations that are configured by the server administrator.
 Dynamic_Destination:
@@ -1495,13 +1495,14 @@ Dynamic_Destination:
     client can create a response queue, then continue to receive
     queued messages even when going offline. 
 Subscription:
-    A long-running request from a client to receive messages from one
-    or more topic destinations.  Subscriptions are defined on the topic
-    name and on content-based routing rules, and may be private or
-    shared between multiple clients (achieving load balancing).
-    Subscriptions are explicitly durable and asynchronous so that
-    clients do not have to be connected to ensure that messages are
-    queued for them.
+    A queue-based destination that receives messages from one or more
+    topic destinations based on a topic name pattern and content-based
+    matching.  Subscriptions are analogous with queues in most ways
+    except that they are never published to or selected on directly.
+    Subscriptions may be private or shared, persistent or temporary.
+    Subscriptions may be defined explicitly using the Subscription
+    class, or defined automatically, when starting a consumer on a
+    topic destination.
 Consumer:
     A client that requests messages from a destination.
 Producer:
@@ -2138,10 +2139,10 @@ This is the formal grammar for the AMQP/Fast content model:
     header-frame    = HEADER channel frame-size header-payload
     channel         = octet
     frame-size      = short-integer
-    header-payload  = domain weight body-size
+    header-payload  = class weight body-size
                       property-flags property-list
-    domain          = OCTET
-    weight          = OCTET
+    content-class   = OCTET
+    content-weight  = OCTET
     body-size       = long-long-integer
     property-flags  = 15*BIT %b0 / 15*BIT %b1 property-flags
     property-list   = amqp-field
@@ -2154,11 +2155,17 @@ Content Header Frame Wire Format
 
 A content header frame has this format:
 
+    0        1        2           6                8
+    +-------+--------+-----------+----------------+------------- - -
+    | class | weight | body size | property flags | property list...
+    +-------+--------+-----------+----------------+------------- - -
+      octet   octet    long long   short int        remainder...
+
 [contentheader.png]
 
-- The content domain specifies the set of properties (with a predefined
+- The content class specifies the set of properties (with a predefined
   syntax and semantics) that the header frame may hold. The standard
-  AMQP/Fast content domains are defined later.
+  AMQP/Fast content classes are defined later.
 
 - The weight field specifies whether the content is structured or not.
   Unstructured content has a weight of zero.  Structured content has a
@@ -2172,18 +2179,23 @@ A content header frame has this format:
 - The property flags are a bit array that indicates the presence or
   absence of each property value.
 
-- The property values are domain-specific data fields.  The properties
+- The property values are class-specific data fields.  The properties
   are formatted as AMQP/Fast data types (integers, strings, field tables).
 
-The set of properties for a content domain can be any size. The first
-two properties for all content domains are the content MIME type and the
-content encoding. Following these, each content domain has a specific
+The set of properties for a content class can be any size. The first
+two properties for all content classes are the content MIME type and the
+content encoding. Following these, each content class has a specific
 set of properties defined in a strict order from most to least
 significant.
 
-As an example, we take an imaginary content domain "D" which has three
+As an example, we take an imaginary content class "D" which has three
 properties, T, E and C. Imagine a simple content that has properties E
 and C but not T. The header frame will be formatted thus:
+
+      class   weight   body size   property flags   property list
+    +-------+--------+-----------+----------------+-------+
+    |   D   |   0    |    nnn    | 011...         | E | C |
+    +-------+--------+-----------+----------------+-------+
 
 [domainexample.png]
 
@@ -2252,41 +2264,44 @@ Guidelines for implementors:
 - Empty body frames are permitted but a peer may not assign any special
   meaning to these: it MUST discard them with no side-effects of any kind.
 
-Content Domains
-...............
+Content Classes
+................
 
-The content domain is not intended to provide data typing or encoding
+The content class is not intended to provide data typing or encoding
 information. Its purpose is to allow functional clarity in the property
 sets and methods that we define per class of message.
 
-Content domains turn AMQP/Fast from an abstract content-carrying
+Content classes turn AMQP/Fast from an abstract content-carrying
 protocol into a functional tool by providing data and operations that
 are directly and clearly mapped to the kinds of API that an application
 programmer needs to see.
 
-AMQP/Fast defines these standard content domains:
+AMQP/Fast defines these standard content classes:
 
-- Domain = 1, "JMS": the content is a JMS-compliant message.
-- Domain = 2, "File": the content is a file.
-- Domain = 3, "Stream": the content is a streamed message.
+- JMS: the content is a JMS-compliant message.
+- File: the content is a file.
+- Stream: the content is a streamed message.
 
-Each domain has a specific access model, though they all share the basic
+Note that the ID of each content class is the same as the ID of the
+protocol class (JMS, File, Stream) that supports it.
+
+Each class has a specific access model, though they all share the basic
 AMQP queuing and routing mechanisms including topic multipliers. These
-domains are defined in the next sections.  This model lets us extend
-AMQP/Fast into new functional areas by defining new content domains and
+classes are defined in the next sections.  This model lets us extend
+AMQP/Fast into new functional areas by defining new content classes and
 appropriate methods, without breaking interoperability.
 
 Guidelines for implementors:
 
-- The client MAY support any or all of the defined content domains.
+- The client MAY support any or all of the defined content classes.
 
-- The server MUST support at least one of the defined content domains.
+- The server MUST support at least one of the defined content classes.
 
 Content Type and Encoding
 .........................
 
-AMQP/Fast enforces MIME-compliance on all content domains using two
-standard properties that are the first defined in all content domains:
+AMQP/Fast enforces MIME-compliance on all content classes using two
+standard properties that are the first defined in all content classes:
 
 - ContentType (tiny string) - the MIME content type of the message body.
   The default value is "application/octet-stream".
@@ -2729,7 +2744,7 @@ a subscription.
 Note that subscriptions are largely orthogonal with queues. That is,
 they can be named or unnamed objects, private to one consumer or shared
 between consumers. A single subscription can hold content of different
-domains.
+classes.
 
 These are the Subscription server methods:
 
@@ -2946,7 +2961,7 @@ Goals and Principles
 The AMQP queuing and routing mechanisms define how content is moved
 between an AMQP server and its clients. Our goal is to define a single
 coherent queuing and routing model that can support a range of different
-highly-functional content domains.
+highly-functional content classes.
 
 Our design is based on these elements:
 
@@ -2979,8 +2994,8 @@ Our design is based on these elements:
 - Transactions: allowing a client to group multiple messages and
   acknowledgements into a single unit of work.  
 
-In general all these mechanisms apply to all content domains. Certain
-content domains may elect to use a simpler model for performance
+In general all these mechanisms apply to all content classes. Certain
+content classes may elect to use a simpler model for performance
 reasons. This is specifically the case for streamed content, which does
 not support persistence, browsing, acknowledgments, or transactions.
 
@@ -3008,9 +3023,9 @@ JMS or File messages but not Stream messages.
 
 Guidelines for implementors:
 
-- Queues are not tied to specific content domains.
+- Queues are not tied to specific content classes.
 
-- A server MUST allow any content domain to be sent to any
+- A server MUST allow any content class to be sent to any
   queue, in any mix, depending on the access rights of the producing
   client.
 
@@ -3029,9 +3044,9 @@ selection mechanisms explained below).
 
 Guidelines for implementors:
 
-- Topics are not tied to specific content domains.
+- Topics are not tied to specific content classes.
 
-- A server MUST allow any content domain to be sent to any topic, in any
+- A server MUST allow any content class to be sent to any topic, in any
   mix, depending on the access rights of the producing client.
 
 - A server MAY hold topic messages for which there are no subscribers.
@@ -3053,9 +3068,9 @@ as messages published to a queue.
 
 Guidelines for implementors:
 
-- Subscriptions are not tied to specific content domains.
+- Subscriptions are not tied to specific content classes.
 
-- A server MUST allow any content domain to be sent to any subscription,
+- A server MUST allow any content class to be sent to any subscription,
   depending on the access rights of the producing client.
 
 - The Stream CONSUME method MUST not allow more than one Stream consumer
@@ -3094,10 +3109,10 @@ overflow etc.
 
 Messages may be persistent or not, depending on several criteria:
 
-1. In the JMS content domain, messages are individually marked as
+1. In the JMS content class, messages are individually marked as
    "persistent" or not.
-2. In the File content domain, messages are always persistent.
-3. In the Stream content domain, messages are never persistent.
+2. In the File content class, messages are always persistent.
+3. In the Stream content class, messages are never persistent.
 
 Guidelines for implementors:
 
@@ -3354,7 +3369,7 @@ These are the properties defined for JMS content:
 - DeliveryMode (octet)
 - Priority (octet)
 - CorrelationID (tiny string)
-- ReplyToQueue (tiny string)
+- ReplyTo (tiny string)
 - Destination (tiny string)
 - Expiration (tiny string)
 - MessageID (tiny string)
@@ -3400,7 +3415,7 @@ These are the properties defined for File content:
 - ContentType (tiny string)
 - ContentEncoding (tiny string)
 - Priority (octet)
-- ReplyToQueue (tiny string)
+- ReplyTo (tiny string)
 - Destination (tiny string)
 - MessageID (tiny string)
 - FileName (tiny string)

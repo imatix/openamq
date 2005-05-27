@@ -3,18 +3,19 @@
 <class
     name = "test"
     handler = "channel"
-    >
-test functional primitives of the implementation
-
-<chassis name = "server" implement = "MUST"   />
-<chassis name = "client" implement = "SHOULD" />
+  >
+  test functional primitives of the implementation
 
 <doc>
-
 </doc>
 
 <doc name = "grammar">
 </doc>
+
+<chassis name = "server" implement = "MUST"   />
+<chassis name = "client" implement = "SHOULD" />
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 <method name = "open">
 </method>

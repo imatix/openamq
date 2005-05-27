@@ -11,17 +11,6 @@ TEST
     CONTENT
         - content, hash of body
 
-JMS
-    CONSUME
-        prefetch octets
-        prefetch messages
-    BROWSE
-        deliver             y/n
-    NOTIFY
-        browse-token        tiny-string
-        delivered           y/n             
-        redelivered         y/n           
-    
 FILE
     CONSUME
         prefetch octets
@@ -35,15 +24,12 @@ STREAM
         frame size
     
 
-
-
 -- message content templating
     - delivery mode
     - priority
     - destination
     - arguments
     -> specified by name, nbr?
-    
 
 AMQP/Fast topic names form a hierarchy of names delimited by dots, e.g.
 
