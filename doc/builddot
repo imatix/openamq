@@ -1,10 +1,26 @@
 #! /bin/sh
 #
 
+# Requirements:
+# dot
+# epstopdf (tetex-bin)
+# epsffit (psutils)
+
+# Scale factor for the PDF target
+scale=80
+
+# Get pdf from eps
+get_pdf()
+{
+    epsffit -c 0 0 $((($4 - $2) * $scale / 100)) $((($5 - $3) * $scale / 100)) $6.eps > scaled.$6.eps
+    epstopdf --outfile=$6.pdf scaled.$6.eps
+    rm -f scaled.$6.eps
+}
+
 #   Build PNG from dot file
 FILE=`basename $1 .dot`
 dot -Tpng $FILE.dot -o$FILE.png
 
 #   Build PDF from dot file
-dot -Tps $FILE.dot -o$FILE.ps
-epstopdf $FILE.ps
+dot -Tps $FILE.dot -o$FILE.eps
+get_pdf $(grep %BoundingBox $FILE.eps) $FILE
