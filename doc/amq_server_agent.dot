@@ -1,6 +1,6 @@
 digraph ServerAgent {
-    size = "6,12";
-    node [fontsize=10];
+    size = "8,11";
+    node [fontsize=24];
     subgraph master {
         initialise_master -> new_connection;
         new_connection -> new_connection;

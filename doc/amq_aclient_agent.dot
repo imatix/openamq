@@ -1,6 +1,6 @@
 digraph AClientAgent {
-    size = "3.5,8";
-    node [fontsize=10];
+    size = "4,8";
+    node [fontsize=12];
     subgraph client {
         initialise_connection -> expect_connection_challenge;
         expect_connection_challenge -> expect_connection_tune;
