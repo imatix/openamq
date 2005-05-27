@@ -233,14 +233,18 @@ sizeof (byte) + \
     (host) = ((net) [0] << 24) + ((net) [1] << 16) + ((net) [2] << 8) + (net) [3];
 
 #define PUT_SHORT(net, host) \\
-    (net) [0] = (byte) (((host) >> 8) & 255); \\
-    (net) [1] = (byte) ((host)      & 255);
+    {\\
+        (net) [0] = (byte) (((host) >> 8) & 255); \\
+        (net) [1] = (byte) ((host)      & 255);\\
+    }
 
 #define PUT_LONG(net, host) \\
-    (net) [0] = (byte) (((host) >> 24) & 255); \\
-    (net) [1] = (byte) (((host) >> 16) & 255); \\
-    (net) [2] = (byte) (((host) >> 8)  & 255); \\
-    (net) [3] = (byte) ((host)       & 255);
+    {\\
+        (net) [0] = (byte) (((host) >> 24) & 255); \\
+        (net) [1] = (byte) (((host) >> 16) & 255); \\
+        (net) [2] = (byte) (((host) >> 8)  & 255); \\
+        (net) [3] = (byte) ((host)       & 255);\\
+    }
 
 #define COMMAND_SIZE_MAX_SIZE \\
     (sizeof (dbyte) + sizeof (qbyte))

@@ -4,7 +4,6 @@
     acronym   = "OpenAMQ_Agnostic_C"
     version   = "0.8b0"
     copyright = "Copyright (c) 1991-2005 iMatix Corporation"
-    deploy    = "openamq/clients"
     library   = "libamq_stdc"
     workflow  = "standard.pwl"
     >
@@ -35,7 +34,7 @@
 <file name = "libamq_stdc"                  class = "public library"  >Public API library</file>
 <file name = "amq_stdc_client_test"         class = "public command"  >Client API test executable</file>
 
-<class name = "state machine" inherit = "sub program">
+<class name = "state machine" inherit = "library module">
     <derive extension = ".i"   class = "generated" />
     <derive extension = ".d"   class = "generated" />
 </class>

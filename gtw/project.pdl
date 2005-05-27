@@ -10,14 +10,17 @@
 <inherit filename = "classes.pdl"     />
 <inherit filename = "icl_classes.pdl" />
 
-<file name = "gtw_ll.icl"    class = "icl private class" />
-<file name = "gtw_hash.icl"  class = "icl private class" />
-<file name = "gtw_tbl.icl"   class = "icl private class" />
-<file name = "gtw_oum.icl"   class = "icl private class" />
-<file name = "gtw.c"         class = "library module"    />
+<file name = "gtw_ll.icl"      class = "icl private class" />
+<file name = "gtw_hash.icl"    class = "icl private class" />
+<file name = "gtw_tbl.icl"     class = "icl private class" />
+<file name = "gtw_oum.icl"     class = "icl private class" />
+<file name = "gtw_gmm.icl"     class = "icl private class" />
+<file name = "gtw.c"           class = "library module"    />
+<file name = "gtw_main.c"      class = "library module"    />
+<file name = "grm_msgen.c"     class = "main program"      />
 
 <!-- Deliverables -->
-<file name = "libgtw"        class = "public library" />
-<file name = "gtw.h"         class = "public header"  />
+<file name = "libgtw"         class = "public library" />
+<file name = "gtw.h"          class = "public header"  />
 
 </pdl>

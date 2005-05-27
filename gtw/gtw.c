@@ -2,10 +2,12 @@
 #include "gtw.h"
 
 #include "base.h"
+#include "base_apr.h"
 #include "gtw_ll.h"
 #include "gtw_hash.h"
 #include "gtw_tbl.h"
 #include "gtw_oum.h"
+#include "gtw_gmm.h"
 
 int JAMQ_ll_open (
     void             **ap_link_List,
@@ -470,6 +472,132 @@ err:
     return NOT_OK;
 }
 
+int JAMQ_m_get_buffer (
+    JAMQ_tsBufcb  **apBufferHandle,
+    int           ibufferLength, 
+    int           *aireturn_Code
+    )
+{
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!apBufferHandle || ibufferLength <= 0) {
+        *aireturn_Code = JAMQ_MISC_INPUT_ERR;
+        return NOT_OK;
+    }
+
+    if (*apBufferHandle) {
+        *aireturn_Code = JAMQ_MISC_HANDLE_ACTIVE;
+        return NOT_OK;
+    }
+
+    *apBufferHandle = (JAMQ_tsBufcb*) malloc (sizeof (JAMQ_tsBufcb));
+    if (!apBufferHandle) {
+       *aireturn_Code = JAMQ_MISC_MEM_ERR;
+       return NOT_OK;
+    }
+
+    (*apBufferHandle)->iCurrentLen = 0;
+    (*apBufferHandle)->iLogicalMaxLen = ibufferLength;
+    (*apBufferHandle)->iPhysicalLen = ibufferLength;
+
+    (*apBufferHandle)->pData = (char*) malloc (ibufferLength);
+    if (!(*apBufferHandle)->pData) {
+        free ((void*) *apBufferHandle);
+        *apBufferHandle = NULL;
+        *aireturn_Code = JAMQ_MISC_MEM_ERR;
+       return NOT_OK;
+    }
+
+    *aireturn_Code = 0;
+    return OK;
+}
+
+int JAMQ_m_put_buffer (
+    JAMQ_tsBufcb  **apBufferHandle,
+    int           *aireturn_Code
+    )
+{
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!apBufferHandle) {
+        *aireturn_Code = JAMQ_MISC_INPUT_ERR;
+        return NOT_OK;
+    }
+
+    if (!*apBufferHandle) {
+        *aireturn_Code = JAMQ_MISC_HANDLE_INVALID;
+        return NOT_OK;
+    }
+
+    free ((void*) ((*apBufferHandle)->pData));
+    free ((void*) *apBufferHandle);
+    *apBufferHandle = NULL;
+
+    *aireturn_Code = 0;
+    return OK;
+}
+
+int JAMQ_m_mem_nchar_dup (
+    JAMQ_tsNCharcb  *pNCharOut,
+    JAMQ_tsNCharcb  *pNCharIn,
+    int             *aireturn_Code
+    )
+{
+    char
+        *duplicate;
+
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!pNCharOut || !pNCharIn ||
+          !pNCharIn->pData || pNCharIn->iDataLen < 0) {
+        *aireturn_Code = JAMQ_MISC_INPUT_ERR;
+        return NOT_OK;
+    }
+
+    duplicate = (char*) malloc (pNCharIn->iDataLen);
+    if (!duplicate) {
+        *aireturn_Code = JAMQ_MISC_MEM_ERR;
+        return NOT_OK;
+    }
+    memcpy ((void*) duplicate, (void*) pNCharIn->pData, pNCharIn->iDataLen);
+
+    /*  If destination string is already allocated, deallocate it            */
+    if (pNCharOut->pData)
+        free ((void*) pNCharOut->pData);
+
+    pNCharOut->pData = duplicate;
+    pNCharOut->iDataLen = pNCharIn->iDataLen;
+
+    *aireturn_Code = 0;
+    return OK;
+}
+
+int JAMQ_m_mem_nchar_undup (
+    JAMQ_tsNCharcb  *pBuffer,
+    int             *aireturn_Code
+    )
+{
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!pBuffer || !pBuffer->pData || pBuffer->iDataLen < 0) {
+        *aireturn_Code = JAMQ_MISC_INPUT_ERR;
+        return NOT_OK;
+    }
+ 
+    free ((void*) pBuffer->pData);
+    pBuffer->pData = NULL;
+    pBuffer->iDataLen = 0;
+
+    *aireturn_Code = 0;
+    return OK;
+}
+
+/*---------------------------------------------------------------------------*/
+
 int JAMQ_oum_open (
     void              **apoumHandle,
     JAMQ_tsoumParams  *poumParams,
@@ -519,3 +647,884 @@ int JAMQ_oum_close (
 {
     return gtw_oum_close ((gtw_oum_t**) apoumHandle, aireturn_Code);
 }
+
+/*---------------------------------------------------------------------------*/
+
+int JAMQ_gmm_open (
+    void  **pGmmHandle, 
+    int   *aireturn_Code
+    )
+{
+    return gtw_gmm_open ((gtw_gmm_t**) pGmmHandle, aireturn_Code);
+}
+
+int JAMQ_gmm_close (
+    void  **pGmmHandle, 
+    int   *aireturn_Code
+    )
+{
+    return gtw_gmm_close ((gtw_gmm_t**) pGmmHandle, aireturn_Code);
+}
+
+int JAMQ_gmm_start_msg (
+    void          *pGmmHandle,
+    JAMQ_tsBufcb  *pMsgBuffer,
+    int           *aireturn_Code
+    )
+{
+    return gtw_gmm_start_msg ((gtw_gmm_t*) pGmmHandle, pMsgBuffer,
+        aireturn_Code);
+}
+
+int JAMQ_gmm_add_data (
+    void            *pGmmHandle, 
+    int             iFieldId, 
+    int             iDataItemCount, 
+    JAMQ_tsNCharcb  *pDataHandle, 
+    int             *aireturn_Code
+    )
+{
+    return gtw_gmm_add_data ((gtw_gmm_t*) pGmmHandle, iFieldId, iDataItemCount,
+        pDataHandle, aireturn_Code);
+}
+
+int JAMQ_gmm_delete_field (
+    void  *pGmmHandle, 
+    int   iFieldId, 
+    int   *aireturn_Code
+    )
+{
+    return gtw_gmm_delete_field ((gtw_gmm_t*) pGmmHandle, iFieldId,
+        aireturn_Code);
+}
+
+int JAMQ_gmm_get_field_count (
+    void  *pGmmHndlIn, 
+    int   *iFieldCount,
+    int   *aireturn_Code
+    )
+{
+    return gtw_gmm_get_field_count ((gtw_gmm_t*) pGmmHndlIn, iFieldCount,
+        aireturn_Code);
+}
+
+int JAMQ_gmm_get_field (
+    void  *pGmmHandle, 
+    int   iFieldId, 
+    int   *iDataItemCount, 
+    int   *aireturn_Code
+    )
+{
+    return gtw_gmm_get_field ((gtw_gmm_t*) pGmmHandle, iFieldId,
+        iDataItemCount, aireturn_Code);
+}
+
+int JAMQ_gmm_get_next_field (
+    void  *pGmmHandle, 
+    int   *iFieldId, 
+    int   *iDataItemCount, 
+    int   *aireturn_Code
+    )
+{
+    return gtw_gmm_get_next_field ((gtw_gmm_t*) pGmmHandle, iFieldId,
+        iDataItemCount, aireturn_Code);
+}
+
+int JAMQ_gmm_get_first_field (
+    void  *pGmmHandle, 
+    int   *iFieldId, 
+    int   *iDataItemCount, 
+    int   *aireturn_Code
+    )
+{
+    return gtw_gmm_get_first_field ((gtw_gmm_t*) pGmmHandle, iFieldId,
+        iDataItemCount, aireturn_Code);
+}
+
+int JAMQ_gmm_get_data (
+    void            *pGmmHandle, 
+    int             iFieldId, 
+    int             iDataItem, 
+    JAMQ_tsNCharcb  *pData, 
+    int             *aireturn_Code
+    )
+{
+    return gtw_gmm_get_data ((gtw_gmm_t*) pGmmHandle, iFieldId,
+        iDataItem, pData, aireturn_Code);
+}
+
+int JAMQ_gmm_copy_field_as (
+    void  *pGmmHandleTo, 
+    void  *pGmmHandleFrom, 
+    int   iFieldIdTo, 
+    int   iFieldIdFrom, 
+    int   *aireturn_Code
+    )
+{
+    return gtw_gmm_copy_field_as ((gtw_gmm_t*) pGmmHandleTo,
+        (gtw_gmm_t*) pGmmHandleFrom, iFieldIdTo,
+        iFieldIdFrom, aireturn_Code);
+}
+
+int JAMQ_gmm_copy_msg (
+    void  *pGmmHandleTo, 
+    void  *pGmmHandleFrom, 
+    int   *aireturn_Code
+    )
+{
+    return gtw_gmm_copy_msg ((gtw_gmm_t*) pGmmHandleTo,
+        (gtw_gmm_t*) pGmmHandleFrom, aireturn_Code);
+}
+
+int JAMQ_gmm_from_cmdline (
+    void            *pGmmHandle,
+    int             iCharCount,
+    JAMQ_tsNCharcb  *pCharHandle,
+    JAMQ_tsBufcb    *pBufferHandle,
+    int             *aireturn_Code
+    )
+{
+    return gtw_gmm_from_cmdline ((gtw_gmm_t*) pGmmHandle, iCharCount,
+        pCharHandle, pBufferHandle, aireturn_Code);
+}
+
+int JAMQ_gmm_to_cmdline (
+    void          *pGmmHandle, 
+    JAMQ_tsBufcb  *pBufferHandle,
+    int           *aireturn_Code
+    )
+{
+    return gtw_gmm_to_cmdline ((gtw_gmm_t*) pGmmHandle, pBufferHandle,
+        aireturn_Code);
+}
+
+int JAMQ_gmm_parse_first_msg (
+    void          *pGmmHandle, 
+    JAMQ_tsBufcb  *pBufferToBuild, 
+    JAMQ_tsBufcb  *pBufferToParse, 
+    int           *aireturn_Code
+    )
+{
+    return gtw_gmm_parse_first_msg ((gtw_gmm_t*) pGmmHandle, pBufferToBuild,
+        pBufferToParse, aireturn_Code);
+}
+
+int JAMQ_gmm_parse_next_msg (
+    void          *pGmmHandle, 
+    JAMQ_tsBufcb  *pBufferToBuild, 
+    int           *aireturn_Code
+    )
+{
+    return gtw_gmm_to_cmdline ((gtw_gmm_t*) pGmmHandle, pBufferToBuild,
+        aireturn_Code);
+}
+
+/*---------------------------------------------------------------------------*/
+
+static byte s_initialised = 0;
+
+int JAMQ_pim_init (
+    char  **envp, 
+    int   *aireturn_Code
+    )
+{
+    apr_status_t
+        result;
+
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!envp) {
+        *aireturn_Code = JAMQ_PIM_BAD_INPUT;
+        return NOT_OK;
+    }
+
+    result = apr_initialize ();
+    if (result != APR_SUCCESS) {
+        *aireturn_Code = JAMQ_PIM_SYSTEM_ERROR;
+        return NOT_OK;
+    }
+
+    s_initialised = 1;
+
+    *aireturn_Code = 0;
+    return OK;
+}
+
+int JAMQ_pim_uninit (
+    int  *aireturn_Code
+    )
+{
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!s_initialised) {
+        *aireturn_Code = JAMQ_PIM_MISC_ERR;
+        return NOT_OK;
+    }
+
+    apr_terminate();
+
+    s_initialised = 0;
+
+    *aireturn_Code = 0;
+    return OK;
+}
+
+int JAMQ_pim_time_open (
+    void  **apTimeHandle, 
+    int   *aireturn_Code
+    )
+{
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!apTimeHandle) {
+        *aireturn_Code = JAMQ_PIM_BAD_INPUT;
+        return NOT_OK;
+    }
+
+    if (*apTimeHandle) {
+        *aireturn_Code = JAMQ_PIM_HANDLE_ACTIVE;
+        return NOT_OK;
+    }
+
+    *apTimeHandle = malloc (sizeof (apr_time_t));
+    if (!*apTimeHandle) {
+        *aireturn_Code = JAMQ_PIM_MEM_ERR;
+        return NOT_OK;
+    }
+
+    *((apr_time_t*) *apTimeHandle) = apr_time_now ();
+
+    *aireturn_Code = 0;
+    return OK;
+}
+
+int JAMQ_pim_time_record (
+    void  *pTimeHandle, 
+    int   *aireturn_Code
+    )
+{
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!pTimeHandle) {
+        *aireturn_Code = JAMQ_PIM_HANDLE_INVALID;
+        return NOT_OK;
+    }
+
+    *((apr_time_t*) pTimeHandle) = apr_time_now ();
+
+    *aireturn_Code = 0;
+    return OK;
+}
+
+int JAMQ_pim_time_delta (
+    double  *adSecs,
+    void    *pMinuendTmHndlIn,
+    void    *pSubtrahendTmHndlIn,
+    int     *aireturn_Code
+    )
+{
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!adSecs || !pMinuendTmHndlIn || !pSubtrahendTmHndlIn) {
+        *aireturn_Code = JAMQ_PIM_BAD_INPUT;
+        return NOT_OK;
+    }
+
+    *adSecs = (*((apr_time_t*) pMinuendTmHndlIn) -
+        *((apr_time_t*) pSubtrahendTmHndlIn)) / 1000000;
+
+    *aireturn_Code = 0;
+    return OK;
+}
+
+int JAMQ_pim_time_close (
+    void  **pTimeHandle,
+    int   *aireturn_Code
+    )
+{
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!pTimeHandle) {
+        *aireturn_Code = JAMQ_PIM_BAD_INPUT;
+        return NOT_OK;
+    }
+
+    if (!*pTimeHandle) {
+        *aireturn_Code = JAMQ_PIM_HANDLE_INVALID;
+        return NOT_OK;
+    }
+
+    free ((void*) *pTimeHandle);
+    *pTimeHandle = NULL;
+
+    *aireturn_Code = 0;
+    return OK;
+}
+
+int JAMQ_pim_sleep (
+    double  dSeconds,
+    int     *aireturn_Code
+    )
+{
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (dSeconds <= 0) {
+        *aireturn_Code = JAMQ_PIM_BAD_INPUT;
+        return NOT_OK;
+    }
+
+    apr_sleep (dSeconds * 1000000);
+
+    *aireturn_Code = 0;
+    return OK;
+}
+
+int JAMQ_pim_mem_get (
+    void  *pMemHandleIn,
+    void  **pPtr,
+    int   *aiLenGiven,
+    int   iLenNeeded,
+    int   *aireturn_Code
+    )
+{
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (pMemHandleIn || !pPtr || !aiLenGiven || iLenNeeded <= 0) {
+        *aireturn_Code = JAMQ_PIM_BAD_INPUT;
+        return NOT_OK;
+    }
+
+    *pPtr = malloc (iLenNeeded);
+    if (!pPtr) {
+        *aireturn_Code = JAMQ_PIM_MEM_ERR;
+        return NOT_OK;
+    }
+    *aiLenGiven = iLenNeeded;
+
+    *aireturn_Code = 0;
+    return OK;
+}
+
+int JAMQ_pim_mem_put (
+    void  *pMemHandle,
+    void  **pPtr,
+    int   *aireturn_Code
+    )
+{
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (pMemHandle || !pPtr || !*pPtr) {
+        *aireturn_Code = JAMQ_PIM_BAD_INPUT;
+        return NOT_OK;
+    }
+
+    free (*pPtr);
+
+    *aireturn_Code = 0;
+    return OK;
+}
+
+int JAMQ_pim_fd_open (
+    void             **pDeviceHandle,
+    JAMQ_tsFdParams  *pParams,
+    int              *aireturn_Code
+    )
+{
+    char
+        *path;
+
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!pDeviceHandle || !pParams ||
+          pParams->iIoType != JAMQ_PIM_IO_INPUT_TYPE ||
+          pParams->iFileOrg != JAMQ_PIM_IO_TEXT_ORG ||
+          pParams->sFileName.iDataLen < 0 ||
+          !pParams->sFileName.pData) {
+        *aireturn_Code = JAMQ_PIM_BAD_INPUT;
+        return NOT_OK;
+    }
+
+    path = (char*) malloc (pParams->sFileName.iDataLen + 1);
+    if (!path) {
+        *aireturn_Code = JAMQ_PIM_MEM_ERR;
+        return NOT_OK;
+    }
+    memcpy ((void*) path, (void*) pParams->sFileName.pData,
+        pParams->sFileName.iDataLen);
+    path [pParams->sFileName.iDataLen] = 0;
+
+    *pDeviceHandle = fopen (path, "r");
+    free ((void*) path);
+    if (!*pDeviceHandle) {
+        *aireturn_Code = JAMQ_PIM_SYSTEM_ERROR;
+        return NOT_OK;
+    }
+
+    *aireturn_Code = 0;
+    return OK;
+}
+
+int JAMQ_pim_fd_read (
+    void          *pDvHndlIn,
+    void          *pTmHndl,
+    JAMQ_tsBufcb  *pBuffer,
+    int           *aireturn_Code
+    )
+{
+    qbyte
+        pos = 0;
+    char
+        c;
+
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!pBuffer || !pBuffer->pData) {
+        *aireturn_Code = JAMQ_PIM_BAD_INPUT;
+        return NOT_OK;
+    }
+
+    if (!pDvHndlIn) {
+        *aireturn_Code = JAMQ_PIM_HANDLE_INVALID;
+        return NOT_OK;
+    }
+
+    while (1) {
+        c = fgetc ((FILE*) pDvHndlIn);
+        if (c == EOF || c == 0x0A || pos == pBuffer->iPhysicalLen)
+            break;
+        else if (c == 0x0C) {
+            c = fgetc ((FILE*) pDvHndlIn);
+            break;
+        }
+        (pBuffer->pData) [pos] = c;
+        pos++;
+    }
+    pBuffer->iCurrentLen = pos;
+
+    *aireturn_Code = 0;
+    return c == EOF ? NOT_OK : OK;
+}
+
+int JAMQ_pim_fd_close (
+    void  **apDvHndl,
+    int   *aireturn_Code
+    )
+{
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!apDvHndl) {
+        *aireturn_Code = JAMQ_PIM_BAD_INPUT;
+        return NOT_OK;
+    }
+
+    if (!*apDvHndl) {
+        *aireturn_Code = JAMQ_PIM_HANDLE_INVALID;
+        return NOT_OK;
+    }
+
+    if (fclose ((FILE*) *apDvHndl) == EOF) {
+        *aireturn_Code = JAMQ_PIM_SYSTEM_ERROR;
+        return NOT_OK;
+    }
+    *apDvHndl = NULL;
+
+    *aireturn_Code = 0;
+    return OK;
+}
+
+typedef struct tag_gtw_socket_t
+{
+    apr_socket_t
+        *socket;
+    apr_pool_t
+        *pool;
+} gtw_socket_t;
+
+int JAMQ_pim_sd_open (
+    void             **apDvHndl,
+    JAMQ_tsSdParams  *pParams,
+    int              *aireturn_Code
+    )
+{
+
+    apr_status_t
+        result;
+    char
+        *server = NULL;
+    char
+        *addr = NULL;
+    char
+        *scope_id = NULL;
+    apr_sockaddr_t
+        *sockaddr = NULL;
+    apr_socket_t
+        *socket = NULL;
+    apr_pool_t
+        *pool = NULL;
+    apr_port_t
+        port;
+    gtw_socket_t
+        *out;
+
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!apDvHndl || !pParams || pParams->sSocketName.iDataLen < 0 ||
+          !pParams->sSocketName.pData || pParams->sAddress.iDataLen < 0 ||
+          !pParams->sAddress.pData || pParams->iProtocol != JAMQ_PIM_TCP ||
+          pParams->iIoType != JAMQ_PIM_CLIENT ||
+          pParams->iMode != JAMQ_PIM_BLOCKING_MODE ||
+          pParams->iAuthRule != JAMQ_PIM_AUTHENTICATE_BY_NAME_OR_ADDR) {
+        *aireturn_Code = JAMQ_PIM_BAD_INPUT;
+        return NOT_OK;
+    }
+
+    if (*apDvHndl) {
+        *aireturn_Code = JAMQ_PIM_HANDLE_ACTIVE;
+        return NOT_OK;
+    }
+
+    result = apr_pool_create (&pool, NULL);
+    if (result != APR_SUCCESS) {
+        *aireturn_Code = JAMQ_PIM_SYSTEM_ERROR;
+        return NOT_OK;
+    }
+
+    server = (char*) malloc (pParams->sAddress.iDataLen + 1);
+    if (!server) {
+        apr_pool_destroy (pool);
+        *aireturn_Code = JAMQ_PIM_MEM_ERR;
+        return NOT_OK;
+    }
+    memcpy ((void*) server, (void*) pParams->sAddress.pData,
+        pParams->sAddress.iDataLen);
+    server [pParams->sAddress.iDataLen] = 0;
+
+    result = apr_parse_addr_port (&addr, &scope_id, &port, server, pool);
+    free ((void*) server);
+    if (result != APR_SUCCESS) {
+        apr_pool_destroy (pool);
+        *aireturn_Code = JAMQ_PIM_SYSTEM_ERROR;
+        return NOT_OK;
+    }
+
+    result = apr_sockaddr_info_get (&sockaddr, addr, AF_UNSPEC, port,
+        APR_IPV4_ADDR_OK, pool);
+    if (result != APR_SUCCESS) {
+        apr_pool_destroy (pool);
+        *aireturn_Code = JAMQ_PIM_SYSTEM_ERROR;
+        return NOT_OK;
+    }
+
+    result = apr_socket_create (&socket, APR_INET, SOCK_STREAM,
+        APR_PROTO_TCP, pool);
+    if (result != APR_SUCCESS) {
+        apr_pool_destroy (pool);
+        *aireturn_Code = JAMQ_PIM_SYSTEM_ERROR;
+        return NOT_OK;
+    }
+
+    result = apr_socket_connect (socket, sockaddr);
+    if (result != APR_SUCCESS) {
+        apr_pool_destroy (pool);
+        *aireturn_Code = JAMQ_PIM_SYSTEM_ERROR;
+        return NOT_OK;
+    }
+
+    out = (gtw_socket_t*) malloc (sizeof (gtw_socket_t));
+    if (!out) {
+        apr_pool_destroy (pool);
+        *aireturn_Code = JAMQ_PIM_MEM_ERR;
+        return NOT_OK;
+    }
+    
+    out->socket = socket;
+    out->pool = pool;
+
+    *apDvHndl = (void*) out;
+
+    *aireturn_Code = 0;
+    return OK;
+}
+
+int JAMQ_pim_sd_read (
+    void          *pDvHndlIn,
+    void          *pTmHndl,
+    JAMQ_tsBufcb  *pBuffer,
+    int           *aireturn_Code
+    )
+{
+    apr_status_t
+        result;
+    apr_size_t
+        size;
+
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!pDvHndlIn) {
+        *aireturn_Code = JAMQ_PIM_HANDLE_INVALID;
+        return NOT_OK;
+    }
+
+    if (!pBuffer) {
+        *aireturn_Code = JAMQ_PIM_BAD_INPUT;
+        return NOT_OK;
+    }
+
+    size = pBuffer->iPhysicalLen;
+    result = apr_socket_recv (((gtw_socket_t*) pDvHndlIn)->socket,
+        pBuffer->pData, &size);
+    if (result != APR_SUCCESS) {
+        *aireturn_Code = JAMQ_PIM_SYSTEM_ERROR;
+        return NOT_OK;
+    }
+    pBuffer->iCurrentLen = size;
+
+    *aireturn_Code = 0;
+    return OK;
+}
+
+int JAMQ_pim_sd_write (
+    void          *pDvHndlIn,
+    void          *pTmHndl,
+    JAMQ_tsBufcb  *pBuffer,
+    int           *aireturn_Code
+    )
+{
+    apr_status_t
+        result;
+    apr_size_t
+        size;
+
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!pDvHndlIn) {
+        *aireturn_Code = JAMQ_PIM_HANDLE_INVALID;
+        return NOT_OK;
+    }
+
+    if (!pBuffer) {
+        *aireturn_Code = JAMQ_PIM_BAD_INPUT;
+        return NOT_OK;
+    }
+
+    size = pBuffer->iCurrentLen;
+    result = apr_socket_send (((gtw_socket_t*) pDvHndlIn)->socket,
+        pBuffer->pData, &size);
+    if (result != APR_SUCCESS) {
+        *aireturn_Code = JAMQ_PIM_SYSTEM_ERROR;
+        return NOT_OK;
+    }
+
+    *aireturn_Code = 0;
+    return OK;
+}
+
+int JAMQ_pim_sd_close (
+    void  **apDvHndl,
+    int   *aireturn_Code
+    )
+{
+    apr_status_t
+        result;
+
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!apDvHndl) {
+        *aireturn_Code = JAMQ_PIM_BAD_INPUT;
+        return NOT_OK;
+    }
+
+    if (!*apDvHndl) {
+        *aireturn_Code = JAMQ_PIM_HANDLE_INVALID;
+        return NOT_OK;
+    }
+
+    result = apr_socket_close (((gtw_socket_t*) *apDvHndl)->socket);
+    if (result != APR_SUCCESS) {
+        *aireturn_Code = JAMQ_PIM_SYSTEM_ERROR;
+        return NOT_OK;
+    }
+
+    apr_pool_destroy (((gtw_socket_t*) *apDvHndl)->pool);
+
+    *apDvHndl = NULL;
+
+    *aireturn_Code = 0;
+    return OK;
+}
+
+int JAMQ_pim_log (
+    void  *pLogHndlIn,
+    int   iPriority,
+    int   *aireturn_Code,
+    char  *pExpandedMsg,
+    char  *pFmtIn,
+    ...
+    )
+{
+    va_list args;
+    va_start (args, pFmtIn);
+    vprintf (pFmtIn, args);
+    return OK;
+}
+
+/*---------------------------------------------------------------------------*/
+
+int JAMQ_apiu_add_unref_syms_to_hash (
+    JAMQ_tsApicb         *pApiHndl,
+    JAMQ_tsUnrefSymInfo  *pUnrefSymArray,
+    int                  iUnrefSymArrayLen,
+    int                  *aireturn_Code
+    )
+{
+    int
+        counter;
+    JAMQ_tsNCharcb
+        key;
+
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!pApiHndl || !pUnrefSymArray) {
+        *aireturn_Code = JAMQ_APIU_HANDLE_INVALID;
+        return NOT_OK;
+    }
+
+    if (iUnrefSymArrayLen < 0) {
+        *aireturn_Code = JAMQ_APIU_INPUT_ERR;
+        return NOT_OK;
+    }
+
+    for (counter = 0; counter != iUnrefSymArrayLen; counter++) {
+        if (!pUnrefSymArray [counter].pUnreferencedSymbol) {
+            *aireturn_Code = JAMQ_APIU_INPUT_ERR;
+            return NOT_OK;
+        }
+        key.pData = pUnrefSymArray [counter].pUnreferencedSymbol;
+        key.iDataLen = strlen (pUnrefSymArray [counter].pUnreferencedSymbol);
+        if (!JAMQ_hash_add (((gtw_context_t*) pApiHndl)->functions, &key,
+              (void*) pUnrefSymArray [counter].pUnreferencedRoutine,
+              aireturn_Code)) {
+            *aireturn_Code = JAMQ_APIU_HASH_ERROR;
+            return NOT_OK;
+        }
+    }
+
+    *aireturn_Code = 0;
+    return OK;
+}
+
+int JAMQ_apiu_delete_unref_syms_from_hash (
+    JAMQ_tsApicb         *pApiHndl,
+    JAMQ_tsUnrefSymInfo  *pUnrefSymArray,
+    int                  iUnrefSymArrayLen,
+    int                  *aireturn_Code
+    )
+{
+    int
+        counter;
+    JAMQ_tsNCharcb
+        key;
+    void
+        *fx;
+    int
+        retcode;
+
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!pApiHndl) {
+        *aireturn_Code = JAMQ_APIU_HANDLE_INVALID;
+        return NOT_OK;
+    }
+
+    if (!pUnrefSymArray || iUnrefSymArrayLen < 0) {
+        *aireturn_Code = JAMQ_APIU_INPUT_ERR;
+        return NOT_OK;
+    }
+
+    for (counter = 0; counter != iUnrefSymArrayLen; counter++) {
+        if (!pUnrefSymArray [counter].pUnreferencedSymbol) {
+            *aireturn_Code = JAMQ_APIU_INPUT_ERR;
+            return NOT_OK;
+        }
+        key.pData = pUnrefSymArray [counter].pUnreferencedSymbol;
+        key.iDataLen = strlen (pUnrefSymArray [counter].pUnreferencedSymbol);
+        if (!JAMQ_hash_delete (((gtw_context_t*) pApiHndl)->functions, &key,
+              &key, &fx, aireturn_Code)) {
+            if (retcode == JAMQ_HASH_DATA_UNV)
+                *aireturn_Code = JAMQ_APIU_MINOR_ERROR;
+            else
+                *aireturn_Code = JAMQ_APIU_HASH_ERROR;
+
+            return NOT_OK;
+        }
+    }
+
+    *aireturn_Code = 0;
+    return OK;
+}
+
+int JAMQ_apiu_add_and_start_timer (
+    JAMQ_tsApicb    *pApiHndl,
+    JAMQ_tsNCharcb  *pName,
+    JAMQ_tsNCharcb  *pRelatedDevice,
+    double          dExecFreq,
+    JAMQ_tsNCharcb  *pSrvcRoutineName,
+    JAMQ_tsNCharcb  *pUnSrvcRoutineName,
+    int             *aiCode
+    );
+
+int JAMQ_apiu_stop_and_remove_timer (
+    JAMQ_tsApicb    *pApiHndl,
+    JAMQ_tsNCharcb  *pName,
+    int             *aiCode
+    );
+
+int JAMQ_apiu_change_timer_freq (
+    JAMQ_tsApicb   *pApiHndl,
+    JAMQ_tsNCharcb *pName,
+    JAMQ_tsNCharcb *pTmExecFreq,
+    int            *aiCode);
+
+int JAMQ_apiu_flush_broadcast (
+    JAMQ_tsApicb  *pApiHndl,
+    JAMQ_tsBufcb  *pBuf,
+    int           *aiCode)
+{
+    return NOT_OK;
+}
+
+int JAMQ_apiu_submit_broadcast (
+    JAMQ_tsApicb  *pApiHndl,
+    JAMQ_tsBufcb  *pBuf,
+    int           iMustWriteIt,
+    int           *aiCode
+    );
+
+int JAMQ_apiu_build_text_header_eng (
+    JAMQ_tsApicb    *pApiHndl,
+    JAMQ_tsNCharcb  *pRequest,
+    int             *aiCode
+    );
+
+int JAMQ_apiu_finish_gmm_response_msg (
+    JAMQ_tsApicb  *pApiHndl,
+    int           *aiCode
+    );

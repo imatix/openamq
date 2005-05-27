@@ -64,7 +64,7 @@ apr_status_t amq_stdc_table_get_decimal (
     amq_stdc_table_t  table,
     const char        *name,
     byte              *decimals,
-    long              **value
+    long              *value
     );
 
 apr_status_t amq_stdc_table_get_time (

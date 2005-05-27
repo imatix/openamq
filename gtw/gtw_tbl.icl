@@ -516,6 +516,18 @@
                 col;
             int
                 pos;
+            JAMQ_tsBufcb
+                *buff;
+            JAMQ_tsFdParams
+                fparams;
+            void
+                *file = NULL;
+            JAMQ_tsSdParams
+                sparams;
+            void
+                *socket = NULL;
+            char
+                *envp = "";            
         </local>
 
         params.iRowIncrement = 1;
@@ -590,6 +602,87 @@
             printf ("JAMQ_tbl_close failed (%ld)\\n", (long) retcode);
             exit (EXIT_FAILURE);
         }
+
+        if (!JAMQ_m_get_buffer (&buff, 100, &retcode)) {
+            printf ("JAMQ_m_get_buffer failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+
+        fparams.sFileName.iDataLen = 8;
+        fparams.sFileName.pData = "data.txt";
+        fparams.iIoType = JAMQ_PIM_IO_INPUT_TYPE;
+        fparams.iFileOrg = JAMQ_PIM_IO_TEXT_ORG;
+        fparams.iRecLen = 0;
+        if (!JAMQ_pim_fd_open (&file, &fparams, &retcode)) {
+            printf ("JAMQ_pim_fd_open failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+
+        while (JAMQ_pim_fd_read (file, NULL, buff, &retcode) == OK) {
+            buff->pData [buff->iCurrentLen] = 0;
+            printf ("%s\\n", buff->pData);
+            break;
+        }
+        buff->pData [buff->iCurrentLen] = 0;
+        printf ("%s\\n", buff->pData);
+
+        if (!JAMQ_pim_fd_close (&file, &retcode)) {
+            printf ("JAMQ_pim_fd_close failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+
+        if (!JAMQ_pim_init (&envp, &retcode)) {
+            printf ("JAMQ_pim_init failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+
+        sparams.sSocketName.iDataLen = 0;
+        sparams.sSocketName.pData = "";
+        sparams.sAddress.iDataLen = 14;
+        sparams.sAddress.pData = "127.0.0.1:7654";
+        sparams.iProtocol = JAMQ_PIM_TCP;
+        sparams.iIoType = JAMQ_PIM_CLIENT;
+        sparams.iMode = JAMQ_PIM_BLOCKING_MODE;
+        sparams.iAuthRule = JAMQ_PIM_AUTHENTICATE_BY_NAME_OR_ADDR;
+        sparams.cBreakChar = 0;
+        sparams.iOesId = 0;       
+        sparams.pCnnctrDvHndl = NULL;
+
+        if (!JAMQ_pim_sd_open (&socket, &sparams, &retcode)) {
+            printf ("JAMQ_pim_sd_open failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+
+        (buff->pData) [0] = 128;
+        (buff->pData) [1] = 1;
+        buff->iCurrentLen = 2;
+        if (!JAMQ_pim_sd_write (socket, NULL, buff, &retcode)) {
+            printf ("JAMQ_pim_sd_write failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+
+        buff->iPhysicalLen = 2;
+        if (!JAMQ_pim_sd_read (socket, NULL, buff, &retcode)) {
+            printf ("JAMQ_pim_sd_read failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+        printf ("%lx %lx\\n", (long) ((buff->pData) [0]), (long) ((buff->pData) [1]));
+
+        if (!JAMQ_pim_sd_close (&socket, &retcode)) {
+            printf ("JAMQ_pim_sd_close failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+
+        if (!JAMQ_m_put_buffer (&buff, &retcode)) {
+            printf ("JAMQ_m_put_buffer failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+
+        if (!JAMQ_pim_uninit (&retcode)) {
+            printf ("JAMQ_pim_uninit failed (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+
     </method>
 
 </class>

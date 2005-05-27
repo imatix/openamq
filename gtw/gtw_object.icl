@@ -12,7 +12,7 @@
     <import class = "gtw"/>
 
     <method abstract = "1" name = "function" return = "rc" >
-        <declare name = "rc" type = "int">Dummy variable</declare>
+        <declare name = "rc" type = "int" default = "0">Dummy variable</declare>
     </method>
 
 </class>
