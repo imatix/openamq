@@ -1422,23 +1422,16 @@ interoperable queueing and routing model based on these concepts:
 The AMQP "queue" concept acts to distribute messages ("m1", "m2", "m3")
 between a set of consumers ("c1", "c2", "c3"):
 
-                      .-- m1 => c1
-    m1,m2,m3 => [Queue]-- m2 => c2
-                      `-- m3 => c3
+[queue.png]
 
 The AMQP "topic" concept acts to multiply messages to a set of
 consumers:
 
-                      .-- m1,m2,m3 => c1
-    m1,m2,m3 => [Topic]-- m1,m2,m3 => c2
-                      `-- m1,m2,m3 => c3
+[topic.png]
 
 The AMQP "subscription" concept acts like a queue:
 
-                                                   .-- m1 => c1a
-                      .-- m1,m2,m3 => [Subscription]-- m2 => c1b
-    m1,m2,m3 => [Topic]-- m1,m2,m3 => c2           `-- m3 => c1c
-                      `-- m1,m2,m3 => c3
+[subscription.png]
 
 Definitions
 ...........
@@ -1735,9 +1728,7 @@ For AMQP/Fast these are the correct values:
 - protocol-major = 0
 - protocol-minor = 9
 
-    +---+---+---+---+---+---+---+---+
-    |'A'|'M'|'Q'|'P'| 1 | 1 | 0 | 9 |
-    +---+---+---+---+---+---+---+---+
+[version.png]
 
 Guidelines for implementors:
 
@@ -1966,11 +1957,7 @@ The Frame Header Wire Format
 All frames start with a 4-octet header composed of a one-octet type
 indicator and a 3-octet size indicator:
 
-    0       1         2            4 
-    +-------+---------+------------+ +-------------- - -
-    | type  | channel | frame-size | | frame body...
-    +-------+---------+------------+ +-------------- - -
-      octet   octet     short int    'frame-size' octets
+[frameheader.png]
 
 AMQP/Fast defines several types of frame, with different type
 indicators:
@@ -2020,12 +2007,7 @@ of header frames followed by the appropriate body frames.
 Looking at the frames as they pass on the wire, we might see something
 like this:
 
-    [method]
-    [method] [header] [body] [body]
-    [method] [header] [body] [body]
-    [trace]
-    [method]
-    ...
+[content.png]
 
 There is a specific reason for placing content body in distinct frames
 as compared to including the header and body in the method. We want to
@@ -2105,15 +2087,7 @@ Extended Frame Header Wire Format
 A meta frame is followed by an "extended frame header" with a short
 integer channel number and a long long size:
 
-    0      1   2   4
-    +------+---+---+
-    | META | 0 | 0 |
-    +------+---+---+
-    0       1       2         4           12
-    +-------+-------+---------+------------+ +-------------- - -
-    | type  | flags | channel | frame-size | | frame body...
-    +-------+-------+---------+------------+ +-------------- - -
-      octet   octet   short     long long     'frame-size' octets
+[meta.png]
 
 Guidelines for implementors:
 
@@ -2180,11 +2154,7 @@ Content Header Frame Wire Format
 
 A content header frame has this format:
 
-    0        1        2           6                8
-    +--------+--------+-----------+----------------+------------- - -
-    | domain | weight | body size | property flags | property list...
-    +--------+--------+-----------+----------------+------------- - -
-      octet    octet    long long   short int        remainder...
+[contentheader.png]
 
 - The content domain specifies the set of properties (with a predefined
   syntax and semantics) that the header frame may hold. The standard
@@ -2215,40 +2185,25 @@ As an example, we take an imaginary content domain "D" which has three
 properties, T, E and C. Imagine a simple content that has properties E
 and C but not T. The header frame will be formatted thus:
 
-      domain   weight   body size   property flags   property list
-    +--------+--------+-----------+----------------+-------+
-    |   D    |   0    |    nnn    | 011...         | E | C |
-    +--------+--------+-----------+----------------+-------+
+[domainexample.png]
 
 The property flags are ordered from high to low, the first property
 being indicated by bit 15, and so on:
 
-     15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
-    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-    | T | E | C |                                               | 0 | 
-    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+[propertyflags.png]
 
 The property flags can specify more than 16 properties. If bit 0 is set,
 it indicates that a further property flags field follows. There can be
 several property flag fields in succession:
 
-     15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
-    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-    |                                                           | 1 | 
-    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-    |                                                           | 1 | 
-    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-    |                                                           | 0 | 
-    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+[propertyflagsx.png]
 
 Content Body Frame Wire Format
 ..............................
 
 A content body frame has this format:
 
-    +---------------------------------------------- - -
-    | Opaque binary content
-    +---------------------------------------------- - -
+[contentbody.png]
 
 Where the size of the frame is defined in the frame header.
 
@@ -2259,14 +2214,12 @@ The "weight" field in the content header frame indicates whether the
 content has child-contents or not. In the simplest case (weight = zero)
 content consists of a header frame plus zero or more body frames:
 
-    [header] [body] [body]...
+[contentstructured.png]
 
 If the content has child-contents, these are inserted between the
 header and body of the parent content:
 
-    [parent-header]
-        [child-header] [child-body] ...
-    [parent-body]
+[contentchild.png]
 
 This organisation means that a principle content (e.g. a very large
 video file) can have child content (e.g. subtitles and menus) which will
@@ -2406,11 +2359,7 @@ connections. We can visualise the protocol as governing two levels of
 connection - network connections (sockets) and virtual connections
 (channels):
 
-    +-----------+-----------+-----------+-----------+
-    |  channel  |  channel  |  channel  |  channel  |
-    +-----------------------------------------------+
-    |                    socket                     |
-    +-----------------------------------------------+
+[connections.png]
 
 Each connection (socket and channel) has a clear client role - the peer
 that initiated the connection, and a clear server role - the peer that
@@ -2445,11 +2394,7 @@ Method Frame Body Wire Format
 
 A method frame body has this format:
 
-    0       1        2          3       4          8
-    +-------+--------+----------+-------+----------+-------------- - -
-    | class | method | revision | flags | synchtag | properties...
-    +-------+--------+----------+-------+----------+-------------- - -
-      octet   octet    octet      octet   long
+[framemethod.png]
 
 - The class and method are protocol-constant values.
 
@@ -2466,18 +2411,7 @@ A method frame body has this format:
 
 The flags are defined as follows:
 
-                    7   6   5   4   3   2   1   0
-                  +---+---+---+---+---+---+---+---+
-                  | X | X | X | X |   revision    |
-                  +---+---+---+---+---+---+---+---+
-                    |   |   |   | 
-    SYNCHREQ -------'   |   |   | 
-                        |   |   |
-    UNREAL -------------'   |   |
-                            |   |
-    TRACER -----------------'   |
-                                |   
-    UNUSED ---------------------'
+[flags.png]
                                  
 - 7 = SYNCHREQ - if 1, requests a "synchpoint", turning an asynchronous
   method into a synchronous one. Has no effect on a synchronous method.
