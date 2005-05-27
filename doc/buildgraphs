@@ -1,0 +1,24 @@
+#! /bin/sh
+#
+
+echo ""
+echo "Dot"
+echo "==="
+for graph in *.dot; do
+    if test "$graph" != "*.dot"; then
+        echo ""
+        echo "* processing $graph"
+        sh builddot $graph
+    fi
+done
+
+echo ""
+echo "Dia"
+echo "==="
+for diagram in *.dia; do
+    if test "$diagram" != "*.dia"; then
+        echo ""
+        echo "* processing $diagram"
+        sh builddia $diagram
+    fi
+done
