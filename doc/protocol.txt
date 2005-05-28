@@ -24,9 +24,10 @@ This document is ready for review.
 Recent Change History
 ---------------------
 
-0.9a0
+2005/05/28 - 0.9a0:
+
 - Refactored the protocol using new framing model and protocol class/method
-  architecture.
+  architecture.  First provisional draft specification.
 
 Copyright Notice
 ================
@@ -1904,6 +1905,11 @@ To be completed.
 
 Reference Section
 *****************
+
+Class Quick Reference
+=====================
+
+[see amq_rfc006_quick.txt]
 
 [see amq_rfc006_full.txt]
 

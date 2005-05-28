@@ -1,38 +1,555 @@
 gdl
-    title     = OpenAMQ Server Architecture
-    subtitle  = The Design and Implementation of the OpenAMQ Server
+    title     = OpenAMQ Server
+    subtitle  = Installation and Use of the OpenAMQ Server
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/05/05
     copyright = Copyright (c) 2004-2005 JPMorgan and iMatix Corporation
-    version   = 1.0
+    version   = 0.8c
 end gdl
 
 Introduction
 ************
 
-Aim of this Document
-====================
+Purpose
+=======
 
-This is a general introduction to AMQ, intended for a technically-minded
-readership.  It explains the basic AMQ concepts, and goes into medium
-detail on all significant aspects of the architecture and technology.
+OpenAMQ is a reference implementation of the AMQ
+middleware protocol (AMQP).  It provides a high-speed message
+provider along with clients for various platforms and languages.
 
-Seperate documents provide reference guides to individual aspects of the
-architecture and technology.
+Disclaimer
+==========
 
+This version of OpenAMQ is not considered to be a final, stable
+release.  It may be subject to arbitrary changes and is certainly
+not sufficiently tested to be used for critical data.  It is
+provided AS-IS for the purposes of demonstration.
 
-- server fsm
+Note that OpenAMQ has not been released as open source, though this
+is the project plan.  This software is proprietary and confidential.
 
-- server classes
+Copyrights and Credits
+======================
 
-- configuration files
+OpenAMQ is copyright (c) 2004-2005 JPMorgan and iMatix Corporation.
 
-- main program
+The AMQP protocol was designed by Pieter Hintjens and John O'Hara
+with suggestions from Mark Atwell, James Strachan, Stewie Stewart,
+Martin Sustrik and Martin Lucina.
 
-- operational aspects
-    - run as server
+The OpenAMQ server was designed by Pieter Hintjens and John O'Hara
+and built by Pieter Hintjens and Jonathan Schultz with contributions
+from Martin Lucina, Martin Sustrik, Ewen McNeill, Gustavo Broos,
+Rakan El-Khalil, and others.
 
-- future work
-    - win32 service wrapper
-    - admin
+OpenAMQ uses the iMatix Base platform, including the iMatix Class
+Language (iCL), iMatix Portability Runtime (iPR), and iMatix Simple
+Multithreading kernel (SMT).
+
+Additionally, OpenAMQ uses Berkely Database from Sleepycat software
+and the Apache Runtime (APR) from the Apache Foundation.
+
+Features
+========
+
+The current version of OpenAMQ implements:
+
+- configured message queues
+- named and unnamed temporary queues
+- message sizes from 1 octet to 4 gigaoctets
+- persistent and non-persistent messages
+- batched operation with commit/rollback per batch
+- multiple readers per queue with round-robin dispatching
+- configurable queue limits (messages, readers)
+- a rapid single-process server architecture
+- virtual hosts
+- restartable message transfer for large messages
+- browsable queues
+- simple authorisation via login and password
+- message prioritisation (up to 10 levels per queue)
+- multiplexed AMQP protocol with up to 255 channels per socket
+- XML-based configuration files
+- tuning options for queue physical storage
+
+These aspects of the AMQP specifications are not implemented:
+
+- topics and subscriptions
+- message selectors
+- connection heartbeats
+- message expiration
+
+These additional functionalities are planned for future versions
+of OpenAMQ:
+
+- remote administration tools (web or Java)
+
+Concepts
+========
+
+Virtual Hosts
+.............
+
+An OpenAMQ virtual host packages a set of queues.  In the AMQ protocol
+the virtual host is a "path" that the application chooses to work with
+after authentication.  We can draw parallels between an OpenAMQ virtual
+host and an SQL "database", which packages a set of database tables.
+
+OpenAMQ makes virtual hosts easy to manage.  Each virtual host exists
+as a directory (with its own structure and contents).  You can copy and
+move virtual hosts by copying and/or moving their directories.
+
+Authorisation is not handled on a per-virtual host basis, but access
+controls (which are not yet implemented in OpenAMQ) would be.  I.e. an
+OpenAMQ server defines a single unified set of users but each virtual
+host (and each queue) controls which users can perform different kinds
+of work.
+
+OpenAMQ currently allows up to 255 virtual hosts per server.
+
+Queues
+......
+
+A queue is a named destination for messages.  Queues accept messages from
+one or more producers and distribute these to one or more consumers.  A
+message is never distributed to more than one consumer.  An OpenAMQ queue
+is mapped onto a physical file so that persistent messages can be safely
+held.  This backing storage is also used when the queue "overflows", i.e.
+it reaches a preset limit for the number of non-persistent messages it
+can hold.
+
+OpenAMQ provides full configurability for queues so that you can make the
+best choices between performance and reliability.
+
+Topics
+......
+
+A topic is a named destination for messages.  Topics accept messages from
+one or more producers and distribute these to one or consumers.  A message
+can be distributed to as many consumers who have asked for it.
+
+OpenAMQ does not currently implement topics.
+
+OpenAMQ Configuration Files
+...........................
+
+The OpenAMQ server needs a valid configuration file in order to run.
+Basically there is one configuration file for the main server, and one per
+virtual host, in the virtual host directory. The standard package includes
+these files.
+
+OpenAMQ configuration files use a simple XML format, explained in more
+detail in the next section.  You can edit the configuration files using
+any text editor.
+
+Installation and Operation
+**************************
+
+Operating Environments
+======================
+
+OpenAMQ runs on Linux and win32 (Windows 95/98/XP/2000/2003).  The server
+uses about 10-20MB of memory depending on whether it is built with debug
+information or not.
+
+A Solaris version of OpenAMQ will be available in the near future.  The
+Unix source package should build, but has not been qualified, on other Unix
+systems.
+
+For operation on Linux you should build the server from source.  Of course
+you can copy pre-built binaries between systems but to avoid C runtime
+compatibility issues, you should not mix pre-built binaries between
+different Linux distributions and versions.
+
+For operation on win32 you can either build from source (you then need
+MSVC 6 or 7) or use the pre-built binaries.
+
+OpenAMQ does not need any further software.  For its operation you should
+provide sufficient memory (we recommend at least 256MB) depending on the
+total estimated number of messages to be held in memory.
+
+Required Files
+==============
+
+To run the OpenAMQ server you need:
+
+ - the openamqd server executable
+ - the amq_server.cfg configuration file
+ - a configuration directory and file per virtual host
+
+The OpenAMQ server must be started in the directory which contains the
+amq_server.cfg file.  We call this the "main directory".  Each virtual
+host is configured as a child directory of this main directory.
+
+We provide a default server configuration in the openamq/servers directory.
+
+Starting and Stopping the Server
+================================
+
+To run the server in a console window start in the main directory and run
+the command 'openamqd'.  To end the server, type Ctrl-C.
+
+The openamqd command accepts several options.  Run 'openamqd -h' to see
+a page of help:
+
+    Syntax: amqpsrv [options...]
+    Options:
+    -w directory     Working directory for server
+    -q               Quiet mode: no messages
+    -s               Server mode: run as background job
+    -c               Console mode: run as foreground job
+    -t level         Set trace level
+                     0=none, 1=low, 2=medium, 3=high
+    -v               Show version information
+    -h               Show summary of command-line options
+
+    The order of arguments is not important. Switches and filenames
+    are case sensitive. See documentation for detailed information.
+
+Under Unix you can run the server in the background as follows:
+
+    openamqd -s
+
+Main Server Configuration
+=========================
+
+Configuration Options
+.....................
+
+The amq_server.cfg file provides the server with its overall configuration.
+
+    <server
+        port = "7654"
+        background = "0"
+        />
+
+server:port:
+    You can run the OpenAMQ server on arbitrary ports (7654 is the default).
+    If you want to run multiple OpenAMQ servers on the same system you can
+    assign each one its own port.  (Note that client applications must use
+    the correct port.)
+server:background:
+    If this is set to 1 the server will run in the background (Unix only).
+    The command-line '-s' option will override the configuration file
+    setting.
+
+    <resources
+        max-memory = "0"
+        txn-limit = "0"
+        />
+
+resources:max-memory:
+    Specifies the memory ceiling for the server in bytes.  When the server
+    uses this amount of memory it will refuse new connections and new messages.
+    If zero, there is no ceiling.
+resources:txn-limit:
+    Specifies the most messages per transaction that the server will accept.
+    Since transactions are held in memory, very large transactions can be a
+    cause for excessive memory use.  Setting this to (e.g.) 500 is a good way
+    to protect the server from "denial of service" issues caused by
+    badly-written client applications.
+
+    <logging
+        directory = "logs"
+        console = "amq_console.log"
+        />
+
+logging:directory:
+    Specifies the location for server log files.
+logging:console:
+    Specifies the name of the server console log.
+
+    <vhosts>
+        <vhost directory = "vh_default" />
+        <vhost directory = "vh_test"    />
+    </vhosts>
+
+vhosts/vhost:
+    Specifies each virtual host.  The server must have at least one virtual
+    host, otherwise it will not accept client connections.  Note that the
+    name of the virtual host is specified within its own configuration, as
+    defined below.
+vhosts/vhost:directory:
+    Specifies the virtual host directory.
+
+    <security
+        mechanism = "PLAIN" />
+
+security:mechanism:
+    Currently "PLAIN" is available (plain login and password).
+
+    <users>
+        <user name = "test-login" password = "test-password" />
+    </users>
+
+users/user:
+    Specifies each authorised user.
+users/user:name:
+    Specifies the authorised user name.
+users/user:password:
+    Specifies the authorised user password.
+
+Layered Configuration Files
+...........................
+
+To avoid loss of modified configurations, you should not edit the provided
+amq_server.cfg file.  Since each release of the server comes with new and
+expanded versions of this file, editing it would mean that you had to merge
+your changes into each new release of the file.
+
+OpenAMQ uses a technique called "layered configuration files" to avoid this
+problem.  Create a new file called "amq_custom.cfg" and place your custom
+settings in that file.
+
+For example:
+
+    <config>
+        <resources txn-limit = "250" />
+        <security mechanism = "PLAIN" />
+        <users>
+            <user name = "group1" password = "SYx625sA" />
+            <user name = "group2" password = "USYhdh11" />
+        </users>
+    </config>
+
+OpenAMQ loads its pre-supplied configuration from amq_server.cfg, which
+provides default values for all settings, and then loads whatever it finds
+in amq_custom.cfg.  Since amq_custom.cfg is not part of the installation,
+you can safely update your OpenAMQ versions without losing your custom
+settings.
+
+Virtual Host Configuration
+==========================
+
+Configuration Options
+.....................
+
+The amq_vhost.cfg file provides each virtual host with its configuration.
+This file must be located in the virtual host directory.
+
+    <vhost
+        name = "/test"
+        />
+
+vhost:name:
+    Specifies the 'virtual path' for the virtual host.  This is the name
+    used by client applications when opening a connection to a specific
+    virtual host.
+
+    <directories
+        data  = "data"
+        spool = "spool"
+        store = "store"
+        />
+
+directories:data:
+    Specifies the subdirectory used to hold persistent storage files.
+    You do not normally need to change this setting.
+directories:spool:
+    Specifies the subdirectory used to hold spool files, i.e. incoming
+    message data that needs to be held on disk.
+    You do not normally need to change this setting.
+directories:store:
+    Specifies the subdirectory used to hold stored messages that are too
+    large to be held in memory. You do not normally need to change this
+    setting.
+
+    <queues>
+        <queue
+            name = "test"
+            template = "default"
+            auto-purge = "0"
+            memory-queue-max = "1000"
+            min-consumers = "0"
+            max-consumers = "10"
+            protected = "0"
+            persistent = "0"
+            max-messages = "100000"
+            max-message-size = "1073741824"
+            priority-levels = "2"
+            page-size = "4096"
+            block-size = "1000"
+            extent-size = "25000"
+        />
+    </queues>
+
+queues/queue:name:
+    Specifies the name of the queue.  Each queue in a virtual host must
+    have a unique name.
+queues/queue:template:
+    Specifies the name of the template to use.  The template provides
+    default values for all the queue properties.  The "default" template
+    is used if no other is specified.
+queues/queue:auto-purge:
+    If set to 1, the queue will be emptied of persistent messages when
+    the server starts.  (Note that non-persistent messages still held by
+    the server are always discarded if the server stops.)  Defaults to
+    zero.
+queues/queue:memory-queue-max:
+    Specifies the maximum number of non-persistent messages that the queue
+    will accept before spooling further messages to disk.  Note that once
+    spooled to disk, messages act as if they were persistent.  If you want
+    a pure non-persistent queue model that can overflow to disk, use the
+    auto-purge option.  Zero means "no limit".  Defaults to zero.
+queues/queue:min-consumers:
+    Specifies the minimum number of consumers allowed for the queue. When
+    fewer than this number of consumers are present for a queue, new
+    messages are rejected.  You can use this to prevent messages being sent
+    to a queue where there are not at least some consumers.  Zero means
+    "no minimum".  Defaults to zero.
+queues/queue:max-consumers:
+    Specifies the maximum number of consumers allowed for the queue.  When
+    this number is reached new consumers are rejected.  Zero means "no
+    limit".  Defaults to zero.
+queues/queue:protected:
+    If 0, the queue can be browsed (AMQP HANDLE QUERY/BROWSE commands). If
+    1, the queue cannot be browsed.  Defaults to 0 (not protected).
+queues/queue:persistent:
+    If 1, all messages sent to the queue are treated as persistent, whether
+    or not the client application asks for it.  Defaults to zero.
+queues/queue:max-messages:
+    Specifies the maximum number of messsages allowed on the queue.  When
+    this limit is reached, new messages are rejected.  Zero means "no
+    limit".  Defaults to zero.
+queues/queue:max-message-size:
+    Specifies the maximum allowed size of messages on the queue.  If a
+    client application attempts to send a message larger than this, it will
+    be rejected.  Zero means "no limit".  Defaults to zero.
+queues/queue:priority-levels:
+    Specifies the number of priority levels for the queue.  AMQP allows
+    messages to be prioritized, effectively creating sub-queues (higher
+    priority messages will be dispatched first).  With two priority levels
+    you can separate messages into "normal" and "high" priorities.  With
+    three, "low", "normal", and "high", and so on.  Refer to the AMQP
+    specifications and in particular the 'priority' setting for messages.
+    Defaults to zero (no priority management).
+queues/queue:page-size:
+    Specifies the physical page size for the queue's backing store.  The
+    default value is 4096 bytes.  If you modify this setting you should
+    measure the performance of persistent queues before and after to be
+    sure you are improving performance.
+queues/queue:block-size:
+    Specifies the physical block size for the queue's backing store.  The
+    default value is 1000 bytes.  The block size must be a tidy fraction
+    of the page size with at least 32 bytes left over for control data.
+    I.E. block-size * N + 32 approx.= page-size.  You can tune this setting
+    based on the expected or known message size - e.g. if a queue holds
+    messages of no more than 100 bytes, a block size of 100 is appropriate.
+    Do not make this larger than (page-size - 32).
+queues/queue:extent-size:
+    Specifies the size of backing store extents, in pages.  An extent is a
+    secondary file used to hold messages.  Raising this value means that
+    fewer, larger files will be created.  Lowering it may reduce the amount
+    of disk space assigned but not actively used.  Defaults to 25,000.
+
+    <topics>
+        <topic
+            name = "test"
+            template = "default"
+            auto-purge = "0"
+            memory-queue-max = "1000"
+            min-consumers = "0"
+            max-consumers = "10"
+            protected = "0"
+            persistent = "0"
+            max-messages = "100000"
+            max-message-size = "1073741824"
+            priority-levels = "2"
+            page-size = "4096"
+            block-size = "1000"
+            extent-size = "25000"
+        />
+    </topics>
+
+topics/topic:name:
+    Specifies the name of the topic.  Each topic in a virtual host must
+    have a unique name.
+topics/topic:template:
+    Specifies the name of the template to use.  The template provides
+    default values for all the topic properties.  The "default" template
+    is used if no other is specified.
+
+    <template>
+        <queue
+            name = "default"
+            ...options...
+        />
+        <queue
+            name = "temporary"
+            ...options...
+        />
+        <topic
+            name = "default"
+            ...options...
+        />
+        <topic
+            name = "temporary"
+            ...options...
+        />
+    </template>
+
+template/queue:
+    Templating lets you configure queues using a minimum of effort.
+    By default all queues are based on the "default" template.  The template
+    provides default values for all queue properties (except "template").
+    These can be then explicitly specified in the queue definition.
+    Temporary queues are configured using the template called "temporary".
+template/topic:
+    Templating lets you configure topics using a minimum of effort.
+    By default all topics are based on the "default" template.  The template
+    provides default values for all topic properties (except "template").
+    These can be then explicitly specified in the topic definition.
+    Temporary topics are configured using the template called "temporary".
+
+Layered Configuration Files
+...........................
+
+You can layer the configuration of virtual hosts in the same way as for
+the server, using a file 'amq_custom.cfg' per virtual host directory.
+
+Administration Guide
+********************
+
+Common Tasks
+============
+
+Deleting Unused Queues
+......................
+
+OpenAMQ automatically deletes old, unused queues when it restarts.
+
+Deleting All Queued Data
+........................
+
+To wipe all stored messages for a virtual host, run these commands from
+the main directory:
+
+    cd virtual-host-name
+    rm -rf ddata data spool store
+    cd ..
+
+To wipe all stored messages for a specific queue, delete the queue file
+in the data subdirectory of the virtual host.  You can easily determine
+the queue file - it uses the queue name.
+
+Important: do not delete queued data while the server is running.
+
+Managing the OpenAMQ logs
+.........................
+
+Currently the log files held in the logs subdirectory are not cycled or
+otherwise maintained by the server.  You should ensure that there is
+sufficient space here for logs (especially if you use the tracing options
+when running the server).  You can delete these log files at any time,
+including when the server is running.
+
+Limitations
+***********
+
+Names
+=====
+
+Destination Names
+.................
+
+The maximum size of a destination name is 127 characters.

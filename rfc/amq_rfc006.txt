@@ -24,7 +24,8 @@ This document is ready for review.
 Recent Change History
 ---------------------
 
-0.8d0
+2005/05/28 - 0.8d0:
+
 - in HANDLE CONSUME, 'dynamic' flag allows dynamic queue creation.
 - in HANDLE CONSUME, 'selector' flag defines content-based selector.
 - in HANDLE CONSUME, 'identifier' field removed.

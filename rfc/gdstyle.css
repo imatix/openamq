@@ -76,9 +76,9 @@ blockquote {
     font-variant: small-caps;
     margin:       0px;
     text-indent:  6px;
-    line-height: 16pt;
+    line-height: 15pt;
     background-color: #01415c;
-    border-width: 0 0 1px 0;
+    border-width: 1px 0 1px 0;
     border-style: solid;
     border-color: white;
 }
@@ -147,7 +147,7 @@ a.toc_main {
 }
 a.toc {
     font-family: Arial, Helvetica, sans-serif;
-    font-size: small;
+    font-size: x-small;
     list-style-type: none;
 }
 

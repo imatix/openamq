@@ -30,7 +30,7 @@ for root.content
                 >$(content.?)
             endfor
             close
-            process = proc.new ("gd2xhtml", ".", "temp.txt", "temp.xml")
+            process = proc.new ("./gd2xhtml", ".", "temp.txt", "temp.xml")
             process.run ()
             new content to language
                 content.load_file ("temp.xml")

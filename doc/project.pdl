@@ -8,7 +8,10 @@
 
 <include filename = "prelude.pdl" />
 
-<file name = "concepts.txt"          class = "gurudoc text">OpenAMQ servers user guide</file>
+<file name = "concepts.txt"          class = "gurudoc text">OpenAMQ concepts</file>
+<file name = "server.txt"            class = "gurudoc text">OpenAMQ servers user guide</file>
+<file name = "protocol.txt"          class = "gurudoc text">AMQP/Fast 0.9 draft</file>
+
 <file name = "gdstyle.css"           class = "web resource">Gurudoc style sheet</file>
 <file name = "mainlogo.jpg"          class = "web resource">AMQ logo</file>
 <file name = "amq_server_agent.dot"  class = "digraph"     >OpenAMQ server FSM</file>
