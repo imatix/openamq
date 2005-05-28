@@ -7,8 +7,6 @@
 #   All output spacing (blank line) is done at the start of the output block.
 #  ----------------------------------------------------------------------------
 
-content?
-
 function output_title (title, linetype)
     >
     >$(my.title:neat)
@@ -48,14 +46,14 @@ function output_chassis (chassis)
     >This class contains the following $(my.chassis) methods:
     for method where count (chassis, name = my.chassis)
         my.text = fullname + " - " + string.justify (method.?'', 9999)
-        my.text += " (ID = $(method.index)) ($(method_sync ()))"
+        my.text += " (ID = $(method.index)) ($(method_text ()))"
         >
         >$("-":block) \
         >$(my.text:justify,block                                             )
     endfor
 endfunction
 
-function method_sync
+function method_text
     if method.synchronous
         if count (response)
             my.text = "sync request"
@@ -70,6 +68,9 @@ function method_sync
     else
         my.text = "async"
     endif
+    if method.content
+        my.text += ", carries content"
+    endif
     return (my.text)
 endfunction
 
@@ -77,7 +78,6 @@ endfunction
 ##############################################################################
 
 function full_reference
-    quick_reference ()
     for class 
         output_title   ("The $(class.name) Class", "=")
         output_doc     ()
@@ -177,7 +177,7 @@ function short_summary
     >................
     >
     >AMQP/Fast defines these protocol classes:
-
+    >
     for class
         >- $(name:neat): $(string.justify (class.?'', 9999)) (ID = $(class.index)).
     endfor
@@ -211,9 +211,6 @@ endfunction
 
 function quick_reference
     >
-    >Summary of Methods and Classes
-    >==============================
-    >
     >Overall Grammar
     >---------------
     for class
@@ -232,7 +229,7 @@ function quick_reference
             if count (chassis, name = "client")
                 my.text = "ID=$(class.index)/$(method.index) - client, "
             endif
-            my.text += "$(method_sync ()), $(string.trim (method.?'no desc'))."
+            my.text += "$(method_text ()), $(string.trim (method.?'no desc'))."
             >
             >$(fullname):
             >  $(my.text:justify,block                                         )

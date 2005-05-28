@@ -80,9 +80,9 @@
       a queue, then for a topic with the specified destination name.
     </doc>
     <assert check = "enum">
-      <value name = "queue" />
-      <value name = "topic" />
-      <value name = "fuzzy" />
+      <value name = "queue" >queue destination</value>
+      <value name = "topic" >topic destination</value>
+      <value name = "fuzzy" >queue, if exists, else topic</value>
     </assert>
   </domain>
 
@@ -111,9 +111,9 @@
       topic naming scheme.
     </doc>
     <assert check = "enum">
-      <value name = "simple" />
-      <value name = "tpath"  />
-      <value name = "regexp" />
+      <value name = "simple">simple selector using * and # wildcards and . delimiters</value>
+      <value name = "tpath" >path selector using * and # wildcards and / delimiters</value>
+      <value name = "regexp">Perl-5 regular expression selector</value>
     </assert>
   </domain>
 
@@ -132,8 +132,8 @@
       Specifies the syntax for the message selector.
     </doc>
     <assert check = "enum">
-      <value name = "fast" />
-      <value name = "jms"  />
+      <value name = "fast">selector based on field value and presence</value>
+      <value name = "jms" >full JMS selector</value>
     </assert>
   </domain>
 

@@ -22,6 +22,9 @@
                         / C:REJECT
 </doc>
 
+<chassis name = "server" implement = "MUST" />
+<chassis name = "client" implement = "MAY"  />
+
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 <method name = "consume" synchronous = "1">
@@ -33,13 +36,13 @@
     created on, or until they are cancelled.
   </doc>
   <doc name = "rule">
-    The server MAY restrict the number of consumers per channel to
-    an arbitrary value, which MUST be at least 8, and MUST be
-    specified in the Connection.Tune method.
+    The server MAY restrict the number of consumers per channel to an
+    arbitrary value, which MUST be at least 8, and MUST be specified in
+    the Connection.Tune method.
   </doc>
   <doc name = "rule">
-    The client MUST be able to work with the server-defined limits
-    with respect to the maximum number of consumers per channel.
+    The client MUST be able to work with the server-defined limits with
+    respect to the maximum number of consumers per channel.
   </doc>
   <chassis name = "server" implement = "MUST" />
   <response name = "consume ok" />
@@ -216,10 +219,9 @@
     assert immediate delivery
     <doc>
       Asserts that the destination has one or more consumers (for
-      queues) or one or more subscriptions (for topics), and causes
-      a channel exception if this is not the case.  Note that a
-      consumer can query the state of a destination before publishing
-      to it.
+      queues) or one or more subscriptions (for topics), and causes a
+      channel exception if this is not the case.  Note that a consumer
+      can query the state of a destination before publishing to it.
     </doc>
   </field>
 </method>
@@ -331,8 +333,6 @@
       removed by other clients.
     </doc>      
   </field>
-  
-  <chassis name = "client" implement = "MUST" />
 </method>
 
 <method name = "browse empty" synchronous = "1">
@@ -355,7 +355,7 @@
     message.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <field name = "delivery tag" domain = "delivery tag">
+  <field name = "delivery tag" domain = "delivery tag" />
       
   <field name = "multiple" type = "bit">
     acknowledge multiple messages
@@ -399,7 +399,7 @@
   </doc>      
   <chassis name = "server" implement = "MUST" />
     
-  <field name = "delivery tag" domain = "delivery tag">
+  <field name = "delivery tag" domain = "delivery tag" />
 
   <field name = "requeue" type = "bit">
     requeue the message

@@ -623,7 +623,9 @@ s_dispatch_message (
         consumer->handle->thread,
         (dbyte) consumer->handle->key,
         dispatch->message_nbr,
-        FALSE, TRUE, FALSE,
+        FALSE,                          /*  Recovery - restarting            */
+        TRUE,                           /*  Delivered message                */
+        FALSE,                          /*  Redelivered message              */
         message->dest_name,
         message,
         consumer->no_ack? dispatch: NULL);

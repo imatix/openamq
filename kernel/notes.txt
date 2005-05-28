@@ -1,3 +1,30 @@
+content based routing
+    - message field table
+    - matches subscription/consumer field table
+    naive implementation:
+        - match each field
+    fast implementation
+        - bitmap matching
+
+    - consume has list of criteria
+        - ALL must match
+    - message has list of criteria
+
+
+    consume-> parse ->>> criteria
+    message-> parse ->>> criteria
+
+    using bitmaps lets us find all consumers that match each
+    criteria in a message.
+
+    how to define messages that match ALL criteria in each
+    consumer?
+
+    - get bitmaps
+    - accumulate into array
+    - array > 0 indicates consumer numbers
+    - nbr hits -> OR or AND
+    
 queue index
     - each subscription queue has a unique index
     - this is a low number - 0 to IPR_BITS_SIZE_BITS-1

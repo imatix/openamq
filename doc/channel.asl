@@ -80,15 +80,14 @@
     transaction mode for channel
     <doc>
       Configures the transaction mode for the channel.  AMQP/Fast
-      supports three transactional models: automatic (no use of
-      transactions), standard (handled by the server), and distributed
-      (with distributed 2-phase transaction control, for example XA).
+      supports three transactional models: automatic, standard, and
+      distributed (e.g. XA).
     </doc>
     <see name = "transaction modes"/>
     <assert check = "enum">
-      <value name = "automatic"   />
-      <value name = "standard"    />
-      <value name = "distributed" />
+      <value name = "automatic"   >automatic transaction around every operation</value>
+      <value name = "standard"    >standard commit and rollback</value>
+      <value name = "distributed" >distributed 2-phase transactions</value>
     </assert>
   </field>
 </method>

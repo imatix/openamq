@@ -293,19 +293,19 @@ endif
             if index () > 1
                 assert.text += ","
             endif
-            assert.text += " $(.value)=$(.name)"
+            assert.text += " $(.value)=$(.name) (value.)"
         endfor
     endif
     </rule>
 </entity>
 
 <entity name = "value">
-    Defines one of the valid values for a field, when used with the
-    assert check "enum".
+    Defines one of the valid values for a field, when used with the assert
+    check "enum".
 
     <attr name = "name" required = "1" short = "name of enumerated value">
-    The name of the enumerated value.  Note that enumerations are
-    always numbered in order.
+    The name of the enumerated value.  Note that enumerations are always
+    numbered in order.
     </attr>
     <attr name = "value" short = "value for enumerated value">
     The value of the enumerated value. If not defined, is automatically
