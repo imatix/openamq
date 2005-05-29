@@ -8,6 +8,9 @@
 
 <include filename = "prelude.pdl" />
 
+<file name = "asl.xnf"               class = "gsl data"    >ASL grammar</file>
+<file name = "amq_rfc006.asl"        class = "gsl data"    >AMQP specifications</file>
+
 <file name = "concepts.txt"          class = "gurudoc text">OpenAMQ concepts</file>
 <file name = "server.txt"            class = "gurudoc text">OpenAMQ servers user guide</file>
 <file name = "protocol.txt"          class = "gurudoc text">AMQP/Fast 0.9 draft</file>
