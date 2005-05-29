@@ -7,7 +7,7 @@
 # epsffit (psutils)
 
 # Scale factor for the PDF target
-scale=80
+scale=60
 
 # Get pdf from eps
 get_pdf()

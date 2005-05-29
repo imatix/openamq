@@ -7,7 +7,7 @@
 # epsffit (psutils)
 
 # Scale factor for the PDF target
-scale=40
+scale=46
 
 # Get pdf from eps
 get_pdf()
@@ -22,5 +22,5 @@ FILE=`basename $1 .dia`
 dia -e $FILE.png $FILE.dia
 
 #   Build PDF from dot file
-dia -e $FILE.eps $FILE.dia
+dia --export-to-format=eps-builtin $FILE.dia
 get_pdf $(grep %BoundingBox $FILE.eps) $FILE

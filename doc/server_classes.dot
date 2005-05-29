@@ -1,8 +1,8 @@
 //  Build using dot
 digraph Classes {
-    size = "7,10";
-    node [fontsize=24];
-    edge [fontsize=24];
+    size = "10.6,12";
+    node [fontsize=14];
+    edge [fontsize=14];
     amq_browser             -> amq_smessage;
     amq_browser_array       -> amq_browser  [label = "contains"];
     amq_browser_list        -> amq_browser  [label = "contains"];
