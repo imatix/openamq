@@ -550,7 +550,7 @@ states.
 
 The core of the server consists of this state machine:
 
-[amq_server_agent.dot]
+[amq_server_agent.png]
 
 The source code of the state machine is an XML 'program'. Here is a
 fragment of this code:
@@ -585,7 +585,7 @@ shows the way classes use each other. We show two types of usage,
 classes that hold a single instance of another class, and classes that
 act as containers for a set of child classes:
 
-[server_classes.dot]
+[server_classes.png]
 
 We use the iCL framework to write the classes. This framework is
 described in more detail later. Its advantage for our work is that we
@@ -799,11 +799,11 @@ C/SMT.
 This are some FSM diagrams for the clients. This is the asynchronous
 kernel client:
 
-[amq_aclient_agent.dot]
+[amq_aclient_agent.png]
 
 This is the synchronous kernel client:
 
-[amq_sclient_agent.dot]
+[amq_sclient_agent.png]
 
 An Open Source Project
 ======================
@@ -2912,7 +2912,7 @@ The Toolset
 In which we identify and name the giants upon who's shoulders we are
 standing.
 
-[openamq_tools.dot]
+[openamq_tools.png]
 
 Standard Libraries
 ==================
