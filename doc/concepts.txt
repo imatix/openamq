@@ -57,7 +57,7 @@ define the term, are:
 - Application-level messages: the objects passed across the network
   are meaningful to client applications.
 
-- Queuing and routing: the middleware must be able to queue messages
+- Queueing and routing: the middleware must be able to queue messages
   internally, and route them to different clients in various ways.
 
 - Asynchronous operation: messages are pushed through the network
@@ -81,7 +81,7 @@ An ideal middleware system must also be able to:
 
 - Provide several types of routing, including queues (where messages are
   distributed between consumers), pub/sub (where messages are published
-  to as many susbcribers as ask for them), topics (where messages are
+  to as many subscribers as ask for them), topics (where messages are
   published according to a hierarchy of names, and content-based routing
   (where messages are routed according to key field values).
   
@@ -125,7 +125,7 @@ What is strikingly lacking in the open source middleware world is a
 robust answer to the problems actually facing enterprise software
 integration. There are no proposals for standard middleware protocols,
 there are no attempts to build commodity middleware servers such as the
-NSCA web server that became Apache.  There are very few IETF working
+NCSA web server that became Apache.  There are very few IETF working
 drafts and almost no attempt at standardisation except at the API level.
 CORBA seems to have been the last attempt at interoperability before
 the whole world moved to web services.
@@ -256,7 +256,7 @@ cases into more general solutions, and in general attempt to do more
 with less.
 
 The project is still complex. Middleware is not a trivial problem. But
-we have worked consistently to factor out all redundant funtionality.
+we have worked consistently to factor out all redundant functionality.
 
 A Commodity Platform
 ====================
@@ -273,7 +273,7 @@ The platform we chose for our work was:
    users)
  - TCP/IP (at least initially)
 
-There are many useful libraries that fit into this mix: PCRE (perl
+There are many useful libraries that fit into this mix: PCRE (Perl
 compatible regular expressions), zlib (the portable zip compression
 library), BDB (Berkeley DB), APR (Apache Portable Runtime), and we have
 added these into our project as needed.
@@ -353,7 +353,7 @@ Spacing
 - Indent with 4 spaces, never use tabs.
 - Spaces outside () and [], not inside.
 - Space after commas.
-- No space after -> or . in accessing pointers/structs.
+- No space after -> or . in accessing pointers/structures.
 
 Naming Conventions
 ..................
@@ -362,7 +362,7 @@ Naming Conventions
 - Variable names are always lowercase with '_' as delimiter.
 - Exported functions and variables are prefixed as lib_module_func.
 - In rare cases, may abbreviate to lib_func.
-- Macros are always capitalized.
+- Macros are always capitalised.
 - Type names end in _t,
 - Functions or variables that are static to a single file are prefixed
   with s_,
@@ -394,7 +394,7 @@ topic publishing):
         Publishes a specified message to all interested subscribers in the
         virtual host.  Returns number of times message was published.  If the
         publish option is false, does not actually publish but only reports
-        the number of susbcribers.
+        the number of subscribers.
         -------------------------------------------------------------------------
     */
 
@@ -545,7 +545,7 @@ on this elementary design unit:
 
 Where a state consists of 1 or more events, each which take the FSM to a
 new 'next state', after executing zero or more actions. We add concepts
-such as state and event inheritence, exception events, and called
+such as state and event inheritance, exception events, and called
 states.
 
 The core of the server consists of this state machine:
@@ -615,7 +615,7 @@ The basic algorithm is broken into two phases - subscription indexation
 and message matching. Indexation works as follows:
 
 1. Subscriptions are numbered from 0 upwards. The numbering scheme
-   re-uses numbers when subcriptions are cancelled. This guarantees
+   re-uses numbers when subscriptions are cancelled. This guarantees
    an upper limit on the subscription number.
 
 2. On a new subscription we parse the key fields on which the
@@ -713,8 +713,8 @@ The Protocol Layer
 ..................
 
 The protocol layer consists of one or more FSMs, defining the connection
-and channel states, and the valididity of frames in each state. It must
-also handle API requests ('methods') and their valididity in each state.
+and channel states, and the validity of frames in each state. It must
+also handle API requests ('methods') and their validity in each state.
 
 We are working to define a single set of "categorical" FSMs for the
 protocol layer, in the same way as we have a single specification for
@@ -756,7 +756,7 @@ JMS has two disadvantages:
 
 Our goal is to support a JMS-like API.  In Java, this should look as close
 to JMS as the JMS license and copyrights will allow.  In other languages,
-we will use the same names and class hierachies.
+we will use the same names and class hierarchies.
 
 AMQP/Fast provides other operational models - file transfer, streaming -
 that do not fit the JMS API, and we will provide specific APIs for these.
@@ -869,7 +869,7 @@ mixed: some see open source as a fashion, a threat, or a left-wing
 conspiracy. Others see it as a rather perplexing opportunity. It seems
 clear that open source (or rather, the commoditization process that it
 represents) splits the industry into two distinct halves: those who see
-the future as a sea of cheap software supporting flottilas of services,
+the future as a sea of cheap software supporting flotillas of services,
 and those who make their money from selling expensive water.
 
 While open source seems a somewhat chaotic, and definitely anarchic
@@ -1087,7 +1087,7 @@ has beaten the originally superior OpenBSD and FreeBSD systems into
 obscurity.
 
 It is hard to generalise about the kinds of project that each license
-attracts but annecdotal evidence suggests that BSDL projects for the
+attracts but anecdotal evidence suggests that BSDL projects for the
 most part are more conservative than GPL projects. That is, over time
 they have clearer goals, more consistent structure and quality, and less
 chaos. GPL projects tend to be messier but more lively. Perhaps the GPL
@@ -1109,7 +1109,7 @@ Escaping the "Version 2 Syndrome"
 
 A project like AMQ solves a problem that is very well defined - after
 twenty or more years of work, middleware can basically be reduced to a
-fixed set of queuing and routing mechanisms with a large amount of
+fixed set of queueing and routing mechanisms with a large amount of
 wrapping - and for which there is a huge market. In a large global
 enterprise, there are dozens, perhaps hundreds of potential applications
 where commercial or ad-hoc middleware can be placed aside in favour of a
@@ -1158,7 +1158,7 @@ We aim to keep all structures general so that they can be extended and
 added to easily. For example, we know that the AMQP/Fast specifications
 are not complete, that it is missing large and (in some scenarios) vital
 chunks, but we also have a good idea of where those chunks will go and
-we do what we can to minimize the effect those future changes will have
+we do what we can to minimise the effect those future changes will have
 on the design.
 
 Change Management
@@ -1268,7 +1268,7 @@ We want to be able to:
   move these message efficiently across a network of clients and
   servers.
 
-- Provide queuing and routing semantics for messages so that the
+- Provide queueing and routing semantics for messages so that the
   behaviour of the server is unambiguously defined by the protocol.
 
 - Define explicit operational semantics for common messaging models,
@@ -1298,7 +1298,7 @@ Intended Operating Lifespan
 
 AMQP/Fast is designed to give a useful lifespan of 50 years or more. Our
 goal is that an AMQP/Fast peer will be able to operate continuously
-with no upgrades or incompatability for at least this duration, without
+with no upgrades or incompatibility for at least this duration, without
 requiring "legacy support". One should be able to build a client or
 server into physical infrastructure.
 
@@ -1451,7 +1451,7 @@ Client:
     queues and route messages.
 Server:
     The party that accepts client connections and implements the
-    standard AMQ queuing and routing functions.
+    standard AMQ queueing and routing functions.
 Peer:
     Either party in an AMQP/Fast connection.  An AMQP/Fast connection
     involves exactly two peers (one is the client, one is the server).
@@ -1806,8 +1806,8 @@ Our design is based on these principles:
 These principles provide the basis for a simple and efficient pipelining
 design based on "selective synchronisation". Some methods are explicitly
 synchronous - a specific request is always paired with a specific reply
-unless there is an error - and other methods are asychronous unless the
-sender asks for a synchronisation reponse.
+unless there is an error - and other methods are asynchronous unless the
+sender asks for a synchronisation response.
 
 The recipient indicates an error by closing the channel. The close
 method includes the ID of the method that caused the error.
@@ -2183,7 +2183,7 @@ Note that the ID of each content class is the same as the ID of the
 protocol class (JMS, File, Stream) that supports it.
 
 Each class has a specific access model, though they all share the basic
-AMQP queuing and routing mechanisms including topic multipliers. These
+AMQP queueing and routing mechanisms including topic multipliers. These
 classes are defined in the next sections.  This model lets us extend
 AMQP/Fast into new functional areas by defining new content classes and
 appropriate methods, without breaking interoperability.
@@ -2427,7 +2427,7 @@ Explanatory Notes
 Methods are numbered locally per class and there is no attempt to keep a
 consistent numbering for similar methods in different classes, nor to
 distinguish client or server methods through special numbering schemes.
-Method numbering has no significance beyong uniquely identifying the
+Method numbering has no significance beyond uniquely identifying the
 method.
 
 The grammars use this notation:
@@ -2438,15 +2438,15 @@ The grammars use this notation:
 - *term or *(...) expression means 'zero or more instances'.
 - Methods are indicated by uppercase names, e.g. OPEN.
 
-Queuing and Routing Mechanisms
+Queueing and Routing Mechanisms
 ------------------------------
 
 Goals and Principles
 ....................
 
-The AMQP queuing and routing mechanisms define how content is moved
+The AMQP queueing and routing mechanisms define how content is moved
 between an AMQP server and its clients. Our goal is to define a single
-coherent queuing and routing model that can support a range of different
+coherent queueing and routing model that can support a range of different
 highly-functional content classes.
 
 Our design is based on these elements:
@@ -2471,7 +2471,7 @@ Our design is based on these elements:
 - Destination browsing: allowing a client to read messages in a simple
   synchronous manner.
   
-- Acknowledgments: allowing a client to tell the server when it has
+- Acknowledgements: allowing a client to tell the server when it has
   successfully processed a message.
 
 - Window-based flow control: allowing a client to control how many
@@ -2483,7 +2483,7 @@ Our design is based on these elements:
 In general all these mechanisms apply to all content classes. Certain
 content classes may elect to use a simpler model for performance
 reasons. This is specifically the case for streamed content, which does
-not support persistence, browsing, acknowledgments, or transactions.
+not support persistence, browsing, acknowledgements, or transactions.
 
 Virtual Hosts
 .............
@@ -2559,12 +2559,12 @@ Message Priorities
 A high priority message is sent ahead of lower priority messages waiting
 in the same queue or subscription.
 
-Acknowledgments
+Acknowledgements
 ...............
 
 When the client finishes processing a message it tells the server via an
 acknowledgement. AMQP/Fast defines different acknowledgement models for
-different levele of performance and reliability:
+different levels of performance and reliability:
 
 - Acknowledgement by the application after it has processed a message.
 - Acknowledgement by the client layer when it has received a message
@@ -2639,7 +2639,7 @@ Existing Standards
 
 The standard for error handling (defined semi-independently in several
 IETF RFCs) is the 3-digit reply code. This format has evolved into a
-fine-grained tool for comunicating success or failure.  It is also
+fine-grained tool for communicating success or failure.  It is also
 well-structured for expansion as a protocol gets more mature.
 
 The current AMQP reply codes are standard to all protocols in the AMQP
@@ -2755,7 +2755,7 @@ Goals and Principles
 ....................
 
 The file transfer operational model is designed for enterprise-wide
-file transfer based on the AMQP/Fast queuing and routing models.  For
+file transfer based on the AMQP/Fast queueing and routing models.  For
 instance, routing files via the publish and subscribe functionality
 of topics and subscriptions.
 
@@ -2764,7 +2764,7 @@ File content is specifically different from JMS content in that:
 - Files are always persistent.
 - File transfer is restartable: if a file has been
   partially transferred when a connection is broken, the sender
-  can resend just the remaineder.
+  can resend just the remainder.
 
 File transfers always happen in two steps:
 
@@ -2805,7 +2805,7 @@ The AMQP/Fast streaming model separates the compression technology
 (codec) from the streaming technology. The streaming model is compatible
 with any codec that allows data to be fragmented.
 
-Streamed messages use the full AMQP/Fast queuing and routing mechanisms
+Streamed messages use the full AMQP/Fast queueing and routing mechanisms
 with some simplifications:
 
 1. Streamed content is non-persistent though the server MAY hold it on
@@ -2932,7 +2932,7 @@ libraries:
 1. Our products must be entirely self-supporting, able to build on a
    "raw" box with only the basic tools (compiler and linker).
 
-2. Any external libaries we use must use a BSD-style or public-domain
+2. Any external libraries we use must use a BSD-style or public-domain
    license so that we do not risk GPL "contamination".  (This is ironic
    because we use the GPL for our own iMatix libraries except in the
    context of OpenAMQ.)
@@ -3137,7 +3137,7 @@ course, but then not all hand-written code is worth having either.
 
 The power comes from abstraction. i.e. defining standard models and then
 deriving specific instances from these. All our modern code generators
-are heavily based on the concept of inheritence.
+are heavily based on the concept of inheritance.
 
 Here is the typical leverage provided by the code generation frameworks
 described in this section:
@@ -3159,7 +3159,7 @@ stable. However, C lacks modern facilities such as:
 1. Inheritance (where functionality can be added by extending and building on
    existing components)
 2. Templating (where variations on a standard model can be produced cheaply)
-3. API standardization (where the structure of APIs is enforced by the
+3. API standardisation (where the structure of APIs is enforced by the
    language).
 4. Literate coding (where documentation can be written together with the code)
 5. Logical modelling (where we define abstract models such as finite state
@@ -3233,7 +3233,7 @@ domain.
 An XNF specification describes a specific XML language and a set of
 rules about the code generators that use it. The XNF compiler turns
 these specifications into complete working code generators. XNF embodies
-our "best practice" for code generators. For small ad-hoc code
+our "best practise" for code generators. For small ad-hoc code
 generators it is rather a complex tool. For major code generators such
 as iCL, it automates much of the most complex work at low cost.
 
@@ -3242,7 +3242,7 @@ into native code as follows:
 
 - Load the XML tree and perform basic XML syntax validation.
 - Perform XML content validation and set default values where possible.
-- Resolve inheritence rules between different parts of the XML tree.
+- Resolve inheritance rules between different parts of the XML tree.
 - Run one or more target scripts that produce the final output.
 
 XNF solves these parts of the process:
@@ -3256,17 +3256,17 @@ XNF solves these parts of the process:
    explanations for every item, every attribute, and XNF produces
    gurudoc output containing presentable documentation.
 
-3. Resolving inheritence.  XML languages are hierarchical and we use
-   inheritence as a way of eliminating redundancy.  For instance in a
+3. Resolving inheritance.  XML languages are hierarchical and we use
+   inheritance as a way of eliminating redundancy.  For instance in a
    complex finite-state machine, several states could inherit their
    structure from an abstract parent state.  Or in a class structure,
    methods can inherit their structure from a method template.  XNF
-   defines a set of inheritence mechanisms which may be applied to
+   defines a set of inheritance mechanisms which may be applied to
    each tag in the language, and it generates a GSL program that
-   executes the inheritence rules on a validated XML tree.
+   executes the inheritance rules on a validated XML tree.
 
 4. Wrapping the whole process in a command-line GSL script that
-   loads and validates the XML, resolves inheritence, and runs the
+   loads and validates the XML, resolves inheritance, and runs the
    target scripts to produce final output.   
 
 XNF is thus a code generator for building code generators. iCL, SMT,
@@ -3338,7 +3338,7 @@ all our workstations. But it produces very elegant PDFs.
 AT&T Graphviz
 -------------
 
-Graphviz turns simple diagraphs into elegant images. We use Graphviz to
+Graphviz turns simple digraphs into elegant images. We use Graphviz to
 produce the state and class diagrams used in this document. Graphviz is
 integrated into the gurudoc toolchain.
 
@@ -3365,9 +3365,9 @@ or autoconf" is that make files are not portable, autoconf is complex,
 and the build process requires more than these tools provide.
 
 The longer answer is that boom projects are particularly cheap to make
-maintain since files' properties are abstracted (using inheritence, as
+maintain since files' properties are abstracted (using inheritance, as
 usual) and relationships between files are extracted automatically.
-Further, boom produces packages (source & binarThis is no longer done.y) at no extra cost.
+Further, boom produces packages (source & binary) at no extra cost.
 
 Boom produces make and configure scripts to give people a familiar
 user interface.  Here is a typical project definition (for the

@@ -71,7 +71,7 @@ We want to be able to:
   move these message efficiently across a network of clients and
   servers.
 
-- Provide queuing and routing semantics for messages so that the
+- Provide queueing and routing semantics for messages so that the
   behaviour of the server is unambiguously defined by the protocol.
 
 - Define explicit operational semantics for common messaging models,
@@ -101,7 +101,7 @@ Intended Operating Lifespan
 
 AMQP/Fast is designed to give a useful lifespan of 50 years or more. Our
 goal is that an AMQP/Fast peer will be able to operate continuously
-with no upgrades or incompatability for at least this duration, without
+with no upgrades or incompatibility for at least this duration, without
 requiring "legacy support". One should be able to build a client or
 server into physical infrastructure.
 
@@ -254,7 +254,7 @@ Client:
     queues and route messages.
 Server:
     The party that accepts client connections and implements the
-    standard AMQ queuing and routing functions.
+    standard AMQ queueing and routing functions.
 Peer:
     Either party in an AMQP/Fast connection.  An AMQP/Fast connection
     involves exactly two peers (one is the client, one is the server).
@@ -676,8 +676,8 @@ Our design is based on these principles:
 These principles provide the basis for a simple and efficient pipelining
 design based on "selective synchronisation". Some methods are explicitly
 synchronous - a specific request is always paired with a specific reply
-unless there is an error - and other methods are asychronous unless the
-sender asks for a synchronisation reponse.
+unless there is an error - and other methods are asynchronous unless the
+sender asks for a synchronisation response.
 
 The recipient indicates an error by closing the channel. The close
 method includes the ID of the method that caused the error.
@@ -1084,7 +1084,7 @@ Note that the ID of each content class is the same as the ID of the
 protocol class (JMS, File, Stream) that supports it.
 
 Each class has a specific access model, though they all share the basic
-AMQP queuing and routing mechanisms including topic multipliers. These
+AMQP queueing and routing mechanisms including topic multipliers. These
 classes are defined in the next sections.  This model lets us extend
 AMQP/Fast into new functional areas by defining new content classes and
 appropriate methods, without breaking interoperability.
@@ -1360,7 +1360,7 @@ Explanatory Notes
 Methods are numbered locally per class and there is no attempt to keep a
 consistent numbering for similar methods in different classes, nor to
 distinguish client or server methods through special numbering schemes.
-Method numbering has no significance beyong uniquely identifying the
+Method numbering has no significance beyond uniquely identifying the
 method.
 
 The grammars use this notation:
@@ -1371,15 +1371,15 @@ The grammars use this notation:
 - *term or *(...) expression means 'zero or more instances'.
 - Methods are indicated by uppercase names, e.g. OPEN.
 
-Queuing and Routing Mechanisms
-==============================
+Queueing and Routing Mechanisms
+===============================
 
 Goals and Principles
 --------------------
 
-The AMQP queuing and routing mechanisms define how content is moved
+The AMQP queueing and routing mechanisms define how content is moved
 between an AMQP server and its clients. Our goal is to define a single
-coherent queuing and routing model that can support a range of different
+coherent queueing and routing model that can support a range of different
 highly-functional content classes.
 
 Our design is based on these elements:
@@ -1404,7 +1404,7 @@ Our design is based on these elements:
 - Destination browsing: allowing a client to read messages in a simple
   synchronous manner.
   
-- Acknowledgments: allowing a client to tell the server when it has
+- Acknowledgements: allowing a client to tell the server when it has
   successfully processed a message.
 
 - Window-based flow control: allowing a client to control how many
@@ -1416,7 +1416,7 @@ Our design is based on these elements:
 In general all these mechanisms apply to all content classes. Certain
 content classes may elect to use a simpler model for performance
 reasons. This is specifically the case for streamed content, which does
-not support persistence, browsing, acknowledgments, or transactions.
+not support persistence, browsing, acknowledgements, or transactions.
 
 Virtual Hosts
 -------------
@@ -1528,7 +1528,7 @@ Guidelines for implementors:
 - The server MAY overflow non-persistent JMS or Stream messages to
   persistent storage, or MAY discard non-persistent JMS or Stream
   messages on a priority basis if the queue exceeds some configured
-  maximim size.
+  maximum size.
 
 Message Priorities
 ------------------
@@ -1545,12 +1545,12 @@ Guidelines for implementors:
  
 - A server MAY implement all persistent messages as a single priority.
  
-Acknowledgments
+Acknowledgements
 ---------------
 
 When the client finishes processing a message it tells the server via an
 acknowledgement. AMQP/Fast defines different acknowledgement models for
-different levele of performance and reliability:
+different levels of performance and reliability:
 
 - Acknowledgement by the application after it has processed a message.
 - Acknowledgement by the client layer when it has received a message
@@ -1639,7 +1639,7 @@ Existing Standards
 
 The standard for error handling (defined semi-independently in several
 IETF RFCs) is the 3-digit reply code. This format has evolved into a
-fine-grained tool for comunicating success or failure.  It is also
+fine-grained tool for communicating success or failure.  It is also
 well-structured for expansion as a protocol gets more mature.
 
 The current AMQP reply codes are standard to all protocols in the AMQP
@@ -1755,7 +1755,7 @@ Goals and Principles
 --------------------
 
 The file transfer operational model is designed for enterprise-wide
-file transfer based on the AMQP/Fast queuing and routing models.  For
+file transfer based on the AMQP/Fast queueing and routing models.  For
 instance, routing files via the publish and subscribe functionality
 of topics and subscriptions.
 
@@ -1764,7 +1764,7 @@ File content is specifically different from JMS content in that:
 - Files are always persistent.
 - File transfer is restartable: if a file has been
   partially transferred when a connection is broken, the sender
-  can resend just the remaineder.
+  can resend just the remainder.
 
 File transfers always happen in two steps:
 
@@ -1805,7 +1805,7 @@ The AMQP/Fast streaming model separates the compression technology
 (codec) from the streaming technology. The streaming model is compatible
 with any codec that allows data to be fragmented.
 
-Streamed messages use the full AMQP/Fast queuing and routing mechanisms
+Streamed messages use the full AMQP/Fast queueing and routing mechanisms
 with some simplifications:
 
 1. Streamed content is non-persistent though the server MAY hold it on
