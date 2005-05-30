@@ -103,7 +103,7 @@ for which an acknowledgement is still pending.
     if (self->queue_id == 0) {
         /*  Push back non-persistent message                                 */
         /*    - update window AFTER so it won't bounce to same consumer      */
-        amq_queue_accept (self->queue, NULL, self->message, NULL);
+        amq_queue_accept (self->queue, NULL, self->message, FALSE, NULL);
         amq_smessage_destroy (&self->message);
     }
     else {

@@ -112,31 +112,41 @@ main (int argc, char *argv [])
     }
     /*  If there was a missing parameter or an argument error, quit          */
     if (argparm) {
-        coprintf ("Argument missing - type 'openamqd -h' for help");
+        coprintf ("Argument missing - type 'chat_in -h' for help");
         goto failed;
     }
     else
     if (!args_ok) {
-        coprintf ("Invalid arguments - type 'openamqd -h' for help");
+        coprintf ("Invalid arguments - type 'chat_in -h' for help");
         goto failed;
     }
     amq_sclient_trace (atoi (opt_trace));
 
     coprintf ("Connecting to %s...", opt_server);
-    amq_client = amq_sclient_new (opt_client, "test-login", "test-password");
+    amq_client = amq_sclient_new (opt_client, "guest", "guest");
 
     if (amq_client == NULL
     ||  amq_sclient_connect (amq_client, opt_server, "/test"))
         goto failed;
 
     /*  We ask the server to auto-acknowledge messages (unreliable)          */
-    in_handle = amq_sclient_consumer (amq_client, AMQP_SERVICE_QUEUE, "c-in", 1, FALSE, TRUE);
+    in_handle = amq_sclient_consumer (
+        amq_client,
+        AMQP_SERVICE_QUEUE,
+        "chat-queue",
+        1,                              /*  Prefetch size                    */
+        FALSE,                          /*  No local                         */
+        TRUE,                           /*  No acknowledgements              */
+        TRUE);                          /*  Dynamic queue consumer           */
+
     while (TRUE) {
         message = amq_sclient_msg_read (amq_client, 0);
+        amq_sclient_commit (amq_client);
         if (message) {
             length = amq_message_get_content (message, text, 255);
             text [length] = '\0';
             coprintf (text);
+            amq_message_destroy (&message);
             if (streq (text, "bye"))
                 break;
         }

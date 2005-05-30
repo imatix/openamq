@@ -34,7 +34,7 @@
     message = amq_smessage_list_first (self);
     while (message) {
         self_unlink (message);
-        amq_queue_accept (message->queue, NULL, message, txn);
+        amq_queue_accept (message->queue, NULL, message, FALSE, txn);
         amq_smessage_destroy (&message);
         message = amq_smessage_list_first (self);
     }

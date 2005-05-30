@@ -1,3 +1,19 @@
+0.8d0
+  - added new functionality to AMQP/0.8 protocol
+    HANDLE CONSUME:
+        'dynamic' flag allows dynamic queue creation
+        'selector' flag changed from string to table
+        'mime-type' field removed.
+    HANDLE SEND:
+        'streaming' flag removed.
+        'immediate' flag verifies that destination has consumers.
+    HANDLE NOTIFY:
+        'streaming' flag removed.
+  - server implements dynamic queues
+  - server implements immediate flag on HANDLE SEND
+  - stdc clients upgraded for these changes
+     - chat test clients act as test for dynamic/immediate
+
 0.8c5 - 2005/05/09
 
  - correct packaging of 0.8c4

@@ -97,7 +97,7 @@ main (int argc, char *argv [])
                 amq_message_destroy (&message);
             }
             else {
-                amq_sclient_msg_send (amq_client, handle, message);
+                amq_sclient_msg_send (amq_client, handle, message, NULL, FALSE);
                 if (lexcmp (deleteind, "y") == 0)
                     file_delete (fullname);
             }                

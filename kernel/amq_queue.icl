@@ -122,7 +122,6 @@ were split to keep the code within sane limits.
         self->dest->opt_block_size);
 
     /*  auto-purge option means delete all messages at restart               */
-    //TODO: purge temporary destinations only when requested
     self_locate (self, filename);
     if (file_exists (filename)) {
         self->disk_queue_size = self_count (self);
@@ -168,6 +167,7 @@ were split to keep the code within sane limits.
     consumer->queue = self;
     self->nbr_consumers++;
     self->window += consumer->window;
+        
     amq_consumer_by_queue_queue  (self->active_consumers,      consumer);
     amq_consumer_by_handle_queue (consumer->handle->consumers, consumer);
     amq_queue_dispatch (self);
@@ -178,6 +178,7 @@ were split to keep the code within sane limits.
     Detach consumer from queue.
     </doc>
     <argument name = "consumer" type = "amq_consumer_t *">Consumer</argument>
+    amq_consumer_by_queue_unlink (consumer);
     self->nbr_consumers--;
     self->window -= consumer->window;
     if (self->window < 0)
@@ -193,15 +194,21 @@ were split to keep the code within sane limits.
     which forces non-persistent messages to be saved to the message queue memory
     list. The caller should destroy the message after calling this method.
     </doc>
-    <argument name = "channel" type = "amq_channel_t *" >Current channel</argument>
-    <argument name = "message" type = "amq_smessage_t *">Message, if any</argument>
-    <argument name = "txn"     type = "ipr_db_txn_t *"  >Transaction, if any</argument>
+    <argument name = "channel"   type = "amq_channel_t *" >Current channel</argument>
+    <argument name = "message"   type = "amq_smessage_t *">Message, if any</argument>
+    <argument name = "immediate" type = "Bool"            >Assert immediate delivery?</argument>
+    <argument name = "txn"       type = "ipr_db_txn_t *"  >Transaction, if any</argument>
 
     assert (message);
     if (self->dest->opt_persistent)
         message->persistent = TRUE;     /*  Force message to be persistent   */
 
     /*  First check that posting to this queue is currently allowed          */
+    if (immediate && self->nbr_consumers == 0) {
+        coprintf ("QUEUE HAS NO CONSUMERS - IMMEDIATE FAILED");
+        amq_global_set_error (AMQP_NOT_ALLOWED, "Destination has no consumers, immediate delivery failed");
+    }
+    else
     if (self->nbr_consumers < self->dest->opt_min_consumers)
         amq_global_set_error (AMQP_NOT_ALLOWED, "Destination needs consumers but has none");
     else
@@ -642,7 +649,6 @@ s_dispatch_message (
     </doc>
     <argument name = "browser_set" type = "amq_browser_array_t *">Query set</argument>
     <local>
-    //TODO: implement maximum query size (0 = all)
     amq_mesgref_t
         *message_ref;                   /*  Message on list (reference)      */
     qbyte

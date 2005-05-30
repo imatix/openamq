@@ -339,10 +339,6 @@ static int
                     use_command_handle (thread, HANDLE_CONSUME.handle_id);
                     the_next_event = handle_method_event;
                     break;
-                case FRAME_TYPE_HANDLE_CANCEL:
-                    use_command_handle (thread, HANDLE_CANCEL.handle_id);
-                    the_next_event = handle_method_event;
-                    break;
                 case FRAME_TYPE_HANDLE_FLOW:
                     use_command_handle (thread, HANDLE_FLOW.handle_id);
                     the_next_event = handle_method_event;
@@ -750,10 +746,6 @@ static int
                 handle_reply_if_needed (thread, HANDLE_CONSUME.confirm_tag);
                 amq_handle_consume (tcb->handle, &HANDLE_CONSUME);
                 break;
-            case FRAME_TYPE_HANDLE_CANCEL:
-                amq_handle_cancel (tcb->handle, &HANDLE_CANCEL);
-                handle_reply_if_needed (thread, HANDLE_CANCEL.confirm_tag);
-                break;
             case FRAME_TYPE_HANDLE_FLOW:
                 amq_handle_flow (tcb->handle, &HANDLE_FLOW);
                 handle_reply_if_needed (thread, HANDLE_FLOW.confirm_tag);
@@ -979,7 +971,6 @@ static int
             handle_notify_m->recovery,
             handle_notify_m->delivered,
             handle_notify_m->redelivered,
-            FALSE,                      /*  Working in streaming mode?       */
             partial? NULL: handle_notify_m->dest_name);
         send_the_frame (thread);
 

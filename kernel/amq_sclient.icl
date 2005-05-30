@@ -142,6 +142,7 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     <argument name = "prefetch"     type = "int"   >Prefetch window size</argument>
     <argument name = "no local"     type = "Bool"  >Don't want own messages</argument>
     <argument name = "no ack"       type = "Bool"  >No acknowledgements required</argument>
+    <argument name = "dynamic"      type = "Bool"  >Dynamic queue consumer</argument>
     assert (destination && *destination);
 
     amq_sclient_agent_handle_open (
@@ -150,7 +151,7 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 
     if (rc == AMQ_OK) {
         amq_sclient_agent_handle_consume (
-            self->thread_handle, self->cur_handle, (dbyte) prefetch, no_local, no_ack, NULL, NULL, &rc);
+            self->thread_handle, self->cur_handle, (dbyte) prefetch, no_local, no_ack, dynamic, NULL, &rc);
         smt_thread_execute (SMT_EXEC_FULL);
     }
     else
@@ -177,7 +178,7 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 
     if (rc == AMQ_OK) {
         amq_sclient_agent_handle_consume (
-            self->thread_handle, self->cur_handle, (dbyte) prefetch, no_local, no_ack, NULL, NULL, &rc);
+            self->thread_handle, self->cur_handle, (dbyte) prefetch, no_local, no_ack, FALSE, NULL, &rc);
         smt_thread_execute (SMT_EXEC_FULL);
     }
     else
@@ -198,10 +199,12 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     </doc>
     <argument name = "handle id" type = "dbyte"          >Handle id</argument>
     <argument name = "message"   type = "amq_message_t *">Message to send</argument>
+    <argument name = "dest name" type = "ipr_shortstr_t" >Destination name</argument>
+    <argument name = "immediate" type = "Bool"           >Assert immediate delivery?</argument>
     assert (message);
 
     amq_sclient_agent_handle_send (
-        self->thread_handle, handle_id, message, NULL, &rc);
+        self->thread_handle, handle_id, message, dest_name, immediate, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
 
     if (self->reply_code)
@@ -220,6 +223,7 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     <local>
     int rc;
     </local>
+    self->msg_object = NULL;            /*  Until something received         */
     amq_sclient_agent_blocking_receive (self->thread_handle, timeout, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
 

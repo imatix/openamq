@@ -92,8 +92,8 @@ static int
     <argument name = "prefetch"     type = "dbyte" >Max pending messages</argument>
     <argument name = "no local"     type = "Bool"  >Don\'t deliver to self?</argument>
     <argument name = "no ack"       type = "Bool"  >Don\'t want to ack</argument>
+    <argument name = "dynamic"      type = "Bool"  >Dynamic queue creation</argument>
     <argument name = "dest name"    type = "char *">Destination name</argument>
-    <argument name = "identifier"   type = "char *">Subscription identifier</argument>
     <argument name = "result"       type = "int *" >Pointer to result of operation</argument>
 </method>
 
@@ -112,26 +112,26 @@ static int
 
 <method name = "handle send">
     <argument name = "handle_id"    type = "dbyte" >Channel number</argument>
-    <argument name = "message"      type = "amq_message_t *"
-                                                >Message to send</argument>
+    <argument name = "message"      type = "amq_message_t *">Message to send</argument>
     <argument name = "dest_name"    type = "char *">Destination name</argument>
+    <argument name = "immediate"    type = "Bool"  >Assert immediate delivery?</argument>
     <argument name = "result"       type = "int *" >Pointer to result of operation</argument>
 </method>
 
 <method name = "handle flow">
-    <argument name = "handle id"    type = "dbyte">Handle number</argument>
-    <argument name = "flow pause"   type = "Bool" >Pause the flow of messages?</argument>
-    <argument name = "result"       type = "int *">Pointer to result of operation</argument>
+    <argument name = "handle id"    type = "dbyte" >Handle number</argument>
+    <argument name = "flow pause"   type = "Bool"  >Pause the flow of messages?</argument>
+    <argument name = "result"       type = "int *" >Pointer to result of operation</argument>
 </method>
 
 <method name = "handle close">
-    <argument name = "handle id"    type = "dbyte">Handle number</argument>
-    <argument name = "result"       type = "int *">Pointer to result of operation</argument>
+    <argument name = "handle id"    type = "dbyte" >Handle number</argument>
+    <argument name = "result"       type = "int *" >Pointer to result of operation</argument>
 </method>
 
 <method name = "blocking receive">
-    <argument name = "msecs"        type = "long" >Timeout, in msecs</argument>
-    <argument name = "result"       type = "int *">Pointer to result of operation</argument>
+    <argument name = "msecs"        type = "long"  >Timeout, in msecs</argument>
+    <argument name = "result"       type = "int *" >Pointer to result of operation</argument>
 </method>
 
 <!--  Client thread  ------------------------------------------------------>
@@ -542,10 +542,9 @@ static int
             handle_consume_m->prefetch,
             handle_consume_m->no_local,
             handle_consume_m->no_ack,
+            handle_consume_m->dynamic,
             handle_consume_m->dest_name,
-            handle_consume_m->identifier,
-            NULL,                       /*  Selector string                  */
-            NULL);                      /*  Selector MIME type               */
+            NULL);                      /*  Selector field table             */
         send_the_frame (thread);
     </action>
 
@@ -836,7 +835,7 @@ static int
             partial,                    /*  Partial message?                 */
             FALSE,                      /*  Out of band data?                */
             FALSE,                      /*  Restarting large message?        */
-            FALSE,                      /*  Working in streaming mode?       */
+            handle_send_m->immediate,   /*  Immediate delivery?              */
             partial? NULL: handle_send_m->dest_name);
         send_the_frame (thread);
 

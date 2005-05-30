@@ -2,7 +2,18 @@
 <!-- frame definitions for AMQP/Fast -->
 
 <!-- Changes
-    0.9
+    0.8d
+    HANDLE CONSUME:
+        'dynamic' flag allows dynamic queue creation.
+        'selector' flag changed from string to table
+        'mime-type' field removed.
+    HANDLE SEND:
+        'streaming' flag removed.
+        'immediate' flag verifies that destination has consumers.
+    HANDLE NOTIFY:
+        'streaming' flag removed.
+
+    0.8c
     HANDLE CONSUME:
         'unreliable' renamed to 'no ack'
   -->
@@ -144,7 +155,7 @@
         <field type = "bit"      name = "partial"      >Partial message?</field>
         <field type = "bit"      name = "out of band"  >Out of band data?</field>
         <field type = "bit"      name = "recovery"     >Restarting large message?</field>
-        <field type = "bit"      name = "streaming"    >Working in streaming mode?</field>
+        <field type = "bit"      name = "immediate"    >Assert destination has consumers?</field>
         <field type = "shortstr" name = "dest name"    >Destination name suffix</field>
         <sender role = "client" />
     </frame>
@@ -156,19 +167,9 @@
         <field type = "shortint" name = "prefetch"     >Max pending messages</field>
         <field type = "bit"      name = "no local"     >Don't deliver to self?</field>
         <field type = "bit"      name = "no ack"       >Don't acknowledge messages</field>
+        <field type = "bit"      name = "dynamic"      >Dynamic queue creation?</field>
         <field type = "shortstr" name = "dest name"    >Destination name</field>
-        <field type = "shortstr" name = "identifier"   >Subscription identifier</field>
-        <field type = "longstr"  name = "selector"     >Destination selector</field>
-        <field type = "shortstr" name = "mime type"    >Selector MIME type</field>
-        <sender role = "client" />
-    </frame>
-
-    <frame name = "handle cancel">
-        <field type = "octet"    name = "type"         value = "33" />
-        <field type = "shortint" name = "handle id"    >Handle number</field>
-        <field type = "shortint" name = "confirm tag"  >Confirmation tag</field>
-        <field type = "shortstr" name = "dest name"    >Destination name suffix</field>
-        <field type = "shortstr" name = "identifier"   >Subscription identifier</field>
+        <field type = "table"    name = "selector"     >Selector field values</field>
         <sender role = "client" />
     </frame>
 
@@ -223,7 +224,6 @@
         <field type = "bit"      name = "recovery"     >Restarting large message?</field>
         <field type = "bit"      name = "delivered"    >Message must be acknowledged?</field>
         <field type = "bit"      name = "redelivered"  >Message is being redelivered?</field>
-        <field type = "bit"      name = "streaming"    >Working in streaming mode?</field>
         <field type = "shortstr" name = "dest name"    >Originating destination</field>
         <sender role = "server" />
     </frame>

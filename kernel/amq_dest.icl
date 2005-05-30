@@ -52,7 +52,7 @@ forward messages.
     int
         service_type;                   /*  AMQP service - queue or topic    */
     Bool
-        temporary;                      /*  Created/deleted dynamically      */
+        temporary;                      /*  Temporary destination            */
     qbyte
         client_id;                      /*  Owner, if any                    */
 

@@ -46,7 +46,7 @@ main (int argc, char *argv [])
     coprintf ("AMQP asynchronous client v" CLIENT_VERSION);
     coprintf ("Connecting to %s using identity '%s'...", hostname, clientname);
 
-    amq_client = amq_aclient_new (clientname, "test-login", "test-password");
+    amq_client = amq_aclient_new (clientname, "guest", "guest");
     amq_aclient_register (amq_client, AMQ_ACLIENT_CONNECTED,      s_connected);
     amq_aclient_register (amq_client, AMQ_ACLIENT_HANDLE_CREATED, s_handle_created);
     amq_aclient_register (amq_client, AMQ_ACLIENT_HANDLE_NOTIFY,  s_handle_notify);
@@ -99,8 +99,8 @@ s_connected (amq_aclient_connected_t *args)
             window_size,                /*  Our window size                  */
             TRUE,                       /*  No local delivery                */
             FALSE,                      /*  Auto-ack at server side          */
-            NULL,                       /*  Destination name                 */
-            NULL);                      /*  Subscription name                */
+            FALSE,                      /*  Dynamic consumer                 */
+            NULL);                      /*  Destination name                 */
 #if 0
         amq_aclient_handle_consume (args->client, largeq_id, 2, TRUE, NULL, NULL);
 #endif
@@ -111,14 +111,14 @@ s_connected (amq_aclient_connected_t *args)
             message = amq_message_new ();
             amq_message_testfill       (message, 100);
             amq_message_set_persistent (message, TRUE);
-            amq_aclient_handle_send (args->client, smallq_id, message, NULL);
+            amq_aclient_handle_send (args->client, smallq_id, message, NULL, FALSE);
         }
 #if 0
         /*  Send some large messages to the large queue                      */
         for (index = 0; index < 3; index++) {
             message = amq_message_new ();
             amq_message_testfill (message, 100000);
-            amq_aclient_handle_send (args->client, largeq_id, message, NULL);
+            amq_aclient_handle_send (args->client, largeq_id, message, NULL, FALSE);
         }
 #endif
     }

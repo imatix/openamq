@@ -219,7 +219,7 @@ main (int argc, char *argv [])
             amq_message_set_persistent (message, persistent);
             amq_message_set_identifier (message, identifier);
             amq_message_testfill       (message, msgsize);
-            if (amq_sclient_msg_send (amq_client, out_handle, message))
+            if (amq_sclient_msg_send (amq_client, out_handle, message, NULL, FALSE))
                 goto aborted;
             /*  Commit as we go along                                        */
             if (--batch_left == 0) {

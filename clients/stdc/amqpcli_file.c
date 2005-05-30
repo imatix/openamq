@@ -11,9 +11,6 @@
 
 #define CLIENT_VERSION "0.1"
 
-/*  JS: I don't know how to handle prefetch so just using a constant for now */
-#define PREFETCH 5
-
 /*  Callback functions                                                       */
 
 static void
@@ -65,7 +62,7 @@ main (int argc, char *argv [])
     coprintf ("AMQP asynchronous client v" CLIENT_VERSION);
     coprintf ("Connecting to %s using identity '%s'...", hostname, clientname);
 
-    client = amq_aclient_new (clientname, "login", "password");
+    client = amq_aclient_new (clientname, "guest", "guest");
     amq_aclient_register (client, AMQ_ACLIENT_CONNECTED, s_connected);
     amq_aclient_connect  (client, hostname, "/test");  /*  Runs the agent  */
 
@@ -98,11 +95,11 @@ s_connected (amq_aclient_connected_t *args)
         amq_aclient_handle_consume (
             args->client,
             handle_id,
-            PREFETCH,
+            1,                          /*  Prefetch                         */
             TRUE,                       /*  No local delivery                */
             FALSE,                      /*  Auto-ack at server side          */
-            NULL,                       /*  Destination name                 */
-            NULL);                      /*  Subscription name                */
+            FALSE,                      /*  Dynamic consumer                 */
+            NULL);                      /*  Destination name                 */
         amq_aclient_register (args->client, AMQ_ACLIENT_HANDLE_NOTIFY, s_handle_notify);
     }         
     /*  Register monitor function if outbox is defined                       */
@@ -166,10 +163,12 @@ s_file_monitor (amq_aclient_monitor_t *args)
                     amq_message_destroy (&message);
                 }
                 else
-                    amq_aclient_handle_send (args->client, 
-                                             handle_id,
-                                             message, 
-                                             dest_name);
+                    amq_aclient_handle_send (
+                        args->client, 
+                        handle_id,
+                        message, 
+                        dest_name,
+                        FALSE);         /*  Assert immediate delivery       */
                 file_delete (fullname);
             }
             fileinfo = fileinfo->next;

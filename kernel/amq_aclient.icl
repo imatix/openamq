@@ -181,26 +181,27 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
     <argument name = "handle id"   type = "dbyte"          >Handle id</argument>
     <argument name = "prefetch"    type = "dbyte"          >Max pending messages</argument>
     <argument name = "no local"    type = "Bool"           >Don't deliver to self?</argument>
-    <argument name = "unreliable"  type = "Bool"           >Don't want to ack</argument>
+    <argument name = "no ack"      type = "Bool"           >Don't want to ack</argument>
+    <argument name = "dynamic"     type = "Bool"           >Dynamic consumer</argument>
     <argument name = "dest name"   type = "ipr_shortstr_t" >Destination name</argument>
-    <argument name = "identifier"  type = "ipr_shortstr_t" >Subscription identifier</argument>
 
     amq_aclient_agent_handle_consume (
         self->thread_handle,
         handle_id,
         prefetch,
         no_local,
-        unreliable,
-        dest_name,
-        identifier);
+        no_ack,
+        dynamic,
+        dest_name);
 </method>
 
 <method name = "handle send" template = "function" >
     <argument name = "handle id"  type = "dbyte"          >Handle id</argument>
     <argument name = "message"    type = "amq_message_t *">Message to send</argument>
     <argument name = "dest name"  type = "ipr_shortstr_t" >Destination name</argument>
+    <argument name = "immediate"  type = "Bool"           >Assert immediate delivery?</argument>
     amq_aclient_agent_handle_send (
-        self->thread_handle, handle_id, message, dest_name);
+        self->thread_handle, handle_id, message, dest_name, immediate);
 </method>
 
 <method name = "handle flow" template = "function">

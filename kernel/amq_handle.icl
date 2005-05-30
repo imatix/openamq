@@ -119,7 +119,7 @@ This class implements the AMQP HANDLE commands.
     if (dest) {
         /*  Stamp message with destination name and save to queue            */
         ipr_shortstr_cpy   (message->dest_name, dest->key);
-        amq_queue_accept   (dest->queue, self->channel, message, NULL);
+        amq_queue_accept   (dest->queue, self->channel, message, command->immediate, NULL);
         amq_vhost_dispatch (self->vhost);
     }
     else
@@ -130,17 +130,11 @@ This class implements the AMQP HANDLE commands.
     <doc>
     Processes a HANDLE CONSUME command.  The consumer class handles the
     actual queue and topic consumer implementation.  For queues, the command
-    must refer to an existing destination; for topics it may refer to a
-    topic name pattern.
+    must refer to an existing destination unless the dynamic flag is set; for
+    topics it may refer to a topic name pattern.
     </doc>
     <argument name = "command" type = "amq_handle_consume_t *" />
     amq_consumer_new (self, command);
-</method>
-
-<method name = "cancel" template = "function" >
-    <argument name = "command" type = "amq_handle_cancel_t *" />
-    //TODO: cancel subscription
-    amq_global_set_error (AMQP_NOT_IMPLEMENTED, "Topics are not implemented");
 </method>
 
 <method name = "flow" template = "function" >

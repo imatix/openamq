@@ -117,18 +117,18 @@ main (int argc, char *argv [])
     }
     /*  If there was a missing parameter or an argument error, quit          */
     if (argparm) {
-        coprintf ("Argument missing - type 'openamqd -h' for help");
+        coprintf ("Argument missing - type 'chat_out -h' for help");
         goto failed;
     }
     else
     if (!args_ok) {
-        coprintf ("Invalid arguments - type 'openamqd -h' for help");
+        coprintf ("Invalid arguments - type 'chat_out -h' for help");
         goto failed;
     }
     amq_sclient_trace (atoi (opt_trace));
 
     coprintf ("Connecting to %s...", opt_server);
-    amq_client = amq_sclient_new (opt_client, "test-login", "test-password");
+    amq_client = amq_sclient_new (opt_client, "guest", "guest");
 
     if (amq_client == NULL
     ||  amq_sclient_connect (amq_client, opt_server, "/test"))
@@ -137,7 +137,7 @@ main (int argc, char *argv [])
     signal (SIGINT,  s_handle_signal);
     signal (SIGTERM, s_handle_signal);
 
-    out_handle = amq_sclient_producer (amq_client, AMQP_SERVICE_QUEUE, "java-in");
+    out_handle = amq_sclient_producer (amq_client, AMQP_SERVICE_QUEUE, "chat-queue");
     coprintf ("Enter text and press Enter, type 'bye' to finish\n");
 
     while (TRUE) {
@@ -149,7 +149,7 @@ main (int argc, char *argv [])
         message = amq_message_new ();
         amq_message_set_content (message, text, strlen (text), NULL);
 
-        if (amq_sclient_msg_send (amq_client, out_handle, message))
+        if (amq_sclient_msg_send (amq_client, out_handle, message, NULL, TRUE))
             goto aborted;
         amq_sclient_commit (amq_client);
         if (streq (text, "bye"))

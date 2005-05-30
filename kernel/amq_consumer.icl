@@ -47,6 +47,8 @@ and to a queue.
         no_local;                       /*  Don't deliver own msgs to self   */
     Bool
         no_ack;                         /*  No ACKs are required             */
+    Bool
+        dynamic;                        /*  Dynamic queue consumer           */
     int
         index;                          /*  Unique index per vhost           */
 </context>
@@ -59,6 +61,7 @@ and to a queue.
     self->window   = self->prefetch;
     self->no_local = command->no_local;
     self->no_ack   = command->no_ack;
+    self->dynamic  = command->dynamic;
 
     if (handle->service_type == AMQP_SERVICE_QUEUE)
         s_init_queue_consumer (self, command);
@@ -70,7 +73,7 @@ and to a queue.
 </method>
 
 <method name = "destroy">
-    amq_queue_detach (self->queue, self);
+    amq_queue_detach   (self->queue, self);
     amq_subscr_destroy (&self->subscr);
 </method>
 
@@ -138,12 +141,26 @@ static void
 static void
 s_init_queue_consumer ($(selftype) *self, amq_handle_consume_t *command)
 {
+    ipr_shortstr_t
+        full_dest_name;
+
     /*  For queues the destination must exist                            */
     self->dest = amq_dest_search (
         self->handle->vhost->queue_hash, self->handle->dest_name, command->dest_name);
 
+    /*  Create queue for dynamic consumers if needed                     */
+    if (self->dest == NULL && self->dynamic) {
+        ipr_shortstr_fmt (full_dest_name, "%s%s", self->handle->dest_name, command->dest_name);
+        coprintf ("I: creating dynamic queue '%s'", full_dest_name);
+        self->dest = amq_dest_new (
+            self->handle->vhost->queue_hash,
+            self->handle->vhost,
+            AMQP_SERVICE_QUEUE,
+            FALSE,
+            full_dest_name,
+            self->handle->client_id);
+    }
     if (self->dest) {
-        //TODO: access controls on consumer
         /*  We can consume on non-temporary queues
             Or on temporary queues that we also own
         */
@@ -166,11 +183,8 @@ s_init_queue_consumer ($(selftype) *self, amq_handle_consume_t *command)
 /*  For a topic service the consumer has its own subscription destination.
     (It does not reference a specific topic destination because the consumer
     can take messages from multiple topics.)
-
-    For now we only implement temporary (unnamed) subscriptions.
  */
 
-//TODO: implement named subscriptions.
 static void
 s_init_topic_consumer ($(selftype) *self, amq_handle_consume_t *command)
 {

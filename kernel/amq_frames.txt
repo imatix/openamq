@@ -14,7 +14,6 @@
                            handle-open /
                            handle-send /
                            handle-consume /
-                           handle-cancel /
                            handle-flow /
                            handle-unget /
                            handle-query /
@@ -86,20 +85,18 @@
     mime-type            = short-string
     encoding             = short-string
 
-    handle-send          = %d31 handle-id confirm-tag fragment-size partial out-of-band recovery streaming dest-name
+    handle-send          = %d31 handle-id confirm-tag fragment-size partial out-of-band recovery immediate dest-name
     fragment-size        = long-integer
     partial              = BIT
     recovery             = BIT
-    streaming            = BIT
+    immediate            = BIT
 
-    handle-consume       = %d32 handle-id confirm-tag prefetch no-local no-ack dest-name identifier selector mime-type
+    handle-consume       = %d32 handle-id confirm-tag prefetch no-local no-ack dynamic dest-name selector
     prefetch             = short-integer
     no-local             = BIT
     no-ack               = BIT
-    identifier           = short-string
+    dynamic              = BIT
     selector             = long-string
-
-    handle-cancel        = %d33 handle-id confirm-tag dest-name identifier
 
     handle-flow          = %d34 handle-id confirm-tag flow-pause
     flow-pause           = BIT
@@ -112,7 +109,7 @@
 
     handle-created       = %d40 handle-id dest-name
 
-    handle-notify        = %d41 handle-id message-nbr fragment-size partial out-of-band recovery delivered redelivered streaming dest-name
+    handle-notify        = %d41 handle-id message-nbr fragment-size partial out-of-band recovery delivered redelivered dest-name
     delivered            = BIT
     redelivered          = BIT
 
@@ -134,4 +131,5 @@
     persistent           = BIT
     priority             = OCTET
     expiration           = long-integer
+    identifier           = short-string
     headers              = long-string

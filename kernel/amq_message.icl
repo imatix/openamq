@@ -68,15 +68,18 @@
 </method>
 
 <method name = "destroy">
-    if (self->content && self->free_fn)
-        (self->free_fn) (self->content->data);
-
+    /*  Content data is never part of content longstr                        */
+    if (self->content) {
+        self->content->data = NULL;
+        if (self->free_fn)
+            (self->free_fn) (self->content->data);
+        ipr_longstr_destroy (&self->content);
+    }
     /*  Wipe spooled data if any                                             */
     if (self->spool_size > 0)
         file_delete (self->spool_file);
 
     amq_bucket_destroy  (&self->fragment);
-    ipr_longstr_destroy (&self->content);
     ipr_longstr_destroy (&self->headers);
 </method>
 
@@ -94,14 +97,16 @@
     <argument name = "free fn" type = "icl_mem_free_fn *">Function to free the memory</argument>
 
     /*  Free existing content if any                                         */
-    if (self->content && self->free_fn)
-        (self->free_fn) (self->content->data);
-
-    self->free_fn = free_fn;
-    self->content = ipr_longstr_new (NULL, 0);
-    self->content->data = data;
-    self->content->cur_size =
+    if (self->content == NULL)
+        self->content = ipr_longstr_new (NULL, 0);
+    else
+        if (self->free_fn)
+            (self->free_fn) (self->content->data);
+    
+    self->content->data     = data;
+    self->content->cur_size = size;
     self->content->max_size = size;
+    self->free_fn   = free_fn;
     self->processed = 0;                /*  Reset reply serialisation        */
     self->body_size = size;
 </method>
