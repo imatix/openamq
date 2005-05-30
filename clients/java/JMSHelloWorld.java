@@ -17,15 +17,29 @@ public class JMSHelloWorld {
         verbose = true;                 /* Verbose mode                      */
 
     public static void main(String[] args) {
+        boolean
+            args_ok = true;             /* Arguments parsing status          */
+        int
+            messages = 1000;            /* Messages to send                  */
+        String
+            destName = "test-small",    /* Destination on virtual host       */
+            server = "localhost",       /* Server                            */
+            vHost = null;               /* Virtual host on server            */
+        Properties                      /* Command-line arguments            */
+            arguments = new Properties();   
+        String
+            argparm = null,             /* Command line argument             */
+            clientName =                /* Client name                       */
+                "JMS Hello World";
+        
         final String
-            CLIENT_NAME =               /* Client name                       */
-                "JMS Hello World",
             USAGE =                     /* Usage                             */
                 "Syntax: clientname [options...]\n"                                       +
                 "Options:\n"                                                              +
-                "  -c clientname    Client identifier (default: '" + CLIENT_NAME + "')\n" +
-                "  -s server        Name or address of server (localhost)\n"              +
-                "  -w destination   Destination on default host\n"                        +
+                "  -c clientname    Client identifier (default: '" + clientName + "')\n"  +
+                "  -s server        Name or address of server (" + server + ")\n"         +
+                "  -H vhost         Virtual host (/)\n"                                   +
+                "  -D destination   Destination on default host (" + destName + ")\n"     +
                 "  -m number        Number of messages to send/receive (1000)\n"          +
                 "  -q               Quiet mode: no messages\n"                            +
                 "  -v               Show version information\n"                           +
@@ -33,24 +47,13 @@ public class JMSHelloWorld {
                 "\nThe order of arguments is not important. Switches and filenames\n"     +
                 "are case sensitive.\n",
             CLIENT_NAME_PRINT =         /* Full name for console             */
-                CLIENT_NAME + " - " + AMQFramingFactory.VERSION + "\n",
+                clientName + " - " + AMQFramingFactory.VERSION + "\n",
             COPYRIGHT =                 /* Copyright                         */
                 "Copyright (c) 2004-2005 JPMorgan",
             NOWARRANTY =                /* Warranty                          */
                 "This is free software; see the source for copying conditions.  There is NO\n"  +
                 "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n";
 
-        boolean
-            args_ok = true;             /* Arguments parsing status          */
-        int
-            messages = 1000;            /* Messages to send                  */
-        String
-            destName = "test-small";    /* Server destination                */
-        Properties                      /* Command-line arguments            */
-            arguments = new Properties();   
-        String
-            argparm = null;             /* Command line argument             */
-    
         for (int argn = 0; argn < args.length; argn++) {
             /*  If argparm is set, we have to collect an argument parameter  */
             if (argparm != null) {
@@ -73,7 +76,10 @@ public class JMSHelloWorld {
                     case 'm':
                         argparm = "opt_messages";
                         break;
-                    case 'w':
+                    case 'H':
+                        argparm = "opt_host";
+                        break;
+                    case 'D':
                         argparm = "opt_destination";
                         break;
     
@@ -112,11 +118,14 @@ public class JMSHelloWorld {
         }
     
         messages = Integer.parseInt(arguments.getProperty("opt_messages", "1000"));
+        server = arguments.getProperty("opt_server", server);
+        vHost = arguments.getProperty("opt_host", null);
+        destName = arguments.getProperty("opt_destination", destName);
     
-        test(destName, messages);
+        test(server, vHost, destName, messages);
     }
 
-    static void test(String destName, int messages) {
+    static void test(String server, String vHost, String destName, int messages) {
         Connection
             connection = null;
         Session
@@ -129,11 +138,16 @@ public class JMSHelloWorld {
             message;
 
         try {
-            connection = new JMSConnection("localhost", 7654);
+            connection = new JMSConnection("localhost", vHost, 7654);
             session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
             que = new JMSQueue(destName);
             producer = session.createProducer(que);
             message = session.createTextMessage();
+            
+            if (verbose) {
+                System.out.println("I: VHost is '" + ((vHost == null) ? "/" : vHost) + "'");
+                System.out.println("I: Destination is '" + destName + "'");
+            }    
 
             for (int i = 0; i < messages; i++) {
                 String

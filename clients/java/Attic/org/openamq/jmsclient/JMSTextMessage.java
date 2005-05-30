@@ -27,8 +27,12 @@ public class JMSTextMessage extends JMSMessage implements TextMessage {
     }
 
     public void setText(String string) throws JMSException {
+        byte[]
+            bytes = session.amqFraming.string2Bytes(string);
+            
+        head.bodySize = bytes.length;
+        body = new ByteArrayInputStream(bytes);
         message = string;
-        body = new ByteArrayInputStream(session.amqFraming.string2Bytes(message));
     }
 
     public String getText() throws JMSException {

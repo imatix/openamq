@@ -22,7 +22,7 @@ int
     
 //////////////////////////////   G L O B A L S   //////////////////////////////
 String        
-    CLIENT_NAME =                       /* Client name                       */
+    client_name =                       /* Client name                       */
         "Java echo client";
 // AWT UI
 Frame 
@@ -79,7 +79,7 @@ public EchoClient(String[] args) {
         USAGE =                             /* Usage                             */
             "Syntax: clientname [options...]\n"                                        +
             "Options:\n"                                                               +
-            "  -c clientname    Client identifier (default: '" + CLIENT_NAME + "')\n"  +
+            "  -c clientname    Client identifier (default: '" + client_name + "')\n"  +
             "  -s server        Name or address of server (localhost)\n"               +
             "  -t level         Set trace level (default = 0)\n"                       +
             "  -r name          Set read queue (default = '" + read_queue + "')\n"     +
@@ -92,7 +92,7 @@ public EchoClient(String[] args) {
             "\nThe order of arguments is not important. Switches and filenames\n"      +
             "are case sensitive.\n",
         CLIENT_NAME_PRINT =             /* Full name for console             */
-            CLIENT_NAME + " - " + AMQFramingFactory.VERSION + "\n";    
+            client_name + " - " + AMQFramingFactory.VERSION + "\n";    
     String
         argparm = null;                 /* Command line argument             */
     boolean
@@ -200,7 +200,7 @@ public EchoClient(String[] args) {
         if (input)
             gbl.setConstraints(tf, gbc);
         // Configure the frame
-        f = new Frame(CLIENT_NAME + " - " + AMQFramingFactory.VERSION);
+        f = new Frame(client_name + " - " + AMQFramingFactory.VERSION);
         f.addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
                 if (receive_thread != null) {

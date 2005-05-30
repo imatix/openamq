@@ -49,7 +49,7 @@ public class JMSConnection implements Connection {
     AMQConnection.Close
         clientClose;                        /* Default close parameters          */
 
-    public JMSConnection(String server, int port) throws JMSException {
+    public JMSConnection(String server, String vhost, int port) throws JMSException {
 
         try
         {
@@ -85,7 +85,10 @@ public class JMSConnection implements Connection {
             tune();
 
             // Open connection
-            clientOpen.virtualPath = "/";
+            if (vhost == null)
+                clientOpen.virtualPath = "/";
+            else    
+                clientOpen.virtualPath = vhost;
             amqFraming.sendFrame(clientOpen);
         } catch (UnknownHostException e) {
             throw new JMSException("JMSConnection: " + "JMSConnection: " + "unknown host");

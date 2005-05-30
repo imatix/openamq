@@ -64,7 +64,7 @@ final String
         "This is free software; see the source for copying conditions.  There is NO\n"  +
         "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n";
 String
-    CLIENT_NAME =                       /* Client name                       */
+    client_name =                       /* Client name                       */
         "Java serial test client";
 // Outcomes
 String
@@ -112,7 +112,7 @@ public int amqpcli_serial_execute (String args[])
         USAGE =                             /* Usage                             */
             "Syntax: clientname [options...]\n"                                       +
             "Options:\n"                                                              +
-            "  -c clientname    Client identifier (default: '" + CLIENT_NAME + "')\n" +
+            "  -c clientname    Client identifier (default: '" + client_name + "')\n" +
             "  -s server        Name or address of server (localhost)\n"              +
             "  -m number        Number of messages to send/receive (1000)\n"          +
             "  -b batch         Size of each batch (100)\n"                           +
@@ -130,7 +130,7 @@ public int amqpcli_serial_execute (String args[])
             "\nThe order of arguments is not important. Switches and filenames\n"     +
             "are case sensitive.\n",
         CLIENT_NAME_PRINT =             /* Full name for console             */
-            CLIENT_NAME + " - " + AMQFramingFactory.VERSION + "\n";
+            client_name + " - " + AMQFramingFactory.VERSION + "\n";
     String
         argparm = null;                 /* Command line argument             */
     int
@@ -295,7 +295,7 @@ public void setup ()
         client_open = (AMQConnection.Open)amq_framing.constructFrame(AMQConnection.OPEN);
         client_open.confirmTag = 0;
         client_open.virtualPath = null;
-        client_open.clientName = arguments.getProperty("opt_client", CLIENT_NAME);
+        client_open.clientName = arguments.getProperty("opt_client", client_name);
         client_open.options = null;
         // Connection close defaults
         client_close = (AMQConnection.Close)amq_framing.constructFrame(AMQConnection.CLOSE);
