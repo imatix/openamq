@@ -11,11 +11,11 @@ public class EchoClient extends amqpcli_serial implements Runnable {
 ///////////////////////////   P A R A M E T E R S   ///////////////////////////
 // Some queue defaults for this client
 String
-    read_queue = "java-in",            /* Queue to read from                */
-    write_queue = "c-in";              /* Queue to write to                 */
+    read_queue = "q-a",                 /* Queue to read from                */
+    write_queue = "q-b";                /* Queue to write to                 */
 boolean
-    input = true,                      /* Verbose mode                      */
-    sampleOutput = false;              /* Sample output switch (no AWT)     */
+    input = true,                       /* Verbose mode                      */
+    sampleOutput = false;               /* Sample output switch (no AWT)     */
 int
     test_dialog;    
 
@@ -170,8 +170,8 @@ public EchoClient(String[] args) {
         System.exit(1);
     }
 
-    read_queue = arguments.getProperty("read_queue", "java-in");
-    write_queue = arguments.getProperty("write_queue", "c-in");
+    read_queue = arguments.getProperty("read_queue", read_queue);
+    write_queue = arguments.getProperty("write_queue", write_queue);
     verbose = Integer.parseInt(arguments.getProperty("opt_trace", "0")) > 0;
     test_dialog = Integer.parseInt(arguments.getProperty("test_dialog", "-1"));
     
@@ -451,7 +451,7 @@ public void do_tests ()
         handle_send.partial = false;
         handle_send.outOfBand = false;
         handle_send.recovery = false;
-        handle_send.streaming = false;
+        handle_send.immediate = true;
         handle_send.destName = "";
         message_head.bodySize = 0;
         message_head.persistent = false;
@@ -466,11 +466,11 @@ public void do_tests ()
         handle_consume.handleId = 1;
         handle_consume.confirmTag = 0;
         handle_consume.prefetch = 1;
-        handle_consume.noLocal = false;
+        handle_consume.noLocal = true;
+        handle_consume.noAck = false;
+        handle_consume.dynamic = true;
         handle_consume.destName = "";
-        handle_consume.identifier = "";
         handle_consume.selector = null;
-        handle_consume.mimeType = "";
         
         // Request consume messages
         amq_framing.sendFrame(handle_consume);

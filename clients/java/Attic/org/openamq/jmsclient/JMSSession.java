@@ -179,11 +179,11 @@ public class JMSSession implements Session, Runnable {
                 head = null;
                 is = null;
                 if (handles.size() > 0)
-                    handle = (AMQHandle.Send)handles.remove();
+                    handle = (AMQHandle.Send)handles.removeFirst();
                 if (heads.size() > 0)
-                    head = (AMQMessage.Head)heads.remove();
+                    head = (AMQMessage.Head)heads.removeFirst();
                 if (streams.size() > 0)
-                    is = (InputStream)streams.remove();
+                    is = (InputStream)streams.removeFirst();
             }
     
             if (handle != null) {

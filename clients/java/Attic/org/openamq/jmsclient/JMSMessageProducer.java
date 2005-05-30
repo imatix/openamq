@@ -69,7 +69,7 @@ public class JMSMessageProducer implements MessageProducer {
             handle.partial = false;
             handle.outOfBand = false;
             handle.recovery = false;
-            handle.streaming = false;
+            handle.immediate = false;
             handle.destName = "";
         } catch (ClassCastException e) {
             throw new JMSException("JMSMessageProducer: " + "JMSMessageProducer: " + "unexpected frame from server");

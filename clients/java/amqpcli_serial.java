@@ -43,7 +43,8 @@ long
 int
     messages,                           /* Size of test set                  */
     batch_size,                         /* Size of batches                   */
-    repeats;                            /* Test repetitions                  */
+    repeats,                            /* Test repetitions                  */
+    service_type = 1;                   /* Queue or topic                    */
 long
     message_size;                       /* Message size                      */
 boolean
@@ -119,6 +120,7 @@ public int amqpcli_serial_execute (String args[])
             "                   B=bytes, K=kilos, M=megas, G=gigas.\n"                +
             "  -r repeat        Repeat test N times (1)\n"                            +
             "  -t level         Set trace level (default = 0)\n"                      +
+            "  -T               Use topic service (default is queue)\n"               +
             "  -p               Use persistent messages (no)\n"                       +
             "  -n               No pattern checking\n"                                +
             "  -q               Quiet mode: no messages\n"                            +
@@ -172,6 +174,9 @@ public int amqpcli_serial_execute (String args[])
                     break;
 
                 /*  These switches have an immediate effect                  */
+                case 'T':
+                    service_type = 2;
+                    break;
                 case 'p':
                     persistent = true;
                     break;
@@ -470,7 +475,7 @@ public void do_tests ()
         handle_send.partial = false;
         handle_send.outOfBand = false;
         handle_send.recovery = false;
-        handle_send.streaming = false;
+        handle_send.immediate = false;
         handle_send.destName = "";
         message_head.bodySize = 0;
         message_head.persistent = persistent;
@@ -544,10 +549,10 @@ public void do_tests ()
             handle_consume.confirmTag = 0;
             handle_consume.prefetch = batch_size;
             handle_consume.noLocal = false;
+            handle_consume.noAck = false;
+            handle_consume.dynamic = false;
             handle_consume.destName = "";
-            handle_consume.identifier = "";
             handle_consume.selector = null;
-            handle_consume.mimeType = "";
             // Request consume messages
             amq_framing.sendFrame(handle_consume);
             System.out.println("(" + repeat_count + ") Reading message(s) back from server...");

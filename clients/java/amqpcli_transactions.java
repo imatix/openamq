@@ -260,7 +260,7 @@ public void do_tests ()
         handle_send.partial = false;
         handle_send.outOfBand = false;
         handle_send.recovery = false;
-        handle_send.streaming = false;
+        handle_send.immediate = false;
         handle_send.destName = "";
         message_head.bodySize = 0;
         message_head.persistent = persistent;
@@ -349,10 +349,10 @@ public void do_tests ()
                 handle_consume.confirmTag = 0;
                 handle_consume.prefetch = batch_size;
                 handle_consume.noLocal = false;
+                handle_consume.noAck = false;
+                handle_consume.dynamic = false;
                 handle_consume.destName = "";
-                handle_consume.identifier = "";
                 handle_consume.selector = null;
-                handle_consume.mimeType = "";
                 // Request consume messages
                 amq_framing.sendFrame(handle_consume);
                 if (commit_sent) 

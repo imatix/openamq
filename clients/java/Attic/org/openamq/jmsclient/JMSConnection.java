@@ -194,7 +194,7 @@ public class JMSConnection implements Connection {
     public void close() throws JMSException {
         while (sessions.size() > 0) {
             JMSSession
-                session = (JMSSession)sessions.remove();
+                session = (JMSSession)sessions.removeFirst();
 
             session.close();
             synchronized (session) {
