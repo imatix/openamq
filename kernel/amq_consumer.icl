@@ -73,7 +73,8 @@ and to a queue.
 </method>
 
 <method name = "destroy">
-    amq_queue_detach   (self->queue, self);
+    if (self->queue)
+        amq_queue_detach (self->queue, self);
     amq_subscr_destroy (&self->subscr);
 </method>
 
