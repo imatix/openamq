@@ -71,7 +71,7 @@
     <assert check = "eq" value = "9" />
   </field>
 
-  <field name = "mechanisms" type = "shortstr">
+  <field name = "mechanisms" type = "longstr">
     available security mechanisms
     <doc>
       A list of the security mechanisms that the server supports, delimited
@@ -80,10 +80,23 @@
     <see name = "security mechanisms"/>
     <assert check = "notnull" />
   </field>
+
+  <field name = "locales" type = "longstr">
+    available message locales
+    <doc>
+      A list of the message locales that the server supports, delimited
+      by spaces.  The locale defines the language in which the server
+      will send reply texts.
+    </doc>
+    <doc name = "rule">
+      All servers MUST support at least the en_US locale.
+    </doc>
+    <assert check = "notnull" />
+  </field>
 </method>
 
 <method name = "start ok" synchronous = "1">
-  select security mechanism
+  select security mechanism and locale
   <doc>
     This method selects a SASL security mechanism. AMQP/Fast uses SASL
     (RFC2222) to negotiate authentication and encryption.
@@ -93,12 +106,21 @@
   <field name = "mechanism" type = "shortstr">
     selected security mechanism
     <doc>
-      A single security mechanisms selected by the client; one of those
-      specified by the server.
+      A single security mechanisms selected by the client, which must be
+      one of those specified by the server.
     </doc>
     <doc name = "rule">
       The client SHOULD authenticate using the highest-level security
       profile it can handle from the list provided by the server.
+    </doc>
+    <assert check = "notnull" />
+  </field>
+
+  <field name = "locale" type = "shortstr">
+    selected message locale
+    <doc>
+      A single message local selected by the client, which must be one
+      of those specified by the server.
     </doc>
     <assert check = "notnull" />
   </field>

@@ -1906,11 +1906,6 @@ To be completed.
 Reference Section
 *****************
 
-Class Quick Reference
-=====================
-
-[see amq_rfc006_quick.txt]
-
 [see amq_rfc006_full.txt]
 
 
