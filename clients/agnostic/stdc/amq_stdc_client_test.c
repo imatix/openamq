@@ -369,8 +369,9 @@ int main (
 
             result = amq_stdc_send_message (channel, handle_id, 0, 0,
                 client.destination, client.persistent, client.immediate, 
-                0, 0, "", "", identifier, client.message_size, 
+                0, 0, "", "", identifier, NULL,client.message_size, 
                 client.message_buffer, 0);
+
             if (result != APR_SUCCESS) {
                 printf ("amq_stdc_send_message failed\n");
                 return EXIT_FAILURE;

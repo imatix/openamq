@@ -159,6 +159,7 @@ apr_status_t amq_stdc_send_message (
     const char          *mime_type,
     const char          *encoding,
     const char          *identifier,
+    amq_stdc_table_t    headers,
     apr_size_t          data_size,
     void                *data,
     byte                async

@@ -54,6 +54,12 @@ typedef struct tag_message_list_item_t
     char
         encoding [256];                /*  Buffer to hold encoding           */
                                        /*  while message is opened           */
+    byte
+        dispatched;                    /*  If 1, message has been already    */
+                                       /*  delivered to client, cannot be    */
+                                       /*  delivered for a second time       */
+                                       /*  It is clients responsibility      */
+                                       /*  to remove it from the list        */
     struct tag_message_list_item_t
         *prev;
     struct tag_message_list_item_t
@@ -188,12 +194,19 @@ static apr_status_t s_pair_lock_and_message (
 
     /*  This function is called from event hadlers where context is already  */
     /*  locked, so no need to lock again                                     */
-    if (context->first_lock && context->first_message) {
-
-        /*  There's a thread waiting for a message and a message present     */
+    if (context->first_lock) {
+        /*  There's a thread waiting for a message                           */
         lock = context->first_lock;
         message = context->first_message; 
-       
+   
+        /*  Find whether there is message undispatched so far                */
+        while (message && message->dispatched)
+            message = message->next;
+
+        /*  If there is no undispatched message, do nothing                  */
+        if (!message)
+            return APR_SUCCESS;
+
         /*  Remove lock from lock list                                       */
         context->first_lock = lock->next;
         if (lock->next)
@@ -201,23 +214,18 @@ static apr_status_t s_pair_lock_and_message (
         else
             context->last_lock = NULL;
 
-        /*  Remove message from message list                                 */
-        context->first_message = message->next;
-        if (message->next)
-            message->next->prev = NULL;
-        else
-            context->last_message = NULL;
-
         /*  Resume thread waiting for the message                            */
         result = release_lock (context->global, lock->lock_id,
             (void*) &(message->desc));
         AMQ_ASSERT_STATUS (result, release_lock);
 
         /*  Deallocate lock list item                                        */
-        /*  Message list item will be deallocated when client destroys the   */
-        /*  message                                                          */
+        /*  (Message list item will be deallocated when client destroys the  */
+        /*  message)                                                         */
         amq_free ((void*) lock);
     }
+
+    /*  If no thread is waiting for message, do nothing                      */
     return APR_SUCCESS;
 }
 
@@ -721,6 +729,7 @@ inline static apr_status_t do_send_message (
     const char             *mime_type,
     const char             *encoding,
     const char             *identifier,
+    amq_stdc_table_t       headers,
     apr_size_t             data_size,
     void                   *data,
     byte                   async,
@@ -766,7 +775,7 @@ inline static apr_status_t do_send_message (
     command_size = COMMAND_SIZE_MAX_SIZE +
         AMQ_STDC_HANDLE_SEND_CONSTANT_SIZE + dest_name_size;
     header_size = AMQ_STDC_MESSAGE_HEAD_CONSTANT_SIZE + mime_type_size +
-        encoding_size + identifier_size;
+        encoding_size + identifier_size + amq_stdc_table_size (headers);
     chunk = (char*) amq_malloc (command_size + header_size + data_size);
     if (!chunk)
         AMQ_ASSERT (Not enough memory)
@@ -778,7 +787,8 @@ inline static apr_status_t do_send_message (
     header_size = amq_stdc_encode_message_head (chunk + command_size,
         header_size, data_size, persistent, priority, expiration,
         mime_type_size, mime_type, encoding_size, encoding, identifier_size,
-        identifier, 0, "");
+        identifier, amq_stdc_table_size (headers),
+        amq_stdc_table_data (headers));
     if (!header_size)
         AMQ_ASSERT (Framing error)
     memcpy ((void*) (chunk + command_size + header_size), (void*) data,
@@ -912,6 +922,7 @@ inline static apr_status_t do_receive_fragment (
         result = message_fsm_init (message->message, context->global, context,
             context->connection_id, context->id, &(message->desc));
         AMQ_ASSERT_STATUS (result, message_fsm_init)
+        message->dispatched = 0;
 
         /*  Append it to the end of the queue                                */
         message->next = NULL;

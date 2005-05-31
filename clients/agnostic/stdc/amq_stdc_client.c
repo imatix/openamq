@@ -422,6 +422,7 @@ apr_status_t amq_stdc_rollback (
         mime_type             MIME type
         encoding              content encoding
         identifier            durable subscription name        
+        headers               message headers table
         data_size             number of bytes to send
         data                  position from which to read data
         async                 if 1, doesn't wait for confirmation
@@ -440,6 +441,7 @@ apr_status_t amq_stdc_send_message (
     const char          *mime_type,
     const char          *encoding,
     const char          *identifier,
+    amq_stdc_table_t    headers,
     apr_size_t          data_size,
     void                *data,
     byte                async
@@ -450,9 +452,10 @@ apr_status_t amq_stdc_send_message (
     amq_stdc_lock_t
         lock;
 
-    result = channel_fsm_send_message (context, handle_id, out_of_band,
+    result = channel_fsm_send_message (context, handle_id,out_of_band,
         recovery, dest_name, persistent, immediate, priority, expiration,
-        mime_type, encoding, identifier, data_size, data, async, &lock);
+        mime_type, encoding, identifier, headers, data_size, data, async,
+        &lock);
     AMQ_ASSERT_STATUS (result, handle_fsm_send_message)
     result = wait_for_lock (lock, NULL);
     AMQ_ASSERT_STATUS (result, wait_for_lock)

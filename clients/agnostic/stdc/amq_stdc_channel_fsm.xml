@@ -180,6 +180,9 @@
         <arg type = "const char *" name = "identifier">
             Message identifier
         </arg>
+        <arg type = "amq_stdc_table_t" name = "headers">
+            Message headers table
+        </arg>
         <arg type = "apr_size_t" name = "data_size">
             Number of bytes in message body
         </arg>
