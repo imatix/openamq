@@ -30,6 +30,8 @@
 
 #define AMQTRACE_FSMS
 
+#define AMQTRACE_LOCKS
+
 #ifdef AMQTRACE_MEMORY
 void *amq_malloc_trace (size_t sz, const char *file, long line);
 void *amq_realloc_trace (void *p, size_t sz, const char *file, long line);

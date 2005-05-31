@@ -192,7 +192,6 @@ apr_status_t release_lock (
     last = (lock_context_t**) &(context->locks);
     while (1) {
         if (!temp) {
-
             /*  Confirmation that nobody is waiting for arrived. Why?        */
             AMQ_ASSERT (Unexpected confirmation arrived)
         }
@@ -371,8 +370,9 @@ apr_status_t unregister_lock (
         /*  Confirmation that someone is waiting for arrived.                */
         if (temp->lock_id == lock_id && temp->permanent) {
 
-            /*  Remove item from the linked list if nedded                   */
+            /*  Remove item from the linked list                             */
             *last = temp->next;
+            temp->result = NULL;
 
             /*  Resume execution of waiting thread                           */
 #           ifdef AMQTRACE_LOCKS

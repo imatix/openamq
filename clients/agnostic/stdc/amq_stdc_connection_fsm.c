@@ -120,6 +120,7 @@ inline static apr_status_t do_construct (
     context->send_ping = 0;
     context->sender_tag = 0;
     context->sender_lock = NULL;
+    context->stop = 0;
 
     return APR_SUCCESS;
 }
@@ -454,17 +455,28 @@ static void *s_sender_thread (
         AMQ_ASSERT (Framing error)
 
     while (1) {
+       
+       /*  Conection requested to stop                                       */
+       if (context->stop == 1)
+           break;
+
+       /*  Request a chunk to send                                           */
+       result = connection_fsm_get_chunk (context);
+       AMQ_ASSERT_STATUS (result, connection_fsm_get_chunk)
+       
+       /*  Conection requested to stop                                       */
+       if (context->stop == 1)
+           break;
+
+       /*  Wait for chunk                                                    */
+       result = wait_for_lock (context->sender_lock, (void**) &chunk);
+       AMQ_ASSERT_STATUS (result, wait_for_lock)
 
        /*  Conection requested to stop                                       */
        if (context->stop == 1)
            break;
 
-       /*  Get a chunk to send                                               */
-       result = connection_fsm_get_chunk (context);
-       AMQ_ASSERT_STATUS (result, connection_fsm_get_chunk)
-       result = wait_for_lock (context->sender_lock, (void**) &chunk);
-       AMQ_ASSERT_STATUS (result, wait_for_lock)
-
+       assert (chunk);
        /*  Is PING to be sent ? If so, do it.                                */
        if (chunk->send_ping) {
            size = ping_data_size;
@@ -518,6 +530,7 @@ static void *s_sender_thread (
 
        /*  Deallocate chunk descriptor                                       */
        amq_free ((void*) chunk);
+       chunk = NULL; 
     }
 
     return NULL;

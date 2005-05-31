@@ -98,6 +98,8 @@ apr_status_t amq_stdc_term ()
     AMQ_ASSERT_STATUS (result, global_fsm_terminate)
     result = wait_for_lock (lock, NULL);
     AMQ_ASSERT_STATUS (result, wait_for_lock)
+    result = global_fsm_destroy (global);
+    AMQ_ASSERT_STATUS (result, global_fsm_destroy)
     amq_stats ();
     return APR_SUCCESS;
 }
