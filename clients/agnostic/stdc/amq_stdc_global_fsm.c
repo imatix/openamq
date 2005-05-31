@@ -155,8 +155,8 @@ apr_status_t register_lock (
     if (lock_id) *lock_id = id;
 #   ifdef AMQTRACE_LOCKS
         printf ("# Lock %ld registered. "
-            "(connection %ld, channel %ld, handle %ld)\n", (long) id,
-            (long) connection_id, (long) channel_id, (long) handle_id);
+            "(connection %ld, channel %ld)\n", (long) id,
+            (long) connection_id, (long) channel_id);
 #   endif
     return APR_SUCCESS;
 }
@@ -309,9 +309,9 @@ apr_status_t release_all_locks (
     AMQ_ASSERT_STATUS (result, global_fsm_sync_begin)
 
 #   ifdef AMQTRACE_LOCKS
-        printf ("# All locks for connection %ld, channel %ld and "
-            "handle %ld released except lock %ld:\n", (long) connection_id,
-            (long) channel_id, (long) handle_id, (long) except_lock_id);
+        printf ("# All locks for connection %ld, channel %ld "
+            "released except lock %ld:\n", (long) connection_id,
+            (long) channel_id, (long) except_lock_id);
 #   endif
 
     lock = context->locks;
