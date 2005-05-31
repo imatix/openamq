@@ -31,7 +31,9 @@ This class implements the message matching.
     <argument name = "subscr"    type = "amq_subscr_t *">Subscription to register</argument>
     <local>
     ipr_shortstr_t
-        regexp;
+        pattern;
+    ipr_regexp_t
+        *regexp;
     amq_dest_t
         *dest;                          /*  Vhost destination                */
     amq_match_t
@@ -41,11 +43,13 @@ This class implements the message matching.
     assert (dest_name);
     assert (subscr);
 
-    amq_match_topic (regexp, dest_name);
+    amq_match_topic (pattern, dest_name);
+    regexp = ipr_regexp_new (pattern);
+    assert (regexp);
     dest = amq_dest_list_first (dest_list);
     while (dest) {
         if (dest->service_type == AMQP_SERVICE_TOPIC) {
-            if (ipr_regexp_parse (dest->key, regexp, NULL)) {
+            if (ipr_regexp_match (regexp, dest->key, NULL)) {
                 match = amq_match_search (self, dest->key);
                 if (match == NULL)
                     match = amq_match_new (self, dest->key);
@@ -59,6 +63,7 @@ This class implements the message matching.
         }
         dest = amq_dest_list_next (dest_list, dest);
     }
+    ipr_regexp_destroy (&regexp);
 </method>
 
 <method name = "selftest" />

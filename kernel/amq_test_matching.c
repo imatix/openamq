@@ -248,7 +248,9 @@ generate_subscriptions (long nbr_subscrs)
         topic;
     ipr_shortstr_t
         subscr_name,
-        regexp;
+        pattern;
+    ipr_regexp_t
+        *regexp;
     amq_match_t
         *match;
 
@@ -262,11 +264,13 @@ generate_subscriptions (long nbr_subscrs)
         random_subscription (subscr_name);
         ipr_shortstr_cpy (subscr_table [subscr_count].subscr_name, subscr_name);
         subscr_table [subscr_count].hits = 0;
-        amq_match_topic (regexp, subscr_name);
+        amq_match_topic (pattern, subscr_name);
+        regexp = ipr_regexp_new (pattern);
+        assert (regexp);
 
         /*  Subscribe to all matching topics                                 */
         for (topic = 0; topic < topic_count; topic++) {
-            if (ipr_regexp_parse (topic_list [topic], regexp, NULL)) {
+            if (ipr_regexp_match (regexp, topic_list [topic], NULL)) {
                 match = amq_match_search (match_topics, topic_list [topic]);
                 if (match == NULL)
                     match = amq_match_new (match_topics, topic_list [topic]);
@@ -285,6 +289,7 @@ generate_subscriptions (long nbr_subscrs)
             else
                 coprintf ("  -- ...");
         }
+        ipr_regexp_destroy (&regexp);
     }
     coprintf (" -- total number of active subscriptions: %d", match_count);
 }
