@@ -45,6 +45,13 @@ typedef struct
     byte
         persistent;                     /*  1 for persistent messages to be  */
                                         /*  sent, 0 for nonpersistent        */
+    byte
+        immediate;                      /*  1 to assert that consumers exist */
+                                        /*  on destination when sending msg  */
+    byte
+        dynamic;                        /*  1 to create destination if it    */
+                                        /*  does not exist                   */
+
     long
         commit_count;                   /*  Transaction commited every       */
                                         /*  N-th message                     */
@@ -204,6 +211,8 @@ int main (
     client.prefetch            = 1;
     client.message_size        = 2;
     client.persistent          = 0;
+    client.immediate           = 0;
+    client.dynamic             = 0;
     client.commit_count        = 0;
     client.rollback_count      = 0;    
     client.temporary           = 0;    
@@ -241,6 +250,10 @@ int main (
             client.temporary = atoi (argv [arg_pos]);
         if (strcmp (argv[arg_pos], "-x") == 0)
             client.persistent = 1;
+        if (strcmp (argv[arg_pos], "-I") == 0)
+            client.immediate = 1;
+        if (strcmp (argv[arg_pos], "-D") == 0)
+            client.dynamic = 1;
         if (strcmp (argv[arg_pos], "-e") == 0 && ++arg_pos != argc)
             client.service_type =
                 (amq_stdc_service_type_t) atoi (argv [arg_pos]);
@@ -268,6 +281,7 @@ int main (
             "    -i <interval between individual messages in ms, default=0>\n"
             "    -l <length of message content in bytes, default=2>\n"
             "    -x (sends persistent messages)\n"
+            "    -I (assert that destination has consumers)\n"
             "    -c <number of messages while commit is issued>\n"
             "    -r <number of messages while rollback is issued>\n"
             "    -t <0/1 use a temporary destination>\n"
@@ -279,6 +293,7 @@ int main (
             "    -h <virtual host name>\n"
             "    -e <1/2/3 service type, default 1>\n"
             "    -d <destination>\n"
+            "    -D (create destination if it does not exist)\n"
             "    -p <number of prefetched messages, default=1>\n"
             "    -o <0/1 if 1 messages sent are not received back, default 1>\n"
             "    -n <number of messages, 0 means infinite, default=0>\n"
@@ -352,9 +367,10 @@ int main (
             sprintf (identifier, "%s-%ld", client.client_name,
                 client.last_message_number);
 
-            result = amq_stdc_send_message (channel, handle_id, 0, 0, 0,
-                client.destination, client.persistent, 0, 0, "", "",
-                identifier, client.message_size, client.message_buffer, 0);
+            result = amq_stdc_send_message (channel, handle_id, 0, 0,
+                client.destination, client.persistent, client.immediate, 
+                0, 0, "", "", identifier, client.message_size, 
+                client.message_buffer, 0);
             if (result != APR_SUCCESS) {
                 printf ("amq_stdc_send_message failed\n");
                 return EXIT_FAILURE;
@@ -396,7 +412,7 @@ int main (
     /*  Mode : CONSUMER                                                      */
     if (client.clienttype == clienttype_consumer) {
         result = amq_stdc_consume (channel, handle_id, client.prefetch,
-            client.no_local, 0, client.destination, "", "", "", 0);
+            client.no_local, 0, client.dynamic, client.destination, NULL, 0);
         if (result != APR_SUCCESS) {
             printf ("amq_stdc_consume failed\n");
             return EXIT_FAILURE;

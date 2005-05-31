@@ -1,3 +1,6 @@
+ - Field tables
+ - Updated to protocol version 0.8d
+ 
 0.8b0 - 2005/04/08
 
  - Renamed layers to amq_stdc_framing and amq_stdc_client

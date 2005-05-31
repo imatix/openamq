@@ -414,9 +414,9 @@ apr_status_t amq_stdc_rollback (
         out_of_band           if 1, message data are to be transferred
                               out of band
         recovery              if 1, this is a recovery - only a partial message
-        streaming             if 1, it is a stream
         dest_name             destination name
         persistent            if 1, message is going to be persistent
+        immediate             if 1, assert that the destination has consumers
         priority              priority of message
         expiration            expiration time of message
         mime_type             MIME type
@@ -432,9 +432,9 @@ apr_status_t amq_stdc_send_message (
     dbyte               handle_id,
     byte                out_of_band,
     byte                recovery,
-    byte                streaming,
     const char          *dest_name,
     byte                persistent,
+    byte                immediate, 
     byte                priority,
     qbyte               expiration,
     const char          *mime_type,
@@ -450,8 +450,8 @@ apr_status_t amq_stdc_send_message (
     amq_stdc_lock_t
         lock;
 
-    result = channel_fsm_send_message (context, handle_id,out_of_band,
-        recovery, streaming, dest_name, persistent, priority, expiration,
+    result = channel_fsm_send_message (context, handle_id, out_of_band,
+        recovery, dest_name, persistent, immediate, priority, expiration,
         mime_type, encoding, identifier, data_size, data, async, &lock);
     AMQ_ASSERT_STATUS (result, handle_fsm_send_message)
     result = wait_for_lock (lock, NULL);
@@ -472,11 +472,10 @@ apr_status_t amq_stdc_send_message (
         prefetch              number of messages to prefetch
         no_local              if 1, messages sent from this connection won't be
                               received
-        unreliable            if 1, client won't acknowledge messages
+        no_ack                if 1, client won't acknowledge messages
+        dynamic               if 1, create destination if it doesn't exist
         dest_name             destination name
-        idnetifier            durable subscription name
-        selector              selector string
-        mime_type             MIME type
+        selector              selector fields
         async                 if 1, doesn't wait for confirmation
     -------------------------------------------------------------------------*/
 
@@ -485,11 +484,10 @@ apr_status_t amq_stdc_consume (
     dbyte               handle_id,
     dbyte               prefetch,
     byte                no_local,
-    byte                unreliable,
+    byte                no_ack,
+    byte                dynamic,
     const char          *dest_name,
-    const char          *identifier,
-    const char          *selector,
-    const char          *mime_type,
+    amq_stdc_table_t    selector,
     byte                async
     )
 {
@@ -499,7 +497,7 @@ apr_status_t amq_stdc_consume (
         lock;
 
     result = channel_fsm_consume (context, handle_id, prefetch, no_local,
-        unreliable, dest_name, identifier, selector, mime_type, async, &lock);
+        no_ack, dynamic, dest_name, selector, async, &lock);
     AMQ_ASSERT_STATUS (result, handle_fsm_consume)
     result = wait_for_lock (lock, NULL);
     AMQ_ASSERT_STATUS (result, wait_for_lock)
@@ -648,42 +646,6 @@ apr_status_t amq_stdc_flow (
 
     result = channel_fsm_flow (context, handle_id, pause, async, &lock);
     AMQ_ASSERT_STATUS (result, handle_fsm_flow)
-    result = wait_for_lock (lock, NULL);
-    AMQ_ASSERT_STATUS (result, wait_for_lock)
-    
-    return APR_SUCCESS;
-}
-
-/*  -------------------------------------------------------------------------
-    Function: amq_stdc_cancel_subscription
-
-    Synopsis:
-    Cancels durable subscription
-
-    Arguments:
-        channel               channel handle
-        handle_id             id of handle to use
-        dest_name             destination name
-        identifier            subscription name
-        async                 if 1, doesn't wait for confirmation
-    -------------------------------------------------------------------------*/
-
-apr_status_t amq_stdc_cancel_subscription (
-    amq_stdc_channel_t  context,
-    dbyte               handle_id,
-    const char          *dest_name,
-    const char          *identifier,
-    byte                async
-    )
-{
-    apr_status_t
-        result;
-    amq_stdc_lock_t
-        lock;
-
-    result = channel_fsm_cancel (context, handle_id, dest_name, identifier,
-        async, &lock);
-    AMQ_ASSERT_STATUS (result, handle_fsm_cancel)
     result = wait_for_lock (lock, NULL);
     AMQ_ASSERT_STATUS (result, wait_for_lock)
     

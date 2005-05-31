@@ -156,14 +156,14 @@
         <arg type = "byte" name = "recovery">
             If 1, recovery is going on
         </arg>
-        <arg type = "byte" name = "streaming">
-            If 1, message is a stream
-        </arg>
         <arg type = "const char *" name = "dest_name">
             Destination name
         </arg>
         <arg type = "byte" name = "persistent">
             If 1, message is persistent
+        </arg>
+        <arg type = "byte" name = "immediate">
+            If 1, assert that the destination has consumers
         </arg>
         <arg type = "byte" name = "priority">
             Message priority 
@@ -204,20 +204,17 @@
         <arg type = "byte" name = "no_local">
             If 1, messages sent from this connection won't be received
         </arg>
-        <arg type = "byte" name = "unreliable">
+        <arg type = "byte" name = "no_ack">
             If 1, client won't acknowledge messages
+        </arg>
+        <arg type = "byte" name = "dynamic">
+            If 1, the queue will be created dynamically if it does not exist
         </arg>
         <arg type = "const char *" name = "dest_name">
             Destination name
         </arg>
-        <arg type = "const char *" name = "identifier">
-            Durable subsription name
-        </arg>
-        <arg type = "const char *" name = "selector">
-            Selector string
-        </arg>
-        <arg type = "const char *" name = "mime_type">
-            MIME type
+        <arg type = "amq_stdc_table_t" name = "selector">
+            Selector fields
         </arg>
         <arg type = "byte" name = "async">
              When 1, don't wait for confirmation from server
@@ -286,24 +283,6 @@
         </arg>
         <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait for operation completion
-        </arg>
-    </event>
-    <event name = "cancel">
-        Request to cancel persistent subscription
-        <arg type = "dbyte" name = "handle_id">
-            Id of handle to use
-        </arg>
-        <arg type = "const char *" name = "dest_name">
-            Destination name
-        </arg>
-        <arg type = "const char *" name = "identifier">
-            Durable subscription name
-        </arg>
-        <arg type = "byte" name = "async">
-            When 1, don't wait for confirmation from server
-        </arg>
-        <arg type = "amq_stdc_lock_t *" name = "lock">
-            Output parameter, to be used to wait for operation completion
         </arg>
     </event>
     <event name = "unget">
@@ -419,7 +398,6 @@
         <event name = "receive content chunk" action = "do receive content chunk"/>
         <event name = "get message" action = "do get message"/>
         <event name = "flow" action = "do flow"/>
-        <event name = "cancel" action = "do cancel"/>
         <event name = "unget" action = "do unget"/>
         <event name = "query" action = "do query"/>
         <event name = "index" action = "do index"/>

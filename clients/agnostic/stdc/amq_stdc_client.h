@@ -151,9 +151,9 @@ apr_status_t amq_stdc_send_message (
     dbyte               handle_id,
     byte                out_of_band,
     byte                recovery,
-    byte                streaming,
     const char          *dest_name,
     byte                persistent,
+    byte                immediate,
     byte                priority,
     qbyte               expiration,
     const char          *mime_type,
@@ -169,11 +169,10 @@ apr_status_t amq_stdc_consume (
     dbyte               handle_id,
     dbyte               prefetch,
     byte                no_local,
-    byte                unreliable,
+    byte                no_ack,
+    byte                dynamic,
     const char          *dest_name,
-    const char          *identifier,
-    const char          *selector,
-    const char          *mime_type,
+    amq_stdc_table_t    selector,
     byte                async
     );
 
@@ -197,14 +196,6 @@ apr_status_t amq_stdc_flow (
     amq_stdc_channel_t  channel,
     dbyte               handle_id,
     byte                pause,
-    byte                async
-    );
-
-apr_status_t amq_stdc_cancel_subscription (
-    amq_stdc_channel_t  channel,
-    dbyte               handle_id,
-    const char          *dest_name,
-    const char          *identifier,
     byte                async
     );
 

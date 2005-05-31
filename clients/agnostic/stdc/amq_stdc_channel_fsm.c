@@ -713,9 +713,9 @@ inline static apr_status_t do_send_message (
     dbyte                  handle_id,
     byte                   out_of_band,
     byte                   recovery,
-    byte                   streaming,
     const char             *dest_name,
     byte                   persistent,
+    byte                   immediate,
     byte                   priority,
     qbyte                  expiration,
     const char             *mime_type,
@@ -772,7 +772,7 @@ inline static apr_status_t do_send_message (
         AMQ_ASSERT (Not enough memory)
     command_size = amq_stdc_encode_handle_send (chunk, command_size,
         handle_id, confirm_tag, header_size + data_size, 0, out_of_band,
-        recovery, streaming, dest_name_size, dest_name);
+        recovery, immediate, dest_name_size, dest_name);
     if (!command_size)
         AMQ_ASSERT (Framing error)
     header_size = amq_stdc_encode_message_head (chunk + command_size,
@@ -796,11 +796,10 @@ inline static apr_status_t do_consume (
     dbyte                  handle_id,
     dbyte                  prefetch,
     byte                   no_local,
-    byte                   unreliable,
+    byte                   no_ack,
+    byte                   dynamic,
     const char             *dest_name,
-    const char             *identifier,
-    const char             *selector,
-    const char             *mime_type,
+    amq_stdc_table_t       selector,
     byte                   async,
     amq_stdc_lock_t        *lock
     )
@@ -816,20 +815,12 @@ inline static apr_status_t do_consume (
     qbyte
         dest_name_size = strlen (dest_name);
     qbyte
-        identifier_size = strlen (identifier);
-    qbyte
-        selector_size = strlen (selector);
-    qbyte
-        mime_type_size = strlen (mime_type);
+        selector_size = amq_stdc_table_size (selector);
 
     if (dest_name_size > 255)
         AMQ_ASSERT (Destination name field exceeds 255 characters)
-    if (identifier_size > 255)
-        AMQ_ASSERT (Identifier field exceeds 255 characters)
     if (selector_size > 65535)
         AMQ_ASSERT (Selector field exceeds 65535 characters)
-    if (mime_type_size > 255)
-        AMQ_ASSERT (MIME type field exceeds 255 characters)
 
     confirm_tag = 0;
     if (!async) {
@@ -841,14 +832,13 @@ inline static apr_status_t do_consume (
     /*  Send HANDLE CONSUME                                                  */
     chunk_size = COMMAND_SIZE_MAX_SIZE +
         AMQ_STDC_HANDLE_CONSUME_CONSTANT_SIZE + dest_name_size +
-        identifier_size + selector_size + mime_type_size;
+        selector_size;
     chunk = (char*) amq_malloc (chunk_size);
     if (!chunk)
         AMQ_ASSERT (Not enough memory)
     chunk_size = amq_stdc_encode_handle_consume (chunk, chunk_size, context->id,
-        confirm_tag, prefetch, no_local, unreliable, dest_name_size,
-        dest_name, identifier_size, identifier, selector_size, selector,
-        mime_type_size, mime_type);
+        confirm_tag, prefetch, no_local, no_ack, dynamic, dest_name_size,
+        dest_name, selector_size, amq_stdc_table_data (selector));
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
     result = connection_fsm_send_chunk (context->connection, chunk,
@@ -898,7 +888,6 @@ inline static apr_status_t do_receive_fragment (
         message->desc.message_nbr = command->message_nbr;
         message->desc.delivered = command->delivered;
         message->desc.redelivered = command->redelivered;
-        message->desc.streaming = command->streaming;
         memcpy (message->dest_name, command->dest_name,
             command->dest_name_size);
         (message->dest_name) [command->dest_name_size] = 0;
@@ -1137,56 +1126,6 @@ inline static apr_status_t do_flow (
         AMQ_ASSERT (Not enough memory)
     chunk_size = amq_stdc_encode_handle_flow (chunk, chunk_size, handle_id,
           confirm_tag, pause);
-    if (!chunk_size)
-        AMQ_ASSERT (Framing error)
-    result = connection_fsm_send_chunk (context->connection, chunk,
-        chunk_size, NULL, 0, 1, async ? lock : NULL);
-    AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
-
-    return APR_SUCCESS;
-}
-
-inline static apr_status_t do_cancel (
-    channel_fsm_context_t  *context,
-    dbyte                  handle_id,
-    const char             *dest_name,
-    const char             *identifier,
-    byte                   async,
-    amq_stdc_lock_t        *lock
-    )
-{
-    apr_status_t
-        result;
-    char
-        *chunk;
-    qbyte
-        chunk_size;
-    dbyte
-        confirm_tag;
-    qbyte
-        dest_name_size = strlen (dest_name);
-    qbyte
-        identifier_size = strlen (identifier);
-
-    if (dest_name_size > 255)
-        AMQ_ASSERT (Destination name field exceeds 255 characters)
-    if (identifier_size > 255)
-        AMQ_ASSERT (Identifier field exceeds 255 characters)
-
-    confirm_tag = 0;
-    if (!async) {
-        result = register_lock (context->global, context->connection_id,
-            context->id, 0, &confirm_tag, lock);
-        AMQ_ASSERT_STATUS (result, register_lock)
-    }
-
-    /*  Send HANDLE CANCEL                                                   */
-    chunk_size = COMMAND_SIZE_MAX_SIZE + AMQ_STDC_HANDLE_CANCEL_CONSTANT_SIZE;
-    chunk = (char*) amq_malloc (chunk_size);
-    if (!chunk)
-        AMQ_ASSERT (Not enough memory)
-    chunk_size = amq_stdc_encode_handle_cancel (chunk, chunk_size, handle_id,
-        confirm_tag, dest_name_size, dest_name, identifier_size, identifier);
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
     result = connection_fsm_send_chunk (context->connection, chunk,

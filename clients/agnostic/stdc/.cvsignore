@@ -1,15 +1,11 @@
 amq_frames.xml
 amq_stdc_framing.c
 amq_stdc_framing.h
+amq_stdc_client_test
+libamq_stdc.*
 boomake*
-libamqp.*
 Makefile*
 msmake*
 configure*
 *.d
 *.i
-test_framing
-test_client
-amqp_level0.c
-amqp_level0.h
-
