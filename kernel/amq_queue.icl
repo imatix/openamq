@@ -173,7 +173,7 @@ were split to keep the code within sane limits.
         self->dynamic = TRUE;           /*  When any consumer is dynamic     */
     amq_consumer_by_queue_queue  (self->active_consumers,      consumer);
     amq_consumer_by_handle_queue (consumer->handle->consumers, consumer);
-    amq_queue_dispatch (self);
+    self_pre_dispatch (self);
 </method>
 
 <method name = "detach" template = "function">
@@ -202,7 +202,8 @@ were split to keep the code within sane limits.
             message_ref = amq_mesgref_list_first (self->message_list [level]);
             while (message_ref) {
                 amq_smessage_destroy (&message_ref->message);
-                message_ref = amq_mesgref_list_next (self->message_list [level], message_ref);
+                amq_mesgref_destroy  (&message_ref);
+                message_ref = amq_mesgref_list_first (self->message_list [level]);
             }
         }
         if (self->disk_queue_size)
@@ -280,6 +281,15 @@ were split to keep the code within sane limits.
     }
 </method>
 
+<method name = "pre dispatch" template = "function">
+    <doc>
+    Flags the queue as "dirty" and moves it to the front of the dispatch
+    list so that the virtual host will dispatch it next.
+    </doc>
+    self->dirty = TRUE;
+    amq_dest_list_push (self->vhost->dest_list, self->dest);
+</method>
+
 <private name = "header">
 static void
     s_accept_persistent ($(selftype) *self, amq_smessage_t *message, ipr_db_txn_t *txn);
@@ -300,7 +310,7 @@ s_accept_persistent (
 {
     amq_hitset_t
         *hitset;
-        
+
     if (self->dest->service_type == AMQP_SERVICE_TOPIC) {
         hitset = amq_hitset_new (self->vhost);
         if (amq_hitset_match (hitset, self->dest->key, message)) {
@@ -313,14 +323,13 @@ s_accept_persistent (
     else {                              /*  AMQP_SERVICE_QUEUE               */
         amq_smessage_save (message, self, txn);
         self->disk_queue_size++;
-        self->dirty = TRUE;             /*  Message queue has new data       */
-        amq_dest_list_push (self->vhost->dest_list, self->dest);
+        self_pre_dispatch (self);
 #       ifdef TRACE_DISPATCH
         coprintf ("$(selfname) I: %s - save persistent message to storage (%d)",
             self->dest->key, self->disk_queue_size);
 #       endif
     }
-}    
+}
 
 
 /*  Save a transient message to the queue                                    */
@@ -344,8 +353,7 @@ s_accept_transient (
     else {                              /*  AMQP_SERVICE_QUEUE               */
         amq_mesgref_new (self->message_list [s_priority_level (self, message)], message);
         self->memory_queue_size++;
-        self->dirty = TRUE;             /*  Message queue has new data       */
-        amq_dest_list_push (self->vhost->dest_list, self->dest);
+        self_pre_dispatch (self);
 #       ifdef TRACE_DISPATCH
         coprintf ("$(selfname) I: %s - save non-persistent message to queue memory (%d)",
             self->dest->key, self->memory_queue_size);
@@ -408,11 +416,7 @@ s_priority_level (
             self->dest->key, self->memory_queue_size);
 #       endif
     }
-    /*  Mark queue as 'dirty' and push destination to front of list
-        for eventual dispatching
-    */
-    self->dirty = TRUE;                 /*  Message queue has new data       */
-    amq_dest_list_push (self->vhost->dest_list, self->dest);
+    self_pre_dispatch (self);
 </method>
 
 <private name = "header">

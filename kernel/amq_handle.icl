@@ -128,7 +128,7 @@ This class implements the AMQP HANDLE commands.
         dest = amq_dest_search (self->vhost->queue_hash, command->dest_name);
     else {
         dest = self->vhost->topic_dest;
-        // s_check_if_new_topic ();
+        // s_check_if_new_topic (self, command->dest_name);
     }
     if (dest) {
         /*  Stamp message with destination name and save to queue            */
@@ -164,8 +164,8 @@ This class implements the AMQP HANDLE commands.
         if (self->paused)
             amq_consumer_deactivate (consumer);
         else {
-            amq_consumer_activate (consumer);
-            amq_queue_dispatch (consumer->queue);
+            amq_consumer_activate  (consumer);
+            amq_queue_pre_dispatch (consumer->queue);
         }
         consumer = amq_consumer_by_handle_next (self->consumers, consumer);
     }
@@ -221,6 +221,26 @@ This class implements the AMQP HANDLE commands.
     else
         amq_global_set_error (AMQP_COMMAND_INVALID, "Cannot browse topics");
 </method>
+
+<private name = "header">
+static void s_check_if_new_topic ($(selftype) *self, char *dest_name);
+</private>
+
+<private>
+static void
+s_check_if_new_topic ($(selftype) *self, char *dest_name)
+{
+    if (amq_match_search (self->vhost->match_topics, dest_name) == NULL) {
+    /*
+            look for topic in
+            if not found
+                go through all subscriptions
+                recompile for this topic
+            insert into table in any case
+      */
+    }
+}
+</private>
 
 <method name = "selftest">
     <local>

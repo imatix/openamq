@@ -641,6 +641,7 @@ static int
             case FRAME_TYPE_CHANNEL_ACK:
                 amq_channel_ack (tcb->channel, &CHANNEL_ACK);
                 channel_reply_if_needed (thread, CHANNEL_ACK.confirm_tag);
+                amq_vhost_dispatch (tcb->vhost);
                 break;
 
             default:
@@ -742,17 +743,19 @@ static int
         amq_global_reset_error ();
         switch (tcb->frame->type) {
             case FRAME_TYPE_HANDLE_CONSUME:
-                /*  Reply _before_ any confirmations                         */
-                handle_reply_if_needed (thread, HANDLE_CONSUME.confirm_tag);
                 amq_handle_consume (tcb->handle, &HANDLE_CONSUME);
+                handle_reply_if_needed (thread, HANDLE_CONSUME.confirm_tag);
+                amq_vhost_dispatch (tcb->vhost);
                 break;
             case FRAME_TYPE_HANDLE_FLOW:
                 amq_handle_flow (tcb->handle, &HANDLE_FLOW);
                 handle_reply_if_needed (thread, HANDLE_FLOW.confirm_tag);
+                amq_vhost_dispatch (tcb->vhost);
                 break;
             case FRAME_TYPE_HANDLE_UNGET:
                 amq_handle_unget (tcb->handle, &HANDLE_UNGET);
                 handle_reply_if_needed (thread, HANDLE_UNGET.confirm_tag);
+                amq_vhost_dispatch (tcb->vhost);
                 break;
             case FRAME_TYPE_HANDLE_QUERY:
                 amq_handle_query (tcb->handle, &HANDLE_QUERY);

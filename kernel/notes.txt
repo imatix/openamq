@@ -1,3 +1,8 @@
+publish
+    - fail if no queue
+    - fail if no consumers
+    - fail if no subscribers
+
 content based routing
     - message field table
     - matches subscription/consumer field table
@@ -69,11 +74,6 @@ dest_destroy
 
 in dest_new
     - validate dest name using regexp
-
-
-
-
----------------------------------------------------
 
 
 mailbox concept

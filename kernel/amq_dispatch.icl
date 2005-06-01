@@ -82,7 +82,7 @@ for which an acknowledgement is still pending.
     next = amq_dispatch_list_next (self->channel->dispatch_list, self);
     if (!self->acknowledged) {
         amq_consumer_window_open (self->consumer);
-        amq_queue_dispatch (self->queue);
+        amq_queue_pre_dispatch   (self->queue);
 
         /*  Now commit the acknowledgement if not transacted                 */
         self->acknowledged = TRUE;
@@ -122,12 +122,8 @@ for which an acknowledgement is still pending.
         else
             coprintf ("E: message not found for update (dest=%s)", self->queue->dest->key);
     }
-    /*  After ungetting we can dispatch the queue again; we update the
-        window after dispatching so that this message won't go back to
-        the same client.
-     */
-    amq_queue_dispatch (self->queue);
     amq_consumer_window_open (self->consumer);
+    amq_queue_pre_dispatch   (self->queue);
 </method>
 
 <method name = "commit" return = "next">
