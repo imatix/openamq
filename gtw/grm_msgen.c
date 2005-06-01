@@ -1,9 +1,12 @@
 
 #include "base.h"
 #include "base_apr.h"
-#include "sfl.h"
-#include "amq_stdc_client.h"
 #include "gtw.h"
+
+inline apr_status_t xxx (unsigned char *p, apr_size_t sz)
+{
+    return APR_SUCCESS;
+}
 
 int main (
     int         argc,
@@ -19,40 +22,19 @@ int main (
         *fields;
     int
         retcode;
-    void
-        *gmm = NULL;
-    JAMQ_tsBufcb
-        *buf = NULL;
-    JAMQ_tsNCharcb
-        data;
-    char
-        *queue_name;
-    char
-        queue_name_buffer [256];
     apr_status_t
         result;
-    apr_pool_t
-        *pool;
+    JAMQ_tsApicb
+        *context = NULL;
+    apr_uuid_t
+        client_uuid;
     char
-        *grm_config_filename;
-    XML_ITEM
-        *grm_config = NULL;
-    XML_ITEM
-        *item;
-    XML_ATTR
-        *attr1;
-    const char
-        *server;
-    const char
-        *port;
-    const char
-        *vhost;
-    amq_stdc_connection_t
-        connection;
-    amq_stdc_channel_t
-        channel;
-    dbyte
-        handle_id;
+        client_name_buffer [10 + APR_UUID_FORMATTED_LENGTH + 1];
+    JAMQ_tsNCharcb
+        client_name;
+    unsigned char ccc [32000];
+    xxx (ccc, 32000);
+    apr_generate_random_bytes (ccc, 32000);
 
     /*  Allocate array to store fields retrieved from command line          */
     fields = (JAMQ_tsNCharcb*) malloc (sizeof (JAMQ_tsNCharcb) * (argc - 1));
@@ -75,130 +57,44 @@ int main (
         printf ("apr_app_initialise failed\n");
         exit (1);
     }
-    result = apr_pool_create (&pool, NULL);
-    if (result != APR_SUCCESS) {
-        printf ("apr_pool_create failed\n");
-        exit (1);
-    }
 
-    /*  Load and parse grm-config file                                       */
-    result = apr_env_get (&grm_config_filename, "GRM_AMQ_CONFIG", pool);
-    if (result == APR_ENOENT)
-        grm_config_filename = "grm-config.xml";
-    else if (result != APR_SUCCESS) {
-        printf ("apr_env_get failed\n");
-        exit (1);
-    }
+    /*  Create unique client name                                            */
+    memcpy ((void*) client_name_buffer, (void*) "grm-msgen-", 10);
+    apr_uuid_get (&client_uuid);
+    apr_uuid_format (client_name_buffer + 10, &client_uuid);
 
-    if (xml_load (&grm_config, "", grm_config_filename) != XML_NOERROR) {
-        printf ("GRM configuration file cannot be opened.\n");
+    /*  Connect to AMQ server                                                */
+    client_name.iDataLen = strlen (client_name_buffer);
+    client_name.pData = client_name_buffer;
+    if (!JAMQ_apiu_open (&context, &client_name, &retcode)) {
+        printf ("Connection to server cannot be opened. (%ld)\n",
+            (long) retcode);
         exit (1);
     }
-    item = xml_find_item (grm_config, "/grm-config");
-    if (!item) {
-        printf ("grm-config tag missing in GRM configuration file.\n");
-        exit (1);
-    }
-    attr1 = xml_attr (item, "server");
-    if (!attr1) {
-        printf ("Server name missing in GRM configuration file.\n");
-        exit (1);
-    }
-    server = xml_attr_value (attr1);
-    attr1 = xml_attr (item, "port");
-    if (!attr1) {
-        printf ("Port number missing in GRM configuration file.\n");
-        exit (1);
-    }
-    port = xml_attr_value (attr1);
-    attr1 = xml_attr (item, "virtual-host");
-    if (!attr1) {
-        printf ("Virtual host name missing in GRM configuration file.\n");
-        exit (1);
-    }
-    vhost = xml_attr_value (attr1);
+    context->argc = argc;
+    context->argv = (char**) argv;
+    context->sName.iDataLen = strlen (argv [0]);
+    context->sName.pData = (char*) argv [0];
 
-    /*  Initialise AMQ client API, open connection, channel and handle       */
-    result = amq_stdc_init ();
-    if (result != APR_SUCCESS) {
-        printf ("amq_stdc_init failed\n");
-        exit (1);
-    }
-    result = amq_stdc_open_connection (server, atoi (port), vhost,
-        "msgen", amq_stdc_heartbeats_off, amq_stdc_heartbeats_off,
-        0, NULL, 0, &connection);
-    if (result != APR_SUCCESS) {
-        printf ("amq_stdc_open_connection failed\n");
-        exit (1);
-    }
-    result = amq_stdc_open_channel (connection, 0, 0, NULL, "", 0,
-        &channel);
-    if (result != APR_SUCCESS) {
-        printf ("amq_stdc_open_channel_failed\n");
-        exit (1);
-    }
-    result = amq_stdc_open_handle (channel, amq_stdc_service_type_queue,
-        1, 1, 0, 0, "", "", "", NULL, 0, NULL, &handle_id);
-    if (result != APR_SUCCESS) {
-        printf ("amq_stdc_open_handle failed\n");
-        exit (1);
-    }
-
-    /*  Open buffer and GMM object, parse command line                       */
-    if (!JAMQ_gmm_open (&gmm, &retcode)) {
-        printf ("JAMQ_gmm_open failed (%ld)\n", (long) retcode);
-        exit (1);
-    }
-
-    if (!JAMQ_m_get_buffer (&buf, 1024, &retcode)) {
-        printf ("JAMQ_m_get_buffer failed (%ld)\n", (long) retcode);
-        exit (1);
-    }
-    if (!JAMQ_gmm_start_msg (gmm, buf, &retcode)) {
-        printf ("JAMQ_gmm_start_msg failed (%ld)\n", (long) retcode);
-        exit (1);
-    }
-    if (!JAMQ_gmm_from_cmdline (gmm, argc - 1, fields, buf, &retcode)) {
+    /*  Parse command line to write buffer                                   */
+    if (!JAMQ_gmm_from_cmdline (context->pGMMWriteHndl, argc - 1, fields,
+          &(context->sWriteBuf), &retcode)) {
         printf ("JAMQ_gmm_from_cmdline failed (%ld)\n", (long) retcode);
         exit (1);
     }
 
-    /*  Get queue name, send message                                         */
-    if (!JAMQ_gmm_get_data (gmm, 0, 0, &data, &retcode)) {
-        if (retcode == JAMQ_GMM_DATA_UNV)
-            queue_name = "pubsub";
-        else {
-            printf ("JAMQ_gmm_from_cmdline failed (%ld)\n", (long) retcode);
-            exit (1);
-        }
-    }
-    else {
-        queue_name = queue_name_buffer;
-        memcpy ((void*) queue_name_buffer, (void*) data.pData, data.iDataLen);
-        queue_name_buffer [data.iDataLen] = 0;
-    }
-
-    result = amq_stdc_send_message (channel, handle_id, 0, 0, 0, queue_name,
-        0, 5, 0, "", "", "", 0, NULL, 0);
-    if (result != APR_SUCCESS) {
-        printf ("amq_stdc_send_message failed\n");
+    /*  Send it                                                              */
+    if (!JAMQ_apiu_flush_broadcast (context, &(context->sWriteBuf), &retcode)) {
+        printf ("JAMQ_apiu_flush_broadcast failed (%ld)\n", (long) retcode);
         exit (1);
     }
 
-    /*  Close buffer, close GMM object                                       */
-    if (!JAMQ_m_put_buffer (&buf, &retcode)) {
-        printf ("JAMQ_m_put_buffer failed (%ld)\n", (long) retcode);
+    /*  Close connection to server                                           */
+    if (!JAMQ_apiu_close (&context, &retcode)) {
+        printf ("JAMQ_apiu_close failed (%ld)\n", (long) retcode);
         exit (1);
     }
-
-    if (!JAMQ_gmm_close (&gmm, &retcode)) {
-        printf ("JAMQ_gmm_close failed (%ld)\n", (long) retcode);
-        exit (1);
-    }
-
-    /*  TODO: Close channel & connection & handle                            */
-
-    xml_free (grm_config);
+    
     free ((void*) fields);
 
     return 0;

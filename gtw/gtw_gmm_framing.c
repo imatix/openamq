@@ -20,24 +20,40 @@
             ((byte*) net) [3] = (byte) ((host) & 255);\
         }
 
-void resize_buffer (JAMQ_tsBufcb *buf, int delta)
+int resize_buffer (
+    JAMQ_tsBufcb *buf,
+    int delta
+    )
 {
+    void
+        *temp;
+    qbyte
+        new_size;
+
     if (delta == 0)
-        return;
+        return 1;
 
     if (buf->iCurrentLen + delta <= buf->iPhysicalLen) {
         buf->iCurrentLen += delta;
-        return;
+        return 1;
     }
 
     /*  Actually expanding buffer                                            */
-    buf->pData = realloc (buf->pData, buf->iCurrentLen + delta);
-    assert (buf->pData);            
+    new_size = (buf->iCurrentLen + delta) / 1024 * 1024 + 1024;
+    temp = realloc (buf->pData, new_size);
+    if (!temp)
+        return 0;
+    buf->pData = temp;
     buf->iCurrentLen += delta;
-    buf->iPhysicalLen = buf->iCurrentLen;
+    buf->iPhysicalLen = new_size;
+    buf->iLogicalMaxLen = new_size;
+
+    return 1;
 }
 
-void free_item (gmm_item_t *item)
+void free_item (
+    gmm_item_t *item
+    )
 {
     if (!item)
         return;
@@ -46,7 +62,9 @@ void free_item (gmm_item_t *item)
     free ((void*) item);
 }
 
-void free_field (gmm_field_t *field)
+void free_field (
+    gmm_field_t *field
+    )
 {
     if (!field)
         return;
@@ -56,7 +74,9 @@ void free_field (gmm_field_t *field)
     free ((void*) field);
 }
 
-void free_message (gmm_message_t *msg)
+void free_message (
+    gmm_message_t *msg
+    )
 {
     if (!msg)
         return;
@@ -66,7 +86,11 @@ void free_message (gmm_message_t *msg)
     free ((void*) msg);
 }
 
-gmm_item_t *parse_item (JAMQ_tsBufcb *buf, qbyte pos, qbyte lastpos)
+gmm_item_t *parse_item (
+    JAMQ_tsBufcb *buf,
+    qbyte pos,
+    qbyte lastpos
+    )
 {
     dbyte
         item_size;
@@ -75,20 +99,34 @@ gmm_item_t *parse_item (JAMQ_tsBufcb *buf, qbyte pos, qbyte lastpos)
 
     res = (gmm_item_t*) malloc (sizeof (gmm_item_t));    
     if (!res)
-        return NULL;
+        goto err;
+    if (pos + sizeof (dbyte) > lastpos)
+        goto err;
     GET_SHORT (item_size, buf->pData + pos)
     res->pos = pos;
+    if (pos + sizeof (dbyte) + item_size > lastpos)
+        goto err;
     pos += sizeof (dbyte) + item_size;
-    if (pos >= lastpos)
+    if (pos == lastpos)
         res->next_item = NULL;
     else
         res->next_item = parse_item (buf, pos, lastpos);
 
     return res;
+
+err:
+    if (res)
+        free ((void*) res);
+    buf->iFailed = 1;
+    return NULL;
 }
 
-gmm_field_t *parse_field (JAMQ_tsBufcb *buf, gmm_message_t *msg,
-    qbyte pos, qbyte lastpos)
+gmm_field_t *parse_field (
+    JAMQ_tsBufcb *buf,
+    gmm_message_t *msg,
+    qbyte pos,
+    qbyte lastpos
+    )
 {
     gmm_field_t
         *res;
@@ -103,30 +141,49 @@ gmm_field_t *parse_field (JAMQ_tsBufcb *buf, gmm_message_t *msg,
 
     res = (gmm_field_t*) malloc (sizeof (gmm_field_t));    
     if (!res)
-        return NULL;
+        goto err;
     res->pos = pos;
+    if (pos + sizeof (byte) > lastpos)
+        goto err;
     field_name_size = *((byte*) (buf->pData + pos));
     pos += sizeof (byte);
+    if (pos + field_name_size > lastpos)
+        goto err;
     field_name = buf->pData + pos;
     res->field_id = 0;
     res->message = msg;
     for (counter = 0; counter != field_name_size; counter++)
         res->field_id = res->field_id * 10 + buf->pData [pos + counter] - '0';
     pos += field_name_size;
+    if (pos + sizeof (byte) + sizeof (dbyte) > lastpos ||
+          buf->pData [pos] != 'S')
+        goto err;
     pos += sizeof (byte);
     GET_SHORT (items_size, buf->pData + pos)
     pos += sizeof (dbyte);
+    if (pos + items_size > lastpos)
+        goto err;
     res->first_item = parse_item (buf, pos, pos + items_size);
     pos += items_size;
-    if (pos >= lastpos)
+    if (pos == lastpos)
         res->next_field = NULL;
     else
         res->next_field = parse_field (buf, msg, pos, lastpos);
 
     return res;
+err:
+    if (res)
+        free ((void*) res);
+    buf->iFailed = 1;
+    return NULL;
+
 }
 
-gmm_message_t *parse_message (JAMQ_tsBufcb *buf, qbyte pos, qbyte lastpos)
+gmm_message_t *parse_message (
+    JAMQ_tsBufcb *buf,
+    qbyte pos,
+    qbyte lastpos
+    )
 {
     gmm_message_t
         *res;
@@ -135,26 +192,41 @@ gmm_message_t *parse_message (JAMQ_tsBufcb *buf, qbyte pos, qbyte lastpos)
 
     res = (gmm_message_t*) malloc (sizeof (gmm_message_t));    
     if (!res)
-        return NULL;
+        goto err;
     res->pos = pos;
+    if (pos + sizeof (dbyte) > lastpos)
+        goto err;    
     GET_SHORT (fields_size, buf->pData + pos)
     pos += sizeof (dbyte);
+    if (pos + fields_size > lastpos)
+        goto err;    
     res->first_field = parse_field (buf, res, pos, pos + fields_size);
     pos += fields_size;
-    if (pos >= lastpos)
+    if (pos == lastpos)
         res->next_message = NULL;
     else
         res->next_message = parse_message (buf, pos, lastpos);
 
     return res;
+
+err:
+    if (res)
+        free ((void*) res);
+    buf->iFailed = 1;
+    return NULL;
 }
 
-gmm_message_t *parse_buffer (JAMQ_tsBufcb *buf)
+gmm_message_t *parse_buffer (
+    JAMQ_tsBufcb *buf
+    )
 {
     return parse_message (buf, 0, buf->iCurrentLen);
 }
 
-dbyte item_length (JAMQ_tsBufcb *buf, gmm_item_t *item)
+dbyte item_length (
+    JAMQ_tsBufcb *buf,
+    gmm_item_t *item
+    )
 {
     dbyte
         res;
@@ -164,12 +236,18 @@ dbyte item_length (JAMQ_tsBufcb *buf, gmm_item_t *item)
     return res;
 }
 
-char *item_data (JAMQ_tsBufcb *buf, gmm_item_t *item)
+char *item_data (
+    JAMQ_tsBufcb *buf,
+    gmm_item_t *item
+    )
 {
     return (char*) (buf->pData + item->pos + sizeof (dbyte));
 }
 
-void shift_item (gmm_item_t *item, int shift)
+void shift_item (
+    gmm_item_t *item,
+    int shift
+    )
 {
     if (!item)
         return;
@@ -178,7 +256,10 @@ void shift_item (gmm_item_t *item, int shift)
     shift_item (item->next_item, shift);
 }
 
-void shift_field (gmm_field_t *field, int shift)
+void shift_field (
+    gmm_field_t *field,
+    int shift
+    )
 {
     if (!field)
         return;
@@ -188,7 +269,10 @@ void shift_field (gmm_field_t *field, int shift)
     shift_field (field->next_field, shift);
 }
 
-void shift_message (gmm_message_t *msg, int shift)
+void shift_message (
+    gmm_message_t *msg,
+    int shift
+    )
 {
     if (!msg)
         return;
@@ -198,7 +282,10 @@ void shift_message (gmm_message_t *msg, int shift)
     shift_message (msg->next_message, shift);
 }
 
-gmm_message_t *add_message (JAMQ_tsBufcb *buf, gmm_message_t *msg)
+gmm_message_t *add_message (
+    JAMQ_tsBufcb *buf,
+    gmm_message_t *msg
+    )
 {
     dbyte
         message_size;
@@ -219,7 +306,8 @@ gmm_message_t *add_message (JAMQ_tsBufcb *buf, gmm_message_t *msg)
             return NULL;
         msg->pos = 0;
     }
-    resize_buffer (buf, sizeof (dbyte));
+    if (!resize_buffer (buf, sizeof (dbyte)))
+        return NULL;
     PUT_SHORT (buf->pData + msg->pos, 0);
     msg->first_field = NULL;
     msg->next_message = NULL;
@@ -227,7 +315,11 @@ gmm_message_t *add_message (JAMQ_tsBufcb *buf, gmm_message_t *msg)
     return msg;
 }
 
-gmm_field_t *add_field (JAMQ_tsBufcb *buf, gmm_message_t *msg, int field_id)
+gmm_field_t *add_field (
+    JAMQ_tsBufcb *buf,
+    gmm_message_t *msg,
+    int field_id
+    )
 {
     dbyte
         message_size;
@@ -263,7 +355,8 @@ gmm_field_t *add_field (JAMQ_tsBufcb *buf, gmm_message_t *msg, int field_id)
 
     /*  perform changes in buffer                                            */
     shift = sizeof (byte) + 5 + sizeof (byte) + sizeof (dbyte);
-    resize_buffer (buf, shift);
+    if (!resize_buffer (buf, shift))
+        return NULL;
     memmove ((void*) buf->pData + field->pos,
         (void*) buf->pData + field->pos + shift,
         buf->iCurrentLen - field->pos - shift);
@@ -282,8 +375,11 @@ gmm_field_t *add_field (JAMQ_tsBufcb *buf, gmm_message_t *msg, int field_id)
     return field;
 }
 
-gmm_item_t *add_item (JAMQ_tsBufcb *buf, gmm_field_t *field,
-    JAMQ_tsNCharcb *data)
+gmm_item_t *add_item (
+    JAMQ_tsBufcb *buf,
+    gmm_field_t *field,
+    JAMQ_tsNCharcb *data
+    )
 {
     gmm_item_t
         *item = field->first_item;
@@ -322,7 +418,8 @@ gmm_item_t *add_item (JAMQ_tsBufcb *buf, gmm_field_t *field,
 
     /*  perform changes in buffer                                            */
     shift = sizeof (dbyte) + data->iDataLen;
-    resize_buffer (buf, shift);
+    if (!resize_buffer (buf, shift))
+        return NULL;
     memmove ((void*) buf->pData + item->pos,
         (void*) buf->pData + item->pos + shift,
         buf->iCurrentLen - item->pos - shift);
@@ -338,4 +435,52 @@ gmm_item_t *add_item (JAMQ_tsBufcb *buf, gmm_field_t *field,
     shift_message (field->message->next_message, shift);
 
     return item;
+}
+
+int remove_field (
+    JAMQ_tsBufcb *buf,
+    gmm_message_t *msg,
+    int field_id
+    )
+{
+    dbyte
+        field_size;
+    dbyte
+        field_data_size;
+    dbyte
+        msg_size;
+    gmm_field_t
+        *field;
+
+    /*  Find the field                                                       */
+    field = msg->first_field;
+    while (1) {
+        if (!field)
+            return 0;
+        if (field->field_id == field_id)
+            break;
+    }
+
+    /*  Field containing items cannot be removed (GMM specs)                 */
+    if (field->first_item)
+        return 0;
+
+    /*  Perform the change in the buffer                                     */
+    field_size = *((byte*) (buf->pData + field->pos));
+    field_size += sizeof (byte) + sizeof (byte);
+    GET_SHORT (field_data_size, buf->pData + field->pos + field_size)
+    field_size += field_data_size;
+    memmove ((void*) (buf->pData + field->pos),
+        (void*) (buf->pData + field->pos + field_size),
+        buf->iCurrentLen - field->pos - field_size);
+    if (!resize_buffer (buf, -field_size))
+        return 0;
+    GET_SHORT (msg_size, buf->pData + msg->pos)
+    msg_size -= field_size;
+    PUT_SHORT (buf->pData + msg->pos, msg_size)
+
+    shift_field (field->next_field, -field_size);
+    shift_message (msg->next_message, -field_size);
+
+    return 1;
 }

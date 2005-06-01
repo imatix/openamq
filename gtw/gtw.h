@@ -2,16 +2,6 @@
 #ifndef GTW_H_INCLUDED
 #define GTW_H_INCLUDED
 
-#define tsApicb JAMQ_tsApicb
-#define tsApiDvcb JAMQ_tsApiDvcb
-#define tsBufcb JAMQ_tsBufcb
-#define apiu_add_unref_syms_to_hash JAMQ_apiu_add_unref_syms_to_hash
-#define apiu_delete_unref_syms_from_hash JAMQ_apiu_delete_unref_syms_from_hash
-#define tsUnrefSymInfo JAMQ_tsUnrefSymInfo
-
-#define API_OK 0
-#define mArraySize(array) (sizeof (array) / sizeof (*array))
-
 /*---------------------------------------------------------------------------
  *  Common GTW definitions
  *---------------------------------------------------------------------------*/
@@ -287,6 +277,8 @@ typedef struct JAMQ_sBufcb
         iPhysicalLen;
     char
         *pData;
+    int
+        iFailed;
 }JAMQ_tsBufcb;
 
 int JAMQ_m_chars_to_double (
@@ -652,12 +644,18 @@ int JAMQ_pim_log(
  *---------------------------------------------------------------------------*/
 
 #define JAMQ_APIU_HANDLE_INVALID  700
-#define JAMQ_APIU_HASH_ERROR      701
-#define JAMQ_APIU_INPUT_ERR       702
-#define JAMQ_APIU_MINOR_ERROR     703
-#define JAMQ_APIU_LL_ERROR        704
-#define JAMQ_APIU_DATA_UNV        705
-#define JAMQ_APIU_GMM_ERROR       706
+#define JAMQ_APIU_HANDLE_ACTIVE   701
+#define JAMQ_APIU_HASH_ERROR      702
+#define JAMQ_APIU_INPUT_ERR       703
+#define JAMQ_APIU_MINOR_ERROR     704
+#define JAMQ_APIU_LL_ERROR        705
+#define JAMQ_APIU_DATA_UNV        706
+#define JAMQ_APIU_GMM_ERROR       707
+#define JAMQ_APIU_CONFIG_ERROR    708
+#define JAMQ_APIU_AMQ_ERROR       709
+#define JAMQ_APIU_APR_ERROR       710
+#define JAMQ_APIU_MEM_ERR         711
+#define JAMQ_APIU_RUNTIME_ERROR   712
 
 typedef struct sStatecb   
 {
@@ -737,19 +735,11 @@ typedef struct JAMQ_sApicb
         *pDvHndl;
 } JAMQ_tsApicb;
 
-typedef struct tag_gtw_context_t
-{
-    JAMQ_tsApicb
-        appctx;
-    void
-        *functions;
-    void
-        *services;
-    JAMQ_tsApplcb
-        appctx_internal;
-} gtw_context_t;
-
 typedef int (*JAMQ_fUnreferencedRoutine) ();
+typedef int (*JAMQ_fOpenRoutine) (JAMQ_tsApicb*, int*);
+typedef int (*JAMQ_fCloseRoutine) (JAMQ_tsApicb*, int*);
+typedef int (*JAMQ_fMessageHandlerRoutine) (JAMQ_tsApicb*, void*,
+    JAMQ_tsApiDvcb*, int *);
 
 typedef struct JAMQ_sUnrefSymInfo
 {
@@ -759,10 +749,45 @@ typedef struct JAMQ_sUnrefSymInfo
         pUnreferencedRoutine;
 } JAMQ_tsUnrefSymInfo;
 
+int JAMQ_apiu_open (
+    JAMQ_tsApicb    **apApiHndl,
+    JAMQ_tsNCharcb  *pClientName,
+    int             *aireturn_Code
+    );
+
+int JAMQ_apiu_close (
+    JAMQ_tsApicb  **apApiHndl,
+    int           *aireturn_Code
+    );
+
+int JAMQ_apiu_consume (
+    JAMQ_tsApicb    *pApiHndl,
+    JAMQ_tsNCharcb  *pQueueName,
+    int             iCreate,
+    int             *aireturn_Code
+    );
+
+int JAMQ_apiu_receive_message (
+    JAMQ_tsApicb    *pApiHndl,
+    JAMQ_tsNCharcb  *pQueueName,
+    int             *aireturn_Code
+    );
+
+int JAMQ_apiu_handle_message (
+    JAMQ_tsApicb  *pApiHndl,
+    int           *aireturn_Code
+    );
+
 int JAMQ_apiu_add_unref_syms_to_hash (
     JAMQ_tsApicb         *pApiHndl,
     JAMQ_tsUnrefSymInfo  *pUnrefSymArray,
     int                  iUnrefSymArrayLen,
+    int                  *aireturn_Code
+    );
+
+int JAMQ_apiu_find_unref_sym (
+    JAMQ_tsApicb         *pApiHndl,
+    JAMQ_tsUnrefSymInfo  *pUnrefSym,
     int                  *aireturn_Code
     );
 
@@ -771,6 +796,13 @@ int JAMQ_apiu_delete_unref_syms_from_hash (
     JAMQ_tsUnrefSymInfo  *pUnrefSymArray,
     int                  iUnrefSymArrayLen,
     int                  *aireturn_Code
+    );
+
+int JAMQ_apiu_register_service (
+    JAMQ_tsApicb  *pApiHndl,
+    char          *pServiceName,
+    char          *pUnreferencedSymbol,
+    int           *aireturn_Code
     );
 
 int JAMQ_apiu_add_and_start_timer (
