@@ -88,13 +88,7 @@ This class implements the AMQP CHANNEL commands.
     amq_handle_t
         *handle;
     </local>
-
-    /*  Destroy all handles for this channel                                 */
-    for (table_idx = 0; table_idx &lt; AMQ_HANDLE_TABLE_MAXSIZE; table_idx++) {
-        handle = self->connection->handles->item_table [table_idx];
-        if (handle && handle != AMQ_HANDLE_DELETED && handle->channel == self)
-            amq_handle_destroy (&handle);
-    }
+    /*  Rollback any open transaction                                        */
     if (self->transacted)
         self_rollback (self);
 
@@ -106,9 +100,16 @@ This class implements the AMQP CHANNEL commands.
         amq_dispatch_list_restore (self->dispatch_list);
         ipr_db_cursor_close (self->db);
     }
-    amq_smessage_destroy      (&self->message_in);
     amq_dispatch_list_destroy (&self->dispatch_list);
     amq_smessage_list_destroy (&self->transact_list);
+    amq_smessage_destroy      (&self->message_in);
+
+    /*  Destroy all handles for this channel                                 */
+    for (table_idx = 0; table_idx &lt; AMQ_HANDLE_TABLE_MAXSIZE; table_idx++) {
+        handle = self->connection->handles->item_table [table_idx];
+        if (handle && handle != AMQ_HANDLE_DELETED && handle->channel == self)
+            amq_handle_destroy (&handle);
+    }
 </method>
 
 <method name = "ack" template = "function" >

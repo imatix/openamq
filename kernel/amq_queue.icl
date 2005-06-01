@@ -144,7 +144,6 @@ were split to keep the code within sane limits.
     amq_mesgref_t
         *message_ref;                   /*  Reference to message             */
     </local>
-
     /*  Destroy message lists                                                */
     for (level = 0; level < self->dest->opt_priority_levels; level++) {
         /*  Destroy the messages referred to by each list                    */
@@ -181,36 +180,16 @@ were split to keep the code within sane limits.
     Detach consumer from queue.
     </doc>
     <argument name = "consumer" type = "amq_consumer_t *">Consumer</argument>
-    <local>
-    uint
-        level;
-    amq_mesgref_t
-        *message_ref;                   /*  Reference to message             */
-    </local>
-
     amq_consumer_by_queue_unlink (consumer);
     self->nbr_consumers--;
     self->window -= consumer->window;
     if (self->window < 0)
         self->window = 0;
 
-    /*  If dynamic and no more consumers, destroy any remaining messages     */
-    /*  Don't destroy the queue because there may be references to it        */
+    /*  If dynamic and no more consumers, destroy the queue                  */
     if (self->dynamic && self->nbr_consumers == 0) {
-        for (level = 0; level < self->dest->opt_priority_levels; level++) {
-            /*  Destroy the messages referred to by each list                */
-            message_ref = amq_mesgref_list_first (self->message_list [level]);
-            while (message_ref) {
-                amq_smessage_destroy (&message_ref->message);
-                amq_mesgref_destroy  (&message_ref);
-                message_ref = amq_mesgref_list_first (self->message_list [level]);
-            }
-        }
-        if (self->disk_queue_size)
-            self_purge (self);
-
-        self->memory_queue_size = 0;
-        self->disk_queue_size   = 0;
+        coprintf ("I: destroying dynamic queue '%s'", self->dest->key);
+        amq_dest_destroy (&self->dest);
     }
 </method>
 
@@ -227,7 +206,6 @@ were split to keep the code within sane limits.
     <argument name = "message"   type = "amq_smessage_t *">Message, if any</argument>
     <argument name = "immediate" type = "Bool"            >Assert immediate delivery?</argument>
     <argument name = "txn"       type = "ipr_db_txn_t *"  >Transaction, if any</argument>
-
     assert (message);
     if (self->dest->opt_persistent)
         message->persistent = TRUE;     /*  Force message to be persistent   */
