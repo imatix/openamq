@@ -498,12 +498,12 @@ $(prefix)_frame_decode_mem (byte *buffer, size_t cur_size)
         return (frame);
     else {
         coprintf ("E: frame missing command-end octet, cannot decode");
-        icl_mem_free (frame);
+        $(prefix)_frame_free (&frame);
         return (NULL);
     }
     underflow:
         coprintf ("E: insufficient data provided to decode frame");
-        icl_mem_free (frame);
+        $(prefix)_frame_free (&frame);
         return (NULL);
 }
 

@@ -1,5 +1,9 @@
+
 0.8d1
   Server:
+      - fixed consume command confirmation, which came after notifies,
+        rather than before.
+      - same for handle unget, handle flow, and channel ack.
       - when last consumer leaves dynamic queue, queue is purged
       - all topic messages now held in single vhost queue
       - added content-based routing
