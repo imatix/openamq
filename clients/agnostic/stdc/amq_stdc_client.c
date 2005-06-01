@@ -120,6 +120,7 @@ apr_status_t amq_stdc_term ()
                               from server
         in_heartbeat_interval interval in which client wants server to send
                               heartbeats
+        options_size          size of options table
         options               options table passed to CONNECTION OPEN command  
         async                 if 1, doesn't wait for confirmation
         connection            out parameter; new connection object
@@ -133,7 +134,8 @@ apr_status_t amq_stdc_open_connection (
     amq_stdc_heartbeat_model_t  out_heartbeat_model,
     amq_stdc_heartbeat_model_t  in_heartbeat_model,
     apr_interval_time_t         in_heartbeat_interval,
-    amq_stdc_table_t            options,
+    dbyte                       options_size,
+    const char                  *options,
     byte                        async,
     amq_stdc_connection_t       *out
     )
@@ -144,7 +146,7 @@ apr_status_t amq_stdc_open_connection (
         lock;
 
     result = global_fsm_create_connection (global, server, port, host,
-        client_name, options, async, out, &lock);
+        client_name, options_size, options, async, out, &lock);
     AMQ_ASSERT_STATUS (result, global_fsm_create_connection);
     result = wait_for_lock (lock, NULL);
     AMQ_ASSERT_STATUS (result, wait_for_lock);
@@ -201,7 +203,8 @@ apr_status_t amq_stdc_open_channel (
     amq_stdc_connection_t  context,
     byte                   transacted,
     byte                   restartable,
-    amq_stdc_table_t       options,
+    dbyte                  options_size,
+    const char             *options,
     const char             *out_of_band,
     byte                   async,
     amq_stdc_channel_t     *out)
@@ -212,7 +215,7 @@ apr_status_t amq_stdc_open_channel (
         lock;
 
     result = connection_fsm_create_channel (context, transacted, restartable,
-        options, out_of_band, async, out, &lock);
+        options_size, options, out_of_band, async, out, &lock);
     AMQ_ASSERT_STATUS (result, connection_fsm_create_channel);
     result = wait_for_lock (lock, NULL);
     AMQ_ASSERT_STATUS (result, wait_for_lock);
@@ -235,6 +238,7 @@ apr_status_t amq_stdc_open_channel (
         temporary             if 1, temporary destination will be created
         mime_type             MIME type
         encoding              content encoding
+        options_size          options table size
         options               options table passed to HANDLE OPEN command
         async                 if 1, doesn't wait for confirmation
         dest_name_out         out parameter; name of newly created temporary
@@ -249,9 +253,10 @@ apr_status_t amq_stdc_open_handle (
     byte                     consumer,
     byte                     browser,
     byte                     temporary,
-    char                     *mime_type,
-    char                     *encoding,
-    amq_stdc_table_t         options,
+    const char               *mime_type,
+    const char               *encoding,
+    dbyte                    options_size,
+    const char               *options,
     byte                     async,
     char                     **dest_name_out,
     dbyte                    *handle_id
@@ -265,8 +270,8 @@ apr_status_t amq_stdc_open_handle (
         created_lock;
 
     result = channel_fsm_open_handle (context, service_type, producer,
-        consumer, browser, temporary, mime_type, encoding, options,
-        async, handle_id, &created_lock, &lock);
+        consumer, browser, temporary, mime_type, encoding,
+        options_size, options, async, handle_id, &created_lock, &lock);
     AMQ_ASSERT_STATUS (result, channel_fsm_create_handle);
 
     /*  Wait for HANDLE CREATED                                              */
@@ -348,13 +353,15 @@ apr_status_t amq_stdc_acknowledge (
 
     Arguments:
         channel             channel to do commit on
+        options_size        size of options table
         options             options table to be passed to CHANNEL COMMIT
         async               if 1, don't wait for confirmation
     -------------------------------------------------------------------------*/
 
 apr_status_t amq_stdc_commit (
     amq_stdc_channel_t  context,
-    amq_stdc_table_t    options,
+    dbyte               options_size,
+    const char          *options,
     byte                async
     )
 {
@@ -363,7 +370,7 @@ apr_status_t amq_stdc_commit (
     amq_stdc_lock_t
         lock;
 
-    result = channel_fsm_commit (context, options, async, &lock);
+    result = channel_fsm_commit (context, options_size, options, async, &lock);
     AMQ_ASSERT_STATUS (result, channel_fsm_commit)
     result = wait_for_lock (lock, NULL);
     AMQ_ASSERT_STATUS (result, wait_for_lock)
@@ -379,13 +386,15 @@ apr_status_t amq_stdc_commit (
 
     Arguments:
         channel             channel to do rollback on
+        options_size        size of options table
         options             options table to be passed to CHANNEL ROLLBACK
         async               if 1, don't wait for confirmation
     -------------------------------------------------------------------------*/
 
 apr_status_t amq_stdc_rollback (
     amq_stdc_channel_t  context,
-    amq_stdc_table_t    options,
+    dbyte               options_size,
+    const char          *options,
     byte                async
     )
 {
@@ -394,7 +403,8 @@ apr_status_t amq_stdc_rollback (
     amq_stdc_lock_t
         lock;
 
-    result = channel_fsm_rollback (context, options, async, &lock);
+    result = channel_fsm_rollback (context, options_size, options, async,
+        &lock);
     AMQ_ASSERT_STATUS (result, channel_fsm_rollback)
     result = wait_for_lock (lock, NULL);
     AMQ_ASSERT_STATUS (result, wait_for_lock)
@@ -422,6 +432,7 @@ apr_status_t amq_stdc_rollback (
         mime_type             MIME type
         encoding              content encoding
         identifier            durable subscription name        
+        headers_size          size of message headers table
         headers               message headers table
         data_size             number of bytes to send
         data                  position from which to read data
@@ -441,7 +452,8 @@ apr_status_t amq_stdc_send_message (
     const char          *mime_type,
     const char          *encoding,
     const char          *identifier,
-    amq_stdc_table_t    headers,
+    dbyte               headers_size,
+    const char          *headers,
     apr_size_t          data_size,
     void                *data,
     byte                async
@@ -454,8 +466,8 @@ apr_status_t amq_stdc_send_message (
 
     result = channel_fsm_send_message (context, handle_id,out_of_band,
         recovery, dest_name, persistent, immediate, priority, expiration,
-        mime_type, encoding, identifier, headers, data_size, data, async,
-        &lock);
+        mime_type, encoding, identifier, headers_size, headers, data_size,
+        data, async, &lock);
     AMQ_ASSERT_STATUS (result, handle_fsm_send_message)
     result = wait_for_lock (lock, NULL);
     AMQ_ASSERT_STATUS (result, wait_for_lock)
@@ -478,7 +490,8 @@ apr_status_t amq_stdc_send_message (
         no_ack                if 1, client won't acknowledge messages
         dynamic               if 1, create destination if it doesn't exist
         dest_name             destination name
-        selector              selector fields
+        selector_size         size of selector 
+        selector              selector table
         async                 if 1, doesn't wait for confirmation
     -------------------------------------------------------------------------*/
 
@@ -490,7 +503,8 @@ apr_status_t amq_stdc_consume (
     byte                no_ack,
     byte                dynamic,
     const char          *dest_name,
-    amq_stdc_table_t    selector,
+    dbyte               selector_size,
+    const char          *selector,
     byte                async
     )
 {
@@ -500,7 +514,7 @@ apr_status_t amq_stdc_consume (
         lock;
 
     result = channel_fsm_consume (context, handle_id, prefetch, no_local,
-        no_ack, dynamic, dest_name, selector, async, &lock);
+        no_ack, dynamic, dest_name, selector_size, selector, async, &lock);
     AMQ_ASSERT_STATUS (result, handle_fsm_consume)
     result = wait_for_lock (lock, NULL);
     AMQ_ASSERT_STATUS (result, wait_for_lock)

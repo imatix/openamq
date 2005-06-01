@@ -88,7 +88,8 @@ apr_status_t amq_stdc_open_connection (
     amq_stdc_heartbeat_model_t  out_heartbeat_model,
     amq_stdc_heartbeat_model_t  in_heartbeat_model,
     apr_interval_time_t         in_heartbeat_interval,
-    amq_stdc_table_t            options,
+    dbyte                       options_size,
+    const char                  *options,
     byte                        async,
     amq_stdc_connection_t       *connection
     );
@@ -101,7 +102,8 @@ apr_status_t amq_stdc_open_channel (
     amq_stdc_connection_t  connection,
     byte                   transacted,
     byte                   restartable,
-    amq_stdc_table_t       options,
+    dbyte                  options_size,
+    const char             *options,
     const char             *out_of_band,
     byte                   async,
     amq_stdc_channel_t     *channel
@@ -114,9 +116,10 @@ apr_status_t amq_stdc_open_handle (
     byte                     consumer,
     byte                     browser,
     byte                     temporary,
-    char                     *mime_type,
-    char                     *encoding,
-    amq_stdc_table_t         options,
+    const char               *mime_type,
+    const char               *encoding,
+    dbyte                    options_size,
+    const char               *options,
     byte                     async,
     char                     **dest_name_out,
     dbyte                    *handle_id
@@ -135,13 +138,15 @@ apr_status_t amq_stdc_acknowledge (
 
 apr_status_t amq_stdc_commit (
     amq_stdc_channel_t  channel,
-    amq_stdc_table_t    options,
+    dbyte               options_size,
+    const char          *options,
     byte                async
     );
 
 apr_status_t amq_stdc_rollback (
     amq_stdc_channel_t  channel,
-    amq_stdc_table_t    options,
+    dbyte               options_size,
+    const char          *options,
     byte                async
     );
 
@@ -158,7 +163,8 @@ apr_status_t amq_stdc_send_message (
     const char          *mime_type,
     const char          *encoding,
     const char          *identifier,
-    amq_stdc_table_t    headers,
+    dbyte               headers_size,
+    const char          *headers,
     apr_size_t          data_size,
     void                *data,
     byte                async
@@ -172,7 +178,8 @@ apr_status_t amq_stdc_consume (
     byte                no_ack,
     byte                dynamic,
     const char          *dest_name,
-    amq_stdc_table_t    selector,
+    dbyte               selector_size,
+    const char          *selector,
     byte                async
     );
 

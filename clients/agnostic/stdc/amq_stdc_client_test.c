@@ -332,7 +332,7 @@ int main (
 
     result = amq_stdc_open_connection (client.server, 7654, client.host,
         client.client_name, amq_stdc_heartbeats_off, amq_stdc_heartbeats_off,
-        0, NULL, 0, &connection);
+        0, 0, NULL, 0, &connection);
     if (result != APR_SUCCESS) {
         printf ("amq_stdc_open_connection failed\n");
         return EXIT_FAILURE;
@@ -340,7 +340,7 @@ int main (
 
     transacted = (byte) ((client.clienttype == clienttype_consumer ||
             client.commit_count || client.rollback_count) ? 1 : 0);
-    result = amq_stdc_open_channel (connection, transacted, 0, NULL, "", 0,
+    result = amq_stdc_open_channel (connection, transacted, 0, 0, NULL, "", 0,
         &channel);
     if (result != APR_SUCCESS) {
         printf ("amq_stdc_open_channel_failed\n");
@@ -351,7 +351,7 @@ int main (
         client.clienttype == clienttype_producer ? 1: 0,
         client.clienttype == clienttype_consumer ? 1: 0,
         client.clienttype == clienttype_query ? 1: 0,
-        client.temporary, "", "", NULL, 0, &dest_name, &handle_id);
+        client.temporary, "", "", 0, NULL, 0, &dest_name, &handle_id);
     if (result != APR_SUCCESS) {
         printf ("amq_stdc_open_handle failed\n");
         return EXIT_FAILURE;
@@ -369,7 +369,7 @@ int main (
 
             result = amq_stdc_send_message (channel, handle_id, 0, 0,
                 client.destination, client.persistent, client.immediate, 
-                0, 0, "", "", identifier, NULL,client.message_size, 
+                0, 0, "", "", identifier, 0, NULL, client.message_size, 
                 client.message_buffer, 0);
 
             if (result != APR_SUCCESS) {
@@ -382,7 +382,7 @@ int main (
             /*  Rollback transaction if needed                               */
             if (client.rollback_count && ((client.last_message_number + 1) %
                   client.rollback_count) == 0) {
-                result = amq_stdc_rollback (channel, NULL, 0);
+                result = amq_stdc_rollback (channel, 0, NULL, 0);
                 if (result != APR_SUCCESS) {
                     printf ("amq_stdc_rollback failed\n");
                     return EXIT_FAILURE;
@@ -392,7 +392,7 @@ int main (
             else 
             if (client.commit_count && ((client.last_message_number + 1) %
                   client.commit_count) == 0) {
-                result = amq_stdc_commit (channel, NULL, 0);
+                result = amq_stdc_commit (channel, 0, NULL, 0);
                 if (result != APR_SUCCESS) {
                     printf ("amq_stdc_commit failed\n");
                     return EXIT_FAILURE;
@@ -413,7 +413,7 @@ int main (
     /*  Mode : CONSUMER                                                      */
     if (client.clienttype == clienttype_consumer) {
         result = amq_stdc_consume (channel, handle_id, client.prefetch,
-            client.no_local, 0, client.dynamic, client.destination, NULL, 0);
+            client.no_local, 0, client.dynamic, client.destination, 0, NULL, 0);
         if (result != APR_SUCCESS) {
             printf ("amq_stdc_consume failed\n");
             return EXIT_FAILURE;
@@ -457,7 +457,7 @@ int main (
                     return EXIT_FAILURE;
                 }
 
-                result = amq_stdc_commit (channel, NULL, 0);
+                result = amq_stdc_commit (channel, 0, NULL, 0);
                 if (result != APR_SUCCESS) {
                     printf ("amq_stdc_commit failed\n");
                     return EXIT_FAILURE;

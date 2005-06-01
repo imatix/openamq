@@ -411,7 +411,8 @@ inline static apr_status_t do_create_connection (
     dbyte                 port,
     const char            *host,
     const char            *client_name,
-    amq_stdc_table_t      options,
+    dbyte                 options_size,
+    const char            *options,
     byte                  async,
     connection_fsm_t      *out,
     amq_stdc_lock_t       *lock
@@ -441,7 +442,7 @@ inline static apr_status_t do_create_connection (
     /*  Start it                                                             */
     result = connection_fsm_init (connection, (global_fsm_t) context,
         ++(context->last_connection_id), server, port, host, client_name,
-        options, async, lock);
+        options_size, options, async, lock);
     AMQ_ASSERT_STATUS (result, connection_init)
 
     if (out) *out = connection;

@@ -26,7 +26,10 @@
         <arg type = "byte" name = "restartable">
             If 1, channel will operate in restartable mode
         </arg>
-        <arg type = "amq_stdc_table_t" name = "options">
+        <arg type = "dbyte" name = "options_size">
+             Size of options table
+        </arg>
+        <arg type = "const char *" name = "options">
              Options to be passed to CHANNEL OPEN command
         </arg>
         <arg type = "const char *" name = "out_of_band">
@@ -62,7 +65,10 @@
         <arg type = "const char *" name = "encoding">
             Content encoding
         </arg>
-        <arg type = "amq_stdc_table_t" name = "options">
+        <arg type = "dbyte" name = "options_size">
+             Size of options table
+        </arg>
+        <arg type = "const char *" name = "options">
              Options to be passed to HANDLE OPEN command
         </arg>
         <arg type = "byte" name = "async">
@@ -120,7 +126,10 @@
     </event>
     <event name = "commit">
         Request to commit work done
-        <arg type = "amq_stdc_table_t" name = "options">
+        <arg type = "dbyte" name = "options_size">
+             Size of options table
+        </arg>
+        <arg type = "const char *" name = "options">
              Options to be passed to CHANNEL COMMIT command
         </arg>
         <arg type = "byte" name = "async">
@@ -132,7 +141,10 @@
     </event>
     <event name = "rollback">
         Request to roll back work done
-        <arg type = "amq_stdc_table_t" name = "options">
+        <arg type = "dbyte" name = "options_size">
+             Size of options table
+        </arg>
+        <arg type = "const char *" name = "options">
              Options to be passed to CHANNEL ROLLBACK command
         </arg>
         <arg type = "byte" name = "async">
@@ -177,7 +189,10 @@
         <arg type = "const char *" name = "identifier">
             Message identifier
         </arg>
-        <arg type = "amq_stdc_table_t" name = "headers">
+        <arg type = "dbyte" name = "headers_size">
+            Message headers table
+        </arg>
+        <arg type = "const char *" name = "headers">
             Message headers table
         </arg>
         <arg type = "apr_size_t" name = "data_size">
@@ -213,7 +228,10 @@
         <arg type = "const char *" name = "dest_name">
             Destination name
         </arg>
-        <arg type = "amq_stdc_table_t" name = "selector">
+        <arg type = "dbyte" name = "selector_size">
+            Selector fields
+        </arg>
+        <arg type = "const char *" name = "selector">
             Selector fields
         </arg>
         <arg type = "byte" name = "async">

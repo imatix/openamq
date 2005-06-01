@@ -23,7 +23,10 @@
         <arg type = "const char *" name = "client_name">
              Client name to use to connect to server
         </arg>
-        <arg type = "amq_stdc_table_t" name = "options">
+        <arg type = "dbyte" name = "options_size">
+             Size of options parameter
+        </arg>
+        <arg type = "const char *" name = "options">
              Options to be passed to CONNECTION OPEN command
         </arg>
         <arg type = "byte" name = "async">

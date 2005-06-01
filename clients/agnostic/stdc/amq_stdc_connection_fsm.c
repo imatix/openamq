@@ -79,8 +79,10 @@ DEFINE_CONNECTION_FSM_CONTEXT_BEGIN
                                     /*  No terminating zero                  */
     byte
         client_name_size;           /*  Size of 'client_name' string         */
-    amq_stdc_table_t
-        options;                    /*  Options table to be used             */
+    dbyte
+        options_size;               /*  Size of options table                */
+    char
+        *options;                   /*  Options table to be used             */
     dbyte
         open_tag;                   /*  Lock id that is used to wait while   */
                                     /*  connection is opened                 */
@@ -147,11 +149,6 @@ inline static apr_status_t do_destruct (
     /*  Remove connection from global list                                   */
     result = global_fsm_remove_connection (context->global, context);
     AMQ_ASSERT_STATUS (result, global_fsm_remove_connection)
-
-    if (context->options) {
-        result = amq_stdc_table_destroy (context->options);
-        AMQ_ASSERT_STATUS (result, amq_stdc_table_destroy)
-    }
 
     /*  TODO: do deallocation properly                                       */
     /*  deallocate chunk list for example...                                 */
@@ -691,7 +688,8 @@ inline static apr_status_t do_init (
     dbyte                     port,
     const char                *host,
     const char                *client_name,
-    amq_stdc_table_t          options,
+    dbyte                     options_size,
+    const char                *options,
     byte                      async,
     amq_stdc_lock_t           *lock
     )
@@ -729,10 +727,12 @@ inline static apr_status_t do_init (
         AMQ_ASSERT (Not enough memory)
     memcpy ((void*) context->client_name, (void*) client_name,
         client_name_size);
-    if (options) {
-        result = amq_stdc_table_create (amq_stdc_table_size (options),
-            amq_stdc_table_data (options), &(context->options));
-        AMQ_ASSERT_STATUS (result, amq_stdc_table_create);
+    if (options && options_size) {
+        context->options_size = options_size;
+        context->options = apr_palloc (context->pool, options_size);
+        if (!context->options)
+            AMQ_ASSERT (Not enough memory)
+        memcpy ((void*) context->options, (void*) options, options_size);
     }
 
     /*  Open socket                                                          */
@@ -958,15 +958,15 @@ inline static apr_status_t do_tune (
     /*  Send CONNECTION OPEN                                                 */
     chunk_size = COMMAND_SIZE_MAX_SIZE +
         AMQ_STDC_CONNECTION_OPEN_CONSTANT_SIZE + context->host_size +
-        context->client_name_size + amq_stdc_table_size (context->options);
+        context->client_name_size + context->options_size;
     chunk = (char*) amq_malloc (chunk_size);
     if (!chunk)
         AMQ_ASSERT (Not enough memory)
     chunk_size = amq_stdc_encode_connection_open (chunk, chunk_size,
         confirm_tag, context->host_size, context->host,
         context->client_name_size, context->client_name,
-        amq_stdc_table_size (context->options),
-        amq_stdc_table_data (context->options));
+        context->options_size,
+        context->options);
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
     result = connection_fsm_send_chunk (context, chunk, chunk_size, NULL, 0,
@@ -988,7 +988,8 @@ inline static apr_status_t do_create_channel (
     connection_fsm_context_t  *context,
     byte                      transacted,
     byte                      restartable,
-    amq_stdc_table_t          options,
+    dbyte                     options_size,
+    const char                *options,
     const char                *out_of_band,
     byte                      async,
     channel_fsm_t             *out,
@@ -1025,7 +1026,7 @@ inline static apr_status_t do_create_channel (
     /*  Start it                                                             */
     result = channel_fsm_init (channel, context->global, context,
         context->id, channel_id, transacted, restartable,
-        options, out_of_band, async, lock);
+        options_size, options, out_of_band, async, lock);
     AMQ_ASSERT_STATUS (result, channel_fsm_init)
 
     if (out) *out = channel;
