@@ -233,7 +233,6 @@ apr_status_t amq_stdc_open_channel (
         consumer              if 1, client is allowed to receive messages
         browser               if 1, client is allowed to browse for messages
         temporary             if 1, temporary destination will be created
-        dest_name             destination name
         mime_type             MIME type
         encoding              content encoding
         options               options table passed to HANDLE OPEN command
@@ -250,7 +249,6 @@ apr_status_t amq_stdc_open_handle (
     byte                     consumer,
     byte                     browser,
     byte                     temporary,
-    char                     *dest_name,
     char                     *mime_type,
     char                     *encoding,
     amq_stdc_table_t         options,
@@ -267,7 +265,7 @@ apr_status_t amq_stdc_open_handle (
         created_lock;
 
     result = channel_fsm_open_handle (context, service_type, producer,
-        consumer, browser, temporary, dest_name, mime_type, encoding, options,
+        consumer, browser, temporary, mime_type, encoding, options,
         async, handle_id, &created_lock, &lock);
     AMQ_ASSERT_STATUS (result, channel_fsm_create_handle);
 

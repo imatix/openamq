@@ -1,6 +1,12 @@
- - Field tables
- - Updated to protocol version 0.8d
- 
+0.8d1 - 2005/06/01
+
+ - Updated to protocol 0.8d1
+ - Bug fixes
+ - New functionality: 
+   - Field tables
+   - Fragmentation supported on receive, sender still 
+     sends all messages as a single fragment
+
 0.8b0 - 2005/04/08
 
  - Renamed layers to amq_stdc_framing and amq_stdc_client

@@ -114,7 +114,6 @@ apr_status_t amq_stdc_open_handle (
     byte                     consumer,
     byte                     browser,
     byte                     temporary,
-    char                     *dest_name,
     char                     *mime_type,
     char                     *encoding,
     amq_stdc_table_t         options,

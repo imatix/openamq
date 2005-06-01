@@ -351,7 +351,7 @@ int main (
         client.clienttype == clienttype_producer ? 1: 0,
         client.clienttype == clienttype_consumer ? 1: 0,
         client.clienttype == clienttype_query ? 1: 0,
-        client.temporary, "", "", "", NULL, 0, &dest_name, &handle_id);
+        client.temporary, "", "", NULL, 0, &dest_name, &handle_id);
     if (result != APR_SUCCESS) {
         printf ("amq_stdc_open_handle failed\n");
         return EXIT_FAILURE;

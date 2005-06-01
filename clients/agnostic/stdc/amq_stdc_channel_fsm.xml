@@ -56,9 +56,6 @@
         <arg type = "byte" name = "temporary">
             If 1, temporary destination will be created
         </arg>
-        <arg type = "const char *" name = "dest_name">
-            Destination name
-        </arg>
         <arg type = "const char *" name = "mime_type">
             MIME type
         </arg>

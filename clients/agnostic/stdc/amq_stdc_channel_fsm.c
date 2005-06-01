@@ -376,7 +376,6 @@ inline static apr_status_t do_open_handle (
     byte                   consumer,
     byte                   browser,
     byte                   temporary,
-    const char             *dest_name,
     const char             *mime_type,
     const char             *encoding,
     amq_stdc_table_t       options,
@@ -399,14 +398,10 @@ inline static apr_status_t do_open_handle (
     dbyte
         confirm_tag;
     qbyte
-        dest_name_size = strlen (dest_name);
-    qbyte
         mime_type_size = strlen (mime_type);
     qbyte
         encoding_size = strlen (encoding);
 
-    if (dest_name_size > 255)
-        AMQ_ASSERT (Destination name exceeds 255 characters)
     if (mime_type_size > 255)
         AMQ_ASSERT (MIME type field exceeds 255 characters)
     if (encoding_size > 255)
@@ -450,15 +445,14 @@ inline static apr_status_t do_open_handle (
 
     /*  Send HANDLE OPEN                                                     */    
     chunk_size = COMMAND_SIZE_MAX_SIZE + AMQ_STDC_HANDLE_OPEN_CONSTANT_SIZE +
-        dest_name_size + mime_type_size + encoding_size;
+        mime_type_size + encoding_size;
     chunk = (char*) amq_malloc (chunk_size);
     if (!chunk)
         AMQ_ASSERT (Not enough memory)
     chunk_size = amq_stdc_encode_handle_open (chunk, chunk_size, context->id,
         id, service_type, confirm_tag, producer, consumer, browser, temporary,
-        dest_name_size, dest_name, mime_type_size, mime_type, encoding_size,
-        encoding, amq_stdc_table_size (options),
-        amq_stdc_table_data (options));
+        mime_type_size, mime_type, encoding_size, encoding, 
+        amq_stdc_table_size (options), amq_stdc_table_data (options));
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
     result = connection_fsm_send_chunk (context->connection, chunk,
