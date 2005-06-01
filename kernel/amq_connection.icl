@@ -68,13 +68,6 @@
     uint
         table_idx;
     </local>
-    /*  Destroy all handles for this connection                              */
-    for (table_idx = 0; table_idx &lt; AMQ_HANDLE_TABLE_MAXSIZE; table_idx++) {
-        handle = self->handles->item_table [table_idx];
-        if (handle && handle != AMQ_HANDLE_DELETED)
-            amq_handle_destroy (&handle);
-    }
-
     /*  Destroy all channels for this connection                             */
     for (table_idx = 0; table_idx &lt; AMQ_CHANNEL_TABLE_MAXSIZE; table_idx++) {
         channel = self->channels->item_table [table_idx];
