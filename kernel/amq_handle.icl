@@ -230,12 +230,13 @@ static void s_check_if_new_topic ($(selftype) *self, char *dest_name);
 static void
 s_check_if_new_topic ($(selftype) *self, char *dest_name)
 {
+#if 0
     amq_subscr_t
         *subscr;                        /*  Subscription object              */
 
 
     -- this can be done in amq_match_table:
-    
+
     if (amq_match_search (self->vhost->match_topics, dest_name) == NULL) {
         /*  Insert topic into match table so we don't do this again          */
         amq_match_new (self->vhost->match_topics, dest_name);
@@ -252,6 +253,7 @@ s_check_if_new_topic ($(selftype) *self, char *dest_name)
             recompile for this topic
       */
     }
+#endif
 }
 </private>
 
