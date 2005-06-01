@@ -7,12 +7,12 @@
     script    = "icl_gen"
     >
 <doc>
-This class defines a destination, which can be a queue, a topic, or a
-subscription (an internal destination).  Every destination is mapped to
-an amq_queue object which acts as a container for the destination's
-messages.  Temporary destinations are created dynamically as the server
-runs, and deleted when the server restarts.  Persistent destinations are
-created from the configuration file.
+This class defines a destination, which can be a queue or a subscription
+(an internal destination).  Every destination is mapped to an amq_queue
+object which acts as a container for the destination's messages.
+Temporary destinations are created dynamically as the server runs, and
+deleted when the server restarts.  Persistent destinations are created
+from the configuration file.
 
 Destinations are named and contained in hash tables.  Destinations are
 parameterised from the virtual host configuration file.  Each destination
@@ -128,68 +128,6 @@ forward messages.
     amq_queue_destroy   (&self->queue);
 </method>
 
-<method name = "search">
-    <argument name = "prefix" type = "char *">Destination name prefix</argument>
-    <argument name = "suffix" type = "char *">Destination name suffix</argument>
-    <dismiss argument = "key" value = "dest_name" />
-    <local>
-    ipr_shortstr_t
-        dest_name;
-    </local>
-    <header>
-    ipr_shortstr_fmt (dest_name, "%s%s", prefix, suffix);
-    </header>
-</method>
-
-<method name = "resolve" return = "self">
-    <doc>
-    Locates the destination, creates it if it's a temporary destination.  If
-    the specified destination can't be found or created, returns null.  Else
-    returns the reference to the destination object.
-    </doc>
-    <argument name = "handle"    type = "amq_handle_t *">Parent handle</argument>
-    <argument name = "temporary" type = "Bool"          >Temporary destination?</argument>
-    <declare name = "self" type = "$(selftype) *" default = "NULL">Object reference</declare>
-    <local>
-    static qbyte
-        temp_count = 0;                 /*  Temporary destination number     */
-    amq_dest_table_t
-        *table;                         /*  Hash table for destination       */
-    </local>
-
-    if (handle->service_type == AMQP_SERVICE_QUEUE)
-        table = handle->vhost->queue_hash;
-    else
-        table = handle->vhost->topic_hash;
-
-    /*  Look for destination as specified                                    */
-    if (strused (handle->dest_name))
-        self = self_search (table, handle->dest_name, "");
-
-    /*  The 'temporary' flag asks to create & own the destination            */
-    if (temporary) {
-        if (self) {
-            if (self->client_id != handle->client_id) {
-                amq_global_set_error (AMQP_NOT_FOUND, "Temporary destination already in use");
-                self = NULL;            /*  Failed...                        */
-            }
-        }
-        else {
-            if (strnull (handle->dest_name))
-                ipr_shortstr_fmt (handle->dest_name, "tmp-%09ld", ++temp_count);
-            amq_dest_new (
-                table,
-                handle->vhost,
-                handle->service_type,
-                temporary,
-                handle->dest_name,
-                handle->client_id);
-            amq_server_agent_handle_created (
-                handle->thread, (dbyte) handle->key, handle->dest_name);
-        }
-    }
-</method>
-
 <private name = "header">
 static void
     s_get_configuration ($(selftype) *self, char *name);
@@ -207,7 +145,8 @@ static void
 static void
 s_get_configuration ($(selftype) *self, char *name)
 {
-    if (self->service_type == AMQP_SERVICE_QUEUE) {
+    if (self->service_type == AMQP_SERVICE_QUEUE
+    ||  self->service_type == AMQP_SERVICE_TOPIC) {
         if (self->temporary)
             s_load_dest_properties (self,
                 NULL, NULL,
@@ -216,17 +155,6 @@ s_get_configuration ($(selftype) *self, char *name)
             s_load_dest_properties (self,
                 "/config/queues/queue",    name,
                 "/config/template/queue", "default");
-    }
-    else
-    if (self->service_type == AMQP_SERVICE_TOPIC) {
-        if (self->temporary)
-            s_load_dest_properties (self,
-                NULL, NULL,
-                "/config/template/topic", "temporary");
-        else
-            s_load_dest_properties (self,
-                "/config/topics/topic",    name,
-                "/config/template/topic", "default");
     }
     else
     if (self->service_type == AMQP_SERVICE_SUBSCR) {

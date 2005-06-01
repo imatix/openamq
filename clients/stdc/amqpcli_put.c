@@ -78,7 +78,7 @@ main (int argc, char *argv [])
         if (amq_client
         &&  amq_sclient_connect (amq_client, hostname, virtual_path)) {
     
-            handle = amq_sclient_producer (amq_client, AMQP_SERVICE_QUEUE, route);
+            handle = amq_sclient_producer (amq_client, AMQP_SERVICE_QUEUE);
             
             message  = amq_message_new ();
             fragment = amq_bucket_new (AMQ_BUCKET_MAX_SIZE);
@@ -97,7 +97,7 @@ main (int argc, char *argv [])
                 amq_message_destroy (&message);
             }
             else {
-                amq_sclient_msg_send (amq_client, handle, message, NULL, FALSE);
+                amq_sclient_msg_send (amq_client, handle, message, route, FALSE);
                 if (lexcmp (deleteind, "y") == 0)
                     file_delete (fullname);
             }                

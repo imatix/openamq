@@ -38,6 +38,7 @@
 <file name = "amq_field_list.icl"    class = "icl public class" >Container for field class</file>
 <file name = "amq_global.icl"        class = "icl private class">Globals class</file>
 <file name = "amq_handle.icl"        class = "icl private class">Destination handle class</file>
+<file name = "amq_hitset.icl"        class = "icl private class">Match hitset class</file>
 <file name = "amq_match.icl"         class = "icl private class">Match definition class</file>
 <file name = "amq_match_table.icl"   class = "icl private class">Match table class</file>
 <file name = "amq_mesgref.icl"       class = "icl private class">Message reference</file>

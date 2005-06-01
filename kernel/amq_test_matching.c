@@ -249,10 +249,10 @@ generate_subscriptions (long nbr_subscrs)
     ipr_shortstr_t
         subscr_name,
         pattern;
-    ipr_regexp_t
-        *regexp;
     amq_match_t
         *match;
+    ipr_regexp_t
+        *regexp;
 
     coprintf ("Generating subscriptions (%d subscribers)...", nbr_subscrs);
     subscr_table = icl_mem_alloc (sizeof (*subscr_table) * nbr_subscrs);
@@ -264,9 +264,8 @@ generate_subscriptions (long nbr_subscrs)
         random_subscription (subscr_name);
         ipr_shortstr_cpy (subscr_table [subscr_count].subscr_name, subscr_name);
         subscr_table [subscr_count].hits = 0;
-        amq_match_topic (pattern, subscr_name);
+        amq_match_topic_re (pattern, subscr_name);
         regexp = ipr_regexp_new (pattern);
-        assert (regexp);
 
         /*  Subscribe to all matching topics                                 */
         for (topic = 0; topic < topic_count; topic++) {
@@ -280,6 +279,7 @@ generate_subscriptions (long nbr_subscrs)
                 ipr_bits_set (match->bits, subscr_count);
             }
         }
+        ipr_regexp_destroy (&regexp);
         if (subscr_count < 10)
             coprintf ("  -- %s", subscr_name);
         else
@@ -370,7 +370,7 @@ generate_messages (long nbr_messages)
         if (match) {
             for (IPR_BITS_EACH (subscr_nbr, match->bits)) {
                 /*  'publish' to subscriber, by incrementing hit counter     */
-                subscr_table [subscr_count].hits = 0;
+                subscr_table [subscr_nbr].hits = 0;
                 hit_count++;
             }
         }

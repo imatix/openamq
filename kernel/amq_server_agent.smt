@@ -410,7 +410,7 @@ static int
         ipr_longstr_t
             *options = NULL;
 
-        fields = amq_field_list_new ();
+        fields = amq_field_list_new (NULL);
         amq_field_new_integer (fields, "FRAME_MAX",   tcb->connection->frame_max);
         amq_field_new_integer (fields, "CHANNEL_MAX", tcb->connection->channel_max);
         amq_field_new_integer (fields, "HANDLE_MAX",  tcb->connection->handle_max);

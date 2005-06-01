@@ -26,6 +26,13 @@ formats, and lookup and operate on field lists.
 </context>
 
 <method name = "new">
+    <doc>
+    If the field table argument is not null, parses the field table into
+    the field list.
+    </doc>
+    <argument name = "field table" type = "ipr_longstr_t *">Field table</argument>
+    if (field_table)
+        self_parse (self, field_table);
 </method>
 
 <method name = "destroy">
@@ -163,7 +170,7 @@ formats, and lookup and operate on field lists.
         *string1,
         *string2;
     </local>
-    list = amq_field_list_new ();
+    list = amq_field_list_new (NULL);
     amq_field_new_string  (list, "testfield0", "Commodity Middleware");
     amq_field_new_integer (list, "testfield1", 1234567890);
     amq_field_new_decimal (list, "testfield2", 199900, 2);
@@ -173,8 +180,7 @@ formats, and lookup and operate on field lists.
     string1 = amq_field_list_flatten (list);
     amq_field_list_destroy (&list);
 
-    list = amq_field_list_new ();
-    amq_field_list_parse (list, string1);
+    list = amq_field_list_new (string1);
     string2 = amq_field_list_flatten (list);
     amq_field_list_destroy (&list);
 

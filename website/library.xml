@@ -11,22 +11,31 @@ General
 =======
 
 - [/doc/concepts.html:A Background to the AMQ Project]
+  - [/doc/concepts.pdf:PDF]
 
 User Guides
 ===========
 
 - [/doc/server.html:Installation and Use of the OpenAMQ Server]
+  - [/doc/server.pdf:PDF]
 
 Reference Material
 ==================
 
 - [/doc/protocol.html:The AMQP/Fast Wire-Level Protocol] v0.9 draft
+  - [/doc/protocol.pdf:PDF]
 - [/doc/amq_rfc006.html:The AMQP/Fast Wire-Level Protocol] v0.8
+  - [/doc/amq_rfc006.pdf:PDF]
 - [/doc/amq_rfc001.html: The OpenAMQ RFC System]
+  - [/doc/amq_rfc001.pdf:PDF]
 - [/doc/amq_rfc002.html: Coding Standards]
+  - [/doc/amq_rfc002.pdf:PDF]
 - [/doc/amq_rfc011.html: AMQP Reply Codes]
+  - [/doc/amq_rfc011.pdf:PDF]
 - [/doc/amq_rfc012.html: AMQP/Fast Semantics for JMS]
+  - [/doc/amq_rfc012.pdf:PDF]
 - [/doc/amq_rfc014.html: AMQP Agnostic Client Design]
+  - [/doc/amq_rfc014.pdf:PDF]
 
 </content>
 </language>

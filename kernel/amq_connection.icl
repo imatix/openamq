@@ -111,9 +111,8 @@
     if (amq_global_mechanism () == AMQ_MECHANISM_PLAIN) {
         self->authorised = FALSE;
 
-        fields = amq_field_list_new ();
-        amq_field_list_parse (fields, command->responses);
-        field = amq_field_list_search (fields, "LOGIN");
+        fields = amq_field_list_new (command->responses);
+        field  = amq_field_list_search (fields, "LOGIN");
         if (field) {
             ipr_shortstr_ncpy (login, field->string->data, field->string->cur_size);
             field = amq_field_list_search (fields, "PASSWORD");
@@ -153,8 +152,7 @@
         heartbeat;
     </local>
 
-    fields = amq_field_list_new ();
-    amq_field_list_parse (fields, command->options);
+    fields = amq_field_list_new (command->options);
     frame_max = (dbyte) amq_field_list_integer (fields, "FRAME_MAX");
     heartbeat = (dbyte) amq_field_list_integer (fields, "HEARTBEAT");
     amq_field_list_destroy (&fields);

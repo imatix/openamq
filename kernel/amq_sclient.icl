@@ -55,6 +55,8 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
         msg_number;                     /*  Its message_nbr property         */
     ipr_shortstr_t
         msg_sender;                     /*  Its dest_name property           */
+    ipr_shortstr_t
+        dest_name;                      /*  Temporary destination            */
     Bool
         msg_delivered;                  /*  Its delivered property           */
     Bool
@@ -122,12 +124,14 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 </method>
 
 <method name = "producer" template = "function">
-    <argument name = "service type" type = "int"   >AMQP service type</argument>
-    <argument name = "destination"  type = "char *">Destination to work with</argument>
-    assert (destination && *destination);
-
+    <argument name = "service type" type = "int">AMQP service type</argument>
     amq_sclient_agent_handle_open (
-        self->thread_handle, CHANNEL_ID, ++self->cur_handle, (dbyte) service_type, FALSE, destination, &rc);
+        self->thread_handle,
+        CHANNEL_ID,
+        ++self->cur_handle,
+        (dbyte) service_type,
+        FALSE,
+        &rc);
     smt_thread_execute (SMT_EXEC_FULL);
 
     if (rc == AMQ_OK)
@@ -138,20 +142,20 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 
 <method name = "consumer" template = "function">
     <argument name = "service type" type = "int"   >AMQP service type</argument>
-    <argument name = "destination"  type = "char *">Destination to work with</argument>
+    <argument name = "dest name"    type = "char *">Destination to work with</argument>
     <argument name = "prefetch"     type = "int"   >Prefetch window size</argument>
     <argument name = "no local"     type = "Bool"  >Don't want own messages</argument>
     <argument name = "no ack"       type = "Bool"  >No acknowledgements required</argument>
     <argument name = "dynamic"      type = "Bool"  >Dynamic queue consumer</argument>
-    assert (destination && *destination);
+    assert (dest_name && *dest_name);
 
     amq_sclient_agent_handle_open (
-        self->thread_handle, CHANNEL_ID, ++self->cur_handle, (dbyte) service_type, FALSE, destination, &rc);
+        self->thread_handle, CHANNEL_ID, ++self->cur_handle, (dbyte) service_type, FALSE, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
 
     if (rc == AMQ_OK) {
         amq_sclient_agent_handle_consume (
-            self->thread_handle, self->cur_handle, (dbyte) prefetch, no_local, no_ack, dynamic, NULL, &rc);
+            self->thread_handle, self->cur_handle, (dbyte) prefetch, no_local, no_ack, dynamic, dest_name, &rc);
         smt_thread_execute (SMT_EXEC_FULL);
     }
     else
@@ -166,19 +170,29 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 
 <method name = "temporary" template = "function">
     <argument name = "service type" type = "int"   >AMQP service type</argument>
-    <argument name = "destination"  type = "char *">Destination to create</argument>
     <argument name = "prefetch"     type = "int"   >Prefetch window size</argument>
     <argument name = "no local"     type = "Bool"  >Don't want own messages</argument>
     <argument name = "no ack"       type = "Bool"  >No acknowledgements required</argument>
-    assert (destination && *destination);
-
+    
     amq_sclient_agent_handle_open (
-        self->thread_handle, CHANNEL_ID, ++self->cur_handle, (dbyte) service_type, TRUE, destination, &rc);
+        self->thread_handle,
+        CHANNEL_ID,
+        ++self->cur_handle,
+        (dbyte) service_type,
+        TRUE,
+        &rc);
     smt_thread_execute (SMT_EXEC_FULL);
 
     if (rc == AMQ_OK) {
         amq_sclient_agent_handle_consume (
-            self->thread_handle, self->cur_handle, (dbyte) prefetch, no_local, no_ack, FALSE, NULL, &rc);
+            self->thread_handle,
+            self->cur_handle,
+            (dbyte) prefetch,
+            no_local,
+            no_ack,
+            FALSE,
+            self->dest_name,
+            &rc);
         smt_thread_execute (SMT_EXEC_FULL);
     }
     else
@@ -193,22 +207,25 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 
 <method name = "msg send" template = "function">
     <doc>
-    Sends a message to the destination specified by the handle. The message
-    object is taken over by the method and eventually destroyed - the caller
-    should create a new message object for each msg_send call.
+    Sends a message to the dest name specified. The message object is
+    taken over by the method and eventually destroyed - the caller should
+    create a new message object for each msg_send call.
     </doc>
     <argument name = "handle id" type = "dbyte"          >Handle id</argument>
     <argument name = "message"   type = "amq_message_t *">Message to send</argument>
     <argument name = "dest name" type = "ipr_shortstr_t" >Destination name</argument>
     <argument name = "immediate" type = "Bool"           >Assert immediate delivery?</argument>
     assert (message);
-
+    assert (dest_name && *dest_name);
+    
     amq_sclient_agent_handle_send (
         self->thread_handle, handle_id, message, dest_name, immediate, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
 
-    if (self->reply_code)
+    if (self->reply_code) {
+        amq_message_destroy (&message);
         coprintf ("E: (msg send) %d - %s", self->reply_code, self->reply_text);
+    }
 </method>
 
 <method name = "msg read" return = "message">
@@ -279,6 +296,14 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 
     if (self->reply_code)
         coprintf ("E: (flow) %d - %s", self->reply_code, self->reply_text);
+</method>
+
+<method name = "clear" template = "function">
+    /*
+    - monitor input for 1msec
+    - process incoming command if any
+    - if command, fatal errors
+    */
 </method>
 
 <method name = "close" template = "function">

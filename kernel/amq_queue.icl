@@ -76,6 +76,8 @@ were split to keep the code within sane limits.
         *inactive_consumers;            /*  Inactive or busy consumers       */
     size_t
         nbr_consumers;                  /*  Number of consumers              */
+    Bool
+        dynamic;                        /*  Dynamic queue?                   */
     amq_mesgref_list_t
         **message_list;                 /*  Pending non-persistent messages  */
     qbyte
@@ -167,7 +169,8 @@ were split to keep the code within sane limits.
     consumer->queue = self;
     self->nbr_consumers++;
     self->window += consumer->window;
-        
+    if (consumer->dynamic)
+        self->dynamic = TRUE;           /*  When any consumer is dynamic     */
     amq_consumer_by_queue_queue  (self->active_consumers,      consumer);
     amq_consumer_by_handle_queue (consumer->handle->consumers, consumer);
     amq_queue_dispatch (self);
@@ -178,11 +181,36 @@ were split to keep the code within sane limits.
     Detach consumer from queue.
     </doc>
     <argument name = "consumer" type = "amq_consumer_t *">Consumer</argument>
+    <local>
+    uint
+        level;
+    amq_mesgref_t
+        *message_ref;                   /*  Reference to message             */
+    </local>
+
     amq_consumer_by_queue_unlink (consumer);
     self->nbr_consumers--;
     self->window -= consumer->window;
     if (self->window < 0)
         self->window = 0;
+
+    /*  If dynamic and no more consumers, destroy any remaining messages     */
+    /*  Don't destroy the queue because there may be references to it        */
+    if (self->dynamic && self->nbr_consumers == 0) {
+        for (level = 0; level < self->dest->opt_priority_levels; level++) {
+            /*  Destroy the messages referred to by each list                */
+            message_ref = amq_mesgref_list_first (self->message_list [level]);
+            while (message_ref) {
+                amq_smessage_destroy (&message_ref->message);
+                message_ref = amq_mesgref_list_next (self->message_list [level], message_ref);
+            }
+        }
+        if (self->disk_queue_size)
+            self_purge (self);
+
+        self->memory_queue_size = 0;
+        self->disk_queue_size   = 0;
+    }
 </method>
 
 <method name = "accept" template = "function">
@@ -204,10 +232,8 @@ were split to keep the code within sane limits.
         message->persistent = TRUE;     /*  Force message to be persistent   */
 
     /*  First check that posting to this queue is currently allowed          */
-    if (immediate && self->nbr_consumers == 0) {
-        coprintf ("QUEUE HAS NO CONSUMERS - IMMEDIATE FAILED");
+    if (immediate && self->nbr_consumers == 0)
         amq_global_set_error (AMQP_NOT_ALLOWED, "Destination has no consumers, immediate delivery failed");
-    }
     else
     if (self->nbr_consumers < self->dest->opt_min_consumers)
         amq_global_set_error (AMQP_NOT_ALLOWED, "Destination needs consumers but has none");
@@ -272,26 +298,29 @@ s_accept_persistent (
     amq_smessage_t *message,
     ipr_db_txn_t   *txn)
 {
-    /*  Topic message can be discarded if there are no subscribers           */
-    if (self->dest->service_type == AMQP_SERVICE_TOPIC
-    &&  amq_vhost_publish (
-        self->vhost, self->dest->key, message, txn, FALSE) == 0)
-        ;                               /*  Do nothing                       */
-    else {
+    amq_hitset_t
+        *hitset;
+        
+    if (self->dest->service_type == AMQP_SERVICE_TOPIC) {
+        hitset = amq_hitset_new (self->vhost);
+        if (amq_hitset_match (hitset, self->dest->key, message)) {
+            amq_smessage_save (message, self, txn);
+            self->disk_queue_size++;
+            amq_hitset_publish (hitset, message, txn);
+        }
+        amq_hitset_destroy (&hitset);
+    }
+    else {                              /*  AMQP_SERVICE_QUEUE               */
         amq_smessage_save (message, self, txn);
         self->disk_queue_size++;
+        self->dirty = TRUE;             /*  Message queue has new data       */
+        amq_dest_list_push (self->vhost->dest_list, self->dest);
 #       ifdef TRACE_DISPATCH
         coprintf ("$(selfname) I: %s - save persistent message to storage (%d)",
             self->dest->key, self->disk_queue_size);
 #       endif
-        if (self->dest->service_type == AMQP_SERVICE_TOPIC)
-            amq_vhost_publish (self->vhost, self->dest->key, message, txn, TRUE);
-        else {
-            self->dirty = TRUE;         /*  Message queue has new data       */
-            amq_dest_list_push (self->vhost->dest_list, self->dest);
-        }
     }
-}
+}    
 
 
 /*  Save a transient message to the queue                                    */
@@ -302,19 +331,25 @@ s_accept_transient (
     amq_smessage_t *message,
     ipr_db_txn_t   *txn)
 {
-    /*  For topics we don't save on the original queue at all                */
-    if (self->dest->service_type == AMQP_SERVICE_TOPIC)
-        amq_vhost_publish (self->vhost, self->dest->key, message, txn, TRUE);
+    amq_hitset_t
+        *hitset;
 
-    else {
+    if (self->dest->service_type == AMQP_SERVICE_TOPIC) {
+        /*  For topics we don't save on the topic queue                      */
+        hitset = amq_hitset_new (self->vhost);
+        if (amq_hitset_match (hitset, self->dest->key, message))
+            amq_hitset_publish (hitset, message, txn);
+        amq_hitset_destroy (&hitset);
+    }
+    else {                              /*  AMQP_SERVICE_QUEUE               */
         amq_mesgref_new (self->message_list [s_priority_level (self, message)], message);
         self->memory_queue_size++;
+        self->dirty = TRUE;             /*  Message queue has new data       */
+        amq_dest_list_push (self->vhost->dest_list, self->dest);
 #       ifdef TRACE_DISPATCH
         coprintf ("$(selfname) I: %s - save non-persistent message to queue memory (%d)",
             self->dest->key, self->memory_queue_size);
 #       endif
-        self->dirty = TRUE;             /*  Message queue has new data       */
-        amq_dest_list_push (self->vhost->dest_list, self->dest);
     }
 }
 
@@ -334,8 +369,6 @@ s_priority_level (
 
     return (level);
 }
-
-
 </private>
 
 <method name = "publish" template = "function">
@@ -438,7 +471,7 @@ static amq_smessage_t
         if (amq_db_dest_fetch (self->vhost->ddb, db_dest, AMQ_DB_FETCH_EQ))
             coprintf ("E: destination not found (id=%ld)", db_dest->id);
         else {
-            dest = amq_dest_search (self->vhost->topic_hash, db_dest->name, "");
+            dest = self->vhost->topic_dest;
             assert (dest);
             assert (dest->queue);
             dest->queue->item_id = self->item_message_id;
@@ -473,7 +506,7 @@ s_delete_byreference (
         if (amq_db_dest_fetch (self->vhost->ddb, db_dest, AMQ_DB_FETCH_EQ))
             coprintf ("E: destination not found (id=%ld)", db_dest->id);
         else {
-            dest = amq_dest_search (self->vhost->topic_hash, db_dest->name, "");
+            dest = self->vhost->topic_dest;
             assert (dest);
             assert (dest->queue);
             dest->queue->item_id = self->item_message_id;

@@ -123,8 +123,8 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
     AMQ_ACLIENT_CONNECTED:
         amq_connected_callback_fn, called when the connection is successful.
     AMQ_ACLIENT_HANDLE_CREATED:
-        amq_handle_created_callback_fn, called when a temporary destination has been
-        created for you.
+        amq_handle_created_callback_fn, called when a temporary destination has
+        been created for you.
     AMQ_ACLIENT_HANDLE_REPLY:
         amq_handle_reply_callback_fn, called when you get a confirmation back.
     AMQ_ACLIENT_HANDLE_NOTIFY:
@@ -168,13 +168,12 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
     <argument name = "channel id"   type = "dbyte" >Channel id</argument>
     <argument name = "service type" type = "int"   >AMQP service type</argument>
     <argument name = "temporary"    type = "Bool"  >Temporary access?</argument>
-    <argument name = "dest name"    type = "char *">Destination name</argument>
 
     <declare name = "handle_id" type = "dbyte">New handle id</declare>
 
     handle_id = ++self->top_handle;
     amq_aclient_agent_handle_open (
-        self->thread_handle, channel_id, handle_id, (dbyte) service_type, temporary, dest_name);
+        self->thread_handle, channel_id, handle_id, (dbyte) service_type, temporary);
 </method>
 
 <method name = "handle consume" template = "function" >

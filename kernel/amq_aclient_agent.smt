@@ -65,7 +65,6 @@ static int
     <argument name = "handle id"    type = "dbyte" >Handle number</argument>
     <argument name = "service type" type = "dbyte" >AMQP service type</argument>
     <argument name = "temporary"    type = "Bool"  >Temporary access?</argument>
-    <argument name = "dest name"    type = "char *">Destination name</argument>
 </method>
 
 <method name = "handle consume" >
@@ -80,7 +79,7 @@ static int
 <method name = "handle send" >
     <argument name = "handle_id"    type = "dbyte" >Channel number</argument>
     <argument name = "message"      type = "amq_message_t *">Message to send</argument>
-    <argument name = "dest_name"    type = "char *">Destination name</argument>
+    <argument name = "dest name"    type = "char *">Destination name</argument>
     <argument name = "immediate"    type = "Bool"  >Assert immediate delivery?</argument>
 </method>
 
@@ -240,7 +239,7 @@ static int
         ipr_longstr_t
             *responses = NULL;
 
-        fields = amq_field_list_new ();
+        fields = amq_field_list_new (NULL);
         amq_field_new_string  (fields, "LOGIN",    tcb->login);
         amq_field_new_string  (fields, "PASSWORD", tcb->password);
         responses = amq_field_list_flatten (fields);
@@ -273,8 +272,7 @@ static int
             handle_max,                 /*  Field value                      */
             heartbeat;
 
-        fields = amq_field_list_new ();
-        amq_field_list_parse (fields, CONNECTION_TUNE.options);
+        fields = amq_field_list_new (CONNECTION_TUNE.options);
         frame_max   = (dbyte) amq_field_list_integer (fields, "FRAME_MAX");
         channel_max = (dbyte) amq_field_list_integer (fields, "CHANNEL_MAX");
         handle_max  = (dbyte) amq_field_list_integer (fields, "HANDLE_MAX");
@@ -707,7 +705,6 @@ static int
             TRUE,                       /*  Request consumer access          */
             TRUE,                       /*  Request browser access           */
             handle_open_m->temporary,
-            handle_open_m->dest_name,
             NULL,                       /*  Default mime_type                */
             NULL,                       /*  Default content encoding         */
             NULL);                      /*  Destination options              */

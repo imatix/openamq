@@ -74,22 +74,8 @@ s_connected (amq_aclient_connected_t *args)
 
     channel_id = amq_aclient_channel_open (args->client, FALSE, FALSE);
 
-#if 0
-    dbyte
-        tempq_id;
-
-    /*  Open temporary queue                                                 */
-    tempq_id = amq_aclient_handle_open (args->client, channel_id, TRUE, NULL);
-#endif
-
     /*  Open pre-configured test queues                                      */
-    smallq_id = amq_aclient_handle_open (args->client, channel_id, AMQP_SERVICE_QUEUE, FALSE, "test-small");
-
-#if 0
-    dbyte
-        largeq_id;
-    largeq_id = amq_aclient_handle_open (args->client, channel_id, FALSE, "test-large");
-#endif
+    smallq_id = amq_aclient_handle_open (args->client, channel_id, AMQP_SERVICE_QUEUE, FALSE);
 
     /*  Register as consumer for both queues                                 */
     if (consumer) {
@@ -100,10 +86,7 @@ s_connected (amq_aclient_connected_t *args)
             TRUE,                       /*  No local delivery                */
             FALSE,                      /*  Auto-ack at server side          */
             FALSE,                      /*  Dynamic consumer                 */
-            NULL);                      /*  Destination name                 */
-#if 0
-        amq_aclient_handle_consume (args->client, largeq_id, 2, TRUE, NULL, NULL);
-#endif
+            "test-small");              /*  Destination name                 */
     }
     if (producer) {
         /*  Send some small messages to the small queue                      */
@@ -113,14 +96,6 @@ s_connected (amq_aclient_connected_t *args)
             amq_message_set_persistent (message, TRUE);
             amq_aclient_handle_send (args->client, smallq_id, message, NULL, FALSE);
         }
-#if 0
-        /*  Send some large messages to the large queue                      */
-        for (index = 0; index < 3; index++) {
-            message = amq_message_new ();
-            amq_message_testfill (message, 100000);
-            amq_aclient_handle_send (args->client, largeq_id, message, NULL, FALSE);
-        }
-#endif
     }
 }
 

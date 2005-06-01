@@ -83,7 +83,6 @@ static int
     <argument name = "handle id"    type = "dbyte" >Handle number</argument>
     <argument name = "service type" type = "dbyte" >AMQP service type</argument>
     <argument name = "temporary"    type = "Bool"  >Temporary access?</argument>
-    <argument name = "dest name"    type = "char *">Destination name</argument>
     <argument name = "result"       type = "int *" >Pointer to result of operation</argument>
 </method>
 
@@ -271,7 +270,7 @@ static int
         ipr_longstr_t
             *responses = NULL;
 
-        fields = amq_field_list_new ();
+        fields = amq_field_list_new (NULL);
         amq_field_new_string  (fields, "LOGIN",    tcb->login);
         amq_field_new_string  (fields, "PASSWORD", tcb->password);
         responses = amq_field_list_flatten (fields);
@@ -303,8 +302,7 @@ static int
             handle_max,                 /*  Field value                      */
             heartbeat;
 
-        fields = amq_field_list_new ();
-        amq_field_list_parse (fields, CONNECTION_TUNE.options);
+        fields = amq_field_list_new (CONNECTION_TUNE.options);
         frame_max   = (dbyte) amq_field_list_integer (fields, "FRAME_MAX");
         channel_max = (dbyte) amq_field_list_integer (fields, "CHANNEL_MAX");
         handle_max  = (dbyte) amq_field_list_integer (fields, "HANDLE_MAX");
@@ -413,6 +411,8 @@ static int
             if (tcb->result)
                 *tcb->result = AMQ_OK;
             <action name = "send handle open" />
+            <action name = "read next command" />
+            <call state = "expect handle reply" />
         </method>
         <method name = "handle consume">
             tcb->result = handle_consume_m->result;
@@ -493,7 +493,7 @@ static int
         amq_frame_free (&tcb->frame);
         tcb->frame = amq_frame_channel_commit_new (
             channel_commit_m->channel_id,
-            0,                          /*  Confirm tag                      */
+            1,                          /*  Confirm tag                      */
             NULL);                      /*  Commit options                   */
         send_the_frame (thread);
     </action>
@@ -527,7 +527,6 @@ static int
             TRUE,                       /*  Request consumer access          */
             TRUE,                       /*  Request browser access           */
             handle_open_m->temporary,
-            handle_open_m->dest_name,
             NULL,                       /*  Default mime_type                */
             NULL,                       /*  Default content encoding         */
             NULL);                      /*  Destination options              */
@@ -605,6 +604,7 @@ static int
             <action name = "read next command" />
         </event>
         <event name = "handle created">
+            <action name = "store created destination" />
             <action name = "read next command" />
         </event>
         <event name = "handle reply">
@@ -683,6 +683,7 @@ static int
             <action name = "read next command" />
         </event>
         <event name = "handle created">
+            <action name = "store created destination" />
             <action name = "read next command" />
         </event>
         <event name = "handle reply">
@@ -692,6 +693,22 @@ static int
 
     <action name = "process handle index">
         ;
+    </action>
+
+    <!--  EXPECT HANDLE REPLY  -------------------------------------------->
+
+    <state name = "expect handle reply">
+        <event name = "handle created">
+            <action name = "store created destination" />
+            <action name = "read next command" />
+        </event>
+        <event name = "handle reply">
+            <return/>
+        </event>
+    </state>
+
+    <action name = "store created destination">
+        ipr_shortstr_cpy (tcb->client->dest_name, HANDLE_CREATED.dest_name);
     </action>
 
     <!--  EXPECT CONNECTION CLOSE  ------------------------------------------->
@@ -713,9 +730,11 @@ static int
         </event>
         <event name = "channel close">
             <action name = "store channel close reply" />
+            <action name = "send channel close" />
             <action name = "read next command" />
         </event>
         <event name = "handle created">
+            <action name = "store created destination" />
             <action name = "read next command" />
         </event>
         <event name = "handle notify">
@@ -760,6 +779,7 @@ static int
     <state name = "expect channel close">
         <event name = "connection close">
             <action name = "store connection close reply" />
+            <action name = "send connection close" />
             <return/>
         </event>
         <event name = "channel close">
@@ -777,6 +797,7 @@ static int
             <action name = "read next command" />
         </event>
         <event name = "handle created">
+            <action name = "store created destination" />
             <action name = "read next command" />
         </event>
         <event name = "handle notify">
@@ -855,10 +876,12 @@ static int
     <state name = "expect handle close">
         <event name = "connection close">
             <action name = "store connection close reply" />
+            <action name = "send connection close" />
             <return/>
         </event>
         <event name = "channel close">
             <action name = "store channel close reply" />
+            <action name = "send channel close" />
             <return/>
         </event>
         <event name = "handle close">
@@ -876,6 +899,7 @@ static int
             <action name = "read next command" />
         </event>
         <event name = "handle created">
+            <action name = "store created destination" />
             <action name = "read next command" />
         </event>
         <event name = "handle notify">
@@ -949,6 +973,7 @@ static int
         </event>
         <event name = "connection close" nextstate = "">
             <action name = "store connection close reply" />
+            <action name = "send connection close" />
             <action name = "close connection" />
             if (tcb->result)
                 *tcb->result = AMQ_CONNECTION_CLOSED;
@@ -958,6 +983,7 @@ static int
         </event>
         <event name = "channel close" nextstate = "">
             <action name = "store channel close reply" />
+            <action name = "send channel close" />
             <action name = "close connection" />
             if (tcb->result)
                 *tcb->result = AMQ_CONNECTION_CLOSED;

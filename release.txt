@@ -1,3 +1,17 @@
+0.8d1
+  Server:
+      - when last consumer leaves dynamic queue, queue is purged
+      - all topic messages now held in single vhost queue
+      - added content-based routing
+        HANDLE CONSUME:
+            selector specifies fields (and optional values)
+        HANDLE SEND
+            matching is done on field presence and/or field value equality
+      - topics now created entirely dynamically
+  Protocol:
+      - destination name no longer specified at HANDLE OPEN time
+        - fully specified in HANDLE SEND, HANDLE CONSUME, and HANDLE QUERY
+
 0.8d0
   - added new functionality to AMQP/0.8 protocol
     HANDLE CONSUME:
@@ -30,7 +44,7 @@
 
  - added matching test program, first implementation of matching code.
  - matching on topic name now implemented in server.
-
+pfe
 0.8c1 - 2005/04/26
 
  - porting to Solaris/sparc (APR changes)

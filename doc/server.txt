@@ -5,7 +5,7 @@ gdl
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/05/05
     copyright = Copyright (c) 2004-2005 JPMorgan and iMatix Corporation
-    version   = 0.8c
+    version   = 0.8d
 end gdl
 
 Introduction
@@ -71,10 +71,10 @@ The current version of OpenAMQ implements:
 - multiplexed AMQP protocol with up to 255 channels per socket
 - XML-based configuration files
 - tuning options for queue physical storage
+- topics and subscriptions
 
 These aspects of the AMQP specifications are not implemented:
 
-- topics and subscriptions
 - message selectors
 - connection heartbeats
 - message expiration
@@ -127,8 +127,6 @@ Topics
 A topic is a named destination for messages.  Topics accept messages from
 one or more producers and distribute these to one or consumers.  A message
 can be distributed to as many consumers who have asked for it.
-
-OpenAMQ does not currently implement topics.
 
 OpenAMQ Configuration Files
 ...........................
@@ -441,65 +439,12 @@ queues/queue:extent-size:
     secondary file used to hold messages.  Raising this value means that
     fewer, larger files will be created.  Lowering it may reduce the amount
     of disk space assigned but not actively used.  Defaults to 25,000.
-
-    <topics>
-        <topic
-            name = "test"
-            template = "default"
-            auto-purge = "0"
-            memory-queue-max = "1000"
-            min-consumers = "0"
-            max-consumers = "10"
-            protected = "0"
-            persistent = "0"
-            max-messages = "100000"
-            max-message-size = "1073741824"
-            priority-levels = "2"
-            page-size = "4096"
-            block-size = "1000"
-            extent-size = "25000"
-        />
-    </topics>
-
-topics/topic:name:
-    Specifies the name of the topic.  Each topic in a virtual host must
-    have a unique name.
-topics/topic:template:
-    Specifies the name of the template to use.  The template provides
-    default values for all the topic properties.  The "default" template
-    is used if no other is specified.
-
-    <template>
-        <queue
-            name = "default"
-            ...options...
-        />
-        <queue
-            name = "temporary"
-            ...options...
-        />
-        <topic
-            name = "default"
-            ...options...
-        />
-        <topic
-            name = "temporary"
-            ...options...
-        />
-    </template>
-
 template/queue:
     Templating lets you configure queues using a minimum of effort.
     By default all queues are based on the "default" template.  The template
     provides default values for all queue properties (except "template").
     These can be then explicitly specified in the queue definition.
     Temporary queues are configured using the template called "temporary".
-template/topic:
-    Templating lets you configure topics using a minimum of effort.
-    By default all topics are based on the "default" template.  The template
-    provides default values for all topic properties (except "template").
-    These can be then explicitly specified in the topic definition.
-    Temporary topics are configured using the template called "temporary".
 
 Layered Configuration Files
 ...........................

@@ -45,8 +45,6 @@ This class implements the AMQP HANDLE commands.
     /*  Object properties                                                    */
     amq_consumer_by_handle_t
         *consumers;                     /*  Consumers for this handle        */
-    amq_dest_t
-        *dest;                          /*  If specific destination          */
     amq_browser_array_t
         *browser_set;                   /*  Results of last HANDLE QUERY     */
     int
@@ -57,8 +55,6 @@ This class implements the AMQP HANDLE commands.
         channel_id;                     /*  Channel for this handle          */
     Bool
         paused;                         /*  If TRUE, handle is paused        */
-    ipr_shortstr_t
-        dest_name;                      /*  Destination name prefix          */
     ipr_shortstr_t
         mime_type;                      /*  Default new message MIME type    */
     ipr_shortstr_t
@@ -72,6 +68,14 @@ This class implements the AMQP HANDLE commands.
     </doc>
     <argument name = "channel"  type = "amq_channel_t *"    >Parent channel</argument>
     <argument name = "command"  type = "amq_handle_open_t *">Handle open command</argument>
+    <local>
+    static qbyte
+        temp_count = 0;                 /*  Temporary destination number     */
+    ipr_shortstr_t
+        dest_name;                      /*  Temporary destination name       */
+    amq_dest_t
+        *dest;                          /*  New temporary destination        */
+    </local>
 
     /*  De-normalise from parent object, for simplicity of use               */
     self->channel     = channel;
@@ -85,12 +89,21 @@ This class implements the AMQP HANDLE commands.
     self->state        = AMQ_HANDLE_OPEN;
     self->channel_id   = command->channel_id;
     self->service_type = command->service_type;
-    ipr_shortstr_cpy (self->dest_name, command->dest_name);
     ipr_shortstr_cpy (self->mime_type, command->mime_type);
     ipr_shortstr_cpy (self->encoding,  command->encoding);
 
-    self->dest = amq_dest_resolve (self, command->temporary);
-    //TODO: purge temporary dest if wanted
+    /*  Create temporary queue if necessary                                  */
+    if (self->service_type == AMQP_SERVICE_QUEUE && command->temporary) {
+        ipr_shortstr_fmt (dest_name, "tmp-%09ld", ++temp_count);
+        dest = amq_dest_new (
+            self->vhost->queue_hash,
+            self->vhost,
+            AMQP_SERVICE_QUEUE,
+            TRUE,
+            dest_name,
+            self->client_id);
+        amq_server_agent_handle_created (self->thread, (dbyte) key, dest->key);
+    }
 </method>
 
 <method name = "destroy">
@@ -111,14 +124,15 @@ This class implements the AMQP HANDLE commands.
     amq_dest_t
         *dest;
     </local>
-    dest = amq_dest_search (
-        self->service_type == AMQP_SERVICE_QUEUE?
-            self->vhost->queue_hash: self->vhost->topic_hash,
-            self->dest_name, command->dest_name);
-
+    if (self->service_type == AMQP_SERVICE_QUEUE)
+        dest = amq_dest_search (self->vhost->queue_hash, command->dest_name);
+    else {
+        dest = self->vhost->topic_dest;
+        // s_check_if_new_topic ();
+    }
     if (dest) {
         /*  Stamp message with destination name and save to queue            */
-        ipr_shortstr_cpy   (message->dest_name, dest->key);
+        ipr_shortstr_cpy   (message->dest_name, command->dest_name);
         amq_queue_accept   (dest->queue, self->channel, message, command->immediate, NULL);
         amq_vhost_dispatch (self->vhost);
     }
@@ -171,8 +185,7 @@ This class implements the AMQP HANDLE commands.
 
     if (self->service_type == AMQP_SERVICE_QUEUE) {
         /*  Look for the queue using the destination name specified         */
-        dest = amq_dest_search (
-            self->vhost->queue_hash, self->dest_name, command->dest_name);
+        dest = amq_dest_search (self->vhost->queue_hash, command->dest_name);
         if (dest) {
             if (!dest->opt_protected) {
                 amq_queue_query (dest->queue, self->browser_set);

@@ -28,7 +28,6 @@
     "  -r repeat        Repeat test N times (1)\n"                          \
     "  -t level         Set trace level (default = 0)\n"                    \
     "                   0=none, 1=low, 2=medium, 3=high\n"                  \
-    "  -T               Use topic service (default is queue)\n"             \
     "  -p               Use persistent messages (no)\n"                     \
     "  -q               Quiet mode: no messages\n"                          \
     "  -d               Delayed mode; sleeps after receiving a message\n"   \
@@ -138,9 +137,6 @@ main (int argc, char *argv [])
                 case 'd':
                     delay_mode = TRUE;
                     break;
-                case 'T':
-                    service_type = AMQP_SERVICE_TOPIC;
-                    break;
                 case 'v':
                     puts (CLIENT_NAME);
                     puts (COPYRIGHT);
@@ -197,14 +193,13 @@ main (int argc, char *argv [])
     in_handle = amq_sclient_temporary (
         amq_client,
         service_type,
-        "temp.client",
         batch_size,
         FALSE,                          /*  No-local                         */
         FALSE);                         /*  No-ack                           */
-    out_handle = amq_sclient_producer (
-        amq_client,
-        service_type,
-        "temp.client");
+
+coprintf ("TEMP NAME: %s", amq_client->dest_name);
+
+    out_handle = amq_sclient_producer (amq_client, service_type);
 
     while (repeats) {
         /*  Pause consumption on temporary queue                             */
@@ -219,7 +214,7 @@ main (int argc, char *argv [])
             amq_message_set_persistent (message, persistent);
             amq_message_set_identifier (message, identifier);
             amq_message_testfill       (message, msgsize);
-            if (amq_sclient_msg_send (amq_client, out_handle, message, NULL, FALSE))
+            if (amq_sclient_msg_send (amq_client, out_handle, message, amq_client->dest_name, FALSE))
                 goto aborted;
             /*  Commit as we go along                                        */
             if (--batch_left == 0) {

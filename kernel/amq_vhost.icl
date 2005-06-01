@@ -9,8 +9,7 @@
 <doc>
 Defines a virtual host.  Virtual hosts are held in a hash table and accessed
 by name.  Each virtual host has its own working directory for persistent
-data, and holds the queues, topics, and subscriptions defined for that
-virtual host.    
+data, and holds the queues and subscriptions defined for that virtual host.    
 </doc>
 
 <inherit class = "ipr_hash_str" />
@@ -37,7 +36,6 @@ virtual host.
         *dest_list;                     /*  Destinations for dispatching     */
     amq_dest_table_t
         *queue_hash,                    /*  Queues for vhost, hash table     */
-        *topic_hash,                    /*  Topics for vhost, hash table     */
         *subscr_hash;                   /*  Subscriptions destinations       */
     amq_subscr_list_t
         *subscr_list;                   /*  Subscriptions definitions        */
@@ -46,6 +44,8 @@ virtual host.
     amq_match_table_t
         *match_topics,                  /*  Match table for topic routing    */
         *match_fields;                  /*  Match table for field routing    */
+    amq_dest_t
+        *topic_dest;                    /*  Global topic queue               */
 </context>
 
 <method name = "new">
@@ -55,7 +55,6 @@ virtual host.
     self->config       = config;
     self->dest_list    = amq_dest_list_new ();
     self->queue_hash   = amq_dest_table_new ();
-    self->topic_hash   = amq_dest_table_new ();
     self->subscr_hash  = amq_dest_table_new ();
     self->subscr_list  = amq_subscr_list_new ();
     self->subscr_index = ipr_index_new ();
@@ -69,7 +68,6 @@ virtual host.
     s_configure_workdir  (self);
     s_configure_database (self);
     s_configure_queues   (self);
-    s_configure_topics   (self);
     s_clean_destinations (self);
 </method>
 
@@ -85,7 +83,6 @@ virtual host.
     ipr_config_destroy      (&self->config);
     amq_dest_list_destroy   (&self->dest_list);
     amq_dest_table_destroy  (&self->queue_hash);
-    amq_dest_table_destroy  (&self->topic_hash);
     amq_dest_table_destroy  (&self->subscr_hash);
     amq_subscr_list_destroy (&self->subscr_list);
     ipr_index_destroy       (&self->subscr_index);
@@ -118,46 +115,10 @@ virtual host.
     }
 </method>
 
-<method name = "publish" template = "function">
-    <doc>
-    Publishes a specified message to all interested subscribers in the
-    virtual host.  Returns number of times message was published.  If the
-    publish option is false, does not actually publish but only reports
-    the number of susbcribers.
-    </doc>
-    <argument name = "dest name" type = "char *">Topic destination name</argument>
-    <argument name = "message"   type = "amq_smessage_t *">Message, if any</argument>
-    <argument name = "txn"       type = "ipr_db_txn_t *">Transaction, if any</argument>
-    <argument name = "publish"   type = "Bool">Actually publish message?</argument>
-    <local>
-    amq_subscr_t
-        *subscr;                        /*  Subscriber object                */
-    amq_match_t
-        *match;                         /*  Match item                       */
-    int
-        subscr_nbr;
-    </local>
-
-    /*  Lookup topic name in match table, if found publish to subscribers    */
-    match = amq_match_search (self->match_topics, dest_name);
-    if (match) {
-        for (IPR_BITS_EACH (subscr_nbr, match->bits)) {
-            subscr = (amq_subscr_t *) self->subscr_index->data [subscr_nbr];
-            if (subscr->no_local == FALSE
-            ||  subscr->client_id != message->handle->client_id) {
-                if (publish)
-                    amq_queue_publish (subscr->consumer->queue, message, txn);
-                rc++;
-            }
-        }
-    }
-</method>
-
 <private name = "header">
 static void s_configure_workdir  ($(selftype) *self);
 static void s_configure_database ($(selftype) *self);
 static void s_configure_queues   ($(selftype) *self);
-static void s_configure_topics   ($(selftype) *self);
 static void s_clean_destinations ($(selftype) *self);
 </private>
 
@@ -246,50 +207,28 @@ s_configure_queues ($(selftype) *self)
         dest_name = ipr_config_attr (self->config, "name", NULL);
         if (dest_name) {
             amq_dest_new (
-                self->queue_hash,           /*  Queue table                      */
-                self,                       /*  Parent virtual host              */
-                AMQP_SERVICE_QUEUE,         /*  Message queue type               */
-                FALSE,                      /*  Temporary destination?           */
-                dest_name,                  /*  Destination name                 */
-                0);                         /*  Owning client id, if any         */
+                self->queue_hash,       /*  Queue table                      */
+                self,                   /*  Parent virtual host              */
+                AMQP_SERVICE_QUEUE,     /*  Message queue type               */
+                FALSE,                  /*  Temporary destination?           */
+                dest_name,              /*  Destination name                 */
+                0);                     /*  Owning client id, if any         */
         }
         else
             coprintf ("W: error in queue definitions - 'name' not defined");
 
         ipr_config_next (self->config);
     }
+
+    /*  Topic messages are held in a single queue, for now                   */
+    self->topic_dest = amq_dest_new (
+        self->queue_hash,               /*  Queue table                      */
+        self,                           /*  Parent virtual host              */
+        AMQP_SERVICE_TOPIC,             /*  Message topic type               */
+        FALSE,                          /*  Temporary destination?           */
+        "$topic",                       /*  Destination name                 */
+        0);                             /*  Owning client id, if any         */
 }
-
-
-/*  Insert or find topics                                                    */
-
-static void
-s_configure_topics ($(selftype) *self)
-{
-    char
-        *dest_name;
-
-    if (amq_global_verbose ())
-        coprintf ("I: - configuring and checking configured topics...");
-    ipr_config_locate (self->config, "/config/topics/topic", NULL);
-    while (self->config->located) {
-        dest_name = ipr_config_attr (self->config, "name", NULL);
-        if (dest_name) {
-            amq_dest_new (
-                self->topic_hash,           /*  Topic table                      */
-                self,                       /*  Parent virtual host              */
-                AMQP_SERVICE_TOPIC,         /*  Message topic type               */
-                FALSE,                      /*  Temporary destination?           */
-                dest_name,                  /*  Destination name                 */
-                0);                         /*  Owning client id, if any         */
-        }
-        else
-            coprintf ("W: error in topic definitions - 'name' not defined");
-
-        ipr_config_next (self->config);
-    }
-}
-
 
 /*  Remove all unused destinations                                           */
 

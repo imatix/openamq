@@ -142,23 +142,18 @@ static void
 static void
 s_init_queue_consumer ($(selftype) *self, amq_handle_consume_t *command)
 {
-    ipr_shortstr_t
-        full_dest_name;
-
     /*  For queues the destination must exist                            */
-    self->dest = amq_dest_search (
-        self->handle->vhost->queue_hash, self->handle->dest_name, command->dest_name);
+    self->dest = amq_dest_search (self->handle->vhost->queue_hash, command->dest_name);
 
     /*  Create queue for dynamic consumers if needed                     */
     if (self->dest == NULL && self->dynamic) {
-        ipr_shortstr_fmt (full_dest_name, "%s%s", self->handle->dest_name, command->dest_name);
-        coprintf ("I: creating dynamic queue '%s'", full_dest_name);
+        coprintf ("I: creating dynamic queue '%s'", command->dest_name);
         self->dest = amq_dest_new (
             self->handle->vhost->queue_hash,
             self->handle->vhost,
             AMQP_SERVICE_QUEUE,
             FALSE,
-            full_dest_name,
+            command->dest_name,
             self->handle->client_id);
     }
     if (self->dest) {

@@ -77,21 +77,15 @@ main (int argc, char *argv [])
 static void
 s_connected (amq_aclient_connected_t *args)
 {
-    channel_id = amq_aclient_channel_open (args->client,
-                                           FALSE,
-                                           FALSE);
-    handle_id  = amq_aclient_handle_open  (args->client,
-                                           channel_id, 
-                                           FALSE, 
-                                           AMQP_SERVICE_QUEUE,
-                                           dest_name);
-                                                            
+    channel_id = amq_aclient_channel_open (args->client, FALSE, FALSE);
+    handle_id  = amq_aclient_handle_open  (args->client, channel_id, FALSE, AMQP_SERVICE_QUEUE);
+
     /*  Register server-driven close feedbacks                               */
     amq_aclient_register (args->client, AMQ_ACLIENT_HANDLE_CLOSE,  s_handle_close);
     amq_aclient_register (args->client, AMQ_ACLIENT_CHANNEL_CLOSE, s_channel_close);
     
     /*  Register as consumer if inbox is defined                             */
-    if (inbox[0]) {
+    if (inbox [0]) {
         amq_aclient_handle_consume (
             args->client,
             handle_id,
@@ -99,7 +93,7 @@ s_connected (amq_aclient_connected_t *args)
             TRUE,                       /*  No local delivery                */
             FALSE,                      /*  Auto-ack at server side          */
             FALSE,                      /*  Dynamic consumer                 */
-            NULL);                      /*  Destination name                 */
+            dest_name);                 /*  Destination name                 */
         amq_aclient_register (args->client, AMQ_ACLIENT_HANDLE_NOTIFY, s_handle_notify);
     }         
     /*  Register monitor function if outbox is defined                       */

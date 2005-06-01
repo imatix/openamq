@@ -5,7 +5,7 @@ gdl
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/04/16
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.8d0
+    version   = 0.8d1
 end gdl
 
 Cover
@@ -24,6 +24,12 @@ This document is ready for review.
 Recent Change History
 ---------------------
 
+2005/05/28 - 0.8d1:
+
+- in HANDLE OPEN, 'dest-name' field removed.
+- all references to destination name hierachies removed.
+- named temporary queues no longer supported.
+
 2005/05/28 - 0.8d0:
 
 - in HANDLE CONSUME, 'dynamic' flag allows dynamic queue creation.
@@ -35,8 +41,8 @@ Recent Change History
 - in HANDLE SEND, 'streaming' field removed.
 - in HANDLE NOTIFY, 'streaming' field removed.
 - HANDLE CANCEL command removed.
-- all reference to Peer services removed.
-- all reference to streaming removed.
+- all references to Peer services removed.
+- all references to streaming removed.
 
 0.8c0
 - in HANDLE CONSUME, 'unreliable' flag renamed to 'no ack' for clarity.
@@ -664,15 +670,13 @@ Frame Syntax
 
     handle-open          = %d30 channel-id handle-id service-type
                            confirm-tag producer consumer browser
-                           temporary dest-name mime-type encoding
-                           options
+                           temporary mime-type encoding options
     handle-id            = short-integer
     service-type         = short-integer
     producer             = BIT
     consumer             = BIT
     browser              = BIT
     temporary            = BIT
-    dest-name            = short-string
     mime-type            = short-string
     encoding             = short-string
 
@@ -681,6 +685,7 @@ Frame Syntax
     fragment-size        = long-integer
     partial              = BIT
     recovery             = BIT
+    dest-name            = short-string
 
     handle-consume       = %d32 handle-id confirm-tag prefetch no-local
                            no-ack dynamic dest-name selector
@@ -1796,7 +1801,6 @@ server:
         consumer                bit
         browser                 bit
         temporary               bit
-        dest-name               short string
         mime-type               short string
         encoding                short string
         options                 field table
@@ -1825,9 +1829,6 @@ browser:
 temporary:
     If 1, the client asks the server to create a temporary destination as
     specified.  See explanation of temporary destinations below.
-dest-name:
-    The name of the destination to open.  May be empty, see section on
-    'Destination Name Hierarchies'.
 mime-type:
     The default MIME content type for HANDLE SEND commands sent to the
     destination. This can be overridden on a per-message basis. If empty,
@@ -1860,70 +1861,19 @@ implementation of any specific service type is hidden from the client.
 Temporary Queues and Topics
 ...........................
 
-Temporary queues (and temporary topics, which work exactly the same way)
-**PH: 'exactly the same way'?
-are designed to provide clients with a place for other processes to send
-replies.  Typically, a client will create a temporary queue and then ask
-other processes to "reply to" that queue.  The value of a temporary queue
-is that it is deleted automatically; when the connection closes, the queue
-is destroyed.
+Temporary queues are designed to provide clients with a place for other
+processes to send replies.  Typically, a client will create a temporary
+queue and then ask other processes to "reply to" that queue.  The value
+of a temporary queue is that it is deleted automatically; when the
+connection closes, the queue is destroyed.
 
-Temporary queue names may be specified by the client, or may be chosen by
-the server.  If the client provides a queue name, the server verifies that
-this queue either does not exist, or has previously existed with the same
-client as owner.  Reopening a temporary queue is equivalent to purging it;
-any messages it contains are deleted.  If the client does not specify a
-queue name the server will create a unique queue name.  The server returns
-the queue name to the client in a HANDLE CREATED command.
-
-If the client also specified a confirm-tag, the HANDLE REPLY comes after
-the HANDLE CREATED command.
+Temporary queue names are chosen by the server. The server returns the
+queue name to the client in a HANDLE CREATED command. If the client also
+specified a confirm-tag, the HANDLE REPLY comes after the HANDLE CREATED
+command.
 
 Only the client that created a temporary queue can consume messages from
 it.
-
-Destination Name Hierarchies
-............................
-
-AMQP explicitly supports name hierarchies for queue and topic names:
-
-    alt.rec.pets
-    alt.rec.pets.cats
-    alt.rec.pets.cats.discuss
-    alt.rec.pets.dogs
-    alt.rec.pets.dogs.discuss
-
-The HANDLE OPEN and HANDLE SEND commands specify part or all of a
-destination name.  Subsequent commands on the same destination provide
-further refinement of the name through simple concatenation of the name
-provided in HANDLE OPEN and the name provided in HANDLE SEND.
-
-The HANDLE OPEN command MAY refer to a full and valid destination name,
-or it MAY refer to a name prefix shared by a set of destinations.
-
-Here is how a client writes a message to all destinations in a hierarchy:
-
-    open (empty name)
-    send (empty name)
-
-Here is how a client writes a message to different destinations within a
-hierarchy:
-
-    open alt.rec.
-    send pets
-    send pets.cats.discuss
-
-Here is the client attempting to write to non-existent destinations, an
-error that would provoke a HANDLE CLOSE command from the server:
-
-    open alt.rec.pets
-    send alt
-    send pets
-    send alt.rec.pets.cats
-
-Note that dots are not special; destination names can be delimited by any
-character that is valid in a destination name, which excludes /, #, &,
-and some other special characters.  For details see AMQ RFC 013.
 
 HANDLE SEND Command
 -------------------
@@ -1962,10 +1912,7 @@ recovery:
     from the recovery point indicated by the server in the HANDLE READY
     command (used in restartable operations only).
 dest-name:
-    The name of the destination to write to.  May be empty, see section
-    on 'Destination Name Hierarchies'.  Note: this field is ignored when
-    'partial' is 1.  I.E. you should set it or expect it only on the last
-    fragment of a message.
+    The name of the destination to write to.
 
 Note that the message is sent immediately after the HANDLE SEND frame,
 on the same channel.  The message consists of a header and a body which
@@ -2010,8 +1957,7 @@ no-ack:
     this destination. The client can specify 'no ack' when it wants the
     highest possible throughput and can tolerate lost messages.
 dest-name:
-    The name of the destination to listen to. May be empty, see section
-    on 'Destination Name Hierarchies'.
+    The name of the destination to listen to.
 selector:
     The fields to select on, if any.  Fields are selected on by presence
     and value - an empty field value means "present", any non-empty value
@@ -2104,8 +2050,7 @@ message-nbr:
     equal to this value.  When zero, means "all messages" (a message can
     have an ID value zero).
 dest-name:
-    The name of the destination to examine. May be empty, see section on
-    'Destination Name Hierarchies'.
+    The name of the destination to examine.
 selector:
     A detailed specification of the precise messages that the client
     wants.  The precise selector syntax is implementation-defined and
