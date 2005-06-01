@@ -1592,19 +1592,19 @@ int JAMQ_apiu_open (
     }
     result = amq_stdc_open_connection (server, atoi (port), vhost,
         client_name_buffer, amq_stdc_heartbeats_off, amq_stdc_heartbeats_off,
-        0, NULL, 0, &(self->connection));
+        0, 0, NULL, 0, &(self->connection));
     if (result != APR_SUCCESS) {
         *aireturn_Code = JAMQ_APIU_AMQ_ERROR;
         goto err9;
     }
-    result = amq_stdc_open_channel (self->connection, 0, 0, NULL, "", 0,
+    result = amq_stdc_open_channel (self->connection, 0, 0, 0, NULL, "", 0,
         &(self->channel));
     if (result != APR_SUCCESS) {
         *aireturn_Code = JAMQ_APIU_AMQ_ERROR;
         goto err10;
     }
     result = amq_stdc_open_handle (self->channel, amq_stdc_service_type_queue,
-        1, 1, 0, 0, "", "", "", NULL, 0, NULL, &(self->handle_id));
+        1, 1, 0, 0, "", "", 0, NULL, 0, NULL, &(self->handle_id));
 if (result != APR_SUCCESS) {
         *aireturn_Code = JAMQ_APIU_AMQ_ERROR;
         goto err11;
@@ -1766,7 +1766,7 @@ int JAMQ_apiu_consume (
     dest_name_buffer [pQueueName->iDataLen] = 0;
 
     result = amq_stdc_consume (self->channel, self->handle_id, 1, 0, 1, 1,
-        dest_name_buffer, NULL, 0);
+        dest_name_buffer, 0, NULL, 0);
     if (result != APR_SUCCESS) {
         *aireturn_Code = JAMQ_APIU_AMQ_ERROR;
         return NOT_OK;
@@ -2102,7 +2102,7 @@ int JAMQ_apiu_change_timer_freq (
 
 int JAMQ_apiu_flush_broadcast (
     JAMQ_tsApicb  *pApiHndl,
-    JAMQ_tsBufcb  *pBuf, /* What's this for ? */
+    JAMQ_tsBufcb  *pBuf,
     int           *aireturn_Code)
 {
     gtw_context_t
@@ -2113,8 +2113,6 @@ int JAMQ_apiu_flush_broadcast (
         queue_name_buffer [255];
     char
         *queue_name;
-    amq_stdc_table_t
-        headers;
     dbyte
         size;
     apr_status_t
@@ -2154,21 +2152,10 @@ int JAMQ_apiu_flush_broadcast (
     }
 
     /*  Send message                                                         */
-    GET_SHORT (size, self->appctx.sWriteBuf.pData);
-    result = amq_stdc_table_create (size, self->appctx.sWriteBuf.pData +
-        sizeof (dbyte), &headers);
-    if (result != APR_SUCCESS) {
-        *aireturn_Code = JAMQ_APIU_AMQ_ERROR;
-        return NOT_OK;
-    }    
+    GET_SHORT (size, pBuf->pData);
     result = amq_stdc_send_message (self->channel, self->handle_id, 0,
-        0, queue_name, 0, 1, 5, 0, "", "", "", headers, 1, "X", 1);
-    if (result != APR_SUCCESS) {
-        amq_stdc_table_destroy (headers);
-        *aireturn_Code = JAMQ_APIU_AMQ_ERROR;
-        return NOT_OK;
-    }
-    result = amq_stdc_table_destroy (headers);
+        0, queue_name, 0, 1, 5, 0, "", "", "", size,
+        pBuf->pData + sizeof (dbyte), 1, "X", 1);
     if (result != APR_SUCCESS) {
         *aireturn_Code = JAMQ_APIU_AMQ_ERROR;
         return NOT_OK;
@@ -2182,14 +2169,43 @@ int JAMQ_apiu_submit_broadcast (
     JAMQ_tsApicb  *pApiHndl,
     JAMQ_tsBufcb  *pBuf,
     int           iMustWriteIt,
-    int           *aiCode
-    );
+    int           *aireturn_Code
+    )
+{
+    /*  iMustWriteIt unused as it makes no difference in behaviour           */
+    return JAMQ_apiu_flush_broadcast (pApiHndl, pBuf, aireturn_Code);
+}
 
 int JAMQ_apiu_build_text_header_eng (
     JAMQ_tsApicb    *pApiHndl,
     JAMQ_tsNCharcb  *pRequest,
-    int             *aiCode
-    );
+    int             *aireturn_Code
+    )
+{
+    const char *header = 
+        "   ------------------------------------------------   "
+        " /                <application name>                \\ "
+        "/  11:17:02                              2005-05-17  \\"
+        "\\                                                    /"
+        " \\          Hello-responded as a message            / "
+        "   ------------------------------------------------   ";
+
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!pApiHndl) {
+        *aireturn_Code = JAMQ_APIU_HANDLE_INVALID;
+        return NOT_OK;
+    }
+
+    if (!pRequest || !pRequest->pData || pRequest->iDataLen < 0) {
+        *aireturn_Code = JAMQ_APIU_INPUT_ERR;
+        return NOT_OK;
+    }
+
+    return JAMQ_gmm_add_data (pApiHndl->pGMMWriteHndl, GMM_TEXT, 1, pRequest,
+        aireturn_Code);
+}
 
 int JAMQ_apiu_finish_gmm_response_msg (
     JAMQ_tsApicb  *pApiHndl,

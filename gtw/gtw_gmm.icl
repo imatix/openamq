@@ -791,6 +791,7 @@
         <argument name = "field_id" type = "int*"/>
         <argument name = "item_count" type = "int*"/>
         <argument name = "retcode" type = "int*"/>
+        assert (0);
     </method>
 
     <method name = "get_first_field" template = "function">

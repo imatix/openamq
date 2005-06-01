@@ -379,6 +379,12 @@ int JAMQ_oum_close (
 #define JAMQ_GMM_MEM_ERR         503
 #define JAMQ_GMM_DATA_UNV        504
 
+#define GMM_REQUEST              00000
+#define GMM_TEXT                 20008
+#define GMM_RESPONSE             32767
+#define GMM_RESPONSE_LANG        32765
+#define GMM_SYSTEM_MSG           32761
+
 int JAMQ_gmm_open (
     void  **pGmmHandle, 
     int   *aireturn_Code
