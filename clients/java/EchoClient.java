@@ -421,7 +421,6 @@ public void do_tests ()
         handle_open.producer = false;
         handle_open.consumer = true;
         handle_open.temporary = false;
-        handle_open.destName = read_queue;
         amq_framing.sendFrame(handle_open);
         if (handle_open.temporary) {
             // Get handle created
@@ -432,7 +431,6 @@ public void do_tests ()
         handle_open.producer = true;
         handle_open.consumer = false;
         handle_open.temporary = false;
-        handle_open.destName = write_queue;
         amq_framing.sendFrame(handle_open);
         if (handle_open.temporary) {
             // Get handle created
@@ -452,7 +450,7 @@ public void do_tests ()
         handle_send.outOfBand = false;
         handle_send.recovery = false;
         handle_send.immediate = true;
-        handle_send.destName = "";
+        handle_send.destName = write_queue;
         message_head.bodySize = 0;
         message_head.persistent = false;
         message_head.priority = 1;
@@ -469,7 +467,7 @@ public void do_tests ()
         handle_consume.noLocal = true;
         handle_consume.noAck = false;
         handle_consume.dynamic = true;
-        handle_consume.destName = "";
+        handle_consume.destName = read_queue;
         handle_consume.selector = null;
         
         // Request consume messages

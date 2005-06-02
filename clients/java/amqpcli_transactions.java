@@ -229,7 +229,6 @@ public void do_tests ()
         handle_open.consumer = true;
         handle_open.browser = false;
         handle_open.temporary = !persistent;
-        handle_open.destName = persistent ? "test" : "";
         handle_open.mimeType = "";
         handle_open.encoding = "";
         handle_open.options = null;
@@ -261,7 +260,7 @@ public void do_tests ()
         handle_send.outOfBand = false;
         handle_send.recovery = false;
         handle_send.immediate = false;
-        handle_send.destName = "";
+        handle_send.destName = persistent ? "test" : "";
         message_head.bodySize = 0;
         message_head.persistent = persistent;
         message_head.priority = 1;
@@ -351,7 +350,7 @@ public void do_tests ()
                 handle_consume.noLocal = false;
                 handle_consume.noAck = false;
                 handle_consume.dynamic = false;
-                handle_consume.destName = "";
+                handle_consume.destName = persistent ? "test" : "";
                 handle_consume.selector = null;
                 // Request consume messages
                 amq_framing.sendFrame(handle_consume);
