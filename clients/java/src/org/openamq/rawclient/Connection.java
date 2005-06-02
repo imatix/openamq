@@ -215,6 +215,8 @@ public class Connection extends amqpcli_serial
         _handleOpen.handleId = handleId;
         _handleOpen.producer = producer;
         _handleOpen.consumer = consumer;
+
+System.err.println("Temp is " + temporary);
         _handleOpen.temporary = temporary;
         _handleOpen.destName = destName;
 
@@ -230,21 +232,50 @@ public class Connection extends amqpcli_serial
         {
             if (_log.isDebugEnabled()) _log.debug("Sending handle open frame to server for handle id " + handleId);
             getFramingFactory().sendFrame(_handleOpen);
+
+		// There is currently a bug when trying to create a temp queue that happens
+		// to already exists. A CREATED is not sent back.
+		// So for the time being we will always do sync and read'n'discard until
+		// we see the ACK.
+//            if (temporary)
+//            {
+//	            if (_log.isDebugEnabled()) _log.debug("Temp queue, waiting for 'created' from server for handle id " + handleId);
+//                // Get handle created
+//                // TODO: this should invoke receiveFrame instead to centralise frame
+//                // handling
+//                AMQFrame frame = getFramingFactory().receiveFrame();
+//
+//		    if (_log.isDebugEnabled())
+//                {
+//                    _log.debug(String.valueOf(frame));
+//                }
+//
+//            }
             if (_ack)
             {
-                AMQHandle.Reply ack = (AMQHandle.Reply) getFramingFactory().receiveFrame();
+			AMQFrame frame = null;
+
+			do
+			{
+	                if (_log.isDebugEnabled()) _log.debug("Sync, waiting for 'ack' from server for handle id " + handleId);
+
+      	          frame = getFramingFactory().receiveFrame();
+
+			    if (_log.isDebugEnabled())
+                		{
+                    	_log.debug(String.valueOf(frame));
+                		}
+			}
+			while(!(frame instanceof AMQHandle.Reply));
+
+                AMQHandle.Reply ack = (AMQHandle.Reply) frame;
                 if (_log.isDebugEnabled())
                 {
                     _log.debug(String.valueOf(ack));
                 }
             }
-            if (temporary)
-            {
-                // Get handle created
-                // TODO: this should invoke receiveFrame instead to centralise frame
-                // handling
-                getFramingFactory().receiveFrame();
-            }
+
+            if (_log.isDebugEnabled()) _log.debug("Done creating queue with handle id " + handleId);
         }
         catch (AMQException e)
         {
