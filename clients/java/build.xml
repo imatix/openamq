@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+
+        <!-- OpenAMQ Java build file (temporarily using ant!) -->
+
+<project name="openamq" default="jar" basedir=".">
+
+    <!-- Setup details -->
+    <target name="init">
+        <tstamp>
+            <format property="release" pattern="-dMMMyy" locale="en" timezone="GMT"/>
+        </tstamp>
+        <property name="lib" value="${basedir}/lib"/>
+
+        <property name="src" value="${basedir}/src"/>
+        <property name="tests" value="${basedir}/test"/>
+        <property name="classes" value="${basedir}/classes"/>
+        <property name="testclasses" value="${basedir}/testclasses"/>
+        <property name="generated.java.src" value="${basedir}/generated/java"/>
+
+        <property name="dist" value="${basedir}/dist"/>
+
+        <mkdir dir="${classes}"/>
+        <mkdir dir="${testclasses}"/>
+        <mkdir dir="${generated.java.src}"/>
+        <mkdir dir="${dist}"/>
+    </target>
+
+    <path id="openamq.classpath">
+        <fileset dir="${basedir}/lib">
+            <include name="**/*.jar"/>
+        </fileset>
+        <pathelement path="${basedir}/classes"/>
+    </path>
+
+    <!-- Remove all built files -->
+    <target name="clean" depends="init">
+        <delete dir="${dist}"/>
+        <!--<delete dir="${generated.java.src}"/>-->
+        <delete dir="${classes}"/>
+        <delete dir="${testclasses}"/>
+    </target>
+
+    <!-- Compile Java -->
+    <target name="compile" depends="init">
+        <javac destdir="${classes}" classpathref="openamq.classpath" debug="on">
+            <src path="${src}"/>
+            <src path="${generated.java.src}"/>
+        </javac>
+
+        <copy todir="${classes}">
+            <!-- copy any non java src files into the build tree, e.g. log4j.properties -->
+            <fileset dir="${src}">
+                <exclude name="**/*.java"/>
+                <exclude name="**/package.html"/>
+            </fileset>
+        </copy>
+    </target>
+
+
+    <target name="compiletests" depends="compile">
+        <javac destdir="${testclasses}" classpathref="openamq.classpath" debug="on">
+            <src path="${tests}"/>
+        </javac>
+
+        <copy todir="${testclasses}">
+            <!-- copy any non java src files into the build tree, e.g. log4j.properties -->
+            <fileset dir="${tests}">
+                <exclude name="**/*.java"/>
+                <exclude name="**/package.html"/>
+            </fileset>
+        </copy>
+    </target>
+
+    <!-- Build jar archive -->
+    <target name="jar" depends="compile, compiletests">
+        <mkdir dir="${dist}"/>
+        <jar basedir="${classes}" jarfile="${dist}/openamqj.jar"/>
+        <jar basedir="${testclasses}" jarfile="${dist}/openamqj-tests.jar"/>
+    </target>
+
+
+    <target name="javadoc" depends="compile, compiletests">
+        <mkdir dir="${dist}/docs/api"/>
+        <javadoc sourcepath="${basedir}/src" destdir="${dist}/docs/api"
+                 packagenames="org.openamq.*" classpathref="openamq.classpath" author="true"
+                 version="true" windowTitle="OpenAMQ Client API" doctitle="OpenAMQ Client API"
+                 footer="See &lt;a href=&quot;http://www.openamq.org&quot;&gt;www.openamq.org&lt;/a&gt; for more information."
+                 use="true" verbose="false"/>
+    </target>
+</project>
