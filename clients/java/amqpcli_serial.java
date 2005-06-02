@@ -421,7 +421,7 @@ public void do_tests ()
         AMQHandle.Notify
             handle_notify = null;       /* Handle notify reply               */
         AMQHandle.Created
-            handle_created;             /* Handle created reply              */
+            handle_created = null;      /* Handle created reply              */
         // Message
         AMQMessage.Head                 /* Message header                    */
             message_head = (AMQMessage.Head)amq_framing.constructMessageHead();
@@ -475,7 +475,7 @@ public void do_tests ()
         handle_send.outOfBand = false;
         handle_send.recovery = false;
         handle_send.immediate = false;
-        handle_send.destName = persistent ? "test" : "";
+        handle_send.destName = persistent ? "test" : handle_created.destName;
         message_head.bodySize = 0;
         message_head.persistent = persistent;
         message_head.priority = 1;
@@ -550,7 +550,7 @@ public void do_tests ()
             handle_consume.noLocal = false;
             handle_consume.noAck = false;
             handle_consume.dynamic = false;
-            handle_consume.destName = persistent ? "test" : "";
+            handle_consume.destName = persistent ? "test" : handle_created.destName;
             handle_consume.selector = null;
             // Request consume messages
             amq_framing.sendFrame(handle_consume);

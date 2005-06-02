@@ -11,8 +11,8 @@ public class EchoClient extends amqpcli_serial implements Runnable {
 ///////////////////////////   P A R A M E T E R S   ///////////////////////////
 // Some queue defaults for this client
 String
-    read_queue = "q-a",                 /* Queue to read from                */
-    write_queue = "q-b";                /* Queue to write to                 */
+    read_queue = "java-in",             /* Queue to read from                */
+    write_queue = "c-in";               /* Queue to write to                 */
 boolean
     input = true,                       /* Verbose mode                      */
     sampleOutput = false;               /* Sample output switch (no AWT)     */
