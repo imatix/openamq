@@ -1,5 +1,4 @@
-
-0.8d1
+0.8d1 - 2005/06/02
   Server:
       - fixed consume command confirmation, which came after notifies,
         rather than before.
@@ -15,6 +14,8 @@
   Protocol:
       - destination name no longer specified at HANDLE OPEN time
         - fully specified in HANDLE SEND, HANDLE CONSUME, and HANDLE QUERY
+  Clients:
+      - agnostic/stdc client updated to latest protocol version
 
 0.8d0
   - added new functionality to AMQP/0.8 protocol
