@@ -138,7 +138,7 @@ public class JMSHelloWorld {
             message;
 
         try {
-            connection = new JMSConnection("localhost", vHost, 7654);
+            connection = new JMSConnection(server, vHost, 7654);
             session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
             que = new JMSQueue(destName);
             producer = session.createProducer(que);
