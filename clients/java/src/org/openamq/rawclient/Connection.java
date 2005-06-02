@@ -146,7 +146,7 @@ public class Connection extends amqpcli_serial
         {
             _log.debug("Handle id is " + handleId);
         }
-        openHandle(handleId, false, true, temporary, name);
+        String destName = openHandle(handleId, false, true, temporary, name);
 
         Map handle2ReaderMap = (Map) _sessionData.get(MESSAGE_CONSUMERS);
         if (handle2ReaderMap == null)
@@ -154,7 +154,7 @@ public class Connection extends amqpcli_serial
             handle2ReaderMap = new HashMap();
             _sessionData.put(MESSAGE_CONSUMERS, handle2ReaderMap);
         }
-        QueueReader qr = new QueueReader(this, name, temporary, handleId, callback);
+        QueueReader qr = new QueueReader(this, destName, temporary, handleId, callback);
         handle2ReaderMap.put(new Integer(_handleOpen.handleId), qr);
 
         try
@@ -177,8 +177,8 @@ public class Connection extends amqpcli_serial
     public QueueWriter createQueueWriter(String name, boolean temporary, int flags) throws AMQClientException
     {
         final int handleId = IdFactory.getInstance().getHandleId();
-        openHandle(handleId, true, false, temporary, name);
-        return new QueueWriter(this, name, temporary, handleId);
+        final String destName = openHandle(handleId, true, false, temporary, name);
+        return new QueueWriter(this, destName, temporary, handleId);
     }
 
     /**
@@ -207,18 +207,32 @@ public class Connection extends amqpcli_serial
         _handleConsume = (AMQHandle.Consume) amq_framing.constructFrame(AMQHandle.CONSUME);
     }
 
-    private void openHandle(int handleId, boolean producer, boolean consumer,
+    /**
+     * @param handleId
+     * @param producer
+     * @param consumer
+     * @param temporary
+     * @param destName
+     * @return the destination name (useful when the server is choosing for you!)
+     * @throws AMQClientException
+     */
+    private String openHandle(int handleId, boolean producer, boolean consumer,
                             boolean temporary, String destName)
             throws AMQClientException
     {
-        if (_log.isDebugEnabled()) _log.debug("Opening handle with id " + handleId);
+        if (_log.isDebugEnabled())
+        {
+            _log.debug("Opening handle with id " + handleId);
+        }
         _handleOpen.handleId = handleId;
         _handleOpen.producer = producer;
         _handleOpen.consumer = consumer;
-
-System.err.println("Temp is " + temporary);
         _handleOpen.temporary = temporary;
         _handleOpen.destName = destName;
+        if (temporary && !"".equals(destName))
+        {
+            destName = "";
+        }
 
         _handleOpen.channelId = _channelId;
         _handleOpen.serviceType = (_ack ? 1 : 0);
@@ -230,13 +244,16 @@ System.err.println("Temp is " + temporary);
 
         try
         {
-            if (_log.isDebugEnabled()) _log.debug("Sending handle open frame to server for handle id " + handleId);
+            if (_log.isDebugEnabled())
+            {
+                _log.debug("Sending handle open frame to server for handle id " + handleId);
+            }
             getFramingFactory().sendFrame(_handleOpen);
 
-		// There is currently a bug when trying to create a temp queue that happens
-		// to already exists. A CREATED is not sent back.
-		// So for the time being we will always do sync and read'n'discard until
-		// we see the ACK.
+            // There is currently a bug when trying to create a temp queue that happens
+            // to already exist. A CREATED is not sent back.
+            // So for the time being we will always do sync and read'n'discard until
+            // we see the ACK.
 //            if (temporary)
 //            {
 //	            if (_log.isDebugEnabled()) _log.debug("Temp queue, waiting for 'created' from server for handle id " + handleId);
@@ -253,20 +270,28 @@ System.err.println("Temp is " + temporary);
 //            }
             if (_ack)
             {
-			AMQFrame frame = null;
+                AMQFrame frame = null;
 
-			do
-			{
-	                if (_log.isDebugEnabled()) _log.debug("Sync, waiting for 'ack' from server for handle id " + handleId);
+                do
+                {
+                    if (_log.isDebugEnabled())
+                    {
+                        _log.debug("Sync, waiting for 'ack' from server for handle id " + handleId);
+                    }
 
-      	          frame = getFramingFactory().receiveFrame();
+                    frame = getFramingFactory().receiveFrame();
 
-			    if (_log.isDebugEnabled())
-                		{
-                    	_log.debug(String.valueOf(frame));
-                		}
-			}
-			while(!(frame instanceof AMQHandle.Reply));
+                    if (frame instanceof AMQHandle.Created)
+                    {
+                        AMQHandle.Created createdHandle =(AMQHandle.Created)frame;
+                        destName = createdHandle.destName;
+                    }
+                    if (_log.isDebugEnabled())
+                    {
+                        _log.debug(String.valueOf(frame));
+                    }
+                }
+                while (!(frame instanceof AMQHandle.Reply));
 
                 AMQHandle.Reply ack = (AMQHandle.Reply) frame;
                 if (_log.isDebugEnabled())
@@ -275,7 +300,11 @@ System.err.println("Temp is " + temporary);
                 }
             }
 
-            if (_log.isDebugEnabled()) _log.debug("Done creating queue with handle id " + handleId);
+            if (_log.isDebugEnabled())
+            {
+                _log.debug("Done creating queue with handle id " + handleId);
+            }
+            return destName;
         }
         catch (AMQException e)
         {
@@ -323,7 +352,8 @@ System.err.println("Temp is " + temporary);
     /**
      * Internal implementation method. Called by QueueWriter to do the mechanics of
      * sending a message.
-     * @param m the message
+     *
+     * @param m        the message
      * @param handleId
      * @throws AMQClientException
      */
