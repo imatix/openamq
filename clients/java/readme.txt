@@ -36,18 +36,22 @@ Running the test clients
 
 1. JMS Hello World client
 
-    java -cp OpenAMQJava.jar:jms.jar:. JMSHelloWorld
+    Produce through JMS interface:
+        java -cp OpenAMQJava.jar:jms.jar:. JMSHelloWorld -H /test -D test -s <server>
+    Consume with plain AMQP interface:    
+        java -cp OpenAMQJava.jar:. EchoClient -s localhost -r test -s <server>  
 
 1. Simple pattern checking serial client
 
-    java -cp OpenAMQJava.jar:. amqpcli_serial
-    java -Xmx256M -cp OpenAMQJava.jar:. amqpcli_serial -x 1G -m 1
-
-    The second call sends a 1GB message through the server (SUN's JRE).
+    This call sends a series of small messages through the server
+        java -cp OpenAMQJava.jar:. amqpcli_serial -s <server>
+    This call sends a 1GB message through the server (SUN's JRE).
+        java -Xmx256M -cp OpenAMQJava.jar:. amqpcli_serial -x 1G -m 1 -s <server>
 
 2. Echo (chat) client
 
-    java -cp OpenAMQJava.jar:. EchoClient
-
-    In separate windows, run the openamq/clients/stdc/chat_in and chat_out
-    clients.
+    Create peer 1:
+        java -cp OpenAMQJava.jar:. EchoClient -s <server>
+    Create peer 2:
+        java -cp OpenAMQJava.jar:. EchoClient -c client2 -r "q-b" -w "q-a" -s <server>
+    
