@@ -286,6 +286,7 @@ public class Connection extends amqpcli_serial
                     {
                         AMQHandle.Created createdHandle =(AMQHandle.Created)frame;
                         destName = createdHandle.destName;
+                        _log.debug("Handle created received with destination name " + destName);
                     }
                     if (_log.isDebugEnabled())
                     {
