@@ -1,8 +1,15 @@
+0.8d2 - 2005/06/02
+  Server:
+      - new code for handling topic subscriptions
+      - server catches channel/handle IDs 0, which are illegal
+
 0.8d1 - 2005/06/02
   Server:
+      - deletes dynamic queues when last consumer goes away
+      - framing code did not properly free memory after a framing error
       - fixed consume command confirmation, which came after notifies,
-        rather than before.
-      - same for handle unget, handle flow, and channel ack.
+        rather than before
+      - same for handle unget, handle flow, and channel ack
       - when last consumer leaves dynamic queue, queue is purged
       - all topic messages now held in single vhost queue
       - added content-based routing
@@ -17,7 +24,7 @@
   Clients:
       - agnostic/stdc client updated to latest protocol version
 
-0.8d0
+0.8d0 - 2005/05/31
   - added new functionality to AMQP/0.8 protocol
     HANDLE CONSUME:
         'dynamic' flag allows dynamic queue creation

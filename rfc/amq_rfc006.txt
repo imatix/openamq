@@ -5,7 +5,7 @@ gdl
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/04/16
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.8d1
+    version   = 0.8d2
 end gdl
 
 Cover
@@ -23,6 +23,10 @@ This document is ready for review.
 
 Recent Change History
 ---------------------
+
+2005/05/28 - 0.8d2:
+
+- in HANDLE OPEN, handle id may not be zero.
 
 2005/05/28 - 0.8d1:
 
@@ -1812,7 +1816,7 @@ channel-id:
 handle-id:
     The handle reference chosen by the client. This ID must be unique
     within the connection and must not refer to a handle that is already
-    open.
+    open.  It may not be zero.
 service-type:
     The service type required. The valid service types are defined below.
 confirm-tag:
