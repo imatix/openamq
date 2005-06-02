@@ -1,7 +1,7 @@
-0.8d1 - 2005/06/01
+0.8d1 - 2005/06/02
 
  - Updated to protocol 0.8d1
- - Bug fixes
+ - Bug fixes for locking and synchronization problems
  - New functionality: 
    - Field tables
    - Fragmentation supported on receive, sender still 

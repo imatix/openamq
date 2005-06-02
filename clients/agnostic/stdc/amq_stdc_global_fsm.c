@@ -18,50 +18,56 @@ byte global_context_exists = 0;
  *  State machine definitions
  *---------------------------------------------------------------------------*/
 
+/*  Structure defining a list of locks                                       */
 typedef struct tag_lock_context_t
 {
     apr_thread_mutex_t
-        *mutex;
+        *mutex;                         /*  Mutex used by this lock          */ 
     dbyte
-        lock_id;
+        lock_id;                        /*  ID of this lock                  */
     dbyte
-        connection_id;
+        connection_id;                  /*  Connection this lock belongs to  */
     dbyte
-        channel_id;
+        channel_id;                     /*  Channel this lock belongs to     */
     byte
-        permanent;
+        permanent;                      /*  Is this lock permanent?          */
+    byte
+        valid;                          /*  Is this lock valid for waiting?  */
     void
-        *result;
+        *result;                        /*  Value returned by wait_for_lock  */
     apr_status_t
-        error;
-    struct tag_lock_context_t *next;
+        error;                          /*  Optional error code returned by  */
+                                        /*  wait_for_lock                    */
+    struct tag_lock_context_t 
+        *next;                          /*  Next lock in list                */
 } lock_context_t;
 
+/*  Structure defining a list of connections                                 */
 typedef struct tag_connection_list_item_t
 {
     connection_fsm_t
-        connection;
+        connection;                     /*  Connection                       */
     struct tag_connection_list_item_t
-        *next;
+        *next;                          /*  Next connection in list          */
 } connection_list_item_t;
 
 #define GLOBAL_FSM_OBJECT_ID 0
 
 DEFINE_GLOBAL_FSM_CONTEXT_BEGIN
     dbyte
-        last_lock_id;               /*  Last lock id used                    */
+        last_lock_id;                   /*  Last lock id used                */
     dbyte
-        last_connection_id;         /*  Last connection id used - connection */
-                                    /*  id is not a part of AMQP protocol    */
-                                    /*  To be used for debugging purposes    */
+        last_connection_id;             /*  Last connection id used          */
+                                        /*  (not part of protocol, used for  */
+                                        /*  debugging purposes)              */
     dbyte
-        last_channel_id;            /*  Last channel id used                 */
+        last_channel_id;                /*  Last channel id used             */
     dbyte
-        last_handle_id;             /*  Last handle id used                  */
+        last_handle_id;                 /*  Last handle id used              */
     lock_context_t
-        *locks;                     /*  Linked list of existing locks        */
+        *locks;                         /*  Linked list of existing locks    */
     connection_list_item_t
-        *connections;               /*  Linked list of all connections       */
+        *connections;                   /*  Linked list of all connections   */
 DEFINE_GLOBAL_FSM_CONTEXT_END
 
 inline static apr_status_t do_construct (
@@ -70,12 +76,12 @@ inline static apr_status_t do_construct (
 {
     if (global_context_exists) 
         AMQ_ASSERT (Global context already exists)
-    context->last_lock_id = 0;
+    context->last_lock_id       = 0;
     context->last_connection_id = 0;
-    context->last_channel_id = 0;
-    context->last_handle_id = 0;
-    context->connections = NULL;
-    global_context_exists = 1;
+    context->last_channel_id    = 0;
+    context->last_handle_id     = 0;
+    context->connections        = NULL;
+    global_context_exists       = 1;
     return APR_SUCCESS;
 }
 
@@ -131,8 +137,9 @@ apr_status_t register_lock (
 
     result = global_fsm_sync_begin (context);
     AMQ_ASSERT_STATUS (result, global_fsm_sync_begin)
-    id = ++context->last_lock_id;
-    temp = context->locks;
+
+    id             = ++context->last_lock_id;
+    temp           = context->locks;
     context->locks = amq_malloc (sizeof (lock_context_t));
     if (context->locks == NULL)
         AMQ_ASSERT (Not enough memory)
@@ -141,18 +148,22 @@ apr_status_t register_lock (
     AMQ_ASSERT_STATUS (result, apr_thread_mutex_create)
     result = apr_thread_mutex_lock (context->locks->mutex);
     AMQ_ASSERT_STATUS (result, apr_thread_mutex_lock)
-    context->locks->lock_id = id;
+    context->locks->lock_id       = id;
     context->locks->connection_id = connection_id;
-    context->locks->channel_id = channel_id;
-    context->locks->permanent = permanent;
-    context->locks->next = temp;
-    context->locks->result = NULL;
-    context->locks->error = APR_SUCCESS;
+    context->locks->channel_id    = channel_id;
+    context->locks->permanent     = permanent;
+    context->locks->next          = temp;
+    context->locks->result        = NULL;
+    context->locks->error         = APR_SUCCESS;
+    context->locks->valid         = 1;
+
     result = global_fsm_sync_end (context);
     AMQ_ASSERT_STATUS (result, global_fsm_sync_end)
 
-    if (lock) *lock = (amq_stdc_lock_t) (context->locks);
-    if (lock_id) *lock_id = id;
+    if (lock)
+        *lock = (amq_stdc_lock_t) (context->locks);
+    if (lock_id)
+        *lock_id = id;
 #   ifdef AMQTRACE_LOCKS
         printf ("# Lock %ld registered. "
             "(connection %ld, channel %ld)\n", (long) id,
@@ -245,7 +256,16 @@ apr_status_t wait_for_lock (
 
     /*  No lock - no problem                                                 */
     if (!lck) {
-        if (res) *res = NULL;
+        if (res) 
+            *res = NULL;
+        return APR_SUCCESS;
+    }
+
+    /*  Lock is no longer valid.  Destroy it, and return immediately         */
+    if (!lock->valid) {
+        if (res) 
+            *res = NULL;
+        amq_free ((void*) lock);
         return APR_SUCCESS;
     }
 
@@ -370,9 +390,13 @@ apr_status_t unregister_lock (
         /*  Confirmation that someone is waiting for arrived.                */
         if (temp->lock_id == lock_id && temp->permanent) {
 
-            /*  Remove item from the linked list                             */
+            /*  Remove lock from the linked list                             */
             *last = temp->next;
             temp->result = NULL;
+
+            /*  Mark lock as no longer valid, will be destroyed by next call
+             *  to wait_for_lock                                             */
+            temp->valid = 0;
 
             /*  Resume execution of waiting thread                           */
 #           ifdef AMQTRACE_LOCKS
@@ -381,8 +405,6 @@ apr_status_t unregister_lock (
             result = apr_thread_mutex_unlock (temp->mutex);
             AMQ_ASSERT_STATUS (result, apr_thread_mutex_unlock)
 
-            /*  TODO: Destroy the lock !!!!                                  */
-            amq_free ((void*) temp);
             break;
         }
         last = &(temp->next);

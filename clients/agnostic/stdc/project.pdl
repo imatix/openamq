@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <pdl
     name      = "OpenAMQ Agnostic C Client"
-    acronym   = "OpenAMQ_Agnostic_C"
+    acronym   = "amq_stdc"
     version   = "0.8d1"
     copyright = "Copyright (c) 1991-2005 iMatix Corporation"
     library   = "libamq_stdc"

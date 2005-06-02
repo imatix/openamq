@@ -453,27 +453,18 @@ static void *s_sender_thread (
 
     while (1) {
        
-       /*  Conection requested to stop                                       */
-       if (context->stop == 1)
-           break;
-
        /*  Request a chunk to send                                           */
        result = connection_fsm_get_chunk (context);
        AMQ_ASSERT_STATUS (result, connection_fsm_get_chunk)
        
-       /*  Conection requested to stop                                       */
-       if (context->stop == 1)
-           break;
-
        /*  Wait for chunk                                                    */
        result = wait_for_lock (context->sender_lock, (void**) &chunk);
        AMQ_ASSERT_STATUS (result, wait_for_lock)
 
        /*  Conection requested to stop                                       */
-       if (context->stop == 1)
+       if (chunk == NULL)
            break;
 
-       assert (chunk);
        /*  Is PING to be sent ? If so, do it.                                */
        if (chunk->send_ping) {
            size = ping_data_size;
