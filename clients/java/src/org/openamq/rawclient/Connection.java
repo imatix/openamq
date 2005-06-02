@@ -231,6 +231,7 @@ public class Connection extends amqpcli_serial
         _handleOpen.destName = destName;
         if (temporary && !"".equals(destName))
         {
+            _log.warn("CAUTION: destName with temporary queue not currently supported");
             destName = "";
         }
 
