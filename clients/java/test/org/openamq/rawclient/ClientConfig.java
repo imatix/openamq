@@ -73,6 +73,16 @@ public class ClientConfig
         return (rest);
     }
 
+    public String getUser()
+    {
+        return user;
+    }
+
+    public String getPassword()
+    {
+        return password;
+    }
+
     public static ClientConfig getDefaultInstance()
     {
         return (_defaultInstance);
