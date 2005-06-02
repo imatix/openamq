@@ -35,7 +35,7 @@ levels respectively).
         *consumer;                      /*  Consumer for this subscription   */
 
     ipr_shortstr_t
-        topic_exp;                      /*  Original topic expression        */
+        topic_re;                       /*  Topic regular expression         */
     ipr_longstr_t
         *selector;                      /*  Original selector for subscr     */
     int
@@ -52,29 +52,26 @@ levels respectively).
     </doc>
     <argument name = "consumer" type = "amq_consumer_t *"      >Consumer object</argument>
     <argument name = "command"  type = "amq_handle_consume_t *">Passed command</argument>
-    
+
     self->consumer = consumer;
     self->vhost    = consumer->handle->vhost;
     self->index    = ipr_index_insert (self->vhost->subscr_index, self);
     self->matches  = ipr_looseref_list_new ();
     self->selector = ipr_longstr_new (command->selector->data, command->selector->cur_size);
-    
-    /*  Take topic selector from command dest_name                           */
-    ipr_shortstr_cpy (self->topic_exp, command->dest_name);
+
+    /*  Take topic selector regexp from command dest_name                    */
+    amq_match_topic_re (self->topic_re, command->dest_name);
 
     /*  Parse the topic name into the match table                            */
     amq_match_table_parse_topic (
         self->vhost->match_topics,      /*  Match table to populate          */
-        self->vhost->dest_list,         /*  List of known destinations       */
-        self->topic_exp,                /*  This destination expression      */
         self);                          /*  Subscription to register         */
 
     /*  Parse the field specifiers into the match table                      */
     amq_match_table_parse_fields (
         self->vhost->match_fields,      /*  Match table to populate          */
-        self->selector,                 /*  Selector fields                  */
         self);                          /*  Subscription to register         */
-            
+
     /*  Attach subscription to vhost list                                    */
     amq_subscr_list_queue (self->vhost->subscr_list, self);
 </method>

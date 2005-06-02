@@ -128,7 +128,10 @@ This class implements the AMQP HANDLE commands.
         dest = amq_dest_search (self->vhost->queue_hash, command->dest_name);
     else {
         dest = self->vhost->topic_dest;
-        s_check_if_new_topic (self, command->dest_name);
+        amq_match_table_check_topic (
+            self->vhost->match_topics,
+            command->dest_name,
+            self->vhost->subscr_list);
     }
     if (dest) {
         /*  Stamp message with destination name and save to queue            */
@@ -221,41 +224,6 @@ This class implements the AMQP HANDLE commands.
     else
         amq_global_set_error (AMQP_COMMAND_INVALID, "Cannot browse topics");
 </method>
-
-<private name = "header">
-static void s_check_if_new_topic ($(selftype) *self, char *dest_name);
-</private>
-
-<private>
-static void
-s_check_if_new_topic ($(selftype) *self, char *dest_name)
-{
-#if 0
-    amq_subscr_t
-        *subscr;                        /*  Subscription object              */
-
-
-    -- this can be done in amq_match_table:
-
-    if (amq_match_search (self->vhost->match_topics, dest_name) == NULL) {
-        /*  Insert topic into match table so we don't do this again          */
-        amq_match_new (self->vhost->match_topics, dest_name);
-
-        /*  Recompile all subscriptions for this topic                       */
-        subscr = amq_subscr_list_first (self->vhost->subscr_list);
-        while (subscr) {
-            subscr = amq_subscr_list_next (self->vhost->subscr_list);
-        }
-
-    /*
-            insert topic into table
-            go through all subscriptions
-            recompile for this topic
-      */
-    }
-#endif
-}
-</private>
 
 <method name = "selftest">
     <local>

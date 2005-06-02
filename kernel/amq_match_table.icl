@@ -12,9 +12,12 @@ This class implements the message matching.
 <inherit class = "ipr_hash_table" />
 <import class = "amq_match" />
 <option name = "childname" value = "amq_match" />
-<option name = "hash_size" value = "65535" />
+<!-- This limits the number of topics we can handle to 100k or so -->
+<option name = "hash_size" value = "150000" />
 
 <context>
+    amq_topic_array_t
+        *topics;
 </context>
 
 <method name = "new">
@@ -26,44 +29,34 @@ This class implements the message matching.
     the topic name specifier with each existing topic destination and create
     a term for each match.
     </doc>
-    <argument name = "dest list" type = "amq_dest_list_t *">Destinations</argument>
-    <argument name = "topic exp" type = "char *"        >Topic expression</argument>
-    <argument name = "subscr"    type = "amq_subscr_t *">Subscription to register</argument>
+    <argument name = "subscr" type = "amq_subscr_t *">Subscription to register</argument>
     <local>
-    ipr_shortstr_t
-        pattern;
-    amq_dest_t
-        *dest;                          /*  Vhost destination                */
+    amq_topic_t
+        *topic;                         /*  Vhost topic                      */
     amq_match_t
         *match;                         /*  Match item                       */
     ipr_regexp_t
         *regexp;                        /*  Regular expression object        */
+    int
+        topic_nbr;                      /*  Topic index                      */
     </local>
-    assert (dest_list);
-    assert (topic_exp);
     assert (subscr);
 
     /*  We scan all known topics to see which ones match our criteria        */
-    /*  This strategy assumes that topics are declared in advance...         */
-    amq_match_topic_re (pattern, topic_exp);
-    regexp = ipr_regexp_new (pattern);
+    regexp = ipr_regexp_new (subscr->topic_re);
 
-    dest = amq_dest_list_first (dest_list);
-    while (dest) {
-        if (dest->service_type == AMQP_SERVICE_TOPIC) {
-            if (ipr_regexp_match (regexp, dest->key, NULL)) {
-                match = amq_match_search (self, dest->key);
-                if (match == NULL)
-                    match = amq_match_new (self, dest->key);
+    for (topic_nbr = 0; topic_nbr < self->topics->size; topic_nbr++) {
+        topic = amq_topic_array_fetch (self->topics, topic_nbr);
+        if (ipr_regexp_match (regexp, topic->dest_name, NULL)) {
+            /*  Topic must be defined in match table                         */
+            match = amq_match_search (self, topic->dest_name);
+            assert (match);
+            /*  Flag this subscription as matching                           */
+            ipr_bits_set (match->bits, subscr->index);
 
-                /*  Flag this subscription as matching                       */
-                ipr_bits_set (match->bits, subscr->index);
-
-                /*  Add a reference to the subscription                      */
-                ipr_looseref_new (subscr->matches, match);
-            }
+            /*  Add a reference to the subscription                          */
+            ipr_looseref_new (subscr->matches, match);
         }
-        dest = amq_dest_list_next (dest_list, dest);
     }
     ipr_regexp_destroy (&regexp);
 </method>
@@ -74,8 +67,7 @@ This class implements the message matching.
     a term for each field/value combination.  We restrict field names to 30
     bytes and field values to 127 bytes.
     </doc>
-    <argument name = "selector" type = "ipr_longstr_t *">Selector table</argument>
-    <argument name = "subscr"   type = "amq_subscr_t *" >Subscription to register</argument>
+    <argument name = "subscr" type = "amq_subscr_t *" >Subscription to register</argument>
     <local>
     amq_field_list_t
         *fields;                        /*  Selector fields                  */
@@ -90,7 +82,7 @@ This class implements the message matching.
 #   define FIELD_NAME_MAX   30          /*  Arbitrary limit to get           */
 #   define FIELD_VALUE_MAX  30          /*    name=value into shortstr       */
 
-    fields = amq_field_list_new (selector);
+    fields = amq_field_list_new (subscr->selector);
     field  = amq_field_list_first (fields);
     while (field) {
         amq_match_field_value (match_key, field);
@@ -110,6 +102,45 @@ This class implements the message matching.
         subscr->field_count++;
     }
     amq_field_list_destroy (&fields);
+</method>
+
+<method name = "check topic" template = "function">
+    <doc>
+    Checks whether the specified topic name has already been seen by
+    susbcribers, and if not, rebuilds a match table entry for the
+    topic, for all subscribers.  This method is designed to allow the
+    topic match table to be constructed dynamically as publishers use
+    new topic names.
+    </doc>
+    <argument name = "dest name"   type = "char *">Topic destination</argument>
+    <argument name = "subscr_list" type = "amq_subscr_list_t *">Current subscribers</argument>
+    <local>
+    amq_match_t
+        *match;                         /*  Match item                       */
+    amq_subscr_t
+        *subscr;                        /*  Subscription object              */
+    ipr_regexp_t
+        *regexp;                        /*  Regular expression object        */
+    </local>
+    if (amq_match_search (self, dest_name) == NULL) {
+        match = amq_match_new (self, dest_name);
+        amq_topic_new (self->topics, self->topics->size, dest_name);
+
+        /*  Recompile all subscriptions for this topic                       */
+        subscr = amq_subscr_list_first (subscr_list);
+        while (subscr) {
+            regexp = ipr_regexp_new (subscr->topic_re);
+            if (ipr_regexp_match (regexp, dest_name, NULL)) {
+                /*  Flag this subscription as matching                       */
+                ipr_bits_set (match->bits, subscr->index);
+
+                /*  Add a reference to the subscription                      */
+                ipr_looseref_new (subscr->matches, match);
+            }
+            ipr_regexp_destroy (&regexp);
+            subscr = amq_subscr_list_next (subscr_list, subscr);
+        }
+    }
 </method>
 
 <method name = "selftest" />

@@ -1169,7 +1169,7 @@ static void inline s_sock_read    (smt_thread_t *thread, byte *buffer, size_t si
 static void
 use_command_handle (smt_thread_t *thread, dbyte handle_id)
 {
-    if (tcb->handle_id == 0) {
+    if (handle_id == 0) {
         tcb->reply_code = AMQP_SYNTAX_ERROR;
         tcb->reply_text = "Handle ID may not be zero";
         smt_thread_raise_exception (thread, connection_error_event);
@@ -1187,7 +1187,7 @@ use_command_handle (smt_thread_t *thread, dbyte handle_id)
 static void
 use_command_channel (smt_thread_t *thread, dbyte channel_id)
 {
-    if (tcb->channel_id == 0) {
+    if (channel_id == 0) {
         tcb->reply_code = AMQP_SYNTAX_ERROR;
         tcb->reply_text = "Channel ID may not be zero";
         smt_thread_raise_exception (thread, connection_error_event);

@@ -61,8 +61,6 @@
 
 <method name = "destroy">
     <local>
-    amq_handle_t
-        *handle;
     amq_channel_t
         *channel;
     uint

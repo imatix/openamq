@@ -243,5 +243,6 @@ amq_test_matching
 amq_hitset.c
 amq_hitset.h
 amq_hitset_test.c
+amq_topic_array.icl
 
 
