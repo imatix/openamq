@@ -15,7 +15,7 @@ public class SimpleTest2
         try
         {
             Connection con = ConnectionFactory.createConnection(host, port, "mahnah", "mahanah", 0);
-            QueueReader qr = con.createQueueReader("test", false, 0, new MessageReceivedCallback()
+            QueueReader qr = con.createQueueReader("test", false, true, new MessageReceivedCallback()
             {
                 public void onMessage(Message m) throws AMQClientException
                 {

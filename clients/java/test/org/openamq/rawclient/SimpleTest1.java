@@ -1,10 +1,5 @@
 package org.openamq.rawclient;
 
-import org.openamq.rawclient.Connection;
-import org.openamq.rawclient.ConnectionFactory;
-import org.openamq.rawclient.QueueWriter;
-import org.openamq.rawclient.Message;
-
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
@@ -18,7 +13,7 @@ public class SimpleTest1
         try
         {
             Connection con = ConnectionFactory.createConnection(host, port, "mahnah", "mahanah", 0);
-            QueueWriter qw = con.createQueueWriter("test", false, 0);
+            QueueWriter qw = con.createQueueWriter("test", true);
             Message msg = new Message("pies");
             qw.write(msg);
             System.out.println("Completed.");
