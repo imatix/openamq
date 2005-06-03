@@ -3,8 +3,6 @@
 //  Schema file used: lrschema.jav.
 package org.openamq.rawclient;
 
-package org.openamq.rawclient;
-
 import java.awt.*;
 import java.applet.*;
 import java.net.*;
