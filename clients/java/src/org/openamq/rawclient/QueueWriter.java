@@ -48,19 +48,19 @@ public class QueueWriter
     public void write(byte[] message) throws AMQClientException
     {
         _log.debug("Sending byte message on queue " + _name + "(handle id " + _handleId + ")");
-        _connection.sendMessage(new Message(message), _handleId);
+        _connection.sendMessage(new Message(message), _handleId, _name);
     }
 
     public void write(String message) throws AMQClientException
     {
         _log.debug("Sending string message on queue " + _name + "(handle id " + _handleId + ")");
-        _connection.sendMessage(new Message(message), _handleId);
+        _connection.sendMessage(new Message(message), _handleId, _name);
     }
 
     public void write(Message m) throws AMQClientException
     {
         _log.debug("Sending message on queue " + _name + "(handle id " + _handleId + ")");
-        _connection.sendMessage(m, _handleId);
+        _connection.sendMessage(m, _handleId, _name);
     }
 
     public Connection getConnection()

@@ -160,6 +160,7 @@ public class Connection extends amqpcli_serial
         try
         {
             _handleConsume.handleId = handleId;
+            _handleConsume.destName = destName;
             getFramingFactory().sendFrame(_handleConsume);
         }
         catch (AMQException e)
@@ -228,12 +229,6 @@ public class Connection extends amqpcli_serial
         _handleOpen.producer = producer;
         _handleOpen.consumer = consumer;
         _handleOpen.temporary = temporary;
-        _handleOpen.destName = destName;
-        if (temporary && !"".equals(destName))
-        {
-            _log.warn("CAUTION: destName with temporary queue not currently supported");
-            destName = "";
-        }
 
         _handleOpen.channelId = _channelId;
         _handleOpen.serviceType = (_ack ? 1 : 0);
@@ -359,7 +354,7 @@ public class Connection extends amqpcli_serial
      * @param handleId
      * @throws AMQClientException
      */
-    void sendMessage(Message m, int handleId) throws AMQClientException
+    void sendMessage(Message m, int handleId, String destName) throws AMQClientException
     {
         byte[] messageBody = m.getBytes();
 
@@ -380,6 +375,7 @@ public class Connection extends amqpcli_serial
         }
         // Set the fragment size
         _handleSend.fragmentSize = messageHead.size() + messageHead.bodySize;
+        _handleSend.destName = destName;
         if (_handleSend.fragmentSize <= amq_framing.getFrameMax())
         {
             try
