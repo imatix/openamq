@@ -68,7 +68,7 @@ public class JMSConnection implements Connection {
             clientOpen = (AMQConnection.Open)amqFraming.constructFrame(AMQConnection.OPEN);
             clientOpen.confirmTag = 0;
             clientOpen.virtualPath = null;
-            clientOpen.clientName = "OpenAMQ/Java Client " + connID++;
+            clientOpen.clientName = "OpenAMQ/JMS Client " + connID++;
             clientOpen.options = null;
             // Connection close defaults
             clientClose = (AMQConnection.Close)amqFraming.constructFrame(AMQConnection.CLOSE);

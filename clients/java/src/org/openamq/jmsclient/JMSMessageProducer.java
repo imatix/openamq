@@ -40,7 +40,7 @@ public class JMSMessageProducer implements MessageProducer {
             handle = (AMQHandle.Send)amqFraming.constructFrame(AMQHandle.SEND);
 
             if (destination instanceof JMSQueue) {
-                handleOpen.destName = ((JMSQueue)destination).getQueueName();
+                handle.destName = ((JMSQueue)destination).getQueueName();
                 handleOpen.serviceType = 1;
             } else {
                 throwNotImplementedException();
@@ -70,7 +70,6 @@ public class JMSMessageProducer implements MessageProducer {
             handle.outOfBand = false;
             handle.recovery = false;
             handle.immediate = false;
-            handle.destName = "";
         } catch (ClassCastException e) {
             throw new JMSException("JMSMessageProducer: " + "JMSMessageProducer: " + "unexpected frame from server");
         } catch (IOException e) {
