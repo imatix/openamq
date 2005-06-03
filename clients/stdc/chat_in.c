@@ -137,7 +137,8 @@ main (int argc, char *argv [])
         1,                              /*  Prefetch size                    */
         FALSE,                          /*  No local                         */
         TRUE,                           /*  No acknowledgements              */
-        TRUE);                          /*  Dynamic queue consumer           */
+        TRUE,                           /*  Dynamic queue consumer           */
+        FALSE);                         /*  Exclusive                        */
 
     while (TRUE) {
         message = amq_sclient_msg_read (amq_client, 0);

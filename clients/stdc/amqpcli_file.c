@@ -78,7 +78,7 @@ static void
 s_connected (amq_aclient_connected_t *args)
 {
     channel_id = amq_aclient_channel_open (args->client, FALSE, FALSE);
-    handle_id  = amq_aclient_handle_open  (args->client, channel_id, FALSE, AMQP_SERVICE_QUEUE);
+    handle_id  = amq_aclient_handle_open  (args->client, channel_id, AMQP_SERVICE_QUEUE);
 
     /*  Register server-driven close feedbacks                               */
     amq_aclient_register (args->client, AMQ_ACLIENT_HANDLE_CLOSE,  s_handle_close);
@@ -93,9 +93,10 @@ s_connected (amq_aclient_connected_t *args)
             TRUE,                       /*  No local delivery                */
             FALSE,                      /*  Auto-ack at server side          */
             FALSE,                      /*  Dynamic consumer                 */
+            FALSE,                      /*  Exclusive consumer               */
             dest_name);                 /*  Destination name                 */
         amq_aclient_register (args->client, AMQ_ACLIENT_HANDLE_NOTIFY, s_handle_notify);
-    }         
+    }
     /*  Register monitor function if outbox is defined                       */
     if (outbox[0])
         amq_aclient_register (args->client, AMQ_ACLIENT_MONITOR, s_file_monitor);

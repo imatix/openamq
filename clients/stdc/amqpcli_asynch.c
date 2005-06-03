@@ -75,7 +75,7 @@ s_connected (amq_aclient_connected_t *args)
     channel_id = amq_aclient_channel_open (args->client, FALSE, FALSE);
 
     /*  Open pre-configured test queues                                      */
-    smallq_id = amq_aclient_handle_open (args->client, channel_id, AMQP_SERVICE_QUEUE, FALSE);
+    smallq_id = amq_aclient_handle_open (args->client, channel_id, AMQP_SERVICE_QUEUE);
 
     /*  Register as consumer for both queues                                 */
     if (consumer) {
@@ -86,6 +86,7 @@ s_connected (amq_aclient_connected_t *args)
             TRUE,                       /*  No local delivery                */
             FALSE,                      /*  Auto-ack at server side          */
             FALSE,                      /*  Dynamic consumer                 */
+            FALSE,                      /*  Exclusive use                    */
             "test-small");              /*  Destination name                 */
     }
     if (producer) {

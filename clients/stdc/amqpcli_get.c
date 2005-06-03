@@ -76,7 +76,15 @@ main (int argc, char *argv [])
     if (amq_client) {
         if (amq_sclient_connect (amq_client, hostname, virtual_path)) {
             msecs = (qbyte) atol (timeout) * 1000;
-            handle = amq_sclient_consumer (amq_client, AMQP_SERVICE_QUEUE, route, 1, TRUE, FALSE, FALSE);
+            handle = amq_sclient_consumer (
+                amq_client,
+                AMQP_SERVICE_QUEUE,
+                route,
+                1,                      /*  Prefetch size                    */
+                TRUE,                   /*  No local                         */
+                FALSE,                  /*  No ack                           */
+                FALSE,                  /*  Dynamic                          */
+                FALSE);                 /*  Exclusive                        */
             message = amq_sclient_msg_read (amq_client, msecs);
             if (! message) {
                 coprintf ("E: Error reading message from server");
