@@ -348,9 +348,8 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
             vhost->queue_hash,          /*  Queues for virtual host          */
             vhost,                      /*  Parent virtual host              */
             AMQP_SERVICE_QUEUE,         /*  Service type                     */
-            TRUE,                       /*  Temporary destination?           */
-            "test-queue",               /*  External destination name        */
-            1);                         /*  Owning client id, if any         */
+            TRUE,                       /*  Dynamic destination?             */
+            "test-queue");              /*  External destination name        */
     assert (dest);
 
     /*  Record test message                                                  */

@@ -1,3 +1,17 @@
+0.8d4 - 2005/06/03
+
+  Protocol:
+    HANDLE CONSUME:
+        'exclusive' flag allows exclusive consumer
+        destination name can be empty - server generates a name
+        server always replies HANDLE CREATED when queue is created
+    HANDLE OPEN:
+        'temporary' flag removed.
+
+  Server:
+      - removed all temporary queue infrastructure.
+      - supports "auto-named" dynamic queues
+      
 0.8d3 - 2005/06/03
 
   Server:

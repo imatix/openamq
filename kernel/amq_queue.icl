@@ -78,6 +78,8 @@ were split to keep the code within sane limits.
         nbr_consumers;                  /*  Number of consumers              */
     Bool
         dynamic;                        /*  Dynamic queue?                   */
+    Bool
+        exclusive;                      /*  Exclusive consumer on queue      */
     amq_mesgref_list_t
         **message_list;                 /*  Pending non-persistent messages  */
     qbyte
@@ -128,7 +130,7 @@ were split to keep the code within sane limits.
     if (file_exists (filename)) {
         self->disk_queue_size = self_count (self);
         if (self->disk_queue_size) {
-            if (self->dest->opt_auto_purge || self->dest->temporary)
+            if (self->dest->opt_auto_purge || self->dest->dynamic)
                 self_purge (self);
             else
                if (amq_global_verbose ())

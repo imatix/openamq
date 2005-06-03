@@ -74,13 +74,12 @@
 
     channel-close        = %d29 channel-id reply-code reply-text
 
-    handle-open          = %d30 channel-id handle-id service-type confirm-tag producer consumer browser temporary mime-type encoding options
+    handle-open          = %d30 channel-id handle-id service-type confirm-tag producer consumer browser mime-type encoding options
     handle-id            = short-integer
     service-type         = short-integer
     producer             = BIT
     consumer             = BIT
     browser              = BIT
-    temporary            = BIT
     mime-type            = short-string
     encoding             = short-string
 
@@ -91,11 +90,12 @@
     immediate            = BIT
     dest-name            = short-string
 
-    handle-consume       = %d32 handle-id confirm-tag prefetch no-local no-ack dynamic dest-name selector
+    handle-consume       = %d32 handle-id confirm-tag prefetch no-local no-ack dynamic exclusive dest-name selector
     prefetch             = short-integer
     no-local             = BIT
     no-ack               = BIT
     dynamic              = BIT
+    exclusive            = BIT
     selector             = long-string
 
     handle-flow          = %d34 handle-id confirm-tag flow-pause

@@ -25,12 +25,12 @@
     </table>
 
     <table name = "dest" description = "Destination">
-    Defines a temporary or long-lived destination.
+    Defines a dynamic or long-lived destination.
         <field name = "id"          domain = "recordid" >Record id</field>
         <field name = "active"      domain = "boolean"  >Currently active?</field>
         <field name = "type"        domain = "shortint" >Destination type</field>
         <field name = "name"        domain = "shortstr" >Destination name</field>
-        <field name = "temporary"   domain = "boolean"  >Temporary?</field>
+        <field name = "dynamic"     domain = "boolean"  >Dynamic destination?</field>
         <field name = "client id"   domain = "id"       >Owned by this client</field>
         <index name = "byname">
             <field name = "type" />

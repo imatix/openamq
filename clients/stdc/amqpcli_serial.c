@@ -190,12 +190,15 @@ main (int argc, char *argv [])
     ||  amq_sclient_connect (amq_client, opt_server, "/test"))
         goto failed;
 
-    in_handle = amq_sclient_temporary (
+    in_handle = amq_sclient_consumer (
         amq_client,
         service_type,
-        batch_size,
+        NULL,                           /*  No name, let server make it      */
+        batch_size,                     /*  Prefetch size                    */
         FALSE,                          /*  No-local                         */
-        FALSE);                         /*  No-ack                           */
+        FALSE,                          /*  No-ack                           */
+        TRUE,                           /*  Dynamic                          */
+        TRUE);                          /*  Exclusive                        */
 
 coprintf ("TEMP NAME: %s", amq_client->dest_name);
 

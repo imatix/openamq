@@ -2,7 +2,13 @@
 <!-- frame definitions for AMQP/Fast -->
 
 <!-- Changes
-    0.8d
+    0.8d3
+    HANDLE CONSUME:
+        'exclusive' flag allows exclusive consumer.
+    HANDLE OPEN:
+        'temporary' flag removed.
+
+    0.8d0
     HANDLE CONSUME:
         'dynamic' flag allows dynamic queue creation.
         'selector' flag changed from string to table
@@ -139,7 +145,6 @@
         <field type = "bit"      name = "producer"     >Request producer access</field>
         <field type = "bit"      name = "consumer"     >Request consumer access</field>
         <field type = "bit"      name = "browser"      >Request browser access</field>
-        <field type = "bit"      name = "temporary"    >Request a temporary dest</field>
         <field type = "shortstr" name = "mime type"    >Default MIME type</field>
         <field type = "shortstr" name = "encoding"     >Default content encoding</field>
         <field type = "table"    name = "options"      >Destination options</field>
@@ -167,6 +172,7 @@
         <field type = "bit"      name = "no local"     >Don't deliver to self?</field>
         <field type = "bit"      name = "no ack"       >Don't acknowledge messages</field>
         <field type = "bit"      name = "dynamic"      >Dynamic queue creation?</field>
+        <field type = "bit"      name = "exclusive"    >Exclusive consumer?</field>
         <field type = "shortstr" name = "dest name"    >Destination name</field>
         <field type = "table"    name = "selector"     >Selector field values</field>
         <sender role = "client" />

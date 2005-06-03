@@ -123,7 +123,7 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
     AMQ_ACLIENT_CONNECTED:
         amq_connected_callback_fn, called when the connection is successful.
     AMQ_ACLIENT_HANDLE_CREATED:
-        amq_handle_created_callback_fn, called when a temporary destination has
+        amq_handle_created_callback_fn, called when a dynamic destination has
         been created for you.
     AMQ_ACLIENT_HANDLE_REPLY:
         amq_handle_reply_callback_fn, called when you get a confirmation back.
@@ -167,21 +167,21 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
     <argument name = "self"         type = "$(selftype) *"/>
     <argument name = "channel id"   type = "dbyte" >Channel id</argument>
     <argument name = "service type" type = "int"   >AMQP service type</argument>
-    <argument name = "temporary"    type = "Bool"  >Temporary access?</argument>
 
     <declare name = "handle_id" type = "dbyte">New handle id</declare>
 
     handle_id = ++self->top_handle;
     amq_aclient_agent_handle_open (
-        self->thread_handle, channel_id, handle_id, (dbyte) service_type, temporary);
+        self->thread_handle, channel_id, handle_id, (dbyte) service_type);
 </method>
 
 <method name = "handle consume" template = "function" >
-    <argument name = "handle id"   type = "dbyte"          >Handle id</argument>
-    <argument name = "prefetch"    type = "dbyte"          >Max pending messages</argument>
-    <argument name = "no local"    type = "Bool"           >Don't deliver to self?</argument>
-    <argument name = "no ack"      type = "Bool"           >Don't want to ack</argument>
-    <argument name = "dynamic"     type = "Bool"           >Dynamic consumer</argument>
+    <argument name = "handle id"   type = "dbyte">Handle id</argument>
+    <argument name = "prefetch"    type = "dbyte">Max pending messages</argument>
+    <argument name = "no local"    type = "Bool" >Don't deliver to self?</argument>
+    <argument name = "no ack"      type = "Bool" >Don't want to ack</argument>
+    <argument name = "dynamic"     type = "Bool" >Dynamic consumer</argument>
+    <argument name = "exclusive"   type = "Bool" >Exclusive consumer</argument>
     <argument name = "dest name"   type = "ipr_shortstr_t" >Destination name</argument>
 
     amq_aclient_agent_handle_consume (
@@ -191,6 +191,7 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
         no_local,
         no_ack,
         dynamic,
+        exclusive,
         dest_name);
 </method>
 

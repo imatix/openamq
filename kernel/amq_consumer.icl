@@ -27,6 +27,10 @@ and to a queue.
 #include "amq_frames.h"
 </public>
 
+<private name = "header">
+#include "amq_server_agent.h"           /*  Server agent methods             */
+</private>
+
 <context>
     /*  References to parent objects                                         */
     amq_handle_t
@@ -49,6 +53,8 @@ and to a queue.
         no_ack;                         /*  No ACKs are required             */
     Bool
         dynamic;                        /*  Dynamic queue consumer           */
+    Bool
+        exclusive;                      /*  Exclusive consumer               */
     int
         index;                          /*  Unique index per vhost           */
 </context>
@@ -56,12 +62,13 @@ and to a queue.
 <method name = "new">
     <argument name = "handle"  type = "amq_handle_t *"        >Current handle</argument>
     <argument name = "command" type = "amq_handle_consume_t *">Passed command</argument>
-    self->handle   = handle;
-    self->prefetch = command->prefetch? command->prefetch: 1;
-    self->window   = self->prefetch;
-    self->no_local = command->no_local;
-    self->no_ack   = command->no_ack;
-    self->dynamic  = command->dynamic;
+    self->handle    = handle;
+    self->prefetch  = command->prefetch? command->prefetch: 1;
+    self->window    = self->prefetch;
+    self->no_local  = command->no_local;
+    self->no_ack    = command->no_ack;
+    self->dynamic   = command->dynamic;
+    self->exclusive = command->exclusive;
 
     if (handle->service_type == AMQP_SERVICE_QUEUE)
         s_init_queue_consumer (self, command);
@@ -142,35 +149,37 @@ static void
 static void
 s_init_queue_consumer ($(selftype) *self, amq_handle_consume_t *command)
 {
-    /*  For queues the destination must exist                            */
+    static qbyte
+        dyn_count = 0;                  /*  Dynamic destination number       */
+
+    /*  Provide dynamic queue name if necessary                              */
+    if (self->dynamic && strnull (command->dest_name))
+        ipr_shortstr_fmt (command->dest_name, "dyn-%09ld", ++dyn_count);
+
+    /*  Look for queue destination                                           */
     self->dest = amq_dest_search (self->handle->vhost->queue_hash, command->dest_name);
 
-    /*  Create queue for dynamic consumers if needed                     */
+    /*  Create queue for dynamic consumers if needed                         */
     if (self->dest == NULL && self->dynamic) {
         coprintf ("I: creating dynamic queue '%s'", command->dest_name);
         self->dest = amq_dest_new (
             self->handle->vhost->queue_hash,
             self->handle->vhost,
             AMQP_SERVICE_QUEUE,
-            FALSE,
-            command->dest_name,
-            self->handle->client_id);
+            TRUE,
+            command->dest_name);
+        amq_server_agent_handle_created (
+            self->handle->thread,
+            (dbyte) self->handle->key,
+            self->dest->key);
     }
     if (self->dest) {
-        /*  We can consume on non-temporary queues
-            Or on temporary queues that we also own
-        */
-        if (self->dest->temporary == FALSE
-        ||  self->dest->client_id == self->handle->client_id) {
-            if (self->dest->opt_max_consumers == 0
-            ||  self->dest->opt_max_consumers > self->dest->queue->nbr_consumers) {
-                amq_queue_attach (self->dest->queue, self);
-            }
-            else
-                amq_global_set_error (AMQP_NOT_ALLOWED, "Destination consumer limit reached");
+        if (self->dest->opt_max_consumers == 0
+        ||  self->dest->opt_max_consumers > self->dest->queue->nbr_consumers) {
+            amq_queue_attach (self->dest->queue, self);
         }
         else
-            amq_global_set_error (AMQP_ACCESS_REFUSED, "Not owner of temporary queue");
+            amq_global_set_error (AMQP_NOT_ALLOWED, "Destination consumer limit reached");
     }
     else
         amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
@@ -195,9 +204,8 @@ s_init_topic_consumer ($(selftype) *self, amq_handle_consume_t *command)
         self->handle->vhost->subscr_hash,
         self->handle->vhost,
         AMQP_SERVICE_SUBSCR,
-        TRUE,                           /*  Temporary                        */
-        dest_name,
-        self->handle->client_id);       /*  Owner client                     */
+        TRUE,                           /*  Dynamic                          */
+        dest_name);
 
     /*  Attach consumer to subscription queue - will be only consumer        */
     amq_queue_attach (self->dest->queue, self);

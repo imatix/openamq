@@ -56,7 +56,7 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     ipr_shortstr_t
         msg_sender;                     /*  Its dest_name property           */
     ipr_shortstr_t
-        dest_name;                      /*  Temporary destination            */
+        dest_name;                      /*  Dynamic destination              */
     Bool
         msg_delivered;                  /*  Its delivered property           */
     Bool
@@ -130,7 +130,6 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
         CHANNEL_ID,
         ++self->cur_handle,
         (dbyte) service_type,
-        FALSE,
         &rc);
     smt_thread_execute (SMT_EXEC_FULL);
 
@@ -147,40 +146,9 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     <argument name = "no local"     type = "Bool"  >Don't want own messages</argument>
     <argument name = "no ack"       type = "Bool"  >No acknowledgements required</argument>
     <argument name = "dynamic"      type = "Bool"  >Dynamic queue consumer</argument>
-    assert (dest_name && *dest_name);
-
+    <argument name = "exclusive"    type = "Bool"  >Exclusive consumer</argument>
     amq_sclient_agent_handle_open (
-        self->thread_handle, CHANNEL_ID, ++self->cur_handle, (dbyte) service_type, FALSE, &rc);
-    smt_thread_execute (SMT_EXEC_FULL);
-
-    if (rc == AMQ_OK) {
-        amq_sclient_agent_handle_consume (
-            self->thread_handle, self->cur_handle, (dbyte) prefetch, no_local, no_ack, dynamic, dest_name, &rc);
-        smt_thread_execute (SMT_EXEC_FULL);
-    }
-    else
-    if (self->reply_code)
-        coprintf ("E: (consume) %d - %s", self->reply_code, self->reply_text);
-
-    if (rc == AMQ_OK)
-        rc = self->cur_handle;
-    else
-        rc = 0;
-</method>
-
-<method name = "temporary" template = "function">
-    <argument name = "service type" type = "int"   >AMQP service type</argument>
-    <argument name = "prefetch"     type = "int"   >Prefetch window size</argument>
-    <argument name = "no local"     type = "Bool"  >Don't want own messages</argument>
-    <argument name = "no ack"       type = "Bool"  >No acknowledgements required</argument>
-    
-    amq_sclient_agent_handle_open (
-        self->thread_handle,
-        CHANNEL_ID,
-        ++self->cur_handle,
-        (dbyte) service_type,
-        TRUE,
-        &rc);
+        self->thread_handle, CHANNEL_ID, ++self->cur_handle, (dbyte) service_type, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
 
     if (rc == AMQ_OK) {
@@ -190,14 +158,15 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
             (dbyte) prefetch,
             no_local,
             no_ack,
-            FALSE,
-            self->dest_name,
+            dynamic,
+            exclusive,
+            dest_name,
             &rc);
         smt_thread_execute (SMT_EXEC_FULL);
     }
     else
     if (self->reply_code)
-        coprintf ("E: (temporary) %d - %s", self->reply_code, self->reply_text);
+        coprintf ("E: (consume) %d - %s", self->reply_code, self->reply_text);
 
     if (rc == AMQ_OK)
         rc = self->cur_handle;

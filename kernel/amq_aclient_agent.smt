@@ -64,7 +64,6 @@ static int
     <argument name = "channel id"   type = "dbyte" >Channel number</argument>
     <argument name = "handle id"    type = "dbyte" >Handle number</argument>
     <argument name = "service type" type = "dbyte" >AMQP service type</argument>
-    <argument name = "temporary"    type = "Bool"  >Temporary access?</argument>
 </method>
 
 <method name = "handle consume" >
@@ -73,6 +72,7 @@ static int
     <argument name = "no local"     type = "Bool"  >Don\'t deliver to self?</argument>
     <argument name = "no ack"       type = "Bool"  >Don\'t want to ack</argument>
     <argument name = "dynamic"      type = "Bool"  >Dynamic queue creation</argument>
+    <argument name = "exclusive"    type = "Bool"  >Exclusive consumer</argument>
     <argument name = "dest name"    type = "char *">Destination name</argument>
 </method>
 
@@ -704,7 +704,6 @@ static int
             TRUE,                       /*  Request producer access          */
             TRUE,                       /*  Request consumer access          */
             TRUE,                       /*  Request browser access           */
-            handle_open_m->temporary,
             NULL,                       /*  Default mime_type                */
             NULL,                       /*  Default content encoding         */
             NULL);                      /*  Destination options              */
@@ -720,6 +719,7 @@ static int
             handle_consume_m->no_local,
             handle_consume_m->no_ack,
             handle_consume_m->dynamic,
+            handle_consume_m->exclusive,
             handle_consume_m->dest_name,
             NULL);                      /*  Selector fields                  */
         send_the_frame (thread);

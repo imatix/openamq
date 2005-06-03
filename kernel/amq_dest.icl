@@ -10,7 +10,7 @@
 This class defines a destination, which can be a queue or a subscription
 (an internal destination).  Every destination is mapped to an amq_queue
 object which acts as a container for the destination's messages.
-Temporary destinations are created dynamically as the server runs, and
+Dynamic destinations are created dynamically as the server runs, and
 deleted when the server restarts.  Persistent destinations are created
 from the configuration file.
 
@@ -52,9 +52,7 @@ forward messages.
     int
         service_type;                   /*  AMQP service - queue or topic    */
     Bool
-        temporary;                      /*  Temporary destination            */
-    qbyte
-        client_id;                      /*  Owner, if any                    */
+        dynamic;                        /*  Dynamic queue consumer           */
 
     /*  Mesgq options, loaded from dest configuration in amq_vhost.cfg       */
     size_t
@@ -86,9 +84,8 @@ forward messages.
 <method name = "new">
     <argument name = "vhost"        type = "amq_vhost_t *">Parent virtual host</argument>
     <argument name = "service type" type = "int"          >AMQP service type</argument>
-    <argument name = "temporary"    type = "Bool"         >Temporary destination?</argument>
+    <argument name = "dynamic"      type = "Bool"         >Dynamic destination?</argument>
     <argument name = "name"         type = "char *"       >Destination name</argument>
-    <argument name = "client id"    type = "qbyte"        >Owner, if any</argument>
     <dismiss argument = "key"   value = "name" />
     <local>
     ipr_shortstr_t
@@ -96,8 +93,7 @@ forward messages.
     </local>
     self->vhost        = vhost;
     self->service_type = service_type;
-    self->temporary    = temporary;
-    self->client_id    = client_id;
+    self->dynamic      = dynamic;
 
     s_get_configuration (self, name);
     ipr_shortstr_fmt (filename, "%s-%s",
@@ -114,9 +110,8 @@ forward messages.
     amq_db_dest_fetch_byname (vhost->ddb, self->db_dest, AMQ_DB_FETCH_EQ);
 
     /*  If new destination, create it now                                    */
-    self->db_dest->active    = TRUE;
-    self->db_dest->client_id = client_id;
-    self->db_dest->temporary = temporary;
+    self->db_dest->active  = TRUE;
+    self->db_dest->dynamic = dynamic;
     if (self->db_dest->id == 0)
         amq_db_dest_insert (vhost->ddb, self->db_dest);
     else
@@ -147,10 +142,10 @@ s_get_configuration ($(selftype) *self, char *name)
 {
     if (self->service_type == AMQP_SERVICE_QUEUE
     ||  self->service_type == AMQP_SERVICE_TOPIC) {
-        if (self->temporary)
+        if (self->dynamic)
             s_load_dest_properties (self,
                 NULL, NULL,
-                "/config/template/queue", "temporary");
+                "/config/template/queue", "dynamic");
         else
             s_load_dest_properties (self,
                 "/config/queues/queue",    name,

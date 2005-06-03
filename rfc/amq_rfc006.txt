@@ -5,7 +5,7 @@ gdl
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/04/16
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.8d2
+    version   = 0.8d4
 end gdl
 
 Cover
@@ -24,9 +24,17 @@ This document is ready for review.
 Recent Change History
 ---------------------
 
+2005/05/28 - 0.8d4:
+
+- in HANDLE OPEN, 'temporary' flag removed - temporary queues are now
+  created using the 'dynamic' option on HANDLE CONSUME.
+- in HANDLE CONSUME, added 'exclusive' flag.
+- in HANDLE CONSUME, destination name may be empty, in which case the
+  server generates one, if dynamic is also true.
+
 2005/05/28 - 0.8d2:
 
-- in HANDLE OPEN, handle id may not be zero.
+- in HANDLE OPEN, 'handle id' may not be zero.
 
 2005/05/28 - 0.8d1:
 
@@ -674,13 +682,12 @@ Frame Syntax
 
     handle-open          = %d30 channel-id handle-id service-type
                            confirm-tag producer consumer browser
-                           temporary mime-type encoding options
+                           mime-type encoding options
     handle-id            = short-integer
     service-type         = short-integer
     producer             = BIT
     consumer             = BIT
     browser              = BIT
-    temporary            = BIT
     mime-type            = short-string
     encoding             = short-string
 
@@ -692,11 +699,12 @@ Frame Syntax
     dest-name            = short-string
 
     handle-consume       = %d32 handle-id confirm-tag prefetch no-local
-                           no-ack dynamic dest-name selector
+                           no-ack dynamic exclusive dest-name selector
     prefetch             = short-integer
     no-local             = BIT
     no-ack               = BIT
     dynamic              = BIT
+    exclusive            = BIT
 
     handle-flow          = %d34 handle-id confirm-tag flow-pause
     flow-pause           = BIT
@@ -1751,7 +1759,7 @@ These are destination commands the client may send to the server:
 
 HANDLE OPEN:
     Client asks server to prepare to use a specified destination or set
-    of destinations.  Client can open temporary queues and topics.
+    of destinations.
 HANDLE SEND:
     Client sends a message to a specific destination.
 HANDLE CONSUME:
@@ -1770,8 +1778,7 @@ HANDLE BROWSE:
 These are destination commands the server may send to the client:
 
 HANDLE CREATED:
-    Server informs client that a temporary queue or topic is now
-    available.
+    Server informs client that a dynamic queue is now available.
 HANDLE NOTIFY:
     Server sends a message from a destination back to the client.
 HANDLE INDEX:
@@ -1804,7 +1811,6 @@ server:
         producer                bit
         consumer                bit
         browser                 bit
-        temporary               bit
         mime-type               short string
         encoding                short string
         options                 field table
@@ -1830,9 +1836,6 @@ consumer:
 browser:
     If 1, the client requests access to browse messages from the
     destination. 
-temporary:
-    If 1, the client asks the server to create a temporary destination as
-    specified.  See explanation of temporary destinations below.
 mime-type:
     The default MIME content type for HANDLE SEND commands sent to the
     destination. This can be overridden on a per-message basis. If empty,
@@ -1941,6 +1944,8 @@ sending the HANDLE CONSUME command:
         prefetch                short integer
         no-local                bit
         no-ack                  bit
+        dynamic                 bit
+        exclusive               bit
         dest-name               short string
         selector                field table
 
@@ -1960,6 +1965,14 @@ no-ack:
     If 1, the client will not acknowledge messages received from
     this destination. The client can specify 'no ack' when it wants the
     highest possible throughput and can tolerate lost messages.
+dynamic:
+    For queue services only. If 1, the server will create the queue if
+    it does not exist.  If the destination name is empty, the server
+    will provide a new unique destination name.  If the server creates
+    a new queue, it responds with HANDLE CREATED.
+exclusive:
+    For queue services only.  If 1, the server will restrict access to
+    a single consumer (the first one to request access to the queue).
 dest-name:
     The name of the destination to listen to.
 selector:
@@ -2092,7 +2105,7 @@ delivered flag set to zero).
 HANDLE CREATED Command
 ----------------------
 
-When the server creates a temporary destination it replies to the client
+When the server creates a dynamic destination it replies to the client
 with a HANDLE CREATED command:
 
     HANDLE CREATED
@@ -2102,7 +2115,7 @@ with a HANDLE CREATED command:
 handle-id:
     The destination ID chosen by the client in the HANDLE OPEN command.
 dest-name:
-    The full name of the temporary destination created. This name will
+    The full name of the dynamic destination created. This name will
     be unique within the virtual host.
 
 HANDLE NOTIFY Command
@@ -2342,7 +2355,7 @@ HANDLE QUERY:
 HANDLE BROWSE:
     Never expected. Respond by closing the connection (fatal error).
 HANDLE CREATED:
-    Expect after opening a temporary destination. Store the destination
+    Expect after opening a dynamic destination. Store the destination
     name.
 HANDLE NOTIFY:
     Expect on an open destination after sending HANDLE CONSUME or HANDLE
