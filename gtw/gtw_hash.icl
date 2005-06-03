@@ -63,11 +63,11 @@
         if (!retcode)
             return NOT_OK;
 
-        if (!params || params->shash_RoutineName.iDataLen !=
-              LTW_HASH_TOREK_ROUTINE_NAME_LEN ||
-              memcmp (LTW_HASH_TOREK_ROUTINE_NAME,
-              params->shash_RoutineName.pData,
-              params->shash_RoutineName.iDataLen) != 0) {
+        if (!params || params->sRoutineName.iDataLen !=
+              JAMQ_HASH_TOREK_ROUTINE_NAME_LEN ||
+              memcmp (JAMQ_HASH_TOREK_ROUTINE_NAME,
+              params->sRoutineName.pData,
+              params->sRoutineName.iDataLen) != 0) {
             *retcode = JAMQ_LL_INPUT_ERR;
             return NOT_OK;
         }
@@ -90,7 +90,7 @@
         self->deleted_item = NULL;
         self->deleted_slot = 0;
 
-        self->table = calloc (params->ihash_TableSize,
+        self->table = calloc (params->iTableSize,
             sizeof (gtw_hash_item_t*));
         if (!self->table) {
             free ((void*) self);
@@ -124,7 +124,7 @@
         
         /*  Deallocate what's needed                                         */
         for (counter = 0;
-              counter != (*self)->params.ihash_TableSize; counter++) {
+              counter != (*self)->params.iTableSize; counter++) {
             next = (*self)->table [counter];
             while (next) {
                 to_destroy = next;
@@ -162,7 +162,7 @@
 
         /*  Compute slot in hash table                                       */
         slot = torek (key->pData, key->iDataLen) %
-            self->params.ihash_TableSize;
+            self->params.iTableSize;
 
         /*  Test whether item with specified key already exists              */
         pos = self->table [slot];
@@ -221,7 +221,7 @@
 
         /*  Compute slot in hash table                                       */
         slot = torek (key_in->pData, key_in->iDataLen) %
-            self->params.ihash_TableSize;
+            self->params.iTableSize;
 
         /*  Test whether item with specified key exists                      */
         pos = self->table [slot];
@@ -281,7 +281,7 @@
 
         /*  Compute slot in hash table                                       */
         slot = torek (key->pData, key->iDataLen) %
-            self->params.ihash_TableSize;
+            self->params.iTableSize;
 
         /*  Find the key                                                     */
         pos = self->table [slot];
@@ -338,7 +338,7 @@
 
         /*  Find first filled-in slot                                        */
         slot = 0;
-        while (slot != self->params.ihash_TableSize) {
+        while (slot != self->params.iTableSize) {
             if (self->table [slot]) {
                 /*  Return the values                                        */
                 *key = self->table [slot]->key;
@@ -411,7 +411,7 @@
             /*  Find next item                                               */
             slot = self->current_slot;
             item = self->current_item->next;
-            while (slot != self->params.ihash_TableSize) {
+            while (slot != self->params.iTableSize) {
                 if (item) {
 
                     /*  Return the values                                    */
@@ -458,10 +458,10 @@
                 *value;
         </local>
 
-        params.ihash_TableSize            = 3;
-        params.shash_RoutineName.pData    = LTW_HASH_TOREK_ROUTINE_NAME;
-        params.shash_RoutineName.iDataLen = LTW_HASH_TOREK_ROUTINE_NAME_LEN;
-        params.p_hash_mem_Hndl            = JAMQ_OS_NO_MEM_MGR;
+        params.iTableSize                 = 3;
+        params.sRoutineName.pData         = JAMQ_HASH_TOREK_ROUTINE_NAME;
+        params.sRoutineName.iDataLen      = JAMQ_HASH_TOREK_ROUTINE_NAME_LEN;
+        params.pMemHndl            = JAMQ_OS_NO_MEM_MGR;
 
         if (!JAMQ_hash_open (&list, &params, &retcode)) {
             printf ("JAMQ_hash_open failed (%ld)\\n", (long) retcode);

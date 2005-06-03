@@ -32,9 +32,6 @@ int main (
         client_name_buffer [10 + APR_UUID_FORMATTED_LENGTH + 1];
     JAMQ_tsNCharcb
         client_name;
-    unsigned char ccc [32000];
-    xxx (ccc, 32000);
-    apr_generate_random_bytes (ccc, 32000);
 
     /*  Allocate array to store fields retrieved from command line          */
     fields = (JAMQ_tsNCharcb*) malloc (sizeof (JAMQ_tsNCharcb) * (argc - 1));

@@ -81,7 +81,7 @@
 	    return 1;
 	}
 
-	/*  Actually expanding buffer                                            */
+	/*  Actually expanding buffer                                        */
 	new_size = (buf->iCurrentLen + delta) / 1024 * 1024 + 1024;
 	temp = realloc (buf->pData, new_size);
 	if (!temp)
@@ -92,6 +92,29 @@
 	buf->iLogicalMaxLen = new_size;
 
 	return 1;
+    }
+
+    int write_int_to_buffer (
+        JAMQ_tsBufcb  *buffer,
+        qbyte         int_to_write
+        )
+    {
+        char
+             temp [32];
+        byte
+             pos = 30;
+        
+        temp [31] = ' ';
+        while (int_to_write || pos == 30) {
+            temp [pos] = int_to_write % 10 + '0';
+            int_to_write /= 10;
+            pos--;
+        }
+        if (!resize_buffer (buffer, 32 - pos - 1))
+            return 0;
+        memcpy (buffer->pData + buffer->iCurrentLen - (32 - pos - 1),
+            temp + pos + 1, 32 - pos - 1);
+        return 1;
     }
 
     void free_item (
@@ -196,7 +219,8 @@
 	res->field_id = 0;
 	res->message = msg;
 	for (counter = 0; counter != field_name_size; counter++)
-	    res->field_id = res->field_id * 10 + buf->pData [pos + counter] - '0';
+	    res->field_id = res->field_id * 10 +
+                buf->pData [pos + counter] - '0';
 	pos += field_name_size;
 	if (pos + sizeof (byte) + sizeof (dbyte) > lastpos ||
 	      buf->pData [pos] != 'S')
@@ -264,6 +288,8 @@
 	)
     {
         buf->iFailed = 0;
+        if (!buf->iCurrentLen)
+            return NULL;
 	return parse_message (buf, 0, buf->iCurrentLen);
     }
 
@@ -333,11 +359,14 @@
     {
 	dbyte
 	    message_size;
+        gmm_message_t
+            *res = msg;
 
 	if (msg) {
 	    while (msg->next_message)
 		msg = msg->next_message;
-	    msg->next_message = (gmm_message_t*) malloc (sizeof (gmm_message_t));    
+	    msg->next_message = 
+                (gmm_message_t*) malloc (sizeof (gmm_message_t));    
 	    if (!msg->next_message)
 		return NULL;
 	    GET_SHORT (message_size, buf->pData + msg->pos)
@@ -349,14 +378,15 @@
 	    if (!msg)
 		return NULL;
 	    msg->pos = 0;
+            res = msg;
 	}
 	if (!resize_buffer (buf, sizeof (dbyte)))
 	    return NULL;
 	PUT_SHORT (buf->pData + msg->pos, 0);
+        msg->next_message = NULL;
 	msg->first_field = NULL;
-	msg->next_message = NULL;
 
-	return msg;
+	return res;
     }
 
     gmm_field_t *add_field (
@@ -376,7 +406,7 @@
 
 	GET_SHORT (message_size, buf->pData + msg->pos)
 
-	/*  create field structure                                               */
+	/*  create field structure                                           */
 	if (field) {
 	    while (field->next_field)
 		field = field->next_field;
@@ -397,7 +427,7 @@
 	field->first_item = NULL;
 	field->next_field = NULL;
 
-	/*  perform changes in buffer                                            */
+	/*  perform changes in buffer                                        */
 	shift = sizeof (byte) + 5 + sizeof (byte) + sizeof (dbyte);
 	if (!resize_buffer (buf, shift))
 	    return NULL;
@@ -436,13 +466,13 @@
 	int
 	    shift;
 
-	/*  Compute field size                                                   */
+	/*  Compute field size                                               */
 	field_header_size = *((byte*) (buf->pData + field->pos));
 	field_header_size += sizeof (byte) + sizeof (byte);
 	GET_SHORT (field_size, buf->pData + field->pos + field_header_size)
 	field_size += field_header_size + sizeof (dbyte);
 
-	/*  Create item structure                                                */
+	/*  Create item structure                                            */
 	if (item) {
 	    while (item->next_item)
 		item = item->next_item;
@@ -460,7 +490,7 @@
 	item->pos = field->pos + field_size;
 	item->next_item = NULL;
 
-	/*  perform changes in buffer                                            */
+	/*  perform changes in buffer                                        */
 	shift = sizeof (dbyte) + data->iDataLen;
 	if (!resize_buffer (buf, shift))
 	    return NULL;
@@ -496,7 +526,7 @@
 	gmm_field_t
 	    *field;
 
-	/*  Find the field                                                       */
+	/*  Find the field                                                   */
 	field = msg->first_field;
 	while (1) {
 	    if (!field)
@@ -505,11 +535,11 @@
 		break;
 	}
 
-	/*  Field containing items cannot be removed (GMM specs)                 */
+	/*  Field containing items cannot be removed (GMM specs)             */
 	if (field->first_item)
 	    return 0;
 
-	/*  Perform the change in the buffer                                     */
+	/*  Perform the change in the buffer                                 */
 	field_size = *((byte*) (buf->pData + field->pos));
 	field_size += sizeof (byte) + sizeof (byte);
 	GET_SHORT (field_data_size, buf->pData + field->pos + field_size)
@@ -529,8 +559,9 @@
 	return 1;
     }
 
-
-    int s_str_to_int (JAMQ_tsNCharcb *str)
+    int s_str_to_int (
+        JAMQ_tsNCharcb *str
+        )
     {
         int
             counter = 0;
@@ -542,15 +573,26 @@
 
         return res;
     }
+
     </private>
 
     <inherit class = "gtw_object"/>
 
     <context>
-    JAMQ_tsBufcb
-        *buffer;
-    gmm_message_t
-        *message;
+        JAMQ_tsBufcb
+            *to_use;
+        JAMQ_tsBufcb
+            *to_parse;
+        gmm_message_t
+            *message;         /*  Parse tree of to_use buffer                */
+        gmm_message_t
+            *current_message; /*  Current message in to_use buffer           */
+        qbyte
+            parse_offset;     /*  Points to the place in to_parse buffer     */
+                              /*  where next message it located              */
+        qbyte
+            current_field;    /*  Sequence number of field to be retrieved   */
+                              /*  by next call to get_next_field function    */
     </context>
 
     <method name = "open" template = "function">
@@ -576,8 +618,12 @@
             return NOT_OK;
         }
 
-        self->buffer = NULL;
+        self->to_use = NULL;
+        self->to_parse = NULL;
         self->message = NULL;
+        self->current_message = NULL;
+        self->parse_offset = 0;
+        self->current_field = 0;
 
         *out = self;
         *retcode = 0;
@@ -600,13 +646,63 @@
             return NOT_OK;
         }
 
-        /*  should the buffer be destructed here ?  */
         free_message ((*self)->message);
         free ((void*) (*self));
         
         *self = NULL;
         *retcode = 0;
         return OK;
+    </method>
+
+    <method name = "set_to_use" template = "function">
+        <argument name = "self" type = "gtw_gmm_t*"/>
+        <argument name = "buffer" type = "JAMQ_tsBufcb*"/>
+        <argument name = "retcode" type = "int*"/>
+        if (self->message)
+            free_message (self->message);
+        self->to_use = buffer;
+        self->message = parse_buffer (self->to_use);
+        if (self->to_use->iFailed) {
+            *retcode = JAMQ_GMM_INPUT_ERR;
+            return NOT_OK;
+        }
+        self->current_message = self->message;
+
+        *retcode = 0;
+        return OK;
+    </method>
+
+    <method name = "set_to_parse" template = "function">
+        <argument name = "self" type = "gtw_gmm_t*"/>
+        <argument name = "buffer" type = "JAMQ_tsBufcb*"/>
+        <argument name = "retcode" type = "int*"/>
+        self->to_parse = buffer;
+        self->parse_offset = 0;
+
+        *retcode = 0;
+        return OK;
+    </method>
+
+    <method name = "set_buffers" template = "function">
+        <argument name = "self" type = "gtw_gmm_t*"/>
+        <argument name = "use_buf" type = "JAMQ_tsBufcb*"/>
+        <argument name = "parse_buf" type = "JAMQ_tsBufcb*"/>
+        <argument name = "retcode" type = "int*"/>
+        if (!retcode)
+            return NOT_OK;
+
+        if (!self) {
+            *retcode = JAMQ_GMM_HANDLE_INVALID;
+            return NOT_OK;
+        }
+
+        if (!gtw_gmm_set_to_use (self, use_buf, retcode))
+            return NOT_OK;
+        if (!gtw_gmm_set_to_parse (self, parse_buf, retcode))
+            return NOT_OK;
+
+        *retcode = 0;
+        return OK;        
     </method>
 
     <method name = "start_msg" template = "function">
@@ -626,26 +722,18 @@
             return NOT_OK;
         }
 
-        /*  TODO: delete existing content ?                                  */
+        if (!gtw_gmm_set_to_use (self, buffer, retcode))
+            return NOT_OK;
 
-        self->buffer = buffer;
-        
-        /*  If buffer is empty, create message header                        */
-        /*  Otherwise parse buffer content                                   */
-        if (!buffer->iCurrentLen) {
-            self->message = add_message (buffer, NULL);
-            if (!self->message) {
-                *retcode = JAMQ_GMM_MEM_ERR;
-                return NOT_OK;
-            }
+        self->message = add_message (self->to_use, self->message);
+        if (!self->message) {
+            *retcode = JAMQ_GMM_MEM_ERR;
+            return NOT_OK;
         }
-        else {
-            self->message = parse_buffer (buffer);
-            if (buffer->iFailed) {
-                *retcode = JAMQ_GMM_INPUT_ERR;
-                return NOT_OK;
-            }
-        }
+
+        self->current_message = self->message;
+        while (self->current_message->next_message)
+            self->current_message = self->current_message->next_message;
 
         *retcode = 0;
         return OK;
@@ -673,11 +761,12 @@
             return NOT_OK;
         }
 
-        field = self->message->first_field;
+        field = self->current_message->first_field;
         while (1) {
             if (!field) {
                 /* The field does not exist, so create it                    */
-                field = add_field (self->buffer, self->message, field_id);
+                field = add_field (self->to_use, self->current_message,
+                    field_id);
                 break;
             }
             if (field->field_id == field_id)
@@ -687,7 +776,7 @@
 
         /*  Add individual items                                             */
         for (counter = 0; counter != item_count; counter++)
-            add_item (self->buffer, field, data + counter);
+            add_item (self->to_use, field, data + counter);
 
         *retcode = 0;
         return OK;
@@ -710,7 +799,7 @@
             return NOT_OK;
         }
 
-        if (!remove_field (self->buffer, self->message, field_id)) {
+        if (!remove_field (self->to_use, self->current_message, field_id)) {
             *retcode = JAMQ_GMM_DATA_UNV;
             return NOT_OK;
         }
@@ -738,7 +827,7 @@
         }
  
         *field_count = 0;
-        field = self->message->first_field;
+        field = self->current_message->first_field;
         while (field)
             field = field->next_field, (*field_count)++;
 
@@ -766,7 +855,7 @@
             return NOT_OK;
         }
 
-        field = self->message->first_field;
+        field = self->current_message->first_field;
         while (1) {
             if (!field) {
                  *retcode = JAMQ_GMM_DATA_UNV;
@@ -791,7 +880,53 @@
         <argument name = "field_id" type = "int*"/>
         <argument name = "item_count" type = "int*"/>
         <argument name = "retcode" type = "int*"/>
-        assert (0);
+        <declare name = "field" type = "gmm_field_t*"/>
+        <declare name = "item" type = "gmm_item_t*"/>
+        <declare name = "count" type = "int"/>
+        <declare name = "seq_nbr" type = "int"/>
+        if (!retcode)
+            return NOT_OK;
+
+        if (!self) {
+            *retcode = JAMQ_GMM_HANDLE_INVALID;
+            return NOT_OK;
+        }
+
+        if (field_id < 0 || !field_id || !item_count) {
+            *retcode = JAMQ_GMM_INPUT_ERR;
+            return NOT_OK;
+        }
+
+        if (!self->message) {
+            *retcode = JAMQ_GMM_DATA_UNV;
+            return NOT_OK;
+        }
+
+        seq_nbr = self->current_field;
+        field = self->message->first_field;
+        while (field && seq_nbr) {
+            field = field->next_field;
+            seq_nbr--;
+        } 
+
+        if (!field || seq_nbr) {
+            *retcode = JAMQ_GMM_DATA_UNV;
+            return NOT_OK;
+        }
+
+        count = 0;
+        item = field->first_item;
+        while (item) {
+            count++;
+            item = item->next_item;
+        }
+
+        *field_id = field->field_id;
+        *item_count = count;
+        self->current_field++;
+        
+        *retcode = 0;
+        return OK;
     </method>
 
     <method name = "get_first_field" template = "function">
@@ -799,7 +934,8 @@
         <argument name = "field_id" type = "int*"/>
         <argument name = "item_count" type = "int*"/>
         <argument name = "retcode" type = "int*"/>
-        assert (0);
+        self->current_field = 0;
+        return gtw_gmm_get_next_field (self, field_id, item_count, retcode);
     </method>
 
     <method name = "get_data" template = "function">
@@ -810,6 +946,7 @@
         <argument name = "retcode" type = "int*"/>
         <declare name = "field" type = "gmm_field_t*"/>
         <declare name = "item" type = "gmm_item_t*"/>
+        <declare name = "buf" type = "JAMQ_tsBufcb*"/>
         if (!retcode)
             return NOT_OK;
 
@@ -823,7 +960,12 @@
             return NOT_OK;
         }
 
-        field = self->message->first_field;
+        if (self->to_use->iCurrentLen)
+            buf = self->to_use;
+        else
+            buf = self->to_parse;
+
+        field = self->current_message->first_field;
         while (1) {
             if (!field) {
                  *retcode = JAMQ_GMM_DATA_UNV;
@@ -842,8 +984,8 @@
             return NOT_OK;
         }
 
-        data->iDataLen = item_length (self->buffer, item);
-        data->pData = item_data (self->buffer, item);
+        data->iDataLen = item_length (buf, item);
+        data->pData = item_data (buf, item);
 
         *retcode = 0;
         return OK;
@@ -894,11 +1036,12 @@
         while (counter < count) {
             if (chars [counter].iDataLen == 1 &&
                   *(chars [counter].pData) == '+') {
-                self->message = add_message (self->buffer, self->message);
+                if (!JAMQ_gmm_start_msg (self, buffer, retcode))
+                    return NOT_OK;
                 counter++;
                 continue;
             }
-            field = add_field (self->buffer, self->message,
+            field = add_field (self->to_use, self->current_message,
                 s_str_to_int (chars + counter));
             counter++;
             if (counter >= count) {
@@ -912,7 +1055,7 @@
                     *retcode = JAMQ_GMM_INPUT_ERR;
                     return NOT_OK;
                 }
-                add_item (self->buffer, field, chars + counter);
+                add_item (self->to_use, field, chars + counter);
                 counter++;
             }
         }
@@ -925,6 +1068,11 @@
         <argument name = "self" type = "gtw_gmm_t*"/>
         <argument name = "buffer" type = "JAMQ_tsBufcb*"/>
         <argument name = "retcode" type = "int*"/>
+        <declare name = "message" type = "gmm_message_t*"/>
+        <declare name = "field" type = "gmm_field_t*"/>
+        <declare name = "item" type = "gmm_item_t*"/>
+        <declare name = "item_count" type = "qbyte"/>
+        <declare name = "item_size" type = "dbyte"/>
         if (!retcode)
             return NOT_OK;
 
@@ -938,7 +1086,48 @@
             return NOT_OK;
         }
 
-        assert (0);
+        message = self->message;
+        while (message) {
+            field = message->first_field;
+            while (field) {
+                if (!write_int_to_buffer (buffer, field->field_id))
+                    goto memerr;
+                item = field->first_item;
+                item_count = 0;
+                while (item) {
+                    item_count++;
+                    item = item->next_item;
+                }
+                if (!write_int_to_buffer (buffer, item_count))
+                    goto memerr;
+                item = field->first_item;
+                while (item) {
+                    GET_SHORT (item_size, self->to_use->pData + item->pos)
+                    if (!resize_buffer (buffer, item_size + 1))
+                        goto memerr;
+                    memcpy (buffer->pData + buffer->iCurrentLen - item_size - 1,
+                        self->to_use->pData + item->pos + sizeof (dbyte),
+                        item_size);
+                    buffer->pData [buffer->iCurrentLen - 1] = ' ';
+                    item = item->next_item;
+                }
+
+                field = field->next_field;
+            }
+            message = message->next_message;
+            if (message) {
+                if (!resize_buffer (buffer, 2))
+                    goto memerr;
+                memcpy (buffer->pData + buffer->iCurrentLen - 2, "+ ", 2);
+            }
+        }
+
+        *retcode = 0;
+        return OK;
+
+memerr:
+        *retcode = JAMQ_GMM_MEM_ERR;
+        return NOT_OK;
     </method>
 
     <method name = "parse_first_msg" template = "function">
@@ -946,97 +1135,45 @@
         <argument name = "to_build" type = "JAMQ_tsBufcb*"/>
         <argument name = "to_parse" type = "JAMQ_tsBufcb*"/>
         <argument name = "retcode" type = "int*"/>
-        assert (0);
+
+        if (!retcode)
+            return NOT_OK;
+
+        if (!self) {
+            *retcode = JAMQ_GMM_HANDLE_INVALID;
+            return NOT_OK;
+        }
+
+        if (!to_build || !to_parse) {
+            *retcode = JAMQ_GMM_INPUT_ERR;
+            return NOT_OK;
+        }
+
+        return gtw_gmm_set_buffers (self, to_build, to_parse, retcode);
     </method>
 
     <method name = "parse_next_msg" template = "function">
         <argument name = "self" type = "gtw_gmm_t*"/>
         <argument name = "to_build" type = "JAMQ_tsBufcb*"/>
-        <argument name = "to_parse" type = "JAMQ_tsBufcb*"/>
         <argument name = "retcode" type = "int*"/>
-        assert (0);
+        if (!retcode)
+            return NOT_OK;
+
+        if (!self) {
+            *retcode = JAMQ_GMM_HANDLE_INVALID;
+            return NOT_OK;
+        }
+
+        if (!to_build) {
+            *retcode = JAMQ_GMM_INPUT_ERR;
+            return NOT_OK;
+        }
+
+        *retcode = JAMQ_GMM_DATA_UNV;
+        return NOT_OK;
     </method>
 
     <method name = "selftest">
-        <local>
-            int
-                retcode;
-            void
-                *gmm = NULL;
-            JAMQ_tsBufcb
-                *buf = NULL;
-            JAMQ_tsNCharcb
-                items [3];
-            JAMQ_tsNCharcb
-                item;
-            int
-                field_count;
-            int
-                item_count;
-        </local>
-
-        if (!JAMQ_gmm_open (&gmm, &retcode)) {
-            printf ("JAMQ_gmm_open failed (%ld)\\n", (long) retcode);
-            exit (EXIT_FAILURE);
-        }
-
-        if (!JAMQ_m_get_buffer (&buf, 1024, &retcode)) {
-            printf ("JAMQ_m_get_buffer failed (%ld)\\n", (long) retcode);
-            exit (EXIT_FAILURE);
-        }
-
-        if (!JAMQ_gmm_start_msg (gmm, buf, &retcode)) {
-            printf ("JAMQ_gmm_start_msg failed (%ld)\\n", (long) retcode);
-            exit (EXIT_FAILURE);
-        }
-
-        items [0].iDataLen = 3;
-        items [0].pData = "ABC";
-        items [1].iDataLen = 2;
-        items [1].pData = "de";
-        items [2].iDataLen = 3;
-        items [2].pData = "ggfh";
-
-        if (!JAMQ_gmm_add_data (gmm, 123, 3, items, &retcode)) {
-            printf ("JAMQ_gmm_add_data failed (%ld)\\n", (long) retcode);
-            exit (EXIT_FAILURE);
-        }
-
-        items [0].iDataLen = 3;
-        items [0].pData = "xyz";
-        if (!JAMQ_gmm_add_data (gmm, 42, 1, items, &retcode)) {
-            printf ("JAMQ_gmm_add_data failed (%ld)\\n", (long) retcode);
-            exit (EXIT_FAILURE);
-        }
-
-        if (!JAMQ_gmm_get_field_count (gmm, &field_count, &retcode)) {
-            printf ("JAMQ_gmm_get_field_count failed (%ld)\\n", (long) retcode);
-            exit (EXIT_FAILURE);
-        }
-        assert (field_count == 2);
-
-        if (!JAMQ_gmm_get_field (gmm, 123, &item_count, &retcode)) {
-            printf ("JAMQ_gmm_get_field failed (%ld)\\n", (long) retcode);
-            exit (EXIT_FAILURE);
-        }
-        assert (item_count == 3);
-
-        if (!JAMQ_gmm_get_data (gmm, 123, 1, &item, &retcode)) {
-            printf ("JAMQ_gmm_get_data failed (%ld)\\n", (long) retcode);
-            exit (EXIT_FAILURE);
-        }
-        assert (item.iDataLen ==2 &&
-            memcmp ((void*) item.pData, (void*) "de", 2) == 0);
-
-        if (!JAMQ_gmm_close (&gmm, &retcode)) {
-            printf ("JAMQ_gmm_close failed (%ld)\\n", (long) retcode);
-            exit (EXIT_FAILURE);
-        }
-
-        if (!JAMQ_m_put_buffer (&buf, &retcode)) {
-            printf ("JAMQ_m_put_buffer failed (%ld)\\n", (long) retcode);
-            exit (EXIT_FAILURE);
-        }
     </method>
 
 </class>        

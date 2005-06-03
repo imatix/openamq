@@ -678,6 +678,17 @@ int JAMQ_gmm_close (
     return gtw_gmm_close ((gtw_gmm_t**) pGmmHandle, aireturn_Code);
 }
 
+int JAMQ_gmm_set_buffers (
+    void          *pGmmHandle, 
+    JAMQ_tsBufcb  *pUseBuf,
+    JAMQ_tsBufcb  *pParseBuf,
+    int           *aireturn_Code
+    )
+{
+    return gtw_gmm_set_buffers ((gtw_gmm_t*) pGmmHandle, pUseBuf, pParseBuf,
+        aireturn_Code);
+}
+
 int JAMQ_gmm_start_msg (
     void          *pGmmHandle,
     JAMQ_tsBufcb  *pMsgBuffer,
@@ -827,7 +838,7 @@ int JAMQ_gmm_parse_next_msg (
     int           *aireturn_Code
     )
 {
-    return gtw_gmm_to_cmdline ((gtw_gmm_t*) pGmmHandle, pBufferToBuild,
+    return gtw_gmm_parse_next_msg ((gtw_gmm_t*) pGmmHandle, pBufferToBuild,
         aireturn_Code);
 }
 
@@ -1417,6 +1428,10 @@ typedef struct tag_gtw_context_t
         appctx_internal;
     char
         queue_name [256];
+    JAMQ_tsNCharcb
+        running_service;
+    JAMQ_tsNCharcb
+        reply_to;
 } gtw_context_t;
 
 int JAMQ_apiu_open (
@@ -1526,7 +1541,7 @@ int JAMQ_apiu_open (
     self->appctx.argv = NULL;
     self->appctx.sName.pData = NULL;
     self->appctx.sName.iDataLen = 0;
-    self->appctx.sStateHndl.iOkToRun = 0;
+    self->appctx.sStateHndl.iOkToRun = 1;
     self->appctx.sStateHndl.iPermissionLevel = 1;
     self->appctx.pApplHndl = &(self->appctx_internal);
     self->appctx.pGMMReadHndl = NULL;
@@ -1549,7 +1564,10 @@ int JAMQ_apiu_open (
     self->appctx.sOutputBuf.iCurrentLen = 0;
     self->appctx.sOutputBuf.iPhysicalLen = 0;
     self->appctx.sOutputBuf.iLogicalMaxLen = 0;
-    self->appctx.sLogBuf = NULL;
+    self->appctx.sLogBuf.pData = NULL;
+    self->appctx.sLogBuf.iCurrentLen = 0;
+    self->appctx.sLogBuf.iPhysicalLen = 0;
+    self->appctx.sLogBuf.iLogicalMaxLen = 0;
     self->appctx.pLogHndl = NULL;
     self->appctx.pDvHndl = NULL;
     self->functions = NULL;
@@ -1571,10 +1589,10 @@ int JAMQ_apiu_open (
         *aireturn_Code = JAMQ_APIU_GMM_ERROR;
         goto err5;
     }
-    hparams.ihash_TableSize = 199;
-    hparams.shash_RoutineName.pData = LTW_HASH_TOREK_ROUTINE_NAME;
-    hparams.shash_RoutineName.iDataLen = LTW_HASH_TOREK_ROUTINE_NAME_LEN;
-    hparams.p_hash_mem_Hndl = JAMQ_OS_NO_MEM_MGR;
+    hparams.iTableSize = 199;
+    hparams.sRoutineName.pData = JAMQ_HASH_TOREK_ROUTINE_NAME;
+    hparams.sRoutineName.iDataLen = JAMQ_HASH_TOREK_ROUTINE_NAME_LEN;
+    hparams.pMemHndl = JAMQ_OS_NO_MEM_MGR;
     if (!JAMQ_hash_open (&(self->functions), &hparams, aireturn_Code)) {
         *aireturn_Code = JAMQ_APIU_HASH_ERROR;
         goto err6;
@@ -1790,6 +1808,8 @@ int JAMQ_apiu_receive_message (
         message;
     amq_stdc_message_desc_t
         *message_desc;
+    dbyte
+        iDataLen;
 
     if (!aireturn_Code)
         return NOT_OK;
@@ -1814,35 +1834,43 @@ int JAMQ_apiu_receive_message (
     strcpy (self->queue_name, message_desc->dest_name);
     pQueueName->iDataLen = strlen (self->queue_name);
     pQueueName->pData = self->queue_name;
-    if (self->appctx.sReadBuf.pData)
-        free ((void*) self->appctx.sReadBuf.pData);
-    self->appctx.sReadBuf.pData = malloc (sizeof (dbyte) +
-        amq_stdc_table_size (message_desc->headers));
-    if (!self->appctx.sReadBuf.pData) {
-        amq_stdc_close_message (message, 0);
-        *aireturn_Code = JAMQ_APIU_MEM_ERR;
-        return NOT_OK;
+
+    /*  Set the context for the handler                                      */
+    iDataLen = amq_stdc_table_size (message_desc->headers) + sizeof (dbyte);
+    if (self->appctx.sBuildBuf.iCurrentLen < iDataLen) {
+        self->appctx.sBuildBuf.pData = realloc (self->appctx.sBuildBuf.pData,
+            iDataLen);
+        self->appctx.sBuildBuf.iLogicalMaxLen = iDataLen;
+        self->appctx.sBuildBuf.iPhysicalLen = iDataLen;
+        self->appctx.sBuildBuf.iCurrentLen = iDataLen;
+        PUT_SHORT (self->appctx.sBuildBuf.pData, iDataLen - sizeof (dbyte))
+        memcpy (self->appctx.sBuildBuf.pData + sizeof (dbyte),
+            amq_stdc_table_data (message_desc->headers), iDataLen);
     }
-    PUT_SHORT (self->appctx.sReadBuf.pData,
-        amq_stdc_table_size (message_desc->headers))
-    memcpy (
-        (void*) (self->appctx.sReadBuf.pData + sizeof (dbyte)),
-        (void*) amq_stdc_table_data (message_desc->headers),
-        amq_stdc_table_size (message_desc->headers));
-    self->appctx.sReadBuf.iCurrentLen = sizeof (dbyte) +
-        amq_stdc_table_size (message_desc->headers);
-    self->appctx.sReadBuf.iPhysicalLen = sizeof (dbyte) +
-        amq_stdc_table_size (message_desc->headers);
-    self->appctx.sReadBuf.iLogicalMaxLen = sizeof (dbyte) +
-        amq_stdc_table_size (message_desc->headers);
+    if (self->appctx.sReadBuf.iCurrentLen < iDataLen) {
+        self->appctx.sReadBuf.pData = realloc (self->appctx.sReadBuf.pData,
+            iDataLen);
+        self->appctx.sReadBuf.iLogicalMaxLen = iDataLen;
+        self->appctx.sReadBuf.iPhysicalLen = iDataLen;
+        self->appctx.sReadBuf.iCurrentLen = iDataLen;
+        PUT_SHORT (self->appctx.sReadBuf.pData, iDataLen - sizeof (dbyte))
+        memcpy (self->appctx.sReadBuf.pData + sizeof (dbyte),
+            amq_stdc_table_data (message_desc->headers), iDataLen);
+    }
+    self->appctx.sWriteBuf.iCurrentLen = 0;
+    if (!JAMQ_gmm_set_buffers (self->appctx.pGMMReadHndl,
+          &(self->appctx.sBuildBuf), &(self->appctx.sReadBuf), aireturn_Code))
+        return NOT_OK;
+    if (!JAMQ_gmm_set_buffers (self->appctx.pGMMWriteHndl,
+          &(self->appctx.sWriteBuf), NULL, aireturn_Code))
+        return NOT_OK;
+    if (!JAMQ_gmm_start_msg (self->appctx.pGMMWriteHndl,
+          &(self->appctx.sWriteBuf), aireturn_Code))
+        return NOT_OK;
+
     result = amq_stdc_close_message (message, 0);
     if (result != APR_SUCCESS) {
         *aireturn_Code = JAMQ_APIU_AMQ_ERROR;
-        return NOT_OK;
-    }
-    if (!JAMQ_gmm_start_msg (self->appctx.pGMMReadHndl,
-          &(self->appctx.sReadBuf), aireturn_Code)) {
-        *aireturn_Code = JAMQ_APIU_GMM_ERROR;
         return NOT_OK;
     }
 
@@ -1871,9 +1899,9 @@ int JAMQ_apiu_handle_message (
     }
 
     self = (gtw_context_t*) pApiHndl;
-
-    if (!JAMQ_gmm_get_data (pApiHndl->pGMMReadHndl, 0, 0, &service,
-          aireturn_Code)) {
+  
+    if (!JAMQ_gmm_get_data (self->appctx.pGMMReadHndl, JAMQ_GMM_REQUEST, 0,
+          &service, aireturn_Code)) {
         *aireturn_Code = JAMQ_APIU_RUNTIME_ERROR;
         return NOT_OK;
     }
@@ -1882,6 +1910,16 @@ int JAMQ_apiu_handle_message (
         *aireturn_Code = JAMQ_APIU_RUNTIME_ERROR;
         return NOT_OK;
     }
+
+    /*  Set the context with values needed                                   */
+    self->running_service = service;
+    if (!JAMQ_gmm_get_data (self->appctx.pGMMReadHndl, JAMQ_GMM_SYSTEM_MSG, 0,
+          &(self->reply_to), aireturn_Code)) {
+        *aireturn_Code = JAMQ_APIU_RUNTIME_ERROR;
+        return NOT_OK;
+    }
+
+    /*  Run the handler                                                      */
     if (!fx (pApiHndl, self->appctx.pApplHndl->pApplsHndl, NULL,
           aireturn_Code)) {
         /*  Handler failed... What now ?                                     */
@@ -2117,6 +2155,8 @@ int JAMQ_apiu_flush_broadcast (
         size;
     apr_status_t
         result;
+    void
+        *gmm = NULL;
 
     if (!aireturn_Code)
         return NOT_OK;
@@ -2134,13 +2174,22 @@ int JAMQ_apiu_flush_broadcast (
     self = (gtw_context_t*) pApiHndl;
 
     /*  Get queue name                                                       */
-    if (!JAMQ_gmm_get_data (self->appctx.pGMMWriteHndl, 0, 0, &data,
-          aireturn_Code)) {
+    if (!JAMQ_gmm_open (&gmm, aireturn_Code)) {
+        *aireturn_Code = JAMQ_APIU_GMM_ERROR;
+        return NOT_OK;
+    }
+    if (!JAMQ_gmm_set_buffers (gmm, pBuf, NULL, aireturn_Code)) {
+        JAMQ_gmm_close (&gmm, aireturn_Code);
+        *aireturn_Code = JAMQ_APIU_GMM_ERROR;
+        return NOT_OK;
+    }
+    if (!JAMQ_gmm_get_data (gmm, 0, 0, &data, aireturn_Code)) {
         if (*aireturn_Code == JAMQ_GMM_DATA_UNV) {
             queue_name = "pubsub";
             *aireturn_Code = 0;
         }
         else {
+            JAMQ_gmm_close (&gmm, aireturn_Code);
             *aireturn_Code = JAMQ_APIU_GMM_ERROR;
             return NOT_OK;
         }
@@ -2150,11 +2199,52 @@ int JAMQ_apiu_flush_broadcast (
         memcpy ((void*) queue_name_buffer, (void*) data.pData, data.iDataLen);
         queue_name_buffer [data.iDataLen] = 0;
     }
+    if (!JAMQ_gmm_close (&gmm, aireturn_Code)) {
+        *aireturn_Code = JAMQ_APIU_GMM_ERROR;
+        return NOT_OK;
+    }
+
+    /*  Built-in services                                                    */
+    if (strcmp (queue_name, "subscribe_all") == 0) {
+        printf ("SUBSCRIBE_ALL\n");
+        *aireturn_Code = 0;
+        return OK;
+    }
+    if (strcmp (queue_name, "subscribe_field") == 0) {
+        printf ("SUBSCRIBE_FIELD\n");
+        *aireturn_Code = 0;
+        return OK;
+    }
+    if (strcmp (queue_name, "subscribe_data") == 0) {
+        printf ("SUBSCRIBE_DATA\n");
+        *aireturn_Code = 0;
+        return OK;
+    }
+    if (strcmp (queue_name, "subscribe_list_data") == 0) {
+        printf ("SUBSCRIBE_LIST_DATA\n");
+        *aireturn_Code = 0;
+        return OK;
+    }
+    if (strcmp (queue_name, "unsubscribe_data") == 0) {
+        printf ("UNSUBSCRIBE_DATA\n");
+        *aireturn_Code = 0;
+        return OK;
+    }
+    if (strcmp (queue_name, "register") == 0) {
+        if (!JAMQ_gmm_get_data (gmm, 0, 1, &data, aireturn_Code)) {
+            *aireturn_Code = JAMQ_APIU_GMM_ERROR;
+            return NOT_OK;
+        }
+
+        /* TODO: Parse 3th argument : load balance vs. pub-sub               */
+
+        return JAMQ_apiu_consume (pApiHndl, &data, 1, aireturn_Code);
+    }
 
     /*  Send message                                                         */
     GET_SHORT (size, pBuf->pData);
     result = amq_stdc_send_message (self->channel, self->handle_id, 0,
-        0, queue_name, 0, 1, 5, 0, "", "", "", size,
+        0, queue_name, 0, 0, 5, 0, "", "", "", size,
         pBuf->pData + sizeof (dbyte), 1, "X", 1);
     if (result != APR_SUCCESS) {
         *aireturn_Code = JAMQ_APIU_AMQ_ERROR;
@@ -2182,13 +2272,25 @@ int JAMQ_apiu_build_text_header_eng (
     int             *aireturn_Code
     )
 {
-    const char *header = 
-        "   ------------------------------------------------   "
-        " /                <application name>                \\ "
-        "/  11:17:02                              2005-05-17  \\"
-        "\\                                                    /"
-        " \\          Hello-responded as a message            / "
-        "   ------------------------------------------------   ";
+#if 0
+    apr_time_t
+        tm;
+    apr_time_exp_t;
+        exptm;
+    apr_status_t
+        result;
+    int
+        res;
+    char
+        *buf;
+    qbyte
+        pos;
+    qbyte
+        width;
+    qbyte
+        counter;
+    qbyte
+        separator_width;
 
     if (!aireturn_Code)
         return NOT_OK;
@@ -2203,11 +2305,92 @@ int JAMQ_apiu_build_text_header_eng (
         return NOT_OK;
     }
 
-    return JAMQ_gmm_add_data (pApiHndl->pGMMWriteHndl, GMM_TEXT, 1, pRequest,
-        aireturn_Code);
+    /*  Get local time                                                       */
+    tm = apr_time_now ();
+    result = apr_time_exp_tz (&exptm, tm, 0);
+    if (result != APR_SUCCESS) {
+        *aireturn_Code = JAMQ_APIU_APR_ERROR;
+        retun NOT_OK;
+    }
+
+    /*  Compute header width                                                 */
+    width = pApiHndl->sName.iDataLen;
+    if (width < 20)
+        width = 20;
+    if (width < pRequest->iDataLen)
+        width = pRequest->iDataLen;
+
+    buf = malloc ((width + 6) * 6 +1);
+    if (!buf) {
+        *aireturn_Code = JAMQ_APIU_MEM_ERR;
+        return NOT_OK;
+    }
+
+    pos = 0;
+    memcpy (buf + pos, "  ", 2);
+    pos += 2;
+    for (counter = 0; counter != width; counter ++)
+        buf [pos++] = '-';
+    memcpy (buf + pos, "  \00a\00c /", 6);
+    pos += 6;
+    separator_width = (width - pApiHndl->sName.iDataLen) / 2;
+    for (counter = 0; counter != separator_width; counter ++)
+        buf [pos++] = ' ';
+    memcpy (buf + pos, pApiHndl->sName.pData,pApiHndl->sName.iDataLen);
+    separator_width = (width - pApiHndl->sName.iDataLen) - 
+        ((width - pApiHndl->sName.iDataLen) / 2);
+    for (counter = 0; counter != separator_width; counter ++)
+        buf [pos++] = ' ';
+    memcpy (buf + pos, "\ \00a\00c/ ", 6);
+    pos += 6;
+    sprintf (
+
+    res = JAMQ_gmm_add_data (pApiHndl->pGMMWriteHndl, JAMQ_GMM_TEXT, 1,
+        pRequest, aireturn_Code);
+    free (buf);
+    return res;
+#endif 
+    assert (0);
 }
 
 int JAMQ_apiu_finish_gmm_response_msg (
     JAMQ_tsApicb  *pApiHndl,
-    int           *aiCode
-    );
+    int           *aireturn_Code
+    )
+{
+    gtw_context_t
+        *self;
+    JAMQ_tsNCharcb
+        english;
+
+    if (!aireturn_Code)
+        return NOT_OK;
+
+    if (!pApiHndl) {
+        *aireturn_Code = JAMQ_APIU_HANDLE_INVALID;
+        return NOT_OK;
+    }
+
+    self = (gtw_context_t*) pApiHndl;
+
+    if (!JAMQ_gmm_add_data (self->appctx.pGMMWriteHndl, JAMQ_GMM_RESPONSE, 1,
+        &(self->running_service), aireturn_Code)) {
+        *aireturn_Code= JAMQ_APIU_GMM_ERROR;
+        return NOT_OK;
+    }
+    if (!JAMQ_gmm_add_data (self->appctx.pGMMWriteHndl, JAMQ_GMM_SYSTEM_MSG, 1,
+        &(self->reply_to), aireturn_Code)) {
+        *aireturn_Code= JAMQ_APIU_GMM_ERROR;
+        return NOT_OK;
+    }
+    english.pData = "English";
+    english.iDataLen = 7;
+    if (!JAMQ_gmm_add_data (self->appctx.pGMMWriteHndl, JAMQ_GMM_RESPONSE_LANG,
+        1, &english, aireturn_Code)) {
+        *aireturn_Code= JAMQ_APIU_GMM_ERROR;
+        return NOT_OK;
+    }
+
+    *aireturn_Code = 0;
+    return NOT_OK;
+}

@@ -109,17 +109,17 @@ int JAMQ_ll_set_key (
 #define JAMQ_HASH_ALREADY_EXISTS   104
 #define JAMQ_HASH_DATA_UNV         105
 
-#define LTW_HASH_TOREK_ROUTINE_NAME "hashr_torek"
-#define LTW_HASH_TOREK_ROUTINE_NAME_LEN 11
+#define JAMQ_HASH_TOREK_ROUTINE_NAME "hashr_torek"
+#define JAMQ_HASH_TOREK_ROUTINE_NAME_LEN 11
 
 typedef struct JAMQ_sHashParams    
 {
     int
-        ihash_TableSize;
+        iTableSize;
     JAMQ_tsNCharcb
-        shash_RoutineName;
+        sRoutineName;
     void
-        *p_hash_mem_Hndl;
+        *pMemHndl;
 } JAMQ_tsHashParams;
 
 int JAMQ_hash_open (
@@ -379,11 +379,11 @@ int JAMQ_oum_close (
 #define JAMQ_GMM_MEM_ERR         503
 #define JAMQ_GMM_DATA_UNV        504
 
-#define GMM_REQUEST              00000
-#define GMM_TEXT                 20008
-#define GMM_RESPONSE             32767
-#define GMM_RESPONSE_LANG        32765
-#define GMM_SYSTEM_MSG           32761
+#define JAMQ_GMM_REQUEST              00000
+#define JAMQ_GMM_TEXT                 20008
+#define JAMQ_GMM_RESPONSE             32767
+#define JAMQ_GMM_RESPONSE_LANG        32765
+#define JAMQ_GMM_SYSTEM_MSG           32761
 
 int JAMQ_gmm_open (
     void  **pGmmHandle, 
@@ -393,6 +393,13 @@ int JAMQ_gmm_open (
 int JAMQ_gmm_close (
     void  **pGmmHandle, 
     int   *aireturn_Code
+    );
+
+int JAMQ_gmm_set_buffers (
+    void          *pGmmHandle, 
+    JAMQ_tsBufcb  *pUseBuf,
+    JAMQ_tsBufcb  *pParseBuf,
+    int           *aireturn_Code
     );
 
 int JAMQ_gmm_start_msg (
@@ -700,7 +707,7 @@ typedef struct JAMQ_sApiDvcb
     JAMQ_tsNCharcb
         sRelatedDevice;
     JAMQ_tsEnccb
-        pEncHndl;
+        *pEncHndl;
     void
         *pApiDvsHndl;
 } JAMQ_tsApiDvcb;
@@ -734,7 +741,7 @@ typedef struct JAMQ_sApicb
     JAMQ_tsBufcb
         sOutputBuf;
     JAMQ_tsBufcb
-        *sLogBuf;
+        sLogBuf;
     void
         *pLogHndl;
     JAMQ_tsApiDvcb

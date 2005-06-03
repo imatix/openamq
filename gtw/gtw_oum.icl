@@ -321,12 +321,12 @@
                 key;
         </local>
 
-        params.sHashParams.ihash_TableSize  = 3;
-        params.sHashParams.shash_RoutineName.pData =
-            LTW_HASH_TOREK_ROUTINE_NAME;
-        params.sHashParams.shash_RoutineName.iDataLen =
-            LTW_HASH_TOREK_ROUTINE_NAME_LEN;
-        params.sHashParams.p_hash_mem_Hndl = JAMQ_OS_NO_MEM_MGR;
+        params.sHashParams.iTableSize  = 3;
+        params.sHashParams.sRoutineName.pData =
+            JAMQ_HASH_TOREK_ROUTINE_NAME;
+        params.sHashParams.sRoutineName.iDataLen =
+            JAMQ_HASH_TOREK_ROUTINE_NAME_LEN;
+        params.sHashParams.pMemHndl = JAMQ_OS_NO_MEM_MGR;
         params.iKeyStartCount = 1;
         params.iKeyIncrement = 1;
         params.iNCharCount = 2;
