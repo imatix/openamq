@@ -1,9 +1,16 @@
+0.8d3 - 2005/06/03
+
+  Server:
+      - deletes temporary queues when owner handle closes
+
 0.8d2 - 2005/06/02
+
   Server:
       - new code for handling topic subscriptions
       - server catches channel/handle IDs 0, which are illegal
 
 0.8d1 - 2005/06/02
+
   Server:
       - deletes dynamic queues when last consumer goes away
       - framing code did not properly free memory after a framing error
@@ -25,6 +32,7 @@
       - agnostic/stdc client updated to latest protocol version
 
 0.8d0 - 2005/05/31
+
   - added new functionality to AMQP/0.8 protocol
     HANDLE CONSUME:
         'dynamic' flag allows dynamic queue creation
