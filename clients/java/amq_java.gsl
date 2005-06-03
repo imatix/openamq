@@ -81,11 +81,11 @@ error_handling ="
     static void runtimeException(Exception e, String _class, String method, String message) throws RuntimeException {
         $(AMQPTransport:).runtimeException(e, _class, method, message); 
     }"
-org_openamq_dir = "org/openamq"
-org_openamq_frames2root = "../../.."
-org_openamq_package = string.replace(org_openamq_dir, "/|.")
-org_openamq_frames_dir = org_openamq_dir + "/frames"
-org_openamq_frames_package = string.replace(org_openamq_frames_dir, "/|.")
+org_openamq_dir = "generated/java"
+org_openamq_frames2root = ".."
+org_openamq_package = "org.openamq"
+org_openamq_frames_dir = org_openamq_dir + "/org/openamq/frames"
+org_openamq_frames_package = org_openamq_package + ".frames"
 type_type_last = undefined ? 
 type_type = undefined ?
 set_type = undefined ? 
