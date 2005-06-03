@@ -257,6 +257,19 @@ int main (
             if (command.iDataLen == 8 && memcmp ((void*) command.pData,
                   (void*) "shutdown", 8) == 0) {
                 stop = 1;
+
+                /*  Send a response                                          */
+                if (!JAMQ_apiu_finish_gmm_response_msg (context, &retcode)) {
+                    printf ("Failed while finishing response message. (%ld)\n",
+                        (long) retcode);
+                    exit (1);
+                }
+                if (!JAMQ_apiu_flush_broadcast (context, &(context->sBuildBuf),
+                      &retcode)) {
+                    printf ("Failed while flushing response message. (%ld)\n",
+                        (long) retcode);
+                    exit (1);
+                }                
             }
             else if (command.iDataLen == 8 && memcmp ((void*) command.pData,
                   (void*) "is_ready", 8) == 0) {

@@ -404,6 +404,10 @@
                 *value;
             int
                 size;
+            double
+                dbl;
+            JAMQ_tsNCharcb
+                str;
         </local>
         params.iType = JAMQ_LL_TYPE_1;
         params.pMemHndl = JAMQ_OS_NO_MEM_MGR;
@@ -490,7 +494,15 @@
         if (!JAMQ_ll_close (&list, &retcode)) {
             printf ("JAMQ_ll_close failed (%ld)\\n", (long) retcode);
             exit (EXIT_FAILURE);
-        }        
+        }    
+
+        str.pData = " 897";
+        str.iDataLen = 4;
+        if (!JAMQ_m_chars_to_double (&dbl, &str, &retcode)) {
+            printf ("JAMQ_m_chars_to_double (%ld)\\n", (long) retcode);
+            exit (EXIT_FAILURE);
+        }
+        printf ("%f\\n", dbl);
     </method>
 
 </class>        

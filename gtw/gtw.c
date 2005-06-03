@@ -564,7 +564,7 @@ int JAMQ_m_mem_nchar_dup (
         return NOT_OK;
 
     if (!pNCharOut || !pNCharIn ||
-          !pNCharIn->pData || pNCharIn->iDataLen < 0) {
+          !pNCharIn->pData || pNCharIn->iDataLen <= 0) {
         *aireturn_Code = JAMQ_MISC_INPUT_ERR;
         return NOT_OK;
     }
@@ -1077,6 +1077,11 @@ int JAMQ_pim_fd_open (
         return NOT_OK;
     }
 
+    if (*pDeviceHandle) {
+        *aireturn_Code = JAMQ_PIM_HANDLE_ACTIVE;
+        return NOT_OK;
+    }
+
     path = (char*) malloc (pParams->sFileName.iDataLen + 1);
     if (!path) {
         *aireturn_Code = JAMQ_PIM_MEM_ERR;
@@ -1112,7 +1117,7 @@ int JAMQ_pim_fd_read (
     if (!aireturn_Code)
         return NOT_OK;
 
-    if (!pBuffer || !pBuffer->pData) {
+    if (!pBuffer || !pBuffer->pData || pBuffer->iPhysicalLen < 0) {
         *aireturn_Code = JAMQ_PIM_BAD_INPUT;
         return NOT_OK;
     }
@@ -1810,6 +1815,8 @@ int JAMQ_apiu_receive_message (
         *message_desc;
     dbyte
         iDataLen;
+    JAMQ_tsNCharcb
+        service;
 
     if (!aireturn_Code)
         return NOT_OK;
@@ -1874,6 +1881,19 @@ int JAMQ_apiu_receive_message (
         return NOT_OK;
     }
 
+    /*  Set the context with values needed                                   */
+    if (!JAMQ_gmm_get_data (self->appctx.pGMMReadHndl, JAMQ_GMM_REQUEST, 0,
+          &service, aireturn_Code)) {
+        *aireturn_Code = JAMQ_APIU_RUNTIME_ERROR;
+        return NOT_OK;
+    }
+    self->running_service = service;
+    if (!JAMQ_gmm_get_data (self->appctx.pGMMReadHndl, JAMQ_GMM_SYSTEM_MSG, 0,
+          &(self->reply_to), aireturn_Code)) {
+        *aireturn_Code = JAMQ_APIU_RUNTIME_ERROR;
+        return NOT_OK;
+    }
+
     *aireturn_Code = 0;
     return OK;
 }
@@ -1885,8 +1905,6 @@ int JAMQ_apiu_handle_message (
 {
     gtw_context_t
         *self;
-    JAMQ_tsNCharcb
-        service;
     JAMQ_fMessageHandlerRoutine
         fx;
 
@@ -1900,21 +1918,8 @@ int JAMQ_apiu_handle_message (
 
     self = (gtw_context_t*) pApiHndl;
   
-    if (!JAMQ_gmm_get_data (self->appctx.pGMMReadHndl, JAMQ_GMM_REQUEST, 0,
-          &service, aireturn_Code)) {
-        *aireturn_Code = JAMQ_APIU_RUNTIME_ERROR;
-        return NOT_OK;
-    }
-    if (!JAMQ_hash_find (self->services, &service, (void**) &fx,
-          aireturn_Code)) {
-        *aireturn_Code = JAMQ_APIU_RUNTIME_ERROR;
-        return NOT_OK;
-    }
-
-    /*  Set the context with values needed                                   */
-    self->running_service = service;
-    if (!JAMQ_gmm_get_data (self->appctx.pGMMReadHndl, JAMQ_GMM_SYSTEM_MSG, 0,
-          &(self->reply_to), aireturn_Code)) {
+    if (!JAMQ_hash_find (self->services, &(self->running_service),
+          (void**) &fx, aireturn_Code)) {
         *aireturn_Code = JAMQ_APIU_RUNTIME_ERROR;
         return NOT_OK;
     }
@@ -2272,10 +2277,9 @@ int JAMQ_apiu_build_text_header_eng (
     int             *aireturn_Code
     )
 {
-#if 0
     apr_time_t
         tm;
-    apr_time_exp_t;
+    apr_time_exp_t
         exptm;
     apr_status_t
         result;
@@ -2291,6 +2295,8 @@ int JAMQ_apiu_build_text_header_eng (
         counter;
     qbyte
         separator_width;
+    JAMQ_tsNCharcb
+        header;
 
     if (!aireturn_Code)
         return NOT_OK;
@@ -2307,20 +2313,20 @@ int JAMQ_apiu_build_text_header_eng (
 
     /*  Get local time                                                       */
     tm = apr_time_now ();
-    result = apr_time_exp_tz (&exptm, tm, 0);
+    result = apr_time_exp_lt (&exptm, tm);
     if (result != APR_SUCCESS) {
         *aireturn_Code = JAMQ_APIU_APR_ERROR;
-        retun NOT_OK;
+        return NOT_OK;
     }
 
     /*  Compute header width                                                 */
-    width = pApiHndl->sName.iDataLen;
+    width = pApiHndl->sName.iDataLen + 2;
     if (width < 20)
         width = 20;
-    if (width < pRequest->iDataLen)
-        width = pRequest->iDataLen;
+    if (width < pRequest->iDataLen + 2)
+        width = pRequest->iDataLen + 2;
 
-    buf = malloc ((width + 6) * 6 +1);
+    buf = malloc ((width + 5) * 6);
     if (!buf) {
         *aireturn_Code = JAMQ_APIU_MEM_ERR;
         return NOT_OK;
@@ -2331,26 +2337,56 @@ int JAMQ_apiu_build_text_header_eng (
     pos += 2;
     for (counter = 0; counter != width; counter ++)
         buf [pos++] = '-';
-    memcpy (buf + pos, "  \00a\00c /", 6);
+    memcpy (buf + pos, "  \x00a /", 6);
     pos += 6;
     separator_width = (width - pApiHndl->sName.iDataLen) / 2;
     for (counter = 0; counter != separator_width; counter ++)
         buf [pos++] = ' ';
     memcpy (buf + pos, pApiHndl->sName.pData,pApiHndl->sName.iDataLen);
+    pos += pApiHndl->sName.iDataLen;
     separator_width = (width - pApiHndl->sName.iDataLen) - 
         ((width - pApiHndl->sName.iDataLen) / 2);
     for (counter = 0; counter != separator_width; counter ++)
         buf [pos++] = ' ';
-    memcpy (buf + pos, "\ \00a\00c/ ", 6);
+    memcpy (buf + pos, "\\ \x00a/ ", 6);
     pos += 6;
-    sprintf (
-
+    sprintf (buf + pos, "%02ld:%02ld:%02ld", (long) exptm.tm_hour,
+        (long) exptm.tm_min, (long) exptm.tm_sec);
+    pos += 8;
+    separator_width = width - 8 - 10;
+    for (counter = 0; counter != separator_width; counter ++)
+        buf [pos++] = ' ';
+    sprintf (buf + pos, "%04ld-%02ld-%02ld", (long) exptm.tm_year + 1900,
+        (long) exptm.tm_mon + 1, (long) exptm.tm_mday);
+    pos += 10;
+    memcpy (buf + pos, " \\\x00a\\ ", 6);
+    pos += 6;
+    for (counter = 0; counter != width; counter ++)
+        buf [pos++] = ' ';
+    memcpy (buf + pos, " /\x00a \\", 6);
+    pos += 6;
+    separator_width = (width - pRequest->iDataLen) / 2;
+    for (counter = 0; counter != separator_width; counter ++)
+        buf [pos++] = ' ';
+    memcpy (buf + pos, pRequest->pData,pRequest->iDataLen);
+    pos += pRequest->iDataLen;
+    separator_width = (width - pRequest->iDataLen) - 
+        ((width - pRequest->iDataLen) / 2);
+    for (counter = 0; counter != separator_width; counter ++)
+        buf [pos++] = ' ';
+    memcpy (buf + pos, "/ \x00a   ", 7);
+    pos += 7;
+    for (counter = 0; counter < width -2; counter ++)
+        buf [pos++] = '-';
+    memcpy (buf + pos, "  ", 3);
+    pos += 3;
+    
+    header.iDataLen = pos;
+    header.pData = buf;
     res = JAMQ_gmm_add_data (pApiHndl->pGMMWriteHndl, JAMQ_GMM_TEXT, 1,
-        pRequest, aireturn_Code);
+        &header, aireturn_Code);
     free (buf);
     return res;
-#endif 
-    assert (0);
 }
 
 int JAMQ_apiu_finish_gmm_response_msg (

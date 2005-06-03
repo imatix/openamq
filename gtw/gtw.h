@@ -384,6 +384,7 @@ int JAMQ_oum_close (
 #define JAMQ_GMM_RESPONSE             32767
 #define JAMQ_GMM_RESPONSE_LANG        32765
 #define JAMQ_GMM_SYSTEM_MSG           32761
+#define JAMQ_GMM_RULE                 10025
 
 int JAMQ_gmm_open (
     void  **pGmmHandle, 
