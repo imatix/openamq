@@ -6,7 +6,9 @@
     script    = "icl_gen"
     >
 <doc>
-This class implements the message matching.
+This class is a hash table container for the match class.  This class
+works together with the hitset class to perform the matching on topic
+names and field values.
 </doc>
 
 <inherit class = "ipr_hash_table" />

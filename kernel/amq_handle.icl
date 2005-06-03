@@ -59,6 +59,8 @@ This class implements the AMQP HANDLE commands.
         mime_type;                      /*  Default new message MIME type    */
     ipr_shortstr_t
         encoding;                       /*  Default new message encoding     */
+    amq_dest_t
+        *temp_dest;                     /*  Temporary destination if any     */
 </context>
 
 <method name = "new">
@@ -103,12 +105,38 @@ This class implements the AMQP HANDLE commands.
             dest_name,
             self->client_id);
         amq_server_agent_handle_created (self->thread, (dbyte) key, dest->key);
+        self->temp_dest = dest;
     }
 </method>
 
 <method name = "destroy">
+    <local>
+    amq_dispatch_t
+        *dispatch,                      /*  Dispatched message queue entry   */
+        *dispatch_next;
+    </local>
+
     amq_consumer_by_handle_destroy (&self->consumers);
     amq_browser_array_destroy (&self->browser_set);
+
+    /*  Destroy temporary queue if necessary                                 */
+    if (self->temp_dest) {
+        /*  If we're closing the channel, the dispatch list will be
+            gone already.  If we're closing the handle, it'll still
+            be there, possibly with active messages for this queue...
+         */
+        if (self->channel->dispatch_list) {
+            dispatch = amq_dispatch_list_first (self->channel->dispatch_list);
+            while (dispatch) {
+                dispatch_next = amq_dispatch_list_next (self->channel->dispatch_list, dispatch);
+                if (dispatch->queue == self->temp_dest->queue)
+                    amq_dispatch_destroy (&dispatch);
+                dispatch = dispatch_next;
+            }
+        }
+        coprintf ("DESTROYING TEMPORARY QUEUE");
+        amq_dest_destroy (&self->temp_dest);
+    }
 </method>
 
 <method name = "send" template = "function" >
