@@ -53,5 +53,5 @@ Running the test clients
     Create peer 1:
         java -cp OpenAMQJava.jar:. EchoClient -s <server>
     Create peer 2:
-        java -cp OpenAMQJava.jar:. EchoClient -c client2 -r "q-b" -w "q-a" -s <server>
+        java -cp OpenAMQJava.jar:. EchoClient -c client2 -r "c-in" -w "java-in" -s <server>
     
