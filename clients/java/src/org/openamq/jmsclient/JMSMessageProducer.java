@@ -53,14 +53,14 @@ public class JMSMessageProducer implements MessageProducer {
             handleOpen.producer = true;
             handleOpen.consumer = false;
             handleOpen.browser = false;
-            handleOpen.temporary = temporary;
+            //handleOpen.temporary = temporary;
             handleOpen.mimeType = "";
             handleOpen.encoding = "";
             handleOpen.options = null;
             amqFraming.sendFrame(handleOpen);
             // Get handle created
-            if (handleOpen.temporary)
-                handleCreated = (AMQHandle.Created)amqFraming.receiveFrame();
+            //if (handleOpen.temporary)
+              //  handleCreated = (AMQHandle.Created)amqFraming.receiveFrame();
 
             // Setup the handle
             handle.handleId = handleOpen.handleId;

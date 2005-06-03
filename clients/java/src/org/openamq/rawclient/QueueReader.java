@@ -16,7 +16,9 @@ public class QueueReader
 
     private String _name;
 
-    private boolean _temporary;
+    private boolean _exclusive;
+
+    private boolean _dynamic;
 
     private int _handleId;
 
@@ -24,14 +26,27 @@ public class QueueReader
 
     private MessageReceivedCallback _callback;
 
-    QueueReader(Connection con, String name, boolean temporary, int handleId,
+    /**
+     *
+     * @param con
+     * @param name
+     * @param exclusive if true, only a single reader is allowed to consume
+     * messages from the queue
+     * @param dynamic if true, the queue will be created if it does not already exist and also
+     * will be destroyed when the last consumer detaches
+     * @param handleId
+     * @param callback
+     * @throws AMQClientException
+     */
+    QueueReader(Connection con, String name, boolean exclusive, boolean dynamic, int handleId,
                 MessageReceivedCallback callback)
             throws AMQClientException
     {
         if (_log.isDebugEnabled()) _log.debug("Creating QueueReader for queue " + name + " with handle id " + handleId);
         _connection = con;
         _name = name;
-        _temporary = temporary;
+        _exclusive = exclusive;
+        _dynamic = dynamic;
         _handleId = handleId;
         _callback = callback;
         try
@@ -44,7 +59,7 @@ public class QueueReader
             throw new AMQClientException(_log, "Error creating frame: " + e, e);
         }
 
-    }    
+    }
 
     public Connection getConnection()
     {
@@ -56,9 +71,14 @@ public class QueueReader
         return _name;
     }
 
-    public boolean isTemporary()
+    public boolean isExclusive()
     {
-        return _temporary;
+        return _exclusive;
+    }
+
+    public boolean isDynamic()
+    {
+        return _dynamic;
     }
 
     public void fireCallback(Message msg) throws AMQClientException
@@ -74,12 +94,12 @@ public class QueueReader
     private void populateConsumeFrame(AMQFramingFactory framingFactory) throws AMQException
     {
         _handleConsume = (AMQHandle.Consume)framingFactory.constructFrame(AMQHandle.CONSUME);
-        _handleConsume.handleId = 1;
+        _handleConsume.handleId = _handleId;
         _handleConsume.confirmTag = 0;
         _handleConsume.prefetch = 1;
         _handleConsume.noLocal = true;
         _handleConsume.noAck = false;
-        _handleConsume.dynamic = true;
+        _handleConsume.dynamic = _dynamic;
         _handleConsume.destName = "";
         _handleConsume.selector = null;
     }

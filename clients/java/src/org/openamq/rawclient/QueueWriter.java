@@ -17,21 +17,31 @@ public class QueueWriter
 
     private String _name;
 
-    private boolean _temporary;
+    private boolean _immediate;
 
     private int _handleId;
 
     /* Frame for handle send */
     private AMQHandle.Send _handleSend;
 
-    QueueWriter(Connection con, String name, boolean temporary, int handleId)
+    /**
+     *
+     * @param con
+     * @param name
+     * @param immediate if true, the queue writer will receive an error response from
+     * the server when it attempts to send a message to a destination and there is not
+     * at least one consumer.
+     * @param handleId
+     * @throws AMQClientException
+     */
+    QueueWriter(Connection con, String name, boolean immediate, int handleId)
             throws AMQClientException
     {
         if (_log.isDebugEnabled()) _log.debug("Create queue writer for queue " + name +
                                               " with handle id " + handleId);
         _connection = con;
         _name = name;
-        _temporary = temporary;
+        _immediate = immediate;
         _handleId = handleId;
 
         try
@@ -73,21 +83,16 @@ public class QueueWriter
         return _name;
     }
 
-    public boolean isTemporary()
-    {
-        return _temporary;
-    }
-
     private void populateSendFrame(AMQFramingFactory framingFactory) throws AMQException
     {
         _handleSend = (AMQHandle.Send)framingFactory.constructFrame(AMQHandle.SEND);
-        _handleSend.handleId = 2;
+        _handleSend.handleId = _handleId;
         _handleSend.confirmTag = 0;
         _handleSend.fragmentSize = 0;
         _handleSend.partial = false;
         _handleSend.outOfBand = false;
         _handleSend.recovery = false;
-        _handleSend.immediate = true;
+        _handleSend.immediate = _immediate;
         _handleSend.destName = "";
     }
 }

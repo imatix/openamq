@@ -448,14 +448,14 @@ public void do_tests ()
         handle_open.producer = true;
         handle_open.consumer = true;
         handle_open.browser = false;
-        handle_open.temporary = !persistent;
+        //handle_open.temporary = !persistent;
         handle_open.mimeType = "";
         handle_open.encoding = "";
         handle_open.options = null;
         amq_framing.sendFrame(handle_open);
         // Get handle created
-        if (handle_open.temporary)
-            handle_created = (AMQHandle.Created)amq_framing.receiveFrame();
+        //if (handle_open.temporary)
+          //  handle_created = (AMQHandle.Created)amq_framing.receiveFrame();
 
         // Pause incoming messages
         handle_flow.handleId = 1;

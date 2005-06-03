@@ -133,20 +133,21 @@ public class Connection extends amqpcli_serial
         }
     }
 
-    public QueueReader createQueueReader(String name, boolean temporary, int flags, MessageReceivedCallback callback)
+    public QueueReader createQueueReader(String name, boolean exclusive, boolean dynamic,
+                                         MessageReceivedCallback callback)
             throws AMQClientException
     {
         if (_log.isDebugEnabled())
         {
-            _log.debug("Creating queue reader with \nname: " + name + "\ntemporary: " + temporary +
-                       "\nflags: " + flags);
+            _log.debug("Creating queue reader with \nname: " + name + "\nexclusive: " + exclusive +
+                       "dynamic: " + dynamic);
         }
         final int handleId = IdFactory.getInstance().getHandleId();
         if (_log.isDebugEnabled())
         {
             _log.debug("Handle id is " + handleId);
         }
-        String destName = openHandle(handleId, false, true, temporary, name);
+        String destName = openHandle(handleId, false, true, name);
 
         Map handle2ReaderMap = (Map) _sessionData.get(MESSAGE_CONSUMERS);
         if (handle2ReaderMap == null)
@@ -154,7 +155,7 @@ public class Connection extends amqpcli_serial
             handle2ReaderMap = new HashMap();
             _sessionData.put(MESSAGE_CONSUMERS, handle2ReaderMap);
         }
-        QueueReader qr = new QueueReader(this, destName, temporary, handleId, callback);
+        QueueReader qr = new QueueReader(this, destName, exclusive, dynamic, handleId, callback);
         handle2ReaderMap.put(new Integer(_handleOpen.handleId), qr);
 
         try
@@ -175,11 +176,11 @@ public class Connection extends amqpcli_serial
         return qr;
     }
 
-    public QueueWriter createQueueWriter(String name, boolean temporary, int flags) throws AMQClientException
+    public QueueWriter createQueueWriter(String name, boolean immediate) throws AMQClientException
     {
         final int handleId = IdFactory.getInstance().getHandleId();
-        final String destName = openHandle(handleId, true, false, temporary, name);
-        return new QueueWriter(this, destName, temporary, handleId);
+        final String destName = openHandle(handleId, true, false, name);
+        return new QueueWriter(this, destName, immediate, handleId);
     }
 
     /**
@@ -218,7 +219,7 @@ public class Connection extends amqpcli_serial
      * @throws AMQClientException
      */
     private String openHandle(int handleId, boolean producer, boolean consumer,
-                            boolean temporary, String destName)
+                              String destName)
             throws AMQClientException
     {
         if (_log.isDebugEnabled())
@@ -228,7 +229,6 @@ public class Connection extends amqpcli_serial
         _handleOpen.handleId = handleId;
         _handleOpen.producer = producer;
         _handleOpen.consumer = consumer;
-        _handleOpen.temporary = temporary;
 
         _handleOpen.channelId = _channelId;
         _handleOpen.serviceType = (_ack ? 1 : 0);
