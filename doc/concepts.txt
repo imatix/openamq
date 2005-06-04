@@ -3,9 +3,9 @@ gdl
     subtitle  = A Background to the AMQ Project
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/05/05
+    date      = 2005/06/03
     copyright = Copyright (c) 2004-2005 JPMorgan and iMatix Corporation
-    version   = 0.9
+    version   = 0.9a1
 end gdl
 
 Introduction
@@ -1496,7 +1496,7 @@ Dynamic_Destination:
     methods. Unlike "temporary" destinations, dynamic destinations
     provide true disconnected asynchronous processing in which a
     client can create a response queue, then continue to receive
-    queued messages even when going offline. 
+    queued messages even when going offline.
 Subscription:
     A queue-based destination that receives messages from one or more
     topic destinations based on a topic name pattern and content-based
@@ -1752,8 +1752,6 @@ During the negotiation of limits the peers MUST exchange this mandatory
 information about themselves:
 
 - The specific content domains that they support (see later).
-
-A peer MAY use this information to adapt its behaviour appropriately.
 
 And the peers MAY exchange this optional information about themselves:
 
@@ -2026,8 +2024,7 @@ features:
 - It provides multiple content types to allow optimal encoding for
   different applications.
 
-- It supports content bodies of any size from zero octets up to
-  infinity.
+- It supports content bodies of any size from zero octets upwards.
 
 - Content body can be read and written directly from application memory
   with no formatting or copying ("zero copy").
@@ -2130,7 +2127,7 @@ header and body of the parent content:
 
 [contentchild.png]
 
-This organisation means that a principle content (e.g. a very large
+This organisation means that a principal content (e.g. a very large
 video file) can have child content (e.g. subtitles and menus) which will
 be sent before the main content. If a more specific order of content is
 needed, it can be done by defining a top-level content that has no body,
@@ -2228,7 +2225,7 @@ replies depend on which requests, since the exchange of data is often
 asynchronous, pipelined, and generally hard to follow.
 
 Rather than attempt to formalise the exact flow of data from client to
-server and back, we use an metaphor taken from the software world,
+server and back, we use a metaphor taken from the software world,
 namely the object-oriented metaphor of "classes" and "methods".
 
 We build this as follows:
@@ -2266,20 +2263,20 @@ We build this as follows:
 Client and Server Roles
 ........................
 
-The AMQP/Fast protocol is pseudo-symmetrical with client-initiated
+The AMQP/Fast protocol is quasi-symmetrical with client-initiated
 connections. We can visualise the protocol as governing two levels of
 connection - network connections (sockets) and virtual connections
 (channels):
 
 [connections.png]
 
-Each connection (socket and channel) has a clear client role - the peer
-that initiated the connection, and a clear server role - the peer that
-accepted the connection. For both network and virtual connections the
-general protocol model is the same:
+Each peer involved in a connection (socket and channel) is strictly
+a client or a server.  The client initiates the connection and the
+server accepts the connection.  This applies both to network and to
+virtual channel connections:
 
 1. The client requests the server to open connection.
-2. The server responds and the peers negotiate the connection.
+2. The server responds and the peers agree on connection parameters.
 3. The client and the server exchange information.
 4. Either peer requests to close the connection.
 5. The other peer responds and they negotiate the shut-down.
@@ -2315,7 +2312,7 @@ A method frame body has this format:
 
 - The flags provide a set of operational indicators.
 
-- The synchtag is an arbitrary value that the sender chooses to
+- The synctag is an arbitrary value that the sender chooses to
   identify the method instance.
 
 - The properties are a set of AMQP/Fast fields that specific to each
@@ -2328,9 +2325,8 @@ The flags are defined as follows:
 - 7 = SYNCHREQ - if 1, requests a "synchpoint", turning an asynchronous
   method into a synchronous one. Has no effect on a synchronous method.
 
-- 6 = UNREAL - if 1, requests an "interface test", in which the
-  recipient responds with an echo of the method but does not otherwise
-  execute the method.
+- 6 = UNREAL - if 1, requests an "unreal method", in which the
+  recipient responds "as expected" but does no real work.
 
 - 5 = TRACER - if 1, requests a "distributed trace", in which the
   recipient will trace all responses to this and other clients which
@@ -2338,7 +2334,7 @@ The flags are defined as follows:
 
 - 4 = UNUSED - this bit is not used.
 
-- 3-0 = revision - must be zero in this protocol.
+- 3-0 = revision - defines the method revision.
 
 Guidelines for implementors:
 
@@ -2352,10 +2348,10 @@ Guidelines for implementors:
   support the specific method revisions defined in the protocol
   minor version number agreed during connection negotiation.
 
-- Synchtags SHOULD BE unique since the last synchpoint (we explain
+- synctags SHOULD BE unique since the last synchpoint (we explain
   synchpoints later).
 
-- Bits 2 to 0 of the flags octet are reserved for future use and MUST be
+- Bits 3 to 0 of the flags octet are reserved for future use and MUST be
   zero.
 
 The Synchpoint Function
@@ -2374,16 +2370,15 @@ synchpoints at every asynchronous method, which turns the entire
 protocol into a synchronous protocol. This may be simpler for some
 scenarios than a normal asynchronous exchange of methods.
 
-The Interface Test Function
-...........................
+Unreal Methods
+..............
 
 A peer can test the capability of the other peer by sending methods with
 the UNREAL flag set. When a peer receives a message with this flag set
-it de-marshals the frame, reconstructs it with the same fields, and
-sends it back to the requesting peer. We assume that a specially
-designed peer, a "monitor client" will perform the tests. 
+it responds with a suitable "as expected" response with arbitrary data
+and the UNREAL flag also set.
 
-The goal of the UNREAL flag is to allow a monitor client to determing
+The goal of the UNREAL flag is to allow a monitor client to determine
 what methods a peer supports.
 
 The Distributed Trace Function
@@ -2478,7 +2473,7 @@ Our design is based on these elements:
   messages it receives
 
 - Transactions: allowing a client to group multiple messages and
-  acknowledgements into a single unit of work.  
+  acknowledgements into a single unit of work.
 
 In general all these mechanisms apply to all content classes. Certain
 content classes may elect to use a simpler model for performance

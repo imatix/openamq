@@ -25,7 +25,7 @@
       <field name = "method class"    type = "octet" standard = "1" >class ID</field>
       <field name = "method id"       type = "octet" standard = "1" >method ID</field>
       <field name = "method flags"    type = "octet" standard = "1" >method flags</field>
-      <field name = "method synchtag" type = "long"  standard = "1" >synchtag</field>
+      <field name = "method synctag"  type = "long"  standard = "1" >synctag</field>
     </method>
   </class>
 

@@ -1,0 +1,275 @@
+AMQ Traffic Control Architecture
+--------------------------------
+
+Restatement of Goals
+....................
+
+AMQ is designed to carry data ("messages") between business applications
+("clients") written in arbitrary languages and running on arbitrary
+platforms spread across a fully-addressable network.
+
+Every functional scenario has its own requirements as to:
+
+- Message size, from zero bytes up to many gigabytes.
+- Number of clients, from one up to many thousands.
+- Volume of messages crossing the network, from a few per day to hundreds
+  of thousands per second.
+- Critical latency of a message, from a millisecond to an hour.
+- Reliability of delivery, from "as reliable as possible, whatever the
+  cost" to "best-effort delivery".
+- Consumption of network, memory, CPU, and disk resources.
+
+The same AMQ architecture must be able to work efficiently on a small
+embedded message router, as well as on a supercluster with dozens of
+CPUs and tens of gigabytes of memory.
+
+General Design Method
+.....................
+
+Our design method relies on these principles:
+
+1. To give the functional architect (the person responsible for designing
+   an AMQ network, using AMQ technology) as much control as possible over
+   the choices and tradeoffs required for a specific functional scenario.
+
+2. To design the architecture using general models that the functional
+   architect can combine as needed.
+
+That is: rather than embed assumptions and decisions in the architecture
+we create general-purpose constructs that can be reused in scenarios that
+we do not pretend to fully understand ourselves.
+
+AMQ Building Blocks
+...................
+
+A classic middleware broker provides a "topic" service which allows
+clients to subscribe to a tree of topics.  Clients subscribe with
+citeria such as the topic name, or a pattern representing a set of
+topics, e.g. "FOREX.*".  The middleware explicitly provides functionality
+to subscribe, manage topics, and so on.
+
+AMQ does not provide such a model: the protocol and broker make no
+mention of "topics" or "subscriptions".  Rather, AMQ provides more
+general building blocks that can easily be used to build a topic service.
+
+We define the "MESSAGE". A message is self-contained package of data that
+passes through the broker.  The broker will not modify or separate the
+data in a message.  The message is the basic unit of data transfer between
+clients and brokers.
+
+We define the "QUEUE".  A queue holds messages and distributes these to
+clients.  Queues are highly configurable objects that implement most of
+the quality of service aspects of an AMQ broker. Queues can be private or
+shared, created by the broker administrator, or by applications.  Queues
+can holding their messages on disk or in memory, or a combination
+(working in memory and overflowing to disk when necessary).  Queues can
+be persistent (remaining active when the server stops and restarts) or
+dynamic (automatically deleted when no longer used).
+
+Queues have public names, and when a client wants to get messages from a
+broker it says, "give me messages from queue such-and-such".
+
+We define the "MUXER", or "multiplexer".  Muxers are named
+objects that accept messages and distribute them to queues.  A message
+can exist on many queues at once.  Clients that want to send messages
+to a broker always send them to a specific muxer.
+
+The basic architecture is thus (showing a set of producers sending
+messages to a set of consumers):
+
+                +--------+        +--------+
+   Producers:   | Client |        | Client |
+                +--------+        +--------+
+                    |                  |
+                    |                  |
+   Messages     +----\----Broker------/----+
+       |        |     \              /     |
+       |        |      +------------+      |
+       |        |      |   Muxer    |      |
+       |        |      +------------+      |
+       |        |         /      \         |
+       |        |  +-------+    +-------+  |
+       |        |  | Queue |    | Queue |  |
+     \ | /      |  +-------+    +-------+  |
+      \|/       |     /              \     |
+       V        +----/----------------\----+
+                    |                  |
+                    V                  V
+                +--------+        +--------+
+    Consumers:  | Client |        | Client |
+                +--------+        +--------+
+
+Note that:
+
+1. The producers do not write directly to the consumers' queues.
+2. The consumers do not read directly from the muxer.
+
+Relationship between Queues and Multiplexers
+............................................
+
+A queue "attaches" to a muxer, with a request that is, "give me a
+copy of all messages that look like this".
+
+A queue can attach to several muxers.  The order in which this
+happens is important.
+
+AMQ has a formal definition of a message which includes:
+
+- the "destination" for the message.  This is a name that the client
+  application uses.  The destination may (or may not) map directly
+  to a queue name.
+
+- the "properties" for the message.  These are a set of fields with
+  a name, type, and value.  The field properties may (or may not) be
+  used by the muxer to decide which queues receive the messages.
+
+Multiplexer Examples
+....................
+
+We identify and give names to the main classes of muxer that we will
+wish to implement:
+
+1. "SIMPLE" routes messages to all attached queues.  That is, it passes
+   all messages to all queues that are attached.  The simple muxer is
+   used to create arbitrary muxer-queue relationships.
+
+2. "DESTINATION" routes messages on their destination name using a
+   direct comparison.  That is, it passes messages to queues that have
+   attached with the request, "give me all messages whose destination
+   is equal to this value".
+
+3. "WILD DESTINATION" routes messages on their destination name using a
+   wild card comparison.  That is, it passes messages to queues that have
+   attached with the request, "give me all messages whose destination
+   matches this pattern".
+
+4. "PROPERTY" routes messages on the value and presence of properties.
+   That is, it passes messages to queues that have attached with the
+   request, "give me all messages with properties with these names
+   and values".
+
+5. "WILD PROPERTY" routes messages on a set of properties using wild
+   card comparisons.  That is, it passes messages to queues that have
+   attached with the request, "give me all messages with properties
+   that match these specifications".
+
+6. "SELECTOR" routes messages using a programmable selector statement.
+   That is, it passes messages to queues that have attached with the
+   request, "give me all messages where this statement is true".  The
+   selector statements are based on SQL WHERE conditions.
+
+7. "LOSSY" routes messages with random failure.  That is, it passes
+   messages to all attached queues, but randomly drops messages.  The
+   lossy muxer is used to simulate network or processing failures.
+
+Muxer Implementation
+....................
+
+Each muxer is a processing class in the broker, with properties and
+methods that allow it to operate.  All muxers have a common abstract
+structure:
+
+    +------+-------+-------------+------------------------------+
+    | Name | Class | Attach list | Class-specific properties... |
+    +------+-------+-------------+------------------------------+
+                          :
+                     +--------+    +-------+
+                     | Attach |--->| Queue |
+                     +--------+    +-------+
+                          :
+                     +--------+    +-------+
+                     | Attach |--->| Queue |
+                     +--------+    +-------+
+                          :
+                         ...
+
+Multiple Attachments
+....................
+
+A queue can attach to the same multiplexer several times:
+
+    Attach to DESTINATION: messages for destination X
+    Attach to DESTINATION: messages for destination Y
+    Attach to DESTINATION: messages for destination Z
+
+The meaning of this is obvious and does not need much explaining: the
+requests are combined so the queue will get messages for any of the
+three destinations:
+
+        +-------------+
+        | DESTINATION |
+        +-------------+
+             | | |  "messages for destinations X, Y, Z"
+           +-------+
+           | Queue |
+           +-------+
+
+A queue can also attach to two different multiplexers:
+
+    Attach to DESTINATION: messages for destination X
+    Attach to DESTINATION: messages for destination Y
+    Attach to DESTINATION: messages for destination Z
+    Attach to LOSSY
+
+The meaning of this is as follows:
+
+        +-------------+
+        | DESTINATION |
+        +-------------+
+             | | |  "messages for destinations X, Y, Z"
+           +-------+
+           | LOSSY |
+           +-------+
+               |    "all messages"
+           +-------+
+           | Queue |
+           +-------+
+
+In other words, the LOSSY muxer steps in between the queue and the
+DESTINATION muxer.  We could imagine several levels:
+
+        +-------------+
+        | DESTINATION |
+        +-------------+
+             | | |  "messages for destinations X, Y, Z"
+          +----------+
+          | PROPERTY |
+          +----------+
+               |    "messages with property ABC"
+           +-------+
+           | LOSSY |
+           +-------+
+               |    "all messages"
+           +-------+
+           | Queue |
+           +-------+
+
+Reconstructing Store and Forward
+................................
+
+Let us reconstruct queue-based store and forward using these building
+blocks:
+
+- We use a muxer called "QUEUE", of the DESTINATION class.
+- We agree that queue names are equal to the destination name placed
+  in each message.
+- We create a set of queues and attach these to the QUEUE muxer.
+
+Reconstructing Topics and Subscriptions
+.......................................
+
+
+
+
+Queue Namespaces
+................
+
+To avoid non-standard naming conventions.  May be equal to muxer name,
+e.g. QUEUE.
+
+
+
+
+
+
+
