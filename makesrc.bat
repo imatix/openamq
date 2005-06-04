@@ -2,12 +2,18 @@
 :-
 :-  Make full source package
 :-
-set VERSION=0.7b4
+set VERSION=0.8d4
 set PACKAGE=openamq-%VERSION%-src
 set HOME=c:\imatix\work
 
 echo Preparing base...
 cd %HOME%\products\base
+rm -f *.zip
+call boom
+call boom distsrc
+
+echo Preparing foreign...
+cd %HOME%\products\foreign
 rm -f *.zip
 call boom
 call boom distsrc
@@ -33,6 +39,11 @@ cd    base
 unzip -q %HOME%/products/base/*.zip
 cd ..
 
+mkdir foreign
+cd    foreign
+unzip -q %HOME%/products/foreign/*.zip
+cd ..
+
 mkdir base2
 cd    base2
 unzip -q %HOME%/products/base2/*.zip
@@ -43,8 +54,11 @@ cd    openamq
 unzip -q %HOME%/products/openamq/*.zip
 cd ..
 
-echo :-  We build / install these 3 products...> build.bat
+echo :-  We build / install these products...> build.bat
 echo cd base>>build.bat
+echo build.bat>>build.bat
+echo cd ..>>build.bat
+echo cd foreign>>build.bat
 echo build.bat>>build.bat
 echo cd ..>>build.bat
 echo cd base2>>build.bat

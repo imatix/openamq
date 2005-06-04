@@ -2,11 +2,11 @@
 #
 #   Make OpenAMQ source packages
 #
-#   Modified 2005/05/09 - mato@imatix.com
+#   Modified 2005/06/03 - mato@imatix.com
 #
-#   Creates OpenAMQ source package including base, base2, and gsl4.
+#   Creates OpenAMQ source package including all dependent products.
 #
-PRODUCTS="base base2 gsl4 openamq"
+PRODUCTS="base foreign base2 gsl4 openamq"
 
 for PRODUCT in $PRODUCTS; do
     echo "Preparing $PRODUCT sources..."
