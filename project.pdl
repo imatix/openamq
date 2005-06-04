@@ -12,18 +12,16 @@
     <distrib name = "OpenAMQ source" type = "source">
         <project directory = "kernel"  />
         <project directory = "servers" />
-        <project directory = "client_base" />
-        <project directory = "client_comwin32" />
-        <project directory = "clients" />
         <project directory = "rfc"     />
+        <project directory = "clients_kernel"/>
+        <project directory = "clients_win32" />
     </distrib>
 
     <distrib name = "OpenAMQ install" type = "install">
         <project directory = "kernel"  />
         <project directory = "servers" />
-        <project directory = "client_base" />
-        <project directory = "client_comwin32" />
-        <project directory = "clients" />
         <project directory = "rfc"     />
+        <project directory = "clients_kernel"/>
+        <project directory = "clients_win32" />
     </distrib>
 </pdl>

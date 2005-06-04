@@ -244,5 +244,7 @@ amq_hitset.c
 amq_hitset.h
 amq_hitset_test.c
 amq_topic_array.icl
-
+amq_topic_array.c
+amq_topic_array.h
+amq_topic_array_test.c
 

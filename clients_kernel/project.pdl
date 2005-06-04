@@ -1,0 +1,30 @@
+<?xml?>
+<pdl
+    name      = "OpenAMQ base C clients"
+    version   = "0.8d4"
+    copyright = "Copyright (c) 2004-2005 JPMorgan"
+    deploy    = "openamq/clients"
+    >
+
+<include filename = "prelude.pdl" />
+
+<file name = "amqpcli_serial.c"  class = "main program"     >AMQP serial demo client</file>
+<file name = "amqpcli_asynch.c"  class = "main program"     >AMQP asynch demo client</file>
+<file name = "amqpcli_file.c"    class = "main program"     >AMQP file transfer demo client</file>
+<file name = "amqpcli_get.c"     class = "main program"     >AMQP file get client</file>
+<file name = "amqpcli_put.c"     class = "main program"     >AMQP file put client</file>
+<file name = "amqpfeed.c"        class = "main program"     >Generate test files</file>
+<file name = "chat_in.c"         class = "main program"     >C-to-Java chat example</file>
+<file name = "chat_out.c"        class = "main program"     >C-to-Java chat example</file>
+<file name = "version.h"         class = "c version"        >Project version file</file>
+
+<!-- Deliverables -->
+<file name = "amqpcli_asynch"    class = "public command"   >Client demo executable</file>
+<file name = "amqpcli_serial"    class = "public command"   >Client demo executable</file>
+<file name = "amqpcli_file"      class = "public command"   >Client file transfer demo</file>
+<file name = "amqpcli_get"       class = "public command"   >Client file get</file>
+<file name = "amqpcli_put"       class = "public command"   >Client file put</file>
+<file name = "chat_in"           class = "public command"   >C-to-Java chat example</file>
+<file name = "chat_out"          class = "public command"   >C-to-Java chat example</file>
+
+</pdl>
