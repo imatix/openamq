@@ -1,10 +1,10 @@
-AMQ Traffic Control Architecture
---------------------------------
+Dynamic Wiring
+--------------
 
 Restatement of Goals
 ....................
 
-AMQ is designed to carry data ("messages") between business applications
+AMQ is designed to carry data ("messages") between applications
 ("clients") written in arbitrary languages and running on arbitrary
 platforms spread across a fully-addressable network.
 
@@ -32,47 +32,84 @@ Our design method relies on these principles:
    an AMQ network, using AMQ technology) as much control as possible over
    the choices and tradeoffs required for a specific functional scenario.
 
-2. To design the architecture using general models that the functional
-   architect can combine as needed.
+2. To design the architecture using abstract general models that the
+   functional architect can combine as needed.
 
 That is: rather than embed assumptions and decisions in the architecture
-we create general-purpose constructs that can be reused in scenarios that
-we do not pretend to fully understand ourselves.
+we create abstract general-purpose constructs that can be reused in
+scenarios that we do not pretend to fully understand ourselves.
+
+Main Insights
+.............
+
+The main insights that led to our design (which is the third and final
+major redesign of the protocol) were:
+
+1. Subscriptions can be designed as a special case of queues.  That is,
+   subscriptions and queues can be designed to support exactly the same
+   set of properties and access methods.  In the topic/subscription
+   model subscriptions are simply queues that have a special matching
+   technique and a private name space.
+
+2. Matching can be abstracted.  That is, everything from matching on
+   a specific destination name to matching on an SQL-like selector can
+   be abstracted into a single concept.
+
+3. Messages can have multiple instances.  That is, a message can be
+   in many queues at the same time.  We do not copy message content,
+   rather we use message reference counting.  Queues store references
+   to messages rather than messages.  This applies both to persistent
+   and non-persistent messages.
+
+4. Queues and matching can be loosely-coupled.  That is, while one
+   client "writes to queue X" and a second client "reads from queue
+   X", this can be done using a less tightly-coupled relationship
+   than the obvious "producer writes to queue".  Loose coupling is
+   often desirable because it allows abstraction in which one side
+   of a relationship can be reorganised without affecting the other.
+
+We use these insights to define a set of building blocks that achieve
+much wider functionality than classic messaging middleware (like JMS)
+at no significant extra cost.
 
 AMQ Building Blocks
 ...................
 
-A classic middleware broker provides a "topic" service which allows
-clients to subscribe to a tree of topics.  Clients subscribe with
-citeria such as the topic name, or a pattern representing a set of
-topics, e.g. "FOREX.*".  The middleware explicitly provides functionality
-to subscribe, manage topics, and so on.
+A classic middleware broker provides two types of service: a "queue"
+service in which producers and consumers interact via shared named
+queues, and a "topic" service which allows clients to subscribe to a
+tree of topics. Clients subscribe with citeria such as the topic name,
+or a pattern representing a set of topics, e.g. "FOREX.*". The
+middleware explicitly provides functionality to subscribe, manage
+topics, and so on.
 
-AMQ does not provide such a model: the protocol and broker make no
-mention of "topics" or "subscriptions".  Rather, AMQ provides more
-general building blocks that can easily be used to build a topic service.
+AMQ does not provide these services directly: the protocol and broker
+make no mention of "topics" or "subscriptions". Rather, AMQ provides
+more general building blocks that can easily be used to build a topic
+service, a queue service, a mix of the two, and new kinds of service
+that fall outside the classic definitions.
 
-We define the "MESSAGE". A message is self-contained package of data that
-passes through the broker.  The broker will not modify or separate the
-data in a message.  The message is the basic unit of data transfer between
-clients and brokers.
+We define the "MESSAGE". A message is self-contained package of data
+that passes through the broker. The broker will not modify or separate
+the data in a message. The message is the basic unit of data transfer
+between clients and brokers.
 
-We define the "QUEUE".  A queue holds messages and distributes these to
-clients.  Queues are highly configurable objects that implement most of
-the quality of service aspects of an AMQ broker. Queues can be private or
-shared, created by the broker administrator, or by applications.  Queues
-can holding their messages on disk or in memory, or a combination
-(working in memory and overflowing to disk when necessary).  Queues can
+We define the "QUEUE". A queue holds messages and distributes these to
+clients. Queues are highly configurable objects that implement most of
+the quality of service aspects of an AMQ broker. Queues can be private
+or shared, created by the broker administrator, or by applications.
+Queues can holding their messages on disk or in memory, or a combination
+(working in memory and overflowing to disk when necessary). Queues can
 be persistent (remaining active when the server stops and restarts) or
 dynamic (automatically deleted when no longer used).
 
 Queues have public names, and when a client wants to get messages from a
 broker it says, "give me messages from queue such-and-such".
 
-We define the "MUXER", or "multiplexer".  Muxers are named
-objects that accept messages and distribute them to queues.  A message
-can exist on many queues at once.  Clients that want to send messages
-to a broker always send them to a specific muxer.
+We define the "PROXY". Proxies are named objects that
+accept messages and distribute them to queues. A message can exist on
+many queues at once. Clients that want to send messages to a broker
+always send them to a specific proxy.
 
 The basic architecture is thus (showing a set of producers sending
 messages to a set of consumers):
@@ -81,11 +118,11 @@ messages to a set of consumers):
    Producers:   | Client |        | Client |
                 +--------+        +--------+
                     |                  |
-                    |                  |
+                    V                  V
    Messages     +----\----Broker------/----+
        |        |     \              /     |
        |        |      +------------+      |
-       |        |      |   Muxer    |      |
+       |        |      |   Proxy    |      |
        |        |      +------------+      |
        |        |         /      \         |
        |        |  +-------+    +-------+  |
@@ -102,16 +139,58 @@ messages to a set of consumers):
 Note that:
 
 1. The producers do not write directly to the consumers' queues.
-2. The consumers do not read directly from the muxer.
+2. The consumers do not read directly from the proxy.
 
-Relationship between Queues and Multiplexers
-............................................
+Queue Consumers
+...............
 
-A queue "attaches" to a muxer, with a request that is, "give me a
-copy of all messages that look like this".
+While proxies copy messages across queues, queues distribute
+messages between consumers.  A queue can have one consumer:
 
-A queue can attach to several muxers.  The order in which this
-happens is important.
+        +-------+ 
+        | Queue | 
+        +-------+ 
+            |
+            V
+        +--------+ 
+        | Client | 
+        +--------+ 
+
+A queue can also have many consumers:
+
+                        +-------+ 
+                        | Queue | 
+                        +-------+
+                            |
+           .----------.-----------.-----------.
+           |          |           |           |
+           V          V           V           V
+      +--------+  +--------+  +--------+  +--------+
+      | Client |  | Client |  | Client |  | Client |
+      +--------+  +--------+  +--------+  +--------+
+
+The queue distributes messages to the consumers according to a
+configurable traffic control model that is adjustable per consumer:
+
+- Each consumer specifies whether it is going to acknowledge
+  messages or not.  Acknowledgements improve reliability but
+  slow-down performance.
+
+- Each consumer specifies how many messages the server should
+  send it in advance of acknowledgements.  This "prefetch"
+  window improves latency but can mean that consumers are not
+  perfectly balanced.
+
+Given these two parameters the queue will distribute messages to the
+consumers on a quasi-round-robin basis (i.e. to each consumer in turn,
+but without a guarantee of visting each consumer in any particular
+order).
+
+Relationship between Queues and Proxies
+.......................................
+
+A queue "registers" with a proxy, asking: "give me a copy of all
+messages that look like this".
 
 AMQ has a formal definition of a message which includes:
 
@@ -121,155 +200,312 @@ AMQ has a formal definition of a message which includes:
 
 - the "properties" for the message.  These are a set of fields with
   a name, type, and value.  The field properties may (or may not) be
-  used by the muxer to decide which queues receive the messages.
+  used by the proxy to decide which queues receive the messages.
 
-Multiplexer Examples
-....................
+Proxy Examples
+..............
 
-We identify and give names to the main classes of muxer that we will
+We identify and give names to the main classes of proxy that we will
 wish to implement:
 
-1. "SIMPLE" routes messages to all attached queues.  That is, it passes
-   all messages to all queues that are attached.  The simple muxer is
-   used to create arbitrary muxer-queue relationships.
+1. "FANOUT" routes all messages to all registered queues.  Fanout
+   proxies are used to create arbitrary routing flows within the
+   broker.  For example, fanout proxies might be used to replicate
+   data within a cluster.
 
-2. "DESTINATION" routes messages on their destination name using a
-   direct comparison.  That is, it passes messages to queues that have
-   attached with the request, "give me all messages whose destination
-   is equal to this value".
+2. "DEST-NAME" routes messages on their destination name using a direct
+   comparison. That is, it passes messages to queues that have
+   registered with "give me all messages whose destination is equal to
+   this value".  Dest-name proxies are used to build conventional
+   point-to-point store-and-forward mechanisms.
 
-3. "WILD DESTINATION" routes messages on their destination name using a
+3. "DEST-WILD" routes messages on their destination name using a
    wild card comparison.  That is, it passes messages to queues that have
-   attached with the request, "give me all messages whose destination
-   matches this pattern".
+   registered with "give me all messages whose destination matches this
+   pattern".  Dest-wild proxies are used to build conventional topic
+   publish-and-subscribe mechanisms.
 
-4. "PROPERTY" routes messages on the value and presence of properties.
-   That is, it passes messages to queues that have attached with the
-   request, "give me all messages with properties with these names
-   and values".
+4. "PROP-TEST" routes messages on the value and presence of properties.
+   That is, it passes messages to queues that have registered with
+   "give me all messages with properties with these names and values".
+   Prop-test proxies are used to build content-based routing mechanisms.
 
-5. "WILD PROPERTY" routes messages on a set of properties using wild
+5. "PROP-WILD" routes messages on a set of properties using wild
    card comparisons.  That is, it passes messages to queues that have
-   attached with the request, "give me all messages with properties
-   that match these specifications".
+   registered with "give me all messages with properties that match
+   these specifications".  Prop-wild proxies are used to build
+   content-based routing mechanisms.
 
 6. "SELECTOR" routes messages using a programmable selector statement.
-   That is, it passes messages to queues that have attached with the
-   request, "give me all messages where this statement is true".  The
-   selector statements are based on SQL WHERE conditions.
+   That is, it passes messages to queues that have registered with
+   "give me all messages where this statement is true".  The selector
+   statements are based on SQL WHERE conditions.  Selector proxies are
+   used to build content-based routing mechanisms.
 
-7. "LOSSY" routes messages with random failure.  That is, it passes
-   messages to all attached queues, but randomly drops messages.  The
-   lossy muxer is used to simulate network or processing failures.
+7. "LOSSY" routes messages with random failure. That is, it passes
+   messages to all registered queues, but randomly drops messages.
+   Lossy proxies are used to simulate network or processing failures.
 
-Muxer Implementation
+Proxy Implementation
 ....................
 
-Each muxer is a processing class in the broker, with properties and
-methods that allow it to operate.  All muxers have a common abstract
+Each proxy is a processing class in the broker, with properties and
+methods that allow it to operate.  All proxies have a common abstract
 structure:
 
-    +------+-------+-------------+------------------------------+
-    | Name | Class | Attach list | Class-specific properties... |
-    +------+-------+-------------+------------------------------+
-                          :
-                     +--------+    +-------+
-                     | Attach |--->| Queue |
-                     +--------+    +-------+
-                          :
-                     +--------+    +-------+
-                     | Attach |--->| Queue |
-                     +--------+    +-------+
-                          :
-                         ...
+    +------+-------+-------------------+------------------------------+
+    | Name | Class | Registration list | Class-specific properties... |
+    +------+-------+-------------------+------------------------------+
+                            :
+                     +--------------+    +-------+
+                     | Registration |--->| Queue |
+                     +--------------+    +-------+
+                            :
+                     +--------------+    +-------+
+                     | Registration |--->| Queue |
+                     +--------------+    +-------+
+                            :
+                           ...
 
-Multiple Attachments
-....................
+Multiple Registrations
+......................
 
-A queue can attach to the same multiplexer several times:
+A queue can register with the same proxy several times:
 
-    Attach to DESTINATION: messages for destination X
-    Attach to DESTINATION: messages for destination Y
-    Attach to DESTINATION: messages for destination Z
+    Register with dest-name: messages for destination X
+    Register with dest-name: messages for destination Y
+    Register with dest-name: messages for destination Z
 
 The meaning of this is obvious and does not need much explaining: the
-requests are combined so the queue will get messages for any of the
-three destinations:
+registrations are acummulated so the queue will get messages for any of
+the three destinations:
 
-        +-------------+
-        | DESTINATION |
-        +-------------+
+         +-----------+
+         | dest-name |
+         +-----------+
              | | |  "messages for destinations X, Y, Z"
            +-------+
            | Queue |
            +-------+
 
-A queue can also attach to two different multiplexers:
+A queue can also register with two different proxies:
 
-    Attach to DESTINATION: messages for destination X
-    Attach to DESTINATION: messages for destination Y
-    Attach to DESTINATION: messages for destination Z
-    Attach to LOSSY
+    Register with dest-name: messages for destination X
+    Register with dest-name: messages for destination Y
+    Register with dest-name: messages for destination Z
+    Register with lossy
 
 The meaning of this is as follows:
 
-        +-------------+
-        | DESTINATION |
-        +-------------+
+         +-----------+
+         | dest-name |
+         +-----------+
              | | |  "messages for destinations X, Y, Z"
            +-------+
-           | LOSSY |
+           | lossy |
            +-------+
                |    "all messages"
            +-------+
            | Queue |
            +-------+
 
-In other words, the LOSSY muxer steps in between the queue and the
-DESTINATION muxer.  We could imagine several levels:
+In other words, the lossy proxy steps in between the queue and the
+dest-name proxy.  We could imagine several levels:
 
-        +-------------+
-        | DESTINATION |
-        +-------------+
+         +-----------+
+         | dest-name |
+         +-----------+
              | | |  "messages for destinations X, Y, Z"
-          +----------+
-          | PROPERTY |
-          +----------+
+         +-----------+
+         | prop-name |
+         +-----------+
                |    "messages with property ABC"
            +-------+
-           | LOSSY |
+           | lossy |
            +-------+
                |    "all messages"
            +-------+
            | Queue |
            +-------+
+
+On-Demand Wiring
+................
+
+To provide maximum flexibilty we split the definition of a broker's
+wiring (i.e. the proxies, queues, and relationships between them) into
+three layers:
+
+1. The set of proxy classes and how they are implemented.  This layer
+   is defined in the broker's software.
+
+2. A set of pre-defined proxies and queue templates.  This layer is
+   defined in the broker's configuration files.
+
+3. The final set of proxies, queues and registrations. This layer is
+   defined at runtime by the application.
+
+        +--------------------------+
+     1  |  Software constructions  |   E.g. what proxy classes exist?
+        +--------------------------+
+                     |   
+                     V
+        +--------------------------+
+     2  |   Configured defaults    |   E.g. what queue templates exist?
+        +--------------------------+
+                     |
+                     V
+        +--------------------------+
+     3  | On-demand runtime wiring |   E.g. create proxies & queues
+        +--------------------------+
+                     |
+                     V
+                Live Wiring
+
+Thus the protocol must provide functionality to create and destroy
+proxies and queues, and register queues with proxies.
+
+It might be that a broker could "save" and "restore" its wiring state.
+However this is probably not necessary: we prefer the idea that client
+applications can create the wiring they need on an ad-hoc basis and that
+the broker tears this wiring down as and when it is no longer needed.
+
+Our "perfect broker" is a black box that handles all scenarios with zero
+configuration except for security.
 
 Reconstructing Store and Forward
 ................................
 
-Let us reconstruct queue-based store and forward using these building
+Let us reconstruct queue-based "store and forward" using these building
 blocks:
 
-- We use a muxer called "QUEUE", of the DESTINATION class.
+- We create a dest-name proxy called "queue".
 - We agree that queue names are equal to the destination name placed
   in each message.
-- We create a set of queues and attach these to the QUEUE muxer.
+- We create a set of queues and register these with the "queue" proxy.
+- Publishers send their messages to the "queue" proxy, specifying a
+  destination name with each message.
+- The "queue" proxy does a lookup on the destination name and passes
+  the message to the matching queue.
+- Consumers get their messages from each named queue.
 
 Reconstructing Topics and Subscriptions
 .......................................
 
+Let us reconstruct topic-based "subscribe and publish" using these
+building blocks:
 
+- We create a dest-wild proxy called "topic".
+- We agree that queue names are subscription names.
+- We create one queue per subscription and attach these queues to
+  the "topic" proxy.
+- Publishers send their messages to the "topic" proxy, specifying a
+  destination name with each message.
+- The "topic" proxy does a topic-name match on the destination name
+  and passes the message to all queues that match.
+- Consumers get their messages from each named queue.
 
+Reconstructing Temporary Destinations
+.....................................
+
+A temporary queue is simply a queue created by a client, and flagged for
+automatic deletion when the client disconnects.
+
+A temporary topic has no meaning: topics do not exist except as values
+on which to match.
 
 Queue Namespaces
 ................
 
-To avoid non-standard naming conventions.  May be equal to muxer name,
-e.g. QUEUE.
+We want to provide the client application with a consistent way to
+distinguish different types of queue, for example "subscriptions" and
+"private reply queues". These types have no meaning to the broker but to
+avoid non-standard naming conventions we introduce the concept of a
+"queue namespace", which is a type name. The broker simply prefixes the
+queue name with the namespace to create a unique internal name.
 
+By convention in many scenarios, the namespace will be the same as the
+proxy name.
 
+Thus a publisher may send to a proxy called "queue", while the consumer
+might read messages from a queue in namespace "queue".
 
+Queue Templating and Tuning
+...........................
 
+Templating is a normalisation technique: rather than define many objects
+with similar properties we define a set of templates, and then refer to
+these when we define new objects. In object-oriented development this
+may be called a "class".
 
+A queue template provides different types of information:
 
+1. Organisation and tuning: file system criteria, maximum queue size,
+   dead-letter queue, etc.
+2. Default registration: a default proxy and registration.
+3. Constraints: e.g. max consumers.
+
+Queue templating could be used to simplify the protocol. For example it
+is useful to be able to specify "this queue must be deleted when there
+are no more consumers". This could be a protocol flag (we call this the
+"dynamic" flag), or it could be a template property, understood by the
+broker but not part of the explicit protocol.
+
+We have to decide which queue properties are made visible in the
+protocol, and which can be configured in templates.  Our choice is
+based on the requirement for interoperability:
+
+- A property that has an impact on interoperability must be visible
+  in the protocol.  For instance, the dynamic flag is essential to
+  interoperability.
+  
+- A property that must be tunable by the administrator must be part
+  of the template.  For instance, the maximum number of messages per
+  queue must be tunable.
+
+Registration Normalisation
+..........................
+
+In some scenarios many queues will register with the same proxies using
+identical registrations. We can foresee that this will create problems
+in high-volume scenarios - e.g. when several thousands of queues
+register with the same proxy.
+
+Our class design normalises identical registrations, using a list of
+queues per registration:
+
+    +------+-------+-------------------+------------------------------+
+    | Name | Class | Registration list | Class-specific properties... |
+    +------+-------+-------------------+------------------------------+
+                            :
+                     +--------------+    +-------+    +-------+
+                     | Registration |--->| Queue |--->| Queue |--->...
+                     +--------------+    +-------+    +-------+
+                            :
+                     +--------------+    +-------+
+                     | Registration |--->| Queue |--->...
+                     +--------------+    +-------+
+                            :
+                           ...
+
+Protocol Classes and Methods
+............................
+
+We need protocol classes and methods with this functionality:
+
+Proxy:
+
+- Create a proxy by name, based on a specified proxy class.
+- Destroy a proxy.
+    
+Queue:
+
+- Create a queue by name, based on a specified queue template.
+- Create a queue, allowing the server to assign a unique name.
+- Register a queue to a named proxy.
+- Destroy a queue.
+
+Content:
+
+- Consume messages from a queue.
+- Stop consuming messages from a queue.
 
