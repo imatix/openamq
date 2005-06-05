@@ -1300,16 +1300,15 @@ Guidelines for implementors:
   clients, that are the direct or indirect consequence of the original
   received method.
 
-The AMQ Standard Functional Model
-=================================
+The Abstract Routing Model
+==========================
 
-AMQ defines a standard functional model which all AMQP servers and
-clients must adhere to.  The standard functional model provides a
-formal and run-time configurable definition of how messages are stored
-and forwarded.
+AMQ defines an abstract model which all AMQP servers and clients must
+adhere to.  The abstract routing model provides a formal and run-time
+configurable definition of how messages are stored and forwarded.
 
-Introduction to the Standard Functional Model
----------------------------------------------
+Introduction to the Abstract Routing Model
+------------------------------------------
 
 Restatement of Goals
 ....................
