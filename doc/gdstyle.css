@@ -38,6 +38,10 @@ pre {
     margin: 1em;
     margin-left: 4em;
     margin-right: 4em;
+    padding: 10pt;
+    border-width: 1px 1px 1px 1px;
+    border-style: solid;
+    border-color: #909090;
 }
 ul {
     margin: 1em;
@@ -71,6 +75,10 @@ blockquote {
     font-weight: bold;
     margin-right: 60px;
     margin-left: 60px;
+}
+img {
+    margin-left: 4em;
+    margin-right: 4em;
 }
 .toc_1 {
     font-variant: small-caps;

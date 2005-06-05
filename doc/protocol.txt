@@ -24,6 +24,11 @@ This document is ready for review.
 Recent Change History
 ---------------------
 
+2005/06/05 - 0.9a1:
+
+- Formulation of "proxy" concept for matching and routing; removed topics
+  and subscriptions from formal protocol specificatons.
+
 2005/05/28 - 0.9a0:
 
 - Refactored the protocol using new framing model and protocol class/method
@@ -208,39 +213,542 @@ Guidelines for Implementors
 - Protocol methods are defined using a formal grammar (ASL) as defined
   in AMQ RFC xxx.
 
-AMQP Standard Models
-====================
+The AMQ Standard Functional Model
+=================================
 
-All AMQP protocols including AMQP/Fast implement a common and
-interoperable queueing and routing model based on these concepts:
+AMQ defines a standard functional model which all AMQP servers and
+clients must adhere to.  The standard functional model provides a
+formal and run-time configurable definition of how messages are stored
+and forwarded.
 
-1. Application-level messages ("content domains").
-2. Persistent and non-persistent message storage ("destination").
-3. A distributor mechanism ("queue").
-4. A multiplier mechanism ("topic").
-5. A way for clients to send messages to destinations ("publish").
-6. A way for clients to request messages from destinations ("subscribe").
-7. A way for clients to request individual messages from destinations
-   ("browse").
-8. A way for clients to inform the server when a message has been
-   successfully processed ("acknowledgement").
+Introduction to the Standard Functional Model
+---------------------------------------------
 
-The AMQP "queue" concept acts to distribute messages ("m1", "m2", "m3")
-between a set of consumers ("c1", "c2", "c3"):
+Restatement of Goals
+....................
 
-[queue.png]
+AMQ is designed to carry data ("messages") between applications
+("clients") written in arbitrary languages and running on arbitrary
+platforms spread across a fully-addressable network.
 
-The AMQP "topic" concept acts to multiply messages to a set of
-consumers:
+AMQ is designed to support many different types of application, each
+with its own requirements as to:
 
-[topic.png]
+- Message size, from zero bytes up to many gigabytes.
+- Number of clients, from one up to many thousands.
+- Volume of messages crossing the network, from a few per day to hundreds
+  of thousands per second.
+- Critical latency of a message, from a millisecond to an hour.
+- Reliability of delivery, from "as reliable as possible, whatever the
+  cost" to "best-effort delivery".
+- Use of network, memory, CPU, and disk resources.
 
-The AMQP "subscription" concept acts like a queue:
+The same AMQ architecture must be able to work efficiently on a small
+embedded message router, as well as on a supercluster with dozens of
+CPUs and tens of gigabytes of memory.
 
-[subscription.png]
+General Design Method
+.....................
+
+Our design method relies on these principles:
+
+1. Give the functional architect (the person responsible for designing
+   an AMQ network, using AMQ technology) as much control as possible over
+   the choices and tradeoffs required for a specific functional scenario.
+
+2. Design the architecture using abstract general models that the
+   functional architect can combine as needed.
+
+That is: rather than embed assumptions and decisions in the architecture
+we create abstract general-purpose constructs that can be reused in
+scenarios that we do not pretend to fully understand ourselves.
+
+Main Insights
+.............
+
+The main insights that led to our design (which is the third major
+refactoring of the AMQ protocol) were:
+
+1. Subscriptions can be designed as a special case of queues.  That is,
+   subscriptions and queues can be designed to support exactly the same
+   set of properties and access methods.  In the topic/subscription
+   model subscriptions are simply queues that have a special matching
+   technique and a private name space.
+
+2. Matching can be abstracted.  That is, everything from matching on
+   a specific destination name to matching on an SQL-like selector can
+   be abstracted into a single concept.
+
+3. Messages can have multiple instances.  That is, a message can be
+   in many queues at the same time.  We do not copy message content,
+   rather we use message reference counting.  Queues store references
+   to messages rather than messages.  This applies both to persistent
+   and non-persistent messages.
+
+4. Queues and matching can be loosely-coupled.  That is, while one
+   client "writes to queue X" and a second client "reads from queue
+   X", this can be done using a less tightly-coupled relationship
+   than the obvious "producer writes to queue".  Loose coupling is
+   often desirable because it allows abstraction in which one side
+   of a relationship can be reorganised without affecting the other.
+
+We use these insights to define a set of building blocks that achieve
+much wider functionality than classic messaging middleware (like JMS)
+at no significant extra cost.
+
+Overall Architecture
+--------------------
+
+Classic Message-Oriented Middleware
+...................................
+
+A classic message-oriented middleware server provides two types of
+service: a "queue" service in which producers and consumers interact
+via shared named queues, and a "topic" service which allows clients to
+subscribe to a tree of topics. Clients subscribe with citeria such as
+the topic name, or a pattern representing a set of topics, e.g.
+"FOREX.*". The middleware explicitly provides functionality to
+subscribe, manage topics, and so on.
+
+AMQ does not provide these services directly: the protocol and server
+make no mention of "topics" or "subscriptions". Rather, AMQ provides
+more general building blocks that can easily be used to build a topic
+service, a queue service, a mix of the two, and new kinds of service
+that fall outside the classic definitions.
+
+Message, Queue, and Proxy
+.........................
+
+We define the "MESSAGE": a message is self-contained package of data
+that passes through the server. The server will not modify or separate
+the data in a message. The message is the basic unit of data transfer
+between clients and servers.
+
+We define the "QUEUE": a queue holds messages and distributes these to
+clients. Queues are highly configurable objects that implement most of
+the quality of service aspects of an AMQP server. Queues can be private
+or shared, created by the server administrator, or by applications.
+Queues can holding their messages on disk or in memory, or a combination
+(working in memory and overflowing to disk when necessary). Queues can
+be persistent (remaining active when the server stops and restarts) or
+dynamic (automatically deleted when no longer used).
+
+Queues have public names, and when a client wants to get messages from a
+server it says, "give me messages from queue such-and-such".
+
+We define the "PROXY": a proxy is a named object that accepts messages
+and distributes them to queues. A message can exist on many queues at
+once. Clients that want to send messages to a server always send them
+to a specific proxy.
+
+Basic Architecture
+..................
+
+The basic architecture is thus (showing a set of producer applications
+sending messages to a set of consumer applications):
+
+                +--------+        +--------+
+   Producers:   | Client |        | Client |
+                +--------+        +--------+
+                    |                  |
+                    V                  V
+   Messages     +----\----Server------/----+
+       |        |     \              /     |
+       |        |      +------------+      |
+       |        |      |   Proxy    |      |
+       |        |      +------------+      |
+       |        |         /      \         |
+       |        |  +-------+    +-------+  |
+       |        |  | Queue |    | Queue |  |
+     \ | /      |  +-------+    +-------+  |
+      \|/       |     /              \     |
+       V        +----/----------------\----+
+                    |                  |
+                    V                  V
+                +--------+        +--------+
+    Consumers:  | Client |        | Client |
+                +--------+        +--------+
+
+Note that:
+
+1. The producers do not write directly to the consumers' queues.
+2. The consumers do not read directly from the proxy.
+
+Queue Consumers
+...............
+
+While proxies copy messages across queues, queues distribute
+messages between consumers.  A queue can have one consumer:
+
+        +-------+
+        | Queue |
+        +-------+
+            |
+            V
+        +--------+
+        | Client |
+        +--------+
+
+A queue can also have many consumers:
+
+                        +-------+
+                        | Queue |
+                        +-------+
+                            |
+           .----------.-----------.-----------.
+           |          |           |           |
+           V          V           V           V
+      +--------+  +--------+  +--------+  +--------+
+      | Client |  | Client |  | Client |  | Client |
+      +--------+  +--------+  +--------+  +--------+
+
+The queue distributes messages to the consumers according to a
+configurable traffic control model that is adjustable per consumer:
+
+- Each consumer specifies whether it is going to acknowledge
+  messages or not.  Acknowledgements improve reliability but
+  slow-down performance.
+
+- Each consumer specifies how many messages the server should
+  send it in advance of acknowledgements.  This "prefetch"
+  window improves latency but can mean that consumers are not
+  perfectly balanced.
+
+Given these two parameters the queue will distribute messages to the
+consumers on a quasi-round-robin basis (i.e. to each consumer in turn,
+but without a guarantee of visting each consumer in any particular
+order).
+
+Relationship between Queues and Proxies
+.......................................
+
+A queue "registers" with a proxy, asking: "give me a copy of all
+messages that look like this".
+
+AMQ has a formal definition of a message which includes:
+
+- the "destination" for the message.  This is a name that the client
+  application uses.  The destination name may (or may not) map directly
+  to a queue name.
+
+- the "properties" for the message.  These are a set of fields with
+  a name, type, and value.  The field properties may (or may not) be
+  used by the proxy to decide which queues receive the messages.
+
+The Proxy Design
+----------------
+
+Proxy Types
+...........
+
+These are the basic set of proxies that an AMQP server MAY support:
+
+1. "fanout" routes all messages to all registered queues.  Fanout
+   proxies are used to create arbitrary routing flows within the
+   server.  For example, fanout proxies might be used to replicate
+   data within a cluster.
+
+2. "dest-name" routes messages on their destination name using a direct
+   comparison. That is, it passes messages to queues that have
+   registered with "give me all messages whose destination name is equal
+   to this value".  Dest-name proxies are used to build conventional
+   point-to-point store-and-forward mechanisms.
+
+3. "dest-wild" routes messages on their destination name using a
+   wild card comparison.  That is, it passes messages to queues that have
+   registered with "give me all messages whose destination name matches
+   this pattern".  Dest-wild proxies are used to build conventional topic
+   publish-and-subscribe mechanisms.
+
+4. "prop-test" routes messages on the value and presence of properties.
+   That is, it passes messages to queues that have registered with
+   "give me all messages with properties with these names and values".
+   Prop-test proxies are used to build content-based routing mechanisms.
+
+5. "prop-wild" routes messages on a set of properties using wild
+   card comparisons.  That is, it passes messages to queues that have
+   registered with "give me all messages with properties that match
+   these specifications".  Prop-wild proxies are used to build
+   content-based routing mechanisms.
+
+6. "selector" routes messages using a programmable selector statement.
+   That is, it passes messages to queues that have registered with
+   "give me all messages where this statement is true".  The selector
+   statements are based on SQL WHERE conditions.  Selector proxies are
+   used to build content-based routing mechanisms.
+
+7. "lossy" routes messages with random failure. That is, it passes
+   messages to all registered queues, but randomly drops messages.
+   Lossy proxies are used to simulate network or processing failures.
+
+Guidelines for implementors:
+
+- An AMQP server MUST implement at least the fanout and dest-name
+  proxies.  An AMQP server MAY implement the other proxy types.
+
+- An AMQP server MAY implement custom proxy types (not on this list).
+  The name of a custom proxy type must start with "x-".
+
+Proxy Implementation
+....................
+
+Each proxy is a processing class in the server, with properties and
+methods that allow it to operate.  All proxies have a common abstract
+structure:
+
+    +------+-------+-------------------+------------------------------+
+    | Name | Class | Registration list | Class-specific properties... |
+    +------+-------+-------------------+------------------------------+
+                            :
+                     +--------------+    +-------+
+                     | Registration |--->| Queue |
+                     +--------------+    +-------+
+                            :
+                     +--------------+    +-------+
+                     | Registration |--->| Queue |
+                     +--------------+    +-------+
+                            :
+                           ...
+
+Multiple Registrations
+......................
+
+A queue can register with the same proxy several times:
+
+    Register with dest-name: messages for destination X
+    Register with dest-name: messages for destination Y
+    Register with dest-name: messages for destination Z
+
+The meaning of this is obvious and does not need much explaining: the
+registrations are acummulated so the queue will get messages for any of
+the three destination names:
+
+         +-----------+
+         | dest-name |
+         +-----------+
+             | | |  "messages for destinations X, Y, Z"
+           +-------+
+           | Queue |
+           +-------+
+
+A queue can also register with two different proxies:
+
+    Register with dest-name: messages for destination X
+    Register with dest-name: messages for destination Y
+    Register with dest-name: messages for destination Z
+    Register with lossy
+
+The meaning of this is as follows:
+
+         +-----------+
+         | dest-name |
+         +-----------+
+             | | |  "messages for destinations X, Y, Z"
+           +-------+
+           | lossy |
+           +-------+
+               |    "all messages"
+           +-------+
+           | Queue |
+           +-------+
+
+In other words, the lossy proxy steps in between the queue and the
+dest-name proxy.  We could imagine several levels:
+
+         +-----------+
+         | dest-name |
+         +-----------+
+             | | |  "messages for destinations X, Y, Z"
+         +-----------+
+         | prop-name |
+         +-----------+
+               |    "messages with property ABC"
+           +-------+
+           | lossy |
+           +-------+
+               |    "all messages"
+           +-------+
+           | Queue |
+           +-------+
+
+Guidelines for implementors:
+
+- An AMQP server SHOULD support multiple registrations but MAY restrict
+  its proxy implementation to a single proxy or single registration per
+  queue.
+
+On-Demand Wiring
+................
+
+To provide maximum flexibilty we split the definition of a server's
+wiring (i.e. the proxies, queues, and relationships between them) into
+three layers:
+
+1. The set of proxy classes and how they are implemented.  This layer
+   is defined in the server's software.
+
+2. A set of pre-defined proxies and queue templates.  This layer is
+   defined in the server's configuration files.
+
+3. The final set of proxies, queues and registrations. This layer is
+   defined at runtime by the application.
+
+        +--------------------------+
+     1  |  Software constructions  |   E.g. what proxy classes exist?
+        +--------------------------+
+                     |
+                     V
+        +--------------------------+
+     2  |   Configured defaults    |   E.g. what queue templates exist?
+        +--------------------------+
+                     |
+                     V
+        +--------------------------+
+     3  | On-demand runtime wiring |   E.g. create proxies & queues
+        +--------------------------+
+                     |
+                     V
+                Live Wiring
+
+Thus the protocol provides functionality to create and destroy proxies
+and queues, and register queues with proxies.
+
+While a server might be designed to "save" and "restore" its wiring
+state, we prefer the idea that client applications can create the wiring
+they need on an ad-hoc basis and that the server tears this wiring down
+as and when it is no longer needed.  Our "ideal server" is a closed box
+that handles all scenarios with zero configuration except for security.
+
+Guidelines for implementors:
+
+- An AMQP server SHOULD support queue templating in which queues created
+  at runtime can be configured by reference to a pre-configured template.
+
+Worked Examples
+---------------
+
+Reconstructing Store and Forward
+................................
+
+Let us reconstruct queue-based "store and forward" using these building
+blocks:
+
+- We create a dest-name proxy called "queue".
+- We agree that queue names are equal to the destination name placed
+  in each message.
+- We create a set of queues and register these with the "queue" proxy.
+- Publishers send their messages to the "queue" proxy, specifying a
+  destination name with each message.
+- The "queue" proxy does a lookup on the destination name and passes
+  the message to the matching queue.
+- Consumers get their messages from each named queue.
+
+Reconstructing Topics and Subscriptions
+.......................................
+
+Let us reconstruct topic-based "subscribe and publish" using these
+building blocks:
+
+- We create a dest-wild proxy called "topic".
+- We agree that queue names are subscription names.
+- We create one queue per subscription and attach these queues to
+  the "topic" proxy.
+- Publishers send their messages to the "topic" proxy, specifying a
+  destination name with each message.
+- The "topic" proxy does a topic-name match on the destination name
+  and passes the message to all queues that match.
+- Consumers get their messages from each named queue.
+
+Reconstructing Temporary Destinations
+.....................................
+
+- A temporary queue is simply a queue created by a client, and flagged
+  for automatic deletion when the client disconnects.
+
+- A temporary topic has no meaning: topics do not exist except as values
+  on which to match.
+
+Implementation Details
+----------------------
+
+Queue Namespaces
+................
+
+We want to provide the client application with a consistent way to
+distinguish different types of queue, for example "subscriptions" and
+"private reply queues". These types have no meaning to the server but to
+avoid non-standard naming conventions we introduce the concept of a
+"queue namespace", which is a type name. The server simply prefixes the
+queue name with the namespace to create a unique internal name.
+
+By convention in many scenarios, the namespace will be the same as the
+proxy name.
+
+Thus a publisher may send to a proxy called "queue", while the consumer
+might read messages from a queue in namespace "queue".
+
+Queue Templating and Tuning
+...........................
+
+Templating is a normalisation technique: rather than define many objects
+with similar properties we define a set of templates, and then refer to
+these when we define new objects. In object-oriented development this
+may be called a "class".
+
+A queue template provides different types of information:
+
+1. Organisation and tuning: file system criteria, maximum queue size,
+   dead-letter queue, etc.
+2. Default registration: a default proxy and registration.
+3. Constraints: e.g. max consumers.
+
+Queue templating could be used to simplify the protocol. For example it
+is useful to be able to specify "this queue must be deleted when there
+are no more consumers". This could be a protocol flag (we call this the
+"dynamic" flag), or it could be a template property, understood by the
+server but not part of the explicit protocol.
+
+We have to decide which queue properties are made visible in the
+protocol, and which can be configured in templates.  Our choice is
+based on the requirement for interoperability:
+
+- A property that has an impact on interoperability must be visible
+  in the protocol.  For instance, the dynamic flag is essential to
+  interoperability.
+  
+- A property that must be tunable by the administrator must be part
+  of the template.  For instance, the maximum number of messages per
+  queue must be tunable.
+
+Registration Normalisation
+..........................
+
+In some scenarios many queues will register with the same proxies using
+identical registrations. We can foresee that this will create problems
+in high-volume scenarios - e.g. when several thousands of queues
+register with the same proxy.
+
+Our class design normalises identical registrations, using a list of
+queues per registration:
+
+    +------+-------+-------------------+------------------------------+
+    | Name | Class | Registration list | Class-specific properties... |
+    +------+-------+-------------------+------------------------------+
+                            :
+                     +--------------+    +-------+    +-------+
+                     | Registration |--->| Queue |--->| Queue |--->...
+                     +--------------+    +-------+    +-------+
+                            :
+                     +--------------+    +-------+
+                     | Registration |--->| Queue |--->...
+                     +--------------+    +-------+
+                            :
+                           ...
 
 Definitions
 ===========
+
+These terms have specific significance within the context of AMQP:
 
 Connection:
     A network connection, e.g. a TCP/IP socket connection.
@@ -289,41 +797,35 @@ Trace_Frame:
     peer.
 Message:
     A specific type of content, the application-to-application message.
-Destination:
-    A queue, topic, or subscription, able to hold and route messages of
-    various types. A server manages access to a set of destinations.
-Static_Destination:
-    Destinations that are configured by the server administrator.
-Dynamic_Destination:
-    Destinations that are created and managed by clients via protocol
-    methods. Unlike "temporary" destinations, dynamic destinations
-    provide true disconnected asynchronous processing in which a
-    client can create a response queue, then continue to receive
-    queued messages even when going offline. 
-Subscription:
-    A queue-based destination that receives messages from one or more
-    topic destinations based on a topic name pattern and content-based
-    matching.  Subscriptions are analogous with queues in most ways
-    except that they are never published to or selected on directly.
-    Subscriptions may be private or shared, persistent or temporary.
-    Subscriptions may be defined explicitly using the Subscription
-    class, or defined automatically, when starting a consumer on a
-    topic destination.
+Proxy:
+    The agent within the server which receives messages from producer
+    applications and decides how to forward these to queues within the
+    server.
+Queue:
+    A named agent that holds messages and forwards them to consumer
+    applications.  Queues can take many forms: transient, persistent,
+    private, shared, etc.
+Dynamic_Queue:
+    Queues that are created and managed by clients via protocol methods.
+    Dynamic queues provide true disconnected asynchronous processing in
+    which a client can create a response queue, then continue to receive
+    queued messages even when going offline.
 Consumer:
-    A client that requests messages from a destination.
+    A client application that requests messages from a queue.
 Producer:
-    A client that publishes messages to a destination.
+    A client application that publishes messages to a proxy.
 Virtual_host:
-    A collection of destinations and associated subscriptions,
-    consumers, etc. Virtual hosts are independent server domains that
-    share a common authentication and encryption environment.
+    A collection of proxies, queues, consumers, and associated objects.
+    Virtual hosts are independent server domains that share a common
+    authentication and encryption environment.  I.e. the client
+    application choses the virtual host after logging in to the server.
 Realm:
-    A group of destinations covered by a single security policy and
-    access control.  Applications ask for access to realms, rather
-    than to individual destinations.
+    A set of server resources (proxies and queues) covered by a single
+    security policy and access control.  Applications ask for access
+    rights for specific realms, rather than for specific resources.
 Streaming:
     The process by which the server will send messages to the client at
-    a pre-arranged rate.  
+    a pre-arranged rate.
 Staging:
     The process by which a peer will transfer a large message to a
     temporary holding area before formally handing it over to the
@@ -346,6 +848,15 @@ Assertion:
 Exception:
     A failed assertion, handled by closing either the channel or the
     connection.
+
+These terms have no special significance within the context of AMQP:
+
+Topic:
+    Usually a means of distributing messages; AMQP implements topics
+    using one or more types of proxy.
+Subscription:
+    Usually a request to receive data from topics; AMQP implements
+    subscriptions as queues.
 
 Limitations
 ===========
@@ -1098,10 +1609,10 @@ Content Type and Encoding
 AMQP/Fast enforces MIME-compliance on all content classes using two
 standard properties that are the first defined in all content classes:
 
-- ContentType (tiny string) - the MIME content type of the message body.
+- ContentType (short string) - the MIME content type of the message body.
   The default value is "application/octet-stream".
 
-- ContentEncoding (tiny string) - The content encoding of the message
+- ContentEncoding (short string) - The content encoding of the message
   body. The default value is "binary".
 
 Guidelines for implementors:
@@ -1111,7 +1622,7 @@ Guidelines for implementors:
 
 - The server MAY set the ContentType and ContentEncoding properties
   for content produced by the server or by applications embedded in
-  the server. 
+  the server.
 
 The Class/Method Model
 ======================
@@ -1380,26 +1891,21 @@ highly-functional content classes.
 
 Our design is based on these elements:
 
-- Virtual hosts: an independent collection of destinations.
+- Virtual hosts: an independent collection of proxies and queues.
 
-- Queue destinations: a queue distributes messages between consumers.
+- Proxies: a proxy distributes messages across queues.
 
-- Topic destinations: a topic multiplies messages across subscriptions.
-
-- Subscriptions: a subscription distributes messages between consumers.
-
-- Selection and routing mechanisms: allowing consumers and subscriptions
-  to be specific about which messages they receive.
+- Queues: a queue distributes messages between consumers.
 
 - Message persistence: defining the level of assurance that a message
   will be successfully delivered despite crashes and failures.
-  
+
 - Message priorities: allowing messages to be delivered out-of-sequence
   according to their importance.
 
-- Destination browsing: allowing a client to read messages in a simple
+- Queue browsing: allowing a client to read messages in a simple
   synchronous manner.
-  
+
 - Acknowledgements: allowing a client to tell the server when it has
   successfully processed a message.
 
@@ -1407,7 +1913,7 @@ Our design is based on these elements:
   messages it receives
 
 - Transactions: allowing a client to group multiple messages and
-  acknowledgements into a single unit of work.  
+  acknowledgements into a single unit of work.
 
 In general all these mechanisms apply to all content classes. Certain
 content classes may elect to use a simpler model for performance
@@ -1419,10 +1925,27 @@ Virtual Hosts
 
 AMQP/Fast has explicit support for virtual hosts. The client chooses a
 virtual host as the last stage in negotiating the connection. A virtual
-host has its own set of destinations and access controls.
+host has its own set of proxies, queues and access controls.
 
-Queue Destinations
-------------------
+Proxies
+-------
+
+Topics are named objects that act as message filters and multipliers.
+Proxies do not hold messages: rather they copy messages to queues. All
+messages are published to proxies.
+
+Guidelines for implementors:
+
+- Proxies are not tied to specific content classes.
+
+- A server MUST allow any content class to be sent to any proxy, in any
+  mix, depending on the access rights of the producing client.
+
+- A server SHOULD discard messages for which there are no valid queues.
+  It MAY log such messages and/or send them to a dead-letter queue.
+
+Queues
+------
 
 A queue is a named object that acts as an asynchronous buffer for
 messages. Queues may be held in memory, on disk, or some combination.
@@ -1440,63 +1963,8 @@ Guidelines for implementors:
 
 - Queues are not tied to specific content classes.
 
-- A server MUST allow any content class to be sent to any
-  queue, in any mix, depending on the access rights of the producing
-  client.
-
-Topic Destinations
-------------------
-
-Topics are named objects that act as multipliers. Topics do not hold
-messages: rather they copy messages to subscriptions. Each virtual host
-provides a namespace for topics. A message published to a topic is
-duplicated to each subscription that has asked for it (using one of the
-selection mechanisms explained below).
-
-Guidelines for implementors:
-
-- Topics are not tied to specific content classes.
-
-- A server MUST allow any content class to be sent to any topic, in any
+- A server MUST allow any content class to be sent to any queue, in any
   mix, depending on the access rights of the producing client.
-
-- A server MAY hold topic messages for which there are no subscribers.
-
-- The server MAY apply subscriptions retroactively to such queued
-  messages. It MAY age such messages and expire them after a certain
-  period. However clients MUST NOT rely on this behaviour.
-
-Subscriptions
--------------
-
-Subscriptions are named or unnamed objects that resemble queues and may
-be implemented using the same internal mechanisms in the server. Each
-virtual host provides a namespace for subscriptions. Subscriptions may
-be held in memory, on disk, or some combination. Subscriptions can have
-a single consumer (the normal case) but also multiple consumers, in
-which case their messages are distributed between them in the same way
-as messages published to a queue.
-
-Guidelines for implementors:
-
-- Subscriptions are not tied to specific content classes.
-
-- A server MUST allow any content class to be sent to any subscription,
-  depending on the access rights of the producing client.
-
-Selection and Routing
----------------------
-
-AMQP/Fast provides these mechanisms for a client to select messages, and
-for a server to route them:
-
-1. By destination name.
-2. By destination pattern, for topics only.
-3. By message properties, for queues and topics. This mechanism is
-   called a "selector".
-4. By implementation-dependent functionality embedded in the server.
-
-The syntax for destination patterns and selectors is defined later.
 
 Message Persistence
 -------------------
@@ -1538,9 +2006,9 @@ Guidelines for implementors:
 
 - A server MUST implement at least 2 priority levels for non-persistent
   messages.  A server MAY implement up to 10 priority levels.
- 
+
 - A server MAY implement all persistent messages as a single priority.
- 
+
 Acknowledgements
 ---------------
 
@@ -1713,15 +2181,16 @@ The JMS Operational Model
 Goals and Principles
 --------------------
 
-JMS is a standard API for messaging middleware brokers. The AMQP/Fast
+JMS is a standard API for messaging middleware servers. The AMQP/Fast
 JMS implementation is compatible with providers that conform to the SUN
 JMS specifications (within the bounds of JMS standardisation, which does
 not guarantee interoperability). JMS messages can be published and
-consumed using a set of methods that map cleanly to the JMS API,
-including:
+consumed using a set of methods that map to the JMS API, including:
 
-- Publishing a message to a destination.
-- Creating a consumer for a destination.
+- Publishing a message to a "queue".
+- Publishing a message to a "topic".
+- Creating a consumer for a queue.
+- "Subscribing" to a "topic".
 - Browsing a destination for messages.
 
 JMS Content Properties
@@ -1729,19 +2198,19 @@ JMS Content Properties
 
 These are the properties defined for JMS content:
 
-- ContentType (tiny string)
-- ContentEncoding (tiny string)
+- ContentType (short string)
+- ContentEncoding (short string)
 - DeliveryMode (octet)
 - Priority (octet)
-- CorrelationID (tiny string)
-- ReplyTo (tiny string)
-- Destination (tiny string)
-- Expiration (tiny string)
-- MessageID (tiny string)
-- Timestamp (tiny string)
-- Type (tiny string)
-- UserID (tiny string)
-- AppID (tiny string)
+- CorrelationID (short string)
+- ReplyTo (short string)
+- Destination (short string)
+- Expiration (short string)
+- MessageID (short string)
+- Timestamp (short string)
+- Type (short string)
+- UserID (short string)
+- AppID (short string)
 - Headers (field table)
 
 The File Transfer Operational Model
@@ -1777,14 +2246,14 @@ File Content Properties
 
 These are the properties defined for File content:
 
-- ContentType (tiny string)
-- ContentEncoding (tiny string)
+- ContentType (short string)
+- ContentEncoding (short string)
 - Priority (octet)
-- ReplyTo (tiny string)
-- Destination (tiny string)
-- MessageID (tiny string)
-- FileName (tiny string)
-- Timestamp (tiny string)
+- ReplyTo (short string)
+- Destination (short string)
+- MessageID (short string)
+- FileName (short string)
+- Timestamp (short string)
 - Headers (field table)
 
 The Stream Operational Model
@@ -1824,11 +2293,11 @@ Stream Content Properties
 
 These are the properties defined for Stream content:
 
-- ContentType (tiny string)
-- ContentEncoding (tiny string)
+- ContentType (short string)
+- ContentEncoding (short string)
 - Priority (octet)
-- Destination (tiny string)
-- Timestamp (tiny string)
+- Destination (short string)
+- Timestamp (short string)
 - Headers (field table)
 
 Security
@@ -1865,39 +2334,6 @@ for a period of several seconds and then to close the network
 connection. This includes syntax errors, over-sized data, or failed
 attempts to authenticate. The server implementation should log all such
 exceptions and flag or block clients provoking multiple failures.
-
-Miscellaneous Topics
-====================
-
-Performance
------------
-
-To be completed.
-
-Message Templating
-------------------
-
-To be completed.
-
-Field Dictionaries
-------------------
-
-To be completed.
-
-Message Selectors
------------------
-
-To be completed.
-
-Topic Selectors
----------------
-
-To be completed.
-
-Destination Templating
-----------------------
-
-To be completed.
 
 Reference Section
 *****************
