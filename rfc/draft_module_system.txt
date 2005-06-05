@@ -1,5 +1,5 @@
 gdl
-    title     = AMQ RFC004
+    title     = AMQ DRAFT
     subtitle  = The Module System
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
@@ -14,12 +14,10 @@ Cover
 State of this Document
 ======================
 
-This document is a request for comments.  Distribution of this document is
+This document is a working draft.  Distribution of this document is
 currently limited to iMatix and JPMorgan internal use.
 
 This document describes a work in progress.
-This document is a formal standard.
-This document is ready for review.
 
 Copyright Notice
 ================

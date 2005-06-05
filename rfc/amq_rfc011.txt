@@ -5,7 +5,7 @@ gdl
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2004/10/14
     copyright = Copyright (c) 2004 JPMorgan
-    version   = 0.1a
+    version   = 0.3
 end gdl
 
 Cover

@@ -1,5 +1,5 @@
 gdl
-    title     = AMQ RFC012
+    title     = AMQ DRAFT
     subtitle  = AMQP/Fast Semantics for JMS
     product   = OpenAMQ
     author    = James Strachan <jstrachan@protique.com>
@@ -14,11 +14,10 @@ Cover
 State of this Document
 ======================
 
-This document is a request for comments.  Distribution of this document is
+This document is a working draft.  Distribution of this document is
 currently limited to iMatix and JPMorgan internal use.
 
-This document is a provisional proposal.
-This document is a formal standard.
+This document describes a work in progress.
 
 Copyright Notice
 ================

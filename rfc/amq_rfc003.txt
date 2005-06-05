@@ -172,11 +172,159 @@ The message matching process works as follows:
 3. We accumulate the bitmaps to give a final result bitmap.
 4. Each 1 bit in the result bitmap represents a matching subscription.
 
+Worked Examples
+===============
 
+Topic Matching Example
+----------------------
 
+Imagine we have these topics:
 
+    forex
+    forex.gbp
+    forex.eur
+    forex.usd
+    trade
+    trade.usd
+    trade.jpy
 
+Imagine these subscriptions, where * matches one topic name part and
+# matches one or more:
 
+    0 = "forex.*"
+        matches: forex, forex.gbp, forex.eur, forex.usd
+    1 = "*.usd"
+        matches: forex.usd, trade.usd
+    2 = "*.eur"
+        matches: forex.eur
+    3 = "#"
+        matches: forex, forex.gbp, forex.usd, trade, trade.usd, trade.jpy
+
+When we index the matches for each subscription we get these bitmaps:
+
+    Criteria        0 1 2 3
+    -----------------------
+    forex           1 0 0 1
+    forex.gbp       1 0 0 1
+    forex.eur       1 0 1 1
+    forex.usd       1 1 0 1
+    trade           0 0 0 1
+    trade.usd       0 1 0 1
+    trade.jpy       0 0 0 1
+
+Now let us examine in detail what happens for a series of messages:
+
+    Message A -> "forex.eur"
+        forex.eur   1 0 1 1 => Subscriptions 0, 2, 3
+
+    Message B -> "forex"
+        forex       1 0 0 1 => Subscriptions 0, 3
+
+    Message C -> "trade.jpy"
+        trade.jpy   0 0 0 1 => Subscription 3
+
+The list of topics must either be known in advance, so that a
+subscription can be correctly mapped to the full set of topic names it
+represents, or the subscriptions must be "recompiled" when a new topic
+name is detected for the first time.  In the OpenAMQ server
+implementation we take the second route, allowing topic names to be
+specified dynamically.
+
+Field Matching Example
+----------------------
+
+For our example we will allow matching on field value and/or presence.
+That is, a subscription can specify a precise value for a field or ask
+that the field be present.
+
+Imagine these subscriptions:
+
+    Nbr  Criteria                     Number of criteria
+    ---- ---------------------------  ------------------
+    0    currency=USD, urgent         2
+    1    currency=EUR                 1
+    2    market=forex, currency=EUR   2
+    3    urgent                       1
+
+When we index the field name/value tuples for each subscription we get
+these bitmaps:
+
+    Criteria        0 1 2 3
+    -----------------------
+    currency        0 0 0 0
+    currency=USD    1 0 0 0
+    currency=EUR    0 1 1 0
+    market          0 0 0 0
+    market=forex    0 0 1 0
+    urgent          1 0 0 1
+
+Now let us examine in detail what happens for a series of messages:
+
+    Message A -> "currency=JPY, market=forex, slow"
+
+        currency=JPY    0 0 0 0
+        market=forex    0 0 1 0
+        slow            0 0 0 0
+        -----------------------
+        Hits            0 0 1 0
+
+    Message B -> "currency=JPY, urgent"
+
+        currency=JPY    0 0 0 0
+        urgent          1 0 0 1
+        -----------------------
+        Hits            1 0 0 1
+
+    Message C -> "market=forex, currency=EUR"
+
+        market=forex    0 0 1 0
+        currency=EUR    0 1 1 0
+        -----------------------
+        Hits            0 1 2 0
+
+Note that the hit count is:
+
+- zero for subscriptions that do not match.
+- 1 or greater for subscriptions that have at least one matching
+  criteria (a logical OR match).
+- Equal to the criteria count when ALL criteria match (a logical
+  AND match).
+
+Fast Bitmap Implementation
+==========================
+
+The bitmap implementation is a key to good performance.  We use these
+assumptions when making our bitmap design:
+
+1. The maximum number of distinct subscriptions is several thousand.
+   The bitmap for one criteria can therefore be held in memory with
+   no compression.
+
+2. The maximum number of criteria is around a hundred thousand.  Thus
+   the bitmaps can be held in memory (on a suitable sized machine).
+
+The bitmap engine provides methods for:
+
+- Allocating a new empty bitmap.
+- Setting a specific bit to 1.
+- Clearing a specific bit to zero.
+- Testing whether a specific bit is set to 1.
+- Resetting a bitmap to all zeroes.
+- Counting the number of bits set to 1.
+- Performing a bitwise AND on two bitmaps.
+- Performing a bitwise OR on two bitmaps.
+- Performing a bitwise XOR on two bitmaps.
+- Performing a bitwise NOT on a bitmaps.
+- Locating the first bit set to 1.
+- Locating the last bit set to 1.
+- Locating the next bit set to 1.
+- Locating the previous bit set to 1.
+- Locating the first bit set to zero.
+- Locating the last bit set to zero.
+- Locating the next bit set to zero.
+- Locating the previous bit set to zero.
+- Serialising a bitmap to a file stream.
+- Serialising a bitmap from a file stream.
 
 Security Considerations
 =======================
