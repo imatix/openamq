@@ -5,7 +5,7 @@ gdl
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/06/03
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.9a1
+    version   = 0.9a2
 end gdl
 
 Cover
@@ -37,9 +37,9 @@ This document is copyright (c) 2005 JPMorgan Inc.
 Authors
 =======
 
-This document was written by Pieter Hintjens <ph@imatix.com> with help
-from John O'Hara, Mark Atwell, Gustavo Broos, and other members of the
-AMQ team.
+AMQP was designed by Pieter Hintjens with help from John O'Hara, Mark Atwell,
+and others. This document was written by Pieter Hintjens.  The diagrams were
+drawn by Gustavo Broos.
 
 Abstract
 ========
@@ -129,7 +129,7 @@ eliminate potential future bottlenecks, specifically for:
    sequence number is 32 bits. This allows 4G methods to be exchanged
    between synchpoints.  We do not see this as a limitation in any
    scenario, present or future.
-   
+
 4. Protocol classes and methods: the current protocol defines about
    ten classes and about ten or fewer methods per class.  We
    expect that new versions of the protocol will add classes and
@@ -152,7 +152,7 @@ deliberately designed to be extensible (in order of increasing
 generality and power):
 
 1. Adding new properties to content domains.
-2. Adding new arguments to methods. 
+2. Adding new arguments to methods.
 3. Adding new methods to classes.
 4. Adding new content domains.
 5. Adding new classes.
@@ -205,7 +205,7 @@ Guidelines for Implementors
   lowercase names.  AMQP/Fast implementations SHOULD use these names
   in source code and documentation.
 
-- Protocol methods are defined using a formal language as defined
+- Protocol methods are defined using a formal grammar (ASL) as defined
   in AMQ RFC xxx.
 
 AMQP Standard Models
