@@ -11,10 +11,11 @@
 <file name = "amq_rfc000.txt" class = "private resource" >Template</file>
 <file name = "amq_rfc001.txt" class = "gurudoc text"     >The OpenAMQ RFC System</file>
 <file name = "amq_rfc002.txt" class = "gurudoc text"     >Coding Standards</file>
-<file name = "amq_rfc003.txt" class = "gurudoc text"     >A Fast Matching Module</file>
+<file name = "amq_rfc003.txt" class = "gurudoc text"     >Rapid Message Matching</file>
+
 <file name = "amq_rfc004.txt" class = "gurudoc text"     >The Module System</file>
 <file name = "amq_rfc005.txt" class = "gurudoc text"     >The Terminal-Driver API</file>
-<file name = "amq_rfc006.txt" class = "gurudoc text"     >The AMQP/HTTP Terminal</file>
+<file name = "amq_rfc006.txt" class = "gurudoc text"     >The AMQP/Fast Protocol</file>
 <file name = "amq_rfc007.txt" class = "gurudoc text"     >The AMQP/Fast Terminal</file>
 <file name = "amq_rfc008.txt" class = "gurudoc text"     >AMQ Terminology</file>
 <file name = "amq_rfc009.txt" class = "gurudoc text"     >The AMQP Protocol Family</file>
