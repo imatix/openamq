@@ -10,8 +10,8 @@
   <include filename = "connection.asl"    />
   <include filename = "channel.asl"       />
   <include filename = "access.asl"        />
-  <include filename = "destination.asl"   />
-  <include filename = "subscription.asl"  />
+  <include filename = "proxy.asl"         />
+  <include filename = "queue.asl"         />
   <include filename = "jms.asl"           />
   <include filename = "file.asl"          />
   <include filename = "stream.asl"        />
