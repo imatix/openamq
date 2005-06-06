@@ -129,6 +129,9 @@ H2#title {
     margin-left: 2em;
     margin-right: 2em;
 }
+#content_container LI {
+    margin-left: 2em;
+}
 #content_container P {
     margin: 1em;
     margin-left: 2em;
