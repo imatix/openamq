@@ -93,11 +93,9 @@ This document was written by Pieter Hintjens <ph@imatix.com>.
 Abstract
 ========
 
-We propose a wire-level protocol for the AMQ open middleware architecture.
-The protocol - AMQP/Fast - is one of a family of AMQ protocols.  AMQP/Fast
-is specifically aimed at managing fast multitasking connections across a
-reliable network.  It supports standard middleware semantics and uses a
-binary framing model aimed at efficiency and security.
+We propose a wire-level protocol and a set of formal semantics for building
+large scale and high-performance middleware architectures.  AMQP/0.8 is the
+second major design iteration of the AMQ protocol.
 
 Introduction
 ************

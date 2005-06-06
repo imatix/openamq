@@ -33,8 +33,8 @@ This document was written by Rakan El-Khalil <rakan@imatix.com>.
 Abstract
 ========
 
-This document describes the ANSI C coding standards that are to be used in
-the OpenAMQ project.
+This document describes the ANSI C coding standards that are used in the
+OpenAMQ project.
 
 Introduction
 ************

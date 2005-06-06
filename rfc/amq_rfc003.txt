@@ -33,6 +33,13 @@ This document was written by Pieter Hintjens <ph@imatix.com>.
 Abstract
 ========
 
+This document describes a matching algorithm that provides all the
+functionality needed for topic matching and most of the functionality
+needed for content-based routing.
+
+Argumentation
+*************
+
 Matching messages to requests is a typical bottleneck in a message
 oriented middleware server.  The standard mechanism is the "selector",
 an SQL-like clause that is interpreted to give a true/false result.
@@ -41,13 +48,6 @@ high volume of messages and requests, the cost of selectors grows
 exponentially.  The "topic" mechanism used by middleware servers
 provides a faster matching algorithm based on a hierarchical naming
 system, but this still acts as a bottleneck in high-volume scenarios.
-
-This paper describes a matching algorithm that provides all the
-functionality needed for topic matching and most of the functionality
-needed for content-based routing.
-
-Argumentation
-*************
 
 Conventional Matching
 =====================
