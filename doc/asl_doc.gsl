@@ -251,12 +251,13 @@ endfunction
 
 if !defined (switches.quiet)
     echo "Generating $(protocol.name) documentation..."
-    output "$(protocol.name)_full.txt"
-    full_reference  ()
-    output "$(protocol.name)_short.txt"
-    short_summary   ()
-    output "$(protocol.name)_quick.txt"
-    quick_reference ()
 endif
+
+output "$(protocol.name)_full.txt"
+full_reference  ()
+output "$(protocol.name)_short.txt"
+short_summary   ()
+output "$(protocol.name)_quick.txt"
+quick_reference ()
 
 
