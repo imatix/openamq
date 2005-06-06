@@ -213,8 +213,30 @@ public class AMQSession extends Closeable implements Session
 
     public MessageConsumer createConsumer(Destination destination) throws JMSException
     {
-        // TODO Auto-generated method stub
-        return null;
+        synchronized (_closingLock)
+        {
+            checkNotClosed();
+            
+            int handleId = _idFactory.getHandleId();
+            Handle.Consume frame = new Handle.Consume();
+            frame.handleId = handleId;
+            frame.confirmTag = 1;
+            frame.prefetch = 1;	// For the time being...
+            frame.noLocal = true; // ditto
+            frame.noAck = true;	// ditto
+            frame.dynamic = false;
+            frame.exclusive = false;
+            frame.destName = destination.toString();	// ?
+            frame.selector = "";
+            
+            AMQMessageConsumer consumer = new AMQMessageConsumer(handleId,destination,(String)null,frame.noLocal);
+            
+            _consumers.put(new Integer(handleId), consumer);
+            
+            _connection.getProtocolHandler().writeFrameToSession(frame, new HandleReplyListener(handleId));
+
+            return(consumer);
+        }
     }
 
     public MessageConsumer createConsumer(Destination destination, String messageSelector) throws JMSException

@@ -9,7 +9,7 @@ import javax.jms.MessageListener;
 
 /**
  */
-public class AMQMessageConsumer implements MessageConsumer
+public class AMQMessageConsumer extends Closeable implements MessageConsumer
 {
 
     private String _messageSelector;
@@ -18,12 +18,14 @@ public class AMQMessageConsumer implements MessageConsumer
 
     private Destination _destination;
 
+    private MessageListener _messageListener;
+    
     /**
      * Used for concurrency control
      */
     private final Object _lock = new Object();
 
-    AMQMessageConsumer(Destination destination, String messageSelector, boolean noLocal)
+    AMQMessageConsumer(int handleId,Destination destination, String messageSelector, boolean noLocal)
     {
         _messageSelector = messageSelector;
     }
@@ -35,34 +37,82 @@ public class AMQMessageConsumer implements MessageConsumer
 
     public MessageListener getMessageListener() throws JMSException
     {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return _messageListener;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     public void setMessageListener(MessageListener messageListener) throws JMSException
     {
-        //To change body of implemented methods use File | Settings | File Templates.
+    	// This check may not be necessary. It may be harmless to change the
+    	// state of this - irrespective of whether it is closed. I have therefore
+    	// left this just in case and as an application clean-up sanity check,
+    	// but it may change...
+        checkNotClosed();
+
+        synchronized(_syncLock)
+        {
+        	// If someone is already receiving
+        	if (_messageListener != null && _receiving) throw new IllegalStateException("Another thread is already receiving...");
+
+            _messageListener = messageListener;
+            
+            _receiving = _messageListener != null;
+            
+            if (_receiving)
+            {
+            	
+            }
+        }
     }
 
     public Message receive() throws JMSException
     {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return receive(0);
     }
 
     public Message receive(long l) throws JMSException
     {
+        checkNotClosed();
+
+        synchronized(_syncLock)
+        {
+        	// If someone is already receiving
+        	if (_receiving) throw new IllegalStateException("Another thread is already receiving (possibly asynchronously)...");
+
+        	_receiving = true;
+        }
+        
+        try
+        {
+        	// do read here
+        }
+        finally
+        {
+        	synchronized(_syncLock)
+        	{
+        		_receiving = false;
+        	}
+        }
+        
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     public Message receiveNoWait() throws JMSException
     {
+        checkNotClosed();
+
+        if (1 == 1) throw new UnsupportedOperationException();
+        
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     public void close() throws JMSException
     {
-        synchronized (_lock)
+        synchronized (_closingLock)
         {
-
+            _closed.set(true);
         }
     }
+ 
+    private Object _syncLock = new byte[0];
+    private boolean _receiving;
 }

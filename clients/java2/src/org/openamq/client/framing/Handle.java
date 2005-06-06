@@ -156,6 +156,9 @@ public class Handle
         public boolean noLocal;
         public boolean noAck;
 
+        public boolean exclusive;
+        public boolean dynamic;
+        
         /* short string */
         public String destName;
 
@@ -165,17 +168,13 @@ public class Handle
         /* long string */
         public String selector;
 
-        /* short string */
-        public String mimeType;
-
         public static final short FRAME_TYPE = 32;
 
         protected long getCommandSize()
         {
             return 2 + 2 + 2 + 1 + 1 + EncodingUtils.encodedShortStringLength(destName) +
                    EncodingUtils.encodedShortStringLength(identifier) +
-                   EncodingUtils.encodedShortStringLength(selector) +
-                   EncodingUtils.encodedShortStringLength(mimeType);
+                   EncodingUtils.encodedShortStringLength(selector);
         }
 
         public short getType()
@@ -193,7 +192,6 @@ public class Handle
             EncodingUtils.writeShortStringBytes(buffer, destName);
             EncodingUtils.writeShortStringBytes(buffer, identifier);
             EncodingUtils.writeLongStringBytes(buffer, selector);
-            EncodingUtils.writeShortStringBytes(buffer, mimeType);
         }
 
         public void populateFromBuffer(ByteBuffer buffer) throws AMQFrameDecodingException
@@ -206,8 +204,7 @@ public class Handle
             destName = EncodingUtils.readShortString(buffer);
             identifier = EncodingUtils.readShortString(buffer);
             selector = EncodingUtils.readLongString(buffer);
-            mimeType = EncodingUtils.readShortString(buffer);
-        }
+       }
     }
 
     public static final class Cancel extends AMQCommandFrame
