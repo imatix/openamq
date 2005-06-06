@@ -31,7 +31,7 @@ public class PseudoServer1
 		{
 			String queueName = args[i];
 
-			logger.info("Adding queue '" + queueName + "'...");
+			logger.info("Trying to add queue '" + queueName + "'...");
 
 			// Due to a bug I can't name temporary queues. So mine will have to be
 			// non-remp for the time being (hence false).

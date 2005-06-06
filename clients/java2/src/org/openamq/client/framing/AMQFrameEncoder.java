@@ -9,11 +9,15 @@ import org.apache.mina.protocol.codec.MessageEncoder;
 import java.util.Set;
 import java.util.HashSet;
 
+import org.apache.log4j.*;
+
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
 public class AMQFrameEncoder implements MessageEncoder
 {
+	Logger _logger = Logger.getLogger(AMQFrameEncoder.class);
+	
     protected ByteBuffer _buffer;
 
     private Set _messageTypes;
@@ -54,14 +58,15 @@ public class AMQFrameEncoder implements MessageEncoder
     public void encode(ProtocolSession session, Object message, ProtocolEncoderOutput out) throws ProtocolViolationException
     {
         final AMQFrame frame = (AMQFrame) message;
-        _buffer = ByteBuffer.allocate((int)frame.getSize());
+        int frameSize = (int)frame.getSize();
+        _buffer = ByteBuffer.allocate(frameSize);
         frame.writePayload(_buffer);
-        // TODO: replace with logging code
-        for (int i = 0; i < frame.getSize(); i++)
+       
+        if (_logger.isInfoEnabled())
         {
-            System.out.print(Integer.toHexString(_buffer.get(i))+ " ");
+        	_logger.info("Encoded frame byte-buffer is '" + EncodingUtils.convertToHexString(_buffer) + "'");
         }
-        System.out.println();
+        
         _buffer.flip();
         out.write(_buffer);
     }

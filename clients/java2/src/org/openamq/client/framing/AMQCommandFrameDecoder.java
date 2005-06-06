@@ -9,11 +9,15 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.HashMap;
 
+import org.apache.log4j.*;
+
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
 public class AMQCommandFrameDecoder extends AMQFrameDecoder
 {
+	Logger _logger = Logger.getLogger(AMQCommandFrameDecoder.class);
+	
     /**
      * Marker indicating the frame size is an unsigned long. In the absence
      * of this marker the frame size is an unsigned integer.
@@ -60,12 +64,12 @@ public class AMQCommandFrameDecoder extends AMQFrameDecoder
     {
         final long frameSize = readFrameSize(in);
 
-        if (frameSize <= 0)
+        if (frameSize < 0)
         {
             return MessageDecoderResult.NOT_OK;
         }
 
-        if (in.remaining() < frameSize)
+        if (frameSize == 0 || in.remaining() < frameSize)
         {
             return MessageDecoderResult.NEED_DATA;
         }
@@ -88,21 +92,48 @@ public class AMQCommandFrameDecoder extends AMQFrameDecoder
 
     private boolean isSupportedFrameType(short frameType)
     {
-        return _supportedFrames.containsKey(new Short(frameType));
+        boolean result = _supportedFrames.containsKey(new Short(frameType));
+        
+        if (!result)
+        {
+        	_logger.warn("Got unrecognised frameType " + frameType);
+        }
+        
+        return(result);
     }
 
     /**
      * Read the frame size from the buffer.
      * @param in the buffer
-     * @return the size indicated by the buffer
+     * @return the size indicated by the buffer, < 0 on error and 0 on needs more data.
      */
     private long readFrameSize(ByteBuffer in)
     {
+    	int remaining;
+    	
+    	if ((remaining = in.remaining()) < EncodingUtils.SIZEOF_UNSIGNED_SHORT)
+    	{
+    		// Loggng as point of interest (only) - for the time being.
+    		_logger.info("Short-length (" + EncodingUtils.SIZEOF_UNSIGNED_SHORT + ") not received yet, only got " + remaining + " - waiting for more...");
+    		
+    		return(0);
+    	}
+    	
         long frameSize = in.getUnsignedShort();
+        
         if (frameSize == FRAME_LONG)
         {
+        	if ((remaining = in.remaining()) < EncodingUtils.SIZEOF_UNSIGNED_INT)
+        	{
+        		// Loggng as point of interest (only) - for the time being.
+        		_logger.info("Int-length (" + EncodingUtils.SIZEOF_UNSIGNED_INT + ") not received yet, only got " + remaining + " - waiting for more...");
+
+        		return(0);
+        	}
+        	
             frameSize = in.getUnsignedInt();
         }
+        
         assert frameSize > 0;
 
         return frameSize;
@@ -133,4 +164,5 @@ public class AMQCommandFrameDecoder extends AMQFrameDecoder
         assert marker == 0xCE;
         return frame;
     }
+    
 }

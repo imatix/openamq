@@ -16,6 +16,9 @@ public class EncodingUtils
 
     private static final Charset _charset = Charset.forName("iso8859-15");
 
+    public static final int SIZEOF_UNSIGNED_SHORT = 2;
+    public static final int SIZEOF_UNSIGNED_INT = 4;
+
     public static short encodedShortStringLength(String s)
     {
         if (s == null)
@@ -106,18 +109,37 @@ public class EncodingUtils
 
     public static void writeUnsignedShort(ByteBuffer buffer, int s)
     {
-        short sv = (short) s;
-        buffer.put((byte) (0xFF & (sv >> 8)));
-        buffer.put((byte)(0xFF & sv));
+    	// TODO: Is this comparison safe? Do I need to cast RHS to long?
+    	if (s < Short.MAX_VALUE)
+    	{
+    		buffer.putShort((short)s);
+    	}
+    	else
+    	{
+	    	short sv = (short) s;
+	    	buffer.put((byte) (0xFF & (sv >> 8)));
+	        buffer.put((byte)(0xFF & sv));
+    	}
     }
 
     public static void writeUnsignedInteger(ByteBuffer buffer, long l)
     {
-        int iv = (int) l;
-        buffer.put((byte) (0xFF & (iv >> 24)));
-        buffer.put((byte) (0xFF & (iv >> 16)));
-        buffer.put((byte) (0xFF & (iv >> 8 )));
-        buffer.put((byte) (0xFF & iv));
+    	// TODO: Is this comparison safe? Do I need to cast RHS to long?
+    	if (l < Integer.MAX_VALUE)
+    	{
+    		buffer.putInt((int)l);
+    	}
+    	else
+    	{
+	        int iv = (int) l;
+	        
+	        // FIXME: This *may* go faster if we build this into a local 4-byte array and then
+	        // put the array in a single call.
+	        buffer.put((byte) (0xFF & (iv >> 24)));
+	        buffer.put((byte) (0xFF & (iv >> 16)));
+	        buffer.put((byte) (0xFF & (iv >> 8 )));
+	        buffer.put((byte) (0xFF & iv));
+    	}
     }
 
     public static void writeFieldTableBytes(ByteBuffer buffer, FieldTable table)
@@ -136,7 +158,7 @@ public class EncodingUtils
     {
         if (value)
         {
-            buffer.put((byte) 1);
+            buffer.put((byte)1);
         }
         else
         {
@@ -205,4 +227,72 @@ public class EncodingUtils
             }
         }
     }
+    
+	static byte[] hexToByteArray(String id)
+	{
+		// Should check param for null, long enough for this check, upper-case and trailing char
+		String s = (id.charAt(1) == 'x') ? id.substring(2) : id;	// strip 0x
+
+		int len = s.length();
+		int byte_len = len / 2;
+		byte[] b = new byte[byte_len];
+
+		for(int i = 0; i < byte_len; i++)
+		{
+			// fixme: refine these repetitive subscript calcs.
+			int ch = i * 2;
+
+			byte b1 = Byte.parseByte(s.substring(ch,ch + 1),16);
+			byte b2 = Byte.parseByte(s.substring(ch + 1,ch + 2),16);
+
+			b[i] = (byte)(b1 * 16 + b2);
+		}
+
+		return(b);
+	}
+
+	public static char[] convertToHexCharArray(byte[] from)
+	{
+		int	length = from.length;
+		char[]	result_buff = new char[length * 2 + 2];
+
+		result_buff[0] = '0';
+		result_buff[1] = 'x';
+
+		int		bite;
+		int		dest = 2;
+
+		for(int i = 0; i < length; i++)
+		{
+			bite = from[i];
+
+			if (bite < 0) bite += 256;
+
+			result_buff[dest++] = hex_chars[bite >> 4];
+			result_buff[dest++] = hex_chars[bite & 0x0f];
+		}
+
+		return(result_buff);
+	}
+
+	public static String convertToHexString(byte[] from)
+	{
+		return(new String(convertToHexCharArray(from)));
+	}
+
+	public static String convertToHexString(ByteBuffer bb)
+	{
+		int size = bb.capacity();
+		
+		byte[] from = new byte[size];
+		
+		for(int i = 0; i < size; i++)
+		{
+			from[i] = bb.get(i);
+		}
+		
+		return(new String(convertToHexCharArray(from)));
+	}
+
+	private static char hex_chars[] = {'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
 }
