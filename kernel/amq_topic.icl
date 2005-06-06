@@ -24,6 +24,7 @@
 </public>
 
 <context>
+    // TODO stick hash index here to save a hash recalc
     ipr_shortstr_t
         dest_name;                      /*  Topic destination name           */
 </context>
