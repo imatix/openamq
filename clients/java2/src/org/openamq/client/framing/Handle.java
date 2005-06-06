@@ -1,6 +1,7 @@
 package org.openamq.client.framing;
 
 import org.apache.mina.common.ByteBuffer;
+import org.openamq.client.*;
 
 /**
  * Frames for the Handle command.
@@ -162,9 +163,6 @@ public class Handle
         /* short string */
         public String destName;
 
-        /* short string */
-        public String identifier;
-
         /* long string */
         public String selector;
 
@@ -173,7 +171,6 @@ public class Handle
         protected long getCommandSize()
         {
             return 2 + 2 + 2 + 1 + 1 + EncodingUtils.encodedShortStringLength(destName) +
-                   EncodingUtils.encodedShortStringLength(identifier) +
                    EncodingUtils.encodedShortStringLength(selector);
         }
 
@@ -189,8 +186,9 @@ public class Handle
             EncodingUtils.writeUnsignedShort(buffer, prefetch);
             EncodingUtils.writeBoolean(buffer, noLocal);
             EncodingUtils.writeBoolean(buffer, noAck);
+            EncodingUtils.writeBoolean(buffer, dynamic);
+            EncodingUtils.writeBoolean(buffer, exclusive);
             EncodingUtils.writeShortStringBytes(buffer, destName);
-            EncodingUtils.writeShortStringBytes(buffer, identifier);
             EncodingUtils.writeLongStringBytes(buffer, selector);
         }
 
@@ -201,8 +199,9 @@ public class Handle
             prefetch = buffer.getUnsignedShort();
             noLocal = EncodingUtils.readBoolean(buffer);
             noAck = EncodingUtils.readBoolean(buffer);
+            dynamic = EncodingUtils.readBoolean(buffer);
+            exclusive = EncodingUtils.readBoolean(buffer);
             destName = EncodingUtils.readShortString(buffer);
-            identifier = EncodingUtils.readShortString(buffer);
             selector = EncodingUtils.readLongString(buffer);
        }
     }
