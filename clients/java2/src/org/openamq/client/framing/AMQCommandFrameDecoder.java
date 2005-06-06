@@ -17,7 +17,7 @@ import org.apache.log4j.*;
 public class AMQCommandFrameDecoder extends AMQFrameDecoder
 {
 	Logger _logger = Logger.getLogger(AMQCommandFrameDecoder.class);
-	
+
     /**
      * Marker indicating the frame size is an unsigned long. In the absence
      * of this marker the frame size is an unsigned integer.
@@ -52,7 +52,9 @@ public class AMQCommandFrameDecoder extends AMQFrameDecoder
         _supportedFrames.put(new Short(Handle.Browse.FRAME_TYPE), Handle.Browse.class);
         _supportedFrames.put(new Short(Handle.Cancel.FRAME_TYPE), Handle.Cancel.class);
         _supportedFrames.put(new Short(Handle.Consume.FRAME_TYPE), Handle.Consume.class);
+        _supportedFrames.put(new Short(Handle.Created.FRAME_TYPE), Handle.Created.class);
         _supportedFrames.put(new Short(Handle.Flow.FRAME_TYPE), Handle.Flow.class);
+        _supportedFrames.put(new Short(Handle.Notify.FRAME_TYPE), Handle.Notify.class);
         _supportedFrames.put(new Short(Handle.Open.FRAME_TYPE), Handle.Open.class);
         _supportedFrames.put(new Short(Handle.Query.FRAME_TYPE), Handle.Query.class);
         _supportedFrames.put(new Short(Handle.Send.FRAME_TYPE), Handle.Send.class);
@@ -93,12 +95,12 @@ public class AMQCommandFrameDecoder extends AMQFrameDecoder
     private boolean isSupportedFrameType(short frameType)
     {
         boolean result = _supportedFrames.containsKey(new Short(frameType));
-        
+
         if (!result)
         {
         	_logger.warn("Got unrecognised frameType " + frameType);
         }
-        
+
         return(result);
     }
 
@@ -110,17 +112,17 @@ public class AMQCommandFrameDecoder extends AMQFrameDecoder
     private long readFrameSize(ByteBuffer in)
     {
     	int remaining;
-    	
+
     	if ((remaining = in.remaining()) < EncodingUtils.SIZEOF_UNSIGNED_SHORT)
     	{
     		// Loggng as point of interest (only) - for the time being.
     		_logger.info("Short-length (" + EncodingUtils.SIZEOF_UNSIGNED_SHORT + ") not received yet, only got " + remaining + " - waiting for more...");
-    		
+
     		return(0);
     	}
-    	
+
         long frameSize = in.getUnsignedShort();
-        
+
         if (frameSize == FRAME_LONG)
         {
         	if ((remaining = in.remaining()) < EncodingUtils.SIZEOF_UNSIGNED_INT)
@@ -130,10 +132,10 @@ public class AMQCommandFrameDecoder extends AMQFrameDecoder
 
         		return(0);
         	}
-        	
+
             frameSize = in.getUnsignedInt();
         }
-        
+
         assert frameSize > 0;
 
         return frameSize;
@@ -164,5 +166,5 @@ public class AMQCommandFrameDecoder extends AMQFrameDecoder
         assert marker == 0xCE;
         return frame;
     }
-    
+
 }

@@ -9,6 +9,11 @@ public class AMQDestination implements Queue, Topic
 {
 
     private String _name;
+
+    public AMQDestination(String name)
+    {
+        _name = name;
+    }
     
     public String getQueueName() throws JMSException
     {

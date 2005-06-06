@@ -48,7 +48,9 @@ public class AMQFrameEncoder implements MessageEncoder
         _messageTypes.add(Handle.Browse.class);
         _messageTypes.add(Handle.Cancel.class);
         _messageTypes.add(Handle.Consume.class);
+        _messageTypes.add(Handle.Created.class);
         _messageTypes.add(Handle.Flow.class);
+        _messageTypes.add(Handle.Notify.class);
         _messageTypes.add(Handle.Open.class);
         _messageTypes.add(Handle.Query.class);
         _messageTypes.add(Handle.Send.class);

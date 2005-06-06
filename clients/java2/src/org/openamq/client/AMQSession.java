@@ -2,6 +2,7 @@ package org.openamq.client;
 
 import org.openamq.jms.Session;
 import org.openamq.client.framing.Handle;
+import org.openamq.client.framing.AMQMessage;
 import org.openamq.client.state.listener.HandleReplyListener;
 
 import javax.jms.*;
@@ -63,7 +64,7 @@ public class AMQSession extends Closeable implements Session
         return null;
     }
 
-    public Message createMessage() throws JMSException
+    public javax.jms.Message createMessage() throws JMSException
     {
         checkNotClosed();
         // TODO Auto-generated method stub
@@ -94,8 +95,8 @@ public class AMQSession extends Closeable implements Session
     public TextMessage createTextMessage() throws JMSException
     {
         checkNotClosed();
-        // TODO Auto-generated method stub
-        return null;
+
+        return new Message();
     }
 
     public TextMessage createTextMessage(String text) throws JMSException

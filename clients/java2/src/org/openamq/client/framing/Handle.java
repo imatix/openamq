@@ -2,8 +2,6 @@ package org.openamq.client.framing;
 
 import org.apache.mina.common.ByteBuffer;
 
-import java.util.LinkedHashMap;
-
 /**
  * Frames for the Handle command.
  */
@@ -100,6 +98,7 @@ public class Handle
         public boolean recovery;
         public boolean streaming;
         public String destName;
+        public AMQMessage message;
 
         public static final short FRAME_TYPE = 31;
 
@@ -123,6 +122,10 @@ public class Handle
             EncodingUtils.writeBoolean(buffer, recovery);
             EncodingUtils.writeBoolean(buffer, streaming);
             EncodingUtils.writeShortStringBytes(buffer, destName);
+            if (message != null)
+            {
+                message.writePayload(buffer);
+            }
         }
 
         public void populateFromBuffer(ByteBuffer buffer) throws AMQFrameDecodingException
@@ -135,6 +138,8 @@ public class Handle
             recovery =  EncodingUtils.readBoolean(buffer);
             streaming = EncodingUtils.readBoolean(buffer);
             destName = EncodingUtils.readShortString(buffer);
+            message= new AMQMessage();
+            message.populateFromBuffer(buffer);
         }
     }
 
@@ -408,6 +413,97 @@ public class Handle
             handleId = buffer.getUnsignedShort();
             confirmTag = buffer.getUnsignedShort();
             messageNbr = buffer.getUnsignedInt();
+        }
+    }
+
+    public static final class Created extends AMQCommandFrame
+    {
+        /* short integer */
+        public int handleId;
+        /* short string */
+        public String destName;
+
+        public static final short FRAME_TYPE = 40;
+        protected long getCommandSize()
+        {
+            return 2 + EncodingUtils.encodedShortStringLength(destName);
+        }
+
+        public short getType()
+        {
+            return FRAME_TYPE;
+        }
+
+        protected void writeCommandPayload(ByteBuffer buffer)
+        {
+            EncodingUtils.writeUnsignedShort(buffer, handleId);
+            EncodingUtils.writeShortStringBytes(buffer, destName);
+        }
+
+        public void populateFromBuffer(ByteBuffer buffer) throws AMQFrameDecodingException
+        {
+            handleId = buffer.getUnsignedShort();
+            destName = EncodingUtils.readShortString(buffer);
+        }
+    }
+
+    public static final class Notify extends AMQCommandFrame
+    {
+        /* short integer */
+        public int handleId;
+        /* long integer */
+        public long messageNbr;
+        /* long integer */
+        public long fragmentSize;
+        public boolean partial;
+        public boolean outOfBand;
+        public boolean recovery;
+        public boolean delivered;
+        public boolean redelivered;
+        public boolean streaming;
+        /* short string */
+        public String destName;
+        public AMQMessage messageFragment;
+
+        public static final short FRAME_TYPE = 41;
+
+        protected long getCommandSize()
+        {
+            return 2 + 4 + 4 + 1 + 1 + 1 + 1 + 1 + 1 + EncodingUtils.encodedShortStringLength(destName);
+        }
+
+        public short getType()
+        {
+            return FRAME_TYPE;
+        }
+
+        protected void writeCommandPayload(ByteBuffer buffer)
+        {
+            EncodingUtils.writeUnsignedShort(buffer, handleId);
+            EncodingUtils.writeUnsignedInteger(buffer, messageNbr);
+            EncodingUtils.writeUnsignedInteger(buffer, fragmentSize);
+            EncodingUtils.writeBoolean(buffer, partial);
+            EncodingUtils.writeBoolean(buffer, outOfBand);
+            EncodingUtils.writeBoolean(buffer, recovery);
+            EncodingUtils.writeBoolean(buffer, delivered);
+            EncodingUtils.writeBoolean(buffer, redelivered);
+            EncodingUtils.writeBoolean(buffer, streaming);
+            messageFragment.writePayload(buffer);
+        }
+
+        public void populateFromBuffer(ByteBuffer buffer) throws AMQFrameDecodingException
+        {
+            handleId = buffer.getUnsignedShort();
+            messageNbr = buffer.getUnsignedInt();
+            fragmentSize = buffer.getUnsignedInt();
+            partial = EncodingUtils.readBoolean(buffer);
+            outOfBand = EncodingUtils.readBoolean(buffer);
+            recovery = EncodingUtils.readBoolean(buffer);
+            delivered = EncodingUtils.readBoolean(buffer);
+            redelivered = EncodingUtils.readBoolean(buffer);
+            streaming = EncodingUtils.readBoolean(buffer);
+            messageFragment = new AMQMessage();
+            messageFragment.populateFromBuffer(buffer);
         }
     }
 }
