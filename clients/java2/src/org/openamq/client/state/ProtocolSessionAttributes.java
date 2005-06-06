@@ -20,4 +20,6 @@ public interface ProtocolSessionAttributes
     static final String PASSWORD = "Password";
 
     static final String AMQ_CONNECTION = "AMQConnection";
+    
+    static final String AMQ_HANDLE_TO_SESSION_MAP = "AMQHandleToSessionMap";
 }

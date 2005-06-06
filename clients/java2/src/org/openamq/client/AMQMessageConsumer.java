@@ -7,11 +7,16 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 
+import org.openamq.client.framing.*;
+
+import org.apache.log4j.*;
+
 /**
  */
 public class AMQMessageConsumer extends Closeable implements MessageConsumer
 {
-
+	private static final Logger _logger = Logger.getLogger(AMQMessageConsumer.class);
+	
     private String _messageSelector;
 
     private boolean _noLocal;
@@ -113,6 +118,29 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
         }
     }
  
+    public void notifyMessage(AMQMessage messageFragment)
+    {
+    	if (_messageListener == null)
+    	{
+    		_logger.warn("Received a message without a listener - ignoring...");
+    	}
+    	else
+    	{
+    		org.openamq.client.Message message = new org.openamq.client.Message();
+    		
+    		try
+    		{
+    			message.setText(new String(messageFragment.message));
+    		
+    			_messageListener.onMessage(message);
+    		}
+    		catch(JMSException e)
+    		{
+    			_logger.warn("Caught exception (dump follows) - ignoring...",e);
+    		}
+    	}
+    }
+    
     private Object _syncLock = new byte[0];
     private boolean _receiving;
 }

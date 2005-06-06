@@ -12,8 +12,12 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.apache.log4j.*;
+
 public class AMQSession extends Closeable implements Session
 {
+	private static final Logger _logger = Logger.getLogger(AMQSession.class);
+	
     private AMQConnection _connection;
     
     private boolean _transacted;
@@ -231,6 +235,8 @@ public class AMQSession extends Closeable implements Session
             
             AMQMessageConsumer consumer = new AMQMessageConsumer(handleId,destination,(String)null,frame.noLocal);
             
+            _connection.getProtocolHandler().addSessionByHandle(handleId,this);
+            
             _consumers.put(new Integer(handleId), consumer);
             
             _connection.getProtocolHandler().writeFrameToSession(frame, new HandleReplyListener(handleId));
@@ -323,4 +329,19 @@ public class AMQSession extends Closeable implements Session
         }
     }
 
+    public void notifyHandle(int handleId,AMQMessage messageFragment)
+    {
+    	AMQMessageConsumer consumer = (AMQMessageConsumer)_consumers.get(new Integer(handleId));
+    	
+    	if (consumer == null)
+    	{
+    		_logger.warn("Received a message for handleId " + handleId + " without a handler - ignoring...");
+    	}
+    	else
+    	{
+    		consumer.notifyMessage(messageFragment);
+    	}
+
+    	return;
+    }
 }

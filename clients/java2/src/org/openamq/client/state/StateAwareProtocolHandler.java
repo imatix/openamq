@@ -6,6 +6,7 @@ import org.apache.mina.protocol.ProtocolHandler;
 import org.apache.mina.protocol.ProtocolSession;
 import org.openamq.client.AMQConnection;
 import org.openamq.client.AMQException;
+import org.openamq.client.AMQSession;
 import org.openamq.client.framing.AMQFrame;
 import org.openamq.client.framing.Connection;
 import org.openamq.client.protocol.ConnectionChallengeHandler;
@@ -245,5 +246,19 @@ public class StateAwareProtocolHandler implements ProtocolHandler
                 }
             }
         }
+    }
+    
+    public void addSessionByHandle(int handleId,AMQSession session)
+    {
+    	Map map = (Map)_protocolSession.getAttribute(ProtocolSessionAttributes.AMQ_HANDLE_TO_SESSION_MAP);
+    	
+    	if (map == null)
+    	{
+    		map = new HashMap();
+    		
+    		_protocolSession.setAttribute(ProtocolSessionAttributes.AMQ_HANDLE_TO_SESSION_MAP,map);
+    	}
+    	
+    	map.put(new Integer(handleId),session);
     }
 }
