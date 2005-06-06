@@ -22,8 +22,8 @@
 </doc>
 
 <doc name = "grammar">
-    tx                  = C:COMMIT S:COMMIT_OK
-                        / C:ABORT S:ABORT_OK
+    tx                  = C:COMMIT S:COMMIT-OK
+                        / C:ABORT S:ABORT-OK
 </doc>
 
 <chassis name = "server" implement = "SHOULD" />
@@ -39,10 +39,10 @@ commit the current transaction
     after a commit.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <response name = "commit ok" />
+  <response name = "commit-ok" />
 </method>
 
-<method name = "commit ok" synchronous = "1">
+<method name = "commit-ok" synchronous = "1">
 confirm a successful commit
   <doc>
     This method confirms to the client that the commit succeeded.
@@ -61,10 +61,10 @@ abandon the current transaction
     after a rollback.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <response name = "abort ok" />
+  <response name = "abort-ok" />
 </method>
 
-<method name = "abort ok" synchronous = "1">
+<method name = "abort-ok" synchronous = "1">
 confirm a successful abort
   <doc>
     This method confirms to the client that the abort succeeded.

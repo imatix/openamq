@@ -16,10 +16,10 @@
 </doc>
 
 <doc name = "grammar">
-    destination         = C:DEFINE S:DEFINE_OK
-                        / C:QUERY  S:QUERY_OK
-                        / C:PURGE  S:PURGE_OK
-                        / C:CANCEL S:CANCEL_OK
+    destination         = C:DEFINE S:DEFINE-OK
+                        / C:QUERY  S:QUERY-OK
+                        / C:PURGE  S:PURGE-OK
+                        / C:CANCEL S:CANCEL-OK
 </doc>
 
 <chassis name = "server" implement = "SHOULD" />
@@ -38,7 +38,7 @@
     this method.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <response name = "define ok" />
+  <response name = "define-ok" />
 
   <field name = "ticket" domain = "access ticket">
     <doc>
@@ -74,7 +74,7 @@
     <doc name = "rule">
       The destination name MAY be empty, in which case the server
       MUST create a new unique name automatically and return this
-      to the client in the Define_ok method.
+      to the client in the Define-Ok method.
     </doc>
   </field>
     
@@ -141,7 +141,7 @@
   </field>
 </method>
 
-<method name = "define ok" synchronous = "1">
+<method name = "define-ok" synchronous = "1">
   confirms a destination definition
   <doc>
     This method confirms a Define method and confirms the name of the
@@ -177,7 +177,7 @@
     a queue or a topic as defined by the service-type field.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <response name = "query ok" />
+  <response name = "query-ok" />
 
   <field name = "ticket" domain = "access ticket">
     <doc name = "rule">
@@ -196,7 +196,7 @@
   </field>
 </method>
 
-<method name = "query ok" synchronous = "1">
+<method name = "query-ok" synchronous = "1">
   provide status of destination
   <doc>
     This method returns the status of the destination.
@@ -269,7 +269,7 @@
     large.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <response name = "purge ok" />
+  <response name = "purge-ok" />
 
   <field name = "ticket" domain = "access ticket">
     <doc>
@@ -294,7 +294,7 @@
   </field>
 </method>
 
-<method name = "purge ok" synchronous = "1">
+<method name = "purge-ok" synchronous = "1">
   confirms a destination purge
   <doc>
     This method confirms the purge of a destination.
@@ -331,7 +331,7 @@
     queue.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <response name = "cancel ok" />
+  <response name = "cancel-ok" />
 
   <field name = "ticket" domain = "access ticket">
     <doc name = "rule">
@@ -361,7 +361,7 @@
   </field>
 </method>
 
-<method name = "cancel ok" synchronous = "1">
+<method name = "cancel-ok" synchronous = "1">
   confirm cancellation of a dynamic destination
   <doc>
     This method confirms the cancellation of a destination.

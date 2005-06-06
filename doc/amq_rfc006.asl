@@ -5,6 +5,7 @@
     version = "0.9"
     script  = "asl_gen.gsl"
     target  = "doc"
+    filler = "  "
     >
   <!-- Classes -->
   <include filename = "connection.asl"    />
@@ -52,89 +53,56 @@
     <assert check = "length" value = "127" />
   </domain>
 
+  <domain name = "proxy name" type = "shortstr">
+    proxy name
+    <doc>
+      The proy name identifies the proxy within the virtual host.  A
+      proxy name consists of any combination of at least one of
+      [A-Za-z0-9] plus zero or more of [.-_/+!=:].  Proxy names are
+      case-sensitive.
+    </doc>
+    <assert check = "re" value = "[A-Za-z0-9][A-Za-z0-9.\-_\/+!=:]*" />
+    <assert check = "length" value = "127" />
+  </domain>
+
   <domain name = "destination" type = "shortstr">
     destination name
     <doc>
-      A destination name consists of any combination of at least one
-      of [A-Za-z0-9] plus zero or more of [.-_/+!=:]. Destination
-      names starting with _ are reserved for server use.
+      A destination name consists of any combination of at least one of
+      [A-Za-z0-9] plus zero or more of [.-_/+!=:].
     </doc>
+    <assert check = "re" value = "[A-Za-z0-9][A-Za-z0-9.\-_\/+!=:]*" />
     <assert check = "length" value = "127" />
   </domain>
 
-  <domain name = "subscription" type = "shortstr">
-    subscription name
+  <domain name = "queue namespace" type = "shortstr">
+    queue namespace
     <doc>
-      A subscription name consists of any combination of at least one
-      of [A-Za-z0-9] plus zero or more of [.-_/+!=:].  Subscription
-      names starting with _ are reserved for server use.
+      The queue namespace is an arbitrary string chosen by the
+      application.  The combination of queue namespace and queue name
+      is unique per virtual host.  A queue namespace consists of any
+      combination of at least one of [A-Za-z0-9] plus zero or more of
+      [.-_/+!=:].  Queue namespaces are case-sensitive.
     </doc>
+    <doc name = "rule">
+      The queue namespace MAY be empty - the empty namespace acts
+      just like any other name space.
+    </doc>
+    <assert check = "re" value = "[A-Za-z0-9][A-Za-z0-9.\-_\/+!=:]*" />
+    <assert check = "length" value = "30" />
+  </domain>
+
+  <domain name = "queue name" type = "shortstr">
+    queue name
+    <doc>
+      The queue name identifies the queue within the namespace and the
+      virtual host. A queue name consists of any combination of at least
+      one of [A-Za-z0-9] plus zero or more of [.-_/+!=:]. Queue names
+      starting with _ are reserved for server use.  Queue names are
+      case-sensitive.
+    </doc>
+    <assert check = "re" value = "[A-Za-z0-9][A-Za-z0-9.\-_\/+!=:]*" />
     <assert check = "length" value = "127" />
-  </domain>
-
-  <domain name = "service type" type = "octet">
-    destination service type
-    <doc>
-      Destinations are either queues or topics - this field specifies
-      the type of the destination.  The "fuzzy" type searches first for
-      a queue, then for a topic with the specified destination name.
-    </doc>
-    <assert check = "enum">
-      <value name = "queue" >queue destination</value>
-      <value name = "topic" >topic destination</value>
-      <value name = "fuzzy" >queue, if exists, else topic</value>
-    </assert>
-  </domain>
-
-  <domain name = "topic selector" type = "shortstr">
-    topic name or pattern
-    <doc>
-      Specifies the topics that will be routed to this subscription. 
-      This field is either a complete existing topic name or a topic
-      pattern using the syntax and wildcards defined by the
-      topic-seltype field.
-    </doc>
-    <see name = "topic selector"/>
-    <assert check = "notnull" />
-  </domain>
-
-  <domain name = "topic seltype" type = "octet">
-    type of topic selector
-    <doc>
-      Specifies the syntax for the topic selector.
-      The simple syntax uses a hierarchical naming scheme for topics
-      where each level is delimited by a dot. The wild cards * and #
-      replace one and zero or more hierarchical levels respectively.
-      The tpath syntax is the same as the simple syntax but the topic
-      hierarchy is delimited by slash ("/") characters.  The regexp
-      syntax uses Perl 5-compatible regular expressions and allows any
-      topic naming scheme.
-    </doc>
-    <assert check = "enum">
-      <value name = "simple">simple selector using * and # wildcards and . delimiters</value>
-      <value name = "tpath" >path selector using * and # wildcards and / delimiters</value>
-      <value name = "regexp">Perl-5 regular expression selector</value>
-    </assert>
-  </domain>
-
-  <domain name = "message selector" type = "longstr">
-    message selector
-    <doc>
-      Specifies which precise messages will be routed to this queue or
-      subscription.  AMQP/Fast provides several alternative syntaxes
-      for message selectors, as specified by the message-seltype field.
-    </doc>
-  </domain>
-
-  <domain name = "message seltype" type = "octet">
-    type of message selector
-    <doc>
-      Specifies the syntax for the message selector.
-    </doc>
-    <assert check = "enum">
-      <value name = "fast">selector based on field value and presence</value>
-      <value name = "jms" >full JMS selector</value>
-    </assert>
   </domain>
 
   <domain name = "no local" type = "bit">

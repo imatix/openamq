@@ -16,7 +16,7 @@
 </doc>
 
 <doc name = "grammar">
-    dtx                 = C:START S:START_OK
+    dtx                 = C:START S:START-OK
 </doc>
 
 <chassis name = "server" implement = "MAY" />
@@ -33,7 +33,7 @@
     messages.
   </doc>
   <chassis name = "server" implement = "MAY" />
-  <response name = "start ok" />
+  <response name = "start-ok" />
 
   <field name = "dtx identifier" type = "shortstr">
     distributed transaction identifier
@@ -46,7 +46,7 @@
   </field>
 </method>
 
-<method name = "start ok" synchronous = "1">
+<method name = "start-ok" synchronous = "1">
   confirm the start of a new distributed transaction
   <doc>
     This method confirms to the client that the transaction started.

@@ -16,14 +16,14 @@
 </doc>
 
 <doc name = "grammar">
-    test                = C:INTEGER S:INTEGER_OK
-                        / S:INTEGER C:INTEGER_OK
-                        / C:STRING S:STRING_OK
-                        / S:STRING C:STRING_OK
-                        / C:TABLE S:TABLE_OK
-                        / S:TABLE C:TABLE_OK
-                        / C:CONTENT S:CONTENT_OK
-                        / S:CONTENT C:CONTENT_OK
+    test                = C:INTEGER S:INTEGER-OK
+                        / S:INTEGER C:INTEGER-OK
+                        / C:STRING S:STRING-OK
+                        / S:STRING C:STRING-OK
+                        / C:TABLE S:TABLE-OK
+                        / S:TABLE C:TABLE-OK
+                        / C:CONTENT S:CONTENT-OK
+                        / S:CONTENT C:CONTENT-OK
 </doc>
 
 <chassis name = "server" implement = "MUST"   />
@@ -39,7 +39,7 @@
   </doc>
   <chassis name = "client" implement = "MUST" />
   <chassis name = "server" implement = "MUST" />
-  <response name = "integer ok" />
+  <response name = "integer-ok" />
 
   <field name = "integer 1" type = "octet">
     octet test value
@@ -83,7 +83,7 @@
   </field>
 </method>
 
-<method name = "integer ok" synchronous = "1">
+<method name = "integer-ok" synchronous = "1">
   report integer test result
   <doc>
     This method reports the result of an Integer method.
@@ -109,7 +109,7 @@
   </doc>
   <chassis name = "client" implement = "MUST" />
   <chassis name = "server" implement = "MUST" />
-  <response name = "string ok" />
+  <response name = "string-ok" />
 
   <field name = "string 1" type = "shortstr">
     short string test value
@@ -139,7 +139,7 @@
   </field>
 </method>
 
-<method name = "string ok" synchronous = "1">
+<method name = "string-ok" synchronous = "1">
   report string test result
   <doc>
     This method reports the result of a String method.
@@ -165,7 +165,7 @@
   </doc>
   <chassis name = "client" implement = "MUST" />
   <chassis name = "server" implement = "MUST" />
-  <response name = "table ok" />
+  <response name = "table-ok" />
 
   <field name = "table" type = "table">
     field table of test values
@@ -201,7 +201,7 @@
   </field>
 </method>
 
-<method name = "table ok" synchronous = "1">
+<method name = "table-ok" synchronous = "1">
   report table test result
   <doc>
     This method reports the result of a Table method.
@@ -233,10 +233,10 @@
   </doc>
   <chassis name = "client" implement = "MUST" />
   <chassis name = "server" implement = "MUST" />
-  <response name = "content ok" />
+  <response name = "content-ok" />
 </method>
 
-<method name = "content ok" synchronous = "1" content = "1">
+<method name = "content-ok" synchronous = "1" content = "1">
   report content test result
   <doc>
     This method reports the result of a Content method.  It contains the

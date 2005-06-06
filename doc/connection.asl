@@ -15,16 +15,16 @@
 <doc name = "grammar">
     connection          = open-connection *use-connection close-connection
     open-connection     = C:protocol-header
-                          S:START C:START_OK
+                          S:START C:START-OK
                           *challenge
-                          S:TUNE C:TUNE_OK
-                          C:OPEN S:OPEN_OK
-    challenge           = S:SECURE C:SECURE_OK
+                          S:TUNE C:TUNE-OK
+                          C:OPEN S:OPEN-OK
+    challenge           = S:SECURE C:SECURE-OK
     use-connection      = S:UNKNOWN
                         / C:UNKNOWN
                         / channel
-    close-connection    = C:CLOSE S:CLOSE_OK
-                        / S:CLOSE C:CLOSE_OK
+    close-connection    = C:CLOSE S:CLOSE-OK
+                        / S:CLOSE C:CLOSE-OK
 </doc>
 
 <chassis name = "server" implement = "MUST" />
@@ -51,7 +51,7 @@
     this method, but MUST close the socket connection.
   </doc>
   <chassis name = "client" implement = "MUST" />
-  <response name = "start ok" />
+  <response name = "start-ok" />
 
   <field name = "version major" type = "octet">
     negotiated protocol major version
@@ -95,7 +95,7 @@
   </field>
 </method>
 
-<method name = "start ok" synchronous = "1">
+<method name = "start-ok" synchronous = "1">
   select security mechanism and locale
   <doc>
     This method selects a SASL security mechanism. AMQP/Fast uses SASL
@@ -136,7 +136,7 @@
     other.  This method challenges the client to provide more information.
   </doc>
   <chassis name = "client" implement = "MUST" />
-  <response name = "secure ok" />
+  <response name = "secure-ok" />
 
   <field name = "challenge" type = "longstr">
     security challenge data
@@ -149,7 +149,7 @@
   </field>
 </method>
 
-<method name = "secure ok" synchronous = "1">
+<method name = "secure-ok" synchronous = "1">
   seurity mechanism response
   <doc>
     This method attempts to authenticate, passing a block of SASL data
@@ -176,7 +176,7 @@
     to the client.  The client can accept and/or adjust these.
   </doc>
   <chassis name = "client" implement = "MUST" />
-  <response name = "tune ok" />
+  <response name = "tune-ok" />
 
   <field name = "frame max" type = "long">
     maximum frame size
@@ -277,7 +277,7 @@
   </field>
 </method>
 
-<method name = "tune ok" synchronous = "1">
+<method name = "tune-ok" synchronous = "1">
   negotiate connection tuning parameters
   <doc>
     This method sends the client's connection tuning parameters to the
@@ -385,7 +385,7 @@
   open a path to a virtual host
   <doc>
     This method opens a path to a virtual host on the server. The virtual
-    host is a collection of destinations, and acts to separate multiple
+    host is a collection of queues, and acts to separate multiple
     application domains on the server.
   </doc>
   <doc name = "rule">
@@ -400,7 +400,7 @@
     on the connection.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <response name = "open ok" />
+  <response name = "open-ok" />
 
   <field name = "virtual path" domain = "path">
     virtual server path
@@ -438,7 +438,7 @@
   </field>
 </method>
 
-<method name = "open ok" synchronous = "1">
+<method name = "open-ok" synchronous = "1">
   signal that the connection is ready
   <doc>
     This method signals to the client that the connection is ready for
@@ -517,16 +517,16 @@
   </doc>
   <doc name = "rule">
     After sending this method any received method except
-    Connection.Close_ok MUST be discarded.
+    Connection.Close-OK MUST be discarded.
   </doc>
   <doc name = "rule">
     The peer sending this method MAY use a counter or timeout to
     detect failure of the other peer to respond correctly with
-    Connection.Close_ok.
+    Connection.Close-OK.
   </doc>
   <chassis name = "client" implement = "MUST" />
   <chassis name = "server" implement = "MUST" />
-  <response name = "close ok" />
+  <response name = "close-ok" />
 
   <field name = "reply code" domain = "reply code">
     reply code
@@ -561,7 +561,7 @@
   </field>
 </method>
 
-<method name = "close ok" synchronous = "1">
+<method name = "close-ok" synchronous = "1">
   confirm a connection close
   <doc>
     This method confirms a Connection.Close method and tells the
@@ -570,7 +570,7 @@
   </doc>
   <doc name = "rule">
     A peer that detects a socket closure without having received a
-    Connection.Close_ok handshake method SHOULD log the error.
+    Connection.Close-Ok handshake method SHOULD log the error.
   </doc>
   <chassis name = "client" implement = "MUST" />
   <chassis name = "server" implement = "MUST" />

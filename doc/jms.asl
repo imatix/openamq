@@ -13,11 +13,11 @@
 </doc>
 
 <doc name = "grammar">
-    jms                 = C:CONSUME S:CONSUME_OK
-                        / C:CANCEL
+    jms                 = C:CONSUME S:CONSUME-OK
+                        / C:CANCEL S:CANCEL-OK
                         / C:PUBLISH content
                         / S:DELIVER content
-                        / C:BROWSE ( S:BROWSE_OK content / S:BROWSE_EMPTY )
+                        / C:BROWSE ( S:BROWSE-OK content / S:BROWSE_EMPTY )
                         / C:ACK
                         / C:REJECT
 </doc>
@@ -25,15 +25,16 @@
 <chassis name = "server" implement = "MUST" />
 <chassis name = "client" implement = "MAY"  />
 
+
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 <method name = "consume" synchronous = "1">
-  start a destination consumer
+  start a queue consumer
   <doc>
     This method asks the server to start a "consumer", which is a
-    temporary request for messages from a specific queue or topic
-    subscription.  Consumers last as long as the channel they were
-    created on, or until they are cancelled.
+    transient request for messages from a specific queue. Consumers
+    last as long as the channel they were created on, or until the
+    client cancels them.
   </doc>
   <doc name = "rule">
     The server MAY restrict the number of consumers per channel to an
@@ -45,48 +46,24 @@
     respect to the maximum number of consumers per channel.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <response name = "consume ok" />
+  <response name = "consume-ok" />
 
   <field name = "ticket" domain = "access ticket">
     <doc name = "rule">
-      The client MUST provide a valid access ticket giving "consume"
-      access rights to the access realm for the destination or
-      subscription.
+      The client MUST provide a valid access ticket giving "read" access
+      rights to the realm for the queue.
     </doc>
   </field>
 
-  <field name = "service type" domain = "service type" />
+  <field name = "namespace" domain = "queue namespace" />
     
-  <field name = "destination" domain = "destination">
+  <field name = "queue" domain = "queue name">
     <doc>
-      Specifies the name of the queue or topic to consume from.
+      Specifies the name of the queue to consume from.
     </doc>
-    <doc name = "rule">
-      For queue consumers, the destination field MUST be provided. For
-      topic consumers, the destination field MAY be provided but MUST
-      be empty if a subscription is specified.  Note that the explicit
-      use of a subscription already defines the topic destination to
-      use.
-    </doc>
+    <assert check = "notnull" />
   </field>
 
-  <field name = "subscription" domain = "subscription">
-    <doc>
-      Specifies the name of the subscription, for topic consumers.
-    </doc>
-    <doc name = "rule">
-      The subscription field MUST be empty for queue consumers and
-      MAY be empty for topic consumers, in which case the server
-      MUST create an unnamed, private, and temporary subscription
-      automatically.  This automatic subscription is cancelled when
-      the client cancels the consumer or closes the channel.
-    </doc>
-    <doc name = "rule">
-      The client MUST define the subscription before starting a
-      consumer on it.
-    </doc>
-  </field>
-    
   <field name = "prefetch size" type = "short">
     prefetch window in octets
     <doc>
@@ -126,44 +103,17 @@
       channel exception.
     </doc>
     <doc name = "rule">
-      The server MUST grant clients exclusive access to a destination
-      or subscription if they ask for it.
-    </doc>
-  </field>
-
-  <field name = "message selector" domain = "message selector">
-    <doc>
-      This field is only used when consuming from queues.
-    </doc>
-    <doc name = "rule">
-      The server MUST ignore the message-selector field when a client
-      consumes from a subscription.
-    </doc>
-    <assert check = "notnull" />
-  </field>
-
-  <field name = "message seltype" domain = "message seltype">
-    <doc name = "rule">
-      The server MUST support the simple syntax and SHOULD support the
-      JMS syntax.
-    </doc>
-  </field>
-
-  <field name = "auto cancel" type = "long">
-    cancel consumer after N messages
-    <doc>
-      This field causes the consumer to self-cancel after a specific
-      number of messages have been delivered and acknowledged.  If zero,
-      the consumer expires when the client sends the Jms.Cancel method,
-      or closes the channel.
+      The server MUST grant clients exclusive access to a queue
+      if they ask for it.
     </doc>
   </field>
 </method>
 
-<method name = "consume ok" synchronous = "1">
+
+<method name = "consume-ok" synchronous = "1">
   confirm a new consumer
   <doc>
-    This method provides the client with a consumer tag which it may
+    This method provides the client with a consumer tag which it MUST
     use in methods that work with the consumer.
   </doc>
   <chassis name = "client" implement = "MUST" />
@@ -171,46 +121,53 @@
   <field name = "consumer tag" domain = "consumer tag" />
 </method>
 
+
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "cancel">
-  end a destination consumer
+<method name = "cancel" synchronous = "1">
+  end a queue consumer
   <doc>
     This method cancels a consumer. This does not affect already
-    delivered messages, but it does mean the server will not send
-    any more messages for that consumer.
+    delivered messages, but it does mean the server will not send any
+    more messages for that consumer.
   </doc>
   <chassis name = "server" implement = "MUST" />
+  <response name = "cancel-ok" />
 
   <field name = "consumer tag" domain = "consumer tag" />
 </method>
 
+<method name = "cancel-ok" synchronous = "1">
+  confirm a cancelled consumer
+  <doc>
+    This method confirms that the cancellation was completed.
+  </doc>
+  <chassis name = "client" implement = "MUST" />
+</method>
+
+
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 <method name = "publish" content = "1">
-  publish a message to a destination
+  publish a message
   <doc>
-    This method publishes a message to a specific destination.  The
-    message will be saved to the destination and distributed to any
-    consumers when the transaction is committed.
+    This method publishes a message to a specific proxy. The message
+    will be forwarded to all registered queues and distributed to any
+    active consumers when the transaction is committed.
   </doc>
   <chassis name = "server" implement = "MUST" />
            
   <field name = "ticket" domain = "access ticket">
     <doc name = "rule">
-      The client MUST provide a valid access ticket giving "publish"
-      access rights to the access realm for the destination or
-      subscription.
+      The client MUST provide a valid access ticket giving "write"
+      access rights to the access realm for the proxy.
     </doc>
   </field>
 
-  <field name = "service type" domain = "service type" />
-    
-  <field name = "destination" domain = "destination">
+  <field name = "proxy" domain = "proxy name">
     <doc>
-      Specifies the name of the destination to publish to.  If the
-      destination does not exist the server will raise a channel
-      exception.
+      Specifies the name of the proxy to publish to.  If the proxy
+      does not exist the server will raise a channel exception.
     </doc>
     <assert check = "notnull" />
   </field>
@@ -218,13 +175,13 @@
   <field name = "immediate" type = "bit">
     assert immediate delivery
     <doc>
-      Asserts that the destination has one or more consumers (for
-      queues) or one or more subscriptions (for topics), and causes a
-      channel exception if this is not the case.  Note that a consumer
-      can query the state of a destination before publishing to it.
+      Asserts that the message is delivered to one or more consumers
+      immediately and causes a channel exception if this is not the
+      case.
     </doc>
   </field>
 </method>
+
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
@@ -249,53 +206,52 @@
   <field name = "delivery tag" domain = "delivery tag" />
   <field name = "redelivered" domain = "redelivered" />
 
-  <field name = "destination" domain = "destination">
+  <field name = "proxy" domain = "proxy name">
     <doc>
-      Specifies the name of the destination that the message came from.
-      Note that a single channel can start many consumers on different
-      destinations, and a single subscription can collect messages from
-      several topics.
+      Specifies the name of the proxy that the message was originally
+      published to.
+    </doc>
+    <assert check = "notnull" />
+  </field>
+    
+  <field name = "namespace" domain = "queue namespace" />
+    
+  <field name = "queue" domain = "queue name">
+    <doc>
+      Specifies the name of the queue that the message came from. Note
+      that a single channel can start many consumers on different
+      queues.
     </doc>
     <assert check = "notnull" />
   </field>
 </method>
 
+
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 <method name = "browse" synchronous = "1">
-  direct access to a destination
+  direct access to a queue
   <doc>
-    This method provides a direct access to the messages in a queue or
-    subscription using a synchronous dialogue that is designed for
-    specific types of application where functionality is more important
-    than performance.
+    This method provides a direct access to the messages in a queue
+    using a synchronous dialogue that is designed for specific types of
+    application where functionality is more important than performance.
   </doc>
-  <response name = "browse ok" />
+  <response name = "browse-ok" />
   <response name = "browse empty" />
   <chassis name = "server" implement = "MUST" />
 
   <field name = "ticket" domain = "access ticket">
     <doc name = "rule">
-      The client MUST provide a valid access ticket giving "consume"
-      access rights to the access realm for the destination or
-      subscription.
+      The client MUST provide a valid access ticket giving "read"
+      access rights to the realm for the queue.
     </doc>
   </field>
 
-  <field name = "service type" domain = "service type" />
+  <field name = "namespace" domain = "queue namespace" />
     
-  <field name = "destination" domain = "destination">
+  <field name = "queue" domain = "queue name">
     <doc>
-      Specifies the name of the destination to browse from. This
-      field is used when the service type is "queue".
-    </doc>
-  </field>
-
-  <field name = "subscription" domain = "subscription">
-    <doc>
-      Specifies the name of the subscription to browse from. This
-      field is used when the service type is "topic".  It is not
-      possible to browse an automatic subscription.
+      Specifies the name of the queue to browse from.
     </doc>
   </field>
 
@@ -303,7 +259,7 @@
   <field name = "auto ack" domain = "auto ack" />
 </method>
 
-<method name = "browse ok" synchronous = "1" content = "1">
+<method name = "browse-ok" synchronous = "1" content = "1">
   provide client with a browsed message
   <doc>
     This method delivers a message to the client following a browse
@@ -315,34 +271,26 @@
   <field name = "delivery tag" domain = "delivery tag" />
   <field name = "redelivered"  domain = "redelivered"  />
 
-  <field name = "destination" domain = "destination">
-    <doc>
-      In the case of browsing a subscription, this holds the original
-      topic to which the message was sent.
-    </doc>
-    <assert check = "notnull" />
-  </field>
-
   <field name = "message count" type = "long" >
     number of messages pending
     <doc>
-      This field reports the number of messages pending on the queue
-      or subscription, excluding the message being delivered.  Note
-      that this figure is indicative, not reliable, and can change
-      arbitrarily as messages are added to the queue/subscription and
-      removed by other clients.
-    </doc>      
+      This field reports the number of messages pending on the queue,
+      excluding the message being delivered.  Note that this figure is
+      indicative, not reliable, and can change arbitrarily as messages
+      are added to the queue and removed by other clients.
+    </doc>
   </field>
 </method>
 
 <method name = "browse empty" synchronous = "1">
   indicate no messages available
   <doc>
-    This method tells the client that the queue or subscription has no
-    messages available for the client.
+    This method tells the client that the queue has no messages
+    available for the client.
   </doc>
-  <chassis name = "client" implement = "MUST" />
+  <chassis name = "client" implement = "MAY" />
 </method>
+
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
@@ -374,14 +322,15 @@
   </field>
 </method>
 
+
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 <method name = "reject">
   reject an incoming message
   <doc>
     This method allows a client to reject a message.  It can be used to
-    cancel large incoming messages, or return unprocessable messages to
-    their original queue or subscription.
+    interrupt and cancel large incoming messages, or return untreatable
+    messages to their original queue.
   </doc>
   <doc name = "rule">
     The server SHOULD be capable of accepting and process the Reject
@@ -394,8 +343,9 @@
     is unable to process the message at this time.
   </doc>
   <doc name = "rule">
-    A client MUST NOT use this method as a means of selecting message
-    to process.  A rejected message MAY be discarded or dead-lettered.
+    A client MUST NOT use this method as a means of selecting messages
+    to process.  A rejected message MAY be discarded or dead-lettered,
+    not necessarily passed to another client.
   </doc>      
   <chassis name = "server" implement = "MUST" />
     
@@ -404,8 +354,8 @@
   <field name = "requeue" type = "bit">
     requeue the message
     <doc>
-      If this field is zero, the message will be discarded.  If this
-      bit is 1, the message will be requeued.
+      If this field is zero, the message will be discarded.  If this bit
+      is 1, the server will attempt to requeue the message.
     </doc>
     <doc name = "rule">
       The server MUST NOT deliver the message to the same client within

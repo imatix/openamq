@@ -24,6 +24,11 @@ This document is ready for review.
 Recent Change History
 ---------------------
 
+2005/06/06 - 0.9a2:
+
+- Full definition of Proxy and Queue classes and updating of all other
+  classes and methods to remove Destination and Subscription concepts.
+
 2005/06/05 - 0.9a1:
 
 - Formulation of "proxy" concept for matching and routing; removed topics
@@ -49,11 +54,9 @@ drawn by Gustavo Broos.
 Abstract
 ========
 
-We propose a wire-level protocol for the AMQ open middleware architecture.
-The protocol - AMQP/Fast - is one of a family of AMQ protocols.  AMQP/Fast
-is specifically aimed at managing fast multitasking connections across a
-reliable network.  It supports standard middleware semantics and uses a
-binary framing model aimed at efficiency and security.
+We propose a wire-level protocol and a set of formal semantics for building
+large scale and high-performance middleware architectures.  AMQP/0.9 is the
+third major design iteration of the AMQ protocol.
 
 Introduction
 ************
@@ -183,7 +186,8 @@ simple clients is possible if we hold to these design rules:
    for simple implementations.
 
 3. The protocol must be formally defined so that significant parts of
-   a client or server protocol interface can be mechanically generated.
+   a client or server protocol interface can be mechanically generated
+   using code generation techniques.
 
 Guidelines for Implementors
 ===========================
@@ -213,10 +217,10 @@ Guidelines for Implementors
 - Protocol methods are defined using a formal grammar (ASL) as defined
   in AMQ RFC xxx.
 
-Definitions
-===========
+Glossary of Terms
+=================
 
-These terms have specific significance within the context of AMQP:
+These terms have significance within the context of AMQP:
 
 Connection:
     A network connection, e.g. a TCP/IP socket connection.
@@ -229,8 +233,8 @@ Client:
     not symmetrical.  Clients produce and consume messages while servers
     queues and route messages.
 Server:
-    The party that accepts client connections and implements the
-    standard AMQ queueing and routing functions.
+    The party that accepts client connections and implements the AMQ
+    queueing and routing functions.
 Peer:
     Either party in an AMQP/Fast connection.  An AMQP/Fast connection
     involves exactly two peers (one is the client, one is the server).
@@ -266,18 +270,23 @@ Trace_Frame:
 Message:
     A specific type of content, the application-to-application message.
 Proxy:
-    The agent within the server which receives messages from producer
+    The entity within the server which receives messages from producer
     applications and decides how to forward these to queues within the
     server.
 Queue:
-    A named agent that holds messages and forwards them to consumer
+    A named entity that holds messages and forwards them to consumer
     applications.  Queues can take many forms: transient, persistent,
     private, shared, etc.
-Dynamic_Queue:
-    Queues that are created and managed by clients via protocol methods.
-    Dynamic queues provide true disconnected asynchronous processing in
-    which a client can create a response queue, then continue to receive
-    queued messages even when going offline.
+Durable:
+    A server resource that survives a server restart.
+Transient:
+    A server resource that is wiped or reset after a server restart.
+Persistent:
+    A message that the server holds on reliable disk storage and
+    should not lose after a server restart.
+Non-persistent:
+    A message that the server holds in memory and may lose after a
+    server restart.
 Consumer:
     A client application that requests messages from a queue.
 Producer:
@@ -368,6 +377,7 @@ This formal grammar defines the AMQP/Fast data types:
                         / long-long-integer
                         / short-string
                         / long-string
+                        / time-stamp
                         / field-table
     short-integer       = 2*OCTET
     long-integer        = 4*OCTET
@@ -375,6 +385,7 @@ This formal grammar defines the AMQP/Fast data types:
     short-string        = OCTET *string-char
     string-char         = %d1 .. %d255
     long-string         = short-integer *OCTET
+    time-stamp          = long-long-integer
     field-table         = long-integer *field-value-pair
     field-value-pair    = field-name field-value
     field-name          = short-string
@@ -387,7 +398,6 @@ This formal grammar defines the AMQP/Fast data types:
     signed-integer      = 4*OCTET
     decimal-value       = decimals long-integer
     decimals            = OCTET
-    time-stamp          = long-long-integer
 
 Guidelines for implementors:
 
@@ -429,6 +439,12 @@ string types:
 - Long strings, stored as a short integer length followed by zero or
   more octets of data.  Long strings can contain any data.
 
+Timestamps
+----------
+
+Time stamps are held in the 64-bit POSIX time_t format with an accuracy
+of one second.
+
 Field Tables
 ------------
 
@@ -452,9 +468,6 @@ Guidelines for implementors:
 - Decimal values are not intended to support floating point values, but
   rather business values such as currency rates and amounts. The
   'decimals' octet is not signed.
-
-- Time values are held in the 64-bit POSIX time_t format with an accuracy
-  of one second.
 
 - A peer MUST handle duplicate fields by using only the first instance.
 
@@ -807,9 +820,8 @@ Guidelines for implementors:
 - The channel number in content frames MUST NOT be zero.
 
 - Content frames on a specific channel form an strict list. That is,
-  they may be mixed with frames of different types or on different
-  channels, but two contents may not be mixed or overlapped on a single
-  channel.
+  they may be mixed with frames for different channels, but two contents
+  may not be mixed or overlapped on a single channel.
 
 Out-of-Band Transport Frames
 ----------------------------
@@ -1023,8 +1035,9 @@ per-channel basis.
 
 Guidelines for implementors:
 
-- Content frames MUST be sent on a single channel, and MAY be intermixed
-  with non-content frames (method, trace, and heartbeat frames).
+- Content frames MUST be sent on a single channel, and MUST NOT be
+  intermixed with non-content frames on the same channel (method, trace,
+  and heartbeat frames).
 
 - Content frames MUST NOT be intermixed with frames of a different
   content.
@@ -1361,22 +1374,22 @@ refactoring of the AMQ protocol) were:
    model subscriptions are simply queues that have a special matching
    technique and a private name space.
 
-2. Matching can be abstracted.  That is, everything from matching on
-   a specific destination name to matching on an SQL-like selector can
-   be abstracted into a single concept.
+2. Matching can be abstracted.  That is, everything from matching on a
+   specific destination name to matching on an SQL-like selector can be
+   abstracted into a single concept.
 
-3. Messages can have multiple instances.  That is, a message can be
-   in many queues at the same time.  We do not copy message content,
-   rather we use message reference counting.  Queues store references
-   to messages rather than messages.  This applies both to persistent
-   and non-persistent messages.
+3. Messages can have multiple instances.  That is, a message can be in
+   many queues at the same time.  We do not copy message content, rather
+   we use message reference counting.  Queues store references to
+   messages rather than messages.  This applies both to persistent and
+   non-persistent messages.
 
 4. Queues and matching can be loosely-coupled.  That is, while one
    client "writes to queue X" and a second client "reads from queue
-   X", this can be done using a less tightly-coupled relationship
-   than the obvious "producer writes to queue".  Loose coupling is
-   often desirable because it allows abstraction in which one side
-   of a relationship can be reorganised without affecting the other.
+   X", this can be done using a less tightly-coupled relationship than
+   the obvious "producer writes to queue".  Loose coupling is often
+   desirable because it allows abstraction in which one side of a
+   relationship can be reorganised without affecting the other.
 
 We use these insights to define a set of building blocks that achieve
 much wider functionality than classic messaging middleware (like JMS)
@@ -1416,8 +1429,8 @@ the quality of service aspects of an AMQP server. Queues can be private
 or shared, created by the server administrator, or by applications.
 Queues can holding their messages on disk or in memory, or a combination
 (working in memory and overflowing to disk when necessary). Queues can
-be persistent (remaining active when the server stops and restarts) or
-dynamic (automatically deleted when no longer used).
+be durable (remaining active when the server stops and restarts) or
+transient (automatically deleted when no longer used).
 
 Queues have public names, and when a client wants to get messages from a
 server it says, "give me messages from queue such-and-such".
@@ -1445,7 +1458,7 @@ sending messages to a set of consumer applications):
        |        |      +------------+      |
        |        |         /      \         |
        |        |  +-------+    +-------+  |
-       |        |  | Queue |    | Queue |  |
+     __|__      |  | Queue |    | Queue |  |
      \ | /      |  +-------+    +-------+  |
       \|/       |     /              \     |
        V        +----/----------------\----+
@@ -1690,26 +1703,50 @@ three layers:
                      |
                      V
         +--------------------------+
-     3  | On-demand runtime wiring |   E.g. create proxies & queues
+     3  |     On-demand wiring     |   E.g. create proxies & queues
         +--------------------------+
                      |
                      V
-                Live Wiring
+               Actual Wiring
 
 Thus the protocol provides functionality to create and destroy proxies
 and queues, and register queues with proxies.
 
-While a server might be designed to "save" and "restore" its wiring
-state, we prefer the idea that client applications can create the wiring
-they need on an ad-hoc basis and that the server tears this wiring down
-as and when it is no longer needed.  Our "ideal server" is a closed box
-that handles all scenarios with zero configuration except for security.
-
 Guidelines for implementors:
 
-- An AMQP server SHOULD support queue templating in which queues created
-  at runtime can be configured by reference to a pre-configured template.
+- An AMQP server SHOULD support queue templating in which queues
+  created at runtime can be configured by reference to a
+  pre-configured template.
 
+Durable Wiring
+..............
+
+An AMQ server may hold purely transient data, but may equally hold
+persistent data. In the first case we want a "clean restart" if a server
+is stopped and restarted. I.e. all dynamically-created proxy and queue
+definitions should be wiped. In the second case we want a "reliable
+restart" so that queues keep their contents safely.
+
+We use the concept of a "durable resource". This is a resource created
+by the client application but held by the server as if it was a
+configured resource. We need durable proxies, durable queues, and
+durable registrations. The opposite of "durable" is "transient".
+
+The actual or required durability of a resource is defined as follows:
+
+1. If a resource is part of the server's configuration, it is always
+   durable.  For example, a proxy defined in the server configuration
+   is always durable.
+
+2. When a resource is created the client application may ask for it to
+   be durable.  For example, a queue can be created as "durable".
+
+3. If the client application attempts to create a dependency from a
+   durable resource onto a transient resource, this causes a channel
+   exception.  For example, if a client attempts to register a durable
+   queue with a transient proxy the server will close the channel with
+   an appropriate error.
+   
 Worked Examples
 ---------------
 
@@ -1785,26 +1822,31 @@ A queue template provides different types of information:
 
 1. Organisation and tuning: file system criteria, maximum queue size,
    dead-letter queue, etc.
-2. Default registration: a default proxy and registration.
-3. Constraints: e.g. max consumers.
+2. Constraints: e.g. max consumers.
 
 Queue templating could be used to simplify the protocol. For example it
 is useful to be able to specify "this queue must be deleted when there
-are no more consumers". This could be a protocol flag (we call this the
-"dynamic" flag), or it could be a template property, understood by the
-server but not part of the explicit protocol.
+are no more consumers". This could be a protocol flag or it could be a
+template property, understood by the server but not part of the explicit
+protocol.
 
 We have to decide which queue properties are made visible in the
-protocol, and which can be configured in templates.  Our choice is
-based on the requirement for interoperability:
+protocol, and which can be configured in templates. Our choice is based
+on the requirement for interoperability:
 
 - A property that has an impact on interoperability must be visible
-  in the protocol.  For instance, the dynamic flag is essential to
-  interoperability.
+  in the protocol.
   
 - A property that must be tunable by the administrator must be part
-  of the template.  For instance, the maximum number of messages per
-  queue must be tunable.
+  of the template.
+
+Thus the "delete this queue when there are no more consumers" must be
+specified in the protocol, since it is necessary for interoperability.
+The fact that a queue automatically disappears when it is no longer
+needed is a vital part of some architectures. In contrast, a queue limit
+such as the maximum number of messages allowed in memory before the
+queue overflows onto disk is an adminisration concern, so must be part
+of templated configuration.
 
 Registration Normalisation
 ..........................
@@ -2252,7 +2294,7 @@ These are the properties defined for File content:
 - Destination (short string)
 - MessageID (short string)
 - FileName (short string)
-- Timestamp (short string)
+- RevisedTime (time stamp)
 - Headers (field table)
 
 The Stream Operational Model

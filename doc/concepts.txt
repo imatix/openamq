@@ -5,7 +5,7 @@ gdl
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/06/03
     copyright = Copyright (c) 2004-2005 JPMorgan and iMatix Corporation
-    version   = 0.9a1
+    version   = 0.9a2
 end gdl
 
 Introduction
@@ -1244,14 +1244,17 @@ Protocol. The second half of this RFC is a full description of each
 method. This is still under preparation. When the RFC 006 is complete,
 this section will be edited into a shorter concepts guide.
 
-Discussion
-==========
+Abstract
+========
 
-Overview
---------
+We propose a wire-level protocol for the AMQ open middleware architecture.
+The protocol - AMQP/Fast - is one of a family of AMQ protocols.  AMQP/Fast
+is specifically aimed at managing fast multitasking connections across a
+reliable network.  It supports standard middleware semantics and uses a
+binary framing model aimed at efficiency and security.
 
 Purpose and Goals of AMQP/Fast
-..............................
+==============================
 
 AMQP/Fast is designed to be the high-performance member of the AMQP
 family of standardised general-purpose message-oriented middleware
@@ -1289,12 +1292,12 @@ We want to be able to:
 
 - Allow the marshalling layers of protocol implementations to be easily
   generated using code generation technology.
-  
+
 - Allow the creation of an abstract network where services, and their
   data, can move around the network opaquely to the clients.
 
 Intended Operating Lifespan
-...........................
+===========================
 
 AMQP/Fast is designed to give a useful lifespan of 50 years or more. Our
 goal is that an AMQP/Fast peer will be able to operate continuously
@@ -1326,7 +1329,7 @@ eliminate potential future bottlenecks, specifically for:
    sequence number is 32 bits. This allows 4G methods to be exchanged
    between synchpoints.  We do not see this as a limitation in any
    scenario, present or future.
-   
+
 4. Protocol classes and methods: the current protocol defines about
    ten classes and about ten or fewer methods per class.  We
    expect that new versions of the protocol will add classes and
@@ -1340,7 +1343,7 @@ eliminate potential future bottlenecks, specifically for:
 6. Timestamps: we use 64-bit time-stamp values.
 
 An Extensible Functionality
-...........................
+===========================
 
 AMQP/Fast is intended to be extensible in several directions, including
 new directions totally outside the scope of the protocol as it is
@@ -1349,7 +1352,7 @@ deliberately designed to be extensible (in order of increasing
 generality and power):
 
 1. Adding new properties to content domains.
-2. Adding new arguments to methods. 
+2. Adding new arguments to methods.
 3. Adding new methods to classes.
 4. Adding new content domains.
 5. Adding new classes.
@@ -1360,7 +1363,7 @@ All of these should be feasible while maintaining full backwards
 compatability with existing implementations.
 
 Ease of Implementation
-......................
+======================
 
 Our goal is to achieve some of the cost-benefit ratio of protocols such
 as SMTP and HTTP, where a simple client can be trivial to build but a
@@ -1375,10 +1378,11 @@ simple clients is possible if we hold to these design rules:
    for simple implementations.
 
 3. The protocol must be formally defined so that significant parts of
-   a client or server protocol interface can be mechanically generated.
+   a client or server protocol interface can be mechanically generated
+   using code generation techniques.
 
 Guidelines for Implementors
-...........................
+===========================
 
 - We use the terms MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY as
   defined by IETF RFC 2119. Where possible we note the security
@@ -1402,42 +1406,13 @@ Guidelines for Implementors
   lowercase names.  AMQP/Fast implementations SHOULD use these names
   in source code and documentation.
 
-- Protocol methods are defined using a formal language as defined
+- Protocol methods are defined using a formal grammar (ASL) as defined
   in AMQ RFC xxx.
 
-AMQP Standard Models
-....................
+Glossary of Terms
+=================
 
-All AMQP protocols including AMQP/Fast implement a common and
-interoperable queueing and routing model based on these concepts:
-
-1. Application-level messages ("content domains").
-2. Persistent and non-persistent message storage ("destination").
-3. A distributor mechanism ("queue").
-4. A multiplier mechanism ("topic").
-5. A way for clients to send messages to destinations ("publish").
-6. A way for clients to request messages from destinations ("subscribe").
-7. A way for clients to request individual messages from destinations
-   ("browse").
-8. A way for clients to inform the server when a message has been
-   successfully processed ("acknowledgement").
-
-The AMQP "queue" concept acts to distribute messages ("m1", "m2", "m3")
-between a set of consumers ("c1", "c2", "c3"):
-
-[queue.png]
-
-The AMQP "topic" concept acts to multiply messages to a set of
-consumers:
-
-[topic.png]
-
-The AMQP "subscription" concept acts like a queue:
-
-[subscription.png]
-
-Definitions
-...........
+These terms have significance within the context of AMQP:
 
 Connection:
     A network connection, e.g. a TCP/IP socket connection.
@@ -1450,8 +1425,8 @@ Client:
     not symmetrical.  Clients produce and consume messages while servers
     queues and route messages.
 Server:
-    The party that accepts client connections and implements the
-    standard AMQ queueing and routing functions.
+    The party that accepts client connections and implements the AMQ
+    queueing and routing functions.
 Peer:
     Either party in an AMQP/Fast connection.  An AMQP/Fast connection
     involves exactly two peers (one is the client, one is the server).
@@ -1486,41 +1461,40 @@ Trace_Frame:
     peer.
 Message:
     A specific type of content, the application-to-application message.
-Destination:
-    A queue, topic, or subscription, able to hold and route messages of
-    various types. A server manages access to a set of destinations.
-Static_Destination:
-    Destinations that are configured by the server administrator.
-Dynamic_Destination:
-    Destinations that are created and managed by clients via protocol
-    methods. Unlike "temporary" destinations, dynamic destinations
-    provide true disconnected asynchronous processing in which a
-    client can create a response queue, then continue to receive
-    queued messages even when going offline.
-Subscription:
-    A queue-based destination that receives messages from one or more
-    topic destinations based on a topic name pattern and content-based
-    matching.  Subscriptions are analogous with queues in most ways
-    except that they are never published to or selected on directly.
-    Subscriptions may be private or shared, persistent or temporary.
-    Subscriptions may be defined explicitly using the Subscription
-    class, or defined automatically, when starting a consumer on a
-    topic destination.
+Proxy:
+    The entity within the server which receives messages from producer
+    applications and decides how to forward these to queues within the
+    server.
+Queue:
+    A named entity that holds messages and forwards them to consumer
+    applications.  Queues can take many forms: transient, persistent,
+    private, shared, etc.
+Durable:
+    A server resource that survives a server restart.
+Transient:
+    A server resource that is wiped or reset after a server restart.
+Persistent:
+    A message that the server holds on reliable disk storage and
+    should not lose after a server restart.
+Non-persistent:
+    A message that the server holds in memory and may lose after a
+    server restart.
 Consumer:
-    A client that requests messages from a destination.
+    A client application that requests messages from a queue.
 Producer:
-    A client that publishes messages to a destination.
+    A client application that publishes messages to a proxy.
 Virtual_host:
-    A collection of destinations and associated subscriptions,
-    consumers, etc. Virtual hosts are independent server domains that
-    share a common authentication and encryption environment.
+    A collection of proxies, queues, consumers, and associated objects.
+    Virtual hosts are independent server domains that share a common
+    authentication and encryption environment.  I.e. the client
+    application choses the virtual host after logging in to the server.
 Realm:
-    A group of destinations covered by a single security policy and
-    access control.  Applications ask for access to realms, rather
-    than to individual destinations.
+    A set of server resources (proxies and queues) covered by a single
+    security policy and access control.  Applications ask for access
+    rights for specific realms, rather than for specific resources.
 Streaming:
     The process by which the server will send messages to the client at
-    a pre-arranged rate.  
+    a pre-arranged rate.
 Staging:
     The process by which a peer will transfer a large message to a
     temporary holding area before formally handing it over to the
@@ -1544,8 +1518,17 @@ Exception:
     A failed assertion, handled by closing either the channel or the
     connection.
 
+These terms have no special significance within the context of AMQP:
+
+Topic:
+    Usually a means of distributing messages; AMQP implements topics
+    using one or more types of proxy.
+Subscription:
+    Usually a request to receive data from topics; AMQP implements
+    subscriptions as queues.
+
 Limitations
-...........
+===========
 
 These limitations are formally part of the AMQP/Fast specifications:
 
@@ -1561,10 +1544,10 @@ These limitations are formally part of the AMQP/Fast specifications:
 - Number of methods sent between synchpoints: 4G.
 
 Data Type Representation
-------------------------
+========================
 
 Goals and Principles
-....................
+--------------------
 
 We use a small set of basic data types that are guaranteed to work on
 all platforms and be easily implemented in all languages. More
@@ -1572,7 +1555,7 @@ sophisticated data types can be packaged using the basic AMQP/Fast data
 types.
 
 Formal Grammar for AMQP/Fast Fields
-...................................
+-----------------------------------
 
 This formal grammar defines the AMQP/Fast data types:
 
@@ -1583,6 +1566,7 @@ This formal grammar defines the AMQP/Fast data types:
                         / long-long-integer
                         / short-string
                         / long-string
+                        / time-stamp
                         / field-table
     short-integer       = 2*OCTET
     long-integer        = 4*OCTET
@@ -1590,6 +1574,7 @@ This formal grammar defines the AMQP/Fast data types:
     short-string        = OCTET *string-char
     string-char         = %d1 .. %d255
     long-string         = short-integer *OCTET
+    time-stamp          = long-long-integer
     field-table         = long-integer *field-value-pair
     field-value-pair    = field-name field-value
     field-name          = short-string
@@ -1602,10 +1587,13 @@ This formal grammar defines the AMQP/Fast data types:
     signed-integer      = 4*OCTET
     decimal-value       = decimals long-integer
     decimals            = OCTET
-    time-stamp          = long-long-integer
+
+Guidelines for implementors:
+
+- A peer MUST support all the above data types.
 
 Integers
-........
+--------
 
 AMQP/Fast defines these integer types:
 
@@ -1617,11 +1605,15 @@ AMQP/Fast defines these integer types:
 
 Integers and string lengths are always unsigned and held in network byte
 order. We make no attempt to optimise the case when two low-high systems
-(e.g. two Intel CPUs) talk to each other. Implementors MUST NOT assume
-that integers encoded in a frame are aligned on memory word boundaries.
+(e.g. two Intel CPUs) talk to each other.
+
+Guidelines for implementors:
+
+- Implementors MUST NOT assume that integers encoded in a frame are
+  aligned on memory word boundaries.
 
 Strings
-.......
+-------
 
 All strings are variable-length and represented by an integer length
 followed by zero or more octets of data.  AMQP/Fast defines these
@@ -1636,8 +1628,14 @@ string types:
 - Long strings, stored as a short integer length followed by zero or
   more octets of data.  Long strings can contain any data.
 
+Timestamps
+----------
+
+Time stamps are held in the 64-bit POSIX time_t format with an accuracy
+of one second.
+
 Field Tables
-............
+------------
 
 Field tables are long strings that contain name-value pairs. Each
 name-value pair is a structure that provides a field name, a field type,
@@ -1645,11 +1643,39 @@ and a field value. A field can hold a tiny text string, a short binary
 string, a long signed integer, a decimal, a date and/or time, or another
 field table.
 
+Guidelines for implementors:
+
+- Field names MUST start with a letter, '$' or '#' and may continue with
+  letters, '$' or '#', digits, or underlines, to a maximum length of 128
+  characters.
+
+- A peer SHOULD validate field names.
+
+- Specifically and only in field tables, integer values are signed (31
+  bits plus sign bit).
+
+- Decimal values are not intended to support floating point values, but
+  rather business values such as currency rates and amounts. The
+  'decimals' octet is not signed.
+
+- A peer MUST handle duplicate fields by using only the first instance.
+
+As a convention when documenting values allowed in field tables we will
+use this syntax:
+
+    Name=(Type)Content
+
+For example:
+
+    EXPIRATION-TIME=(Time)
+    IDENTIFIER=(String)01-ABCD-9876
+    MAXIMUM-SIZE=(Integer)
+
 Negotiating a Connection
-------------------------
+========================
 
 Goals and Principles
-....................
+--------------------
 
 Negotiation means that one party in a discussion declares an intention
 or capability and the other party either acknowledges it, modifies it,
@@ -1661,7 +1687,7 @@ of the protocol:
 3. Operational constraints.
 
 Protocol and Version
-....................
+--------------------
 
 An AMQP client and server agree on a protocol and version using this
 negotiation model:
@@ -1695,13 +1721,38 @@ For AMQP/Fast these are the correct values:
 
 [version.png]
 
+Guidelines for implementors:
+
+- An AMQP server MAY accept multiple AMQP protocols including AMQP/Fast
+  on the same socket.
+
+- An AMQP server MAY accept non-AMQP protocols such as HTTP.
+
+- An AMQP server MUST accept the AMQP/Fast protocol as defined by
+  class = 1, instance = 1.
+
+- If the server does not recognise the first 4 octets of data on the
+  socket, or does not support the specific protocol version that the
+  client requests, it MUST close the socket without sending any
+  response back to the client.
+
+- An AMQP client MAY detect the server protocol version by attempting
+  to connect with its highest supported version and decreasing this if
+  the server rejects the connection.
+
+- An AMQP server MUST NOT ban or delay a client that requests an
+  unsupported protocol version.
+
+- An AMQP server MAY ban or delay a client that requests unknown
+  protocol IDs.
+
 The protocol negotiation model is compatible with existing protocols
 such as HTTP that initiate a connection with an constant text string,
 and with firewalls that sniff the start of a protocol in order to decide
 what rules to apply to it.
 
 Encryption and Authentication
-.............................
+-----------------------------
 
 AMQP/Fast uses the SASL architecture for security. SASL encapsulates
 TLS, GSSAPI, Kerberos, and other encryption and authentication
@@ -1728,7 +1779,7 @@ SASL gives us the freedom to replace the security libraries with better
 the protocol, the client, or the server implementations.
 
 Client and Server Limits
-........................
+------------------------
 
 The protocol allows the client and server to agree on limits to ensure
 operational stability. Limits allow both parties to pre-allocate key
@@ -1746,7 +1797,7 @@ Limits are negotiated to the lowest agreed value as follows:
 2. The client can respond to lower the limits for its connection.
 
 Identification and Capabilities
-...............................
+-------------------------------
 
 During the negotiation of limits the peers MUST exchange this mandatory
 information about themselves:
@@ -1764,10 +1815,10 @@ highly-security conscious peer MAY choose to provide some or none of
 them. A peer MUST NOT use this information to adapt its behaviour.
 
 Multiplexing and Pipelining
----------------------------
+===========================
 
 Goals and Principles
-....................
+--------------------
 
 Connection multiplexing allows multiple threads of communication to
 share a single socket connection. This is valuable when threads are
@@ -1779,7 +1830,7 @@ waiting for the recipient to acknowledge each one. This is an important
 facility because it greatly improves performance.
 
 Multiplexing Design
-...................
+-------------------
 
 AMQP/Fast uses the concept of "channel" to carry bi-directional streams
 of communication between peers.  AMQP/Fast provides methods to open,
@@ -1787,7 +1838,7 @@ use, and close channels.  Large messages are broken into smaller frames
 so that channels get fair (round-robin) use of the socket connection.
 
 Pipelining Design
-.................
+-----------------
 
 Our design is based on these principles:
 
@@ -1816,10 +1867,10 @@ and handle errors unambiguously (all methods up to but not including the
 failed method will have succeeded).
 
 The Framing Design
-------------------
+==================
 
 Goals and Principles
-....................
+--------------------
 
 Framing is the part of the protocol where we define how data is sent "to
 the wire".  The framing design used in AMQP/Fast is designed to be compact,
@@ -1835,7 +1886,7 @@ The key parts of this design are:
 - How we support future protocols (e.g. IPv6).
 
 The Transport Layer
-...................
+-------------------
 
 We assume a reliable stream-oriented network transport layer (TCP/IP or
 equivalent). If an unreliable transport layer is used, we assume that
@@ -1849,7 +1900,7 @@ traffic management to allow reliable transfer over multicast and
 point-to-point UDP.
 
 Delimiting Frames
-.................
+-----------------
 
 TCP/IP is a stream protocol, i.e. there is no in-built mechanism for
 delimiting frames. Existing protocols solve this in several different
@@ -1890,7 +1941,7 @@ Guidelines for implementors:
   unless the body size is zero, or out-of-band transport is being used.
 
 The Frame Header Wire Format
-............................
+----------------------------
 
 All frames start with a 4-octet header composed of a one-octet type
 indicator and a 3-octet size indicator:
@@ -1921,7 +1972,7 @@ Guidelines for implementors:
   close the connection without sending any further data on it.
 
 Method Frames
-.............
+-------------
 
 The method frame design is intended to be fast to read and write, and
 compact when only partly filled.
@@ -1935,7 +1986,7 @@ server and clients this code is generated directly from the protocol
 specifications.
 
 Content Frames
-..............
+--------------
 
 Certain methods signal to the recipient that there is content arriving
 on the connection.  Simple content consists of a header frame followed
@@ -1953,12 +2004,16 @@ support "zero copy" techniques in which content is never marshalled or
 encoded, and can be sent via out-of-band transport such as shared memory
 or remote DMA.
 
-Content frames on a specific channel form an strict list. That is, they
-may be mixed with frames of different types or on different channels,
-but two contents may not be mixed or overlapped on a single channel.
+Guidelines for implementors:
+
+- The channel number in content frames MUST NOT be zero.
+
+- Content frames on a specific channel form an strict list. That is,
+  they may be mixed with frames for different channels, but two contents
+  may not be mixed or overlapped on a single channel.
 
 Out-of-Band Transport Frames
-............................
+----------------------------
 
 Method, content header, and content body frames can be sent using
 out-of-band transport. The frame header is sent on the normal connection
@@ -1967,32 +2022,46 @@ out-of-band transport used, and its configuration, is defined when a
 channel is opened.
 
 Trace Frames
-............
+------------
 
 Trace frames are intended for a "trace handler" embedded in the
 recipient. The significance and implementation of the trace handler
 is implementation-defined.
 
-Both server and client MAY send trace frames at any point in the
-connection after protocol negotiation and before a Connection.Close
-method.
+Guidelines for implementors:
 
-The semantics and structure and of trace frames including the channel
-number are not formally defined by AMQP/Fast and implementations MUST
-NOT assume any interoperability with respect to trace frames unless and
-until formal standards are defined for these.
+- Both server and client MAY send trace frames at any point in the
+  connection after protocol negotiation and before a Connection.Close
+  method.
+
+- If the recipient of a trace frame does not have a suitable trace
+  handler, it MUST discard the trace frame without signalling any error
+  or fault.
+
+- The semantics and structure and of trace frames including the channel
+  number are not formally defined by AMQP/Fast and implementations MUST
+  NOT assume any interoperability with respect to trace frames unless
+  and until formal standards are defined for these.
 
 Heartbeat Frames
-................
+----------------
 
 Although TCP/IP guarantees that data is not dropped or corrupted it can
 be slow to detect that a peer process has gone "offline". The heartbeat
 frame allows peers to detect network failure rapidly. This frame has no
-body.The peers negotiate heartbeat parameters at the start of a
-connection.
+body.
+
+The peers negotiate heartbeat parameters at the start of a connection.
+
+Guidelines for implementors:
+
+- The channel number in a heartbeat frame MUST be zero.
+
+- An AMQP peer MUST handle a non-zero channel number as a connection
+  exception.
 
 Meta Frames
-...........
+-----------
 
 Meta frames are used to send frames of 64KB or larger (the size of a
 normal frame body is limited to 64KB-1 octets), and to use channel
@@ -2001,19 +2070,31 @@ out-of-band transports and IPv6 (which has a 4GB frame limit, although
 ethernet still cannot handle frames larger than 12000 bytes).
 
 Extended Frame Header Wire Format
-.................................
+---------------------------------
 
 A meta frame is followed by an "extended frame header" with a short
 integer channel number and a long long size:
 
 [meta.png]
 
-The frame body is not affected in any way by the presence or absence of
-a meta frame, except that the frame body MAY be larger than 64KB after a
-meta frame.
+Guidelines for implementors:
+
+- The meta frame channel number and size MUST be zero.
+
+- The sender MUST NOT send intervening frames between the meta frame and
+  the extended frame.
+
+- After a meta frame all frame types are valid except a meta frame.
+
+- The "flags" octet is reserved for future use and MUST be be set to
+  zero.
+
+- The frame body is not affected in any way by the presence or absence
+  of a meta frame, except that the frame body MAY be larger than 64KB
+  after a meta frame.
 
 The Abstract Content Model
---------------------------
+==========================
 
 AMQP/Fast uses an abstract content model that has these goals and
 features:
@@ -2036,7 +2117,7 @@ features:
   channel multiplexing model.
 
 Formal Grammar for Content Frames
-.................................
+---------------------------------
 
 This is the formal grammar for the AMQP/Fast content model:
 
@@ -2056,7 +2137,7 @@ This is the formal grammar for the AMQP/Fast content model:
     body-payload    = *OCTET
 
 Content Header Frame Wire Format
-................................
+--------------------------------
 
 A content header frame has this format:
 
@@ -2105,7 +2186,7 @@ several property flag fields in succession:
 [propertyflagsx.png]
 
 Content Body Frame Wire Format
-..............................
+------------------------------
 
 A content body frame has this format:
 
@@ -2114,7 +2195,7 @@ A content body frame has this format:
 Where the size of the frame is defined in the frame header.
 
 Structured Content
-..................
+------------------
 
 The "weight" field in the content header frame indicates whether the
 content has child-contents or not. In the simplest case (weight = zero)
@@ -2134,7 +2215,7 @@ needed, it can be done by defining a top-level content that has no body,
 only a header.
 
 Multiplexed Channel Content
-...........................
+---------------------------
 
 Content consists of one or more frames. The recipient of content that
 has been sent in multiple frames can unambiguously reconstruct the
@@ -2143,8 +2224,9 @@ per-channel basis.
 
 Guidelines for implementors:
 
-- Content frames MUST be sent on a single channel, and MAY be intermixed
-  with non-content frames (method, trace, and heartbeat frames).
+- Content frames MUST be sent on a single channel, and MUST NOT be
+  intermixed with non-content frames on the same channel (method, trace,
+  and heartbeat frames).
 
 - Content frames MUST NOT be intermixed with frames of a different
   content.
@@ -2159,7 +2241,7 @@ Guidelines for implementors:
   meaning to these: it MUST discard them with no side-effects of any kind.
 
 Content Classes
-................
+----------------
 
 The content class is not intended to provide data typing or encoding
 information. Its purpose is to allow functional clarity in the property
@@ -2192,15 +2274,15 @@ Guidelines for implementors:
 - The server MUST support at least one of the defined content classes.
 
 Content Type and Encoding
-.........................
+-------------------------
 
 AMQP/Fast enforces MIME-compliance on all content classes using two
 standard properties that are the first defined in all content classes:
 
-- ContentType (tiny string) - the MIME content type of the message body.
+- ContentType (short string) - the MIME content type of the message body.
   The default value is "application/octet-stream".
 
-- ContentEncoding (tiny string) - The content encoding of the message
+- ContentEncoding (short string) - The content encoding of the message
   body. The default value is "binary".
 
 Guidelines for implementors:
@@ -2210,13 +2292,13 @@ Guidelines for implementors:
 
 - The server MAY set the ContentType and ContentEncoding properties
   for content produced by the server or by applications embedded in
-  the server. 
+  the server.
 
 The Class/Method Model
-----------------------
+======================
 
 Goals and Principles
-....................
+--------------------
 
 AMQP/Fast allows two peers to connect and exchange data. There are
 several types of data and several ways of exchanging this data. The
@@ -2261,7 +2343,7 @@ We build this as follows:
    defined by the methods that it supports.
 
 Client and Server Roles
-........................
+------------------------
 
 The AMQP/Fast protocol is quasi-symmetrical with client-initiated
 connections. We can visualise the protocol as governing two levels of
@@ -2299,7 +2381,7 @@ Guidelines for implementors:
 - A peer MAY support both roles.
 
 Method Frame Body Wire Format
-.............................
+-----------------------------
 
 A method frame body has this format:
 
@@ -2338,10 +2420,6 @@ The flags are defined as follows:
 
 Guidelines for implementors:
 
-- The class MUST be one of the standard class numbers defined below.
-
-- The method MUST be one of the methods defined for the class.
-
 - The revision MUST be zero in major releases of the protocol. It is
   used to indicate revised methods in minor releases of the protocol.
   A peer MAY support multiple revisions of a protocol.  A peer MUST
@@ -2355,10 +2433,10 @@ Guidelines for implementors:
   zero.
 
 The Synchpoint Function
-.......................
+-----------------------
 
 A client can request a synchpoint when sending an asynchronous request
-method. The server responds with a Channel SYNCH method when it finishes
+method. The server responds with a Channel.Synch method when it finishes
 processing the request method. Synchpoints are only sent if the method
 completes successfully. If the method fails, the server replies with a
 Channel.Close or Connection.Close depending on the severity of the
@@ -2370,8 +2448,17 @@ synchpoints at every asynchronous method, which turns the entire
 protocol into a synchronous protocol. This may be simpler for some
 scenarios than a normal asynchronous exchange of methods.
 
-Unreal Methods
-..............
+Guidelines for implementors:
+
+- The server MUST ignore the SYNCHREQ flag on all methods that require
+  a synchronous reply.
+
+- The server MUST NOT set the SYNCHREQ flag on methods sent to the client,
+  and the client MUST treat any method with the SYNCHREQ flag as a fatal
+  connection error.
+
+The Interface Test Function
+---------------------------
 
 A peer can test the capability of the other peer by sending methods with
 the UNREAL flag set. When a peer receives a message with this flag set
@@ -2381,8 +2468,26 @@ and the UNREAL flag also set.
 The goal of the UNREAL flag is to allow a monitor client to determine
 what methods a peer supports.
 
+Guidelines for implementors:
+
+- A peer SHOULD respect the UNREAL flag on all methods that it supports.
+
+- A peer that supports the UNREAL flag MUST support unreal methods in
+  any state.
+
+- A peer SHOULD reply to unsupported methods with the UNREAL flag set,
+  with a Connection.Unknown method.
+
+- A peer MUST treat an unsupported methods with the UNREAL flag
+  cleared as a fatal error and close the connection.
+
+- A peer MUST respond to a supported method with the UNREAL flag set as
+  follows: (a) decode the method and perform syntactic validation. (b)
+  create a suitable response method with suitable arguments and send it
+  with the UNREAL flag set.  (c) not change any internal state.
+
 The Distributed Trace Function
-..............................
+------------------------------
 
 A distributed trace is a temporary and single-threaded trace of all
 messages produced by a specific server method. A distributed trace will
@@ -2390,11 +2495,780 @@ last as long as the effects of the original method. There is no
 functionality to end a distributed trace, nor to distinguish more than
 one trace at once.
 
-Summary of Classes and Methods
-------------------------------
+Guidelines for implementors:
+
+- A server SHOULD implement the DTRACE flag as follows: (a) process the
+  method as normal. (b) set the DTRACE flag on all methods, to all
+  clients, that are the direct or indirect consequence of the original
+  received method.
+
+The Abstract Routing Model
+==========================
+
+AMQ defines an abstract model which all AMQP servers and clients must
+adhere to.  The abstract routing model provides a formal and run-time
+configurable definition of how messages are stored and forwarded.
+
+Introduction to the Abstract Routing Model
+------------------------------------------
+
+Restatement of Goals
+....................
+
+AMQ is designed to carry data ("messages") between applications
+("clients") written in arbitrary languages and running on arbitrary
+platforms spread across a fully-addressable network.
+
+AMQ is designed to support many different types of application, each
+with its own requirements as to:
+
+- Message size, from zero bytes up to many gigabytes.
+- Number of clients, from one up to many thousands.
+- Volume of messages crossing the network, from a few per day to hundreds
+  of thousands per second.
+- Critical latency of a message, from a millisecond to an hour.
+- Reliability of delivery, from "as reliable as possible, whatever the
+  cost" to "best-effort delivery".
+- Use of network, memory, CPU, and disk resources.
+
+The same AMQ architecture must be able to work efficiently on a small
+embedded message router, as well as on a supercluster with dozens of
+CPUs and tens of gigabytes of memory.
+
+General Design Method
+.....................
+
+Our design method relies on these principles:
+
+1. Give the functional architect (the person responsible for designing
+   an AMQ network, using AMQ technology) as much control as possible over
+   the choices and tradeoffs required for a specific functional scenario.
+
+2. Design the architecture using abstract general models that the
+   functional architect can combine as needed.
+
+That is: rather than embed assumptions and decisions in the architecture
+we create abstract general-purpose constructs that can be reused in
+scenarios that we do not pretend to fully understand ourselves.
+
+Main Insights
+.............
+
+The main insights that led to our design (which is the third major
+refactoring of the AMQ protocol) were:
+
+1. Subscriptions can be designed as a special case of queues.  That is,
+   subscriptions and queues can be designed to support exactly the same
+   set of properties and access methods.  In the topic/subscription
+   model subscriptions are simply queues that have a special matching
+   technique and a private name space.
+
+2. Matching can be abstracted.  That is, everything from matching on a
+   specific destination name to matching on an SQL-like selector can be
+   abstracted into a single concept.
+
+3. Messages can have multiple instances.  That is, a message can be in
+   many queues at the same time.  We do not copy message content, rather
+   we use message reference counting.  Queues store references to
+   messages rather than messages.  This applies both to persistent and
+   non-persistent messages.
+
+4. Queues and matching can be loosely-coupled.  That is, while one
+   client "writes to queue X" and a second client "reads from queue
+   X", this can be done using a less tightly-coupled relationship than
+   the obvious "producer writes to queue".  Loose coupling is often
+   desirable because it allows abstraction in which one side of a
+   relationship can be reorganised without affecting the other.
+
+We use these insights to define a set of building blocks that achieve
+much wider functionality than classic messaging middleware (like JMS)
+at no significant extra cost.
+
+Overall Architecture
+--------------------
+
+Classic Message-Oriented Middleware
+...................................
+
+A classic message-oriented middleware server provides two types of
+service: a "queue" service in which producers and consumers interact
+via shared named queues, and a "topic" service which allows clients to
+subscribe to a tree of topics. Clients subscribe with citeria such as
+the topic name, or a pattern representing a set of topics, e.g.
+"FOREX.*". The middleware explicitly provides functionality to
+subscribe, manage topics, and so on.
+
+AMQ does not provide these services directly: the protocol and server
+make no mention of "topics" or "subscriptions". Rather, AMQ provides
+more general building blocks that can easily be used to build a topic
+service, a queue service, a mix of the two, and new kinds of service
+that fall outside the classic definitions.
+
+Message, Queue, and Proxy
+.........................
+
+We define the "MESSAGE": a message is self-contained package of data
+that passes through the server. The server will not modify or separate
+the data in a message. The message is the basic unit of data transfer
+between clients and servers.
+
+We define the "QUEUE": a queue holds messages and distributes these to
+clients. Queues are highly configurable objects that implement most of
+the quality of service aspects of an AMQP server. Queues can be private
+or shared, created by the server administrator, or by applications.
+Queues can holding their messages on disk or in memory, or a combination
+(working in memory and overflowing to disk when necessary). Queues can
+be durable (remaining active when the server stops and restarts) or
+transient (automatically deleted when no longer used).
+
+Queues have public names, and when a client wants to get messages from a
+server it says, "give me messages from queue such-and-such".
+
+We define the "PROXY": a proxy is a named object that accepts messages
+and distributes them to queues. A message can exist on many queues at
+once. Clients that want to send messages to a server always send them
+to a specific proxy.
+
+Basic Architecture
+..................
+
+The basic architecture is thus (showing a set of producer applications
+sending messages to a set of consumer applications):
+
+                +--------+        +--------+
+   Producers:   | Client |        | Client |
+                +--------+        +--------+
+                    |                  |
+                    V                  V
+   Messages     +----\----Server------/----+
+       |        |     \              /     |
+       |        |      +------------+      |
+       |        |      |   Proxy    |      |
+       |        |      +------------+      |
+       |        |         /      \         |
+       |        |  +-------+    +-------+  |
+     __|__      |  | Queue |    | Queue |  |
+     \ | /      |  +-------+    +-------+  |
+      \|/       |     /              \     |
+       V        +----/----------------\----+
+                    |                  |
+                    V                  V
+                +--------+        +--------+
+    Consumers:  | Client |        | Client |
+                +--------+        +--------+
+
+Note that:
+
+1. The producers do not write directly to the consumers' queues.
+2. The consumers do not read directly from the proxy.
+
+Queue Consumers
+...............
+
+While proxies copy messages across queues, queues distribute
+messages between consumers.  A queue can have one consumer:
+
+        +-------+
+        | Queue |
+        +-------+
+            |
+            V
+        +--------+
+        | Client |
+        +--------+
+
+A queue can also have many consumers:
+
+                        +-------+
+                        | Queue |
+                        +-------+
+                            |
+           .----------.-----------.-----------.
+           |          |           |           |
+           V          V           V           V
+      +--------+  +--------+  +--------+  +--------+
+      | Client |  | Client |  | Client |  | Client |
+      +--------+  +--------+  +--------+  +--------+
+
+The queue distributes messages to the consumers according to a
+configurable traffic control model that is adjustable per consumer:
+
+- Each consumer specifies whether it is going to acknowledge
+  messages or not.  Acknowledgements improve reliability but
+  slow-down performance.
+
+- Each consumer specifies how many messages the server should
+  send it in advance of acknowledgements.  This "prefetch"
+  window improves latency but can mean that consumers are not
+  perfectly balanced.
+
+Given these two parameters the queue will distribute messages to the
+consumers on a quasi-round-robin basis (i.e. to each consumer in turn,
+but without a guarantee of visting each consumer in any particular
+order).
+
+Relationship between Queues and Proxies
+.......................................
+
+A queue "registers" with a proxy, asking: "give me a copy of all
+messages that look like this".
+
+AMQ has a formal definition of a message which includes:
+
+- the "destination" for the message.  This is a name that the client
+  application uses.  The destination name may (or may not) map directly
+  to a queue name.
+
+- the "properties" for the message.  These are a set of fields with
+  a name, type, and value.  The field properties may (or may not) be
+  used by the proxy to decide which queues receive the messages.
+
+The Proxy Design
+----------------
+
+Proxy Types
+...........
+
+These are the basic set of proxies that an AMQP server MAY support:
+
+1. "fanout" routes all messages to all registered queues.  Fanout
+   proxies are used to create arbitrary routing flows within the
+   server.  For example, fanout proxies might be used to replicate
+   data within a cluster.
+
+2. "dest-name" routes messages on their destination name using a direct
+   comparison. That is, it passes messages to queues that have
+   registered with "give me all messages whose destination name is equal
+   to this value".  Dest-name proxies are used to build conventional
+   point-to-point store-and-forward mechanisms.
+
+3. "dest-wild" routes messages on their destination name using a
+   wild card comparison.  That is, it passes messages to queues that have
+   registered with "give me all messages whose destination name matches
+   this pattern".  Dest-wild proxies are used to build conventional topic
+   publish-and-subscribe mechanisms.
+
+4. "prop-test" routes messages on the value and presence of properties.
+   That is, it passes messages to queues that have registered with
+   "give me all messages with properties with these names and values".
+   Prop-test proxies are used to build content-based routing mechanisms.
+
+5. "prop-wild" routes messages on a set of properties using wild
+   card comparisons.  That is, it passes messages to queues that have
+   registered with "give me all messages with properties that match
+   these specifications".  Prop-wild proxies are used to build
+   content-based routing mechanisms.
+
+6. "selector" routes messages using a programmable selector statement.
+   That is, it passes messages to queues that have registered with
+   "give me all messages where this statement is true".  The selector
+   statements are based on SQL WHERE conditions.  Selector proxies are
+   used to build content-based routing mechanisms.
+
+7. "lossy" routes messages with random failure. That is, it passes
+   messages to all registered queues, but randomly drops messages.
+   Lossy proxies are used to simulate network or processing failures.
+
+Guidelines for implementors:
+
+- An AMQP server MUST implement at least the fanout and dest-name
+  proxies.  An AMQP server MAY implement the other proxy types.
+
+- An AMQP server MAY implement custom proxy types (not on this list).
+  The name of a custom proxy type must start with "x-".
+
+Proxy Implementation
+....................
+
+Each proxy is a processing class in the server, with properties and
+methods that allow it to operate.  All proxies have a common abstract
+structure:
+
+    +------+-------+-------------------+------------------------------+
+    | Name | Class | Registration list | Class-specific properties... |
+    +------+-------+-------------------+------------------------------+
+                            :
+                     +--------------+    +-------+
+                     | Registration |--->| Queue |
+                     +--------------+    +-------+
+                            :
+                     +--------------+    +-------+
+                     | Registration |--->| Queue |
+                     +--------------+    +-------+
+                            :
+                           ...
+
+Multiple Registrations
+......................
+
+A queue can register with the same proxy several times:
+
+    Register with dest-name: messages for destination X
+    Register with dest-name: messages for destination Y
+    Register with dest-name: messages for destination Z
+
+The meaning of this is obvious and does not need much explaining: the
+registrations are acummulated so the queue will get messages for any of
+the three destination names:
+
+         +-----------+
+         | dest-name |
+         +-----------+
+             | | |  "messages for destinations X, Y, Z"
+           +-------+
+           | Queue |
+           +-------+
+
+A queue can also register with two different proxies:
+
+    Register with dest-name: messages for destination X
+    Register with dest-name: messages for destination Y
+    Register with dest-name: messages for destination Z
+    Register with lossy
+
+The meaning of this is as follows:
+
+         +-----------+
+         | dest-name |
+         +-----------+
+             | | |  "messages for destinations X, Y, Z"
+           +-------+
+           | lossy |
+           +-------+
+               |    "all messages"
+           +-------+
+           | Queue |
+           +-------+
+
+In other words, the lossy proxy steps in between the queue and the
+dest-name proxy.  We could imagine several levels:
+
+         +-----------+
+         | dest-name |
+         +-----------+
+             | | |  "messages for destinations X, Y, Z"
+         +-----------+
+         | prop-name |
+         +-----------+
+               |    "messages with property ABC"
+           +-------+
+           | lossy |
+           +-------+
+               |    "all messages"
+           +-------+
+           | Queue |
+           +-------+
+
+Guidelines for implementors:
+
+- An AMQP server SHOULD support multiple registrations but MAY restrict
+  its proxy implementation to a single proxy or single registration per
+  queue.
+
+On-Demand Wiring
+................
+
+To provide maximum flexibilty we split the definition of a server's
+wiring (i.e. the proxies, queues, and relationships between them) into
+three layers:
+
+1. The set of proxy classes and how they are implemented.  This layer
+   is defined in the server's software.
+
+2. A set of pre-defined proxies and queue templates.  This layer is
+   defined in the server's configuration files.
+
+3. The final set of proxies, queues and registrations. This layer is
+   defined at runtime by the application.
+
+        +--------------------------+
+     1  |  Software constructions  |   E.g. what proxy classes exist?
+        +--------------------------+
+                     |
+                     V
+        +--------------------------+
+     2  |   Configured defaults    |   E.g. what queue templates exist?
+        +--------------------------+
+                     |
+                     V
+        +--------------------------+
+     3  |     On-demand wiring     |   E.g. create proxies & queues
+        +--------------------------+
+                     |
+                     V
+               Actual Wiring
+
+Thus the protocol provides functionality to create and destroy proxies
+and queues, and register queues with proxies.
+
+Guidelines for implementors:
+
+- An AMQP server SHOULD support queue templating in which queues
+  created at runtime can be configured by reference to a
+  pre-configured template.
+
+Durable Wiring
+..............
+
+An AMQ server may hold purely transient data, but may equally hold
+persistent data. In the first case we want a "clean restart" if a server
+is stopped and restarted. I.e. all dynamically-created proxy and queue
+definitions should be wiped. In the second case we want a "reliable
+restart" so that queues keep their contents safely.
+
+We use the concept of a "durable resource". This is a resource created
+by the client application but held by the server as if it was a
+configured resource. We need durable proxies, durable queues, and
+durable registrations. The opposite of "durable" is "transient".
+
+The actual or required durability of a resource is defined as follows:
+
+1. If a resource is part of the server's configuration, it is always
+   durable.  For example, a proxy defined in the server configuration
+   is always durable.
+
+2. When a resource is created the client application may ask for it to
+   be durable.  For example, a queue can be created as "durable".
+
+3. If the client application attempts to create a dependency from a
+   durable resource onto a transient resource, this causes a channel
+   exception.  For example, if a client attempts to register a durable
+   queue with a transient proxy the server will close the channel with
+   an appropriate error.
+   
+Worked Examples
+---------------
+
+Reconstructing Store and Forward
+................................
+
+Let us reconstruct queue-based "store and forward" using these building
+blocks:
+
+- We create a dest-name proxy called "queue".
+- We agree that queue names are equal to the destination name placed
+  in each message.
+- We create a set of queues and register these with the "queue" proxy.
+- Publishers send their messages to the "queue" proxy, specifying a
+  destination name with each message.
+- The "queue" proxy does a lookup on the destination name and passes
+  the message to the matching queue.
+- Consumers get their messages from each named queue.
+
+Reconstructing Topics and Subscriptions
+.......................................
+
+Let us reconstruct topic-based "subscribe and publish" using these
+building blocks:
+
+- We create a dest-wild proxy called "topic".
+- We agree that queue names are subscription names.
+- We create one queue per subscription and attach these queues to
+  the "topic" proxy.
+- Publishers send their messages to the "topic" proxy, specifying a
+  destination name with each message.
+- The "topic" proxy does a topic-name match on the destination name
+  and passes the message to all queues that match.
+- Consumers get their messages from each named queue.
+
+Reconstructing Temporary Destinations
+.....................................
+
+- A temporary queue is simply a queue created by a client, and flagged
+  for automatic deletion when the client disconnects.
+
+- A temporary topic has no meaning: topics do not exist except as values
+  on which to match.
+
+Implementation Details
+----------------------
+
+Queue Namespaces
+................
+
+We want to provide the client application with a consistent way to
+distinguish different types of queue, for example "subscriptions" and
+"private reply queues". These types have no meaning to the server but to
+avoid non-standard naming conventions we introduce the concept of a
+"queue namespace", which is a type name. The server simply prefixes the
+queue name with the namespace to create a unique internal name.
+
+By convention in many scenarios, the namespace will be the same as the
+proxy name.
+
+Thus a publisher may send to a proxy called "queue", while the consumer
+might read messages from a queue in namespace "queue".
+
+Queue Templating and Tuning
+...........................
+
+Templating is a normalisation technique: rather than define many objects
+with similar properties we define a set of templates, and then refer to
+these when we define new objects. In object-oriented development this
+may be called a "class".
+
+A queue template provides different types of information:
+
+1. Organisation and tuning: file system criteria, maximum queue size,
+   dead-letter queue, etc.
+2. Constraints: e.g. max consumers.
+
+Queue templating could be used to simplify the protocol. For example it
+is useful to be able to specify "this queue must be deleted when there
+are no more consumers". This could be a protocol flag or it could be a
+template property, understood by the server but not part of the explicit
+protocol.
+
+We have to decide which queue properties are made visible in the
+protocol, and which can be configured in templates. Our choice is based
+on the requirement for interoperability:
+
+- A property that has an impact on interoperability must be visible
+  in the protocol.
+  
+- A property that must be tunable by the administrator must be part
+  of the template.
+
+Thus the "delete this queue when there are no more consumers" must be
+specified in the protocol, since it is necessary for interoperability.
+The fact that a queue automatically disappears when it is no longer
+needed is a vital part of some architectures. In contrast, a queue limit
+such as the maximum number of messages allowed in memory before the
+queue overflows onto disk is an adminisration concern, so must be part
+of templated configuration.
+
+Registration Normalisation
+..........................
+
+In some scenarios many queues will register with the same proxies using
+identical registrations. We can foresee that this will create problems
+in high-volume scenarios - e.g. when several thousands of queues
+register with the same proxy.
+
+Our class design normalises identical registrations, using a list of
+queues per registration:
+
+    +------+-------+-------------------+------------------------------+
+    | Name | Class | Registration list | Class-specific properties... |
+    +------+-------+-------------------+------------------------------+
+                            :
+                     +--------------+    +-------+    +-------+
+                     | Registration |--->| Queue |--->| Queue |--->...
+                     +--------------+    +-------+    +-------+
+                            :
+                     +--------------+    +-------+
+                     | Registration |--->| Queue |--->...
+                     +--------------+    +-------+
+                            :
+                           ...
+
+Queueing and Routing Mechanisms
+===============================
 
 Goals and Principles
-....................
+--------------------
+
+The AMQP queueing and routing mechanisms define how content is moved
+between an AMQP server and its clients. Our goal is to define a single
+coherent queueing and routing model that can support a range of different
+highly-functional content classes.
+
+Our design is based on these elements:
+
+- Virtual hosts: an independent collection of proxies and queues.
+
+- Proxies: a proxy distributes messages across queues.
+
+- Queues: a queue distributes messages between consumers.
+
+- Message persistence: defining the level of assurance that a message
+  will be successfully delivered despite crashes and failures.
+
+- Message priorities: allowing messages to be delivered out-of-sequence
+  according to their importance.
+
+- Queue browsing: allowing a client to read messages in a simple
+  synchronous manner.
+
+- Acknowledgements: allowing a client to tell the server when it has
+  successfully processed a message.
+
+- Window-based flow control: allowing a client to control how many
+  messages it receives
+
+- Transactions: allowing a client to group multiple messages and
+  acknowledgements into a single unit of work.
+
+In general all these mechanisms apply to all content classes. Certain
+content classes may elect to use a simpler model for performance
+reasons. This is specifically the case for streamed content, which does
+not support persistence, browsing, acknowledgements, or transactions.
+
+Virtual Hosts
+-------------
+
+AMQP/Fast has explicit support for virtual hosts. The client chooses a
+virtual host as the last stage in negotiating the connection. A virtual
+host has its own set of proxies, queues and access controls.
+
+Proxies
+-------
+
+Topics are named objects that act as message filters and multipliers.
+Proxies do not hold messages: rather they copy messages to queues. All
+messages are published to proxies.
+
+Guidelines for implementors:
+
+- Proxies are not tied to specific content classes.
+
+- A server MUST allow any content class to be sent to any proxy, in any
+  mix, depending on the access rights of the producing client.
+
+- A server SHOULD discard messages for which there are no valid queues.
+  It MAY log such messages and/or send them to a dead-letter queue.
+
+Queues
+------
+
+A queue is a named object that acts as an asynchronous buffer for
+messages. Queues may be held in memory, on disk, or some combination.
+Each virtual host provides a namespace for queues. Queues hold messages
+and distribute them between one or more clients (consumers). A message
+published to a queue is never sent to more than one client unless it
+is is being resent after a failure or rejection.
+
+Note that mixed content on a queue is generally sent asynchronously
+using the appropriate Deliver methods, to those clients that have asked
+for it.  The Browse method allows clients to selectively receive single
+JMS or File messages but not Stream messages.
+
+Guidelines for implementors:
+
+- Queues are not tied to specific content classes.
+
+- A server MUST allow any content class to be sent to any queue, in any
+  mix, depending on the access rights of the producing client.
+
+Message Persistence
+-------------------
+
+A persistent message is held securely on disk and guaranteed to be
+delivered even if there is a serious network failure, server crash,
+overflow etc.
+
+Messages may be persistent or not, depending on several criteria:
+
+1. In the JMS content class, messages are individually marked as
+   persistent or non-persistent.
+2. In the File content class, messages are always persistent.
+3. In the Stream content class, messages are never persistent.
+
+Guidelines for implementors:
+
+- The server MUST do a best-effort to hold persistent messages on a
+  fully-reliable storage medium.
+
+- The server MUST NOT discard persistent messages in case of
+  overflow but SHOULD use the Channel.Flow method to slow or stop a
+  producer when necessary.
+
+- The server MAY overflow non-persistent JMS or Stream messages to
+  persistent storage, or MAY discard non-persistent JMS or Stream
+  messages on a priority basis if the queue exceeds some configured
+  maximum size.
+
+Message Priorities
+------------------
+
+A high priority message is sent ahead of lower priority messages waiting
+in the same queue or subscription.  When messages must be discarded in
+order to maintain a specific service quality level the server will first
+discard low-priority messages.
+
+Guidelines for implementors:
+
+- A server MUST implement at least 2 priority levels for non-persistent
+  messages.  A server MAY implement up to 10 priority levels.
+
+- A server MAY implement all persistent messages as a single priority.
+
+Acknowledgements
+---------------
+
+When the client finishes processing a message it tells the server via an
+acknowledgement. AMQP/Fast defines different acknowledgement models for
+different levels of performance and reliability:
+
+- Acknowledgement by the application after it has processed a message.
+- Acknowledgement by the client layer when it has received a message
+  and before it passes it to the application.
+- Acknowledgement by the server when it has sent a message to the
+  client.
+
+The first two models use the same protocol mechanics.  The difference
+is when the client API sends the acknowledgement.  The last model uses
+a specific protocol option, in the CONSUME method for those classes
+that support acknowledgement.
+
+Flow Control
+------------
+
+AMQP/Fast flow control is based on these concepts:
+
+1. Allowing the client to specify a prefetch - how many messages
+   it will receive without acknowledgement.  We call this "window-based
+   flow control".
+
+2. Allowing one peer to halt and restart a flow of messages coming
+   from the other peer, using the Channel.Flow method, which we call
+   "channel flow control".
+
+Since Publish methods are not acknowledged, there is no window-based
+flow control for publishing and the recommended way to pause a publisher
+is to use channel flow control.
+
+Guidelines for implementors:
+
+- A server MUST support window-based flow control for clients.
+
+- A server MAY use channel flow control to pause publishers when
+  queues or subscriptions overflow.
+
+- A client MUST respect channel flow control when publishing
+  messages to the server.
+
+- A server MAY disconnect and/or ban clients that do not respect
+  channel flow control methods.
+
+Transactions
+------------
+
+AMQP/Fast supports three kinds of transactions, each kind progressively
+slower, more complex, and more reliable:
+
+1. Automatic transactions, in which every method is wrapped in a
+   transaction. Automatic transactions provide no way to create units
+   of work. Every message and acknowledgement is processed as a
+   stand-alone transaction.
+
+2. AMQP/Fast transactions, which cover units of work on a per-channel
+   basis. Transactions cover messages published, and messages received
+   and acknowledged. There is no "start transaction" method: a
+   transaction starts when the channel is opened and after every commit
+   or rollback. If the channel is closed without a commit, all pending
+   work is rolled-back. Nested transactions are not allowed.
+
+3. XA 2-phase transactions, using the XA class.  This is still under
+   construction.
+
+The transaction type is chosen on a per-channel basis.
+
+Summary of Classes and Methods
+==============================
+
+Goals and Principles
+--------------------
 
 We aim to provide a clear and extensible organisation of the classes and
 methods that a peer provides. Classes and methods are numbered but also
@@ -2414,10 +3288,13 @@ We define methods as being either:
   usually not expect a synchronous reply but MAY set the SYNCHREQ flag
   to request a synchpoint.
 
-[see amq_rfc006_short.txt]
+A full explanation of classes and methods is provided in the Reference
+section of this document.
+
+[see amq_rfc006_quick.txt]
 
 Explanatory Notes
-.................
+-----------------
 
 Methods are numbered locally per class and there is no attempt to keep a
 consistent numbering for similar methods in different classes, nor to
@@ -2433,189 +3310,11 @@ The grammars use this notation:
 - *term or *(...) expression means 'zero or more instances'.
 - Methods are indicated by uppercase names, e.g. OPEN.
 
-Queueing and Routing Mechanisms
-------------------------------
-
-Goals and Principles
-....................
-
-The AMQP queueing and routing mechanisms define how content is moved
-between an AMQP server and its clients. Our goal is to define a single
-coherent queueing and routing model that can support a range of different
-highly-functional content classes.
-
-Our design is based on these elements:
-
-- Virtual hosts: an independent collection of destinations.
-
-- Queue destinations: a queue distributes messages between consumers.
-
-- Topic destinations: a topic multiplies messages across subscriptions.
-
-- Subscriptions: a subscription distributes messages between consumers.
-
-- Selection and routing mechanisms: allowing consumers and subscriptions
-  to be specific about which messages they receive.
-
-- Message persistence: defining the level of assurance that a message
-  will be successfully delivered despite crashes and failures.
-  
-- Message priorities: allowing messages to be delivered out-of-sequence
-  according to their importance.
-
-- Destination browsing: allowing a client to read messages in a simple
-  synchronous manner.
-  
-- Acknowledgements: allowing a client to tell the server when it has
-  successfully processed a message.
-
-- Window-based flow control: allowing a client to control how many
-  messages it receives
-
-- Transactions: allowing a client to group multiple messages and
-  acknowledgements into a single unit of work.
-
-In general all these mechanisms apply to all content classes. Certain
-content classes may elect to use a simpler model for performance
-reasons. This is specifically the case for streamed content, which does
-not support persistence, browsing, acknowledgements, or transactions.
-
-Virtual Hosts
-.............
-
-AMQP/Fast has explicit support for virtual hosts. The client chooses a
-virtual host as the last stage in negotiating the connection. A virtual
-host has its own set of destinations and access controls.
-
-Queue Destinations
-..................
-
-A queue is a named object that acts as an asynchronous buffer for
-messages. Queues may be held in memory, on disk, or some combination.
-Each virtual host provides a namespace for queues. Queues hold messages
-and distribute them between one or more clients (consumers). A message
-published to a queue is never sent to more than one client unless it
-is is being resent after a failure or rejection.
-
-Note that mixed content on a queue is generally sent asynchronously
-using the appropriate NOTIFY methods, to those clients that have asked
-for it.  The BROWSE method allows clients to selectively receive single
-JMS or File messages but not Stream messages.
-
-Topic Destinations
-..................
-
-Topics are named objects that act as multipliers. Topics do not hold
-messages: rather they copy messages to subscriptions. Each virtual host
-provides a namespace for topics. A message published to a topic is
-duplicated to each subscription that has asked for it (using one of the
-selection mechanisms explained below).
-
-Subscriptions
-.............
-
-Subscriptions are named or unnamed objects that resemble queues and may
-be implemented using the same internal mechanisms in the server. Each
-virtual host provides a namespace for subscriptions. Subscriptions may
-be held in memory, on disk, or some combination. Subscriptions can have
-a single consumer (the normal case) but also multiple consumers, in
-which case their messages are distributed between them in the same way
-as messages published to a queue.
-
-Selection and Routing
-.....................
-
-AMQP/Fast provides these mechanisms for a client to select messages, and
-for a server to route them:
-
-1. By destination name.
-2. By destination pattern, for topics only.
-3. By message properties, for queues and topics. This mechanism is
-   called a "selector".
-4. By implementation-dependent functionality embedded in the server.
-
-Message Persistence
-...................
-
-A persistent message is held securely on disk and guaranteed to be
-delivered even if there is a serious network failure, server crash,
-overflow etc.
-
-Messages may be persistent or not, depending on several criteria:
-
-1. In the JMS content class, messages are individually marked as
-   "persistent" or not.
-2. In the File content class, messages are always persistent.
-3. In the Stream content class, messages are never persistent.
-
-Message Priorities
-..................
-
-A high priority message is sent ahead of lower priority messages waiting
-in the same queue or subscription.
-
-Acknowledgements
-...............
-
-When the client finishes processing a message it tells the server via an
-acknowledgement. AMQP/Fast defines different acknowledgement models for
-different levels of performance and reliability:
-
-- Acknowledgement by the application after it has processed a message.
-- Acknowledgement by the client layer when it has received a message
-  and before it passes it to the application.
-- Acknowledgement by the server when it has sent a message to the
-  client.
-
-The first two models use the same protocol mechanics.  The difference
-is when the client API sends the acknowledgement.  The last model uses
-a specific protocol option, in the CONSUME method for those classes
-that support acknowledgement.
-
-Flow Control
-............
-
-AMQP/Fast flow control is based on these concepts:
-
-1. Allowing the client to specify a prefetch - how many messages
-   it will receive without acknowledgement.  We call this "window-based
-   flow control".
-
-2. Allowing one peer to halt and restart a flow of messages coming
-   from the other peer, using the Channel FLOW method, which we call
-   "channel flow control".
-
-Since the PUBLISH method is not acknowledged, there is no window-based
-flow control for publishing and the recommended way to pause a publisher
-is to use channel flow control.
-
-Transactions
-............
-
-AMQP/Fast supports three kinds of transactions, each kind progressively
-slower, more complex, and more reliable:
-
-1. Automatic transactions, in which every method is wrapped in a
-   transaction. Automatic transactions provide no way to create units
-   of work. Every message and acknowledgement is processed as a
-   stand-alone transaction.
-
-2. Simple transactions, which cover units of work on a per-channel
-   basis. Transactions cover messages published, and messages received
-   and acknowledged. There is no "start transaction" method: a
-   transaction starts when the channel is opened and after every commit
-   or rollback. If the channel is closed without a commit, all pending
-   work is rolled-back. Nested transactions are not allowed.
-
-3. Distributed transactions, which include XA-compatible transactions.
-
-The transaction type is chosen on a per-channel basis.
-
 Error Handling
---------------
+==============
 
 Goals and Principles
-....................
+--------------------
 
 Error handling is a critical aspect of any protocol.  First, we need a
 clear statement of what situations can provoke an error.  Secondly, we
@@ -2630,7 +3329,7 @@ questions:
 3. Use a hand-shaked close to handle errors.
 
 Existing Standards
-..................
+------------------
 
 The standard for error handling (defined semi-independently in several
 IETF RFCs) is the 3-digit reply code. This format has evolved into a
@@ -2669,7 +3368,7 @@ The instance indicator is 0 to 9 as needed to distinguish different
 situations.
 
 The Assertion/Exception Model
-.............................
+-----------------------------
 
 AMQP/Fast uses an assertion/exception model that has these goals:
 
@@ -2692,7 +3391,7 @@ We document the assertions formally in the definition of each class
 and method.
 
 Hand-shaked Closure
-...................
+-------------------
 
 Closing a connection for any reason - normal or exceptional - must be
 done carefully.  Abrupt closure is not always detected rapidly, and
@@ -2707,47 +3406,48 @@ Close-Ok method.  The closing peer reads methods back until it gets a
 Close-Ok, at which point it closes the connection and frees resources.
 
 The JMS Operational Model
-------------------------
+========================
 
 Goals and Principles
-....................
+--------------------
 
-JMS is a standard API for messaging middleware brokers. The AMQP/Fast
+JMS is a standard API for messaging middleware servers. The AMQP/Fast
 JMS implementation is compatible with providers that conform to the SUN
 JMS specifications (within the bounds of JMS standardisation, which does
 not guarantee interoperability). JMS messages can be published and
-consumed using a set of methods that map cleanly to the JMS API,
-including:
+consumed using a set of methods that map to the JMS API, including:
 
-- Publishing a message to a destination.
-- Creating a consumer for a destination.
+- Publishing a message to a "queue".
+- Publishing a message to a "topic".
+- Creating a consumer for a queue.
+- "Subscribing" to a "topic".
 - Browsing a destination for messages.
 
 JMS Content Properties
-......................
+----------------------
 
 These are the properties defined for JMS content:
 
-- ContentType (tiny string)
-- ContentEncoding (tiny string)
+- ContentType (short string)
+- ContentEncoding (short string)
 - DeliveryMode (octet)
 - Priority (octet)
-- CorrelationID (tiny string)
-- ReplyTo (tiny string)
-- Destination (tiny string)
-- Expiration (tiny string)
-- MessageID (tiny string)
-- Timestamp (tiny string)
-- Type (tiny string)
-- UserID (tiny string)
-- AppID (tiny string)
+- CorrelationID (short string)
+- ReplyTo (short string)
+- Destination (short string)
+- Expiration (short string)
+- MessageID (short string)
+- Timestamp (short string)
+- Type (short string)
+- UserID (short string)
+- AppID (short string)
 - Headers (field table)
 
 The File Transfer Operational Model
------------------------------------
+===================================
 
 Goals and Principles
-....................
+--------------------
 
 The file transfer operational model is designed for enterprise-wide
 file transfer based on the AMQP/Fast queueing and routing models.  For
@@ -2772,25 +3472,25 @@ A File message is persistent and optimised for restartable transfers
 across possibly unreliable network connections.
 
 File Content Properties
-.......................
+-----------------------
 
 These are the properties defined for File content:
 
-- ContentType (tiny string)
-- ContentEncoding (tiny string)
+- ContentType (short string)
+- ContentEncoding (short string)
 - Priority (octet)
-- ReplyTo (tiny string)
-- Destination (tiny string)
-- MessageID (tiny string)
-- FileName (tiny string)
-- Timestamp (tiny string)
+- ReplyTo (short string)
+- Destination (short string)
+- MessageID (short string)
+- FileName (short string)
+- RevisedTime (time stamp)
 - Headers (field table)
 
 The Stream Operational Model
-----------------------------
+============================
 
 Goals and Principles
-....................
+--------------------
 
 Streaming is intended for multimedia applications: video, music, etc.
 A stream consists of an unterminated series of messages, each message
@@ -2816,28 +3516,25 @@ A stream producer can use topics to distribute streams to multiple
 consumers at once.  Topics can be used - e.g. - to provide different
 qualities of the same stream.
 
-A stream consumer can specify:
-
-- Prefetch size in octets and/or messages.
-- Desired rate in octets per second.
+A stream consumer can specify the rate at which data is wanted.
 
 Stream Content Properties
-.........................
+-------------------------
 
 These are the properties defined for Stream content:
 
-- ContentType (tiny string)
-- ContentEncoding (tiny string)
+- ContentType (short string)
+- ContentEncoding (short string)
 - Priority (octet)
-- Destination (tiny string)
-- Timestamp (tiny string)
+- Destination (short string)
+- Timestamp (short string)
 - Headers (field table)
 
 Security
---------
+========
 
 Goals and Principles
-....................
+--------------------
 
 We guard against buffer-overflow exploits by using length-specified
 buffers in all places.  All externally-provided data can be verified
@@ -2847,14 +3544,14 @@ Invalid data can be handled unambiguously, by closing the channel or
 the connection.
 
 Buffer Overflows
-................
+----------------
 
 All data is length-specified so that applications can allocate memory in
 advance and avoid deadlocks. Length-specified strings protect against
 buffer-overflow attacks.
 
 Denial of Service Attacks
-.........................
+-------------------------
 
 AMQP/Fast handles errors by returning a reply code and then closing the
 channel or connection. This avoids ambiguous states after errors.
@@ -2867,39 +3564,6 @@ for a period of several seconds and then to close the network
 connection. This includes syntax errors, over-sized data, or failed
 attempts to authenticate. The server implementation should log all such
 exceptions and flag or block clients provoking multiple failures.
-
-Miscellaneous Topics
---------------------
-
-Performance
-...........
-
-To be completed.
-
-Message Templating
-..................
-
-To be completed.
-
-Field Dictionaries
-..................
-
-To be completed.
-
-Message Selectors
-.................
-
-To be completed.
-
-Topic Selectors
-...............
-
-To be completed.
-
-Destination Templating
-......................
-
-To be completed.
 
 The Toolset
 ***********

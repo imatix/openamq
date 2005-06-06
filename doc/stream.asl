@@ -15,8 +15,8 @@
 </doc>
 
 <doc name = "grammar">
-    file                = C:CONSUME S:CONSUME_OK
-                        / C:CANCEL
+    stream              = C:CONSUME S:CONSUME-OK
+                        / C:CANCEL S:CANCEL-OK
                         / C:PUBLISH content
                         / S:DELIVER content
 </doc>
@@ -29,15 +29,16 @@
   consumers per channel.
 </todo>
 
+
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 <method name = "consume" synchronous = "1">
-  start a destination consumer
+  start a queue consumer
   <doc>
     This method asks the server to start a "consumer", which is a
-    temporary request for messages from a specific queue or topic
-    subscription.  Consumers last as long as the channel they were
-    created on, or until they are cancelled.
+    transient request for messages from a specific queue. Consumers
+    last as long as the channel they were created on, or until the
+    client cancels them.
   </doc>
   <doc name = "rule">
     The server MAY restrict the number of consumers per channel to an
@@ -49,58 +50,30 @@
     respect to the maximum number of consumers per channel.
   </doc>
   <doc name = "rule">
-    The server MUST not allow more than one Stream consumer per
-    subscription.
-  </doc>
-  <doc name = "rule">
     Streaming applications SHOULD use different channels to select
-    different streaming resolutions. AMQP/Fast does not assume the
-    server is capable of filtering and/or transforming streams except
-    on the basis of individual message priorities.
+    different streaming resolutions. AMQP/Fast makes no provision for
+    filtering and/or transforming streams except on the basis of
+    priority-based selective delivery of individual messages.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <response name = "consume ok" />
+  <response name = "consume-ok" />
 
   <field name = "ticket" domain = "access ticket">
     <doc name = "rule">
-      The client MUST provide a valid access ticket giving "consume"
-      access rights to the access realm for the destination or
-      subscription.
+      The client MUST provide a valid access ticket giving "read" access
+      rights to the realm for the queue.
     </doc>
   </field>
 
-  <field name = "service type" domain = "service type" />
+  <field name = "namespace" domain = "queue namespace" />
     
-  <field name = "destination" domain = "destination">
+  <field name = "queue" domain = "queue name">
     <doc>
-      Specifies the name of the queue or topic to consume from.
+      Specifies the name of the queue to consume from.
     </doc>
-    <doc name = "rule">
-      For queue consumers, the destination field MUST be provided. For
-      topic consumers, the destination field MAY be provided but MUST
-      be empty if a subscription is specified.  Note that the explicit
-      use of a subscription already defines the topic destination to
-      use.
-    </doc>
+    <assert check = "notnull" />
   </field>
 
-  <field name = "subscription" domain = "subscription">
-    <doc>
-      Specifies the name of the subscription, for topic consumers.
-    </doc>
-    <doc name = "rule">
-      The subscription field MUST be empty for queue consumers and
-      MAY be empty for topic consumers, in which case the server
-      MUST create an unnamed, private, and temporary subscription
-      automatically.  This automatic subscription is cancelled when
-      the client cancels the consumer or closes the channel.
-    </doc>
-    <doc name = "rule">
-      The client MUST define the subscription before starting a
-      consumer on it.
-    </doc>
-  </field>
-    
   <field name = "prefetch size" type = "short">
     prefetch window in octets
     <doc>
@@ -150,13 +123,14 @@
       channel exception.
     </doc>
     <doc name = "rule">
-      The server MUST grant clients exclusive access to a destination
+      The server MUST grant clients exclusive access to a queue
       or subscription if they ask for it.
     </doc>
   </field>
 </method>
 
-<method name = "consume ok" synchronous = "1">
+
+<method name = "consume-ok" synchronous = "1">
   confirm a new consumer
   <doc>
     This method provides the client with a consumer tag which it may
@@ -169,44 +143,51 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "cancel">
-  end a destination consumer
+<method name = "cancel" synchronous = "1">
+  end a queue consumer
   <doc>
-    This method cancels a consumer. This does not affect already
-    delivered messages, but it does mean the server will not send
-    any more messages for that consumer.
+    This method cancels a consumer.  Since message delivery is
+    asynchronous the client may continue to receive messages for
+    a short while after cancelling a consumer.  It may process or
+    discard these as appropriate.
   </doc>
   <chassis name = "server" implement = "MUST" />
+  <response name = "cancel-ok" />
 
   <field name = "consumer tag" domain = "consumer tag" />
 </method>
 
+<method name = "cancel-ok" synchronous = "1">
+  confirm a cancelled consumer
+  <doc>
+    This method confirms that the cancellation was completed.
+  </doc>
+  <chassis name = "client" implement = "MUST" />
+</method>
+
+
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 <method name = "publish" content = "1">
-  publish a message to a destination
+  publish a message
   <doc>
-    This method publishes a message to a specific destination.  The
-    message will be saved to the destination and distributed to any
-    consumers when the transaction is committed.
+    This method publishes a message to a specific proxy. The message
+    will be forwarded to all registered queues and distributed to any
+    active consumers when the transaction is committed.
   </doc>
   <chassis name = "server" implement = "MUST" />
            
   <field name = "ticket" domain = "access ticket">
     <doc name = "rule">
-      The client MUST provide a valid access ticket giving "publish"
-      access rights to the access realm for the destination or
-      subscription.
+      The client MUST provide a valid access ticket giving "write"
+      access rights to the access realm for the proxy.
     </doc>
   </field>
 
-  <field name = "service type" domain = "service type" />
-    
-  <field name = "destination" domain = "destination">
+  <field name = "proxy" domain = "proxy name">
     <doc>
-      Specifies the name of the destination to publish to.  If the
-      destination does not exist the server will raise a channel
-      exception.
+      Specifies the name of the proxy to publish to.  If the proxy
+      does not exist the server will raise a channel exception.
     </doc>
     <assert check = "notnull" />
   </field>
@@ -214,14 +195,13 @@
   <field name = "immediate" type = "bit">
     assert immediate delivery
     <doc>
-      Asserts that the destination has one or more consumers (for
-      queues) or one or more subscriptions (for topics), and causes
-      a channel exception if this is not the case.  Note that a
-      consumer can query the state of a destination before publishing
-      to it.
+      Asserts that the message is delivered to one or more consumers
+      immediately and causes a channel exception if this is not the
+      case.
     </doc>
   </field>
 </method>
+
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
@@ -243,24 +223,26 @@
   </doc>
   <chassis name = "client" implement = "MUST" />
 
-  <field name = "destination" domain = "destination">
+  <field name = "delivery tag" domain = "delivery tag" />
+  <field name = "redelivered" domain = "redelivered" />
+
+  <field name = "proxy" domain = "proxy name">
     <doc>
-      Specifies the name of the destination that the message came from.
-      Note that a single channel can start many consumers on different
-      destinations, and a single subscription can collect messages from
-      several topics.
+      Specifies the name of the proxy that the message was originally
+      published to.
     </doc>
     <assert check = "notnull" />
   </field>
-
-  <field name = "immediate" type = "bit">
-    assert immediate delivery
+    
+  <field name = "namespace" domain = "queue namespace" />
+    
+  <field name = "queue" domain = "queue name">
     <doc>
-      Asserts that the destination has one or more consumers (for
-      queues) or one or more subscriptions (for topics), and causes a
-      channel exception if this is not the case.  Note that a consumer
-      can query the state of a destination before publishing to it.
+      Specifies the name of the queue that the message came from. Note
+      that a single channel can start many consumers on different
+      queues.
     </doc>
+    <assert check = "notnull" />
   </field>
 </method>
 

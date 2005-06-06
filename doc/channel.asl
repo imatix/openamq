@@ -14,21 +14,21 @@
 
 <doc name = "grammar">
     channel             = open-channel *use-channel close-channel
-    open-channel        = C:OPEN S:OPEN_OK
+    open-channel        = C:OPEN S:OPEN-OK
     use-channel         = C:FLOW
                         / S:FLOW
                         / S:SYNCH
                         / access
-                        / destination
-                        / subscription
+                        / proxy
+                        / queue
                         / jms
                         / file
                         / stream
                         / tx
                         / dtx
                         / test
-    close-channel       = C:CLOSE S:CLOSE_OK
-                        / S:CLOSE C:CLOSE_OK
+    close-channel       = C:CLOSE S:CLOSE-OK
+                        / S:CLOSE C:CLOSE-OK
 </doc>
 
 <chassis name = "server" implement = "MUST" />
@@ -45,7 +45,7 @@
     This method is not allowed when the channel is already open.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <response name = "open ok" />
+  <response name = "open-ok" />
 
   <field name = "prefetch max" type = "long">
     maximum prefetch size for channel
@@ -92,7 +92,7 @@
   </field>
 </method>
 
-<method name = "open ok" synchronous = "1">
+<method name = "open-ok" synchronous = "1">
   signal that the channel is ready
   <doc>
     This method signals to the client that the channel is ready for use.
@@ -150,15 +150,15 @@
   </doc>
   <doc name = "rule">
     After sending this method any received method except
-    Channel.Close_ok MUST be discarded.
+    Channel.Close-OK MUST be discarded.
   </doc>
   <doc name = "rule">
     The peer sending this method MAY use a counter or timeout to detect
-    failure of the other peer to respond correctly with Channel.Close_ok..
+    failure of the other peer to respond correctly with Channel.Close-OK..
   </doc>
   <chassis name = "client" implement = "MUST" />
   <chassis name = "server" implement = "MUST" />
-  <response name = "close ok" />
+  <response name = "close-ok" />
 
   <field name = "reply code" domain = "reply code">
     reply code
@@ -193,7 +193,7 @@
   </field>
 </method>
 
-<method name = "close ok" synchronous = "1">
+<method name = "close-ok" synchronous = "1">
   confirm a channel close
   <doc>
     This method confirms a Channel.Close method and tells the recipient
@@ -202,7 +202,7 @@
   </doc>
   <doc name = "rule">
     A peer that detects a socket closure without having received a
-    Channel.Close_ok handshake method SHOULD log the error.
+    Channel.Close-Ok handshake method SHOULD log the error.
   </doc>
   <chassis name = "client" implement = "MUST" />
   <chassis name = "server" implement = "MUST" />

@@ -14,20 +14,21 @@ Introduction
 Purpose
 =======
 
-OpenAMQ is a reference implementation of the AMQ
-middleware protocol (AMQP).  It provides a high-speed message
-provider along with clients for various platforms and languages.
+OpenAMQ is a reference implementation of the AMQ middleware protocol
+(AMQP). It provides a high-speed message provider along with clients for
+various platforms and languages.  This document provides a guide to
+installing and using the OpenAMQ server.
 
 Disclaimer
 ==========
 
-This version of OpenAMQ is not considered to be a final, stable
-release.  It may be subject to arbitrary changes and is certainly
-not sufficiently tested to be used for critical data.  It is
-provided AS-IS for the purposes of demonstration.
+This version of OpenAMQ is not considered to be a final, stable release.
+It may be subject to arbitrary changes and is certainly not sufficiently
+tested to be used for critical data. It is provided AS-IS for the
+purposes of demonstration.
 
-Note that OpenAMQ has not been released as open source, though this
-is the project plan.  This software is proprietary and confidential.
+Note that OpenAMQ has not been released as open source, though this is
+the project plan. This software is proprietary and confidential.
 
 Copyrights and Credits
 ======================

@@ -188,14 +188,15 @@ endif
     </attr>
     <attr name = "type" short = "type of field">
     The type of the field, which is a type primitive name.
-        <restrict value = "bit"     >single bit</restrict>
-        <restrict value = "octet"   >single octet</restrict>
-        <restrict value = "short"   >16-bit integer</restrict>
-        <restrict value = "long"    >32-bit integer</restrict>
-        <restrict value = "longlong">64-bit integer</restrict>
-        <restrict value = "shortstr">short string</restrict>
-        <restrict value = "longstr" >long string</restrict>
-        <restrict value = "table"   >field table</restrict>
+        <restrict value = "bit"      >single bit</restrict>
+        <restrict value = "octet"    >single octet</restrict>
+        <restrict value = "short"    >16-bit integer</restrict>
+        <restrict value = "long"     >32-bit integer</restrict>
+        <restrict value = "longlong" >64-bit integer</restrict>
+        <restrict value = "shortstr" >short string</restrict>
+        <restrict value = "longstr"  >long string</restrict>
+        <restrict value = "timestamp">64-bit timestamp</restrict>
+        <restrict value = "table"    >field table</restrict>
     </attr>
     <attr name = "standard" default = "0" short = "standard field">
     Set to 1 for all fields that are standard in every method so do
@@ -216,14 +217,15 @@ endif
     <attr name = "type" required = "1" short = "type of domain">
     The type of the domain, which is a type primitive name.
     This is the same type list as for fields.
-        <restrict value = "bit"     >single bit</restrict>
-        <restrict value = "octet"   >single octet</restrict>
-        <restrict value = "short"   >16-bit integer</restrict>
-        <restrict value = "long"    >32-bit integer</restrict>
-        <restrict value = "longlong">64-bit integer</restrict>
-        <restrict value = "shortstr">short string</restrict>
-        <restrict value = "longstr" >long string</restrict>
-        <restrict value = "table"   >field table</restrict>
+        <restrict value = "bit"      >single bit</restrict>
+        <restrict value = "octet"    >single octet</restrict>
+        <restrict value = "short"    >16-bit integer</restrict>
+        <restrict value = "long"     >32-bit integer</restrict>
+        <restrict value = "longlong" >64-bit integer</restrict>
+        <restrict value = "shortstr" >short string</restrict>
+        <restrict value = "longstr"  >long string</restrict>
+        <restrict value = "timestamp">64-bit timestamp</restrict>
+        <restrict value = "table"    >field table</restrict>
     </attr>
 </entity>
 
@@ -240,6 +242,7 @@ endif
         <restrict value = "ge" >greater than or equal to some value</restrict>
         <restrict value = "lt" >less than some value</restrict>
         <restrict value = "le" >less than or equal to some value</restrict>
+        <restrict value = "re">match regular expression</restrict>
         <restrict value = "length" >max length, for strings</restrict>
         <restrict value = "notnull">not null, for strings</restrict>
         <restrict value = "null"   >null, for strings</restrict>
@@ -281,6 +284,8 @@ endif
         assert.text = "MUST be less than " + value
     elsif check = "le"
         assert.text = "MUST be less than or equal to " + value
+    elsif check = "re"
+        assert.text = "MUST match the regular expression /" + value + "/"
     elsif check = "length"
         assert.text = "MUST not be longer than " + value + " octets"
     elsif check = "notnull"

@@ -14,7 +14,7 @@
 </doc>
 
 <doc name = "grammar">
-    access              = C:GRANT S:GRANT_OK
+    access              = C:GRANT S:GRANT-OK
 </doc>
 
 <chassis name = "server" implement = "MUST" />
@@ -38,12 +38,12 @@
   </doc>
   <doc name = "rule">
     The server MUST implement the /data realm and MAY implement the
-    /admin realm.  The mapping of destinations to realms is not
+    /admin realm.  The mapping of resources to realms is not
     defined in the protocol - this is a server-side configuration
     issue.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <response name = "grant ok" />
+  <response name = "grant-ok" />
 
   <field name = "realm" domain = "path">
     realm to work with
@@ -62,57 +62,42 @@
     </doc>
   </field>
 
-  <field name = "query" type = "bit">
-    request query rights
+  <field name = "passive" type = "bit">
+    request passive access
     <doc>
-      Request query rights to the specified access realm. Query rights
-      allow a client to get information about destinations in the domain
-      but not make any changes to them.
+      Request message passive access to the specified access realm.
+      Passive access lets a client get information about resources in
+      the realm but not to make any changes to them.
     </doc>
   </field>
 
-  <field name = "publish" type = "bit">
-    request publish rights
+  <field name = "active" type = "bit">
+    request active access
     <doc>
-      Request publisher rights to the specified access realm. A publisher
-      can send messages to all destinations in the realm.
+      Request message active access to the specified access realm.
+      Acvtive access lets a client get create and delete resources in
+      the realm.
     </doc>
   </field>
 
-  <field name = "consume" type = "bit">
-    request consume rights
+  <field name = "write" type = "bit">
+    request write access
     <doc>
-      Request consumer rights to the specified access realm. A consumer
-      can receive and process messages from all destinations in the realm.
+      Request write access to the specified access realm.  Write access
+      lets a client publish messages to all proxies in the realm.
     </doc>
   </field>
 
-  <field name = "subscribe" type = "bit">
-    request subscriber rights
+  <field name = "read" type = "bit">
+    request read access
     <doc>
-      Request subscriber rights to the specified access realm. A
-      subscriber can receive messages from all topics in the realm.
-    </doc>
-  </field>
-
-  <field name = "dynamic" type = "bit">
-    request dynamic destination rights
-    <doc>
-      Request the right to define and cancel dynamic destinations in
-      the specified access realm.
-    </doc>
-  </field>
-
-  <field name = "purge" type = "bit">
-    request purge rights
-    <doc>
-      Request the right to purge destinations and subscriptions in the
-      specified access realm.
+      Request read access to the specified access realm.  Read access
+      lets a client consume messages from queues in the realm.
     </doc>
   </field>
 </method>
 
-<method name = "grant ok" synchronous = "1">
+<method name = "grant-ok" synchronous = "1">
   grant access to server resources
   <doc>
     This method provides the client with an access ticket. The access

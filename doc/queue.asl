@@ -1,265 +1,285 @@
 <?xml version="1.0"?>
 
 <class
-    name = "destination"
+    name = "queue"
     handler = "channel"
   >
-  work with dynamic destinations
+  work with queues
 
 <doc>
-  Destinations are queues or topics, capable of storing and routing all
-  content classes, that are created at runtime rather than as server
-  configured objects. A dynamic destination is normally peristent - i.e.
-  it continues to exist and accept messages even when the creating client
-  has disconnected, or the server has restarted.  This class lets clients
-  create and manage dynamic destinations.
+  Queues store and forward messages.  Queues can be configured in the server
+  or created at runtime.  Queues must be attached to at least one proxy in
+  order to receive messages from publishers.
 </doc>
 
 <doc name = "grammar">
-    destination         = C:DEFINE S:DEFINE_OK
-                        / C:QUERY  S:QUERY_OK
-                        / C:PURGE  S:PURGE_OK
-                        / C:CANCEL S:CANCEL_OK
+    queue               = C:ASSERT   S:ASSERT-OK
+                        / C:REGISTER S:REGISTER-OK
+                        / C:CANCEL   S:CANCEL-OK
+                        / C:PURGE    S:PURGE-OK
+                        / C:DELETE   S:DELETE-OK
 </doc>
 
-<chassis name = "server" implement = "SHOULD" />
-<chassis name = "client" implement = "MAY" />
+<chassis name = "server" implement = "MUST" />
+<chassis name = "client" implement = "MUST" />
+
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "define" synchronous = "1">
-  create or verify a dynamic destination
+<method name = "assert" synchronous = "1">
+  create queue if needed
   <doc>
-    This method creates or reconfigures a dynamic destination. Various
-    fields in this method let the client control the persistence of the
-    destination. For example, one can implement a JMS-style temporary
-    destination by setting both the private and auto-cancel fields. A
-    client can work with an existing dynamic destination without using
-    this method.
+    This method creates or checks a queue.  When creating a new queue
+    the client can specify various properties that control the durability
+    of the queue and its contents, and the level of sharing for the queue.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <response name = "define ok" />
+  <response name = "assert-ok" />
 
   <field name = "ticket" domain = "access ticket">
     <doc>
-      When a client defines a new dynamic destination, this belongs to
-      the access realm of the ticket used.  All further work done with
-      that destination - including publishing and consuming messages -
-      must be done with an access ticket for the same realm.
+      When a client defines a new queue, this belongs to the access realm
+      of the ticket used.  All further work done with that queue must be
+      done with an access ticket for the same realm.
     </doc>
     <doc name = "rule">
-      The client MUST provide a valid access ticket giving "dynamic"
-      access rights.  If the destination already exists, the ticket
-      must also be for the destination's access realm.
+      The client MUST provide a valid access ticket giving "active" access
+      to the realm in which the queue exists or will be created, or
+      "passive" access if the if-exists flag is set.
     </doc>
   </field>
     
-  <field name = "service type" domain = "service type">
-    <doc name = "rule">
-      The client MUST NOT use the fuzzy type when defining a new
-      destination.
-    </doc>
-  </field>
+  <field name = "namespace" domain = "queue namespace" />
     
-  <field name = "destination" domain = "destination">
-    <doc>
-      Specifies the name of the destination.  For publishers and
-      consumers, dynamic destinations do not have any visible naming
-      difference from configured destinations.
+  <field name = "queue" domain = "queue name">
+    <doc name = "rule">
+      The queue name MAY be empty, in which case the server MUST create
+      a new queue with a unique generated name and return this to the
+      client in the Assert-Ok method.
     </doc>
     <doc name = "rule">
-      A peer MUST NOT use naming conventions to distinguish dynamic
-      destinations from configured destinations.
-    </doc>
-    <doc name = "rule">
-      The destination name MAY be empty, in which case the server
-      MUST create a new unique name automatically and return this
-      to the client in the Define_ok method.
+      Clients asking the server to provide a queue name SHOULD use a
+      specific namespace for such queues to avoid any possible conflict
+      with names that might be used elsewhere by clients.
     </doc>
   </field>
     
   <field name = "template" type = "shortstr">
-    destination template
+    queue template
     <doc>
-      Specifies the name of a destination template, which is a server
-      configured object that provides configuration options for
-      dynamic destinations.  Templates are not standardised; these
-      are names defined on an implementation basis.
+      Specifies the name of a queue template, which is a server
+      configured object that provides queue configuration options.
+      Template semantics and names are not standardised.
     </doc>
     <doc name = "rule">
       If the template is empty the server SHOULD use a suitable default.
     </doc>
     <doc name = "rule">
-      The server MUST ignore the template field if the destination
-      already exists.
+      The server MUST ignore the template field if the queue already
+      exists.
+    </doc>
+  </field>
+
+  <field name = "if exists" type = "bit">
+    do not create queue
+    <doc>
+      If set, the server will report the status of a queue if it
+      exists and raise a channel assertion if not.  This flag lets
+      clients discover the status of non-existent queues without
+      creating them.
+    </doc>
+  </field>
+
+  <field name = "durable" type = "bit">
+    request a durable queue
+    <doc>
+      If set when creating a new queue, the queue will be marked as
+      durable.  Durable queues remain active when a server restarts.
+      Non-durable queues (transient queues) are purged if/when a
+      server restarts.  Note that durable queues do not necessarily
+      hold persistent messages, although it does not make sense to
+      send persistent messages to a transient queue.
+    </doc>
+    <doc name = "rule">
+      The server MUST support both durable and transient queues.
+    </doc>
+    <doc name = "rule">
+      The server MUST ignore the durable field if the queue already
+      exists.
     </doc>
   </field>
 
   <field name = "private" type = "bit">
-    request private destination
+    request a private queue
     <doc>
-      If set, the destination is private and owned by the current
-      client. This will fail if the destination already exists and is
-      owned by another client. Private destinations cannot be consumed
-      from by clients except the owner.
+      If set when creating a new queue, the queue will be private and
+      owned by the current client. This will fail if the queue already
+      exists and is owned by another client. Private queues cannot be
+      consumed from by clients except the owner.
     </doc>
     <doc name = "rule">
-      The server MUST support both private and shared dynamic
-      destinations.
+      The server MUST support both private and shared queues.
     </doc>
     <doc name = "rule">
       The server MUST use the client identifier supplied at connection
-      open time to identify the owner of a private destination.  The
-      client identifier is persistent even if the client disconnects and
+      open time to identify the owner of a private queue.  The client
+      identifier is persistent even if the client disconnects and
       reconnects.
     </doc>
     <doc name = "rule">
-      The server MUST ignore the private field if the destination
-      already exists.
+      The server MUST ignore the private field if the queue already
+      exists.
     </doc>
   </field>
 
-  <field name = "auto cancel" type = "bit">
-    auto-cancel when finished 
+  <field name = "auto delete" type = "bit">
+    auto-delete queue when unused  
     <doc>
-      If set, the destination is cancelled when all clients have
-      finished using it.
+      If set, the queue is deleted when all clients have finished
+      using it.
     </doc>
     <doc name = "rule">
-      The server MUST implement the auto-cancel function in this
-      manner: it counts the number of queue consumers or topic
-      subscribers (depending on the destination service type), and
-      when the last consumer or subscription is cancelled, it MUST
-      delete the destination and dead-letter any messages it holds.
+      The server MUST implement the auto-delete function in this manner:
+      it counts the number of queue consumers and when the last consumer
+      is cancelled, it MUST delete the queue and dead-letter any messages
+      it holds.
     </doc>
     <doc name = "rule">
-      The server MUST ignore the auto-cancel field in this method if
-      the destination already exists.  A client cannot modify the
-      auto-cancel after the destination has been defined by another
-      client.
+      The server MUST ignore the auto-delete field if the queue already
+      exists.
     </doc>
   </field>
 </method>
 
-<method name = "define ok" synchronous = "1">
-  confirms a destination definition
+
+<method name = "assert-ok" synchronous = "1">
+  confirms a queue definition
   <doc>
-    This method confirms a Define method and confirms the name of the
-    destination, essential for automatically-named destinations.
+    This method confirms a Assert method and confirms the name of the
+    queue, essential for automatically-named queues.
   </doc>
   <chassis name = "client" implement = "MUST" />
 
-  <field name = "destination" domain = "destination">
-    name of destination
+  <field name = "queue" domain = "queue name">
+    name of queue
     <doc>
-      Confirms the name of the destination. If the server generated a
-      destination name, this field contains that name.
+      Reports the name of the queue. If the server generated a queue
+      name, this field contains that name.
     </doc>
     <assert check = "notnull" />
   </field>
 
-  <field name = "message count" type = "long">
-    number of messages in queue destination
+  <field name = "proxy" domain = "proxy name">
+    queue proxy, if any
     <doc>
-      For queue destinations, provides the number of messages in the
-      queue. For topics this is always zero.
+      Reports the name of the last-registered proxy for the queue.  In
+      the case of newly-created queues this will be empty.
     </doc>
-  </field>
-</method>
-
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-
-<method name = "query" synchronous = "1">
-  query status of destination
-  <doc>
-    This method queries the status of a destination.  This can be a
-    dynamic destination or a configured destination, and it can be
-    a queue or a topic as defined by the service-type field.
-  </doc>
-  <chassis name = "server" implement = "MUST" />
-  <response name = "query ok" />
-
-  <field name = "ticket" domain = "access ticket">
     <doc name = "rule">
-      The client MUST provide a valid access ticket giving "query"
-      access rights to the destination's access realm.
+      The server MUST NOT register newly-created queues with proxies
+      implicitly or automatically. The decision of what proxies to use
+      is taken by the client application responsible for administrating
+      the server.  However the server SHOULD store durable registrations
+      so that on a server restart these can be recreated.
     </doc>
-  </field>
-    
-  <field name = "service type" domain = "service type" />
-    
-  <field name = "destination" domain = "destination">
-    <doc>
-      Specifies the name of the destination, which must exist.
-    </doc>
-    <assert check = "notnull" />
-  </field>
-</method>
-
-<method name = "query ok" synchronous = "1">
-  provide status of destination
-  <doc>
-    This method returns the status of the destination.
-  </doc>
-  <chassis name = "client" implement = "MUST" />
-
-  <field name = "service type" domain = "service type" />
-
-  <field name = "destination" domain = "destination">
-    name of destination
-    <doc>
-      Confirms the name of the destination.
-    </doc>
-    <assert check = "notnull" />
   </field>
 
   <field name = "message count" type = "long">
-    number of messages in queue destination
+    number of messages in queue queue
     <doc>
-      For queue destinations, provides the number of messages in the 
-      queue. For topics this is always zero.
+      Reports the number of messages in the queue, which will be zero
+      for newly-created queues.
     </doc>
   </field>
 
   <field name = "consumer count" type = "long">
     number of consumers
     <doc>
-      Provides the number of consumers for the queue or topic.  For
-      topics the number may be inaccurate if topic selectors are used
-      to steer multiple topics into a single subscriber.
-    </doc>
-  </field>
-
-  <field name = "subscriber count" type = "long">
-    number of subscribers
-    <doc>
-      For topic destinations, provides the number of subscribers that 
-      are using the topic.  The number may be inaccurate if topic 
-      selectors are used to steer multiple topics into a single 
-      subscriber.
+      Reports the number of active consumers for the queue. Note that
+      consumers can suspend activity (Channel.Flow) in which case they
+      do not appear in this count.
     </doc>
   </field>
 </method>
 
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+<method name = "register" synchronous = "1">
+  register queue with a proxy
+  <doc>
+    This method registers a queue with a proxy.  Until a queue is 
+    registered it will not receive any messages.  The two main types
+    of queue are store-and-forward queues (registered with a dest-name
+    proxy) and subscription queues (registered with a dest-wild proxy).
+  </doc>
+  <doc name = "rule">
+    The server MUST NOT allow the registration of a durable queue with
+    a transient proxy.  If the client attempts this the server MUST
+    raise a channel exception.
+  </doc>
+  <doc name = "rule">
+    Registrations for durable queues are automatically durable and the
+    server SHOULD restore such registrations after a server restart.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <response name = "register-ok" />
+
+  <field name = "ticket" domain = "access ticket">
+    <doc name = "rule">
+      The client MUST provide a valid access ticket giving "active"
+      access rights to the queue's access realm.
+    </doc>
+  </field>
+    
+  <field name = "namespace" domain = "queue namespace" />
+
+  <field name = "queue" domain = "queue name">
+    <doc name = "rule">
+      The queue must exist. Attempting to query a non-existing queue
+      causes a channel exception.
+    </doc>
+    <assert check = "notnull" />
+  </field>
+
+  <field name = "proxy" domain = "proxy name">
+    proxy to register with
+    <doc>
+      The name of the proxy to register with. If the proxy does not
+      exist the server will raise a channel exception.
+    </doc>
+  </field>
+
+  <field name = "arguments" type = "table">
+    arguments for registration
+    <doc>
+      A set of arguments for the proxy.  The syntax and semantics of
+      these arguments depends on the proxy class.
+    </doc>
+  </field>
+</method>
+
+<method name = "register-ok" synchronous = "1">
+  confirm registration successful
+  <doc>
+    This method confirms that a registration was successful.
+  </doc>
+  <chassis name = "client" implement = "MUST" />
+</method>
+
+
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 <method name = "purge" synchronous = "1">
-  purge a destination 
+  purge a queue 
   <doc>
-    This method removes all messages from a queue destination or all
-    messages from the subscriptions for a topic.  It does not cancel
-    consumers or subscriptions.  Purged messages are deleted without
-    any formal "undo" mechanism.
+    This method removes all messages from a queue.  It does not cancel
+    consumers.  Purged messages are deleted without any formal "undo"
+    mechanism.
   </doc>
   <doc name = "rule">
     On transacted channels the server MUST not purge messages that have
     already been sent to a client but not yet acknowledged.
-  </doc>
-  <doc name = "rule">
-    When purging a topic, the server SHOULD purge subcriptions that are
-    unambiguously made on this topic. The server MAY ignore
-    subscriptions that use topic wildcarding to subscribe to more than
-    one topic.
   </doc>
   <doc name = "rule">
     The server MAY implement a purge queue or log that allows system
@@ -269,109 +289,114 @@
     large.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <response name = "purge ok" />
+  <response name = "purge-ok" />
 
   <field name = "ticket" domain = "access ticket">
     <doc>
       The access ticket must be for the access realm that holds the
-      destination.
+      queue.
     </doc>
     <doc name = "rule">
-      The client MUST provide a valid access ticket giving "purge"
-      access rights to the destination's access realm.
+      The client MUST provide a valid access ticket giving "read" access
+      rights to the queue's access realm.  Note that purging a queue is
+      equivalent to reading all messages and discarding them.
     </doc>
   </field>
 
-  <field name = "service type" domain = "service type" />
+  <field name = "namespace" domain = "queue namespace" />
 
-  <field name = "destination" domain = "destination">
-    name of destination
-    <doc>
-      The name of the destination to purge.  This can be a configured
-      destination or a dynamic destination.
+  <field name = "queue" domain = "queue name">
+    <doc name = "rule">
+      The queue must exist. Attempting to purge a non-existing queue
+      causes a channel exception.
     </doc>
     <assert check = "notnull" />
   </field>
 </method>
 
-<method name = "purge ok" synchronous = "1">
-  confirms a destination purge
+
+<method name = "purge-ok" synchronous = "1">
+  confirms a queue purge
   <doc>
-    This method confirms the purge of a destination.
+    This method confirms the purge of a queue.
   </doc>
   <chassis name = "client" implement = "MUST" />
 
   <field name = "message count" type = "long">
     number of messages purged
     <doc>
-      Provides the number of messages purged.
+      Reports the number of messages purged.
     </doc>
   </field>
 </method>
+
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "cancel" synchronous = "1">
-  cancel a dynamic destination
+<method name = "delete" synchronous = "1">
+  delete a queue
   <doc>
-    This method cancels (deletes) a dynamic destination.  When a queue
-    is cancelled, any pending messages are sent to a dead-letter queue
-    if this is defined in the server configuration, and all consumers
-    on the queue are cancelled.  When a topic is cancelled, all
-    subscriptions on that topic are also cancelled.
+    This method deletes a queue.  When a queue is deleted any pending
+    messages are sent to a dead-letter queue if this is defined in the
+    server configuration, and all consumers on the queue are cancelwled.
   </doc>
   <doc name = "rule">
-    The client MUST use an access ticket that the server granted with
-    "dynamic" access rights to the destination's access realm.
-  </doc>
-  <doc name = "rule">
-    The server SHOULD use a dead-letter queue or topic to hold messages
-    that were pending on a cancelled queue, and MAY provide facilities
-    for a system administrator to move these messages back to an active
+    The server SHOULD use a dead-letter queue to hold messages that
+    were pending on a deleted queue, and MAY provide facilities for
+    a system administrator to move these messages back to an active
     queue.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <response name = "cancel ok" />
+  <response name = "delete-ok" />
 
   <field name = "ticket" domain = "access ticket">
     <doc name = "rule">
-      The client MUST provide a valid access ticket giving "purge"
-      access rights to the destination's access realm.
+      The client MUST provide a valid access ticket giving "active"
+      access rights to the queue's access realm.
     </doc>
   </field>
 
-  <field name = "service type" domain = "service type" />
-    
-  <field name = "destination" domain = "destination">
-    <doc>
-      Specifies the name of the destination. This destination
-      must exist.  Attempting to cancel a non-existing destination
-      causes a connection exception.
+  <field name = "namespace" domain = "queue namespace" />
+
+  <field name = "queue" domain = "queue name">
+    <doc name = "rule">
+      The queue must exist. Attempting to delete a non-existing queue
+      causes a channel exception.
     </doc>
     <assert check = "notnull" />
   </field>
     
-  <field name = "ifempty" type = "bit">
-    cancel only if empty
+  <field name = "if unused" type = "bit">
+    delete only if unused
     <doc>
-      If set, the server will only cancel the destination if it has no
-      messages (for a queue) or no subscriptions (for a topic).  If the
-      destination is not empty the server raises a channel exception.
+      If set, the server will only delete the queue if it has no
+      consumers. If the queue has consumers the server does does not
+      delete it but raises a channel exception instead.
+    </doc>
+  </field>
+
+  <field name = "if empty" type = "bit">
+    delete only if empty
+    <doc>
+      If set, the server will only delete the queue if it has no
+      messages. If the queue is not empty the server raises a channel
+      exception.
     </doc>
   </field>
 </method>
 
-<method name = "cancel ok" synchronous = "1">
-  confirm cancellation of a dynamic destination
+
+<method name = "delete-ok" synchronous = "1">
+  confirm deletion of a queue
   <doc>
-    This method confirms the cancellation of a destination.
+    This method confirms the deletion of a queue.
   </doc>
   <chassis name = "client" implement = "MUST" />
 
   <field name = "message count" type = "long">
     number of messages purged
     <doc>
-      Provides the number of messages purged.
+      Reports the number of messages purged.
     </doc>
   </field>
 </method>
