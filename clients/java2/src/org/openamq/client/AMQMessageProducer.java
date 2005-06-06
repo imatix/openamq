@@ -2,7 +2,10 @@ package org.openamq.client;
 
 import org.openamq.jms.MessageProducer;
 import org.openamq.client.state.StateAwareProtocolHandler;
+import org.openamq.client.state.listener.HandleReplyListener;
 import org.openamq.client.framing.Handle;
+import org.openamq.client.framing.AMQMessage;
+import org.apache.log4j.Logger;
 
 import javax.jms.DeliveryMode;
 import javax.jms.Destination;
@@ -16,6 +19,7 @@ import java.util.LinkedHashMap;
  */
 public class AMQMessageProducer extends Closeable implements MessageProducer
 {
+    private static final Logger _logger = Logger.getLogger(AMQMessageProducer.class);
     /**
      * If true, messages will not get a timestamp.
      */
@@ -39,7 +43,7 @@ public class AMQMessageProducer extends Closeable implements MessageProducer
     /**
      * The Destination used for this consumer, if specified upon creation.
      */
-    private Destination _destination;
+    private AMQDestination _destination;
 
     /**
      * Default encoding used for messages produced by this producer.
@@ -59,7 +63,7 @@ public class AMQMessageProducer extends Closeable implements MessageProducer
 
     private StateAwareProtocolHandler _protocolHandler;
 
-    AMQMessageProducer(Destination destination, int handleId, StateAwareProtocolHandler protocolHandler)
+    AMQMessageProducer(AMQDestination destination, int handleId, StateAwareProtocolHandler protocolHandler)
     {
         _destination = destination;
         _handleMap.put(destination, new Integer(handleId));
@@ -159,10 +163,24 @@ public class AMQMessageProducer extends Closeable implements MessageProducer
     {
         checkNotClosed();
 
-        Handle.Send frame = new Handle.Send();
+        final Handle.Send frame = new Handle.Send();
         frame.handleId = ((Integer) _handleMap.get(_destination)).intValue();
-        
-
+        byte[] payload =  ((org.openamq.client.Message) message).getData();
+        AMQMessage msg = new AMQMessage();
+        msg.bodySize = payload.length;
+        msg.message = payload;
+        frame.fragmentSize = msg.getSize();
+        frame.confirmTag = 1;
+        frame.destName = _destination.getQueueName();
+        if (_logger.isDebugEnabled())
+        {
+            _logger.debug("Sending frame to send message to " + frame.destName);
+        }
+        _protocolHandler.writeFrameToSession(frame, new HandleReplyListener(frame.handleId));
+        if (_logger.isDebugEnabled())
+        {
+            _logger.debug("Sent frame and received acknowledgement");
+        }
     }
 
     public void send(Message message, int deliveryMode, int priority,

@@ -204,7 +204,7 @@ public class AMQSession extends Closeable implements Session
             frame.handleId = handleId;
             frame.producer = true;
             frame.confirmTag = 1;
-            AMQMessageProducer producer = new AMQMessageProducer(destination, handleId, _connection.getProtocolHandler());
+            AMQMessageProducer producer = new AMQMessageProducer((AMQDestination) destination, handleId, _connection.getProtocolHandler());
             _producers.put(new Integer(handleId), producer);
             _connection.getProtocolHandler().writeFrameToSession(frame, new HandleReplyListener(handleId));
             return producer;
