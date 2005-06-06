@@ -1,6 +1,8 @@
 package org.openamq.client;
 
 import org.openamq.jms.Session;
+import org.openamq.client.framing.Handle;
+import org.openamq.client.state.listener.HandleReplyListener;
 
 import javax.jms.*;
 import java.io.Serializable;
@@ -196,8 +198,14 @@ public class AMQSession extends Closeable implements Session
         {
             checkNotClosed();
             int handleId = _idFactory.getHandleId();
+            Handle.Open frame = new Handle.Open();
+            frame.channelId = _channelId;
+            frame.handleId = handleId;
+            frame.producer = true;
+            frame.confirmTag = 1;
             AMQMessageProducer producer = new AMQMessageProducer(destination, handleId);
             _producers.put(new Integer(handleId), producer);
+            _connection.getProtocolHandler().writeFrameToSession(frame, new HandleReplyListener(handleId));
             return producer;
         }
     }

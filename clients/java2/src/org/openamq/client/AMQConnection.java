@@ -1,6 +1,9 @@
 package org.openamq.client;
 
 import org.openamq.client.transport.TransportConnection;
+import org.openamq.client.framing.Channel;
+import org.openamq.client.state.StateAwareProtocolHandler;
+import org.openamq.client.state.listener.ChannelReplyListener;
 import org.openamq.jms.ChannelLimitReachedException;
 import org.openamq.jms.Connection;
 
@@ -27,18 +30,23 @@ public class AMQConnection implements Connection
      */
     private int _maximumHandleCount;
 
+    private StateAwareProtocolHandler _protocolHandler;
+
     /**
      * Maps from session id (Integer) to AMQSession instance
      */
     private LinkedHashMap _sessions;
 
+    private String _clientName;
+
     public AMQConnection(String host, int port, String username, String password,
                          String clientName, String virtualPath) throws AMQException
     {
+        _clientName = clientName;
         try
         {
             _transportConnection = new TransportConnection(host, port, username, password,
-                                                           clientName, virtualPath);
+                                                           clientName, virtualPath, this);
         }
         catch (IOException e)
         {
@@ -54,8 +62,14 @@ public class AMQConnection implements Connection
         }
         else
         {
-            // TODO: thread safety
+            // TODO: check thread safety
             int channelId = _idFactory.getChannelId();
+            Channel.Open frame = new Channel.Open();
+            frame.channelId = channelId;
+            frame.confirmTag = 1;
+            frame.transacted = transacted;
+            frame.restartable = false;
+            _protocolHandler.writeFrameToSession(frame, new ChannelReplyListener(channelId));
             AMQSession session = new AMQSession(this, channelId, transacted, acknowledgeMode);
             _sessions.put(new Integer(channelId), session);
             return session;
@@ -69,14 +83,12 @@ public class AMQConnection implements Connection
 
     public String getClientID() throws JMSException
     {
-        // TODO Auto-generated method stub
-        return null;
+        return _clientName;
     }
 
     public void setClientID(String clientID) throws JMSException
     {
-        // TODO Auto-generated method stub
-
+        _clientName = clientID;
     }
 
     public ConnectionMetaData getMetaData() throws JMSException
@@ -118,7 +130,6 @@ public class AMQConnection implements Connection
     public ConnectionConsumer createConnectionConsumer(Destination destination, String messageSelector,
                                                        ServerSessionPool sessionPool, int maxMessages) throws JMSException
     {
-        // TODO Auto-generated method stub
         return null;
     }
 
@@ -138,5 +149,20 @@ public class AMQConnection implements Connection
     public short getMaximumChannelCount()
     {
         return _maximumChannelCount;
+    }
+
+    public LinkedHashMap getSessions()
+    {
+        return _sessions;
+    }
+
+    public void setProtocolHandler(StateAwareProtocolHandler protocolHandler)
+    {
+        _protocolHandler = protocolHandler;
+    }
+
+    public StateAwareProtocolHandler getProtocolHandler()
+    {
+        return _protocolHandler;
     }
 }

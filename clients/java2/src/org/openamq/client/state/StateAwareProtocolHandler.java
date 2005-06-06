@@ -4,13 +4,14 @@ import org.apache.mina.common.IdleStatus;
 import org.apache.mina.common.Session;
 import org.apache.mina.protocol.ProtocolHandler;
 import org.apache.mina.protocol.ProtocolSession;
+import org.openamq.client.AMQConnection;
 import org.openamq.client.AMQException;
+import org.openamq.client.framing.AMQFrame;
+import org.openamq.client.framing.Connection;
 import org.openamq.client.protocol.ConnectionChallengeHandler;
 import org.openamq.client.protocol.ConnectionTuneHandler;
-import org.openamq.client.framing.Connection;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Manages states and the transitions between states, by acting on protocol "messages".
@@ -39,6 +40,17 @@ public class StateAwareProtocolHandler implements ProtocolHandler
 
     private String _virtualPath;
 
+    private ProtocolSession _protocolSession;
+
+    private AMQConnection _connection;
+
+    /**
+     * Maps from a frame class to a list of blocking listeners
+     */
+    private Map _blockingFrameListeners = new HashMap();
+
+    private final Object _blockingFrameListenersLock = new Object();
+
     /**
      * Create a protocol handler. The argument to this instance are eventually
      * fed into the protocol session to be available for use by the protocol
@@ -49,13 +61,16 @@ public class StateAwareProtocolHandler implements ProtocolHandler
      * @param virtualPath virtual path to connect to
      */
     public StateAwareProtocolHandler(String username, String password,
-                                     String clientName, String virtualPath)
+                                     String clientName, String virtualPath,
+                                     AMQConnection connection)
     {
         _username = username;
         _password = password;
         _clientName = clientName;
         _virtualPath = virtualPath;
+        _connection = connection;
 
+        connection.setProtocolHandler(this);
         final Map frame2handlerMap = new HashMap();
 
         frame2handlerMap.put(Connection.Challenge.class, new ConnectionChallengeHandler());
@@ -104,7 +119,7 @@ public class StateAwareProtocolHandler implements ProtocolHandler
 
     public void sessionCreated(ProtocolSession session) throws Exception
     {
-        //To change body of implemented methods use File | Settings | File Templates.
+        _protocolSession = session;
     }
 
     public void sessionOpened(ProtocolSession session) throws Exception
@@ -117,6 +132,7 @@ public class StateAwareProtocolHandler implements ProtocolHandler
         session.setAttribute(ProtocolSessionAttributes.USERNAME, _username);
         session.setAttribute(ProtocolSessionAttributes.PASSWORD, _password);
         session.setAttribute(ProtocolSessionAttributes.VIRTUAL_PATH, _virtualPath);
+        session.setAttribute(ProtocolSessionAttributes.AMQ_CONNECTION, _connection);
 
         session.write(new Connection.Initiation());
     }
@@ -146,6 +162,7 @@ public class StateAwareProtocolHandler implements ProtocolHandler
         final StateTransitionHandler handler = findStateTransitionHandler(currentState, message);
         final StateAndFrame sf = handler.messageReceived(currentState, message, session);
         session.setAttribute(ProtocolSessionAttributes.CURRENT_STATE_ATTRIBUTE_KEY, sf.state);
+        notifyFrameListeners((AMQFrame) message);
         if (sf.frame != null)
         {
             session.write(sf.frame);
@@ -155,5 +172,78 @@ public class StateAwareProtocolHandler implements ProtocolHandler
     public void messageSent(ProtocolSession session, Object message) throws Exception
     {
         System.out.println("Message sent called with message " + message);
+    }
+
+    public void writeFrameToSession(AMQFrame frame, BlockingFrameListener listener)
+    {
+        addListenerToBlockingMap(listener);
+        _protocolSession.write(frame);
+        while (!listener.readyToContinue())
+        {
+            synchronized (listener)
+            {
+                try
+                {
+                    listener.wait();
+                }
+                catch (InterruptedException e)
+                {
+                    // IGNORE
+                }
+            }
+        }
+    }
+
+    private void addListenerToBlockingMap(BlockingFrameListener listener)
+    {
+        final Class interestingFrame = listener.getInterestingFrame();
+        synchronized (_blockingFrameListenersLock)
+        {
+            LinkedList listeners = (LinkedList) _blockingFrameListeners.get(interestingFrame);
+            if (listeners == null)
+            {
+                listeners = new LinkedList();
+                _blockingFrameListeners.put(interestingFrame, listeners);
+            }
+            listeners.add(listener);
+        }
+    }
+
+    private void removeListenerFromBlockingMap(BlockingFrameListener listener)
+    {
+        final Class interestingFrame = listener.getInterestingFrame();
+        synchronized (_blockingFrameListenersLock)
+        {
+            LinkedList listeners = (LinkedList) _blockingFrameListeners.get(interestingFrame);
+            listeners.remove(listener);
+        }
+    }
+
+    private void notifyFrameListeners(AMQFrame frame)
+    {
+        LinkedList listeners = (LinkedList) _blockingFrameListeners.get(frame.getClass());
+        if (listeners == null)
+        {
+            return;
+        }
+        else
+        {
+            final Iterator it = listeners.iterator();
+
+            while (it.hasNext())
+            {
+                BlockingFrameListener listener = (BlockingFrameListener) it.next();
+                listener.frameReceived(frame);
+                if (listener.readyToContinue())
+                {
+                    removeListenerFromBlockingMap(listener);
+                    synchronized (listener)
+                    {
+                        // Note: really there should only be a single waiter...
+                        listener.notifyAll();
+                    }
+                }
+            }
+        }
     }
 }

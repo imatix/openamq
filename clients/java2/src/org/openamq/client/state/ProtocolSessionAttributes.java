@@ -18,4 +18,6 @@ public interface ProtocolSessionAttributes
     static final String USERNAME = "UserName";
 
     static final String PASSWORD = "Password";
+
+    static final String AMQ_CONNECTION = "AMQConnection";
 }
