@@ -1,6 +1,8 @@
 package org.openamq.client;
 
 import org.openamq.jms.MessageProducer;
+import org.openamq.client.state.StateAwareProtocolHandler;
+import org.openamq.client.framing.Handle;
 
 import javax.jms.DeliveryMode;
 import javax.jms.Destination;
@@ -55,10 +57,13 @@ public class AMQMessageProducer extends Closeable implements MessageProducer
      */
     private LinkedHashMap _handleMap = new LinkedHashMap();
 
-    AMQMessageProducer(Destination destination, int handleId)
+    private StateAwareProtocolHandler _protocolHandler;
+
+    AMQMessageProducer(Destination destination, int handleId, StateAwareProtocolHandler protocolHandler)
     {
         _destination = destination;
         _handleMap.put(destination, new Integer(handleId));
+        _protocolHandler = protocolHandler;
     }
 
     public void setDisableMessageID(boolean b) throws JMSException
@@ -154,7 +159,9 @@ public class AMQMessageProducer extends Closeable implements MessageProducer
     {
         checkNotClosed();
 
-        // construct a HANDLE SEND frame for the default destination, priority etc.
+        Handle.Send frame = new Handle.Send();
+        frame.handleId = ((Integer) _handleMap.get(_destination)).intValue();
+        
 
     }
 
