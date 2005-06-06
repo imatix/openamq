@@ -25,7 +25,7 @@
 static char
     *topic_level1 [] = { "gold", "oil", "pork", "chips", "bonds", "debt" },
     *topic_level2 [] = { "lon", "ny", "hk", "jo", "tk", "sg", "mo" },
-    *topic_level3 [] = { "usd", "eur", "ukp", "jpy", "chy", "aud" },
+    *topic_level3 [] = { "usd", "eur", "gbp", "jpy", "chy", "aud" },
     *topic_level4 [] = { "buy", "sell", "hold", "short", "long" },
     *topic_level5 [] = { "spot", "early", "late", "open", "close", "future" };
 

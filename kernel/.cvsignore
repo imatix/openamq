@@ -247,4 +247,9 @@ amq_topic_array.icl
 amq_topic_array.c
 amq_topic_array.h
 amq_topic_array_test.c
+amq_hitset_test
+amq_topic_array_test
+amq_topic_test
+testit
+testit.c
 

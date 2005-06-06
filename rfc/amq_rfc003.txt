@@ -83,7 +83,7 @@ the cost per message to 0.01 seconds per message, giving us a maximum
 throughput of 100 messages per second.
 
 Our goal is to get a matching cost of under 10 microseconds per message,
-for a maximum throughput of 100,000 messages per second.
+for a potential throughput of as much as 100,000 messages per second.
 
 The Inverted Bitmap Technique
 =============================
@@ -154,7 +154,8 @@ relatively stable with respect to messages.
 
 So, we must invert the roles so that:
 
-1. The "searchable item" is the matching request, e.g. a "subscription".
+1. The "searchable item" is the matching request, which we will call a
+   "subscription" for the purposes of discussion.
 2. The "search request" is the message.
 
 The indexing process now works as follows:
@@ -306,25 +307,76 @@ assumptions when making our bitmap design:
 The bitmap engine provides methods for:
 
 - Allocating a new empty bitmap.
-- Setting a specific bit to 1.
-- Clearing a specific bit to zero.
+- Setting or clearing a specific bit.
 - Testing whether a specific bit is set to 1.
 - Resetting a bitmap to all zeroes.
 - Counting the number of bits set to 1.
-- Performing a bitwise AND on two bitmaps.
-- Performing a bitwise OR on two bitmaps.
-- Performing a bitwise XOR on two bitmaps.
+- Performing a bitwise AND, OR, or XOR on two bitmaps.
 - Performing a bitwise NOT on a bitmaps.
-- Locating the first bit set to 1.
-- Locating the last bit set to 1.
-- Locating the next bit set to 1.
-- Locating the previous bit set to 1.
-- Locating the first bit set to zero.
-- Locating the last bit set to zero.
-- Locating the next bit set to zero.
-- Locating the previous bit set to zero.
-- Serialising a bitmap to a file stream.
-- Serialising a bitmap from a file stream.
+- Locating the first, last, next, or previous bit set to 1.
+- Locating the first, last, next, or previous bit set to zero.
+- Serialising a bitmap to and from a file stream.
+
+Fast Matching Test Program
+==========================
+
+We explain a sample program that performs this matching process on a
+set of randomly-generated topics and messages.  The program is provided
+in the OpenAMQ source package (kernel/amq_test_matching.c).
+
+The core of the program does three things:
+
+    generate_topics        (nbr of topics);
+    generate_subscriptions (nbr of subscribers);
+    generate_messages      (nbr of messages);
+
+We generate a set of topics built by selecting a random component from
+these tables:
+
+    char
+        *topic_level1 [] = { "gold", "oil", "pork", "chips", "bonds", "debt" },
+        *topic_level2 [] = { "lon", "ny", "hk", "jo", "tk", "sg", "mo" },
+        *topic_level3 [] = { "usd", "eur", "gbp", "jpy", "chy", "aud" },
+        *topic_level4 [] = { "buy", "sell", "hold", "short", "long" },
+        *topic_level5 [] = { "spot", "early", "late", "open", "close", "future" };
+
+We generate a set of subscriptions and for each subscription, match it against
+all known topics to build the inverted bitmap table.
+
+We finally generate a set of messages with random topic names and perform the
+matching:
+
+    ipr_shortstr_t
+        topic_name;
+    amq_match_t
+        *match;
+    int
+        count,
+        subscr_nbr;                     /*  Subcriber matching topic         */
+
+    hit_count = 0;
+    for (count = 0; count < nbr_messages; count++) {
+        /*  Our message consists simply of a topic name chosen at random     */
+        strcpy (topic_name, topic_list [randomof (topic_count)]);
+        /*  Find all subscribers for this topic                              */
+        match = amq_match_search (match_topics, topic_name);
+        if (match) {
+            for (IPR_BITS_EACH (subscr_nbr, match->bits)) {
+                /*  'publish' to subscriber, by incrementing hit counter     */
+                subscr_table [subscr_nbr].hits = 0;
+                hit_count++;
+            }
+        }
+    }
+
+Real-time performance on a 2Ghz workstation is as follows:
+
+- Building a list of 2000 subscribers and compiling for 2000 topics
+  (4M comparisons) - 12 seconds.
+- Generating 1M messages and matching against all subscriptions
+  (170M matches) - 26 seconds.
+
+Conclusion - we can do roughly 3M matches per second per Ghz.
 
 Security Considerations
 =======================
