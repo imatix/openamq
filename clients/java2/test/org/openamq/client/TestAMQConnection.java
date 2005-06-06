@@ -1,5 +1,10 @@
 package org.openamq.client;
 
+import javax.jms.Session;
+import javax.jms.MessageProducer;
+import javax.jms.Destination;
+import javax.jms.TextMessage;
+
 import java.net.InetAddress;
 import org.apache.log4j.*;
 
@@ -24,6 +29,12 @@ public class TestAMQConnection
             InetAddress address = InetAddress.getLocalHost();
             AMQConnection con = new AMQConnection(args[0], Integer.parseInt(args[1]), "guest", "guest",
                                                   address.getHostName(), "/test");
+            Session session = con.createSession(false, Session.AUTO_ACKNOWLEDGE);
+            AMQDestination destination = new AMQDestination("snowth");
+
+            MessageProducer producer = session.createProducer(destination);
+            TextMessage msg = session.createTextMessage("mahnah mahnah");
+            producer.send(msg);
             System.out.println("Test complete.");
         }
         catch (Throwable t)
