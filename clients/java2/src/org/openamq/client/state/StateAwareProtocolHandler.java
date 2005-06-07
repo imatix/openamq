@@ -4,13 +4,18 @@ import org.apache.mina.common.IdleStatus;
 import org.apache.mina.common.Session;
 import org.apache.mina.protocol.ProtocolHandler;
 import org.apache.mina.protocol.ProtocolSession;
+import org.apache.log4j.Logger;
 import org.openamq.client.AMQConnection;
 import org.openamq.client.AMQException;
 import org.openamq.client.AMQSession;
 import org.openamq.client.framing.AMQFrame;
 import org.openamq.client.framing.Connection;
+import org.openamq.client.framing.Channel;
+import org.openamq.client.framing.Handle;
 import org.openamq.client.protocol.ConnectionChallengeHandler;
 import org.openamq.client.protocol.ConnectionTuneHandler;
+import org.openamq.client.protocol.ConnectionCloseHandler;
+import org.openamq.client.protocol.NoopStateTransitionHandler;
 
 import java.util.*;
 
@@ -27,6 +32,8 @@ import java.util.*;
  */
 public class StateAwareProtocolHandler implements ProtocolHandler
 {
+    private static final Logger _logger = Logger.getLogger(StateAwareProtocolHandler.class);
+
     /**
      * Maps from an AMQState instance to a Map from Class to StateTransitionHandler.
      * The class must be a subclass of AMQFrame.
@@ -72,11 +79,23 @@ public class StateAwareProtocolHandler implements ProtocolHandler
         _connection = connection;
 
         connection.setProtocolHandler(this);
-        final Map frame2handlerMap = new HashMap();
 
+        // global handlers
+        Map frame2handlerMap = new HashMap();
+        frame2handlerMap.put(Connection.Close.class, new ConnectionCloseHandler());
+        _statesToHandlersMap.put(null, frame2handlerMap);
+
+        // Connection Not Authenticated Handlers
+        frame2handlerMap = new HashMap();
         frame2handlerMap.put(Connection.Challenge.class, new ConnectionChallengeHandler());
         frame2handlerMap.put(Connection.Tune.class, new ConnectionTuneHandler());
         _statesToHandlersMap.put(AMQState.CONNECTION_NOT_AUTHENTICATED, frame2handlerMap);
+
+        // Connection Tuned Handlers
+        frame2handlerMap = new HashMap();
+        frame2handlerMap.put(Channel.Reply.class, new NoopStateTransitionHandler());
+        frame2handlerMap.put(Handle.Reply.class, new NoopStateTransitionHandler());
+        _statesToHandlersMap.put(AMQState.CONNECTION_TUNED, frame2handlerMap);
     }
 
     /**
@@ -98,6 +117,13 @@ public class StateAwareProtocolHandler implements ProtocolHandler
     {
         final Class clazz = frame.getClass();
         final Map classToHandlerMap = (Map) _statesToHandlersMap.get(currentState);
+
+        if (classToHandlerMap == null)
+        {
+            // if no specialised per state handler is registered look for a
+            // handler registered for "all" states
+            return findStateTransitionHandler(null, frame);
+        }
         final StateTransitionHandler handler = (StateTransitionHandler) classToHandlerMap.get(clazz);
         if (handler == null)
         {
@@ -152,7 +178,7 @@ public class StateAwareProtocolHandler implements ProtocolHandler
 
     public void exceptionCaught(ProtocolSession session, Throwable cause) throws Exception
     {
-        //To change body of implemented methods use File | Settings | File Templates.
+        _logger.error("Error in protocol handler: " + cause, cause);
     }
 
     public void messageReceived(ProtocolSession session, Object message) throws Exception
@@ -212,14 +238,16 @@ public class StateAwareProtocolHandler implements ProtocolHandler
         }
     }
 
+    /**
+     * The lock must be held on the list before calling this method.
+     * @param listener
+     */
     private void removeListenerFromBlockingMap(BlockingFrameListener listener)
     {
         final Class interestingFrame = listener.getInterestingFrame();
-        synchronized (_blockingFrameListenersLock)
-        {
-            LinkedList listeners = (LinkedList) _blockingFrameListeners.get(interestingFrame);
-            listeners.remove(listener);
-        }
+
+        LinkedList listeners = (LinkedList) _blockingFrameListeners.get(interestingFrame);
+        listeners.remove(listener);
     }
 
     private void notifyFrameListeners(AMQFrame frame)
@@ -233,18 +261,28 @@ public class StateAwareProtocolHandler implements ProtocolHandler
         {
             final Iterator it = listeners.iterator();
 
+            LinkedList removeCandidates = new LinkedList();
             while (it.hasNext())
             {
                 BlockingFrameListener listener = (BlockingFrameListener) it.next();
                 listener.frameReceived(frame);
                 if (listener.readyToContinue())
                 {
-                    removeListenerFromBlockingMap(listener);
+                    removeCandidates.add(listener);
                     synchronized (listener)
                     {
                         // Note: really there should only be a single waiter...
                         listener.notifyAll();
                     }
+                }
+            }
+
+            final Iterator removeIt = removeCandidates.iterator();
+            synchronized (_blockingFrameListenersLock)
+            {
+                while (removeIt.hasNext())
+                {
+                    removeListenerFromBlockingMap((BlockingFrameListener) removeIt.next());
                 }
             }
         }

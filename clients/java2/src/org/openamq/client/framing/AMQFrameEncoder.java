@@ -30,6 +30,7 @@ public class AMQFrameEncoder implements MessageEncoder
         //
         _messageTypes.add(Connection.Initiation.class);
         _messageTypes.add(Connection.Challenge.class);
+        _messageTypes.add(Connection.Open.class);
         _messageTypes.add(Connection.Response.class);
         _messageTypes.add(Connection.Tune.class);
         _messageTypes.add(Connection.Close.class);
@@ -62,6 +63,7 @@ public class AMQFrameEncoder implements MessageEncoder
         final AMQFrame frame = (AMQFrame) message;
         int frameSize = (int)frame.getSize();
         _buffer = ByteBuffer.allocate(frameSize);
+        _buffer.setAutoExpand(true);
         frame.writePayload(_buffer);
        
         if (_logger.isInfoEnabled())

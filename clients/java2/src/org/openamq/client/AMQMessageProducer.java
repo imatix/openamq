@@ -172,6 +172,7 @@ public class AMQMessageProducer extends Closeable implements MessageProducer
         frame.fragmentSize = msg.getSize();
         frame.confirmTag = 1;
         frame.destName = _destination.getQueueName();
+        frame.message = msg;
         if (_logger.isDebugEnabled())
         {
             _logger.debug("Sending frame to send message to " + frame.destName);

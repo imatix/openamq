@@ -17,26 +17,26 @@ import org.apache.log4j.*;
 public class AMQSession extends Closeable implements Session
 {
 	private static final Logger _logger = Logger.getLogger(AMQSession.class);
-	
+
     private AMQConnection _connection;
-    
+
     private boolean _transacted;
-    
+
     private int _acknowledgeMode;
-    
+
     private IdFactory _idFactory;
-    
+
     private int _channelId;
 
     /**
      * Maps from handle id (Integer) to AMQMessageProducer instance
      */
-    private LinkedHashMap _producers;
+    private Map _producers = new LinkedHashMap();
 
     /**
      * Maps from handle id (Integer) to AMQMessageConsumer instance
      */
-    private LinkedHashMap _consumers;
+    private Map _consumers = new LinkedHashMap();
 
     AMQSession(AMQConnection con, int channelId, boolean transacted, int acknowledgeMode)
     {
@@ -53,7 +53,7 @@ public class AMQSession extends Closeable implements Session
         _idFactory = con.getIdFactory();
         _channelId = channelId;
     }
-    
+
     public BytesMessage createBytesMessage() throws JMSException
     {
         checkNotClosed();
@@ -106,8 +106,7 @@ public class AMQSession extends Closeable implements Session
     public TextMessage createTextMessage(String text) throws JMSException
     {
         checkNotClosed();
-        // TODO Auto-generated method stub
-        return null;
+        return new Message(text);
     }
 
     public boolean getTransacted() throws JMSException
@@ -220,7 +219,7 @@ public class AMQSession extends Closeable implements Session
         synchronized (_closingLock)
         {
             checkNotClosed();
-            
+
             int handleId = _idFactory.getHandleId();
             Handle.Consume frame = new Handle.Consume();
             frame.handleId = handleId;
@@ -232,13 +231,13 @@ public class AMQSession extends Closeable implements Session
             frame.exclusive = false;
             frame.destName = destination.toString();	// ?
             frame.selector = "";
-            
+
             AMQMessageConsumer consumer = new AMQMessageConsumer(handleId,destination,(String)null,frame.noLocal);
-            
+
             _connection.getProtocolHandler().addSessionByHandle(handleId,this);
-            
+
             _consumers.put(new Integer(handleId), consumer);
-            
+
             _connection.getProtocolHandler().writeFrameToSession(frame, new HandleReplyListener(handleId));
 
             return(consumer);
@@ -332,7 +331,7 @@ public class AMQSession extends Closeable implements Session
     public void notifyHandle(int handleId,AMQMessage messageFragment)
     {
     	AMQMessageConsumer consumer = (AMQMessageConsumer)_consumers.get(new Integer(handleId));
-    	
+
     	if (consumer == null)
     	{
     		_logger.warn("Received a message for handleId " + handleId + " without a handler - ignoring...");

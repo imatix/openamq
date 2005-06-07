@@ -18,10 +18,22 @@ public class Message implements TextMessage
         return _data;
     }
 
+    public Message(String text) throws JMSException
+    {
+        setText(text);
+    }
+
+    public Message() throws JMSException
+    {
+        setText(null);
+    }
+
     public void setText(String string) throws JMSException
     {
         try
         {
+            // TODO : remove this
+            if (string == null) string = "String is null";
             _data = string.getBytes("utf8");
         }
         catch (UnsupportedEncodingException e)

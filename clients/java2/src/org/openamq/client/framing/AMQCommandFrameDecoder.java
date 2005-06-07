@@ -57,6 +57,7 @@ public class AMQCommandFrameDecoder extends AMQFrameDecoder
         _supportedFrames.put(new Short(Handle.Notify.FRAME_TYPE), Handle.Notify.class);
         _supportedFrames.put(new Short(Handle.Open.FRAME_TYPE), Handle.Open.class);
         _supportedFrames.put(new Short(Handle.Query.FRAME_TYPE), Handle.Query.class);
+        _supportedFrames.put(new Short(Handle.Reply.FRAME_TYPE), Handle.Reply.class);
         _supportedFrames.put(new Short(Handle.Send.FRAME_TYPE), Handle.Send.class);
         _supportedFrames.put(new Short(Handle.Unget.FRAME_TYPE), Handle.Unget.class);
 

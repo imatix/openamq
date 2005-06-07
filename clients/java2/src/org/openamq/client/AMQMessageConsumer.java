@@ -125,12 +125,11 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
     		_logger.warn("Received a message without a listener - ignoring...");
     	}
     	else
-    	{
-    		org.openamq.client.Message message = new org.openamq.client.Message();
-    		
-    		try
+    	{    		
+            try
     		{
-    			message.setText(new String(messageFragment.message));
+                org.openamq.client.Message message = new org.openamq.client.Message();
+                message.setText(new String(messageFragment.message));
     		
     			_messageListener.onMessage(message);
     		}

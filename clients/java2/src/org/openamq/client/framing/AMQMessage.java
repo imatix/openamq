@@ -25,9 +25,10 @@ public class AMQMessage extends AMQFrame
 
     public long getSize()
     {
-        return 4 + 1 + 4 + EncodingUtils.encodedShortStringLength(mimeType) +
+        return 4 + 1 + 1 + 4 + EncodingUtils.encodedShortStringLength(mimeType) +
                EncodingUtils.encodedShortStringLength(encoding) +
                EncodingUtils.encodedShortStringLength(identifier) +
+               EncodingUtils.encodedFieldTableLength(headers) +
                bodySize;
     }
 
@@ -36,6 +37,8 @@ public class AMQMessage extends AMQFrame
         EncodingUtils.writeUnsignedInteger(buffer, bodySize);
         EncodingUtils.writeBooleans(buffer, new boolean[]{persistent});
         EncodingUtils.writeUnsignedByte(buffer, priority);
+        EncodingUtils.writeUnsignedInteger(buffer, expiration);
+        EncodingUtils.writeShortStringBytes(buffer, mimeType);
         EncodingUtils.writeShortStringBytes(buffer, encoding);
         EncodingUtils.writeShortStringBytes(buffer, identifier);
         EncodingUtils.writeFieldTableBytes(buffer, headers);
@@ -50,7 +53,9 @@ public class AMQMessage extends AMQFrame
         bodySize = buffer.getUnsignedInt();
         persistent = EncodingUtils.readBooleans(buffer)[0];
         priority = buffer.get();
+        expiration = buffer.getUnsignedInt();
         encoding = EncodingUtils.readShortString(buffer);
+        mimeType = EncodingUtils.readShortString(buffer);
         identifier = EncodingUtils.readShortString(buffer);
         headers = EncodingUtils.readFieldTable(buffer);
         if (bodySize > 0)

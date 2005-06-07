@@ -2,6 +2,7 @@ package org.openamq.client.state.listener;
 
 import org.openamq.client.framing.AMQFrame;
 import org.openamq.client.framing.Channel;
+import org.openamq.client.framing.Handle;
 import org.openamq.client.state.BlockingFrameListener;
 
 /**
@@ -24,13 +25,13 @@ public class HandleReplyListener implements BlockingFrameListener
 
     public void frameReceived(AMQFrame frame)
     {
-        Channel.Reply channelReply = (Channel.Reply) frame;
-        _done = (_handleId == channelReply.channelId);
+        Handle.Reply handleReply = (Handle.Reply) frame;
+        _done = (_handleId == handleReply.handleId);
     }
 
     public Class getInterestingFrame()
     {
-        return Channel.Reply.class;
+        return Handle.Reply.class;
     }
 
     public boolean readyToContinue()

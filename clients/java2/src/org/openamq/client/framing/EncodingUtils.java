@@ -161,7 +161,7 @@ public class EncodingUtils
         {
             if (values[i])
             {
-                packedValue = (byte)(packedValue & (1 << i));
+                packedValue = (byte)(packedValue | (1 << i));
             }
         }
 
@@ -291,7 +291,7 @@ public class EncodingUtils
 
 	public static String convertToHexString(ByteBuffer bb)
 	{
-		int size = bb.capacity();
+		int size = bb.limit();
 		
 		byte[] from = new byte[size];
 		

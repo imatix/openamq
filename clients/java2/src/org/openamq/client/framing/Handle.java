@@ -1,7 +1,6 @@
 package org.openamq.client.framing;
 
 import org.apache.mina.common.ByteBuffer;
-import org.openamq.client.*;
 
 /**
  * Frames for the Handle command.
@@ -43,10 +42,10 @@ public class Handle
         protected long getCommandSize()
         {
             return 2 + 2 + 2 + 2 + 1 +
-	            EncodingUtils.encodedShortStringLength(destName) +
-	            EncodingUtils.encodedShortStringLength(mimeType) +
-	            EncodingUtils.encodedShortStringLength(encoding) +
-	            EncodingUtils.encodedFieldTableLength(options);
+                   EncodingUtils.encodedShortStringLength(destName) +
+                   EncodingUtils.encodedShortStringLength(mimeType) +
+                   EncodingUtils.encodedShortStringLength(encoding) +
+                   EncodingUtils.encodedFieldTableLength(options);
         }
 
         public short getType()
@@ -105,9 +104,33 @@ public class Handle
 
         public static final short FRAME_TYPE = 31;
 
+         public void writePayload(ByteBuffer buffer)
+        {
+            // size is payload + 1 for type + 1 byte for the end of frame marker
+            final long size = getCommandSize() + 2;
+            if (size > 0xFFFE)
+            {
+                EncodingUtils.writeUnsignedShort(buffer, 0xFFFF);
+                EncodingUtils.writeUnsignedInteger(buffer, size);
+            }
+            else
+            {
+                EncodingUtils.writeUnsignedShort(buffer, (int) size);
+            }
+
+            EncodingUtils.writeUnsignedByte(buffer, getType());
+            writeCommandPayload(buffer);
+            // write the end of command frame marker
+            buffer.put((byte)0xCE);
+            if (message != null)
+            {
+                message.writePayload(buffer);
+            }
+        }
+
         protected long getCommandSize()
         {
-            return 12 + EncodingUtils.encodedShortStringLength(destName);
+            return 2 + 2 + 4 + 1 + EncodingUtils.encodedShortStringLength(destName);
         }
 
         public short getType()
@@ -123,10 +146,6 @@ public class Handle
             EncodingUtils.writeBooleans(buffer, new boolean[]{partial, outOfBand, recovery,
                                                               streaming});
             EncodingUtils.writeShortStringBytes(buffer, destName);
-            if (message != null)
-            {
-                message.writePayload(buffer);
-            }
         }
 
         public void populateFromBuffer(ByteBuffer buffer) throws AMQFrameDecodingException
@@ -203,7 +222,7 @@ public class Handle
             noAck = bools[1];
             dynamic = bools[2];
             exclusive = bools[3];
-            
+
             destName = EncodingUtils.readShortString(buffer);
             selector = EncodingUtils.readLongString(buffer);
        }
@@ -501,4 +520,48 @@ public class Handle
             messageFragment.populateFromBuffer(buffer);
         }
     }
+
+    public static final class Reply extends AMQCommandFrame
+        {
+            /* short int */
+            public int handleId;
+
+            /* short int */
+            public int confirmTag;
+
+            /* short int */
+            public int replyCode;
+
+            /* short string*/
+            public String replyText;
+
+            public static final short FRAME_TYPE = 48;
+
+            protected long getCommandSize()
+            {
+                return 6 + EncodingUtils.encodedShortStringLength(replyText);
+            }
+
+            public short getType()
+            {
+                return FRAME_TYPE;
+            }
+
+            protected void writeCommandPayload(ByteBuffer buffer)
+            {
+                EncodingUtils.writeUnsignedShort(buffer, handleId);
+                EncodingUtils.writeUnsignedShort(buffer, confirmTag);
+                EncodingUtils.writeUnsignedShort(buffer, replyCode);
+                EncodingUtils.writeShortStringBytes(buffer, replyText);
+            }
+
+            public void populateFromBuffer(ByteBuffer buffer) throws AMQFrameDecodingException
+            {
+                handleId = buffer.getUnsignedShort();
+                confirmTag = buffer.getUnsignedShort();
+                replyCode = buffer.getUnsignedShort();
+                replyText = EncodingUtils.readShortString(buffer);
+            }
+        }
+
 }

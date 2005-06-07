@@ -186,7 +186,7 @@ public class Channel
         /* short string*/
         public String replyText;
 
-        public static final short FRAME_TYPE = 24;
+        public static final short FRAME_TYPE = 28;
 
         protected long getCommandSize()
         {
