@@ -92,6 +92,7 @@ public class StateAwareProtocolHandler implements ProtocolHandler
         frame2handlerMap = new HashMap();
         frame2handlerMap.put(Channel.Reply.class, new NoopStateTransitionHandler());
         frame2handlerMap.put(Handle.Reply.class, new NoopStateTransitionHandler());
+        frame2handlerMap.put(Handle.Created.class, new NoopStateTransitionHandler());
         frame2handlerMap.put(Handle.Notify.class, new HandleNotifyHandler());
         _statesToHandlersMap.put(AMQState.CONNECTION_TUNED, frame2handlerMap);
     }
