@@ -154,6 +154,7 @@ public class Handle
 
         /* short integer */
         public int prefetch;
+        
         public boolean noLocal;
         public boolean noAck;
 
@@ -170,7 +171,7 @@ public class Handle
 
         protected long getCommandSize()
         {
-            return 2 + 2 + 2 + 1 + 1 + EncodingUtils.encodedShortStringLength(destName) +
+            return 2 + 2 + 2 + 1 + EncodingUtils.encodedShortStringLength(destName) +
                    EncodingUtils.encodedShortStringLength(selector);
         }
 
@@ -184,10 +185,16 @@ public class Handle
             EncodingUtils.writeUnsignedShort(buffer, handleId);
             EncodingUtils.writeUnsignedShort(buffer, confirmTag);
             EncodingUtils.writeUnsignedShort(buffer, prefetch);
-            EncodingUtils.writeBoolean(buffer, noLocal);
-            EncodingUtils.writeBoolean(buffer, noAck);
-            EncodingUtils.writeBoolean(buffer, dynamic);
-            EncodingUtils.writeBoolean(buffer, exclusive);
+            
+            boolean[] bools = new boolean[] {noLocal,noAck,dynamic,exclusive};
+            
+            EncodingUtils.writeBooleans(bools);
+            
+            //EncodingUtils.writeBoolean(buffer, noLocal);
+            //EncodingUtils.writeBoolean(buffer, noAck);
+            //EncodingUtils.writeBoolean(buffer, dynamic);
+            //EncodingUtils.writeBoolean(buffer, exclusive);
+            
             EncodingUtils.writeShortStringBytes(buffer, destName);
             EncodingUtils.writeLongStringBytes(buffer, selector);
         }
@@ -197,10 +204,19 @@ public class Handle
             handleId = buffer.getUnsignedShort();
             confirmTag = buffer.getUnsignedShort();
             prefetch = buffer.getUnsignedShort();
-            noLocal = EncodingUtils.readBoolean(buffer);
-            noAck = EncodingUtils.readBoolean(buffer);
-            dynamic = EncodingUtils.readBoolean(buffer);
-            exclusive = EncodingUtils.readBoolean(buffer);
+            
+            boolean[] bools = EncodingUtils.readBooleans(buffer);
+            
+            noLocal = bools[0];
+            noAck = bools[1];
+            dynamic = bools[2];
+            exclusive = bools[3];
+            
+            //noLocal = EncodingUtils.readBoolean(buffer);
+            //noAck = EncodingUtils.readBoolean(buffer);
+            //dynamic = EncodingUtils.readBoolean(buffer);
+            //exclusive = EncodingUtils.readBoolean(buffer);
+            
             destName = EncodingUtils.readShortString(buffer);
             selector = EncodingUtils.readLongString(buffer);
        }
