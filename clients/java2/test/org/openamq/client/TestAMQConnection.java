@@ -28,7 +28,7 @@ public class TestAMQConnection
         {
             InetAddress address = InetAddress.getLocalHost();
             AMQConnection con = new AMQConnection(args[0], Integer.parseInt(args[1]), "guest", "guest",
-                                                  address.getHostName(), "/test");
+                                                  address.getHostName() + System.currentTimeMillis(), "/test");
             Thread.sleep(5000);
             Session session = con.createSession(false, Session.AUTO_ACKNOWLEDGE);
             AMQDestination destination = new AMQDestination("test");

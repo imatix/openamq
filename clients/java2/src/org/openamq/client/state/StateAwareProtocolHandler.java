@@ -199,7 +199,7 @@ public class StateAwareProtocolHandler implements ProtocolHandler
 
     public void messageSent(ProtocolSession session, Object message) throws Exception
     {
-        System.out.println("Message sent called with message " + message);
+        _logger.info("Frame sent of type " + message);
     }
 
     public void writeFrameToSession(AMQFrame frame, BlockingFrameListener listener)

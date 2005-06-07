@@ -11,6 +11,10 @@ public class Handle
 {
     public static final class Open extends AMQCommandFrame
     {
+        public static final int SERVICE_TYPE_QUEUE = 1;
+
+        public static final int SERVICE_TYPE_TOPIC = 2;
+
         /* short int */
         public int channelId;
 
@@ -26,10 +30,6 @@ public class Handle
         public boolean producer;
         public boolean consumer;
         public boolean browser;
-        public boolean temporary;
-
-        /* short string */
-        public String destName;
 
         /* short string */
         public String mimeType;
@@ -44,7 +44,6 @@ public class Handle
         protected long getCommandSize()
         {
             return 2 + 2 + 2 + 2 + 1 +
-                   EncodingUtils.encodedShortStringLength(destName) +
                    EncodingUtils.encodedShortStringLength(mimeType) +
                    EncodingUtils.encodedShortStringLength(encoding) +
                    EncodingUtils.encodedFieldTableLength(options);
@@ -61,8 +60,7 @@ public class Handle
             EncodingUtils.writeUnsignedShort(buffer, handleId);
             EncodingUtils.writeUnsignedShort(buffer, serviceType);
             EncodingUtils.writeUnsignedShort(buffer, confirmTag);
-            EncodingUtils.writeBooleans(buffer, new boolean[]{producer, consumer, browser, temporary});
-            EncodingUtils.writeShortStringBytes(buffer, destName);
+            EncodingUtils.writeBooleans(buffer, new boolean[]{producer, consumer, browser});
             EncodingUtils.writeShortStringBytes(buffer, mimeType);
             EncodingUtils.writeShortStringBytes(buffer, encoding);
             EncodingUtils.writeFieldTableBytes(buffer, options);
@@ -77,9 +75,7 @@ public class Handle
             boolean[] bools = EncodingUtils.readBooleans(buffer);
             producer = bools[0];
             consumer = bools[1];
-            browser = bools[2];
-            temporary = bools[3];
-            destName = EncodingUtils.readShortString(buffer);
+            browser = bools[2];                        
             mimeType = EncodingUtils.readShortString(buffer);
             encoding = EncodingUtils.readShortString(buffer);
             options = EncodingUtils.readFieldTable(buffer);
