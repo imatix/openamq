@@ -408,7 +408,7 @@ Integers
 
 AMQP/Fast defines these integer types:
 
-- Bit values, which are accumulated into octets.
+- Bit values.
 - Unsigned octet (8 bits).
 - Unsigned short integers (16 bits).
 - Unsigned long integers (32 bits).
@@ -422,6 +422,15 @@ Guidelines for implementors:
 
 - Implementors MUST NOT assume that integers encoded in a frame are
   aligned on memory word boundaries.
+
+Bits
+----
+
+Bits are accumulated into whole octets.  When two or more bits are
+contiguous in a frame these will be packed into one or more octets,
+starting from the low bit in each octet.  There is no requirement that
+all the bit values in a frame be contiguous, but this is generally
+done to minimise frame sizes.
 
 Strings
 -------
@@ -443,7 +452,8 @@ Timestamps
 ----------
 
 Time stamps are held in the 64-bit POSIX time_t format with an accuracy
-of one second.
+of one second.  By using 64 bits we avoid the future wraparound issues
+associated with the POSIX 31 and 32-bit values.
 
 Field Tables
 ------------
@@ -754,33 +764,49 @@ Guidelines for implementors:
 The Frame Header Wire Format
 ----------------------------
 
-All frames start with a 4-octet header composed of a one-octet type
-indicator and a 3-octet size indicator:
+All frames start with a 4-octet header composed of a one-octet type field
+a 1-octet channel field and a short size field:
 
 [frameheader.png]
 
-AMQP/Fast defines several types of frame, with different type
-indicators:
+    0      1         2         4                size+4
+    +------+---------+------+  +------------+  +-----------+
+    | type | channel | size |  | frame-body |  | frame-end |
+    +------+---------+------+  +------------+  +-----------+
+     octet  octet     short     size-1 octets   octet
+
+AMQP/Fast defines these types of frame:
 
 - Type = 1, "METHOD": method frame.
 - Type = 2, "HEADER": content header frame.
 - Type = 3, "BODY": content body frame.
-- Type = 4, "OOB METHOD": out-of-band method frame.
-- Type = 5, "OOB HEADER": out-of-band band header frame.
-- Type = 6, "OOB BODY": out-of-band body frame.
+- Type = 4, "OOB-METHOD": out-of-band method frame.
+- Type = 5, "OOB-HEADER": out-of-band band header frame.
+- Type = 6, "OOB-BODY": out-of-band body frame.
 - Type = 7, "TRACE": trace frame.
 - Type = 8, "HEARTBEAT": heartbeat frame.
 - Type = 9, "META": meta frame.
 
-The channel number is 0 for all frames which are global to the
-connection, and 1 .. 255 for frames that refer to specific channels (1
-.. 64K-1 in extended frames).
+The channel number is 0 for all frames which are global to the connection
+and 1 .. 255 for frames that refer to specific channels (1 .. 64K-1 in
+extended frames).
+
+The size field includes the end field, a single octet with the value
+%xCE.
 
 Guidelines for implementors:
 
-- If a peer receives a frame with a type that is not one of these
-  defined types, it MUST treat this as a fatal protocol error and
-  close the connection without sending any further data on it.
+- If a peer receives a frame with a type that is not one of these defined
+  types, it MUST treat this as a fatal protocol error and close the
+  connection without sending any further data on it.
+
+- When a peer reads a frame it SHOULD check that the frame-end is valid
+  before attempting to decode the frame.  If the frame-end is not valid
+  it MUST treat this as a fatal protocol error and close the connection
+  without sending any further data on it.  It SHOULD log information
+  about the problem.
+
+- The minimum value for the size field is 1.
 
 Method Frames
 -------------
@@ -933,7 +959,7 @@ Formal Grammar for Content Frames
 This is the formal grammar for the AMQP/Fast content model:
 
     content         = header-frame child-content *body-frame
-    header-frame    = HEADER channel frame-size header-payload
+    header-frame    = HEADER channel frame-size header-payload frame-end
     channel         = octet
     frame-size      = short-integer
     header-payload  = class weight body-size
@@ -946,6 +972,7 @@ This is the formal grammar for the AMQP/Fast content model:
     child-content   = weight*content
     body-frame      = BODY channel frame-size body-payload
     body-payload    = *OCTET
+    frame-end       = OCTET %xCE
 
 Content Header Frame Wire Format
 --------------------------------
