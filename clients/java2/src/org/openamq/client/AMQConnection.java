@@ -46,7 +46,8 @@ public class AMQConnection implements Connection
         try
         {
             _transportConnection = new TransportConnection(host, port, username, password,
-                                                           clientName, virtualPath, this);
+                                        clientName = "-" + System.currentTimeMillis(), // Make it unique here for now.
+                                        virtualPath, this);
         }
         catch (IOException e)
         {

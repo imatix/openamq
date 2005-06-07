@@ -11,6 +11,9 @@ import org.openamq.client.framing.*;
 
 import org.apache.log4j.*;
 
+import edu.emory.mathcs.backport.java.util.concurrent.*;
+
+
 /**
  */
 public class AMQMessageConsumer extends Closeable implements MessageConsumer
@@ -25,6 +28,9 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
 
     private MessageListener _messageListener;
     
+    private BlockingQueue _queue = new LinkedBlockingQueue();
+    private Despatcher _despatcher;
+    
     /**
      * Used for concurrency control
      */
@@ -33,6 +39,10 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
     AMQMessageConsumer(int handleId,Destination destination, String messageSelector, boolean noLocal)
     {
         _messageSelector = messageSelector;
+        
+        _despatcher = new Despatcher();
+        
+        _despatcher.start();
     }
 
     public String getMessageSelector() throws JMSException
@@ -130,13 +140,42 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
     		{
                 org.openamq.client.Message message = new org.openamq.client.Message();
                 message.setText(new String(messageFragment.message));
-    		
-    			_messageListener.onMessage(message);
+
+                try
+                {
+                	_queue.put(message);
+                }
+                catch(InterruptedException e)
+                {
+                	;
+                }
     		}
     		catch(JMSException e)
     		{
     			_logger.warn("Caught exception (dump follows) - ignoring...",e);
     		}
+    	}
+    }
+
+    private class Despatcher extends Thread
+    {
+    	public void run()
+    	{
+	    	org.openamq.client.Message message;
+	    	
+	    	try
+	    	{
+		    	while((message = (org.openamq.client.Message)_queue.take()) != null)
+		    	{
+		    		_messageListener.onMessage(message);
+		    	}
+	    	}
+	    	catch(InterruptedException e)
+	    	{
+	    		;
+	    	}
+	    	
+	    	System.err.println("Despatcher thread termoinating...");
     	}
     }
     

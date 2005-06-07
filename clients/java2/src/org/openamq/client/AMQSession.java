@@ -201,7 +201,7 @@ public class AMQSession extends Closeable implements Session
         synchronized (_closingLock)
                 {
                     checkNotClosed();
-                    Handle.Open frame = createHandleOpenFrame(true, 1);
+                    Handle.Open frame = createHandleOpenFrame(destination,true, 1);
                     AMQMessageProducer producer = new AMQMessageProducer((AMQDestination) destination, frame.handleId, _connection.getProtocolHandler());
                     _producers.put(new Integer(frame.handleId), producer);
                     _connection.getProtocolHandler().writeFrameToSession(frame, new HandleReplyListener(frame.handleId));
@@ -209,7 +209,7 @@ public class AMQSession extends Closeable implements Session
                 }
     }
 
-    private Handle.Open createHandleOpenFrame(boolean producer, int confirmTag)
+    private Handle.Open createHandleOpenFrame(Destination destination,boolean producer, int confirmTag)
     {
         int handleId = _idFactory.getHandleId();
         Handle.Open frame = new Handle.Open();
@@ -218,6 +218,8 @@ public class AMQSession extends Closeable implements Session
         frame.producer = producer;
         frame.consumer = !producer;
         frame.confirmTag = confirmTag;
+        frame.temporary = true;
+        frame.destName = destination.toString();
         return frame;
     }
 
@@ -252,7 +254,7 @@ public class AMQSession extends Closeable implements Session
         {
             checkNotClosed();
 
-            Handle.Open frame = createHandleOpenFrame(false, 1);
+            Handle.Open frame = createHandleOpenFrame(destination,false, 1);
             AMQMessageConsumer consumer = new AMQMessageConsumer(frame.handleId, destination, (String) null, noLocal);
             _consumers.put(new Integer(frame.handleId), consumer);
 
