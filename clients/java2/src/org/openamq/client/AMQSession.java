@@ -216,32 +216,7 @@ public class AMQSession extends Closeable implements Session
 
     public MessageConsumer createConsumer(Destination destination) throws JMSException
     {
-        synchronized (_closingLock)
-        {
-            checkNotClosed();
-
-            int handleId = _idFactory.getHandleId();
-            Handle.Consume frame = new Handle.Consume();
-            frame.handleId = handleId;
-            frame.confirmTag = 1;
-            frame.prefetch = 1;	// For the time being...
-            frame.noLocal = true; // ditto
-            frame.noAck = true;	// ditto
-            frame.dynamic = false;
-            frame.exclusive = false;
-            frame.destName = destination.toString();	// ?
-            frame.selector = "";
-
-            AMQMessageConsumer consumer = new AMQMessageConsumer(handleId,destination,(String)null,frame.noLocal);
-
-            _connection.getProtocolHandler().addSessionByHandle(handleId,this);
-
-            _consumers.put(new Integer(handleId), consumer);
-
-            _connection.getProtocolHandler().writeFrameToSession(frame, new HandleReplyListener(handleId));
-
-            return(consumer);
-        }
+    	return(null);
     }
 
     public MessageConsumer createConsumer(Destination destination, String messageSelector) throws JMSException
@@ -257,6 +232,43 @@ public class AMQSession extends Closeable implements Session
         return null;
     }
 
+    public MessageConsumer createQueueConsumer(
+    		Destination destination,
+    		int prefetch,
+    		boolean noLocal,
+    		boolean noAck,
+    		boolean dynamic,
+    		boolean exclusive,
+    		String selector) throws JMSException
+    {
+	    synchronized (_closingLock)
+	    {
+	        checkNotClosed();
+	
+	        int handleId = _idFactory.getHandleId();
+	        Handle.Consume frame = new Handle.Consume();
+	        frame.handleId = handleId;
+	        frame.confirmTag = 1;
+	        frame.prefetch = prefetch;
+	        frame.noLocal = noLocal;
+	        frame.noAck = noAck;
+	        frame.dynamic = dynamic;
+	        frame.exclusive = exclusive;
+	        frame.destName = destination.toString();	// ?
+	        frame.selector = selector;
+	
+	        AMQMessageConsumer consumer = new AMQMessageConsumer(handleId,destination,(String)null,frame.noLocal);
+	
+	        _connection.getProtocolHandler().addSessionByHandle(handleId,this);
+	
+	        _consumers.put(new Integer(handleId), consumer);
+	
+	        _connection.getProtocolHandler().writeFrameToSession(frame, new HandleReplyListener(handleId));
+	
+	        return(consumer);
+	    }
+    }
+    
     public Queue createQueue(String queueName) throws JMSException
     {
         // TODO Auto-generated method stub

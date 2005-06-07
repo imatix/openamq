@@ -19,4 +19,6 @@ public interface MessageProducer extends javax.jms.MessageProducer
      */
     void setEncoding(String encoding) throws UnsupportedEncodingException;
 
+    
+    
 }
