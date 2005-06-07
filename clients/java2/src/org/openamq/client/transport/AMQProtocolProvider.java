@@ -7,6 +7,7 @@ import org.apache.mina.protocol.codec.DemuxingProtocolCodecFactory;
 import org.openamq.client.framing.AMQFrameEncoder;
 import org.openamq.client.framing.Connection;
 import org.openamq.client.framing.AMQCommandFrameDecoder;
+import org.openamq.client.framing.Handle;
 import org.openamq.client.state.StateAwareProtocolHandler;
 import org.openamq.client.AMQConnection;
 
@@ -26,6 +27,7 @@ public class AMQProtocolProvider implements ProtocolProvider
         _factory.register(AMQFrameEncoder.class);
         _factory.register(Connection.Initiation.Decoder.class);
         _factory.register(AMQCommandFrameDecoder.class);
+        _factory.register(Handle.Notify.Decoder.class);
         _handler = new StateAwareProtocolHandler(username, password, clientName,
                                                  virtualPath, connection);
     }

@@ -279,4 +279,16 @@ public class Message implements TextMessage
     {
         //To change body of implemented methods use File | Settings | File Templates.
     }
+
+    public String toString()
+    {
+        try
+        {
+            return getText();
+        }
+        catch (JMSException e)
+        {
+            return e.toString();
+        }
+    }
 }

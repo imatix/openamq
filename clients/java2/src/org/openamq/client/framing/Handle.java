@@ -1,6 +1,8 @@
 package org.openamq.client.framing;
 
 import org.apache.mina.common.ByteBuffer;
+import org.apache.mina.protocol.codec.MessageDecoderResult;
+import org.apache.mina.protocol.ProtocolSession;
 
 /**
  * Frames for the Handle command.
@@ -178,21 +180,20 @@ public class Handle
         public boolean noLocal;
         public boolean noAck;
 
-        public boolean exclusive;
         public boolean dynamic;
+        public boolean exclusive;
 
         /* short string */
         public String destName;
 
-        /* long string */
-        public String selector;
+        public FieldTable selector;
 
         public static final short FRAME_TYPE = 32;
 
         protected long getCommandSize()
         {
             return 2 + 2 + 2 + 1 + EncodingUtils.encodedShortStringLength(destName) +
-                   EncodingUtils.encodedShortStringLength(selector);
+                   EncodingUtils.encodedFieldTableLength(selector);
         }
 
         public short getType()
@@ -207,7 +208,7 @@ public class Handle
             EncodingUtils.writeUnsignedShort(buffer, prefetch);
             EncodingUtils.writeBooleans(buffer, new boolean[] {noLocal,noAck,dynamic,exclusive});
             EncodingUtils.writeShortStringBytes(buffer, destName);
-            EncodingUtils.writeLongStringBytes(buffer, selector);
+            EncodingUtils.writeFieldTableBytes(buffer, selector);
         }
 
         public void populateFromBuffer(ByteBuffer buffer) throws AMQFrameDecodingException
@@ -224,7 +225,7 @@ public class Handle
             exclusive = bools[3];
 
             destName = EncodingUtils.readShortString(buffer);
-            selector = EncodingUtils.readLongString(buffer);
+            selector = EncodingUtils.readFieldTable(buffer);
        }
     }
 
@@ -478,7 +479,6 @@ public class Handle
         public boolean recovery;
         public boolean delivered;
         public boolean redelivered;
-        public boolean streaming;
         /* short string */
         public String destName;
         public AMQMessage messageFragment;
@@ -500,7 +500,8 @@ public class Handle
             EncodingUtils.writeUnsignedShort(buffer, handleId);
             EncodingUtils.writeUnsignedInteger(buffer, messageNbr);
             EncodingUtils.writeUnsignedInteger(buffer, fragmentSize);
-            EncodingUtils.writeBooleans(buffer, new boolean[]{partial, outOfBand, recovery, delivered, redelivered, streaming});
+            EncodingUtils.writeBooleans(buffer, new boolean[]{partial, outOfBand, recovery, delivered, redelivered});
+            EncodingUtils.writeShortStringBytes(buffer, destName);
             messageFragment.writePayload(buffer);
         }
 
@@ -515,9 +516,60 @@ public class Handle
             recovery = bools[2];
             delivered = bools[3];
             redelivered = bools[4];
-            streaming = bools[5];
+            destName = EncodingUtils.readShortString(buffer);
+            byte endOfFrameMarker = buffer.get();
+            if (endOfFrameMarker != (byte)0xCE)
+            {
+                throw new AMQFrameDecodingException("Unexpected value found for end of frame marker: " + endOfFrameMarker);
+            }
             messageFragment = new AMQMessage();
             messageFragment.populateFromBuffer(buffer);
+        }
+
+        public static final class Decoder extends AMQCommandFrameDecoder
+        {
+            public MessageDecoderResult decodable(ProtocolSession session, ByteBuffer in)
+            {
+                final long frameSize = readFrameSize(in);
+
+                if (frameSize < 0)
+                {
+                    return MessageDecoderResult.NOT_OK;
+                }
+
+                if (frameSize == 0 || in.remaining() < frameSize)
+                {
+                    return MessageDecoderResult.NEED_DATA;
+                }
+
+                short frameType = in.getUnsigned();
+
+                if (frameType == FRAME_TYPE)
+                {
+                    return MessageDecoderResult.OK;
+                }
+                /*else if (size < frameSize)
+                {
+                    return MessageDecoderResult.NEED_DATA;
+                }*/
+                else
+                {
+                    return MessageDecoderResult.NOT_OK;
+                }
+            }
+
+            protected Object createAndPopulateFrame(ByteBuffer in)
+                    throws AMQFrameDecodingException
+            {
+                long frameSize = readFrameSize(in);
+
+                short frameType = in.getUnsigned();
+                Handle.Notify frame = new Handle.Notify();
+
+                frame.populateFromBuffer(in);
+
+                return frame;
+            }
         }
     }
 

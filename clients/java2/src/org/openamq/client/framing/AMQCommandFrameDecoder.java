@@ -53,8 +53,7 @@ public class AMQCommandFrameDecoder extends AMQFrameDecoder
         _supportedFrames.put(new Short(Handle.Cancel.FRAME_TYPE), Handle.Cancel.class);
         _supportedFrames.put(new Short(Handle.Consume.FRAME_TYPE), Handle.Consume.class);
         _supportedFrames.put(new Short(Handle.Created.FRAME_TYPE), Handle.Created.class);
-        _supportedFrames.put(new Short(Handle.Flow.FRAME_TYPE), Handle.Flow.class);
-        _supportedFrames.put(new Short(Handle.Notify.FRAME_TYPE), Handle.Notify.class);
+        _supportedFrames.put(new Short(Handle.Flow.FRAME_TYPE), Handle.Flow.class);        
         _supportedFrames.put(new Short(Handle.Open.FRAME_TYPE), Handle.Open.class);
         _supportedFrames.put(new Short(Handle.Query.FRAME_TYPE), Handle.Query.class);
         _supportedFrames.put(new Short(Handle.Reply.FRAME_TYPE), Handle.Reply.class);
@@ -110,7 +109,7 @@ public class AMQCommandFrameDecoder extends AMQFrameDecoder
      * @param in the buffer
      * @return the size indicated by the buffer, < 0 on error and 0 on needs more data.
      */
-    private long readFrameSize(ByteBuffer in)
+    protected long readFrameSize(ByteBuffer in)
     {
     	int remaining;
 

@@ -12,10 +12,7 @@ import org.openamq.client.framing.AMQFrame;
 import org.openamq.client.framing.Connection;
 import org.openamq.client.framing.Channel;
 import org.openamq.client.framing.Handle;
-import org.openamq.client.protocol.ConnectionChallengeHandler;
-import org.openamq.client.protocol.ConnectionTuneHandler;
-import org.openamq.client.protocol.ConnectionCloseHandler;
-import org.openamq.client.protocol.NoopStateTransitionHandler;
+import org.openamq.client.protocol.*;
 
 import java.util.*;
 
@@ -95,6 +92,7 @@ public class StateAwareProtocolHandler implements ProtocolHandler
         frame2handlerMap = new HashMap();
         frame2handlerMap.put(Channel.Reply.class, new NoopStateTransitionHandler());
         frame2handlerMap.put(Handle.Reply.class, new NoopStateTransitionHandler());
+        frame2handlerMap.put(Handle.Notify.class, new HandleNotifyHandler());
         _statesToHandlersMap.put(AMQState.CONNECTION_TUNED, frame2handlerMap);
     }
 

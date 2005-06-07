@@ -24,4 +24,9 @@ public class AMQDestination implements Queue, Topic
     {
         return getQueueName();
     }
+
+    public String toString()
+    {
+        return _name;
+    }
 }

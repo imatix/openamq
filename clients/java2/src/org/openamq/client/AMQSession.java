@@ -6,8 +6,8 @@ import org.openamq.client.framing.AMQMessage;
 import org.openamq.client.state.listener.HandleReplyListener;
 
 import javax.jms.*;
+import javax.jms.IllegalStateException;
 import java.io.Serializable;
-import java.lang.IllegalStateException;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -16,7 +16,7 @@ import org.apache.log4j.*;
 
 public class AMQSession extends Closeable implements Session
 {
-	private static final Logger _logger = Logger.getLogger(AMQSession.class);
+    private static final Logger _logger = Logger.getLogger(AMQSession.class);
 
     private AMQConnection _connection;
 
@@ -143,29 +143,29 @@ public class AMQSession extends Closeable implements Session
         // that can be called from a different thread of control from the one controlling the session
 
         synchronized (_closingLock)
-        {
-            _closed.set(true);
+                {
+                    _closed.set(true);
 
-            final Iterator producers = _producers.entrySet().iterator();
-            while (producers.hasNext())
-            {
-                final Map.Entry entry = (Map.Entry) producers.next();
-                AMQMessageProducer producer = (AMQMessageProducer) entry.getValue();
-                producer.close();
-            }
+                    final Iterator producers = _producers.entrySet().iterator();
+                    while (producers.hasNext())
+                    {
+                        final Map.Entry entry = (Map.Entry) producers.next();
+                        AMQMessageProducer producer = (AMQMessageProducer) entry.getValue();
+                        producer.close();
+                    }
 
-            _producers.clear();
+                    _producers.clear();
 
-            final Iterator consumers = _consumers.entrySet().iterator();
-            while (consumers.hasNext())
-            {
-                final Map.Entry entry = (Map.Entry) consumers.next();
-                AMQMessageConsumer consumer = (AMQMessageConsumer) entry.getValue();
-                consumer.close();
-            }
+                    final Iterator consumers = _consumers.entrySet().iterator();
+                    while (consumers.hasNext())
+                    {
+                        final Map.Entry entry = (Map.Entry) consumers.next();
+                        AMQMessageConsumer consumer = (AMQMessageConsumer) entry.getValue();
+                        consumer.close();
+                    }
 
-            _consumers.clear();
-        }
+                    _consumers.clear();
+                }
     }
 
     public void recover() throws JMSException
@@ -199,24 +199,31 @@ public class AMQSession extends Closeable implements Session
     public MessageProducer createProducer(Destination destination) throws JMSException
     {
         synchronized (_closingLock)
-        {
-            checkNotClosed();
-            int handleId = _idFactory.getHandleId();
-            Handle.Open frame = new Handle.Open();
-            frame.channelId = _channelId;
-            frame.handleId = handleId;
-            frame.producer = true;
-            frame.confirmTag = 1;
-            AMQMessageProducer producer = new AMQMessageProducer((AMQDestination) destination, handleId, _connection.getProtocolHandler());
-            _producers.put(new Integer(handleId), producer);
-            _connection.getProtocolHandler().writeFrameToSession(frame, new HandleReplyListener(handleId));
-            return producer;
-        }
+                {
+                    checkNotClosed();
+                    Handle.Open frame = createHandleOpenFrame(true, 1);
+                    AMQMessageProducer producer = new AMQMessageProducer((AMQDestination) destination, frame.handleId, _connection.getProtocolHandler());
+                    _producers.put(new Integer(frame.handleId), producer);
+                    _connection.getProtocolHandler().writeFrameToSession(frame, new HandleReplyListener(frame.handleId));
+                    return producer;
+                }
+    }
+
+    private Handle.Open createHandleOpenFrame(boolean producer, int confirmTag)
+    {
+        int handleId = _idFactory.getHandleId();
+        Handle.Open frame = new Handle.Open();
+        frame.channelId = _channelId;
+        frame.handleId = handleId;
+        frame.producer = producer;
+        frame.consumer = !producer;
+        frame.confirmTag = confirmTag;
+        return frame;
     }
 
     public MessageConsumer createConsumer(Destination destination) throws JMSException
     {
-    	return(null);
+        return (null);
     }
 
     public MessageConsumer createConsumer(Destination destination, String messageSelector) throws JMSException
@@ -226,49 +233,49 @@ public class AMQSession extends Closeable implements Session
     }
 
     public MessageConsumer createConsumer(Destination destination, String messageSelector, boolean NoLocal)
-                                    throws JMSException
+            throws JMSException
     {
         // TODO Auto-generated method stub
         return null;
     }
 
     public MessageConsumer createQueueConsumer(
-    		Destination destination,
-    		int prefetch,
-    		boolean noLocal,
-    		boolean noAck,
-    		boolean dynamic,
-    		boolean exclusive,
-    		String selector) throws JMSException
+            Destination destination,
+            int prefetch,
+            boolean noLocal,
+            boolean noAck,
+            boolean dynamic,
+            boolean exclusive,
+            String selector) throws JMSException
     {
-	    synchronized (_closingLock)
-	    {
-	        checkNotClosed();
-	
-	        int handleId = _idFactory.getHandleId();
-	        Handle.Consume frame = new Handle.Consume();
-	        frame.handleId = handleId;
-	        frame.confirmTag = 1;
-	        frame.prefetch = prefetch;
-	        frame.noLocal = noLocal;
-	        frame.noAck = noAck;
-	        frame.dynamic = dynamic;
-	        frame.exclusive = exclusive;
-	        frame.destName = destination.toString();	// ?
-	        frame.selector = selector;
-	
-	        AMQMessageConsumer consumer = new AMQMessageConsumer(handleId,destination,(String)null,frame.noLocal);
-	
-	        _connection.getProtocolHandler().addSessionByHandle(handleId,this);
-	
-	        _consumers.put(new Integer(handleId), consumer);
-	
-	        _connection.getProtocolHandler().writeFrameToSession(frame, new HandleReplyListener(handleId));
-	
-	        return(consumer);
-	    }
+        synchronized (_closingLock)
+        {
+            checkNotClosed();
+
+            Handle.Open frame = createHandleOpenFrame(false, 1);
+            AMQMessageConsumer consumer = new AMQMessageConsumer(frame.handleId, destination, (String) null, noLocal);
+            _consumers.put(new Integer(frame.handleId), consumer);
+
+            _connection.getProtocolHandler().writeFrameToSession(frame, new HandleReplyListener(frame.handleId));
+
+            Handle.Consume consumeFrame = new Handle.Consume();
+            consumeFrame.handleId = frame.handleId;
+            consumeFrame.confirmTag = 1;
+            consumeFrame.prefetch = prefetch;
+            consumeFrame.noLocal = noLocal;
+            consumeFrame.noAck = noAck;
+            consumeFrame.dynamic = dynamic;
+            consumeFrame.exclusive = exclusive;
+            consumeFrame.destName = destination.toString();    // ?
+            consumeFrame.selector = null;
+
+            _connection.getProtocolHandler().addSessionByHandle(frame.handleId, this);
+
+            _connection.getProtocolHandler().writeFrameToSession(consumeFrame, new HandleReplyListener(frame.handleId));
+            return (consumer);
+        }
     }
-    
+
     public Queue createQueue(String queueName) throws JMSException
     {
         // TODO Auto-generated method stub
@@ -288,7 +295,7 @@ public class AMQSession extends Closeable implements Session
     }
 
     public TopicSubscriber createDurableSubscriber(Topic topic, String name, String messageSelector, boolean noLocal)
-                                    throws JMSException
+            throws JMSException
     {
         // TODO Auto-generated method stub
         return null;
@@ -340,19 +347,19 @@ public class AMQSession extends Closeable implements Session
         }
     }
 
-    public void notifyHandle(int handleId,AMQMessage messageFragment)
+    public void notifyHandle(int handleId, AMQMessage messageFragment)
     {
-    	AMQMessageConsumer consumer = (AMQMessageConsumer)_consumers.get(new Integer(handleId));
+        AMQMessageConsumer consumer = (AMQMessageConsumer) _consumers.get(new Integer(handleId));
 
-    	if (consumer == null)
-    	{
-    		_logger.warn("Received a message for handleId " + handleId + " without a handler - ignoring...");
-    	}
-    	else
-    	{
-    		consumer.notifyMessage(messageFragment);
-    	}
+        if (consumer == null)
+        {
+            _logger.warn("Received a message for handleId " + handleId + " without a handler - ignoring...");
+        }
+        else
+        {
+            consumer.notifyMessage(messageFragment);
+        }
 
-    	return;
+        return;
     }
 }
