@@ -1719,7 +1719,9 @@ For AMQP/Fast these are the correct values:
 - protocol-major = 0
 - protocol-minor = 9
 
-[fig_version.png]
+    +---+---+---+---+---+---+---+---+
+    |'A'|'M'|'Q'|'P'| 1 | 1 | 0 | 9 |
+    +---+---+---+---+---+---+---+---+
 
 Guidelines for implementors:
 
@@ -1946,7 +1948,11 @@ The Frame Header Wire Format
 All frames start with a 4-octet header composed of a one-octet type
 indicator and a 3-octet size indicator:
 
-[fig_frameheader.png]
+    0       1         2            4 
+    +-------+---------+------------+ +-------------- - -
+    | type  | channel | frame-size | | frame body...
+    +-------+---------+------------+ +-------------- - -
+      octet   octet     short int    'frame-size' octets
 
 AMQP/Fast defines several types of frame, with different type
 indicators:
@@ -1996,7 +2002,12 @@ of header frames followed by the appropriate body frames.
 Looking at the frames as they pass on the wire, we might see something
 like this:
 
-[fig_content.png]
+    [method]
+    [method] [header] [body] [body]
+    [method] [header] [body] [body]
+    [trace]
+    [method]
+    ...
 
 There is a specific reason for placing content body in distinct frames
 as compared to including the header and body in the method. We want to
@@ -2075,7 +2086,15 @@ Extended Frame Header Wire Format
 A meta frame is followed by an "extended frame header" with a short
 integer channel number and a long long size:
 
-[fig_meta.png]
+    0      1   2   4
+    +------+---+---+
+    | META | 0 | 0 |
+    +------+---+---+
+    0       1       2         4           12
+    +-------+-------+---------+------------+ +-------------- - -
+    | type  | flags | channel | frame-size | | frame body...
+    +-------+-------+---------+------------+ +-------------- - -
+      octet   octet   short     long long     'frame-size' octets
 
 Guidelines for implementors:
 
@@ -2141,7 +2160,11 @@ Content Header Frame Wire Format
 
 A content header frame has this format:
 
-[fig_contentheader.png]
+    0        1        2           6                8
+    +--------+--------+-----------+----------------+------------- - -
+    | domain | weight | body size | property flags | property list...
+    +--------+--------+-----------+----------------+------------- - -
+      octet    octet    long long   short int        remainder...
 
 - The content class specifies the set of properties (with a predefined
   syntax and semantics) that the header frame may hold. The standard
@@ -2172,25 +2195,40 @@ As an example, we take an imaginary content class "D" which has three
 properties, T, E and C. Imagine a simple content that has properties E
 and C but not T. The header frame will be formatted thus:
 
-[fig_domainexample.png]
+      domain   weight   body size   property flags   property list
+    +--------+--------+-----------+----------------+-------+
+    |   D    |   0    |    nnn    | 011...         | E | C |
+    +--------+--------+-----------+----------------+-------+
 
 The property flags are ordered from high to low, the first property
 being indicated by bit 15, and so on:
 
-[fig_propertyflags.png]
+     15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
+    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+    | T | E | C |                                               | 0 | 
+    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 
 The property flags can specify more than 16 properties. If bit 0 is set,
 it indicates that a further property flags field follows. There can be
 several property flag fields in succession:
 
-[fig_propertyflagsx.png]
+     15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
+    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+    |                                                           | 1 | 
+    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+    |                                                           | 1 | 
+    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+    |                                                           | 0 | 
+    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 
 Content Body Frame Wire Format
 ------------------------------
 
 A content body frame has this format:
 
-[fig_contentbody.png]
+    +---------------------------------------------- - -
+    | Opaque binary content
+    +---------------------------------------------- - -
 
 Where the size of the frame is defined in the frame header.
 
@@ -2201,12 +2239,14 @@ The "weight" field in the content header frame indicates whether the
 content has child-contents or not. In the simplest case (weight = zero)
 content consists of a header frame plus zero or more body frames:
 
-[fig_contentstructured.png]
+    [header] [body] [body]...
 
 If the content has child-contents, these are inserted between the
 header and body of the parent content:
 
-[fig_contentchild.png]
+    [parent-header]
+        [child-header] [child-body] ...
+    [parent-body]
 
 This organisation means that a principal content (e.g. a very large
 video file) can have child content (e.g. subtitles and menus) which will
@@ -2350,7 +2390,11 @@ connections. We can visualise the protocol as governing two levels of
 connection - network connections (sockets) and virtual connections
 (channels):
 
-[fig_connections.png]
+    +-----------+-----------+-----------+-----------+
+    |  channel  |  channel  |  channel  |  channel  |
+    +-----------------------------------------------+
+    |                    socket                     |
+    +-----------------------------------------------+
 
 Each peer involved in a connection (socket and channel) is strictly
 a client or a server.  The client initiates the connection and the
@@ -2385,7 +2429,11 @@ Method Frame Body Wire Format
 
 A method frame body has this format:
 
-[fig_framemethod.png]
+    0       1        2          3       4          8
+    +-------+--------+----------+-------+----------+-------------- - -
+    | class | method | revision | flags | synchtag | properties...
+    +-------+--------+----------+-------+----------+-------------- - -
+      octet   octet    octet      octet   long
 
 - The class and method are protocol-constant values.
 
@@ -2402,7 +2450,18 @@ A method frame body has this format:
 
 The flags are defined as follows:
 
-[fig_flags.png]
+                    7   6   5   4   3   2   1   0
+                  +---+---+---+---+---+---+---+---+
+                  | X | X | X | X |   revision    |
+                  +---+---+---+---+---+---+---+---+
+                    |   |   |   | 
+    SYNCHREQ -------'   |   |   | 
+                        |   |   |
+    UNREAL -------------'   |   |
+                            |   |
+    TRACER -----------------'   |
+                                |   
+    UNUSED ---------------------'
                                  
 - 7 = SYNCHREQ - if 1, requests a "synchpoint", turning an asynchronous
   method into a synchronous one. Has no effect on a synchronous method.
