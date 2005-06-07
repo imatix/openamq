@@ -120,11 +120,13 @@ public class StateAwareProtocolHandler implements ProtocolHandler
 
     public void sessionCreated(ProtocolSession session) throws Exception
     {
+        // TODO: check when this is actually called
         _protocolSession = session;
     }
 
     public void sessionOpened(ProtocolSession session) throws Exception
     {
+        _protocolSession = session;
         // default state is CONNECTION_NOT_AUTHENTICATED - this is the first thing the server will
         // attempt to establish
         session.setAttribute(ProtocolSessionAttributes.CURRENT_STATE_ATTRIBUTE_KEY, AMQState.CONNECTION_NOT_AUTHENTICATED);
@@ -247,18 +249,18 @@ public class StateAwareProtocolHandler implements ProtocolHandler
             }
         }
     }
-    
+
     public void addSessionByHandle(int handleId,AMQSession session)
     {
     	Map map = (Map)_protocolSession.getAttribute(ProtocolSessionAttributes.AMQ_HANDLE_TO_SESSION_MAP);
-    	
+
     	if (map == null)
     	{
     		map = new HashMap();
-    		
+
     		_protocolSession.setAttribute(ProtocolSessionAttributes.AMQ_HANDLE_TO_SESSION_MAP,map);
     	}
-    	
+
     	map.put(new Integer(handleId),session);
     }
 }

@@ -34,7 +34,7 @@ public class AMQMessage extends AMQFrame
     public void writePayload(ByteBuffer buffer)
     {
         EncodingUtils.writeUnsignedInteger(buffer, bodySize);
-        EncodingUtils.writeBoolean(buffer, persistent);
+        EncodingUtils.writeBooleans(buffer, new boolean[]{persistent});
         EncodingUtils.writeUnsignedByte(buffer, priority);
         EncodingUtils.writeShortStringBytes(buffer, encoding);
         EncodingUtils.writeShortStringBytes(buffer, identifier);
@@ -48,7 +48,7 @@ public class AMQMessage extends AMQFrame
     public void populateFromBuffer(ByteBuffer buffer) throws AMQFrameDecodingException
     {
         bodySize = buffer.getUnsignedInt();
-        persistent = EncodingUtils.readBoolean(buffer);
+        persistent = EncodingUtils.readBooleans(buffer)[0];
         priority = buffer.get();
         encoding = EncodingUtils.readShortString(buffer);
         identifier = EncodingUtils.readShortString(buffer);

@@ -27,8 +27,7 @@ public class TransportConnection
         final InetSocketAddress address = new InetSocketAddress(host, port);
         _protocolProvider = new AMQProtocolProvider(username, password,
                                                     clientName, virtualPath, connection);
-        protocolConnector.connect(address, _protocolProvider);
-
+        protocolConnector.connect(address, _protocolProvider);        
         // TODO: how do we disconnect?
     }
 

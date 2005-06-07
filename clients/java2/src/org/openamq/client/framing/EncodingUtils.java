@@ -150,25 +150,34 @@ public class EncodingUtils
         }
         else
         {
-            buffer.put((byte) 0);
+            EncodingUtils.writeUnsignedShort(buffer, 0);
         }
     }
 
-    public static void writeBoolean(ByteBuffer buffer, boolean value)
+    public static void writeBooleans(ByteBuffer buffer, boolean[] values)
     {
-        if (value)
+        byte packedValue = 0;
+        for (int i = 0; i < values.length; i++)
         {
-            buffer.put((byte)1);
+            if (values[i])
+            {
+                packedValue = (byte)(packedValue & (1 << i));
+            }
         }
-        else
-        {
-            buffer.put((byte)0);
-        }
+
+        buffer.put(packedValue);
     }
 
-    public static boolean readBoolean(ByteBuffer buffer)
+    public static boolean[] readBooleans(ByteBuffer buffer)
     {
-        return (buffer.get() != 0);
+        byte packedValue = buffer.get();
+        boolean[] result = new boolean[8];
+
+        for (int i = 0; i < 8; i++)
+        {
+            result[i] = ((packedValue & (1 << i)) != 0);
+        }
+        return result;
     }
 
     public static FieldTable readFieldTable(ByteBuffer buffer) throws AMQFrameDecodingException

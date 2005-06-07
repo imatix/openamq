@@ -56,10 +56,7 @@ public class Handle
             EncodingUtils.writeUnsignedShort(buffer, handleId);
             EncodingUtils.writeUnsignedShort(buffer, serviceType);
             EncodingUtils.writeUnsignedShort(buffer, confirmTag);
-            EncodingUtils.writeBoolean(buffer, producer);
-            EncodingUtils.writeBoolean(buffer, consumer);
-            EncodingUtils.writeBoolean(buffer, browser);
-            EncodingUtils.writeBoolean(buffer, temporary);
+            EncodingUtils.writeBooleans(buffer, new boolean[]{producer, consumer, browser, temporary});
             EncodingUtils.writeShortStringBytes(buffer, destName);
             EncodingUtils.writeShortStringBytes(buffer, mimeType);
             EncodingUtils.writeShortStringBytes(buffer, encoding);
@@ -72,10 +69,11 @@ public class Handle
             handleId = buffer.getUnsignedShort();
             serviceType = buffer.getUnsignedShort();
             confirmTag = buffer.getUnsignedShort();
-            producer = EncodingUtils.readBoolean(buffer);
-            consumer = EncodingUtils.readBoolean(buffer);
-            browser = EncodingUtils.readBoolean(buffer);
-            temporary = EncodingUtils.readBoolean(buffer);
+            boolean[] bools = EncodingUtils.readBooleans(buffer);
+            producer = bools[0];
+            consumer = bools[1];
+            browser = bools[2];
+            temporary = bools[3];
             destName = EncodingUtils.readShortString(buffer);
             mimeType = EncodingUtils.readShortString(buffer);
             encoding = EncodingUtils.readShortString(buffer);
@@ -118,10 +116,8 @@ public class Handle
             EncodingUtils.writeUnsignedShort(buffer, handleId);
             EncodingUtils.writeUnsignedShort(buffer, confirmTag);
             EncodingUtils.writeUnsignedInteger(buffer, fragmentSize);
-            EncodingUtils.writeBoolean(buffer, partial);
-            EncodingUtils.writeBoolean(buffer, outOfBand);
-            EncodingUtils.writeBoolean(buffer, recovery);
-            EncodingUtils.writeBoolean(buffer, streaming);
+            EncodingUtils.writeBooleans(buffer, new boolean[]{partial, outOfBand, recovery,
+                                                              streaming});
             EncodingUtils.writeShortStringBytes(buffer, destName);
             if (message != null)
             {
@@ -134,10 +130,11 @@ public class Handle
             handleId = buffer.getUnsignedShort();
             confirmTag = buffer.getUnsignedShort();
             fragmentSize = buffer.getUnsignedInt();
-            partial = EncodingUtils.readBoolean(buffer);
-            outOfBand = EncodingUtils.readBoolean(buffer);
-            recovery =  EncodingUtils.readBoolean(buffer);
-            streaming = EncodingUtils.readBoolean(buffer);
+            boolean[] bools = EncodingUtils.readBooleans(buffer);
+            partial = bools[0];
+            outOfBand = bools[1];
+            recovery =  bools[2];
+            streaming = bools[3];
             destName = EncodingUtils.readShortString(buffer);
             message= new AMQMessage();
             message.populateFromBuffer(buffer);
@@ -154,13 +151,13 @@ public class Handle
 
         /* short integer */
         public int prefetch;
-        
+
         public boolean noLocal;
         public boolean noAck;
 
         public boolean exclusive;
         public boolean dynamic;
-        
+
         /* short string */
         public String destName;
 
@@ -185,16 +182,16 @@ public class Handle
             EncodingUtils.writeUnsignedShort(buffer, handleId);
             EncodingUtils.writeUnsignedShort(buffer, confirmTag);
             EncodingUtils.writeUnsignedShort(buffer, prefetch);
-            
+
             boolean[] bools = new boolean[] {noLocal,noAck,dynamic,exclusive};
-            
-            EncodingUtils.writeBooleans(bools);
-            
+
+            EncodingUtils.writeBooleans(buffer, bools);
+
             //EncodingUtils.writeBoolean(buffer, noLocal);
             //EncodingUtils.writeBoolean(buffer, noAck);
             //EncodingUtils.writeBoolean(buffer, dynamic);
             //EncodingUtils.writeBoolean(buffer, exclusive);
-            
+
             EncodingUtils.writeShortStringBytes(buffer, destName);
             EncodingUtils.writeLongStringBytes(buffer, selector);
         }
@@ -204,19 +201,19 @@ public class Handle
             handleId = buffer.getUnsignedShort();
             confirmTag = buffer.getUnsignedShort();
             prefetch = buffer.getUnsignedShort();
-            
+
             boolean[] bools = EncodingUtils.readBooleans(buffer);
-            
+
             noLocal = bools[0];
             noAck = bools[1];
             dynamic = bools[2];
             exclusive = bools[3];
-            
+
             //noLocal = EncodingUtils.readBoolean(buffer);
             //noAck = EncodingUtils.readBoolean(buffer);
             //dynamic = EncodingUtils.readBoolean(buffer);
             //exclusive = EncodingUtils.readBoolean(buffer);
-            
+
             destName = EncodingUtils.readShortString(buffer);
             selector = EncodingUtils.readLongString(buffer);
        }
@@ -292,14 +289,14 @@ public class Handle
         {
             EncodingUtils.writeUnsignedShort(buffer, handleId);
             EncodingUtils.writeUnsignedShort(buffer, confirmTag);
-            EncodingUtils.writeBoolean(buffer, flowPause);
+            EncodingUtils.writeBooleans(buffer, new boolean[]{flowPause});
         }
 
         public void populateFromBuffer(ByteBuffer buffer) throws AMQFrameDecodingException
         {
             handleId = buffer.getUnsignedShort();
             confirmTag = buffer.getUnsignedShort();
-            flowPause = EncodingUtils.readBoolean(buffer);
+            flowPause = EncodingUtils.readBooleans(buffer)[0];
         }
     }
 
@@ -494,12 +491,7 @@ public class Handle
             EncodingUtils.writeUnsignedShort(buffer, handleId);
             EncodingUtils.writeUnsignedInteger(buffer, messageNbr);
             EncodingUtils.writeUnsignedInteger(buffer, fragmentSize);
-            EncodingUtils.writeBoolean(buffer, partial);
-            EncodingUtils.writeBoolean(buffer, outOfBand);
-            EncodingUtils.writeBoolean(buffer, recovery);
-            EncodingUtils.writeBoolean(buffer, delivered);
-            EncodingUtils.writeBoolean(buffer, redelivered);
-            EncodingUtils.writeBoolean(buffer, streaming);
+            EncodingUtils.writeBooleans(buffer, new boolean[]{partial, outOfBand, recovery, delivered, redelivered, streaming});
             messageFragment.writePayload(buffer);
         }
 
@@ -508,12 +500,13 @@ public class Handle
             handleId = buffer.getUnsignedShort();
             messageNbr = buffer.getUnsignedInt();
             fragmentSize = buffer.getUnsignedInt();
-            partial = EncodingUtils.readBoolean(buffer);
-            outOfBand = EncodingUtils.readBoolean(buffer);
-            recovery = EncodingUtils.readBoolean(buffer);
-            delivered = EncodingUtils.readBoolean(buffer);
-            redelivered = EncodingUtils.readBoolean(buffer);
-            streaming = EncodingUtils.readBoolean(buffer);
+            boolean[] bools = EncodingUtils.readBooleans(buffer);
+            partial = bools[0];
+            outOfBand = bools[1];
+            recovery = bools[2];
+            delivered = bools[3];
+            redelivered = bools[4];
+            streaming = bools[5];
             messageFragment = new AMQMessage();
             messageFragment.populateFromBuffer(buffer);
         }

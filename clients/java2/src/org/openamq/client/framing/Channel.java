@@ -30,7 +30,7 @@ public class Channel
 
         protected long getCommandSize()
         {
-            return 2 + 2 + 1 + 1 + EncodingUtils.encodedFieldTableLength(options) +
+            return 2 + 2 + 1 + EncodingUtils.encodedFieldTableLength(options) +
                    EncodingUtils.encodedShortStringLength(outOfBand);
         }
 
@@ -43,8 +43,7 @@ public class Channel
         {
             EncodingUtils.writeUnsignedShort(buffer, channelId);
             EncodingUtils.writeUnsignedShort(buffer, confirmTag);
-            EncodingUtils.writeBoolean(buffer, transacted);
-            EncodingUtils.writeBoolean(buffer, restartable);
+            EncodingUtils.writeBooleans(buffer, new boolean[]{transacted, restartable});
             EncodingUtils.writeFieldTableBytes(buffer, options);
             EncodingUtils.writeShortStringBytes(buffer, outOfBand);
         }
@@ -53,8 +52,9 @@ public class Channel
         {
             channelId = buffer.getUnsignedShort();
             confirmTag = buffer.getUnsignedShort();
-            transacted = EncodingUtils.readBoolean(buffer);
-            restartable = EncodingUtils.readBoolean(buffer);
+            boolean[] bools = EncodingUtils.readBooleans(buffer);
+            transacted = bools[0];
+            restartable = bools[1];
             options = EncodingUtils.readFieldTable(buffer);
             outOfBand = EncodingUtils.readShortString(buffer);
         }

@@ -16,6 +16,8 @@ public class IdFactory
         for (int i = 0; i < _locks.length; i++)
         {
             _locks[i] = new Object();
+            // need to initialise our ids to 1
+            _counters[i] = 1;
         }
     }
     

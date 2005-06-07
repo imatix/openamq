@@ -35,7 +35,7 @@ public class AMQConnection implements Connection
     /**
      * Maps from session id (Integer) to AMQSession instance
      */
-    private LinkedHashMap _sessions;
+    private LinkedHashMap _sessions = new LinkedHashMap();
 
     private String _clientName;
 
