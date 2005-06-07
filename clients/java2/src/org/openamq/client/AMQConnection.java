@@ -78,7 +78,7 @@ public class AMQConnection implements Connection
 
     private boolean channelLimitReached()
     {
-        return _sessions.size() == _maximumChannelCount;
+        return _maximumChannelCount != 0 && _sessions.size() == _maximumChannelCount;
     }
 
     public String getClientID() throws JMSException
