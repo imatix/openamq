@@ -550,7 +550,7 @@ states.
 
 The core of the server consists of this state machine:
 
-[amq_server_agent.png]
+[fig_amq_server_agent.png]
 
 The source code of the state machine is an XML 'program'. Here is a
 fragment of this code:
@@ -585,7 +585,7 @@ shows the way classes use each other. We show two types of usage,
 classes that hold a single instance of another class, and classes that
 act as containers for a set of child classes:
 
-[server_classes.png]
+[fig_server_classes.png]
 
 We use the iCL framework to write the classes. This framework is
 described in more detail later. Its advantage for our work is that we
@@ -799,11 +799,11 @@ C/SMT.
 This are some FSM diagrams for the clients. This is the asynchronous
 kernel client:
 
-[amq_aclient_agent.png]
+[fig_amq_aclient_agent.png]
 
 This is the synchronous kernel client:
 
-[amq_sclient_agent.png]
+[fig_amq_sclient_agent.png]
 
 An Open Source Project
 ======================
@@ -1719,7 +1719,7 @@ For AMQP/Fast these are the correct values:
 - protocol-major = 0
 - protocol-minor = 9
 
-[version.png]
+[fig_version.png]
 
 Guidelines for implementors:
 
@@ -1946,7 +1946,7 @@ The Frame Header Wire Format
 All frames start with a 4-octet header composed of a one-octet type
 indicator and a 3-octet size indicator:
 
-[frameheader.png]
+[fig_frameheader.png]
 
 AMQP/Fast defines several types of frame, with different type
 indicators:
@@ -1996,7 +1996,7 @@ of header frames followed by the appropriate body frames.
 Looking at the frames as they pass on the wire, we might see something
 like this:
 
-[content.png]
+[fig_content.png]
 
 There is a specific reason for placing content body in distinct frames
 as compared to including the header and body in the method. We want to
@@ -2075,7 +2075,7 @@ Extended Frame Header Wire Format
 A meta frame is followed by an "extended frame header" with a short
 integer channel number and a long long size:
 
-[meta.png]
+[fig_meta.png]
 
 Guidelines for implementors:
 
@@ -2141,7 +2141,7 @@ Content Header Frame Wire Format
 
 A content header frame has this format:
 
-[contentheader.png]
+[fig_contentheader.png]
 
 - The content class specifies the set of properties (with a predefined
   syntax and semantics) that the header frame may hold. The standard
@@ -2172,25 +2172,25 @@ As an example, we take an imaginary content class "D" which has three
 properties, T, E and C. Imagine a simple content that has properties E
 and C but not T. The header frame will be formatted thus:
 
-[domainexample.png]
+[fig_domainexample.png]
 
 The property flags are ordered from high to low, the first property
 being indicated by bit 15, and so on:
 
-[propertyflags.png]
+[fig_propertyflags.png]
 
 The property flags can specify more than 16 properties. If bit 0 is set,
 it indicates that a further property flags field follows. There can be
 several property flag fields in succession:
 
-[propertyflagsx.png]
+[fig_propertyflagsx.png]
 
 Content Body Frame Wire Format
 ------------------------------
 
 A content body frame has this format:
 
-[contentbody.png]
+[fig_contentbody.png]
 
 Where the size of the frame is defined in the frame header.
 
@@ -2201,12 +2201,12 @@ The "weight" field in the content header frame indicates whether the
 content has child-contents or not. In the simplest case (weight = zero)
 content consists of a header frame plus zero or more body frames:
 
-[contentstructured.png]
+[fig_contentstructured.png]
 
 If the content has child-contents, these are inserted between the
 header and body of the parent content:
 
-[contentchild.png]
+[fig_contentchild.png]
 
 This organisation means that a principal content (e.g. a very large
 video file) can have child content (e.g. subtitles and menus) which will
@@ -2350,7 +2350,7 @@ connections. We can visualise the protocol as governing two levels of
 connection - network connections (sockets) and virtual connections
 (channels):
 
-[connections.png]
+[fig_connections.png]
 
 Each peer involved in a connection (socket and channel) is strictly
 a client or a server.  The client initiates the connection and the
@@ -2385,7 +2385,7 @@ Method Frame Body Wire Format
 
 A method frame body has this format:
 
-[framemethod.png]
+[fig_framemethod.png]
 
 - The class and method are protocol-constant values.
 
@@ -2402,7 +2402,7 @@ A method frame body has this format:
 
 The flags are defined as follows:
 
-[flags.png]
+[fig_flags.png]
                                  
 - 7 = SYNCHREQ - if 1, requests a "synchpoint", turning an asynchronous
   method into a synchronous one. Has no effect on a synchronous method.
@@ -3571,7 +3571,7 @@ The Toolset
 In which we identify and name the giants upon who's shoulders we are
 standing.
 
-[openamq_tools.png]
+[fig_openamq_tools.png]
 
 Standard Libraries
 ==================
