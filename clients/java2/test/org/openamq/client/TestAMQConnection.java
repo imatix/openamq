@@ -14,11 +14,11 @@ import org.apache.log4j.*;
 public class TestAMQConnection
 {
 	private static final Logger _logger = Logger.getLogger(TestAMQConnection.class);
-	
+
     public static void main(String[] args)
     {
     	_logger.info("Starting...");
-    	
+
         if (args.length != 5)
         {
             System.out.println("Usage: host port username password virtual-path");
@@ -29,8 +29,9 @@ public class TestAMQConnection
             InetAddress address = InetAddress.getLocalHost();
             AMQConnection con = new AMQConnection(args[0], Integer.parseInt(args[1]), "guest", "guest",
                                                   address.getHostName(), "/test");
+            Thread.sleep(5000);
             Session session = con.createSession(false, Session.AUTO_ACKNOWLEDGE);
-            AMQDestination destination = new AMQDestination("snowth");
+            AMQDestination destination = new AMQDestination("test");
 
             MessageProducer producer = session.createProducer(destination);
             TextMessage msg = session.createTextMessage("mahnah mahnah");
