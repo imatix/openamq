@@ -42,7 +42,11 @@ public class Handle
 
         protected long getCommandSize()
         {
-            return FRAME_TYPE;
+            return 2 + 2 + 2 + 2 + 1 +
+	            EncodingUtils.encodedShortStringLength(destName) +
+	            EncodingUtils.encodedShortStringLength(mimeType) +
+	            EncodingUtils.encodedShortStringLength(encoding) +
+	            EncodingUtils.encodedFieldTableLength(options);
         }
 
         public short getType()
@@ -478,7 +482,7 @@ public class Handle
 
         protected long getCommandSize()
         {
-            return 2 + 4 + 4 + 1 + 1 + 1 + 1 + 1 + 1 + EncodingUtils.encodedShortStringLength(destName);
+            return 2 + 4 + 4 + 1 + EncodingUtils.encodedShortStringLength(destName);
         }
 
         public short getType()
