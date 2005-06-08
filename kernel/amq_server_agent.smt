@@ -124,10 +124,11 @@ static int
                     dest = amq_dest_list_first (vhost->dest_list);
                     while (dest) {
                         if (dest->queue->monitor_pending) {
-                            coprintf ("Queue:%-30s  in:%6d  out:6d",
+                            coprintf ("Queue:%-30s  in:%6d  out:%6d  pending:%6d",
                                 dest->key,
                                 dest->queue->accept_count,
-                                dest->queue->dispatch_count);
+                                dest->queue->dispatch_count,
+                                dest->queue->memory_queue_size);
                             dest->queue->monitor_pending = FALSE;
                         }
                         dest = amq_dest_list_next (vhost->dest_list, dest);
