@@ -40,6 +40,7 @@ public class Handle
         public FieldTable options;
 
         public static final short FRAME_TYPE = 30;
+        private static int _handleNotifyDecodes;
 
         protected long getCommandSize()
         {
@@ -68,6 +69,11 @@ public class Handle
 
         public void populateFromBuffer(ByteBuffer buffer) throws AMQFrameDecodingException
         {
+            _handleNotifyDecodes++;
+            if (_handleNotifyDecodes%1000==0)
+            {
+                System.out.println("Received " + _handleNotifyDecodes + " frames");
+            }
             channelId = buffer.getUnsignedShort();
             handleId = buffer.getUnsignedShort();
             serviceType = buffer.getUnsignedShort();

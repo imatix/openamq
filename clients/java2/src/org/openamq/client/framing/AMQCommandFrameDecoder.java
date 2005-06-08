@@ -113,13 +113,13 @@ public class AMQCommandFrameDecoder extends AMQFrameDecoder
     {
     	int remaining;
 
-    	if ((remaining = in.remaining()) < EncodingUtils.SIZEOF_UNSIGNED_SHORT)
+    	/*if ((remaining = in.remaining()) < EncodingUtils.SIZEOF_UNSIGNED_SHORT)
     	{
     		// Loggng as point of interest (only) - for the time being.
     		_logger.info("Short-length (" + EncodingUtils.SIZEOF_UNSIGNED_SHORT + ") not received yet, only got " + remaining + " - waiting for more...");
 
     		return(0);
-    	}
+    	}*/
 
         long frameSize = in.getUnsignedShort();
 
