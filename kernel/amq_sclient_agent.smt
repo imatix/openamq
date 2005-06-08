@@ -419,6 +419,8 @@ static int
             if (tcb->result)
                 *tcb->result = AMQ_OK;
             <action name = "send handle consume" />
+            <action name = "read next command" />
+            <call state = "expect handle reply" />
         </method>
         <method name = "handle unget">
             tcb->result = handle_unget_m->result;
@@ -536,7 +538,7 @@ static int
         amq_frame_free (&tcb->frame);
         tcb->frame = amq_frame_handle_consume_new (
             handle_consume_m->handle_id,
-            0,                          /*  Confirm tag                      */
+            1,                          /*  Confirm tag                      */
             handle_consume_m->prefetch,
             handle_consume_m->no_local,
             handle_consume_m->no_ack,

@@ -76,14 +76,14 @@ and to a queue.
         assert (handle->service_type == AMQP_SERVICE_TOPIC);
         s_init_topic_consumer (self, command);
     }
-    if (self->dest) {
-        if (handle->paused)
-            self_deactivate (self);
-        else
-            self_activate (self);
-    }
-    else
+    if (!self->dest)
         self_destroy (&self);
+ //       if (handle->paused)
+  //          self_deactivate (self);
+   //     else
+    //        self_activate (self);
+  //  }
+    //else
 </method>
 
 <method name = "destroy">
@@ -103,6 +103,8 @@ and to a queue.
         self->window--;
         if (self->window == 0)
             self_deactivate (self);
+        if (trace_disp)
+            coprintf ("$(selfname) I: window closed to %d", self->window);
     }
 </method>
 
@@ -117,6 +119,8 @@ and to a queue.
         self->queue->window++;
         if (self->window == 1)
             self_activate (self);       /*  Just activated               */
+        if (trace_disp)
+            coprintf ("$(selfname) I: window opened to %d", self->window);
     }
 </method>
 

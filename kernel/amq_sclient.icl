@@ -16,8 +16,7 @@
 <private>
 #include "amq_sclient_agent.h"
 
-#define CHANNEL_ID          1
-#define CHANNEL_TRANSACTED  TRUE
+#define CHANNEL_ID  1
 </private>
 
 <public>
@@ -103,6 +102,7 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     </doc>
     <argument name = "hostname"     type = "char *">Server to connect to</argument>
     <argument name = "virtual path" type = "char *">Virtual host path</argument>
+    <argument name = "transacted"   type = "Bool"  >Transacted?</argument>
 
     if (hostname == NULL || *hostname == 0)
         hostname = "localhost";
@@ -115,7 +115,7 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 
     if (rc == AMQ_OK) {
         amq_sclient_agent_channel_open (
-            self->thread_handle, CHANNEL_ID, CHANNEL_TRANSACTED, FALSE, &rc);
+            self->thread_handle, CHANNEL_ID, transacted, FALSE, &rc);
         smt_thread_execute (SMT_EXEC_FULL);
     }
     else

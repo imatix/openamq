@@ -39,7 +39,6 @@ static char
 static void s_prepare_logging  (void);
 static void s_prepare_security (void);
 
-
 /*  --------------------------------------------------------------------------
     amq_set_server_name
 

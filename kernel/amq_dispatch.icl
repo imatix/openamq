@@ -45,8 +45,9 @@ for which an acknowledgement is still pending.
 </context>
 
 <method name = "new">
-    <argument name = "consumer" type = "amq_consumer_t *">Parent consumer</argument>
-    <argument name = "message"  type = "amq_smessage_t *">Message object</argument>
+    <argument name = "consumer"    type = "amq_consumer_t *">Parent consumer</argument>
+    <argument name = "message"     type = "amq_smessage_t *">Message object</argument>
+    <argument name = "message nbr" type = "qbyte"           >Message number</argument>
 
     /*  De-normalise from parent object, for simplicity of use               */
     self->consumer    = consumer;
@@ -58,7 +59,7 @@ for which an acknowledgement is still pending.
     /*  Initialise other properties                                          */
     self->message     = message;        /*  We now 0wn this message          */
     self->queue_id    = self->queue->item_id;
-    self->message_nbr = ++(self->channel->message_nbr);
+    self->message_nbr = message_nbr;
 
     amq_smessage_link         (self->message);
     amq_dispatch_list_queue   (self->channel->dispatch_list, self);

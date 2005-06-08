@@ -180,7 +180,6 @@ static int
     <argument name = "redelivered" type = "Bool"  >Message is being redelivered?</argument>
     <argument name = "dest name"   type = "char *">Originating destination</argument>
     <argument name = "message"     type = "amq_smessage_t *">Message to send</argument>
-    <argument name = "dispatch"    type = "amq_dispatch_t *">Auto-acknowledge</argument>
 </method>
 
 <method name = "handle index">
@@ -956,9 +955,6 @@ static int
         tcb->frame = amq_frame_handle_ready_new (handle_notify_m->handle_id, size);
         send_the_frame (thread);
 
-        /*  TODO
-            - this code seems wrong - should we not hold onto the message?
-         */
         amq_smessage_destroy (&tcb->channel->message_in);
     </action>
 
@@ -1031,11 +1027,7 @@ static int
             the_next_event = continue_event;
         else {
             the_next_event = finished_event;
-            /*  The consumer 'no ack' option is signalled by the queue
-                passing us the address of a dispatch object to acknowledge.
-             */
-            if (handle_notify_m->dispatch)
-                amq_dispatch_ack (handle_notify_m->dispatch);
+            amq_smessage_destroy (&handle_notify_m->message);
         }
     </action>
 

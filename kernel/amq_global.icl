@@ -27,12 +27,17 @@ extern size_t
 extern size_t
     amq_txn_limit;                      /*  Configured txn limit, if any     */
 
+extern int
+    trace_disp;
+
 /*  Server security mechanisms                                               */
 
 #define AMQ_MECHANISM_PLAIN         1
 </public>
 
 <private>
+int trace_disp = 0;
+
 ipr_config_t
     *amq_config = NULL;                 /*  Server configuration table       */
 amq_vhost_table_t
