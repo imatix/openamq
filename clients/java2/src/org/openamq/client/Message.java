@@ -6,6 +6,7 @@ import javax.jms.Destination;
 import java.util.Enumeration;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.io.UnsupportedEncodingException;
 
 /**
@@ -371,39 +372,46 @@ public class Message implements TextMessage
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
-    public void setBooleanProperty(String string, boolean b) throws JMSException
+    public void setBooleanProperty(String propertyName, boolean b) throws JMSException
     {
-        //To change body of implemented methods use File | Settings | File Templates.
+        checkPropertyName(propertyName);
+        _messageProperties.put(BOOLEAN_PROPERTY_PREFIX + propertyName, Boolean.valueOf(b));
     }
 
-    public void setByteProperty(String string, byte b) throws JMSException
+    public void setByteProperty(String propertyName, byte b) throws JMSException
     {
-        //To change body of implemented methods use File | Settings | File Templates.
+        checkPropertyName(propertyName);
+        _messageProperties.put(BYTE_PROPERTY_PREFIX + propertyName, Byte.valueOf(b));
     }
 
-    public void setShortProperty(String string, short i) throws JMSException
+    public void setShortProperty(String propertyName, short i) throws JMSException
     {
-        //To change body of implemented methods use File | Settings | File Templates.
+        checkPropertyName(propertyName);
+        _messageProperties.put(SHORT_PROPERTY_PREFIX + propertyName, Short.valueOf(i));
     }
 
-    public void setIntProperty(String string, int i) throws JMSException
+    public void setIntProperty(String propertyName, int i) throws JMSException
     {
-        //To change body of implemented methods use File | Settings | File Templates.
+        checkPropertyName(propertyName);
+        _messageProperties.put(INT_PROPERTY_PREFIX + propertyName, Integer.valueOf(i));
     }
 
-    public void setLongProperty(String string, long l) throws JMSException
+    public void setLongProperty(String propertyName, long l) throws JMSException
     {
-        //To change body of implemented methods use File | Settings | File Templates.
+        checkPropertyName(propertyName);
+        _messageProperties.put(LONG_PROPERTY_PREFIX + propertyName, Long.valueOf(l));
     }
 
-    public void setFloatProperty(String string, float v) throws JMSException
+    public void setFloatProperty(String propertyName, float f) throws JMSException
     {
-        //To change body of implemented methods use File | Settings | File Templates.
+        checkPropertyName(propertyName);
+        _messageProperties.put(FLOAT_PROPERTY_PREFIX + propertyName,  Float.valueOf(f));
     }
 
-    public void setDoubleProperty(String string, double v) throws JMSException
+    public void setDoubleProperty(String propertyName, double v) throws JMSException
     {
-        //To change body of implemented methods use File | Settings | File Templates.
+        checkPropertyName(propertyName);
+        _messageProperties.put(DOUBLE_PROPERTY_PREFIX + propertyName, Double.valueOf(v));
     }
 
     public void setStringProperty(String propertyName, String value) throws JMSException
@@ -434,14 +442,69 @@ public class Message implements TextMessage
 
     public void clearBody() throws JMSException
     {
-        //To change body of implemented methods use File | Settings | File Templates.
+        _data = null;
     }
 
     public String toString()
     {
         try
         {
-            return getText();
+            StringBuffer buf = new StringBuffer("Body:\n");
+            buf.append(getText());
+            buf.append("Properties:\n");
+            if (_messageProperties == null)
+            {
+                buf.append("<NONE>");
+            }
+            else
+            {
+                final Iterator it = _messageProperties.entrySet().iterator();
+                while (it.hasNext())
+                {
+                    final Map.Entry entry = (Map.Entry) it.next();
+                    final String propertyName = (String) entry.getKey();
+                    if (propertyName == null)
+                    {
+                        buf.append("Internal error: Property with NULL key defined");
+                    }
+                    else
+                    {
+                        char typeIdentifier = propertyName.charAt(0);
+                        switch (typeIdentifier)
+                        {
+                            case org.openamq.client.Message.BOOLEAN_PROPERTY_PREFIX:
+                                buf.append("<boolean> ");
+                                break;
+                            case org.openamq.client.Message.BYTE_PROPERTY_PREFIX:
+                                buf.append("<byte> ");
+                                break;
+                            case org.openamq.client.Message.SHORT_PROPERTY_PREFIX:
+                                buf.append("<short> ");
+                                break;
+                            case org.openamq.client.Message.INT_PROPERTY_PREFIX:
+                                buf.append("<int> ");
+                                break;
+                            case org.openamq.client.Message.LONG_PROPERTY_PREFIX:
+                                buf.append("<long> ");
+                                break;
+                            case org.openamq.client.Message.FLOAT_PROPERTY_PREFIX:
+                                buf.append("<float> ");
+                                break;
+                            case org.openamq.client.Message.DOUBLE_PROPERTY_PREFIX:
+                                buf.append("<double> ");
+                                break;
+                            case org.openamq.client.Message.STRING_PROPERTY_PREFIX:
+                                buf.append("<string> ");
+                                break;
+                             default:
+                                buf.append("<unknown type (identifier " +
+                                           typeIdentifier + ") ");
+                        }
+                        buf.append(String.valueOf(entry.getValue()));
+                    }
+                }
+            }
+            return buf.toString();
         }
         catch (JMSException e)
         {
