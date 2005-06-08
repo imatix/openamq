@@ -72,9 +72,10 @@ and to a queue.
 
     if (handle->service_type == AMQP_SERVICE_QUEUE)
         s_init_queue_consumer (self, command);
-    else
+    else {
+        assert (handle->service_type == AMQP_SERVICE_TOPIC);
         s_init_topic_consumer (self, command);
-
+    }
     if (!self->dest)
         self_destroy (&self);
 </method>

@@ -83,6 +83,12 @@ This class implements the AMQP HANDLE commands.
     self->service_type = command->service_type;
     ipr_shortstr_cpy (self->mime_type, command->mime_type);
     ipr_shortstr_cpy (self->encoding,  command->encoding);
+
+    if (self->service_type != AMQP_SERVICE_QUEUE
+    &&  self->service_type != AMQP_SERVICE_TOPIC) {
+        amq_global_set_error (AMQP_SYNTAX_ERROR, "Invalid service type");
+        self_destroy (&self);
+    }
 </method>
 
 <method name = "destroy">
