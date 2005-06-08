@@ -381,37 +381,37 @@ public class Message implements TextMessage
     public void setByteProperty(String propertyName, byte b) throws JMSException
     {
         checkPropertyName(propertyName);
-        _messageProperties.put(BYTE_PROPERTY_PREFIX + propertyName, Byte.valueOf(b));
+        _messageProperties.put(BYTE_PROPERTY_PREFIX + propertyName, new Byte(b));
     }
 
     public void setShortProperty(String propertyName, short i) throws JMSException
     {
         checkPropertyName(propertyName);
-        _messageProperties.put(SHORT_PROPERTY_PREFIX + propertyName, Short.valueOf(i));
+        _messageProperties.put(SHORT_PROPERTY_PREFIX + propertyName, new Short(i));
     }
 
     public void setIntProperty(String propertyName, int i) throws JMSException
     {
         checkPropertyName(propertyName);
-        _messageProperties.put(INT_PROPERTY_PREFIX + propertyName, Integer.valueOf(i));
+        _messageProperties.put(INT_PROPERTY_PREFIX + propertyName, new Integer(i));
     }
 
     public void setLongProperty(String propertyName, long l) throws JMSException
     {
         checkPropertyName(propertyName);
-        _messageProperties.put(LONG_PROPERTY_PREFIX + propertyName, Long.valueOf(l));
+        _messageProperties.put(LONG_PROPERTY_PREFIX + propertyName, new Long(l));
     }
 
     public void setFloatProperty(String propertyName, float f) throws JMSException
     {
         checkPropertyName(propertyName);
-        _messageProperties.put(FLOAT_PROPERTY_PREFIX + propertyName,  Float.valueOf(f));
+        _messageProperties.put(FLOAT_PROPERTY_PREFIX + propertyName,  new Float(f));
     }
 
     public void setDoubleProperty(String propertyName, double v) throws JMSException
     {
         checkPropertyName(propertyName);
-        _messageProperties.put(DOUBLE_PROPERTY_PREFIX + propertyName, Double.valueOf(v));
+        _messageProperties.put(DOUBLE_PROPERTY_PREFIX + propertyName, new Double(v));
     }
 
     public void setStringProperty(String propertyName, String value) throws JMSException
