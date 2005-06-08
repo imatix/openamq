@@ -51,9 +51,14 @@ public class TestService
 
                 public void onMessage(javax.jms.Message message)
                 {
-                    _logger.info("Got message '" + message + "'");
+                    //_logger.info("Got message '" + message + "'");
                     
-                    String responseQueue = message.toString();
+                    String body = message.toString();
+                    
+                    int slash = body.indexOf("/");
+                    
+                    String responseQueue = (slash < 0) ? body : body.substring(0,slash);
+                    String payload = (slash < 0) ? "This is a response to queue <" + responseQueue + ">, sing together: 'Mahnah mahnah...'" : body.substring(slash + 1);
                     
                     if (!responseQueue.equals(_destinationName))                    
                     {
@@ -72,7 +77,7 @@ public class TestService
                         }
                     }
                     _messageCount++;
-                    if (_messageCount%100 == 0)
+                    if (_messageCount % 1000 == 0)
                     {
                         _logger.info("Received message total: " + _messageCount);
                         _logger.info("Sending response to '" + responseQueue + "'");
@@ -80,16 +85,16 @@ public class TestService
                     
                     try
                     {
-                        TextMessage msg = session.createTextMessage("This is a response to queue <" + responseQueue + ">, sing together: 'Mahnah mahnah...'");
+                        TextMessage msg = session.createTextMessage(payload);
                         _destinationProducer.send(msg);
-                        if (_messageCount%100 == 0)
+                        if (_messageCount % 1000 == 0)
                         {
                             _logger.info("Sent response to '" + responseQueue + "'");
                         }
                     }
                     catch (JMSException e)
                     {
-                        _logger.error("Erorr sending message: " + e, e);
+                        _logger.error("Error sending message: " + e, e);
                     }
                 }
             });                        
