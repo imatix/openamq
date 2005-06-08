@@ -527,7 +527,7 @@ public class Handle
             public MessageDecoderResult decodable(ProtocolSession session, ByteBuffer in)
             {
                 final long frameSize = readFrameSize(in);
-
+                final int totalRemaining = in.remaining();
                 if (frameSize < 0)
                 {
                     return MessageDecoderResult.NOT_OK;
@@ -542,7 +542,17 @@ public class Handle
 
                 if (frameType == FRAME_TYPE)
                 {
-                    return MessageDecoderResult.OK;
+                    int handleId = in.getUnsignedShort();
+                    long messageNbr = in.getUnsignedInt();
+                    long fragmentSize = in.getUnsignedInt();
+                    if (totalRemaining < frameSize + fragmentSize)
+                    {
+                        return MessageDecoderResult.NEED_DATA;
+                    }
+                    else
+                    {
+                        return MessageDecoderResult.OK;
+                    }
                 }
                 /*else if (size < frameSize)
                 {

@@ -66,9 +66,9 @@ public class AMQFrameEncoder implements MessageEncoder
         _buffer.setAutoExpand(true);
         frame.writePayload(_buffer);
        
-        if (_logger.isInfoEnabled())
+        if (_logger.isDebugEnabled())
         {
-        	_logger.info("Encoded frame byte-buffer is '" + EncodingUtils.convertToHexString(_buffer) + "'");
+        	_logger.debug("Encoded frame byte-buffer is '" + EncodingUtils.convertToHexString(_buffer) + "'");
         }
         
         _buffer.flip();

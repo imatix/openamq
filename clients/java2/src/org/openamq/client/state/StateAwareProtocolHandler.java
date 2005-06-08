@@ -199,24 +199,30 @@ public class StateAwareProtocolHandler implements ProtocolHandler
 
     public void messageSent(ProtocolSession session, Object message) throws Exception
     {
-        _logger.info("Frame sent of type " + message);
+        _logger.debug("Frame sent of type " + message);
     }
 
     public void writeFrameToSession(AMQFrame frame, BlockingFrameListener listener)
     {
-        addListenerToBlockingMap(listener);
-        _protocolSession.write(frame);
-        while (!listener.readyToContinue())
+        if (listener != null)
         {
-            synchronized (listener)
+            addListenerToBlockingMap(listener);
+        }
+        _protocolSession.write(frame);
+        if (listener != null)
+        {
+            while (!listener.readyToContinue())
             {
-                try
+                synchronized (listener)
                 {
-                    listener.wait();
-                }
-                catch (InterruptedException e)
-                {
-                    // IGNORE
+                    try
+                    {
+                        listener.wait();
+                    }
+                    catch (InterruptedException e)
+                    {
+                        // IGNORE
+                    }
                 }
             }
         }

@@ -30,6 +30,7 @@
             <include name="**/*.jar"/>
         </fileset>
         <pathelement path="${basedir}/classes"/>
+        <pathelement path="${basedir}/testclasses"/>
     </path>
 
     <!-- Remove all built files -->
@@ -86,5 +87,38 @@
                  version="true" windowTitle="OpenAMQ Client API" doctitle="OpenAMQ Client API"
                  footer="See &lt;a href=&quot;http://www.openamq.org&quot;&gt;www.openamq.org&lt;/a&gt; for more information."
                  use="true" verbose="false"/>
+    </target>
+    
+    <target name="runclient1" depends="compile">
+        <java classpathref="openamq.classpath" fork="yes" classname="org.openamq.requestreply1.TestService">
+              <arg value="192.168.55.63"/>
+              <arg value="7654"/>
+              <arg value="piemuncher1"/>
+              <arg value="x"/>
+              <arg value="x"/>
+        </java>
+    </target>
+    
+     <target name="runclient2" depends="compile">
+        <java classpathref="openamq.classpath" fork="yes" classname="org.openamq.requestreply1.ServiceRequestingClient">
+              <arg value="192.168.55.63"/>
+              <arg value="7654"/>
+              <arg value="piemuncher1"/>
+        </java>
+    </target>
+    
+    <target name="profile" depends="compile" description="Profile Project">
+        <fail unless="netbeans.home">This target can only run inside the NetBeans IDE.</fail>
+        <nbprofile classname="org.openamq.requestreply1.ServiceRequestingClient" args="192.168.55.63 7654 piemuncher1">
+            <classpath refid="openamq.classpath"/>
+        </nbprofile>
+    </target>
+
+
+    <target name="profile-single" depends="compile" description="Profile File">
+        <fail unless="netbeans.home">This target can only run inside the NetBeans IDE.</fail>
+        <nbprofile classname="${profile.class}">
+            <classpath refid="openamq.classpath"/>
+        </nbprofile>
     </target>
 </project>

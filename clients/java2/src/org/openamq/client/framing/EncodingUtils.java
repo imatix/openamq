@@ -58,20 +58,22 @@ public class EncodingUtils
     }
 
     public static void writeShortStringBytes(ByteBuffer buffer, String s)
-    {
-        assert s == null || s.length() <= 0xFE;
-
+    {        
         if (s != null)
         {
-            buffer.put((byte)s.length());
-            try
-            {
-                buffer.put(s.getBytes(STRING_ENCODING));
-            }
-            catch (UnsupportedEncodingException e)
-            {
+            //try
+            //{
+                //final byte[] encodedString = s.getBytes(STRING_ENCODING);            
+                final byte[] encodedString = s.getBytes();            
+                assert encodedString.length <= 0xFE;
+                buffer.put((byte)encodedString.length);            
+                //buffer.put(s.getBytes(STRING_ENCODING));
+                buffer.put(encodedString);
+            //}
+            //catch (UnsupportedEncodingException e)
+            //{
                 // IGNORE
-            }
+            //}
         }
         else
         {

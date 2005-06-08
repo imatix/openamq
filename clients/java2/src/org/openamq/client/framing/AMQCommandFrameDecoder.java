@@ -53,7 +53,7 @@ public class AMQCommandFrameDecoder extends AMQFrameDecoder
         _supportedFrames.put(new Short(Handle.Cancel.FRAME_TYPE), Handle.Cancel.class);
         _supportedFrames.put(new Short(Handle.Consume.FRAME_TYPE), Handle.Consume.class);
         _supportedFrames.put(new Short(Handle.Created.FRAME_TYPE), Handle.Created.class);
-        _supportedFrames.put(new Short(Handle.Flow.FRAME_TYPE), Handle.Flow.class);        
+        _supportedFrames.put(new Short(Handle.Flow.FRAME_TYPE), Handle.Flow.class);
         _supportedFrames.put(new Short(Handle.Open.FRAME_TYPE), Handle.Open.class);
         _supportedFrames.put(new Short(Handle.Query.FRAME_TYPE), Handle.Query.class);
         _supportedFrames.put(new Short(Handle.Reply.FRAME_TYPE), Handle.Reply.class);
@@ -94,11 +94,11 @@ public class AMQCommandFrameDecoder extends AMQFrameDecoder
 
     private boolean isSupportedFrameType(short frameType)
     {
-        boolean result = _supportedFrames.containsKey(new Short(frameType));
+        final boolean result = _supportedFrames.containsKey(new Short(frameType));
 
-        if (!result)
+        if (!result && _logger.isDebugEnabled())
         {
-        	_logger.warn("Got unrecognised frameType " + frameType);
+        	_logger.debug("AMQCommandFrameDecoder does not handle frame type " + frameType);
         }
 
         return(result);
