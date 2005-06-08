@@ -57,7 +57,18 @@ public class TestService
                 {
                     //_logger.info("Got message '" + message + "'");
                     
-                    String body = message.toString();
+                	TextMessage tm = (TextMessage)message;
+                	
+                	String body = null;
+                	
+                	try
+                	{
+                		body = tm.getText();
+                	}
+                	catch(JMSException e)
+                	{
+                		_logger.error(e);
+                	}
                     
                     int slash = body.indexOf("/");
                     
