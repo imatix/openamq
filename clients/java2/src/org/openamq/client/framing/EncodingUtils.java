@@ -239,6 +239,14 @@ public class EncodingUtils
         }
     }
     
+    
+    
+    public static final FieldTable createFieldTableFromMessageSelector(String selector)
+    {
+    	return(null);
+    	
+    }
+    
 	static byte[] hexToByteArray(String id)
 	{
 		// Should check param for null, long enough for this check, upper-case and trailing char

@@ -31,7 +31,7 @@ public class TestAMQConnection
                                                   address.getHostName() + System.currentTimeMillis(), "/test");
             Thread.sleep(5000);
             Session session = con.createSession(false, Session.AUTO_ACKNOWLEDGE);
-            AMQDestination destination = new AMQDestination("test");
+            AMQDestination destination = new AMQDestination(args[2]);
 
             MessageProducer producer = session.createProducer(destination);
             TextMessage msg = session.createTextMessage("mahnah mahnah");
