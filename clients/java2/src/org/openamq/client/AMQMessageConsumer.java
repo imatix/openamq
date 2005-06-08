@@ -158,14 +158,14 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
                     ;
                 }
             }
-            catch(JMSException e)
+            catch(Exception e)
             {
-                _logger.warn("Caught exception (dump follows) - ignoring...",e);
+                _logger.error("Caught exception (dump follows) - ignoring...",e);
             }
         }
     }
 
-    private Map createPropertiesMap(FieldTable headers)
+    private Map createPropertiesMap(FieldTable headers) throws AMQException
     {
         if (headers == null)
         {
@@ -201,16 +201,30 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
                             break;
                         case org.openamq.client.Message.SHORT_PROPERTY_PREFIX:
                             properties.put(propertyName, Short.valueOf(value));
+                            break;
                         case org.openamq.client.Message.INT_PROPERTY_PREFIX:
+                            properties.put(propertyName, Integer.valueOf(value));
+                            break;
                         case org.openamq.client.Message.LONG_PROPERTY_PREFIX:
+                            properties.put(propertyName, Long.valueOf(value));
+                            break;
                         case org.openamq.client.Message.FLOAT_PROPERTY_PREFIX:
+                            properties.put(propertyName, Float.valueOf(value));
+                            break;
                         case org.openamq.client.Message.DOUBLE_PROPERTY_PREFIX:
+                            properties.put(propertyName, Double.valueOf(value));
+                            break;
                         case org.openamq.client.Message.STRING_PROPERTY_PREFIX:
+                            properties.put(propertyName, value);
+                            break;
+                         default:
+                            throw new AMQException("Internal error demarshalling property: unknown type prefix " +
+                                                   typeIdentifier);
                     }
 
                 }
             }
-            return table;
+            return properties;
         }
     }
 
