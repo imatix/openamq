@@ -4,6 +4,8 @@ import javax.jms.TextMessage;
 import javax.jms.JMSException;
 import javax.jms.Destination;
 import java.util.Enumeration;
+import java.util.Map;
+import java.util.HashMap;
 import java.io.UnsupportedEncodingException;
 
 /**
@@ -12,6 +14,17 @@ import java.io.UnsupportedEncodingException;
 public class Message implements TextMessage
 {
     private byte[] _data;
+
+    private Map _messageProperties;
+
+    public static final char BOOLEAN_PROPERTY_PREFIX = 'B';
+    public static final char BYTE_PROPERTY_PREFIX = 'b';
+    public static final char SHORT_PROPERTY_PREFIX = 's';
+    public static final char INT_PROPERTY_PREFIX = 'i';
+    public static final char LONG_PROPERTY_PREFIX = 'l';
+    public static final char FLOAT_PROPERTY_PREFIX = 'f';
+    public static final char DOUBLE_PROPERTY_PREFIX = 'd';
+    public static final char STRING_PROPERTY_PREFIX = 'S';
 
     public byte[] getData()
     {
@@ -167,57 +180,190 @@ public class Message implements TextMessage
 
     public void clearProperties() throws JMSException
     {
-        //To change body of implemented methods use File | Settings | File Templates.
+        if (_messageProperties != null)
+        {
+            _messageProperties.clear();
+        }
     }
 
-    public boolean propertyExists(String string) throws JMSException
+    public boolean propertyExists(String propertyName) throws JMSException
     {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        checkPropertyName(propertyName);
+        if (_messageProperties == null)
+        {
+            return false;
+        }
+        else
+        {
+            return _messageProperties.containsKey(propertyName);
+        }
     }
 
-    public boolean getBooleanProperty(String string) throws JMSException
+    public boolean getBooleanProperty(String propertyName) throws JMSException
     {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        checkPropertyName(propertyName);
+        if (_messageProperties == null)
+        {
+            return Boolean.valueOf(null).booleanValue();
+        }
+        else
+        {
+            Boolean b = (Boolean) _messageProperties.get(BOOLEAN_PROPERTY_PREFIX + propertyName);
+
+            if (b == null)
+            {
+                return Boolean.valueOf(null).booleanValue();
+            }
+            else
+            {
+                return b.booleanValue();
+            }
+        }
     }
 
-    public byte getByteProperty(String string) throws JMSException
+    public byte getByteProperty(String propertyName) throws JMSException
     {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        checkPropertyName(propertyName);
+        if (_messageProperties == null)
+        {
+            return Byte.valueOf(null).byteValue();
+        }
+        else
+        {
+            Byte b = (Byte) _messageProperties.get(BYTE_PROPERTY_PREFIX + propertyName);
+            if (b == null)
+            {
+                return Byte.valueOf(null).byteValue();
+            }
+            else
+            {
+                return b.byteValue();
+            }
+        }
     }
 
-    public short getShortProperty(String string) throws JMSException
+    public short getShortProperty(String propertyName) throws JMSException
     {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        checkPropertyName(propertyName);
+        if (_messageProperties == null)
+        {
+            return Short.valueOf(null).shortValue();
+        }
+        else
+        {
+            Short s = (Short) _messageProperties.get(SHORT_PROPERTY_PREFIX + propertyName);
+            if (s == null)
+            {
+                return Short.valueOf(null).shortValue();
+            }
+            else
+            {
+                return s.shortValue();
+            }
+        }
     }
 
-    public int getIntProperty(String string) throws JMSException
+    public int getIntProperty(String propertyName) throws JMSException
     {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        checkPropertyName(propertyName);
+        if (_messageProperties == null)
+        {
+            return Integer.valueOf(null).intValue();
+        }
+        else
+        {
+            Integer i = (Integer) _messageProperties.get(INT_PROPERTY_PREFIX + propertyName);
+            if (i == null)
+            {
+                return Integer.valueOf(null).intValue();
+            }
+            else
+            {
+                return i.intValue();
+            }
+        }
     }
 
-    public long getLongProperty(String string) throws JMSException
+    public long getLongProperty(String propertyName) throws JMSException
     {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        checkPropertyName(propertyName);
+        if (_messageProperties == null)
+        {
+            return Long.valueOf(null).longValue();
+        }
+        else
+        {
+            Long l = (Long) _messageProperties.get(LONG_PROPERTY_PREFIX + propertyName);
+            if (l == null)
+            {
+                return Long.valueOf(null).longValue();
+            }
+            else
+            {
+                return l.shortValue();
+            }
+        }
     }
 
-    public float getFloatProperty(String string) throws JMSException
+    public float getFloatProperty(String propertyName) throws JMSException
     {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        checkPropertyName(propertyName);
+        if (_messageProperties == null)
+        {
+            return Float.valueOf(null).floatValue();
+        }
+        else
+        {
+            final Float f = (Float) _messageProperties.get(FLOAT_PROPERTY_PREFIX + propertyName);
+            if (f == null)
+            {
+                return Float.valueOf(null).floatValue();
+            }
+            else
+            {
+                return f.floatValue();
+            }
+        }
     }
 
-    public double getDoubleProperty(String string) throws JMSException
+    public double getDoubleProperty(String propertyName) throws JMSException
     {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        checkPropertyName(propertyName);
+        if (_messageProperties == null)
+        {
+            return Double.valueOf(null).doubleValue();
+        }
+        else
+        {
+            final Double d = (Double) _messageProperties.get(DOUBLE_PROPERTY_PREFIX + propertyName);
+            if (d == null)
+            {
+                return Double.valueOf(null).doubleValue();
+            }
+            else
+            {
+                return d.shortValue();
+            }
+        }
     }
 
-    public String getStringProperty(String string) throws JMSException
+    public String getStringProperty(String propertyName) throws JMSException
     {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        checkPropertyName(propertyName);
+        if (_messageProperties == null)
+        {
+            return null;
+        }
+        else
+        {
+            return (String) _messageProperties.get(STRING_PROPERTY_PREFIX + propertyName);
+        }
     }
 
-    public Object getObjectProperty(String string) throws JMSException
+    public Object getObjectProperty(String propertyName) throws JMSException
     {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        checkPropertyName(propertyName);
+        throw new JMSException("Not implemented yet");
     }
 
     public Enumeration getPropertyNames() throws JMSException
@@ -260,9 +406,20 @@ public class Message implements TextMessage
         //To change body of implemented methods use File | Settings | File Templates.
     }
 
-    public void setStringProperty(String string, String string1) throws JMSException
+    public void setStringProperty(String propertyName, String value) throws JMSException
     {
-        //To change body of implemented methods use File | Settings | File Templates.
+        checkPropertyName(propertyName);
+        createPropertyMapIfRequired();
+        propertyName = STRING_PROPERTY_PREFIX + propertyName;
+        _messageProperties.put(propertyName, value);
+    }
+
+    private void createPropertyMapIfRequired()
+    {
+        if (_messageProperties == null)
+        {
+            _messageProperties = new HashMap();
+        }
     }
 
     public void setObjectProperty(String string, Object object) throws JMSException
@@ -291,4 +448,27 @@ public class Message implements TextMessage
             return e.toString();
         }
     }
+
+    Map getUnderlyingMessagePropertiesMap()
+    {
+        return _messageProperties;
+    }
+
+    void setUnderlyingMessagePropertiesMap(Map messageProperties)
+    {
+        _messageProperties = messageProperties;
+    }
+
+    private void checkPropertyName(String propertyName)
+    {
+        if (propertyName == null)
+        {
+            throw new IllegalArgumentException("Property name must not be null");
+        }
+        else if ("".equals(propertyName))
+        {
+            throw new IllegalArgumentException("Property name must not be the empty string");
+        }
+    }
+
 }

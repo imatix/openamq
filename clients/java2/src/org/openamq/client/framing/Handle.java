@@ -515,7 +515,7 @@ public class Handle
             _handleNotifyDecodes++;
             if (_handleNotifyDecodes%1000==0)
             {
-                System.out.println("Received " + _handleNotifyDecodes + " frames");
+                //System.out.println("Received " + _handleNotifyDecodes + " frames");
             }
             handleId = buffer.getUnsignedShort();
             messageNbr = buffer.getUnsignedInt();

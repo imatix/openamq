@@ -5,6 +5,7 @@ import org.openamq.client.state.StateAwareProtocolHandler;
 import org.openamq.client.state.listener.HandleReplyListener;
 import org.openamq.client.framing.Handle;
 import org.openamq.client.framing.AMQMessage;
+import org.openamq.client.framing.FieldTable;
 import org.apache.log4j.Logger;
 
 import javax.jms.DeliveryMode;
@@ -13,6 +14,8 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import java.io.UnsupportedEncodingException;
 import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Iterator;
 
 /**
  * An implementation of an AMQMessageProducer which extends the JMS Message Producer.
@@ -163,16 +166,19 @@ public class AMQMessageProducer extends Closeable implements MessageProducer
     {
         checkNotClosed();
 
+        final org.openamq.client.Message amqMessage = (org.openamq.client.Message) message;
         final Handle.Send frame = new Handle.Send();
         frame.handleId = ((Integer) _handleMap.get(_destination)).intValue();
         byte[] payload =  ((org.openamq.client.Message) message).getData();
         AMQMessage msg = new AMQMessage();
         msg.bodySize = payload.length;
         msg.message = payload;
+        msg.headers = populateHeadersFromMessageProperties(amqMessage.getUnderlyingMessagePropertiesMap());
         frame.fragmentSize = msg.getSize();
         frame.confirmTag = 0;
         frame.destName = _destination.getQueueName();
         frame.message = msg;
+
         if (_logger.isDebugEnabled())
         {
             _logger.debug("Sending frame to send message to " + frame.destName);
@@ -182,6 +188,37 @@ public class AMQMessageProducer extends Closeable implements MessageProducer
         if (_logger.isDebugEnabled())
         {
             _logger.debug("Sent frame and received acknowledgement");
+        }
+    }
+
+    private FieldTable populateHeadersFromMessageProperties(Map properties)
+    {
+        if (properties == null)
+        {
+            return null;
+        }
+        else
+        {
+            //
+            // We need to convert every property into a String representation
+            // Note that type information is preserved in the property name
+            //
+            final FieldTable table = new FieldTable();
+            final Iterator entries = properties.entrySet().iterator();
+            while (entries.hasNext())
+            {
+                final Map.Entry entry = (Map.Entry) entries.next();
+                final String propertyName = (String) entry.getKey();
+                if (propertyName == null)
+                {
+                    continue;
+                }
+                else
+                {
+                    table.put(propertyName, entry.getValue().toString());
+                }
+            }
+            return table;
         }
     }
 
