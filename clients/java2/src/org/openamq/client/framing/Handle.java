@@ -84,6 +84,8 @@ public class Handle
 
     public static final class Send extends AMQCommandFrame
     {
+        private static int _handleSendsEncoded;
+
         /* short int */
         public int handleId;
 
@@ -104,6 +106,11 @@ public class Handle
 
          public void writePayload(ByteBuffer buffer)
         {
+            _handleSendsEncoded++;
+            if (_handleSendsEncoded%1000==0)
+            {
+                System.out.println("Encoded " + _handleSendsEncoded + " frames");
+            }
             // size is payload + 1 for type + 1 byte for the end of frame marker
             final long size = getCommandSize() + 2;
             if (size > 0xFFFE)
