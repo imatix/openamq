@@ -42,8 +42,12 @@ public class TestService
             
             AMQDestination destination = new AMQDestination(serviceName);
             
+            String selector = (args[3].length() > 1) ? args[3] : null;
+            
+            _logger.info("Message selector is <" + selector + ">...");
+            
             MessageConsumer consumer = session.createQueueConsumer(destination,
-                    100,false,true,true,false,null);
+                    100,false,true,true,false,selector);
             
             consumer.setMessageListener(new MessageListener()
             {

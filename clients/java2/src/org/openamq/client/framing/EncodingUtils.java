@@ -7,6 +7,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import org.apache.log4j.Logger;
+import org.openamq.client.*;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
@@ -284,7 +285,7 @@ public class EncodingUtils
     		if (equals < 0)
     		{
     			// Existence check
-    			result.put(expr.trim(),null);
+    			result.put(org.openamq.client.Message.STRING_PROPERTY_PREFIX + expr.trim(),null);
     		}
     		else
     		{
@@ -303,7 +304,7 @@ public class EncodingUtils
     				{
     					value = value.substring(1,value.length() - 1);
     					
-    					result.put(key,value);
+    					result.put(org.openamq.client.Message.STRING_PROPERTY_PREFIX + key,value);
     				}
     			}
     			else
@@ -312,7 +313,7 @@ public class EncodingUtils
     				{
     					int intValue = Integer.parseInt(value);
     					
-    					result.put(key,new Integer(intValue));
+    					result.put(org.openamq.client.Message.INT_PROPERTY_PREFIX + key,value);
     				}
     				catch(NumberFormatException e)
     				{
@@ -320,9 +321,11 @@ public class EncodingUtils
     					
     				}
     			}
-    		}
-    	}
+    		}	
+    	}    
     	
+		if (debug) _logger.debug("Field-table created from <" + selector + "> is <" + result + ">");
+
     	return(result);
     	
     }
