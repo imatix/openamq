@@ -109,7 +109,7 @@ public class Handle
             _handleSendsEncoded++;
             if (_handleSendsEncoded%1000==0)
             {
-                System.out.println("Encoded " + _handleSendsEncoded + " frames");
+ //               System.out.println("Encoded " + _handleSendsEncoded + " frames");
             }
             // size is payload + 1 for type + 1 byte for the end of frame marker
             final long size = getCommandSize() + 2;
