@@ -56,7 +56,7 @@ public class ServiceRequestingClient
             _actualMessageCount++;
             if (_actualMessageCount%1000 == 0)
             {
-                _log.info("Received message count: " + _actualMessageCount);
+                _log.info("Received message count: " + _actualMessageCount);                                
             }
             /*if (!"henson".equals(m.toString()))
            {
@@ -105,12 +105,13 @@ public class ServiceRequestingClient
                                                                 Long.toString(System.currentTimeMillis()));
             MessageConsumer messageConsumer = (MessageConsumer) _session.createQueueConsumer(tempDestination, 100, true, true, true, true, null);
 
-            TextMessage msg = _session.createTextMessage(tempDestination.getQueueName() + "/Presented to in conjunction with Mahnah Mahnah and the Snowths");
+            //TextMessage msg = _session.createTextMessage(tempDestination.getQueueName() + "/Presented to in conjunction with Mahnah Mahnah and the Snowths");
             final long startTime = System.currentTimeMillis();
 
             messageConsumer.setMessageListener(new CallbackHandler(messageCount, startTime));
             for (int i = 0; i < messageCount; i++)
             {
+                TextMessage msg = _session.createTextMessage(tempDestination.getQueueName() + "/Presented to in conjunction with Mahnah Mahnah and the Snowths:" + i);
                 producer.send(msg);
             }
             _log.info("Finished sending " + messageCount + " messages");
