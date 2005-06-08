@@ -21,6 +21,7 @@ static int
 </private>
 
 <catch error = "SMT_SOCKET_ERROR" event = "socket error" />
+<catch error = "SMT_TIMEOUT"      event = "timeout" />
 <catch                            event = "smt error"    />
 
 <handler name = "agent init">
@@ -55,6 +56,10 @@ static int
     <state name = "initialise master">
         <event name = "ok" nextstate = "new connection">
             <action name = "initialise server" />
+            <action name = "accept connection" />
+        </event>
+        <event name = "timeout" nextstate = "new connection">
+            <action name = "server monitor" />
             <action name = "accept connection" />
         </event>
         <event name = "error" nextstate = "">
@@ -93,7 +98,38 @@ static int
     </action>
 
     <action name = "accept connection">
-        smt_socket_request_accept (thread, tcb->socket, 0, ok_event, &tcb->connect);
+        smt_socket_request_accept (thread, tcb->socket, 1000, ok_event, &tcb->connect);
+    </action>
+
+    <action name = "server monitor">
+        static int
+            remaining = 1;
+        uint
+            table_idx;
+        amq_vhost_t
+            *vhost;
+        amq_dest_t
+            *dest;
+
+        if (amq_global_monitor () && --remaining == 0) {
+            for (table_idx = 0; table_idx < AMQ_VHOST_TABLE_MAXSIZE; table_idx++) {
+                vhost = amq_vhosts->item_table [table_idx];
+                if (vhost && vhost != AMQ_VHOST_DELETED) {
+                    dest = amq_dest_list_first (vhost->dest_list);
+                    while (dest) {
+                        if (dest->queue->monitor_pending) {
+                            coprintf ("Queue:%-30s  in:%d  out:%d",
+                                dest->key,
+                                dest->queue->accept_count,
+                                dest->queue->dispatch_count);
+                            dest->queue->monitor_pending = FALSE;
+                        }
+                        dest = amq_dest_list_next (vhost->dest_list, dest);
+                    }
+                }
+            }
+            remaining = amq_global_monitor () ;
+        }
     </action>
 
     <!--  NEW CONNECTION  ---------------------------------------------------->
@@ -101,6 +137,10 @@ static int
     <state name = "new connection">
         <event name = "ok" nextstate = "new connection">
             <action name = "create client thread" />
+            <action name = "accept connection" />
+        </event>
+        <event name = "timeout" nextstate = "new connection">
+            <action name = "server monitor" />
             <action name = "accept connection" />
         </event>
     </state>

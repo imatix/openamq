@@ -47,6 +47,8 @@ size_t
 static int
     s_verbose = FALSE;                  /*  Verbose server                   */
 static int
+    s_monitor = 0;                      /*  Monitoring interval              */
+static int
     s_error_code = 0;                   /*  Last error code                  */
 static char
     *s_error_text = "";                 /*  Last error text                  */
@@ -93,6 +95,16 @@ static int
 <method name = "verbose" return = "verbose">
     <declare name = "verbose" type = "Bool" />
     verbose = s_verbose;
+</method>
+
+<method name = "set monitor">
+    <argument name = "monitor" type = "int" />
+    s_monitor = monitor;
+</method>
+
+<method name = "monitor" return = "monitor">
+    <declare name = "monitor" type = "int" />
+    monitor = s_monitor;
 </method>
 
 <method name = "mechanism_str" return = "mechanism">

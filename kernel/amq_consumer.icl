@@ -39,10 +39,10 @@ and to a queue.
         *dest;                          /*  Parent destination               */
     amq_queue_t
         *queue;                         /*  Parent queue                     */
-
-    /*  Object properties                                                    */
     amq_subscr_t
         *subscr;                        /*  Subscription, if any             */
+
+    /*  Object properties                                                    */
     int
         prefetch;                       /*  Max prefetch size                */
     int

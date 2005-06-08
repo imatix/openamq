@@ -92,6 +92,15 @@ were split to keep the code within sane limits.
         memory_queue_size;              /*  Size of memory queue             */
     Bool
         dirty;                          /*  Queue needs dispatching          */
+    Bool
+        forced;                         /*  Queue was forced persistent      */
+
+    /*  Statistics                                                           */
+    size_t
+        accept_count,                   /*  Number of messages accepted      */
+        dispatch_count;                 /*  Number of messages dispatched    */
+    Bool
+        monitor_pending;                /*  When changed after monitoring    */
 </context>
 
 <method name = "new">
@@ -190,8 +199,8 @@ were split to keep the code within sane limits.
 
     /*  If dynamic and no more consumers, destroy the queue                  */
     if (self->dynamic && self->nbr_consumers == 0) {
-        coprintf ("I: destroying dynamic queue '%s'", self->dest->key);
-        amq_dest_destroy (&self->dest);
+//        coprintf ("I: destroying dynamic queue '%s'", self->dest->key);
+  //      amq_dest_destroy (&self->dest);
     }
 </method>
 
@@ -247,8 +256,13 @@ were split to keep the code within sane limits.
         /*  Force persistent if queue is full, unless message is critical    */
         if (self->dest->opt_memory_queue_max > 0
         &&  self->memory_queue_size >= self->dest->opt_memory_queue_max
-        &&  message->priority &lt; AMQP_MAX_PRIORITIES)
+        &&  message->priority &lt; AMQP_MAX_PRIORITIES) {
+            if (!self->forced) {
+                coprintf ("$(selfname) I: queue full - forcing message to persistent storage");
+                self->forced = TRUE;
+            }
             s_accept_persistent (self, message, txn);
+        }
         else
         /*  Force persistent if there are already queued messages on disk    */
         if (self->disk_queue_size > 0 && s_priority_level (self, message) == 0)
@@ -256,8 +270,12 @@ were split to keep the code within sane limits.
         else
         if (message->persistent)
             s_accept_persistent (self, message, txn);
-        else
+        else {
             s_accept_transient (self, message, txn);
+            self->forced = FALSE;
+        }
+        self->accept_count++;
+        self->monitor_pending = TRUE;
     }
 </method>
 
@@ -538,7 +556,7 @@ s_delete_byreference (
             while (self->window && message_ref) {
                 consumer = s_get_next_consumer (self);
                 if (consumer) {
-                    s_dispatch_message (consumer, message_ref->message);
+                    s_dispatch_message (self, consumer, message_ref->message);
                     amq_mesgref_destroy (&message_ref);
                     self->memory_queue_size--;
                     self->item_id = 0;  /*  Non-persistent message           */
@@ -581,7 +599,7 @@ s_delete_byreference (
                 consumer = s_get_next_consumer (self);
                 if (consumer) {
                     message = s_fetch_byreference (self, consumer->handle);
-                    s_dispatch_message   (consumer, message);
+                    s_dispatch_message   (self, consumer, message);
                     amq_smessage_destroy (&message);
                     self->item_client_id = consumer->handle->client_id;
                     self_update (self, NULL);
@@ -603,7 +621,7 @@ s_delete_byreference (
 static amq_consumer_t *
     s_get_next_consumer ($(selftype) *self);
 static void
-    s_dispatch_message (amq_consumer_t *consumer, amq_smessage_t *message);
+    s_dispatch_message ($(selftype) *self, amq_consumer_t *consumer, amq_smessage_t *message);
 </private>
 
 <private name = "footer">
@@ -631,6 +649,7 @@ s_get_next_consumer ($(selftype) *self)
 
 static void
 s_dispatch_message (
+    $(selftype)    *self,
     amq_consumer_t *consumer,
     amq_smessage_t *message)
 {
@@ -656,6 +675,9 @@ s_dispatch_message (
 
     /*  Move consumer to end of list to round-robin it                       */
     amq_consumer_by_queue_queue (consumer->queue->active_consumers, consumer);
+
+    self->dispatch_count++;
+    self->monitor_pending = TRUE;
 }
 </private>
 

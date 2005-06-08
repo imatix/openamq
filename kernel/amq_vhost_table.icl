@@ -7,7 +7,8 @@
     script    = "icl_gen"
     >
 <doc>
-Container class for the virtual hosts defined for the server.
+Container class for the virtual hosts defined for the server, which
+is currently limited to 255 virtual hosts.
 </doc>
 
 <inherit class = "ipr_hash_table" />
@@ -15,7 +16,7 @@ Container class for the virtual hosts defined for the server.
 <import class = "amq_global" />
 <option name = "childname" value = "amq_vhost" />
 <option name = "childtype" value = "amq_vhost_t" />
-<option name = "hash_size" value = "65535" />
+<option name = "hash_size" value = "255" />
 
 <context>
     ipr_config_t

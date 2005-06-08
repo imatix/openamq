@@ -25,6 +25,7 @@
     "                   0=none, 1=low, 2=medium, 3=high\n"                  \
     "  -v               Show version information\n"                         \
     "  -h               Show summary of command-line options\n"             \
+    "  -m n             Monitor server queues every N seconds\n"            \
     "\nThe order of arguments is not important. Switches and filenames\n"   \
     "are case sensitive. See documentation for detailed information.\n"     \
     "\n"
@@ -85,6 +86,7 @@ amq_server_core (
         *opt_workdir,                   /*  Working directory                */
         *opt_server,                    /*  -s means run in background       */
         *opt_trace,                     /*  0-3                              */
+        *opt_monitor,                   /*  >0 = monitor                     */
         **argparm;                      /*  Argument parameter to pick-up    */
 
     /*  First off, switch to user's id                                       */
@@ -93,6 +95,7 @@ amq_server_core (
     /*  These are the arguments we may get on the command line               */
     opt_workdir = NULL;
     opt_trace   = "0";
+    opt_monitor = "0";
     opt_server  = NULL;
     console_set_mode (CONSOLE_DATETIME);
 
@@ -118,6 +121,9 @@ amq_server_core (
                     break;
                 case 't':
                     argparm = &opt_trace;
+                    break;
+                case 'm':
+                    argparm = &opt_monitor;
                     break;
 
                 /*  These switches have an immediate effect                  */
@@ -175,6 +181,7 @@ amq_server_core (
     amq_config = ipr_config_new (".", AMQ_SERVER_CONFIG);
     ipr_config_load (amq_config, ".", AMQ_CUSTOM_CONFIG);
     s_prepare_logging ();
+    amq_global_set_monitor (atoi (opt_monitor));
 
     /*  Initialise arguments, taking defaults from the config_table          */
     if (!opt_server) {
@@ -298,4 +305,3 @@ s_prepare_security (void)
         ipr_config_next (amq_config);
     }
 }
-
