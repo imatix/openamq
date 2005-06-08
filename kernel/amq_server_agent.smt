@@ -98,7 +98,12 @@ static int
     </action>
 
     <action name = "accept connection">
-        smt_socket_request_accept (thread, tcb->socket, 1000, ok_event, &tcb->connect);
+        smt_socket_request_accept (
+            thread, 
+            tcb->socket, 
+            amq_global_monitor () * 1000, 
+            ok_event, 
+            &tcb->connect);
     </action>
 
     <action name = "server monitor">
