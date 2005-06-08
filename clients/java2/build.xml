@@ -109,7 +109,7 @@
     
     <target name="profile" depends="compile" description="Profile Project">
         <fail unless="netbeans.home">This target can only run inside the NetBeans IDE.</fail>
-        <nbprofile classname="org.openamq.requestreply1.ServiceRequestingClient" args="192.168.55.63 7654 piemuncher1">
+        <nbprofile classname="org.openamq.requestreply1.TestService" args="192.168.55.63 7654 piemuncher1 x x">
             <classpath refid="openamq.classpath"/>
         </nbprofile>
     </target>

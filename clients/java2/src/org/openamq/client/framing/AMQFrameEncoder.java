@@ -62,7 +62,7 @@ public class AMQFrameEncoder implements MessageEncoder
     {
         final AMQFrame frame = (AMQFrame) message;
         int frameSize = (int)frame.getSize();
-        _buffer = ByteBuffer.allocate(frameSize);
+        _buffer = ByteBuffer.allocate(frameSize + 4096);
         _buffer.setAutoExpand(true);
         frame.writePayload(_buffer);
        
