@@ -187,22 +187,17 @@ main (int argc, char *argv [])
     amq_client = amq_sclient_new (opt_client, "guest", "guest");
 
     if (amq_client == NULL
-    ||  amq_sclient_connect (amq_client, opt_server, "/test"))
+    ||  amq_sclient_connect (amq_client, opt_server, "/test", TRUE))
         goto failed;
 
-    in_handle = amq_sclient_consumer (
-        amq_client,
-        service_type,
+    out_handle = amq_sclient_producer (amq_client, service_type);
+    in_handle  = amq_sclient_consumer (amq_client, service_type,
         NULL,                           /*  No name, let server make it      */
         batch_size,                     /*  Prefetch size                    */
         FALSE,                          /*  No-local                         */
         FALSE,                          /*  No-ack                           */
         TRUE,                           /*  Dynamic                          */
         TRUE);                          /*  Exclusive                        */
-
-coprintf ("TEMP NAME: %s", amq_client->dest_name);
-
-    out_handle = amq_sclient_producer (amq_client, service_type);
 
     while (repeats) {
         /*  Pause consumption on temporary queue                             */

@@ -1,3 +1,10 @@
+0.8d5 - 2005/06/08
+  Server:
+    - new command line option, -m does monitoring of queue activity
+    - new consumers on paused handle are now also paused
+    - no-ack option on consumers sometimes caused queue jams - fixed
+    - amq_sclient_agent: collects "handle created" for dynamic queues
+
 0.8d4 - 2005/06/03
 
   Protocol:

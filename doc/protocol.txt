@@ -5,7 +5,7 @@ gdl
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/06/03
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.9a2
+    version   = 0.9a3
 end gdl
 
 Cover
@@ -23,6 +23,10 @@ This document is ready for review.
 
 Recent Change History
 ---------------------
+
+2005/06/06 - 0.9a3:
+
+- Added the Trivial content class.
 
 2005/06/06 - 0.9a2:
 
@@ -540,7 +544,10 @@ For AMQP/Fast these are the correct values:
 - protocol-major = 0
 - protocol-minor = 9
 
-[version.png]
+    +---+---+---+---+---+---+---+---+
+    |'A'|'M'|'Q'|'P'| 1 | 1 | 0 | 9 |
+    +---+---+---+---+---+---+---+---+
+               8 octets
 
 Guidelines for implementors:
 
@@ -767,13 +774,11 @@ The Frame Header Wire Format
 All frames start with a 4-octet header composed of a one-octet type field
 a 1-octet channel field and a short size field:
 
-[frameheader.png]
-
-    0      1         2         4                size+4
-    +------+---------+------+  +------------+  +-----------+
-    | type | channel | size |  | frame-body |  | frame-end |
-    +------+---------+------+  +------------+  +-----------+
-     octet  octet     short     size-1 octets   octet
+    0      1         2             4               size+4
+    +------+---------+----------+  +------------+  +-----------+
+    | type | channel |   size   |  | frame body |  | frame-end |
+    +------+---------+----------+  +------------+  +-----------+
+     octet    octet     short       size-1 octets      octet
 
 AMQP/Fast defines these types of frame:
 
@@ -800,13 +805,14 @@ Guidelines for implementors:
   types, it MUST treat this as a fatal protocol error and close the
   connection without sending any further data on it.
 
+- All frames include the frame-end octet. The minimum value for the size
+  field is 1.
+
 - When a peer reads a frame it SHOULD check that the frame-end is valid
   before attempting to decode the frame.  If the frame-end is not valid
   it MUST treat this as a fatal protocol error and close the connection
   without sending any further data on it.  It SHOULD log information
   about the problem.
-
-- The minimum value for the size field is 1.
 
 Method Frames
 -------------
@@ -833,7 +839,12 @@ of header frames followed by the appropriate body frames.
 Looking at the frames as they pass on the wire, we might see something
 like this:
 
-[content.png]
+    [method]
+    [method] [header] [body] [body]
+    [method] [header] [body] [body]
+    [trace]
+    [method]
+    ...
 
 There is a specific reason for placing content body in distinct frames
 as compared to including the header and body in the method. We want to
@@ -912,7 +923,15 @@ Extended Frame Header Wire Format
 A meta frame is followed by an "extended frame header" with a short
 integer channel number and a long long size:
 
-[meta.png]
+    0      1   2   4
+    +------+---+---+
+    | META | 0 | 0 |
+    +------+---+---+
+    0       1       2         4           12
+    +-------+-------+---------+------------+ +-------------- - -
+    | type  | flags | channel | frame-size | | frame body...
+    +-------+-------+---------+------------+ +-------------- - -
+      octet   octet   short     long long     'frame-size' octets
 
 Guidelines for implementors:
 
@@ -979,7 +998,11 @@ Content Header Frame Wire Format
 
 A content header frame has this format:
 
-[contentheader.png]
+    0        1        2           6                8
+    +--------+--------+-----------+----------------+------------- - -
+    | domain | weight | body size | property flags | property list...
+    +--------+--------+-----------+----------------+------------- - -
+      octet    octet    long long   short int        remainder...
 
 - The content class specifies the set of properties (with a predefined
   syntax and semantics) that the header frame may hold. The standard
@@ -1010,25 +1033,40 @@ As an example, we take an imaginary content class "D" which has three
 properties, T, E and C. Imagine a simple content that has properties E
 and C but not T. The header frame will be formatted thus:
 
-[domainexample.png]
+      domain   weight   body size   property flags   property list
+    +--------+--------+-----------+----------------+-------+
+    |   D    |   0    |    nnn    | 011...         | E | C |
+    +--------+--------+-----------+----------------+-------+
 
 The property flags are ordered from high to low, the first property
 being indicated by bit 15, and so on:
 
-[propertyflags.png]
+     15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
+    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+    | T | E | C |                                               | 0 |
+    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 
 The property flags can specify more than 16 properties. If bit 0 is set,
 it indicates that a further property flags field follows. There can be
 several property flag fields in succession:
 
-[propertyflagsx.png]
+     15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
+    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+    |                                                           | 1 |
+    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+    |                                                           | 1 |
+    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+    |                                                           | 0 |
+    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 
 Content Body Frame Wire Format
 ------------------------------
 
 A content body frame has this format:
 
-[contentbody.png]
+    +-----------------------+-----------+
+    | Opaque binary content | frame-end |
+    +-----------------------+-----------+
 
 Where the size of the frame is defined in the frame header.
 
@@ -1039,12 +1077,15 @@ The "weight" field in the content header frame indicates whether the
 content has child-contents or not. In the simplest case (weight = zero)
 content consists of a header frame plus zero or more body frames:
 
-[contentstructured.png]
+    [header] [body] [body]...
 
 If the content has child-contents, these are inserted between the
 header and body of the parent content:
 
-[contentchild.png]
+    [parent-header]
+        [child-header] [child-body] ...
+    [parent-body]
+
 
 This organisation means that a principal content (e.g. a very large
 video file) can have child content (e.g. subtitles and menus) which will
@@ -1092,12 +1133,13 @@ programmer needs to see.
 
 AMQP/Fast defines these standard content classes:
 
+- Basic: the content is an untyped message.
 - JMS: the content is a JMS-compliant message.
-- File: the content is a file.
+- File: the content is a persistent file.
 - Stream: the content is a streamed message.
 
 Note that the ID of each content class is the same as the ID of the
-protocol class (JMS, File, Stream) that supports it.
+protocol class (Basic, JMS, File, Stream) that supports it.
 
 Each class has a specific access model, though they all share the basic
 AMQP queueing and routing mechanisms including topic multipliers. These
@@ -1188,7 +1230,11 @@ connections. We can visualise the protocol as governing two levels of
 connection - network connections (sockets) and virtual connections
 (channels):
 
-[connections.png]
+    +-----------+-----------+-----------+-----------+
+    |  channel  |  channel  |  channel  |  channel  |
+    +-----------------------------------------------+
+    |                    socket                     |
+    +-----------------------------------------------+
 
 Each peer involved in a connection (socket and channel) is strictly
 a client or a server.  The client initiates the connection and the
@@ -1223,7 +1269,13 @@ Method Frame Body Wire Format
 
 A method frame body has this format:
 
-[framemethod.png]
+    0       1        2          3       4          8
+    +-------+--------+----------+-------+----------+-------------- - -
+    | class | method | revision | flags | synchtag | arguments...
+    +-------+--------+----------+-------+----------+-------------- - -
+      octet   octet    octet      octet   long
+
+xxx
 
 - The class and method are protocol-constant values.
 
@@ -1232,16 +1284,27 @@ A method frame body has this format:
 
 - The flags provide a set of operational indicators.
 
-- The synctag is an arbitrary value that the sender chooses to
-  identify the method instance.
+- The synctag is an arbitrary value that the sender chooses to identify
+  the method instance.
 
-- The properties are a set of AMQP/Fast fields that specific to each
+- The arguments are a set of AMQP/Fast fields that specific to each
   method.
 
 The flags are defined as follows:
 
-[flags.png]
-                                 
+                    7   6   5   4   3   2   1   0
+                  +---+---+---+---+---+---+---+---+
+                  | X | X | X | X |   revision    |
+                  +---+---+---+---+---+---+---+---+
+                    |   |   |   |
+    SYNCHREQ -------'   |   |   |
+                        |   |   |
+    UNREAL -------------'   |   |
+                            |   |
+    TRACER -----------------'   |
+                                |
+    UNUSED ---------------------'
+
 - 7 = SYNCHREQ - if 1, requests a "synchpoint", turning an asynchronous
   method into a synchronous one. Has no effect on a synchronous method.
 
@@ -1979,7 +2042,7 @@ is is being resent after a failure or rejection.
 Note that mixed content on a queue is generally sent asynchronously
 using the appropriate Deliver methods, to those clients that have asked
 for it.  The Browse method allows clients to selectively receive single
-JMS or File messages but not Stream messages.
+Basic, JMS or File messages but not Stream messages.
 
 Guidelines for implementors:
 
@@ -1997,8 +2060,8 @@ overflow etc.
 
 Messages may be persistent or not, depending on several criteria:
 
-1. In the JMS content class, messages are individually marked as
-   persistent or non-persistent.
+1. In the Basic and JMS content classes, messages are individually
+   marked as persistent or non-persistent.
 2. In the File content class, messages are always persistent.
 3. In the Stream content class, messages are never persistent.
 
@@ -2011,10 +2074,10 @@ Guidelines for implementors:
   overflow but SHOULD use the Channel.Flow method to slow or stop a
   producer when necessary.
 
-- The server MAY overflow non-persistent JMS or Stream messages to
-  persistent storage, or MAY discard non-persistent JMS or Stream
-  messages on a priority basis if the queue exceeds some configured
-  maximum size.
+- The server MAY overflow non-persistent Basic, JMS or Stream messages
+  to persistent storage, or MAY discard non-persistent Basica, JMS or
+  Stream messages on a priority basis if the queue exceeds some
+  configured maximum size.
 
 Message Priorities
 ------------------
@@ -2219,7 +2282,7 @@ AMQP/Fast defines two exception levels:
 1. Channel exceptions.  These close a single virtual connection.
    A channel exception is raised when a peer cannot complete some
    request because of transient or configuration errors.
-   
+
 2. Connection exceptions.  These close the socket connection.
    A connection exception is raised when a peer detects a syntax
    error, badly-formed frame, or other indicator that the other
@@ -2242,6 +2305,28 @@ reasons, or as a reaction to an error.  It sends a Close method to
 the other party.  The receiving peer must respond to a Close with a
 Close-Ok method.  The closing peer reads methods back until it gets a
 Close-Ok, at which point it closes the connection and frees resources.
+
+The Trivial Operational Model
+=============================
+
+Goals and Principles
+--------------------
+
+The trivial operational model is designed to provide the simplest
+possible message exchange model.  The basic content methods are fully
+synchronous; there is no Consume method, and all message fetching is done
+using the Browse method.  Trivial messages are not acknowledged, and
+cannot be put back onto a queue.
+
+Trivial Properties
+------------------
+
+These are the properties defined for Trivial content:
+
+- ContentType (short string)
+- ContentEncoding (short string)
+- Destination (short string)
+- Headers (field table)
 
 The JMS Operational Model
 ========================

@@ -181,8 +181,6 @@ were split to keep the code within sane limits.
     self->window += consumer->window;
     if (consumer->dynamic)
         self->dynamic = TRUE;           /*  When any consumer is dynamic     */
-    amq_consumer_by_queue_queue  (self->active_consumers,      consumer);
-    amq_consumer_by_handle_queue (consumer->handle->consumers, consumer);
     self_pre_dispatch (self);
 </method>
 
@@ -191,7 +189,6 @@ were split to keep the code within sane limits.
     Detach consumer from queue.
     </doc>
     <argument name = "consumer" type = "amq_consumer_t *">Consumer</argument>
-    amq_consumer_by_queue_unlink (consumer);
     self->nbr_consumers--;
     self->window -= consumer->window;
     if (self->window < 0)

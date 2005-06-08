@@ -15,7 +15,7 @@
 #define VERSION         "0.8d4"
 #define PRODUCT         "OpenAMQ base C clients/0.8d4"
 #define COPYRIGHT       "Copyright (c) 2004-2005 JPMorgan"
-#define BUILDDATE       "2005/06/04 15:57:02"
+#define BUILDDATE       "2005/06/08 16:28:59"
 #if DEBUG == 1
 #   define BUILDMODEL   "Debug release for internal use only"
 #else

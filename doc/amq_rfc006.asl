@@ -13,6 +13,7 @@
   <include filename = "access.asl"        />
   <include filename = "proxy.asl"         />
   <include filename = "queue.asl"         />
+  <include filename = "basic.asl"         />
   <include filename = "jms.asl"           />
   <include filename = "file.asl"          />
   <include filename = "stream.asl"        />

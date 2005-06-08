@@ -19,7 +19,7 @@
     file                = C:CONSUME S:CONSUME-OK
                         / C:CANCEL S:CANCEL-OK
                         / C:OPEN S:OPEN-OK C:STAGE content
-                        / S:OPEN C:OPEN-OK S:STAGE
+                        / S:OPEN C:OPEN-OK S:STAGE content
                         / C:PUBLISH 
                         / S:DELIVER
                         / C:ACK

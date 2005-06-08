@@ -75,7 +75,7 @@
     </doc>
     <assert check = "null" />
   </field>
-    
+
   <field name = "tx mode" type = "octet">
     transaction mode for channel
     <doc>
@@ -109,7 +109,12 @@
     data. This is a simple flow-control mechanism that a peer can use
     to avoid oveflowing its queues or otherwise finding itself receiving
     more messages than it can process.  Note that this method is not
-    intended for window control.
+    intended for window control.  When the channel flow is paused, all
+    consumers for that channel are paused, and any new consumers will
+    also be paused.  Note that to implement the JMS semantics, in which
+    a channel must be explicitly "started", the client should open the
+    channel and send a Flow method to pause it, before creating consumers
+    for the channel.
   </doc>
   <doc name = "rule">
     When sending content data in multiple frames, a peer SHOULD monitor

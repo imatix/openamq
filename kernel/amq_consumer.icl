@@ -76,14 +76,15 @@ and to a queue.
         assert (handle->service_type == AMQP_SERVICE_TOPIC);
         s_init_topic_consumer (self, command);
     }
-    if (!self->dest)
+    if (self->dest) {
+        amq_consumer_by_handle_queue (handle->consumers, self);
+        if (handle->paused)
+            self_deactivate (self);
+        else
+            self_activate (self);
+    }
+    else
         self_destroy (&self);
- //       if (handle->paused)
-  //          self_deactivate (self);
-   //     else
-    //        self_activate (self);
-  //  }
-    //else
 </method>
 
 <method name = "destroy">
@@ -186,9 +187,8 @@ s_init_queue_consumer ($(selftype) *self, amq_handle_consume_t *command)
     }
     if (self->dest) {
         if (self->dest->opt_max_consumers == 0
-        ||  self->dest->opt_max_consumers > self->dest->queue->nbr_consumers) {
+        ||  self->dest->opt_max_consumers > self->dest->queue->nbr_consumers)
             amq_queue_attach (self->dest->queue, self);
-        }
         else
             amq_global_set_error (AMQP_NOT_ALLOWED, "Destination consumer limit reached");
     }

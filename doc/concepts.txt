@@ -1722,6 +1722,7 @@ For AMQP/Fast these are the correct values:
     +---+---+---+---+---+---+---+---+
     |'A'|'M'|'Q'|'P'| 1 | 1 | 0 | 9 |
     +---+---+---+---+---+---+---+---+
+               8 octets
 
 Guidelines for implementors:
 
@@ -1948,7 +1949,7 @@ The Frame Header Wire Format
 All frames start with a 4-octet header composed of a one-octet type
 indicator and a 3-octet size indicator:
 
-    0       1         2            4 
+    0       1         2            4
     +-------+---------+------------+ +-------------- - -
     | type  | channel | frame-size | | frame body...
     +-------+---------+------------+ +-------------- - -
@@ -2205,7 +2206,7 @@ being indicated by bit 15, and so on:
 
      15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
     +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-    | T | E | C |                                               | 0 | 
+    | T | E | C |                                               | 0 |
     +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 
 The property flags can specify more than 16 properties. If bit 0 is set,
@@ -2214,11 +2215,11 @@ several property flag fields in succession:
 
      15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
     +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-    |                                                           | 1 | 
+    |                                                           | 1 |
     +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-    |                                                           | 1 | 
+    |                                                           | 1 |
     +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-    |                                                           | 0 | 
+    |                                                           | 0 |
     +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 
 Content Body Frame Wire Format
@@ -2454,15 +2455,15 @@ The flags are defined as follows:
                   +---+---+---+---+---+---+---+---+
                   | X | X | X | X |   revision    |
                   +---+---+---+---+---+---+---+---+
-                    |   |   |   | 
-    SYNCHREQ -------'   |   |   | 
+                    |   |   |   |
+    SYNCHREQ -------'   |   |   |
                         |   |   |
     UNREAL -------------'   |   |
                             |   |
     TRACER -----------------'   |
-                                |   
+                                |
     UNUSED ---------------------'
-                                 
+
 - 7 = SYNCHREQ - if 1, requests a "synchpoint", turning an asynchronous
   method into a synchronous one. Has no effect on a synchronous method.
 
