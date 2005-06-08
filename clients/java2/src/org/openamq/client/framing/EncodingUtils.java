@@ -246,6 +246,9 @@ public class EncodingUtils
         }
     }
     
+    // Will barf with a NPE on a null input. Not sure whether it should return null or
+    // an empty field-table (which would be slower - perhaps unnecessarily).
+    //
     // Some sample input and the result output:
     //
     // Input: "a=1" "a=2 c=3" "a=3 c=4 d" "a='four' b='five'" "a=bad"

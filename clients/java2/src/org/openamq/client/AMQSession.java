@@ -1,6 +1,7 @@
 package org.openamq.client;
 
 import org.openamq.jms.Session;
+import org.openamq.client.framing.EncodingUtils;
 import org.openamq.client.framing.Handle;
 import org.openamq.client.framing.AMQMessage;
 import org.openamq.client.state.listener.HandleReplyListener;
@@ -268,7 +269,22 @@ public class AMQSession extends Closeable implements Session
                     consumeFrame.dynamic = dynamic;
                     consumeFrame.exclusive = exclusive;
                     consumeFrame.destName = destination.toString();    // ?
-                    consumeFrame.selector = null;
+                    
+                    if (selector != null)
+                    {
+                    	try
+                    	{
+                    		consumeFrame.selector = EncodingUtils.createFieldTableFromMessageSelector(selector);
+                    	}
+                    	catch(IllegalArgumentException e)
+                    	{
+                    		throw new JMSException("Failed to parse message selector: " + e);
+                    	}
+                    }
+                    else
+                    {
+                    	consumeFrame.selector = null;
+                    }
 
                     _connection.getProtocolHandler().addSessionByHandle(frame.handleId, this);
 
