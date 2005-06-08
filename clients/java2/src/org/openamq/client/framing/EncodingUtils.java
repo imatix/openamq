@@ -6,12 +6,19 @@ import org.openamq.client.AMQException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
+import org.apache.log4j.Logger;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
+/**
+ * @author Mark
+ *
+ */
 public class EncodingUtils
 {
+	private static final Logger _logger = Logger.getLogger(EncodingUtils.class);
+	
     private static final String STRING_ENCODING = "iso8859-15";
 
     private static final Charset _charset = Charset.forName("iso8859-15");
@@ -239,11 +246,81 @@ public class EncodingUtils
         }
     }
     
-    
-    
+    // Some sample input and the result output:
+    //
+    // Input: "a=1" "a=2 c=3" "a=3 c=4 d" "a='four' b='five'" "a=bad"
+    //
+	//    Parsing <a=1>...
+	//    {a=1}
+	//    Parsing <a=2 c=3>...
+	//    {a=2, c=3}
+	//    Parsing <a=3 c=4 d>...
+	//    {a=3, c=4, d=null}
+	//    Parsing <a='four' b='five'>...
+	//    {a=four, b=five}
+	//    Parsing <a=bad>...
+	//    java.lang.IllegalArgumentException: a: Invalid integer in <bad> from <a=bad>.
+    //    
     public static final FieldTable createFieldTableFromMessageSelector(String selector)
     {
-    	return(null);
+    	boolean debug = _logger.isDebugEnabled();
+    	
+		// TODO: Doesn't support embedded quotes properly.
+    	String[] expressions = selector.split(" +");
+    	
+    	FieldTable result = new FieldTable();
+    	
+    	for(int i = 0; i < expressions.length; i++)
+    	{
+    		String expr = expressions[i];
+    		
+    		if (debug) _logger.debug("Expression = <" + expr + ">");
+    		
+    		int equals = expr.indexOf('=');
+    		
+    		if (equals < 0)
+    		{
+    			// Existence check
+    			result.put(expr.trim(),null);
+    		}
+    		else
+    		{
+    			String key = expr.substring(0,equals).trim();
+    			String value = expr.substring(equals + 1).trim();
+    			
+    			if (debug) _logger.debug("Key = <" + key + ">, Value = <" + value + ">");
+    			
+    			if (value.charAt(0) == '\'')
+    			{
+    				if (value.charAt(value.length()- 1) != '\'')
+    				{
+    					throw new IllegalArgumentException(key + ": Missing quote in <" + value + "> from <" + selector + ">.");
+    				}
+    				else
+    				{
+    					value = value.substring(1,value.length() - 1);
+    					
+    					result.put(key,value);
+    				}
+    			}
+    			else
+    			{
+    				try
+    				{
+    					int intValue = Integer.parseInt(value);
+    					
+    					result.put(key,new Integer(intValue));
+    				}
+    				catch(NumberFormatException e)
+    				{
+    					throw new IllegalArgumentException(key + ": Invalid integer in <" + value + "> from <" + selector + ">.");
+    					
+    				}
+    			}
+    		}
+    	}
+    	
+    	return(result);
     	
     }
     
@@ -311,6 +388,25 @@ public class EncodingUtils
 		}
 		
 		return(new String(convertToHexCharArray(from)));
+	}
+	
+	public static void main(String[] args)
+	{
+		for(int i = 0; i < args.length; i++)
+		{
+			String selector = args[i];
+			
+			System.err.println("Parsing <" + selector + ">...");
+			
+			try
+			{
+				System.err.println(createFieldTableFromMessageSelector(selector));
+			}
+			catch(IllegalArgumentException e)
+			{
+				System.err.println(e);
+			}
+		}
 	}
 
 	private static char hex_chars[] = {'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
