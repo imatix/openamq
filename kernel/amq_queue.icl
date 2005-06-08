@@ -198,9 +198,9 @@ were split to keep the code within sane limits.
         self->window = 0;
 
     /*  If dynamic and no more consumers, destroy the queue                  */
-    if (self->dynamic && self->nbr_consumers == 0) {
-//        coprintf ("I: destroying dynamic queue '%s'", self->dest->key);
-  //      amq_dest_destroy (&self->dest);
+    if (self->dynamic && self->nbr_consumers == 0 && amq_global_monitor () == 0) {
+        coprintf ("I: destroying dynamic queue '%s'", self->dest->key);
+        amq_dest_destroy (&self->dest);
     }
 </method>
 

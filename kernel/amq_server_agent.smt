@@ -99,10 +99,10 @@ static int
 
     <action name = "accept connection">
         smt_socket_request_accept (
-            thread, 
-            tcb->socket, 
-            amq_global_monitor () * 1000, 
-            ok_event, 
+            thread,
+            tcb->socket,
+            amq_global_monitor () * 1000,
+            ok_event,
             &tcb->connect);
     </action>
 
@@ -116,6 +116,7 @@ static int
         amq_dest_t
             *dest;
 
+        /*  Output queue statistics                                          */
         if (amq_global_monitor () && --remaining == 0) {
             for (table_idx = 0; table_idx < AMQ_VHOST_TABLE_MAXSIZE; table_idx++) {
                 vhost = amq_vhosts->item_table [table_idx];

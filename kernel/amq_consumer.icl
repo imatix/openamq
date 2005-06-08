@@ -76,7 +76,13 @@ and to a queue.
         assert (handle->service_type == AMQP_SERVICE_TOPIC);
         s_init_topic_consumer (self, command);
     }
-    if (!self->dest)
+    if (self->dest) {
+        if (handle->paused)
+            self_deactivate (self);
+        else
+            self_activate (self);
+    }
+    else
         self_destroy (&self);
 </method>
 
