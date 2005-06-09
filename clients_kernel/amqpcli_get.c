@@ -74,7 +74,7 @@ main (int argc, char *argv [])
     
     amq_client = amq_sclient_new (clientname, login, password);
     if (amq_client) {
-        if (amq_sclient_connect (amq_client, hostname, virtual_path)) {
+        if (amq_sclient_connect (amq_client, hostname, virtual_path, TRUE)) {
             msecs = (qbyte) atol (timeout) * 1000;
             handle = amq_sclient_consumer (
                 amq_client,
@@ -84,7 +84,8 @@ main (int argc, char *argv [])
                 TRUE,                   /*  No local                         */
                 FALSE,                  /*  No ack                           */
                 FALSE,                  /*  Dynamic                          */
-                FALSE);                 /*  Exclusive                        */
+                FALSE,                  /*  Exclusive                        */
+                NULL);                  /*  Selector table                   */
             message = amq_sclient_msg_read (amq_client, msecs);
             if (! message) {
                 coprintf ("E: Error reading message from server");

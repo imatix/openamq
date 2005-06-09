@@ -197,7 +197,8 @@ main (int argc, char *argv [])
         FALSE,                          /*  No-local                         */
         FALSE,                          /*  No-ack                           */
         TRUE,                           /*  Dynamic                          */
-        TRUE);                          /*  Exclusive                        */
+        FALSE,                          /*  Exclusive                        */
+        NULL);                          /*  Selector table                   */
 
     while (repeats) {
         /*  Pause consumption on temporary queue                             */

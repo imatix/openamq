@@ -16,8 +16,10 @@
 <file name = "amqpfeed.c"        class = "main program"     >Generate test files</file>
 <file name = "chat_in.c"         class = "main program"     >C-to-Java chat example</file>
 <file name = "chat_out.c"        class = "main program"     >C-to-Java chat example</file>
-<file name = "simple_cons.c"     class = "public command"   >Simple consumer</file>
-<file name = "simple_prod.c"     class = "public command"   >Simple producer</file>
+<file name = "topic_pub.c"       class = "main program"     >Topic publisher</file>
+<file name = "topic_sub.c"       class = "main program"     >Topic subscriber</file>
+<file name = "simple_cons.c"     class = "main program"     >Simple consumer</file>
+<file name = "simple_prod.c"     class = "main program"     >Simple producer</file>
 <file name = "version.h"         class = "c version"        >Project version file</file>
 
 <!-- Deliverables -->
@@ -28,6 +30,8 @@
 <file name = "amqpcli_put"       class = "public command"   >Client file put</file>
 <file name = "chat_in"           class = "public command"   >C-to-Java chat example</file>
 <file name = "chat_out"          class = "public command"   >C-to-Java chat example</file>
+<file name = "topic_pub"         class = "public command"   >Topic publisher</file>
+<file name = "topic_sub"         class = "public command"   >Topic subscriber</file>
 <file name = "simple_cons"       class = "public command"   >Simple consumer</file>
 <file name = "simple_prod"       class = "public command"   >Simple producer</file>
 

@@ -131,7 +131,7 @@ main (int argc, char *argv [])
     amq_client = amq_sclient_new (opt_client, "guest", "guest");
 
     if (amq_client == NULL
-    ||  amq_sclient_connect (amq_client, opt_server, "/test"))
+    ||  amq_sclient_connect (amq_client, opt_server, "/test", TRUE))
         goto failed;
 
     signal (SIGINT,  s_handle_signal);

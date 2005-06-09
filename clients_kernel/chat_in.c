@@ -126,7 +126,7 @@ main (int argc, char *argv [])
     amq_client = amq_sclient_new (opt_client, "guest", "guest");
 
     if (amq_client == NULL
-    ||  amq_sclient_connect (amq_client, opt_server, "/test"))
+    ||  amq_sclient_connect (amq_client, opt_server, "/test", TRUE))
         goto failed;
 
     /*  We ask the server to auto-acknowledge messages (unreliable)          */
@@ -138,7 +138,8 @@ main (int argc, char *argv [])
         FALSE,                          /*  No local                         */
         TRUE,                           /*  No acknowledgements              */
         TRUE,                           /*  Dynamic queue consumer           */
-        FALSE);                         /*  Exclusive                        */
+        FALSE,                          /*  Exclusive                        */
+        NULL);                          /*  Selector table                   */
 
     while (TRUE) {
         message = amq_sclient_msg_read (amq_client, 0);

@@ -57,7 +57,6 @@ main (int argc, char *argv [])
     dbyte
         out_handle = 0;
     int
-        service_type,                   /*  Service type                     */
         messages,
         msgsize,
         count;
@@ -72,7 +71,6 @@ main (int argc, char *argv [])
     opt_trace    = "0";
     opt_messages = "1000";
     opt_msgsize  = "1024";
-    service_type = AMQP_SERVICE_QUEUE;
 
     console_send     (NULL, TRUE);
     console_set_mode (CONSOLE_DATETIME);
@@ -146,12 +144,12 @@ main (int argc, char *argv [])
     }
     /*  If there was a missing parameter or an argument error, quit          */
     if (argparm) {
-        coprintf ("Argument missing - type 'amqpcli_serial -h' for help");
+        coprintf ("Argument missing - type 'simple_prod -h' for help");
         goto failed;
     }
     else
     if (!args_ok) {
-        coprintf ("Invalid arguments - type 'amqpcli_serial -h' for help");
+        coprintf ("Invalid arguments - type 'simple_prod -h' for help");
         goto failed;
     }
 
@@ -167,7 +165,7 @@ main (int argc, char *argv [])
     ||  amq_sclient_connect (amq_client, opt_server, "/test", FALSE))
         goto failed;
 
-    out_handle = amq_sclient_producer (amq_client, service_type);
+    out_handle = amq_sclient_producer (amq_client, AMQP_SERVICE_QUEUE);
     for (count = 0; count < messages; count++) {
         ipr_shortstr_fmt (identifier, "ID%d", count);
         message = amq_message_new ();

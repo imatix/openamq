@@ -22,11 +22,8 @@
     "Options:\n"                                                            \
     "  -c clientname    Client identifier (default: 'test client')\n"       \
     "  -s server        Name or address of server (localhost)\n"            \
-    "  -m number        Number of messages to send/receive (1000)\n"        \
-    "  -x size          Size of each message (default = 1024)\n"            \
     "  -t level         Set trace level (default = 0)\n"                    \
     "                   0=none, 1=low, 2=medium, 3=high\n"                  \
-    "  -p               Use persistent messages (no)\n"                     \
     "  -q               Quiet mode: no messages\n"                          \
     "  -d               Delayed mode; sleeps after receiving a message\n"   \
     "  -v               Show version information\n"                         \
@@ -43,24 +40,16 @@ main (int argc, char *argv [])
     Bool
         args_ok = TRUE,                 /*  Were the arguments okay?         */
         quiet_mode = FALSE,             /*  -q means suppress messages       */
-        delay_mode = FALSE,             /*  -d means work slowly             */
-        persistent = FALSE;             /*  Use persistent messages?         */
+        delay_mode = FALSE;             /*  -d means work slowly             */
     char
         *opt_client,                    /*  Client identifier                */
         *opt_server,                    /*  Host to connect to               */
         *opt_trace,                     /*  0-3                              */
-        *opt_messages,                  /*  Size of test set                 */
-        *opt_msgsize,                   /*  Message size                     */
         **argparm;                      /*  Argument parameter to pick-up    */
     amq_sclient_t
         *amq_client;
     dbyte
         in_handle = 0;
-    int
-        service_type,                   /*  Service type                     */
-        messages,
-        msgsize,
-        count;
     amq_message_t
         *message;
 
@@ -68,9 +57,6 @@ main (int argc, char *argv [])
     opt_client   = "test consumer";
     opt_server   = "localhost";
     opt_trace    = "0";
-    opt_messages = "1000";
-    opt_msgsize  = "1024";
-    service_type = AMQP_SERVICE_QUEUE;
 
     console_send     (NULL, TRUE);
     console_capture  ("amqpcli_serial.log", 'w');
@@ -99,20 +85,11 @@ main (int argc, char *argv [])
                 case 's':
                     argparm = &opt_server;
                     break;
-                case 'm':
-                    argparm = &opt_messages;
-                    break;
                 case 't':
                     argparm = &opt_trace;
                     break;
-                case 'x':
-                    argparm = &opt_msgsize;
-                    break;
 
                 /*  These switches have an immediate effect                  */
-                case 'p':
-                    persistent = TRUE;
-                    break;
                 case 'q':
                     quiet_mode = TRUE;
                     break;
@@ -145,17 +122,14 @@ main (int argc, char *argv [])
     }
     /*  If there was a missing parameter or an argument error, quit          */
     if (argparm) {
-        coprintf ("Argument missing - type 'amqpcli_serial -h' for help");
+        coprintf ("Argument missing - type 'simple_cons -h' for help");
         goto failed;
     }
     else
     if (!args_ok) {
-        coprintf ("Invalid arguments - type 'amqpcli_serial -h' for help");
+        coprintf ("Invalid arguments - type 'simple_cons -h' for help");
         goto failed;
     }
-
-    messages   = atoi (opt_messages);
-    msgsize    = atoi (opt_msgsize);
     amq_sclient_trace (atoi (opt_trace));
 
     coprintf ("Connecting to %s...", opt_server);
@@ -165,21 +139,21 @@ main (int argc, char *argv [])
     ||  amq_sclient_connect (amq_client, opt_server, "/test", FALSE))
         goto failed;
 
-    in_handle  = amq_sclient_consumer (amq_client, service_type,
+    in_handle  = amq_sclient_consumer (amq_client, AMQP_SERVICE_QUEUE,
         "mytest",
         0,                              /*  Prefetch size                    */
         FALSE,                          /*  No-local                         */
         TRUE,                           /*  No-ack                           */
         TRUE,                           /*  Dynamic                          */
-        TRUE);                          /*  Exclusive                        */
+        TRUE,                           /*  Exclusive                        */
+        NULL);                          /*  Selector                         */
 
     while (TRUE) {
         message = amq_sclient_msg_read (amq_client, 0);
         if (message) {
-            if ((delay_mode || messages < 100) && !quiet_mode)
+            if (!quiet_mode)
                 coprintf ("Message number %d arrived", amq_client->msg_number);
             amq_message_destroy (&amq_client->msg_object);
-            count++;
             if (delay_mode)
                 sleep (1);
         }

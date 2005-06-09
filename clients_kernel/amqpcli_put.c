@@ -76,7 +76,7 @@ main (int argc, char *argv [])
     if (! rc) {
         amq_client = amq_sclient_new (clientname, login, password);
         if (amq_client
-        &&  amq_sclient_connect (amq_client, hostname, virtual_path)) {
+        &&  amq_sclient_connect (amq_client, hostname, virtual_path, TRUE)) {
     
             handle = amq_sclient_producer (amq_client, AMQP_SERVICE_QUEUE);
             
