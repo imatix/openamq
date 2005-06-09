@@ -32,6 +32,11 @@ public class Message implements TextMessage
         return _data;
     }
 
+    public Message(byte[] data)
+    {
+        _data = data;
+    }
+    
     public Message(String text) throws JMSException
     {
         setText(text);
