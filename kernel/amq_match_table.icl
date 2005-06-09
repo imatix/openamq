@@ -53,15 +53,14 @@ names and field values.
     /*  We scan all known topics to see which ones match our criteria        */
     regexp = ipr_regexp_new (subscr->topic_re);
 
-    for (topic_nbr = 0; topic_nbr < self->topics->size; topic_nbr++) {
+    for (topic_nbr = 0; topic_nbr < self->topics->bound; topic_nbr++) {
         topic = amq_topic_array_fetch (self->topics, topic_nbr);
         assert (topic);
-        coprintf ("Check topic number: %d=%s", topic_nbr, topic->dest_name);
         if (ipr_regexp_match (regexp, topic->dest_name, NULL)) {
             /*  Topic must be defined in match table                         */
             match = amq_match_search (self, topic->dest_name);
             assert (match);
-            
+
             /*  Flag this subscription as matching                           */
             ipr_bits_set (match->bits, subscr->index);
 
@@ -138,7 +137,7 @@ names and field values.
     if (amq_match_search (self, dest_name) == NULL) {
         coprintf ("NEW TOPIC (%s), REBUILDING SUBSCRIPTIONS", dest_name);
         match = amq_match_new (self, dest_name);
-        amq_topic_new (self->topics, self->topics->size, dest_name);
+        amq_topic_new (self->topics, self->topics->bound, dest_name);
 
         /*  Recompile all subscriptions for this topic                       */
         subscr = amq_subscr_list_first (subscr_list);
