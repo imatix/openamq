@@ -88,8 +88,10 @@ and to a queue.
 </method>
 
 <method name = "destroy">
-    if (self->queue)
+    if (self->queue) {
+        amq_consumer_by_queue_unlink (self);
         amq_queue_detach (self->queue, self);
+    }
     amq_subscr_destroy (&self->subscr);
 </method>
 
@@ -104,8 +106,6 @@ and to a queue.
         self->window--;
         if (self->window == 0)
             self_deactivate (self);
-        if (trace_disp)
-            coprintf ("$(selfname) I: window closed to %d", self->window);
     }
 </method>
 
@@ -120,8 +120,6 @@ and to a queue.
         self->queue->window++;
         if (self->window == 1)
             self_activate (self);       /*  Just activated               */
-        if (trace_disp)
-            coprintf ("$(selfname) I: window opened to %d", self->window);
     }
 </method>
 

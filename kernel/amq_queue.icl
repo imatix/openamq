@@ -59,8 +59,8 @@ were split to keep the code within sane limits.
 
 <private name = "header">
 #include "amq_server_agent.h"
-#undef  TRACE_DISPATCH
 #define TRACE_DISPATCH                  /*  Trace dispatching progress?      */
+#undef  TRACE_DISPATCH
 </private>
 
 <context>
@@ -172,7 +172,7 @@ were split to keep the code within sane limits.
 
 <method name = "attach" template = "function">
     <doc>
-    Attach consumer to queue and to handle, and dispatch any outstanding
+    Attach consumer to queue and dispatch any outstanding
     messages on the queue.
     </doc>
     <argument name = "consumer" type = "amq_consumer_t *">Consumer</argument>
@@ -242,7 +242,6 @@ were split to keep the code within sane limits.
             amq_smessage_link (message);
             channel->transact_count++;
 #           ifdef TRACE_DISPATCH
-            if (trace_disp)
             coprintf ("$(selfname) I: %s - queue transacted message, txn_count=%d",
                 self->dest->key, channel->transact_count);
 #           endif
@@ -321,7 +320,6 @@ s_accept_persistent (
         self->disk_queue_size++;
         self_pre_dispatch (self);
 #       ifdef TRACE_DISPATCH
-        if (trace_disp)
         coprintf ("$(selfname) I: %s - save persistent message to storage (%d)",
             self->dest->key, self->disk_queue_size);
 #       endif
@@ -352,7 +350,6 @@ s_accept_transient (
         self->memory_queue_size++;
         self_pre_dispatch (self);
 #       ifdef TRACE_DISPATCH
-        if (trace_disp)
         coprintf ("$(selfname) I: %s - save non-persistent message to queue memory (%d)",
             self->dest->key, self->memory_queue_size);
 #       endif
@@ -401,7 +398,6 @@ s_priority_level (
         s_insert_byreference (self, message, txn);
         self->disk_queue_size++;
 #       ifdef TRACE_DISPATCH
-        if (trace_disp)
         coprintf ("$(selfname) I: %s - save persistent message to storage (%d)",
             self->dest->key, self->disk_queue_size);
 #       endif
@@ -411,7 +407,6 @@ s_priority_level (
         amq_mesgref_new (self->message_list [level], message);
         self->memory_queue_size++;
 #       ifdef TRACE_DISPATCH
-        if (trace_disp)
         coprintf ("$(selfname) I: %s - save non-persistent message to queue memory (%d)",
             self->dest->key, self->memory_queue_size);
 #       endif
@@ -546,7 +541,6 @@ s_delete_byreference (
      */
     if (self->window && self->memory_queue_size) {
 #       ifdef TRACE_DISPATCH
-        if (trace_disp)
         coprintf ("$(selfname) I: %s - dispatching non-persistent window=%d pending=%d",
             self->dest->key, self->window, self->memory_queue_size);
 #       endif
@@ -556,10 +550,6 @@ s_delete_byreference (
         while (level) {
             level--;
             message_ref = amq_mesgref_list_first (self->message_list [level]);
-            if (trace_disp)
-                coprintf ("$(selfname) I: first message at level %d = %p, window=%d",
-                        level, message_ref, self->window);
-
             while (self->window && message_ref) {
                 consumer = s_get_next_consumer (self);
                 if (consumer) {
@@ -580,14 +570,11 @@ s_delete_byreference (
                 else
                     break;              /*  No more consumers                */
             }
-            if (trace_disp)
-                coprintf ("$(selfname) I: no window space left");
         }
     }
     /*  Now process any messages on disk                                     */
     if (self->window && self->disk_queue_size) {
 #       ifdef TRACE_DISPATCH
-        if (trace_disp)
         coprintf ("$(selfname) I: %s - dispatching persistent window=%d pending=%d",
             self->dest->key, self->window, self->disk_queue_size);
 #       endif
@@ -596,14 +583,12 @@ s_delete_byreference (
         self->item_id = self->last_id;
         finished = self_fetch (self, IPR_QUEUE_GT);
 #       ifdef TRACE_DISPATCH
-        if (trace_disp)
         coprintf ("$(selfname) I: %s - fetch last=%d rc=%d id=%d finished=%d",
             self->dest->key, self->last_id, finished, self->item_id, finished);
 #       endif
 
         while (self->window && !finished) {
 #           ifdef TRACE_DISPATCH
-            if (trace_disp)
             coprintf ("$(selfname) I: %s - message id=%d client=%d",
                 self->dest->key, self->item_id, self->item_client_id);
 #           endif
@@ -677,7 +662,6 @@ s_dispatch_message (
         amq_dispatch_new (consumer, message, message_nbr);
 
 #   ifdef TRACE_DISPATCH
-    if (trace_disp)
     coprintf ("$(selfname) I: ==> dispatch nbr=%d", message_nbr);
 #   endif
     amq_server_agent_handle_notify (
@@ -689,9 +673,6 @@ s_dispatch_message (
         FALSE,                          /*  Redelivered message              */
         message->dest_name,
         message);
-
-    if (!consumer->no_ack)              /*  not-no-ack means ack is pending  */
-        amq_dispatch_new (consumer, message, message_nbr);
 
     /*  Move consumer to end of list to round-robin it                       */
     amq_consumer_by_queue_queue (consumer->queue->active_consumers, consumer);
