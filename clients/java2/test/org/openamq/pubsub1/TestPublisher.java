@@ -107,9 +107,10 @@ public class TestPublisher
 
             for (int i = 0; i < messageCount; i++)
             {
-                TextMessage msg = _session.createTextMessage(destination.getTopicName() + "/Presented to in conjunction with Mahnah Mahnah and the Snowths:" + i);
+                TextMessage msg = _session.createTextMessage(destination.getTopicName() + "/Presented to in conjunction with Mahnah Mahnah and the Snowths: " + i);
                 
                 msg.setIntProperty("a",i % 2);
+                msg.setIntProperty("b",i % 4);
                 
                 producer.send(msg);
             }

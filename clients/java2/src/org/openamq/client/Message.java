@@ -456,7 +456,7 @@ public class Message implements TextMessage
         {
             StringBuffer buf = new StringBuffer("Body:\n");
             buf.append(getText());
-            buf.append("Properties:\n");
+            buf.append("\nProperties:\n");
             if (_messageProperties == null)
             {
                 buf.append("<NONE>");
@@ -474,6 +474,8 @@ public class Message implements TextMessage
                     }
                     else
                     {
+                    	buf.append(propertyName.substring(1));
+                   
                         char typeIdentifier = propertyName.charAt(0);
                         switch (typeIdentifier)
                         {
@@ -506,6 +508,7 @@ public class Message implements TextMessage
                                            typeIdentifier + ") ");
                         }
                         buf.append(String.valueOf(entry.getValue()));
+                        buf.append("\n");
                     }
                 }
             }
