@@ -11,7 +11,7 @@
   <include filename = "connection.asl"    />
   <include filename = "channel.asl"       />
   <include filename = "access.asl"        />
-  <include filename = "proxy.asl"         />
+  <include filename = "exchange.asl"      />
   <include filename = "queue.asl"         />
   <include filename = "basic.asl"         />
   <include filename = "jms.asl"           />
@@ -54,12 +54,12 @@
     <assert check = "length" value = "127" />
   </domain>
 
-  <domain name = "proxy name" type = "shortstr">
-    proxy name
+  <domain name = "exchange name" type = "shortstr">
+    exchange name
     <doc>
-      The proy name identifies the proxy within the virtual host.  A
-      proxy name consists of any combination of at least one of
-      [A-Za-z0-9] plus zero or more of [.-_/+!=:].  Proxy names are
+      This name identifies the exchange within the virtual host.  A
+      exchange name consists of any combination of at least one of
+      [A-Za-z0-9] plus zero or more of [.-_/+!=:].  Exchange names are
       case-sensitive.
     </doc>
     <assert check = "re" value = "[A-Za-z0-9][A-Za-z0-9.\-_\/+!=:]*" />
