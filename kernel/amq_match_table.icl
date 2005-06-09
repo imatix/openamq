@@ -23,6 +23,11 @@ names and field values.
 </context>
 
 <method name = "new">
+    self->topics = amq_topic_array_new ();
+</method>
+
+<method name = "destroy">
+    amq_topic_array_destroy (&self->topics);
 </method>
 
 <method name = "parse topic" template = "function">
@@ -43,6 +48,7 @@ names and field values.
         topic_nbr;                      /*  Topic index                      */
     </local>
     assert (subscr);
+    assert (self->topics);
 
     /*  We scan all known topics to see which ones match our criteria        */
     regexp = ipr_regexp_new (subscr->topic_re);
@@ -124,6 +130,8 @@ names and field values.
     ipr_regexp_t
         *regexp;                        /*  Regular expression object        */
     </local>
+    assert (self->topics);
+
     if (amq_match_search (self, dest_name) == NULL) {
         match = amq_match_new (self, dest_name);
         amq_topic_new (self->topics, self->topics->size, dest_name);

@@ -1027,6 +1027,8 @@ static int
             the_next_event = continue_event;
         else {
             the_next_event = finished_event;
+
+            /*  We're finished with the message                              */
             amq_smessage_destroy (&handle_notify_m->message);
         }
     </action>

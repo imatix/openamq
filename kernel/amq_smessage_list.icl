@@ -50,7 +50,7 @@
     </local>
     message = amq_smessage_list_first (self);
     while (message) {
-        amq_smessage_purge (message);
+        amq_smessage_purge   (message);
         amq_smessage_destroy (&message);
         message = amq_smessage_list_first (self);
     }
