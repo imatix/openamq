@@ -115,8 +115,9 @@ public class AMQCommandFrameDecoder extends AMQFrameDecoder
 
     	if ((remaining = in.remaining()) < EncodingUtils.SIZEOF_UNSIGNED_SHORT)
     	{
-    		// Loggng as point of interest (only) - for the time being.
-    		_logger.info("Short-length (" + EncodingUtils.SIZEOF_UNSIGNED_SHORT + ") not received yet, only got " + remaining + " - waiting for more...");
+    		// Logging as point of interest (only) - for the time being.
+    		// We now know that this does/can happen and this check (and return) sorts it out.
+    		// _logger.info("Short-length (" + EncodingUtils.SIZEOF_UNSIGNED_SHORT + ") not received yet, only got " + remaining + " - waiting for more...");
 
     		return(0);
     	}
@@ -127,7 +128,7 @@ public class AMQCommandFrameDecoder extends AMQFrameDecoder
         {
         	if ((remaining = in.remaining()) < EncodingUtils.SIZEOF_UNSIGNED_INT)
         	{
-        		// Loggng as point of interest (only) - for the time being.
+        		// Logging as point of interest (only) - for the time being.
         		_logger.info("Int-length (" + EncodingUtils.SIZEOF_UNSIGNED_INT + ") not received yet, only got " + remaining + " - waiting for more...");
 
         		return(0);

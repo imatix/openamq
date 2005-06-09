@@ -532,6 +532,8 @@ public class Message implements TextMessage
         {
             throw new IllegalArgumentException("Property name must not be the empty string");
         }
+        
+        if (_messageProperties == null) _messageProperties = new HashMap();
     }
 
 }
