@@ -16,4 +16,11 @@ chat_in
 chat_out
 chat_in.log
 chat_out.log
+memtrace.xml
+simple_cons
+simple_prod
+testcons
+testprod
+topic_pub
+topic_sub
 
