@@ -31,6 +31,7 @@
 
 <method name = "new">
     <argument name = "dest name" type = "char *">Topic destination name</argument>
+    assert (dest_name);
     ipr_shortstr_cpy (self->dest_name, dest_name);
 </method>
 
