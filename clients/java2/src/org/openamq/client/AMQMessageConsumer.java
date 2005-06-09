@@ -145,8 +145,7 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
         {
             try
             {
-                org.openamq.client.Message message = new org.openamq.client.Message();
-                message.setText(new String(messageFragment.message));
+                org.openamq.client.Message message = new org.openamq.client.Message(messageFragment.message);                
                 message.setUnderlyingMessagePropertiesMap(createPropertiesMap(messageFragment.headers));
 
                 try
