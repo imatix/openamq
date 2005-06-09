@@ -13,7 +13,7 @@
   <include filename = "access.asl"        />
   <include filename = "exchange.asl"      />
   <include filename = "queue.asl"         />
-  <include filename = "basic.asl"         />
+  <include filename = "trivial.asl"       />
   <include filename = "jms.asl"           />
   <include filename = "file.asl"          />
   <include filename = "stream.asl"        />
