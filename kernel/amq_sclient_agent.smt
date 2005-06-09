@@ -87,12 +87,13 @@ static int
 
 <method name = "handle consume">
     <argument name = "handle id"    type = "dbyte" >Handle number</argument>
+    <argument name = "dest name"    type = "char *">Destination name</argument>
     <argument name = "prefetch"     type = "dbyte" >Max pending messages</argument>
     <argument name = "no local"     type = "Bool"  >Don\'t deliver to self?</argument>
     <argument name = "no ack"       type = "Bool"  >Don\'t want to ack</argument>
     <argument name = "dynamic"      type = "Bool"  >Dynamic queue creation</argument>
     <argument name = "exclusive"    type = "Bool"  >Exclusive consumer</argument>
-    <argument name = "dest name"    type = "char *">Destination name</argument>
+    <argument name = "selector"     type = "ipr_longstr_t *">Selector table</argument>
     <argument name = "result"       type = "int *" >Pointer to result of operation</argument>
 </method>
 
@@ -545,7 +546,7 @@ static int
             handle_consume_m->dynamic,
             handle_consume_m->exclusive,
             handle_consume_m->dest_name,
-            NULL);                      /*  Selector field table             */
+            handle_consume_m->selector);
         send_the_frame (thread);
     </action>
 

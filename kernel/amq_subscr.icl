@@ -61,6 +61,7 @@ levels respectively).
 
     /*  Take topic selector regexp from command dest_name                    */
     amq_match_topic_re (self->topic_re, command->dest_name);
+    coprintf ("NEW SUBSCRIPTION: dest=%s", command->dest_name);
 
     /*  Parse the topic name into the match table                            */
     amq_match_table_parse_topic (

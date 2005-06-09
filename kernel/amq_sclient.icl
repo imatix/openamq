@@ -147,6 +147,7 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     <argument name = "no ack"       type = "Bool"  >No acknowledgements required</argument>
     <argument name = "dynamic"      type = "Bool"  >Dynamic queue consumer</argument>
     <argument name = "exclusive"    type = "Bool"  >Exclusive consumer</argument>
+    <argument name = "selector"     type = "ipr_longstr_t *">Selector table</argument>
     amq_sclient_agent_handle_open (
         self->thread_handle, CHANNEL_ID, ++self->cur_handle, (dbyte) service_type, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
@@ -155,12 +156,13 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
         amq_sclient_agent_handle_consume (
             self->thread_handle,
             self->cur_handle,
+            dest_name,
             (dbyte) prefetch,
             no_local,
             no_ack,
             dynamic,
             exclusive,
-            dest_name,
+            selector,
             &rc);
         smt_thread_execute (SMT_EXEC_FULL);
     }

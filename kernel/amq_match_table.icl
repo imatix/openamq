@@ -133,6 +133,7 @@ names and field values.
     assert (self->topics);
 
     if (amq_match_search (self, dest_name) == NULL) {
+        coprintf ("NEW TOPIC (%s), REBUILDING SUBSCRIPTIONS", dest_name);
         match = amq_match_new (self, dest_name);
         amq_topic_new (self->topics, self->topics->size, dest_name);
 

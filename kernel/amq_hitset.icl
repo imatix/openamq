@@ -40,7 +40,6 @@
     Matches against topic name and message property fields.
     Returns number of subscribers.
     </doc>
-    <argument name = "topic"   type = "char *"          >Topic name</argument>
     <argument name = "message" type = "amq_smessage_t *">Message, if any</argument>
     <local>
     amq_subscr_t
@@ -56,8 +55,8 @@
     </local>
 
     /*  Lookup topic name in match table, if found collect subscr hits       */
-    amq_hitset_collect (self, self->vhost->match_topics, topic);
-    
+    amq_hitset_collect (self, self->vhost->match_topics, message->dest_name);
+
     /*  Lookup fields in match table, if found, collect subscr hits          */
     fields = amq_field_list_new (message->headers);
     field  = amq_field_list_first (fields);
@@ -74,9 +73,9 @@
     for (subscr_nbr = self->item_lo; subscr_nbr <= self->item_hi; subscr_nbr++) {
         subscr = (amq_subscr_t *) self->vhost->subscr_index->data [subscr_nbr];
         /*  Number of hits we want is field_count, +1 for topic name         */
-        coprintf ("SUBSCR %d: have=%d want=%d hits", 
+        coprintf ("SUBSCR %d: have=%d want=%d hits",
             subscr_nbr, self->item_hits [subscr_nbr], subscr->field_count + 1);
-        
+
         if (self->item_hits [subscr_nbr] == subscr->field_count + 1
         && (subscr->consumer->no_local == FALSE
         ||  subscr->consumer->handle->client_id != message->handle->client_id))

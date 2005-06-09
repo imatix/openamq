@@ -102,7 +102,7 @@
     else
         if (self->free_fn)
             (self->free_fn) (self->content->data);
-    
+
     self->content->data     = data;
     self->content->cur_size = size;
     self->content->max_size = size;
@@ -344,66 +344,6 @@
     }
 </method>
 
-<private name = "header">
-static void s_record_header ($(selftype) *self, amq_bucket_t *fragment);
-static void s_replay_header ($(selftype) *self, amq_bucket_t *fragment);
-</private>
-
-<private name = "footer">
-/*  Get message header fields from the bucket                                */
-
-static void
-s_record_header ($(selftype) *self, amq_bucket_t *fragment)
-{
-    amq_frame_t
-        *frame;                         /*  Message header frame             */
-
-    assert (self->fragment == NULL);
-
-    frame = amq_message_head_decode (fragment);
-    if (frame) {
-        self->fragment    = fragment;
-        self->header_size = frame->size;
-        self->processed   = fragment->cur_size - frame->size;
-        self->spool_size  = 0;
-
-        self->body_size   = frame->body.message_head.body_size;
-        self->persistent  = frame->body.message_head.persistent;
-        self->priority    = frame->body.message_head.priority;
-        self->expiration  = frame->body.message_head.expiration;
-        ipr_shortstr_cpy (self->mime_type,  frame->body.message_head.mime_type);
-        ipr_shortstr_cpy (self->encoding,   frame->body.message_head.encoding);
-        ipr_shortstr_cpy (self->identifier, frame->body.message_head.identifier);
-        self->headers       = frame->body.message_head.headers;
-        frame->body.message_head.headers = NULL;
-
-        amq_bucket_link (fragment);
-        amq_frame_free (&frame);
-    }
-}
-
-/*  Store message header fields into bucket                                  */
-
-static void
-s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
-{
-    amq_frame_t
-        *frame;                         /*  Message header frame             */
-
-    frame = amq_frame_message_head_new (
-        self->body_size,
-        self->persistent,
-        self->priority,
-        self->expiration,
-        self->mime_type,
-        self->encoding,
-        self->identifier,
-        self->headers);
-    amq_frame_encode (fragment, frame);
-    amq_frame_free (&frame);
-}
-</private>
-
 <method name = "testfill" template = "function">
     <doc>
     Records a random binary message with the specified size.  We use the
@@ -435,8 +375,10 @@ s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
         self->encoding,
         self->identifier,
         self->headers);
-    amq_frame_encode (bucket, frame);
-    amq_frame_free (&frame);
+
+    ipr_longstr_destroy (&self->headers);
+    amq_frame_encode    (bucket, frame);
+    amq_frame_free      (&frame);
 
     /*  Record test message into bucket, after header and continue with
         further buckets until the desired amount of test data has been
@@ -516,5 +458,65 @@ s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
     icl_system_destroy ();
     icl_mem_assert ();
 </method>
+
+<private name = "header">
+static void s_record_header ($(selftype) *self, amq_bucket_t *fragment);
+static void s_replay_header ($(selftype) *self, amq_bucket_t *fragment);
+</private>
+
+<private name = "footer">
+/*  Get message header fields from the bucket                                */
+
+static void
+s_record_header ($(selftype) *self, amq_bucket_t *fragment)
+{
+    amq_frame_t
+        *frame;                         /*  Message header frame             */
+
+    assert (self->fragment == NULL);
+
+    frame = amq_message_head_decode (fragment);
+    if (frame) {
+        self->fragment    = fragment;
+        self->header_size = frame->size;
+        self->processed   = fragment->cur_size - frame->size;
+        self->spool_size  = 0;
+
+        self->body_size   = frame->body.message_head.body_size;
+        self->persistent  = frame->body.message_head.persistent;
+        self->priority    = frame->body.message_head.priority;
+        self->expiration  = frame->body.message_head.expiration;
+        ipr_shortstr_cpy (self->mime_type,  frame->body.message_head.mime_type);
+        ipr_shortstr_cpy (self->encoding,   frame->body.message_head.encoding);
+        ipr_shortstr_cpy (self->identifier, frame->body.message_head.identifier);
+        self->headers       = frame->body.message_head.headers;
+        frame->body.message_head.headers = NULL;
+
+        amq_bucket_link (fragment);
+        amq_frame_free (&frame);
+    }
+}
+
+/*  Store message header fields into bucket                                  */
+
+static void
+s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
+{
+    amq_frame_t
+        *frame;                         /*  Message header frame             */
+
+    frame = amq_frame_message_head_new (
+        self->body_size,
+        self->persistent,
+        self->priority,
+        self->expiration,
+        self->mime_type,
+        self->encoding,
+        self->identifier,
+        self->headers);
+    amq_frame_encode (fragment, frame);
+    amq_frame_free (&frame);
+}
+</private>
 
 </class>

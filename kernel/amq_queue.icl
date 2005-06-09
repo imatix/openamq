@@ -562,7 +562,7 @@ s_accept_persistent (
 
     if (self->dest->service_type == AMQP_SERVICE_TOPIC) {
         hitset = amq_hitset_new (self->vhost);
-        if (amq_hitset_match (hitset, self->dest->key, message)) {
+        if (amq_hitset_match (hitset, message)) {
             amq_smessage_save (message, self, txn);
             self->disk_queue_size++;
             amq_hitset_publish (hitset, message, txn);
@@ -595,8 +595,9 @@ s_accept_transient (
     if (self->dest->service_type == AMQP_SERVICE_TOPIC) {
         /*  For topics we don't save on the topic queue                      */
         hitset = amq_hitset_new (self->vhost);
-        if (amq_hitset_match (hitset, self->dest->key, message))
+        if (amq_hitset_match (hitset, message))
             amq_hitset_publish (hitset, message, txn);
+
         amq_hitset_destroy (&hitset);
     }
     else {                              /*  AMQP_SERVICE_QUEUE               */

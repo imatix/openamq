@@ -211,7 +211,7 @@ s_configure_queues ($(selftype) *self)
                 self,                   /*  Parent virtual host              */
                 AMQP_SERVICE_QUEUE,     /*  Message queue type               */
                 FALSE,                  /*  Dynamic destination?             */
-                dest_name);             /*  Owning client id, if any         */
+                dest_name);             /*  Destination name                 */
         }
         else
             coprintf ("W: error in queue definitions - 'name' not defined");
@@ -225,7 +225,7 @@ s_configure_queues ($(selftype) *self)
         self,                           /*  Parent virtual host              */
         AMQP_SERVICE_TOPIC,             /*  Message topic type               */
         FALSE,                          /*  Dynamic destination?             */
-        "$topic");                      /*  Owning client id, if any         */
+        "$topic");                      /*  Destination name                 */
 }
 
 /*  Remove all unused destinations                                           */
