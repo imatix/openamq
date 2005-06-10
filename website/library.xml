@@ -17,6 +17,7 @@ detail on all significant aspects of the architecture and technology.
 - [/doc/concepts.html:HTML framed]
 - [/doc/concepts_flat.html:HTML flat]
 - [/doc/concepts.pdf:PDF]
+- [/doc/concepts.txt:Gurudoc text]
 
 The AMQP/Fast Wire-Level Protocol v0.9 draft
 ............................................
@@ -28,6 +29,7 @@ third major design iteration of the AMQ protocol.
 - [/doc/protocol.html:HTML framed] 
 - [/doc/protocol_flat.html:HTML flat] 
 - [/doc/protocol.pdf:PDF]
+- [/doc/protocol.txt:Gurudoc text]
 
 Installation and Use of the OpenAMQ Server
 ..........................................
@@ -40,6 +42,7 @@ installing and using the OpenAMQ server (v0.8).
 - [/doc/server.html:HTML framed]
 - [/doc/server_flat.html:HTML flat]
 - [/doc/server.pdf:PDF]
+- [/doc/server.txt:Gurudoc text]
 
 AMQ RFC001 - The OpenAMQ RFC System
 ...................................
@@ -52,6 +55,7 @@ This document defines the OpenAMQ RFC system itself.
 - [/doc/amq_rfc001.html:HTML framed]
 - [/doc/amq_rfc001_flat.html:HTML flat]
 - [/doc/amq_rfc001.pdf:PDF]
+- [/doc/amq_rfc001.txt:Gurudoc text]
 
 AMQ RFC002 - Coding Standards
 .............................
@@ -62,6 +66,7 @@ OpenAMQ project.
 - [/doc/amq_rfc002.html:HTML framed]
 - [/doc/amq_rfc002_flat.html:HTML flat]
 - [/doc/amq_rfc002.pdf:PDF]
+- [/doc/amq_rfc002.txt:Gurudoc text]
 
 AMQ RFC003 - Rapid Message Matching
 ...................................
@@ -73,6 +78,7 @@ needed for content-based routing.
 - [/doc/amq_rfc003.html:HTML framed]
 - [/doc/amq_rfc003_flat.html:HTML flat]
 - [/doc/amq_rfc003.pdf:PDF]
+- [/doc/amq_rfc003.txt:Gurudoc text]
 
 AMQ RFC006 - The AMQP/Fast Wire-Level Protocol v0.8
 ...................................................
@@ -84,6 +90,7 @@ second major design iteration of the AMQ protocol.
 - [/doc/amq_rfc006.html:HTML framed] 
 - [/doc/amq_rfc006_flat.html:HTML flat] 
 - [/doc/amq_rfc006.pdf:PDF]
+- [/doc/amq_rfc006.txt:Gurudoc text]
 
 AMQ RFC011 - AMQP Reply Codes
 .............................
@@ -95,6 +102,7 @@ standard model as described in IETF RFC2821 and RFC2822.
 - [/doc/amq_rfc011.html:HTML framed]
 - [/doc/amq_rfc011_flat.html:HTML flat]
 - [/doc/amq_rfc011.pdf:PDF]
+- [/doc/amq_rfc011.txt:Gurudoc text]
 
 AMQ RFC014 - AMQP Agnostic Client Design
 ......................................
@@ -109,6 +117,7 @@ abstraction.
 - [/doc/amq_rfc014.html:HTML framed]
 - [/doc/amq_rfc014_flat.html:HTML flat]
 - [/doc/amq_rfc014.pdf:PDF]
+- [/doc/amq_rfc014.txt:Gurudoc text]
 
 AMQ RFC015 - AMQ Client Component API
 ......................................
@@ -121,6 +130,7 @@ their users, who need to learn only a single API.
 - [/doc/amq_rfc015.html:HTML framed]
 - [/doc/amq_rfc015_flat.html:HTML flat]
 - [/doc/amq_rfc015.pdf:PDF]
+- [/doc/amq_rfc015.txt:Gurudoc text]
 
 </content>
 </language>
