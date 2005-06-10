@@ -8,8 +8,8 @@
 
 <doc>
   Queues store and forward messages.  Queues can be configured in the server
-  or created at runtime.  Queues must be attached to at least one proxy in
-  order to receive messages from publishers.
+  or created at runtime.  Queues must be attached to at least one exchange
+  in order to receive messages from publishers.
 </doc>
 
 <doc name = "grammar">
@@ -169,15 +169,15 @@
     <assert check = "notnull" />
   </field>
 
-  <field name = "proxy" domain = "proxy name">
-    queue proxy, if any
+  <field name = "exchange" domain = "exchange name">
+    queue exchange, if any
     <doc>
-      Reports the name of the last-registered proxy for the queue.  In
-      the case of newly-created queues this will be empty.
+      Reports the name of the last-registered exchange for the queue.
+      In the case of newly-created queues this will be empty.
     </doc>
     <doc name = "rule">
-      The server MUST NOT register newly-created queues with proxies
-      implicitly or automatically. The decision of what proxies to use
+      The server MUST NOT register newly-created queues with exchanges
+      implicitly or automatically. The decision of what exchanges to use
       is taken by the client application responsible for administrating
       the server.  However the server SHOULD store durable registrations
       so that on a server restart these can be recreated.
@@ -206,16 +206,17 @@
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 <method name = "register" synchronous = "1">
-  register queue with a proxy
+  register queue with a exchange
   <doc>
-    This method registers a queue with a proxy.  Until a queue is 
+    This method registers a queue with a exchange.  Until a queue is 
     registered it will not receive any messages.  The two main types
     of queue are store-and-forward queues (registered with a dest-name
-    proxy) and subscription queues (registered with a dest-wild proxy).
+    exchange) and subscription queues (registered with a dest-wild
+    exchange).
   </doc>
   <doc name = "rule">
     The server MUST NOT allow the registration of a durable queue with
-    a transient proxy.  If the client attempts this the server MUST
+    a transient exchange. If the client attempts this the server MUST
     raise a channel exception.
   </doc>
   <doc name = "rule">
@@ -242,19 +243,19 @@
     <assert check = "notnull" />
   </field>
 
-  <field name = "proxy" domain = "proxy name">
-    proxy to register with
+  <field name = "exchange" domain = "exchange name">
+    exchange to register with
     <doc>
-      The name of the proxy to register with. If the proxy does not
-      exist the server will raise a channel exception.
+      The name of the exchange to register with. If the exchange does
+      not exist the server will raise a channel exception.
     </doc>
   </field>
 
   <field name = "arguments" type = "table">
     arguments for registration
     <doc>
-      A set of arguments for the proxy.  The syntax and semantics of
-      these arguments depends on the proxy class.
+      A set of arguments for the exchange. The syntax and semantics of
+      these arguments depends on the exchange class.
     </doc>
   </field>
 </method>

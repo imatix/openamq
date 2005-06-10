@@ -26,7 +26,7 @@ Recent Change History
 
 2005/06/06 - 0.9a4:
 
-- minor corrections to text.
+- Various corrections to text discussion.
 
 2005/06/06 - 0.9a3:
 
@@ -167,13 +167,14 @@ designed today.  These are the aspects of AMQP/Fast that have been
 deliberately designed to be extensible (in order of increasing
 generality and power):
 
-1. Adding new properties to content domains.
-2. Adding new arguments to methods.
-3. Adding new methods to classes.
-4. Adding new content domains.
-5. Adding new classes.
-6. Adding new frame types.
-7. Adding new protocols.
+1. Adding new types of exchange to server implementations.
+2. Adding new properties to content domains.
+3. Adding new arguments to methods.
+4. Adding new methods to classes.
+5. Adding new content domains.
+6. Adding new method classes.
+7. Adding new frame types.
+8. Adding new protocols.
 
 All of these should be feasible while maintaining full backwards
 compatability with existing implementations.
@@ -201,8 +202,7 @@ Guidelines for Implementors
 ===========================
 
 - We use the terms MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY as
-  defined by IETF RFC 2119. Where possible we note the security
-  implications of the guidelines.
+  defined by IETF RFC 2119.
 
 - We use the term "the server" when discussing the specific behaviour
   required of a conforming AMQP/Fast server.
@@ -223,7 +223,7 @@ Guidelines for Implementors
   in source code and documentation.
 
 - Protocol methods are defined using a formal grammar (ASL) as defined
-  in AMQ RFC xxx.
+  in AMQ RFC xxx [still to be defined].
 
 Glossary of Terms
 =================
@@ -551,7 +551,7 @@ For AMQP/Fast these are the correct values:
     +---+---+---+---+---+---+---+---+
     |'A'|'M'|'Q'|'P'| 1 | 1 | 0 | 9 |
     +---+---+---+---+---+---+---+---+
-               8 octets
+                8 octets
 
 Guidelines for implementors:
 
@@ -1273,23 +1273,21 @@ Method Frame Body Wire Format
 
 A method frame body has this format:
 
-    0       1        2          3       4          8
-    +-------+--------+----------+-------+----------+-------------- - -
-    | class | method | revision | flags | synchtag | arguments...
-    +-------+--------+----------+-------+----------+-------------- - -
-      octet   octet    octet      octet   long
-
-xxx
+    0       1        2       3          4          8
+    +-------+--------+-------+----------+----------+-------------- - -
+    | class | method | flags | reserved | synchtag | arguments...
+    +-------+--------+-------+----------+----------+-------------- - -
+      octet   octet    octet    octet      long
 
 - The class and method are protocol-constant values.
 
-- The revision number indicates a revision of the method with new or
-  modified properties.
+- The reserved octet is reserved for future use and must be zero in this
+  version of the protocol.
 
 - The flags provide a set of operational indicators.
 
 - The synctag is an arbitrary value that the sender chooses to identify
-  the method instance.
+  the method instance.  If not used, it must be zero.
 
 - The arguments are a set of AMQP/Fast fields that specific to each
   method.
@@ -1319,7 +1317,7 @@ The flags are defined as follows:
   recipient will trace all responses to this and other clients which
   the method provokes.
 
-- 4 = UNUSED - this bit is not used.
+- 4 = UNUSED - this bit is not used and must be zero.
 
 - 3-0 = revision - defines the method revision.
 
@@ -1333,9 +1331,6 @@ Guidelines for implementors:
 
 - synctags SHOULD BE unique since the last synchpoint (we explain
   synchpoints later).
-
-- Bits 3 to 0 of the flags octet are reserved for future use and MUST be
-  zero.
 
 The Synchpoint Function
 -----------------------
@@ -1541,11 +1536,11 @@ The basic architecture is thus (showing a set of producer applications
 sending messages to a set of consumer applications):
 
                 +--------+        +--------+
-   Producers:   | Client |        | Client |
+   Producers    | Client |        | Client |
                 +--------+        +--------+
                     |                  |
                     V                  V
-   Messages     +----\----Server------/----+
+   Messages     +----\-----Server-----/----+
        |        |     \              /     |
        |        |      +------------+      |
        |        |      |  Exchange  |      |
@@ -1559,7 +1554,7 @@ sending messages to a set of consumer applications):
                     |                  |
                     V                  V
                 +--------+        +--------+
-    Consumers:  | Client |        | Client |
+    Consumers   | Client |        | Client |
                 +--------+        +--------+
 
 Note that:
@@ -1641,25 +1636,25 @@ These are the basic set of exchanges that an AMQP server MAY support:
    server.  For example, fanout exchanges might be used to replicate
    data within a cluster.
 
-2. "dest-name" routes messages on their destination name using a direct
+2. "destination" routes messages on their destination name using a direct
    comparison. That is, it passes messages to queues that have
    registered with "give me all messages whose destination name is equal
    to this value".  Dest-name exchanges are used to build conventional
    point-to-point store-and-forward mechanisms.
 
-3. "dest-wild" routes messages on their destination name using a
-   wild card comparison.  That is, it passes messages to queues that have
+3. "wildname" routes messages on their destination name using a
+   wildcard comparison.  That is, it passes messages to queues that have
    registered with "give me all messages whose destination name matches
    this pattern".  Dest-wild exchanges are used to build conventional topic
    publish-and-subscribe mechanisms.
 
-4. "prop-test" routes messages on the value and presence of properties.
+4. "property" routes messages on the value and presence of properties.
    That is, it passes messages to queues that have registered with
    "give me all messages with properties with these names and values".
    Prop-test exchanges are used to build content-based routing mechanisms.
 
-5. "prop-wild" routes messages on a set of properties using wild
-   card comparisons.  That is, it passes messages to queues that have
+5. "matcher" routes messages on a set of properties using wild-card
+   comparisons.  That is, it passes messages to queues that have
    registered with "give me all messages with properties that match
    these specifications".  Prop-wild exchanges are used to build
    content-based routing mechanisms.
@@ -1681,27 +1676,6 @@ Guidelines for implementors:
 
 - An AMQP server MAY implement custom exchange types (not on this list).
   The name of a custom exchange type must start with "x-".
-
-Exchange Implementation
-.......................
-
-Each exchange is a processing class in the server, with properties and
-methods that allow it to operate.  All exchanges have a common abstract
-structure:
-
-    +------+-------+-------------------+------------------------------+
-    | Name | Class | Registration list | Class-specific properties... |
-    +------+-------+-------------------+------------------------------+
-                            :
-                     +--------------+    +-------+
-                     | Registration |--->| Queue |
-                     +--------------+    +-------+
-                            :
-                     +--------------+    +-------+
-                     | Registration |--->| Queue |
-                     +--------------+    +-------+
-                            :
-                           ...
 
 Multiple Registrations
 ......................
@@ -1942,16 +1916,38 @@ such as the maximum number of messages allowed in memory before the
 queue overflows onto disk is an adminisration concern, so must be part
 of templated configuration.
 
-Registration Normalisation
-..........................
+Exchange Reference Design
+.........................
 
-In some scenarios many queues will register with the same exchanges using
-identical registrations. We can foresee that this will create problems
-in high-volume scenarios - e.g. when several thousands of queues
-register with the same exchange.
+We propose a reference design for the exchange concept. While this does
+not form part of the protocol specification, and while each server
+implementation may implement exchanges as suitable, this reference
+design may help to clarify the exchange concept.
 
-Our class design normalises identical registrations, using a list of
-queues per registration:
+We design each exchange as a processing class in the server, with
+properties and methods that allow it to operate. All exchanges have a
+common abstract structure:
+
+    +------+-------+-------------------+------------------------------+
+    | Name | Class | Registration list | Class-specific properties... |
+    +------+-------+-------------------+------------------------------+
+                            :
+                     +--------------+    +-------+
+                     | Registration |--->| Queue |
+                     +--------------+    +-------+
+                            :
+                     +--------------+    +-------+
+                     | Registration |--->| Queue |
+                     +--------------+    +-------+
+                            :
+                           ...
+
+In some scenarios many queues will register with the same exchanges
+using identical registrations. We can foresee that this will create
+problems in high-volume scenarios - e.g. when several thousands of
+queues register with the same exchange. Our class design therefore
+normalises identical registrations, using a list of queues per
+registration:
 
     +------+-------+-------------------+------------------------------+
     | Name | Class | Registration list | Class-specific properties... |

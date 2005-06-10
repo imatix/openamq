@@ -171,7 +171,7 @@
 <method name = "publish" content = "1">
   publish a message
   <doc>
-    This method publishes a message to a specific proxy. The message
+    This method publishes a message to a specific exchange. The message
     will be forwarded to all registered queues and distributed to any
     active consumers when the transaction is committed.
   </doc>
@@ -180,13 +180,13 @@
   <field name = "ticket" domain = "access ticket">
     <doc name = "rule">
       The client MUST provide a valid access ticket giving "write"
-      access rights to the access realm for the proxy.
+      access rights to the access realm for the exchange.
     </doc>
   </field>
 
-  <field name = "proxy" domain = "proxy name">
+  <field name = "exchange" domain = "exchange name">
     <doc>
-      Specifies the name of the proxy to publish to.  If the proxy
+      Specifies the name of the exchange to publish to.  If the exchange
       does not exist the server will raise a channel exception.
     </doc>
     <assert check = "notnull" />
@@ -226,9 +226,9 @@
   <field name = "delivery tag" domain = "delivery tag" />
   <field name = "redelivered" domain = "redelivered" />
 
-  <field name = "proxy" domain = "proxy name">
+  <field name = "exchange" domain = "exchange name">
     <doc>
-      Specifies the name of the proxy that the message was originally
+      Specifies the name of the exchange that the message was originally
       published to.
     </doc>
     <assert check = "notnull" />

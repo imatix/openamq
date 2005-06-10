@@ -84,7 +84,7 @@
     request write access
     <doc>
       Request write access to the specified access realm.  Write access
-      lets a client publish messages to all proxies in the realm.
+      lets a client publish messages to all exchanges in the realm.
     </doc>
   </field>
 

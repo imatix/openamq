@@ -19,7 +19,7 @@
                         / S:FLOW
                         / S:SYNCH
                         / access
-                        / proxy
+                        / exchange
                         / queue
                         / jms
                         / file
@@ -123,7 +123,7 @@
   </doc>
   <doc name = "rule">
     A peer MAY use the Channel.Flow method to throttle incoming content
-    data for internal reasons, for example, when proxying data over a
+    data for internal reasons, for example, when exchangeing data over a
     slower connection.
   </doc>
   <doc name = "rule">
