@@ -224,8 +224,6 @@ sizeof (byte) + \
 
 #include "base.h"
 
-#define AMQTRACE_FRAMING
-
 #define GET_SHORT(host, net) \\
     (host) = ((net) [0] << 8) + (net) [1];
 

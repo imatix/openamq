@@ -123,6 +123,8 @@ inline static apr_status_t do_construct (
     context->sender_tag = 0;
     context->sender_lock = NULL;
     context->stop = 0;
+    context->options = NULL;
+    context->options_size = 0;
 
     return APR_SUCCESS;
 }
@@ -487,6 +489,7 @@ static void *s_sender_thread (
                        content_chunk->size : to_send;
                    result = apr_socket_send (context->socket,
                        (void*) content_chunk->data, &size);
+
                    AMQ_ASSERT_STATUS (result, apr_socket_send)
                    to_send -= size;
                    if (!to_send)
