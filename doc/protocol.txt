@@ -1535,27 +1535,27 @@ Basic Architecture
 The basic architecture is thus (showing a set of producer applications
 sending messages to a set of consumer applications):
 
-                +--------+        +--------+
-   Producers    | Client |        | Client |
-                +--------+        +--------+
-                    |                  |
-                    V                  V
-   Messages     +----\-----Server-----/----+
-       |        |     \              /     |
-       |        |      +------------+      |
-       |        |      |  Exchange  |      |
-       |        |      +------------+      |
-       |        |         /      \         |
-       |        |  +-------+    +-------+  |
-     __|__      |  | Queue |    | Queue |  |
-     \ | /      |  +-------+    +-------+  |
-      \|/       |     /              \     |
-       V        +----/----------------\----+
-                    |                  |
-                    V                  V
-                +--------+        +--------+
-    Consumers   | Client |        | Client |
-                +--------+        +--------+
+                 +--------+        +--------+
+    Producers    | Client |        | Client |
+                 +--------+        +--------+
+                     |                  |
+                     V                  V
+    Messages     +----\-----Server-----/----+
+        |        |     \              /     |
+        |        |      +------------+      |
+        |        |      |  Exchange  |      |
+        |        |      +------------+      |
+        |        |         /      \         |
+        |        |  +-------+    +-------+  |
+      __|__      |  | Queue |    | Queue |  |
+      \ | /      |  +-------+    +-------+  |
+       \|/       |     /              \     |
+        V        +----/----------------\----+
+                     |                  |
+                     V                  V
+                 +--------+        +--------+
+     Consumers   | Client |        | Client |
+                 +--------+        +--------+
 
 Note that:
 
