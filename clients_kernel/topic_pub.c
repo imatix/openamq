@@ -175,7 +175,6 @@ main (int argc, char *argv [])
 
     s_send_message (amq_client, out_handle, "forex.usd", headers1);
     s_send_message (amq_client, out_handle, "forex.eur", headers1);
-/*
     s_send_message (amq_client, out_handle, "forex.usd", headers2);
     s_send_message (amq_client, out_handle, "forex.usd", headers3);
     s_send_message (amq_client, out_handle, "forex.eur", headers2);
@@ -186,7 +185,7 @@ main (int argc, char *argv [])
     s_send_message (amq_client, out_handle, "stock.eur", headers1);
     s_send_message (amq_client, out_handle, "stock.eur", headers2);
     s_send_message (amq_client, out_handle, "stock.eur", headers3);
-*/
+
     amq_field_list_destroy (&headers1);
     amq_field_list_destroy (&headers2);
     amq_field_list_destroy (&headers3);

@@ -258,7 +258,7 @@ s_clean_destinations ($(selftype) *self)
         *vhost;
     </local>
 
-    config = ipr_config_new (".", AMQ_SERVER_CONFIG);
+    config = ipr_config_new (".", AMQ_SERVER_CONFIG, TRUE);
     vhosts = amq_vhost_table_new (config);
 
     vhost = amq_vhost_search (vhosts, "/");

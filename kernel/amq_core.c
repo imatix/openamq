@@ -177,8 +177,8 @@ amq_server_core (
     }
 
     /*  Load configuration data, if any, into the config_table               */
-    amq_config = ipr_config_new (".", AMQ_SERVER_CONFIG);
-    ipr_config_load (amq_config, ".", AMQ_CUSTOM_CONFIG);
+    amq_config = ipr_config_new (".", AMQ_SERVER_CONFIG, TRUE);
+    ipr_config_load (amq_config, ".", AMQ_CUSTOM_CONFIG, FALSE);
     s_prepare_logging ();
     amq_global_set_monitor (atoi (opt_monitor));
 

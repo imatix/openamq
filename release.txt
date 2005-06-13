@@ -4,6 +4,9 @@
     - new consumers on paused handle are now also paused
     - no-ack option on consumers sometimes caused queue jams - fixed
     - amq_sclient_agent: collects "handle created" for dynamic queues
+    - matching engine did not initialise correctly (crashed) - fixed
+    - matching on topics was broken - fixed
+    - if config file missing or invalid, now reports an error
 
 0.8d4 - 2005/06/03
 
@@ -18,7 +21,7 @@
   Server:
       - removed all temporary queue infrastructure.
       - supports "auto-named" dynamic queues
-      
+
 0.8d3 - 2005/06/03
 
   Server:
@@ -28,6 +31,7 @@
 
   Server:
       - new code for handling topic subscriptions
+      - topic names are now fully dynamic (no configuration needed)
       - server catches channel/handle IDs 0, which are illegal
 
 0.8d1 - 2005/06/02

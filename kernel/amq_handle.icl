@@ -240,7 +240,7 @@ This class implements the AMQP HANDLE commands.
     /*  Initialise virtual host                                              */
     vhosts = amq_vhost_table_new (NULL);
     vhost  = amq_vhost_new (vhosts, "/test", "vh_test",
-        ipr_config_new ("vh_test", AMQ_VHOST_CONFIG));
+        ipr_config_new ("vh_test", AMQ_VHOST_CONFIG, TRUE));
     assert (vhost);
     assert (vhost->db);
     assert (vhost->ddb);

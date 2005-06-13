@@ -44,8 +44,8 @@ is currently limited to 255 virtual hosts.
             /*  Load vhost config file to get vhost name                         */
             directory = ipr_config_attr (config, "directory", NULL);
             if (directory) {
-                vhost_config = ipr_config_new (directory, AMQ_VHOST_CONFIG);
-                ipr_config_load (vhost_config, directory, AMQ_CUSTOM_CONFIG);
+                vhost_config = ipr_config_new (directory, AMQ_VHOST_CONFIG, TRUE);
+                ipr_config_load (vhost_config, directory, AMQ_CUSTOM_CONFIG, FALSE);
                 if (vhost_config) {
                     vhost_name = ipr_config_locattr (vhost_config, "/config/vhost", "name", NULL);
                     if (vhost_name)
