@@ -5,7 +5,6 @@
     version = "0.9"
     script  = "asl_gen.gsl"
     target  = "doc"
-    filler = "  "
     >
   <!-- Classes -->
   <include filename = "connection.asl"    />

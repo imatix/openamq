@@ -2493,4 +2493,3 @@ Reference Section
 
 [see amq_rfc006_full.txt]
 
-
