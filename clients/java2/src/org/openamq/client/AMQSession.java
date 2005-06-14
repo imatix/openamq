@@ -76,8 +76,8 @@ public class AMQSession extends Closeable implements Session
     public javax.jms.Message createMessage() throws JMSException
     {
         checkNotClosed();
-        // TODO Auto-generated method stub
-        return null;
+
+        return new Message();
     }
 
     public ObjectMessage createObjectMessage() throws JMSException
