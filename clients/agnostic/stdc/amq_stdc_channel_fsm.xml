@@ -56,9 +56,6 @@
         <arg type = "byte" name = "browser">
             If 1, handle may be used to browse for messages
         </arg>
-        <arg type = "byte" name = "temporary">
-            If 1, temporary destination will be created
-        </arg>
         <arg type = "const char *" name = "mime_type">
             MIME type
         </arg>
@@ -75,11 +72,7 @@
              When 1, don't wait for confirmation from server
         </arg>
         <arg type = "dbyte*" name = "handle_id">
-             Connection created
-        </arg>
-        <arg type = "amq_stdc_lock_t *" name = "created_lock">
-             Output parameter, to be used to wait for confirmation of
-             temporary destination creation
+             Id of handle created
         </arg>
         <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait for operation completion
@@ -236,6 +229,10 @@
         </arg>
         <arg type = "byte" name = "async">
              When 1, don't wait for confirmation from server
+        </arg>
+        <arg type = "amq_stdc_lock_t *" name = "created_lock">
+             Output parameter, to be used to wait for confirmation of
+             temporary destination creation
         </arg>
         <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait for operation completion

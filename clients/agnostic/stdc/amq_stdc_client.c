@@ -235,14 +235,11 @@ apr_status_t amq_stdc_open_channel (
         producer              if 1, client is allowed to send messages
         consumer              if 1, client is allowed to receive messages
         browser               if 1, client is allowed to browse for messages
-        temporary             if 1, temporary destination will be created
         mime_type             MIME type
         encoding              content encoding
         options_size          options table size
         options               options table passed to HANDLE OPEN command
         async                 if 1, doesn't wait for confirmation
-        dest_name_out         out parameter; name of newly created temporary
-                              destination; filled only when temporary = 1
         handle_id             out parameter; newly allocated handle id
     -------------------------------------------------------------------------*/
 
@@ -252,13 +249,11 @@ apr_status_t amq_stdc_open_handle (
     byte                     producer,
     byte                     consumer,
     byte                     browser,
-    byte                     temporary,
     const char               *mime_type,
     const char               *encoding,
     dbyte                    options_size,
     const char               *options,
     byte                     async,
-    char                     **dest_name_out,
     dbyte                    *handle_id
     )
 {
@@ -266,17 +261,11 @@ apr_status_t amq_stdc_open_handle (
         result;
     amq_stdc_lock_t
         lock;
-    amq_stdc_lock_t
-        created_lock;
 
     result = channel_fsm_open_handle (context, service_type, producer,
-        consumer, browser, temporary, mime_type, encoding,
-        options_size, options, async, handle_id, &created_lock, &lock);
+        consumer, browser, mime_type, encoding, options_size, options, async,
+        handle_id, &lock);
     AMQ_ASSERT_STATUS (result, channel_fsm_create_handle);
-
-    /*  Wait for HANDLE CREATED                                              */
-    result = wait_for_lock (created_lock, (void**) dest_name_out);
-    AMQ_ASSERT_STATUS (result, wait_for_lock);
 
     /*  Wait for confirmation                                                */
     result = wait_for_lock (lock, NULL);
@@ -493,6 +482,9 @@ apr_status_t amq_stdc_send_message (
         selector_size         size of selector 
         selector              selector table
         async                 if 1, doesn't wait for confirmation
+        dest_name_out         out parameter; name of newly created dynamic
+                              destination; filled only when dynamic = 1 and
+                              dest_name = ""
     -------------------------------------------------------------------------*/
 
 apr_status_t amq_stdc_consume (
@@ -505,17 +497,26 @@ apr_status_t amq_stdc_consume (
     const char          *dest_name,
     dbyte               selector_size,
     const char          *selector,
-    byte                async
+    byte                async,
+    char                **dest_name_out
     )
 {
     apr_status_t
         result;
     amq_stdc_lock_t
         lock;
+    amq_stdc_lock_t
+        created_lock;
 
     result = channel_fsm_consume (context, handle_id, prefetch, no_local,
-        no_ack, dynamic, dest_name, selector_size, selector, async, &lock);
+        no_ack, dynamic, dest_name, selector_size, selector, async,
+        &created_lock, &lock);
     AMQ_ASSERT_STATUS (result, handle_fsm_consume)
+
+    /*  Wait for HANDLE CREATED                                              */
+    result = wait_for_lock (created_lock, (void**) dest_name_out);
+    AMQ_ASSERT_STATUS (result, wait_for_lock);
+
     result = wait_for_lock (lock, NULL);
     AMQ_ASSERT_STATUS (result, wait_for_lock)
     

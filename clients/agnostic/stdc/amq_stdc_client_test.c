@@ -182,7 +182,7 @@ int main (
         identifier [100];               /*  Buffer to construct message      */
                                         /*  identifier                       */
     char                                
-        *dest_name;                     /*  Temporary destination name       */
+        *dest_name;                     /*  Dynamic destination name         */
     byte
         transacted;                     /*  Whether channel has to be        */
                                         /*  transacted                       */
@@ -351,13 +351,10 @@ int main (
         client.clienttype == clienttype_producer ? 1: 0,
         client.clienttype == clienttype_consumer ? 1: 0,
         client.clienttype == clienttype_query ? 1: 0,
-        client.temporary, "", "", 0, NULL, 0, &dest_name, &handle_id);
+        "", "", 0, NULL, 0, &handle_id);
     if (result != APR_SUCCESS) {
         printf ("amq_stdc_open_handle failed\n");
         return EXIT_FAILURE;
-    }
-    if (client.temporary) {
-        printf ("Using temporary destination '%s'\n", dest_name);
     }
 
     /*  Mode : PRODUCER                                                      */
@@ -413,11 +410,13 @@ int main (
     /*  Mode : CONSUMER                                                      */
     if (client.clienttype == clienttype_consumer) {
         result = amq_stdc_consume (channel, handle_id, client.prefetch,
-            client.no_local, 0, client.dynamic, client.destination, 0, NULL, 0);
+            client.no_local, 0, client.dynamic, client.destination, 0, NULL, 0,
+            &dest_name);
         if (result != APR_SUCCESS) {
             printf ("amq_stdc_consume failed\n");
             return EXIT_FAILURE;
         }
+        printf ("Consuming destination '%s'\n", dest_name);
 
         while (1) {
 

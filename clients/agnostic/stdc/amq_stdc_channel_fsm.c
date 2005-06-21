@@ -66,16 +66,24 @@ typedef struct tag_message_list_item_t
         *next;
 } message_list_item_t;
 
+typedef struct tag_subscription_list_item_t
+{
+    dbyte
+        created_tag;
+    char
+        *dest_name;
+    struct tag_subscription_list_item_t
+        *next;
+} subscription_list_item_t;
+
 typedef struct tag_handle_list_item_t
 {
     dbyte
         handle_id;
     dbyte
-        created_tag;
-    dbyte
         shutdown_tag;
-    char
-        *dest_name;
+    subscription_list_item_t
+        *subscriptions;
     struct tag_handle_list_item_t
         *next;
 } handle_list_item_t;
@@ -376,14 +384,12 @@ inline static apr_status_t do_open_handle (
     byte                   producer,
     byte                   consumer,
     byte                   browser,
-    byte                   temporary,
     const char             *mime_type,
     const char             *encoding,
     dbyte                  options_size,
     const char             *options,
     byte                   async,
     dbyte                  *handle_id,
-    amq_stdc_lock_t        *created_lock,
     amq_stdc_lock_t        *lock
     )
 {
@@ -411,8 +417,6 @@ inline static apr_status_t do_open_handle (
 
     if (lock)
         *lock = NULL;
-    if (created_lock)
-        *created_lock = NULL;
 
     /*  Assign new handle id                                                 */
     result = global_fsm_assign_new_handle_id (context->global, &id);
@@ -424,10 +428,9 @@ inline static apr_status_t do_open_handle (
     if (!item)
         AMQ_ASSERT (Not enough memory)
     item->handle_id = id;
-    item->created_tag = 0;
     item->shutdown_tag = 0;
-    item->dest_name = NULL;
     item->next = context->handles;
+    item->subscriptions = NULL;
     context->handles = item;
 
     /*  Register that we will be waiting for handle open completion          */
@@ -438,13 +441,6 @@ inline static apr_status_t do_open_handle (
         AMQ_ASSERT_STATUS (result, register_lock)
     }
 
-    /*  We have to wait for HANDLE CREATED                                   */
-    if (temporary) {
-        result = register_lock (context->global, context->connection_id,
-            context->id, 0, &(item->created_tag), created_lock);
-        AMQ_ASSERT_STATUS (result, register_lock)
-    }
-
     /*  Send HANDLE OPEN                                                     */    
     chunk_size = COMMAND_SIZE_MAX_SIZE + AMQ_STDC_HANDLE_OPEN_CONSTANT_SIZE +
         mime_type_size + encoding_size + options_size;
@@ -452,7 +448,7 @@ inline static apr_status_t do_open_handle (
     if (!chunk)
         AMQ_ASSERT (Not enough memory)
     chunk_size = amq_stdc_encode_handle_open (chunk, chunk_size, context->id,
-        id, service_type, confirm_tag, producer, consumer, browser, temporary,
+        id, service_type, confirm_tag, producer, consumer, browser,
         mime_type_size, mime_type, encoding_size,
         encoding, options_size, options);
     if (!chunk_size)
@@ -488,18 +484,23 @@ inline static apr_status_t do_created (
             break;
         item = item->next;
     }
+    if (!item->subscriptions || !item->subscriptions->created_tag)
+        AMQ_ASSERT (Unexpected HANDLE CREATED arrived)
 
-    /*  Store temporary destination name                                     */
-    item->dest_name = (char*) amq_malloc (dest_name_size + 1);
-    if (!item->dest_name)
+    /*  Store destination name                                               */
+    item->subscriptions->dest_name = (char*) amq_malloc (dest_name_size + 1);
+    if (!item->subscriptions->dest_name)
         AMQ_ASSERT (Not enough memory)
-    memcpy ((void*) item->dest_name, (void*) dest_name, dest_name_size);
-    (item->dest_name) [dest_name_size] = 0;
+    memcpy ((void*) item->subscriptions->dest_name, (void*) dest_name,
+        dest_name_size);
+    (item->subscriptions->dest_name) [dest_name_size] = 0;
 
     /*  Unsuspend thread waiting for temporary queue creation                */
-    result = release_lock (context->global, item->created_tag,
-        (void*) item->dest_name);
+    result = release_lock (context->global, item->subscriptions->created_tag,
+        (void*) item->subscriptions->dest_name);
     AMQ_ASSERT_STATUS (result, release_lock)
+    item->subscriptions->created_tag = 0;
+
     return APR_SUCCESS; 
 }
 
@@ -560,6 +561,8 @@ inline static apr_status_t do_handle_closed (
         *item;
     handle_list_item_t
         **prev;
+    subscription_list_item_t
+        *subscription;
 
     item = context->handles;
     prev = &(context->handles);
@@ -582,8 +585,15 @@ inline static apr_status_t do_handle_closed (
     AMQ_ASSERT_STATUS (result, release_lock)
 
     /*  Remove handle from the list                                          */
-    if (item->dest_name)
-        amq_free ((void*) item->dest_name);
+    while (1) {
+        subscription = item->subscriptions;
+        if (!subscription)
+            break;
+        item->subscriptions = subscription->next;
+        if (subscription->dest_name)
+            amq_free ((void*) subscription->dest_name);    
+        amq_free ((void*) subscription);
+    }    
     *prev = item->next;
         amq_free (item);
 
@@ -807,6 +817,7 @@ inline static apr_status_t do_consume (
     dbyte                  selector_size,
     const char             *selector,
     byte                   async,
+    amq_stdc_lock_t        *created_lock,
     amq_stdc_lock_t        *lock
     )
 {
@@ -820,15 +831,48 @@ inline static apr_status_t do_consume (
         confirm_tag;
     qbyte
         dest_name_size = strlen (dest_name);
+    subscription_list_item_t
+        *subscription;
+    handle_list_item_t
+        *item;
 
     if (dest_name_size > 255)
         AMQ_ASSERT (Destination name field exceeds 255 characters)
+
+    if (created_lock)
+        *created_lock = NULL;
 
     confirm_tag = 0;
     if (!async) {
         result = register_lock (context->global, context->connection_id,
             context->id, 0, &confirm_tag, lock);
         AMQ_ASSERT_STATUS (result, register_lock)
+    }
+
+    /*  We have to wait for HANDLE CREATED                                   */
+    if (dynamic && dest_name_size == 0) {
+
+        /*  Find apropriate handle                                           */  
+        item = context->handles;
+        while (1) {
+            if (!item)
+                AMQ_ASSERT (Handle specified does not exist)
+            if (item->handle_id == handle_id)
+                break;
+            item = item->next;
+        }
+
+        /*  Create subscription object                                       */
+        subscription = (subscription_list_item_t*)
+            amq_malloc (sizeof (subscription_list_item_t));
+        if (!subscription)
+            AMQ_ASSERT (Not enough memory)
+        subscription->next = item->subscriptions;
+        subscription->dest_name = NULL;
+        result = register_lock (context->global, context->connection_id,
+            context->id, 0, &(subscription->created_tag), created_lock);
+        AMQ_ASSERT_STATUS (result, register_lock)
+        item->subscriptions = subscription;
     }
 
     /*  Send HANDLE CONSUME                                                  */
@@ -838,9 +882,10 @@ inline static apr_status_t do_consume (
     chunk = (char*) amq_malloc (chunk_size);
     if (!chunk)
         AMQ_ASSERT (Not enough memory)
-    chunk_size = amq_stdc_encode_handle_consume (chunk, chunk_size, context->id,
-        confirm_tag, prefetch, no_local, no_ack, dynamic, dest_name_size,
+    chunk_size = amq_stdc_encode_handle_consume (chunk, chunk_size, handle_id,
+        confirm_tag, prefetch, no_local, no_ack, dynamic, 0, dest_name_size,
         dest_name, selector_size, selector);
+
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
     result = connection_fsm_send_chunk (context->connection, chunk,
