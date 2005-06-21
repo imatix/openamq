@@ -1,0 +1,278 @@
+.-------------------------------------------------------------------------------
+.- amq_stdc_fsms.gsl - source file that generates state machines for
+.-   AMQP Client API
+.-
+.- gsl -script:amq_stdc_fsms.gsl <FSM definition file>
+.-
+.- Copyright (c) 2004-2005 JPMorgan
+.- Copyright (c) 1991-2005 iMatix Corporation
+.-------------------------------------------------------------------------------
+.template 1
+.for root.machine
+.    echo ("Creating $(output:).i")
+.    output "$(output:).i"
+/*---------------------------------------------------------------------------
+ *  $(output:).i - header for $(name:UPPER) state machine
+ *
+ *  Generated from $(output:).xml by amq_stdc_fsms.gsl using GSL/4.
+ *  DO NOT MODIFY THIS FILE.
+ *
+ *  For documentation and updates see http://www.imatix.com.
+ *  Copyright (c) 2004-2005 JPMorgan
+ *  Copyright (c) 1991-2005 iMatix Corporation
+ *---------------------------------------------------------------------------*/
+
+#ifndef __$(name:c,UPPER)_FSM_H__
+#define __$(name:c,UPPER)_FSM_H__
+
+apr_status_t $(name:c)_create (
+    $(name:c)_t *out
+    );
+
+apr_status_t $(name:c)_destroy (
+    $(name:c)_t context
+    );
+
+.    for event
+apr_status_t $(machine.name:c)_$(event.name:c) (
+    $(machine.name:c)_t context\
+.        for arg
+,
+    $(arg.type:) $(arg.name:)\
+.        endfor
+
+    );
+
+.    endfor
+#endif
+.    close
+.    echo ("Creating $(output:).d")
+.    output "$(output:).d"
+/*---------------------------------------------------------------------------
+ *  $(output:).d - definition file for $(name:UPPER) state machine
+ *  Not to be compiled directly.
+ *  Include it into your c file and expand the macros.
+ *  Define AMQTRACE_FSMS prior to including this file to trace control flow.
+ *
+ *  Generated from $(output:).xml by amq_stdc_fsms.gsl using GSL/4.
+ *  DO NOT MODIFY THIS FILE.
+ *
+ *  For documentation and updates see http://www.imatix.com.
+ *  Copyright (c) 2004-2005 JPMorgan
+ *  Copyright (c) 1991-2005 iMatix Corporation
+ *---------------------------------------------------------------------------*/
+
+#ifdef AMQTRACE_FSMS
+#define $(name:c,UPPER)_TRACE(old_state, event, action, new_state) \\
+    fprintf (stderr,\\
+        "$(name:UPPER) (%ld)\\n"\\
+        "    " #old_state ":\\n"\\
+        "        (--) " #event "  " #new_state "\\n"\\
+        "            + " #action "\\n",\\
+        (long) ($(name:c,UPPER)_OBJECT_ID)\\
+        );
+#else
+#define $(name:c,UPPER)_TRACE(old_state, event, action, new_state)
+#endif
+
+typedef enum
+{
+.    initial_state = ""
+.    for state where name <> "default"
+.        if "$(initial_state)" = ""
+.            initial_state = "$(name:)"
+.        endif
+    $(machine.name:c)_state_$(name:c)$(!last()??","?)
+.    endfor
+} $(name:c)_state_t;
+
+#define DEFINE_$(name:c,UPPER)_CONTEXT_BEGIN \\
+typedef struct tag_$(name:c)_context_t\\
+{\\
+    $(name:c)_state_t\\
+        state;\\
+    apr_thread_mutex_t\\
+        *sync;\\
+    apr_pool_t\\
+        *pool;
+
+#define DEFINE_$(name:c,UPPER)_CONTEXT_END \\
+} $(name:c)_context_t;\\
+\\
+inline static apr_status_t $(name:c)_sync_begin ($(name:c)_context_t *context)\\
+{\\
+    apr_status_t\\
+        result;\\
+\\
+    result = apr_thread_mutex_lock (context->sync);\\
+    AMQ_ASSERT_STATUS (result, apr_thread_mutex_lock)\\
+    return APR_SUCCESS;\\
+}\\
+\\
+inline static apr_status_t $(name:c)_sync_end ($(name:c)_context_t *context)\\
+{\\
+    apr_status_t\\
+        result;\\
+\\
+    result = apr_thread_mutex_unlock (context->sync);\\
+    AMQ_ASSERT_STATUS (result, apr_thread_mutex_unlock)\\
+    return APR_SUCCESS;\\
+}\\
+.    for constructor
+inline static apr_status_t $(action:c) (\\
+    $(machine.name:c)_context_t *context\\
+    );\\
+\\
+.    endfor
+.    for destructor
+inline static apr_status_t $(action:c) (\\
+    $(machine.name:c)_context_t *context\\
+    );\\
+\\
+.    endfor
+.    for state
+.        for event
+.            event_name = "$(name:)"
+\\
+inline static apr_status_t $(action:c) (\\
+    $(machine.name:c)_context_t *context\
+.            for machine.event where event.name = "$(event_name:)"
+.                for arg
+,\\
+    $(arg.type:) $(arg.name:)\
+.                endfor
+.            endfor
+\\
+    );\\
+.        endfor
+.    endfor
+\\
+.    for event
+.        event_name = "$(name:)"
+apr_status_t $(machine.name:c)_$(event.name:c) (\\
+    $(machine.name:c)_t ctx\
+.        for arg
+,\\
+    $(arg.type:) $(arg.name:)\
+.        endfor
+\\
+    )\\
+{\\
+    apr_status_t\\
+        result;\\
+    $(machine.name:c)_context_t\\
+        *context = ($(machine.name:c)_context_t*) ctx;\\
+    result = $(machine.name:c)_sync_begin (context);\\
+    AMQ_ASSERT_STATUS (result, $(machine.name:c)_sync_begin);\\
+    switch (context->state)\\
+    {\\
+.        for machine.state where name <> "default"
+.            for event where event.name = "$(event_name:)"
+    case $(machine.name:c)_state_$(state.name:c):\\
+        $(machine.name:c,UPPER)_TRACE($(state.name:cobol), \
+$(event.name:cobol), $(event.action:cobol), \
+.                if defined (event.next)
+->  $(event.next?"0":cobol)\
+.                endif
+)\\
+        result = $(event.action:c) (\\
+.                for machine.event where event.name = "$(event_name:)"
+            context\
+.                    for arg
+,\\
+            $(arg.name:)\
+.                    endfor
+\\
+            );\\
+.                endfor
+        AMQ_ASSERT_STATUS (result, $(event.action:c))\\
+.                if defined(event.next)
+        context->state = $(machine.name:c)_state_$(event.next:c);\\
+.                endif
+        break;\\
+.            endfor
+.        endfor
+    default:\\
+.        for machine.state where name = "default"
+.            default_implemented = 0
+.            for event where event.name = "$(event_name:)"
+.                default_implemented = 1
+        $(machine.name:c,UPPER)_TRACE($(state.name:cobol), \
+$(event.name:cobol), $(event.action:cobol), \
+.                if defined (event.next)
+->  $(event.next?"0":cobol)\
+.                endif
+)\\
+        result = $(event.action:c) (\\
+.                for machine.event where event.name = "$(event_name:)"
+            context\
+.                    for arg
+,\\
+            $(arg.name:)\
+.                    endfor
+\\
+            );\\
+.                endfor
+        AMQ_ASSERT_STATUS (result, $(event.action:c))\\
+.                if defined(event.next)
+        context->state = $(machine.name:c)_state_$(event.next:c);\\
+.                endif 
+.            endfor
+.        endfor
+.        if "$(default_implemented)" = "0"
+        assert (0);\\
+.        endif
+    }\\
+    result = $(machine.name:c)_sync_end (context);\\
+    AMQ_ASSERT_STATUS (result, $(machine.name:c)_sync_end);\\
+    return APR_SUCCESS;\\
+}\\
+\\
+.    endfor
+apr_status_t $(name:c)_create (\\
+    $(name:c)_t *out\\
+    )\\
+{\\
+   apr_status_t\\
+        result;\\
+    $(name:c)_context_t\\
+        *context;\\
+    apr_pool_t\\
+        *pool;\\
+\\
+    result = apr_pool_create (&pool, NULL);\\
+    AMQ_ASSERT_STATUS (result, apr_pool_create)\\
+    context = ($(name:c)_context_t*) apr_palloc (pool,\\
+        sizeof ($(name:c)_context_t));\\
+    if (!context)\\
+        AMQ_ASSERT (Not enough memory for $(name:) object)\\
+    context->state = $(name:c)_state_$(initial_state:c);\\
+    context->pool = pool;\\
+    result = apr_thread_mutex_create (&(context->sync),\\
+        APR_THREAD_MUTEX_NESTED, pool);\\
+    AMQ_ASSERT_STATUS (result, apr_thread_mutex_create)\\
+.    for constructor
+    result = $(action:c) (context);\\
+    AMQ_ASSERT_STATUS (result, $(action:c))\\
+.    endfor
+    if (out) *out = ($(name:c)_t) context;\\
+    return APR_SUCCESS;\\
+}\\
+\\
+apr_status_t $(name:c)_destroy (\\
+    $(name:c)_t ctx\\
+    )\\
+{\\
+    $(name:c)_context_t\\
+        *context = ($(name:c)_context_t*) ctx;\\
+.    for destructor
+    $(action:c) (context);\\
+.    endfor
+    apr_thread_mutex_destroy (context->sync);\\
+    apr_pool_destroy (context->pool);\\
+    return APR_SUCCESS;\\
+}
+
+.    close
+.endfor
+.endtemplate

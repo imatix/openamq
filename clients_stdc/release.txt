@@ -1,0 +1,23 @@
+0.8d1 - 2005/06/02
+
+ - Updated to protocol 0.8d1
+ - Bug fixes for locking and synchronization problems
+ - New functionality: 
+   - Field tables
+   - Fragmentation supported on receive, sender still 
+     sends all messages as a single fragment
+
+0.8b0 - 2005/04/08
+
+ - Renamed layers to amq_stdc_framing and amq_stdc_client
+ - All major functionality present except:
+   - Handling of messages longer than a single fragment
+   - Field tables 
+
+0.8a1 - 2005/03/28
+
+ - Initial release of Level 1 functionality
+
+0.8a0 - 2005/03/24
+
+ - Update to OpenAMQ 0.8

@@ -1,0 +1,11 @@
+amq_frames.xml
+amq_stdc_framing.c
+amq_stdc_framing.h
+amq_stdc_client_test
+libamq_stdc.*
+boomake*
+Makefile*
+msmake*
+configure*
+*.d
+*.i
