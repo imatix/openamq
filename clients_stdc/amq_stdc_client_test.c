@@ -58,9 +58,6 @@ typedef struct
     long
         rollback_count;                 /*  Transaction rolled back every    */
                                         /*  N-th message                     */
-    apr_byte_t    
-        temporary;                      /*  Use temporary destination        */
-
     int
         interval;                       /*  Interval (in milliseconds)       */
                                         /*  between individual messages sent */
@@ -86,7 +83,11 @@ typedef struct
         service_type;                   /*  Service type to use              */
     byte
         no_local;                       /*  Used in HANDLE CONSUME           */
+    amq_stdc_table_t
+        headers,                        /*  Message headers (producer)       */
+        selector;                       /*  Message selector (consumer/query)*/
 } client_t;
+
 
 /*  -------------------------------------------------------------------------
     Function: s_move_to_next_query_result
@@ -156,6 +157,86 @@ qbyte s_move_to_next_query_result (
     }
 }
  
+
+/*  -------------------------------------------------------------------------
+    Function: s_build_table
+
+    Synopsis:
+    Parses a string of the form FIELD[=VALUE]:FIELD[=VALUE]:... and returns
+    a field table containing the found fields and their values (if any).
+
+    TODO: Very little error checking is done, it is possible to overflow 
+    buffers by specifying arguments that are too long.
+
+    Arguments:
+        const char       *input Input string
+    Out parameter:
+        amq_stdc_table_t *table Field table
+    -------------------------------------------------------------------------*/
+apr_status_t s_build_table (
+    const char *input, 
+    amq_stdc_table_t *table
+    )
+{
+    char
+        *cur_input_pos,                 /*  Current position in input        */
+        *cur_output_pos,                /*  Current position in output       */
+        field [256],                    /*  Buffer for field name            */
+        value [256];                    /*  Buffer for field value           */
+    Bool
+        in_field_name;                  /*  Processing field name or value?  */
+    apr_status_t                         
+        result;
+
+    result = amq_stdc_table_create (0, NULL, table);
+    assert (result == APR_SUCCESS);
+
+    cur_input_pos   = (char *)input;
+    cur_output_pos  = field;
+    in_field_name   = TRUE;
+    while (1) {
+        switch (*cur_input_pos) {
+            case 0:
+            case ':':                   /*  Field separator                  */
+                if (in_field_name) {    /*  End of field name, no value      */ 
+                    *cur_output_pos   = 0;
+                    cur_output_pos    = field;
+                    amq_stdc_table_add_string (*table, 
+                                               field, 0, NULL);
+                } else {                /*  End of field value               */
+                    *cur_output_pos   = 0;
+                    cur_output_pos    = field;
+                    in_field_name     = TRUE;
+                    amq_stdc_table_add_string (*table, 
+                                               field, strlen (value), value);
+                }
+                if (*cur_input_pos)
+                    cur_input_pos++;    /*  More data, advance in input      */
+                else
+                    return APR_SUCCESS; /*  Reached end of string            */
+                break;
+            case '=':                   /*  Name/value separator             */
+                if (in_field_name) {    /*  End of field name, start of value*/
+                    *cur_output_pos   = 0;
+                    cur_output_pos    = value;
+                    in_field_name     = FALSE;
+                    cur_input_pos++;
+                } else {                /*  '=' not allowed in field value   */
+                    amq_stdc_table_destroy (*table);
+                    assert (0);
+                }
+               break;
+            default:                    /*  Normal character, copy to 
+                                            field/value                      */
+                *cur_output_pos++ = *cur_input_pos++;
+                break;
+        }
+    }
+    
+    return APR_SUCCESS;
+}
+
+
 int main (
     int        argc,
     const char *const argv[],
@@ -204,7 +285,7 @@ int main (
     client.clienttype          = clienttype_undefined;
     client.server              = "127.0.0.1";
     client.host                = NULL;
-    client.destination         = "";
+    client.destination         = NULL;
     client.client_name         = "client";
     client.messages            = 0;
     client.interval            = 0;
@@ -215,10 +296,11 @@ int main (
     client.dynamic             = 0;
     client.commit_count        = 0;
     client.rollback_count      = 0;    
-    client.temporary           = 0;    
     client.last_message_number = 0;
     client.service_type        = amq_stdc_service_type_queue;
     client.no_local            = 1;
+    client.headers             = NULL;
+    client.selector            = NULL;
     for (arg_pos=1; arg_pos!=argc; arg_pos++) {
         if (strcmp (argv[arg_pos], "producer") == 0)
             client.clienttype = clienttype_producer;
@@ -246,8 +328,6 @@ int main (
             client.commit_count = atoi (argv [arg_pos]);
         if (strcmp (argv[arg_pos], "-r") == 0 && ++arg_pos != argc)
             client.rollback_count = atoi (argv [arg_pos]);
-        if (strcmp (argv[arg_pos], "-t") == 0 && ++arg_pos != argc)
-            client.temporary = atoi (argv [arg_pos]);
         if (strcmp (argv[arg_pos], "-x") == 0)
             client.persistent = 1;
         if (strcmp (argv[arg_pos], "-I") == 0)
@@ -259,6 +339,10 @@ int main (
                 (amq_stdc_service_type_t) atoi (argv [arg_pos]);
         if (strcmp (argv[arg_pos], "-o") == 0 && ++arg_pos != argc)
             client.no_local = atoi (argv [arg_pos]);
+        if (strcmp (argv[arg_pos], "-S") == 0 && ++arg_pos != argc)
+            s_build_table (argv [arg_pos], &client.selector);
+        if (strcmp (argv[arg_pos], "-H") == 0 && ++arg_pos != argc)
+            s_build_table (argv [arg_pos], &client.headers);
 
     }
     client.till_acknowledge = client.prefetch;
@@ -267,7 +351,7 @@ int main (
     */
     if (client.clienttype == clienttype_undefined ||
           client.host == NULL ||
-          (client.temporary == 0 && client.destination == NULL)) {
+          (client.dynamic == 0 && client.destination == NULL)) {
         printf (
             "Usage: test_level1 MODE OPTIONS ...\n"
             "\n"
@@ -284,7 +368,7 @@ int main (
             "    -I (assert that destination has consumers)\n"
             "    -c <number of messages while commit is issued>\n"
             "    -r <number of messages while rollback is issued>\n"
-            "    -t <0/1 use a temporary destination>\n"
+            "    -H <message header fields to produce, default=none>\n"
             "  Note : When neither 'c' or 'r' parameter is set\n"
             "         client works in nontransacted mode.\n"
             "\n"
@@ -297,12 +381,14 @@ int main (
             "    -p <number of prefetched messages, default=1>\n"
             "    -o <0/1 if 1 messages sent are not received back, default 1>\n"
             "    -n <number of messages, 0 means infinite, default=0>\n"
+            "    -S <selector for messages consumed, default=none>\n"
             "\n"
             "  MODE: query (queries for all messages and browses them one by one)\n"
             "    -s <server name/ip address, default=127.0.0.1>\n"
             "    -h <virtual host name>\n"
             "    -e <1/2/3 service type, default 1>\n"
             "    -d <destination>\n"
+            "    -S <selector for messages queried, default=none>\n"
             "\n"
             );
         return EXIT_FAILURE;
@@ -366,7 +452,8 @@ int main (
 
             result = amq_stdc_send_message (channel, handle_id, 0, 0,
                 client.destination, client.persistent, client.immediate, 
-                0, 0, "", "", identifier, 0, NULL, client.message_size, 
+                0, 0, "", "", identifier, amq_stdc_table_size (client.headers), 
+                amq_stdc_table_data (client.headers), client.message_size, 
                 client.message_buffer, 0);
 
             if (result != APR_SUCCESS) {
@@ -410,7 +497,9 @@ int main (
     /*  Mode : CONSUMER                                                      */
     if (client.clienttype == clienttype_consumer) {
         result = amq_stdc_consume (channel, handle_id, client.prefetch,
-            client.no_local, 0, client.dynamic, client.destination, 0, NULL, 0,
+            client.no_local, 0, client.dynamic, client.destination, 
+            amq_stdc_table_size (client.selector), 
+            amq_stdc_table_data (client.selector), 0,
             &dest_name);
         if (result != APR_SUCCESS) {
             printf ("amq_stdc_consume failed\n");
