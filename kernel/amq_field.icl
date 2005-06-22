@@ -15,6 +15,8 @@ data type.  This class provides functions at a per-field level.
 
 <import class = "ipr" />
 
+<option name = "nullify" value = "0" />
+
 <public name = "header">
 #define AMQ_FIELD_TYPE_STRING       'S'
 #define AMQ_FIELD_TYPE_INTEGER      'I'
@@ -58,6 +60,11 @@ data type.  This class provides functions at a per-field level.
 </context>
 
 <method name = "new">
+    strclr (self->name);
+    self->type     = 0;
+    self->decimals = 0;
+    self->integer  = 0;
+    self->string   = NULL;
 </method>
 
 <method name = "destroy">

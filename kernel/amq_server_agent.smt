@@ -21,7 +21,7 @@ static int
 </private>
 
 <catch error = "SMT_SOCKET_ERROR" event = "socket error" />
-<catch error = "SMT_TIMEOUT"      event = "timeout" />
+<catch error = "SMT_TIMEOUT"      event = "timeout"      />
 <catch                            event = "smt error"    />
 
 <handler name = "agent init">

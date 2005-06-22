@@ -15,6 +15,7 @@
 <inherit class = "icl_alloc_cache" />
 
 <import class = "amq_classes" />
+<option name = "nullify" value = "0" />
 
 <context>
     amq_vhost_t
@@ -29,9 +30,10 @@
 
 <method name = "new">
     <argument name = "vhost" type = "amq_vhost_t *">Virtual host</argument>
-    self->vhost   = vhost;
-    self->item_lo = IPR_INDEX_MAX;
-    self->item_hi = -1;
+    self->vhost     = vhost;
+    self->item_lo   = IPR_INDEX_MAX;
+    self->item_hi   = -1;
+    self->hit_count = 0;
 </method>
 
 <method name = "match" template = "function">
