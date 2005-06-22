@@ -130,11 +130,13 @@
     if (match) {
         for (IPR_BITS_EACH (item_nbr, match->bits)) {
             coprintf (" -- found subscr nbr %d", item_nbr);
-            self->item_hits [item_nbr]++;
-            if (self->item_lo > item_nbr)
+            if (item_nbr < self->item_lo)
                 self->item_lo = item_nbr;
-            if (self->item_hi < item_nbr)
+            if (item_nbr > self->item_hi) {
+                self->item_hits [item_nbr] = 0;
                 self->item_hi = item_nbr;
+            }
+            self->item_hits [item_nbr]++;
         }
     }
 </method>
