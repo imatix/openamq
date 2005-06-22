@@ -167,7 +167,7 @@ main (int argc, char *argv [])
         if (message) {
             if (!quiet_mode)
                 coprintf ("Message number %d arrived, dest=%s",
-                    amq_client->msg_number, amq_client->dest_name);
+                    amq_client->msg_number, amq_client->msg_sender);
             amq_message_destroy (&amq_client->msg_object);
             if (delay_mode)
                 sleep (1);

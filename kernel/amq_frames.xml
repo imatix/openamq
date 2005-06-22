@@ -140,7 +140,6 @@
         <field type = "octet"    name = "type"         value = "30" />
         <field type = "shortint" name = "channel id"   >Channel number</field>
         <field type = "shortint" name = "handle id"    >Handle number</field>
-        <field type = "shortint" name = "service type" >Service type</field>
         <field type = "shortint" name = "confirm tag"  >Confirmation tag</field>
         <field type = "bit"      name = "producer"     >Request producer access</field>
         <field type = "bit"      name = "consumer"     >Request consumer access</field>
@@ -155,6 +154,7 @@
         <field type = "octet"    name = "type"         value = "31" />
         <field type = "shortint" name = "handle id"    >Handle number</field>
         <field type = "shortint" name = "confirm tag"  >Confirmation tag</field>
+        <field type = "shortint" name = "service type" >Service type</field>
         <field type = "longint"  name = "fragment size">Size of following fragment</field>
         <field type = "bit"      name = "partial"      >Partial message?</field>
         <field type = "bit"      name = "out of band"  >Out of band data?</field>
@@ -168,6 +168,7 @@
         <field type = "octet"    name = "type"         value = "32" />
         <field type = "shortint" name = "handle id"    >Handle number</field>
         <field type = "shortint" name = "confirm tag"  >Confirmation tag</field>
+        <field type = "shortint" name = "service type" >Service type</field>
         <field type = "shortint" name = "prefetch"     >Max pending messages</field>
         <field type = "bit"      name = "no local"     >Don't deliver to self?</field>
         <field type = "bit"      name = "no ack"       >Don't acknowledge messages</field>

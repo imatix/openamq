@@ -3,9 +3,9 @@ gdl
     subtitle  = The AMQP/Fast Wire-Level Protocol
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/04/16
+    date      = 2005/06/22
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.8d4
+    version   = 0.8d6
 end gdl
 
 Cover
@@ -23,6 +23,13 @@ This document is ready for review.
 
 Recent Change History
 ---------------------
+
+2005/05/28 - 0.8d6:
+
+- in HANDLE OPEN, 'service-type' flag removed.
+- 'service-type' flag added to HANDLE SEND and HANDLE CONSUME commands.
+- added 'any' service type.
+- server always replies HANDLE CREATED for dynamic queues.
 
 2005/05/28 - 0.8d4:
 
@@ -678,26 +685,27 @@ Frame Syntax
 
     channel-close        = %d29 channel-id reply-code reply-text
 
-    handle-open          = %d30 channel-id handle-id service-type
-                           confirm-tag producer consumer browser
-                           mime-type encoding options
+    handle-open          = %d30 channel-id handle-id confirm-tag producer
+                           consumer browser mime-type encoding options
     handle-id            = short-integer
-    service-type         = short-integer
     producer             = BIT
     consumer             = BIT
     browser              = BIT
     mime-type            = short-string
     encoding             = short-string
 
-    handle-send          = %d31 handle-id confirm-tag fragment-size
-                           partial out-of-band recovery dest-name
+    handle-send          = %d31 handle-id confirm-tag service-type
+                           fragment-size partial out-of-band recovery
+                           dest-name
+    service-type         = short-integer
     fragment-size        = long-integer
     partial              = BIT
     recovery             = BIT
     dest-name            = short-string
 
-    handle-consume       = %d32 handle-id confirm-tag prefetch no-local
-                           no-ack dynamic exclusive dest-name selector
+    handle-consume       = %d32 handle-id confirm-tag service-type
+                           prefetch no-local no-ack dynamic exclusive
+                           dest-name selector
     prefetch             = short-integer
     no-local             = BIT
     no-ack               = BIT
@@ -1804,7 +1812,6 @@ server:
     HANDLE OPEN
         channel-id              short integer
         handle-id               short integer
-        service-type            short integer
         confirm-tag             short integer
         producer                bit
         consumer                bit
@@ -1821,8 +1828,6 @@ handle-id:
     The handle reference chosen by the client. This ID must be unique
     within the connection and must not refer to a handle that is already
     open.  It may not be zero.
-service-type:
-    The service type required. The valid service types are defined below.
 confirm-tag:
     If non-zero, the client wants a confirmation from the server.
 producer:
@@ -1830,7 +1835,7 @@ producer:
     Used for queues and topics only.
 consumer:
     If 1, the client requests access to consume messages from the
-    destination (I.E. to listen to the destination). 
+    destination (I.E. to listen to the destination).
 browser:
     If 1, the client requests access to browse messages from the
     destination. 
@@ -1850,36 +1855,6 @@ then handle 20 on channel 5, it can use handle 20 thereafter without
 having to say "and channel 5" each time. This is why the other handle
 commands don't have a channel id,
 
-AMQP Service Types
-..................
-
-The valid service types are:
-
-%d01:
-    Queue service.
-%d02:
-    Topic service.
-
-Destinations are managed at the server end, and the specific
-implementation of any specific service type is hidden from the client.
-
-Temporary Queues and Topics
-...........................
-
-Temporary queues are designed to provide clients with a place for other
-processes to send replies.  Typically, a client will create a temporary
-queue and then ask other processes to "reply to" that queue.  The value
-of a temporary queue is that it is deleted automatically; when the
-connection closes, the queue is destroyed.
-
-Temporary queue names are chosen by the server. The server returns the
-queue name to the client in a HANDLE CREATED command. If the client also
-specified a confirm-tag, the HANDLE REPLY comes after the HANDLE CREATED
-command.
-
-Only the client that created a temporary queue can consume messages from
-it.
-
 HANDLE SEND Command
 -------------------
 
@@ -1888,6 +1863,7 @@ To send a message to a destination the client sends a HANDLE SEND command:
     HANDLE SEND
         handle-id               short integer
         confirm-tag             short integer
+        service-type            short integer
         fragment-size           long integer
         partial                 bit
         out-of-band             bit
@@ -1899,6 +1875,8 @@ handle-id:
     The handle reference chosen by the client, must be open.
 confirm-tag:
     If non-zero, the client wants a confirmation from the server.
+service-type:
+    The service type required. The valid service types are defined below.
 fragment-size:
     The amount of data provided after the frame; the size of the
     fragment.
@@ -1930,6 +1908,22 @@ HANDLE SEND command carries that part of the message not already held
 by the server. The message header is always carried by the HANDLE PREPARE
 command.
 
+AMQP Service Types
+..................
+
+The valid service types are:
+
+%d01:
+    Queue service.
+%d02:
+    Topic service.
+%d03:
+    Unknown service.  If a queue exists with the specified name, assumes
+    a queue service, else assumes a topic service.
+
+Destinations are managed at the server end, and the specific
+implementation of any specific service type is hidden from the client.
+
 HANDLE CONSUME Command
 ----------------------
 
@@ -1939,6 +1933,7 @@ sending the HANDLE CONSUME command:
     HANDLE CONSUME
         handle-id               short integer
         confirm-tag             short integer
+        service-type            short integer
         prefetch                short integer
         no-local                bit
         no-ack                  bit
@@ -1951,6 +1946,9 @@ handle-id:
     The handle reference chosen by the client, must be open.
 confirm-tag:
     If non-zero, the client wants a confirmation from the server.
+service-type:
+    The service type required.  Must be either queue or topic, may
+    not be the "any" service.
 prefetch:
     The number of outstanding messages the client can handle at once.
     The server will send up to this many messages without receiving
@@ -1965,9 +1963,9 @@ no-ack:
     highest possible throughput and can tolerate lost messages.
 dynamic:
     For queue services only. If 1, the server will create the queue if
-    it does not exist.  If the destination name is empty, the server
-    will provide a new unique destination name.  If the server creates
-    a new queue, it responds with HANDLE CREATED.
+    it does not exist.  If the destination name is empty, the server
+    will generate a new unique destination name and respond to the client
+    with HANDLE CREATED.
 exclusive:
     For queue services only.  If 1, the server will restrict access to
     a single consumer (the first one to request access to the queue).
@@ -2103,8 +2101,9 @@ delivered flag set to zero).
 HANDLE CREATED Command
 ----------------------
 
-When the server creates a dynamic destination it replies to the client
-with a HANDLE CREATED command:
+When the client does HANDLE CONSUME on a dynamic queue with an empty
+name (so that the server generates a name), the server replies to the
+client with a HANDLE CREATED command:
 
     HANDLE CREATED
         handle-id               short integer
@@ -2113,8 +2112,8 @@ with a HANDLE CREATED command:
 handle-id:
     The destination ID chosen by the client in the HANDLE OPEN command.
 dest-name:
-    The full name of the dynamic destination created. This name will
-    be unique within the virtual host.
+    The name of the dynamic queue.  If the server generated a name
+    this name will be unique within the virtual host.
 
 HANDLE NOTIFY Command
 ---------------------

@@ -81,12 +81,12 @@ static int
 <method name = "handle open">
     <argument name = "channel id"   type = "dbyte" >Channel number</argument>
     <argument name = "handle id"    type = "dbyte" >Handle number</argument>
-    <argument name = "service type" type = "dbyte" >AMQP service type</argument>
     <argument name = "result"       type = "int *" >Pointer to result of operation</argument>
 </method>
 
 <method name = "handle consume">
     <argument name = "handle id"    type = "dbyte" >Handle number</argument>
+    <argument name = "service type" type = "dbyte" >AMQP service type</argument>
     <argument name = "dest name"    type = "char *">Destination name</argument>
     <argument name = "prefetch"     type = "dbyte" >Max pending messages</argument>
     <argument name = "no local"     type = "Bool"  >Don\'t deliver to self?</argument>
@@ -112,6 +112,7 @@ static int
 
 <method name = "handle send">
     <argument name = "handle_id"    type = "dbyte" >Channel number</argument>
+    <argument name = "service type" type = "dbyte" >AMQP service type</argument>
     <argument name = "message"      type = "amq_message_t *">Message to send</argument>
     <argument name = "dest_name"    type = "char *">Destination name</argument>
     <argument name = "immediate"    type = "Bool"  >Assert immediate delivery?</argument>
@@ -524,7 +525,6 @@ static int
         tcb->frame = amq_frame_handle_open_new (
             handle_open_m->channel_id,
             handle_open_m->handle_id,
-            handle_open_m->service_type,    
             1,                          /*  Confirmation tag                 */
             TRUE,                       /*  Request producer access          */
             TRUE,                       /*  Request consumer access          */
@@ -540,6 +540,7 @@ static int
         tcb->frame = amq_frame_handle_consume_new (
             handle_consume_m->handle_id,
             1,                          /*  Confirm tag                      */
+            handle_consume_m->service_type,
             handle_consume_m->prefetch,
             handle_consume_m->no_local,
             handle_consume_m->no_ack,
@@ -855,6 +856,7 @@ static int
         tcb->frame = amq_frame_handle_send_new (
             handle_send_m->handle_id,   /*  Handle to send to                */
             0,                          /*  Confirmation tag                 */
+            handle_send_m->service_type,
             tcb->fragment->cur_size,    /*  Size of following fragment       */
             partial,                    /*  Partial message?                 */
             FALSE,                      /*  Out of band data?                */

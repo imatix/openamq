@@ -190,8 +190,9 @@ main (int argc, char *argv [])
     ||  amq_sclient_connect (amq_client, opt_server, "/test", TRUE))
         goto failed;
 
-    out_handle = amq_sclient_producer (amq_client, service_type);
-    in_handle  = amq_sclient_consumer (amq_client, service_type,
+    out_handle = amq_sclient_producer (amq_client);
+    in_handle  = amq_sclient_consumer (amq_client,
+        service_type,
         NULL,                           /*  No name, let server make it      */
         batch_size,                     /*  Prefetch size                    */
         FALSE,                          /*  No-local                         */
@@ -213,7 +214,13 @@ main (int argc, char *argv [])
             amq_message_set_persistent (message, persistent);
             amq_message_set_identifier (message, identifier);
             amq_message_testfill       (message, msgsize);
-            if (amq_sclient_msg_send (amq_client, out_handle, message, amq_client->dest_name, FALSE))
+            if (amq_sclient_msg_send (
+                amq_client,
+                out_handle,
+                service_type,
+                message,
+                amq_client->dest_name,
+                FALSE))
                 goto aborted;
             /*  Commit as we go along                                        */
             if (--batch_left == 0) {

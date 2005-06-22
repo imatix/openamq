@@ -8,12 +8,13 @@
  *  Copyright (c) 2004-2005 JPMorgan and iMatix Corporation
  *===========================================================================*/
 
+#include "icl.h"                        /*  iCL base classes                 */
+#include "smt.h"                        /*  iMatix SMT threading kernel      */
+
 #ifndef __AMQ_CORE_INCLUDED__
 #define __AMQ_CORE_INCLUDED__
 
-#include "icl.h"                        /*  iCL base classes                 */
 #include "sfl.h"                        /*  iMatix SFL portability library   */
-#include "smt.h"                        /*  iMatix SMT threading kernel      */
 
 #define AMQ_SERVER_PORT            "7654"
 #define AMQ_SERVER_CONFIG          "amq_server.cfg"
@@ -26,7 +27,7 @@
 
 #define AMQP_SERVICE_QUEUE          1
 #define AMQP_SERVICE_TOPIC          2
-#define AMQP_SERVICE_PEER           3       /*  Will be deprecated  */
+#define AMQP_SERVICE_EITHER         3
 #define AMQP_SERVICE_SUBSCR         999     /*  Internal use only            */
 
 #define AMQP_REPLY_SUCCESS          200

@@ -78,7 +78,7 @@ static void
 s_connected (amq_aclient_connected_t *args)
 {
     channel_id = amq_aclient_channel_open (args->client, FALSE, FALSE);
-    handle_id  = amq_aclient_handle_open  (args->client, channel_id, AMQP_SERVICE_QUEUE);
+    handle_id  = amq_aclient_handle_open  (args->client, channel_id);
 
     /*  Register server-driven close feedbacks                               */
     amq_aclient_register (args->client, AMQ_ACLIENT_HANDLE_CLOSE,  s_handle_close);
@@ -89,6 +89,7 @@ s_connected (amq_aclient_connected_t *args)
         amq_aclient_handle_consume (
             args->client,
             handle_id,
+            AMQP_SERVICE_QUEUE,
             1,                          /*  Prefetch                         */
             TRUE,                       /*  No local delivery                */
             FALSE,                      /*  Auto-ack at server side          */
@@ -159,9 +160,10 @@ s_file_monitor (amq_aclient_monitor_t *args)
                 }
                 else
                     amq_aclient_handle_send (
-                        args->client, 
+                        args->client,
                         handle_id,
-                        message, 
+                        AMQP_SERVICE_QUEUE,
+                        message,
                         dest_name,
                         FALSE);         /*  Assert immediate delivery       */
                 file_delete (fullname);

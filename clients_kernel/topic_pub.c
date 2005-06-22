@@ -50,7 +50,7 @@ s_send_message (
     amq_message_set_identifier (message, identifier);
     amq_message_set_headers    (message, amq_field_list_flatten (headers));
     amq_message_testfill       (message, 100);
-    if (amq_sclient_msg_send (client, handle, message, topic, FALSE))
+    if (amq_sclient_msg_send (client, handle, AMQP_SERVICE_TOPIC, message, topic, FALSE))
         exit (0);
 }
 
@@ -171,7 +171,7 @@ main (int argc, char *argv [])
     ||  amq_sclient_connect (amq_client, opt_server, "/test", FALSE))
         goto failed;
 
-    out_handle = amq_sclient_producer (amq_client, AMQP_SERVICE_TOPIC);
+    out_handle = amq_sclient_producer (amq_client);
 
     s_send_message (amq_client, out_handle, "forex.usd", headers1);
     s_send_message (amq_client, out_handle, "forex.eur", headers1);

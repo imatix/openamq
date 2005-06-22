@@ -137,7 +137,7 @@ main (int argc, char *argv [])
     signal (SIGINT,  s_handle_signal);
     signal (SIGTERM, s_handle_signal);
 
-    out_handle = amq_sclient_producer (amq_client, AMQP_SERVICE_QUEUE);
+    out_handle = amq_sclient_producer (amq_client);
     coprintf ("Enter text and press Enter, type 'bye' to finish\n");
 
     while (TRUE) {
@@ -149,7 +149,8 @@ main (int argc, char *argv [])
         message = amq_message_new ();
         amq_message_set_content (message, text, strlen (text), NULL);
 
-        if (amq_sclient_msg_send (amq_client, out_handle, message, "chat-queue", TRUE))
+        if (amq_sclient_msg_send (
+            amq_client, out_handle, AMQP_SERVICE_QUEUE, message, "chat-queue", TRUE))
             goto aborted;
         if (amq_sclient_commit (amq_client))
             goto aborted;

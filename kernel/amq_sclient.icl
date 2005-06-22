@@ -124,12 +124,10 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 </method>
 
 <method name = "producer" template = "function">
-    <argument name = "service type" type = "int">AMQP service type</argument>
     amq_sclient_agent_handle_open (
         self->thread_handle,
         CHANNEL_ID,
         ++self->cur_handle,
-        (dbyte) service_type,
         &rc);
     smt_thread_execute (SMT_EXEC_FULL);
 
@@ -149,13 +147,14 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     <argument name = "exclusive"    type = "Bool"  >Exclusive consumer</argument>
     <argument name = "selector"     type = "ipr_longstr_t *">Selector table</argument>
     amq_sclient_agent_handle_open (
-        self->thread_handle, CHANNEL_ID, ++self->cur_handle, (dbyte) service_type, &rc);
+        self->thread_handle, CHANNEL_ID, ++self->cur_handle, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
 
     if (rc == AMQ_OK) {
         amq_sclient_agent_handle_consume (
             self->thread_handle,
             self->cur_handle,
+            (dbyte) service_type,
             dest_name,
             (dbyte) prefetch,
             no_local,
@@ -183,14 +182,15 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     create a new message object for each msg_send call.
     </doc>
     <argument name = "handle id" type = "dbyte"          >Handle id</argument>
+    <argument name = "service type" type = "int"         >AMQP service type</argument>
     <argument name = "message"   type = "amq_message_t *">Message to send</argument>
     <argument name = "dest name" type = "ipr_shortstr_t" >Destination name</argument>
     <argument name = "immediate" type = "Bool"           >Assert immediate delivery?</argument>
     assert (message);
     assert (dest_name && *dest_name);
-    
+
     amq_sclient_agent_handle_send (
-        self->thread_handle, handle_id, message, dest_name, immediate, &rc);
+        self->thread_handle, handle_id, service_type, message, dest_name, immediate, &rc);
     smt_thread_execute (SMT_EXEC_FULL);
 
     if (self->reply_code) {

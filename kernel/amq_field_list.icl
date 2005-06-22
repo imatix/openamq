@@ -28,11 +28,13 @@ formats, and lookup and operate on field lists.
 <method name = "new">
     <doc>
     If the field table argument is not null, parses the field table into
-    the field list.
+    the field list.  If the field table contained invalid data, destroys
+    self.
     </doc>
     <argument name = "field table" type = "ipr_longstr_t *">Field table</argument>
     if (field_table)
-        self_parse (self, field_table);
+        if (self_parse (self, field_table))
+            self_destroy (&self);
 </method>
 
 <method name = "destroy">

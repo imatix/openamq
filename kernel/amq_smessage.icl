@@ -337,7 +337,6 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
     /*  Initialise handle                                                    */
     memset (&handle_open, 0, sizeof (handle_open));
     handle_open.channel_id   = 1;
-    handle_open.service_type = 1;
     handle_open.handle_id    = 1;
     handles = amq_handle_table_new ();
     handle  = amq_handle_new (handles, handle_open.handle_id, channel, &handle_open);

@@ -2,7 +2,7 @@
 <class
     name      = "amq_handle"
     comment   = "Destination handle class"
-    version   = "1.0"
+    version   = "1.1"
     copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
@@ -50,8 +50,6 @@ This class implements the AMQP HANDLE commands.
     int
         state;                          /*  Handle state                     */
     dbyte
-        service_type;                   /*  Service type for handle          */
-    dbyte
         channel_id;                     /*  Channel for this handle          */
     Bool
         paused;                         /*  If TRUE, handle is paused        */
@@ -80,15 +78,8 @@ This class implements the AMQP HANDLE commands.
     self->browser_set  = amq_browser_array_new ();
     self->state        = AMQ_HANDLE_OPEN;
     self->channel_id   = command->channel_id;
-    self->service_type = command->service_type;
     ipr_shortstr_cpy (self->mime_type, command->mime_type);
     ipr_shortstr_cpy (self->encoding,  command->encoding);
-
-    if (self->service_type != AMQP_SERVICE_QUEUE
-    &&  self->service_type != AMQP_SERVICE_TOPIC) {
-        amq_global_set_error (AMQP_SYNTAX_ERROR, "Invalid service type");
-        self_destroy (&self);
-    }
 </method>
 
 <method name = "destroy">
@@ -107,11 +98,15 @@ This class implements the AMQP HANDLE commands.
     <argument name = "message" type = "amq_smessage_t *"    />
     <local>
     amq_dest_t
-        *dest;
+        *dest = NULL;
     </local>
-    if (self->service_type == AMQP_SERVICE_QUEUE)
+
+    if (command->service_type == AMQP_SERVICE_QUEUE
+    ||  command->service_type == AMQP_SERVICE_EITHER) {
         dest = amq_dest_search (self->vhost->queue_hash, command->dest_name);
-    else {
+    }
+    if (command->service_type == AMQP_SERVICE_TOPIC
+    || (command->service_type == AMQP_SERVICE_EITHER && !dest)) {
         dest = self->vhost->topic_dest;
         amq_match_table_check_topic (
             self->vhost->match_topics,
@@ -171,26 +166,22 @@ This class implements the AMQP HANDLE commands.
         *dest;
     </local>
 
-    if (self->service_type == AMQP_SERVICE_QUEUE) {
-        /*  Look for the queue using the destination name specified         */
-        dest = amq_dest_search (self->vhost->queue_hash, command->dest_name);
-        if (dest) {
-            if (!dest->opt_protected) {
-                amq_queue_query (dest->queue, self->browser_set);
-                amq_server_agent_handle_index (
-                    self->thread,
-                    (dbyte) self->key,
-                    0,
-                    amq_browser_array_strindex (self->browser_set, 8000));
-            }
-            else
-                amq_global_set_error (AMQP_ACCESS_REFUSED, "Browsing not allowed on destination");
+    /*  Look for the queue using the destination name specified         */
+    dest = amq_dest_search (self->vhost->queue_hash, command->dest_name);
+    if (dest) {
+        if (!dest->opt_protected) {
+            amq_queue_query (dest->queue, self->browser_set);
+            amq_server_agent_handle_index (
+                self->thread,
+                (dbyte) self->key,
+                0,
+                amq_browser_array_strindex (self->browser_set, 8000));
         }
         else
-            amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
+            amq_global_set_error (AMQP_ACCESS_REFUSED, "Browsing not allowed on destination");
     }
     else
-        amq_global_set_error (AMQP_COMMAND_INVALID, "Cannot query topics");
+        amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
 </method>
 
 <method name = "browse" template = "function" >
@@ -200,14 +191,10 @@ This class implements the AMQP HANDLE commands.
         *browser;
     </local>
 
-    if (self->service_type == AMQP_SERVICE_QUEUE) {
-        browser = amq_browser_array_fetch (self->browser_set, command->message_nbr);
-        if (browser == NULL
-        ||  amq_queue_browse (browser->queue, self, browser))
-            amq_global_set_error (AMQP_MESSAGE_NOT_FOUND, "Message does not exist");
-    }
-    else
-        amq_global_set_error (AMQP_COMMAND_INVALID, "Cannot browse topics");
+    browser = amq_browser_array_fetch (self->browser_set, command->message_nbr);
+    if (browser == NULL
+    ||  amq_queue_browse (browser->queue, self, browser))
+        amq_global_set_error (AMQP_MESSAGE_NOT_FOUND, "Message does not exist");
 </method>
 
 <method name = "selftest">
@@ -262,7 +249,6 @@ This class implements the AMQP HANDLE commands.
     /*  Initialise handle                                                    */
     memset (&handle_open, 0, sizeof (handle_open));
     handle_open.channel_id   = 1;
-    handle_open.service_type = AMQP_SERVICE_QUEUE;
     handle_open.handle_id    = 1;
     handles = amq_handle_table_new ();
     handle  = amq_handle_new (

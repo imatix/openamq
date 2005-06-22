@@ -53,7 +53,8 @@
     amq_field_t
         *field;                         /*  Next field to examine            */
     ipr_shortstr_t
-        match_key;
+        match_name,
+        match_value;
     </local>
 
     /*  Lookup topic name in match table, if found collect subscr hits       */
@@ -61,15 +62,20 @@
 
     /*  Lookup fields in match table, if found, collect subscr hits          */
     fields = amq_field_list_new (message->headers);
-    field  = amq_field_list_first (fields);
-    while (field) {
-        amq_match_field_name  (match_key, field);
-        amq_hitset_collect    (self, self->vhost->match_fields, match_key);
-        amq_match_field_value (match_key, field);
-        amq_hitset_collect    (self, self->vhost->match_fields, match_key);
-        field = amq_field_list_next (fields, field);
+    if (fields) {
+        field = amq_field_list_first (fields);
+        while (field) {
+            amq_match_field_name  (match_name, field);
+            amq_hitset_collect    (self, self->vhost->match_fields, match_name);
+            amq_match_field_value (match_value, field);
+            if (strneq (match_name, match_value))
+                amq_hitset_collect (self, self->vhost->match_fields, match_value);
+            field = amq_field_list_next (fields, field);
+        }
+        amq_field_list_destroy (&fields);
     }
-    amq_field_list_destroy (&fields);
+    else
+        amq_global_set_error (AMQP_SYNTAX_ERROR, "Invalid headers field table");
 
     /*  Now count subscribers with all hits                                  */
     for (subscr_nbr = self->item_lo; subscr_nbr <= self->item_hi; subscr_nbr++) {
@@ -118,7 +124,7 @@
     int
         item_nbr;
     </local>
-    
+
     coprintf ("SEARCHING ON TERM: %s", match_key);
     match = amq_match_search (match_table, match_key);
     if (match) {

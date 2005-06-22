@@ -93,25 +93,29 @@ names and field values.
 #   define FIELD_VALUE_MAX  30          /*    name=value into shortstr       */
 
     fields = amq_field_list_new (subscr->selector);
-    field  = amq_field_list_first (fields);
-    while (field) {
-        amq_match_field_value (match_key, field);
-        coprintf ("SUBSCRIBING ON FIELD: %s", match_key);
+    if (fields) {
+        field = amq_field_list_first (fields);
+        while (field) {
+            amq_match_field_value (match_key, field);
+            coprintf ("SUBSCRIBING ON FIELD: %s", match_key);
 
-        match = amq_match_search (self, match_key);
-        if (match == NULL)
-            match = amq_match_new (self, match_key);
+            match = amq_match_search (self, match_key);
+            if (match == NULL)
+                match = amq_match_new (self, match_key);
 
-        /*  Flag this subscription as matching                               */
-        ipr_bits_set (match->bits, subscr->index);
+            /*  Flag this subscription as matching                               */
+            ipr_bits_set (match->bits, subscr->index);
 
-        /*  Add a reference to the subscription                              */
-        ipr_looseref_new (subscr->matches, match);
+            /*  Add a reference to the subscription                              */
+            ipr_looseref_new (subscr->matches, match);
 
-        field = amq_field_list_next (fields, field);
-        subscr->field_count++;
+            field = amq_field_list_next (fields, field);
+            subscr->field_count++;
+        }
+        amq_field_list_destroy (&fields);
     }
-    amq_field_list_destroy (&fields);
+    else
+        amq_global_set_error (AMQP_SYNTAX_ERROR, "Invalid selector field table");
 </method>
 
 <method name = "check topic" template = "function">

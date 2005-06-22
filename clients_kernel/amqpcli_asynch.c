@@ -75,13 +75,14 @@ s_connected (amq_aclient_connected_t *args)
     channel_id = amq_aclient_channel_open (args->client, FALSE, FALSE);
 
     /*  Open pre-configured test queues                                      */
-    smallq_id = amq_aclient_handle_open (args->client, channel_id, AMQP_SERVICE_QUEUE);
+    smallq_id = amq_aclient_handle_open (args->client, channel_id);
 
     /*  Register as consumer for both queues                                 */
     if (consumer) {
         amq_aclient_handle_consume (
             args->client,               /*  Ourselves                        */
             smallq_id,                  /*  Small queue handle               */
+            AMQP_SERVICE_QUEUE,
             window_size,                /*  Our window size                  */
             TRUE,                       /*  No local delivery                */
             FALSE,                      /*  Auto-ack at server side          */
@@ -95,7 +96,7 @@ s_connected (amq_aclient_connected_t *args)
             message = amq_message_new ();
             amq_message_testfill       (message, 100);
             amq_message_set_persistent (message, TRUE);
-            amq_aclient_handle_send (args->client, smallq_id, message, NULL, FALSE);
+            amq_aclient_handle_send (args->client, smallq_id, AMQP_SERVICE_QUEUE, message, NULL, FALSE);
         }
     }
 }

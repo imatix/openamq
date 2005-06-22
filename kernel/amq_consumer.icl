@@ -70,12 +70,11 @@ and to a queue.
     self->dynamic   = command->dynamic;
     self->exclusive = command->exclusive;
 
-    if (handle->service_type == AMQP_SERVICE_QUEUE)
+    if (command->service_type == AMQP_SERVICE_QUEUE)
         s_init_queue_consumer (self, command);
-    else {
-        assert (handle->service_type == AMQP_SERVICE_TOPIC);
+    else
         s_init_topic_consumer (self, command);
-    }
+
     if (self->dest) {
         amq_consumer_by_handle_queue (handle->consumers, self);
         if (handle->paused)
@@ -161,11 +160,14 @@ s_init_queue_consumer ($(selftype) *self, amq_handle_consume_t *command)
 {
     static qbyte
         dyn_count = 0;                  /*  Dynamic destination number       */
+    Bool
+        alert_client = FALSE;           /*  Tell client queue was created?   */
 
     /*  Provide dynamic queue name if necessary                              */
-    if (self->dynamic && strnull (command->dest_name))
+    if (self->dynamic && strnull (command->dest_name)) {
         ipr_shortstr_fmt (command->dest_name, "dyn-%09ld", ++dyn_count);
-
+        alert_client = TRUE;
+    }
     /*  Look for queue destination                                           */
     self->dest = amq_dest_search (self->handle->vhost->queue_hash, command->dest_name);
 
@@ -178,10 +180,12 @@ s_init_queue_consumer ($(selftype) *self, amq_handle_consume_t *command)
             AMQP_SERVICE_QUEUE,
             TRUE,
             command->dest_name);
-        amq_server_agent_handle_created (
-            self->handle->thread,
-            (dbyte) self->handle->key,
-            self->dest->key);
+            
+        if (alert_client)
+            amq_server_agent_handle_created (
+                self->handle->thread,
+                (dbyte) self->handle->key,
+                self->dest->key);
     }
     if (self->dest) {
         if (self->dest->opt_max_consumers == 0

@@ -103,25 +103,29 @@
         self->authorised = FALSE;
 
         fields = amq_field_list_new (command->responses);
-        field  = amq_field_list_search (fields, "LOGIN");
-        if (field) {
-            ipr_shortstr_ncpy (login, field->string->data, field->string->cur_size);
-            field = amq_field_list_search (fields, "PASSWORD");
+        if (fields) {
+            field = amq_field_list_search (fields, "LOGIN");
             if (field) {
-                ipr_shortstr_ncpy (password, field->string->data, field->string->cur_size);
-                user = amq_user_search (amq_users, login);
-                if (user && streq (user->password, password))
-                    self->authorised = TRUE;
+                ipr_shortstr_ncpy (login, field->string->data, field->string->cur_size);
+                field = amq_field_list_search (fields, "PASSWORD");
+                if (field) {
+                    ipr_shortstr_ncpy (password, field->string->data, field->string->cur_size);
+                    user = amq_user_search (amq_users, login);
+                    if (user && streq (user->password, password))
+                        self->authorised = TRUE;
+                    else
+                        amq_global_set_error (AMQP_ACCESS_REFUSED, "Invalid user and/or password");
+                }
                 else
-                    amq_global_set_error (AMQP_ACCESS_REFUSED, "Invalid user and/or password");
+                    amq_global_set_error (AMQP_SYNTAX_ERROR, "PASSWORD missing from response");
             }
             else
-                amq_global_set_error (AMQP_SYNTAX_ERROR, "PASSWORD missing from response");
+                amq_global_set_error (AMQP_SYNTAX_ERROR, "LOGIN missing from response");
+
+            amq_field_list_destroy (&fields);
         }
         else
-            amq_global_set_error (AMQP_SYNTAX_ERROR, "LOGIN missing from response");
-
-        amq_field_list_destroy (&fields);
+            amq_global_set_error (AMQP_SYNTAX_ERROR, "Invalid response field table");
     }
     else {
         self->authorised = FALSE;
@@ -144,9 +148,13 @@
     </local>
 
     fields = amq_field_list_new (command->options);
-    frame_max = (dbyte) amq_field_list_integer (fields, "FRAME_MAX");
-    heartbeat = (dbyte) amq_field_list_integer (fields, "HEARTBEAT");
-    amq_field_list_destroy (&fields);
+    if (fields) {
+        frame_max = (dbyte) amq_field_list_integer (fields, "FRAME_MAX");
+        heartbeat = (dbyte) amq_field_list_integer (fields, "HEARTBEAT");
+        amq_field_list_destroy (&fields);
+    }
+    else
+        amq_global_set_error (AMQP_SYNTAX_ERROR, "Invalid options field table");
 
     /*  Lower limits if client asks for that                                 */
     if (self->frame_max > frame_max && frame_max > AMQP_FRAME_MIN)

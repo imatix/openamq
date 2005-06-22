@@ -165,14 +165,14 @@ main (int argc, char *argv [])
     ||  amq_sclient_connect (amq_client, opt_server, "/test", FALSE))
         goto failed;
 
-    out_handle = amq_sclient_producer (amq_client, AMQP_SERVICE_QUEUE);
+    out_handle = amq_sclient_producer (amq_client);
     for (count = 0; count < messages; count++) {
         ipr_shortstr_fmt (identifier, "ID%d", count);
         message = amq_message_new ();
         amq_message_set_persistent (message, persistent);
         amq_message_set_identifier (message, identifier);
         amq_message_testfill       (message, msgsize);
-        if (amq_sclient_msg_send (amq_client, out_handle, message, "mytest", FALSE))
+        if (amq_sclient_msg_send (amq_client, out_handle, AMQP_SERVICE_QUEUE, message, "mytest", FALSE))
             goto aborted;
         if (delay_mode)
             sleep (1);

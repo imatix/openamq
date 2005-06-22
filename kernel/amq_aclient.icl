@@ -166,17 +166,17 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
 <method name = "handle open" return = "handle_id" >
     <argument name = "self"         type = "$(selftype) *"/>
     <argument name = "channel id"   type = "dbyte" >Channel id</argument>
-    <argument name = "service type" type = "int"   >AMQP service type</argument>
 
     <declare name = "handle_id" type = "dbyte">New handle id</declare>
 
     handle_id = ++self->top_handle;
     amq_aclient_agent_handle_open (
-        self->thread_handle, channel_id, handle_id, (dbyte) service_type);
+        self->thread_handle, channel_id, handle_id);
 </method>
 
 <method name = "handle consume" template = "function" >
     <argument name = "handle id"   type = "dbyte">Handle id</argument>
+    <argument name = "service type" type = "int" >AMQP service type</argument>
     <argument name = "prefetch"    type = "dbyte">Max pending messages</argument>
     <argument name = "no local"    type = "Bool" >Don't deliver to self?</argument>
     <argument name = "no ack"      type = "Bool" >Don't want to ack</argument>
@@ -187,6 +187,7 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
     amq_aclient_agent_handle_consume (
         self->thread_handle,
         handle_id,
+        service_type,
         prefetch,
         no_local,
         no_ack,
@@ -197,11 +198,12 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
 
 <method name = "handle send" template = "function" >
     <argument name = "handle id"  type = "dbyte"          >Handle id</argument>
+    <argument name = "service type" type = "int"          >AMQP service type</argument>
     <argument name = "message"    type = "amq_message_t *">Message to send</argument>
     <argument name = "dest name"  type = "ipr_shortstr_t" >Destination name</argument>
     <argument name = "immediate"  type = "Bool"           >Assert immediate delivery?</argument>
     amq_aclient_agent_handle_send (
-        self->thread_handle, handle_id, message, dest_name, immediate);
+        self->thread_handle, handle_id, service_type, message, dest_name, immediate);
 </method>
 
 <method name = "handle flow" template = "function">
