@@ -380,7 +380,6 @@ inline static apr_status_t do_init (
 
 inline static apr_status_t do_open_handle (
     channel_fsm_context_t  *context,
-    dbyte                  service_type,
     byte                   producer,
     byte                   consumer,
     byte                   browser,
@@ -448,7 +447,7 @@ inline static apr_status_t do_open_handle (
     if (!chunk)
         AMQ_ASSERT (Not enough memory)
     chunk_size = amq_stdc_encode_handle_open (chunk, chunk_size, context->id,
-        id, service_type, confirm_tag, producer, consumer, browser,
+        id, confirm_tag, producer, consumer, browser,
         mime_type_size, mime_type, encoding_size,
         encoding, options_size, options);
     if (!chunk_size)
@@ -724,6 +723,7 @@ inline static apr_status_t do_rollback (
 inline static apr_status_t do_send_message (
     channel_fsm_context_t  *context,
     dbyte                  handle_id,
+    dbyte                  service_type,
     byte                   out_of_band,
     byte                   recovery,
     const char             *dest_name,
@@ -786,8 +786,8 @@ inline static apr_status_t do_send_message (
     if (!chunk)
         AMQ_ASSERT (Not enough memory)
     command_size = amq_stdc_encode_handle_send (chunk, command_size,
-        handle_id, confirm_tag, header_size + data_size, 0, out_of_band,
-        recovery, immediate, dest_name_size, dest_name);
+        handle_id, confirm_tag, service_type, header_size + data_size, 0,
+        out_of_band, recovery, immediate, dest_name_size, dest_name);
     if (!command_size)
         AMQ_ASSERT (Framing error)
     header_size = amq_stdc_encode_message_head (chunk + command_size,
@@ -809,6 +809,7 @@ inline static apr_status_t do_send_message (
 inline static apr_status_t do_consume (
     channel_fsm_context_t  *context,
     dbyte                  handle_id,
+    dbyte                  service_type,
     dbyte                  prefetch,
     byte                   no_local,
     byte                   no_ack,
@@ -883,8 +884,8 @@ inline static apr_status_t do_consume (
     if (!chunk)
         AMQ_ASSERT (Not enough memory)
     chunk_size = amq_stdc_encode_handle_consume (chunk, chunk_size, handle_id,
-        confirm_tag, prefetch, no_local, no_ack, dynamic, 0, dest_name_size,
-        dest_name, selector_size, selector);
+        confirm_tag, service_type, prefetch, no_local, no_ack, dynamic, 0,
+        dest_name_size, dest_name, selector_size, selector);
 
     if (!chunk_size)
         AMQ_ASSERT (Framing error)

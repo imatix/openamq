@@ -231,7 +231,6 @@ apr_status_t amq_stdc_open_channel (
 
     Arguments:
         channel               parent channel for the handle
-        service_type          queue/topic/peer
         producer              if 1, client is allowed to send messages
         consumer              if 1, client is allowed to receive messages
         browser               if 1, client is allowed to browse for messages
@@ -245,7 +244,6 @@ apr_status_t amq_stdc_open_channel (
 
 apr_status_t amq_stdc_open_handle (
     amq_stdc_channel_t       context,
-    amq_stdc_service_type_t  service_type,
     byte                     producer,
     byte                     consumer,
     byte                     browser,
@@ -262,7 +260,7 @@ apr_status_t amq_stdc_open_handle (
     amq_stdc_lock_t
         lock;
 
-    result = channel_fsm_open_handle (context, service_type, producer,
+    result = channel_fsm_open_handle (context, producer,
         consumer, browser, mime_type, encoding, options_size, options, async,
         handle_id, &lock);
     AMQ_ASSERT_STATUS (result, channel_fsm_create_handle);
@@ -410,6 +408,7 @@ apr_status_t amq_stdc_rollback (
     Arguments:
         channel               channel handle
         handle_id             id of handle to use
+        service_type          queue/topic/peer
         out_of_band           if 1, message data are to be transferred
                               out of band
         recovery              if 1, this is a recovery - only a partial message
@@ -429,23 +428,24 @@ apr_status_t amq_stdc_rollback (
     -------------------------------------------------------------------------*/
 
 apr_status_t amq_stdc_send_message (
-    amq_stdc_channel_t  context,
-    dbyte               handle_id,
-    byte                out_of_band,
-    byte                recovery,
-    const char          *dest_name,
-    byte                persistent,
-    byte                immediate, 
-    byte                priority,
-    qbyte               expiration,
-    const char          *mime_type,
-    const char          *encoding,
-    const char          *identifier,
-    dbyte               headers_size,
-    const char          *headers,
-    apr_size_t          data_size,
-    void                *data,
-    byte                async
+    amq_stdc_channel_t       context,
+    dbyte                    handle_id,
+    amq_stdc_service_type_t  service_type,
+    byte                     out_of_band,
+    byte                     recovery,
+    const char               *dest_name,
+    byte                     persistent,
+    byte                     immediate, 
+    byte                     priority,
+    qbyte                    expiration,
+    const char               *mime_type,
+    const char               *encoding,
+    const char               *identifier,
+    dbyte                    headers_size,
+    const char               *headers,
+    apr_size_t               data_size,
+    void                     *data,
+    byte                     async
     )
 {
     apr_status_t
@@ -453,10 +453,10 @@ apr_status_t amq_stdc_send_message (
     amq_stdc_lock_t
         lock;
 
-    result = channel_fsm_send_message (context, handle_id,out_of_band,
-        recovery, dest_name, persistent, immediate, priority, expiration,
-        mime_type, encoding, identifier, headers_size, headers, data_size,
-        data, async, &lock);
+    result = channel_fsm_send_message (context, handle_id, service_type,
+        out_of_band, recovery, dest_name, persistent, immediate, priority,
+        expiration, mime_type, encoding, identifier, headers_size, headers,
+        data_size, data, async, &lock);
     AMQ_ASSERT_STATUS (result, handle_fsm_send_message)
     result = wait_for_lock (lock, NULL);
     AMQ_ASSERT_STATUS (result, wait_for_lock)
@@ -473,6 +473,7 @@ apr_status_t amq_stdc_send_message (
     Arguments:
         channel               channel handle
         handle_id             id of handle to use
+        service_type          queue/topic/peer
         prefetch              number of messages to prefetch
         no_local              if 1, messages sent from this connection won't be
                               received
@@ -488,17 +489,18 @@ apr_status_t amq_stdc_send_message (
     -------------------------------------------------------------------------*/
 
 apr_status_t amq_stdc_consume (
-    amq_stdc_channel_t  context,
-    dbyte               handle_id,
-    dbyte               prefetch,
-    byte                no_local,
-    byte                no_ack,
-    byte                dynamic,
-    const char          *dest_name,
-    dbyte               selector_size,
-    const char          *selector,
-    byte                async,
-    char                **dest_name_out
+    amq_stdc_channel_t       context,
+    dbyte                    handle_id,
+    amq_stdc_service_type_t  service_type,
+    dbyte                    prefetch,
+    byte                     no_local,
+    byte                     no_ack,
+    byte                     dynamic,
+    const char               *dest_name,
+    dbyte                    selector_size,
+    const char               *selector,
+    byte                     async,
+    char                     **dest_name_out
     )
 {
     apr_status_t
@@ -508,8 +510,8 @@ apr_status_t amq_stdc_consume (
     amq_stdc_lock_t
         created_lock;
 
-    result = channel_fsm_consume (context, handle_id, prefetch, no_local,
-        no_ack, dynamic, dest_name, selector_size, selector, async,
+    result = channel_fsm_consume (context, handle_id, service_type, prefetch,
+        no_local, no_ack, dynamic, dest_name, selector_size, selector, async,
         &created_lock, &lock);
     AMQ_ASSERT_STATUS (result, handle_fsm_consume)
 

@@ -110,7 +110,6 @@ apr_status_t amq_stdc_open_channel (
 
 apr_status_t amq_stdc_open_handle (
     amq_stdc_channel_t       channel,
-    amq_stdc_service_type_t  service_type,
     byte                     producer,
     byte                     consumer,
     byte                     browser,
@@ -148,37 +147,39 @@ apr_status_t amq_stdc_rollback (
     );
 
 apr_status_t amq_stdc_send_message (
-    amq_stdc_channel_t  channel,
-    dbyte               handle_id,
-    byte                out_of_band,
-    byte                recovery,
-    const char          *dest_name,
-    byte                persistent,
-    byte                immediate,
-    byte                priority,
-    qbyte               expiration,
-    const char          *mime_type,
-    const char          *encoding,
-    const char          *identifier,
-    dbyte               headers_size,
-    const char          *headers,
-    apr_size_t          data_size,
-    void                *data,
-    byte                async
+    amq_stdc_channel_t       channel,
+    dbyte                    handle_id,
+    amq_stdc_service_type_t  service_type,
+    byte                     out_of_band,
+    byte                     recovery,
+    const char               *dest_name,
+    byte                     persistent,
+    byte                     immediate,
+    byte                     priority,
+    qbyte                    expiration,
+    const char               *mime_type,
+    const char               *encoding,
+    const char               *identifier,
+    dbyte                    headers_size,
+    const char               *headers,
+    apr_size_t               data_size,
+    void                     *data,
+    byte                     async
     );
 
 apr_status_t amq_stdc_consume (
-    amq_stdc_channel_t  channel,
-    dbyte               handle_id,
-    dbyte               prefetch,
-    byte                no_local,
-    byte                no_ack,
-    byte                dynamic,
-    const char          *dest_name,
-    dbyte               selector_size,
-    const char          *selector,
-    byte                async,
-    char                **dest_name_out
+    amq_stdc_channel_t       channel,
+    dbyte                    handle_id,
+    amq_stdc_service_type_t  service_type,
+    dbyte                    prefetch,
+    byte                     no_local,
+    byte                     no_ack,
+    byte                     dynamic,
+    const char               *dest_name,
+    dbyte                    selector_size,
+    const char               *selector,
+    byte                     async,
+    char                     **dest_name_out
     );
 
 apr_status_t amq_stdc_get_message (

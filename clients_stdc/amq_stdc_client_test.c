@@ -433,7 +433,7 @@ int main (
         return EXIT_FAILURE;
     }
 
-    result = amq_stdc_open_handle (channel, client.service_type,
+    result = amq_stdc_open_handle (channel,
         client.clienttype == clienttype_producer ? 1: 0,
         client.clienttype == clienttype_consumer ? 1: 0,
         client.clienttype == clienttype_query ? 1: 0,
@@ -450,12 +450,12 @@ int main (
             sprintf (identifier, "%s-%ld", client.client_name,
                 client.last_message_number);
 
-            result = amq_stdc_send_message (channel, handle_id, 0, 0,
-                client.destination, client.persistent, client.immediate, 
-                0, 0, "", "", identifier, amq_stdc_table_size (client.headers), 
-                amq_stdc_table_data (client.headers), client.message_size, 
-                client.message_buffer, 0);
-
+            result = amq_stdc_send_message (channel, handle_id,
+                client.service_type, 0, 0, client.destination,
+                client.persistent, client.immediate, 0, 0, "", "", identifier,
+                amq_stdc_table_size (client.headers),
+                amq_stdc_table_data (client.headers),
+                client.message_size, client.message_buffer, 0);
             if (result != APR_SUCCESS) {
                 printf ("amq_stdc_send_message failed\n");
                 return EXIT_FAILURE;
@@ -496,11 +496,11 @@ int main (
 
     /*  Mode : CONSUMER                                                      */
     if (client.clienttype == clienttype_consumer) {
-        result = amq_stdc_consume (channel, handle_id, client.prefetch,
-            client.no_local, 0, client.dynamic, client.destination, 
-            amq_stdc_table_size (client.selector), 
-            amq_stdc_table_data (client.selector), 0,
-            &dest_name);
+
+        result = amq_stdc_consume (channel, handle_id, client.service_type,
+            client.prefetch, client.no_local, 0, client.dynamic,
+            client.destination, amq_stdc_table_size (client.selector), 
+            amq_stdc_table_data (client.selector), 0, &dest_name);
         if (result != APR_SUCCESS) {
             printf ("amq_stdc_consume failed\n");
             return EXIT_FAILURE;

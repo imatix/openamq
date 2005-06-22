@@ -44,9 +44,6 @@
     </event>
     <event name = "open handle">
         Request to open new handle
-        <arg type = "dbyte" name = "service_type">
-            Service type (queue, topic, peer to peer, ...)
-        </arg>
         <arg type = "byte" name = "producer">
             If 1, handle may be used to produce messages
         </arg>
@@ -152,6 +149,9 @@
         <arg type = "dbyte" name = "handle_id">
             Id of handle to use
         </arg>
+        <arg type = "dbyte" name = "service_type">
+            Service type (queue, topic, peer to peer, ...)
+        </arg>
         <arg type = "byte" name = "out_of_band">
             If 1, message content will be transferred out of band
         </arg>
@@ -205,6 +205,9 @@
         Request to consume data from destination
         <arg type = "dbyte" name = "handle_id">
             Id of handle to use
+        </arg>
+        <arg type = "dbyte" name = "service_type">
+            Service type (queue, topic, peer to peer, ...)
         </arg>
         <arg type = "dbyte" name = "prefetch">
             Number of messages to prefetch
