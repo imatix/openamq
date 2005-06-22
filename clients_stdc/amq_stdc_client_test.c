@@ -505,7 +505,8 @@ int main (
             printf ("amq_stdc_consume failed\n");
             return EXIT_FAILURE;
         }
-        printf ("Consuming destination '%s'\n", dest_name);
+        if (dest_name)
+            printf ("Consuming from destination '%s'\n", dest_name);
 
         while (1) {
 
