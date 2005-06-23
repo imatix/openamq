@@ -1351,13 +1351,14 @@ designed today.  These are the aspects of AMQP/Fast that have been
 deliberately designed to be extensible (in order of increasing
 generality and power):
 
-1. Adding new properties to content domains.
-2. Adding new arguments to methods.
-3. Adding new methods to classes.
-4. Adding new content domains.
-5. Adding new classes.
-6. Adding new frame types.
-7. Adding new protocols.
+1. Adding new types of exchange to server implementations.
+2. Adding new properties to content domains.
+3. Adding new arguments to methods.
+4. Adding new methods to classes.
+5. Adding new content domains.
+6. Adding new method classes.
+7. Adding new frame types.
+8. Adding new protocols.
 
 All of these should be feasible while maintaining full backwards
 compatability with existing implementations.
@@ -1385,8 +1386,7 @@ Guidelines for Implementors
 ===========================
 
 - We use the terms MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY as
-  defined by IETF RFC 2119. Where possible we note the security
-  implications of the guidelines.
+  defined by IETF RFC 2119.
 
 - We use the term "the server" when discussing the specific behaviour
   required of a conforming AMQP/Fast server.
@@ -1407,7 +1407,7 @@ Guidelines for Implementors
   in source code and documentation.
 
 - Protocol methods are defined using a formal grammar (ASL) as defined
-  in AMQ RFC xxx.
+  in AMQ RFC xxx [still to be defined].
 
 Glossary of Terms
 =================
@@ -1461,7 +1461,7 @@ Trace_Frame:
     peer.
 Message:
     A specific type of content, the application-to-application message.
-Proxy:
+Exchange:
     The entity within the server which receives messages from producer
     applications and decides how to forward these to queues within the
     server.
@@ -1482,14 +1482,14 @@ Non-persistent:
 Consumer:
     A client application that requests messages from a queue.
 Producer:
-    A client application that publishes messages to a proxy.
+    A client application that publishes messages to an exchange.
 Virtual_host:
-    A collection of proxies, queues, consumers, and associated objects.
+    A collection of exchanges, queues, consumers, and associated objects.
     Virtual hosts are independent server domains that share a common
     authentication and encryption environment.  I.e. the client
     application choses the virtual host after logging in to the server.
 Realm:
-    A set of server resources (proxies and queues) covered by a single
+    A set of server resources (exchanges and queues) covered by a single
     security policy and access control.  Applications ask for access
     rights for specific realms, rather than for specific resources.
 Streaming:
@@ -1502,10 +1502,10 @@ Staging:
     transfers.
 Synchpoint:
     A synchronous confirmed step in what is otherwise an asynchronous
-    exchange of methods.
+    dialogue of methods.
 Out-of-band_transport:
-    The technique by which data is exchanged outside the network
-    connection.  For example, two peers can exchange frames across a
+    The technique by which data is carried outside the network
+    connection.  For example, two peers can carry frames across a
     TCP/IP connection and then switch to using shared memory if they
     discover they are on the same system.
 Zero_copy:
@@ -1522,7 +1522,7 @@ These terms have no special significance within the context of AMQP:
 
 Topic:
     Usually a means of distributing messages; AMQP implements topics
-    using one or more types of proxy.
+    using one or more types of exchange.
 Subscription:
     Usually a request to receive data from topics; AMQP implements
     subscriptions as queues.
@@ -1542,6 +1542,9 @@ These limitations are formally part of the AMQP/Fast specifications:
 - Number of protocol classes: 255 per peer.
 - Number of methods: 255 per protocol class.
 - Number of methods sent between synchpoints: 4G.
+
+Design Proposal
+***************
 
 Data Type Representation
 ========================
@@ -1597,7 +1600,7 @@ Integers
 
 AMQP/Fast defines these integer types:
 
-- Bit values, which are accumulated into octets.
+- Bit values.
 - Unsigned octet (8 bits).
 - Unsigned short integers (16 bits).
 - Unsigned long integers (32 bits).
@@ -1611,6 +1614,15 @@ Guidelines for implementors:
 
 - Implementors MUST NOT assume that integers encoded in a frame are
   aligned on memory word boundaries.
+
+Bits
+----
+
+Bits are accumulated into whole octets.  When two or more bits are
+contiguous in a frame these will be packed into one or more octets,
+starting from the low bit in each octet.  There is no requirement that
+all the bit values in a frame be contiguous, but this is generally
+done to minimise frame sizes.
 
 Strings
 -------
@@ -1632,7 +1644,8 @@ Timestamps
 ----------
 
 Time stamps are held in the 64-bit POSIX time_t format with an accuracy
-of one second.
+of one second.  By using 64 bits we avoid the future wraparound issues
+associated with the POSIX 31 and 32-bit values.
 
 Field Tables
 ------------
@@ -1722,7 +1735,7 @@ For AMQP/Fast these are the correct values:
     +---+---+---+---+---+---+---+---+
     |'A'|'M'|'Q'|'P'| 1 | 1 | 0 | 9 |
     +---+---+---+---+---+---+---+---+
-               8 octets
+                8 octets
 
 Guidelines for implementors:
 
@@ -1802,12 +1815,12 @@ Limits are negotiated to the lowest agreed value as follows:
 Identification and Capabilities
 -------------------------------
 
-During the negotiation of limits the peers MUST exchange this mandatory
+During the negotiation of limits the peers MUST pass this mandatory
 information about themselves:
 
 - The specific content domains that they support (see later).
 
-And the peers MAY exchange this optional information about themselves:
+And the peers MAY pass this optional information about themselves:
 
 - Their public product name, for logging and tracking.
 - Their version number.
@@ -1946,37 +1959,48 @@ Guidelines for implementors:
 The Frame Header Wire Format
 ----------------------------
 
-All frames start with a 4-octet header composed of a one-octet type
-indicator and a 3-octet size indicator:
+All frames start with a 4-octet header composed of a one-octet type field
+a 1-octet channel field and a short size field:
 
-    0       1         2            4
-    +-------+---------+------------+ +-------------- - -
-    | type  | channel | frame-size | | frame body...
-    +-------+---------+------------+ +-------------- - -
-      octet   octet     short int    'frame-size' octets
+    0      1         2             4               size+4
+    +------+---------+----------+  +------------+  +-----------+
+    | type | channel |   size   |  | frame body |  | frame-end |
+    +------+---------+----------+  +------------+  +-----------+
+     octet    octet     short       size-1 octets      octet
 
-AMQP/Fast defines several types of frame, with different type
-indicators:
+AMQP/Fast defines these types of frame:
 
 - Type = 1, "METHOD": method frame.
 - Type = 2, "HEADER": content header frame.
 - Type = 3, "BODY": content body frame.
-- Type = 4, "OOB METHOD": out-of-band method frame.
-- Type = 5, "OOB HEADER": out-of-band band header frame.
-- Type = 6, "OOB BODY": out-of-band body frame.
+- Type = 4, "OOB-METHOD": out-of-band method frame.
+- Type = 5, "OOB-HEADER": out-of-band band header frame.
+- Type = 6, "OOB-BODY": out-of-band body frame.
 - Type = 7, "TRACE": trace frame.
 - Type = 8, "HEARTBEAT": heartbeat frame.
 - Type = 9, "META": meta frame.
 
-The channel number is 0 for all frames which are global to the
-connection, and 1 .. 255 for frames that refer to specific channels (1
-.. 64K-1 in extended frames).
+The channel number is 0 for all frames which are global to the connection
+and 1 .. 255 for frames that refer to specific channels (1 .. 64K-1 in
+extended frames).
+
+The size field includes the end field, a single octet with the value
+%xCE.
 
 Guidelines for implementors:
 
-- If a peer receives a frame with a type that is not one of these
-  defined types, it MUST treat this as a fatal protocol error and
-  close the connection without sending any further data on it.
+- If a peer receives a frame with a type that is not one of these defined
+  types, it MUST treat this as a fatal protocol error and close the
+  connection without sending any further data on it.
+
+- All frames include the frame-end octet. The minimum value for the size
+  field is 1.
+
+- When a peer reads a frame it SHOULD check that the frame-end is valid
+  before attempting to decode the frame.  If the frame-end is not valid
+  it MUST treat this as a fatal protocol error and close the connection
+  without sending any further data on it.  It SHOULD log information
+  about the problem.
 
 Method Frames
 -------------
@@ -2142,7 +2166,7 @@ Formal Grammar for Content Frames
 This is the formal grammar for the AMQP/Fast content model:
 
     content         = header-frame child-content *body-frame
-    header-frame    = HEADER channel frame-size header-payload
+    header-frame    = HEADER channel frame-size header-payload frame-end
     channel         = octet
     frame-size      = short-integer
     header-payload  = class weight body-size
@@ -2155,6 +2179,7 @@ This is the formal grammar for the AMQP/Fast content model:
     child-content   = weight*content
     body-frame      = BODY channel frame-size body-payload
     body-payload    = *OCTET
+    frame-end       = OCTET %xCE
 
 Content Header Frame Wire Format
 --------------------------------
@@ -2227,9 +2252,9 @@ Content Body Frame Wire Format
 
 A content body frame has this format:
 
-    +---------------------------------------------- - -
-    | Opaque binary content
-    +---------------------------------------------- - -
+    +-----------------------+-----------+
+    | Opaque binary content | frame-end |
+    +-----------------------+-----------+
 
 Where the size of the frame is defined in the frame header.
 
@@ -2248,6 +2273,7 @@ header and body of the parent content:
     [parent-header]
         [child-header] [child-body] ...
     [parent-body]
+
 
 This organisation means that a principal content (e.g. a very large
 video file) can have child content (e.g. subtitles and menus) which will
@@ -2295,12 +2321,13 @@ programmer needs to see.
 
 AMQP/Fast defines these standard content classes:
 
+- Basic: the content is an untyped message.
 - JMS: the content is a JMS-compliant message.
-- File: the content is a file.
+- File: the content is a persistent file.
 - Stream: the content is a streamed message.
 
 Note that the ID of each content class is the same as the ID of the
-protocol class (JMS, File, Stream) that supports it.
+protocol class (Basic, JMS, File, Stream) that supports it.
 
 Each class has a specific access model, though they all share the basic
 AMQP queueing and routing mechanisms including topic multipliers. These
@@ -2341,10 +2368,10 @@ The Class/Method Model
 Goals and Principles
 --------------------
 
-AMQP/Fast allows two peers to connect and exchange data. There are
+AMQP/Fast allows two peers to connect and pass data. There are
 several types of data and several ways of exchanging this data. The
 combinations rapidly get complex. Worse, it is not always clear which
-replies depend on which requests, since the exchange of data is often
+replies depend on which requests, since the passing of data is often
 asynchronous, pipelined, and generally hard to follow.
 
 Rather than attempt to formalise the exact flow of data from client to
@@ -2430,23 +2457,23 @@ Method Frame Body Wire Format
 
 A method frame body has this format:
 
-    0       1        2          3       4          8
-    +-------+--------+----------+-------+----------+-------------- - -
-    | class | method | revision | flags | synchtag | properties...
-    +-------+--------+----------+-------+----------+-------------- - -
-      octet   octet    octet      octet   long
+    0       1        2       3          4          8
+    +-------+--------+-------+----------+----------+-------------- - -
+    | class | method | flags | reserved | synchtag | arguments...
+    +-------+--------+-------+----------+----------+-------------- - -
+      octet   octet    octet    octet      long
 
 - The class and method are protocol-constant values.
 
-- The revision number indicates a revision of the method with new or
-  modified properties.
+- The reserved octet is reserved for future use and must be zero in this
+  version of the protocol.
 
 - The flags provide a set of operational indicators.
 
-- The synctag is an arbitrary value that the sender chooses to
-  identify the method instance.
+- The synctag is an arbitrary value that the sender chooses to identify
+  the method instance.  If not used, it must be zero.
 
-- The properties are a set of AMQP/Fast fields that specific to each
+- The arguments are a set of AMQP/Fast fields that specific to each
   method.
 
 The flags are defined as follows:
@@ -2474,7 +2501,7 @@ The flags are defined as follows:
   recipient will trace all responses to this and other clients which
   the method provokes.
 
-- 4 = UNUSED - this bit is not used.
+- 4 = UNUSED - this bit is not used and must be zero.
 
 - 3-0 = revision - defines the method revision.
 
@@ -2488,9 +2515,6 @@ Guidelines for implementors:
 
 - synctags SHOULD BE unique since the last synchpoint (we explain
   synchpoints later).
-
-- Bits 3 to 0 of the flags octet are reserved for future use and MUST be
-  zero.
 
 The Synchpoint Function
 -----------------------
@@ -2664,7 +2688,7 @@ more general building blocks that can easily be used to build a topic
 service, a queue service, a mix of the two, and new kinds of service
 that fall outside the classic definitions.
 
-Message, Queue, and Proxy
+Message, Queue, and Exchange
 .........................
 
 We define the "MESSAGE": a message is self-contained package of data
@@ -2684,10 +2708,10 @@ transient (automatically deleted when no longer used).
 Queues have public names, and when a client wants to get messages from a
 server it says, "give me messages from queue such-and-such".
 
-We define the "PROXY": a proxy is a named object that accepts messages
-and distributes them to queues. A message can exist on many queues at
-once. Clients that want to send messages to a server always send them
-to a specific proxy.
+We define the "EXCHANGE": an exchange is a named object that accepts
+messages and distributes them to queues. A message can exist on many
+queues at once.  Clients that want to send messages to a server always
+send them to a specific exchange on that server.
 
 Basic Architecture
 ..................
@@ -2696,14 +2720,14 @@ The basic architecture is thus (showing a set of producer applications
 sending messages to a set of consumer applications):
 
                 +--------+        +--------+
-   Producers:   | Client |        | Client |
+   Producers    | Client |        | Client |
                 +--------+        +--------+
                     |                  |
                     V                  V
-   Messages     +----\----Server------/----+
+   Messages     +----\-----Server-----/----+
        |        |     \              /     |
        |        |      +------------+      |
-       |        |      |   Proxy    |      |
+       |        |      |  Exchange  |      |
        |        |      +------------+      |
        |        |         /      \         |
        |        |  +-------+    +-------+  |
@@ -2714,19 +2738,19 @@ sending messages to a set of consumer applications):
                     |                  |
                     V                  V
                 +--------+        +--------+
-    Consumers:  | Client |        | Client |
+    Consumers   | Client |        | Client |
                 +--------+        +--------+
 
 Note that:
 
 1. The producers do not write directly to the consumers' queues.
-2. The consumers do not read directly from the proxy.
+2. The consumers do not read directly from the exchange.
 
 Queue Consumers
 ...............
 
-While proxies copy messages across queues, queues distribute
-messages between consumers.  A queue can have one consumer:
+While exchanges copy messages across queues, queues distribute messages
+between consumers.  A queue can have one consumer:
 
         +-------+
         | Queue |
@@ -2767,10 +2791,10 @@ consumers on a quasi-round-robin basis (i.e. to each consumer in turn,
 but without a guarantee of visting each consumer in any particular
 order).
 
-Relationship between Queues and Proxies
+Relationship between Queues and Exchanges
 .......................................
 
-A queue "registers" with a proxy, asking: "give me a copy of all
+A queue "registers" with an exchange, asking: "give me a copy of all
 messages that look like this".
 
 AMQ has a formal definition of a message which includes:
@@ -2781,87 +2805,66 @@ AMQ has a formal definition of a message which includes:
 
 - the "properties" for the message.  These are a set of fields with
   a name, type, and value.  The field properties may (or may not) be
-  used by the proxy to decide which queues receive the messages.
+  used by the exchange to decide which queues receive the messages.
 
-The Proxy Design
-----------------
+The Exchange Design
+-------------------
 
-Proxy Types
-...........
+Exchange Types
+..............
 
-These are the basic set of proxies that an AMQP server MAY support:
+These are the basic set of exchanges that an AMQP server MAY support:
 
 1. "fanout" routes all messages to all registered queues.  Fanout
-   proxies are used to create arbitrary routing flows within the
-   server.  For example, fanout proxies might be used to replicate
+   exchanges are used to create arbitrary routing flows within the
+   server.  For example, fanout exchanges might be used to replicate
    data within a cluster.
 
-2. "dest-name" routes messages on their destination name using a direct
+2. "destination" routes messages on their destination name using a direct
    comparison. That is, it passes messages to queues that have
    registered with "give me all messages whose destination name is equal
-   to this value".  Dest-name proxies are used to build conventional
+   to this value".  Dest-name exchanges are used to build conventional
    point-to-point store-and-forward mechanisms.
 
-3. "dest-wild" routes messages on their destination name using a
-   wild card comparison.  That is, it passes messages to queues that have
+3. "wildname" routes messages on their destination name using a
+   wildcard comparison.  That is, it passes messages to queues that have
    registered with "give me all messages whose destination name matches
-   this pattern".  Dest-wild proxies are used to build conventional topic
+   this pattern".  Dest-wild exchanges are used to build conventional topic
    publish-and-subscribe mechanisms.
 
-4. "prop-test" routes messages on the value and presence of properties.
+4. "property" routes messages on the value and presence of properties.
    That is, it passes messages to queues that have registered with
    "give me all messages with properties with these names and values".
-   Prop-test proxies are used to build content-based routing mechanisms.
+   Prop-test exchanges are used to build content-based routing mechanisms.
 
-5. "prop-wild" routes messages on a set of properties using wild
-   card comparisons.  That is, it passes messages to queues that have
+5. "matcher" routes messages on a set of properties using wild-card
+   comparisons.  That is, it passes messages to queues that have
    registered with "give me all messages with properties that match
-   these specifications".  Prop-wild proxies are used to build
+   these specifications".  Prop-wild exchanges are used to build
    content-based routing mechanisms.
 
 6. "selector" routes messages using a programmable selector statement.
    That is, it passes messages to queues that have registered with
    "give me all messages where this statement is true".  The selector
-   statements are based on SQL WHERE conditions.  Selector proxies are
+   statements are based on SQL WHERE conditions.  Selector exchanges are
    used to build content-based routing mechanisms.
 
 7. "lossy" routes messages with random failure. That is, it passes
    messages to all registered queues, but randomly drops messages.
-   Lossy proxies are used to simulate network or processing failures.
+   Lossy exchanges are used to simulate network or processing failures.
 
 Guidelines for implementors:
 
 - An AMQP server MUST implement at least the fanout and dest-name
-  proxies.  An AMQP server MAY implement the other proxy types.
+  exchanges.  An AMQP server MAY implement the other exchange types.
 
-- An AMQP server MAY implement custom proxy types (not on this list).
-  The name of a custom proxy type must start with "x-".
-
-Proxy Implementation
-....................
-
-Each proxy is a processing class in the server, with properties and
-methods that allow it to operate.  All proxies have a common abstract
-structure:
-
-    +------+-------+-------------------+------------------------------+
-    | Name | Class | Registration list | Class-specific properties... |
-    +------+-------+-------------------+------------------------------+
-                            :
-                     +--------------+    +-------+
-                     | Registration |--->| Queue |
-                     +--------------+    +-------+
-                            :
-                     +--------------+    +-------+
-                     | Registration |--->| Queue |
-                     +--------------+    +-------+
-                            :
-                           ...
+- An AMQP server MAY implement custom exchange types (not on this list).
+  The name of a custom exchange type must start with "x-".
 
 Multiple Registrations
 ......................
 
-A queue can register with the same proxy several times:
+A queue can register with the same exchange several times:
 
     Register with dest-name: messages for destination X
     Register with dest-name: messages for destination Y
@@ -2879,7 +2882,7 @@ the three destination names:
            | Queue |
            +-------+
 
-A queue can also register with two different proxies:
+A queue can also register with two different exchanges:
 
     Register with dest-name: messages for destination X
     Register with dest-name: messages for destination Y
@@ -2900,8 +2903,8 @@ The meaning of this is as follows:
            | Queue |
            +-------+
 
-In other words, the lossy proxy steps in between the queue and the
-dest-name proxy.  We could imagine several levels:
+In other words, the lossy exchange steps in between the queue and the
+dest-name exchange.  We could imagine several levels:
 
          +-----------+
          | dest-name |
@@ -2922,27 +2925,27 @@ dest-name proxy.  We could imagine several levels:
 Guidelines for implementors:
 
 - An AMQP server SHOULD support multiple registrations but MAY restrict
-  its proxy implementation to a single proxy or single registration per
-  queue.
+  its exchange implementation to a single exchange or single registration
+  per queue.
 
 On-Demand Wiring
 ................
 
 To provide maximum flexibilty we split the definition of a server's
-wiring (i.e. the proxies, queues, and relationships between them) into
+wiring (i.e. the exchanges, queues, and relationships between them) into
 three layers:
 
-1. The set of proxy classes and how they are implemented.  This layer
+1. The set of exchange classes and how they are implemented.  This layer
    is defined in the server's software.
 
-2. A set of pre-defined proxies and queue templates.  This layer is
+2. A set of pre-defined exchanges and queue templates.  This layer is
    defined in the server's configuration files.
 
-3. The final set of proxies, queues and registrations. This layer is
+3. The final set of exchanges, queues and registrations. This layer is
    defined at runtime by the application.
 
         +--------------------------+
-     1  |  Software constructions  |   E.g. what proxy classes exist?
+     1  |  Software constructions  |   E.g. what exchange classes exist?
         +--------------------------+
                      |
                      V
@@ -2952,14 +2955,14 @@ three layers:
                      |
                      V
         +--------------------------+
-     3  |     On-demand wiring     |   E.g. create proxies & queues
+     3  |     On-demand wiring     |   E.g. create exchanges & queues
         +--------------------------+
                      |
                      V
                Actual Wiring
 
-Thus the protocol provides functionality to create and destroy proxies
-and queues, and register queues with proxies.
+Thus the protocol provides functionality to create and destroy exchanges
+and queues, and register queues with exchanges.
 
 Guidelines for implementors:
 
@@ -2972,19 +2975,19 @@ Durable Wiring
 
 An AMQ server may hold purely transient data, but may equally hold
 persistent data. In the first case we want a "clean restart" if a server
-is stopped and restarted. I.e. all dynamically-created proxy and queue
+is stopped and restarted. I.e. all dynamically-created exchange and queue
 definitions should be wiped. In the second case we want a "reliable
 restart" so that queues keep their contents safely.
 
 We use the concept of a "durable resource". This is a resource created
 by the client application but held by the server as if it was a
-configured resource. We need durable proxies, durable queues, and
+configured resource. We need durable exchanges, durable queues, and
 durable registrations. The opposite of "durable" is "transient".
 
 The actual or required durability of a resource is defined as follows:
 
 1. If a resource is part of the server's configuration, it is always
-   durable.  For example, a proxy defined in the server configuration
+   durable.  For example, an exchange defined in the server configuration
    is always durable.
 
 2. When a resource is created the client application may ask for it to
@@ -2993,7 +2996,7 @@ The actual or required durability of a resource is defined as follows:
 3. If the client application attempts to create a dependency from a
    durable resource onto a transient resource, this causes a channel
    exception.  For example, if a client attempts to register a durable
-   queue with a transient proxy the server will close the channel with
+   queue with a transient exchange the server will close the channel with
    an appropriate error.
    
 Worked Examples
@@ -3005,13 +3008,13 @@ Reconstructing Store and Forward
 Let us reconstruct queue-based "store and forward" using these building
 blocks:
 
-- We create a dest-name proxy called "queue".
+- We create a dest-name exchange called "queue".
 - We agree that queue names are equal to the destination name placed
   in each message.
-- We create a set of queues and register these with the "queue" proxy.
-- Publishers send their messages to the "queue" proxy, specifying a
+- We create a set of queues and register these with the "queue" exchange.
+- Publishers send their messages to the "queue" exchange, specifying a
   destination name with each message.
-- The "queue" proxy does a lookup on the destination name and passes
+- The "queue" exchange does a lookup on the destination name and passes
   the message to the matching queue.
 - Consumers get their messages from each named queue.
 
@@ -3021,13 +3024,13 @@ Reconstructing Topics and Subscriptions
 Let us reconstruct topic-based "subscribe and publish" using these
 building blocks:
 
-- We create a dest-wild proxy called "topic".
+- We create a dest-wild exchange called "topic".
 - We agree that queue names are subscription names.
 - We create one queue per subscription and attach these queues to
-  the "topic" proxy.
-- Publishers send their messages to the "topic" proxy, specifying a
+  the "topic" exchange.
+- Publishers send their messages to the "topic" exchange, specifying a
   destination name with each message.
-- The "topic" proxy does a topic-name match on the destination name
+- The "topic" exchange does a topic-name match on the destination name
   and passes the message to all queues that match.
 - Consumers get their messages from each named queue.
 
@@ -3054,9 +3057,9 @@ avoid non-standard naming conventions we introduce the concept of a
 queue name with the namespace to create a unique internal name.
 
 By convention in many scenarios, the namespace will be the same as the
-proxy name.
+exchange name.
 
-Thus a publisher may send to a proxy called "queue", while the consumer
+Thus a publisher may send to an exchange called "queue", while the consumer
 might read messages from a queue in namespace "queue".
 
 Queue Templating and Tuning
@@ -3097,16 +3100,38 @@ such as the maximum number of messages allowed in memory before the
 queue overflows onto disk is an adminisration concern, so must be part
 of templated configuration.
 
-Registration Normalisation
-..........................
+Exchange Reference Design
+.........................
 
-In some scenarios many queues will register with the same proxies using
-identical registrations. We can foresee that this will create problems
-in high-volume scenarios - e.g. when several thousands of queues
-register with the same proxy.
+We propose a reference design for the exchange concept. While this does
+not form part of the protocol specification, and while each server
+implementation may implement exchanges as suitable, this reference
+design may help to clarify the exchange concept.
 
-Our class design normalises identical registrations, using a list of
-queues per registration:
+We design each exchange as a processing class in the server, with
+properties and methods that allow it to operate. All exchanges have a
+common abstract structure:
+
+    +------+-------+-------------------+------------------------------+
+    | Name | Class | Registration list | Class-specific properties... |
+    +------+-------+-------------------+------------------------------+
+                            :
+                     +--------------+    +-------+
+                     | Registration |--->| Queue |
+                     +--------------+    +-------+
+                            :
+                     +--------------+    +-------+
+                     | Registration |--->| Queue |
+                     +--------------+    +-------+
+                            :
+                           ...
+
+In some scenarios many queues will register with the same exchanges
+using identical registrations. We can foresee that this will create
+problems in high-volume scenarios - e.g. when several thousands of
+queues register with the same exchange. Our class design therefore
+normalises identical registrations, using a list of queues per
+registration:
 
     +------+-------+-------------------+------------------------------+
     | Name | Class | Registration list | Class-specific properties... |
@@ -3135,9 +3160,9 @@ highly-functional content classes.
 
 Our design is based on these elements:
 
-- Virtual hosts: an independent collection of proxies and queues.
+- Virtual hosts: an independent collection of exchanges and queues.
 
-- Proxies: a proxy distributes messages across queues.
+- Exchanges: an exchange distributes messages across queues.
 
 - Queues: a queue distributes messages between consumers.
 
@@ -3169,20 +3194,20 @@ Virtual Hosts
 
 AMQP/Fast has explicit support for virtual hosts. The client chooses a
 virtual host as the last stage in negotiating the connection. A virtual
-host has its own set of proxies, queues and access controls.
+host has its own set of exchanges, queues and access controls.
 
-Proxies
--------
+Exchanges
+---------
 
-Topics are named objects that act as message filters and multipliers.
-Proxies do not hold messages: rather they copy messages to queues. All
-messages are published to proxies.
+Exchanges are named objects that act as message filters and multipliers.
+Exchanges do not hold messages: rather they copy messages to queues. All
+messages are published to exchanges.
 
 Guidelines for implementors:
 
-- Proxies are not tied to specific content classes.
+- Exchanges are not tied to specific content classes.
 
-- A server MUST allow any content class to be sent to any proxy, in any
+- A server MUST allow any content class to be sent to any exchange, in any
   mix, depending on the access rights of the producing client.
 
 - A server SHOULD discard messages for which there are no valid queues.
@@ -3201,7 +3226,7 @@ is is being resent after a failure or rejection.
 Note that mixed content on a queue is generally sent asynchronously
 using the appropriate Deliver methods, to those clients that have asked
 for it.  The Browse method allows clients to selectively receive single
-JMS or File messages but not Stream messages.
+Basic, JMS or File messages but not Stream messages.
 
 Guidelines for implementors:
 
@@ -3219,8 +3244,8 @@ overflow etc.
 
 Messages may be persistent or not, depending on several criteria:
 
-1. In the JMS content class, messages are individually marked as
-   persistent or non-persistent.
+1. In the Basic and JMS content classes, messages are individually
+   marked as persistent or non-persistent.
 2. In the File content class, messages are always persistent.
 3. In the Stream content class, messages are never persistent.
 
@@ -3233,10 +3258,10 @@ Guidelines for implementors:
   overflow but SHOULD use the Channel.Flow method to slow or stop a
   producer when necessary.
 
-- The server MAY overflow non-persistent JMS or Stream messages to
-  persistent storage, or MAY discard non-persistent JMS or Stream
-  messages on a priority basis if the queue exceeds some configured
-  maximum size.
+- The server MAY overflow non-persistent Basic, JMS or Stream messages
+  to persistent storage, or MAY discard non-persistent Basica, JMS or
+  Stream messages on a priority basis if the queue exceeds some
+  configured maximum size.
 
 Message Priorities
 ------------------
@@ -3441,7 +3466,7 @@ AMQP/Fast defines two exception levels:
 1. Channel exceptions.  These close a single virtual connection.
    A channel exception is raised when a peer cannot complete some
    request because of transient or configuration errors.
-   
+
 2. Connection exceptions.  These close the socket connection.
    A connection exception is raised when a peer detects a syntax
    error, badly-formed frame, or other indicator that the other
@@ -3464,6 +3489,28 @@ reasons, or as a reaction to an error.  It sends a Close method to
 the other party.  The receiving peer must respond to a Close with a
 Close-Ok method.  The closing peer reads methods back until it gets a
 Close-Ok, at which point it closes the connection and frees resources.
+
+The Trivial Operational Model
+=============================
+
+Goals and Principles
+--------------------
+
+The trivial operational model is designed to provide the simplest
+possible message store and forward model.  The basic content methods are
+fully synchronous; there is no Consume method, and all message fetching
+is done using the Browse method.  Trivial messages are not acknowledged,
+and cannot be put back onto a queue.
+
+Trivial Properties
+------------------
+
+These are the properties defined for Trivial content:
+
+- ContentType (short string)
+- ContentEncoding (short string)
+- Destination (short string)
+- Headers (field table)
 
 The JMS Operational Model
 ========================
