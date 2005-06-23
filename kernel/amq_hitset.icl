@@ -80,16 +80,18 @@
     /*  Now count subscribers with all hits                                  */
     for (subscr_nbr = self->item_lo; subscr_nbr <= self->item_hi; subscr_nbr++) {
         subscr = (amq_subscr_t *) self->vhost->subscr_index->data [subscr_nbr];
-        /*  Number of hits we want is field_count, +1 for topic name         */
-        coprintf ("SUBSCR %d: have=%d want=%d hits",
-            subscr_nbr, self->item_hits [subscr_nbr], subscr->field_count + 1);
+        if (subscr) {
+            /*  Number of hits we want is field_count, +1 for topic name     */
+            coprintf ("SUBSCR %d: have=%d want=%d hits",
+                subscr_nbr, self->item_hits [subscr_nbr], subscr->field_count + 1);
 
-        if (self->item_hits [subscr_nbr] == subscr->field_count + 1
-        && (subscr->consumer->no_local == FALSE
-        ||  subscr->consumer->handle->client_id != message->handle->client_id))
-            rc++;
-        else
-            self->item_hits [subscr_nbr] = 0;
+            if (self->item_hits [subscr_nbr] == subscr->field_count + 1
+            && (subscr->consumer->no_local == FALSE
+            ||  subscr->consumer->handle->client_id != message->handle->client_id))
+                rc++;
+            else
+                self->item_hits [subscr_nbr] = 0;
+        }
     }
 </method>
 

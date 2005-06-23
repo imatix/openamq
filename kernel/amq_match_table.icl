@@ -97,7 +97,7 @@ names and field values.
         field = amq_field_list_first (fields);
         while (field) {
             amq_match_field_value (match_key, field);
-            coprintf ("SUBSCRIBING ON FIELD: %s", match_key);
+            coprintf ("SUBSCRIBING ON FIELD: %s, subscriber=%d", match_key, subscr->index);
 
             match = amq_match_search (self, match_key);
             if (match == NULL)
