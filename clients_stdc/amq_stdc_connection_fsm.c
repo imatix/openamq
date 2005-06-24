@@ -710,12 +710,12 @@ inline static apr_status_t do_init (
     context->global = global;
     context->id = connection_id;
     context->async = async;
-    context->host_size = host_size;
+    context->host_size = (byte) host_size;
     context->host = apr_palloc (context->pool, host_size);
     if (context->host == NULL)
         AMQ_ASSERT (Not enough memory)
     memcpy ((void*) context->host, (void*) host, host_size);
-    context->client_name_size = client_name_size;
+    context->client_name_size = (byte) client_name_size;
     context->client_name = apr_palloc (context->pool, client_name_size);
     if (context->client_name == NULL)
         AMQ_ASSERT (Not enough memory)
@@ -737,7 +737,8 @@ inline static apr_status_t do_init (
     result = apr_threadattr_create (&threadattr_receiver, context->pool);
     AMQ_ASSERT_STATUS (result, apr_threadattr_create)
     result = apr_thread_create (&(context->receiver), threadattr_receiver,
-        s_receiver_thread, (void*) context, context->pool);
+        (apr_thread_start_t) s_receiver_thread, (void*) context,
+        context->pool);
     AMQ_ASSERT_STATUS (result, apr_thread_create)
 
     /*  Create sender lock                                                   */
@@ -749,7 +750,8 @@ inline static apr_status_t do_init (
     result = apr_threadattr_create (&threadattr_sender, context->pool);
     AMQ_ASSERT_STATUS (result, apr_threadattr_create)
     result = apr_thread_create (&(context->sender), threadattr_sender,
-        s_sender_thread, (void*) context, context->pool);
+        (apr_thread_start_t) s_sender_thread, (void*) context,
+        context->pool);
     AMQ_ASSERT_STATUS (result, apr_thread_create)
 
     /*  Register that we will be waiting for connection open completion      */

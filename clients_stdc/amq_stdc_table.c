@@ -25,7 +25,7 @@ static apr_status_t s_table_add_field (
                                       /*  allocated data part of the string  */
     )
 {
-    void
+    char
         *newdata;
     dbyte
         newsize;
@@ -173,7 +173,7 @@ apr_status_t amq_stdc_table_add_string (
 {
     apr_status_t
         result;
-    void
+    char
         *dest;
 
     result = s_table_add_field (table, name, 'S', sizeof (dbyte) + size,
@@ -213,7 +213,7 @@ apr_status_t amq_stdc_table_add_decimal (
 {
     apr_status_t
         result;
-    void
+    char
         *dest;
 
     result = s_table_add_field (table, name, 'D', sizeof (byte) +
@@ -261,7 +261,7 @@ apr_status_t amq_stdc_table_get_string (
         result;
     char
         type;
-    void
+    char
         *data;
     dbyte
         strsize;
@@ -321,7 +321,7 @@ apr_status_t amq_stdc_table_get_decimal (
         result;
     char
         type;
-    void
+    char
         *data;
  
     result = s_table_get_field (table, name, &type, &data);

@@ -368,7 +368,7 @@ inline static apr_status_t do_init (
         AMQ_ASSERT (Not enough memory)
     chunk_size = amq_stdc_encode_channel_open (chunk, chunk_size, context->id,
         confirm_tag, transacted, restartable, options_size, options,
-        out_of_band_size, out_of_band);
+        (byte) out_of_band_size, out_of_band);
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
     result = connection_fsm_send_chunk (context->connection, chunk,
@@ -448,7 +448,7 @@ inline static apr_status_t do_open_handle (
         AMQ_ASSERT (Not enough memory)
     chunk_size = amq_stdc_encode_handle_open (chunk, chunk_size, context->id,
         id, confirm_tag, producer, consumer, browser,
-        mime_type_size, mime_type, encoding_size,
+        (byte) mime_type_size, mime_type, (byte) encoding_size,
         encoding, options_size, options);
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
@@ -787,13 +787,13 @@ inline static apr_status_t do_send_message (
         AMQ_ASSERT (Not enough memory)
     command_size = amq_stdc_encode_handle_send (chunk, command_size,
         handle_id, confirm_tag, service_type, header_size + data_size, 0,
-        out_of_band, recovery, immediate, dest_name_size, dest_name);
+        out_of_band, recovery, immediate, (byte) dest_name_size, dest_name);
     if (!command_size)
         AMQ_ASSERT (Framing error)
     header_size = amq_stdc_encode_message_head (chunk + command_size,
         header_size, data_size, persistent, priority, expiration,
-        mime_type_size, mime_type, encoding_size, encoding, identifier_size,
-        identifier, headers_size, headers);
+        (byte) mime_type_size, mime_type, (byte) encoding_size, encoding,
+		(byte) identifier_size, identifier, headers_size, headers);
     if (!header_size)
         AMQ_ASSERT (Framing error)
     memcpy ((void*) (chunk + command_size + header_size), (void*) data,
@@ -885,7 +885,7 @@ inline static apr_status_t do_consume (
         AMQ_ASSERT (Not enough memory)
     chunk_size = amq_stdc_encode_handle_consume (chunk, chunk_size, handle_id,
         confirm_tag, service_type, prefetch, no_local, no_ack, dynamic, 0,
-        dest_name_size, dest_name, selector_size, selector);
+        (byte) dest_name_size, dest_name, selector_size, selector);
 
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
@@ -1266,8 +1266,8 @@ inline static apr_status_t do_query (
     if (!chunk)
         AMQ_ASSERT (Not enough memory)
     chunk_size = amq_stdc_encode_handle_query (chunk, chunk_size, handle_id,
-        message_nbr, dest_name_size, dest_name, selector_size, selector,
-        mime_type_size, mime_type);
+        message_nbr, (byte) dest_name_size, dest_name, (dbyte) selector_size,
+		selector, (byte) mime_type_size, mime_type);
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
     result = connection_fsm_send_chunk (context->connection, chunk,

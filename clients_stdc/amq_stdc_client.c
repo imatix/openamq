@@ -554,7 +554,7 @@ apr_status_t amq_stdc_get_message (
         result;
     amq_stdc_lock_t
         lock;
-    void
+    char
         *msg;
 
     result = channel_fsm_get_message (channel, wait, message_desc, message,
@@ -613,7 +613,7 @@ apr_status_t amq_stdc_browse (
         result;
     amq_stdc_lock_t
         lock;
-    void
+    char
         *msg;
  
     result = channel_fsm_browse (context, handle_id, message_nbr, async,
