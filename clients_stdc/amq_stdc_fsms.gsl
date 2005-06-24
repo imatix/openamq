@@ -173,6 +173,8 @@ apr_status_t $(machine.name:c)_$(event.name:c) (\\
 $(event.name:cobol), $(event.action:cobol), \
 .                if defined (event.next)
 ->  $(event.next?"0":cobol)\
+.                else
+->\
 .                endif
 )\\
         result = $(event.action:c) (\\
@@ -201,6 +203,8 @@ $(event.name:cobol), $(event.action:cobol), \
 $(event.name:cobol), $(event.action:cobol), \
 .                if defined (event.next)
 ->  $(event.next?"0":cobol)\
+.                else
+->\
 .                endif
 )\\
         result = $(event.action:c) (\\
