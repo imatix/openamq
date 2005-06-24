@@ -329,8 +329,11 @@
         <arg type = "const char *" name = "dest_name">
             Destination name
         </arg>
+        <arg type = "dbyte" name = "selector_size">
+            Size of selector
+        </arg>
         <arg type = "const char *" name = "selector">
-            Selector string
+            Selector field table
         </arg>
         <arg type = "const char *" name = "mime_type">
             MIME type

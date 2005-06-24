@@ -1229,6 +1229,7 @@ inline static apr_status_t do_query (
     dbyte                  handle_id,
     qbyte                  message_nbr,
     const char             *dest_name,
+    dbyte                  selector_size,
     const char             *selector,
     const char             *mime_type,
     amq_stdc_lock_t        *lock
@@ -1243,14 +1244,10 @@ inline static apr_status_t do_query (
     qbyte
         dest_name_size = strlen (dest_name);
     qbyte
-        selector_size = strlen (selector);
-    qbyte
         mime_type_size = strlen (mime_type);
 
     if (dest_name_size > 255)
         AMQ_ASSERT (Destination name field exceeds 255 characters)
-    if (selector_size > 65535)
-        AMQ_ASSERT (Selector field exceeds 65535 characters)
     if (mime_type_size > 255)
         AMQ_ASSERT (MIME type field exceeds 255 characters)
 
@@ -1266,7 +1263,7 @@ inline static apr_status_t do_query (
     if (!chunk)
         AMQ_ASSERT (Not enough memory)
     chunk_size = amq_stdc_encode_handle_query (chunk, chunk_size, handle_id,
-        message_nbr, (byte) dest_name_size, dest_name, (dbyte) selector_size,
+        message_nbr, (byte) dest_name_size, dest_name, selector_size,
 		selector, (byte) mime_type_size, mime_type);
     if (!chunk_size)
         AMQ_ASSERT (Framing error)

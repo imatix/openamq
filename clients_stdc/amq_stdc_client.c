@@ -717,6 +717,7 @@ apr_status_t amq_stdc_unget_message (
         message_nbr         request for messages with number over this value;
                             0 means all messages
         dest_name           destination name
+        selector_size       size of selector parameter
         selector            selector string
         mime_type           MIME type
         partial             if 1 reads only single batch of results from server
@@ -728,6 +729,7 @@ apr_status_t amq_stdc_query (
     dbyte               handle_id,
     qbyte               message_nbr,
     const char          *dest_name,
+    dbyte               selector_size,
     const char          *selector,
     const char          *mime_type,
     byte                partial,
@@ -742,7 +744,7 @@ apr_status_t amq_stdc_query (
     result = get_exclusive_access_to_query_dialogue (context);
     AMQ_ASSERT_STATUS (result, get_exclusive_access_to_query_dialogue);
     result = channel_fsm_query (context, handle_id, message_nbr, dest_name,
-        selector, mime_type, &lock);
+        selector_size, selector, mime_type, &lock);
     AMQ_ASSERT_STATUS (result, handle_fsm_query)
     result = wait_for_lock (lock, (void**) resultset);
     AMQ_ASSERT_STATUS (result, wait_for_lock)

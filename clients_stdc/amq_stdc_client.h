@@ -217,6 +217,7 @@ apr_status_t amq_stdc_query (
     dbyte               handle_id,
     qbyte               message_nbr,
     const char          *dest_name,
+    dbyte               selector_size,
     const char          *selector,
     const char          *mime_type,
     byte                partial,
