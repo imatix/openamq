@@ -570,7 +570,9 @@ int main (
     /*  Mode : QUERY                                                         */
     if (client.clienttype == clienttype_query) {
         result = amq_stdc_query (channel, handle_id, 0, client.destination,
-            0, NULL, "", 1, &(client.query_result));
+            amq_stdc_table_size (client.selector),
+            amq_stdc_table_data (client.selector), "", 1,
+            &(client.query_result));
         if (result != APR_SUCCESS) {
             printf ("amq_stdc_query failed\n");
             return EXIT_FAILURE;
