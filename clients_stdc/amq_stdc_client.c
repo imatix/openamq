@@ -561,7 +561,7 @@ apr_status_t amq_stdc_get_message (
         &lock);
     AMQ_ASSERT_STATUS (result, channel_fsm_get_message)
     if (wait) {
-        result = wait_for_lock (lock, &msg);
+        result = wait_for_lock (lock, (void**) &msg);
         AMQ_ASSERT_STATUS (result, wait_for_lock)
         if (msg) {
             if (message)

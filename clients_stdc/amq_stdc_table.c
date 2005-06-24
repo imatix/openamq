@@ -177,7 +177,7 @@ apr_status_t amq_stdc_table_add_string (
         *dest;
 
     result = s_table_add_field (table, name, 'S', sizeof (dbyte) + size,
-        &dest);
+        (void**) &dest);
     AMQ_ASSERT_STATUS (result, s_table_add_field)
     PUT_SHORT ((char*) dest, size)
     memcpy (dest + sizeof (dbyte), (void*) string, size);
@@ -217,7 +217,7 @@ apr_status_t amq_stdc_table_add_decimal (
         *dest;
 
     result = s_table_add_field (table, name, 'D', sizeof (byte) +
-        sizeof (long), &dest);
+        sizeof (long), (void**) &dest);
     AMQ_ASSERT_STATUS (result, s_table_add_field)
     *((byte*) dest) = decimals;
     PUT_LONG ((char*) (dest + sizeof (byte)), (qbyte) value) 
@@ -266,7 +266,7 @@ apr_status_t amq_stdc_table_get_string (
     dbyte
         strsize;
 
-    result = s_table_get_field (table, name, &type, &data);
+    result = s_table_get_field (table, name, &type, (void**) &data);
     if (result != APR_SUCCESS)
         AMQ_ASSERT (Invalid field table)
     if (!data)
@@ -324,7 +324,7 @@ apr_status_t amq_stdc_table_get_decimal (
     char
         *data;
  
-    result = s_table_get_field (table, name, &type, &data);
+    result = s_table_get_field (table, name, &type, (void**) &data);
     if (result != APR_SUCCESS)
         AMQ_ASSERT (Invalid field table)
     if (!data)
