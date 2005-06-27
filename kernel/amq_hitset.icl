@@ -52,24 +52,31 @@
         *fields;                        /*  Selector fields                  */
     amq_field_t
         *field;                         /*  Next field to examine            */
-    ipr_shortstr_t
-        match_name,
-        match_value;
+    ipr_longstr_t
+        *match_key;                     /*  Match key to lookup              */
     </local>
 
     /*  Lookup topic name in match table, if found collect subscr hits       */
-    amq_hitset_collect (self, self->vhost->match_topics, message->dest_name);
+    match_key = ipr_longstr_new_str (message->dest_name);
+    amq_hitset_collect (self, self->vhost->match_topics, match_key);
+    ipr_longstr_destroy (&match_key);
 
     /*  Lookup fields in match table, if found, collect subscr hits          */
     fields = amq_field_list_new (message->headers);
     if (fields) {
         field = amq_field_list_first (fields);
         while (field) {
-            amq_match_field_name  (match_name, field);
-            amq_hitset_collect    (self, self->vhost->match_fields, match_name);
-            amq_match_field_value (match_value, field);
-            if (strneq (match_name, match_value))
-                amq_hitset_collect (self, self->vhost->match_fields, match_value);
+            /*  First match on field name and value                          */
+            match_key = amq_match_field_value (field);
+            amq_hitset_collect  (self, self->vhost->match_fields, match_key);
+            ipr_longstr_destroy (&match_key);
+
+            /*  If field had a value, now match on name alone                */
+            if (field->string->cur_size > 0) {
+                match_key = amq_match_field_name (field);
+                amq_hitset_collect (self, self->vhost->match_fields, match_key);
+                ipr_longstr_destroy (&match_key);
+            }
             field = amq_field_list_next (fields, field);
         }
         amq_field_list_destroy (&fields);
@@ -119,7 +126,7 @@
 
 <method name = "collect" template = "function">
     <argument name = "match table" type = "amq_match_table_t *">Search this</argument>
-    <argument name = "match key"   type = "char *">For this term</argument>
+    <argument name = "match key"   type = "ipr_longstr_t *">For this term</argument>
     <local>
     amq_match_t
         *match;                         /*  Match item                       */
@@ -127,7 +134,6 @@
         item_nbr;
     </local>
 
-    coprintf ("SEARCHING ON TERM: %s", match_key);
     match = amq_match_search (match_table, match_key);
     if (match) {
         for (IPR_BITS_EACH (item_nbr, match->bits)) {

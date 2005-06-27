@@ -12,7 +12,7 @@ match table is a search term along with the set of subscriptions that
 have requested it.
 </doc>
 
-<inherit class = "ipr_hash_str" />
+<inherit class = "ipr_hash_lstr" />
 
 <import class = "amq_global" />
 <import class = "amq_db" />
@@ -84,37 +84,38 @@ have requested it.
     *to_ptr++ = 0;
 </method>
 
-<private name = "header">
-#define FIELD_NAME_MAX      30          /*  Arbitrary limit to get           */
-#define FIELD_VALUE_MAX     30          /*    name=value into shortstr       */
-</private>
-
-<method name = "field name">
+<method name = "field name" return = "match key">
     <doc>
     Format field name into a match key. This simply truncates the field
     name to a maximum size.
     </doc>
-    <argument name = "match key" type = "char *"       >Match term shortstr to fill</argument>
-    <argument name = "field"     type = "amq_field_t *">Field</argument>
-    ipr_shortstr_ncpy (match_key, field->name, FIELD_NAME_MAX);
+    <argument name = "field" type = "amq_field_t *">Field</argument>
+    <declare name = "match key" type = "ipr_longstr_t *">Returned match term</declare>
+
+    match_key = ipr_longstr_new_str (field->name);
 </method>
 
-<method name = "field value">
+<method name = "field value" return = "match key">
     <doc>
     Format field name and value into a match key.
     </doc>
-    <argument name = "match key" type = "char *"       >Match term shortstr to fill</argument>
-    <argument name = "field"     type = "amq_field_t *">Field</argument>
+    <argument name = "field" type = "amq_field_t *">Field</argument>
+    <declare name = "match key" type = "ipr_longstr_t *">Returned match term</declare>
     <local>
-    char
-        *field_value;                   /*  Field string value               */
+    size_t
+        field_name_len;
     </local>
-    ipr_shortstr_ncpy (match_key, field->name, FIELD_NAME_MAX);
-    field_value = amq_field_string (field);
-    if (*field_value) {
-        ipr_shortstr_cat  (match_key, "=");
-        ipr_shortstr_ncat (match_key, field_value, FIELD_VALUE_MAX);
+
+    amq_field_set_string (field);
+    field_name_len = strlen (field->name);
+    if (field->string->cur_size > 0) {
+        match_key = ipr_longstr_new (NULL, field_name_len + field->string->cur_size);
+        memcpy (match_key->data, field->name, field_name_len);
+        match_key->data [field_name_len] = 0;
+        memcpy (match_key->data + field_name_len + 1, field->string->data, field->string->cur_size);
     }
+    else
+        match_key = self_field_name (field);
 </method>
 
 <method name = "selftest" />

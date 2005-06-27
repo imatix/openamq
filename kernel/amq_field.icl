@@ -212,14 +212,12 @@ data type.  This class provides functions at a per-field level.
         amq_field_list_queue (list, self);
 </method>
 
-<method name = "string" return = "value">
+<method name = "set string">
     <doc>
-    Returns string value for field.  If the field is not a string, will
-    attempt to convert the field value into a string.  The returned string
-    is always null-terminated.
+    Formats string value for field.  If the field is not a string, will
+    attempt to convert the field value into a string.
     </doc>
     <argument name = "self" type = "$(selftype) *">Reference to object</argument>
-    <declare name = "value" type = "char *">Returned string value</declare>
     assert (self);
 
     if (self->type != AMQ_FIELD_TYPE_STRING) {
@@ -248,7 +246,6 @@ data type.  This class provides functions at a per-field level.
                 time_struct->tm_sec);
         }
     }
-    value = self->string->data;
 </method>
 
 <method name = "integer" return = "value">

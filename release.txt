@@ -1,3 +1,8 @@
+0.8d7 - 2005/06/27
+
+  Server:
+    - search engine now handles binary values in search string values.
+
 0.8d6 - 2005/06/22
   Protocol:
     - in HANDLE OPEN, 'service-type' flag removed.

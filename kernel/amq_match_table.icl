@@ -46,6 +46,8 @@ names and field values.
         *regexp;                        /*  Regular expression object        */
     int
         topic_nbr;                      /*  Topic index                      */
+    ipr_longstr_t
+        *match_key;                     /*  Match table key                  */
     </local>
     assert (subscr);
     assert (self->topics);
@@ -58,7 +60,9 @@ names and field values.
         assert (topic);
         if (ipr_regexp_match (regexp, topic->dest_name, NULL)) {
             /*  Topic must be defined in match table                         */
-            match = amq_match_search (self, topic->dest_name);
+            match_key = ipr_longstr_new_str (topic->dest_name);
+            match = amq_match_search (self, match_key);
+            ipr_longstr_destroy (&match_key);
             assert (match);
 
             /*  Flag this subscription as matching                           */
@@ -73,9 +77,8 @@ names and field values.
 
 <method name = "parse fields" template = "function">
     <doc>
-    Parse the selector fields specifier and derive terms from it.  We create
-    a term for each field/value combination.  We restrict field names to 30
-    bytes and field values to 127 bytes.
+    Parse the selector fields specifier and derive terms from it. We create
+    a term for each field/value combination.
     </doc>
     <argument name = "subscr" type = "amq_subscr_t *" >Subscription to register</argument>
     <local>
@@ -85,23 +88,19 @@ names and field values.
         *field;                         /*  Next field to examine            */
     amq_match_t
         *match;                         /*  Match item                       */
-    ipr_shortstr_t
-        match_key;
+    ipr_longstr_t
+        *match_key;
     </local>
-
-#   define FIELD_NAME_MAX   30          /*  Arbitrary limit to get           */
-#   define FIELD_VALUE_MAX  30          /*    name=value into shortstr       */
 
     fields = amq_field_list_new (subscr->selector);
     if (fields) {
         field = amq_field_list_first (fields);
         while (field) {
-            amq_match_field_value (match_key, field);
-            coprintf ("SUBSCRIBING ON FIELD: %s, subscriber=%d", match_key, subscr->index);
-
+            match_key = amq_match_field_value (field);
             match = amq_match_search (self, match_key);
             if (match == NULL)
                 match = amq_match_new (self, match_key);
+            ipr_longstr_destroy (&match_key);
 
             /*  Flag this subscription as matching                               */
             ipr_bits_set (match->bits, subscr->index);
@@ -135,12 +134,14 @@ names and field values.
         *subscr;                        /*  Subscription object              */
     ipr_regexp_t
         *regexp;                        /*  Regular expression object        */
+    ipr_longstr_t
+        *match_key;
     </local>
     assert (self->topics);
 
-    if (amq_match_search (self, dest_name) == NULL) {
-        coprintf ("NEW TOPIC (%s), REBUILDING SUBSCRIPTIONS", dest_name);
-        match = amq_match_new (self, dest_name);
+    match_key = ipr_longstr_new_str (dest_name);
+    if (amq_match_search (self, match_key) == NULL) {
+        match = amq_match_new (self, match_key);
         amq_topic_new (self->topics, self->topics->bound, dest_name);
 
         /*  Recompile all subscriptions for this topic                       */
@@ -158,6 +159,7 @@ names and field values.
             subscr = amq_subscr_list_next (subscr_list, subscr);
         }
     }
+    ipr_longstr_destroy (&match_key);
 </method>
 
 <method name = "selftest" />

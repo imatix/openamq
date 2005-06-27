@@ -110,25 +110,6 @@ formats, and lookup and operate on field lists.
     return (NULL);
 </method>
 
-<method name = "string" return = "value">
-    <doc>
-    Looks for a field with the specified name, returns the field's string
-    value if found, else NULL.
-    </doc>
-    <argument name = "self" type = "$(selftype) *">Reference to object</argument>
-    <argument name = "name" type = "char *"       >Field name</argument>
-    <declare name = "value" type = "char *">String value to return</declare>
-    <local>
-    amq_field_t
-        *field;
-    </local>
-    field = self_search (self, name);
-    if (field)
-        value = amq_field_string (field);
-    else
-        value = NULL;
-</method>
-
 <method name = "integer" return = "value">
     <doc>
     Looks for a field with the specified name, returns the field's integer

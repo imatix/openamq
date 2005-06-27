@@ -253,6 +253,8 @@ generate_subscriptions (long nbr_subscrs)
         *match;
     ipr_regexp_t
         *regexp;
+    ipr_longstr_t
+        *match_key;
 
     coprintf ("Generating subscriptions (%d subscribers)...", nbr_subscrs);
     subscr_table = icl_mem_alloc (sizeof (*subscr_table) * nbr_subscrs);
@@ -270,13 +272,15 @@ generate_subscriptions (long nbr_subscrs)
         /*  Subscribe to all matching topics                                 */
         for (topic = 0; topic < topic_count; topic++) {
             if (ipr_regexp_match (regexp, topic_list [topic], NULL)) {
-                match = amq_match_search (match_topics, topic_list [topic]);
+                match_key = ipr_longstr_new_str (topic_list [topic]);
+                match = amq_match_search (match_topics, match_key);
                 if (match == NULL)
-                    match = amq_match_new (match_topics, topic_list [topic]);
+                    match = amq_match_new (match_topics, match_key);
                 match_count++;
 
                 /*  Flag this subscription as matching                       */
                 ipr_bits_set (match->bits, subscr_count);
+                ipr_longstr_destroy (&match_key);
             }
         }
         ipr_regexp_destroy (&regexp);
@@ -353,6 +357,8 @@ generate_messages (long nbr_messages)
     int
         count,
         subscr_nbr;                     /*  Subcriber matching topic         */
+    ipr_longstr_t
+        *match_key;
 
     if (nbr_messages > 5000)
         coprintf ("Generating pseudo-data (%dK messages)...", nbr_messages / 1000);
@@ -363,10 +369,10 @@ generate_messages (long nbr_messages)
     for (count = 0; count < nbr_messages; count++) {
         /*  Our message consists simply of a topic name chosen at random     */
         strcpy (topic_name, topic_list [randomof (topic_count)]);
-        //random_topic_name (topic_name);
 
         /*  Find all subscribers for this topic                              */
-        match = amq_match_search (match_topics, topic_name);
+        match_key = ipr_longstr_new_str (topic_name);
+        match = amq_match_search (match_topics, match_key);
         if (match) {
             for (IPR_BITS_EACH (subscr_nbr, match->bits)) {
                 /*  'publish' to subscriber, by incrementing hit counter     */
@@ -374,6 +380,7 @@ generate_messages (long nbr_messages)
                 hit_count++;
             }
         }
+        ipr_longstr_destroy (&match_key);
     }
     if (hit_count > 5000)
         coprintf (" -- total number of match hits: %dK", hit_count / 1000);
