@@ -96,8 +96,9 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 </method>
 
 <method name = "destroy">
-    smt_thread_unlink   (&self->thread);
+    smt_thread_shut_down (self->thread);
     amq_message_destroy (&self->msg_object);
+    smt_os_thread_execute ();
 </method>
 
 <method name = "connect" template = "function">
