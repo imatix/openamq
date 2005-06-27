@@ -339,8 +339,7 @@ were split to keep the code within sane limits.
     amq_consumer_t
         *consumer;                      /*  Next consumer to process         */
     amq_mesgref_t
-        *message_ref = NULL,            /*  Message on list (reference)      */
-        *message_ref_temp;
+        *message_ref = NULL;            /*  Message on list (reference)      */
     int
         finished;
     uint
@@ -366,8 +365,6 @@ were split to keep the code within sane limits.
                 consumer = s_get_next_consumer (self);
                 if (consumer) {
                     s_dispatch_message (self, consumer, message_ref->message);
-                    message_ref_temp = message_ref;
-                    amq_mesgref_unlink (&message_ref_temp);
                     amq_mesgref_destroy (&message_ref);
                     self->memory_queue_size--;
                     self->item_id = 0;  /*  Non-persistent message           */
@@ -605,6 +602,8 @@ s_accept_transient (
 {
     amq_hitset_t
         *hitset;
+    amq_mesgref_t
+        *mesgref;
 
     if (self->dest->service_type == AMQP_SERVICE_TOPIC) {
         /*  For topics we don't save on the topic queue                      */
@@ -615,7 +614,8 @@ s_accept_transient (
         amq_hitset_destroy (&hitset);
     }
     else {                              /*  AMQP_SERVICE_QUEUE               */
-        amq_mesgref_new (self->message_list [s_priority_level (self, message)], message);
+        mesgref = amq_mesgref_new (self->message_list [s_priority_level (self, message)], message);
+        amq_mesgref_unlink (&mesgref);
         self->memory_queue_size++;
         self_pre_dispatch (self);
 #       ifdef TRACE_DISPATCH
