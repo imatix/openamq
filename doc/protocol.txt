@@ -953,6 +953,166 @@ Guidelines for implementors:
   of a meta frame, except that the frame body MAY be larger than 64KB
   after a meta frame.
 
+The Class/Method Model
+======================
+
+Goals and Principles
+--------------------
+
+AMQP/Fast allows two peers to connect and pass data. There are
+several types of data and several ways of exchanging this data. The
+combinations rapidly get complex. Worse, it is not always clear which
+replies depend on which requests, since the passing of data is often
+asynchronous, pipelined, and generally hard to follow.
+
+Rather than attempt to formalise the exact flow of data from client to
+server and back, we use a metaphor taken from the software world,
+namely the object-oriented metaphor of "classes" and "methods".
+
+We build this as follows:
+
+1. Each peer supports a set of classes.  These classes have names
+   and cover specific areas of functionality.  A peer can support
+   all the AMQP/Fast classes, or a subset of them.  Since the
+   operational functionality of the protocol depends on the classes,
+   the operational functionality of a particular implementation is
+   clear to see.
+
+2. Each class supports a set of methods.  These methods have names
+   and provide specific functionalities.  A peer can support all
+   the AMQP/Fast methods in a particular class, or a subset of them.
+   As with classes, this unambiguously defines the operational
+   functionality of a peer.
+
+3. The methods are either synchronous or asynchronous.  A synchronous
+   method replies immediately.  An asynchronous method replies at some
+   later time and may send multiple replies.  A method "replies" by
+   invoking the appropriate method in the requesting peer.  A request
+   and reply always involves two methods: one to implement the request
+   and one to implement the reply.
+
+4. Each method is either a client method, server method, or provided by
+   both client and server). A particular method in a particular class
+   always has an identical behaviour whether it is in a "client" or
+   "server".
+
+5. A peer can thus combine the roles of client and server in various
+   degrees by implementing the necessary classes and methods. At any
+   point the operational functionality of the peer can be unambiguously
+   defined by the methods that it supports.
+
+Client and Server Roles
+------------------------
+
+The AMQP/Fast protocol is quasi-symmetrical with client-initiated
+connections. We can visualise the protocol as governing two levels of
+connection - network connections (sockets) and virtual connections
+(channels):
+
+    +-----------+-----------+-----------+-----------+
+    |  channel  |  channel  |  channel  |  channel  |
+    +-----------------------------------------------+
+    |                    socket                     |
+    +-----------------------------------------------+
+
+Each peer involved in a connection (socket and channel) is strictly
+a client or a server.  The client initiates the connection and the
+server accepts the connection.  This applies both to network and to
+virtual channel connections:
+
+1. The client requests the server to open connection.
+2. The server responds and the peers agree on connection parameters.
+3. The client and the server exchange information.
+4. Either peer requests to close the connection.
+5. The other peer responds and they negotiate the shut-down.
+
+AMQP/Fast forsees two main architectures that use this model:
+
+1. Client-server, in which the same peer acts as client in all
+   connections.  This is the "usual" architecture.
+2. Peer-to-peer, in which one peer acts as client in the network
+   connection but the peers can take either role in the virtual
+   connection.
+
+The peer-to-peer architecture requires that both peers can act as both
+client and server.
+
+Guidelines for implementors:
+
+- A peer MUST support at least either the client or server role.
+
+- A peer MAY support both roles.
+
+Method Frame Body Wire Format
+-----------------------------
+
+A method frame body has this format:
+
+    0       1        2       3          4          8
+    +-------+--------+-------+----------+----------+-------------- - -
+    | class | method | flags | reserved | synchtag | arguments...
+    +-------+--------+-------+----------+----------+-------------- - -
+      octet   octet    octet    octet      long
+
+- The class and method are protocol-constant values.
+
+- The reserved octet is reserved for future use and must be zero in this
+  version of the protocol.
+
+- The flags provide a set of operational indicators.
+
+- The synctag is an arbitrary value that the sender chooses to identify
+  the method instance.  If not used, it must be zero.
+
+- The arguments are a set of AMQP/Fast fields that specific to each
+  method.
+
+The flags are defined as follows:
+
+                    7   6   5   4   3   2   1   0
+                  +---+---+---+---+---+---+---+---+
+                  | X | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+                  +---+---+---+---+---+---+---+---+
+                    |   `-----------------------'
+    SYNCHREQ -------'               |
+                                    |
+    UNUSED -------------------------'
+
+- 7 = SYNCHREQ - if 1, requests a "synchpoint", turning an asynchronous
+  method into a synchronous one. Has no effect on a synchronous method.
+
+- 6-0 = UNUSED - these bits are not used and must be zero.
+
+Guidelines for implementors:
+
+- synctags SHOULD BE unique since the last synchpoint (we explain
+  synchpoints later).
+
+The Synchpoint Function
+-----------------------
+
+A client can request a synchpoint when sending an asynchronous request
+method. The server responds with a Channel.Synch method when it finishes
+processing the request method. Synchpoints are only sent if the method
+completes successfully. If the method fails, the server replies with a
+Channel.Close or Connection.Close depending on the severity of the
+error.
+
+Clients can use synchpoints to force occasional synchronisation or to
+force a fully-synchronous dialogue. E.g. A client can be designed to use
+synchpoints at every asynchronous method, which turns the entire
+protocol into a synchronous protocol. This may be simpler for some
+scenarios than a normal asynchronous exchange of methods.
+
+Guidelines for implementors:
+
+- The server MUST ignore the SYNCHREQ flag on all methods that require
+  a synchronous reply.
+
+- The server MUST NOT set the SYNCHREQ flag on methods sent to the client,
+  and the client MUST treat any method with the SYNCHREQ flag as a fatal
+  connection error.
+
 The Abstract Content Model
 ==========================
 
@@ -1177,230 +1337,6 @@ Guidelines for implementors:
 - The server MAY set the ContentType and ContentEncoding properties
   for content produced by the server or by applications embedded in
   the server.
-
-The Class/Method Model
-======================
-
-Goals and Principles
---------------------
-
-AMQP/Fast allows two peers to connect and pass data. There are
-several types of data and several ways of exchanging this data. The
-combinations rapidly get complex. Worse, it is not always clear which
-replies depend on which requests, since the passing of data is often
-asynchronous, pipelined, and generally hard to follow.
-
-Rather than attempt to formalise the exact flow of data from client to
-server and back, we use a metaphor taken from the software world,
-namely the object-oriented metaphor of "classes" and "methods".
-
-We build this as follows:
-
-1. Each peer supports a set of classes.  These classes have names
-   and cover specific areas of functionality.  A peer can support
-   all the AMQP/Fast classes, or a subset of them.  Since the
-   operational functionality of the protocol depends on the classes,
-   the operational functionality of a particular implementation is
-   clear to see.
-
-2. Each class supports a set of methods.  These methods have names
-   and provide specific functionalities.  A peer can support all
-   the AMQP/Fast methods in a particular class, or a subset of them.
-   As with classes, this unambiguously defines the operational
-   functionality of a peer.
-
-3. The methods are either synchronous or asynchronous.  A synchronous
-   method replies immediately.  An asynchronous method replies at some
-   later time and may send multiple replies.  A method "replies" by
-   invoking the appropriate method in the requesting peer.  A request
-   and reply always involves two methods: one to implement the request
-   and one to implement the reply.
-
-4. Each method is either a client method, server method, or provided by
-   both client and server). A particular method in a particular class
-   always has an identical behaviour whether it is in a "client" or
-   "server".
-
-5. A peer can thus combine the roles of client and server in various
-   degrees by implementing the necessary classes and methods. At any
-   point the operational functionality of the peer can be unambiguously
-   defined by the methods that it supports.
-
-Client and Server Roles
-------------------------
-
-The AMQP/Fast protocol is quasi-symmetrical with client-initiated
-connections. We can visualise the protocol as governing two levels of
-connection - network connections (sockets) and virtual connections
-(channels):
-
-    +-----------+-----------+-----------+-----------+
-    |  channel  |  channel  |  channel  |  channel  |
-    +-----------------------------------------------+
-    |                    socket                     |
-    +-----------------------------------------------+
-
-Each peer involved in a connection (socket and channel) is strictly
-a client or a server.  The client initiates the connection and the
-server accepts the connection.  This applies both to network and to
-virtual channel connections:
-
-1. The client requests the server to open connection.
-2. The server responds and the peers agree on connection parameters.
-3. The client and the server exchange information.
-4. Either peer requests to close the connection.
-5. The other peer responds and they negotiate the shut-down.
-
-AMQP/Fast forsees two main architectures that use this model:
-
-1. Client-server, in which the same peer acts as client in all
-   connections.  This is the "usual" architecture.
-2. Peer-to-peer, in which one peer acts as client in the network
-   connection but the peers can take either role in the virtual
-   connection.
-
-The peer-to-peer architecture requires that both peers can act as both
-client and server.
-
-Guidelines for implementors:
-
-- A peer MUST support at least either the client or server role.
-
-- A peer MAY support both roles.
-
-Method Frame Body Wire Format
------------------------------
-
-A method frame body has this format:
-
-    0       1        2       3          4          8
-    +-------+--------+-------+----------+----------+-------------- - -
-    | class | method | flags | reserved | synchtag | arguments...
-    +-------+--------+-------+----------+----------+-------------- - -
-      octet   octet    octet    octet      long
-
-- The class and method are protocol-constant values.
-
-- The reserved octet is reserved for future use and must be zero in this
-  version of the protocol.
-
-- The flags provide a set of operational indicators.
-
-- The synctag is an arbitrary value that the sender chooses to identify
-  the method instance.  If not used, it must be zero.
-
-- The arguments are a set of AMQP/Fast fields that specific to each
-  method.
-
-The flags are defined as follows:
-
-                    7   6   5   4   3   2   1   0
-                  +---+---+---+---+---+---+---+---+
-                  | X | X | X | X |   revision    |
-                  +---+---+---+---+---+---+---+---+
-                    |   |   |   |
-    SYNCHREQ -------'   |   |   |
-                        |   |   |
-    UNREAL -------------'   |   |
-                            |   |
-    TRACER -----------------'   |
-                                |
-    UNUSED ---------------------'
-
-- 7 = SYNCHREQ - if 1, requests a "synchpoint", turning an asynchronous
-  method into a synchronous one. Has no effect on a synchronous method.
-
-- 6 = UNREAL - if 1, requests an "unreal method", in which the
-  recipient responds "as expected" but does no real work.
-
-- 5 = TRACER - if 1, requests a "distributed trace", in which the
-  recipient will trace all responses to this and other clients which
-  the method provokes.
-
-- 4 = UNUSED - this bit is not used and must be zero.
-
-- 3-0 = revision - defines the method revision.
-
-Guidelines for implementors:
-
-- The revision MUST be zero in major releases of the protocol. It is
-  used to indicate revised methods in minor releases of the protocol.
-  A peer MAY support multiple revisions of a protocol.  A peer MUST
-  support the specific method revisions defined in the protocol
-  minor version number agreed during connection negotiation.
-
-- synctags SHOULD BE unique since the last synchpoint (we explain
-  synchpoints later).
-
-The Synchpoint Function
------------------------
-
-A client can request a synchpoint when sending an asynchronous request
-method. The server responds with a Channel.Synch method when it finishes
-processing the request method. Synchpoints are only sent if the method
-completes successfully. If the method fails, the server replies with a
-Channel.Close or Connection.Close depending on the severity of the
-error.
-
-Clients can use synchpoints to force occasional synchronisation or to
-force a fully-synchronous dialogue. E.g. A client can be designed to use
-synchpoints at every asynchronous method, which turns the entire
-protocol into a synchronous protocol. This may be simpler for some
-scenarios than a normal asynchronous exchange of methods.
-
-Guidelines for implementors:
-
-- The server MUST ignore the SYNCHREQ flag on all methods that require
-  a synchronous reply.
-
-- The server MUST NOT set the SYNCHREQ flag on methods sent to the client,
-  and the client MUST treat any method with the SYNCHREQ flag as a fatal
-  connection error.
-
-The Interface Test Function
----------------------------
-
-A peer can test the capability of the other peer by sending methods with
-the UNREAL flag set. When a peer receives a message with this flag set
-it responds with a suitable "as expected" response with arbitrary data
-and the UNREAL flag also set.
-
-The goal of the UNREAL flag is to allow a monitor client to determine
-what methods a peer supports.
-
-Guidelines for implementors:
-
-- A peer SHOULD respect the UNREAL flag on all methods that it supports.
-
-- A peer that supports the UNREAL flag MUST support unreal methods in
-  any state.
-
-- A peer SHOULD reply to unsupported methods with the UNREAL flag set,
-  with a Connection.Unknown method.
-
-- A peer MUST treat an unsupported methods with the UNREAL flag
-  cleared as a fatal error and close the connection.
-
-- A peer MUST respond to a supported method with the UNREAL flag set as
-  follows: (a) decode the method and perform syntactic validation. (b)
-  create a suitable response method with suitable arguments and send it
-  with the UNREAL flag set.  (c) not change any internal state.
-
-The Distributed Trace Function
-------------------------------
-
-A distributed trace is a temporary and single-threaded trace of all
-messages produced by a specific server method. A distributed trace will
-last as long as the effects of the original method. There is no
-functionality to end a distributed trace, nor to distinguish more than
-one trace at once.
-
-Guidelines for implementors:
-
-- A server SHOULD implement the DTRACE flag as follows: (a) process the
-  method as normal. (b) set the DTRACE flag on all methods, to all
-  clients, that are the direct or indirect consequence of the original
-  received method.
 
 The Abstract Routing Model
 ==========================
