@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
 <class
-    name = "stream"
+    name    = "stream"
     handler = "channel"
+    index   = "9"
   >
   work with streaming content
 

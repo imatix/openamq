@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
 
 <class
-    name = "access"
+    name    = "access"
     handler = "connection"
+    index   = "3"
   >
   work with access tickets
 

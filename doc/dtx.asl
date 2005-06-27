@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
 <class
-    name = "dtx"
+    name    = "dtx"
     handler = "channel"
+    index   = "10"
   >
   work with distributed transactions
  

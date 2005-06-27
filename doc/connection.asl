@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
 
 <class
-    name = "connection"
+    name    = "connection"
     handler = "connection"
+    index   = "1"
   >
   work with socket connections
 

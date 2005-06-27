@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
 
 <class
-    name = "queue"
+    name    = "queue"
     handler = "channel"
+    index   = "5"
   >
   work with queues
 

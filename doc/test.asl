@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
 
 <class
-    name = "test"
+    name    = "test"
     handler = "channel"
+    index   = "11"
   >
   test functional primitives of the implementation
 

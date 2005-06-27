@@ -1,3 +1,15 @@
+0.8d6 - 2005/06/22
+  Protocol:
+    - in HANDLE OPEN, 'service-type' flag removed.
+    - 'service-type' flag added to HANDLE SEND and HANDLE CONSUME commands.
+    - added 'any' service type for HANDLE SEND only.
+    - server replies HANDLE CREATED only for auto-named dynamic queues.
+  Server:
+    - implements protocol changes noted above.
+    - detects and reports invalid field tables in all places.
+    - incorrectly generated two hits for a topic message field with no value
+        - fixed.
+
 0.8d5 - 2005/06/08
   Server:
     - new command line option, -m does monitoring of queue activity

@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
 
 <class
-    name = "channel"
+    name    = "channel"
     handler = "channel"
+    index   = "2"
   >
   work with channels
 
