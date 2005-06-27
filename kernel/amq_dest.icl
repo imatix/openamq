@@ -23,9 +23,15 @@ point-to-point service type, and the amq_queue class used to store and
 forward messages.
 </doc>
 
+<inherit class = "icl_object">
+    <option name = "cache"  value = "1" />
+    <option name = "rwlock" value = "1" />
+</inherit>
 <inherit class = "ipr_list_item" />
-<inherit class = "ipr_hash_str" />
-<option name = "hash_size" value = "65535" />
+<inherit class = "ipr_hash_item">
+    <option name = "hash_type" value = "str" />
+    <option name = "hash_size" value = "65535" />
+</inherit>
 
 <import class = "amq_global" />
 <import class = "amq_db" />

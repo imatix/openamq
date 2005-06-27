@@ -7,8 +7,14 @@
     script    = "icl_gen"
     >
 
-<inherit class = "ipr_hash_str" />
-<option name = "hash_size" value = "65535" />
+<inherit class = "icl_object">
+    <option name = "cache"  value = "1" />
+    <option name = "rwlock" value = "1" />
+</inherit>
+<inherit class = "ipr_hash_item">
+    <option name = "hash_type" value = "str" />
+    <option name = "hash_size" value = "65535" />
+</inherit>
 
 <import class = "amq_global" />
 
@@ -29,9 +35,6 @@
 
     /*  Initialise other properties                                          */
     ipr_shortstr_cpy (self->password, ipr_config_attr (config, "password", ""));
-</method>
-
-<method name = "destroy">
 </method>
 
 <method name = "selftest" />

@@ -13,6 +13,10 @@ and other properties of the consumer.  Consumers are attached to a handle
 and to a queue.
 </doc>
 
+<inherit class = "icl_object">
+    <option name = "cache"  value = "1" />
+    <option name = "rwlock" value = "1" />
+</inherit>
 <inherit class = "ipr_list_item" >
     <option name = "prefix" value = "by_handle"/>
 </inherit>
@@ -88,7 +92,7 @@ and to a queue.
 
 <method name = "destroy">
     if (self->queue) {
-        amq_consumer_by_queue_unlink (self);
+        amq_consumer_by_queue_remove (self);
         amq_queue_detach (self->queue, self);
     }
     amq_subscr_destroy (&self->subscr);
@@ -126,7 +130,7 @@ and to a queue.
     <doc>
     Moves the consumer to its queue's active list.
     </doc>
-    amq_consumer_by_queue_unlink (self);
+    amq_consumer_by_queue_remove (self);
     amq_consumer_by_queue_queue  (self->queue->active_consumers, self);
 </method>
 
@@ -134,7 +138,7 @@ and to a queue.
     <doc>
     Moves the consumer to its queue's inactive list.
     </doc>
-    amq_consumer_by_queue_unlink (self);
+    amq_consumer_by_queue_remove (self);
     amq_consumer_by_queue_queue  (self->queue->inactive_consumers, self);
 </method>
 
@@ -169,11 +173,13 @@ s_init_queue_consumer ($(selftype) *self, amq_handle_consume_t *command)
         alert_client = TRUE;
     }
     /*  Look for queue destination                                           */
-    self->dest = amq_dest_search (self->handle->vhost->queue_hash, command->dest_name);
+    amq_dest_unlink (&self->dest);
+    self->dest = amq_dest_table_search (self->handle->vhost->queue_hash, command->dest_name);
 
     /*  Create queue for dynamic consumers if needed                         */
     if (self->dest == NULL && self->dynamic) {
-        coprintf ("I: creating dynamic queue '%s'", command->dest_name);
+        icl_console_print ("I: creating dynamic queue '%s'", command->dest_name);
+        amq_dest_unlink (&self->dest);
         self->dest = amq_dest_new (
             self->handle->vhost->queue_hash,
             self->handle->vhost,
@@ -213,13 +219,14 @@ s_init_topic_consumer ($(selftype) *self, amq_handle_consume_t *command)
 
     /*  Subscription is a destination held in the vhost subscr_hash table    */
     ipr_shortstr_fmt (dest_name, "sub-%d", ++subscr_nbr);
+    amq_dest_unlink (&self->dest);
     self->dest = amq_dest_new (
         self->handle->vhost->subscr_hash,
         self->handle->vhost,
         AMQP_SERVICE_SUBSCR,
         TRUE,                           /*  Dynamic                          */
         dest_name);
-
+            
     /*  Attach consumer to subscription queue - will be only consumer        */
     amq_queue_attach (self->dest->queue, self);
 

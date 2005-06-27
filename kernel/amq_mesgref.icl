@@ -12,6 +12,10 @@
     lets us share a message between multiple queues without copying it.
 </doc>
 
+<inherit class = "icl_object">
+    <option name = "cache"  value = "1" />
+    <option name = "rwlock" value = "1" />
+</inherit>
 <inherit class = "ipr_list_item" />
 
 <import class = "amq_global" />
@@ -33,7 +37,7 @@
 
     self->message  = message;
     self->browsers = ipr_looseref_list_new ();
-    amq_smessage_link      (self->message);
+    amq_smessage_possess   (self->message);
     amq_mesgref_list_queue (list, self);
 </method>
 
@@ -47,7 +51,7 @@
     browser_ref = ipr_looseref_list_first (self->browsers);
     while (browser_ref) {
         amq_browser_destroy ((amq_browser_t **) &browser_ref->object);
-        browser_ref = ipr_looseref_list_next (self->browsers, browser_ref);
+        browser_ref = ipr_looseref_list_next (browser_ref);
     }
     ipr_looseref_list_destroy (&self->browsers);
     amq_smessage_destroy      (&self->message);

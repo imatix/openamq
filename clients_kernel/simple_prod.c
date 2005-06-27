@@ -72,6 +72,8 @@ main (int argc, char *argv [])
     opt_messages = "1000";
     opt_msgsize  = "1024";
 
+    icl_system_init ();
+    
     console_send     (NULL, TRUE);
     console_set_mode (CONSOLE_DATETIME);
 

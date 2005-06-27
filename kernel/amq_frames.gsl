@@ -320,7 +320,7 @@ $(prefix)_frame_encode_mem (byte *buffer, size_t max_size, $(prefix)_frame_t *fr
 .   for frame
         case FRAME_TYPE_$(NAME):
             if ($(NAME)_SIZE > max_size) {
-                coprintf ("E: $(name) frame needs %ld bytes, buffer too small at %ld",
+                icl_console_print ("E: $(name) frame needs %ld bytes, buffer too small at %ld",
                     $(NAME)_SIZE, max_size);
                 return (0);
             }
@@ -384,7 +384,7 @@ $(prefix)_frame_encode_mem (byte *buffer, size_t max_size, $(prefix)_frame_t *fr
 
 .   endfor frame
         default:
-            coprintf ("E: unrecognized frame, cannot encode");
+            icl_console_print ("E: unrecognized frame, cannot encode");
             return (0);
     }
     return (target - buffer);
@@ -435,7 +435,7 @@ $(prefix)_frame_decode_mem (byte *buffer, size_t cur_size)
     assert (buffer);
     frame = icl_mem_alloc (sizeof ($(prefix)_frame_t));
     if (!frame) {
-        coprintf ("E: memory allocation failed in $(prefix)_frame_decode");
+        icl_console_print ("E: memory allocation failed in $(prefix)_frame_decode");
         return (NULL);
     }
     source = buffer;
@@ -489,7 +489,7 @@ $(prefix)_frame_decode_mem (byte *buffer, size_t cur_size)
     else
 .   endfor frame
     {
-        coprintf ("E: unrecognized frame, cannot decode");
+        icl_console_print ("E: unrecognized frame, cannot decode");
         icl_mem_free (frame);
         return (NULL);
     }
@@ -497,12 +497,12 @@ $(prefix)_frame_decode_mem (byte *buffer, size_t cur_size)
     if (*source == AMQP_COMMAND_END)
         return (frame);
     else {
-        coprintf ("E: frame missing command-end octet, cannot decode");
+        icl_console_print ("E: frame missing command-end octet, cannot decode");
         $(prefix)_frame_free (&frame);
         return (NULL);
     }
     underflow:
-        coprintf ("E: insufficient data provided to decode frame");
+        icl_console_print ("E: insufficient data provided to decode frame");
         $(prefix)_frame_free (&frame);
         return (NULL);
 }
@@ -550,7 +550,7 @@ $(prefix)_$(name)_decode_mem (byte *buffer, size_t cur_size)
     source = buffer;
     frame = icl_mem_alloc (sizeof ($(prefix)_frame_t));
     if (!frame) {
-        coprintf ("E: memory allocation failed in $(prefix)_$(name)_decode");
+        icl_console_print ("E: memory allocation failed in $(prefix)_$(name)_decode");
         return (NULL);
     }
     frame->type = FRAME_TYPE_$(NAME);
@@ -620,7 +620,7 @@ $(prefix)_frame_t *$(prefix)_frame_$(name)_new ($(build_struct_args ()))
 
     frame = icl_mem_alloc (sizeof ($(prefix)_frame_t));
     if (!frame) {
-        coprintf ("E: memory allocation failed in new_$(name)_frame");
+        icl_console_print ("E: memory allocation failed in new_$(name)_frame");
         return (NULL);
     }
     frame->type = FRAME_TYPE_$(NAME);
@@ -673,7 +673,7 @@ $(prefix)_frame_size ($(prefix)_frame_t *frame)
             return ($(NAME)_SIZE);
 .   endfor
         default:
-            coprintf ("E: unrecognized frame in $(prefix)_frame_size");
+            icl_console_print ("E: unrecognized frame in $(prefix)_frame_size");
             return (0);
     }
 }
@@ -713,15 +713,15 @@ $(prefix)_frame_dump ($(prefix)_frame_t *frame, char *text)
 .               field_string  += ", frame->body.$(frame.name).$(name)? frame->body.$(frame.name).$(name)->cur_size: 0"
 .           endif
 .       endfor
-            coprintf ("");
-            coprintf ("**********************************************************************");
-            coprintf ("I: %s%s:$(format_string:)",
+            icl_console_print ("");
+            icl_console_print ("**********************************************************************");
+            icl_console_print ("I: %s%s:$(format_string:)",
                 text? text: "",
                 "$(name)"$(field_string:));
             break;
 .   endfor frame
         default:
-            coprintf ("E: unrecognized frame in $(prefix)_frame_dump");
+            icl_console_print ("E: unrecognized frame in $(prefix)_frame_dump");
     }
 }
 
@@ -745,7 +745,7 @@ $(prefix)_frame_free ($(prefix)_frame_t **frame)
                 break;
 .   endfor
             default:
-                coprintf ("E: unrecognized frame in $(prefix)_frame_free");
+                icl_console_print ("E: unrecognized frame in $(prefix)_frame_free");
         }
         icl_mem_free ((*frame));
         *frame = NULL;

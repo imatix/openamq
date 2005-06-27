@@ -12,7 +12,10 @@
     plus upper/lower limits on this array.
 </doc>
 
-<inherit class = "icl_alloc_cache" />
+<inherit class = "icl_object">
+    <option name = "cache"  value = "1" />
+    <option name = "rwlock" value = "1" />
+</inherit>
 
 <import class = "amq_classes" />
 <option name = "nullify" value = "0" />
@@ -70,7 +73,7 @@
             amq_match_field_value (match_value, field);
             if (strneq (match_name, match_value))
                 amq_hitset_collect (self, self->vhost->match_fields, match_value);
-            field = amq_field_list_next (fields, field);
+            field = amq_field_list_next (field);
         }
         amq_field_list_destroy (&fields);
     }
@@ -127,11 +130,11 @@
         item_nbr;
     </local>
 
-    coprintf ("SEARCHING ON TERM: %s", match_key);
-    match = amq_match_search (match_table, match_key);
+    icl_console_print ("SEARCHING ON TERM: %s", match_key);
+    match = amq_match_table_search (match_table, match_key);
     if (match) {
         for (IPR_BITS_EACH (item_nbr, match->bits)) {
-            coprintf (" -- found subscr nbr %d", item_nbr);
+            icl_console_print (" -- found subscr nbr %d", item_nbr);
             if (item_nbr < self->item_lo)
                 self->item_lo = item_nbr;
             if (item_nbr > self->item_hi) {
@@ -140,6 +143,7 @@
             }
             self->item_hits [item_nbr]++;
         }
+        amq_match_unlink (&match);
     }
 </method>
 

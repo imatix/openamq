@@ -82,6 +82,8 @@ main (int argc, char *argv [])
     opt_server   = "localhost";
     opt_trace    = "0";
 
+    icl_system_init ();
+    
     console_send     (NULL, TRUE);
     console_set_mode (CONSOLE_DATETIME);
 

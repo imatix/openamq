@@ -23,6 +23,8 @@ were split to keep the code within sane limits.
 
 <inherit class = "ipr_db_queue"  />
 
+<option name = "possess" value = "1"/>
+
 <data>
     <!-- These are the properties of a persistent message -->
     <field name = "dest name"   type = "shortstr">Destination name</field>
@@ -143,7 +145,7 @@ were split to keep the code within sane limits.
                 self_purge (self);
             else
                if (amq_global_verbose ())
-                    coprintf ("I: %s has %d existing messages", filename, self->disk_queue_size);
+                    icl_console_print ("I: %s has %d existing messages", filename, self->disk_queue_size);
         }
     }
 </method>
@@ -161,7 +163,7 @@ were split to keep the code within sane limits.
         message_ref = amq_mesgref_list_first (self->message_list [level]);
         while (message_ref) {
             amq_smessage_destroy (&message_ref->message);
-            message_ref = amq_mesgref_list_next (self->message_list [level], message_ref);
+            message_ref = amq_mesgref_list_next (message_ref);
         }
         amq_mesgref_list_destroy (&self->message_list [level]);
     }
@@ -196,7 +198,7 @@ were split to keep the code within sane limits.
 
     /*  If dynamic and no more consumers, destroy the queue                  */
     if (self->dynamic && self->nbr_consumers == 0 && amq_global_monitor () == 0) {
-        coprintf ("I: destroying dynamic queue '%s'", self->dest->key);
+        icl_console_print ("I: destroying dynamic queue '%s'", self->dest->key);
         amq_dest_destroy (&self->dest);
     }
 </method>
@@ -239,10 +241,10 @@ were split to keep the code within sane limits.
         if (amq_txn_limit == 0 || channel->transact_count < amq_txn_limit) {
             message->queue = self;
             amq_smessage_list_queue (channel->transact_list, message);
-            amq_smessage_link (message);
+            amq_smessage_possess (message);
             channel->transact_count++;
 #           ifdef TRACE_DISPATCH
-            coprintf ("$(selfname) I: %s - queue transacted message, txn_count=%d",
+            icl_console_print ("$(selfname) I: %s - queue transacted message, txn_count=%d",
                 self->dest->key, channel->transact_count);
 #           endif
         }
@@ -255,7 +257,7 @@ were split to keep the code within sane limits.
         &&  self->memory_queue_size >= self->dest->opt_memory_queue_max
         &&  message->priority &lt; AMQP_MAX_PRIORITIES) {
             if (!self->forced) {
-                coprintf ("$(selfname) I: queue full - forcing message to persistent storage");
+                icl_console_print ("$(selfname) I: queue full - forcing message to persistent storage");
                 self->forced = TRUE;
             }
             s_accept_persistent (self, message, txn);
@@ -273,6 +275,8 @@ were split to keep the code within sane limits.
         }
         self->accept_count++;
         self->monitor_pending = TRUE;
+        
+        amq_smessage_unlink (&message);  /*  JS  */
     }
 </method>
 
@@ -309,7 +313,7 @@ were split to keep the code within sane limits.
         s_insert_byreference (self, message, txn);
         self->disk_queue_size++;
 #       ifdef TRACE_DISPATCH
-        coprintf ("$(selfname) I: %s - save persistent message to storage (%d)",
+        icl_console_print ("$(selfname) I: %s - save persistent message to storage (%d)",
             self->dest->key, self->disk_queue_size);
 #       endif
     }
@@ -318,7 +322,7 @@ were split to keep the code within sane limits.
         amq_mesgref_new (self->message_list [level], message);
         self->memory_queue_size++;
 #       ifdef TRACE_DISPATCH
-        coprintf ("$(selfname) I: %s - save non-persistent message to queue memory (%d)",
+        icl_console_print ("$(selfname) I: %s - save non-persistent message to queue memory (%d)",
             self->dest->key, self->memory_queue_size);
 #       endif
     }
@@ -335,7 +339,8 @@ were split to keep the code within sane limits.
     amq_consumer_t
         *consumer;                      /*  Next consumer to process         */
     amq_mesgref_t
-        *message_ref;                   /*  Message on list (reference)      */
+        *message_ref = NULL,            /*  Message on list (reference)      */
+        *message_ref_temp;
     int
         finished;
     uint
@@ -348,7 +353,7 @@ were split to keep the code within sane limits.
      */
     if (self->window && self->memory_queue_size) {
 #       ifdef TRACE_DISPATCH
-        coprintf ("$(selfname) I: %s - dispatching non-persistent window=%d pending=%d",
+        icl_console_print ("$(selfname) I: %s - dispatching non-persistent window=%d pending=%d",
             self->dest->key, self->window, self->memory_queue_size);
 #       endif
 
@@ -361,6 +366,8 @@ were split to keep the code within sane limits.
                 consumer = s_get_next_consumer (self);
                 if (consumer) {
                     s_dispatch_message (self, consumer, message_ref->message);
+                    message_ref_temp = message_ref;
+                    amq_mesgref_unlink (&message_ref_temp);
                     amq_mesgref_destroy (&message_ref);
                     self->memory_queue_size--;
                     self->item_id = 0;  /*  Non-persistent message           */
@@ -371,18 +378,22 @@ were split to keep the code within sane limits.
                     /*  Work down to next priority level if needed           */
                     while (message_ref == NULL && level > 0) {
                         level--;
+                        amq_mesgref_unlink (&message_ref);
                         message_ref = amq_mesgref_list_first (self->message_list [level]);
                     }
+                    amq_consumer_unlink (&consumer);
                 }
                 else
                     break;              /*  No more consumers                */
             }
+            amq_mesgref_unlink (&message_ref);
         }
     }
+        
     /*  Now process any messages on disk                                     */
     if (self->window && self->disk_queue_size) {
 #       ifdef TRACE_DISPATCH
-        coprintf ("$(selfname) I: %s - dispatching persistent window=%d pending=%d",
+        icl_console_print ("$(selfname) I: %s - dispatching persistent window=%d pending=%d",
             self->dest->key, self->window, self->disk_queue_size);
 #       endif
 
@@ -390,13 +401,13 @@ were split to keep the code within sane limits.
         self->item_id = self->last_id;
         finished = self_fetch (self, IPR_QUEUE_GT);
 #       ifdef TRACE_DISPATCH
-        coprintf ("$(selfname) I: %s - fetch last=%d rc=%d id=%d finished=%d",
+        icl_console_print ("$(selfname) I: %s - fetch last=%d rc=%d id=%d finished=%d",
             self->dest->key, self->last_id, finished, self->item_id, finished);
 #       endif
 
         while (self->window && !finished) {
 #           ifdef TRACE_DISPATCH
-            coprintf ("$(selfname) I: %s - message id=%d client=%d",
+            icl_console_print ("$(selfname) I: %s - message id=%d client=%d",
                 self->dest->key, self->item_id, self->item_client_id);
 #           endif
             if (self->item_client_id == 0) {
@@ -407,6 +418,7 @@ were split to keep the code within sane limits.
                     amq_smessage_destroy (&message);
                     self->item_client_id = consumer->handle->client_id;
                     self_update (self, NULL);
+                    amq_consumer_unlink (&consumer);
                 }
                 else
                     break;              /*  No more consumers                */
@@ -454,10 +466,10 @@ were split to keep the code within sane limits.
         while (message_ref) {
             /*  Track browser for message so we can invalidate it if/when
                 we dispatch the message.                                     */
-            browser = amq_browser_new (
-                browser_set, set_index++, self, 0, message_ref->message);
-            ipr_looseref_new (message_ref->browsers, browser);
-            message_ref = amq_mesgref_list_next (self->message_list [level], message_ref);
+            browser = amq_browser_new (browser_set, set_index++, self, 0, message_ref->message);
+            ipr_looseref_queue (message_ref->browsers, browser);
+            amq_browser_unlink (&browser);
+            message_ref = amq_mesgref_list_next (message_ref);
         }
     }
     /*  Now process any messages on disk                                     */
@@ -466,8 +478,10 @@ were split to keep the code within sane limits.
         self->item_id = self->last_id;
         finished = self_fetch (self, IPR_QUEUE_GT);
         while (!finished) {
-            if (self->item_client_id == 0)
-                amq_browser_new (browser_set, set_index++, self, self->item_id, NULL);
+            if (self->item_client_id == 0) {
+                browser = amq_browser_new (browser_set, set_index++, self, self->item_id, NULL);
+                amq_browser_unlink (&browser);
+            }
 
             finished = self_fetch (self, IPR_QUEUE_NEXT);
         }
@@ -490,7 +504,7 @@ were split to keep the code within sane limits.
     </local>
     if (browser->message) {
         message = browser->message;
-        amq_smessage_link (message);    /*  Keep alive after sending         */
+        amq_smessage_possess (message);  /*  Keep alive after sending         */
     }
     else
     if (browser->item_id) {
@@ -524,7 +538,7 @@ were split to keep the code within sane limits.
 
 <method name = "purge">
     if (amq_global_verbose ())
-        coprintf ("I: purging %ld messages from %s", self->disk_queue_size, self->dest->key);
+        icl_console_print ("I: purging %ld messages from %s", self->disk_queue_size, self->dest->key);
     self->disk_queue_size = 0;
 </method>
 
@@ -574,7 +588,7 @@ s_accept_persistent (
         self->disk_queue_size++;
         self_pre_dispatch (self);
 #       ifdef TRACE_DISPATCH
-        coprintf ("$(selfname) I: %s - save persistent message to storage (%d)",
+        icl_console_print ("$(selfname) I: %s - save persistent message to storage (%d)",
             self->dest->key, self->disk_queue_size);
 #       endif
     }
@@ -605,7 +619,7 @@ s_accept_transient (
         self->memory_queue_size++;
         self_pre_dispatch (self);
 #       ifdef TRACE_DISPATCH
-        coprintf ("$(selfname) I: %s - save non-persistent message to queue memory (%d)",
+        icl_console_print ("$(selfname) I: %s - save non-persistent message to queue memory (%d)",
             self->dest->key, self->memory_queue_size);
 #       endif
     }
@@ -648,7 +662,7 @@ s_insert_byreference (
 
     /*  We keep a reference count in the original persistent message         */
     message->queue->item_id = message->queue_id;
-    amq_queue_link (message->queue, txn);
+    amq_queue_reference (message->queue, txn);
 }
 
 /*  Create message fetched directly or via persistent reference              */
@@ -673,7 +687,7 @@ static amq_smessage_t
         db_dest->id = self->item_dest_id;
 
         if (amq_db_dest_fetch (self->vhost->ddb, db_dest, AMQ_DB_FETCH_EQ))
-            coprintf ("E: destination not found (id=%ld)", db_dest->id);
+            icl_console_print ("E: destination not found (id=%ld)", db_dest->id);
         else {
             dest = self->vhost->topic_dest;
             assert (dest);
@@ -708,7 +722,7 @@ s_delete_byreference (
         db_dest->id = self->item_dest_id;
 
         if (amq_db_dest_fetch (self->vhost->ddb, db_dest, AMQ_DB_FETCH_EQ))
-            coprintf ("E: destination not found (id=%ld)", db_dest->id);
+            icl_console_print ("E: destination not found (id=%ld)", db_dest->id);
         else {
             dest = self->vhost->topic_dest;
             assert (dest);
@@ -738,7 +752,8 @@ s_get_next_consumer ($(selftype) *self)
     while (consumer) {
         if (consumer->window && !consumer->handle->paused)
             break;
-        consumer = amq_consumer_by_queue_next (self->active_consumers, consumer);
+        else
+            consumer = amq_consumer_by_queue_next (consumer);
     }
     return (consumer);
 }
@@ -753,6 +768,8 @@ s_dispatch_message (
 {
     qbyte
         message_nbr;
+    amq_dispatch_t
+        *dispatch;
 
     assert (consumer);
 
@@ -762,17 +779,19 @@ s_dispatch_message (
         destroy it when finished with it.  We now link on behalf of the
         server agent...
      */
-    amq_smessage_link (message);
+    amq_smessage_possess (message);
 
     /*  Get a new message number - per channel                               */
     message_nbr = ++(consumer->handle->channel->message_nbr);
 
     /*  Create a dispatch object unless it's a no-ack consumer               */
-    if (!consumer->no_ack)
-        amq_dispatch_new (consumer, message, message_nbr);
+    if (!consumer->no_ack) {
+        dispatch = amq_dispatch_new (consumer, message, message_nbr);
+        amq_dispatch_unlink (&dispatch);
+    }
 
 #   ifdef TRACE_DISPATCH
-    coprintf ("$(selfname) I: ==> dispatch nbr=%d", message_nbr);
+    icl_console_print ("$(selfname) I: ==> dispatch nbr=%d", message_nbr);
 #   endif
     amq_server_agent_handle_notify (
         consumer->handle->thread,

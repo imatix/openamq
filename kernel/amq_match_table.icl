@@ -11,11 +11,16 @@ works together with the hitset class to perform the matching on topic
 names and field values.
 </doc>
 
-<inherit class = "ipr_hash_table" />
+<inherit class = "ipr_hash_head" />
 <import class = "amq_match" />
-<option name = "childname" value = "amq_match" />
+<option name = "childname"  value = "amq_match" />
+<option name = "childtype"  value = "amq_match_t" />
 <!-- This limits the number of topics we can handle to 100k or so -->
-<option name = "hash_size" value = "150000" />
+<option name = "rwlock"     value = "1" />
+<option name = "hash_size"  value = "150000" />
+<option name = "hash_type"  value = "str"/>
+
+<import class = "ipr_shortstr"/>
 
 <context>
     amq_topic_array_t
@@ -58,14 +63,17 @@ names and field values.
         assert (topic);
         if (ipr_regexp_match (regexp, topic->dest_name, NULL)) {
             /*  Topic must be defined in match table                         */
-            match = amq_match_search (self, topic->dest_name);
+            match = amq_match_table_search (self, topic->dest_name);
             assert (match);
 
             /*  Flag this subscription as matching                           */
             ipr_bits_set (match->bits, subscr->index);
 
             /*  Add a reference to the subscription                          */
-            ipr_looseref_new (subscr->matches, match);
+            ipr_looseref_queue (subscr->matches, match);
+            
+            /*  Remove surplus link to match                                 */
+            amq_match_unlink (&match);
         }
     }
     ipr_regexp_destroy (&regexp);
@@ -99,7 +107,7 @@ names and field values.
             amq_match_field_value (match_key, field);
             coprintf ("SUBSCRIBING ON FIELD: %s, subscriber=%d", match_key, subscr->index);
 
-            match = amq_match_search (self, match_key);
+            match = amq_match_table_search (self, match_key);
             if (match == NULL)
                 match = amq_match_new (self, match_key);
 
@@ -107,10 +115,12 @@ names and field values.
             ipr_bits_set (match->bits, subscr->index);
 
             /*  Add a reference to the subscription                              */
-            ipr_looseref_new (subscr->matches, match);
+            ipr_looseref_queue (subscr->matches, match);
 
-            field = amq_field_list_next (fields, field);
+            field = amq_field_list_next (field);
             subscr->field_count++;
+            
+            amq_match_unlink (&match);
         }
         amq_field_list_destroy (&fields);
     }
@@ -131,6 +141,8 @@ names and field values.
     <local>
     amq_match_t
         *match;                         /*  Match item                       */
+    amq_topic_t
+        *topic;                         /*  Topic item                       */
     amq_subscr_t
         *subscr;                        /*  Subscription object              */
     ipr_regexp_t
@@ -138,10 +150,11 @@ names and field values.
     </local>
     assert (self->topics);
 
-    if (amq_match_search (self, dest_name) == NULL) {
-        coprintf ("NEW TOPIC (%s), REBUILDING SUBSCRIPTIONS", dest_name);
+    match = amq_match_table_search (self, dest_name);
+    if (match == NULL) {
+        icl_console_print ("NEW TOPIC (%s), REBUILDING SUBSCRIPTIONS", dest_name);
         match = amq_match_new (self, dest_name);
-        amq_topic_new (self->topics, self->topics->bound, dest_name);
+        topic = amq_topic_new (self->topics, self->topics->bound, dest_name);
 
         /*  Recompile all subscriptions for this topic                       */
         subscr = amq_subscr_list_first (subscr_list);
@@ -152,14 +165,17 @@ names and field values.
                 ipr_bits_set (match->bits, subscr->index);
 
                 /*  Add a reference to the subscription                      */
-                ipr_looseref_new (subscr->matches, match);
+                ipr_looseref_queue (subscr->matches, match);
             }
             ipr_regexp_destroy (&regexp);
-            subscr = amq_subscr_list_next (subscr_list, subscr);
+            subscr = amq_subscr_list_next (subscr);
         }
+        amq_topic_unlink (&topic);
+        amq_match_unlink (&match);
     }
+    
 </method>
 
-<method name = "selftest" />
+<method name = "selftest"/>
 
 </class>

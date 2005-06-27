@@ -12,7 +12,13 @@ match table is a search term along with the set of subscriptions that
 have requested it.
 </doc>
 
-<inherit class = "ipr_hash_str" />
+<inherit class = "icl_object">
+    <option name = "cache"  value = "1" />
+    <option name = "rwlock" value = "1" />
+</inherit>
+<inherit class = "ipr_hash_item">
+    <option name = "hash_type" value = "str" />
+</inherit>
 
 <import class = "amq_global" />
 <import class = "amq_db" />

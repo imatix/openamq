@@ -14,6 +14,10 @@ on the topic name with the * and # wildcards (meaning a single and multiple
 levels respectively).
 </doc>
 
+<inherit class = "icl_object">
+    <option name = "cache"  value = "1" />
+    <option name = "rwlock" value = "1" />
+</inherit>
 <inherit class = "ipr_list_item" />
 <import class = "amq_global" />
 
@@ -61,7 +65,7 @@ levels respectively).
 
     /*  Take topic selector regexp from command dest_name                    */
     amq_match_topic_re (self->topic_re, command->dest_name);
-    coprintf ("NEW SUBSCRIPTION: dest=%s", command->dest_name);
+    icl_console_print ("NEW SUBSCRIPTION: dest=%s", command->dest_name);
 
     /*  Parse the topic name into the match table                            */
     amq_match_table_parse_topic (
@@ -87,7 +91,7 @@ levels respectively).
     match_ref = ipr_looseref_list_first (self->matches);
     while (match_ref) {
         ipr_bits_clear (((amq_match_t *) match_ref->object)->bits, self->index);
-        match_ref = ipr_looseref_list_next (self->matches, match_ref);
+        match_ref = ipr_looseref_list_next (match_ref);
     }
     ipr_index_delete (self->vhost->subscr_index, self->index);
     ipr_looseref_list_destroy (&self->matches);

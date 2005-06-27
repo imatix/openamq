@@ -11,6 +11,10 @@ Provides functionality to implement the AMQ RFC 006 'Field Table'
 data type.  This class provides functions at a per-field level.
 </doc>
 
+<inherit class = "icl_object">
+    <option name = "cache"  value = "1" />
+    <option name = "rwlock" value = "1" />
+</inherit>
 <inherit class = "ipr_list_item" />
 
 <import class = "ipr" />
@@ -59,7 +63,7 @@ data type.  This class provides functions at a per-field level.
         integer;                        /*  Value as integer, decimal, time  */
 </context>
 
-<method name = "new">
+<method name = "new" private = "1">
     strclr (self->name);
     self->type     = 0;
     self->decimals = 0;
@@ -87,6 +91,7 @@ data type.  This class provides functions at a per-field level.
     self->string = ipr_longstr_new (value, strlen (value) + 1);
     self->string->data [strlen (value)] = '\\0';
     amq_field_list_queue (list, self);
+    self_unlink (&self);
 </method>
 
 <method name = "new integer">
@@ -104,6 +109,7 @@ data type.  This class provides functions at a per-field level.
     self->type    = AMQ_FIELD_TYPE_INTEGER;
     self->integer = value;
     amq_field_list_queue (list, self);
+    self_unlink (&self);
 </method>
 
 <method name = "new decimal">
@@ -123,6 +129,7 @@ data type.  This class provides functions at a per-field level.
     self->integer  = value;
     self->decimals = decimals;
     amq_field_list_queue (list, self);
+    self_unlink (&self);
 </method>
 
 <method name = "new time">
@@ -140,6 +147,7 @@ data type.  This class provides functions at a per-field level.
     self->type    = AMQ_FIELD_TYPE_TIME;
     self->integer = value;
     amq_field_list_queue (list, self);
+    self_unlink (&self);
 </method>
 
 <method name = "parse" return = "field_end">
@@ -200,16 +208,18 @@ data type.  This class provides functions at a per-field level.
         field_end = input;
     }
     else {
-        coprintf ("$(selfname): invalid field type - '%c'", *input);
+        icl_console_print ("$(selfname): invalid field type - '%c'", *input);
         field_end = NULL;
     }
     if (field_end == NULL || input > limit) {
-        coprintf ("$(selfname): field definition badly formed - rejected");
+        icl_console_print ("$(selfname): field definition badly formed - rejected");
         field_end = NULL;
         self_destroy (&self);
     }
     else
         amq_field_list_queue (list, self);
+        
+    self_unlink (&self);
 </method>
 
 <method name = "string" return = "value">
@@ -354,10 +364,10 @@ data type.  This class provides functions at a per-field level.
 
 <method name = "print" template = "function">
     <doc>
-    Prints the field format and contents to output (using coprintf).
+    Prints the field format and contents to output (using icl_console_print).
     </doc>
     if (self->type == AMQ_FIELD_TYPE_STRING)
-        coprintf (" - %s - string, length=%d content=%c%c%c%c...",
+        icl_console_print (" - %s - string, length=%d content=%c%c%c%c...",
             self->name,
             self->string->cur_size,
             self->string->data [0],
@@ -366,17 +376,17 @@ data type.  This class provides functions at a per-field level.
             self->string->data [3]);
     else
     if (self->type == AMQ_FIELD_TYPE_INTEGER)
-        coprintf (" - %s - integer, value=%d", self->name, (int) self->integer);
+        icl_console_print (" - %s - integer, value=%d", self->name, (int) self->integer);
     else
     if (self->type == AMQ_FIELD_TYPE_DECIMAL)
-        coprintf (" - %s - decimal, value=%g", self->name,
+        icl_console_print (" - %s - decimal, value=%g", self->name,
             (double) self->integer / exp (self->decimals * log (10.0)));
     else
     if (self->type == AMQ_FIELD_TYPE_TIME) {
         struct tm
             *time_struct;
         time_struct = gmtime ((time_t *) &self->integer);
-        coprintf (" - %s - time, value=%4d/%02d/%02dT%02d:%02d:%02dZ",
+        icl_console_print (" - %s - time, value=%4d/%02d/%02dT%02d:%02d:%02dZ",
             self->name,
             time_struct->tm_year + 1900,
             time_struct->tm_mon + 1,
@@ -386,7 +396,7 @@ data type.  This class provides functions at a per-field level.
             time_struct->tm_sec);
     }
     else
-        coprintf (" - undefined field type");
+        icl_console_print (" - undefined field type");
 </method>
 
 <method name = "selftest">

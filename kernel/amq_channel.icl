@@ -10,7 +10,13 @@
 This class implements the AMQP CHANNEL commands.
 </doc>
 
-<inherit class = "ipr_hash_int" />
+<inherit class = "icl_object">
+    <option name = "cache"  value = "1" />
+    <option name = "rwlock" value = "1" />
+</inherit>
+<inherit class = "ipr_hash_item">
+    <option name = "hash_type" value = "int" />
+</inherit>
 
 <import class = "amq_global" />
 
@@ -29,7 +35,7 @@ This class implements the AMQP CHANNEL commands.
 
 <context>
     /*  References to parent objects                                         */
-    smt_thread_handle_t
+    smt_thread_t
         *thread;                        /*  Parent thread                    */
     amq_vhost_t
         *vhost;                         /*  Parent virtual host              */
@@ -68,7 +74,7 @@ This class implements the AMQP CHANNEL commands.
     <argument name = "command"    type = "amq_channel_open_t *" />
 
     /*  De-normalise from parent object, for simplicity of use               */
-    self->connection  = connection;
+    self->connection  = amq_connection_link (connection);
     self->client_id   = connection->client_id;
     self->vhost       = connection->vhost;
     self->thread      = connection->thread;
@@ -87,6 +93,8 @@ This class implements the AMQP CHANNEL commands.
     <local>
     amq_handle_t
         *handle;
+    int
+        table_idx;
     </local>
     /*  Rollback any open transaction                                        */
     if (self->transacted)
@@ -106,10 +114,13 @@ This class implements the AMQP CHANNEL commands.
 
     /*  Destroy all handles for this channel                                 */
     for (table_idx = 0; table_idx &lt; AMQ_HANDLE_TABLE_MAXSIZE; table_idx++) {
-        handle = self->connection->handles->item_table [table_idx];
-        if (handle && handle != AMQ_HANDLE_DELETED && handle->channel == self)
+        handle = self->connection->handles->table_items [table_idx];
+        if (handle && handle != AMQ_HANDLE_DELETED && handle->channel == self) {
+            amq_handle_link (handle);   /*  JS: Added, code is dangerous     */
             amq_handle_destroy (&handle);
+        }
     }
+    amq_connection_unlink (&self->connection);
 </method>
 
 <method name = "ack" template = "function" >
@@ -182,9 +193,10 @@ This class implements the AMQP CHANNEL commands.
     /*  Initialise virtual host                                              */
     vhosts = amq_vhost_table_new (NULL);
     vhost  = amq_vhost_new (vhosts, "/test", "vh_test",
-        ipr_config_new ("vh_test", AMQ_VHOST_CONFIG, TRUE));
+                            ipr_config_new ("vh_test", AMQ_VHOST_CONFIG, TRUE));
     assert (vhost);
-
+    amq_vhost_unlink (&vhost);
+    
     /*  Initialise connection                                                */
     ipr_shortstr_cpy (connection_open.virtual_path, "/test");
     ipr_shortstr_cpy (connection_open.client_name,  "selftest");
@@ -195,9 +207,9 @@ This class implements the AMQP CHANNEL commands.
     memset (&channel_open, 0, sizeof (channel_open));
     channel_open.channel_id = 1;
     channels   = amq_channel_table_new ();
-    channel    = amq_channel_new (
-        channels, channel_open.channel_id, connection, &channel_open);
+    channel    = amq_channel_new (channels, channel_open.channel_id, connection, &channel_open);
     assert (channel);
+    amq_channel_unlink (&channel);
 
     /*  Release resources                                                    */
     amq_channel_table_destroy (&channels);

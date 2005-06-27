@@ -3,7 +3,6 @@
     name      = "amq_field_list"
     comment   = "Implements the list container for amq_field"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 <doc>
@@ -14,16 +13,13 @@ provides methods to transform field lists to and from AMQP binary
 formats, and lookup and operate on field lists.
 </doc>
 
-<inherit class = "ipr_list_head" />
-
+<inherit class = "ipr_list_head" >
+    <option name = "prefix" value = "list"/>
+</inherit>
 <import class = "amq_field" />
 <option name = "childname" value = "amq_field" />
 <option name = "childtype" value = "amq_field_t" />
-
-<context>
-    amq_field_t
-        amq_field;                   /*  Self starts with child object    */
-</context>
+<option name = "rwlock"    value = "1" />
 
 <method name = "new">
     <doc>
@@ -35,9 +31,6 @@ formats, and lookup and operate on field lists.
     if (field_table)
         if (self_parse (self, field_table))
             self_destroy (&self);
-</method>
-
-<method name = "destroy">
 </method>
 
 <method name = "parse" template = "function">
@@ -82,14 +75,14 @@ formats, and lookup and operate on field lists.
     field = self_first (self);
     while (field) {
         flat_size += amq_field_flat_size (field);
-        field = self_next (self, field);
+        field = self_next (field);
     }
     /*  Flatten all fields into a string                                     */
     field_table = ipr_longstr_new (NULL, flat_size);
     field = self_first (self);
     while (field) {
         amq_field_flatten (field, field_table);
-        field = self_next (self, field);
+        field = self_next (field);
     }
 </method>
 
@@ -105,7 +98,7 @@ formats, and lookup and operate on field lists.
     while (field) {
         if (streq (field->name, name))
             return (field);
-        field = self_next (self, field);
+        field = self_next (field);
     }
     return (NULL);
 </method>
@@ -142,8 +135,10 @@ formats, and lookup and operate on field lists.
         *field;
     </local>
     field = self_search (self, name);
-    if (field)
+    if (field) {
         value = amq_field_integer (field);
+        amq_field_unlink (&field);
+    }
     else
         value = 0;
 </method>
@@ -159,7 +154,7 @@ formats, and lookup and operate on field lists.
     field = self_first (self);
     while (field) {
         amq_field_print (field);
-        field = self_next (self, field);
+        field = self_next (field);
     }
 </method>
 

@@ -46,6 +46,8 @@ main (int argc, char *argv [])
     int
         fileerror;
 
+    icl_system_init ();
+    
     /*  Set up logging                                                       */
     console_send     (NULL, TRUE);
     console_capture  ("amqpcli_put.log", 'w');

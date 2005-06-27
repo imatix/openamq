@@ -11,6 +11,10 @@ This class holds one dispatched message, i.e. a message sent to a client
 for which an acknowledgement is still pending.
 </doc>
 
+<inherit class = "icl_object">
+    <option name = "cache"  value = "1" />
+    <option name = "rwlock" value = "1" />
+</inherit>
 <inherit class = "ipr_list_item" />
 
 <import class = "amq_global" />
@@ -61,7 +65,7 @@ for which an acknowledgement is still pending.
     self->queue_id    = self->queue->item_id;
     self->message_nbr = message_nbr;
 
-    amq_smessage_link         (self->message);
+    amq_smessage_possess      (self->message);
     amq_dispatch_list_queue   (self->channel->dispatch_list, self);
     amq_consumer_window_close (self->consumer);
 </method>
@@ -79,8 +83,8 @@ for which an acknowledgement is still pending.
     </doc>
     <argument name = "self" type = "$(selftype) *">Reference to object</argument>
     <declare name = "next" type = "amq_dispatch_t *">Next message in list</declare>
-
-    next = amq_dispatch_list_next (self->channel->dispatch_list, self);
+    amq_dispatch_link (self);
+    next = amq_dispatch_list_next (self);
     if (!self->acknowledged) {
         amq_consumer_window_open (self->consumer);
         amq_queue_pre_dispatch   (self->queue);
@@ -92,6 +96,7 @@ for which an acknowledgement is still pending.
             self_purge  (self);
         }
     }
+    amq_dispatch_unlink (&self);
 </method>
 
 <method name = "unget" template = "function">
@@ -121,7 +126,7 @@ for which an acknowledgement is still pending.
                 self->queue->last_id  = self->queue->item_id - 1;
         }
         else
-            coprintf ("E: message not found for update (dest=%s)", self->queue->dest->key);
+            icl_console_print ("E: message not found for update (dest=%s)", self->queue->dest->key);
     }
     amq_consumer_window_open (self->consumer);
     amq_queue_pre_dispatch   (self->queue);
@@ -136,8 +141,8 @@ for which an acknowledgement is still pending.
     <argument name = "self" type = "$(selftype) *">Reference to object</argument>
     <argument name = "txn" type = "ipr_db_txn_t *">Current transaction</argument>
     <declare name = "next" type = "amq_dispatch_t *">Next message in list</declare>
-
-    next = amq_dispatch_list_next (self->channel->dispatch_list, self);
+    amq_dispatch_link (self);
+    next = amq_dispatch_list_next (self);
     if (self->acknowledged) {
         if (self->queue_id) {
             /*  Purge from persistent queue if necessary                     */
@@ -146,6 +151,7 @@ for which an acknowledgement is still pending.
             self->queue->disk_queue_size--;
         }
     }
+    amq_dispatch_unlink (&self);
 </method>
 
 <method name = "purge" return = "next">
@@ -155,17 +161,18 @@ for which an acknowledgement is still pending.
     </doc>
     <argument name = "self" type = "$(selftype) *">Reference to object</argument>
     <declare name = "next" type = "amq_dispatch_t *">Next message in list</declare>
-
-    next = amq_dispatch_list_next (self->channel->dispatch_list, self);
+    amq_dispatch_link (self);
+    next = amq_dispatch_list_next (self);
     if (self->acknowledged) {
         /*  We can have multiple references to the same message, so we purge
             only when this is the last reference... hopefully there won't be
             dangling references somewhere else apart from dispatch objects.
          */
-        if (self->message->links == 1)
+        if (self->message->possess_count == 1)
             amq_smessage_purge (self->message);
         self_destroy (&self);
     }
+    amq_dispatch_unlink (&self);
 </method>
 
 <method name = "rollback" return = "next">
@@ -177,8 +184,8 @@ for which an acknowledgement is still pending.
     <argument name = "self" type = "$(selftype) *">Reference to object</argument>
     <argument name = "txn" type = "ipr_db_txn_t *">Current transaction</argument>
     <declare name = "next" type = "amq_dispatch_t *">Next message in list</declare>
-
-    next = amq_dispatch_list_next (self->channel->dispatch_list, self);
+    amq_dispatch_link (self);
+    next = amq_dispatch_list_next (self);
     if (self->acknowledged) {
         self->acknowledged = FALSE;
         if (self->queue_id) {
@@ -188,10 +195,11 @@ for which an acknowledgement is still pending.
                 amq_queue_update (self->queue, txn);
             }
             else
-                coprintf ("E: message not found for update (dest=%s)", self->queue->dest->key);
+                icl_console_print ("E: message not found for update (dest=%s)", self->queue->dest->key);
         }
         amq_consumer_window_close (self->consumer);
     }
+    amq_dispatch_unlink (&self);
 </method>
 
 <method name = "selftest">

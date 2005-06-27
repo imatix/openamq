@@ -7,7 +7,10 @@
     script    = "icl_gen"
     >
 
-<inherit class = "icl_alloc_cache" />
+<inherit class = "icl_object">
+    <option name = "cache"  value = "1" />
+    <option name = "rwlock" value = "1" />
+</inherit>
 
 <import class = "ipr"         />
 <import class = "smt_thread"  />
@@ -38,8 +41,8 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 </public>
 
 <context>
-    smt_thread_handle_t
-        *thread_handle;
+    smt_thread_t
+        *thread;
     dbyte
         cur_handle;
     int
@@ -78,21 +81,23 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
         s_class_initialise (0);
 
     self->cur_handle = 0;
-    self->thread_handle = smt_thread_handle_new (
-        amq_sclient_agent_client_thread_new (self, client_name, login, password));
-    amq_sclient_agent_register (
-        self->thread_handle, AMQ_SCLIENT_HANDLE_NOTIFY, s_handle_notify);
-
-    smt_thread_execute (SMT_EXEC_FULL);
-    if (!smt_thread_handle_valid (self->thread_handle))
-        $(selfname)_destroy (&self);
+    self->thread = amq_sclient_agent_client_thread_new (self, client_name, login, password);
+    if (self->thread) {
+        amq_sclient_agent_register (
+            self->thread, AMQ_SCLIENT_HANDLE_NOTIFY, s_handle_notify);
+            
+        smt_thread_activate (self->thread);
+        smt_os_thread_execute ();
+        if (self->thread->zombie)
+            $(selfname)_destroy (&self);
+    }
+    else
+        self_destroy (&self);
 </method>
 
 <method name = "destroy">
-    if (smt_thread_handle_valid (self->thread_handle))
-        smt_thread_destroy (&self->thread_handle->thread);
-    smt_thread_handle_destroy (&self->thread_handle);
-    amq_message_destroy       (&self->msg_object);
+    smt_thread_unlink   (&self->thread);
+    amq_message_destroy (&self->msg_object);
 </method>
 
 <method name = "connect" template = "function">
@@ -110,26 +115,26 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
         virtual_path = "/";
 
     amq_sclient_agent_connection_open (
-        self->thread_handle, hostname, virtual_path, &rc);
-    smt_thread_execute (SMT_EXEC_FULL);
+        self->thread, hostname, virtual_path, &rc);
+    smt_os_thread_execute ();
 
     if (rc == AMQ_OK) {
         amq_sclient_agent_channel_open (
-            self->thread_handle, CHANNEL_ID, transacted, FALSE, &rc);
-        smt_thread_execute (SMT_EXEC_FULL);
+            self->thread, CHANNEL_ID, transacted, FALSE, &rc);
+        smt_os_thread_execute ();
     }
     else
     if (self->reply_code)
-        coprintf ("E: (connect) %d - %s", self->reply_code, self->reply_text);
+        icl_console_print ("E: (connect) %d - %s", self->reply_code, self->reply_text);
 </method>
 
 <method name = "producer" template = "function">
     amq_sclient_agent_handle_open (
-        self->thread_handle,
+        self->thread,
         CHANNEL_ID,
         ++self->cur_handle,
         &rc);
-    smt_thread_execute (SMT_EXEC_FULL);
+    smt_os_thread_execute ();
 
     if (rc == AMQ_OK)
         rc = self->cur_handle;
@@ -147,12 +152,12 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     <argument name = "exclusive"    type = "Bool"  >Exclusive consumer</argument>
     <argument name = "selector"     type = "ipr_longstr_t *">Selector table</argument>
     amq_sclient_agent_handle_open (
-        self->thread_handle, CHANNEL_ID, ++self->cur_handle, &rc);
-    smt_thread_execute (SMT_EXEC_FULL);
+        self->thread, CHANNEL_ID, ++self->cur_handle, &rc);
+    smt_os_thread_execute ();
 
     if (rc == AMQ_OK) {
         amq_sclient_agent_handle_consume (
-            self->thread_handle,
+            self->thread,
             self->cur_handle,
             (dbyte) service_type,
             dest_name,
@@ -163,11 +168,11 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
             exclusive,
             selector,
             &rc);
-        smt_thread_execute (SMT_EXEC_FULL);
+        smt_os_thread_execute ();
     }
     else
     if (self->reply_code)
-        coprintf ("E: (consume) %d - %s", self->reply_code, self->reply_text);
+        icl_console_print ("E: (consume) %d - %s", self->reply_code, self->reply_text);
 
     if (rc == AMQ_OK)
         rc = self->cur_handle;
@@ -190,12 +195,12 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     assert (dest_name && *dest_name);
 
     amq_sclient_agent_handle_send (
-        self->thread_handle, handle_id, service_type, message, dest_name, immediate, &rc);
-    smt_thread_execute (SMT_EXEC_FULL);
+        self->thread, handle_id, service_type, message, dest_name, immediate, &rc);
+    smt_os_thread_execute ();
 
     if (self->reply_code) {
         amq_message_destroy (&message);
-        coprintf ("E: (msg send) %d - %s", self->reply_code, self->reply_text);
+        icl_console_print ("E: (msg send) %d - %s", self->reply_code, self->reply_text);
     }
 </method>
 
@@ -212,61 +217,61 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
     int rc;
     </local>
     self->msg_object = NULL;            /*  Until something received         */
-    amq_sclient_agent_blocking_receive (self->thread_handle, timeout, &rc);
-    smt_thread_execute (SMT_EXEC_FULL);
+    amq_sclient_agent_blocking_receive (self->thread, timeout, &rc);
+    smt_os_thread_execute ();
 
     /*  We return the message explicitly and other properties via context    */
     message = self->msg_object;
 
     if (self->reply_code)
-        coprintf ("E: (msg read) %d - %s", self->reply_code, self->reply_text);
+        icl_console_print ("E: (msg read) %d - %s", self->reply_code, self->reply_text);
 </method>
 
 <method name = "msg ack" template = "function">
     amq_sclient_agent_channel_ack (
-        self->thread_handle, CHANNEL_ID, self->msg_number, &rc);
-    smt_thread_execute (SMT_EXEC_FULL);
+        self->thread, CHANNEL_ID, self->msg_number, &rc);
+    smt_os_thread_execute ();
 
     if (self->reply_code)
-        coprintf ("E: (msg ack) %d - %s", self->reply_code, self->reply_text);
+        icl_console_print ("E: (msg ack) %d - %s", self->reply_code, self->reply_text);
 </method>
 
 <method name = "msg unget" template = "function">
     amq_sclient_agent_handle_unget (
-        self->thread_handle, self->cur_handle, self->msg_number, &rc);
-    smt_thread_execute (SMT_EXEC_FULL);
+        self->thread, self->cur_handle, self->msg_number, &rc);
+    smt_os_thread_execute ();
 
     if (self->reply_code)
-        coprintf ("E: (msg unget) %d - %s", self->reply_code, self->reply_text);
+        icl_console_print ("E: (msg unget) %d - %s", self->reply_code, self->reply_text);
 </method>
 
 <method name = "commit" template = "function">
     amq_sclient_agent_channel_commit (
-        self->thread_handle, CHANNEL_ID, &rc);
-    smt_thread_execute (SMT_EXEC_FULL);
+        self->thread, CHANNEL_ID, &rc);
+    smt_os_thread_execute ();
 
     if (self->reply_code)
-        coprintf ("E: (commit) %d - %s", self->reply_code, self->reply_text);
+        icl_console_print ("E: (commit) %d - %s", self->reply_code, self->reply_text);
 </method>
 
 <method name = "rollback" template = "function">
     amq_sclient_agent_channel_rollback (
-        self->thread_handle, CHANNEL_ID, &rc);
-    smt_thread_execute (SMT_EXEC_FULL);
+        self->thread, CHANNEL_ID, &rc);
+    smt_os_thread_execute ();
 
     if (self->reply_code)
-        coprintf ("E: (rollback) %d - %s", self->reply_code, self->reply_text);
+        icl_console_print ("E: (rollback) %d - %s", self->reply_code, self->reply_text);
 </method>
 
 <method name = "flow" template = "function">
     <argument name = "handle id"  type = "dbyte">Handle id, 0 means all</argument>
     <argument name = "flow pause" type = "Bool" >Pause messages?</argument>
     amq_sclient_agent_handle_flow (
-        self->thread_handle, handle_id, flow_pause, &rc);
-    smt_thread_execute (SMT_EXEC_FULL);
+        self->thread, handle_id, flow_pause, &rc);
+    smt_os_thread_execute ();
 
     if (self->reply_code)
-        coprintf ("E: (flow) %d - %s", self->reply_code, self->reply_text);
+        icl_console_print ("E: (flow) %d - %s", self->reply_code, self->reply_text);
 </method>
 
 <method name = "clear" template = "function">
@@ -280,11 +285,11 @@ typedef void (amq_sclient_handle_notify_fn) (amq_sclient_handle_notify_t *args);
 <method name = "close" template = "function">
     <argument name = "handle id" type = "dbyte" >Handle id, 0 means all</argument>
     if (handle_id)
-        amq_sclient_agent_handle_close (self->thread_handle, handle_id, &rc);
+        amq_sclient_agent_handle_close (self->thread, handle_id, &rc);
     else
-        amq_sclient_agent_connection_close (self->thread_handle, &rc);
+        amq_sclient_agent_connection_close (self->thread, &rc);
 
-    smt_thread_execute (SMT_EXEC_FULL);
+    smt_os_thread_execute ();
 </method>
 
 <private name = "header">
@@ -336,7 +341,7 @@ s_handle_notify (amq_sclient_handle_notify_t *args)
     ipr_shortstr_cpy (self->msg_sender, args->dest_name);
     self->msg_delivered   = args->delivered;
     self->msg_redelivered = args->redelivered;
-    amq_message_link (self->msg_object);
+    amq_message_possess (self->msg_object);
 }
 </private>
 

@@ -17,7 +17,7 @@
 <catch                                event = "smt error" />
 
 <action name = "handle error">
-    coprintf ("E: %s", smt_thread_error (thread));
+    icl_console_print ("E: %s", smt_thread_error (thread));
 </action>
 
 <action name = "wait for activity" >
@@ -51,7 +51,7 @@
         tcb->frame_size = ntohl (*(qbyte *) (tcb->frame_header));
 
     if (tcb->frame_size > tcb->frame_max) {
-        coprintf ("E: received frame is too large (want %ld, have %ld)",
+        icl_console_print ("E: received frame is too large (want %ld, have %ld)",
             tcb->frame_size, tcb->frame_max);
         smt_thread_raise_exception (thread, connection_error_event);
     }

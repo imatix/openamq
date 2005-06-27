@@ -135,12 +135,12 @@ int main (int argc, char *argv [])
     }
     /*  If there was a missing parameter or an argument error, quit          */
     if (argparm) {
-        coprintf ("Argument missing - type 'openamqd -h' for help");
+        icl_console_print ("Argument missing - type 'openamqd -h' for help");
         goto failed;
     }
     else
     if (!args_ok) {
-        coprintf ("Invalid arguments - type 'openamqd -h' for help");
+        icl_console_print ("Invalid arguments - type 'openamqd -h' for help");
         goto failed;
     }
 
@@ -149,8 +149,8 @@ int main (int argc, char *argv [])
     generate_subscriptions (atol (opt_subscrs));
     generate_messages      (atol (opt_messages));
 
-    coprintf ("Memory statistics");
-    coprintf ("  -- maximum memory used: %ld Kbytes", icl_mem_usage () / 1024);
+    icl_console_print ("Memory statistics");
+    icl_console_print ("  -- maximum memory used: %ld Kbytes", icl_mem_usage () / 1024);
 
     /*  Release resources                                                    */
     amq_match_table_destroy (&match_topics);
@@ -160,7 +160,7 @@ int main (int argc, char *argv [])
     icl_system_destroy ();
 
     /*  Report memory usage                                                  */
-    coprintf ("  -- heap allocs=%ld frees=%ld\n", icl_mem_allocs (), icl_mem_frees ());
+    icl_console_print ("  -- heap allocs=%ld frees=%ld\n", icl_mem_allocs (), icl_mem_frees ());
 
     icl_mem_assert ();
     return (0);
@@ -181,7 +181,7 @@ generate_topics (long nbr_topics)
         topic_name;
 
     randomize ();
-    coprintf ("Generating topic list (%d topics)...", nbr_topics);
+    icl_console_print ("Generating topic list (%d topics)...", nbr_topics);
     topic_list = icl_mem_alloc (sizeof (ipr_shortstr_t) * nbr_topics);
     topic_count = 0;
     while (topic_count < nbr_topics) {
@@ -193,10 +193,10 @@ generate_topics (long nbr_topics)
                     break;
             if (count == topic_count) {
                 if (topic_count < 10)
-                    coprintf ("  -- %s", topic_name);
+                    icl_console_print ("  -- %s", topic_name);
                 else
                 if (topic_count == 10)
-                    coprintf ("  -- ...");
+                    icl_console_print ("  -- ...");
                 strcpy (topic_list [topic_count++], topic_name);
             }
         }
@@ -254,7 +254,7 @@ generate_subscriptions (long nbr_subscrs)
     ipr_regexp_t
         *regexp;
 
-    coprintf ("Generating subscriptions (%d subscribers)...", nbr_subscrs);
+    icl_console_print ("Generating subscriptions (%d subscribers)...", nbr_subscrs);
     subscr_table = icl_mem_alloc (sizeof (*subscr_table) * nbr_subscrs);
     subscr_count = 0;
     match_count  = 0;
@@ -270,9 +270,11 @@ generate_subscriptions (long nbr_subscrs)
         /*  Subscribe to all matching topics                                 */
         for (topic = 0; topic < topic_count; topic++) {
             if (ipr_regexp_match (regexp, topic_list [topic], NULL)) {
-                match = amq_match_search (match_topics, topic_list [topic]);
-                if (match == NULL)
+                match = amq_match_table_search (match_topics, topic_list [topic]);
+                if (match == NULL) {
                     match = amq_match_new (match_topics, topic_list [topic]);
+                    amq_match_unlink (&match);
+                }
                 match_count++;
 
                 /*  Flag this subscription as matching                       */
@@ -281,17 +283,17 @@ generate_subscriptions (long nbr_subscrs)
         }
         ipr_regexp_destroy (&regexp);
         if (subscr_count < 10)
-            coprintf ("  -- %s", subscr_name);
+            icl_console_print ("  -- %s", subscr_name);
         else
         if (subscr_count == 10) {
             if (topic_count > 1000)
-                coprintf ("  -- ... (topics are not sorted, may take a while)");
+                icl_console_print ("  -- ... (topics are not sorted, may take a while)");
             else
-                coprintf ("  -- ...");
+                icl_console_print ("  -- ...");
         }
         ipr_regexp_destroy (&regexp);
     }
-    coprintf (" -- total number of active subscriptions: %d", match_count);
+    icl_console_print (" -- total number of active subscriptions: %d", match_count);
 }
 
 /*  Build a random subscription into the provided string                     */
@@ -355,9 +357,9 @@ generate_messages (long nbr_messages)
         subscr_nbr;                     /*  Subcriber matching topic         */
 
     if (nbr_messages > 5000)
-        coprintf ("Generating pseudo-data (%dK messages)...", nbr_messages / 1000);
+        icl_console_print ("Generating pseudo-data (%dK messages)...", nbr_messages / 1000);
     else
-        coprintf ("Generating pseudo-data (%d messages)...", nbr_messages);
+        icl_console_print ("Generating pseudo-data (%d messages)...", nbr_messages);
 
     hit_count = 0;
     for (count = 0; count < nbr_messages; count++) {
@@ -366,7 +368,7 @@ generate_messages (long nbr_messages)
         //random_topic_name (topic_name);
 
         /*  Find all subscribers for this topic                              */
-        match = amq_match_search (match_topics, topic_name);
+        match = amq_match_table_search (match_topics, topic_name);
         if (match) {
             for (IPR_BITS_EACH (subscr_nbr, match->bits)) {
                 /*  'publish' to subscriber, by incrementing hit counter     */
@@ -376,7 +378,7 @@ generate_messages (long nbr_messages)
         }
     }
     if (hit_count > 5000)
-        coprintf (" -- total number of match hits: %dK", hit_count / 1000);
+        icl_console_print (" -- total number of match hits: %dK", hit_count / 1000);
     else
-        coprintf (" -- total number of match hits: %d", hit_count);
+        icl_console_print (" -- total number of match hits: %d", hit_count);
 }

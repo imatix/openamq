@@ -7,7 +7,10 @@
     script    = "icl_gen"
     >
 
-<inherit class = "icl_alloc_cache" />
+<inherit class = "icl_object">
+    <option name = "cache"  value = "1" />
+    <option name = "rwlock" value = "1" />
+</inherit>
 
 <import class = "ipr"         />
 <import class = "smt_thread"  />
@@ -81,8 +84,8 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
 </public>
 
 <context>
-    smt_thread_handle_t
-        *thread_handle;
+    smt_thread_t
+        *thread;
     dbyte
         top_channel;
     dbyte
@@ -105,12 +108,15 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
 
     self->top_channel = 0;
     self->top_handle  = 0;
-    self->thread_handle = smt_thread_handle_new (
-        amq_aclient_agent_client_thread_new (self, client_name, login, password));
+    self->thread = amq_aclient_agent_client_thread_new (self, client_name, login, password);
+    if (self->thread)
+        smt_thread_activate (self->thread);
+    else
+        self_destroy (&self);
 </method>
 
 <method name = "destroy">
-    smt_thread_handle_destroy (&self->thread_handle);
+    smt_thread_unlink (&self->thread);
 </method>
 
 <method name = "register" template = "function">
@@ -139,7 +145,7 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
     <argument name = "callback" type = "amq_aclient_callback_t"/>
     <argument name = "function" type = "void *"/>
 
-    amq_aclient_agent_register (self->thread_handle, callback, function);
+    amq_aclient_agent_register (self->thread, callback, function);
 </method>
 
 <method name = "connect" template = "function">
@@ -147,8 +153,8 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
     <argument name = "virtual path" type = "char *">Virtual host path</argument>
 
     amq_aclient_agent_connection_open (
-        self->thread_handle, hostname, virtual_path);
-    rc = smt_thread_execute (SMT_EXEC_FULL);
+        self->thread, hostname, virtual_path);
+    rc = smt_os_thread_execute ();
 </method>
 
 <method name = "channel open" return = "channel_id" >
@@ -160,7 +166,7 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
 
     channel_id = ++self->top_channel;
     amq_aclient_agent_channel_open (
-        self->thread_handle, channel_id, transacted, restartable);
+        self->thread, channel_id, transacted, restartable);
 </method>
 
 <method name = "handle open" return = "handle_id" >
@@ -171,7 +177,7 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
 
     handle_id = ++self->top_handle;
     amq_aclient_agent_handle_open (
-        self->thread_handle, channel_id, handle_id);
+        self->thread, channel_id, handle_id);
 </method>
 
 <method name = "handle consume" template = "function" >
@@ -185,7 +191,7 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
     <argument name = "dest name"   type = "ipr_shortstr_t" >Destination name</argument>
 
     amq_aclient_agent_handle_consume (
-        self->thread_handle,
+        self->thread,
         handle_id,
         service_type,
         prefetch,
@@ -203,50 +209,50 @@ typedef void (amq_aclient_monitor_fn)        (amq_aclient_monitor_t        *args
     <argument name = "dest name"  type = "ipr_shortstr_t" >Destination name</argument>
     <argument name = "immediate"  type = "Bool"           >Assert immediate delivery?</argument>
     amq_aclient_agent_handle_send (
-        self->thread_handle, handle_id, service_type, message, dest_name, immediate);
+        self->thread, handle_id, service_type, message, dest_name, immediate);
 </method>
 
 <method name = "handle flow" template = "function">
     <argument name = "handle id"  type = "dbyte">Handle id, 0 means all</argument>
     <argument name = "flow pause" type = "Bool" >Pause messages?</argument>
     amq_aclient_agent_handle_flow (
-        self->thread_handle, handle_id, flow_pause);
+        self->thread, handle_id, flow_pause);
 </method>
 
 <method name = "handle close" template = "function" >
     <argument name = "handle id" type = "dbyte">Handle id</argument>
     amq_aclient_agent_handle_close (
-        self->thread_handle, handle_id);
+        self->thread, handle_id);
 </method>
 
 <method name = "channel ack" template = "function" >
     <argument name = "channel id"  type = "dbyte">Channel id</argument>
     <argument name = "message nbr" type = "qbyte">Message number</argument>
     amq_aclient_agent_channel_ack (
-        self->thread_handle, channel_id, message_nbr);
+        self->thread, channel_id, message_nbr);
 </method>
 
 <method name = "channel commit" template = "function" >
     <argument name = "channel id"  type = "dbyte">Channel id</argument>
     amq_aclient_agent_channel_close (
-        self->thread_handle, channel_id);
+        self->thread, channel_id);
 </method>
 
 <method name = "channel rollback" template = "function" >
     <argument name = "channel id"  type = "dbyte">Channel id</argument>
     amq_aclient_agent_channel_rollback (
-        self->thread_handle, channel_id);
+        self->thread, channel_id);
 </method>
 
 <method name = "channel close" template = "function" >
     <argument name = "channel id"  type = "dbyte">Channel id</argument>
     amq_aclient_agent_channel_close (
-        self->thread_handle, channel_id);
+        self->thread, channel_id);
 </method>
 
 <method name = "connection close" template = "function" >
     amq_aclient_agent_connection_close (
-        self->thread_handle);
+        self->thread);
 </method>
 
 <private name = "header">

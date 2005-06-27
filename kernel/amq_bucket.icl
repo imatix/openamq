@@ -13,19 +13,10 @@
     so that buckets can be freely passed between objects.
 </doc>
 
-<inherit class = "icl_ref_count" />
-<inherit class = "icl_base"      />
+<inherit class = "icl_base"/>
 
-<import class = "icl_system"  />
-<import class = "icl_mem"     />
-
-<!-- Get list management functions -->
-<invoke script = "icl_list_lib" prefix = "cache">
-.   my.base = selfname
-.   my.type = selftype
-.   my.next = "cache_next"
-.   my.prev = "cache_prev"
-</invoke>
+<import class = "icl_cache"/>
+<import class = "icl_system"/>
 
 <data>
     <size value = "256"  />
@@ -39,6 +30,8 @@
 </data>
 
 <public>
+#include "base_apr.h"
+
 #define AMQ_BUCKET_MAX_SIZE  32768
 </public>
 
@@ -55,48 +48,30 @@ static const size_t
 static Bool
     s_class_active = FALSE;
 
-static $(selftype) *
-    s_$(selfname)_cache_active [S_NUM_BUCKET_SIZES] = {\
+#if (defined (BASE_THREADSAFE))
+static apr_thread_mutex_t
+    *s_class_mutex = NULL;
+#endif
+
+static icl_cache_t *
+    s_$(selfname)_cache [S_NUM_BUCKET_SIZES] = {\
 .for class->data.size
                        NULL$(!last()??','?)\
 .endfor
                        };
-static $(selftype) *
-    s_$(selfname)_cache_unused [S_NUM_BUCKET_SIZES] = {\
-.for class->data.size
-                       NULL$(!last()??','?)\
-.endfor
-                       };
-static size_t
-    s_$(selfname)_cache_active_count [S_NUM_BUCKET_SIZES];
-static size_t
-    s_$(selfname)_cache_unused_count [S_NUM_BUCKET_SIZES];
 
-/*  Low-level memory allocation/deallocation functions, all inlined          */
-
-static inline $(selftype) *
-    s_$(selfname)_alloc (int idx, char *file, size_t line);
-static inline void
-    s_$(selfname)_free ($(selftype) *item);
-
-/*  Object allocation functions, all cached to reduce heap access            */
-
-static inline $(selftype) *
-    s_$(selfname)_cache_alloc (int idx, char *file, size_t line);
-static inline void
-    s_$(selfname)_cache_free ($(selftype) *self);
-static inline void
-    s_$(selfname)_cache_new (void);
 static void
-    s_$(selfname)_cache_purge (void);
+    s_class_initialise (void);
 static void
-    s_$(selfname)_cache_destroy (void);
+    s_class_terminate (void);
 </private>
 
 <context>
-    $(selftype) *cache_prev;            /*  All objects are in a list        */
-    $(selftype) *cache_next;            /*    managed by these pointers      */
-    int    idx;
+#if (defined (BASE_THREADSAFE))
+    apr_thread_rwlock_t *
+        rwlock;
+#endif
+    int    possess_count;
     size_t cur_size;
     size_t max_size;
     byte  *data;
@@ -110,7 +85,9 @@ static void
         chop_max = S_NUM_BUCKET_SIZES,
         chop_mid;
     </local>
-    <header>
+    if (! s_class_active)
+        s_class_initialise ();
+        
     /*  Use a binary chop to work out which cache to use.                    */
     while (chop_max > chop_min) {
         chop_mid = (chop_max + chop_min) / 2;
@@ -122,24 +99,61 @@ static void
     if (chop_min >= S_NUM_BUCKET_SIZES)
         chop_min = S_NUM_BUCKET_SIZES - 1;
 
-    self = s_$(selfname)_alloc (chop_min, file, line);
-    self->data     = (byte *) self + sizeof ($(selftype));
-    self->idx      = chop_min;
-    self->cur_size = 0;
-    self->max_size = bucket_size [chop_min];
-    </header>
+    self = icl_cache_alloc_ (s_$(selfname)_cache [chop_min], file, line);
+#if (defined (BASE_THREADSAFE))
+    icl_apr_assert (apr_thread_rwlock_create (&self->rwlock,
+                                              icl_global_pool));
+#endif
+    self->possess_count = 1;
+    self->cur_size      = 0;
+    self->max_size      = bucket_size [chop_min];
+    self->data          = (byte *) self + sizeof ($(selftype));
 </method>
 
 <method name = "cache purge">
-    s_$(selfname)_cache_purge ();
-</method>
-
-<method name = "cache destroy">
-    s_$(selfname)_cache_destroy ();
+    <local>
+    int
+        cache_index;
+    </local>
+    for (cache_index = 0; cache_index < S_NUM_BUCKET_SIZES; cache_index++)
+        icl_cache_purge (s_$(selfname)_cache [cache_index]);
 </method>
 
 <method name = "destroy" template = "destructor">
-    s_$(selfname)_free (self);
+#if (defined (BASE_THREADSAFE))
+    apr_thread_rwlock_t
+        *rwlock;
+#endif
+
+    if (self) {
+#if (defined (BASE_THREADSAFE))
+        if (apr_atomic_dec32 (&self->possess_count) == 0) {
+#else    
+        if (--self->possess_count == 0) {
+#endif
+#if (defined (BASE_THREADSAFE))
+            rwlock = self->rwlock;
+            icl_apr_assert (apr_thread_rwlock_wrlock (rwlock));
+#endif
+            icl_cache_free (self);
+#if (defined (BASE_THREADSAFE))
+            icl_apr_assert (apr_thread_rwlock_unlock (rwlock));
+#endif
+        }
+        *self_p = NULL;
+    }
+</method>
+
+<method name = "possess" return = "self">
+    <argument name = "self" type = "$(selftype) *"/>
+    <argument name = "file" type = "char *" precalc = "__FILE__">Source file for call</argument>
+    <argument name = "line" type = "size_t" precalc = "__LINE__">Line number for call</argument>
+    <animate  name = "possess_count" value = "self->possess_count" format = "%i">The number of references to the object</animate>
+#if (defined (BASE_THREADSAFE))
+    apr_atomic_inc32 (&self->possess_count);
+#else    
+    self->possess_count++;
+#endif
 </method>
 
 <method name = "fill" template = "function">
@@ -152,8 +166,14 @@ static void
     <argument name = "source" type = "void *">Address of data to copy from</argument>
     <argument name = "size"   type = "size_t">Amount of data to copy</argument>
     assert (size <= self->max_size);
+#if (defined (BASE_THREADSAFE))
+    icl_apr_assert (apr_thread_rwlock_wrlock (self->rwlock));
+#endif
     memcpy (self->data, source, size);
     self->cur_size = size;
+#if (defined (BASE_THREADSAFE))
+    icl_apr_assert (apr_thread_rwlock_unlock (self->rwlock));
+#endif
 </method>
 
 <method name = "load" template = "function">
@@ -168,7 +188,13 @@ static void
     <argument name = "file" type = "FILE *">File pointer of open file to copy from</argument>
     <argument name = "size" type = "size_t">Amount of data to copy</argument>
     assert (size <= self->max_size);
+#if (defined (BASE_THREADSAFE))
+    icl_apr_assert (apr_thread_rwlock_wrlock (self->rwlock));
+#endif
     self->cur_size = fread (self->data, 1, size, file);
+#if (defined (BASE_THREADSAFE))
+    icl_apr_assert (apr_thread_rwlock_unlock (self->rwlock));
+#endif
 </method>
 
 <method name = "save" template = "function">
@@ -176,162 +202,53 @@ static void
     Saves the data in the bucket to a file.
     </doc>
     <argument name = "file" type = "FILE *">File pointer of open file to copy to</argument>
+#if (defined (BASE_THREADSAFE))
+    icl_apr_assert (apr_thread_rwlock_rdlock (self->rwlock));
+#endif
     fwrite (self->data, 1, self->cur_size, file);
+#if (defined (BASE_THREADSAFE))
+    icl_apr_assert (apr_thread_rwlock_unlock (self->rwlock));
+#endif
 </method>
 
 <private name = "footer">
-/*  Allocate a new object from cached heap memory                            */
-static inline $(selftype) *
-s_$(selfname)_alloc (int idx, char *file, size_t line)
+static void s_class_initialise (void)
 {
-    $(selftype)
-        *item;
+    int
+        cache_index;
 
-    /*  Initialise cache if necessary                                        */
-    if (!s_class_active) {
-        s_$(selfname)_cache_new ();
+#if (defined (BASE_THREADSAFE))
+    icl_apr_assert (apr_thread_mutex_lock (icl_global_mutex));
+    if (! s_class_mutex)
+        icl_apr_assert (apr_thread_mutex_create (&s_class_mutex,
+                                                APR_THREAD_MUTEX_DEFAULT,
+                                                icl_global_pool));
+    icl_apr_assert (apr_thread_mutex_unlock (icl_global_mutex));
+    icl_apr_assert (apr_thread_mutex_lock (s_class_mutex));
+#endif
+
+    if (! s_class_active) {
+        for (cache_index = 0; cache_index < S_NUM_BUCKET_SIZES; cache_index++)
+            s_$(selfname)_cache [cache_index] = icl_cache_get (bucket_size [cache_index] + sizeof ($(selftype)));
+            
+        /*  Register the class termination call-back functions               */
+        icl_system_register (NULL, s_class_terminate);
+        
         s_class_active = TRUE;
     }
-
-    /*  Take object off cache unused list if possible                        */
-    if (s_$(selfname)_cache_unused[idx]->cache_next != s_$(selfname)_cache_unused[idx]) {
-        item = s_$(selfname)_cache_unlink (s_$(selfname)_cache_unused[idx]->cache_next);
-        s_$(selfname)_cache_unused_count[idx]--;
-    }
-    else
-        item = s_$(selfname)_cache_alloc (idx, file, line);
-
-    if (item) {
-        /*  Attach object to active list                                     */
-        s_$(selfname)_cache_attach (item, s_$(selfname)_cache_active[idx]);
-        s_$(selfname)_cache_active_count[idx]++;
-    }
-    return (item);
-}
-
-/*  Return an object to cached heap memory                                   */
-static inline void
-s_$(selfname)_free ($(selftype) *item)
-{
-    int
-        idx = item->idx;
-        
-    s_$(selfname)_cache_unlink (item);
-    s_$(selfname)_cache_active_count[idx]--;
-.   if (class->option (name = "nullify").value?1) = 1
-    memset (item, 0, sizeof ($(selftype)));
-.   endif
-    item->cache_next = item;
-    item->cache_prev = item;
-
-    /*  Attach object to unused list                                         */
-    s_$(selfname)_cache_attach (item, s_$(selfname)_cache_unused[idx]);
-    s_$(selfname)_cache_unused_count[idx]++;
-}
-
-/*  Initialise the cache and register it with the meta-cache                 */
-static inline void
-s_$(selfname)_cache_new (void)
-{
-    int
-        idx;
-
-    for (idx = 0; idx < S_NUM_BUCKET_SIZES; idx ++) {
-        /*  Our list heads are empty objects                                     */
-        s_$(selfname)_cache_active[idx] = s_$(selfname)_cache_alloc (-1, __FILE__, __LINE__);
-        s_$(selfname)_cache_unused[idx] = s_$(selfname)_cache_alloc (-1, __FILE__, __LINE__);
-        s_$(selfname)_cache_active_count[idx] = 0;
-        s_$(selfname)_cache_unused_count[idx] = 0;
-    }
-
-    /*  Register the purge and destroy call-back functions                   */
-    icl_system_register ($(selfname)_cache_purge, $(selfname)_cache_destroy);
-}
-
-/*  Release all unused memory back to the heap                               */
-static void
-s_$(selfname)_cache_purge (void)
-{
-    int
-        idx;
-    size_t
-        used_target_count;
-    $(selftype) *
-        item;
-        
-    for (idx = 0; idx < S_NUM_BUCKET_SIZES; idx ++) {
-        /*  Free at least half of the unused memory.                             */
-        used_target_count = s_$(selfname)_cache_unused_count[idx] / 2;
-        
-        while (s_$(selfname)_cache_unused_count[idx] > used_target_count) {
-            item = s_$(selfname)_cache_unlink (s_$(selfname)_cache_unused[idx]->cache_next);
-            s_$(selfname)_cache_unused_count[idx]--;
-            s_$(selfname)_cache_free (item);
-        }
-    }
-}
-
-/*  Destroy all active objects and release all cache memory to the heap      */
-static void
-s_$(selfname)_cache_destroy (void)
-{
-    int
-        idx;
-    $(selftype) *
-        item;
-
-    for (idx = 0; idx < S_NUM_BUCKET_SIZES; idx ++) {
-        /*  Report if there are active $(selfname)s                          */
-        if (s_$(selfname)_cache_active[idx]->cache_next
-        !=  s_$(selfname)_cache_active[idx]) {
-            coprintf ("E: $(selfname:): Active allocations at destroy.");
-            break;
-        }
-    }
-
-    for (idx = 0; idx < S_NUM_BUCKET_SIZES; idx ++) {
-        /*  Purge the unused list                                            */
-        while (s_$(selfname)_cache_unused[idx]->cache_next != s_$(selfname)_cache_unused[idx]) {
-            item = s_$(selfname)_cache_unlink (s_$(selfname)_cache_unused[idx]->cache_next);
-            s_$(selfname)_cache_unused_count[idx]--;
-            s_$(selfname)_cache_free (item);
-        }
-
-        /*  Now free the two lists themselves                                */
-        s_$(selfname)_cache_free (s_$(selfname)_cache_active[idx]);
-        s_$(selfname)_cache_free (s_$(selfname)_cache_unused[idx]);
     
-        /*  Finally, reset our cache state so that it's inactive again       */
-        s_$(selfname)_cache_active[idx] = NULL;
-        s_$(selfname)_cache_unused[idx] = NULL;
-    }
+#if (defined (BASE_THREADSAFE))
+    icl_apr_assert (apr_thread_mutex_unlock (s_class_mutex));
+#endif
 }
 
-/*  Allocate a new object from heap memory                                   */
-static inline $(selftype) *
-s_$(selfname)_cache_alloc (int idx, char *file, size_t line)
+static void
+s_class_terminate (void)
 {
-    $(selftype)
-        *item;
-
-    if (idx >= 0)
-        item = ($(selftype) *) icl_mem_alloc_ (sizeof ($(selftype)) + bucket_size [idx], file, line);
-    else
-        item = ($(selftype) *) icl_mem_alloc_ (sizeof ($(selftype)), file, line);
-    if (item) {
-        memset (item, 0, sizeof ($(selftype)));
-        item->cache_next = item;
-        item->cache_prev = item;
-    }
-    return (item);
-}
-
-/*  Return an object to heap memory                                          */
-static inline void
-s_$(selfname)_cache_free ($(selftype) *item)
-{
-    memset (item, 0, sizeof ($(selftype)));
-    icl_mem_free (item);
+#if (defined (BASE_THREADSAFE))
+    icl_apr_assert (apr_thread_mutex_destroy (s_class_mutex));
+#endif
+    s_class_active = FALSE;
 }
 </private>
 
@@ -369,9 +286,6 @@ s_$(selfname)_cache_free ($(selftype) *item)
     assert (item->max_size == 32768);
     memset (item->data, 0, item->max_size);
     $(selfname)_destroy (&item);
-
-    icl_system_destroy ();
-    icl_mem_assert ();
 </method>
 
 </class>

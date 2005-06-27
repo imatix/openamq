@@ -1,9 +1,8 @@
 <?xml?>
 <class
     name      = "amq_dispatch_list"
-    comment   = "Implements list head container for amq_dispatch"
+    comment   = "Implements the list container for amq_dispatch"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 <doc>
@@ -11,15 +10,15 @@ This class holds the list of dispatched messages, i.e. a messages sent to a
 client for which acknowledgements are still pending.
 </doc>
 
-<inherit class = "ipr_list_head" />
-
-<import class = "amq_dispatch"  />
+<inherit class = "ipr_list_head" >
+    <option name = "prefix" value = "list"/>
+</inherit>
+<import class = "amq_dispatch" />
 <option name = "childname" value = "amq_dispatch" />
 <option name = "childtype" value = "amq_dispatch_t" />
+<option name = "rwlock"    value = "1" />
 
 <context>
-    amq_dispatch_t
-        amq_dispatch;                   /*  Self starts with child object    */
     amq_channel_t
         *channel;                       /*  Parent channel                   */
 </context>
@@ -50,6 +49,7 @@ client for which acknowledgements are still pending.
     <argument name = "message_nbr" type = "qbyte" />
     <local>
     amq_dispatch_t
+        *dispatch_temp,
         *dispatch;                      /*  Dispatched message queue entry   */
     </local>
 
@@ -57,12 +57,14 @@ client for which acknowledgements are still pending.
     dispatch = amq_dispatch_list_first (self);
     while (dispatch) {
         if (dispatch->message_nbr == message_nbr) {
-            amq_dispatch_unget    (dispatch);
+            amq_dispatch_unget   (dispatch);
+            dispatch_temp = dispatch;
+            amq_dispatch_unlink  (&dispatch_temp);
             amq_dispatch_destroy (&dispatch);
             rc = 0;                     /*  All's well, message exists       */
             break;
         }
-        dispatch = amq_dispatch_list_next (self, dispatch);
+        dispatch = amq_dispatch_list_next (dispatch);
     }
     if (rc)
         amq_global_set_error (AMQP_MESSAGE_NOT_FOUND, "No such message held");
@@ -125,7 +127,7 @@ client for which acknowledgements are still pending.
     dispatch = amq_dispatch_list_first (self);
     while (dispatch) {
         amq_dispatch_unget (dispatch);
-        dispatch = amq_dispatch_list_next (self, dispatch);
+        dispatch = amq_dispatch_list_next (dispatch);
     }
 </method>
 
