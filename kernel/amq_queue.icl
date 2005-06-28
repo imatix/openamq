@@ -242,6 +242,7 @@ were split to keep the code within sane limits.
             message->queue = self;
             amq_smessage_list_queue (channel->transact_list, message);
             amq_smessage_possess (message);
+            amq_smessage_unlink (&message);  /*  JS  */
             channel->transact_count++;
 #           ifdef TRACE_DISPATCH
             icl_console_print ("$(selfname) I: %s - queue transacted message, txn_count=%d",
@@ -275,8 +276,6 @@ were split to keep the code within sane limits.
         }
         self->accept_count++;
         self->monitor_pending = TRUE;
-        
-        amq_smessage_unlink (&message);  /*  JS  */
     }
 </method>
 
