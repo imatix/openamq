@@ -467,7 +467,7 @@ static void *s_sender_thread (
         /*  Do it in synchronised manner so that it won't interfere with     */
         /*  adding the chunks, if there are no more chunks available make    */
         /*  sender sync unpassable.                                          */
-        result = connection_fsm_sync_begin_s (context);
+        result = connection_fsm_sync_begin (context);
         AMQ_ASSERT_STATUS (result, connection_fsm_sync_begin);
         chunk = context->first_chunk;
         context->first_chunk = chunk->next;
@@ -477,7 +477,7 @@ static void *s_sender_thread (
             result = apr_thread_mutex_lock (context->sender_sync);
             AMQ_ASSERT_STATUS (result, apr_thread_mutex_lock);
         }
-        result = connection_fsm_sync_end_s (context);
+        result = connection_fsm_sync_end (context);
         AMQ_ASSERT_STATUS (result, connection_fsm_sync_begin);
 
         /*  Is chunk to be sent ? If so, do it.                              */
