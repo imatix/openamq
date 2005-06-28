@@ -105,13 +105,14 @@ have requested it.
     size_t
         field_name_len;
     </local>
-
+    
     amq_field_set_string (field);
     field_name_len = strlen (field->name);
     if (field->string->cur_size > 0) {
-        match_key = ipr_longstr_new (NULL, field_name_len + field->string->cur_size);
+        match_key = ipr_longstr_new (NULL, field_name_len + field->string->cur_size + 1);
         memcpy (match_key->data, field->name, field_name_len);
         match_key->data [field_name_len] = 0;
+        match_key->cur_size = match_key->max_size;
         memcpy (match_key->data + field_name_len + 1, field->string->data, field->string->cur_size);
     }
     else
