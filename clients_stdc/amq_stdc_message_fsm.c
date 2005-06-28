@@ -276,7 +276,7 @@ inline static apr_status_t do_pread (
         request->next = NULL;
 
         result = register_lock (context->global, context->connection_id,
-            context->channel_id, 0, &(request->lock_id), lock);
+            context->channel_id, &(request->lock_id), lock);
         AMQ_ASSERT_STATUS (result, register_lock)
 
         if (context->last_request)

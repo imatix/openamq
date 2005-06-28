@@ -29,10 +29,6 @@ typedef struct tag_lock_context_t
         connection_id;                  /*  Connection this lock belongs to  */
     dbyte
         channel_id;                     /*  Channel this lock belongs to     */
-    byte
-        permanent;                      /*  Is this lock permanent?          */
-    byte
-        valid;                          /*  Is this lock valid for waiting?  */
     void
         *result;                        /*  Value returned by wait_for_lock  */
     apr_status_t
@@ -111,9 +107,6 @@ inline static apr_status_t do_destruct (
         channel_id          channel owning the lock; when shuting down the
                             channel, lock will be released; if 0, lock doesn't
                             belong to any channel
-        permanent           if 0, lock will be destroyed once waiting for it
-                            ended, otherwise can be reused and must be 
-                            unregistered (destroyed) explicitely
         lock_id             out parameter, lock id, unique within the
                             connection; may be used as confirm tag
         lock                out parameter; newly created lock
@@ -123,7 +116,6 @@ apr_status_t register_lock (
     global_fsm_t    context,
     dbyte           connection_id,
     dbyte           channel_id,
-    byte            permanent,
     dbyte           *lock_id,
     amq_stdc_lock_t *lock
     )
@@ -151,11 +143,9 @@ apr_status_t register_lock (
     context->locks->lock_id       = id;
     context->locks->connection_id = connection_id;
     context->locks->channel_id    = channel_id;
-    context->locks->permanent     = permanent;
     context->locks->next          = temp;
     context->locks->result        = NULL;
     context->locks->error         = APR_SUCCESS;
-    context->locks->valid         = 1;
 
     result = global_fsm_sync_end (context);
     AMQ_ASSERT_STATUS (result, global_fsm_sync_end)
@@ -210,16 +200,15 @@ apr_status_t release_lock (
         /*  Confirmation that someone is waiting for arrived.                */
         if (temp->lock_id == lock_id) {
 
-            /*  Remove item from the linked list if nedded                   */
-            if (!temp->permanent)
-                *last = temp->next;
+            /*  Remove item from the linked list                             */
+            *last = temp->next;
 
             /*  Add result value to the lock                                 */
             temp->result = res;
 
             /*  Resume execution of waiting thread                           */
 #           ifdef AMQTRACE_LOCKS
-                printf ("# Lock %ld released.\n", (long)lock_id);
+                printf ("# Lock %ld released.\n", (long) lock_id);
 #           endif
             result = apr_thread_mutex_unlock (temp->mutex);
             break;
@@ -261,14 +250,6 @@ apr_status_t wait_for_lock (
         return APR_SUCCESS;
     }
 
-    /*  Lock is no longer valid.  Destroy it, and return immediately         */
-    if (!lock->valid) {
-        if (res) 
-            *res = NULL;
-        amq_free ((void*) lock);
-        return APR_SUCCESS;
-    }
-
 #   ifdef AMQTRACE_LOCKS
         printf ("# Waiting for lock %ld beginning.\n", (long) (lock->lock_id));
 #   endif
@@ -292,8 +273,7 @@ apr_status_t wait_for_lock (
 
     result = lock->error;
     /*  TODO : free resources... destroy mutex, destroy(pool_local)  etc.    */
-    if (!lock->permanent)
-        amq_free ((void*) lock);
+    amq_free ((void*) lock);
     return result;
 }
 
@@ -347,69 +327,10 @@ apr_status_t release_all_locks (
             AMQ_ASSERT_STATUS (result, apr_thread_mutex_unlock);
 
             /*  TODO: deallocate resources; destroy mutex, etc.              */
-            /*  permanent as well ?                                          */
         }
         lock = lock->next;
     }
 
-    result = global_fsm_sync_end (context);
-    AMQ_ASSERT_STATUS (result, global_fsm_sync_end)
-    return APR_SUCCESS;
-}
-
-/*  -------------------------------------------------------------------------
-    Function: unregister_lock
-
-    Synopsis:
-    Destroys permanent lock
-
-    Arguments:
-        ctx                 global object handle
-        lock_id             id of lock to destroy
-    -------------------------------------------------------------------------*/
-
-apr_status_t unregister_lock (
-    global_fsm_t  context,
-    dbyte         lock_id
-    )
-{
-    lock_context_t
-        *temp,
-        **last;
-    apr_status_t
-        result;
-
-    result = global_fsm_sync_begin (context);
-    AMQ_ASSERT_STATUS (result, global_fsm_sync_begin)
-    temp = (lock_context_t*) (context->locks);
-    last = (lock_context_t**) &(context->locks);
-    while (1) {
-        if (!temp)
-            AMQ_ASSERT (Permanent lock not registered)
-
-        /*  Confirmation that someone is waiting for arrived.                */
-        if (temp->lock_id == lock_id && temp->permanent) {
-
-            /*  Remove lock from the linked list                             */
-            *last = temp->next;
-            temp->result = NULL;
-
-            /*  Mark lock as no longer valid, will be destroyed by next call
-             *  to wait_for_lock                                             */
-            temp->valid = 0;
-
-            /*  Resume execution of waiting thread                           */
-#           ifdef AMQTRACE_LOCKS
-                printf ("# Lock %ld unregistered.\n", (long)lock_id);
-#           endif
-            result = apr_thread_mutex_unlock (temp->mutex);
-            AMQ_ASSERT_STATUS (result, apr_thread_mutex_unlock)
-
-            break;
-        }
-        last = &(temp->next);
-        temp = temp->next;
-    }
     result = global_fsm_sync_end (context);
     AMQ_ASSERT_STATUS (result, global_fsm_sync_end)
     return APR_SUCCESS;

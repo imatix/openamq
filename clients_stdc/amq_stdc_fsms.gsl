@@ -104,8 +104,10 @@ inline static apr_status_t $(name:c)_sync_begin ($(name:c)_context_t *context)\\
     apr_status_t\\
         result;\\
 \\
+printf ("$(name:c) locking\\n");\\
     result = apr_thread_mutex_lock (context->sync);\\
     AMQ_ASSERT_STATUS (result, apr_thread_mutex_lock)\\
+printf ("$(name:c) locked\\n");\\
     return APR_SUCCESS;\\
 }\\
 \\
@@ -116,6 +118,51 @@ inline static apr_status_t $(name:c)_sync_end ($(name:c)_context_t *context)\\
 \\
     result = apr_thread_mutex_unlock (context->sync);\\
     AMQ_ASSERT_STATUS (result, apr_thread_mutex_unlock)\\
+printf ("$(name:c) unlocked\\n");\\
+    return APR_SUCCESS;\\
+}\\
+inline static apr_status_t $(name:c)_sync_begin_s ($(name:c)_context_t *context)\\
+{\\
+    apr_status_t\\
+        result;\\
+\\
+printf ("$(name:c) locking S\\n");\\
+    result = apr_thread_mutex_lock (context->sync);\\
+    AMQ_ASSERT_STATUS (result, apr_thread_mutex_lock)\\
+printf ("$(name:c) locked S\\n");\\
+    return APR_SUCCESS;\\
+}\\
+\\
+inline static apr_status_t $(name:c)_sync_end_s ($(name:c)_context_t *context)\\
+{\\
+    apr_status_t\\
+        result;\\
+\\
+    result = apr_thread_mutex_unlock (context->sync);\\
+    AMQ_ASSERT_STATUS (result, apr_thread_mutex_unlock)\\
+printf ("$(name:c) unlocked S\\n");\\
+    return APR_SUCCESS;\\
+}\\
+inline static apr_status_t $(name:c)_sync_begin_r ($(name:c)_context_t *context)\\
+{\\
+    apr_status_t\\
+        result;\\
+\\
+printf ("$(name:c) locking R\\n");\\
+    result = apr_thread_mutex_lock (context->sync);\\
+    AMQ_ASSERT_STATUS (result, apr_thread_mutex_lock)\\
+printf ("$(name:c) locked R\\n");\\
+    return APR_SUCCESS;\\
+}\\
+\\
+inline static apr_status_t $(name:c)_sync_end_r ($(name:c)_context_t *context)\\
+{\\
+    apr_status_t\\
+        result;\\
+\\
+    result = apr_thread_mutex_unlock (context->sync);\\
+    AMQ_ASSERT_STATUS (result, apr_thread_mutex_unlock)\\
+printf ("$(name:c) unlocked R\\n");\\
     return APR_SUCCESS;\\
 }\\
 .    for constructor
@@ -162,7 +209,11 @@ apr_status_t $(machine.name:c)_$(event.name:c) (\\
         result;\\
     $(machine.name:c)_context_t\\
         *context = ($(machine.name:c)_context_t*) ctx;\\
+.if "$(event.name)" = "send chunk"
+    result = $(machine.name:c)_sync_begin_r (context);\\
+.else
     result = $(machine.name:c)_sync_begin (context);\\
+.endif
     AMQ_ASSERT_STATUS (result, $(machine.name:c)_sync_begin);\\
     switch (context->state)\\
     {\\
@@ -227,7 +278,11 @@ $(event.name:cobol), $(event.action:cobol), \
         assert (0);\\
 .        endif
     }\\
+.if "$(event.name)" = "send chunk"
+    result = $(machine.name:c)_sync_end_r (context);\\
+.else
     result = $(machine.name:c)_sync_end (context);\\
+.endif
     AMQ_ASSERT_STATUS (result, $(machine.name:c)_sync_end);\\
     return APR_SUCCESS;\\
 }\\
