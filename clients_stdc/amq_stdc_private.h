@@ -28,6 +28,8 @@
 /*  is written/read from socket in blocks of this size.                      */
 #define CONTENT_CHUNK_SIZE 1024
 
+#define AMQTRACE_SENDER
+
 #ifdef AMQTRACE_MEMORY
 void *amq_malloc_trace (size_t sz, const char *file, long line);
 void *amq_realloc_trace (void *p, size_t sz, const char *file, long line);

@@ -458,10 +458,16 @@ static void *s_sender_thread (
     while (1) {     
 
         /*  If there are no chunks in list, wait for new chunk arriving      */
+#       ifdef AMQTRACE_SENDER
+            printf ("Sender thread beginning to wait.\n");
+#       endif
         result = apr_thread_mutex_lock (context->sender_sync);
         AMQ_ASSERT_STATUS (result, apr_thread_mutex_lock);
         result = apr_thread_mutex_unlock (context->sender_sync);
         AMQ_ASSERT_STATUS (result, apr_thread_mutex_unlock);
+#       ifdef AMQTRACE_SENDER
+            printf ("Sender thread waiting ended.\n");
+#       endif
 
         /*  Get ownership of one chunk, remove it from chunk list            */
         /*  Do it in synchronised manner so that it won't interfere with     */
@@ -476,6 +482,9 @@ static void *s_sender_thread (
         if (!context->first_chunk) {
             result = apr_thread_mutex_lock (context->sender_sync);
             AMQ_ASSERT_STATUS (result, apr_thread_mutex_lock);
+#           ifdef AMQTRACE_SENDER
+                printf ("Sender thread locked.\n");
+#           endif
         }
         result = connection_fsm_sync_end (context);
         AMQ_ASSERT_STATUS (result, connection_fsm_sync_begin);
@@ -814,6 +823,9 @@ inline static apr_status_t do_send_chunk (
 
     /* If there are chunks in list sender_sync must be passable              */
     if (!context->first_chunk) {
+#       ifdef AMQTRACE_SENDER
+            printf ("Sender thread locked.\n");
+#       endif
         result = apr_thread_mutex_unlock (context->sender_sync);
         AMQ_ASSERT_STATUS (result, apr_thread_mutex_unlock)
     }
