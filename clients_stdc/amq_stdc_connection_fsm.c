@@ -824,7 +824,7 @@ inline static apr_status_t do_send_chunk (
     /* If there are chunks in list sender_sync must be passable              */
     if (!context->first_chunk) {
 #       ifdef AMQTRACE_SENDER
-            printf ("Sender thread locked.\n");
+            printf ("Sender thread unlocked.\n");
 #       endif
         result = apr_thread_mutex_unlock (context->sender_sync);
         AMQ_ASSERT_STATUS (result, apr_thread_mutex_unlock)
