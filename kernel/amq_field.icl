@@ -176,7 +176,8 @@ data type.  This class provides functions at a per-field level.
 
     if (self->type == AMQ_FIELD_TYPE_STRING) {
         GET_SHORT (string_size, input);
-        self->string = ipr_longstr_new (input, string_size + 1);
+        self->string = ipr_longstr_new (NULL, string_size + 1);
+        memcpy (self->string->data, input, string_size);
         self->string->data [string_size] = '\\0';
         self->string->cur_size = string_size;
         input += string_size;
