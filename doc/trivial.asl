@@ -1,8 +1,7 @@
 <?xml version="1.0"?>
 <class
-    name    = "trivial"
+    name = "trivial"
     handler = "channel"
-    index   = "6"
   >
   work with trivial content
 

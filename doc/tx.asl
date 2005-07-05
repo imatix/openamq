@@ -1,9 +1,8 @@
 <?xml version="1.0"?>
 
 <class
-    name    = "tx"
+    name = "tx"
     handler = "channel"
-    index   = "9"
   >
   work with standard transactions
 

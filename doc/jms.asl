@@ -1,8 +1,7 @@
 <?xml version="1.0"?>
 <class
-    name    = "jms"
+    name = "jms"
     handler = "channel"
-    index   = "7"
   >
   work with JMS content
 

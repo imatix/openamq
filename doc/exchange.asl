@@ -1,9 +1,8 @@
 <?xml version="1.0"?>
 
 <class
-    name    = "exchange"
+    name = "exchange"
     handler = "channel"
-    index   = "4"
   >
   work with exchanges
 
