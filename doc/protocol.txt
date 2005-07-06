@@ -3,9 +3,9 @@ gdl
     subtitle  = The AMQP/Fast Wire-Level Protocol
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/06/09
+    date      = 2005/07/05
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.9a4
+    version   = 0.9a5
 end gdl
 
 Cover
@@ -24,13 +24,18 @@ This document is ready for review.
 Recent Change History
 ---------------------
 
+2005/06/06 - 0.9a5:
+
+- Fixes as we implement ASL layers.
+- Removed synctag and synchronisation request functionality (for now).
+
 2005/06/06 - 0.9a4:
 
 - Various corrections to text discussion.
 
 2005/06/06 - 0.9a3:
 
-- Added the Trivial content class.
+- Added the Basic content class.
 
 2005/06/06 - 0.9a2:
 
@@ -140,23 +145,17 @@ eliminate potential future bottlenecks, specifically for:
    50% per year, in large leaps. We will thus reach the limit of
    64-bit sized packets in 50 years.
 
-3. Sequencing: we use method sequencing to allow matching of replies
-   and errors with requests, so called "synchpoints".  The method
-   sequence number is 32 bits. This allows 4G methods to be exchanged
-   between synchpoints.  We do not see this as a limitation in any
-   scenario, present or future.
-
-4. Protocol classes and methods: the current protocol defines about
+3. Protocol classes and methods: the current protocol defines about
    ten classes and about ten or fewer methods per class.  We
    expect that new versions of the protocol will add classes and
    methods at a constant rate of 1 to 5 per year. The limit of 255
    classes and methods per class should be sufficient to last until
    2055.
 
-5. Channels: the limit of 4G channels allows growth of 50% per year
+4. Channels: the limit of 4G channels allows growth of 50% per year
    from an estimated usage of 10 channels per connection today.
 
-6. Timestamps: we use 64-bit time-stamp values.
+5. Timestamps: we use 64-bit time-stamp values.
 
 An Extensible Functionality
 ===========================
@@ -316,9 +315,6 @@ Staging:
     temporary holding area before formally handing it over to the
     recipient.  This is how AMQP/Fast implements restartable file
     transfers.
-Synchpoint:
-    A synchronous confirmed step in what is otherwise an asynchronous
-    dialogue of methods.
 Out-of-band_transport:
     The technique by which data is carried outside the network
     connection.  For example, two peers can carry frames across a
@@ -357,7 +353,6 @@ These limitations are formally part of the AMQP/Fast specifications:
 - Number of possible content domains: 255.
 - Number of protocol classes: 255 per peer.
 - Number of methods: 255 per protocol class.
-- Number of methods sent between synchpoints: 4G.
 
 Design Proposal
 ***************
@@ -684,19 +679,9 @@ Our design is based on these principles:
    fashion.  Where necessary, we can implement windowing and throttling
    at a higher level.
 
-These principles provide the basis for a simple and efficient pipelining
-design based on "selective synchronisation". Some methods are explicitly
-synchronous - a specific request is always paired with a specific reply
-unless there is an error - and other methods are asynchronous unless the
-sender asks for a synchronisation response.
-
 The recipient indicates an error by closing the channel. The close
-method includes the ID of the method that caused the error.
-
-Methods on a specific channel are processed strictly in order. Thus the
-client can set "synchronisation points" by asking for a confirmation,
-and handle errors unambiguously (all methods up to but not including the
-failed method will have succeeded).
+method includes the ID of the method that caused the error.  Methods on a
+specific channel are processed strictly in order.
 
 The Framing Design
 ==================
@@ -953,231 +938,6 @@ Guidelines for implementors:
   of a meta frame, except that the frame body MAY be larger than 64KB
   after a meta frame.
 
-The Abstract Content Model
-==========================
-
-AMQP/Fast uses an abstract content model that has these goals and
-features:
-
-- It supports tree-structured content in which each content can
-  contain further content ("child-content"), to any level.
-
-- It provides multiple content types to allow optimal encoding for
-  different applications.
-
-- It supports content bodies of any size from zero octets upwards.
-
-- Content body can be read and written directly from application memory
-  with no formatting or copying ("zero copy").
-
-- Content headers are sent before content body so that the recipient can
-  selectively discard content that it does not want to process.
-
-- Content body is sent in separate frames to support the AMQP/Fast
-  channel multiplexing model.
-
-Formal Grammar for Content Frames
----------------------------------
-
-This is the formal grammar for the AMQP/Fast content model:
-
-    content         = header-frame child-content *body-frame
-    header-frame    = HEADER channel frame-size header-payload frame-end
-    channel         = octet
-    frame-size      = short-integer
-    header-payload  = class weight body-size
-                      property-flags property-list
-    content-class   = OCTET
-    content-weight  = OCTET
-    body-size       = long-long-integer
-    property-flags  = 15*BIT %b0 / 15*BIT %b1 property-flags
-    property-list   = amqp-field
-    child-content   = weight*content
-    body-frame      = BODY channel frame-size body-payload
-    body-payload    = *OCTET
-    frame-end       = OCTET %xCE
-
-Content Header Frame Wire Format
---------------------------------
-
-A content header frame has this format:
-
-    0        1        2           6                8
-    +--------+--------+-----------+----------------+------------- - -
-    | domain | weight | body size | property flags | property list...
-    +--------+--------+-----------+----------------+------------- - -
-      octet    octet    long long   short int        remainder...
-
-- The content class specifies the set of properties (with a predefined
-  syntax and semantics) that the header frame may hold. The standard
-  AMQP/Fast content classes are defined later.
-
-- The weight field specifies whether the content is structured or not.
-  Unstructured content has a weight of zero.  Structured content has a
-  weight of 1 to 255.  This is the number of child-contents that the
-  content contains.
-
-- The body size is a 64-bit value that defines the total size of the
-  body content.  It may be zero, indicating that there will be no
-  body frames.
-
-- The property flags are a bit array that indicates the presence or
-  absence of each property value.
-
-- The property values are class-specific data fields.  The properties
-  are formatted as AMQP/Fast data types (integers, strings, field tables).
-
-The set of properties for a content class can be any size. The first
-two properties for all content classes are the content MIME type and the
-content encoding. Following these, each content class has a specific
-set of properties defined in a strict order from most to least
-significant.
-
-As an example, we take an imaginary content class "D" which has three
-properties, T, E and C. Imagine a simple content that has properties E
-and C but not T. The header frame will be formatted thus:
-
-      domain   weight   body size   property flags   property list
-    +--------+--------+-----------+----------------+-------+
-    |   D    |   0    |    nnn    | 011...         | E | C |
-    +--------+--------+-----------+----------------+-------+
-
-The property flags are ordered from high to low, the first property
-being indicated by bit 15, and so on:
-
-     15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
-    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-    | T | E | C |                                               | 0 |
-    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-
-The property flags can specify more than 16 properties. If bit 0 is set,
-it indicates that a further property flags field follows. There can be
-several property flag fields in succession:
-
-     15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
-    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-    |                                                           | 1 |
-    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-    |                                                           | 1 |
-    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-    |                                                           | 0 |
-    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-
-Content Body Frame Wire Format
-------------------------------
-
-A content body frame has this format:
-
-    +-----------------------+-----------+
-    | Opaque binary content | frame-end |
-    +-----------------------+-----------+
-
-Where the size of the frame is defined in the frame header.
-
-Structured Content
-------------------
-
-The "weight" field in the content header frame indicates whether the
-content has child-contents or not. In the simplest case (weight = zero)
-content consists of a header frame plus zero or more body frames:
-
-    [header] [body] [body]...
-
-If the content has child-contents, these are inserted between the
-header and body of the parent content:
-
-    [parent-header]
-        [child-header] [child-body] ...
-    [parent-body]
-
-
-This organisation means that a principal content (e.g. a very large
-video file) can have child content (e.g. subtitles and menus) which will
-be sent before the main content. If a more specific order of content is
-needed, it can be done by defining a top-level content that has no body,
-only a header.
-
-Multiplexed Channel Content
----------------------------
-
-Content consists of one or more frames. The recipient of content that
-has been sent in multiple frames can unambiguously reconstruct the
-content by implementing the content grammar defined above, on a
-per-channel basis.
-
-Guidelines for implementors:
-
-- Content frames MUST be sent on a single channel, and MUST NOT be
-  intermixed with non-content frames on the same channel (method, trace,
-  and heartbeat frames).
-
-- Content frames MUST NOT be intermixed with frames of a different
-  content.
-
-- A peer MUST NOT make any assumptions about the minimum or maximum size
-  of a body frame except that the minimum size is zero bytes and the
-  maximum size is the smallest of either the negotiated maximum frame
-  size or the remaining expected of content body (body-size minus amount
-  of body data received so far).
-
-- Empty body frames are permitted but a peer may not assign any special
-  meaning to these: it MUST discard them with no side-effects of any kind.
-
-Content Classes
-----------------
-
-The content class is not intended to provide data typing or encoding
-information. Its purpose is to allow functional clarity in the property
-sets and methods that we define per class of message.
-
-Content classes turn AMQP/Fast from an abstract content-carrying
-protocol into a functional tool by providing data and operations that
-are directly and clearly mapped to the kinds of API that an application
-programmer needs to see.
-
-AMQP/Fast defines these standard content classes:
-
-- Basic: the content is an untyped message.
-- JMS: the content is a JMS-compliant message.
-- File: the content is a persistent file.
-- Stream: the content is a streamed message.
-
-Note that the ID of each content class is the same as the ID of the
-protocol class (Basic, JMS, File, Stream) that supports it.
-
-Each class has a specific access model, though they all share the basic
-AMQP queueing and routing mechanisms including topic multipliers. These
-classes are defined in the next sections.  This model lets us extend
-AMQP/Fast into new functional areas by defining new content classes and
-appropriate methods, without breaking interoperability.
-
-Guidelines for implementors:
-
-- The client MAY support any or all of the defined content classes.
-
-- The server MUST support at least one of the defined content classes.
-
-Content Type and Encoding
--------------------------
-
-AMQP/Fast enforces MIME-compliance on all content classes using two
-standard properties that are the first defined in all content classes:
-
-- ContentType (short string) - the MIME content type of the message body.
-  The default value is "application/octet-stream".
-
-- ContentEncoding (short string) - The content encoding of the message
-  body. The default value is "binary".
-
-Guidelines for implementors:
-
-- The server SHOULD not modify the ContentType and ContentEncoding
-  for content moved between producing and consuming clients.
-
-- The server MAY set the ContentType and ContentEncoding properties
-  for content produced by the server or by applications embedded in
-  the server.
-
 The Class/Method Model
 ======================
 
@@ -1273,134 +1033,245 @@ Method Frame Body Wire Format
 
 A method frame body has this format:
 
-    0       1        2       3          4          8
-    +-------+--------+-------+----------+----------+-------------- - -
-    | class | method | flags | reserved | synchtag | arguments...
-    +-------+--------+-------+----------+----------+-------------- - -
-      octet   octet    octet    octet      long
+    0       1        2          4
+    +-------+--------+----------+-------------- - -
+    | class | method | reserved | arguments...
+    +-------+--------+----------+-------------- - -
+      octet   octet     short
 
 - The class and method are protocol-constant values.
 
-- The reserved octet is reserved for future use and must be zero in this
-  version of the protocol.
-
-- The flags provide a set of operational indicators.
-
-- The synctag is an arbitrary value that the sender chooses to identify
-  the method instance.  If not used, it must be zero.
+- The reserved must be zero in this version of the protocol.
 
 - The arguments are a set of AMQP/Fast fields that specific to each
   method.
 
-The flags are defined as follows:
+The Abstract Content Model
+==========================
 
-                    7   6   5   4   3   2   1   0
-                  +---+---+---+---+---+---+---+---+
-                  | X | X | X | X |   revision    |
-                  +---+---+---+---+---+---+---+---+
-                    |   |   |   |
-    SYNCHREQ -------'   |   |   |
-                        |   |   |
-    UNREAL -------------'   |   |
-                            |   |
-    TRACER -----------------'   |
-                                |
-    UNUSED ---------------------'
+AMQP/Fast uses an abstract content model that has these goals and
+features:
 
-- 7 = SYNCHREQ - if 1, requests a "synchpoint", turning an asynchronous
-  method into a synchronous one. Has no effect on a synchronous method.
+- It supports tree-structured content in which each content can
+  contain further content ("child-content"), to any level.
 
-- 6 = UNREAL - if 1, requests an "unreal method", in which the
-  recipient responds "as expected" but does no real work.
+- It provides multiple content types to allow optimal encoding for
+  different applications.
 
-- 5 = TRACER - if 1, requests a "distributed trace", in which the
-  recipient will trace all responses to this and other clients which
-  the method provokes.
+- It supports content bodies of any size from zero octets upwards.
 
-- 4 = UNUSED - this bit is not used and must be zero.
+- Content body can be read and written directly from application memory
+  with no formatting or copying ("zero copy").
 
-- 3-0 = revision - defines the method revision.
+- Content headers are sent before content body so that the recipient can
+  selectively discard content that it does not want to process.
 
-Guidelines for implementors:
+- Content body is sent in separate frames to support the AMQP/Fast
+  channel multiplexing model.
 
-- The revision MUST be zero in major releases of the protocol. It is
-  used to indicate revised methods in minor releases of the protocol.
-  A peer MAY support multiple revisions of a protocol.  A peer MUST
-  support the specific method revisions defined in the protocol
-  minor version number agreed during connection negotiation.
+Formal Grammar for Content Frames
+---------------------------------
 
-- synctags SHOULD BE unique since the last synchpoint (we explain
-  synchpoints later).
+This is the formal grammar for the AMQP/Fast content model:
 
-The Synchpoint Function
------------------------
+    content         = header-frame child-content *body-frame
+    header-frame    = HEADER channel frame-size header-payload frame-end
+    channel         = octet
+    frame-size      = short-integer
+    header-payload  = class weight body-size
+                      property-flags property-list
+    content-class   = OCTET
+    content-weight  = OCTET
+    body-size       = long-long-integer
+    property-flags  = 15*BIT %b0 / 15*BIT %b1 property-flags
+    property-list   = amqp-field
+    child-content   = weight*content
+    body-frame      = BODY channel frame-size body-payload frame-end
+    body-payload    = *OCTET
+    frame-end       = OCTET %xCE
 
-A client can request a synchpoint when sending an asynchronous request
-method. The server responds with a Channel.Synch method when it finishes
-processing the request method. Synchpoints are only sent if the method
-completes successfully. If the method fails, the server replies with a
-Channel.Close or Connection.Close depending on the severity of the
-error.
+Content Header Frame Wire Format
+--------------------------------
 
-Clients can use synchpoints to force occasional synchronisation or to
-force a fully-synchronous dialogue. E.g. A client can be designed to use
-synchpoints at every asynchronous method, which turns the entire
-protocol into a synchronous protocol. This may be simpler for some
-scenarios than a normal asynchronous exchange of methods.
+A content header frame has this format:
 
-Guidelines for implementors:
+    0        1        2           10               12
+    +--------+--------+-----------+----------------+------------- - -
+    | domain | weight | body size | property flags | property list...
+    +--------+--------+-----------+----------------+------------- - -
+      octet    octet    long long   short int        remainder...
 
-- The server MUST ignore the SYNCHREQ flag on all methods that require
-  a synchronous reply.
+- The content class specifies the set of properties (with a predefined
+  syntax and semantics) that the header frame may hold. The standard
+  AMQP/Fast content classes are defined later.
 
-- The server MUST NOT set the SYNCHREQ flag on methods sent to the client,
-  and the client MUST treat any method with the SYNCHREQ flag as a fatal
-  connection error.
+- The weight field specifies whether the content is structured or not.
+  Unstructured content has a weight of zero.  Structured content has a
+  weight of 1 to 255.  This is the number of child-contents that the
+  content contains.
 
-The Interface Test Function
----------------------------
+- The body size is a 64-bit value that defines the total size of the
+  body content.  It may be zero, indicating that there will be no
+  body frames.
 
-A peer can test the capability of the other peer by sending methods with
-the UNREAL flag set. When a peer receives a message with this flag set
-it responds with a suitable "as expected" response with arbitrary data
-and the UNREAL flag also set.
+- The property flags are a bit array that indicates the presence or
+  absence of each property value.
 
-The goal of the UNREAL flag is to allow a monitor client to determine
-what methods a peer supports.
+- The property values are class-specific data fields.  The properties
+  are formatted as AMQP/Fast data types (integers, strings, field tables).
 
-Guidelines for implementors:
+- Bit properties are indicated ONLY by their respective property flag
+  (1 or 0) and are never present in the property list.
 
-- A peer SHOULD respect the UNREAL flag on all methods that it supports.
+The set of properties for a content class can be any size. The first
+two properties for all content classes are the content MIME type and the
+content encoding. Following these, each content class has a specific
+set of properties defined in a strict order from most to least
+significant.
 
-- A peer that supports the UNREAL flag MUST support unreal methods in
-  any state.
+As an example, we take an imaginary content class "D" which has three
+properties, T, E and C. Imagine a simple content that has properties E
+and C but not T. The header frame will be formatted thus:
 
-- A peer SHOULD reply to unsupported methods with the UNREAL flag set,
-  with a Connection.Unknown method.
+      domain   weight   body size   property flags   property list
+    +--------+--------+-----------+----------------+-------+
+    |   D    |   0    |    nnn    | 011...         | E | C |
+    +--------+--------+-----------+----------------+-------+
 
-- A peer MUST treat an unsupported methods with the UNREAL flag
-  cleared as a fatal error and close the connection.
+The property flags are ordered from high to low, the first property
+being indicated by bit 15, and so on:
 
-- A peer MUST respond to a supported method with the UNREAL flag set as
-  follows: (a) decode the method and perform syntactic validation. (b)
-  create a suitable response method with suitable arguments and send it
-  with the UNREAL flag set.  (c) not change any internal state.
+     15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
+    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+    | T | E | C |                                               | 0 |
+    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 
-The Distributed Trace Function
+The property flags can specify more than 16 properties. If bit 0 is set,
+it indicates that a further property flags field follows. There can be
+several property flag fields in succession:
+
+     15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
+    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+    |                                                           | 1 |
+    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+    |                                                           | 1 |
+    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+    |                                                           | 0 |
+    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+
+Content Body Frame Wire Format
 ------------------------------
 
-A distributed trace is a temporary and single-threaded trace of all
-messages produced by a specific server method. A distributed trace will
-last as long as the effects of the original method. There is no
-functionality to end a distributed trace, nor to distinguish more than
-one trace at once.
+A content body frame has this format:
+
+    +-----------------------+-----------+
+    | Opaque binary content | frame-end |
+    +-----------------------+-----------+
+
+Where the size of the frame is defined in the frame header.
+
+Structured Content
+------------------
+
+The "weight" field in the content header frame indicates whether the
+content has child-contents or not. In the simplest case (weight = zero)
+content consists of a header frame plus zero or more body frames:
+
+    [header] [body] [body]...
+
+If the content has child-contents, these are inserted between the
+header and body of the parent content:
+
+    [parent-header]
+        [child-header] [child-body] ...
+    [parent-body]
+
+This organisation means that a principal content (e.g. a very large
+video file) can have child content (e.g. subtitles and menus) which will
+be sent before the main content. If a more specific order of content is
+needed, it can be done by defining a top-level content that has no body,
+only a header.
+
+Multiplexed Channel Content
+---------------------------
+
+Content consists of one or more frames. The recipient of content that
+has been sent in multiple frames can unambiguously reconstruct the
+content by implementing the content grammar defined above, on a
+per-channel basis.
 
 Guidelines for implementors:
 
-- A server SHOULD implement the DTRACE flag as follows: (a) process the
-  method as normal. (b) set the DTRACE flag on all methods, to all
-  clients, that are the direct or indirect consequence of the original
-  received method.
+- Content frames MUST be sent on a single channel, and MUST NOT be
+  intermixed with non-content frames on the same channel (method, trace,
+  and heartbeat frames).
+
+- Content frames MUST NOT be intermixed with frames of a different
+  content.
+
+- A peer MUST NOT make any assumptions about the minimum or maximum size
+  of a body frame except that the minimum size is zero bytes and the
+  maximum size is the smallest of either the negotiated maximum frame
+  size or the remaining expected of content body (body-size minus amount
+  of body data received so far).
+
+- Empty body frames are permitted but a peer may not assign any special
+  meaning to these: it MUST discard them with no side-effects of any kind.
+
+Content Classes
+----------------
+
+The content class is not intended to provide data typing or encoding
+information. Its purpose is to allow functional clarity in the property
+sets and methods that we define per class of message.
+
+Content classes turn AMQP/Fast from an abstract content-carrying
+protocol into a functional tool by providing data and operations that
+are directly and clearly mapped to the kinds of API that an application
+programmer needs to see.
+
+AMQP/Fast defines these standard content classes:
+
+- Basic: the content is an untyped message.
+- JMS: the content is a JMS-compliant message.
+- File: the content is a persistent file.
+- Stream: the content is a streamed message.
+
+Note that the ID of each content class is the same as the ID of the
+protocol class (Basic, JMS, File, Stream) that supports it.
+
+Each class has a specific access model, though they all share the basic
+AMQP queueing and routing mechanisms including topic multipliers. These
+classes are defined in the next sections.  This model lets us extend
+AMQP/Fast into new functional areas by defining new content classes and
+appropriate methods, without breaking interoperability.
+
+Guidelines for implementors:
+
+- The client MAY support any or all of the defined content classes.
+
+- The server MUST support at least one of the defined content classes.
+
+Content Type and Encoding
+-------------------------
+
+AMQP/Fast enforces MIME-compliance on all content classes using two
+standard properties that are the first defined in all content classes:
+
+- ContentType (short string) - the MIME content type of the message body.
+  The default value is "application/octet-stream".
+
+- ContentEncoding (short string) - The content encoding of the message
+  body. The default value is "binary".
+
+Guidelines for implementors:
+
+- The server SHOULD not modify the ContentType and ContentEncoding
+  for content moved between producing and consuming clients.
+
+- The server MAY set the ContentType and ContentEncoding properties
+  for content produced by the server or by applications embedded in
+  the server.
 
 The Abstract Routing Model
 ==========================
@@ -2185,9 +2056,7 @@ We define methods as being either:
 
 - a synchronous reply ("syn reply for XYZ").
 
-- an asynchronous request or reply ("async"). The sending peer will
-  usually not expect a synchronous reply but MAY set the SYNCHREQ flag
-  to request a synchpoint.
+- an asynchronous request or reply ("async").
 
 A full explanation of classes and methods is provided in the Reference
 section of this document.
@@ -2306,22 +2175,22 @@ the other party.  The receiving peer must respond to a Close with a
 Close-Ok method.  The closing peer reads methods back until it gets a
 Close-Ok, at which point it closes the connection and frees resources.
 
-The Trivial Operational Model
-=============================
+The Basic Operational Model
+===========================
 
 Goals and Principles
 --------------------
 
-The trivial operational model is designed to provide the simplest
+The basic operational model is designed to provide the simplest
 possible message store and forward model.  The basic content methods are
 fully synchronous; there is no Consume method, and all message fetching
-is done using the Browse method.  Trivial messages are not acknowledged,
+is done using the Browse method.  Basic messages are not acknowledged,
 and cannot be put back onto a queue.
 
-Trivial Properties
-------------------
+Basic Properties
+----------------
 
-These are the properties defined for Trivial content:
+These are the properties defined for basic content:
 
 - ContentType (short string)
 - ContentEncoding (short string)
@@ -2353,18 +2222,18 @@ These are the properties defined for JMS content:
 
 - ContentType (short string)
 - ContentEncoding (short string)
+- Destination (short string)
+- Headers (field table)
 - DeliveryMode (octet)
 - Priority (octet)
 - CorrelationID (short string)
 - ReplyTo (short string)
-- Destination (short string)
 - Expiration (short string)
 - MessageID (short string)
 - Timestamp (short string)
 - Type (short string)
 - UserID (short string)
 - AppID (short string)
-- Headers (field table)
 
 The File Transfer Operational Model
 ===================================
@@ -2401,13 +2270,13 @@ These are the properties defined for File content:
 
 - ContentType (short string)
 - ContentEncoding (short string)
+- Destination (short string)
+- Headers (field table)
 - Priority (octet)
 - ReplyTo (short string)
-- Destination (short string)
 - MessageID (short string)
 - FileName (short string)
-- RevisedTime (time stamp)
-- Headers (field table)
+- Timestamp (short string)
 
 The Stream Operational Model
 ============================
@@ -2448,10 +2317,10 @@ These are the properties defined for Stream content:
 
 - ContentType (short string)
 - ContentEncoding (short string)
-- Priority (octet)
 - Destination (short string)
-- Timestamp (short string)
 - Headers (field table)
+- Priority (octet)
+- Timestamp (short string)
 
 Security
 ========
