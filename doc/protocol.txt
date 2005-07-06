@@ -3,9 +3,9 @@ gdl
     subtitle  = The AMQP/Fast Wire-Level Protocol
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/06/09
+    date      = 2005/07/05
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.9a4
+    version   = 0.9a5
 end gdl
 
 Cover
@@ -24,13 +24,18 @@ This document is ready for review.
 Recent Change History
 ---------------------
 
+2005/06/06 - 0.9a5:
+
+- Fixes as we implement ASL layers.
+- Removed synctag and synchronisation request functionality (for now).
+
 2005/06/06 - 0.9a4:
 
 - Various corrections to text discussion.
 
 2005/06/06 - 0.9a3:
 
-- Added the Trivial content class.
+- Added the Basic content class.
 
 2005/06/06 - 0.9a2:
 
@@ -140,23 +145,17 @@ eliminate potential future bottlenecks, specifically for:
    50% per year, in large leaps. We will thus reach the limit of
    64-bit sized packets in 50 years.
 
-3. Sequencing: we use method sequencing to allow matching of replies
-   and errors with requests, so called "synchpoints".  The method
-   sequence number is 32 bits. This allows 4G methods to be exchanged
-   between synchpoints.  We do not see this as a limitation in any
-   scenario, present or future.
-
-4. Protocol classes and methods: the current protocol defines about
+3. Protocol classes and methods: the current protocol defines about
    ten classes and about ten or fewer methods per class.  We
    expect that new versions of the protocol will add classes and
    methods at a constant rate of 1 to 5 per year. The limit of 255
    classes and methods per class should be sufficient to last until
    2055.
 
-5. Channels: the limit of 4G channels allows growth of 50% per year
+4. Channels: the limit of 4G channels allows growth of 50% per year
    from an estimated usage of 10 channels per connection today.
 
-6. Timestamps: we use 64-bit time-stamp values.
+5. Timestamps: we use 64-bit time-stamp values.
 
 An Extensible Functionality
 ===========================
@@ -316,9 +315,6 @@ Staging:
     temporary holding area before formally handing it over to the
     recipient.  This is how AMQP/Fast implements restartable file
     transfers.
-Synchpoint:
-    A synchronous confirmed step in what is otherwise an asynchronous
-    dialogue of methods.
 Out-of-band_transport:
     The technique by which data is carried outside the network
     connection.  For example, two peers can carry frames across a
@@ -357,7 +353,6 @@ These limitations are formally part of the AMQP/Fast specifications:
 - Number of possible content domains: 255.
 - Number of protocol classes: 255 per peer.
 - Number of methods: 255 per protocol class.
-- Number of methods sent between synchpoints: 4G.
 
 Design Proposal
 ***************
@@ -684,19 +679,9 @@ Our design is based on these principles:
    fashion.  Where necessary, we can implement windowing and throttling
    at a higher level.
 
-These principles provide the basis for a simple and efficient pipelining
-design based on "selective synchronisation". Some methods are explicitly
-synchronous - a specific request is always paired with a specific reply
-unless there is an error - and other methods are asynchronous unless the
-sender asks for a synchronisation response.
-
 The recipient indicates an error by closing the channel. The close
-method includes the ID of the method that caused the error.
-
-Methods on a specific channel are processed strictly in order. Thus the
-client can set "synchronisation points" by asking for a confirmation,
-and handle errors unambiguously (all methods up to but not including the
-failed method will have succeeded).
+method includes the ID of the method that caused the error.  Methods on a
+specific channel are processed strictly in order.
 
 The Framing Design
 ==================
@@ -1048,70 +1033,18 @@ Method Frame Body Wire Format
 
 A method frame body has this format:
 
-    0       1        2       3          4          8
-    +-------+--------+-------+----------+----------+-------------- - -
-    | class | method | flags | reserved | synchtag | arguments...
-    +-------+--------+-------+----------+----------+-------------- - -
-      octet   octet    octet    octet      long
+    0       1        2          4
+    +-------+--------+----------+-------------- - -
+    | class | method | reserved | arguments...
+    +-------+--------+----------+-------------- - -
+      octet   octet     short
 
 - The class and method are protocol-constant values.
 
-- The reserved octet is reserved for future use and must be zero in this
-  version of the protocol.
-
-- The flags provide a set of operational indicators.
-
-- The synctag is an arbitrary value that the sender chooses to identify
-  the method instance.  If not used, it must be zero.
+- The reserved must be zero in this version of the protocol.
 
 - The arguments are a set of AMQP/Fast fields that specific to each
   method.
-
-The flags are defined as follows:
-
-                    7   6   5   4   3   2   1   0
-                  +---+---+---+---+---+---+---+---+
-                  | X | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-                  +---+---+---+---+---+---+---+---+
-                    |   `-----------------------'
-    SYNCHREQ -------'               |
-                                    |
-    UNUSED -------------------------'
-
-- 7 = SYNCHREQ - if 1, requests a "synchpoint", turning an asynchronous
-  method into a synchronous one. Has no effect on a synchronous method.
-
-- 6-0 = UNUSED - these bits are not used and must be zero.
-
-Guidelines for implementors:
-
-- synctags SHOULD BE unique since the last synchpoint (we explain
-  synchpoints later).
-
-The Synchpoint Function
------------------------
-
-A client can request a synchpoint when sending an asynchronous request
-method. The server responds with a Channel.Synch method when it finishes
-processing the request method. Synchpoints are only sent if the method
-completes successfully. If the method fails, the server replies with a
-Channel.Close or Connection.Close depending on the severity of the
-error.
-
-Clients can use synchpoints to force occasional synchronisation or to
-force a fully-synchronous dialogue. E.g. A client can be designed to use
-synchpoints at every asynchronous method, which turns the entire
-protocol into a synchronous protocol. This may be simpler for some
-scenarios than a normal asynchronous exchange of methods.
-
-Guidelines for implementors:
-
-- The server MUST ignore the SYNCHREQ flag on all methods that require
-  a synchronous reply.
-
-- The server MUST NOT set the SYNCHREQ flag on methods sent to the client,
-  and the client MUST treat any method with the SYNCHREQ flag as a fatal
-  connection error.
 
 The Abstract Content Model
 ==========================
@@ -1153,7 +1086,7 @@ This is the formal grammar for the AMQP/Fast content model:
     property-flags  = 15*BIT %b0 / 15*BIT %b1 property-flags
     property-list   = amqp-field
     child-content   = weight*content
-    body-frame      = BODY channel frame-size body-payload
+    body-frame      = BODY channel frame-size body-payload frame-end
     body-payload    = *OCTET
     frame-end       = OCTET %xCE
 
@@ -1162,7 +1095,7 @@ Content Header Frame Wire Format
 
 A content header frame has this format:
 
-    0        1        2           6                8
+    0        1        2           10               12
     +--------+--------+-----------+----------------+------------- - -
     | domain | weight | body size | property flags | property list...
     +--------+--------+-----------+----------------+------------- - -
@@ -1186,6 +1119,9 @@ A content header frame has this format:
 
 - The property values are class-specific data fields.  The properties
   are formatted as AMQP/Fast data types (integers, strings, field tables).
+
+- Bit properties are indicated ONLY by their respective property flag
+  (1 or 0) and are never present in the property list.
 
 The set of properties for a content class can be any size. The first
 two properties for all content classes are the content MIME type and the
@@ -1249,7 +1185,6 @@ header and body of the parent content:
     [parent-header]
         [child-header] [child-body] ...
     [parent-body]
-
 
 This organisation means that a principal content (e.g. a very large
 video file) can have child content (e.g. subtitles and menus) which will
@@ -2121,9 +2056,7 @@ We define methods as being either:
 
 - a synchronous reply ("syn reply for XYZ").
 
-- an asynchronous request or reply ("async"). The sending peer will
-  usually not expect a synchronous reply but MAY set the SYNCHREQ flag
-  to request a synchpoint.
+- an asynchronous request or reply ("async").
 
 A full explanation of classes and methods is provided in the Reference
 section of this document.
@@ -2242,22 +2175,22 @@ the other party.  The receiving peer must respond to a Close with a
 Close-Ok method.  The closing peer reads methods back until it gets a
 Close-Ok, at which point it closes the connection and frees resources.
 
-The Trivial Operational Model
-=============================
+The Basic Operational Model
+===========================
 
 Goals and Principles
 --------------------
 
-The trivial operational model is designed to provide the simplest
+The basic operational model is designed to provide the simplest
 possible message store and forward model.  The basic content methods are
 fully synchronous; there is no Consume method, and all message fetching
-is done using the Browse method.  Trivial messages are not acknowledged,
+is done using the Browse method.  Basic messages are not acknowledged,
 and cannot be put back onto a queue.
 
-Trivial Properties
-------------------
+Basic Properties
+----------------
 
-These are the properties defined for Trivial content:
+These are the properties defined for basic content:
 
 - ContentType (short string)
 - ContentEncoding (short string)
@@ -2289,18 +2222,18 @@ These are the properties defined for JMS content:
 
 - ContentType (short string)
 - ContentEncoding (short string)
+- Destination (short string)
+- Headers (field table)
 - DeliveryMode (octet)
 - Priority (octet)
 - CorrelationID (short string)
 - ReplyTo (short string)
-- Destination (short string)
 - Expiration (short string)
 - MessageID (short string)
 - Timestamp (short string)
 - Type (short string)
 - UserID (short string)
 - AppID (short string)
-- Headers (field table)
 
 The File Transfer Operational Model
 ===================================
@@ -2337,13 +2270,13 @@ These are the properties defined for File content:
 
 - ContentType (short string)
 - ContentEncoding (short string)
+- Destination (short string)
+- Headers (field table)
 - Priority (octet)
 - ReplyTo (short string)
-- Destination (short string)
 - MessageID (short string)
 - FileName (short string)
-- RevisedTime (time stamp)
-- Headers (field table)
+- Timestamp (short string)
 
 The Stream Operational Model
 ============================
@@ -2384,10 +2317,10 @@ These are the properties defined for Stream content:
 
 - ContentType (short string)
 - ContentEncoding (short string)
-- Priority (octet)
 - Destination (short string)
-- Timestamp (short string)
 - Headers (field table)
+- Priority (octet)
+- Timestamp (short string)
 
 Security
 ========
