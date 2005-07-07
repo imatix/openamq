@@ -31,6 +31,7 @@ public class TestQueuePublisher
             con = new AMQConnection(args[0], Integer.parseInt(args[1]), args[2], args[3],
                                     address.getHostName() + System.currentTimeMillis(), args[4]);
             Session session = (Session)con.createSession(false, Session.AUTO_ACKNOWLEDGE);
+            _logger.info("Session created successfully");
             AMQQueue destination = new AMQQueue(args[5]);
 
             MessageProducer producer = session.createProducer(destination);
