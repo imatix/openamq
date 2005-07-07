@@ -28,7 +28,7 @@ public abstract class AMQMethodBody extends AMQBody
 
     protected int getSize()
     { 
-        return 1 + 1 + 1 + 1 + 4 + getBodySize();
+        return 1 + 1 + 1 + 1 + getBodySize();
     }
     
     protected void writePayload(ByteBuffer buffer)
@@ -36,8 +36,7 @@ public abstract class AMQMethodBody extends AMQBody
         buffer.put(getClazz());
         buffer.put(getMethod());
         EncodingUtils.writeUnsignedByte(buffer, flags);        
-        EncodingUtils.writeUnsignedByte(buffer, reserved);        
-        EncodingUtils.writeUnsignedInteger(buffer, synchtag);
+        EncodingUtils.writeUnsignedByte(buffer, reserved);                
         writeMethodPayload(buffer);
     }
 
@@ -46,8 +45,7 @@ public abstract class AMQMethodBody extends AMQBody
     protected void populateFromBuffer(ByteBuffer buffer) throws AMQFrameDecodingException
     {
         flags = buffer.getUnsigned();
-        reserved = buffer.getUnsigned();
-        synchtag = buffer.getUnsignedInt();
+        reserved = buffer.getUnsigned();        
         populateMethodBodyFromBuffer(buffer);
     }
     
@@ -57,8 +55,7 @@ public abstract class AMQMethodBody extends AMQBody
         buf.append("\n\tClass: ").append(getClazz());
         buf.append("\n\tMethod: ").append(getMethod());
         buf.append("\n\tFlags: ").append(flags);        
-        buf.append("\n\tReserved: ").append(reserved);        
-        buf.append("\n\tSynchtag: ").append(synchtag);
+        buf.append("\n\tReserved: ").append(reserved);                
         return buf.toString();
     }
 }

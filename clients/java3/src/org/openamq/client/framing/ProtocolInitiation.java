@@ -7,8 +7,8 @@ public class ProtocolInitiation extends AMQDataBlock implements EncodableAMQData
     public char[] header = new char[]{'D','E','M','O'};
     public byte protocolClass = 1;
     public byte protocolInstance = 1;
-    public byte protocolMajor = 1;
-    public byte protocolMinor = 0;
+    public byte protocolMajor = 0;
+    public byte protocolMinor = 9;
 
     public long getSize()
     {
