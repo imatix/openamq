@@ -92,7 +92,7 @@
             coprintf ("SUBSCR %d: have=%d want=%d hits",
                 subscr_nbr, self->item_hits [subscr_nbr], subscr->field_count + 1);
 
-            if (self->item_hits [subscr_nbr] == subscr->field_count + 1
+            if (self->item_hits [subscr_nbr] >= subscr->field_count + 1
             && (subscr->consumer->no_local == FALSE
             ||  subscr->consumer->handle->client_id != message->handle->client_id))
                 rc++;
