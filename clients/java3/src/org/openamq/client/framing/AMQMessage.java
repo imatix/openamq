@@ -5,7 +5,7 @@ import org.apache.mina.common.ByteBuffer;
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
-public class AMQMessage extends AMQFrame
+public class AMQMessage extends AMQDataBlock
 {
     /* long integer */
     public long bodySize;

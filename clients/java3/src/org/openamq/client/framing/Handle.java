@@ -533,62 +533,6 @@ public class Handle
             messageFragment = new AMQMessage();
             messageFragment.populateFromBuffer(buffer);
         }
-
-        public static final class Decoder extends AMQCommandFrameDecoder
-        {
-            public MessageDecoderResult decodable(ProtocolSession session, ByteBuffer in)
-            {
-                final long frameSize = readFrameSize(in);
-                final int totalRemaining = in.remaining();
-                if (frameSize < 0)
-                {
-                    return MessageDecoderResult.NOT_OK;
-                }
-
-                if (frameSize == 0 || in.remaining() < frameSize)
-                {
-                    return MessageDecoderResult.NEED_DATA;
-                }
-
-                short frameType = in.getUnsigned();
-
-                if (frameType == FRAME_TYPE)
-                {
-                    int handleId = in.getUnsignedShort();
-                    long messageNbr = in.getUnsignedInt();
-                    long fragmentSize = in.getUnsignedInt();
-                    if (totalRemaining < frameSize + fragmentSize)
-                    {
-                        return MessageDecoderResult.NEED_DATA;
-                    }
-                    else
-                    {
-                        return MessageDecoderResult.OK;
-                    }
-                }
-                /*else if (size < frameSize)
-                {
-                    return MessageDecoderResult.NEED_DATA;
-                }*/
-                else
-                {
-                    return MessageDecoderResult.NOT_OK;
-                }
-            }
-
-            protected Object createAndPopulateFrame(ByteBuffer in)
-                    throws AMQFrameDecodingException
-            {
-                long frameSize = readFrameSize(in);
-
-                short frameType = in.getUnsigned();
-                Handle.Notify frame = new Handle.Notify();
-
-                frame.populateFromBuffer(in);
-
-                return frame;
-            }
-        }
     }
 
     public static final class Reply extends AMQCommandFrame

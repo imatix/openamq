@@ -5,9 +5,9 @@ import org.openamq.client.AMQException;
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
-public interface FrameListener
+public interface AMQMethodListener
 {
-    void frameReceived(FrameEvent evt) throws AMQException;
+    void methodReceived(AMQMethodEvent evt) throws AMQException;
 
     /**
      * Callback when an error has occurred. Allows listeners to clean up.

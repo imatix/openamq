@@ -10,7 +10,7 @@ import org.apache.log4j.*;
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
-public class HandleNotifyHandler implements StateAwareFrameListener
+public class HandleNotifyHandler implements StateAwareMethodListener
 {
     private static final Logger _logger = Logger.getLogger(HandleNotifyHandler.class);
 
@@ -21,9 +21,9 @@ public class HandleNotifyHandler implements StateAwareFrameListener
         return _instance;
     }
 
-    public void frameReceived(AMQStateManager stateManager, FrameEvent evt) throws AMQException
+    public void methodReceived(AMQStateManager stateManager, AMQMethodEvent evt) throws AMQException
     {
-        final Handle.Notify frame = (Handle.Notify) evt.getFrame();
+        /*final Handle.Notify frame = (Handle.Notify) evt.getFrame();
         final AMQProtocolSession session = evt.getProtocolSession();
 
         //
@@ -41,6 +41,7 @@ public class HandleNotifyHandler implements StateAwareFrameListener
         {
             _logger.debug("Calling protocol session to indicate message has been received");
         }
-        session.messageReceived(msg);
+        session.messageReceived(msg);*/
+        throw new AMQException("Amazing - receive a frame that does not exist");
     }
 }

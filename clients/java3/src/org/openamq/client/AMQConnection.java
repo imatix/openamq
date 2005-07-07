@@ -1,8 +1,10 @@
 package org.openamq.client;
 
+import org.openamq.client.framing.AMQFrame;
 import org.openamq.client.framing.Channel;
+import org.openamq.client.framing.ChannelOpenBody;
 import org.openamq.client.protocol.AMQProtocolHandler;
-import org.openamq.client.state.listener.ChannelReplyListener;
+import org.openamq.client.state.listener.ChannelOpenOkListener;
 import org.openamq.client.state.AMQState;
 import org.openamq.client.transport.TransportConnection;
 import org.openamq.jms.ChannelLimitReachedException;
@@ -106,12 +108,10 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
         else
         {
             // TODO: check thread safety
-            int channelId = _idFactory.getChannelId();
-            Channel.Open frame = new Channel.Open();
-            frame.channelId = channelId;
-            frame.confirmTag = 1;
-            frame.transacted = transacted;
-            frame.restartable = false;
+            short channelId = _idFactory.getChannelId();
+            AMQFrame frame = ChannelOpenBody.createAMQFrame(channelId, _virtualPath, 100,
+                                                            null);
+            
             if (_logger.isDebugEnabled())
             {
                 _logger.debug("Write channel open frame for channel id " + channelId);
@@ -125,7 +125,7 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
             _sessions.put(new Integer(channelId), session);
             try
             {
-                _protocolHandler.writeCommandFrameAndWaitForReply(frame, new ChannelReplyListener(channelId));
+                _protocolHandler.writeCommandFrameAndWaitForReply(frame, new ChannelOpenOkListener(channelId));
             }
             catch (AMQException e)
             {

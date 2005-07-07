@@ -184,15 +184,15 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
         _session.deregisterConsumerHandleId(_handleId);
         Handle.Close frame = new Handle.Close();
         frame.handleId = _handleId;
-        try
-        {
-            _protocolHandler.writeCommandFrameAndWaitForReply(frame,
-                                                              new HandleCloseListener(_handleId));
-        }
-        catch (AMQException e)
-        {
-            throw new JMSException("Error closing consumer: " + e);
-        }
+//        try
+//        {
+//            _protocolHandler.writeCommandFrameAndWaitForReply(frame,
+//                                                              new HandleCloseListener(_handleId));
+//        }
+//        catch (AMQException e)
+//        {
+//            throw new JMSException("Error closing consumer: " + e);
+//        }
     }
 
     public void notifyMessage(UnprocessedMessage messageFrame, int acknowledgeMode, int channelId)

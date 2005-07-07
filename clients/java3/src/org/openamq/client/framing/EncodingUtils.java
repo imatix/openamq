@@ -176,6 +176,24 @@ public class EncodingUtils
         buffer.put(packedValue);
     }
 
+    /**
+     * This is used for writing longstrs.
+     * @param buffer
+     * @param data
+     */
+    public static void writeLongstr(ByteBuffer buffer, byte[] data)
+    {
+        if (data != null)
+        {
+            EncodingUtils.writeUnsignedShort(buffer, data.length);
+            buffer.put(data);
+        }
+        else
+        {
+            EncodingUtils.writeUnsignedShort(buffer, 0);
+        }        
+    }
+    
     public static boolean[] readBooleans(ByteBuffer buffer)
     {
         byte packedValue = buffer.get();
@@ -225,7 +243,7 @@ public class EncodingUtils
 
     public static String readLongString(ByteBuffer buffer) throws AMQFrameDecodingException
     {
-        short length = buffer.getShort();
+        int length = buffer.getUnsignedShort();
         if (length == 0)
         {
             return null;
@@ -242,6 +260,21 @@ public class EncodingUtils
             {
                 throw new AMQFrameDecodingException("Unable to decode long string: " + e, e);
             }
+        }
+    }
+    
+    public static byte[] readLongstr(ByteBuffer buffer) throws AMQFrameDecodingException
+    {
+        int length = buffer.getUnsignedShort();
+        if (length == 0)
+        {
+            return null;
+        }
+        else
+        {
+            byte[] result = new byte[length];
+            buffer.get(result);
+            return result;
         }
     }
     

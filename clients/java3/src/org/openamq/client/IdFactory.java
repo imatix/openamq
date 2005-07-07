@@ -5,7 +5,7 @@ public class IdFactory
 {
     private Object[] _locks = new Object[2];
     
-    private int[] _counters = new int[2];
+    private short[] _counters = new short[2];
     
     private static final int CHANNEL_ID = 0;
     
@@ -21,7 +21,7 @@ public class IdFactory
         }
     }
     
-    public int getChannelId()
+    public short getChannelId()
     {
         synchronized (_locks[CHANNEL_ID])
         {

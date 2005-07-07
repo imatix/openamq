@@ -194,15 +194,15 @@ public class AMQMessageProducer extends Closeable implements MessageProducer
             Integer handleId = (Integer) it.next();
             Handle.Close frame = new Handle.Close();
             frame.handleId = handleId.intValue();
-            try
-            {
-                _protocolHandler.writeCommandFrameAndWaitForReply(frame,
-                                                                  new HandleCloseListener(handleId.intValue()));
-            }
-            catch (AMQException e)
-            {
-                throw new JMSException("Error closing producer: " + e);
-            }
+//            try
+//            {
+//                _protocolHandler.writeCommandFrameAndWaitForReply(frame,
+//                                                                  new HandleCloseListener(handleId.intValue()));
+//            }
+//            catch (AMQException e)
+//            {
+//                throw new JMSException("Error closing producer: " + e);
+//            }
         }
     }
 
@@ -298,8 +298,8 @@ public class AMQMessageProducer extends Closeable implements MessageProducer
     private void openHandle(AMQDestination amqd) throws AMQException
     {
         Handle.Open frame = createHandleOpenFrame(true, 1);
-        _protocolHandler.writeCommandFrameAndWaitForReply(frame,
-                                                          new HandleReplyListener(frame.handleId));
+//        _protocolHandler.writeCommandFrameAndWaitForReply(frame,
+//                                                          new HandleReplyListener(frame.handleId));
         _handleMap.put(amqd, new Integer(frame.handleId));
     }
 

@@ -9,44 +9,41 @@ package org.openamq.client.protocol;
 
 import org.apache.log4j.Logger;
 import org.openamq.client.AMQException;
+import org.openamq.client.framing.AMQFrame;
 import org.openamq.client.framing.Channel;
+import org.openamq.client.framing.ChannelCloseBody;
+import org.openamq.client.framing.ChannelCloseOkBody;
 import org.openamq.client.state.AMQStateManager;
-import org.openamq.client.state.StateAwareFrameListener;
+import org.openamq.client.state.StateAwareMethodListener;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
-public class ChannelCloseHandler implements StateAwareFrameListener
+public class ChannelCloseMethodHandler implements StateAwareMethodListener
 {
-    private static final Logger _logger = Logger.getLogger(ChannelCloseHandler.class);
+    private static final Logger _logger = Logger.getLogger(ChannelCloseMethodHandler.class);
 
-    private static ChannelCloseHandler _handler = new ChannelCloseHandler();
+    private static ChannelCloseMethodHandler _handler = new ChannelCloseMethodHandler();
 
-    public static ChannelCloseHandler getInstance()
+    public static ChannelCloseMethodHandler getInstance()
     {
         return _handler;
     }
 
-    public void frameReceived(AMQStateManager stateManager, FrameEvent evt) throws AMQException
+    public void methodReceived(AMQStateManager stateManager, AMQMethodEvent evt) throws AMQException
     {
-         _logger.debug("ChannelClose frame received");
-        Channel.Close frame = (Channel.Close) evt.getFrame();
+         _logger.debug("ChannelClose method received");
+        ChannelCloseBody method = (ChannelCloseBody) evt.getMethod();
 
-        int errorCode = frame.replyCode;
-        String reason = frame.replyText;
+        int errorCode = method.replyCode;
+        String reason = method.replyText;
         if (_logger.isDebugEnabled())
         {
             _logger.debug("Channel close reply code: " + errorCode + ", reason: " + reason);
         }
-        // returns true if this frame requires the client to respond to the server,
-        // i.e. if the server initiated the close not the client itself.
-        if (evt.getProtocolSession().channelClosed(frame.channelId, errorCode,
-                                                   reason))
-        {
-            frame.replyCode = 200;
-            frame.replyText = "Client says au revoir";
-            evt.getProtocolSession().writeFrame(frame);
-        }
+        
+        AMQFrame frame = ChannelCloseOkBody.createAMQFrame(evt.getChannelId());
+        evt.getProtocolSession().writeFrame(frame);
         if (errorCode != 200)
         {
             _logger.debug("Channel close received with errorCode " + errorCode + ", throwing exception");

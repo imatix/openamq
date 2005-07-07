@@ -1,6 +1,8 @@
 package org.openamq.client.state.listener;
 
-import org.openamq.client.framing.AMQFrame;
+import org.openamq.client.AMQException;
+import org.openamq.client.framing.AMQDataBlock;
+import org.openamq.client.framing.AMQMethodBody;
 import org.openamq.client.framing.Handle;
 import org.openamq.client.framing.AMQCommandFrame;
 import org.openamq.client.framing.Channel;
@@ -33,5 +35,10 @@ public class HandleReplyListener extends BlockingCommandFrameListener
         {
             return false;
         }
+    }
+
+    public boolean processMethod(short channelId, AMQMethodBody frame) throws AMQException
+    {
+        throw new AMQException("HandleReply frame received!!");
     }
 }

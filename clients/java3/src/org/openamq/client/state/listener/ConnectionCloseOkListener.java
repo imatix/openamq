@@ -9,33 +9,20 @@ package org.openamq.client.state.listener;
 
 import org.openamq.client.protocol.BlockingCommandFrameListener;
 import org.openamq.client.framing.AMQCommandFrame;
+import org.openamq.client.framing.AMQMethodBody;
 import org.openamq.client.framing.Channel;
+import org.openamq.client.framing.ChannelCloseOkBody;
 import org.openamq.client.framing.Connection;
+import org.openamq.client.framing.ConnectionCloseOkBody;
 import org.openamq.client.AMQException;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
-public class ConnectionCloseListener extends BlockingCommandFrameListener
+public class ConnectionCloseOkListener extends BlockingCommandFrameListener
 {
-    public boolean processCommandFrame(AMQCommandFrame frame) throws AMQException
+    public boolean processMethod(short channelId, AMQMethodBody frame) throws AMQException
     {
-        if (frame.getType() == Connection.Close.FRAME_TYPE)
-        {
-            Connection.Close reply = (Connection.Close) frame;
-
-            if (reply.replyCode == 200)
-            {
-                return true;
-            }
-            else
-            {
-                throw new AMQException(reply.replyCode, "Abnormal connection close: " + reply.replyText);
-            }
-        }
-        else
-        {
-            return false;
-        }
-    }
+        return (frame instanceof ConnectionCloseOkBody);
+    }    
 }

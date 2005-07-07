@@ -7,9 +7,10 @@ import org.apache.mina.protocol.ProtocolSession;
 import org.openamq.client.AMQConnection;
 import org.openamq.client.AMQSession;
 import org.openamq.client.ConnectionTuneParameters;
-import org.openamq.client.framing.AMQFrame;
+import org.openamq.client.framing.AMQDataBlock;
 import org.openamq.client.framing.Connection;
 import org.openamq.client.framing.Channel;
+import org.openamq.client.framing.ProtocolInitiation;
 import org.openamq.client.message.UnprocessedMessage;
 
 import javax.jms.JMSException;
@@ -66,7 +67,8 @@ public class AMQProtocolSession
 
         // start the process of setting up the connection. This is the first place that
         // data is written to the server.
-        _protocolSession.write(new Connection.Initiation());
+                
+        _protocolSession.write(new ProtocolInitiation());
     }
 
     public String getClientID()
@@ -82,6 +84,11 @@ public class AMQProtocolSession
         }
     }
 
+    public void setClientID(String clientID) throws JMSException
+    {
+        getAMQConnection().setClientID(clientID);
+    }
+    
     public String getVirtualPath()
     {
         return getAMQConnection().getVirtualPath();
@@ -163,7 +170,7 @@ public class AMQProtocolSession
      *
      * @param frame the frame to write
      */
-    public void writeFrame(AMQFrame frame)
+    public void writeFrame(AMQDataBlock frame)
     {
         _protocolSession.write(frame);
     }

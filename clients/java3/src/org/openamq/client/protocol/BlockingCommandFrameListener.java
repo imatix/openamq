@@ -1,17 +1,18 @@
 package org.openamq.client.protocol;
 
 import org.openamq.client.AMQException;
-import org.openamq.client.framing.AMQFrame;
+import org.openamq.client.framing.AMQDataBlock;
 import org.openamq.client.framing.AMQCommandFrame;
+import org.openamq.client.framing.AMQMethodBody;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
-public abstract class BlockingCommandFrameListener implements FrameListener
+public abstract class BlockingCommandFrameListener implements AMQMethodListener
 {
     private volatile boolean _ready = false;
 
-    public abstract boolean processCommandFrame(AMQCommandFrame frame) throws AMQException;
+    public abstract boolean processMethod(short channelId, AMQMethodBody frame) throws AMQException;
 
     private final Object _lock = new Object();
 
@@ -27,33 +28,31 @@ public abstract class BlockingCommandFrameListener implements FrameListener
      * @param evt the frame event
      * @throws AMQException
      */
-    public void frameReceived(FrameEvent evt) throws AMQException
+    public void methodReceived(AMQMethodEvent evt) throws AMQException
     {
-        AMQFrame frame = evt.getFrame();
-        if (frame instanceof AMQCommandFrame)
+        AMQMethodBody method = evt.getMethod();
+        
+        try
         {
-            try
+            boolean ready = processMethod(evt.getChannelId(), method);
+            if (ready)
             {
-                boolean ready = processCommandFrame((AMQCommandFrame)frame);
-                if (ready)
+                // we only update the flag from inside the synchronized block
+                // so that the blockForFrame method cannot "miss" an update - it
+                // will only ever read the flag from within the synchronized block
+                synchronized (_lock)
                 {
-                    // we only update the flag from inside the synchronized block
-                    // so that the blockForFrame method cannot "miss" an update - it
-                    // will only ever read the flag from within the synchronized block
-                    synchronized (_lock)
-                    {
-                        _ready = ready;
-                        _lock.notify();
-                    }
+                    _ready = ready;
+                    _lock.notify();
                 }
             }
-            catch (AMQException e)
-            {
-                error(e);
-                // we rethrow the error here, and the code in the frame dispatcher will go round
-                // each listener informing them that an exception has been thrown
-                throw e;
-            }
+        }
+        catch (AMQException e)
+        {
+            error(e);
+            // we rethrow the error here, and the code in the frame dispatcher will go round
+            // each listener informing them that an exception has been thrown
+            throw e;
         }
     }
 

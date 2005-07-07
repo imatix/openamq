@@ -1,11 +1,8 @@
 package org.openamq.client;
 
 import org.openamq.jms.Session;
-import org.openamq.client.framing.EncodingUtils;
 import org.openamq.client.framing.Handle;
 import org.openamq.client.framing.Channel;
-import org.openamq.client.state.listener.HandleReplyListener;
-import org.openamq.client.state.listener.ChannelReplyListener;
 import org.openamq.client.message.UnprocessedMessage;
 import org.openamq.client.message.MessageFactoryRegistry;
 
@@ -240,14 +237,14 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         frame.channelId = _channelId;
         frame.confirmTag = 1;
 
-        try
-        {
-            _connection.getProtocolHandler().writeCommandFrameAndWaitForReply(frame, new ChannelReplyListener(_channelId));
-        }
-        catch (AMQException e)
-        {
-            throw new JMSException("Error creating session: " + e);
-        }
+//        try
+//        {
+//            _connection.getProtocolHandler().writeCommandFrameAndWaitForReply(frame, new ChannelReplyListener(_channelId));
+//        }
+//        catch (AMQException e)
+//        {
+//            throw new JMSException("Error creating session: " + e);
+//        }
         _logger.info("Transaction commited on channel " + _channelId);
     }
 
@@ -260,14 +257,14 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         frame.channelId = _channelId;
         frame.confirmTag = 1;
 
-        try
-        {
-            _connection.getProtocolHandler().writeCommandFrameAndWaitForReply(frame, new ChannelReplyListener(_channelId));
-        }
-        catch (AMQException e)
-        {
-            throw new JMSException("Error rolling back session: " + e);
-        }
+//        try
+//        {
+//            _connection.getProtocolHandler().writeCommandFrameAndWaitForReply(frame, new ChannelReplyListener(_channelId));
+//        }
+//        catch (AMQException e)
+//        {
+//            throw new JMSException("Error rolling back session: " + e);
+//        }
         _logger.info("Transaction rolled back on channel " + _channelId);
     }
 
@@ -351,15 +348,15 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
             AMQMessageProducer producer = new AMQMessageProducer(amqd, _transacted, frame.handleId,
                                                                  _connection.getProtocolHandler(), _channelId,
                                                                  _idFactory, this);
-            try
-            {
-                _connection.getProtocolHandler().writeCommandFrameAndWaitForReply(frame,
-                                                                                  new HandleReplyListener(frame.handleId));
-            }
-            catch (AMQException e)
-            {
-                throw new JMSException("Error creating producer: " + e);
-            }
+//            try
+//            {
+//                _connection.getProtocolHandler().writeCommandFrameAndWaitForReply(frame,
+//                                                                                  new HandleReplyListener(frame.handleId));
+//            }
+//            catch (AMQException e)
+//            {
+//                throw new JMSException("Error creating producer: " + e);
+//            }
             return producer;
         }
     }
@@ -412,46 +409,46 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                                                                  _connection.getProtocolHandler());
             registerConsumerHandleId(frame.handleId, consumer);
 
-            try
-            {
-                _connection.getProtocolHandler().writeCommandFrameAndWaitForReply(frame,
-                                                                                  new HandleReplyListener(frame.handleId));
-
-                Handle.Consume consumeFrame = new Handle.Consume();
-                consumeFrame.handleId = frame.handleId;
-                consumeFrame.confirmTag = 1;
-                consumeFrame.serviceType = amqd.getServiceType();
-                consumeFrame.prefetch = prefetch;
-                consumeFrame.noLocal = noLocal;
-                consumeFrame.noAck = (_acknowledgeMode == Session.NO_ACKNOWLEDGE);
-                consumeFrame.dynamic = dynamic;
-                consumeFrame.exclusive = exclusive;
-                consumeFrame.destName = amqd.getName();
-
-                if (selector != null)
-                {
-                    try
-                    {
-                        consumeFrame.selector = EncodingUtils.createFieldTableFromMessageSelector(selector);
-                    }
-                    catch(IllegalArgumentException e)
-                    {
-                        throw new JMSException("Failed to parse message selector: " + e);
-                    }
-                }
-                else
-                {
-                    consumeFrame.selector = null;
-                }
-
-                _connection.getProtocolHandler().writeCommandFrameAndWaitForReply(consumeFrame,
-                                                                                  new HandleReplyListener(frame.handleId));
-            }
-            catch (AMQException e)
-            {
-                deregisterConsumerHandleId(frame.handleId);
-                throw new JMSException("Error creating consumer: " + e);
-            }
+//            try
+//            {
+//                _connection.getProtocolHandler().writeCommandFrameAndWaitForReply(frame,
+//                                                                                  new HandleReplyListener(frame.handleId));
+//
+//                Handle.Consume consumeFrame = new Handle.Consume();
+//                consumeFrame.handleId = frame.handleId;
+//                consumeFrame.confirmTag = 1;
+//                consumeFrame.serviceType = amqd.getServiceType();
+//                consumeFrame.prefetch = prefetch;
+//                consumeFrame.noLocal = noLocal;
+//                consumeFrame.noAck = (_acknowledgeMode == Session.NO_ACKNOWLEDGE);
+//                consumeFrame.dynamic = dynamic;
+//                consumeFrame.exclusive = exclusive;
+//                consumeFrame.destName = amqd.getName();
+//
+//                if (selector != null)
+//                {
+//                    try
+//                    {
+//                        consumeFrame.selector = EncodingUtils.createFieldTableFromMessageSelector(selector);
+//                    }
+//                    catch(IllegalArgumentException e)
+//                    {
+//                        throw new JMSException("Failed to parse message selector: " + e);
+//                    }
+//                }
+//                else
+//                {
+//                    consumeFrame.selector = null;
+//                }
+//
+//                _connection.getProtocolHandler().writeCommandFrameAndWaitForReply(consumeFrame,
+//                                                                                  new HandleReplyListener(frame.handleId));
+//            }
+//            catch (AMQException e)
+//            {
+//                deregisterConsumerHandleId(frame.handleId);
+//                throw new JMSException("Error creating consumer: " + e);
+//            }
 
             return consumer;
         }

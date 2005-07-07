@@ -5,6 +5,8 @@ import org.apache.log4j.Logger;
 import org.openamq.client.AMQException;
 import org.openamq.client.ConnectionTuneParameters;
 import org.openamq.client.framing.Connection;
+import org.openamq.client.framing.ConnectionCloseBody;
+import org.openamq.client.framing.ConnectionCloseOkBody;
 import org.openamq.client.framing.FieldTable;
 import org.openamq.client.state.*;
 
@@ -15,32 +17,31 @@ import java.util.Map;
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
-public class ConnectionCloseHandler implements StateAwareFrameListener
+public class ConnectionCloseMethodHandler implements StateAwareMethodListener
 {
-    private static final Logger _logger = Logger.getLogger(ConnectionCloseHandler.class);
+    private static final Logger _logger = Logger.getLogger(ConnectionCloseMethodHandler.class);
 
-    private static ConnectionCloseHandler _handler = new ConnectionCloseHandler();
+    private static ConnectionCloseMethodHandler _handler = new ConnectionCloseMethodHandler();
 
-    public static ConnectionCloseHandler getInstance()
+    public static ConnectionCloseMethodHandler getInstance()
     {
         return _handler;
     }
 
-    private ConnectionCloseHandler()
+    private ConnectionCloseMethodHandler()
     {
     }
 
-    public void frameReceived(AMQStateManager stateManager, FrameEvent evt) throws AMQException
+    public void methodReceived(AMQStateManager stateManager, AMQMethodEvent evt) throws AMQException
     {
         _logger.debug("ConnectionClose frame received");
-        Connection.Close frame = (Connection.Close) evt.getFrame();
+        ConnectionCloseBody method = (ConnectionCloseBody) evt.getMethod();
 
-        int errorCode = frame.replyCode;
-        String reason = frame.replyText;
-
-        frame.replyCode = 200;
-        frame.replyText = "Client says au revoir";
-
+        int errorCode = method.replyCode;
+        String reason = method.replyText;
+        
+        // TODO: check whether channel id of zero is appropriate
+        evt.getProtocolSession().writeFrame(ConnectionCloseOkBody.createAMQFrame((short)0));
         if (errorCode == 200)
         {
             stateManager.changeState(AMQState.CONNECTION_CLOSED);
@@ -50,7 +51,7 @@ public class ConnectionCloseHandler implements StateAwareFrameListener
             throw new AMQException(errorCode, "Error: " + reason);
         }
 
-        evt.getProtocolSession().writeFrame(frame);
+
         // this actually closes the connection
         evt.getProtocolSession().closeProtocolSession();
     }

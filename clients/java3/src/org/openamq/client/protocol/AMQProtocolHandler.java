@@ -9,12 +9,14 @@ import org.openamq.client.AMQConnection;
 import org.openamq.client.AMQSession;
 import org.openamq.client.AMQException;
 import org.openamq.client.framing.AMQCommandFrame;
+import org.openamq.client.framing.AMQDataBlock;
 import org.openamq.client.framing.AMQFrame;
+import org.openamq.client.framing.AMQMethodBody;
 import org.openamq.client.framing.Connection;
 import org.openamq.client.state.AMQState;
 import org.openamq.client.state.AMQStateManager;
-import org.openamq.client.state.listener.ChannelCloseListener;
-import org.openamq.client.state.listener.ConnectionCloseListener;
+import org.openamq.client.state.listener.ChannelCloseOkListener;
+import org.openamq.client.state.listener.ConnectionCloseOkListener;
 
 import java.util.Iterator;
 
@@ -55,12 +57,12 @@ public class AMQProtocolHandler implements ProtocolHandler
     public void sessionOpened(ProtocolSession session) throws Exception
     {
         // TODO: remove once upgraded to MINA 0.7.2
-	// Then sessionCreated should get called.
-	// This null check suffices for now across both versions.
-	if (_protocolSession == null)
-	{
-		_protocolSession = new AMQProtocolSession(session, _connection);
-	}
+    	// Then sessionCreated should get called.
+    	// This null check suffices for now across both versions.
+    	if (_protocolSession == null)
+    	{
+    		_protocolSession = new AMQProtocolSession(session, _connection);
+    	}
     }
 
     public void sessionClosed(ProtocolSession session) throws Exception
@@ -82,24 +84,29 @@ public class AMQProtocolHandler implements ProtocolHandler
     public void messageReceived(ProtocolSession session, Object message) throws Exception
     {
         Iterator it = _frameListeners.iterator();
-        final FrameEvent evt = new FrameEvent((AMQFrame) message, _protocolSession);
-        try
+        AMQFrame frame = (AMQFrame) message;
+        
+        if (frame.bodyFrame instanceof AMQMethodBody)
         {
-            while (it.hasNext())
+            final AMQMethodEvent evt = new AMQMethodEvent(frame.channel, (AMQMethodBody)frame.bodyFrame, _protocolSession);
+            try
             {
-                final FrameListener listener = (FrameListener) it.next();
-                listener.frameReceived(evt);
+                while (it.hasNext())
+                {
+                    final AMQMethodListener listener = (AMQMethodListener) it.next();
+                    listener.methodReceived(evt);
+                }
             }
-        }
-        catch (AMQException e)
-        {
-            it = _frameListeners.iterator();
-            while (it.hasNext())
+            catch (AMQException e)
             {
-                final FrameListener listener = (FrameListener) it.next();
-                listener.error(e);
+                it = _frameListeners.iterator();
+                while (it.hasNext())
+                {
+                    final AMQMethodListener listener = (AMQMethodListener) it.next();
+                    listener.error(e);
+                }
             }
-        }
+        }           
     }
 
     public void messageSent(ProtocolSession session, Object message) throws Exception
@@ -110,12 +117,12 @@ public class AMQProtocolHandler implements ProtocolHandler
         }
     }
 
-    public void addFrameListener(FrameListener listener)
+    public void addFrameListener(AMQMethodListener listener)
     {
         _frameListeners.add(listener);
     }
 
-    public void removeFrameListener(FrameListener listener)
+    public void removeFrameListener(AMQMethodListener listener)
     {
         _frameListeners.remove(listener);
     }
@@ -131,7 +138,7 @@ public class AMQProtocolHandler implements ProtocolHandler
      *
      * @param frame the frame to write
      */
-    public void writeFrame(AMQFrame frame)
+    public void writeFrame(AMQDataBlock frame)
     {
         _protocolSession.writeFrame(frame);
     }
@@ -143,7 +150,7 @@ public class AMQProtocolHandler implements ProtocolHandler
      * @param frame
      * @param listener the blocking listener. Note the calling thread will block.
      */
-    public void writeCommandFrameAndWaitForReply(AMQCommandFrame frame,
+    public void writeCommandFrameAndWaitForReply(AMQFrame frame,
                                                  BlockingCommandFrameListener listener)
         throws AMQException
     {
@@ -201,7 +208,7 @@ public class AMQProtocolHandler implements ProtocolHandler
 
     public void closeSession(AMQSession session) throws AMQException
     {
-        BlockingCommandFrameListener listener = new ChannelCloseListener(session.getChannelId());
+        BlockingCommandFrameListener listener = new ChannelCloseOkListener(session.getChannelId());
         _frameListeners.add(listener);
         _protocolSession.closeSession(session);
         _logger.debug("Blocking for channel close frame for channel " + session.getChannelId());
@@ -213,7 +220,7 @@ public class AMQProtocolHandler implements ProtocolHandler
 
     public void closeConnection() throws AMQException
     {
-        BlockingCommandFrameListener listener = new ConnectionCloseListener();
+        BlockingCommandFrameListener listener = new ConnectionCloseOkListener();
         _frameListeners.add(listener);
         _stateManager.changeState(AMQState.CONNECTION_CLOSING);
         final Connection.Close frame = new Connection.Close();

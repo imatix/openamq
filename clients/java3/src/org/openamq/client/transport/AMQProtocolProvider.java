@@ -4,9 +4,9 @@ import org.apache.mina.protocol.ProtocolCodecFactory;
 import org.apache.mina.protocol.ProtocolHandler;
 import org.apache.mina.protocol.ProtocolProvider;
 import org.apache.mina.protocol.codec.DemuxingProtocolCodecFactory;
-import org.openamq.client.framing.AMQFrameEncoder;
+import org.openamq.client.framing.AMQDataBlockEncoder;
 import org.openamq.client.framing.Connection;
-import org.openamq.client.framing.AMQCommandFrameDecoder;
+import org.openamq.client.framing.AMQDataBlockDecoder;
 import org.openamq.client.framing.Handle;
 import org.openamq.client.AMQConnection;
 import org.openamq.client.protocol.AMQProtocolHandler;
@@ -24,10 +24,8 @@ public class AMQProtocolProvider implements ProtocolProvider
     public AMQProtocolProvider(AMQConnection connection)
     {
         _factory = new DemuxingProtocolCodecFactory();
-        _factory.register(AMQFrameEncoder.class);
-        _factory.register(Connection.Initiation.Decoder.class);
-        _factory.register(AMQCommandFrameDecoder.class);
-        _factory.register(Handle.Notify.Decoder.class);
+        _factory.register(AMQDataBlockEncoder.class);        
+        _factory.register(AMQDataBlockDecoder.class);        
         _handler = new AMQProtocolHandler(connection);
     }
 

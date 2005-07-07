@@ -1,6 +1,6 @@
 package org.openamq.client.state;
 
-import org.openamq.client.protocol.FrameEvent;
+import org.openamq.client.protocol.AMQMethodEvent;
 import org.openamq.client.AMQException;
 
 /**
@@ -9,7 +9,7 @@ import org.openamq.client.AMQException;
  *
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
-public interface StateAwareFrameListener
+public interface StateAwareMethodListener
 {
-    void frameReceived(AMQStateManager stateManager, FrameEvent evt) throws AMQException;
+    void methodReceived(AMQStateManager stateManager, AMQMethodEvent evt) throws AMQException;
 }

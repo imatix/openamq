@@ -1,5 +1,7 @@
 package org.openamq.client;
 
+import org.apache.log4j.Logger;
+
 /**
  * Generic AMQ exception.
  */
@@ -27,6 +29,24 @@ public class AMQException extends Exception
     {
         super(msg + " [error code " + errorCode + ']');
         _errorCode = errorCode;
+    }
+    
+    public AMQException(Logger logger, String msg, Throwable t)
+    {
+        this(msg, t);
+        logger.error(getMessage(), this);
+    }
+    
+    public AMQException(Logger logger, String msg)
+    {
+        this(msg);
+        logger.error(getMessage(), this);
+    }
+    
+    public AMQException(Logger logger, int errorCode, String msg)
+    {
+        this(errorCode, msg);
+        logger.error(getMessage(), this);
     }
     
     public int getErrorCode()

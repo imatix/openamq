@@ -93,6 +93,36 @@ public class FieldTable extends LinkedHashMap
         }
     }
 
+    public byte[] getDataAsBytes()
+    {
+        final ByteBuffer buffer = ByteBuffer.allocate(_encodedSize);
+        final Iterator it = this.entrySet().iterator();
+        while (it.hasNext())
+        {
+            Map.Entry me = (Map.Entry) it.next();
+            String key = (String) me.getKey();
+            EncodingUtils.writeShortStringBytes(buffer, key);
+            Object value = me.getValue();
+            if (value instanceof String)
+            {
+                // TODO: look at using proper charset encoder
+                buffer.put((byte)'S');
+                EncodingUtils.writeLongStringBytes(buffer, (String) value);
+            }
+            else if (value instanceof Long)
+            {
+                // TODO: look at using proper charset encoder
+                buffer.put((byte)'I');
+                EncodingUtils.writeUnsignedInteger(buffer, ((Long)value).longValue());
+            }
+        }
+        final byte[] result = new byte[_encodedSize]; 
+        buffer.flip();
+        buffer.get(result);
+        buffer.release();
+        return result;
+    }
+    
     public Object put(Object key, Object value)
     {
         if (!(key instanceof String))
