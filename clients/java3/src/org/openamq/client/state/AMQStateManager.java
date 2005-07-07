@@ -6,6 +6,7 @@ import org.openamq.client.framing.ChannelCloseBody;
 import org.openamq.client.framing.Connection;
 import org.openamq.client.framing.ConnectionCloseBody;
 import org.openamq.client.framing.ConnectionOpenOkBody;
+import org.openamq.client.framing.ConnectionSecureBody;
 import org.openamq.client.framing.ConnectionTuneBody;
 import org.openamq.client.framing.Handle;
 import org.openamq.client.framing.Channel;
@@ -45,7 +46,7 @@ public class AMQStateManager implements AMQMethodListener
 
     public AMQStateManager()
     {
-        _currentState = AMQState.CONNECTION_NOT_AUTHENTICATED;
+        _currentState = AMQState.CONNECTION_NOT_STARTED;
         registerListeners();
     }
 
@@ -60,13 +61,18 @@ public class AMQStateManager implements AMQMethodListener
         _state2HandlersMap.put(null, frame2handlerMap);
         
         frame2handlerMap = new HashMap();
-        frame2handlerMap.put(ConnectionStartBody.class, ConnectionStartMethodHandler.getInstance());
-        frame2handlerMap.put(ConnectionTuneBody.class, ConnectionTuneMethodHandler.getInstance());
-        frame2handlerMap.put(ConnectionOpenOkBody.class, ConnectionOpenOkMethodHandler.getInstance());
-        //frame2handlerMap.put(Connection.Tune.class, ConnectionTuneHandler.getInstance());
-        //frame2handlerMap.put(Connection.Close.class, ConnectionCloseHandler.getInstance());
-        _state2HandlersMap.put(AMQState.CONNECTION_NOT_AUTHENTICATED, frame2handlerMap);
+        frame2handlerMap.put(ConnectionStartBody.class, ConnectionStartMethodHandler.getInstance());        
+        _state2HandlersMap.put(AMQState.CONNECTION_NOT_STARTED, frame2handlerMap);
 
+        frame2handlerMap = new HashMap();        
+        frame2handlerMap.put(ConnectionTuneBody.class, ConnectionTuneMethodHandler.getInstance());
+        frame2handlerMap.put(ConnectionSecureBody.class, ConnectionSecureMethodHandler.getInstance());
+        _state2HandlersMap.put(AMQState.CONNECTION_NOT_TUNED, frame2handlerMap);
+
+        frame2handlerMap = new HashMap();
+        frame2handlerMap.put(ConnectionOpenOkBody.class, ConnectionOpenOkMethodHandler.getInstance());
+        _state2HandlersMap.put(AMQState.CONNECTION_NOT_OPENED, frame2handlerMap);
+        
         //
         // ConnectionOpen handlers
         //
@@ -106,13 +112,15 @@ public class AMQStateManager implements AMQMethodListener
         }
     }
 
-    public void methodReceived(AMQMethodEvent evt) throws AMQException
+    public boolean methodReceived(AMQMethodEvent evt) throws AMQException
     {
         StateAwareMethodListener handler = findStateTransitionHandler(_currentState, evt.getMethod());
         if (handler != null)
         {
             handler.methodReceived(this, evt);
+            return true;
         }
+        return false;
     }
 
     private StateAwareMethodListener findStateTransitionHandler(AMQState currentState,

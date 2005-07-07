@@ -34,4 +34,12 @@ public class AMQMethodEvent
     {
         return _protocolSession;
     }
+    
+    public String toString()
+    {
+        StringBuffer buf = new StringBuffer("Method event: ");
+        buf.append("\nChannel id: ").append(_channelId);
+        buf.append("\nMethod: ").append(_method);
+        return buf.toString();
+    }
 }

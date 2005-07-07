@@ -8,7 +8,6 @@ import org.openamq.client.message.AbstractMessage;
 import org.openamq.client.message.MessageFactoryRegistry;
 import org.openamq.client.message.UnprocessedMessage;
 import org.openamq.client.protocol.AMQProtocolHandler;
-import org.openamq.client.state.listener.HandleCloseListener;
 import org.openamq.jms.MessageConsumer;
 import org.openamq.jms.Session;
 

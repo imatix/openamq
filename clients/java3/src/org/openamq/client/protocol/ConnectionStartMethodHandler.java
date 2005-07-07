@@ -9,6 +9,7 @@ import org.openamq.client.AMQException;
 import org.openamq.client.framing.ConnectionStartBody;
 import org.openamq.client.framing.ConnectionStartOkBody;
 import org.openamq.client.framing.FieldTable;
+import org.openamq.client.state.AMQState;
 import org.openamq.client.state.AMQStateManager;
 import org.openamq.client.state.StateAwareMethodListener;
 
@@ -70,6 +71,7 @@ public class ConnectionStartMethodHandler implements StateAwareMethodListener
             }        
                 
             byte[] encodedResponse = response.getDataAsBytes();
+            stateManager.changeState(AMQState.CONNECTION_NOT_TUNED);
             ps.writeFrame(ConnectionStartOkBody.createAMQFrame(evt.getChannelId(), selectedMechanism, encodedResponse,
                                                 selectedLocale));
         }

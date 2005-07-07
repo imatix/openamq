@@ -26,9 +26,10 @@ public abstract class BlockingCommandFrameListener implements AMQMethodListener
      * This method is called by the MINA dispatching thread. Note that it could
      * be called before blockForFrame() has been called.
      * @param evt the frame event
+     * @return true if the listener has dealt with this frame
      * @throws AMQException
      */
-    public void methodReceived(AMQMethodEvent evt) throws AMQException
+    public boolean methodReceived(AMQMethodEvent evt) throws AMQException
     {
         AMQMethodBody method = evt.getMethod();
         
@@ -46,6 +47,7 @@ public abstract class BlockingCommandFrameListener implements AMQMethodListener
                     _lock.notify();
                 }
             }
+            return ready;
         }
         catch (AMQException e)
         {

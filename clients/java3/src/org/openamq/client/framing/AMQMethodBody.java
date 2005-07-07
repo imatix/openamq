@@ -50,4 +50,15 @@ public abstract class AMQMethodBody extends AMQBody
         synchtag = buffer.getUnsignedInt();
         populateMethodBodyFromBuffer(buffer);
     }
+    
+    public String toString()
+    {
+        StringBuffer buf = new StringBuffer(getClass().toString());
+        buf.append("\n\tClass: ").append(getClazz());
+        buf.append("\n\tMethod: ").append(getMethod());
+        buf.append("\n\tFlags: ").append(flags);        
+        buf.append("\n\tReserved: ").append(reserved);        
+        buf.append("\n\tSynchtag: ").append(synchtag);
+        return buf.toString();
+    }
 }

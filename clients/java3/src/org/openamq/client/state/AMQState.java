@@ -21,11 +21,16 @@ public class AMQState
         return "AMQState: id = " + _id + " name: " + _name;
     }
 
-    public static final AMQState CONNECTION_NOT_AUTHENTICATED = new AMQState(1, "CONNECTION_NOT_AUTHENTICATED");
+    public static final AMQState CONNECTION_NOT_STARTED = new AMQState(1, "CONNECTION_NOT_STARTED");
+    
+    public static final AMQState CONNECTION_NOT_TUNED = new AMQState(2, "CONNECTION_NOT_TUNED");
+    
+    public static final AMQState CONNECTION_NOT_OPENED = new AMQState(3, "CONNECTION_NOT_OPENED");        
 
-    public static final AMQState CONNECTION_OPEN = new AMQState(2, "CONNECTION_OPEN");
+    public static final AMQState CONNECTION_OPEN = new AMQState(4, "CONNECTION_OPEN");
 
-    public static final AMQState CONNECTION_CLOSED = new AMQState(3, "CONNECTION_CLOSED");
-
-    public static final AMQState CONNECTION_CLOSING = new AMQState(4, "CONNECTION_CLOSING");
+    public static final AMQState CONNECTION_CLOSING = new AMQState(5, "CONNECTION_CLOSING");
+    
+    public static final AMQState CONNECTION_CLOSED = new AMQState(6, "CONNECTION_CLOSED");
+    
 }

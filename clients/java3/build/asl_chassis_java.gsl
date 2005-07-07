@@ -60,6 +60,15 @@ public void populateMethodBodyFromBuffer(ByteBuffer buffer) throws AMQFrameDecod
 
 }
 
+public String toString()
+{
+    StringBuffer buf = new StringBuffer(super.toString());
+.   for field where !field.global
+        buf.append("\\n\\t$(field.jname:no): ").append(String.valueOf($(field.jname:no)));
+.   endfor    
+    return buf.toString();
+}
+
 public static AMQFrame createAMQFrame(short channelId 
 .   for field where !field.global
 ,$(field.jtype:no) $(field.jname:no)

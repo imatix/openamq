@@ -88,13 +88,22 @@ public class AMQProtocolHandler implements ProtocolHandler
         
         if (frame.bodyFrame instanceof AMQMethodBody)
         {
+            if (_logger.isDebugEnabled())
+            {
+                _logger.debug("Method frame received: " + frame);
+            }
             final AMQMethodEvent evt = new AMQMethodEvent(frame.channel, (AMQMethodBody)frame.bodyFrame, _protocolSession);
             try
             {
+                boolean wasAnyoneInterested = false;
                 while (it.hasNext())
                 {
                     final AMQMethodListener listener = (AMQMethodListener) it.next();
-                    listener.methodReceived(evt);
+                    wasAnyoneInterested = listener.methodReceived(evt) || wasAnyoneInterested;
+                }
+                if (!wasAnyoneInterested)
+                {
+                    throw new AMQException("AMQMethodEvent " + evt + " was not processed by any listener.");
                 }
             }
             catch (AMQException e)

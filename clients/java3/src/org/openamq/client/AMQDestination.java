@@ -1,8 +1,5 @@
 package org.openamq.client;
 
-import javax.jms.JMSException;
-import javax.jms.Queue;
-import javax.jms.Topic;
 import javax.jms.Destination;
 
 import org.openamq.client.framing.Handle;
