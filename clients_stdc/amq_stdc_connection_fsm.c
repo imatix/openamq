@@ -104,9 +104,6 @@ inline static apr_status_t do_construct (
     connection_fsm_context_t  *context
     )
 {
-    apr_status_t
-        result;
-
     context->shutdown_tag = 0;
     context->channels = NULL;
     context->receiver = NULL;
@@ -121,10 +118,7 @@ inline static apr_status_t do_construct (
     context->stop = 0;
     context->options = NULL;
     context->options_size = 0;
-
-    result = apr_thread_mutex_create (&(context->sender_sync),
-        APR_THREAD_MUTEX_UNNESTED, context->pool);
-    AMQ_ASSERT_STATUS (result, apr_thread_mutex_create);
+    context->sender_sync = NULL;
 
     return APR_SUCCESS;
 }
@@ -337,16 +331,18 @@ static void *s_receiver_thread (
            AMQ_ASSERT_STATUS (result, channel_fsm_receive_fragment)
            
            /*  Send fragment content to FSM                                  */
-           while (body_size) {
+           while (1) {
                size = CONTENT_CHUNK_SIZE < body_size ? CONTENT_CHUNK_SIZE :
                    body_size;
                content_chunk = (content_chunk_t*) amq_malloc (
                    sizeof (content_chunk_t));
                if (!content_chunk)
                    AMQ_ASSERT (Not enough memory)
-               result = apr_socket_recv (context->socket, content_chunk->data,
-                   &size);
-               AMQ_ASSERT_STATUS (result, apr_socket_receive)
+               if (size) {
+                   result = apr_socket_recv (context->socket,
+                       content_chunk->data, &size);
+                   AMQ_ASSERT_STATUS (result, apr_socket_receive)
+               }
                content_chunk->size = size;
                content_chunk->prev = NULL;
                content_chunk->next = NULL;
@@ -356,6 +352,8 @@ static void *s_receiver_thread (
                    content_chunk,
                    !body_size && !frame.fields.handle_notify.partial);
                AMQ_ASSERT_STATUS (result, channel_fsm_receive_content_chunk)
+      
+               if (!body_size) break;
            }
 
            break;
@@ -758,6 +756,13 @@ inline static apr_status_t do_init (
         context->pool);
     AMQ_ASSERT_STATUS (result, apr_thread_create)  
 
+    /*  Open synchronisation object for sender thread                        */
+    result = apr_thread_mutex_create (&(context->sender_sync),
+        APR_THREAD_MUTEX_UNNESTED, context->pool);
+    AMQ_ASSERT_STATUS (result, apr_thread_mutex_create);
+    result = apr_thread_mutex_lock (context->sender_sync);
+    AMQ_ASSERT_STATUS (result, apr_thread_mutex_lock);
+
     /*  Run sender thread                                                    */
     result = apr_threadattr_create (&threadattr_sender, context->pool);
     AMQ_ASSERT_STATUS (result, apr_threadattr_create)
@@ -814,7 +819,7 @@ inline static apr_status_t do_send_chunk (
     chunk->stop = stop;
 
     /*  If required, create lock that will be released when data are         */
-    /*  actually sent                                                        */
+    /*  actually sent              do_send_                                          */
     if (lock) {
         result = register_lock (context->global, context->id, 0,
             &(chunk->lock_id), lock);
