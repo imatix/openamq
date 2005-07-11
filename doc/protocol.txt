@@ -1035,13 +1035,13 @@ A method frame body has this format:
 
     0       1        2          4
     +-------+--------+----------+-------------- - -
-    | class | method | reserved | arguments...
+    | class | method | version  | arguments...
     +-------+--------+----------+-------------- - -
       octet   octet     short
 
 - The class and method are protocol-constant values.
 
-- The reserved must be zero in this version of the protocol.
+- The version must be zero in this version of the protocol.
 
 - The arguments are a set of AMQP/Fast fields that specific to each
   method.
