@@ -58,11 +58,14 @@ have requested it.
         * and # topic wildcards replaced by appropriate regexp chars.
         We also filter out any non-alphanum characters.  We may allow
         full RE matching on topic names at a later stage.
+
+        martin sustrik: I enabled underscores and minus signs to be used
+        to allow GTW-like queue names
      */
     to_ptr = pattern;
     *to_ptr++ = '^';                    /*  Match start of topic name        */
     for (from_ptr = dest_name; *from_ptr; from_ptr++) {
-        if (isalnum (*from_ptr))
+        if (isalnum (*from_ptr) || *from_ptr == '_' || *from_ptr == '-')
             *to_ptr++ = *from_ptr;
         else
         if (*from_ptr == '.') {
