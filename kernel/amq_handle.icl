@@ -10,7 +10,9 @@
 This class implements the AMQP HANDLE commands.
 </doc>
 
-<inherit class = "ipr_hash_int"  />
+<inherit class = "ipr_hash_int" >
+    <option name = "hash_size" value = "65535" />
+</inherit>
 
 <import class = "amq_global" />
 
@@ -119,8 +121,17 @@ This class implements the AMQP HANDLE commands.
         amq_queue_accept   (dest->queue, self->channel, message, command->immediate, NULL);
         amq_vhost_dispatch (self->vhost);
     }
-    else
-        amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
+    else {
+        if (command->warning_tag)
+            amq_server_agent_handle_warning (
+                self->thread,
+                (dbyte) self->key,
+                command->warning_tag,
+                AMQP_NOT_FOUND,
+                "No such destination defined");
+        else
+            amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
+    }
 </method>
 
 <method name = "consume" template = "function" >

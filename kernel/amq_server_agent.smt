@@ -200,6 +200,13 @@ static int
     <argument name = "confirm tag"  type = "dbyte" >Confirmation tag</argument>
 </method>
 
+<method name = "handle warning">
+    <argument name = "handle id"    type = "dbyte" >Handle number</argument>
+    <argument name = "warning tag"  type = "dbyte" >Confirmation tag</argument>
+    <argument name = "reply code"   type = "dbyte" >Reply code</argument>
+    <argument name = "reply text"   type = "char *" >Reply text</argument>
+</method>
+
 <thread name = "client">
     <context>
         smt_socket_t
@@ -1114,6 +1121,10 @@ static int
             <action name = "send handle reply" />
             <action name = "wait for activity" />
         </method>
+        <method name = "handle warning" >
+            <action name = "send handle warning" />
+            <action name = "wait for activity" />
+        </method>
     </state>
 
     <action name = "send connection close">
@@ -1177,6 +1188,14 @@ static int
             (dbyte) tcb->handle->key,
             handle_reply_m->confirm_tag,
             AMQP_REPLY_SUCCESS, NULL);
+        send_the_frame (thread);
+    </action>
+
+    <action name = "send handle warning">
+        amq_frame_free (&tcb->frame);
+        tcb->frame = amq_frame_handle_warning_new (
+            handle_warning_m->handle_id, handle_warning_m->warning_tag,
+            handle_warning_m->reply_code, handle_warning_m->reply_text);
         send_the_frame (thread);
     </action>
 </thread>
