@@ -167,6 +167,9 @@
         <arg type = "byte" name = "immediate">
             If 1, assert that the destination has consumers
         </arg>
+        <arg type = "byte" name = "warnings">
+            If 1, warnings are sent on minor errors, instead of closing the channel
+        </arg>
         <arg type = "byte" name = "priority">
             Message priority 
         </arg>

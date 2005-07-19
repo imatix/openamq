@@ -415,6 +415,8 @@ apr_status_t amq_stdc_rollback (
         dest_name             destination name
         persistent            if 1, message is going to be persistent
         immediate             if 1, assert that the destination has consumers
+        warnings              if 1, warning is sent on minor errors instead of
+                              closing the channel
         priority              priority of message
         expiration            expiration time of message
         mime_type             MIME type
@@ -436,6 +438,7 @@ apr_status_t amq_stdc_send_message (
     const char               *dest_name,
     byte                     persistent,
     byte                     immediate, 
+    byte                     warnings,
     byte                     priority,
     qbyte                    expiration,
     const char               *mime_type,
@@ -454,9 +457,9 @@ apr_status_t amq_stdc_send_message (
         lock;
 
     result = channel_fsm_send_message (context, handle_id, service_type,
-        out_of_band, recovery, dest_name, persistent, immediate, priority,
-        expiration, mime_type, encoding, identifier, headers_size, headers,
-        data_size, data, async, &lock);
+        out_of_band, recovery, dest_name, persistent, immediate, warnings,
+        priority, expiration, mime_type, encoding, identifier, headers_size,
+        headers, data_size, data, async, &lock);
     AMQ_ASSERT_STATUS (result, handle_fsm_send_message)
     result = wait_for_lock (lock, NULL);
     AMQ_ASSERT_STATUS (result, wait_for_lock)

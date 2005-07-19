@@ -452,7 +452,7 @@ int main (
 
             result = amq_stdc_send_message (channel, handle_id,
                 client.service_type, 0, 0, client.destination,
-                client.persistent, client.immediate, 0, 0, "", "", identifier,
+                client.persistent, client.immediate, 0, 0, 0, "", "", identifier,
                 amq_stdc_table_size (client.headers),
                 amq_stdc_table_data (client.headers),
                 client.message_size, client.message_buffer, 0);

@@ -729,6 +729,7 @@ inline static apr_status_t do_send_message (
     const char             *dest_name,
     byte                   persistent,
     byte                   immediate,
+    byte                   warnings,
     byte                   priority,
     qbyte                  expiration,
     const char             *mime_type,
@@ -787,7 +788,8 @@ inline static apr_status_t do_send_message (
         AMQ_ASSERT (Not enough memory)
     command_size = amq_stdc_encode_handle_send (chunk, command_size,
         handle_id, confirm_tag, service_type, header_size + data_size, 0,
-        out_of_band, recovery, immediate, (byte) dest_name_size, dest_name);
+        out_of_band, recovery, immediate, warnings, (byte) dest_name_size,
+        dest_name);
     if (!command_size)
         AMQ_ASSERT (Framing error)
     header_size = amq_stdc_encode_message_head (chunk + command_size,
