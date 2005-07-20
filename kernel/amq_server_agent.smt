@@ -202,7 +202,7 @@ static int
 
 <method name = "handle warning">
     <argument name = "handle id"    type = "dbyte" >Handle number</argument>
-    <argument name = "warning tag"  type = "dbyte" >Confirmation tag</argument>
+    <argument name = "warning tag"  type = "qbyte" >Confirmation tag</argument>
     <argument name = "reply code"   type = "dbyte" >Reply code</argument>
     <argument name = "reply text"   type = "char *" >Reply text</argument>
 </method>

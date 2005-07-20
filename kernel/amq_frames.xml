@@ -160,7 +160,7 @@
         <field type = "bit"      name = "out of band"  >Out of band data?</field>
         <field type = "bit"      name = "recovery"     >Restarting large message?</field>
         <field type = "bit"      name = "immediate"    >Assert destination has consumers?</field>
-        <field type = "shortint" name = "warning tag"  >Will use warnings on non-fatal errors</field>
+        <field type = "longint"  name = "warning tag"  >Will use warnings on non-fatal errors</field>
         <field type = "shortstr" name = "dest name"    >Destination name suffix</field>
         <sender role = "client" />
     </frame>
@@ -281,7 +281,7 @@
     <frame name = "handle warning">
         <field type = "octet"    name = "type"         value = "50" />
         <field type = "shortint" name = "handle id"    >Handle number</field>
-        <field type = "shortint" name = "warning tag"  >Warning tag from command that caused the warning</field>
+        <field type = "longint"  name = "warning tag"  >Warning tag from command that caused the warning</field>
         <field type = "shortint" name = "reply code"   >Reply code</field>
         <field type = "shortstr" name = "reply text"   >Reply text</field>
         <sender role = "server" />

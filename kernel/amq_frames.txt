@@ -89,7 +89,7 @@
     partial              = BIT
     recovery             = BIT
     immediate            = BIT
-    warning-tag          = short-integer
+    warning-tag          = long-integer
     dest-name            = short-string
 
     handle-consume       = %d32 handle-id confirm-tag service-type prefetch no-local no-ack dynamic exclusive dest-name selector
