@@ -415,8 +415,8 @@ apr_status_t amq_stdc_rollback (
         dest_name             destination name
         persistent            if 1, message is going to be persistent
         immediate             if 1, assert that the destination has consumers
-        warnings              if 1, warning is sent on minor errors instead of
-                              closing the channel
+        warning_tag           if not zero, warning is sent on minor errors
+                              instead of closing the channel
         priority              priority of message
         expiration            expiration time of message
         mime_type             MIME type
@@ -438,7 +438,7 @@ apr_status_t amq_stdc_send_message (
     const char               *dest_name,
     byte                     persistent,
     byte                     immediate, 
-    byte                     warnings,
+    qbyte                     warning_tag,
     byte                     priority,
     qbyte                    expiration,
     const char               *mime_type,
@@ -457,7 +457,7 @@ apr_status_t amq_stdc_send_message (
         lock;
 
     result = channel_fsm_send_message (context, handle_id, service_type,
-        out_of_band, recovery, dest_name, persistent, immediate, warnings,
+        out_of_band, recovery, dest_name, persistent, immediate, warning_tag,
         priority, expiration, mime_type, encoding, identifier, headers_size,
         headers, data_size, data, async, &lock);
     AMQ_ASSERT_STATUS (result, handle_fsm_send_message)
@@ -541,16 +541,21 @@ apr_status_t amq_stdc_consume (
                             if 0, returns message only if it is already present
                             otherwise returns NULL in message_desc and
                             message parameters
+        warning             out parameter; 0 if it is a message, 1 if it is
+                            a warning
         message_desc        out parameter; pointer to structure describing
                             the message
         message             out parameter; message returned
+        warning_tag         out parameter; warning tag in case it is a warning
     -------------------------------------------------------------------------*/
 
 apr_status_t amq_stdc_get_message (
     amq_stdc_channel_t       channel,
     byte                     wait,
+    byte                     *warning,
     amq_stdc_message_desc_t  **message_desc,
-    amq_stdc_message_t       *message
+    amq_stdc_message_t       *message,
+    qbyte                    *warning_tag
     )
 {
     apr_status_t
@@ -560,8 +565,8 @@ apr_status_t amq_stdc_get_message (
     char
         *msg;
 
-    result = channel_fsm_get_message (channel, wait, message_desc, message,
-        &lock);
+    result = channel_fsm_get_message (channel, wait, warning, message_desc,
+        message, warning_tag, &lock);
     AMQ_ASSERT_STATUS (result, channel_fsm_get_message)
     if (wait) {
         result = wait_for_lock (lock, (void**) &msg);

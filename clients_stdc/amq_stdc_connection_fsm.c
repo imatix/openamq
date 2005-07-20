@@ -374,6 +374,15 @@ static void *s_receiver_thread (
        case amq_stdc_handle_ready_type:
            assert (0);
            break;
+       case amq_stdc_handle_warning_type:
+           result = connection_get_channel_from_handle (context,
+               frame.fields.handle_warning.handle_id, &channel);
+           AMQ_ASSERT_STATUS (result, connection_get_handle)
+           result = channel_fsm_warning (channel,
+               frame.fields.handle_warning.handle_id,
+               frame.fields.handle_warning.warning_tag);
+           AMQ_ASSERT_STATUS (result, channel_fsm_warning)
+           break;
        case amq_stdc_handle_reply_type:
            result =connection_get_channel_from_handle (
                context, frame.fields.handle_notify.handle_id, &channel);

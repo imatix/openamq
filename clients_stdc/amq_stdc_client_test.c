@@ -510,8 +510,8 @@ int main (
 
         while (1) {
 
-            result = amq_stdc_get_message (channel, 1, &message_desc,
-                &message);
+            result = amq_stdc_get_message (channel, 1, NULL, &message_desc,
+                &message, NULL);
             if (result != APR_SUCCESS) {
                 printf ("amq_stdc_receive_message failed\n");
                 return EXIT_FAILURE;

@@ -156,7 +156,7 @@ apr_status_t amq_stdc_send_message (
     const char               *dest_name,
     byte                     persistent,
     byte                     immediate,
-    byte                     warnings,
+    qbyte                    warning_tag,
     byte                     priority,
     qbyte                    expiration,
     const char               *mime_type,
@@ -187,8 +187,10 @@ apr_status_t amq_stdc_consume (
 apr_status_t amq_stdc_get_message (
     amq_stdc_channel_t       channel,
     byte                     wait,
+    byte                     *warning,
     amq_stdc_message_desc_t  **message_desc,
-    amq_stdc_message_t       *message
+    amq_stdc_message_t       *message,
+    qbyte                    *warning_tag
     );
 
 apr_status_t amq_stdc_browse (

@@ -167,7 +167,7 @@
         <arg type = "byte" name = "immediate">
             If 1, assert that the destination has consumers
         </arg>
-        <arg type = "byte" name = "warnings">
+        <arg type = "qbyte" name = "warning_tag">
             If 1, warnings are sent on minor errors, instead of closing the channel
         </arg>
         <arg type = "byte" name = "priority">
@@ -273,6 +273,9 @@
              If 1, waits for message to arrive, if 0 returns immediately
              whether message is present or not
         </arg>
+        <arg type = "byte *" name = "warning">
+             Determines whether it is a message (0) or warning (1)
+        </arg>
         <arg type = "amq_stdc_message_desc_t **" name = "message_desc">
              Output parameter; if no-wait mode is on and message
              is present contains message descriptor, otherwise NULL
@@ -280,6 +283,9 @@
         <arg type = "amq_stdc_message_t *" name = "message">
              Output parameter; if no-wait mode is on and message
              is present contains message handle, otherwise NULL
+        </arg>
+        <arg type = "qbyte *" name = "warning_tag">
+             Warning tag, 0 in case of message
         </arg>
         <arg type = "amq_stdc_lock_t *" name = "lock">
              Output parameter, to be used to wait (in wait mode)
@@ -375,6 +381,14 @@
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
+    <event name = "warning">
+        <arg type = "dbyte" name = "handle_id">
+            Id of handle that issued the warning
+        </arg>
+        <arg type = "qbyte" name = "warning_tag">
+            Warning tag
+        </arg>
+    </event>
     <event name = "reply">
         CHANNEL REPLY or HANDLE REPLY received from server
         <arg type = "dbyte" name = "handle_id">
@@ -427,6 +441,7 @@
         <event name = "index" action = "do index"/>
         <event name = "browse" action = "do browse"/>
         <event name = "reply" action = "do reply"/>
+        <event name = "warning" action = "do warning"/>
     </state>
     <state name = "expect close">
         Channel is shutting down (Server-emmited events should be ignored)
