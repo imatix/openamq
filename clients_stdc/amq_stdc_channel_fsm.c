@@ -42,6 +42,11 @@ typedef struct tag_message_list_item_t
                                        /*  message_list_item_t               */
     message_fsm_t
         message;                       /*  Message object                    */ 
+    byte
+        warning;                       /*  If 0, this is a message           */
+                                       /*  If 1, it is a warning             */
+    qbyte
+        warning_tag;                   /*  Warning tag                       */
     char
         dest_name [256];               /*  Buffer to hold destination name   */
                                        /*  while message is opened           */
@@ -60,11 +65,6 @@ typedef struct tag_message_list_item_t
                                        /*  delivered for a second time       */
                                        /*  It is clients responsibility      */
                                        /*  to remove it from the list        */
-    byte
-        warning;                       /*  If 0, this is a message           */
-                                       /*  If 1, it is a warning             */
-    qbyte
-        warning_tag;                   /*  Warning tag                       */
     struct tag_message_list_item_t
         *prev;
     struct tag_message_list_item_t
@@ -1418,6 +1418,7 @@ inline static apr_status_t do_warning (
     /*  Allocate and fill in new message item                            */
     message = (message_list_item_t*)
         amq_malloc (sizeof (message_list_item_t));
+    memset (message, 0, sizeof (message_list_item_t));
     message->warning = 1;
     message->warning_tag = warning_tag;
     message->message = NULL;

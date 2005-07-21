@@ -549,6 +549,18 @@ apr_status_t amq_stdc_consume (
         warning_tag         out parameter; warning tag in case it is a warning
     -------------------------------------------------------------------------*/
 
+typedef struct
+{
+    amq_stdc_message_desc_t
+        desc;
+    message_fsm_t
+        message;
+    byte
+        warning;
+    qbyte
+        warning_tag;
+} msg_transfer_struct_t;
+
 apr_status_t amq_stdc_get_message (
     amq_stdc_channel_t       channel,
     byte                     wait,
@@ -564,6 +576,8 @@ apr_status_t amq_stdc_get_message (
         lock;
     char
         *msg;
+    msg_transfer_struct_t
+        *ts;
 
     result = channel_fsm_get_message (channel, wait, warning, message_desc,
         message, warning_tag, &lock);
@@ -572,17 +586,25 @@ apr_status_t amq_stdc_get_message (
         result = wait_for_lock (lock, (void**) &msg);
         AMQ_ASSERT_STATUS (result, wait_for_lock)
         if (msg) {
+            ts = (msg_transfer_struct_t*) msg;
             if (message)
-                *message = *((amq_stdc_message_t*)
-                    (msg + sizeof (amq_stdc_message_desc_t)));
+                *message = ts->message;
             if (message_desc)
-                *message_desc = (amq_stdc_message_desc_t*) msg;
+                *message_desc = &(ts->desc);
+            if (warning)
+                *warning = ts->warning;
+            if (warning_tag)
+                *warning_tag = ts->warning_tag;
         }
         else {
             if (message)
                 *message = NULL;
             if (message_desc)
                 *message_desc = NULL;
+            if (warning)
+                *warning = 0;
+            if (warning_tag)
+                *warning_tag = 0;
         }
     }
 
