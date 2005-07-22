@@ -2,11 +2,11 @@
   Server:
   - added new functionality to AMQP/0.8 protocol
     HANDLE SEND:
-        'warning tag' allows matching with HANDLE WARNINGs received.
+        'warning tag' allows matching with HANDLE WARNINGs received. If set to
+        0 no warning will be generated.
     HANDLE WARNING:
-        A handle warning is sent back to a client in response to a HANDLE SEND
-        which was routed to an unknown destination. If set to 0 no warning will
-        be generated.
+        A HANDLE WARNING is sent back to a client in response to a HANDLE SEND
+        which was routed to an unknown destination.
 
 0.8d8 - 2005/07/14
   Server:
