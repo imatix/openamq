@@ -1,3 +1,17 @@
+0.8d9 - 2005/07/21
+  Server:
+  - added new functionality to AMQP/0.8 protocol
+    HANDLE SEND:
+        'warning tag' allows matching with HANDLE WARNINGs received.
+    HANDLE WARNING:
+        A handle warning is sent back to a client in response to a HANDLE SEND
+        which was routed to an unknown destination. If set to 0 no warning will
+        be generated.
+
+0.8d8 - 2005/07/14
+  Server:
+    - matching engine now handles '_' and '-' in topic names.
+
 0.8d7 - 2005/06/27
 
   Server:
