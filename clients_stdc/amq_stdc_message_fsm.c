@@ -76,17 +76,7 @@ inline static apr_status_t do_construct (
     message_fsm_context_t *context
     )
 {
-    context->global = NULL;
-    context->channel = NULL;
-    context->connection_id = 0;
-    context->channel_id = 0;
-    context->message_desc = NULL;
-    context->current_pos = 0;
-    context->first_chunk = NULL;
-    context->last_chunk = NULL;
-    context->first_request = NULL;
-    context->last_request = NULL;
-    context->completed = 0;
+    memset (context, 0, sizeof (message_fsm_context_t));
     return APR_SUCCESS;
 }
 
