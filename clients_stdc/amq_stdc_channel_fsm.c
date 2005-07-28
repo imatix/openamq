@@ -236,6 +236,9 @@ static apr_status_t s_pair_lock_and_message (
         else
             context->last_lock = NULL;
 
+        /*  Mark message as dispatched                                       */
+        message->dispatched = 1;
+
         /*  Resume thread waiting for the message                            */
         result = release_lock (context->global, lock->lock_id,
             (void*) &(message->desc));
