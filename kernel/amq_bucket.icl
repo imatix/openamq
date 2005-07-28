@@ -28,18 +28,23 @@
 </invoke>
 
 <data>
-    <size value = "256"  />
-    <size value = "512"  />
-    <size value = "1024" />
-    <size value = "2048" />
-    <size value = "4096" />
-    <size value = "8192" />
-    <size value = "16384"/>
-    <size value = "32768"/>
+    <size value = "0x100"  />
+    <size value = "0x200"  />
+    <size value = "0x400" />
+    <size value = "0x800" />
+    <size value = "0x1000" />
+    <size value = "0x2000" />
+    <size value = "0x4000" />
+    <size value = "0x8000" />
+    <size value = "0x10000" />
+    <size value = "0x20000" />
+    <size value = "0x40000" />
+    <size value = "0x80000" />
+    <size value = "0x100000" />
 </data>
 
 <public>
-#define AMQ_BUCKET_MAX_SIZE  32768
+#define AMQ_BUCKET_MAX_SIZE  0x100000
 </public>
 
 <private>
