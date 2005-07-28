@@ -201,6 +201,8 @@ inline static apr_status_t do_receive_content_chunk (
         result = release_lock (context->global, request->lock_id,
             (void*) out_size);
         AMQ_ASSERT_STATUS (result, release_lock)
+        if (context->last_request == context->first_request)
+            context->last_request = NULL;
         context->first_request = request->next;
         amq_free ((void*) request);
     }
@@ -259,7 +261,7 @@ inline static apr_status_t do_pread (
         if (lock)
             *lock = NULL;
     }
-    else if (wait) {
+    else if (!wait) {
 
         /*  Not enough data in pipe                                          */
         if (out_size)

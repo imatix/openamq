@@ -906,7 +906,7 @@ inline static apr_status_t do_tune (
     result = amq_stdc_table_create (0, NULL, &options);
     AMQ_ASSERT_STATUS (result, amq_stdc_table_create)
     /*  TODO: should be adjusted dyncamically  */
-    result = amq_stdc_table_add_integer (options, "FRAME_MAX", 0x8000);
+    result = amq_stdc_table_add_integer (options, "FRAME_MAX", 0x100000);
     AMQ_ASSERT_STATUS (result, amq_stdc_table_add_integer)
 
     /*  Send CONNECTION TUNE                                                 */
