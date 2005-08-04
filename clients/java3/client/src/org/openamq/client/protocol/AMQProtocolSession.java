@@ -16,7 +16,6 @@ import org.openamq.framing.JmsContentHeaderBody;
 import org.openamq.framing.ProtocolInitiation;
 
 import javax.jms.JMSException;
-import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
  * Wrapper for protocol session that provides type-safe access to session attributes.

@@ -76,7 +76,7 @@ public abstract class AbstractMessage implements javax.jms.Message
 
     public long getJMSTimestamp() throws JMSException
     {
-        return Long.valueOf(_contentHeader.timestamp).longValue();
+        return new Long(_contentHeader.timestamp).longValue();
     }
 
     public void setJMSTimestamp(long timestamp) throws JMSException
@@ -196,7 +196,7 @@ public abstract class AbstractMessage implements javax.jms.Message
 
     public long getJMSExpiration() throws JMSException
     {
-        return Long.valueOf(_contentHeader.expiration).longValue();
+        return new Long(_contentHeader.expiration).longValue();
     }
 
     public void setJMSExpiration(long l) throws JMSException
