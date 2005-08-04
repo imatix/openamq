@@ -3,7 +3,7 @@ gdl
     subtitle  = C Coding Standards
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2004/10/01
+    date      = 2005/08/02
     copyright = Copyright (c) 2004 JPMorgan
     version   = 0.1
 end gdl
@@ -28,7 +28,7 @@ This document is copyright (c) 2004 JPMorgan Inc.
 Authors
 =======
 
-This document was written by Rakan El-Khalil <rakan@imatix.com>.
+This document was written by Pieter Hintjens <ph@imatix.com>
 
 Abstract
 ========
@@ -115,8 +115,8 @@ Complex function APIs can be broken over several lines, both in prototypes
 and in function definitions:
 
     some_t function (
-        int arg1,                       /*  Comments                         */
-        int arg2                        /*  ...                              */
+        int arg1,                       //  Comments                         
+        int arg2                        //  ...                              
     )
 
 Conditionals braces:
@@ -169,14 +169,20 @@ explicit comparison made:
 C Comments
 ==========
 
+- comment all variable declarations
+- comment unusual constructions
+- do not make banal or obvious comments
+- do not make long technical comments - such explanations go into documentation
+- if the code is hard to understand, rewrite it, don't comment it
+
 Same-line comments start in column 41 (first column being 1) and end on
 column 80:
 
-    amq_some_t somevar;                 /*  Message header frame             */
+    amq_some_t somevar;                 //  Message header frame            
 
 Full-line comments start indented matching following code and end on column 80.
 
-Insert two spaces after the initial '/*'
+Insert two spaces after the '//'
 
 Error Reporting
 ===============
