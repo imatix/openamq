@@ -120,4 +120,14 @@ public class AMQTextMessage extends AbstractMessage implements javax.jms.TextMes
             }
         }
     }
+    
+    public void setBytes(byte[] data)
+    {
+        _data = data;
+    }
+
+    public byte[] getBytes()
+    {
+        return _data;
+    }
 }

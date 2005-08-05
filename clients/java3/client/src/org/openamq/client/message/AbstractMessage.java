@@ -576,12 +576,12 @@ public abstract class AbstractMessage implements javax.jms.Message
         }
     }
 
-    Map getUnderlyingMessagePropertiesMap()
+    public Map getUnderlyingMessagePropertiesMap()
     {
         return _contentHeader.headers;
     }
 
-    void setUnderlyingMessagePropertiesMap(FieldTable messageProperties)
+    public void setUnderlyingMessagePropertiesMap(FieldTable messageProperties)
     {
         _contentHeader.headers = messageProperties;
     }

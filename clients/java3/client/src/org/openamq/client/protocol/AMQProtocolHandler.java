@@ -38,6 +38,8 @@ public class AMQProtocolHandler implements ProtocolHandler
     private final AMQStateManager _stateManager = new AMQStateManager();
 
     private final CopyOnWriteArraySet _frameListeners = new CopyOnWriteArraySet();
+    
+    private int writtenBytes = 0;
 
     public AMQProtocolHandler(AMQConnection con)
     {
@@ -214,5 +216,14 @@ public class AMQProtocolHandler implements ProtocolHandler
         _logger.debug("Blocking for connection close frame");
         listener.blockForFrame();
         _protocolSession.closeProtocolSession();
+    }
+    
+    public AMQProtocolSession getAMQProtocolSession() {
+        return _protocolSession;
+    }
+    
+    public long getWrittenBytes()
+    {
+        return writtenBytes;
     }
 }
