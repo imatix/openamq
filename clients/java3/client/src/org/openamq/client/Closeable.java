@@ -28,6 +28,11 @@ public abstract class Closeable
             throw new IllegalStateException("Object " + toString() + " has been closed");
         }
     }
+    
+    public boolean isClosed()
+    {
+        return _closed.get();
+    }
 
     public abstract void close() throws JMSException;
 }

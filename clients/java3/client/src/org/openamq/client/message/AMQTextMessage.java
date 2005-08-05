@@ -59,6 +59,11 @@ public class AMQTextMessage extends AbstractMessage implements javax.jms.TextMes
         return getText();
     }
 
+    public void setData(byte[] data)
+    {
+        _data = data;
+    }
+    
     public byte[] getData() throws JMSException
     {
         return _data;
@@ -119,15 +124,5 @@ public class AMQTextMessage extends AbstractMessage implements javax.jms.TextMes
                 throw new JMSException("Unable to decode string data");
             }
         }
-    }
-    
-    public void setBytes(byte[] data)
-    {
-        _data = data;
-    }
-
-    public byte[] getBytes()
-    {
-        return _data;
     }
 }
