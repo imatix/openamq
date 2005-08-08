@@ -1,8 +1,0 @@
-cd vh_test
-rm -rf ddata data spool store
-cd ..
-
-cd vh_default
-rm -rf ddata data spool store
-cd ..
-
