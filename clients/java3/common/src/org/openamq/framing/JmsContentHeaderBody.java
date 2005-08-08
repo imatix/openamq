@@ -14,8 +14,6 @@ public class JmsContentHeaderBody extends ContentHeaderBody
 
     public String encoding;
 
-    public String destination;
-
     public FieldTable headers;
 
     public byte deliveryMode;
@@ -47,7 +45,6 @@ public class JmsContentHeaderBody extends ContentHeaderBody
     {
         return EncodingUtils.encodedShortStringLength(contentType) +
                EncodingUtils.encodedShortStringLength(encoding) +
-               EncodingUtils.encodedShortStringLength(destination) +
                EncodingUtils.encodedFieldTableLength(headers) +
                1 + 1 +
                EncodingUtils.encodedShortStringLength(correlationId) +
@@ -76,7 +73,6 @@ public class JmsContentHeaderBody extends ContentHeaderBody
     {
         EncodingUtils.writeShortStringBytes(buffer, contentType);
         EncodingUtils.writeShortStringBytes(buffer, encoding);
-        EncodingUtils.writeShortStringBytes(buffer, destination);
         EncodingUtils.writeFieldTableBytes(buffer, headers);
         buffer.put(deliveryMode);
         buffer.put(priority);
@@ -98,28 +94,26 @@ public class JmsContentHeaderBody extends ContentHeaderBody
         if ((propertyFlags & (1 << 14)) > 0)
             encoding = EncodingUtils.readShortString(buffer);
         if ((propertyFlags & (1 << 13)) > 0)
-            destination = EncodingUtils.readShortString(buffer);
-        if ((propertyFlags & (1 << 12)) > 0)
             headers = EncodingUtils.readFieldTable(buffer);
-        if ((propertyFlags & (1 << 11)) > 0)
+        if ((propertyFlags & (1 << 12)) > 0)
             deliveryMode = buffer.get();
-        if ((propertyFlags & (1 << 10)) > 0)
+        if ((propertyFlags & (1 << 11)) > 0)
             priority = buffer.get();
-        if ((propertyFlags & (1 << 9)) > 0)
+        if ((propertyFlags & (1 << 10)) > 0)
             correlationId = EncodingUtils.readShortString(buffer);
-        if ((propertyFlags & (1 << 8)) > 0)
+        if ((propertyFlags & (1 << 9)) > 0)
             replyTo = EncodingUtils.readShortString(buffer);
-        if ((propertyFlags & (1 << 7)) > 0)
+        if ((propertyFlags & (1 << 8)) > 0)
             expiration = Long.valueOf(EncodingUtils.readShortString(buffer)).longValue();
-        if ((propertyFlags & (1 << 6)) > 0)
+        if ((propertyFlags & (1 << 7)) > 0)
             messageId = EncodingUtils.readShortString(buffer);
-        if ((propertyFlags & (1 << 5)) > 0)
+        if ((propertyFlags & (1 << 6)) > 0)
             timestamp = buffer.getLong();
-        if ((propertyFlags & (1 << 4)) > 0)
+        if ((propertyFlags & (1 << 5)) > 0)
             type = EncodingUtils.readShortString(buffer);
-        if ((propertyFlags & (1 << 3)) > 0)
+        if ((propertyFlags & (1 << 4)) > 0)
             userId = EncodingUtils.readShortString(buffer);
-        if ((propertyFlags & (1 << 2)) > 0)
+        if ((propertyFlags & (1 << 3)) > 0)
             appId = EncodingUtils.readShortString(buffer);
     }
 }
