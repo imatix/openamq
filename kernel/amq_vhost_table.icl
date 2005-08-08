@@ -1,9 +1,8 @@
 <?xml?>
 <class
     name      = "amq_vhost_table"
-    comment   = "Implements hash table container for amq_vhost"
+    comment   = "Implements the hash table container for amq_vhost"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 <doc>
@@ -11,12 +10,15 @@ Container class for the virtual hosts defined for the server, which
 is currently limited to 255 virtual hosts.
 </doc>
 
-<inherit class = "ipr_hash_table" />
+<inherit class = "ipr_hash_head" />
+<import class = "amq_vhost" />
+<option name = "childname"  value = "amq_vhost" />
+<option name = "childtype"  value = "amq_vhost_t" />
+<option name = "rwlock"     value = "1" />
+<option name = "hash_size"  value = "255" />
+<option name = "hash_type"  value = "str"/>
 
-<import class = "amq_global" />
-<option name = "childname" value = "amq_vhost" />
-<option name = "childtype" value = "amq_vhost_t" />
-<option name = "hash_size" value = "255" />
+<import class = "ipr_shortstr"/>
 
 <context>
     ipr_config_t
@@ -32,6 +34,8 @@ is currently limited to 255 virtual hosts.
     <local>
     ipr_config_t
         *vhost_config;
+    amq_vhost_t
+        *vhost;
     char
         *directory,                     /*  Directory for virtual host       */
         *vhost_name;                    /*  Extracted vhost name             */
@@ -48,8 +52,10 @@ is currently limited to 255 virtual hosts.
                 ipr_config_load (vhost_config, directory, AMQ_CUSTOM_CONFIG, FALSE);
                 if (vhost_config) {
                     vhost_name = ipr_config_locattr (vhost_config, "/config/vhost", "name", NULL);
-                    if (vhost_name)
-                        amq_vhost_new (self, vhost_name, directory, vhost_config);
+                    if (vhost_name) {
+                        vhost = amq_vhost_new (self, vhost_name, directory, vhost_config);
+                        amq_vhost_unlink (&vhost);
+                    }
                     else
                         ipr_config_destroy (&vhost_config);
                 }
@@ -61,9 +67,6 @@ is currently limited to 255 virtual hosts.
     }
 </method>
 
-<method name = "selftest">
-    <local>
-    </local>
-</method>
+<method name = "selftest"/>
 
 </class>

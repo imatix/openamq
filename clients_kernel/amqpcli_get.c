@@ -52,6 +52,8 @@ main (int argc, char *argv [])
     PROCESS
         proc_id;
 
+    icl_system_init ();
+    
     /*  Set up logging                                                       */
     console_send     (NULL, TRUE);
     console_capture  ("amqpcli_get.log", 'w');

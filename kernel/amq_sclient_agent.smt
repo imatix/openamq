@@ -251,7 +251,7 @@ static int
     </action>
 
     <action name = "send protocol header">
-        coprintf ("I: connected to AMQP server on %s:%s", tcb->hostname, tcb->port);
+        icl_console_print ("I: connected to AMQP server on %s:%s", tcb->hostname, tcb->port);
         tcb->frame_header [0] = AMQP_ID;
         tcb->frame_header [1] = AMQP_VERSION;
         s_sock_write (thread, tcb->frame_header, 2);
@@ -618,7 +618,7 @@ static int
 
     <action name = "process handle notify">
         if (HANDLE_NOTIFY.fragment_size> tcb->frame_max) {
-            coprintf ("E: oversized fragment, rejected");
+            icl_console_print ("E: oversized fragment, rejected");
             smt_thread_raise_exception (thread, channel_error_event);
         }
         if (tcb->fragment)
@@ -862,7 +862,6 @@ static int
             FALSE,                      /*  Out of band data?                */
             FALSE,                      /*  Restarting large message?        */
             handle_send_m->immediate,   /*  Immediate delivery?              */
-            FALSE,                      /*  Warnings ?                       */
             partial? NULL: handle_send_m->dest_name);
         send_the_frame (thread);
 
@@ -1043,14 +1042,14 @@ static int
         </event>
         <event name = "socket timeout" nextstate = "" >
             <action name = "handle error"/>
-            coprintf ("E: connection to server timed out - shutting-down");
+            icl_console_print ("E: connection to server timed out - shutting-down");
             if (tcb->result)
                 *tcb->result = AMQ_TIMEOUT;
         </event>
     </state>
 
     <action name = "invalid client command">
-        coprintf ("E: invalid method from client layer - shutting down");
+        icl_console_print ("E: invalid method from client layer - shutting down");
         if (tcb->result)
             *tcb->result = AMQ_INVALID_COMMAND;
     </action>
@@ -1066,7 +1065,7 @@ static int
     </action>
 
     <action name = "handle error">
-        coprintf ("E: TCP/IP error - %s", smt_thread_error (thread));
+        icl_console_print ("E: TCP/IP error - %s", smt_thread_error (thread));
     </action>
 </thread>
 
@@ -1134,7 +1133,7 @@ static int
 
 <public name = "types">
 int amq_sclient_agent_register (
-    smt_thread_handle_t *thread_handle,
+    smt_thread_t *thread,
     amq_sclient_callback_t callback, 
     amq_sclient_handle_notify_fn *function);
 </public>
@@ -1143,26 +1142,22 @@ int amq_sclient_agent_register (
 #define tcb ((amq_sclient_agent_client_context_t *) thread->context)
 int
 amq_sclient_agent_register (
-    smt_thread_handle_t  *thread_handle,
+    smt_thread_t  *thread,
     amq_sclient_callback_t callback,
     amq_sclient_handle_notify_fn *function)
 {
     int
         rc = 0;                         /*  Assume registration worked       */
-    smt_thread_t
-        *thread;
 
-    if (! smt_thread_handle_valid (thread_handle)) {
-        coprintf ("amq_sclient_agent: tried to register to dead thread.");
+    if (thread->zombie) {
+        icl_console_print ("amq_sclient_agent: tried to register to dead thread.");
         rc = 1;
     }
     else {
-        thread = thread_handle->thread;
-
         if (callback == AMQ_SCLIENT_HANDLE_NOTIFY)
             tcb->handle_notify_callback  = function;
         else {
-            coprintf ("amq_sclient_agent: tried to register invalid callback '%u'", callback);
+            icl_console_print ("amq_sclient_agent: tried to register invalid callback '%u'", callback);
             rc = 1;
         }
     }
@@ -1265,7 +1260,7 @@ s_sock_read (smt_thread_t *thread, byte *buffer, size_t size)
         tcb->frame_size = ntohl (*(qbyte *) (tcb->frame_header));
 
     if (tcb->frame_size> tcb->frame_max) {
-        coprintf ("E: received frame is too large (want %ld, have %ld)",
+        icl_console_print ("E: received frame is too large (want %ld, have %ld)",
             tcb->frame_size, tcb->frame_max);
         smt_thread_raise_exception (thread, connection_error_event);
     }

@@ -3,9 +3,9 @@ gdl
     subtitle  = The AMQP/Fast Wire-Level Protocol
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/07/05
+    date      = 2005/08/02
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.9a5
+    version   = 0.9a7
 end gdl
 
 Cover
@@ -23,6 +23,22 @@ This document is ready for review.
 
 Recent Change History
 ---------------------
+
+2005/08/02 - 0.9a7
+
+- Clarification of connection recovery procedure.
+- Defined 'cycle' field in frame header.
+
+2005/07/23 - 0.9a6
+
+- Extended longstring and field table size to 32 bits unsigned, allowing
+  for up to 4Gb of data.
+- Extended frame length indicator to 32 bits unsigned.
+- Extended number of channels in frames to 64k.
+- Extended number of classes and methods from 255 to 64k.
+- Extended content weight from 8 bits to 16 bits.
+- Removed method 'version' field.
+- Removed concept of "meta frames".
 
 2005/06/06 - 0.9a5:
 
@@ -60,16 +76,16 @@ This document is copyright (c) 2005 JPMorgan Inc.
 Authors
 =======
 
-AMQP was designed by Pieter Hintjens with help from John O'Hara, Mark Atwell,
-and others. This document was written by Pieter Hintjens.  The diagrams were
-drawn by Gustavo Broos.
+AMQP was designed by Pieter Hintjens with help from John O'Hara, Mark
+Atwell, and others. This document was written by Pieter Hintjens. The
+diagrams were drawn by Gustavo Broos.
 
 Abstract
 ========
 
-We propose a wire-level protocol and a set of formal semantics for building
-large scale and high-performance middleware architectures.  AMQP/0.9 is the
-third major design iteration of the AMQ protocol.
+We propose a wire-level protocol and a set of formal semantics for
+building large scale and high-performance middleware architectures.
+AMQP/0.9 is the third major design iteration of the AMQ protocol.
 
 Introduction
 ************
@@ -146,11 +162,11 @@ eliminate potential future bottlenecks, specifically for:
    64-bit sized packets in 50 years.
 
 3. Protocol classes and methods: the current protocol defines about
-   ten classes and about ten or fewer methods per class.  We
-   expect that new versions of the protocol will add classes and
-   methods at a constant rate of 1 to 5 per year. The limit of 255
-   classes and methods per class should be sufficient to last until
-   2055.
+   ten classes and about ten or fewer methods per class.  We assume
+   that backwards compatability will be maintained by defining new
+   classes and methods rather than modifying existing ones that are
+   in use.  The limit of 64k classes and methods per class should be
+   sufficient to last more than 50 years.
 
 4. Channels: the limit of 4G channels allows growth of 50% per year
    from an estimated usage of 10 channels per connection today.
@@ -249,12 +265,6 @@ Frame:
     A formally-defined package of connection data.  Frames are
     always written and read contiguously - as a single unit - on the
     connection.
-Extended_Frame:
-    A frame capable of using more channels and carrying more data than
-    a normal frame.
-Meta_Frame:
-    A specific type of frame that has the sole purpose of indicating
-    that the next frame will be an extended frame.
 Protocol_Class:
     A collection of methods that deal with a specific type of
     functionality.
@@ -344,15 +354,12 @@ Limitations
 
 These limitations are formally part of the AMQP/Fast specifications:
 
-- Number of channels per connection, normal frames: 255.
-- Number of channels per connection, extended frames: 64K-1.
+- Number of channels per connection: 65535.
 - Size of a short string: 0 to 255 octets.
-- Size of a long string: 0 to 64K-1 octets.
-- Size of a normal frame: 0 to 64K-1 octets.
-- Size of an extended frame: 0 to 2e64-1 octets.
-- Number of possible content domains: 255.
-- Number of protocol classes: 255 per peer.
-- Number of methods: 255 per protocol class.
+- Size of a long string or field table: 0 to 4Gb-1 octets.
+- Size of a frame: 0 to 4Gb-1 octets.
+- Number of protocol classes/content domains: 65535.
+- Number of methods: 65535 per protocol class.
 
 Design Proposal
 ***************
@@ -387,7 +394,7 @@ This formal grammar defines the AMQP/Fast data types:
     long-long-integer   = 8*OCTET
     short-string        = OCTET *string-char
     string-char         = %d1 .. %d255
-    long-string         = short-integer *OCTET
+    long-string         = long-integer *OCTET
     time-stamp          = long-long-integer
     field-table         = long-integer *field-value-pair
     field-value-pair    = field-name field-value
@@ -442,14 +449,14 @@ All strings are variable-length and represented by an integer length
 followed by zero or more octets of data.  AMQP/Fast defines these
 string types:
 
-- Short strings, stored as a 1-octet length followed by zero or more
-  octets of data.  Short strings are capable of carrying UTF-8 data,
-  and may not contain binary zero octets.  In the current version of
-  the protocol short strings may only contain US-ASCII (ISO-8859-1)
-  characters.
+- Short strings, stored as an 8-bit unsigned integer length followed
+  by zero or more octets of data.  Short strings are capable of
+  carrying UTF-8 data, and may not contain binary zero octets.
+  In the current version of the protocol short strings may only
+  contain US-ASCII (ISO-8859-1) characters.
 
-- Long strings, stored as a short integer length followed by zero or
-  more octets of data.  Long strings can contain any data.
+- Long strings, stored as a 32-bit unsigned integer length followed
+  by zero or more octets of data.  Long strings can contain any data.
 
 Timestamps
 ----------
@@ -760,14 +767,15 @@ Guidelines for implementors:
 The Frame Header Wire Format
 ----------------------------
 
-All frames start with a 4-octet header composed of a one-octet type field
-a 1-octet channel field and a short size field:
+All frames start with an 8-octet header composed of a one-octet type
+field, a 1-octet frame cycle field, a 2-octet channel field and a long
+'size' field:
 
-    0      1         2             4               size+4
-    +------+---------+----------+  +------------+  +-----------+
-    | type | channel |   size   |  | frame body |  | frame-end |
-    +------+---------+----------+  +------------+  +-----------+
-     octet    octet     short       size-1 octets      octet
+    0      1       2         4             8               size+4
+    +------+-------+---------+----------+  +------------+  +-----------+
+    | type | cycle | channel |   size   |  | frame body |  | frame-end |
+    +------+-------+---------+----------+  +------------+  +-----------+
+     octet   octet    short      long       size-1 octets      octet
 
 AMQP/Fast defines these types of frame:
 
@@ -779,14 +787,18 @@ AMQP/Fast defines these types of frame:
 - Type = 6, "OOB-BODY": out-of-band body frame.
 - Type = 7, "TRACE": trace frame.
 - Type = 8, "HEARTBEAT": heartbeat frame.
-- Type = 9, "META": meta frame.
+
+The cycle field should be incremented for each frame sent, and provides
+a peer with a safe way to resend partially-sent data after a connection
+failover - see later discussion on this.
 
 The channel number is 0 for all frames which are global to the connection
-and 1 .. 255 for frames that refer to specific channels (1 .. 64K-1 in
-extended frames).
+and 1..65535 for frames that refer to specific channels.
 
 The size field includes the end field, a single octet with the value
-%xCE.
+%xCE.  While AMQP assumes a reliable connected protocol, we use a frame
+end to allow easy detection of framing errors caused by incorrect client
+or server implementations.
 
 Guidelines for implementors:
 
@@ -794,6 +806,13 @@ Guidelines for implementors:
   types, it MUST treat this as a fatal protocol error and close the
   connection without sending any further data on it.
 
+- The peer that implements connection failover MUST increment the cycle
+  field on each frame sent, mod 256, per frame type.  A cycle value of
+  zero has no special meaning.
+
+- A peer that does implement connection failover MAY set the cycle field
+  to zero on all frames sent.
+  
 - All frames include the frame-end octet. The minimum value for the size
   field is 1.
 
@@ -801,7 +820,8 @@ Guidelines for implementors:
   before attempting to decode the frame.  If the frame-end is not valid
   it MUST treat this as a fatal protocol error and close the connection
   without sending any further data on it.  It SHOULD log information
-  about the problem.
+  about the problem, since this indicates an error in either the server
+  or client framing code implementation.
 
 Method Frames
 -------------
@@ -897,46 +917,47 @@ Guidelines for implementors:
 - An AMQP peer MUST handle a non-zero channel number as a connection
   exception.
 
-Meta Frames
------------
+Connection Failover
+-------------------
 
-Meta frames are used to send frames of 64KB or larger (the size of a
-normal frame body is limited to 64KB-1 octets), and to use channel
-numbers above 255. Meta frames are designed to support high-capacity
-out-of-band transports and IPv6 (which has a 4GB frame limit, although
-ethernet still cannot handle frames larger than 12000 bytes).
+AMQP/Fast provides a connection failover mechanism that can be used by
+clients to recover a connection and its server-side state in case of
+network errors (e.g. a connection across a fire-wall being reset).
 
-Extended Frame Header Wire Format
----------------------------------
+The details of this mechanism are described in the Connection.Open
+specifications.
 
-A meta frame is followed by an "extended frame header" with a short
-integer channel number and a long long size:
+In gross terms, the server issues the client with a connection key,
+called the "context key", once the connection has been established.
+"Established" means going through authentication and negotiation. A
+client starting a new connection will request a new context key from the
+server, and then proceed to define some state - opening channels, etc.
 
-    0      1   2   4
-    +------+---+---+
-    | META | 0 | 0 |
-    +------+---+---+
-    0       1       2         4           12
-    +-------+-------+---------+------------+ +-------------- - -
-    | type  | flags | channel | frame-size | | frame body...
-    +-------+-------+---------+------------+ +-------------- - -
-      octet   octet   short     long long     'frame-size' octets
+In case of a connection failure, the server will hold the connection and
+its server-side state for a period of time - e.g. one minute. During
+this time, the client may reconnect and estabish a new connection. When
+the client has established the connection, rather than requesting a new
+context key, it provides the server with the previous ('old') key. The
+server will verify that this refers to a suspended connection and if so,
+transfers the state from that old connection to the new connection.
 
-Guidelines for implementors:
+The client should hold its state in memory during this process, so that
+it can equally transfer its open channels, etc. to the new connection.
 
-- The meta frame channel number and size MUST be zero.
+The frame cycle field is used to recover the session, once this process
+is complete and both peer are satisfied that the connection is alive.
 
-- The sender MUST NOT send intervening frames between the meta frame and
-  the extended frame.
+When a connection break is detected, each peer must save the last method
+sent, and the last method received. Once the connection has been
+re-established the client re-sends the last method it sent. The server
+decides whether it has seen this method or not, according to its saved
+state. If it already saw this method, it resends the last method that it
+sent. If not, it processes the method and continues as usual.
 
-- After a meta frame all frame types are valid except a meta frame.
-
-- The "flags" octet is reserved for future use and MUST be be set to
-  zero.
-
-- The frame body is not affected in any way by the presence or absence
-  of a meta frame, except that the frame body MAY be larger than 64KB
-  after a meta frame.
+In a synchronous exchange of methods, this protocol guarantees that no
+methods can be lost.  In an asynchronous exchange of methods, data sent
+in one direction may be lost.  Where asynchronous methods must be
+reliable, acknowledgements are used explicitly.
 
 The Class/Method Model
 ======================
@@ -1033,15 +1054,13 @@ Method Frame Body Wire Format
 
 A method frame body has this format:
 
-    0       1        2          4
-    +-------+--------+----------+-------------- - -
-    | class | method | reserved | arguments...
-    +-------+--------+----------+-------------- - -
-      octet   octet     short
+    0       1        2       
+    +----------+-----------+-------------- - -
+    | class-id | method-id | arguments...
+    +----------+-----------+-------------- - -
+       short      short    ...
 
-- The class and method are protocol-constant values.
-
-- The reserved must be zero in this version of the protocol.
+- The class-id and method-id are protocol-constant values.
 
 - The arguments are a set of AMQP/Fast fields that specific to each
   method.
@@ -1078,7 +1097,7 @@ This is the formal grammar for the AMQP/Fast content model:
     header-frame    = HEADER channel frame-size header-payload frame-end
     channel         = octet
     frame-size      = short-integer
-    header-payload  = class weight body-size
+    header-payload  = class-id weight body-size
                       property-flags property-list
     content-class   = OCTET
     content-weight  = OCTET
@@ -1095,19 +1114,22 @@ Content Header Frame Wire Format
 
 A content header frame has this format:
 
-    0        1        2           10               12
-    +--------+--------+-----------+----------------+------------- - -
-    | domain | weight | body size | property flags | property list...
-    +--------+--------+-----------+----------------+------------- - -
-      octet    octet    long long   short int        remainder...
+    0          2        4           12               14
+    +----------+--------+-----------+----------------+------------- - -
+    | class-id | weight | body size | property flags | property list...
+    +----------+--------+-----------+----------------+------------- - -
+       short     short    long long       short        remainder...
 
 - The content class specifies the set of properties (with a predefined
-  syntax and semantics) that the header frame may hold. The standard
-  AMQP/Fast content classes are defined later.
+  syntax and semantics) that the header frame may hold. The content
+  class-id matches the method class-id used when carrying content.
+  E.g. a method like Jms.Deliver uses the same class-id (the integer
+  constant representing 'Jms') both in the method frame and the
+  content header frame.
 
 - The weight field specifies whether the content is structured or not.
   Unstructured content has a weight of zero.  Structured content has a
-  weight of 1 to 255.  This is the number of child-contents that the
+  weight of 1 to 65535. This is the number of child-contents that the
   content contains.
 
 - The body size is a 64-bit value that defines the total size of the
@@ -1133,7 +1155,7 @@ As an example, we take an imaginary content class "D" which has three
 properties, T, E and C. Imagine a simple content that has properties E
 and C but not T. The header frame will be formatted thus:
 
-      domain   weight   body size   property flags   property list
+     class-id  weight   body size   property flags   property list
     +--------+--------+-----------+----------------+-------+
     |   D    |   0    |    nnn    | 011...         | E | C |
     +--------+--------+-----------+----------------+-------+

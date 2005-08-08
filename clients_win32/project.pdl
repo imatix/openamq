@@ -1,7 +1,7 @@
 <?xml?>
 <pdl
     name      = "OpenAMQ COM Win32 Client"
-    version   = "0.8d7"
+    version   = "0.8d5"
     copyright = "Copyright (c) 2004-2005 JPMorgan"
     deploy    = "openamq/clients"
     >

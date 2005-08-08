@@ -96,7 +96,10 @@ amq_server_core (
     opt_trace   = "0";
     opt_monitor = "0";
     opt_server  = NULL;
-    console_set_mode (CONSOLE_DATETIME);
+    
+    icl_console_mode (ICL_CONSOLE_DATE,   FALSE);
+    icl_console_mode (ICL_CONSOLE_TIME,   FALSE);
+    icl_console_mode (ICL_CONSOLE_THREAD, FALSE);
 
     argparm = NULL;                     /*  Argument parameter to pick-up    */
     for (argn = 1; argn < argc; argn++) {
@@ -161,18 +164,18 @@ amq_server_core (
     }
     /*  If there was a missing parameter or an argument error, quit          */
     if (argparm) {
-        coprintf ("Argument missing - type 'openamqd -h' for help");
+        icl_console_print ("Argument missing - type 'openamqd -h' for help");
         goto failed;
     }
     else
     if (!args_ok) {
-        coprintf ("Invalid arguments - type 'openamqd -h' for help");
+        icl_console_print ("Invalid arguments - type 'openamqd -h' for help");
         goto failed;
     }
 
     /*  Set server working directory if necessary                            */
     if (opt_workdir && set_curdir (opt_workdir)) {
-        coprintf ("Can't work in '%s' - %s", opt_workdir, strerror (errno));
+        icl_console_print ("Can't work in '%s' - %s", opt_workdir, strerror (errno));
         goto failed;
     }
 
@@ -200,9 +203,9 @@ amq_server_core (
         const char
            *background_args [] = { "-s", NULL };
 
-        coprintf ("Moving into the background...");
+        icl_console_print ("Moving into the background...");
         if (process_server (NULL, NULL, argc, argv, background_args) != 0) {
-            coprintf ("Backgrounding failed - server is halting");
+            icl_console_print ("Backgrounding failed - server is halting");
             goto failed;
         }
     }
@@ -218,17 +221,17 @@ amq_server_core (
     s_prepare_security ();
 
     if (amq_server_agent_init (atoi (opt_trace))) {
-        coprintf ("E: could not start server protocol agent");
+        icl_console_print ("E: could not start server protocol agent");
         goto failed;
     }
     /*  Register user modules                                                */
     if (amq_user_modules ()) {
-        coprintf ("E: module registration failed - server is halting");
+        icl_console_print ("E: module registration failed - server is halting");
         goto failed;
     }
 
     /*  Execute the server                                                   */
-    smt_thread_execute (SMT_EXEC_FULL);
+    smt_os_thread_execute ();
 
     /*  Release resources                                                    */
     amq_vhost_table_destroy (&amq_vhosts);
@@ -237,7 +240,7 @@ amq_server_core (
     icl_system_destroy ();
 
     /*  Report memory usage                                                  */
-    coprintf ("Allocs=%ld frees=%ld\n", icl_mem_allocs (), icl_mem_frees ());
+    icl_console_print ("Allocs=%ld frees=%ld\n", icl_mem_allocs (), icl_mem_frees ());
 
     icl_mem_assert ();
     return (0);
@@ -285,22 +288,25 @@ s_prepare_security (void)
 {
     char
         *mechanism;
+    amq_user_t
+        *user;
 
     ipr_config_locate (amq_config, "/config/security", NULL);
     mechanism = ipr_config_attr (amq_config, "mechanism", "PLAIN");
     if (streq (mechanism, "PLAIN"))
         amq_global_set_mechanism (AMQ_MECHANISM_PLAIN);
     else {
-        coprintf ("E: invalid security mechanism, '%s'", mechanism);
+        icl_console_print ("E: invalid security mechanism, '%s'", mechanism);
         amq_global_set_mechanism (AMQ_MECHANISM_PLAIN);
     }
     /*  Load user table from configuration file                              */
     ipr_config_locate (amq_config, "/config/users/user", NULL);
     while (amq_config->located) {
-        amq_user_new (
+        user = amq_user_new (
             amq_users,                  /*  Users hash table                 */
             ipr_config_attr (amq_config, "name", ""),
             amq_config);                /*  Configuration entry              */
+        amq_user_unlink (&user);
         ipr_config_next (amq_config);
     }
 }

@@ -84,9 +84,13 @@ main (int argc, char *argv [])
     opt_repeats  = "1";
     service_type = AMQP_SERVICE_QUEUE;
 
+    icl_system_init ();
+    
     console_send     (NULL, TRUE);
     console_capture  ("amqpcli_serial.log", 'w');
     console_set_mode (CONSOLE_DATETIME);
+    
+    icl_console_mode (ICL_CONSOLE_THREAD, TRUE);
 
     argparm = NULL;                     /*  Argument parameter to pick-up    */
     for (argn = 1; argn < argc; argn++) {

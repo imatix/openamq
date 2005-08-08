@@ -21,15 +21,20 @@ static int
 </private>
 
 <catch error = "SMT_SOCKET_ERROR" event = "socket error" />
-<catch error = "SMT_TIMEOUT"      event = "socket error"      />
+<catch error = "SMT_TIMEOUT"      event = "timeout"      />
 <catch                            event = "smt error"    />
 
 <handler name = "agent init">
     <argument name = "tracing" type = "int" />
+    smt_thread_t
+        *thread;
+    
     s_tracing = tracing;
     if (s_tracing > AMQP_TRACE_LOW)
         smt_socket_request_trace (TRUE);
-    amq_server_agent_master_thread_new ();
+    thread = amq_server_agent_master_thread_new ();
+    if (thread)
+        smt_thread_activate (thread);
 </handler>
 
 <handler name = "agent term">
@@ -84,14 +89,14 @@ static int
         apr_sockaddr_info_get (&sockaddr, buffer, APR_UNSPEC, 0, 0, pool);
         while (sockaddr) {
             apr_sockaddr_ip_get (&addr, sockaddr);
-            coprintf ("I: AMQP server binding to %s:%s", addr, port);
+            icl_console_print ("I: AMQP server binding to %s:%s", addr, port);
             sockaddr = sockaddr-> next;
         }
         apr_pool_destroy (pool);
 
         tcb-> socket = smt_socket_passive (thread, port, 5);
         if (!tcb->socket) {
-            coprintf ("E: could not open AMQP port %s - %s",
+            icl_console_print ("E: could not open AMQP port %s - %s",
                       port, smt_thread_error (thread));
             smt_thread_raise_exception (thread, error_event);
         }
@@ -119,19 +124,19 @@ static int
         /*  Output queue statistics                                          */
         if (amq_global_monitor () && --remaining == 0) {
             for (table_idx = 0; table_idx < AMQ_VHOST_TABLE_MAXSIZE; table_idx++) {
-                vhost = amq_vhosts->item_table [table_idx];
+                vhost = amq_vhosts->table_items [table_idx];
                 if (vhost && vhost != AMQ_VHOST_DELETED) {
                     dest = amq_dest_list_first (vhost->dest_list);
                     while (dest) {
                         if (dest->queue->monitor_pending) {
-                            coprintf ("Queue:%-30s  in:%6d  out:%6d  pending:%6d",
+                            icl_console_print ("Queue:%-30s  in:%6d  out:%6d  pending:%6d",
                                 dest->key,
                                 dest->queue->accept_count,
                                 dest->queue->dispatch_count,
                                 dest->queue->memory_queue_size);
                             dest->queue->monitor_pending = FALSE;
                         }
-                        dest = amq_dest_list_next (vhost->dest_list, dest);
+                        dest = amq_dest_list_next (dest);
                     }
                 }
             }
@@ -160,7 +165,11 @@ static int
 
         client_thread = amq_server_agent_client_thread_new ();
         client_tcb         = client_thread->context;
+        memset (client_tcb, 0, sizeof (*client_tcb));  /*  JS  */
         client_tcb->socket = tcb-> connect;
+        
+        if (client_thread)
+            smt_thread_activate (client_thread);
     </action>
 </thread>
 
@@ -198,13 +207,6 @@ static int
 
 <method name = "handle reply">
     <argument name = "confirm tag"  type = "dbyte" >Confirmation tag</argument>
-</method>
-
-<method name = "handle warning">
-    <argument name = "handle id"    type = "dbyte" >Handle number</argument>
-    <argument name = "warning tag"  type = "qbyte" >Confirmation tag</argument>
-    <argument name = "reply code"   type = "dbyte" >Reply code</argument>
-    <argument name = "reply text"   type = "char *" >Reply text</argument>
 </method>
 
 <thread name = "client">
@@ -253,6 +255,7 @@ static int
         tcb->command     = amq_bucket_new (tcb->frame_max);
     </handler>
     <handler name = "thread destroy">
+        amq_handle_unlink      (&tcb->handle);
         smt_socket_destroy     (&tcb->socket);
         amq_bucket_destroy     (&tcb->command);
         amq_bucket_destroy     (&tcb->fragment);
@@ -281,7 +284,7 @@ static int
     <action name = "check protocol header">
         if (tcb->frame_header [0] != AMQP_ID
         ||  tcb->frame_header [1] != AMQP_VERSION) {
-            coprintf ("E: client sent invalid protocol header - 0x%02x 0x%02x",
+            icl_console_print ("E: client sent invalid protocol header - 0x%02x 0x%02x",
                 tcb->frame_header [0], tcb->frame_header [1]);
             smt_thread_raise_exception (thread, connection_error_event);
         }
@@ -627,9 +630,9 @@ static int
     <action name = "check sufficient resources">
     if (amq_max_memory > 0
     &&  icl_mem_usage () > amq_max_memory) {
-        coprintf ("W: active memory has reached limit (%ld bytes)", amq_max_memory);
+        icl_console_print ("W: active memory has reached limit (%ld bytes)", amq_max_memory);
         icl_system_purge ();
-        coprintf ("W: -- after garbage-collection: usage=%ld", icl_mem_usage ());
+        icl_console_print ("W: -- after garbage-collection: usage=%ld", icl_mem_usage ());
         if (icl_mem_usage () > amq_max_memory) {
             tcb->reply_code = AMQP_RESOURCE_ERROR;
             tcb->reply_text = "Server is too busy - try again later";
@@ -640,8 +643,8 @@ static int
 
     <action name = "process channel open">
         amq_global_reset_error ();
-        tcb->channel = amq_channel_new (
-            tcb->connection->channels, tcb->channel_id, tcb->connection, &CHANNEL_OPEN);
+        amq_channel_unlink (&tcb->channel);
+        tcb->channel = amq_channel_new (tcb->connection->channels, tcb->channel_id, tcb->connection, &CHANNEL_OPEN);
         if (!tcb->channel)
             tcb->reply_code = AMQP_SYNTAX_ERROR;
 
@@ -698,7 +701,7 @@ static int
                 break;
 
             default:
-                coprintf ("E: invalid frame type in process_channel_method");
+                icl_console_print ("E: invalid frame type in process_channel_method");
                 tcb->reply_code = AMQP_INTERNAL_ERROR;
                 tcb->reply_text = "Internal server error";
                 smt_thread_raise_exception (thread, connection_error_event);
@@ -753,8 +756,8 @@ static int
 
     <action name = "process handle open">
         amq_global_reset_error ();
-        tcb->handle = amq_handle_new (
-            tcb->connection->handles, tcb->handle_id, tcb->channel, &HANDLE_OPEN);
+        amq_handle_unlink (&tcb->handle);
+        tcb->handle = amq_handle_new (tcb->connection->handles, tcb->handle_id, tcb->channel, &HANDLE_OPEN);
         if (tcb->handle)
             tcb->handle->client_id = tcb->client_id;
 
@@ -829,7 +832,7 @@ static int
                 }
                 break;
             default:
-                coprintf ("E: invalid frame type in process_handle_method");
+                icl_console_print ("E: invalid frame type in process_handle_method");
                 tcb->reply_code = AMQP_INTERNAL_ERROR;
                 tcb->reply_text = "Internal server error";
                 smt_thread_raise_exception (thread, connection_error_event);
@@ -859,9 +862,7 @@ static int
             smt_thread_raise_exception (thread, channel_error_event);
         }
         /*  Grab a new bucket for the incoming message data                  */
-        if (tcb->fragment)
-            amq_bucket_destroy (&tcb->fragment);
-
+        amq_bucket_destroy (&tcb->fragment);  /*  JS: ??? */
         tcb->fragment = amq_bucket_new (HANDLE_SEND.fragment_size);
         s_sock_read (thread, tcb->fragment->data, HANDLE_SEND.fragment_size);
     </action>
@@ -938,8 +939,8 @@ static int
             tcb->reply_text = "Client sent oversized fragment";
             smt_thread_raise_exception (thread, channel_error_event);
         }
-        if (tcb->fragment)
-            amq_bucket_destroy (&tcb->fragment);
+            
+        amq_bucket_destroy (&tcb->fragment);
         tcb->fragment = amq_bucket_new (HANDLE_PREPARE.fragment_size);
         s_sock_read (thread, tcb->fragment->data, HANDLE_PREPARE.fragment_size);
     </action>
@@ -985,6 +986,7 @@ static int
 
     <action name = "process handle close">
         /*  We destroy the handle object                                     */
+        amq_handle_unlink  (&tcb->handle);
         amq_handle_destroy (&tcb->handle);
     </action>
 
@@ -992,8 +994,7 @@ static int
 
     <state name = "sending message">
         <event name = "start">
-            if (tcb->fragment)
-                amq_bucket_destroy (&tcb->fragment);
+            amq_bucket_destroy (&tcb->fragment);
             tcb->fragment = amq_bucket_new (tcb->frame_max);
             <action name = "send message fragment" />
         </event>
@@ -1121,10 +1122,6 @@ static int
             <action name = "send handle reply" />
             <action name = "wait for activity" />
         </method>
-        <method name = "handle warning" >
-            <action name = "send handle warning" />
-            <action name = "wait for activity" />
-        </method>
     </state>
 
     <action name = "send connection close">
@@ -1190,14 +1187,6 @@ static int
             AMQP_REPLY_SUCCESS, NULL);
         send_the_frame (thread);
     </action>
-
-    <action name = "send handle warning">
-        amq_frame_free (&tcb->frame);
-        tcb->frame = amq_frame_handle_warning_new (
-            handle_warning_m->handle_id, handle_warning_m->warning_tag,
-            handle_warning_m->reply_code, handle_warning_m->reply_text);
-        send_the_frame (thread);
-    </action>
 </thread>
 
 <state name = "defaults">
@@ -1210,7 +1199,7 @@ static int
 </state>
 
 <action name = "handle error">
-    coprintf ("E: %s", smt_thread_error (thread));
+    icl_console_print ("E: %s", smt_thread_error (thread));
 </action>
 
 <private name = "types">
@@ -1236,7 +1225,8 @@ use_command_handle (smt_thread_t *thread, dbyte handle_id)
     }
     else
     if (tcb->handle_id != handle_id) {
-        tcb->handle    = amq_handle_search (tcb->connection->handles, handle_id);
+        amq_handle_unlink (&tcb->handle);
+        tcb->handle    = amq_handle_table_search (tcb->connection->handles, handle_id);
         tcb->handle_id = handle_id;
     }
 }
@@ -1254,7 +1244,8 @@ use_command_channel (smt_thread_t *thread, dbyte channel_id)
     }
     else
     if (tcb->channel_id != channel_id) {
-        tcb->channel    = amq_channel_search (tcb->connection->channels, channel_id);
+        amq_channel_unlink (&tcb->channel);
+        tcb->channel    = amq_channel_table_search (tcb->connection->channels, channel_id);
         tcb->channel_id = channel_id;
     }
 }
@@ -1262,57 +1253,39 @@ use_command_channel (smt_thread_t *thread, dbyte channel_id)
 static void
 connection_reply_if_needed (smt_thread_t *thread, dbyte confirm_tag)
 {
-    smt_thread_handle_t
-        *thread_handle;
-
     tcb->reply_code = amq_global_error_code ();
     tcb->reply_text = amq_global_error_text ();
     if (tcb->reply_code)
         smt_thread_raise_exception (thread, connection_error_event);
     else
-    if (confirm_tag) {
-        thread_handle = smt_thread_handle_new (thread);
-        amq_server_agent_connection_reply (thread_handle, confirm_tag);
-        smt_thread_handle_destroy (&thread_handle);
-    }
+    if (confirm_tag)
+        amq_server_agent_connection_reply (thread, confirm_tag);
 }
 
 static void
 channel_reply_if_needed (smt_thread_t *thread, dbyte confirm_tag)
 {
-    smt_thread_handle_t
-        *thread_handle;
-
     tcb->reply_code = amq_global_error_code ();
     tcb->reply_text = amq_global_error_text ();
 
     if (tcb->reply_code)
         smt_thread_raise_exception (thread, channel_error_event);
     else
-    if (confirm_tag) {
-        thread_handle = smt_thread_handle_new (thread);
-        amq_server_agent_channel_reply (thread_handle, confirm_tag);
-        smt_thread_handle_destroy (&thread_handle);
-    }
+    if (confirm_tag)
+        amq_server_agent_channel_reply (thread, confirm_tag);
 }
 
 static void
 handle_reply_if_needed (smt_thread_t *thread, dbyte confirm_tag)
 {
-    smt_thread_handle_t
-        *thread_handle;
-
     tcb->reply_code = amq_global_error_code ();
     tcb->reply_text = amq_global_error_text ();
 
     if (tcb->reply_code)
         smt_thread_raise_exception (thread, channel_error_event);
     else
-    if (confirm_tag) {
-        thread_handle = smt_thread_handle_new (thread);
-        amq_server_agent_handle_reply (thread_handle, confirm_tag);
-        smt_thread_handle_destroy (&thread_handle);
-    }
+    if (confirm_tag)
+        amq_server_agent_handle_reply (thread, confirm_tag);
 }
 
 /*  Send the current frame and free frame block                              */

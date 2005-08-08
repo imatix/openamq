@@ -1,25 +1,21 @@
 <?xml?>
 <class
     name      = "amq_smessage_list"
-    comment   = "Implements list head container for amq_smessage"
+    comment   = "Implements the list container for amq_smessage"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 <doc>
-    This class implements list head container for amq_smessage
+    This class implements the list container for amq_smessage
 </doc>
 
-<inherit class = "ipr_list_head" />
-
-<import class = "amq_smessage"  />
+<inherit class = "ipr_list_head" >
+    <option name = "prefix" value = "list"/>
+</inherit>
+<import class = "amq_smessage" />
 <option name = "childname" value = "amq_smessage" />
 <option name = "childtype" value = "amq_smessage_t" />
-
-<context>
-    amq_smessage_t
-        amq_smessage;                   /*  Self starts with child object    */
-</context>
+<option name = "rwlock"    value = "1" />
 
 <method name = "commit" template = "function">
     <doc>
@@ -33,7 +29,7 @@
     </local>
     message = amq_smessage_list_first (self);
     while (message) {
-        self_unlink (message);
+        amq_smessage_list_remove (message);
         amq_queue_accept (message->queue, NULL, message, FALSE, txn);
         amq_smessage_destroy (&message);
         message = amq_smessage_list_first (self);
@@ -46,11 +42,14 @@
     </doc>
     <local>
     amq_smessage_t
+        *message_temp,
         *message;
     </local>
     message = amq_smessage_list_first (self);
     while (message) {
         amq_smessage_purge   (message);
+        message_temp = message;
+        amq_smessage_unlink  (&message_temp);
         amq_smessage_destroy (&message);
         message = amq_smessage_list_first (self);
     }

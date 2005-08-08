@@ -3,24 +3,27 @@
 <!-- OpenAMQ Java build file (temporarily using ant!) -->
 
 <project name="openamq" default="jar" basedir=".">
+    <property name="lib" value="${basedir}/lib"/>
+    <property name="common.dir" value="${basedir}/common"/>
+    <property name="client.dir" value="${basedir}/client"/>
+    <property name="common.src" value="${common.dir}/src"/>
+    <property name="common.classes" value="${common.dir}/classes"/>
+    <property name="client.src" value="${client.dir}/src"/>
+    <property name="client.tests" value="${client.dir}/test"/>
+    <property name="client.classes" value="${client.dir}/classes"/>
+    <property name="client.testclasses" value="${client.dir}/testclasses"/>
+    <property name="generated.java.src" value="${common.dir}/generated/java"/>
+    <property name="dist" value="${basedir}/dist"/>
 
     <!-- Setup details -->
     <target name="init">
         <tstamp>
             <format property="release" pattern="-dMMMyy" locale="en" timezone="GMT"/>
         </tstamp>
-        <property name="lib" value="${basedir}/lib"/>
 
-        <property name="src" value="${basedir}/src"/>
-        <property name="tests" value="${basedir}/test"/>
-        <property name="classes" value="${basedir}/classes"/>
-        <property name="testclasses" value="${basedir}/testclasses"/>
-        <property name="generated.java.src" value="${basedir}/generated/java"/>
-
-        <property name="dist" value="${basedir}/dist"/>
-
-        <mkdir dir="${classes}"/>
-        <mkdir dir="${testclasses}"/>
+        <mkdir dir="${common.classes}"/>
+        <mkdir dir="${client.classes}"/>
+        <mkdir dir="${client.testclasses}"/>
         <mkdir dir="${generated.java.src}"/>
         <mkdir dir="${dist}"/>
     </target>
@@ -29,28 +32,44 @@
         <fileset dir="${basedir}/lib">
             <include name="**/*.jar"/>
         </fileset>
-        <pathelement path="${basedir}/classes"/>
-        <pathelement path="${basedir}/testclasses"/>
+        <pathelement path="${common.classes}"/>
+        <pathelement path="${client.classes}"/>
+        <pathelement path="${client.testclasses}/"/>
     </path>
 
     <!-- Remove all built files -->
     <target name="clean" depends="init">
         <delete dir="${dist}"/>
         <!--<delete dir="${generated.java.src}"/>-->
-        <delete dir="${classes}"/>
-        <delete dir="${testclasses}"/>
+        <delete dir="${common.classes}"/>
+        <delete dir="${client.classes}"/>
+        <delete dir="${client.testclasses}"/>
     </target>
 
     <!-- Compile Java -->
     <target name="compile" depends="init">
-        <javac destdir="${classes}" target="1.4" source="1.4" classpathref="openamq.classpath" debug="on">
-            <src path="${src}"/>
+        <javac destdir="${common.classes}" target="1.4" source="1.4" debug="on">
+            <classpath refid="openamq.classpath"/>
+            <src path="${common.src}"/>
             <src path="${generated.java.src}"/>
         </javac>
 
-        <copy todir="${classes}">
+        <javac destdir="${client.classes}" target="1.4" source="1.4" debug="on">
+            <classpath refid="openamq.classpath"/>
+            <src path="${client.src}"/>
+        </javac>
+
+        <copy todir="${common.classes}">
             <!-- copy any non java src files into the build tree, e.g. log4j.properties -->
-            <fileset dir="${src}">
+            <fileset dir="${common.src}">
+                <exclude name="**/*.java"/>
+                <exclude name="**/package.html"/>
+            </fileset>
+        </copy>
+
+        <copy todir="${client.classes}">
+            <!-- copy any non java src files into the build tree, e.g. log4j.properties -->
+            <fileset dir="${client.src}">
                 <exclude name="**/*.java"/>
                 <exclude name="**/package.html"/>
             </fileset>
@@ -59,13 +78,13 @@
 
 
     <target name="compiletests" depends="compile">
-        <javac destdir="${testclasses}" target="1.4" source="1.4" classpathref="openamq.classpath" debug="on">
-            <src path="${tests}"/>
+        <javac destdir="${client.testclasses}" target="1.4" source="1.4" classpathref="openamq.classpath" debug="on">
+            <src path="${client.tests}"/>
         </javac>
 
-        <copy todir="${testclasses}">
+        <copy todir="${client.testclasses}">
             <!-- copy any non java src files into the build tree, e.g. log4j.properties -->
-            <fileset dir="${tests}">
+            <fileset dir="${client.tests}">
                 <exclude name="**/*.java"/>
                 <exclude name="**/package.html"/>
             </fileset>
@@ -75,14 +94,15 @@
     <!-- Build jar archive -->
     <target name="jar" depends="compile, compiletests">
         <mkdir dir="${dist}"/>
-        <jar basedir="${classes}" jarfile="${dist}/openamqj.jar"/>
-        <jar basedir="${testclasses}" jarfile="${dist}/openamqj-tests.jar"/>
+        <jar basedir="${common.classes}" jarfile="${dist}/openamqj-common.jar"/>
+        <jar basedir="${client.classes}" jarfile="${dist}/openamqj-jms.jar"/>
+        <jar basedir="${client.testclasses}" jarfile="${dist}/openamqj-tests.jar"/>
     </target>
 
 
     <target name="javadoc" depends="compile, compiletests">
         <mkdir dir="${dist}/docs/api"/>
-        <javadoc sourcepath="${basedir}/src" destdir="${dist}/docs/api"
+        <javadoc sourcepath="${client.src}" destdir="${dist}/docs/api"
                  packagenames="org.openamq.*" classpathref="openamq.classpath" author="true"
                  version="true" windowTitle="OpenAMQ Client API" doctitle="OpenAMQ Client API"
                  footer="See &lt;a href=&quot;http://www.openamq.org&quot;&gt;www.openamq.org&lt;/a&gt; for more information."
@@ -93,7 +113,7 @@
         <java classpathref="openamq.classpath" fork="yes" classname="org.openamq.requestreply1.ServiceProvidingClient">
               <arg value="localhost"/>
               <arg value="7654"/>
-              <arg value="piemuncher1"/>
+              <arg value="serviceQ1"/>
               <arg value="x"/>
               <arg value="x"/>
         </java>

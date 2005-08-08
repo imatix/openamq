@@ -19,6 +19,7 @@ amq_user_modules (void)
 int
 main (int argc, char *argv [])
 {
+    icl_system_init ();
     amq_set_server_name ("amqpsrv");
     amq_set_server_text ("*** Test server - for internal use only ***");
     return (amq_server_core (argc, argv));

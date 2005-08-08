@@ -15,6 +15,10 @@
     to all known topics for potential matches.
 </doc>
 
+<inherit class = "icl_object">
+    <option name = "cache"  value = "1" />
+    <option name = "rwlock" value = "1" />
+</inherit>
 <inherit class = "ipr_array_item" />
 
 <import class = "amq_global" />
@@ -39,12 +43,16 @@
     <local>
     amq_topic_array_t
         *array;
+    amq_topic_t
+        *item;
     int
         index;
     </local>
     array = amq_topic_array_new ();
-    for (index = 0; index < 5000; index++)
-        self_new (array, index, "this is a test blah blah");
+    for (index = 0; index < 5000; index++) {
+        item = self_new (array, index, "this is a test blah blah");
+        amq_topic_unlink (&item);
+    }
     amq_topic_array_destroy (&array);
 </method>
 

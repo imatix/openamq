@@ -7,8 +7,11 @@
     script    = "icl_gen"
     >
 
-<inherit class = "icl_ref_count" />
-<inherit class = "icl_alloc_cache" />
+<inherit class = "icl_object">
+    <option name = "cache"   value = "1" />
+    <option name = "rwlock"  value = "1" />
+    <option name = "possess" value = "1" />
+</inherit>
 
 <import class = "ipr"        />
 <import class = "amq_bucket" />
@@ -220,10 +223,10 @@
     else {
         /*  Process additional fragment in same message                      */
         if (self->spool_fh == NULL) {
-            ipr_shortstr_tmpfile (self->spool_file, $(selfname)_spooldir (self), "msg");
+            s_tmpfile (self->spool_file, $(selfname)_spooldir (self), "msg");
             self->spool_fh = fopen (self->spool_file, "w");
             if (self->spool_fh == NULL)
-                coprintf ("$(selfname) E: can't open spool file '%s': %s",
+                icl_console_print ("$(selfname) E: can't open spool file '%s': %s",
                     self->spool_file, strerror (errno));
         }
         assert (self->spool_fh);
@@ -239,7 +242,7 @@
     if (!partial) {
         /*  Check size & log error if any                                    */
         if (self->processed != self->body_size)
-            coprintf ("$(selfname) E: message size not valid: %ld should be %ld",
+            icl_console_print ("$(selfname) E: message size not valid: %ld should be %ld",
                        self->processed, self->body_size);
     }
 </method>
@@ -305,7 +308,7 @@
             if (self->spool_size > 0) {
                 self->spool_fh = fopen (self->spool_file, "r");
                 if (self->spool_fh == NULL)
-                    coprintf ("$(selfname) E: can't open spool file '%s': %s",
+                    icl_console_print ("$(selfname) E: can't open spool file '%s': %s",
                         self->spool_file, strerror (errno));
             }
         }
@@ -331,7 +334,7 @@
             self->get_spooled  -= copy_size;
 
             if (copy_size == 0) {
-                coprintf ("$(selfname) E: can't read spool file %s: %s",
+                icl_console_print ("$(selfname) E: can't read spool file %s: %s",
                     self->spool_file, strerror (errno));
                 self->get_fragment = self->get_spooled = 0;
             }
@@ -462,6 +465,7 @@
 <private name = "header">
 static void s_record_header ($(selftype) *self, amq_bucket_t *fragment);
 static void s_replay_header ($(selftype) *self, amq_bucket_t *fragment);
+static void s_tmpfile       (char *dest, char *directory, char *extension);
 </private>
 
 <private name = "footer">
@@ -492,7 +496,7 @@ s_record_header ($(selftype) *self, amq_bucket_t *fragment)
         self->headers       = frame->body.message_head.headers;
         frame->body.message_head.headers = NULL;
 
-        amq_bucket_link (fragment);
+        amq_bucket_possess (fragment);
         amq_frame_free (&frame);
     }
 }
@@ -516,6 +520,23 @@ s_replay_header ($(selftype) *self, amq_bucket_t *fragment)
         self->headers);
     amq_frame_encode (fragment, frame);
     amq_frame_free (&frame);
+}
+
+static void
+s_tmpfile (char *dest, char *directory, char *extension)
+{
+    static qbyte
+        random_nbr = 0;                 /*  We generate unique file names    */
+        
+    if (random_nbr == 0)
+        srand (micro_time ());
+
+    random_nbr = rand () * 0xFFFFFFFF;
+    do {
+        ipr_shortstr_fmt (dest, "%s/%08lX.%s", directory, random_nbr, extension);
+        random_nbr++;
+    }
+    while (file_exists (dest));
 }
 </private>
 

@@ -25,7 +25,6 @@
                            handle-ready /
                            handle-reply /
                            handle-close /
-                           handle-warning /
 
     connection-challenge  = %d10 version mechanisms challenges
     version              = OCTET
@@ -83,13 +82,12 @@
     mime-type            = short-string
     encoding             = short-string
 
-    handle-send          = %d31 handle-id confirm-tag service-type fragment-size partial out-of-band recovery immediate warning-tag dest-name
+    handle-send          = %d31 handle-id confirm-tag service-type fragment-size partial out-of-band recovery immediate dest-name
     service-type         = short-integer
     fragment-size        = long-integer
     partial              = BIT
     recovery             = BIT
     immediate            = BIT
-    warning-tag          = long-integer
     dest-name            = short-string
 
     handle-consume       = %d32 handle-id confirm-tag service-type prefetch no-local no-ack dynamic exclusive dest-name selector
@@ -127,8 +125,6 @@
     handle-reply         = %d48 handle-id confirm-tag reply-code reply-text
 
     handle-close         = %d49 handle-id reply-code reply-text
-
-    handle-warning       = %d50 handle-id warning-tag reply-code reply-text
 
     message-head         = body-size persistent priority expiration mime-type encoding identifier headers
     body-size            = long-integer

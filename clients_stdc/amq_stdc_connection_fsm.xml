@@ -39,8 +39,11 @@
              Output parameter, to be used to wait for operation completion
         </arg>
     </event>
+    <event name = "get chunk">
+        Used by sender thread to receive next chunk to send
+    </event>
     <event name = "send chunk">
-        Used to s of data tos server via sender thread
+        Used to send chunks of data tos server via sender thread
         <arg type = "char *" name = "data">
             Chunk to be send by send.
         </arg>
@@ -56,9 +59,6 @@
         <arg type = "byte" name = "deallocate">
             If 1, sender thread will deallocate chunk(s), otherwise
             responsibility is left to client.
-        </arg>
-        <arg type = "byte" name = "stop">
-            If 1, sender thread will stop after processing this chunk
         </arg>
         <arg type = "amq_stdc_lock_t *" name = "lock">
             Out parameter; can be used to wait for sending completion;
@@ -162,6 +162,7 @@
         Default state
         <event name = "terminate" action = "do terminate" next = "expect close"/>
         <event name = "close" action = "do server requested close" next = "terminal"/>
+        <event name = "get chunk" action = "do get chunk"/>
         <event name = "send chunk" action = "do send chunk"/>
     </state>
 </machine>

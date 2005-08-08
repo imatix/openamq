@@ -12,7 +12,10 @@
     plus upper/lower limits on this array.
 </doc>
 
-<inherit class = "icl_alloc_cache" />
+<inherit class = "icl_object">
+    <option name = "cache"  value = "1" />
+    <option name = "rwlock" value = "1" />
+</inherit>
 
 <import class = "amq_classes" />
 <option name = "nullify" value = "0" />
@@ -52,32 +55,25 @@
         *fields;                        /*  Selector fields                  */
     amq_field_t
         *field;                         /*  Next field to examine            */
-    ipr_longstr_t
-        *match_key;                     /*  Match key to lookup              */
+    ipr_shortstr_t
+        match_name,
+        match_value;
     </local>
 
     /*  Lookup topic name in match table, if found collect subscr hits       */
-    match_key = ipr_longstr_new_str (message->dest_name);
-    amq_hitset_collect (self, self->vhost->match_topics, match_key);
-    ipr_longstr_destroy (&match_key);
+    amq_hitset_collect (self, self->vhost->match_topics, message->dest_name);
 
     /*  Lookup fields in match table, if found, collect subscr hits          */
     fields = amq_field_list_new (message->headers);
     if (fields) {
         field = amq_field_list_first (fields);
         while (field) {
-            /*  First match on field name and value                          */
-            match_key = amq_match_field_value (field);
-            amq_hitset_collect  (self, self->vhost->match_fields, match_key);
-            ipr_longstr_destroy (&match_key);
-
-            /*  If field had a value, now match on name alone                */
-            if (field->string->cur_size > 0) {
-                match_key = amq_match_field_name (field);
-                amq_hitset_collect (self, self->vhost->match_fields, match_key);
-                ipr_longstr_destroy (&match_key);
-            }
-            field = amq_field_list_next (fields, field);
+            amq_match_field_name  (match_name, field);
+            amq_hitset_collect    (self, self->vhost->match_fields, match_name);
+            amq_match_field_value (match_value, field);
+            if (strneq (match_name, match_value))
+                amq_hitset_collect (self, self->vhost->match_fields, match_value);
+            field = amq_field_list_next (field);
         }
         amq_field_list_destroy (&fields);
     }
@@ -92,7 +88,7 @@
             coprintf ("SUBSCR %d: have=%d want=%d hits",
                 subscr_nbr, self->item_hits [subscr_nbr], subscr->field_count + 1);
 
-            if (self->item_hits [subscr_nbr] >= subscr->field_count + 1
+            if (self->item_hits [subscr_nbr] == subscr->field_count + 1
             && (subscr->consumer->no_local == FALSE
             ||  subscr->consumer->handle->client_id != message->handle->client_id))
                 rc++;
@@ -126,7 +122,7 @@
 
 <method name = "collect" template = "function">
     <argument name = "match table" type = "amq_match_table_t *">Search this</argument>
-    <argument name = "match key"   type = "ipr_longstr_t *">For this term</argument>
+    <argument name = "match key"   type = "char *">For this term</argument>
     <local>
     amq_match_t
         *match;                         /*  Match item                       */
@@ -134,10 +130,11 @@
         item_nbr;
     </local>
 
-    match = amq_match_search (match_table, match_key);
+    icl_console_print ("SEARCHING ON TERM: %s", match_key);
+    match = amq_match_table_search (match_table, match_key);
     if (match) {
         for (IPR_BITS_EACH (item_nbr, match->bits)) {
-            coprintf (" -- found subscr nbr %d", item_nbr);
+            icl_console_print (" -- found subscr nbr %d", item_nbr);
             if (item_nbr < self->item_lo)
                 self->item_lo = item_nbr;
             if (item_nbr > self->item_hi) {
@@ -146,6 +143,7 @@
             }
             self->item_hits [item_nbr]++;
         }
+        amq_match_unlink (&match);
     }
 </method>
 

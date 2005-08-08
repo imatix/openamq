@@ -42,11 +42,6 @@ typedef struct tag_message_list_item_t
                                        /*  message_list_item_t               */
     message_fsm_t
         message;                       /*  Message object                    */ 
-    byte
-        warning;                       /*  If 0, this is a message           */
-                                       /*  If 1, it is a warning             */
-    qbyte
-        warning_tag;                   /*  Warning tag                       */
     char
         dest_name [256];               /*  Buffer to hold destination name   */
                                        /*  while message is opened           */
@@ -164,23 +159,14 @@ inline static apr_status_t do_destruct (
 {
     apr_status_t
         result;
-    message_list_item_t
-        *msg;
 
     /*  TODO: Close all handles, clear handle list, close all messages,      */
     /*  clear message desc list, etc.                                        */
 
     /*  Deallocate all messages still existing                               */
     while (context->first_message) {
-        if (context->first_message->message) {
-            result = message_fsm_terminate (context->first_message->message);
-            AMQ_ASSERT_STATUS (result, message_fsm_terminate)
-        }
-        else {
-            msg = context->first_message;
-            context->first_message = context->first_message->next;
-            free (msg);
-        }
+        result = message_fsm_terminate (context->first_message->message);
+        AMQ_ASSERT_STATUS (result, message_fsm_terminate)
     }
 
     /*  Remove channel from connection's list                                */
@@ -235,9 +221,6 @@ static apr_status_t s_pair_lock_and_message (
             lock->next->prev = NULL;
         else
             context->last_lock = NULL;
-
-        /*  Mark message as dispatched                                       */
-        message->dispatched = 1;
 
         /*  Resume thread waiting for the message                            */
         result = release_lock (context->global, lock->lock_id,
@@ -373,7 +356,7 @@ inline static apr_status_t do_init (
     confirm_tag = 0;
     if (!async) {
         result = register_lock (context->global, context->connection_id,
-            channel_id, &confirm_tag, lock);
+            channel_id, 0, &confirm_tag, lock);
         AMQ_ASSERT_STATUS (result, register_lock)
     }
 
@@ -389,7 +372,7 @@ inline static apr_status_t do_init (
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
     result = connection_fsm_send_chunk (context->connection, chunk,
-        chunk_size, NULL, 0, 1, 0, async ? lock : NULL);
+        chunk_size, NULL, 0, 1, async ? lock : NULL);
     AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
 
     return APR_SUCCESS;
@@ -453,7 +436,7 @@ inline static apr_status_t do_open_handle (
     confirm_tag = 0;
     if (!async) {
         result = register_lock (context->global, context->connection_id,
-            context->id, &confirm_tag, lock);
+            context->id, 0, &confirm_tag, lock);
         AMQ_ASSERT_STATUS (result, register_lock)
     }
 
@@ -470,7 +453,7 @@ inline static apr_status_t do_open_handle (
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
     result = connection_fsm_send_chunk (context->connection, chunk,
-        chunk_size, NULL, 0, 1, 0, async ? lock : NULL);
+        chunk_size, NULL, 0, 1, async ? lock : NULL);
     AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
 
     if (handle_id)
@@ -546,7 +529,7 @@ inline static apr_status_t do_close_handle (
     }
 
     result = register_lock (context->global, context->connection_id,
-        context->id, &(item->shutdown_tag), lock);
+        context->id, 0, &(item->shutdown_tag), lock);
     AMQ_ASSERT_STATUS (result, register_lock)
 
     /*  Send HANDLE CLOSE                                                    */
@@ -560,7 +543,7 @@ inline static apr_status_t do_close_handle (
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
     result = connection_fsm_send_chunk (context->connection, chunk,
-        chunk_size, NULL, 0, 1, 0, NULL);
+        chunk_size, NULL, 0, 1, NULL);
     AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
 
     return APR_SUCCESS;
@@ -635,7 +618,7 @@ inline static apr_status_t do_acknowledge (
     confirm_tag = 0;
     if (!async) {
         result = register_lock (context->global, context->connection_id,
-            context->id, &confirm_tag, lock);
+            context->id, 0, &confirm_tag, lock);
         AMQ_ASSERT_STATUS (result, register_lock)
     }
 
@@ -649,7 +632,7 @@ inline static apr_status_t do_acknowledge (
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
     result = connection_fsm_send_chunk (context->connection, chunk,
-        chunk_size, NULL, 0, 1, 0, async ? lock : NULL);
+        chunk_size, NULL, 0, 1, async ? lock : NULL);
     AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);    
 
     return APR_SUCCESS;
@@ -675,7 +658,7 @@ inline static apr_status_t do_commit (
     confirm_tag = 0;
     if (!async) {
         result = register_lock (context->global, context->connection_id,
-            context->id, &confirm_tag, lock);
+            context->id, 0, &confirm_tag, lock);
         AMQ_ASSERT_STATUS (result, register_lock)
     }
 
@@ -690,7 +673,7 @@ inline static apr_status_t do_commit (
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
     result = connection_fsm_send_chunk (context->connection, chunk,
-        chunk_size, NULL, 0, 1, 0, async ? lock : NULL);
+        chunk_size, NULL, 0, 1, async ? lock : NULL);
     AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);    
 
     return APR_SUCCESS;
@@ -716,7 +699,7 @@ inline static apr_status_t do_rollback (
     confirm_tag = 0;
     if (!async) {
         result = register_lock (context->global, context->connection_id,
-           context->id, &confirm_tag, lock);
+           context->id, 0, &confirm_tag, lock);
         AMQ_ASSERT_STATUS (result, register_lock)
     }
 
@@ -731,7 +714,7 @@ inline static apr_status_t do_rollback (
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
     result = connection_fsm_send_chunk (context->connection, chunk,
-        chunk_size, NULL, 0, 1, 0, async ? lock : NULL);
+        chunk_size, NULL, 0, 1, async ? lock : NULL);
     AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);    
 
     return APR_SUCCESS;
@@ -746,7 +729,6 @@ inline static apr_status_t do_send_message (
     const char             *dest_name,
     byte                   persistent,
     byte                   immediate,
-    qbyte                  warning_tag,
     byte                   priority,
     qbyte                  expiration,
     const char             *mime_type,
@@ -791,7 +773,7 @@ inline static apr_status_t do_send_message (
     confirm_tag = 0;
     if (!async) {
         result = register_lock (context->global, context->connection_id,
-            context->id, &confirm_tag, lock);
+            context->id, 0, &confirm_tag, lock);
         AMQ_ASSERT_STATUS (result, register_lock)
     }
 
@@ -805,8 +787,7 @@ inline static apr_status_t do_send_message (
         AMQ_ASSERT (Not enough memory)
     command_size = amq_stdc_encode_handle_send (chunk, command_size,
         handle_id, confirm_tag, service_type, header_size + data_size, 0,
-        out_of_band, recovery, immediate, warning_tag, (byte) dest_name_size,
-        dest_name);
+        out_of_band, recovery, immediate, (byte) dest_name_size, dest_name);
     if (!command_size)
         AMQ_ASSERT (Framing error)
     header_size = amq_stdc_encode_message_head (chunk + command_size,
@@ -818,7 +799,7 @@ inline static apr_status_t do_send_message (
     memcpy ((void*) (chunk + command_size + header_size), (void*) data,
         data_size);
     result = connection_fsm_send_chunk (context->connection, chunk,
-        command_size + header_size + data_size, NULL, 0, 1, 0,
+        command_size + header_size + data_size, NULL, 0, 1,
         async ? lock : NULL);
     AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
 
@@ -865,7 +846,7 @@ inline static apr_status_t do_consume (
     confirm_tag = 0;
     if (!async) {
         result = register_lock (context->global, context->connection_id,
-            context->id, &confirm_tag, lock);
+            context->id, 0, &confirm_tag, lock);
         AMQ_ASSERT_STATUS (result, register_lock)
     }
 
@@ -890,7 +871,7 @@ inline static apr_status_t do_consume (
         subscription->next = item->subscriptions;
         subscription->dest_name = NULL;
         result = register_lock (context->global, context->connection_id,
-            context->id, &(subscription->created_tag), created_lock);
+            context->id, 0, &(subscription->created_tag), created_lock);
         AMQ_ASSERT_STATUS (result, register_lock)
         item->subscriptions = subscription;
     }
@@ -909,7 +890,7 @@ inline static apr_status_t do_consume (
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
     result = connection_fsm_send_chunk (context->connection, chunk,
-        chunk_size, NULL, 0, 1, 0, async ? lock : NULL);
+        chunk_size, NULL, 0, 1, async ? lock : NULL);
     AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
 
     return APR_SUCCESS;
@@ -944,7 +925,6 @@ inline static apr_status_t do_receive_fragment (
         /*  Allocate and fill in new message item                            */
         message = (message_list_item_t*)
             amq_malloc (sizeof (message_list_item_t));
-        message->warning = 0;
 
         /*  Decode message header                                            */
         size = amq_stdc_decode_message_head (header_buffer, header_buffer_size,
@@ -1076,10 +1056,8 @@ inline static apr_status_t do_receive_content_chunk (
 inline static apr_status_t do_get_message (
     channel_fsm_context_t    *context,
     byte                     wait,
-    byte                     *warning,
     amq_stdc_message_desc_t  **message_desc,
     amq_stdc_message_t       *message,
-    qbyte                    *warning_tag,
     amq_stdc_lock_t          *lock
     )
 {
@@ -1092,7 +1070,7 @@ inline static apr_status_t do_get_message (
         /*  Allocate and fill in new "request for message" item              */
         new_item = (lock_list_item_t*) amq_malloc (sizeof (lock_list_item_t));
         result = register_lock (context->global, context->connection_id,
-            context->id, &(new_item->lock_id), lock);
+            context->id, 0, &(new_item->lock_id), lock);
         AMQ_ASSERT_STATUS (result, register_lock);
 
         /*  Append it to the end of the queue                                */
@@ -1114,26 +1092,10 @@ inline static apr_status_t do_get_message (
         if (context->first_message) {
 
             /*  Message present                                              */
-            if (context->first_message->warning) {
-                if (warning)
-                    *warning = 1;
-                if (message)
-                    *message = NULL;
-                if (message_desc)
-                    *message_desc = NULL;
-                if (warning_tag)
-                    *warning_tag = context->first_message->warning_tag;
-            }
-            else {
-                if (warning)
-                    *warning = 0;
-                if (message)
-                    *message = context->first_message->message;
-                if (message_desc)
-                    *message_desc = &(context->first_message->desc);
-                if (warning_tag)
-                    *warning_tag = 0;
-            }
+            if (message)
+                *message = context->first_message->message;
+            if (message_desc)
+                *message_desc = &(context->first_message->desc);
 
             /*  Remove message from the message list                         */
             context->first_message = context->first_message->next;
@@ -1144,14 +1106,10 @@ inline static apr_status_t do_get_message (
         }
         else {
             /*  No message is present                                        */
-            if (warning)
-                *warning = 0;
             if (message_desc)
                 *message_desc = NULL;
             if (message)
                 *message = NULL;
-            if (warning_tag)
-                *warning_tag = 0;
         }
     }
 
@@ -1206,7 +1164,7 @@ inline static apr_status_t do_flow (
     confirm_tag = 0;
     if (!async) {
         result = register_lock (context->global, context->connection_id,
-            context->id, &confirm_tag, lock);
+            context->id, 0, &confirm_tag, lock);
         AMQ_ASSERT_STATUS (result, register_lock)
     }
 
@@ -1220,7 +1178,7 @@ inline static apr_status_t do_flow (
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
     result = connection_fsm_send_chunk (context->connection, chunk,
-        chunk_size, NULL, 0, 1, 0, async ? lock : NULL);
+        chunk_size, NULL, 0, 1, async ? lock : NULL);
     AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
 
     return APR_SUCCESS;
@@ -1246,7 +1204,7 @@ inline static apr_status_t do_unget (
     confirm_tag = 0;
     if (!async) {
         result = register_lock (context->global, context->connection_id,
-            context->id, &confirm_tag, lock);
+            context->id, 0, &confirm_tag, lock);
         AMQ_ASSERT_STATUS (result, register_lock)
     }
 
@@ -1260,7 +1218,7 @@ inline static apr_status_t do_unget (
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
     result = connection_fsm_send_chunk (context->connection, chunk,
-        chunk_size, NULL, 0, 1, 0, async ? lock : NULL);
+        chunk_size, NULL, 0, 1, async ? lock : NULL);
     AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
 
     return APR_SUCCESS;
@@ -1295,7 +1253,7 @@ inline static apr_status_t do_query (
 
     /*  Create lock to wait for HANDLE INDEX                                 */
     result = register_lock (context->global, context->connection_id,
-        context->id, &(context->index_tag), lock);
+        context->id, 0, &(context->index_tag), lock);
     AMQ_ASSERT_STATUS (result, register_lock)
 
     /*  Send HANDLE QUERY                                                    */
@@ -1310,7 +1268,7 @@ inline static apr_status_t do_query (
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
     result = connection_fsm_send_chunk (context->connection, chunk,
-        chunk_size, NULL, 0, 1, 0, NULL);
+        chunk_size, NULL, 0, 1, NULL);
     AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
 
     return APR_SUCCESS;
@@ -1377,7 +1335,7 @@ inline static apr_status_t do_browse (
 
         /*  Register that we are waiting for reply                           */
         result = register_lock (context->global, context->connection_id,
-            context->id, &confirm_tag, lock);
+            context->id, 0, &confirm_tag, lock);
         AMQ_ASSERT_STATUS (result, register_lock)
 
         /*  Register that we are waiting for specific message                */
@@ -1401,45 +1359,10 @@ inline static apr_status_t do_browse (
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
     result = connection_fsm_send_chunk (context->connection, chunk,
-        chunk_size, NULL, 0, 1, 0, async ? lock : NULL);
+        chunk_size, NULL, 0, 1, async ? lock : NULL);
     AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
 
     return APR_SUCCESS; 
-}
-
-inline static apr_status_t do_warning (
-    channel_fsm_context_t  *context,
-    dbyte                  handle_id,
-    qbyte                  warning_tag
-    )
-{
-    apr_status_t
-        result;
-    message_list_item_t
-        *message;
-    
-    /*  Allocate and fill in new message item                            */
-    message = (message_list_item_t*)
-        amq_malloc (sizeof (message_list_item_t));
-    memset (message, 0, sizeof (message_list_item_t));
-    message->warning = 1;
-    message->warning_tag = warning_tag;
-    message->message = NULL;
-
-    /*  Append it to the end of the queue                                */
-    message->next = NULL;
-    message->prev = context->last_message;
-    if (context->last_message)
-        context->last_message->next = message;
-    context->last_message = message;
-    if (!context->first_message)
-        context->first_message = message;
-
-    /*  Pair message with corresponding request                              */
-    result = s_pair_lock_and_message (context);
-    AMQ_ASSERT_STATUS (result, s_pair_lock_and_message)
- 
-    return APR_SUCCESS;
 }
 
 inline static apr_status_t do_reply (
@@ -1503,7 +1426,7 @@ inline static apr_status_t do_terminate (
 
     /*  Release all threads waiting within the channel                       */
     result = register_lock (context->global, context->connection_id,
-        context->id, &(context->shutdown_tag), lock);
+        context->id, 0, &(context->shutdown_tag), lock);
     AMQ_ASSERT_STATUS (result, register_lock)
 
     /*  Send CHANNEL CLOSE                                                   */    
@@ -1517,7 +1440,7 @@ inline static apr_status_t do_terminate (
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
     result = connection_fsm_send_chunk (context->connection, chunk,
-        chunk_size, NULL, 0, 1, 0, NULL);
+        chunk_size, NULL, 0, 1, NULL);
     AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
 
     return APR_SUCCESS; 
@@ -1583,7 +1506,7 @@ inline static apr_status_t do_server_requested_close (
     if (!chunk_size)
         AMQ_ASSERT (Framing error)
     result = connection_fsm_send_chunk (context->connection, chunk,
-        chunk_size, NULL, 0, 1, 0, NULL);
+        chunk_size, NULL, 0, 1, NULL);
     AMQ_ASSERT_STATUS (result, connection_fsm_send_chunk);
 
     return APR_SUCCESS;

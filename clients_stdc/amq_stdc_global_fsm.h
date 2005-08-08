@@ -25,6 +25,7 @@ apr_status_t register_lock (
     global_fsm_t    context,
     dbyte           connection_id,
     dbyte           channel_id,
+    byte            permanent,
     dbyte           *lock_id,
     amq_stdc_lock_t *lock
     );
@@ -46,6 +47,11 @@ apr_status_t release_all_locks (
     dbyte         channel_id,
     dbyte         except_lock_id,
     apr_status_t  error
+    );
+
+apr_status_t unregister_lock (
+    global_fsm_t  context,
+    dbyte         lock_id
     );
 
 #endif

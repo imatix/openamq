@@ -10,11 +10,16 @@
 This class implements the AMQP HANDLE commands.
 </doc>
 
-<inherit class = "ipr_hash_int" >
-    <option name = "hash_size" value = "65535" />
+<inherit class = "icl_object">
+    <option name = "cache"  value = "1" />
+    <option name = "rwlock" value = "1" />
+</inherit>
+<inherit class = "ipr_hash_item">
+    <option name = "hash_type" value = "int" />
 </inherit>
 
-<import class = "amq_global" />
+<import class = "amq_global"/>
+<import class = "amq_browser_array"/>
 
 <public name = "header">
 #include "amq_core.h"
@@ -31,11 +36,14 @@ This class implements the AMQP HANDLE commands.
 
 <private name = "header">
 #include "amq_server_agent.h"           /*  Server agent methods             */
+
+ipr_longstr_t *
+amq_browser_array_strindex (amq_browser_array_t *self, size_t max_size);
 </private>
 
 <context>
     /*  References to parent objects                                         */
-    smt_thread_handle_t
+    smt_thread_t
         *thread;                        /*  Parent thread                    */
     amq_vhost_t
         *vhost;                         /*  Parent virtual host              */
@@ -105,11 +113,12 @@ This class implements the AMQP HANDLE commands.
 
     if (command->service_type == AMQP_SERVICE_QUEUE
     ||  command->service_type == AMQP_SERVICE_EITHER) {
-        dest = amq_dest_search (self->vhost->queue_hash, command->dest_name);
+        dest = amq_dest_table_search (self->vhost->queue_hash, command->dest_name);
     }
     if (command->service_type == AMQP_SERVICE_TOPIC
     || (command->service_type == AMQP_SERVICE_EITHER && !dest)) {
         dest = self->vhost->topic_dest;
+        amq_dest_link (dest);
         amq_match_table_check_topic (
             self->vhost->match_topics,
             command->dest_name,
@@ -120,18 +129,10 @@ This class implements the AMQP HANDLE commands.
         ipr_shortstr_cpy   (message->dest_name, command->dest_name);
         amq_queue_accept   (dest->queue, self->channel, message, command->immediate, NULL);
         amq_vhost_dispatch (self->vhost);
+        amq_dest_unlink (&dest);
     }
-    else {
-        if (command->warning_tag)
-            amq_server_agent_handle_warning (
-                self->thread,
-                (dbyte) self->key,
-                command->warning_tag,
-                AMQP_NOT_FOUND,
-                "No such destination defined");
-        else
-            amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
-    }
+    else
+        amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
 </method>
 
 <method name = "consume" template = "function" >
@@ -142,7 +143,12 @@ This class implements the AMQP HANDLE commands.
     topics it may refer to a topic name pattern.
     </doc>
     <argument name = "command" type = "amq_handle_consume_t *" />
-    amq_consumer_new (self, command);
+    <local>
+    amq_consumer_t
+        *consumer;
+    </local>
+    consumer = amq_consumer_new (self, command);
+    amq_consumer_unlink (&consumer);
 </method>
 
 <method name = "flow" template = "function" >
@@ -161,7 +167,7 @@ This class implements the AMQP HANDLE commands.
             amq_consumer_activate  (consumer);
             amq_queue_pre_dispatch (consumer->queue);
         }
-        consumer = amq_consumer_by_handle_next (self->consumers, consumer);
+        consumer = amq_consumer_by_handle_next (consumer);
     }
 </method>
 
@@ -178,7 +184,7 @@ This class implements the AMQP HANDLE commands.
     </local>
 
     /*  Look for the queue using the destination name specified         */
-    dest = amq_dest_search (self->vhost->queue_hash, command->dest_name);
+    dest = amq_dest_table_search (self->vhost->queue_hash, command->dest_name);
     if (dest) {
         if (!dest->opt_protected) {
             amq_queue_query (dest->queue, self->browser_set);
@@ -190,6 +196,8 @@ This class implements the AMQP HANDLE commands.
         }
         else
             amq_global_set_error (AMQP_ACCESS_REFUSED, "Browsing not allowed on destination");
+            
+            amq_dest_unlink (&dest);
     }
     else
         amq_global_set_error (AMQP_NOT_FOUND, "No such destination defined");
@@ -238,10 +246,11 @@ This class implements the AMQP HANDLE commands.
     /*  Initialise virtual host                                              */
     vhosts = amq_vhost_table_new (NULL);
     vhost  = amq_vhost_new (vhosts, "/test", "vh_test",
-        ipr_config_new ("vh_test", AMQ_VHOST_CONFIG, TRUE));
+                            ipr_config_new ("vh_test", AMQ_VHOST_CONFIG, TRUE));
     assert (vhost);
     assert (vhost->db);
     assert (vhost->ddb);
+    amq_vhost_unlink (&vhost);
 
     /*  Initialise connection                                                */
     ipr_shortstr_cpy (connection_open.virtual_path, "/test");
@@ -253,8 +262,7 @@ This class implements the AMQP HANDLE commands.
     memset (&channel_open, 0, sizeof (channel_open));
     channel_open.channel_id = 1;
     channels   = amq_channel_table_new ();
-    channel    = amq_channel_new (
-        channels, channel_open.channel_id, connection, &channel_open);
+    channel    = amq_channel_new (channels, channel_open.channel_id, connection, &channel_open);
     assert (channel);
 
     /*  Initialise handle                                                    */
@@ -262,19 +270,87 @@ This class implements the AMQP HANDLE commands.
     handle_open.channel_id   = 1;
     handle_open.handle_id    = 1;
     handles = amq_handle_table_new ();
-    handle  = amq_handle_new (
-        handles, handle_open.handle_id, channel, &handle_open);
+    handle  = amq_handle_new (handles, handle_open.handle_id, channel, &handle_open);
     assert (handle);
 
     /*  Release resources                                                    */
+    amq_channel_unlink        (&channel);
     amq_handle_table_destroy  (&handles);
     amq_channel_table_destroy (&channels);
     amq_connection_destroy    (&connection);
     amq_vhost_destroy         (&vhost);
     amq_vhost_table_destroy   (&vhosts);
+    amq_handle_unlink         (&handle);
 
     icl_system_destroy ();
     icl_mem_assert ();
 </method>
+
+<private name = "footer">
+ipr_longstr_t *
+amq_browser_array_strindex (amq_browser_array_t *self, size_t maxsize)
+{
+/*  Serialises the index for the array into a long string buffer and
+    returns that buffer.  The caller should destroy the buffer when
+    finished with it.  If the array is very large the index may be
+    truncated arbitrarily.                                                   */
+    
+    ipr_longstr_t
+        *buffer;
+    amq_browser_t
+        *item;
+    char
+        value [20];                     /*  Index formatted as string        */
+    qbyte
+        seq_start,
+        seq_end;                        /*  We look for sequences            */
+    int
+        length;
+
+    /*  We can improve this algorithm later to serialise sequences as i-m
+        rather than i,j,l,m.
+     */
+    buffer = ipr_longstr_new (NULL, maxsize);
+    
+    /*  Get first item  */
+    seq_start = 0;
+    do
+    {
+        /*  Find start of sequence.  */
+        item = self->data [seq_start];
+        while ((! item)
+           &&  seq_start < self->bound - 1)
+            item = self->data [++seq_start];
+
+        if (item) {
+            /*  Find end of sequence.  */
+            seq_end = seq_start;
+            while (item
+                && seq_end < self->bound - 1) {
+                item = self->data [seq_end + 1];
+                if (item)
+                    seq_end++;
+            }
+            if (seq_end == seq_start)
+                length = sprintf (value, "%ld ", (long) seq_start);
+            else
+                length = sprintf (value, "%ld-%ld ", (long) seq_start, (long) seq_end);
+    
+            if (buffer->cur_size + length + 1 > buffer->max_size)
+                break;                      /*  No more space, bail out          */
+            else {
+                memcpy (buffer->data + buffer->cur_size, value, length);
+                buffer->cur_size += length;
+            }
+            /*  Ready for next sequence  */
+            seq_start = seq_end + 2;
+        }
+    } while (item && seq_start < self->bound);
+    
+    buffer->data [buffer->cur_size] = '\0';
+    
+    return buffer;
+}
+</private>
 
 </class>

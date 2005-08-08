@@ -50,6 +50,8 @@ main (int argc, char *argv [])
     amq_aclient_t
         *client;
 
+    icl_system_init ();
+    
     console_send     (NULL, TRUE);
     console_capture  ("amqpcli.log", 'w');
     console_set_mode (CONSOLE_DATETIME);

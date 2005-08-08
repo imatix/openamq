@@ -81,14 +81,12 @@ inline static apr_status_t do_construct (
     context->connection_id = 0;
     context->channel_id = 0;
     context->message_desc = NULL;
-    context->current_chunk = NULL;
     context->current_pos = 0;
     context->first_chunk = NULL;
     context->last_chunk = NULL;
-    context->size = 0;
-    context->completed = 0;
     context->first_request = NULL;
     context->last_request = NULL;
+    context->completed = 0;
     return APR_SUCCESS;
 }
 
@@ -201,8 +199,6 @@ inline static apr_status_t do_receive_content_chunk (
         result = release_lock (context->global, request->lock_id,
             (void*) out_size);
         AMQ_ASSERT_STATUS (result, release_lock)
-        if (context->last_request == context->first_request)
-            context->last_request = NULL;
         context->first_request = request->next;
         amq_free ((void*) request);
     }
@@ -261,7 +257,7 @@ inline static apr_status_t do_pread (
         if (lock)
             *lock = NULL;
     }
-    else if (!wait) {
+    else if (wait) {
 
         /*  Not enough data in pipe                                          */
         if (out_size)
@@ -280,7 +276,7 @@ inline static apr_status_t do_pread (
         request->next = NULL;
 
         result = register_lock (context->global, context->connection_id,
-            context->channel_id, &(request->lock_id), lock);
+            context->channel_id, 0, &(request->lock_id), lock);
         AMQ_ASSERT_STATUS (result, register_lock)
 
         if (context->last_request)

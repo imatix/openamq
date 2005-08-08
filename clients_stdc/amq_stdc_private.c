@@ -64,9 +64,9 @@ void amq_stdc_assert (
         printf (
             "%s:%ld - %s (%ld: Object closed by server or another thread)\n",
             file, line, text, (long) result);
-        exit (1);
+        assert (0);
     }
     apr_strerror (result, buffer, 1024);
     printf ("%s:%ld - %s (%ld: %s)\n", file, line, text, (long) result, buffer);
-    exit (1);
+    assert (0);
 }

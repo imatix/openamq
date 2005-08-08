@@ -12,7 +12,13 @@ by name.  Each virtual host has its own working directory for persistent
 data, and holds the queues and subscriptions defined for that virtual host.    
 </doc>
 
-<inherit class = "ipr_hash_str" />
+<inherit class = "icl_object">
+    <option name = "cache"  value = "1" />
+    <option name = "rwlock" value = "1" />
+</inherit>
+<inherit class = "ipr_hash_item">
+    <option name = "hash_type" value = "str" />
+</inherit>
 
 <import class = "amq_global" />
 
@@ -64,7 +70,7 @@ data, and holds the queues and subscriptions defined for that virtual host.
     ipr_shortstr_cpy (self->directory, directory);
 
     if (amq_global_verbose ())
-        coprintf ("I: configuring virtual host '%s'", self->key);
+        icl_console_print ("I: configuring virtual host '%s'", key);
     s_configure_workdir  (self);
     s_configure_database (self);
     s_configure_queues   (self);
@@ -77,7 +83,7 @@ data, and holds the queues and subscriptions defined for that virtual host.
         shutdown anyhow...
      */
     if (smt_signal_raised && self->db->db_cursor) {
-        coprintf ("$(selfname) E: database cursor still open, attempting recovery");
+        icl_console_print ("$(selfname) E: database cursor still open, attempting recovery");
         self->db->db_cursor = NULL;
     }
     ipr_config_destroy      (&self->config);
@@ -90,6 +96,7 @@ data, and holds the queues and subscriptions defined for that virtual host.
     amq_match_table_destroy (&self->match_fields);
     ipr_db_destroy          (&self->db);
     amq_db_destroy          (&self->ddb);
+    amq_dest_unlink         (&self->topic_dest);
 </method>
 
 <method name = "dispatch" template = "function">
@@ -108,10 +115,12 @@ data, and holds the queues and subscriptions defined for that virtual host.
     while (dest) {
         if (dest->queue->dirty) {
             amq_queue_dispatch (dest->queue);
-            dest = amq_dest_list_next (self->dest_list, dest);
+            dest = amq_dest_list_next (dest);
         }
-        else
+        else {
+            amq_dest_unlink (&dest);
             break;
+        }
     }
 </method>
 
@@ -136,7 +145,7 @@ s_configure_workdir ($(selftype) *self)
         strlast (self->spooldir) = 0;
     if (!file_is_directory (self->spooldir)) {
         if (amq_global_verbose ())
-            coprintf ("I: - creating working directory '%s'", self->spooldir);
+            icl_console_print ("I: - creating working directory '%s'", self->spooldir);
         make_dir (self->spooldir);
     }
 
@@ -147,7 +156,7 @@ s_configure_workdir ($(selftype) *self)
         strlast (self->storedir) = 0;
     if (!file_is_directory (self->storedir)) {
         if (amq_global_verbose ())
-            coprintf ("I: - creating working directory '%s'", self->storedir);
+            icl_console_print ("I: - creating working directory '%s'", self->storedir);
         make_dir (self->storedir);
     }
 }
@@ -199,22 +208,25 @@ s_configure_queues ($(selftype) *self)
 {
     char
         *dest_name;
+    amq_dest_t
+        *dest;
 
     if (amq_global_verbose ())
-        coprintf ("I: - configuring and checking configured queues...");
+        icl_console_print ("I: - configuring and checking configured queues...");
     ipr_config_locate (self->config, "/config/queues/queue", NULL);
     while (self->config->located) {
         dest_name = ipr_config_attr (self->config, "name", NULL);
         if (dest_name) {
-            amq_dest_new (
+            dest = amq_dest_new (
                 self->queue_hash,       /*  Queue table                      */
                 self,                   /*  Parent virtual host              */
                 AMQP_SERVICE_QUEUE,     /*  Message queue type               */
                 FALSE,                  /*  Dynamic destination?             */
                 dest_name);             /*  Destination name                 */
+            amq_dest_unlink (&dest);
         }
         else
-            coprintf ("W: error in queue definitions - 'name' not defined");
+            icl_console_print ("W: error in queue definitions - 'name' not defined");
 
         ipr_config_next (self->config);
     }
@@ -255,17 +267,22 @@ s_clean_destinations ($(selftype) *self)
     amq_vhost_table_t
         *vhosts;
     amq_vhost_t
+        *vhost_temp,
         *vhost;
     </local>
 
     config = ipr_config_new (".", AMQ_SERVER_CONFIG, TRUE);
     vhosts = amq_vhost_table_new (config);
 
-    vhost = amq_vhost_search (vhosts, "/");
+    vhost = amq_vhost_table_search (vhosts, "/");
     assert (vhost);
-    vhost = amq_vhost_search (vhosts, "/test");
+    amq_vhost_unlink (&vhost);
+    vhost = amq_vhost_table_search (vhosts, "/test");
     assert (vhost);
+    amq_vhost_unlink (&vhost);
 
+    vhost_temp = vhost;
+    amq_vhost_unlink (&vhost_temp);
     amq_vhost_destroy       (&vhost);
     amq_vhost_table_destroy (&vhosts);
     ipr_config_destroy      (&config);

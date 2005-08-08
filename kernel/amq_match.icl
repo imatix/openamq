@@ -12,7 +12,13 @@ match table is a search term along with the set of subscriptions that
 have requested it.
 </doc>
 
-<inherit class = "ipr_hash_lstr" />
+<inherit class = "icl_object">
+    <option name = "cache"  value = "1" />
+    <option name = "rwlock" value = "1" />
+</inherit>
+<inherit class = "ipr_hash_item">
+    <option name = "hash_type" value = "str" />
+</inherit>
 
 <import class = "amq_global" />
 <import class = "amq_db" />
@@ -58,14 +64,11 @@ have requested it.
         * and # topic wildcards replaced by appropriate regexp chars.
         We also filter out any non-alphanum characters.  We may allow
         full RE matching on topic names at a later stage.
-
-        martin sustrik: I enabled underscores and minus signs to be used
-        to allow GTW-like queue names
      */
     to_ptr = pattern;
     *to_ptr++ = '^';                    /*  Match start of topic name        */
     for (from_ptr = dest_name; *from_ptr; from_ptr++) {
-        if (isalnum (*from_ptr) || *from_ptr == '_' || *from_ptr == '-')
+        if (isalnum (*from_ptr))
             *to_ptr++ = *from_ptr;
         else
         if (*from_ptr == '.') {
@@ -87,39 +90,37 @@ have requested it.
     *to_ptr++ = 0;
 </method>
 
-<method name = "field name" return = "match key">
+<private name = "header">
+#define FIELD_NAME_MAX      30          /*  Arbitrary limit to get           */
+#define FIELD_VALUE_MAX     30          /*    name=value into shortstr       */
+</private>
+
+<method name = "field name">
     <doc>
     Format field name into a match key. This simply truncates the field
     name to a maximum size.
     </doc>
-    <argument name = "field" type = "amq_field_t *">Field</argument>
-    <declare name = "match key" type = "ipr_longstr_t *">Returned match term</declare>
-
-    match_key = ipr_longstr_new_str (field->name);
+    <argument name = "match key" type = "char *"       >Match term shortstr to fill</argument>
+    <argument name = "field"     type = "amq_field_t *">Field</argument>
+    ipr_shortstr_ncpy (match_key, field->name, FIELD_NAME_MAX);
 </method>
 
-<method name = "field value" return = "match key">
+<method name = "field value">
     <doc>
     Format field name and value into a match key.
     </doc>
-    <argument name = "field" type = "amq_field_t *">Field</argument>
-    <declare name = "match key" type = "ipr_longstr_t *">Returned match term</declare>
+    <argument name = "match key" type = "char *"       >Match term shortstr to fill</argument>
+    <argument name = "field"     type = "amq_field_t *">Field</argument>
     <local>
-    size_t
-        field_name_len;
+    char
+        *field_value;                   /*  Field string value               */
     </local>
-    
-    amq_field_set_string (field);
-    field_name_len = strlen (field->name);
-    if (field->string->cur_size > 0) {
-        match_key = ipr_longstr_new (NULL, field_name_len + field->string->cur_size + 1);
-        memcpy (match_key->data, field->name, field_name_len);
-        match_key->data [field_name_len] = 0;
-        match_key->cur_size = match_key->max_size;
-        memcpy (match_key->data + field_name_len + 1, field->string->data, field->string->cur_size);
+    ipr_shortstr_ncpy (match_key, field->name, FIELD_NAME_MAX);
+    field_value = amq_field_string (field);
+    if (*field_value) {
+        ipr_shortstr_cat  (match_key, "=");
+        ipr_shortstr_ncat (match_key, field_value, FIELD_VALUE_MAX);
     }
-    else
-        match_key = self_field_name (field);
 </method>
 
 <method name = "selftest" />

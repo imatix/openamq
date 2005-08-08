@@ -51,8 +51,7 @@ typedef enum
 {
     amq_stdc_service_type_undefined = 0,
     amq_stdc_service_type_queue     = 1,
-    amq_stdc_service_type_topic     = 2,
-    amq_stdc_service_type_unknown   = 3
+    amq_stdc_service_type_topic     = 2
 } amq_stdc_service_type_t;
 
 /*  Possible models of dealing with heartbeats                               */
@@ -156,7 +155,6 @@ apr_status_t amq_stdc_send_message (
     const char               *dest_name,
     byte                     persistent,
     byte                     immediate,
-    qbyte                    warning_tag,
     byte                     priority,
     qbyte                    expiration,
     const char               *mime_type,
@@ -187,10 +185,8 @@ apr_status_t amq_stdc_consume (
 apr_status_t amq_stdc_get_message (
     amq_stdc_channel_t       channel,
     byte                     wait,
-    byte                     *warning,
     amq_stdc_message_desc_t  **message_desc,
-    amq_stdc_message_t       *message,
-    qbyte                    *warning_tag
+    amq_stdc_message_t       *message
     );
 
 apr_status_t amq_stdc_browse (

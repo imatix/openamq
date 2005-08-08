@@ -167,7 +167,7 @@
         }
         file_delete (self->store_file);
         if (file_rename (self->spool_file, self->store_file))
-            coprintf ("$(selfname): can't rename '%s': %s", self->spool_file, strerror (errno));
+            icl_console_print ("$(selfname): can't rename '%s': %s", self->spool_file, strerror (errno));
 
         /*  No spool file, so clear spool file properties                    */
         self->spool_size = 0;
@@ -316,7 +316,7 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
     /*  Initialise virtual host                                              */
     vhosts = amq_vhost_table_new (NULL);
     vhost  = amq_vhost_new (vhosts, "/test", "vh_test",
-        ipr_config_new ("vh_test", AMQ_VHOST_CONFIG, TRUE));
+            ipr_config_new ("vh_test", AMQ_VHOST_CONFIG, TRUE));
     assert (vhost);
     assert (vhost->db);
     assert (vhost->ddb);
@@ -392,6 +392,10 @@ s_load_message_properties ($(selftype) *self, amq_queue_t *queue)
     amq_smessage_purge (message);
 
     /*  Release resources                                                    */
+    amq_vhost_unlink          (&vhost);
+    amq_handle_unlink         (&handle);
+    amq_channel_unlink        (&channel);
+    amq_dest_unlink           (&dest);
     amq_dest_destroy          (&dest);
     amq_bucket_destroy        (&bucket);
     amq_smessage_destroy      (&diskmsg);

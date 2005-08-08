@@ -7,9 +7,12 @@
     script    = "icl_gen"
     >
 
-<inherit class = "icl_alloc_cache" />
+<inherit class = "icl_object">
+    <option name = "cache"  value = "1" />
+    <option name = "rwlock" value = "1" />
+    <option name = "links"  value = "1" />
+</inherit>
 
-<import class = "smt_thread_handle" />
 <import class = "amq_global" />
 
 <public name = "header">
@@ -18,7 +21,7 @@
 
 <context>
     /*  References to parent objects                                         */
-    smt_thread_handle_t
+    smt_thread_t
         *thread;                        /*  Parent thread                    */
     amq_vhost_t
         *vhost;                         /*  Parent virtual host              */
@@ -51,12 +54,13 @@
 <method name = "new">
     <argument name = "thread"  type = "smt_thread_t *">Parent thread</argument>
     if (thread)
-        self->thread  = smt_thread_handle_new (thread);
+        self->thread  = smt_thread_link (thread);
     self->frame_max   = AMQ_BUCKET_MAX_SIZE;
     self->channel_max = AMQ_CHANNEL_MAX;
     self->handle_max  = AMQ_HANDLE_MAX;
     self->channels    = amq_channel_table_new ();
     self->handles     = amq_handle_table_new ();
+    self->vhost       = NULL;
 </method>
 
 <method name = "destroy">
@@ -68,13 +72,14 @@
     </local>
     /*  Destroy all channels for this connection                             */
     for (table_idx = 0; table_idx &lt; AMQ_CHANNEL_TABLE_MAXSIZE; table_idx++) {
-        channel = self->channels->item_table [table_idx];
+        channel = self->channels->table_items [table_idx];
         if (channel && channel != AMQ_CHANNEL_DELETED)
             amq_channel_destroy (&channel);
     }
     amq_channel_table_destroy (&self->channels);
     amq_handle_table_destroy  (&self->handles);
-    smt_thread_handle_destroy (&self->thread);
+    smt_thread_unlink         (&self->thread);
+    amq_vhost_unlink          (&self->vhost);
 
     /*  If not closed, close now                                             */
     $(selfname)_close (self);
@@ -107,12 +112,17 @@
             field = amq_field_list_search (fields, "LOGIN");
             if (field) {
                 ipr_shortstr_ncpy (login, field->string->data, field->string->cur_size);
+                amq_field_unlink (&field);
                 field = amq_field_list_search (fields, "PASSWORD");
                 if (field) {
                     ipr_shortstr_ncpy (password, field->string->data, field->string->cur_size);
-                    user = amq_user_search (amq_users, login);
-                    if (user && streq (user->password, password))
-                        self->authorised = TRUE;
+                    amq_field_unlink (&field);
+                    user = amq_user_table_search (amq_users, login);
+                    if (user) {
+                        if (streq (user->password, password))
+                            self->authorised = TRUE;
+                        amq_user_unlink (&user);
+                    }
                     else
                         amq_global_set_error (AMQP_ACCESS_REFUSED, "Invalid user and/or password");
                 }
@@ -169,8 +179,8 @@
     amq_db_client_t
         *client;
     </local>
-
-    self->vhost = amq_vhost_search (vhosts, command->virtual_path);
+    amq_vhost_unlink (&self->vhost);
+    self->vhost = amq_vhost_table_search (vhosts, command->virtual_path);
     if (self->vhost) {
         self->db  = self->vhost->db;
         self->ddb = self->vhost->ddb;
@@ -231,8 +241,9 @@
     /*  Initialise virtual host                                              */
     vhosts = amq_vhost_table_new (NULL);
     vhost  = amq_vhost_new (vhosts, "/test", "vh_test",
-        ipr_config_new ("vh_test", AMQ_VHOST_CONFIG, TRUE));
+                            ipr_config_new ("vh_test", AMQ_VHOST_CONFIG, TRUE));
     assert (vhost);
+    amq_vhost_unlink (&vhost);
 
     /*  Initialise connection                                                */
     ipr_shortstr_cpy (connection_open.virtual_path, "/test");

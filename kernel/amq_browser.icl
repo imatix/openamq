@@ -12,6 +12,10 @@
     message browsing.
 </doc>
 
+<inherit class = "icl_object">
+    <option name = "cache"  value = "1" />
+    <option name = "rwlock" value = "1" />
+</inherit>
 <inherit class = "ipr_array_item" />
 
 <import class = "amq_global" />
@@ -42,12 +46,16 @@
     <local>
     amq_browser_array_t
         *array;
+    amq_browser_t
+        *item;
     int
         index;
     </local>
     array = amq_browser_array_new ();
-    for (index = 0; index < 5000; index++)
-        self_new (array, index, NULL, 0, NULL);
+    for (index = 0; index < 5000; index++) {
+        item = self_new (array, index, NULL, 0, NULL);
+        self_unlink (&item);
+    }
     amq_browser_array_destroy (&array);
 </method>
 

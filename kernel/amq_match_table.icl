@@ -11,11 +11,16 @@ works together with the hitset class to perform the matching on topic
 names and field values.
 </doc>
 
-<inherit class = "ipr_hash_table" />
+<inherit class = "ipr_hash_head" />
 <import class = "amq_match" />
-<option name = "childname" value = "amq_match" />
+<option name = "childname"  value = "amq_match" />
+<option name = "childtype"  value = "amq_match_t" />
 <!-- This limits the number of topics we can handle to 100k or so -->
-<option name = "hash_size" value = "150000" />
+<option name = "rwlock"     value = "1" />
+<option name = "hash_size"  value = "150000" />
+<option name = "hash_type"  value = "str"/>
+
+<import class = "ipr_shortstr"/>
 
 <context>
     amq_topic_array_t
@@ -46,8 +51,6 @@ names and field values.
         *regexp;                        /*  Regular expression object        */
     int
         topic_nbr;                      /*  Topic index                      */
-    ipr_longstr_t
-        *match_key;                     /*  Match table key                  */
     </local>
     assert (subscr);
     assert (self->topics);
@@ -60,16 +63,17 @@ names and field values.
         assert (topic);
         if (ipr_regexp_match (regexp, topic->dest_name, NULL)) {
             /*  Topic must be defined in match table                         */
-            match_key = ipr_longstr_new_str (topic->dest_name);
-            match = amq_match_search (self, match_key);
-            ipr_longstr_destroy (&match_key);
+            match = amq_match_table_search (self, topic->dest_name);
             assert (match);
 
             /*  Flag this subscription as matching                           */
             ipr_bits_set (match->bits, subscr->index);
 
             /*  Add a reference to the subscription                          */
-            ipr_looseref_new (subscr->matches, match);
+            ipr_looseref_queue (subscr->matches, match);
+            
+            /*  Remove surplus link to match                                 */
+            amq_match_unlink (&match);
         }
     }
     ipr_regexp_destroy (&regexp);
@@ -77,8 +81,9 @@ names and field values.
 
 <method name = "parse fields" template = "function">
     <doc>
-    Parse the selector fields specifier and derive terms from it. We create
-    a term for each field/value combination.
+    Parse the selector fields specifier and derive terms from it.  We create
+    a term for each field/value combination.  We restrict field names to 30
+    bytes and field values to 127 bytes.
     </doc>
     <argument name = "subscr" type = "amq_subscr_t *" >Subscription to register</argument>
     <local>
@@ -88,28 +93,34 @@ names and field values.
         *field;                         /*  Next field to examine            */
     amq_match_t
         *match;                         /*  Match item                       */
-    ipr_longstr_t
-        *match_key;
+    ipr_shortstr_t
+        match_key;
     </local>
+
+#   define FIELD_NAME_MAX   30          /*  Arbitrary limit to get           */
+#   define FIELD_VALUE_MAX  30          /*    name=value into shortstr       */
 
     fields = amq_field_list_new (subscr->selector);
     if (fields) {
         field = amq_field_list_first (fields);
         while (field) {
-            match_key = amq_match_field_value (field);
-            match = amq_match_search (self, match_key);
+            amq_match_field_value (match_key, field);
+            coprintf ("SUBSCRIBING ON FIELD: %s, subscriber=%d", match_key, subscr->index);
+
+            match = amq_match_table_search (self, match_key);
             if (match == NULL)
                 match = amq_match_new (self, match_key);
-            ipr_longstr_destroy (&match_key);
 
             /*  Flag this subscription as matching                               */
             ipr_bits_set (match->bits, subscr->index);
 
             /*  Add a reference to the subscription                              */
-            ipr_looseref_new (subscr->matches, match);
+            ipr_looseref_queue (subscr->matches, match);
 
-            field = amq_field_list_next (fields, field);
+            field = amq_field_list_next (field);
             subscr->field_count++;
+            
+            amq_match_unlink (&match);
         }
         amq_field_list_destroy (&fields);
     }
@@ -130,19 +141,20 @@ names and field values.
     <local>
     amq_match_t
         *match;                         /*  Match item                       */
+    amq_topic_t
+        *topic;                         /*  Topic item                       */
     amq_subscr_t
         *subscr;                        /*  Subscription object              */
     ipr_regexp_t
         *regexp;                        /*  Regular expression object        */
-    ipr_longstr_t
-        *match_key;
     </local>
     assert (self->topics);
 
-    match_key = ipr_longstr_new_str (dest_name);
-    if (amq_match_search (self, match_key) == NULL) {
-        match = amq_match_new (self, match_key);
-        amq_topic_new (self->topics, self->topics->bound, dest_name);
+    match = amq_match_table_search (self, dest_name);
+    if (match == NULL) {
+        icl_console_print ("NEW TOPIC (%s), REBUILDING SUBSCRIPTIONS", dest_name);
+        match = amq_match_new (self, dest_name);
+        topic = amq_topic_new (self->topics, self->topics->bound, dest_name);
 
         /*  Recompile all subscriptions for this topic                       */
         subscr = amq_subscr_list_first (subscr_list);
@@ -153,15 +165,17 @@ names and field values.
                 ipr_bits_set (match->bits, subscr->index);
 
                 /*  Add a reference to the subscription                      */
-                ipr_looseref_new (subscr->matches, match);
+                ipr_looseref_queue (subscr->matches, match);
             }
             ipr_regexp_destroy (&regexp);
-            subscr = amq_subscr_list_next (subscr_list, subscr);
+            subscr = amq_subscr_list_next (subscr);
         }
+        amq_topic_unlink (&topic);
+        amq_match_unlink (&match);
     }
-    ipr_longstr_destroy (&match_key);
+    
 </method>
 
-<method name = "selftest" />
+<method name = "selftest"/>
 
 </class>

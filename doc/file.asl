@@ -1,8 +1,7 @@
 <?xml version="1.0"?>
 <class
-    name    = "file"
+    name = "file"
     handler = "channel"
-    index   = "8"
   >
   work with file content
 

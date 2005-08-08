@@ -452,7 +452,7 @@ int main (
 
             result = amq_stdc_send_message (channel, handle_id,
                 client.service_type, 0, 0, client.destination,
-                client.persistent, client.immediate, 0, 0, 0, "", "", identifier,
+                client.persistent, client.immediate, 0, 0, "", "", identifier,
                 amq_stdc_table_size (client.headers),
                 amq_stdc_table_data (client.headers),
                 client.message_size, client.message_buffer, 0);
@@ -510,8 +510,8 @@ int main (
 
         while (1) {
 
-            result = amq_stdc_get_message (channel, 1, NULL, &message_desc,
-                &message, NULL);
+            result = amq_stdc_get_message (channel, 1, &message_desc,
+                &message);
             if (result != APR_SUCCESS) {
                 printf ("amq_stdc_receive_message failed\n");
                 return EXIT_FAILURE;
