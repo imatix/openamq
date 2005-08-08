@@ -1,3 +1,10 @@
+0.8d10 - 2005/08/08
+  Server:
+  - frame-max increased to 1MB
+  - bugfix for SMT_TIMEOUT (amq_server_agent.smt)
+  Client:
+  - fixes for large message support
+ 
 0.8d9 - 2005/07/21
   Server:
   - added new functionality to AMQP/0.8 protocol
