@@ -1,0 +1,14 @@
+<?xml?>
+<opf
+    name    = "amq_vhost_config"
+    comment = "Virtual host configuration properties"
+    script  = "opf_gen"
+    >
+
+<path name = "/config/vhost">
+    <property name = "name" type = "char *">
+    Virtual host name
+    </property>
+</path>
+
+</opf>

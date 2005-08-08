@@ -1,0 +1,55 @@
+<?xml?>
+<!--
+    The Object Property Framework
+    Yet Another Production from The iMatix Industrial Bit Factory
+
+    OPF generates classes that provide a management framework for
+    object properties. A typical use is for configuration data.
+
+  -->
+
+<opf
+    name    = "amq_server_config"
+    comment = "Server configuration properties"
+    script  = "opf_gen"
+    >
+
+<public>
+extern $\(selftype)
+    *amq_server_config;                 /*  Global properties object         */
+</public>
+
+<private>
+$\(selftype)
+    *amq_server_config = NULL;          /*  Global properties                */
+</private>
+
+<path name = "/config/server">
+    <property name = "port" type = "char *" default = "7654">
+    Server port for client connections
+    </property>
+
+    <property name = "background" type = "Bool" default = "0">
+    Run as background process?
+    </property>
+
+    <property name = "context timeout" type = "int" default = "60">
+    Connection context timeout, seconds
+    </property>
+</path>
+
+<path name = "/config/resources">
+    <property name = "trace" type = "int">
+    Desired trace level
+    </property>
+
+    <property name = "monitor" type = "Bool">
+    Monitor internal
+    </property>
+
+    <property name = "max memory" type = "size_t">
+    Maximum allowed memory
+    </property>
+</path>
+
+</opf>

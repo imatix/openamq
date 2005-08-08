@@ -1,0 +1,121 @@
+<?xml?>
+<pdl
+    name      = "OpenAMQ Kernel"
+    version   = "0.9a3"
+    copyright = "Copyright (c) 2004-2005 iMatix & JPMorganChase"
+    workflow  = "standard.pwl"
+    library   = "libamq"
+    >
+
+<include filename = "prelude.pdl" />
+<inherit filename = "icl_classes.pdl" />
+
+<file name = "version.h"             class = "c version"         >Project version file</file>
+<file name = "libamq"                class = "public library"    >Object library</file>
+
+<!-- AMQ protocol specification -->
+<file name = "amq.asl"               class = "private resource"  >AMQ protocol definition</file>
+<file name = "amq_access.asl"        class = "private resource"  >Access control</file>
+<file name = "amq_exchange.asl"      class = "private resource"  >Exchange management</file>
+<file name = "amq_queue.asl"         class = "private resource"  >Queue management</file>
+<file name = "amq_basic.asl"         class = "private resource"  >Basic content</file>
+<file name = "amq_jms.asl"           class = "private resource"  >JMS content</file>
+<file name = "amq_file.asl"          class = "private resource"  >File content</file>
+<file name = "amq_stream.asl"        class = "private resource"  >Stream content</file>
+
+<!-- AMQ client implementation -->
+<file name = "amq_client.asl"        class = "gsl data"          >Client definition</file>
+<file name = "amq_client.c"          class = "main program"      >Client test program</file>
+<file name = "amq_client_method.icl" class = "icl private class"
+                                     generated = "1"             >Client method class</file>
+<file name = "amq_client_agent.smt"  class = "fat module"
+                                     generated = "1"             >Client protocol agent</file>
+<file name = "amq_client_classes.h"  class = "private resource"  >Client classes</file>
+<file name = "amq_client_connection.icl"
+                                     class = "icl private class"
+                                     generated = "1"             >Client API connection class</file>
+<file name = "amq_client_session.icl"
+                                     class = "icl private class"
+                                     generated = "1"             >Client API session class</file>
+<file name = "amq_client_channel.icl"
+                                     class = "icl private class" >Client channel class</file>
+<file name = "amq_client_channel_table.icl"
+                                     class = "icl private cont"  >Client channel table</file>
+
+<!-- AMQ server implementation -->
+<file name = "amq_server.asl"        class = "gsl data"          >Server definition</file>
+<file name = "amq_server.c"          class = "main program"      >Server main</file>
+<file name = "amq_server_main.inc"   class = "private resource"  >Server main core</file>
+<file name = "amq_server_config.opf" class = "gsl data"          >Server configuration</file>
+<file name = "amq_server_config.icl" class = "icl private class"
+                                     generated = "1"             >Server configuration class</file>
+<file name = "amq_server_method.icl" class = "icl private class"
+                                     generated = "1"             >Server method class</file>
+<file name = "amq_server_agent.smt"  class = "fat module"
+                                     generated = "1"             >Server protocol agent</file>
+<file name = "amq_server_classes.h"  class = "private resource"  >Server classes</file>
+<file name = "amq_server_connection.icl"
+                                     class = "icl private class" >Server connection class</file>
+<file name = "amq_server_connection_table.icl"
+                                     class = "icl private cont"  >Server connection table</file>
+<file name = "amq_server_channel.icl"
+                                     class = "icl private class" >Server channel class</file>
+<file name = "amq_server_channel_agent.smt"
+                                     class = "fat module"
+                                     generated = "1"             >Server channel agent</file>
+<file name = "amq_server_channel_table.icl"
+                                     class = "icl private cont"  >Server channel table</file>
+
+<file name = "amq_vhost.icl"         class = "icl private class" >Server vhost class</file>
+<file name = "amq_vhost_config.opf"  class = "gsl data"          >Vhost configuration</file>
+<file name = "amq_vhost_config.icl"  class = "icl private class"
+                                     generated = "1"             >Vhost configuration class</file>
+<file name = "amq_exchange.icl"      class = "icl private class" >Server exchange class</file>
+<file name = "amq_exchange_table.icl"
+                                     class = "icl private cont"  >Container for server exchange class</file>
+<file name = "amq_exchange_agent.smt"
+                                     class = "fat module"
+                                     generated = "1"             >Server exchange agent</file>
+<file name = "amq_exchange_base.icl" class = "private resource"  >Server exchange base class</file>
+<file name = "amq_exchange_system.icl"
+                                     class = "icl private class" >Server system exchange class</file>
+<file name = "amq_exchange_fanout.icl"
+                                     class = "icl private class" >Server fanout exchange class</file>
+<file name = "amq_exchange_dest_name.icl"
+                                     class = "icl private class" >Server dest-name exchange class</file>
+<file name = "amq_binding.icl"       class = "icl private class" >Server exchange bindings class</file>
+<file name = "amq_binding_list.icl"  class = "icl private cont"  >Server exchange bindings list</file>
+<file name = "amq_queue.icl"         class = "icl private class" >Server queue envelope class</file>
+<file name = "amq_queue_table.icl"   class = "icl private cont"  >Hash of queues per vhost</file>
+<file name = "amq_queue_list.icl"    class = "icl private cont"  >List of queues per vhost</file>
+<file name = "amq_queue_agent.smt"   class = "fat module"
+                                     generated = "1"             >Server queue agent</file>
+<file name = "amq_queue_base.icl"    class = "private resource"  >Server queue base class</file>
+<file name = "amq_queue_basic.icl"   class = "icl private class" >Basic content queue class</file>
+<file name = "amq_queue_jms.icl"     class = "icl private class" >JMS content queue class</file>
+<file name = "amq_consumer.icl"      class = "icl private class" >Consumer class</file>
+<file name = "amq_consumer_by_queue.icl"
+                                     class = "icl private cont"  >Consumers per queue</file>
+<file name = "amq_consumer_by_channel.icl"
+                                     class = "icl private cont"  >Consumers per channel</file>
+<file name = "amq_consumer_basic.icl"
+                                     class = "icl private class" >Basic consumer class</file>
+<file name = "amq_consumer_jms.icl"  class = "icl private class" >JMS consumer class</file>
+
+<file name = "server.cfg"            class = "private resource"  >Server config file</file>
+
+<!-- Deliverables -->
+<file name = "amq_server"            class = "public command"    >Server</file>
+<file name = "amq_client"            class = "public command"    >Client</file>
+
+<!-- Shared classes -->
+<file name = "amq_hash.icl"          class = "icl private class" >Loose hash item</file>
+<file name = "amq_hash_table.icl"    class = "icl private cont"  >Loose hash table</file>
+<file name = "amq_content_basic.icl" class = "icl private cont"
+                                     generated = "1"             >Basic content class</file>
+<file name = "amq_content_jms.icl"   class = "icl private cont"
+                                     generated = "1"             >JMS content class</file>
+<file name = "amq_constants.icl"     class = "icl private data"
+                                     generated = "1"             >Constants class</file>
+
+</pdl>

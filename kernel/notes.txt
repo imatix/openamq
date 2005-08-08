@@ -1,0 +1,508 @@
+---- STAT
+
+- 0.8 - 57k lines of C code (server + async client)
+- 0.9 - 55k lines of C code (server + async client) - 2005/07/31
+      - 57k lines of C code (server + async client) - 2005/08/02
+      - 40K lines of C code (ASL layer)
+
+---- TODO
+
+    - content routing information
+        - exchange (currently root, should be list)
+        - destination
+        - producer_id (for no_local, and bounces)
+        - mandatory, immediate flags (currently as method options)
+
+    tool to generate test clients
+        - standard set of options for all test programs
+        - define methods wanted as XML program
+            - methods plus arguments
+        - repetitions as loops
+        - success/failure for each method?
+        - documentation at start, what is the test case?
+        - ability to stop/start child processes
+            - monitor crashes
+            - exit status
+        - need server control facilities
+            - STOP command
+            - RESTART command
+            - send to $system exchange...
+            - server command line option to enable this...
+        - wait
+        - random
+        ... fully abstract, no C code!
+        ... generate test sets in Perl, C, etc.
+        ... forms part of formal protocol specifications
+    - part of asl...
+
+
+    
+- proxy program
+    - log methods
+    - replay methods
+    - print log for readability
+- client and server should announce themselves
+    - public names
+    - virtual host descriptions
+
+
+---- BUGS
+
+- unknown
+    - when trying to synchronise client/server shutdown, get a freeze
+        - client sends connection.close
+        - client waits for method
+        - server reads connection.close
+        - server writes connection.close-ok
+        - client never receives it...
+
+--- TEST CASES
+
+    MESSAGES EN ROUTE
+    - create queue
+    - send messages to queue
+    - consume one message
+    - abort connection
+    - stop server
+        ... messages will have been queued for consumer, must be freed
+
+    NO CANCEL FOR CONSUMER
+    - create consumer
+    - close connection
+
+
+--- WORLDVIEW
+
+    Reflected in the documentation and in the product.
+    
+    Automatic Mode
+        - default virtual host
+        - queue and topic exchanges
+        - $system exchanges
+        - auto-binding for queues
+            - queue templates: normal, temporary, subscription
+    Advanced Mode
+        - custom virtual host
+        - define own exchanges
+        - header-based routing
+        .etc
+
+    Creating automode
+        - can be hard-coded in server
+            - create destinations
+            - create queue templates
+            + can't be broken
+            - can't be modified
+            - more costly to improve later
+        - can be scripted
+            - run start-up script to create vhosts, etc
+            + harder to modify but still possible
+        - can be configured
+            - configuration is just set of durable objects
+            + most generic
+            - can be broken
+            - would need "reset" functionality
+
+
+Some ideas
+    - create vhost dynamically, (copy existing vhost?)
+        - predefined vhost = standard wiring
+    - allow operations on vhost and all wiring
+        - copy from
+        - delete
+        - reset / empty
+        - save / restore
+    - documentation should cover lifetime of objects
+        - exchanges
+        - queues
+        - bindings
+        - consumers
+        - messages
+    - purge/timeout auto-delete queues
+
+----------------------------------------------------------------------------
+
+
+---- DONE
+
+August
+    1.0a3
+    - implemented no-local flag on queue consumers
+        - affects the way messages are distributed from a queue
+
+    1.0a2
+    --Done--------
+    - client API is more SASL-compliant (pass auth_data block)
+    - move destination field out of headers, into methods
+    - generate protocol constants from ASL specifications
+        - asl_constants.asl
+        - can be inherited and extended
+        - generates asl_constants.icl class
+
+    1.0a1
+    --Done--------
+    - robust handling of exchange, queue tables filled
+        - also increased from 255 to 64k per virtual host
+    - connection recovery
+        - server and client hand-shake after recovery
+    - channel flow control
+        - new consumers created according to channel state
+        - flow on/off enables/disables consumers
+        - queue dispatching works only with active consumers
+        - enabling a consumer provokes queue dispatching
+    - validate server port number <64k and >1024
+    - allow server port to be specified on command line
+    
+July
+    --Done--------
+    - exchanges internal/external flag
+    - exchange.bind to make multilevel exchanges
+    - Basic consumers
+        - consume/cancel works as for JMS class
+    - asynchronous dispatching
+        - i.e. consume from existing queue
+    - extend client connection with own context
+        - e.g. reply code, session key, etc.
+    - extend client session with own context
+        - e.g. reply code, consumer tag, etc.
+    - consumer tagging
+        - index of consumer per channel
+        - cancel method
+    - longstr, tables increased to 4Gb limit
+    - frames redefined to remove all small limits
+    - queue bounce messages
+        - no routing in exchange (mandatory field)
+        - no consumers in queue (immediate field)
+    - undeliverable messages are bounced
+        - Jms.Bounce, Basic.Bounce methods
+        - provided to client in queues
+    - exchange base class
+        - list of bindings
+            per binding, looseref list of queues & exchanges
+    - detect & report abnormal client disconnect
+    - generate context keys for new connections
+    - handle connection reconnection
+    
+- minimum required for GRM
+    - JMS class
+*        consume, consume-ok
+*        cancel, cancel-ok
+*        publish / immediate
+*        deliver
+    - exchange classes
+        dest-wild
+        property
+    - queue:
+*        jms messages, no priority, no persistence
+    - queue templating
+        basics only - queue max. size?
+*    - fanout, queue, dest-wild, property exchanges
+     - jms consumers
+        - preconfigured exchanges
+        - queue, cbr
+
+---- BASE
+
+    - boom install history in $IBASE/install
+        - allows uninstall
+        - cummulative per project
+    - gsl elastic spaces should compress down to 1, not 2 spaces
+    - separate the ignorecase option into two options
+        - a. to allow case-insensitive symbol names
+        - b1. to mangle symbol values when names are UPPER or Mixed case
+        - b2. to mangle symbol names in all cases
+    - icl code generation has become really messy
+        - blank lines
+        - indentation
+    - icl "release" as opposite of "possess"?
+    - icl/smt
+        - <local> per sync and async
+        - <local name = "async">
+        - <header name = "async">.. etc.
+        - <body name = "async">
+    - smt
+        - socket output buffering and flushing
+        - socket input buffering
+        - write bucket of zero size causes problems
+        - can't group actions in grouped actions
+
+    --Done--------
+    - ipr containers
+        - _size property giving number of elements
+    - smt
+        - delay timers appear to kill thread
+        - multithreading under win32
+    - icl
+        - icl.gsl is not a nice name, move stdc back into icl_stdc
+
+---- SMT links HOWTO
+
+    - if you get a reference from a container
+        - either unlink it
+        - or destroy it
+        - or get a next reference
+    - if you pass a reference via a call
+        - synch call: do nothing
+        - asynch call: link to it on behalf of called
+        - called asynch method: unlink or destroy it
+    - if you store a reference anywhere
+        - link when storing the reference
+        - unlink when finished with the reference
+    - do not link to parent object
+        - hierarchy of creation/destruction
+
+---- HASH HOWTO
+
+    - don't manipulate self->key
+        - provide real key at insertion
+        - don't use self->key after removal...
+        - rename to _key?
+
+---- NOTES FROM 0.8 - TO CLEAN-UP
+
+publish
+    - fail if no queue
+    - fail if no consumers
+    - fail if no subscribers
+
+content based routing
+    - message field table
+    - matches subscription/consumer field table
+    naive implementation:
+        - match each field
+    fast implementation
+        - bitmap matching
+
+    - consume has list of criteria
+        - ALL must match
+    - message has list of criteria
+
+
+    consume-> parse ->>> criteria
+    message-> parse ->>> criteria
+
+    using bitmaps lets us find all consumers that match each
+    criteria in a message.
+
+    how to define messages that match ALL criteria in each
+    consumer?
+
+    - get bitmaps
+    - accumulate into array
+    - array > 0 indicates consumer numbers
+    - nbr hits -> OR or AND
+    
+queue index
+    - each subscription queue has a unique index
+    - this is a low number - 0 to IPR_BITS_SIZE_BITS-1
+    - hash queue address -> index & find spare slot
+    - at queue destroy time, clear slot to zero
+    OK
+    
+matching engine
+    amq_matcher
+        - key (name, value, type)
+        - data: ipr_bits_t *
+    OK
+    subscription new
+        matcher parse topic pattern
+        add reference to subscription
+    OK
+    subscription destroy
+        clear from all match entries
+    OK
+    
+publish
+    - find match entry
+    - send to all subscription
+        - filter on no-local subscription
+
+
+durable subscriptions
+    - stored in subscription table
+    - rebuilt when server restarts
+    - not deleted when consumer disconnects
+    
+
+dest_new
+    - if topic service
+        - match to all existing consumers
+            - possibly extend consumers criteria
+
+dest_destroy
+    - if topic service
+        - remove criteria from database
+
+
+in dest_new
+    - validate dest name using regexp
+
+
+mailbox concept
+    open handle, create mailbox
+    purge at open
+    purge at disconnect
+    private (take ownership)
+    template (name)
+
+
+temporary queues
+    - explicit clear option
+        - by any consumer
+temporary subscriptions
+    - explicit clear option
+        - by consumer
+persistent subscriptions
+    - saved in db_dest
+    - consumer must also be saved
+    - and recompiled when server starts
+
+
+
+
+
+
+
+
+consume -> update subscription set
+    implementation 1 - quick&dirty:
+
+    request object
+        - topic name
+        - subsc reference
+
+    handle consume on topic
+        - calculate full topic name
+        - create request object
+        - add to vhost list
+
+    handle send
+        - check all request objects
+        - distribute messages to subscs
+        - dispatch subscs
+
+    implementation 2 - faster matching
+    - kill request object
+
+    handle consume on topic
+        -
+
+
+vhost->queues   accept, dispatch
+     ->topics   accept
+     ->subs     dispatch
+
+    smessage-> topic, queue
+    dispatch-> queue, sub
+
+
+Stuff to fix
+
+ - complain if config file is invalid (says nothing)
+ - change temporary queue to "mailbox" concept
+    - purge at open, optional
+    - purge at close, optional
+ - move to HUGE values for file/mesg sizes
+    - or 64-bit values
+ - way to cancel and/or purge a message being sent
+    - HANDLE STOP / PURGE command
+
+Queues
+ - deleting - need to handle extent files as well...
+    ... does not appear to create them?
+
+restartability
+    . refresh virtual hosts
+    . create new queues & topics
+    . leave connections alive
+
+subscriptions
+    . subscription table
+    . persistent / non-persistent
+    . each subscription is a queue
+
+- amq_server object
+    - replaces amq_global
+    - runs on a specific port
+
+
+
+- move argument parsing & copyright block to standard iPR function
+
+
+
+
+Changes
+
+    rfc006
+    fragments
+        - allow client to cancel messages using flow/cancel
+
+    client failure
+    - failover to secondary server
+    - use heartbeat command to check server is alive
+
+    clustering
+    - n servers
+    - queue + consumers on each server
+    - if queue filled & no consumers, messages are forwarded
+        - using inter-server MTA
+    - if queue empties & consumers, messages are scraped
+        - using inter-server MTA
+    - separate mechanism for forwarding topics
+    - client connection
+        - list of ip addresses
+        - serial or round robin
+        - can be redirected by server
+        - can tell server, "no redirect"
+    - durable subscriptions
+        - may be held on different server, use queue thunking
+        - may be allowed for scalability
+
+    multithreading
+    - one for smt
+    - one for bdb
+
+    clients, priority
+    * COM+ for demo
+    * C thread-safe
+    * Java
+    - .NET
+    * Perl
+
+
+Durable Subscriptions
+    When server starts up, creates consumer item for all
+    durable subscriptions it finds...
+        - these are destinations marked as SUBSCRIPTION
+
+
+Clustering
+    a. for resiliency (failure)
+        - using master-slave model
+        - possibly hierarchical model
+    b. for load-balancing
+        - using multi-master model
+        - possibly hierarchical model
+    c. for geographical distribution
+        - using other means
+        
+    - client connects to server
+    - server can kick client, with 'reconnect to different server'
+    - server provides list of known alternative servers
+        - masters and backups
+    - client may try servers randomly/serially
+        - this is for load-balancing
+    - client can connect with 'please don't kick me'
+        - if it was already working with that server
+
+    master-slave:
+        - agressive heartbeating allows slave to monitor master & vv
+        - various strategies for replication
+            - repeat all AMQP commands to slave
+                - get confirmation before doing own processing thereof
+            - repeat internal structures to slave
+                - all created objects replicate themselves
+            - repeat only stored data
+                - messages, subscriptions
+

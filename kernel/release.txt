@@ -1,0 +1,45 @@
+0.9a3 - 2005/08/
+
+0.9a2 - 2005/08/08
+
+  - Destination field moved out of content header, into publish/deliver
+    and browse-ok methods.
+  - Modified client API to be SASL-compliant (pass auth_data block)
+  - Generate protocol constants from ASL specifications
+    - asl_constants.asl
+    - can be inherited and extended
+    - generates asl_constants.icl class
+
+0.9a1 - 2005/08/04
+
+  - Server channels redesigned as async objects for better stability
+  - Channel.Flow method modified - takes "Active" parameter (true/false)
+
+
+0.9a0 - 2005/08/01 - Alpha release of OpenAMQ/0.9 server
+
+Implements these methods, wholly or partially:
+
+    Connection.Start-Ok
+    Connection.Tune-Ok
+    Connection.Close
+    Connection.Close-Ok
+    Channel.Open
+    Channel.Flow
+    Channel.Close
+    Channel.Close-Ok
+    Exchange.Declare
+    Exchange.Bind
+    Exchange.Delete
+    Queue.Declare
+    Queue.Bind
+    Queue.Delete
+    Basic.Publish
+    Basic.Browse
+    Basic.Consume
+    Basic.Cancel
+    JMS.Publish
+    JMS.Browse
+    JMS.Consume
+    JMS.Cancel
+
