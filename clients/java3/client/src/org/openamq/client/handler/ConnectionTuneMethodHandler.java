@@ -47,7 +47,8 @@ public class ConnectionTuneMethodHandler implements StateAwareMethodListener
         params.setHearbeat(frame.heartbeat);
 
         stateManager.changeState(AMQState.CONNECTION_NOT_OPENED);
-        session.writeFrame(ConnectionTuneOkBody.createAMQFrame(evt.getChannelId(), frame.channelMax, frame.heartbeat));
+        session.writeFrame(ConnectionTuneOkBody.createAMQFrame(evt.getChannelId(), frame.channelMax, frame.frameMax,
+                                                               frame.heartbeat));
         session.writeFrame(ConnectionOpenBody.createAMQFrame(evt.getChannelId(), null));
     }
 }

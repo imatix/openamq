@@ -250,8 +250,9 @@ public class AMQMessageProducer extends Closeable implements MessageProducer
     private void sendImpl(AMQDestination destination, AbstractMessage message, int deliveryMode, int priority,
                           long timeToLive) throws JMSException
     {
-        AMQFrame publishFrame = JmsPublishBody.createAMQFrame(_channelId, 0, _destination.getExchangeName(), true,
-                                                              true); // TODO: add destination (queue) here
+        AMQFrame publishFrame = JmsPublishBody.createAMQFrame(_channelId, 0, _destination.getExchangeName(),
+                                                              _destination.getDestinationName(), true,
+                                                              true);
 
         long currentTime = 0;
         if (!_disableTimestamps)
@@ -262,7 +263,6 @@ public class AMQMessageProducer extends Closeable implements MessageProducer
         byte[] payload = message.getData();
         JmsContentHeaderBody contentHeader = message.getContentHeader();
         contentHeader.weight = 0; // indicates no child content headers, just bodies
-        contentHeader.destination = _destination.getDestinationName();                                
         if (timeToLive > 0)
         {
             if (!_disableTimestamps)
