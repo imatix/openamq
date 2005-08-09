@@ -275,14 +275,16 @@ main (int argc, char *argv [])
             amq_content_jms_set_message_id (content, message_id);
             
             if (amq_client_session_jms_publish (
-                session,
-                content,
-                ticket,
-                opt_exchange,
-                opt_dest,
-                mandatory,           
-                immediate))
+                    session,
+                    content,
+                    ticket,
+                    opt_exchange,
+                    opt_dest,
+                    mandatory,           
+                    immediate)) {
+                icl_console_print ("Error doing jms publish");
                 goto finished;
+            }
             amq_content_jms_destroy (&content);
             if (--batch_left == 0) {
                 if (!quiet_mode)
@@ -313,8 +315,10 @@ main (int argc, char *argv [])
                 if (delay_mode)
                     sleep (1);
 
-                if (smt_signal_raised)
+                if (smt_signal_raised) {
+                    icl_console_print ("SMT signal raised");
                     goto finished;
+                }
             }
             //  Process bounced messages, if any
             while ((content = amq_client_session_jms_bounced (session)) != NULL) {
@@ -325,8 +329,10 @@ main (int argc, char *argv [])
             }
             if (async_mode) {
                 //  If we expect more, wait for something to happen
-                if (count < messages && amq_client_session_wait (session))
+                if (count < messages && amq_client_session_wait (session)) {
+                    icl_console_print ("Error receiving messages");
                     goto finished;      //  Quit if there was a problem
+                }
             }
             else
             if (!got_messages)
