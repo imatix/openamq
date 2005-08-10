@@ -51,7 +51,7 @@ public class JmsContentHeaderBody extends ContentHeaderBody
                EncodingUtils.encodedShortStringLength(replyTo) +
                EncodingUtils.encodedShortStringLength(String.valueOf(expiration)) +
                EncodingUtils.encodedShortStringLength(messageId) +
-               8 +
+               4 +
                EncodingUtils.encodedShortStringLength(type) +
                EncodingUtils.encodedShortStringLength(userId) +
                EncodingUtils.encodedShortStringLength(appId);
@@ -80,7 +80,7 @@ public class JmsContentHeaderBody extends ContentHeaderBody
         EncodingUtils.writeShortStringBytes(buffer, replyTo);
         EncodingUtils.writeShortStringBytes(buffer, String.valueOf(expiration));
         EncodingUtils.writeShortStringBytes(buffer, messageId);
-        buffer.putLong(timestamp);
+        EncodingUtils.writeUnsignedInteger(buffer, timestamp);
         EncodingUtils.writeShortStringBytes(buffer, type);
         EncodingUtils.writeShortStringBytes(buffer, userId);
         EncodingUtils.writeShortStringBytes(buffer, appId);
@@ -108,7 +108,7 @@ public class JmsContentHeaderBody extends ContentHeaderBody
         if ((propertyFlags & (1 << 7)) > 0)
             messageId = EncodingUtils.readShortString(buffer);
         if ((propertyFlags & (1 << 6)) > 0)
-            timestamp = buffer.getLong();
+            timestamp = buffer.getInt();
         if ((propertyFlags & (1 << 5)) > 0)
             type = EncodingUtils.readShortString(buffer);
         if ((propertyFlags & (1 << 4)) > 0)
