@@ -71,11 +71,12 @@ for each class of exchange. This is a lock-free asynchronous class.
     <dismiss argument = "key"   value = "name">Key is exchange name</dismiss>
     //
     ipr_shortstr_cpy (self->name, name);
-    self->class        = class;
-    self->durable      = durable;
-    self->auto_delete  = auto_delete;
-    self->internal     = internal;
-    self->binding_list = amq_binding_list_new ();
+    self->class         = class;
+    self->durable       = durable;
+    self->auto_delete   = auto_delete;
+    self->internal      = internal;
+    self->binding_list  = amq_binding_list_new ();
+    self->binding_index = ipr_index_new ();
 
     if (self->class == AMQ_EXCHANGE_SYSTEM) {
         self->object  = amq_exchange_system_new (self);
@@ -101,6 +102,7 @@ for each class of exchange. This is a lock-free asynchronous class.
 <method name = "destroy">
     <action>
     amq_binding_list_destroy (&self->binding_list);
+    ipr_index_destroy (&self->binding_index);
     if (self->class == AMQ_EXCHANGE_SYSTEM)
         amq_exchange_system_destroy ((amq_exchange_system_t **) &self->object);
     else
