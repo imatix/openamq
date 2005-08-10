@@ -18,7 +18,9 @@ for each class of exchange. This is a lock-free asynchronous class.
     <option name = "hash_size" value = "65535" />
 </inherit>
 
-<import class = "amq_server_classes" />
+<public name = "include">
+#include "amq_server_classes.h"
+</public>
 
 <context>
     int
@@ -32,7 +34,9 @@ for each class of exchange. This is a lock-free asynchronous class.
     void
         *object;                        //  Exchange implementation
     amq_binding_list_t
-        *binding_list;                  //  List of bindings
+        *binding_list;                  //  Bindings as a list
+    ipr_index_t
+        *binding_index;                 //  Gives us binding indices
 
     //  Exchange access functions
     int
@@ -164,7 +168,7 @@ for each class of exchange. This is a lock-free asynchronous class.
     //  If no binding matched, create a new one
     if (binding == NULL) {
         //  Compile the binding to the exchange
-        binding = amq_binding_new (m_arguments);
+        binding = amq_binding_new (self, m_arguments);
         if (self->compile (self->object, binding, channel) == 0)
             amq_binding_list_queue (self->binding_list, binding);
         else
@@ -211,7 +215,7 @@ for each class of exchange. This is a lock-free asynchronous class.
     //  If no binding matched, create a new one
     if (binding == NULL) {
         //  Compile the binding to the exchange
-        binding = amq_binding_new (m_arguments);
+        binding = amq_binding_new (self, m_arguments);
         if (self->compile (self->object, binding, channel) == 0)
             amq_binding_list_queue (self->binding_list, binding);
         else

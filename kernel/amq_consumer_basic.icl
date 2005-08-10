@@ -14,7 +14,9 @@ This class implements a Basic consumer.  For now, an empty object.
     <option name = "alloc" value = "cache" />
 </inherit>
 
-<import class = "amq_server_classes" />
+<public name = "include">
+#include "amq_server_classes.h"
+</public>
 
 <context>
     amq_consumer_t

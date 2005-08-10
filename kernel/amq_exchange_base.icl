@@ -15,7 +15,9 @@ This is an abstract base class for all exchange implementations.
     <option name = "alloc" value = "cache" />
 </inherit>
 
-<import class = "amq_server_classes" />
+<public name = "include">
+#include "amq_server_classes.h"
+</public>
 
 <context>
     amq_exchange_t

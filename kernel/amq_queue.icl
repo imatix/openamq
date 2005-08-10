@@ -22,7 +22,9 @@ class.  This is a lock-free asynchronous class.
     <option name = "prefix" value = "list" />
 </inherit>
 
-<import class = "amq_server_classes" />
+<public name = "include">
+#include "amq_server_classes.h"
+</public>
 
 <context>
     amq_vhost_t

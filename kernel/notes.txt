@@ -1,12 +1,127 @@
+---- IN PROGRESS
+
+    0.8 matching
+        - amq_match -> bitmap of corresponding subscriptions
+            - _topic_re ()
+                - convert topic specifier to regexp
+            - _field_name ()
+                - format field name into match key
+            - _field_value ()
+                - format field value into match key
+        - amq_match_table -> maintain matching tables
+            - also holds all known topics in array
+            - held per vhost
+            - _parse_topic()
+                - take topic pattern, subscriber nbr
+                - find all matching topics, set subscriber bit
+            - _parse_fields ()
+                - take field selector, subscriber nbr
+                - find all matching field/value pairs, set subscriber bit
+            - _check_topic ()
+                - update match table bitmaps for new topics
+        - amq_hitset -> do actual matching
+            - _match ()
+                - from message, build hitset of subscribers
+            - _publish ()
+                - from hitset, dispatch message to subscribers
+        vhost
+            amq_match_table, amq_topic_array
+                amq_match, bits
+            hitset     
+
+    0.9 matching
+        - exchange = governing structure for routing
+            - binding_index = structure that numbers bindings from 1 to n
+            - binding_list = list of bindings
+            - term_table = table of active terms
+
+        - binding = relationship between exchange and (queue or exchange)
+            - aka: amq_subscr
+            - queue_list = list of queues for binding
+            - exchange_list = list of exchanges for binding
+
+        - term = search term
+            - term_hash = lookup term by value
+                - ->key term key
+                - ->bitset of matching bindings
+            - term_array = lookup term by number
+                - term key
+
+        - domain = search value = set of known 
+            - size is 64k? = number of distinct destinations per exchange
+
+        - hitset = search results
+
+        Algorithms
+
+        1. Bind to exchange
+
+            - look for binding that matches arguments
+            - if not found, create new binding:
+                - insert binding into exchange->binding_index
+                    - gives binding->index
+                - iterate through terms in exchange->term_array
+                    - compare term key to binding argument
+                    - if term matches arguments, set bit in match bitmap
+                        - get term from hash table
+                        - set bit (binding->index) in bitset
+                        - add looseref to term for binding
+            - add to binding queue_list or exchange_list
+
+        Notes:
+            - for matching on destinations (topics), we have to compare the
+              given topic pattern to all known destinations in order to know
+              which match our pattern.
+
+            - for matching on field value/presence, we do not need to compare
+              all known term values; each argument specifies a field name and
+              optional value, and can be mapped directly into a term lookup.
+
+            - for matching on field value wildcards, we have to compare the
+              given field patterns to all known field name/value pairs in
+              order to know which match our pattern.
+
+            - we can derive one generalised solution for all three of these
+              cases but it will be slower than necessary for the second case.
+
+            - this cost is in compiling bindings, and publishing messages with
+              new content... the cost may be payable.
+
+            - consider a single exchange for all matching...?
+
+        2. Publish message
+            
+            - decode message into terms, for each term:
+                - if new term:
+                    - check each binding for exchange:
+                        - if binding arguments match term
+                            - update term->bitset for binding->index
+                            - add term to binding term list
+                    - save new term with bitset to term_hash
+                    - add term to term_array
+                - lookup term into term_hash
+                - iterate through bits in bitset:
+                    - update hit count in hitset table
+            - for each valid hit in hitset:
+                - publish message to binding
+
 ---- STAT
 
-- 0.8 - 57k lines of C code (server + async client)
-- 0.9 - 55k lines of C code (server + async client) - 2005/07/31
-      - 57k lines of C code (server + async client) - 2005/08/02
+- 0.8 - 57k lines of C code (server + async client) -              0.8d10
+- 0.9 - 55k lines of C code (server + async client) - 2005/07/31 - 0.9a0
+      - 57k lines of C code (server + async client) - 2005/08/02 - 0.9a1
+      - 67k lines of C code (server + async client) - 2005/08/08 - 0.9a2
       - 40K lines of C code (ASL layer)
 
 ---- TODO
 
+    - validate exchange name, queue name at declare time
+        - review name syntax
+
+    - clarify protocol for aborting single large message
+        - close channel?
+        - send end-of-message frame?
+        
     - content routing information
         - exchange (currently root, should be list)
         - destination
@@ -258,226 +373,8 @@ July
         - don't use self->key after removal...
         - rename to _key?
 
----- NOTES FROM 0.8 - TO CLEAN-UP
+---- CLUSTERS
 
-publish
-    - fail if no queue
-    - fail if no consumers
-    - fail if no subscribers
-
-content based routing
-    - message field table
-    - matches subscription/consumer field table
-    naive implementation:
-        - match each field
-    fast implementation
-        - bitmap matching
-
-    - consume has list of criteria
-        - ALL must match
-    - message has list of criteria
-
-
-    consume-> parse ->>> criteria
-    message-> parse ->>> criteria
-
-    using bitmaps lets us find all consumers that match each
-    criteria in a message.
-
-    how to define messages that match ALL criteria in each
-    consumer?
-
-    - get bitmaps
-    - accumulate into array
-    - array > 0 indicates consumer numbers
-    - nbr hits -> OR or AND
-    
-queue index
-    - each subscription queue has a unique index
-    - this is a low number - 0 to IPR_BITS_SIZE_BITS-1
-    - hash queue address -> index & find spare slot
-    - at queue destroy time, clear slot to zero
-    OK
-    
-matching engine
-    amq_matcher
-        - key (name, value, type)
-        - data: ipr_bits_t *
-    OK
-    subscription new
-        matcher parse topic pattern
-        add reference to subscription
-    OK
-    subscription destroy
-        clear from all match entries
-    OK
-    
-publish
-    - find match entry
-    - send to all subscription
-        - filter on no-local subscription
-
-
-durable subscriptions
-    - stored in subscription table
-    - rebuilt when server restarts
-    - not deleted when consumer disconnects
-    
-
-dest_new
-    - if topic service
-        - match to all existing consumers
-            - possibly extend consumers criteria
-
-dest_destroy
-    - if topic service
-        - remove criteria from database
-
-
-in dest_new
-    - validate dest name using regexp
-
-
-mailbox concept
-    open handle, create mailbox
-    purge at open
-    purge at disconnect
-    private (take ownership)
-    template (name)
-
-
-temporary queues
-    - explicit clear option
-        - by any consumer
-temporary subscriptions
-    - explicit clear option
-        - by consumer
-persistent subscriptions
-    - saved in db_dest
-    - consumer must also be saved
-    - and recompiled when server starts
-
-
-
-
-
-
-
-
-consume -> update subscription set
-    implementation 1 - quick&dirty:
-
-    request object
-        - topic name
-        - subsc reference
-
-    handle consume on topic
-        - calculate full topic name
-        - create request object
-        - add to vhost list
-
-    handle send
-        - check all request objects
-        - distribute messages to subscs
-        - dispatch subscs
-
-    implementation 2 - faster matching
-    - kill request object
-
-    handle consume on topic
-        -
-
-
-vhost->queues   accept, dispatch
-     ->topics   accept
-     ->subs     dispatch
-
-    smessage-> topic, queue
-    dispatch-> queue, sub
-
-
-Stuff to fix
-
- - complain if config file is invalid (says nothing)
- - change temporary queue to "mailbox" concept
-    - purge at open, optional
-    - purge at close, optional
- - move to HUGE values for file/mesg sizes
-    - or 64-bit values
- - way to cancel and/or purge a message being sent
-    - HANDLE STOP / PURGE command
-
-Queues
- - deleting - need to handle extent files as well...
-    ... does not appear to create them?
-
-restartability
-    . refresh virtual hosts
-    . create new queues & topics
-    . leave connections alive
-
-subscriptions
-    . subscription table
-    . persistent / non-persistent
-    . each subscription is a queue
-
-- amq_server object
-    - replaces amq_global
-    - runs on a specific port
-
-
-
-- move argument parsing & copyright block to standard iPR function
-
-
-
-
-Changes
-
-    rfc006
-    fragments
-        - allow client to cancel messages using flow/cancel
-
-    client failure
-    - failover to secondary server
-    - use heartbeat command to check server is alive
-
-    clustering
-    - n servers
-    - queue + consumers on each server
-    - if queue filled & no consumers, messages are forwarded
-        - using inter-server MTA
-    - if queue empties & consumers, messages are scraped
-        - using inter-server MTA
-    - separate mechanism for forwarding topics
-    - client connection
-        - list of ip addresses
-        - serial or round robin
-        - can be redirected by server
-        - can tell server, "no redirect"
-    - durable subscriptions
-        - may be held on different server, use queue thunking
-        - may be allowed for scalability
-
-    multithreading
-    - one for smt
-    - one for bdb
-
-    clients, priority
-    * COM+ for demo
-    * C thread-safe
-    * Java
-    - .NET
-    * Perl
-
-
-Durable Subscriptions
-    When server starts up, creates consumer item for all
-    durable subscriptions it finds...
-        - these are destinations marked as SUBSCRIPTION
-
-
-Clustering
     a. for resiliency (failure)
         - using master-slave model
         - possibly hierarchical model

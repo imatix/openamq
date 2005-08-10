@@ -20,22 +20,32 @@ class.
     <option name = "prefix" value = "list" />
     <option name = "rwlock" value = "0" />
 </inherit>
-<import class = "amq_server_classes" />
+
+<public name = "include">
+#include "amq_server_classes.h"
+</public>
 
 <context>
+    amq_exchange_t
+        *exchange;                      //  Parent exchange
     ipr_looseref_list_t
         *queue_list;                    //  List of queues for binding
     ipr_looseref_list_t
         *exchange_list;                 //  List of exchanges for binding
     ipr_longstr_t
         *arguments;                     //  Binding arguments
+    int
+        index;                          //  Index in exchange->binding_index
 </context>
 
 <method name = "new">
-    <argument name = "arguments" type = "ipr_longstr_t *">Arguments</argument>
+    <argument name = "exchange"  type = "amq_exchange_t *">Parent exchange</argument>
+    <argument name = "arguments" type = "ipr_longstr_t *" >Arguments</argument>
+    self->exchange      = exchange;
     self->queue_list    = ipr_looseref_list_new ();
     self->exchange_list = ipr_looseref_list_new ();
     self->arguments     = ipr_longstr_dup (arguments);
+    self->index         = ipr_index_insert (self->exchange->binding_index, self);
 </method>
 
 <method name = "destroy">
@@ -52,6 +62,7 @@ class.
     while ((exchange = (amq_exchange_t *) ipr_looseref_pop (self->exchange_list)))
         amq_exchange_unlink (&exchange);
 
+    ipr_index_delete          (self->exchange->binding_index, self->index);
     ipr_looseref_list_destroy (&self->queue_list);
     ipr_looseref_list_destroy (&self->exchange_list);
     ipr_longstr_destroy       (&self->arguments);

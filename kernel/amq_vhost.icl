@@ -16,7 +16,9 @@ Defines a virtual host.
     <option name = "links"  value = "1" />
 </inherit>
 
-<import class = "amq_server_classes" />
+<public name = "include">
+#include "amq_server_classes.h"
+</public>
 
 <public>
 extern $(selftype)
