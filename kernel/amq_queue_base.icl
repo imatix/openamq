@@ -48,21 +48,20 @@ independent of the queue content type.
         *consumer;                      //  Consumer reference
     </local>
     //  We destroy consumers by asking the respective channels to do the work
+    //  TODO: at some stage we had to check whether the channel was alive, and
+    //  if not, do the destroy ourselves.
+    //      if (amq_server_channel_alive (consumer->channel))
+    //      else
+    //          amq_consumer_destroy (&consumer);
+    //  It still remains a danger if the queue and channel destruct at the
+    //  same time.
     while ((consumer = amq_consumer_by_queue_pop (self->active_consumers))) {
-        if (amq_server_channel_alive (consumer->channel)) {
-            amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE);
-            amq_consumer_unlink (&consumer);
-        }
-        else
-            amq_consumer_destroy (&consumer);
+        amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE);
+        amq_consumer_unlink (&consumer);
     }
     while ((consumer = amq_consumer_by_queue_pop (self->paused_consumers))) {
-        if (amq_server_channel_alive (consumer->channel)) {
-            amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE);
-            amq_consumer_unlink (&consumer);
-        }
-        else
-            amq_consumer_destroy (&consumer);
+        amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE);
+        amq_consumer_unlink (&consumer);
     }
     amq_consumer_by_queue_destroy (&self->active_consumers);
     amq_consumer_by_queue_destroy (&self->paused_consumers);

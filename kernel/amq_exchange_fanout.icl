@@ -14,6 +14,9 @@ routed to all bound queues and exchanges.
 <inherit class = "amq_exchange_base" />
 
 <method name = "compile">
+    //  Until we actually do something here, stop the compiler complaining
+    //  about self not being used in this method...
+    if (self);
 </method>
 
 <method name = "publish">

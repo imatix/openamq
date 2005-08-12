@@ -14,6 +14,9 @@ routed but are processed according to destination.
 <inherit class = "amq_exchange_base" />
 
 <method name = "compile">
+    //  Until we actually do something here, stop the compiler complaining
+    //  about self not being used in this method...
+    if (self);
 </method>
 
 <method name = "publish">
@@ -22,6 +25,10 @@ routed but are processed according to destination.
         *bucket;
     </local>
     //
+    //  Until we actually do something here, stop the compiler complaining
+    //  about self not being used in this method...
+    if (self);
+
     bucket = amq_content_basic_replay_body (content);
     icl_console_print ("System destination: %s", destination);
     icl_console_print ("Data: %s", bucket->data);

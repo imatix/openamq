@@ -222,7 +222,12 @@ main (int argc, char *argv [])
     //  Allocate a test message for publishing
     test_data = icl_mem_alloc (msgsize);
     memset (test_data, 0xAB, msgsize);
-    
+
+    if (atoi (opt_trace) > 2) {
+        amq_client_connection_animate (TRUE);
+        amq_client_session_animate (TRUE);
+    }
+
     connection = amq_client_connection_new (
         opt_server,
         amq_client_connection_auth_plain ("guest", "guest"),
@@ -295,7 +300,7 @@ main (int argc, char *argv [])
         //  Now read messages off the test queue
         icl_console_print ("I: (%d) reading back messages...", repeats);
         count = 0;
-        while (count < messages) {
+        while (count < messages + 1) {
             //  If we're browsing, do a synchronous browse
             if (!async_mode)
                 amq_client_session_jms_browse (session, ticket, "global", opt_queue, TRUE);
@@ -329,7 +334,7 @@ main (int argc, char *argv [])
             }
             if (async_mode) {
                 //  If we expect more, wait for something to happen
-                if (count < messages && amq_client_session_wait (session)) {
+                if ((count < messages + 1) && amq_client_session_wait (session)) {
                     icl_console_print ("Error receiving messages");
                     goto finished;      //  Quit if there was a problem
                 }
@@ -342,8 +347,9 @@ main (int argc, char *argv [])
         if (repeats > 0)
             repeats--;
     }
-    if (async_mode)
-        amq_client_session_jms_cancel (session, session->consumer_tag);
+//    if (async_mode)
+//        amq_client_session_jms_cancel (session, session->consumer_tag);
+exit (0);
 
     icl_mem_free        (test_data);
     ipr_longstr_destroy (&arguments);

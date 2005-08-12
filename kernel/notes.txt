@@ -47,7 +47,7 @@
             - term_array = lookup term by number
                 - term key
 
-        - domain = search value = set of known 
+        - domain = search value = set of known
             - size is 64k? = number of distinct destinations per exchange
 
         - hitset = search results
@@ -115,13 +115,20 @@
 
 ---- TODO
 
+    - define reply-to as URL:
+        amqp://servername:port/exchange/destination
+
+    - store content header without parsing
+        - replay from stored block
+        - parse only if needed for field matching
+
     - validate exchange name, queue name at declare time
         - review name syntax
 
     - clarify protocol for aborting single large message
         - close channel?
         - send end-of-message frame?
-        
+
     - content routing information
         - exchange (currently root, should be list)
         - destination
@@ -162,6 +169,9 @@
 
 
 ---- BUGS
+
+    amp_client_session:
+    - client hangs if trying to read
 
 - unknown
     - when trying to synchronise client/server shutdown, get a freeze
@@ -340,6 +350,8 @@ July
         - socket input buffering
         - write bucket of zero size causes problems
         - can't group actions in grouped actions
+        - loses/delays socket_error when heavily used
+            - e.g. disconnection trapped only when next client connects
 
     --Done--------
     - ipr containers

@@ -204,8 +204,6 @@ for each class of exchange. This is a lock-free asynchronous class.
         *binding;                       //  We examine each binding
     ipr_looseref_t  
         *looseref;                      //  We check exchanges per binding
-    int
-        rc = 0;                         //  >0 means binding failed
         
     //  Check existing bindings to see if we have one that matches
     binding = amq_binding_list_first (self->binding_list);

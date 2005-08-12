@@ -42,12 +42,9 @@ maximum number of consumers per channel is set at compile time.
             amq_consumer_unlink (&consumer);
     }
     //  We destroy consumers by asking the respective queues
-    while ((consumer = amq_consumer_by_channel_pop (self->consumer_list))) {
-        if (self->connection->shutdown)
-            amq_consumer_destroy (&consumer);
-        else
-            amq_queue_cancel (consumer->queue, &consumer);
-    }
+    while ((consumer = amq_consumer_by_channel_pop (self->consumer_list)))
+        amq_queue_cancel (consumer->queue, &consumer);
+
     //  Now destroy containers
     amq_vhost_unlink  (&self->vhost);
     ipr_index_destroy (&self->consumer_table);
@@ -115,7 +112,7 @@ maximum number of consumers per channel is set at compile time.
         *consumer;
     int
         tag;                            //  New consumer tag
-        
+
     //  Look for queue as specified, if it exists, create consumer
     queue = amq_queue_search (amq_vhost->queue_table, queue_domain, queue_name);
     if (queue) {
@@ -123,7 +120,7 @@ maximum number of consumers per channel is set at compile time.
         consumer = amq_consumer_new (
             self, queue, class_id,
             prefetch_size, prefetch_count, no_local, auto_ack, exclusive);
-            
+
         tag = ipr_index_insert (self->consumer_table, consumer);
         if (tag) {
             //  We keep a link to the consumer on behalf of the index
@@ -139,10 +136,12 @@ maximum number of consumers per channel is set at compile time.
             if (consumer->class_id == AMQ_SERVER_BASIC)
                 amq_server_agent_basic_consume_ok (
                     self->connection->thread, (dbyte) self->key, consumer->tag);
-            else            
+            else
             if (consumer->class_id == AMQ_SERVER_JMS)
                 amq_server_agent_jms_consume_ok (
                     self->connection->thread, (dbyte) self->key, consumer->tag);
+            else
+                icl_console_print ("E: bad consumer class in $(selfname).Consume");
         }
         else {
             //  Too many consumers on the channel
@@ -173,20 +172,23 @@ maximum number of consumers per channel is set at compile time.
 
     if (tag > 0 && tag <= IPR_INDEX_MAX)
         consumer = self->consumer_table->data [tag];
-        
+
     if (consumer) {
         ipr_index_delete (self->consumer_table, tag);
         amq_consumer_by_channel_remove (consumer);
         if (sync) {
             //  Pass to queue to do the final honours
-            amq_queue_cancel (consumer->queue, &consumer);
             if (consumer->class_id == AMQ_SERVER_BASIC)
                 amq_server_agent_basic_cancel_ok (
                     self->connection->thread, (dbyte) self->key);
-            else            
+            else
             if (consumer->class_id == AMQ_SERVER_JMS)
                 amq_server_agent_jms_cancel_ok (
                     self->connection->thread, (dbyte) self->key);
+            else
+                icl_console_print ("E: bad consumer class in $(selfname).Cancel");
+
+            amq_queue_cancel (consumer->queue, &consumer);
         }
         else {
             //  Consumer must have been removed from its per-queue list
@@ -208,8 +210,7 @@ maximum number of consumers per channel is set at compile time.
     if (self->zombie == FALSE
     &&  self->connection
     &&  self->connection->thread
-    &&  self->connection->suspended == FALSE
-    &&  self->connection->shutdown == FALSE)
+    &&  self->connection->suspended == FALSE)
         rc = TRUE;
     else
         rc = FALSE;

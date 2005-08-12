@@ -43,53 +43,46 @@ runs lock-free as a child of the asynchronous queue class.
     <argument name = "content"   type = "amq_content_basic_t *">Message content</argument>
     <argument name = "immediate" type = "Bool">Warn if no consumers?</argument>
     <local>
-    amq_consumer_t
-        *consumer;
+    int
+        dispatch_count;
     </local>
     //
     /*  Limitations of current design:
         - no acknowledgements
         - no windowing
      */
+    //  We queue and then call the dispatcher, which has all the logic
+    //  needed to find a consumer for the message...
     amq_content_basic_possess (content);
-    consumer = s_get_next_consumer (self, content->producer_id);
-    if (consumer) {
-        amq_server_agent_basic_deliver (
-            consumer->channel->connection->thread,
-            (dbyte) consumer->channel->key,
-            content,
-            content->exchange,
-            content->destination,
-            self->queue->domain,
-            self->queue->name);
+    ipr_looseref_queue (self->content_list, content);
 
-        //  Move consumer to end of queue to implement a round-robin
-        amq_consumer_by_queue_queue (self->active_consumers, consumer);
-        amq_consumer_unlink (&consumer);
-        rc = TRUE;
-    }
-    else {
-        if (immediate == FALSE) {
-            //  No consumers, so put onto queue for now
-            ipr_looseref_queue (self->content_list, content);
-            amq_queue_pre_dispatch (self->queue);
-        }
+    dispatch_count = self_dispatch (self);
+    if (dispatch_count == 0 && immediate) {
+        if (amq_server_channel_alive (channel))
+            rc = amq_server_agent_basic_bounce (
+                    channel->connection->thread,
+                    (dbyte) channel->key,
+                    content,
+                    ASL_NOT_DELIVERED,
+                    "No immediate consumers for Basic message",
+                    content->exchange,
+                    content->destination);
         else
-            //  Bounce message if immediate delivery was requested
-            amq_server_agent_basic_bounce (
-                channel->connection->thread,
-                (dbyte) channel->key,
-                content,
-                ASL_NOT_DELIVERED,
-                "No immediate consumers for Basic message",
-                content->exchange,
-                content->destination);
+            rc = -1;                    //  Channel has gone bye-bye
+
+        //  If bounce failed, discard message content
+        if (rc)
+            amq_content_basic_destroy (&content);
     }
 </method>
 
 <method name = "dispatch" template = "function">
     <doc>
     Dispatch message content to the active consumers, as far as possible.
+    Will deliver messages in strict order to available consumers.  If
+    options such as 'no-local' are used, these will cause the entire queue
+    to block until a suitable consumer becomes available.  Returns the
+    number of messages dispatched.
     </doc>
     <local>
     amq_consumer_t
@@ -106,18 +99,23 @@ runs lock-free as a child of the asynchronous queue class.
         if (!consumer)
             break;                      //  No available consumers
 
-        amq_server_agent_basic_deliver (
+        if (amq_server_agent_basic_deliver (
             consumer->channel->connection->thread,
             (dbyte) consumer->channel->key,
             content,
             content->exchange,
             content->destination,
             self->queue->domain,
-            self->queue->name);
+            self->queue->name) == 0) {
 
-        //  Move consumer to end of queue to implement a round-robin
-        amq_consumer_by_queue_queue (self->active_consumers, consumer);
-        amq_consumer_unlink (&consumer);
+            //  Move consumer to end of queue to implement a round-robin
+            amq_consumer_by_queue_queue (self->active_consumers, consumer);
+            amq_consumer_unlink (&consumer);
+            rc++;
+        }
+        else
+            //  In the rare case this fails, push content back to front of queue
+            ipr_looseref_push (self->content_list, content);
     }
 </method>
 

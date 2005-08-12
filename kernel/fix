@@ -2,11 +2,23 @@ if test -f $1.icl; then
     for a in $1*.icl; do
         gsl -q $a;
     done
-    for a in $1*.c; do
-        c $a
-        test $? -ne 0 && exit
-        c -r libamq $a.o
+fi
+if test -f $1.smt; then
+    for a in $1*.smt; do
+        gsl -q $a
     done
-    c -r libamq $1*.o
-    for a in $1*_test.c; do c -l $a; done
+fi
+if test -f $1.xml; then
+    for a in $1*.xml; do
+        gsl -q $a
+    done
+fi
+if test -f $1.c; then
+    c $1.c
+    test $? -ne 0 && exit
+    c -r libamq $1.o
+    test -f $1_test.c && c -l $1_test
+fi
+if test -f $1; then
+    c -L $1
 fi

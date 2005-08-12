@@ -1,5 +1,17 @@
 0.9a3 - 2005/08/
 
+  - When client session did not receive expected messages, busy looped
+    - fixed.
+
+  - Server leaked memory if interrupted after all connections closed.
+  - Improved socket tracing display in server.
+  - In rare cases when consumer disconnected, server would continue to
+    send it messages, causing memory leaks - fixed.
+  - C client agent sometimes tried to write to destroyed queue, causing
+    abort - fixed.
+  - Cancelling a consumer failed often, due to error in server channel
+    class - fixed.
+
 0.9a2 - 2005/08/08
 
   - Destination field moved out of content header, into publish/deliver
