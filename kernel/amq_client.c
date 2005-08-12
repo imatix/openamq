@@ -347,8 +347,9 @@ main (int argc, char *argv [])
         if (repeats > 0)
             repeats--;
     }
-    if (async_mode)
-        amq_client_session_jms_cancel (session, session->consumer_tag);
+//    if (async_mode)
+ //       amq_client_session_jms_cancel (session, session->consumer_tag);
+    exit (0);
 
     finished:
 

@@ -237,15 +237,15 @@ s_run_server (void)
      */
 
     /*  Execute the server                                                   */
-    smt_os_thread_wait ();
+    smt_os_thread_wait (0);
 
     /*  Shut down cleanly                                                    */
     amq_server_agent_term ();
-    smt_os_thread_wait ();
+    smt_os_thread_wait (0);
     
     /*  Release resources                                                    */
     amq_vhost_destroy (&amq_vhost);
-    smt_os_thread_wait ();
+    smt_os_thread_wait (0);
 
     amq_server_config_destroy (&amq_server_config);
     if (s_opt_showinfo)
