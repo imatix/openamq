@@ -67,15 +67,15 @@ main (int argc, char *argv [])
         *opt_repeats,                   //  Test repetitions
         **argparm;                      //  Argument parameter to pick-up
     amq_client_connection_t
-        *connection;                    //  Current connection
+        *connection = NULL;             //  Current connection
     amq_client_session_t
-        *session;                       //  Current session
+        *session = NULL;                //  Current session
     amq_content_jms_t
-        *content;                       //  Message content
+        *content = NULL;                //  Message content
     dbyte
         ticket = 0;                     //  Access ticket
     byte
-        *test_data;                     //  Test message data
+        *test_data = NULL;              //  Test message data
     int
         count,
         messages,
@@ -285,7 +285,7 @@ main (int argc, char *argv [])
                     ticket,
                     opt_exchange,
                     opt_dest,
-                    mandatory,           
+                    mandatory,
                     immediate)) {
                 icl_console_print ("Error doing jms publish");
                 goto finished;
@@ -334,7 +334,7 @@ main (int argc, char *argv [])
             }
             if (async_mode) {
                 //  If we expect more, wait for something to happen
-                if ((count < messages + 1) && amq_client_session_wait (session)) {
+                if ((count < messages + 1) && amq_client_session_wait (session, 0)) {
                     icl_console_print ("Error receiving messages");
                     goto finished;      //  Quit if there was a problem
                 }
@@ -347,9 +347,10 @@ main (int argc, char *argv [])
         if (repeats > 0)
             repeats--;
     }
-//    if (async_mode)
-//        amq_client_session_jms_cancel (session, session->consumer_tag);
-exit (0);
+    if (async_mode)
+        amq_client_session_jms_cancel (session, session->consumer_tag);
+
+    finished:
 
     icl_mem_free        (test_data);
     ipr_longstr_destroy (&arguments);
@@ -361,9 +362,5 @@ exit (0);
 
     icl_system_destroy ();
     return (0);
-
-    finished:
-        icl_system_destroy ();
-        return (1);
 }
 

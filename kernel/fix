@@ -1,24 +1,26 @@
-if test -f $1.icl; then
-    for a in $1*.icl; do
-        gsl -q $a;
-    done
-fi
-if test -f $1.smt; then
-    for a in $1*.smt; do
-        gsl -q $a
-    done
-fi
-if test -f $1.xml; then
-    for a in $1*.xml; do
-        gsl -q $a
-    done
-fi
-if test -f $1.c; then
-    c $1.c
-    test $? -ne 0 && exit
-    c -r libamq $1.o
-    test -f $1_test.c && c -l $1_test
-fi
-if test -f $1; then
-    c -L $1
-fi
+for FILE in $*; do
+    if test -f $FILE.icl; then
+        for a in $FILE*.icl; do
+            gsl -q $a;
+        done
+    fi
+    if test -f $FILE.smt; then
+        for a in $FILE*.smt; do
+            gsl -q $a
+        done
+    fi
+    if test -f $FILE.xml; then
+        for a in $FILE*.xml; do
+            gsl -q $a
+        done
+    fi
+    if test -f $FILE.c; then
+        c $FILE.c
+        test $? -ne 0 && exit
+        c -r libamq $FILE.o
+        test -f $FILE_test.c && c -l $FILE_test
+    fi
+    if test -f $FILE; then
+        c -L $FILE
+    fi
+done

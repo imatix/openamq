@@ -150,8 +150,8 @@ for each class of exchange. This is a lock-free asynchronous class.
     to the binding.  Otherwise we create a new binding and compile it
     into the exchange, this operation being exchange class-specific.
     </doc>
-    <argument name = "channel"   type = "amq_server_channel_t *">Channel for reply</argument>
-    <argument name = "queue"     type = "amq_queue_t *">The queue to bind</argument>
+    <argument name = "channel"     type = "amq_server_channel_t *">Channel for reply</argument>
+    <argument name = "queue"       type = "amq_queue_t *">The queue to bind</argument>
     <argument name = "m_arguments" type = "ipr_longstr_t *">Bind arguments</argument>
     //
     <action>
@@ -195,8 +195,8 @@ for each class of exchange. This is a lock-free asynchronous class.
 </method>
 
 <method name = "bind exchange" template = "async function" async = "1">
-    <argument name = "channel"   type = "amq_server_channel_t *">Channel for reply</argument>
-    <argument name = "exchange"  type = "amq_exchange_t *">The exchange to bind</argument>
+    <argument name = "channel"     type = "amq_server_channel_t *">Channel for reply</argument>
+    <argument name = "exchange"    type = "amq_exchange_t *">The exchange to bind</argument>
     <argument name = "m_arguments" type = "ipr_longstr_t *">Bind arguments</argument>
     //
     <action>
@@ -204,7 +204,7 @@ for each class of exchange. This is a lock-free asynchronous class.
         *binding;                       //  We examine each binding
     ipr_looseref_t  
         *looseref;                      //  We check exchanges per binding
-        
+
     //  Check existing bindings to see if we have one that matches
     binding = amq_binding_list_first (self->binding_list);
     while (binding) {

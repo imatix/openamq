@@ -1,8 +1,6 @@
 0.9a3 - 2005/08/
 
-  - When client session did not receive expected messages, busy looped
-    - fixed.
-
+  - C/C++ client API made much more robust its internal queues.
   - Server leaked memory if interrupted after all connections closed.
   - Improved socket tracing display in server.
   - In rare cases when consumer disconnected, server would continue to
