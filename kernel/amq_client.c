@@ -231,12 +231,13 @@ main (int argc, char *argv [])
     connection = amq_client_connection_new (
         opt_server,
         amq_client_connection_auth_plain ("guest", "guest"),
-        atoi (opt_trace));
+        atoi (opt_trace),
+        30000);                         //  Timeout
     if (!connection) {
         icl_console_print ("E: could not connect to server");
         goto finished;
     }
-    session = amq_client_session_new (connection, "/", 0, NULL);
+    session = amq_client_session_new (connection, "/");
     if (!session) {
         icl_console_print ("E: could not open session to server");
         goto finished;
