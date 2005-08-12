@@ -278,7 +278,7 @@ main (int argc, char *argv [])
             ipr_shortstr_fmt (message_id, "ID%d", count);
             amq_content_jms_set_body       (content, test_data, msgsize, NULL);
             amq_content_jms_set_message_id (content, message_id);
-            
+
             if (amq_client_session_jms_publish (
                     session,
                     content,
@@ -300,7 +300,7 @@ main (int argc, char *argv [])
         //  Now read messages off the test queue
         icl_console_print ("I: (%d) reading back messages...", repeats);
         count = 0;
-        while (count < messages + 1) {
+        while (count < messages) {
             //  If we're browsing, do a synchronous browse
             if (!async_mode)
                 amq_client_session_jms_browse (session, ticket, "global", opt_queue, TRUE);
@@ -334,7 +334,7 @@ main (int argc, char *argv [])
             }
             if (async_mode) {
                 //  If we expect more, wait for something to happen
-                if ((count < messages + 1) && amq_client_session_wait (session, 0)) {
+                if (count < messages && amq_client_session_wait (session, 0)) {
                     icl_console_print ("Error receiving messages");
                     goto finished;      //  Quit if there was a problem
                 }
