@@ -307,7 +307,7 @@ July
     - detect & report abnormal client disconnect
     - generate context keys for new connections
     - handle connection reconnection
-    
+
 - minimum required for GRM
     - JMS class
 *        consume, consume-ok

@@ -57,22 +57,19 @@ runs lock-free as a child of the asynchronous queue class.
     ipr_looseref_queue (self->content_list, content);
 
     dispatch_count = self_dispatch (self);
-    if (dispatch_count == 0 && immediate) {
+    if (immediate && dispatch_count == 0) {
+        //  Take content back off list
+        ipr_looseref_pop (self->content_list);
         if (amq_server_channel_alive (channel))
-            rc = amq_server_agent_basic_bounce (
-                    channel->connection->thread,
-                    (dbyte) channel->key,
-                    content,
-                    ASL_NOT_DELIVERED,
-                    "No immediate consumers for Basic message",
-                    content->exchange,
-                    content->destination);
-        else
-            rc = -1;                    //  Channel has gone bye-bye
-
-        //  If bounce failed, discard message content
-        if (rc)
-            amq_content_basic_destroy (&content);
+            amq_server_agent_basic_bounce (
+                channel->connection->thread,
+                (dbyte) channel->key,
+                content,
+                ASL_NOT_DELIVERED,
+                "No immediate consumers for Basic message",
+                content->exchange,
+                content->destination);
+        amq_content_basic_destroy (&content);
     }
 </method>
 
@@ -111,6 +108,7 @@ runs lock-free as a child of the asynchronous queue class.
             //  Move consumer to end of queue to implement a round-robin
             amq_consumer_by_queue_queue (self->active_consumers, consumer);
             amq_consumer_unlink (&consumer);
+            amq_content_basic_destroy (&content);
             rc++;
         }
         else
@@ -140,6 +138,7 @@ runs lock-free as a child of the asynchronous queue class.
                 content->exchange,
                 content->destination,
                 ipr_looseref_list_count (self->content_list));
+            amq_content_basic_destroy (&content);
         }
         else
             amq_server_agent_basic_browse_empty (

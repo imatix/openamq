@@ -288,10 +288,10 @@ main (int argc, char *argv [])
                     opt_dest,
                     mandatory,
                     immediate)) {
-                icl_console_print ("Error doing jms publish");
+                icl_console_print ("E: Jms.Publish failed - %s", connection->error_text);
+                icl_console_print ("E: ending test");
                 goto finished;
             }
-            amq_content_jms_destroy (&content);
             if (--batch_left == 0) {
                 if (!quiet_mode)
                     icl_console_print ("I: commit batch %d...", count / batch_size);
@@ -322,7 +322,7 @@ main (int argc, char *argv [])
                     sleep (1);
 
                 if (smt_signal_raised) {
-                    icl_console_print ("SMT signal raised");
+                    icl_console_print ("I: SMT signal raised - ending test");
                     goto finished;
                 }
             }
@@ -336,7 +336,7 @@ main (int argc, char *argv [])
             if (async_mode) {
                 //  If we expect more, wait for something to happen
                 if (count < messages && amq_client_session_wait (session, 0)) {
-                    icl_console_print ("Error receiving messages");
+                    icl_console_print ("E: error receiving messages - ending test");
                     goto finished;      //  Quit if there was a problem
                 }
             }

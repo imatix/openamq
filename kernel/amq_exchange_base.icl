@@ -74,29 +74,27 @@ This is an abstract base class for all exchange implementations.
     </header>
     <footer>
     if (!delivered && mandatory) {
-        char
-            *exchange,
-            *destination;
-            
         if (class_id == AMQ_SERVER_JMS) {
-            amq_content_jms_possess (content);
-            exchange    = ((amq_content_jms_t *) content)->exchange;
-            destination = ((amq_content_jms_t *) content)->destination;
+            amq_server_agent_jms_bounce (
+                channel->connection->thread,
+                (dbyte) channel->key,
+                content,
+                ASL_NOT_DELIVERED,
+                "No bindings for this destination",
+                ((amq_content_jms_t *) content)->exchange,
+                ((amq_content_jms_t *) content)->destination);
         }
         else
         if (class_id == AMQ_SERVER_BASIC) {
-            amq_content_basic_possess (content);
-            exchange    = ((amq_content_basic_t *) content)->exchange;
-            destination = ((amq_content_basic_t *) content)->destination;
+            amq_server_agent_basic_bounce (
+                channel->connection->thread,
+                (dbyte) channel->key,
+                content,
+                ASL_NOT_DELIVERED,
+                "No bindings for this destination",
+                ((amq_content_basic_t *) content)->exchange,
+                ((amq_content_basic_t *) content)->destination);
         }
-        amq_server_agent_jms_bounce (
-            channel->connection->thread,
-            (dbyte) channel->key,
-            content,
-            ASL_NOT_DELIVERED,
-            "No bindings for this destination",
-            exchange,
-            destination);
     }
     </footer>
 </method>

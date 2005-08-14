@@ -42,7 +42,7 @@ for each class of exchange. This is a lock-free asynchronous class.
     int
         (*publish) (
             void                 *self, 
-            amq_server_channel_t *channel, 
+            amq_server_channel_t *channel,
             int                   class_id, 
             void                 *content, 
             Bool                  mandatory, 
@@ -130,6 +130,7 @@ for each class of exchange. This is a lock-free asynchronous class.
     </doc>
     <argument name = "class name" type = "char *">Class name to lookup</argument>
     <declare name = "rc" type = "int">Class number</declare>
+    //
     if (streq (class_name, "system"))
         rc = AMQ_EXCHANGE_SYSTEM;
     else
@@ -202,7 +203,7 @@ for each class of exchange. This is a lock-free asynchronous class.
     <action>
     amq_binding_t
         *binding;                       //  We examine each binding
-    ipr_looseref_t  
+    ipr_looseref_t
         *looseref;                      //  We check exchanges per binding
 
     //  Check existing bindings to see if we have one that matches
@@ -250,19 +251,22 @@ for each class of exchange. This is a lock-free asynchronous class.
     <argument name = "mandatory" type = "Bool">Warn if unroutable</argument>
     <argument name = "immediate" type = "Bool">Warn if no consumers</argument>
     //
+    <possess>
     if (class_id == AMQ_SERVER_JMS)
         amq_content_jms_possess (content);
     else
     if (class_id == AMQ_SERVER_BASIC)
         amq_content_basic_possess (content);
-    //
-    <action>
-    self->publish (self->object, channel, class_id, content, mandatory, immediate);
+    </possess>
+    <release>
     if (class_id == AMQ_SERVER_JMS)
         amq_content_jms_destroy ((amq_content_jms_t **) &content);
     else
     if (class_id == AMQ_SERVER_BASIC)
         amq_content_basic_destroy ((amq_content_basic_t **) &content);
+    </release>
+    <action>
+    self->publish (self->object, channel, class_id, content, mandatory, immediate);
     </action>
 </method>
 

@@ -89,7 +89,7 @@ class.  This is a lock-free asynchronous class.
     //
     ipr_shortstr_fmt (fullname, "%s|%s", domain? domain: "", name);
 </method>
-    
+
 <method name = "search" return = "self">
     <argument name = "table"  type = "$(selfname)_table_t *">Queue table</argument>
     <argument name = "domain" type = "char *"               >Queue domain</argument>
@@ -113,22 +113,26 @@ class.  This is a lock-free asynchronous class.
     <argument name = "content"   type = "void *">Message content</argument>
     <argument name = "immediate" type = "Bool">Warn if no consumers?</argument>
     //
+    <possess>
     if (class_id == AMQ_SERVER_JMS)
         amq_content_jms_possess (content);
     else
     if (class_id == AMQ_SERVER_BASIC)
         amq_content_basic_possess (content);
-    //
-    <action>
-    if (class_id == AMQ_SERVER_JMS) {
-        amq_queue_jms_publish (self->queue_jms, channel, content, immediate);
+    </possess>
+    <release>
+    if (class_id == AMQ_SERVER_JMS)
         amq_content_jms_destroy ((amq_content_jms_t **) &content);
-    }
     else
-    if (class_id == AMQ_SERVER_BASIC) {
-        amq_queue_basic_publish (self->queue_basic, channel, content, immediate);
+    if (class_id == AMQ_SERVER_BASIC)
         amq_content_basic_destroy ((amq_content_basic_t **) &content);
-    }
+    </release>
+    <action>
+    if (class_id == AMQ_SERVER_JMS)
+        amq_queue_jms_publish (self->queue_jms, channel, content, immediate);
+    else
+    if (class_id == AMQ_SERVER_BASIC)
+        amq_queue_basic_publish (self->queue_basic, channel, content, immediate);
     </action>
 </method>
 
@@ -191,15 +195,18 @@ class.  This is a lock-free asynchronous class.
     <argument name = "consumer" type = "amq_consumer_t *">Consumer</argument>
     <argument name = "active"   type = "Bool">Active consumer?</argument>
     //
+    <possess>
+    amq_consumer_link (consumer);
+    </possess>
+    <release>
+    amq_consumer_unlink (&consumer);
+    </release>
     <action>
     if (consumer->class_id == AMQ_SERVER_JMS)
         amq_queue_jms_flow (self->queue_jms, consumer, active);
     else
     if (consumer->class_id == AMQ_SERVER_BASIC)
         amq_queue_basic_flow (self->queue_basic, consumer, active);
-
-    //  Caller linked to the consumer on our behalf
-    amq_consumer_unlink (&consumer);
     </action>
 </method>
 
