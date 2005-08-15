@@ -1,5 +1,9 @@
 0.9a3 - 2005/08/
+- 82k lines of C code (server + async client) - 2005/08/15 - 0.9a3
 
+  - C/C++ client API was not working in single-threaded builds - fixed.
+  - OpenAMQ kernel, C/C++ client now uses new Base2 object reference
+    framework.
   - C/C++ client API made much more robust its internal queues.
   - Server leaked memory if interrupted after all connections closed.
   - Improved socket tracing display in server.
@@ -11,6 +15,7 @@
     class - fixed.
 
 0.9a2 - 2005/08/08
+- 67k lines of C code (server + async client) - 2005/08/08 - 0.9a2
 
   - Destination field moved out of content header, into publish/deliver
     and browse-ok methods.
@@ -21,12 +26,13 @@
     - generates asl_constants.icl class
 
 0.9a1 - 2005/08/04
+- 57k lines of C code (server + async client) - 2005/08/02 - 0.9a1
 
   - Server channels redesigned as async objects for better stability
   - Channel.Flow method modified - takes "Active" parameter (true/false)
 
-
 0.9a0 - 2005/08/01 - Alpha release of OpenAMQ/0.9 server
+- 55k lines of C code (server + async client) - 2005/07/31 - 0.9a0
 
 Implements these methods, wholly or partially:
 

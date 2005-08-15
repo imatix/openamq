@@ -1,0 +1,74 @@
+<?xml?>
+<class
+    name      = "amq_index"
+    comment   = "Message matching index class"
+    version   = "1.0"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
+    script    = "icl_gen"
+    >
+<doc>
+    Holds a match index, which is a text string on which AMQ will index and
+    match messages.  Each index holds a hitset bitmap that represents all
+    bindings that match that index.  Indices can be accessed via a hash
+    lookup (by value) or array lookup (by number, for iterating through all
+    indices).
+</doc>
+
+<inherit class = "icl_object">
+    <option name = "alloc" value = "cache" />
+</inherit>
+<inherit class = "ipr_hash_item">
+    <option name = "prefix"    value = "hash" />
+    <option name = "hash_type" value = "str" />
+    <option name = "hash_size" value = "65535" />
+</inherit>
+<inherit class = "ipr_array_item">
+    <option name = "prefix"    value = "array" />
+</inherit>
+
+<public name = "include">
+#include "amq_server_classes.h"
+</public>
+
+<context>
+    ipr_bits_t
+        *hitset;                        //  Bitmap of bindings that match
+</context>
+
+<method name = "new">
+    <!-- Always insert new items at the end of the array -->
+    <dismiss argument = "index" value = "array->bound" />
+    self->hitset = ipr_bits_new ();
+</method>
+
+<method name = "destroy">
+    ipr_bits_destroy (&self->hitset);
+</method>
+
+<method name = "selftest">
+    amq_index_hash_t
+        *index_hash;
+    amq_index_array_t
+        *index_array;
+    amq_index_t
+        *index;
+
+    index_hash  = amq_index_hash_new  ();
+    index_array = amq_index_array_new ();
+
+    index = amq_index_new (index_hash, "key1", index_array);
+    amq_index_unlink (&index);
+    index = amq_index_new (index_hash, "abc", index_array);
+    amq_index_unlink (&index);
+    index = amq_index_new (index_hash, "0x6262", index_array);
+    amq_index_unlink (&index);
+    index = amq_index_new (index_hash, "g00df00d", index_array);
+    amq_index_unlink (&index);
+
+    assert (index_array->bound == 4);
+
+    amq_index_hash_destroy  (&index_hash);
+    amq_index_array_destroy (&index_array);
+</method>
+
+</class>

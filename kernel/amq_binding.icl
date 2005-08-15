@@ -32,10 +32,18 @@ class.
         *queue_list;                    //  List of queues for binding
     ipr_looseref_list_t
         *exchange_list;                 //  List of exchanges for binding
+    ipr_looseref_list_t
+        *index_list;                    //  List of indices for binding
     ipr_longstr_t
         *arguments;                     //  Binding arguments
     int
         index;                          //  Index in exchange->binding_index
+
+    //  Only used for dest-wild matching, might be moved elsewhere
+    ipr_shortstr_t
+        destination;                    //  Binding destination value
+    ipr_shortstr_t
+        regexp;                         //  Binding destination pattern
 </context>
 
 <method name = "new">
@@ -44,6 +52,7 @@ class.
     self->exchange      = exchange;
     self->queue_list    = ipr_looseref_list_new ();
     self->exchange_list = ipr_looseref_list_new ();
+    self->index_list    = ipr_looseref_list_new ();
     self->arguments     = ipr_longstr_dup (arguments);
     self->index         = ipr_index_insert (self->exchange->binding_index, self);
 </method>
@@ -65,6 +74,7 @@ class.
     ipr_index_delete          (self->exchange->binding_index, self->index);
     ipr_looseref_list_destroy (&self->queue_list);
     ipr_looseref_list_destroy (&self->exchange_list);
+    ipr_looseref_list_destroy (&self->index_list);
     ipr_longstr_destroy       (&self->arguments);
 </method>
 
@@ -112,6 +122,8 @@ class.
     looseref = ipr_looseref_list_first (self->queue_list);
     while (looseref) {
         queue = (amq_queue_t *) (looseref->object);
+        if (amq_server_config_trace_exchange (amq_server_config))
+            icl_console_print ("T ROUTE: publishing message to queue=%s", queue->key);
         amq_queue_publish (queue, channel, class_id, content, immediate);
         looseref = ipr_looseref_list_next (&looseref);
     }
@@ -119,6 +131,8 @@ class.
     looseref = ipr_looseref_list_first (self->exchange_list);
     while (looseref) {
         exchange = (amq_exchange_t *) (looseref->object);
+        if (amq_server_config_trace_exchange (amq_server_config))
+            icl_console_print ("T ROUTE: publishing message to exchange=%s", exchange->key);
         amq_exchange_publish (exchange, channel, class_id, content, mandatory, immediate);
         looseref = ipr_looseref_list_next (&looseref);
     }

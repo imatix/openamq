@@ -54,6 +54,11 @@ runs lock-free as a child of the asynchronous queue class.
      */
     //  We queue and then call the dispatcher, which has all the logic
     //  needed to find a consumer for the message...
+    if (amq_server_config_trace_queue (amq_server_config))
+        icl_console_print ("T QUEUE: publishing queue=%s, message=%s",
+            self->queue->key,
+            content->message_id);
+
     amq_content_jms_possess (content);
     ipr_looseref_queue (self->content_list, content);
 
@@ -89,14 +94,22 @@ runs lock-free as a child of the asynchronous queue class.
         *content;                       //  Content object reference
     </local>
     //
+    if (amq_server_config_trace_queue (amq_server_config))
+        icl_console_print ("T QUEUE: dispatching queue=%s, messages=%d consumers=%d",
+            self->queue->key,
+            ipr_looseref_list_count (self->content_list),
+            amq_consumer_by_queue_count (self->active_consumers));
+
     while (ipr_looseref_list_count (self->content_list)
     && amq_consumer_by_queue_count (self->active_consumers)) {
         content = (amq_content_jms_t *) ipr_looseref_pop (self->content_list);
         assert (content);
         consumer = s_get_next_consumer (self, content->producer_id);
-        if (!consumer)
+        if (!consumer) {
+            if (amq_server_config_trace_queue (amq_server_config))
+                icl_console_print ("T QUEUE: no consumers available");
             break;                      //  No available consumers
-
+        }
         if (amq_server_agent_jms_deliver (
             consumer->channel->connection->thread,
             (dbyte) consumer->channel->key,
@@ -107,6 +120,9 @@ runs lock-free as a child of the asynchronous queue class.
             content->destination,
             self->queue->domain,
             self->queue->name) == 0) {
+
+            if (amq_server_config_trace_queue (amq_server_config))
+                icl_console_print ("T QUEUE: message %s delivered", content->message_id);
 
             //  Move consumer to end of queue to implement a round-robin
             amq_consumer_by_queue_queue (self->active_consumers, consumer);

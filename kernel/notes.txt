@@ -5,9 +5,9 @@
             - _topic_re ()
                 - convert topic specifier to regexp
             - _field_name ()
-                - format field name into match key
+                - format field name into index
             - _field_value ()
-                - format field value into match key
+                - format field value into index
         - amq_match_table -> maintain matching tables
             - also holds all known topics in array
             - held per vhost
@@ -27,28 +27,27 @@
         vhost
             amq_match_table, amq_topic_array
                 amq_match, bits
-            hitset     
+            hitset
 
     0.9 matching
         - exchange = governing structure for routing
             - binding_index = structure that numbers bindings from 1 to n
             - binding_list = list of bindings
-            - term_table = table of active terms
+            - index_hash = table of active indices
+            - index_array = array of active indices
 
         - binding = relationship between exchange and (queue or exchange)
-            - aka: amq_subscr
+            - (aka 0.8: amq_subscr)
             - queue_list = list of queues for binding
             - exchange_list = list of exchanges for binding
+            - index_list = looseref list of indices for binding
 
-        - term = search term
-            - term_hash = lookup term by value
-                - ->key term key
+        - index = search term
+            - index_hash = lookup index by value
+                - ->key index key
                 - ->bitset of matching bindings
-            - term_array = lookup term by number
-                - term key
-
-        - domain = search value = set of known
-            - size is 64k? = number of distinct destinations per exchange
+            - index_array = lookup index by number
+                - index key
 
         - hitset = search results
 
@@ -60,12 +59,12 @@
             - if not found, create new binding:
                 - insert binding into exchange->binding_index
                     - gives binding->index
-                - iterate through terms in exchange->term_array
-                    - compare term key to binding argument
-                    - if term matches arguments, set bit in match bitmap
-                        - get term from hash table
+                - iterate through indices in exchange->index_array
+                    - compare index to binding argument
+                    - if index matches arguments, set bit in match bitmap
+                        - get index from hash table
                         - set bit (binding->index) in bitset
-                        - add looseref to term for binding
+                        - add looseref to index for binding
             - add to binding queue_list or exchange_list
 
         Notes:
@@ -74,8 +73,8 @@
               which match our pattern.
 
             - for matching on field value/presence, we do not need to compare
-              all known term values; each argument specifies a field name and
-              optional value, and can be mapped directly into a term lookup.
+              all known indices; each argument specifies a field name and
+              optional value, and can be mapped directly into a index lookup.
 
             - for matching on field value wildcards, we have to compare the
               given field patterns to all known field name/value pairs in
@@ -87,19 +86,17 @@
             - this cost is in compiling bindings, and publishing messages with
               new content... the cost may be payable.
 
-            - consider a single exchange for all matching...?
-
         2. Publish message
-            
-            - decode message into terms, for each term:
-                - if new term:
+
+            - decode message into indices, for each index:
+                - if new index:
                     - check each binding for exchange:
-                        - if binding arguments match term
-                            - update term->bitset for binding->index
-                            - add term to binding term list
-                    - save new term with bitset to term_hash
-                    - add term to term_array
-                - lookup term into term_hash
+                        - if binding arguments match index
+                            - update index->bitset for binding->index
+                            - add index to binding index list
+                    - save new index with bitset to index_hash
+                    - add index to index_array
+                - lookup index into index_hash
                 - iterate through bits in bitset:
                     - update hit count in hitset table
             - for each valid hit in hitset:
@@ -108,10 +105,6 @@
 ---- STAT
 
 - 0.8 - 57k lines of C code (server + async client) -              0.8d10
-- 0.9 - 55k lines of C code (server + async client) - 2005/07/31 - 0.9a0
-      - 57k lines of C code (server + async client) - 2005/08/02 - 0.9a1
-      - 67k lines of C code (server + async client) - 2005/08/08 - 0.9a2
-      - 40K lines of C code (ASL layer)
 
 ---- TODO
 
@@ -158,7 +151,7 @@
     - part of asl...
 
 
-    
+
 - proxy program
     - log methods
     - replay methods
@@ -199,7 +192,7 @@
 --- WORLDVIEW
 
     Reflected in the documentation and in the product.
-    
+
     Automatic Mode
         - default virtual host
         - queue and topic exchanges
@@ -277,7 +270,7 @@ August
         - enabling a consumer provokes queue dispatching
     - validate server port number <64k and >1024
     - allow server port to be specified on command line
-    
+
 July
     --Done--------
     - exchanges internal/external flag
@@ -325,6 +318,13 @@ July
      - jms consumers
         - preconfigured exchanges
         - queue, cbr
+
+---- RANDOM
+    - write/double-check test methods for all classes - icl, ipr, smt, asl, amq
+    - add 'domain' concept to icl
+    - redefine all context blocks using domains
+    - define documentation domains (user, tech, etc.)
+    - write/check documentation for all classes
 
 ---- BASE
 
@@ -395,7 +395,7 @@ July
         - possibly hierarchical model
     c. for geographical distribution
         - using other means
-        
+
     - client connects to server
     - server can kick client, with 'reconnect to different server'
     - server provides list of known alternative servers
@@ -415,3 +415,19 @@ July
             - repeat only stored data
                 - messages, subscriptions
 
+--- PROXY
+
+    - standard ASL component
+    - built-in to amq_server
+    - runs on separate port
+    - handles multiple simultaneous connections
+    - record mode
+        - opens local server port to main protocol
+        - passes data to/from clients
+        - records session (start to finish)
+    - replay mode
+        - replays session (start to finish)
+        - maintains order of request response
+            - write X bytes
+            - expect Y bytes
+            - etc.

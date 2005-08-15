@@ -73,28 +73,35 @@ This is an abstract base class for all exchange implementations.
         destination = ((amq_content_basic_t *) content)->destination;
     </header>
     <footer>
-    if (!delivered && mandatory) {
-        if (class_id == AMQ_SERVER_JMS) {
-            amq_server_agent_jms_bounce (
-                channel->connection->thread,
-                (dbyte) channel->key,
-                content,
-                ASL_NOT_DELIVERED,
-                "No bindings for this destination",
-                ((amq_content_jms_t *) content)->exchange,
-                ((amq_content_jms_t *) content)->destination);
+    if (!delivered) {
+        if (mandatory) {
+            if (amq_server_config_trace_exchange (amq_server_config))
+                icl_console_print ("T ROUTE: unroutable mandatory message - bouncing it");
+            if (class_id == AMQ_SERVER_JMS) {
+                amq_server_agent_jms_bounce (
+                    channel->connection->thread,
+                    (dbyte) channel->key,
+                    content,
+                    ASL_NOT_DELIVERED,
+                    "No bindings for this destination",
+                    ((amq_content_jms_t *) content)->exchange,
+                    ((amq_content_jms_t *) content)->destination);
+            }
+            else
+            if (class_id == AMQ_SERVER_BASIC) {
+                amq_server_agent_basic_bounce (
+                    channel->connection->thread,
+                    (dbyte) channel->key,
+                    content,
+                    ASL_NOT_DELIVERED,
+                    "No bindings for this destination",
+                    ((amq_content_basic_t *) content)->exchange,
+                    ((amq_content_basic_t *) content)->destination);
+            }
         }
         else
-        if (class_id == AMQ_SERVER_BASIC) {
-            amq_server_agent_basic_bounce (
-                channel->connection->thread,
-                (dbyte) channel->key,
-                content,
-                ASL_NOT_DELIVERED,
-                "No bindings for this destination",
-                ((amq_content_basic_t *) content)->exchange,
-                ((amq_content_basic_t *) content)->destination);
-        }
+            if (amq_server_config_trace_exchange (amq_server_config))
+                icl_console_print ("T ROUTE: unroutable optional message - discarding it");
     }
     </footer>
 </method>

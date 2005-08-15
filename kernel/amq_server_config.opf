@@ -52,4 +52,14 @@ $\(selftype)
     </property>
 </path>
 
+<path name = "/config/verbosity">
+    <property name = "trace exchange" type = "Bool">
+    Trace exchange message routing 
+    </property>
+
+    <property name = "trace queue" type = "Bool">
+    Trace queue message dispatching
+    </property>
+</path>
+
 </opf>
