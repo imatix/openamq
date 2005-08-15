@@ -1,6 +1,8 @@
 0.9a3 - 2005/08/
 - 82k lines of C code (server + async client) - 2005/08/15 - 0.9a3
 
+  - dest-wild exchange implemented.
+  - Added tracing of exchange and queueing stages.
   - C/C++ client API was not working in single-threaded builds - fixed.
   - OpenAMQ kernel, C/C++ client now uses new Base2 object reference
     framework.
