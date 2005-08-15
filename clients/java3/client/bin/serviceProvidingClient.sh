@@ -3,4 +3,4 @@
 # sets up CP env var
 . ./setupclasspath.sh
 
-$JAVA_HOME/bin/java -cp $CP -Damqj.logging.level="INFO" org.openamq.requestreply1.ServiceProvidingClient localhost 7654 guest guest /test serviceQ 
+$JAVA_HOME/bin/java -cp $CP -Damqj.logging.level="INFO" org.openamq.requestreply1.ServiceProvidingClient $1 7654 guest guest /test serviceQ 
