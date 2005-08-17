@@ -66,7 +66,7 @@ runs lock-free as a child of the asynchronous queue class.
     if (immediate && dispatch_count == 0) {
         //  Take content back off list
         ipr_looseref_pop (self->content_list);
-        if (!amq_server_channel_alive (channel))
+        if (amq_server_channel_alive (channel))
             amq_server_agent_jms_bounce (
                 channel->connection->thread,
                 (dbyte) channel->key,
