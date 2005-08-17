@@ -43,7 +43,7 @@ based on their "destination" property.
         *destination;                   //  Destination value
     ipr_regexp_t
         *regexp;                        //  Regular expression object
-    int
+    uint
         index_nbr;                      //  Index number in self->index_array
     amq_index_t
         *index;                         //  Index reference from index_array
@@ -53,27 +53,28 @@ based on their "destination" property.
     if (fields) {
         destination = asl_field_list_search (fields, "destination");
         if (destination) {
-            if (amq_server_config_trace_exchange (amq_server_config))
-                icl_console_print ("T $(selfname): compiling wildcard=%s", asl_field_string (destination));
-
             //  Turn the destination string into a nice regexp
             ipr_shortstr_cpy (binding->destination, asl_field_string (destination));
             s_dest_wild_to_regexp (asl_field_string (destination), binding->regexp);
             regexp = ipr_regexp_new (binding->regexp);
+
+            if (amq_server_config_trace_route (amq_server_config))
+                icl_console_print ("X: reindex  wildcard=%s", binding->destination);
 
             //  We scan all indices to see which ones match our regexp
             for (index_nbr = 0; index_nbr < self->index_array->bound; index_nbr++) {
                 index = amq_index_array_fetch (self->index_array, index_nbr);
                 if (index) {
                     if (ipr_regexp_match (regexp, index->key, NULL)) {
-                        if (amq_server_config_trace_exchange (amq_server_config))
-                            icl_console_print ("T $(selfname): matches known destination=%s", index->key);
+                        if (amq_server_config_trace_route (amq_server_config))
+                            icl_console_print ("X: index    wildcard=%s destination=%s",
+                                binding->destination, index->key);
 
                         //  Cross-reference binding and index
                         ipr_bits_set (index->hitset, binding->index);
                         ipr_looseref_queue (binding->index_list, index);
-                        amq_index_unlink (&index);
                     }
+                    amq_index_unlink (&index);
                 }
             }
             ipr_regexp_destroy (&regexp);
@@ -108,8 +109,8 @@ based on their "destination" property.
     //  Check if destination is already indexed, else reindex bindings on it
     index = amq_index_hash_search (self->index_hash, destination);
     if (index == NULL) {
-        if (amq_server_config_trace_exchange (amq_server_config))
-            icl_console_print ("T ROUTE: recompiling bingings for new destination=%s", destination);
+        if (amq_server_config_trace_route (amq_server_config))
+            icl_console_print ("X: reindex  destination=%s", destination);
 
         //  Create new index and recompile all bindings for it
         index = amq_index_new (self->index_hash, destination, self->index_array);
@@ -119,8 +120,10 @@ based on their "destination" property.
             //  sub-structure for bindings, dependent on exchange class...
             regexp = ipr_regexp_new (binding->regexp);
             if (ipr_regexp_match (regexp, destination, NULL)) {
-                if (amq_server_config_trace_exchange (amq_server_config))
-                    icl_console_print ("T ROUTE: matches wildcard=%s", binding->destination);
+                if (amq_server_config_trace_route (amq_server_config))
+                    icl_console_print ("X: index  destination=%s wildcard=%s",
+                        destination, binding->destination);
+                        
                 //  Cross-reference binding and index
                 ipr_bits_set (index->hitset, binding->index);
                 ipr_looseref_queue (binding->index_list, index);
@@ -129,14 +132,14 @@ based on their "destination" property.
             binding = amq_binding_list_next (&binding);
         }
     }
-    if (amq_server_config_trace_exchange (amq_server_config))
-        icl_console_print ("T ROUTE: routing messages for destination=%s", destination);
+    if (amq_server_config_trace_route (amq_server_config))
+        icl_console_print ("X: route    destination=%s", destination);
 
     assert (index);
     for (IPR_BITS_EACH (binding_nbr, index->hitset)) {
         binding = self->exchange->binding_index->data [binding_nbr];
-        if (amq_server_config_trace_exchange (amq_server_config))
-            icl_console_print ("T ROUTE: matches binding for wildcard=%s", binding->destination);
+        if (amq_server_config_trace_route (amq_server_config))
+            icl_console_print ("X: hit      wildcard=%s", binding->destination);
         amq_binding_publish (binding, channel, class_id, content, mandatory, immediate);
         delivered = TRUE;
     }
@@ -144,8 +147,10 @@ based on their "destination" property.
 </method>
 
 <private name = "header">
-#define S_WILDCARD_SINGLE     "[a-zA-Z0-9]+"
-#define S_WILDCARD_MULTIPLE   "[a-zA-Z0-9]+(`.[a-zA-Z0-9]+)*"
+//  Topic names observe the Perl "word" syntax, i.e. letters,
+//  digits, and underscores.
+#define S_WILDCARD_SINGLE     "`w+"                 //  *
+#define S_WILDCARD_MULTIPLE   "`w+(?:`.`w+)*"       //  #
 static void
     s_dest_wild_to_regexp (char *index_regexp, char *regexp);
 </private>

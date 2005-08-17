@@ -53,7 +53,7 @@ $\(selftype)
 </path>
 
 <path name = "/config/verbosity">
-    <property name = "trace exchange" type = "Bool">
+    <property name = "trace route" type = "Bool">
     Trace exchange message routing 
     </property>
 

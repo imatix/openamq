@@ -50,8 +50,10 @@
     </doc>
   </field>
     
-  <field name = "domain" domain = "queue domain" />
-
+  <field name = "scope" domain = "queue scope">
+    <assert check = "regexp" value = "`w+" />
+  </field>
+  
   <field name = "queue" domain = "queue name">
     <doc name = "rule">
       The queue name MAY be empty, in which case the server MUST create
@@ -60,25 +62,10 @@
     </doc>
     <doc name = "rule">
       Clients asking the server to provide a queue name SHOULD use a
-      specific domain for such queues to avoid any possible conflict
+      specific scope for such queues to avoid any possible conflict
       with names that might be used elsewhere by clients.
     </doc>
-  </field>
-
-  <field name = "template" type = "shortstr">
-    queue template
-    <doc>
-      Specifies the name of a queue template, which is a server
-      configured object that provides queue configuration options.
-      Template semantics and names are not standardised.
-    </doc>
-    <doc name = "rule">
-      If the template is empty the server SHOULD use a suitable default.
-    </doc>
-    <doc name = "rule">
-      The server MUST ignore the template field if the queue already
-      exists.
-    </doc>
+    <assert check = "regexp" value = "`w+" />
   </field>
 
   <field name = "passive" type = "bit">
@@ -244,7 +231,7 @@
     </doc>
   </field>
 
-  <field name = "domain" domain = "queue domain" />
+  <field name = "scope" domain = "queue scope" />
 
   <field name = "queue" domain = "queue name">
     <doc name = "rule">
@@ -314,7 +301,7 @@
     </doc>
   </field>
 
-  <field name = "domain" domain = "queue domain" />
+  <field name = "domain" domain = "queue scope" />
 
   <field name = "queue" domain = "queue name">
     <doc name = "rule">
@@ -367,7 +354,7 @@
     </doc>
   </field>
 
-  <field name = "domain" domain = "queue domain" />
+  <field name = "domain" domain = "queue scope" />
 
   <field name = "queue" domain = "queue name">
     <doc name = "rule">

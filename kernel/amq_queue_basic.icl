@@ -7,7 +7,7 @@
     script    = "icl_gen"
     >
 <doc>
-This class implements the basic content queue manager. This class
+This class implements the basic contenQ manager. This class
 runs lock-free as a child of the asynchronous queue class.
 </doc>
 
@@ -53,6 +53,11 @@ runs lock-free as a child of the asynchronous queue class.
      */
     //  We queue and then call the dispatcher, which has all the logic
     //  needed to find a consumer for the message...
+    if (amq_server_config_trace_queue (amq_server_config))
+        icl_console_print ("Q: publish  queue=%s message=%s",
+            self->queue->key,
+            content->message_id);
+
     amq_content_basic_possess (content);
     ipr_looseref_queue (self->content_list, content);
 
@@ -88,14 +93,25 @@ runs lock-free as a child of the asynchronous queue class.
         *content;                       //  Content object reference
     </local>
     //
+    if (amq_server_config_trace_queue (amq_server_config))
+        icl_console_print ("Q: dispatch queue=%s nbr_messages=%d nbr_consumers=%d",
+            self->queue->key,
+            ipr_looseref_list_count (self->content_list),
+            amq_consumer_by_queue_count (self->active_consumers));
+
     while (ipr_looseref_list_count (self->content_list)
     && amq_consumer_by_queue_count (self->active_consumers)) {
         content = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
         assert (content);
         consumer = s_get_next_consumer (self, content->producer_id);
-        if (!consumer)
-            break;                      //  No available consumers
+        if (!consumer) {
+            if (amq_server_config_trace_queue (amq_server_config))
+                icl_console_print ("Q: finish  queue=%s reason=no_consumers");
 
+            //  If no consumer for content, push back to front of queue
+            ipr_looseref_push (self->content_list, content);
+            break;                      //  No available consumers
+        }
         if (amq_server_agent_basic_deliver (
             consumer->channel->connection->thread,
             (dbyte) consumer->channel->key,
@@ -104,6 +120,11 @@ runs lock-free as a child of the asynchronous queue class.
             content->destination,
             self->queue->domain,
             self->queue->name) == 0) {
+
+            if (amq_server_config_trace_queue (amq_server_config))
+                icl_console_print ("Q: deliver  queue=%s message=%s",
+                    self->queue->key,
+                    content->message_id);
 
             //  Move consumer to end of queue to implement a round-robin
             amq_consumer_by_queue_queue (self->active_consumers, consumer);
@@ -121,7 +142,7 @@ runs lock-free as a child of the asynchronous queue class.
     <doc>
     Returns next message off queue, if any.
     </doc>
-    <argument name = "channel" type = "amq_server_channel_t *">The channel in question</argument>
+    <argument name = "channel" type = "amq_server_channel_t *"/>
     <local>
     amq_content_basic_t
         *content;                       //  Content object reference

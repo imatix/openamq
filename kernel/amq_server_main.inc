@@ -16,14 +16,18 @@
 #include "amq_server_agent.h"
 
 static Bool
-    s_opt_silent,                       /*  -q means suppress messages       */
-    s_opt_bkground,                     /*  -s means run in background       */
-    s_opt_showinfo;                     /*  -i means show information        */
+    s_opt_silent,                       //  -q means suppress messages       
+    s_opt_bkground,                     //  -s means run in background       
+    s_opt_showinfo;                     //  -i means show information        
 static char
-    *s_opt_port,                        /*  -p specifies server port         */
-    *s_opt_workdir,                     /*  -w specifies working directory   */
-    *s_opt_trace,                       /*  -t defines trace level           */
-    *s_opt_monitor;                     /*  -m means monitor server          */
+    *s_opt_port,                        //  -p specifies server port         
+    *s_opt_workdir,                     //  -w specifies working directory   
+    *s_opt_trace,                       //  -t defines trace level           
+    *s_opt_monitor;                     //  -m means monitor server          
+
+//  Prototypes for local functions
+static void
+    s_exchange_declare (char *name, int class);
 
 #define CURVERSION "%s/" VERSION "\n%s\n\n"
 #define NOWARRANTY \
@@ -47,22 +51,22 @@ static char
     "\n"
 
 
-/*  Parse arguments, return 0 if OK, 1 if error                              */
+//  Parse arguments, return 0 if OK, 1 if error                              
 
 static int
 s_parse_args (int argc, char *argv [])
 {
     int
         rc = 0,
-        argn;                           /*  Argument number                  */
+        argn;                           //  Argument number                  
     char
-        *myname,                        /*  Executable's name                */
-        **argparm;                      /*  Argument parameter to pick-up    */
+        *myname,                        //  Executable's name                
+        **argparm;                      //  Argument parameter to pick-up    
 
     icl_system_initialise (argc, argv);
     ipr_uid_set_real_user ();
 
-    /*  These are the arguments we may get on the command line               */
+    //  These are the arguments we may get on the command line               
     s_opt_silent   = FALSE;
     s_opt_bkground = FALSE;
     s_opt_showinfo = FALSE;
@@ -72,11 +76,11 @@ s_parse_args (int argc, char *argv [])
     s_opt_monitor  = "0";
 
     myname  = argv [0];
-    argparm = NULL;                     /*  Argument parameter to pick-up    */
+    argparm = NULL;                     //  Argument parameter to pick-up    
     for (argn = 1; argn < argc; argn++) {
-        /*  If argparm is set, we have to collect an argument parameter      */
+        //  If argparm is set, we have to collect an argument parameter      
         if (argparm) {
-            if (*argv [argn] != '-') {  /*  Parameter can't start with '-'   */
+            if (*argv [argn] != '-') {  //  Parameter can't start with '-'   
                 *argparm = argv [argn];
                 argparm = NULL;
             }
@@ -88,7 +92,7 @@ s_parse_args (int argc, char *argv [])
         else
         if (*argv [argn] == '-') {
             switch (argv [argn][1]) {
-                /*  These switches take a parameter                          */
+                //  These switches take a parameter                          
                 case 'p':
                     argparm = &s_opt_port;
                     break;
@@ -102,7 +106,7 @@ s_parse_args (int argc, char *argv [])
                     argparm = &s_opt_monitor;
                     break;
 
-                /*  These switches have an immediate effect                  */
+                //  These switches have an immediate effect                  
                 case 'i':
                     s_opt_showinfo = TRUE;
                     break;
@@ -129,7 +133,7 @@ s_parse_args (int argc, char *argv [])
                     printf (USAGE, SERVER_NAME);
                     exit (EXIT_SUCCESS);
 
-                /*  Anything else is an error                                */
+                //  Anything else is an error                                
                 default:
                     rc = 1;
             }
@@ -139,7 +143,7 @@ s_parse_args (int argc, char *argv [])
             break;
         }
     }
-    /*  Check that the arguments were valid                                  */
+    //  Check that the arguments were valid                                  
     if (rc)
         icl_console_print ("E: invalid arguments - type '%s -h' for help", myname);
     else
@@ -149,15 +153,15 @@ s_parse_args (int argc, char *argv [])
     }
     else {
         if (s_opt_silent) {
-            fclose (stdout);            /*  Kill standard output             */
-            fclose (stderr);            /*   and standard error              */
+            fclose (stdout);            //  Kill standard output             
+            fclose (stderr);            //   and standard error              
         }
         else {
             printf (CURVERSION, SERVER_NAME, SERVER_TEXT);
             printf (COPYRIGHT "\n");
             printf (NOWARRANTY);
         }
-        /*  Move into the background if so desired                           */
+        //  Move into the background if so desired                           
         if (s_opt_bkground) {
             char
                *background_args [] = { "-s", NULL };
@@ -172,78 +176,61 @@ s_parse_args (int argc, char *argv [])
     return (rc);
 }
 
-/*  Load server configuration files                                          */
+//  Load server configuration files                                          
 
 static void
 s_load_config (char *config_file, char *overlay)
 {
-    /*  Set server working directory if necessary                            */
+    //  Set server working directory if necessary                            
     if (s_opt_workdir && apr_filepath_set (s_opt_workdir, icl_global_pool) != APR_SUCCESS) {
         icl_console_print ("E: can't work in '%s' - %s", s_opt_workdir, strerror (errno));
         exit (EXIT_FAILURE);
     }
-    /*  Load configuration data, if any, into the config_table               */
+    //  Load configuration data, if any, into the config_table               
     amq_server_config = amq_server_config_new (config_file, atoi (s_opt_trace));
 }
 
 
-/*  Initialise server                                                        */
+//  Initialise server                                                        
 
 static int
 s_run_server (void)
 {
-    amq_exchange_t
-        *exchange;                      /*  Predeclared exchanges            */
-        
-    /*  Do synchronous class initialisations here                            */
-    /*  -------------------------------------------------------------------  */
+    //  Do synchronous class initialisations here                            
+    //  -------------------------------------------------------------------  
 
-    /*  Set tracing options                                                  */
+    //  Set tracing options                                                  
     amq_server_config_set_trace   (amq_server_config, atoi (s_opt_trace));
     amq_server_config_set_monitor (amq_server_config, (Bool) atoi (s_opt_monitor));
 
     if (s_opt_port)
         amq_server_config_set_port (amq_server_config, s_opt_port);
 
-    /*  We use a single global vhost for now                                 */
+    //  We use a single global vhost for now                                 
     amq_vhost = amq_vhost_new ();
 
     if (amq_server_agent_init ()) {
         icl_console_print ("E: could not start server protocol agent");
         return (1);
     }
-    /*  Do asynchronous class initialisations here                           */
-    /*  -------------------------------------------------------------------  */
+    //  Do asynchronous class initialisations here                           
+    //  -------------------------------------------------------------------  
 
-    /*  Predeclare standard exchanges                                        */
-    exchange = amq_exchange_new (
-        amq_vhost->exchange_table,
-        AMQ_EXCHANGE_SYSTEM, "$system", FALSE, FALSE, FALSE);
-    assert (exchange);
-    amq_exchange_unlink (&exchange);
+    //  Automatic wiring schemes
+    s_exchange_declare ("$queue",  AMQ_EXCHANGE_DEST_NAME);
+    s_exchange_declare ("$topic",  AMQ_EXCHANGE_DEST_WILD);
+    s_exchange_declare ("$system", AMQ_EXCHANGE_SYSTEM);
+    s_exchange_declare ("$reply",  AMQ_EXCHANGE_DEST_NAME);
+    s_exchange_declare ("$alert",  AMQ_EXCHANGE_DEST_WILD);
 
-    exchange = amq_exchange_new (
-        amq_vhost->exchange_table,
-        AMQ_EXCHANGE_DEST_NAME, "$reply", FALSE, FALSE, FALSE);
-    assert (exchange);
-    amq_exchange_unlink (&exchange);
-
-    /*  dest-wild not yet implemented
-    exchange = amq_exchange_new (
-        amq_vhost->exchange_table,
-        AMQ_EXCHANGE_DEST_NAME, "$alert", FALSE, FALSE, FALSE);
-    assert (exchange);
-    amq_exchange_unlink (&exchange);
-     */
-
-    /*  Execute the server                                                   */
+    //  Execute the server                                                   
     smt_os_thread_wait (0);
 
-    /*  Shut down cleanly                                                    */
+    //  Shut down cleanly                                                    
     amq_server_agent_term ();
     smt_os_thread_wait (0);
     
-    /*  Release resources                                                    */
+    //  Release resources                                                    
     amq_vhost_destroy (&amq_vhost);
     smt_os_thread_wait (0);
 
@@ -254,3 +241,23 @@ s_run_server (void)
     return (0);
 }
 
+
+//  Declare a default/standard exchange
+//  Uses the single amq_vhost for now
+
+static void
+s_exchange_declare (char *name, int class)
+{
+    amq_exchange_t
+        *exchange;                      //  Predeclared exchanges            
+        
+    exchange = amq_exchange_new (
+        amq_vhost->exchange_table,
+        class,                          //  Exchange class
+        name,                           //  Exchange name
+        TRUE,                           //  Durable, allows durable queues
+        FALSE,                          //  Do not auto-delete
+        FALSE);                         //  Not internal
+    assert (exchange);
+    amq_exchange_unlink (&exchange);
+}

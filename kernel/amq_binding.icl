@@ -122,8 +122,8 @@ class.
     looseref = ipr_looseref_list_first (self->queue_list);
     while (looseref) {
         queue = (amq_queue_t *) (looseref->object);
-        if (amq_server_config_trace_exchange (amq_server_config))
-            icl_console_print ("T ROUTE: publishing message to queue=%s", queue->key);
+        if (amq_server_config_trace_route (amq_server_config))
+            icl_console_print ("X: publish  queue=%s", queue->key);
         amq_queue_publish (queue, channel, class_id, content, immediate);
         looseref = ipr_looseref_list_next (&looseref);
     }
@@ -131,8 +131,8 @@ class.
     looseref = ipr_looseref_list_first (self->exchange_list);
     while (looseref) {
         exchange = (amq_exchange_t *) (looseref->object);
-        if (amq_server_config_trace_exchange (amq_server_config))
-            icl_console_print ("T ROUTE: publishing message to exchange=%s", exchange->key);
+        if (amq_server_config_trace_route (amq_server_config))
+            icl_console_print ("X: publish  exchange=%s", exchange->key);
         amq_exchange_publish (exchange, channel, class_id, content, mandatory, immediate);
         looseref = ipr_looseref_list_next (&looseref);
     }

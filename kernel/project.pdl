@@ -113,6 +113,10 @@
 <file name = "amq_server"            class = "public command"    >Server</file>
 <file name = "amq_client"            class = "public command"    >Client</file>
 
+<!-- Test programs -->
+<file name = "amq_pub.c"             class = "main program"      >Topic publisher</file>
+<file name = "amq_sub.c"             class = "main program"      >Topic subscriber</file>
+
 <!-- Shared classes -->
 <file name = "amq_hash.icl"          class = "icl private class" >Loose hash item</file>
 <file name = "amq_hash_table.icl"    class = "icl private cont"  >Loose hash table</file>

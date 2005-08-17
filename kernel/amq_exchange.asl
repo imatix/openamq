@@ -48,6 +48,7 @@
     
   <field name = "exchange" domain = "exchange name">
     <assert check = "notnull" />
+    <assert check = "regexp" value = "`w+" />
   </field>
     
   <field name = "class" type = "shortstr">
@@ -64,6 +65,7 @@
       MUST raise a channel exception with reply code TBD.
     </doc>
     <assert check = "notnull" />
+    <assert check = "regexp" value = "`w+" />
   </field>
 
   <field name = "passive" type = "bit">
@@ -173,7 +175,7 @@
     </doc>
   </field>
 
-  <field name = "domain" domain = "queue domain" />
+  <field name = "scope" domain = "queue scope" />
 
   <field name = "exchange" domain = "exchange name">
     <doc name = "rule">

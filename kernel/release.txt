@@ -1,8 +1,16 @@
 0.9a3 - 2005/08/
-- 82k lines of C code (server + async client) - 2005/08/15 - 0.9a3
+- 87k lines of C code (server + async client) - 2005/08/16 - 0.9a3
 
-  - dest-wild exchange implemented.
-  - Added tracing of exchange and queueing stages.
+  - Exchange, queue, and scope names are now validated in the
+    Declare methods.  These names may now contain only [A-Za-z0-9_].
+    System objects (predeclared) start with $.
+  - Removed template field from queue.declare method. Templating
+    will be done using the domain value.
+  - Queue "domain" field renamed to "scope".
+  - Predefined "$queue" (dest-name) and "$topic" (dest-wild) exchanges.
+  - Implemented the "dest-wild" exchange (for topic-style routing).
+  - Added option to trace exchange and queueing workflow, configurable
+    in server.cfg.
   - C/C++ client API was not working in single-threaded builds - fixed.
   - OpenAMQ kernel, C/C++ client now uses new Base2 object reference
     framework.

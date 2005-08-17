@@ -42,8 +42,8 @@ based on their "destination" property.
     if (fields) {
         destination = asl_field_list_search (fields, "destination");
         if (destination) {
-            if (amq_server_config_trace_exchange (amq_server_config))
-                icl_console_print ("T ROUTE: new binding for destination=%s", destination);
+            if (amq_server_config_trace_route (amq_server_config))
+                icl_console_print ("X: compile  destination=%s", destination);
             hash = amq_hash_new (self->binding_hash, asl_field_string (destination), binding);
             if (hash)
                 amq_hash_unlink (&hash);
@@ -76,8 +76,8 @@ based on their "destination" property.
          *hash;                         //  Entry into hash table
      </local>
     //
-    if (amq_server_config_trace_exchange (amq_server_config))
-        icl_console_print ("T ROUTE: routing messages for destination=%s", destination);
+    if (amq_server_config_trace_route (amq_server_config))
+        icl_console_print ("X: route    destination=%s", destination);
 
     hash = amq_hash_table_search (self->binding_hash, destination);
     if (hash) {

@@ -21,63 +21,64 @@
 <option name = "protocol_minor"    value = "9" />
 
 <!-- Standard field domains -->
-<domain name = "access ticket" type = "short">
-access ticket granted by server
+  <domain name = "access ticket" type = "short">
+    access ticket granted by server
     <doc>
     An access ticket granted by the server for a certain set of access
     rights within a specific realm. Access tickets are valid within the
     channel where they were created, and expire when the channel closes.
     </doc>
     <assert check = "ne" value = "0"/>
-</domain>
+  </domain>
 
-<domain name = "exchange name" type = "shortstr">
-exchange name
+  <domain name = "exchange name" type = "shortstr">
+    exchange name
     <doc>
-    This name identifies the exchange within the virtual host.  A
-    exchange name consists of any combination of at least one of
-    [A-Za-z0-9] plus zero or more of [.-_/+!=:].  Exchange names are
-    case-sensitive.
+      The exchange name is a client-selected string that identifies
+      the exchange for publish methods.  Exchange names may consist
+      of any mixture of digits, letters, and underscores.  Exchange
+      names predefined by the server are prefixed by "$", which is
+      not a valid character in client-declared exchanges.  Exchange
+      names are scoped by the virtual host.
     </doc>
-    <assert check = "re" value = "[A-Za-z0-9][A-Za-z0-9.\-_\/+!=:]*" />
     <assert check = "length" value = "127" />
-</domain>
+  </domain>
 
-<domain name = "queue domain" type = "shortstr">
-queue name domain
+  <domain name = "queue scope" type = "shortstr">
+    queue name scope
     <doc>
-      The queue domain allows different functional domains to get
-      their own namespaces.  For instance, subscriptions can be kept
-      separate from temporary reply queues.  The domain is an arbitrary
-      string value selected by the application.  The domain may be
-      empty, or may consist of any combination of at least one of
-      [A-Za-z0-9] plus zero or more of [.-_/+!=:].  Queue domains are
-      case-sensitive.
+      The queue scope is a client-selected string that allows a
+      separation of queues by function.  The server may define
+      standard scopes that provide templating functionality -
+      e.g. a default exchange binding for queues declared in a
+      specific scope.  Two scopes can each contain a queue with
+      the same name - these would be two distinct queues.  Scope
+      names may consist of any mixture of digits, letters, and
+      underscores.  Scope names predeclared by the server start
+      with "$", not a valid character in client-declared scopes.
+      Scopes are themselves scoped by the virtual host.
     </doc>
-    <assert check = "re" value = "[A-Za-z0-9][A-Za-z0-9.\-_\/+!=:]*" />
-    <assert check = "length" value = "30" />
-</domain>
-
-<domain name = "queue name" type = "shortstr">
-queue name
-    <doc>
-    The queue name identifies the queue within the domain and the
-    virtual host. A queue name consists of any combination of at least
-    one of [A-Za-z0-9] plus zero or more of [.-_/+!=:]. Queue names
-    starting with _ are reserved for server use.  Queue names are
-    case-sensitive.
-    </doc>
-    <assert check = "re" value = "[A-Za-z0-9][A-Za-z0-9.\-_\/+!=:]*" />
     <assert check = "length" value = "127" />
-</domain>
+  </domain>
 
-<domain name = "no local" type = "bit">
-do not deliver own messages
+  <domain name = "queue name" type = "shortstr">
+    queue name
+    <doc>
+    The queue name identifies the queue within the scope.  Queue
+    names may consist of any mixture of digits, letters, and
+    underscores.  Queue names predefined by the server start with
+    "$", not a valid character in client-declared queues.
+    </doc>
+    <assert check = "length" value = "127" />
+  </domain>
+
+  <domain name = "no local" type = "bit">
+    do not deliver own messages
     <doc>
     If the no-local field is set the server will not send messages to
     the client that published them.
     </doc>
-</domain>
+  </domain>
 
   <domain name = "auto ack" type = "bit">
     no acknowledgement needed

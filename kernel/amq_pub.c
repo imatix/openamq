@@ -24,7 +24,6 @@
     "  -b batch         Size of each batch (100)\n"                         \
     "  -x size          Size of each message (default = 1024)\n"            \
     "  -r repeat        Repeat test N times (1)\n"                          \
-    "  -X exchange      Name of exchange to work with (EXCHANGE)\n"         \
     "  -D destination   Destination to publish to(QUEUE)\n"                 \
     "  -Q queue         Queue to consume from (QUEUE)\n"                    \
     "  -t level         Set trace level (default = 0)\n"                    \
@@ -60,7 +59,6 @@ main (int argc, char *argv [])
         *opt_server,                    //  Host to connect to
         *opt_trace,                     //  0-3
         *opt_messages,                  //  Size of test set
-        *opt_exchange,                  //  Exchange to work with
         *opt_dest,                      //  Destination to publish to
         *opt_queue,                     //  Queue to consume from
         *opt_batch,                     //  Size of batches
@@ -100,7 +98,6 @@ main (int argc, char *argv [])
     opt_server   = "localhost";
     opt_trace    = "0";
     opt_messages = "1";
-    opt_exchange = "EXCHANGE";
     opt_queue    = "QUEUE";
     opt_dest     =  NULL;               //  Same as queue by default
     opt_batch    = "100";
@@ -135,9 +132,6 @@ main (int argc, char *argv [])
                     break;
                 case 'b':
                     argparm = &opt_batch;
-                    break;
-                case 'X':
-                    argparm = &opt_exchange;
                     break;
                 case 'D':
                     argparm = &opt_dest;
@@ -247,11 +241,6 @@ main (int argc, char *argv [])
         icl_console_print ("E: could not open session to server");
         goto finished;
     }
-    //  Declare exchange and queue
-    if (amq_client_session_exchange_declare (session,
-        ticket, opt_exchange, "dest-wild", FALSE, FALSE, FALSE, FALSE))
-        goto finished;
-
     while (repeats) {
         //  Send messages to the exchange
         icl_console_print ("I: (%d) sending %d messages to server...", repeats, messages);
@@ -267,7 +256,7 @@ main (int argc, char *argv [])
                     session,
                     content,
                     ticket,
-                    opt_exchange,
+                    "topic",
                     topic,
                     mandatory,
                     immediate)) {

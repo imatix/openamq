@@ -60,23 +60,31 @@ This is an abstract base class for all exchange implementations.
     $(selftype)
         *self = self_v;
     char
-        *destination = "";
+        *destination,
+        *message_id;
     Bool
         delivered = FALSE;              //  Set to TRUE if message processed
     </local>
     //
     <header>
-    if (class_id == AMQ_SERVER_JMS)
+    if (class_id == AMQ_SERVER_JMS) {
         destination = ((amq_content_jms_t *) content)->destination;
+        message_id  = ((amq_content_jms_t *) content)->message_id;
+    }
     else
-    if (class_id == AMQ_SERVER_BASIC)
+    if (class_id == AMQ_SERVER_BASIC) {
         destination = ((amq_content_basic_t *) content)->destination;
+        message_id  = ((amq_content_basic_t *) content)->message_id;
+    }
+    else
+        icl_console_print ("E: $(selfname) - bad class_id");
     </header>
     <footer>
     if (!delivered) {
         if (mandatory) {
-            if (amq_server_config_trace_exchange (amq_server_config))
-                icl_console_print ("T ROUTE: unroutable mandatory message - bouncing it");
+            if (amq_server_config_trace_route (amq_server_config))
+                icl_console_print ("X: bounce   message=%s reason=unroutable_mandatory",
+                    message_id);
             if (class_id == AMQ_SERVER_JMS) {
                 amq_server_agent_jms_bounce (
                     channel->connection->thread,
@@ -100,8 +108,9 @@ This is an abstract base class for all exchange implementations.
             }
         }
         else
-            if (amq_server_config_trace_exchange (amq_server_config))
-                icl_console_print ("T ROUTE: unroutable optional message - discarding it");
+            if (amq_server_config_trace_route (amq_server_config))
+                icl_console_print ("X: discard  message=%s reason=unroutable_optional",
+                    message_id);
     }
     </footer>
 </method>

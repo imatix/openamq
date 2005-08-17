@@ -88,7 +88,7 @@
     </doc>
   </field>
 
-  <field name = "domain" domain = "queue domain" />
+  <field name = "scope" domain = "queue scope" />
     
   <field name = "queue" domain = "queue name">
     <doc>
@@ -247,7 +247,7 @@
     <assert check = "notnull" />
   </field>
     
-  <field name = "domain" domain = "queue domain" />
+  <field name = "scope" domain = "queue scope" />
     
   <field name = "queue" domain = "queue name">
     <doc>
