@@ -110,7 +110,7 @@ public class AMQMessageProducer extends Closeable implements MessageProducer
                                                                                           ExchangeDeclareOkBody.class));
 
         // Note that the durable argument is ignored since passive is set to false
-        AMQFrame queueDeclareFrame = QueueDeclareBody.createAMQFrame(_channelId, 0, "",
+        AMQFrame queueDeclareFrame = QueueDeclareBody.createAMQFrame(_channelId, 0, destination.getScope(),
                                                                      destination.getDestinationName(), true,
                                                                      false, false, destination.isTemporary());
         _protocolHandler.writeCommandFrameAndWaitForReply(queueDeclareFrame,

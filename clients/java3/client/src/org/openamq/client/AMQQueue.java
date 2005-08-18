@@ -31,7 +31,12 @@ public class AMQQueue extends AMQDestination implements Queue
      */
     public AMQQueue(String name, boolean temporary)
     {
-        super(AMQDestination.QUEUE_EXCHANGE_NAME, AMQDestination.QUEUE_EXCHANGE_CLASS, name, temporary);
+        this(name, DEFAULT_SCOPE, temporary);
+    }
+
+    public AMQQueue(String name, String scope, boolean temporary)
+    {
+        super(AMQDestination.QUEUE_EXCHANGE_NAME, AMQDestination.QUEUE_EXCHANGE_CLASS, name, temporary, scope);
     }
 
     public String getQueueName() throws JMSException

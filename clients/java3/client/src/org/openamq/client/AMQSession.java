@@ -418,19 +418,19 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                 protocolHandler.writeCommandFrameAndWaitForReply(exchangeDeclare,
                                             new SpecificMethodFrameListener(_channelId, ExchangeDeclareOkBody.class));
 
-                AMQFrame queueDeclare = QueueDeclareBody.createAMQFrame(_channelId, 0, "", amqd.getDestinationName(),
+                AMQFrame queueDeclare = QueueDeclareBody.createAMQFrame(_channelId, 0, amqd.getScope(), amqd.getDestinationName(),
                                                                         false, false, false ,false);
                 protocolHandler.writeCommandFrameAndWaitForReply(queueDeclare,
                                              new SpecificMethodFrameListener(_channelId, QueueDeclareOkBody.class));
 
                 final FieldTable ft = new FieldTable();
                 ft.put("destination", amqd.getDestinationName());
-                AMQFrame queueBind = QueueBindBody.createAMQFrame(_channelId, 0, "", amqd.getDestinationName(),
+                AMQFrame queueBind = QueueBindBody.createAMQFrame(_channelId, 0, amqd.getScope(), amqd.getDestinationName(),
                                                                   amqd.getExchangeName(), ft);
 
                 protocolHandler.writeCommandFrameAndWaitForReply(queueBind,
                                               new SpecificMethodFrameListener(_channelId, QueueBindOkBody.class));
-                AMQFrame jmsConsume = JmsConsumeBody.createAMQFrame(_channelId, 0, "", amqd.getDestinationName(), 0,
+                AMQFrame jmsConsume = JmsConsumeBody.createAMQFrame(_channelId, 0, amqd.getScope(), amqd.getDestinationName(), 0,
                                                                     prefetch, noLocal, true, exclusive);
 
                 protocolHandler.writeCommandFrameAndWaitForReply(jmsConsume,
