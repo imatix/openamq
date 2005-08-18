@@ -29,7 +29,7 @@ public class TestQueueConsumer
                                                   address.getHostName(), args[4]);
             org.openamq.jms.Session session = (org.openamq.jms.Session)con.createSession(false,
                                                                                          Session.CLIENT_ACKNOWLEDGE);
-            AMQQueue destination = new AMQQueue(args[5]);
+            AMQQueue destination = new AMQQueue(args[5], false);
 
             MessageConsumer consumer = session.createConsumer(destination,
             		100, false, true, false, null);

@@ -32,7 +32,7 @@ public class TestQueuePublisher
                                     address.getHostName() + System.currentTimeMillis(), args[4]);
             Session session = (Session)con.createSession(false, Session.AUTO_ACKNOWLEDGE);
             _logger.info("Session created successfully");
-            AMQQueue destination = new AMQQueue(args[5]);
+            AMQQueue destination = new AMQQueue(args[5], false);
 
             MessageProducer producer = session.createProducer(destination);
             TextMessage msg = session.createTextMessage("mahnah mahnah");

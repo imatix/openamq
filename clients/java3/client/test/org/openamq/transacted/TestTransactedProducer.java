@@ -35,8 +35,8 @@ public class TestTransactedProducer
             con = new AMQConnection(args[0], Integer.parseInt(args[1]), args[2], args[3],
                                     address.getHostName() + System.currentTimeMillis(), args[4]);
             Session session = (Session)con.createSession(true, Session.SESSION_TRANSACTED);
-            AMQQueue destination = new AMQQueue(args[5]);
-            AMQQueue replyTo = new AMQQueue("kermit");
+            AMQQueue destination = new AMQQueue(args[5], false);
+            AMQQueue replyTo = new AMQQueue("kermit", false);
             MessageProducer producer = session.createProducer(destination);
             producer.setDisableMessageTimestamp(false);
             TextMessage msg = session.createTextMessage("mahnah mahnah");

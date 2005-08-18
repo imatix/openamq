@@ -42,7 +42,7 @@ public class TestSubscriber
             final int expectedMessageCount = Integer.parseInt(args[6]);
             _logger.info("Message selector is <" + selector + ">...");
 
-            MessageConsumer consumer = session.createConsumer(new AMQTopic("cbr"),
+            MessageConsumer consumer = session.createConsumer(new AMQTopic("cbr", false),
                                                               100, false, true, true, selector);
 
             consumer.setMessageListener(new MessageListener()
