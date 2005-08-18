@@ -225,7 +225,7 @@ main (int argc, char *argv [])
         goto finished;
     }
     if (amq_client_session_queue_declare (session,
-        ticket, "global", opt_queue, NULL, FALSE, FALSE, FALSE, FALSE))
+        ticket, "global", opt_queue, FALSE, FALSE, FALSE, FALSE))
         goto finished;
 
     //  Set-up a dest-wild pattern binding

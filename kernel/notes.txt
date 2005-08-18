@@ -3,6 +3,7 @@
     - e.g. invalid method format
     
 - need way to percolate session error to connection level
+- reintroduce connection close handling
 
 ---- IN PROGRESS
 
