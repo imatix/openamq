@@ -121,7 +121,7 @@ runs lock-free as a child of the asynchronous queue class.
             FALSE,                      //  Redelivered
             content->exchange,
             content->destination,
-            self->queue->domain,
+            self->queue->scope,
             self->queue->name) == 0) {
 
             if (amq_server_config_trace_queue (amq_server_config))

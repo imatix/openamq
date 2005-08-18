@@ -116,7 +116,7 @@
     //TODO: validate new exchange name
 
     /*  Find queue and create if necessary                                   */
-    queue = amq_queue_search (amq_vhost->queue_table, method->domain, method->queue);
+    queue = amq_queue_search (amq_vhost->queue_table, method->scope, method->queue);
     if (!queue) {
         if (method->passive)
             amq_server_channel_close (
@@ -124,7 +124,7 @@
         else {
             queue = amq_queue_new (
                 amq_vhost,
-                method->domain,
+                method->scope,
                 method->queue,
                 method->durable,
                 method->private,
@@ -153,7 +153,7 @@
     </local>
     bind_to = amq_exchange_search (amq_vhost->exchange_table, method->bind_to);
     if (bind_to) {
-        queue = amq_queue_search (amq_vhost->queue_table, method->domain, method->queue);
+        queue = amq_queue_search (amq_vhost->queue_table, method->scope, method->queue);
         if (queue) {
             amq_exchange_bind_queue (bind_to, channel, queue, method->arguments);
             amq_queue_unlink (&queue);
@@ -171,7 +171,7 @@
     amq_queue_t
         *queue;
     </local>
-    queue = amq_queue_search (amq_vhost->queue_table, method->domain, method->queue);
+    queue = amq_queue_search (amq_vhost->queue_table, method->scope, method->queue);
     if (queue) {
         amq_server_agent_queue_delete_ok (
             channel->connection->thread, (dbyte) channel->key, 0);
@@ -191,7 +191,8 @@
   <action name = "consume">
     //  The channel is responsible for creating/cancelling consumers
     amq_server_channel_consume (channel,
-        method->domain, method->queue,
+        method->scope,
+        method->queue,
         self->class_id,
         0,                              //  No prefetch-size limit
         0,                              //  No prefetch-count limit
@@ -244,7 +245,7 @@
     amq_queue_t
         *queue;
     </local>
-    queue = amq_queue_search (amq_vhost->queue_table, method->domain, method->queue);
+    queue = amq_queue_search (amq_vhost->queue_table, method->scope, method->queue);
     if (queue) {
         amq_queue_browse (queue, channel, self->class_id);
         amq_queue_unlink (&queue);
@@ -256,7 +257,8 @@
   <action name = "consume">
     //  The channel is responsible for creating/cancelling consumers
     amq_server_channel_consume (channel,
-        method->domain, method->queue,
+        method->scope,
+        method->queue,
         self->class_id,
         method->prefetch_size,
         method->prefetch_count,

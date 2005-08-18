@@ -247,7 +247,7 @@ main (int argc, char *argv [])
         ticket, opt_exchange, "dest-name", FALSE, FALSE, FALSE, FALSE))
         goto finished;
     if (amq_client_session_queue_declare (session,
-        ticket, "global", opt_queue, NULL, FALSE, FALSE, FALSE, FALSE))
+        ticket, "global", opt_queue, FALSE, FALSE, FALSE, FALSE))
         goto finished;
 
     //  Set-up a simple binding based on queue name

@@ -30,7 +30,7 @@ class.  This is a lock-free asynchronous class.
     amq_vhost_t
         *vhost;                         //  Parent virtual host
     ipr_shortstr_t
-        domain;                         //  Queue domain
+        scope;                          //  Queue scope
     ipr_shortstr_t
         name;                           //  Queue name
     Bool
@@ -46,14 +46,14 @@ class.  This is a lock-free asynchronous class.
 
 <method name = "new">
     <argument name = "vhost"    type = "amq_vhost_t *">Parent vhost</argument>
-    <argument name = "domain"   type = "char *">Queue domain</argument>
+    <argument name = "scope"    type = "char *">Queue scope</argument>
     <argument name = "name"     type = "char *">Queue name</argument>
     <argument name = "durable"  type = "Bool">Is queue durable?</argument>
     <argument name = "private"  type = "Bool">Is queue private?</argument>
     <argument name = "auto delete" type = "Bool">Auto-delete unused queue?</argument>
     <dismiss argument = "table" value = "vhost->queue_table" />
-    <dismiss argument = "key"   value = "self_fullname (domain, name, fullname)">
-        Hash key is fullname formatted from queue domain plus name
+    <dismiss argument = "key"   value = "self_fullname (scope, name, fullname)">
+        Hash key is fullname formatted from queue scope plus name
     </dismiss>
     <local>
     ipr_shortstr_t
@@ -67,8 +67,8 @@ class.  This is a lock-free asynchronous class.
     self->queue_jms   = amq_queue_jms_new   (self);
     self->queue_basic = amq_queue_basic_new (self);
 
-    ipr_shortstr_cpy (self->domain, domain);
-    ipr_shortstr_cpy (self->name,   name);
+    ipr_shortstr_cpy (self->scope, scope);
+    ipr_shortstr_cpy (self->name,  name);
 </method>
 
 <method name = "destroy">
@@ -80,19 +80,19 @@ class.  This is a lock-free asynchronous class.
 
 <method name = "fullname" return = "fullname">
     <doc>
-    Formats a full internal queue name based on the supplied domain
+    Formats a full internal queue name based on the supplied scope
     and queue name.
     </doc>
-    <argument name = "domain"   type = "char *">Name space</argument>
+    <argument name = "scope"    type = "char *">Queue scope</argument>
     <argument name = "name"     type = "char *">Queue name</argument>
     <argument name = "fullname" type = "char *">Result to format</argument>
     //
-    ipr_shortstr_fmt (fullname, "%s|%s", domain? domain: "", name);
+    ipr_shortstr_fmt (fullname, "%s|%s", scope? scope: "", name);
 </method>
 
 <method name = "search" return = "self">
     <argument name = "table"  type = "$(selfname)_table_t *">Queue table</argument>
-    <argument name = "domain" type = "char *"               >Queue domain</argument>
+    <argument name = "scope"  type = "char *"               >Queue scope</argument>
     <argument name = "name"   type = "char *"               >Queue name</argument>
     <declare  name = "self" type = "$(selftype) *">The found object</declare>
     <local>
@@ -100,7 +100,7 @@ class.  This is a lock-free asynchronous class.
         fullname;
     </local>
     //
-    self_fullname (domain, name, fullname);
+    self_fullname (scope, name, fullname);
     self = $(selfname)_table_search (table, fullname);
 </method>
 

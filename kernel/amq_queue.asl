@@ -301,7 +301,7 @@
     </doc>
   </field>
 
-  <field name = "domain" domain = "queue scope" />
+  <field name = "scope" domain = "queue scope" />
 
   <field name = "queue" domain = "queue name">
     <doc name = "rule">
@@ -354,7 +354,7 @@
     </doc>
   </field>
 
-  <field name = "domain" domain = "queue scope" />
+  <field name = "scope" domain = "queue scope" />
 
   <field name = "queue" domain = "queue name">
     <doc name = "rule">

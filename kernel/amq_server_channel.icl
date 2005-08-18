@@ -94,7 +94,7 @@ maximum number of consumers per channel is set at compile time.
     table. It then attaches to own consumer list and sends to queue
     so that queue can add consumer to its consumer list.
     </doc>
-    <argument name = "queue domain"   type = "char *">Queue domain</argument>
+    <argument name = "queue scope"    type = "char *">Queue scope</argument>
     <argument name = "queue name"     type = "char *">Queue name</argument>
     <argument name = "class id"       type = "int"   >Consumer content class</argument>
     <argument name = "prefetch size"  type = "qbyte" >Prefetch size</argument>
@@ -112,7 +112,7 @@ maximum number of consumers per channel is set at compile time.
         tag;                            //  New consumer tag
 
     //  Look for queue as specified, if it exists, create consumer
-    queue = amq_queue_search (amq_vhost->queue_table, queue_domain, queue_name);
+    queue = amq_queue_search (amq_vhost->queue_table, queue_scope, queue_name);
     if (queue) {
         //  Create and configure the consumer object
         consumer = amq_consumer_new (

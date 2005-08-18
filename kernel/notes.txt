@@ -2,7 +2,8 @@
     - client does connection close
     - e.g. invalid method format
     
-    
+- need way to percolate session error to connection level
+
 ---- IN PROGRESS
 
     0.8 matching
