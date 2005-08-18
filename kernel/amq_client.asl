@@ -17,7 +17,7 @@
 
   <action name = "bounce">
     session->reply_code = method->reply_code;
-    ipr_shortstr_cpy (session->reply_text, method->reply_text);
+    icl_shortstr_cpy (session->reply_text, method->reply_text);
     if (!session->silent)
         icl_console_print ("W: $(class.name) message was bounced: %d - %s",
             session->reply_code, session->reply_text);

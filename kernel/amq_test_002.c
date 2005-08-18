@@ -91,11 +91,11 @@ main (int argc, char *argv [])
         repeats;
     Bool
         got_messages;                   //  Browsing indicator
-    ipr_shortstr_t
+    icl_shortstr_t
         message_id;                     //  Message identifier
     asl_field_list_t
         *field_list;                    //  For binding arguments
-    ipr_longstr_t
+    icl_longstr_t
         *arguments;                     //  Serialised into long string
 
     //  These are the arguments we may get on the command line
@@ -271,7 +271,7 @@ main (int argc, char *argv [])
     batch_left = batch_size;
     for (count = 0; count < messages; count++) {
         content = amq_content_jms_new ();
-        ipr_shortstr_fmt (message_id, "ID%d", count);
+        icl_shortstr_fmt (message_id, "ID%d", count);
         amq_content_jms_set_body        (content, test_data, msgsize, NULL);
         amq_content_jms_set_destination (content, opt_dest);
         amq_content_jms_set_message_id  (content, message_id);
@@ -327,7 +327,7 @@ main (int argc, char *argv [])
 
     amq_client_session_jms_cancel (session, session->consumer_tag);
             
-    ipr_longstr_destroy           (&arguments);
+    icl_longstr_destroy           (&arguments);
     amq_client_session_destroy    (&session);
     amq_client_connection_destroy (&connection);
     icl_mem_free (test_data);

@@ -15,11 +15,11 @@ for JMS, Basic, and other content classes.
 <inherit class = "icl_object">
     <option name = "alloc" value = "cache" />
 </inherit>
-<inherit class = "ipr_list_item" >
+<inherit class = "icl_list_item" >
     <option name = "prefix" value = "by_queue" />
     <option name = "count"  value = "1" />
 </inherit>
-<inherit class = "ipr_list_item" >
+<inherit class = "icl_list_item" >
     <option name = "prefix" value = "by_channel" />
 </inherit>
 

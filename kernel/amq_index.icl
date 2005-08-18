@@ -17,12 +17,12 @@
 <inherit class = "icl_object">
     <option name = "alloc" value = "cache" />
 </inherit>
-<inherit class = "ipr_hash_item">
+<inherit class = "icl_hash_item">
     <option name = "prefix"    value = "hash" />
     <option name = "hash_type" value = "str" />
     <option name = "hash_size" value = "65535" />
 </inherit>
-<inherit class = "ipr_array_item">
+<inherit class = "icl_array_item">
     <option name = "prefix"    value = "array" />
 </inherit>
 

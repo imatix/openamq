@@ -14,11 +14,11 @@ class.  This is a lock-free asynchronous class.
 </doc>
 
 <inherit class = "smt_object" />
-<inherit class = "ipr_hash_item">
+<inherit class = "icl_hash_item">
     <option name = "hash_type" value = "str" />
     <option name = "hash_size" value = "255" />
 </inherit>
-<inherit class = "ipr_list_item">
+<inherit class = "icl_list_item">
     <option name = "prefix" value = "list" />
 </inherit>
 
@@ -29,9 +29,9 @@ class.  This is a lock-free asynchronous class.
 <context>
     amq_vhost_t
         *vhost;                         //  Parent virtual host
-    ipr_shortstr_t
+    icl_shortstr_t
         scope;                          //  Queue scope
-    ipr_shortstr_t
+    icl_shortstr_t
         name;                           //  Queue name
     Bool
         durable,                        //  Is queue durable?
@@ -56,7 +56,7 @@ class.  This is a lock-free asynchronous class.
         Hash key is fullname formatted from queue scope plus name
     </dismiss>
     <local>
-    ipr_shortstr_t
+    icl_shortstr_t
         fullname;
     </local>
     //
@@ -67,8 +67,8 @@ class.  This is a lock-free asynchronous class.
     self->queue_jms   = amq_queue_jms_new   (self);
     self->queue_basic = amq_queue_basic_new (self);
 
-    ipr_shortstr_cpy (self->scope, scope);
-    ipr_shortstr_cpy (self->name,  name);
+    icl_shortstr_cpy (self->scope, scope);
+    icl_shortstr_cpy (self->name,  name);
 </method>
 
 <method name = "destroy">
@@ -87,7 +87,7 @@ class.  This is a lock-free asynchronous class.
     <argument name = "name"     type = "char *">Queue name</argument>
     <argument name = "fullname" type = "char *">Result to format</argument>
     //
-    ipr_shortstr_fmt (fullname, "%s|%s", scope? scope: "", name);
+    icl_shortstr_fmt (fullname, "%s|%s", scope? scope: "", name);
 </method>
 
 <method name = "search" return = "self">
@@ -96,7 +96,7 @@ class.  This is a lock-free asynchronous class.
     <argument name = "name"   type = "char *"               >Queue name</argument>
     <declare  name = "self" type = "$(selftype) *">The found object</declare>
     <local>
-    ipr_shortstr_t
+    icl_shortstr_t
         fullname;
     </local>
     //

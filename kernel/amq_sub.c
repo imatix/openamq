@@ -80,7 +80,7 @@ main (int argc, char *argv [])
         repeats;
     asl_field_list_t
         *field_list;                    //  For binding arguments
-    ipr_longstr_t
+    icl_longstr_t
         *arguments;                     //  Serialised into long string
 
     //  These are the arguments we may get on the command line
@@ -264,7 +264,7 @@ main (int argc, char *argv [])
         }
     }
     finished:
-    ipr_longstr_destroy (&arguments);
+    icl_longstr_destroy (&arguments);
     amq_client_session_destroy     (&session);
     amq_client_connection_destroy  (&connection);
 

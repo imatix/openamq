@@ -16,7 +16,7 @@ class.
 <inherit class = "icl_object">
     <option name = "alloc" value = "cache" />
 </inherit>
-<inherit class = "ipr_list_item">
+<inherit class = "icl_list_item">
     <option name = "prefix" value = "list" />
     <option name = "rwlock" value = "0" />
 </inherit>
@@ -34,26 +34,26 @@ class.
         *exchange_list;                 //  List of exchanges for binding
     ipr_looseref_list_t
         *index_list;                    //  List of indices for binding
-    ipr_longstr_t
+    icl_longstr_t
         *arguments;                     //  Binding arguments
     int
         index;                          //  Index in exchange->binding_index
 
     //  Only used for dest-wild matching, might be moved elsewhere
-    ipr_shortstr_t
+    icl_shortstr_t
         destination;                    //  Binding destination value
-    ipr_shortstr_t
+    icl_shortstr_t
         regexp;                         //  Binding destination pattern
 </context>
 
 <method name = "new">
     <argument name = "exchange"  type = "amq_exchange_t *">Parent exchange</argument>
-    <argument name = "arguments" type = "ipr_longstr_t *" >Arguments</argument>
+    <argument name = "arguments" type = "icl_longstr_t *" >Arguments</argument>
     self->exchange      = exchange;
     self->queue_list    = ipr_looseref_list_new ();
     self->exchange_list = ipr_looseref_list_new ();
     self->index_list    = ipr_looseref_list_new ();
-    self->arguments     = ipr_longstr_dup (arguments);
+    self->arguments     = icl_longstr_dup (arguments);
     self->index         = ipr_index_insert (self->exchange->binding_index, self);
 </method>
 
@@ -75,7 +75,7 @@ class.
     ipr_looseref_list_destroy (&self->queue_list);
     ipr_looseref_list_destroy (&self->exchange_list);
     ipr_looseref_list_destroy (&self->index_list);
-    ipr_longstr_destroy       (&self->arguments);
+    icl_longstr_destroy       (&self->arguments);
 </method>
 
 <method name = "bind queue" template = "function">

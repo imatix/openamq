@@ -13,7 +13,7 @@ for each class of exchange. This is a lock-free asynchronous class.
 </doc>
 
 <inherit class = "smt_object" />
-<inherit class = "ipr_hash_item">
+<inherit class = "icl_hash_item">
     <option name = "hash_type" value = "str" />
     <option name = "hash_size" value = "65535" />
 </inherit>
@@ -25,7 +25,7 @@ for each class of exchange. This is a lock-free asynchronous class.
 <context>
     int
         class;                          //  Destination class
-    ipr_shortstr_t
+    icl_shortstr_t
         name;                           //  Destination name
     Bool
         durable,                        //  Is exchange durable?
@@ -71,7 +71,7 @@ for each class of exchange. This is a lock-free asynchronous class.
     <argument name = "internal"    type = "Bool">Internal exchange?</argument>
     <dismiss argument = "key"   value = "name">Key is exchange name</dismiss>
     //
-    ipr_shortstr_cpy (self->name, name);
+    icl_shortstr_cpy (self->name, name);
     self->class         = class;
     self->durable       = durable;
     self->auto_delete   = auto_delete;
@@ -166,7 +166,7 @@ for each class of exchange. This is a lock-free asynchronous class.
     </doc>
     <argument name = "channel"     type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "queue"       type = "amq_queue_t *">The queue to bind</argument>
-    <argument name = "m_arguments" type = "ipr_longstr_t *">Bind arguments</argument>
+    <argument name = "m_arguments" type = "icl_longstr_t *">Bind arguments</argument>
     //
     <action>
     amq_binding_t
@@ -177,7 +177,7 @@ for each class of exchange. This is a lock-free asynchronous class.
     //  Check existing bindings to see if we have one that matches
     binding = amq_binding_list_first (self->binding_list);
     while (binding) {
-        if (ipr_longstr_eq (binding->arguments, m_arguments))
+        if (icl_longstr_eq (binding->arguments, m_arguments))
             break;
         binding = amq_binding_list_next (&binding);
     }
@@ -211,7 +211,7 @@ for each class of exchange. This is a lock-free asynchronous class.
 <method name = "bind exchange" template = "async function" async = "1">
     <argument name = "channel"     type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "exchange"    type = "amq_exchange_t *">The exchange to bind</argument>
-    <argument name = "m_arguments" type = "ipr_longstr_t *">Bind arguments</argument>
+    <argument name = "m_arguments" type = "icl_longstr_t *">Bind arguments</argument>
     //
     <action>
     amq_binding_t
@@ -222,7 +222,7 @@ for each class of exchange. This is a lock-free asynchronous class.
     //  Check existing bindings to see if we have one that matches
     binding = amq_binding_list_first (self->binding_list);
     while (binding) {
-        if (ipr_longstr_eq (binding->arguments, m_arguments))
+        if (icl_longstr_eq (binding->arguments, m_arguments))
             break;
         binding = amq_binding_list_next (&binding);
     }

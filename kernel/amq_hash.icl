@@ -14,7 +14,7 @@ in lock-free agents (exchanges, queues).
     <option name = "alloc"  value = "cache" />
     <option name = "rwlock" value = "0" />
 </inherit>
-<inherit class = "ipr_hash_item">
+<inherit class = "icl_hash_item">
     <option name = "hash_type" value = "str"   />
     <option name = "hash_size" value = "65535" />
     <option name = "rwlock"    value = "0" />

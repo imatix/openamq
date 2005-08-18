@@ -54,7 +54,7 @@ based on their "destination" property.
         destination = asl_field_list_search (fields, "destination");
         if (destination) {
             //  Turn the destination string into a nice regexp
-            ipr_shortstr_cpy (binding->destination, asl_field_string (destination));
+            icl_shortstr_cpy (binding->destination, asl_field_string (destination));
             s_dest_wild_to_regexp (asl_field_string (destination), binding->regexp);
             regexp = ipr_regexp_new (binding->regexp);
 
@@ -160,7 +160,7 @@ static void
       name can contain wildcards that index part or all of a index name tree.
       '*' in the destination name means wildcard a single level of indexs.
       '#' in the destination name means wildcard zero or more levels.
-      index levels are separated by '.'.  regexp must be an ipr_shortstr_t.
+      index levels are separated by '.'.  regexp must be an icl_shortstr_t.
  */
 static void
 s_dest_wild_to_regexp (char *dest_wild, char *regexp)

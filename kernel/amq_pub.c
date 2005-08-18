@@ -82,7 +82,7 @@ main (int argc, char *argv [])
         batch_size,
         msgsize,
         repeats;
-    ipr_shortstr_t
+    icl_shortstr_t
         message_id;                     //  Message identifier
     char
         *topic;
@@ -247,7 +247,7 @@ main (int argc, char *argv [])
         batch_left = batch_size;
         for (count = 0; count < messages; count++) {
             content = amq_content_jms_new ();
-            ipr_shortstr_fmt (message_id, "ID%d", count);
+            icl_shortstr_fmt (message_id, "ID%d", count);
             amq_content_jms_set_body       (content, test_data, msgsize, NULL);
             amq_content_jms_set_message_id (content, message_id);
             topic = topics [randomof (tblsize (topics))];
