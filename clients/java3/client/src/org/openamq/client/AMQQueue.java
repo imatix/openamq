@@ -15,9 +15,23 @@ import javax.jms.JMSException;
  */
 public class AMQQueue extends AMQDestination implements Queue
 {
+    /**
+     * Create a reference to a non temporary queue. Note this does not actually imply the queue exists.
+     * @param name the name of the queue
+     */
     public AMQQueue(String name)
     {
-        super(AMQDestination.QUEUE_EXCHANGE_NAME, AMQDestination.QUEUE_EXCHANGE_CLASS, name);
+        this(name, false);
+    }
+
+    /**
+     * Create a reference to a queue. Note this does not actually imply the queue exists.
+     * @param name the queue name
+     * @param temporary true if the queue is temporary, false otherwise
+     */
+    public AMQQueue(String name, boolean temporary)
+    {
+        super(AMQDestination.QUEUE_EXCHANGE_NAME, AMQDestination.QUEUE_EXCHANGE_CLASS, name, temporary);
     }
 
     public String getQueueName() throws JMSException

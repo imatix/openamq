@@ -8,12 +8,8 @@ import org.openamq.AMQException;
 import org.openamq.client.AMQConnection;
 import org.openamq.client.AMQSession;
 import org.openamq.client.ConnectionTuneParameters;
-import org.openamq.client.state.AMQStateManager;
 import org.openamq.client.message.UnprocessedMessage;
-import org.openamq.framing.AMQDataBlock;
-import org.openamq.framing.ContentBody;
-import org.openamq.framing.JmsContentHeaderBody;
-import org.openamq.framing.ProtocolInitiation;
+import org.openamq.framing.*;
 
 import javax.jms.JMSException;
 
@@ -35,7 +31,7 @@ public class AMQProtocolSession
 
     private static final String AMQ_CONNECTION = "AMQConnection";
 
-    private final ProtocolSession _protocolSession;
+    private final ProtocolSession _minaProtocolSession;
 
     /**
      * Maps from the channel id to the AMQSession that it represents.
@@ -49,17 +45,17 @@ public class AMQProtocolSession
      * JmsDeliverBody (which arrives first) with the subsequent content header and content bodies.
      */
     private ConcurrentMap _channelId2UnprocessedMsgMap = new ConcurrentHashMap();
-    
+
     public AMQProtocolSession(ProtocolSession protocolSession, AMQConnection connection)
     {
-        _protocolSession = protocolSession;
+        _minaProtocolSession = protocolSession;
         // properties of the connection are made available to the event handlers
-        _protocolSession.setAttribute(AMQ_CONNECTION, connection);
+        _minaProtocolSession.setAttribute(AMQ_CONNECTION, connection);
 
         // start the process of setting up the connection. This is the first place that
         // data is written to the server.
 
-        _protocolSession.write(new ProtocolInitiation());
+        _minaProtocolSession.write(new ProtocolInitiation());
     }
 
     public String getClientID()
@@ -97,27 +93,27 @@ public class AMQProtocolSession
 
     public ProtocolSession getProtocolSession()
     {
-        return _protocolSession;
+        return _minaProtocolSession;
     }
 
     public String getSecurityMechanism()
     {
-        return (String) _protocolSession.getAttribute(SECURITY_MECHANISM);
+        return (String) _minaProtocolSession.getAttribute(SECURITY_MECHANISM);
     }
 
     public void setSecurityMechanism(String mechanism)
     {
-        _protocolSession.setAttribute(SECURITY_MECHANISM, mechanism);
+        _minaProtocolSession.setAttribute(SECURITY_MECHANISM, mechanism);
     }
 
     public ConnectionTuneParameters getConnectionTuneParameters()
     {
-        return (ConnectionTuneParameters) _protocolSession.getAttribute(CONNECTION_TUNE_PARAMETERS);
+        return (ConnectionTuneParameters) _minaProtocolSession.getAttribute(CONNECTION_TUNE_PARAMETERS);
     }
 
     public void setConnectionTuneParameters(ConnectionTuneParameters params)
     {
-        _protocolSession.setAttribute(CONNECTION_TUNE_PARAMETERS, params);
+        _minaProtocolSession.setAttribute(CONNECTION_TUNE_PARAMETERS, params);
         AMQConnection con = getAMQConnection();
         con.setMaximumChannelCount(params.getChannelMax());
         con.setMaximumHandleCount(params.getHandleMax());
@@ -175,7 +171,7 @@ public class AMQProtocolSession
      */
     public void writeFrame(AMQDataBlock frame)
     {
-        _protocolSession.write(frame);
+        _minaProtocolSession.write(frame);
     }
 
     public void addSessionByChannel(int channelId, AMQSession session)
@@ -219,9 +215,8 @@ public class AMQProtocolSession
         // on that channel
         _closingChannels.putIfAbsent(new Integer(channelId), session);
 
-        /*Channel.Close frame = new Channel.Close();
-        frame.channelId = channelId;
-        writeFrame(frame);*/
+        final AMQFrame frame = ChannelCloseBody.createAMQFrame(channelId, AMQConstant.REPLY_SUCCESS.getCode(), null, 0, 0);        
+        writeFrame(frame);
     }
 
     /**
@@ -252,12 +247,12 @@ public class AMQProtocolSession
 
     private AMQConnection getAMQConnection()
     {
-        return (AMQConnection) _protocolSession.getAttribute(AMQ_CONNECTION);
+        return (AMQConnection) _minaProtocolSession.getAttribute(AMQ_CONNECTION);
     }
 
     public void closeProtocolSession()
     {
         _logger.debug("Closing protocol session");
-        _protocolSession.close();
+        _minaProtocolSession.close();
     }
 }

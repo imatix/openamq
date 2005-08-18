@@ -42,7 +42,7 @@ public class AMQProtocolHandler implements ProtocolHandler
     private int writtenBytes = 0;
 
     public AMQProtocolHandler(AMQConnection con)
-    {
+    {        
         _connection = con;
         _frameListeners.add(_stateManager);
     }

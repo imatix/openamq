@@ -23,8 +23,7 @@ public class AMQProtocolProvider implements ProtocolProvider
     {
         _factory = new DemuxingProtocolCodecFactory();
         _factory.register(AMQDataBlockEncoder.class);
-        // in the broker implementation the data block decoder is initially disabled since the first
-        // frame must be a protocol initiation block (which is not handled by the data block decoder)
+        
         AMQDataBlockDecoder decoder = new AMQDataBlockDecoder();
         _factory.register(decoder);
         _handler = new AMQProtocolHandler(connection);

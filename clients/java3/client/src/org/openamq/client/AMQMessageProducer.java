@@ -72,6 +72,17 @@ public class AMQMessageProducer extends Closeable implements MessageProducer
      */
     private AMQSession _session;
 
+    /**
+     * Default value for immediate flag is false, i.e. a consumer does not need to be attached to a queue
+     */
+    private static final boolean DEFAULT_IMMEDIATE = false;
+
+    /**
+     * Default value for mandatory flag is true, i.e. server will not silently drop messages where no queue is
+     * connected to the exchange for the message
+     */
+    private static final boolean DEFAULT_MANDATORY = true;
+
     AMQMessageProducer(AMQDestination destination, boolean transacted, int channelId,
                        IdFactory idFactory, AMQSession session, AMQProtocolHandler protocolHandler)
             throws AMQException
@@ -90,16 +101,18 @@ public class AMQMessageProducer extends Closeable implements MessageProducer
 
     private void declareDestination(AMQDestination destination) throws AMQException
     {
+        // Note that the durable and internal arguments are ignored since passive is set to false
         AMQFrame exchangeDeclareFrame = ExchangeDeclareBody.createAMQFrame(_channelId, 0, destination.getExchangeName(),
-                                                                           destination.getExchangeClass(), false, false,
-                                                                           false, false);
+                                                                           destination.getExchangeClass(), true,
+                                                                           false, false, false);
         _protocolHandler.writeCommandFrameAndWaitForReply(exchangeDeclareFrame,
                                                           new SpecificMethodFrameListener(_channelId,
                                                                                           ExchangeDeclareOkBody.class));
 
+        // Note that the durable argument is ignored since passive is set to false
         AMQFrame queueDeclareFrame = QueueDeclareBody.createAMQFrame(_channelId, 0, "",
-                                                                     destination.getDestinationName(), null, false,
-                                                                     false, false, false);
+                                                                     destination.getDestinationName(), true,
+                                                                     false, false, destination.isTemporary());
         _protocolHandler.writeCommandFrameAndWaitForReply(queueDeclareFrame,
                                                           new SpecificMethodFrameListener(_channelId,
                                                                                           QueueDeclareOkBody.class));
@@ -187,72 +200,63 @@ public class AMQMessageProducer extends Closeable implements MessageProducer
 
     public void close() throws JMSException
     {
-        synchronized (_closingLock)
-        {
-            _closed.set(true);
-        }
-        /*final Iterator it = _handleMap.values().iterator();
-        while (it.hasNext())
-        {
-            Integer handleId = (Integer) it.next();
-           Handle.Close frame = new Handle.Close();
-            frame.handleId = handleId.intValue();
-//            try
-//            {
-//                _protocolHandler.writeCommandFrameAndWaitForReply(frame,
-//                                                                  new HandleCloseListener(handleId.intValue()));
-//            }
-//            catch (AMQException e)
-//            {
-//                throw new JMSException("Error closing producer: " + e);
-//            }
-        }  */
+        _closed.set(true);        
     }
 
     public void send(Message message) throws JMSException
     {
-        send(message, _deliveryMode, _messagePriority, _timeToLive);
+        sendImpl(_destination, (AbstractMessage) message, _deliveryMode, _messagePriority, _timeToLive,
+                 DEFAULT_MANDATORY, DEFAULT_IMMEDIATE);
     }
 
     public void send(Message message, int deliveryMode, int priority,
                      long timeToLive) throws JMSException
     {
-        checkNotClosed();
-        sendImpl(_destination, (AbstractMessage)message, deliveryMode, priority, timeToLive);
+        sendImpl(_destination, (AbstractMessage)message, deliveryMode, priority, timeToLive, DEFAULT_MANDATORY,
+                 DEFAULT_IMMEDIATE);
     }
 
     public void send(Destination destination, Message message) throws JMSException
     {
-        send(destination, message, _deliveryMode, _messagePriority, _timeToLive);
+        checkNotClosed();
+        validateDestination(destination);
+        sendImpl((AMQDestination) destination, (AbstractMessage) message, _deliveryMode, _messagePriority, _timeToLive,
+                 DEFAULT_MANDATORY, DEFAULT_IMMEDIATE);
     }
 
     public void send(Destination destination, Message message, int deliveryMode,
                      int priority, long timeToLive)
             throws JMSException
     {
-        if (_destination != null)
-        {
-            throw new UnsupportedOperationException("Cannot specify destination in send method call when destination has " +
-                                                    "already been specified at message producer construction time");
-        }
         checkNotClosed();
-        /*try
+        validateDestination(destination);
+        sendImpl((AMQDestination) destination, (AbstractMessage) message, deliveryMode, priority, timeToLive,
+                 DEFAULT_MANDATORY, DEFAULT_IMMEDIATE);
+    }
+
+    private void validateDestination(Destination destination) throws JMSException
+    {
+        if (!(destination instanceof AMQDestination))
         {
-            openHandle((AMQDestination) destination);
+            throw new JMSException("Unsupported destination class: " +
+                                   (destination != null?destination.getClass():null));
+        }
+        try
+        {
+            declareDestination((AMQDestination)destination);
         }
         catch (AMQException e)
         {
-            throw new JMSException("Error opening destination " + destination + ": " + e);
-        } */
-        sendImpl((AMQDestination) destination, (AbstractMessage) message, deliveryMode, priority, timeToLive);
+            throw new JMSException("Unable to declare destination " + destination + ": " + e);
+        }
     }
 
     private void sendImpl(AMQDestination destination, AbstractMessage message, int deliveryMode, int priority,
-                          long timeToLive) throws JMSException
+                          long timeToLive, boolean mandatory, boolean immediate) throws JMSException
     {
         AMQFrame publishFrame = JmsPublishBody.createAMQFrame(_channelId, 0, _destination.getExchangeName(),
-                                                              _destination.getDestinationName(), true,
-                                                              true);
+                                                              _destination.getDestinationName(), mandatory,
+                                                              immediate);
 
         long currentTime = 0;
         if (!_disableTimestamps)
@@ -274,6 +278,8 @@ public class AMQMessageProducer extends Closeable implements MessageProducer
         {
             contentHeader.expiration = 0;
         }
+        contentHeader.deliveryMode = (byte) deliveryMode;
+        contentHeader.priority = (byte) priority;
 
         AMQFrame contentHeaderFrame = ContentHeaderBody.createAMQFrame(_channelId, contentHeader);
         if (_logger.isDebugEnabled())

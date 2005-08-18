@@ -419,17 +419,19 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                                             new SpecificMethodFrameListener(_channelId, ExchangeDeclareOkBody.class));
 
                 AMQFrame queueDeclare = QueueDeclareBody.createAMQFrame(_channelId, 0, "", amqd.getDestinationName(),
-                                                                        null, false, false, false ,false);
+                                                                        false, false, false ,false);
                 protocolHandler.writeCommandFrameAndWaitForReply(queueDeclare,
                                              new SpecificMethodFrameListener(_channelId, QueueDeclareOkBody.class));
 
-                FieldTable ft = new FieldTable();
+                final FieldTable ft = new FieldTable();
                 ft.put("destination", amqd.getDestinationName());
-                AMQFrame queueBind = QueueBindBody.createAMQFrame(_channelId, 0, "", amqd.getDestinationName(), amqd.getExchangeName(), ft);
+                AMQFrame queueBind = QueueBindBody.createAMQFrame(_channelId, 0, "", amqd.getDestinationName(),
+                                                                  amqd.getExchangeName(), ft);
 
                 protocolHandler.writeCommandFrameAndWaitForReply(queueBind,
                                               new SpecificMethodFrameListener(_channelId, QueueBindOkBody.class));
-                AMQFrame jmsConsume = JmsConsumeBody.createAMQFrame(_channelId, 0, "", amqd.getDestinationName(), 0, prefetch, noLocal, true, exclusive);
+                AMQFrame jmsConsume = JmsConsumeBody.createAMQFrame(_channelId, 0, "", amqd.getDestinationName(), 0,
+                                                                    prefetch, noLocal, true, exclusive);
 
                 protocolHandler.writeCommandFrameAndWaitForReply(jmsConsume,
                                                new SpecificMethodFrameListener(_channelId, JmsConsumeOkBody.class));

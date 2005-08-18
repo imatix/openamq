@@ -15,9 +15,14 @@ import javax.jms.Topic;
  */
 public class AMQTopic extends AMQDestination implements Topic
 {
-     public AMQTopic(String name)
+    public AMQTopic(String name)
     {
-        super(AMQDestination.TOPIC_EXCHANGE_NAME, AMQDestination.TOPIC_EXCHANGE_CLASS, name);
+        this(name, false);
+    }
+
+    public AMQTopic(String name, boolean temporary)
+    {
+        super(AMQDestination.TOPIC_EXCHANGE_NAME, AMQDestination.TOPIC_EXCHANGE_CLASS, name, temporary);
     }
 
     public String getTopicName() throws JMSException

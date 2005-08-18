@@ -18,7 +18,9 @@ public abstract class AMQDestination implements Destination
 
     private final String _destinationName;
 
-    public AMQDestination(String exchangeName, String exchangeClass, String destinationName)
+    private boolean _isTemporary;
+
+    protected AMQDestination(String exchangeName, String exchangeClass, String destinationName, boolean isTemporary)
     {
         if (destinationName == null)
         {
@@ -35,6 +37,7 @@ public abstract class AMQDestination implements Destination
         _exchangeName = exchangeName;
         _exchangeClass = exchangeClass;
         _destinationName = destinationName;
+        _isTemporary = isTemporary;
     }
 
     public abstract String getEncodedName();
@@ -63,7 +66,12 @@ public abstract class AMQDestination implements Destination
     {
         return _destinationName;
     }
-    
+
+    public boolean isTemporary()
+    {
+        return _isTemporary;
+    }
+
     public String toString()
     {
         return "Destination: " + _destinationName + ", Exchange: " + _exchangeName +

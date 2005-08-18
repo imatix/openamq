@@ -15,6 +15,7 @@ import org.openamq.framing.ChannelCloseOkBody;
 import org.openamq.client.state.AMQStateManager;
 import org.openamq.client.state.StateAwareMethodListener;
 import org.openamq.client.protocol.AMQMethodEvent;
+import org.openamq.client.protocol.AMQConstant;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
@@ -44,10 +45,11 @@ public class ChannelCloseMethodHandler implements StateAwareMethodListener
 
         AMQFrame frame = ChannelCloseOkBody.createAMQFrame(evt.getChannelId());
         evt.getProtocolSession().writeFrame(frame);
-        if (errorCode != 200)
+        if (errorCode != AMQConstant.REPLY_SUCCESS.getCode())
         {
             _logger.debug("Channel close received with errorCode " + errorCode + ", throwing exception");
             throw new AMQException(errorCode, "Error: " + reason);
         }
+        evt.getProtocolSession().channelClosed(evt.getChannelId(), errorCode, reason);
     }
 }
