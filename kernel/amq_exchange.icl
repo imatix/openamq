@@ -147,10 +147,10 @@ for each class of exchange. This is a lock-free asynchronous class.
     if (streq (class_name, "fanout"))
         rc = AMQ_EXCHANGE_FANOUT;
     else
-    if (streq (class_name, "dest-name"))
+    if (streq (class_name, "dest_name"))
         rc = AMQ_EXCHANGE_DEST_NAME;
     else
-    if (streq (class_name, "dest-wild"))
+    if (streq (class_name, "dest_wild"))
         rc = AMQ_EXCHANGE_DEST_WILD;
     else
         rc = 0;
