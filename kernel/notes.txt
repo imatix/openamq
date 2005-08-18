@@ -1,9 +1,5 @@
-- if client has connection exception, server leaks memory
-    - client does connection close
-    - e.g. invalid method format
-    
-- need way to percolate session error to connection level
 - reintroduce connection close handling
+- server wait for client to send close-ok after sending close
 
 ---- IN PROGRESS
 

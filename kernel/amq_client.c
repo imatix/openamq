@@ -90,7 +90,7 @@ main (int argc, char *argv [])
     asl_field_list_t
         *field_list;                    //  For binding arguments
     icl_longstr_t
-        *arguments;                     //  Serialised into long string
+        *arguments = NULL;              //  Serialised into long string
 
     //  These are the arguments we may get on the command line
     opt_server   = "localhost";
@@ -244,7 +244,7 @@ main (int argc, char *argv [])
     }
     //  Declare exchange and queue
     if (amq_client_session_exchange_declare (session,
-        ticket, opt_exchange, "dest-name", FALSE, FALSE, FALSE, FALSE))
+        ticket, opt_exchange, "dest_name", FALSE, FALSE, FALSE, FALSE))
         goto finished;
     if (amq_client_session_queue_declare (session,
         ticket, "global", opt_queue, FALSE, FALSE, FALSE, FALSE))
@@ -353,10 +353,10 @@ main (int argc, char *argv [])
 
     finished:
 
-    icl_mem_free        (test_data);
-    icl_longstr_destroy (&arguments);
-    amq_client_session_destroy     (&session);
-    amq_client_connection_destroy  (&connection);
+    icl_mem_free                  (test_data);
+    icl_longstr_destroy           (&arguments);
+    amq_client_session_destroy    (&session);
+    amq_client_connection_destroy (&connection);
 
     if (showinfo)
         icl_stats_dump ();

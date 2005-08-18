@@ -1,5 +1,7 @@
-0.9a3 - 2005/08/
-- 87k lines of C code (server + async client) - 2005/08/16 - 0.9a3
+0.9a3 - 2005/08/18
+- 87k lines of C code (server + async client) - 2005/08/18 - 0.9a3
+
+Improvements:
 
   - Exchange, queue, and scope names are now validated in the
     Declare methods.  These names may now contain only [A-Za-z0-9_].
@@ -11,10 +13,13 @@
   - Implemented the "dest-wild" exchange (for topic-style routing).
   - Added option to trace exchange and queueing workflow, configurable
     in server.cfg.
-  - C/C++ client API was not working in single-threaded builds - fixed.
   - OpenAMQ kernel, C/C++ client now uses new Base2 object reference
     framework.
   - C/C++ client API made much more robust its internal queues.
+
+Bug fixes:
+
+  - C/C++ client API was not working in single-threaded builds - fixed.
   - Server leaked memory if interrupted after all connections closed.
   - Improved socket tracing display in server.
   - In rare cases when consumer disconnected, server would continue to
@@ -23,6 +28,12 @@
     abort - fixed.
   - Cancelling a consumer failed often, due to error in server channel
     class - fixed.
+  - Server leaked memory if client did not close channel correctly
+    - fixed.
+  - Client was not reporting errors that it detected on server methods
+    - fixed.
+  - "no-local" function in server was broken - fixed.
+  - C/C++ client layers did not handle server errors correctly - fixed.
 
 0.9a2 - 2005/08/08
 - 67k lines of C code (server + async client) - 2005/08/08 - 0.9a2
