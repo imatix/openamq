@@ -36,6 +36,11 @@ public class FieldTable extends LinkedHashMap
      */
     public FieldTable(ByteBuffer buffer, long length) throws AMQFrameDecodingException
     {
+        this(buffer, length, false);
+    }
+
+    public FieldTable(ByteBuffer buffer, long length, boolean grm) throws AMQFrameDecodingException
+    {
         super();
         assert length > 0;
         _encodedSize = length;
@@ -50,13 +55,16 @@ public class FieldTable extends LinkedHashMap
             switch (type)
             {
                 case 'S':
-                    value = EncodingUtils.readLongString(buffer);
+                    if (grm)
+                        value = EncodingUtils.readLongstr(buffer);
+                    else    
+                        value = EncodingUtils.readLongString(buffer);
                     break;
                 case 'I':
                     value = new Long(buffer.getUnsignedInt());
                     break;
                 default:
-                    throw new AMQFrameDecodingException("Unsupported field table type; " + type);
+                    throw new AMQFrameDecodingException("Unsupported field table type: " + type);
             }
             sizeRead += (sizeRemaining - buffer.remaining());
             // we deliberately want to call put in the parent class since we do
@@ -76,7 +84,12 @@ public class FieldTable extends LinkedHashMap
             String key = (String) me.getKey();
             EncodingUtils.writeShortStringBytes(buffer, key);
             Object value = me.getValue();
-            if (value instanceof String)
+            if (value instanceof byte[])
+            {
+                buffer.put((byte)'S');
+                EncodingUtils.writeLongstr(buffer, (byte[]) value);
+            }
+            else if (value instanceof String)
             {
                 // TODO: look at using proper charset encoder
                 buffer.put((byte)'S');
@@ -87,6 +100,10 @@ public class FieldTable extends LinkedHashMap
                 // TODO: look at using proper charset encoder
                 buffer.put((byte)'I');
                 EncodingUtils.writeUnsignedInteger(buffer, ((Long)value).longValue());
+            }
+            else {
+                // Should never get here 
+                assert false; 
             }
         }
     }
@@ -101,7 +118,12 @@ public class FieldTable extends LinkedHashMap
             String key = (String) me.getKey();
             EncodingUtils.writeShortStringBytes(buffer, key);
             Object value = me.getValue();
-            if (value instanceof String)
+            if (value instanceof byte[])
+            {
+                buffer.put((byte)'S');
+                EncodingUtils.writeLongstr(buffer, (byte[]) value);
+            } 
+            else if (value instanceof String)
             {
                 // TODO: look at using proper charset encoder
                 buffer.put((byte)'S');
@@ -112,6 +134,11 @@ public class FieldTable extends LinkedHashMap
                 // TODO: look at using proper charset encoder
                 buffer.put((byte)'I');
                 EncodingUtils.writeUnsignedInteger(buffer, ((Long)value).longValue());
+            }
+            else 
+            {
+               // Should never get here 
+               assert false; 
             }
         }
         final byte[] result = new byte[(int)_encodedSize];
@@ -129,7 +156,11 @@ public class FieldTable extends LinkedHashMap
         }
         _encodedSize += EncodingUtils.encodedShortStringLength((String) key);
         // the extra byte if for the type indicator what is written out
-        if (value instanceof String)
+        if (value instanceof byte[])
+        {
+            _encodedSize += 1 + EncodingUtils.encodedLongstrLength((byte[]) value); 
+        }
+        else if (value instanceof String)
         {
             _encodedSize += 1 + EncodingUtils.encodedLongStringLength((String) value);
         }
@@ -148,11 +179,16 @@ public class FieldTable extends LinkedHashMap
     public Object remove(Object key)
     {
         final Object value = super.remove(key);
+        _encodedSize -= EncodingUtils.encodedShortStringLength((String) key);
         if (value != null)
         {
-            if (value instanceof String)
+            if (value instanceof byte[])
             {
-                _encodedSize -= 3 + EncodingUtils.encodedLongStringLength((String) value);
+                _encodedSize -= 1 + EncodingUtils.encodedLongstrLength((byte[]) value);
+            }
+            else if (value instanceof String)
+            {
+                _encodedSize -= 1 + EncodingUtils.encodedLongStringLength((String) value);
             }
             else if (value instanceof Integer)
             {

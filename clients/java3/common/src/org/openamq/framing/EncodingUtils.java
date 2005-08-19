@@ -48,6 +48,18 @@ public class EncodingUtils
             return 4 + s.length();
         }
     }
+    
+    public static int encodedLongstrLength(byte[] bytes) 
+    {
+        if (bytes == null)
+        {
+            return 4;
+        }
+        else
+        {
+            return 4 + bytes.length;
+        }
+    }
 
     public static int encodedFieldTableLength(FieldTable table)
     {
@@ -102,6 +114,20 @@ public class EncodingUtils
             {
                 // IGNORE
             }
+        }
+        else
+        {
+            writeUnsignedInteger(buffer, 0);
+        }
+    }
+    
+    public static void writeLongStringBytes(ByteBuffer buffer, byte[] bytes)
+    {
+        assert bytes == null || bytes.length <= 0xFFFE;
+        if (bytes != null)
+        {
+            writeUnsignedInteger(buffer, bytes.length);
+            buffer.put(bytes);
         }
         else
         {
