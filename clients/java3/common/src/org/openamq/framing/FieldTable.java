@@ -172,6 +172,10 @@ public class FieldTable extends LinkedHashMap
         {
             _encodedSize += 1 + 4;
         }
+        else {
+            // Should never get here 
+            assert false; 
+        }
 
         return super.put(key, value);
     }
@@ -197,6 +201,10 @@ public class FieldTable extends LinkedHashMap
             else if (value instanceof Long)
             {
                 _encodedSize -= 5;
+            }
+            else {
+                // Should never get here 
+                assert false; 
             }
         }
         return value;
