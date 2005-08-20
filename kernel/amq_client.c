@@ -29,6 +29,7 @@
     "  -t level         Set trace level (default = 0)\n"                    \
     "                   0=none, 1=low, 2=medium, 3=high\n"                  \
     "  -a               Use async consumers (default is browsing)\n"        \
+    "  -8               Simulate 0.8 synchronous consumer\n"                \
     "  -m               Publish mandatory (default is no)\n"                \
     "  -I               Publish immediate (default is no)\n"                \
     "  -i               Show program statistics when ending (no)\n"         \
@@ -51,6 +52,7 @@ main (int argc, char *argv [])
         quiet_mode = FALSE,             //  -q means suppress messages
         delay_mode = FALSE,             //  -d means work slowly
         async_mode = FALSE,             //  -a means async consumers
+        simul_mode = FALSE,             //  -8 means simulate 0.8 consumers
         mandatory = FALSE,              //  -m means publish mandatory
         immediate = FALSE,              //  -I means publish immediate
         showinfo = FALSE,               //  -i means show information
@@ -105,7 +107,7 @@ main (int argc, char *argv [])
 
     //  Initialise system in order to use console.
     icl_system_initialise (argc, argv);
-    
+
     argparm = NULL;                     //  Argument parameter to pick-up
     for (argn = 1; argn < argc; argn++) {
         //  If argparm is set, we have to collect an argument parameter
@@ -158,6 +160,9 @@ main (int argc, char *argv [])
                     break;
                 case 'a':
                     async_mode = TRUE;
+                    break;
+                case '8':
+                    simul_mode = TRUE;
                     break;
                 case 'm':
                     mandatory = TRUE;
@@ -269,6 +274,8 @@ main (int argc, char *argv [])
             FALSE,                      //  No local messages
             TRUE,                       //  Auto-acknowledge
             FALSE);                     //  Exclusive access to queue
+        if (simul_mode)
+            amq_client_session_flow (session, FALSE);
     }
     while (repeats) {
         //  Send messages to the test queue
@@ -300,6 +307,9 @@ main (int argc, char *argv [])
         }
         //  Now read messages off the test queue
         icl_console_print ("I: (%d) reading back messages...", repeats);
+        if (async_mode && simul_mode)
+            amq_client_session_flow (session, TRUE);
+
         count = 0;
         while (count < messages) {
             //  If we're browsing, do a synchronous browse

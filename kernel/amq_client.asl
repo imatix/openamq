@@ -6,6 +6,7 @@
     >
 <inherit name = "amq" />
 <inherit name = "asl_client" />
+<option name = "product_name" value = "OpenAMQ Kernel Client" />
 
 <class name = "basic">
   <action name = "browse-ok">

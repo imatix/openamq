@@ -1,5 +1,4 @@
-- reintroduce connection close handling
-- server wait for client to send close-ok after sending close
+"failed - no error"
 
 ---- IN PROGRESS
 
@@ -117,16 +116,13 @@
             - exchange to bind to
             - private, auto-delete, etc.
         - rename "auto-delete" to "temporary"?
-            
+
     - define reply-to as URL:
         amqp://servername:port/exchange/destination
 
     - store content header without parsing
         - replay from stored block
         - parse only if needed for field matching
-
-    - validate exchange name, queue name at declare time
-        - review name syntax
 
     - clarify protocol for aborting single large message
         - close channel?
@@ -138,7 +134,7 @@
         - producer_id (for no_local, and bounces)
         - mandatory, immediate flags (currently as method options)
 
-    tool to generate test clients
+    - tool to generate test clients
         - standard set of options for all test programs
         - define methods wanted as XML program
             - methods plus arguments

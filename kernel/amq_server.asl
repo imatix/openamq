@@ -6,6 +6,7 @@
     >
 <inherit name = "amq" />
 <inherit name = "asl_server" />
+<option name = "product_name" value = "OpenAMQ Server" />
 
 <!-- CHANNEL -->
 
@@ -29,7 +30,6 @@
         exchange_class;
     </local>
     //
-    //TODO: validate new exchange name
     exchange_class = amq_exchange_class_lookup (method->class);
     if (exchange_class) {
         /*  Find exchange and create if necessary                            */
@@ -113,8 +113,6 @@
         *queue;
     </local>
     //
-    //TODO: validate new exchange name
-
     /*  Find queue and create if necessary                                   */
     queue = amq_queue_search (amq_vhost->queue_table, method->scope, method->queue);
     if (!queue) {

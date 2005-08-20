@@ -14,8 +14,6 @@ This class implements the connection class for the AMQ server.
 
 <method name = "start ok" template = "function">
     <local>
-    asl_field_list_t
-        *fields;                        //  Decoded responses
     asl_field_t
         *login,                         //  Login from client
         *password;                      //  Password from client
