@@ -42,10 +42,6 @@ runs lock-free as a child of the asynchronous queue class.
     <argument name = "channel"   type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "content"   type = "amq_content_basic_t *">Message content</argument>
     <argument name = "immediate" type = "Bool">Warn if no consumers?</argument>
-    <local>
-    int
-        dispatch_count;
-    </local>
     //
     /*  Limitations of current design:
         - no acknowledgements
@@ -61,20 +57,24 @@ runs lock-free as a child of the asynchronous queue class.
     amq_content_basic_possess (content);
     ipr_looseref_queue (self->content_list, content);
 
-    dispatch_count = self_dispatch (self);
-    if (immediate && dispatch_count == 0) {
-        //  Take content back off list
-        ipr_looseref_pop (self->content_list);
-        if (amq_server_channel_alive (channel))
-            amq_server_agent_basic_bounce (
-                channel->connection->thread,
-                (dbyte) channel->key,
-                content,
-                ASL_NOT_DELIVERED,
-                "No immediate consumers for Basic message",
-                content->exchange,
-                content->destination);
-        amq_content_basic_destroy (&content);
+    //  Dispatch and handle case where no message was sent
+    if (self_dispatch (self) == 0) {
+        if (immediate) {
+            //  Bounce content back to publisher
+            ipr_looseref_pop (self->content_list);
+            if (amq_server_channel_alive (channel))
+                amq_server_agent_basic_bounce (
+                    channel->connection->thread,
+                    (dbyte) channel->key,
+                    content,
+                    ASL_NOT_DELIVERED,
+                    "No immediate consumers for Basic message",
+                    content->exchange,
+                    content->destination);
+            amq_content_basic_destroy (&content);
+        }
+        else
+            amq_queue_pre_dispatch (self->queue);
     }
 </method>
 
@@ -106,7 +106,8 @@ runs lock-free as a child of the asynchronous queue class.
         consumer = s_get_next_consumer (self, content->producer_id);
         if (!consumer) {
             if (amq_server_config_trace_queue (amq_server_config))
-                icl_console_print ("Q: finish  queue=%s reason=no_consumers");
+                icl_console_print ("Q: finish  queue=%s reason=no_consumers",
+                    self->queue->key);
 
             //  If no consumer for content, push back to front of queue
             ipr_looseref_push (self->content_list, content);

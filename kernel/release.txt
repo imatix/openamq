@@ -1,4 +1,6 @@
+---------------------------------------------------------------------
 0.9b0 - 2005/08/
+- 101k lines of C code (server + async client) - 2005/08/20 - 0.9b0
 
 Improvements:
 
@@ -12,7 +14,12 @@ Improvements:
       - server_copyright
       - server_information
   - Server displays client information in diagnostic messages
-  
+
+Bug fixes:
+
+  - AMQ-6: consumers not working with Channel.Flow.  Fixed.
+
+---------------------------------------------------------------------
 0.9a3 - 2005/08/18
 - 87k lines of C code (server + async client) - 2005/08/18 - 0.9a3
 
@@ -50,7 +57,9 @@ Bug fixes:
   - "no-local" function in server was broken - fixed.
   - C/C++ client layers did not handle server errors correctly - fixed.
 
+---------------------------------------------------------------------
 0.9a2 - 2005/08/08
+
 - 67k lines of C code (server + async client) - 2005/08/08 - 0.9a2
 
   - Destination field moved out of content header, into publish/deliver
@@ -61,12 +70,14 @@ Bug fixes:
     - can be inherited and extended
     - generates asl_constants.icl class
 
+---------------------------------------------------------------------
 0.9a1 - 2005/08/04
 - 57k lines of C code (server + async client) - 2005/08/02 - 0.9a1
 
   - Server channels redesigned as async objects for better stability
   - Channel.Flow method modified - takes "Active" parameter (true/false)
 
+---------------------------------------------------------------------
 0.9a0 - 2005/08/01 - Alpha release of OpenAMQ/0.9 server
 - 55k lines of C code (server + async client) - 2005/07/31 - 0.9a0
 
