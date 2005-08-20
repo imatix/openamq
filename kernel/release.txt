@@ -6,12 +6,13 @@ Improvements:
   - Added 'client_properties' field to Connection.Start-ok method.
   - The server now correctly announces itself to clients.
   - amq_client_connection object has these new properties:
-    - server_product
-    - server_version
-    - server_platform
-    - server_copyright
-    - server_information
-
+      - server_product
+      - server_version
+      - server_platform
+      - server_copyright
+      - server_information
+  - Server displays client information in diagnostic messages
+  
 0.9a3 - 2005/08/18
 - 87k lines of C code (server + async client) - 2005/08/18 - 0.9a3
 

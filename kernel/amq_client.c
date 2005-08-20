@@ -238,7 +238,14 @@ main (int argc, char *argv [])
         amq_client_connection_auth_plain ("guest", "guest"),
         atoi (opt_trace),
         30000);                         //  Timeout
-    if (!connection) {
+
+    if (connection)
+        icl_console_print ("I: connected to %s/%s - %s - %s",
+            connection->server_product,
+            connection->server_version,
+            connection->server_platform,
+            connection->server_information);
+    else {
         icl_console_print ("E: could not connect to server");
         goto finished;
     }
