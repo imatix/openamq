@@ -187,7 +187,7 @@ main (int argc, char *argv [])
     
     amq_client_session_destroy    (&session);
     amq_client_connection_destroy (&connection);
-    icl_system_destroy ();
+    icl_system_terminate ();
     return (0);
 
     finished:

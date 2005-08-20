@@ -237,7 +237,7 @@ s_run_server (void)
     amq_server_config_destroy (&amq_server_config);
     if (s_opt_showinfo)
         icl_stats_dump ();
-    icl_system_destroy ();
+    icl_system_terminate ();
     return (0);
 }
 

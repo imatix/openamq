@@ -361,7 +361,7 @@ main (int argc, char *argv [])
     if (showinfo)
         icl_stats_dump ();
 
-    icl_system_destroy ();
+    icl_system_terminate ();
     return (0);
 }
 
