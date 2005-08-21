@@ -81,10 +81,10 @@
                                      class = "icl private class" >Server system exchange class</file>
 <file name = "amq_exchange_fanout.icl"
                                      class = "icl private class" >Server fanout exchange class</file>
-<file name = "amq_exchange_dest_name.icl"
-                                     class = "icl private class" >Server dest-name exchange class</file>
+<file name = "amq_exchange_dest.icl" class = "icl private class" >Server dest-name exchange class</file>
 <file name = "amq_exchange_dest_wild.icl"
                                      class = "icl private class" >Server dest-wild exchange class</file>
+<file name = "amq_exchange_prop.icl" class = "icl private class" >Server property exchange class</file>
 <file name = "amq_binding.icl"       class = "icl private class" >Server exchange bindings class</file>
 <file name = "amq_binding_list.icl"  class = "icl private cont"  >Server exchange bindings list</file>
 <file name = "amq_index.icl"         class = "icl private class" >Message matching index class</file>

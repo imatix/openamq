@@ -1,14 +1,15 @@
 <?xml?>
 <class
-    name      = "amq_exchange_dest_wild"
-    comment   = "Dest_wild exchange class"
+    name      = "amq_exchange_prop"
+    comment   = "prop exchange class"
     version   = "1.0"
     copyright = "Copyright (c) 2004-2005 iMatix Corporation"
     script    = "icl_gen"
     >
 <doc>
-This class implements the dest_wild exchange, which routes messages
-based on their "destination" property.
+This class implements the prop exchange, which routes messages
+based on the message header fields (content header "headers"
+table).
 </doc>
 
 <inherit class = "amq_exchange_base" />
@@ -34,7 +35,7 @@ based on their "destination" property.
 
 <method name = "compile">
     <doc>
-    Compiles a dest_wild binding.
+    Compiles a prop binding.
     </doc>
     <local>
     asl_field_list_t
@@ -55,7 +56,7 @@ based on their "destination" property.
         if (destination) {
             //  Turn the destination string into a nice regexp
             icl_shortstr_cpy (binding->destination, asl_field_string (destination));
-            s_dest_wild_to_regexp (asl_field_string (destination), binding->regexp);
+            s_prop_to_regexp (asl_field_string (destination), binding->regexp);
             regexp = ipr_regexp_new (binding->regexp);
 
             if (amq_server_config_trace_route (amq_server_config))
@@ -152,7 +153,7 @@ based on their "destination" property.
 #define S_WILDCARD_SINGLE     "`w+"                 //  *
 #define S_WILDCARD_MULTIPLE   "`w+(?:`.`w+)*"       //  #
 static void
-    s_dest_wild_to_regexp (char *index_regexp, char *regexp);
+    s_prop_to_regexp (char *index_regexp, char *regexp);
 </private>
 
 <private>
@@ -163,7 +164,7 @@ static void
       index levels are separated by '.'.  regexp must be an icl_shortstr_t.
  */
 static void
-s_dest_wild_to_regexp (char *dest_wild, char *regexp)
+s_prop_to_regexp (char *prop, char *regexp)
 {
     char
         *from_ptr,
@@ -176,7 +177,7 @@ s_dest_wild_to_regexp (char *dest_wild, char *regexp)
      */
     to_ptr = regexp;
     *to_ptr++ = '^';                    //  index start of index name
-    for (from_ptr = dest_wild; *from_ptr; from_ptr++) {
+    for (from_ptr = prop; *from_ptr; from_ptr++) {
         if (isalnum (*from_ptr))
             *to_ptr++ = *from_ptr;
         else

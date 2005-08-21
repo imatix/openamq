@@ -167,16 +167,7 @@
 
 ---- BUGS
 
-    amp_client_session:
-    - client hangs if trying to read
-
-- unknown
-    - when trying to synchronise client/server shutdown, get a freeze
-        - client sends connection.close
-        - client waits for method
-        - server reads connection.close
-        - server writes connection.close-ok
-        - client never receives it...
+    - smt crash on exit, shmem error
 
 --- TEST CASES
 
@@ -245,66 +236,6 @@ Some ideas
 ----------------------------------------------------------------------------
 
 
----- DONE
-
-August
-    1.0a3
-    - implemented no-local flag on queue consumers
-        - affects the way messages are distributed from a queue
-
-    1.0a2
-    --Done--------
-    - client API is more SASL-compliant (pass auth_data block)
-    - move destination field out of headers, into methods
-    - generate protocol constants from ASL specifications
-        - asl_constants.asl
-        - can be inherited and extended
-        - generates asl_constants.icl class
-
-    1.0a1
-    --Done--------
-    - robust handling of exchange, queue tables filled
-        - also increased from 255 to 64k per virtual host
-    - connection recovery
-        - server and client hand-shake after recovery
-    - channel flow control
-        - new consumers created according to channel state
-        - flow on/off enables/disables consumers
-        - queue dispatching works only with active consumers
-        - enabling a consumer provokes queue dispatching
-    - validate server port number <64k and >1024
-    - allow server port to be specified on command line
-
-July
-    --Done--------
-    - exchanges internal/external flag
-    - exchange.bind to make multilevel exchanges
-    - Basic consumers
-        - consume/cancel works as for JMS class
-    - asynchronous dispatching
-        - i.e. consume from existing queue
-    - extend client connection with own context
-        - e.g. reply code, session key, etc.
-    - extend client session with own context
-        - e.g. reply code, consumer tag, etc.
-    - consumer tagging
-        - index of consumer per channel
-        - cancel method
-    - longstr, tables increased to 4Gb limit
-    - frames redefined to remove all small limits
-    - queue bounce messages
-        - no routing in exchange (mandatory field)
-        - no consumers in queue (immediate field)
-    - undeliverable messages are bounced
-        - Jms.Bounce, Basic.Bounce methods
-        - provided to client in queues
-    - exchange base class
-        - list of bindings
-            per binding, looseref list of queues & exchanges
-    - detect & report abnormal client disconnect
-    - generate context keys for new connections
-    - handle connection reconnection
-
 - minimum required for GRM
     - JMS class
 *        consume, consume-ok
@@ -312,7 +243,7 @@ July
 *        publish / immediate
 *        deliver
     - exchange classes
-        dest-wild
+*        dest-wild
         property
     - queue:
 *        jms messages, no priority, no persistence
@@ -320,10 +251,11 @@ July
         basics only - queue max. size?
 *    - fanout, queue, dest-wild, property exchanges
      - jms consumers
-        - preconfigured exchanges
+*        - preconfigured exchanges
         - queue, cbr
 
----- RANDOM
+---- DOCUMENTATION
+
     - write/double-check test methods for all classes - icl, ipr, smt, asl, amq
     - add 'domain' concept to icl
     - redefine all context blocks using domains
