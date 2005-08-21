@@ -60,8 +60,8 @@ This is an abstract base class for all exchange implementations.
     $(selftype)
         *self = self_v;
     char
-        *destination,
-        *message_id;
+        *destination = "",
+        *message_id = NULL;
     Bool
         delivered = FALSE;              //  Set to TRUE if message processed
     </local>

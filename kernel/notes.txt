@@ -1,5 +1,3 @@
-"failed - no error"
-
 ---- IN PROGRESS
 
     0.8 matching
@@ -442,3 +440,70 @@ July
             - write X bytes
             - expect Y bytes
             - etc.
+
+---- OUTBIN
+
+static void
+s_send_method_out (smt_thread_t *thread, dbyte channel)
+{
+    ipr_bucket_t
+        *bucket;
+
+    if (tcb->trace > ASL_TRACE_NONE) {
+        icl_console_print ("****  WRITE TO SOCKET  ***********************************************");
+        icl_console_print ("I: channel=%d", channel);
+        $(basename)_method_dump (tcb->method_out);
+    }
+    //  Encode outgoing method into a local bucket
+    bucket = $(basename)_method_encode (tcb->method_out);
+
+    //  Write method frame header
+    tcb->method_header.type    = ASL_FRAME_METHOD;
+    tcb->method_header.cycle   = tcb->method_cycle++;
+    tcb->method_header.channel = htons (channel);
+    tcb->method_header.size    = htonl (bucket->cur_size);
+    s_socket_write        (thread, (byte *) &tcb->method_header, sizeof (tcb->method_header));
+    s_socket_write_bucket (thread, bucket);
+    ipr_bucket_destroy    (&bucket);
+
+    tcb->out_class_id  = tcb->method_out->class_id;
+    tcb->out_method_id = tcb->method_out->method_id;
+
+    //  Send content if the method is carrying it
+    if (tcb->method_out->content) {
+        ipr_bucket_t
+            *header_bucket,             //  Content header
+            *body_bucket;               //  Content body
+        static byte
+            frame_end = ASL_FRAME_END;
+
+.   for class where count (field)
+.       if index () > 1
+        else
+.       endif
+        if (tcb->out_class_id == $(BASENAME)_$(CLASS.NAME)) {
+            header_bucket = $(protocol.name)_content_$(class.name)_replay_header (tcb->method_out->content);
+            body_bucket   = $(protocol.name)_content_$(class.name)_replay_body (tcb->method_out->content);
+        }
+.   endfor
+        //  Write content header frame                                         
+        tcb->chead_header.type    = ASL_FRAME_HEADER;
+        tcb->chead_header.cycle   = tcb->chead_cycle++;
+        tcb->chead_header.channel = htons (channel);
+        tcb->chead_header.size    = htonl (header_bucket->cur_size + 1);
+        s_socket_write        (thread, (byte *) &tcb->chead_header, sizeof (tcb->chead_header));
+        s_socket_write_bucket (thread, header_bucket);
+        s_socket_write        (thread, &frame_end, 1);
+        ipr_bucket_destroy    (&header_bucket);
+
+        //  Write content body frame
+        tcb->cbody_header.type    = ASL_FRAME_BODY;
+        tcb->cbody_header.cycle   = tcb->cbody_cycle++;
+        tcb->cbody_header.channel = htons (channel);
+        tcb->cbody_header.size    = htonl (body_bucket->cur_size + 1);
+        s_socket_write        (thread, (byte *) &tcb->cbody_header, sizeof (tcb->cbody_header));
+        s_socket_write_bucket (thread, body_bucket);
+        s_socket_write        (thread, &frame_end, 1);
+        ipr_bucket_destroy    (&body_bucket);
+    }
+}

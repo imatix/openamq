@@ -1,5 +1,5 @@
 ---------------------------------------------------------------------
-0.9b0 - 2005/08/
+0.9b0 - 2005/08/21
 - 101k lines of C code (server + async client) - 2005/08/20 - 0.9b0
 
 Improvements:
@@ -14,10 +14,12 @@ Improvements:
       - server_copyright
       - server_information
   - Server displays client information in diagnostic messages
+  - Server and C/C++ client use single system call to write messages
 
-Bug fixes:
+Jira issues:
 
-  - AMQ-6: consumers not working with Channel.Flow.  Fixed.
+  - BASE2-6, BASE2-7, BASE2-8
+  - AMQ-6, AMQ-8
 
 ---------------------------------------------------------------------
 0.9a3 - 2005/08/18
