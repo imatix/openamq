@@ -81,7 +81,7 @@ public class ConnectionStartMethodHandler implements StateAwareMethodListener
                 
             byte[] encodedResponse = response.getDataAsBytes();
             stateManager.changeState(AMQState.CONNECTION_NOT_TUNED);
-            ps.writeFrame(ConnectionStartOkBody.createAMQFrame(evt.getChannelId(), selectedMechanism, encodedResponse,
+            ps.writeFrame(ConnectionStartOkBody.createAMQFrame(evt.getChannelId(), null, selectedMechanism, encodedResponse,
                                                 selectedLocale));
         }
         catch (UnsupportedEncodingException e)
