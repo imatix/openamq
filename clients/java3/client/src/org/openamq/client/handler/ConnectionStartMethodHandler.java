@@ -81,8 +81,13 @@ public class ConnectionStartMethodHandler implements StateAwareMethodListener
                 
             byte[] encodedResponse = response.getDataAsBytes();
             stateManager.changeState(AMQState.CONNECTION_NOT_TUNED);
-            ps.writeFrame(ConnectionStartOkBody.createAMQFrame(evt.getChannelId(), null, selectedMechanism, encodedResponse,
-                                                selectedLocale));
+            FieldTable clientProperties = new FieldTable();
+            clientProperties.put("product", "OpenAMQ JMS");
+            clientProperties.put("version", "0.9");
+            clientProperties.put("platform", getFullSystemInfo());
+            clientProperties.put("copyright", "(C) JP Morgan Chase and iMatix 2005");
+            ps.writeFrame(ConnectionStartOkBody.createAMQFrame(evt.getChannelId(), clientProperties, selectedMechanism,
+                                                               encodedResponse, selectedLocale));
         }
         catch (UnsupportedEncodingException e)
         {
@@ -90,4 +95,17 @@ public class ConnectionStartMethodHandler implements StateAwareMethodListener
         }
     }
 
+    private String getFullSystemInfo()
+    {
+        StringBuffer fullSystemInfo = new StringBuffer();
+        fullSystemInfo.append(System.getProperty("java.runtime.name"));
+        fullSystemInfo.append(", " + System.getProperty("java.runtime.version"));
+        fullSystemInfo.append(", " + System.getProperty("java.vendor"));
+        fullSystemInfo.append(", " + System.getProperty("os.arch"));
+        fullSystemInfo.append(", " + System.getProperty("os.name"));
+        fullSystemInfo.append(", " + System.getProperty("os.version"));
+        fullSystemInfo.append(", " + System.getProperty("sun.os.patch.level"));
+
+        return fullSystemInfo.toString();
+    }
 }
