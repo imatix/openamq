@@ -1,6 +1,4 @@
----------------------------------------------------------------------
-0.9b0 - 2005/08/21
-- 101k lines of C code (server + async client) - 2005/08/20 - 0.9b0
+0.9b0 - 2005/08/21 - 101k lines
 
 Improvements:
 
@@ -16,14 +14,13 @@ Improvements:
   - Server displays client information in diagnostic messages
   - Server and C/C++ client use single system call to write messages
 
-Jira issues:
+Bug fixes:
 
-  - BASE2-6, BASE2-7, BASE2-8
-  - AMQ-6, AMQ-8
+  - Jira BASE2-6, BASE2-7, BASE2-8
+  - Jira AMQ-6, AMQ-8
 
 ---------------------------------------------------------------------
-0.9a3 - 2005/08/18
-- 87k lines of C code (server + async client) - 2005/08/18 - 0.9a3
+0.9a3 - 2005/08/18 - 87k lines
 
 Improvements:
 
@@ -60,9 +57,7 @@ Bug fixes:
   - C/C++ client layers did not handle server errors correctly - fixed.
 
 ---------------------------------------------------------------------
-0.9a2 - 2005/08/08
-
-- 67k lines of C code (server + async client) - 2005/08/08 - 0.9a2
+0.9a2 - 2005/08/08 - 67k lines
 
   - Destination field moved out of content header, into publish/deliver
     and browse-ok methods.
@@ -73,38 +68,13 @@ Bug fixes:
     - generates asl_constants.icl class
 
 ---------------------------------------------------------------------
-0.9a1 - 2005/08/04
-- 57k lines of C code (server + async client) - 2005/08/02 - 0.9a1
+0.9a1 - 2005/08/04 - 57k lines
 
   - Server channels redesigned as async objects for better stability
   - Channel.Flow method modified - takes "Active" parameter (true/false)
 
 ---------------------------------------------------------------------
-0.9a0 - 2005/08/01 - Alpha release of OpenAMQ/0.9 server
-- 55k lines of C code (server + async client) - 2005/07/31 - 0.9a0
+0.9a0 - 2005/08/01 - 55k lines
 
-Implements these methods, wholly or partially:
-
-    Connection.Start-Ok
-    Connection.Tune-Ok
-    Connection.Close
-    Connection.Close-Ok
-    Channel.Open
-    Channel.Flow
-    Channel.Close
-    Channel.Close-Ok
-    Exchange.Declare
-    Exchange.Bind
-    Exchange.Delete
-    Queue.Declare
-    Queue.Bind
-    Queue.Delete
-    Basic.Publish
-    Basic.Browse
-    Basic.Consume
-    Basic.Cancel
-    JMS.Publish
-    JMS.Browse
-    JMS.Consume
-    JMS.Cancel
+  - Initial alpha release of new server and async clients.
 
