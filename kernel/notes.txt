@@ -1,111 +1,5 @@
 ---- IN PROGRESS
 
-    0.8 matching
-        - amq_match -> bitmap of corresponding subscriptions
-            - _topic_re ()
-                - convert topic specifier to regexp
-            - _field_name ()
-                - format field name into index
-            - _field_value ()
-                - format field value into index
-        - amq_match_table -> maintain matching tables
-            - also holds all known topics in array
-            - held per vhost
-            - _parse_topic()
-                - take topic pattern, subscriber nbr
-                - find all matching topics, set subscriber bit
-            - _parse_fields ()
-                - take field selector, subscriber nbr
-                - find all matching field/value pairs, set subscriber bit
-            - _check_topic ()
-                - update match table bitmaps for new topics
-        - amq_hitset -> do actual matching
-            - _match ()
-                - from message, build hitset of subscribers
-            - _publish ()
-                - from hitset, dispatch message to subscribers
-        vhost
-            amq_match_table, amq_topic_array
-                amq_match, bits
-            hitset
-
-    0.9 matching
-        - exchange = governing structure for routing
-            - binding_index = structure that numbers bindings from 1 to n
-            - binding_list = list of bindings
-            - index_hash = table of active indices
-            - index_array = array of active indices
-
-        - binding = relationship between exchange and (queue or exchange)
-            - (aka 0.8: amq_subscr)
-            - queue_list = list of queues for binding
-            - exchange_list = list of exchanges for binding
-            - index_list = looseref list of indices for binding
-
-        - index = search term
-            - index_hash = lookup index by value
-                - ->key index key
-                - ->bitset of matching bindings
-            - index_array = lookup index by number
-                - index key
-
-        - hitset = search results
-
-        Algorithms
-
-        1. Bind to exchange
-
-            - look for binding that matches arguments
-            - if not found, create new binding:
-                - insert binding into exchange->binding_index
-                    - gives binding->index
-                - iterate through indices in exchange->index_array
-                    - compare index to binding argument
-                    - if index matches arguments, set bit in match bitmap
-                        - get index from hash table
-                        - set bit (binding->index) in bitset
-                        - add looseref to index for binding
-            - add to binding queue_list or exchange_list
-
-        Notes:
-            - for matching on destinations (topics), we have to compare the
-              given topic pattern to all known destinations in order to know
-              which match our pattern.
-
-            - for matching on field value/presence, we do not need to compare
-              all known indices; each argument specifies a field name and
-              optional value, and can be mapped directly into a index lookup.
-
-            - for matching on field value wildcards, we have to compare the
-              given field patterns to all known field name/value pairs in
-              order to know which match our pattern.
-
-            - we can derive one generalised solution for all three of these
-              cases but it will be slower than necessary for the second case.
-
-            - this cost is in compiling bindings, and publishing messages with
-              new content... the cost may be payable.
-
-        2. Publish message
-
-            - decode message into indices, for each index:
-                - if new index:
-                    - check each binding for exchange:
-                        - if binding arguments match index
-                            - update index->bitset for binding->index
-                            - add index to binding index list
-                    - save new index with bitset to index_hash
-                    - add index to index_array
-                - lookup index into index_hash
-                - iterate through bits in bitset:
-                    - update hit count in hitset table
-            - for each valid hit in hitset:
-                - publish message to binding
-
----- STAT
-
-- 0.8 - 57k lines of C code (server + async client) -              0.8d10
-
 ---- TODO
 
     - unify queue domain and template concepts
@@ -118,20 +12,42 @@
     - define reply-to as URL:
         amqp://servername:port/exchange/destination
 
+    - handle large contents
+        - assume recipient can handle same frame size
+            - otherwise complain
+        - read content buckets
+        - array of buckets? looseref list?
+            - on output, write same list...
+            - if just one, collapse into single block
+        
     - store content header without parsing
+        - store content header in content without parsing it
         - replay from stored block
-        - parse only if needed for field matching
+        - if needed for matching,
+            - decode it
+            - define methods to do this easily...
+            - decode once -> content
+            - then access content fields
+            - headers -> field list
+                -> decode automatically
+                -> destroy at end...
 
-    - clarify protocol for aborting single large message
-        - close channel?
-        - send end-of-message frame?
+---- PROXY
 
-    - content routing information
-        - exchange (currently root, should be list)
-        - destination
-        - producer_id (for no_local, and bounces)
-        - mandatory, immediate flags (currently as method options)
-
+    - standard ASL component
+    - built-in to amq_server
+    - runs on separate port
+    - handles multiple simultaneous connections
+    - record mode
+        - opens local server port to main protocol
+        - passes data to/from clients
+        - records session (start to finish)
+    - replay mode
+        - replays session (start to finish)
+        - maintains order of request response
+            - write X bytes
+            - expect Y bytes
+            - etc.
     - tool to generate test clients
         - standard set of options for all test programs
         - define methods wanted as XML program
@@ -154,20 +70,23 @@
         ... forms part of formal protocol specifications
     - part of asl...
 
+---- FOR 1.0
 
+    - routing information in contents
+        - exchange (currently root, should be list)
+        - destination
+        - producer_id (for no_local, and bounces)
+        - mandatory, immediate flags (currently as method options)
 
-- proxy program
-    - log methods
-    - replay methods
-    - print log for readability
-- client and server should announce themselves
-    - public names
-    - virtual host descriptions
+---- POST-1.0
 
+    - clarify protocol for aborting single large message
+        - send large message via dialog
+        - read incoming data while sending outgoing
+        - abort send with empty body, if Jms.Reject or Browse.Reject sent
+            - can this be done in asl?
 
 ---- BUGS
-
-    - smt crash on exit, shmem error
 
 --- TEST CASES
 
@@ -275,28 +194,12 @@ Some ideas
     - icl code generation has become really messy
         - blank lines
         - indentation
-    - icl "release" as opposite of "possess"?
-    - icl/smt
-        - <local> per sync and async
-        - <local name = "async">
-        - <header name = "async">.. etc.
-        - <body name = "async">
     - smt
         - socket output buffering and flushing
         - socket input buffering
-        - write bucket of zero size causes problems
         - can't group actions in grouped actions
         - loses/delays socket_error when heavily used
-            - e.g. disconnection trapped only when next client connects
-
-    --Done--------
-    - ipr containers
-        - _size property giving number of elements
-    - smt
-        - delay timers appear to kill thread
-        - multithreading under win32
-    - icl
-        - icl.gsl is not a nice name, move stdc back into icl_stdc
+           - e.g. disconnection trapped only when next client connects
 
 ---- SMT links HOWTO
 
@@ -351,91 +254,4 @@ Some ideas
             - repeat only stored data
                 - messages, subscriptions
 
----- JIRA
 
-    - should show summary of open issues as first view on project
-    - modify workflow: pending, ready-to-test, rejected, cancelled states
-
----- PROXY
-
-    - standard ASL component
-    - built-in to amq_server
-    - runs on separate port
-    - handles multiple simultaneous connections
-    - record mode
-        - opens local server port to main protocol
-        - passes data to/from clients
-        - records session (start to finish)
-    - replay mode
-        - replays session (start to finish)
-        - maintains order of request response
-            - write X bytes
-            - expect Y bytes
-            - etc.
-
----- OUTBIN
-
-static void
-s_send_method_out (smt_thread_t *thread, dbyte channel)
-{
-    ipr_bucket_t
-        *bucket;
-
-    if (tcb->trace > ASL_TRACE_NONE) {
-        icl_console_print ("****  WRITE TO SOCKET  ***********************************************");
-        icl_console_print ("I: channel=%d", channel);
-        $(basename)_method_dump (tcb->method_out);
-    }
-    //  Encode outgoing method into a local bucket
-    bucket = $(basename)_method_encode (tcb->method_out);
-
-    //  Write method frame header
-    tcb->method_header.type    = ASL_FRAME_METHOD;
-    tcb->method_header.cycle   = tcb->method_cycle++;
-    tcb->method_header.channel = htons (channel);
-    tcb->method_header.size    = htonl (bucket->cur_size);
-    s_socket_write        (thread, (byte *) &tcb->method_header, sizeof (tcb->method_header));
-    s_socket_write_bucket (thread, bucket);
-    ipr_bucket_destroy    (&bucket);
-
-    tcb->out_class_id  = tcb->method_out->class_id;
-    tcb->out_method_id = tcb->method_out->method_id;
-
-    //  Send content if the method is carrying it
-    if (tcb->method_out->content) {
-        ipr_bucket_t
-            *header_bucket,             //  Content header
-            *body_bucket;               //  Content body
-        static byte
-            frame_end = ASL_FRAME_END;
-
-.   for class where count (field)
-.       if index () > 1
-        else
-.       endif
-        if (tcb->out_class_id == $(BASENAME)_$(CLASS.NAME)) {
-            header_bucket = $(protocol.name)_content_$(class.name)_replay_header (tcb->method_out->content);
-            body_bucket   = $(protocol.name)_content_$(class.name)_replay_body (tcb->method_out->content);
-        }
-.   endfor
-        //  Write content header frame                                         
-        tcb->chead_header.type    = ASL_FRAME_HEADER;
-        tcb->chead_header.cycle   = tcb->chead_cycle++;
-        tcb->chead_header.channel = htons (channel);
-        tcb->chead_header.size    = htonl (header_bucket->cur_size + 1);
-        s_socket_write        (thread, (byte *) &tcb->chead_header, sizeof (tcb->chead_header));
-        s_socket_write_bucket (thread, header_bucket);
-        s_socket_write        (thread, &frame_end, 1);
-        ipr_bucket_destroy    (&header_bucket);
-
-        //  Write content body frame
-        tcb->cbody_header.type    = ASL_FRAME_BODY;
-        tcb->cbody_header.cycle   = tcb->cbody_cycle++;
-        tcb->cbody_header.channel = htons (channel);
-        tcb->cbody_header.size    = htonl (body_bucket->cur_size + 1);
-        s_socket_write        (thread, (byte *) &tcb->cbody_header, sizeof (tcb->cbody_header));
-        s_socket_write_bucket (thread, body_bucket);
-        s_socket_write        (thread, &frame_end, 1);
-        ipr_bucket_destroy    (&body_bucket);
-    }
-}

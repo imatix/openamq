@@ -465,7 +465,9 @@
     The server SHOULD be capable of accepting and process the Reject
     method while sending message content with a Deliver or Browse-Ok
     method.  I.e. the server should read and process incoming methods
-    while sending output frames.
+    while sending output frames.  To cancel a partially-send content,
+    the server sends a content body frame of size 1 (i.e. with no data
+    except the frame-end octet).
   </doc>
   <doc name = "rule">
     The server SHOULD interpret this method as meaning that the client

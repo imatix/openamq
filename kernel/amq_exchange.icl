@@ -60,8 +60,8 @@ for each class of exchange. This is a lock-free asynchronous class.
 #define AMQ_EXCHANGE_SYSTEM         1
 #define AMQ_EXCHANGE_FANOUT         2
 #define AMQ_EXCHANGE_DEST           3
-#define AMQ_EXCHANGE_DEST_WILD      4
-#define AMQ_EXCHANGE_PROP           5
+#define AMQ_EXCHANGE_TOPIC          4
+#define AMQ_EXCHANGE_HEADERS        5
 </public>
 
 <method name = "new">
@@ -98,16 +98,16 @@ for each class of exchange. This is a lock-free asynchronous class.
         self->compile = amq_exchange_dest_compile;
     }
     else
-    if (self->class == AMQ_EXCHANGE_DEST_WILD) {
-        self->object  = amq_exchange_dest_wild_new (self);
-        self->publish = amq_exchange_dest_wild_publish;
-        self->compile = amq_exchange_dest_wild_compile;
+    if (self->class == AMQ_EXCHANGE_TOPIC) {
+        self->object  = amq_exchange_topic_new (self);
+        self->publish = amq_exchange_topic_publish;
+        self->compile = amq_exchange_topic_compile;
     }
     else
-    if (self->class == AMQ_EXCHANGE_PROP) {
-        self->object  = amq_exchange_prop_new (self);
-        self->publish = amq_exchange_prop_publish;
-        self->compile = amq_exchange_prop_compile;
+    if (self->class == AMQ_EXCHANGE_HEADERS) {
+        self->object  = amq_exchange_headers_new (self);
+        self->publish = amq_exchange_headers_publish;
+        self->compile = amq_exchange_headers_compile;
     }
     else
         icl_console_print ("E: invalid class '%d' in exchange_new", self->class);
@@ -126,11 +126,11 @@ for each class of exchange. This is a lock-free asynchronous class.
     if (self->class == AMQ_EXCHANGE_DEST)
         amq_exchange_dest_destroy ((amq_exchange_dest_t **) &self->object);
     else
-    if (self->class == AMQ_EXCHANGE_DEST_WILD)
-        amq_exchange_dest_wild_destroy ((amq_exchange_dest_wild_t **) &self->object);
+    if (self->class == AMQ_EXCHANGE_TOPIC)
+        amq_exchange_topic_destroy ((amq_exchange_topic_t **) &self->object);
     else
-    if (self->class == AMQ_EXCHANGE_PROP)
-        amq_exchange_prop_destroy ((amq_exchange_prop_t **) &self->object);
+    if (self->class == AMQ_EXCHANGE_HEADERS)
+        amq_exchange_headers_destroy ((amq_exchange_headers_t **) &self->object);
     </action>
 </method>
 
@@ -160,11 +160,11 @@ for each class of exchange. This is a lock-free asynchronous class.
     if (streq (class_name, "dest"))
         rc = AMQ_EXCHANGE_DEST;
     else
-    if (streq (class_name, "dest_wild"))
-        rc = AMQ_EXCHANGE_DEST_WILD;
+    if (streq (class_name, "topic"))
+        rc = AMQ_EXCHANGE_TOPIC;
     else
-    if (streq (class_name, "prop"))
-        rc = AMQ_EXCHANGE_PROP;
+    if (streq (class_name, "headers"))
+        rc = AMQ_EXCHANGE_HEADERS;
     else
         rc = 0;
 </method>

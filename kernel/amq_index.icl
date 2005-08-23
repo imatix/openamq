@@ -8,7 +8,7 @@
     >
 <doc>
     Holds a match index, which is a text string on which AMQ will index and
-    match messages.  Each index holds a hitset bitmap that represents all
+    match messages.  Each index holds a bindset bitmap that represents all
     bindings that match that index.  Indices can be accessed via a hash
     lookup (by value) or array lookup (by number, for iterating through all
     indices).
@@ -21,9 +21,11 @@
     <option name = "prefix"    value = "hash" />
     <option name = "hash_type" value = "str" />
     <option name = "hash_size" value = "65535" />
+    <option name = "rwlock"    value = "0" />
 </inherit>
 <inherit class = "icl_array_item">
     <option name = "prefix"    value = "array" />
+    <option name = "rwlock"    value = "0" />
 </inherit>
 
 <public name = "include">
@@ -32,17 +34,17 @@
 
 <context>
     ipr_bits_t
-        *hitset;                        //  Bitmap of bindings that match
+        *bindset;                       //  Bitmap of bindings that match
 </context>
 
 <method name = "new">
     <!-- Always insert new items at the end of the array -->
     <dismiss argument = "index" value = "array->bound" />
-    self->hitset = ipr_bits_new ();
+    self->bindset = ipr_bits_new ();
 </method>
 
 <method name = "destroy">
-    ipr_bits_destroy (&self->hitset);
+    ipr_bits_destroy (&self->bindset);
 </method>
 
 <method name = "selftest">

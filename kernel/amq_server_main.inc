@@ -218,10 +218,10 @@ s_run_server (void)
 
     //  Automatic wiring schemes
     s_exchange_declare ("$queue",  AMQ_EXCHANGE_DEST);
-    s_exchange_declare ("$topic",  AMQ_EXCHANGE_DEST_WILD);
+    s_exchange_declare ("$topic",  AMQ_EXCHANGE_TOPIC);
     s_exchange_declare ("$system", AMQ_EXCHANGE_SYSTEM);
     s_exchange_declare ("$reply",  AMQ_EXCHANGE_DEST);
-    s_exchange_declare ("$alert",  AMQ_EXCHANGE_DEST_WILD);
+    s_exchange_declare ("$alert",  AMQ_EXCHANGE_TOPIC);
 
     //  Execute the server                                                   
     smt_os_thread_wait (0);

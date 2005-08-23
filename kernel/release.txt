@@ -1,7 +1,20 @@
 ---------------------------------------------------------------------
 0.9b1 - 2005/08/ - 101k lines
 
+Improvements:
 
+  - Implemented the "headers" exchange class (for header-field routing).
+  - 
+
+Changes:
+
+  - Renamed "dest_name" exchange class to "dest".
+  - Renamed "dest_wild" exchange class to "topic".
+
+Bug fixes:
+
+  - 
+   
 ---------------------------------------------------------------------
 0.9b0 - 2005/08/21 - 101k lines
 
@@ -19,10 +32,10 @@ Improvements:
   - Server displays client information in diagnostic messages
   - Server and C/C++ client use single system call to write messages
 
-Jira issues:
+Bug fixes:
 
-  - BASE2-6, BASE2-7, BASE2-8
-  - AMQ-6, AMQ-8
+  - Jira BASE2-6, BASE2-7, BASE2-8
+  - Jira AMQ-6, AMQ-8
 
 ---------------------------------------------------------------------
 0.9a3 - 2005/08/18 - 87k lines
