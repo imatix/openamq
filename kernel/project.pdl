@@ -81,12 +81,14 @@
                                      class = "icl private class" >Server system exchange class</file>
 <file name = "amq_exchange_fanout.icl"
                                      class = "icl private class" >Server fanout exchange class</file>
-<file name = "amq_exchange_dest_name.icl"
-                                     class = "icl private class" >Server dest-name exchange class</file>
-<file name = "amq_exchange_dest_wild.icl"
+<file name = "amq_exchange_dest.icl" class = "icl private class" >Server dest-name exchange class</file>
+<file name = "amq_exchange_topic.icl"
                                      class = "icl private class" >Server dest-wild exchange class</file>
+<file name = "amq_exchange_headers.icl"
+                                     class = "icl private class" >Server headers exchange class</file>
 <file name = "amq_binding.icl"       class = "icl private class" >Server exchange bindings class</file>
 <file name = "amq_binding_list.icl"  class = "icl private cont"  >Server exchange bindings list</file>
+<file name = "amq_hitset.icl"        class = "icl private class" >Server exchange hitset class</file>
 <file name = "amq_index.icl"         class = "icl private class" >Message matching index class</file>
 <file name = "amq_index_hash.icl"    class = "icl private cont"  >Message matching index hash</file>
 <file name = "amq_index_array.icl"   class = "icl private cont"  >Message matching index array</file>
@@ -118,6 +120,8 @@
 <!-- Test programs -->
 <file name = "amq_pub.c"             class = "main program"      >Topic publisher</file>
 <file name = "amq_sub.c"             class = "main program"      >Topic subscriber</file>
+<file name = "amq_fpub.c"            class = "main program"      >Field publisher</file>
+<file name = "amq_fsub.c"            class = "main program"      >Field subscriber</file>
 
 <!-- Shared classes -->
 <file name = "amq_hash.icl"          class = "icl private class" >Loose hash item</file>

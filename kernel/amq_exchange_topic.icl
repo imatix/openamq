@@ -1,14 +1,15 @@
 <?xml?>
 <class
-    name      = "amq_exchange_dest_wild"
-    comment   = "Dest-wild exchange class"
+    name      = "amq_exchange_topic"
+    comment   = "topic exchange class"
     version   = "1.0"
     copyright = "Copyright (c) 2004-2005 iMatix Corporation"
     script    = "icl_gen"
     >
 <doc>
-This class implements the dest-wild exchange, which routes messages
-based on their "destination" property.
+This class implements the topic exchange, which routes messages
+based on their "destination" property matched against a wild-card
+topic tree specification.
 </doc>
 
 <inherit class = "amq_exchange_base" />
@@ -17,9 +18,9 @@ based on their "destination" property.
 
 <context>
     amq_index_hash_t
-        *index_hash;                    //  Indices by hash lookup
+        *index_hash;                    //  Access by text key
     amq_index_array_t
-        *index_array;                   //  Indices by number
+        *index_array;                   //  Access by number 0..n-1
 </context>
 
 <method name = "new">
@@ -34,7 +35,14 @@ based on their "destination" property.
 
 <method name = "compile">
     <doc>
-    Compiles a dest-wild binding.
+    Compiles a topic binding.  The arguments must contain a field
+    called "destination", who's value is a destination wildcard pattern
+    that conforms to the AMQP specifications for topic matching.  This
+    means:
+    
+      - multiple levels separated by '.', e.g. "nasdaq.ibm.usd"
+      - single level wildcard represented by '*', e.g. "nasdaq.*.usd"
+      - multiple level wildcard represented by '#', e.g. "#.usd"
     </doc>
     <local>
     asl_field_list_t
@@ -55,7 +63,7 @@ based on their "destination" property.
         if (destination) {
             //  Turn the destination string into a nice regexp
             icl_shortstr_cpy (binding->destination, asl_field_string (destination));
-            s_dest_wild_to_regexp (asl_field_string (destination), binding->regexp);
+            s_topic_to_regexp (asl_field_string (destination), binding->regexp);
             regexp = ipr_regexp_new (binding->regexp);
 
             if (amq_server_config_trace_route (amq_server_config))
@@ -71,7 +79,7 @@ based on their "destination" property.
                                 binding->destination, index->key);
 
                         //  Cross-reference binding and index
-                        ipr_bits_set (index->hitset, binding->index);
+                        ipr_bits_set (index->bindset, binding->index);
                         ipr_looseref_queue (binding->index_list, index);
                     }
                     amq_index_unlink (&index);
@@ -103,7 +111,7 @@ based on their "destination" property.
     ipr_regexp_t
         *regexp;                        //  Regular expression object
     int
-        binding_nbr;                    //  Binding number, 1..n from hitset
+        binding_nbr;                    //  Binding number, 1..n from bindset
     </local>
     //
     //  Check if destination is already indexed, else reindex bindings on it
@@ -125,7 +133,7 @@ based on their "destination" property.
                         destination, binding->destination);
                         
                 //  Cross-reference binding and index
-                ipr_bits_set (index->hitset, binding->index);
+                ipr_bits_set (index->bindset, binding->index);
                 ipr_looseref_queue (binding->index_list, index);
             }
             ipr_regexp_destroy (&regexp);
@@ -136,7 +144,7 @@ based on their "destination" property.
         icl_console_print ("X: route    destination=%s", destination);
 
     assert (index);
-    for (IPR_BITS_EACH (binding_nbr, index->hitset)) {
+    for (IPR_BITS_EACH (binding_nbr, index->bindset)) {
         binding = self->exchange->binding_index->data [binding_nbr];
         if (amq_server_config_trace_route (amq_server_config))
             icl_console_print ("X: hit      wildcard=%s", binding->destination);
@@ -152,7 +160,7 @@ based on their "destination" property.
 #define S_WILDCARD_SINGLE     "`w+"                 //  *
 #define S_WILDCARD_MULTIPLE   "`w+(?:`.`w+)*"       //  #
 static void
-    s_dest_wild_to_regexp (char *index_regexp, char *regexp);
+    s_topic_to_regexp (char *index_regexp, char *regexp);
 </private>
 
 <private>
@@ -163,7 +171,7 @@ static void
       index levels are separated by '.'.  regexp must be an icl_shortstr_t.
  */
 static void
-s_dest_wild_to_regexp (char *dest_wild, char *regexp)
+s_topic_to_regexp (char *topic, char *regexp)
 {
     char
         *from_ptr,
@@ -176,7 +184,7 @@ s_dest_wild_to_regexp (char *dest_wild, char *regexp)
      */
     to_ptr = regexp;
     *to_ptr++ = '^';                    //  index start of index name
-    for (from_ptr = dest_wild; *from_ptr; from_ptr++) {
+    for (from_ptr = topic; *from_ptr; from_ptr++) {
         if (isalnum (*from_ptr))
             *to_ptr++ = *from_ptr;
         else

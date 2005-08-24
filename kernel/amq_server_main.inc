@@ -191,37 +191,38 @@ s_load_config (char *config_file, char *overlay)
 }
 
 
-//  Initialise server                                                        
+//  Initialise server
 
 static int
 s_run_server (void)
 {
-    //  Do synchronous class initialisations here                            
-    //  -------------------------------------------------------------------  
+    //  Do synchronous class initialisations here
+    //  -------------------------------------------------------------------
 
-    //  Set tracing options                                                  
+    //  Set tracing options
     amq_server_config_set_trace   (amq_server_config, atoi (s_opt_trace));
     amq_server_config_set_monitor (amq_server_config, (Bool) atoi (s_opt_monitor));
 
     if (s_opt_port)
         amq_server_config_set_port (amq_server_config, s_opt_port);
 
-    //  We use a single global vhost for now                                 
+    //  We use a single global vhost for now
     amq_vhost = amq_vhost_new ();
 
     if (amq_server_agent_init ()) {
         icl_console_print ("E: could not start server protocol agent");
         return (1);
     }
-    //  Do asynchronous class initialisations here                           
+    //  Do asynchronous class initialisations here
     //  -------------------------------------------------------------------  
 
     //  Automatic wiring schemes
-    s_exchange_declare ("$queue",  AMQ_EXCHANGE_DEST_NAME);
-    s_exchange_declare ("$topic",  AMQ_EXCHANGE_DEST_WILD);
+    s_exchange_declare ("$queue",  AMQ_EXCHANGE_DEST);
+    s_exchange_declare ("$topic",  AMQ_EXCHANGE_TOPIC);
+    s_exchange_declare ("$match",  AMQ_EXCHANGE_HEADERS);
     s_exchange_declare ("$system", AMQ_EXCHANGE_SYSTEM);
-    s_exchange_declare ("$reply",  AMQ_EXCHANGE_DEST_NAME);
-    s_exchange_declare ("$alert",  AMQ_EXCHANGE_DEST_WILD);
+    s_exchange_declare ("$reply",  AMQ_EXCHANGE_DEST);
+    s_exchange_declare ("$alert",  AMQ_EXCHANGE_TOPIC);
 
     //  Execute the server                                                   
     smt_os_thread_wait (0);

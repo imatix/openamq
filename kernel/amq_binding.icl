@@ -44,6 +44,12 @@ class.
         destination;                    //  Binding destination value
     icl_shortstr_t
         regexp;                         //  Binding destination pattern
+
+    //  Only used for property matching, might be moved elsewhere
+    int
+        field_count;                    //  Number of fields indexed
+    Bool
+        match_all;                      //  Match all fields?
 </context>
 
 <method name = "new">

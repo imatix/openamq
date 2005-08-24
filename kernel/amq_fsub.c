@@ -74,7 +74,10 @@ main (int argc, char *argv [])
         batch_size,
         msgsize,
         repeats;
+    asl_field_list_t
+        *field_list;                    //  For binding arguments
     icl_longstr_t
+        *headers,                       //  Subscribed fields
         *arguments;                     //  Serialised into long string
 
     //  These are the arguments we may get on the command line
@@ -209,10 +212,21 @@ main (int argc, char *argv [])
         ticket, "global", opt_queue, FALSE, FALSE, FALSE, FALSE))
         goto finished;
 
-    //  Set-up a dest-wild pattern binding
-    arguments = asl_field_list_build ("destination", "*.eur", NULL);
+    //  Set-up a headers pattern binding
+    headers = asl_field_list_build (
+        "currency", "eur",
+        "stock", "ibm",
+        "realtime", "",                 //  Field presence
+        NULL);
+
+    field_list = asl_field_list_new (NULL);
+    asl_field_new_longstr (field_list, "headers", headers);
+    asl_field_new_string  (field_list, "match",  "all");
+    arguments = asl_field_list_flatten (field_list);
+    asl_field_list_destroy (&field_list);
     rc = amq_client_session_queue_bind (
-        session, ticket, "global", opt_queue, "$topic", arguments);
+        session, ticket, "global", opt_queue, "$match", arguments);
+    icl_longstr_destroy (&headers);
     icl_longstr_destroy (&arguments);
     if (rc)
         goto finished;                  //  Quit if that failed

@@ -201,8 +201,8 @@
   <doc>
     This method binds a queue to an exchange.  Until a queue is
     bound it will not receive any messages.  In a classic messaging
-    model, store-and-forward queues are bound to a dest-name exchange
-    and subscription queues are bound to a dest-wild exchange.
+    model, store-and-forward queues are bound to a dest exchange
+    and subscription queues are bound to a dest_wild exchange.
   </doc>
   <doc name = "rule">
     A server MUST allow ignore duplicate bindings - that is, two or

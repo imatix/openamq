@@ -1,3 +1,21 @@
+---------------------------------------------------------------------
+0.9b1 - 2005/08/24 - 89k lines
+
+Improvements:
+
+  - Implemented the "headers" exchange class (for header-field routing).
+  - Predefined "$match" (headers class) exchange.
+
+Changes:
+
+  - Renamed "dest_name" exchange class to "dest".
+  - Renamed "dest_wild" exchange class to "topic".
+
+Bug fixes:
+
+  - 
+   
+---------------------------------------------------------------------
 0.9b0 - 2005/08/21 - 101k lines
 
 Improvements:
