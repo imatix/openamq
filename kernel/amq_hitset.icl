@@ -35,8 +35,8 @@
 </method>
 
 <method name = "collect" template = "function">
-    <argument name = "index table" type = "amq_index_hash_t *">Search this hash</argument>
-    <argument name = "index key"   type = "char *">For this term</argument>
+    <argument name = "index hash" type = "amq_index_hash_t *">Search this hash</argument>
+    <argument name = "index key"  type = "char *">For this term</argument>
     <local>
     amq_index_t
         *index;                         //  Index item                       
@@ -46,9 +46,9 @@
     if (amq_server_config_trace_route (amq_server_config))
         icl_console_print ("X: route    header=%s", index_key);
 
-    index = amq_index_table_search (index_table, index_key);
+    index = amq_index_hash_search (index_hash, index_key);
     if (index) {
-        for (IPR_BITS_EACH (item_nbr, index->bits)) {
+        for (IPR_BITS_EACH (item_nbr, index->bindset)) {
             if (item_nbr < self->lowest)
                 self->lowest = item_nbr;
             if (item_nbr > self->highest) {

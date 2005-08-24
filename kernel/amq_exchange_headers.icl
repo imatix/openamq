@@ -64,7 +64,7 @@ that is in every content header).
         binding->match_all = TRUE;      //  By default, want full match
         field = asl_field_list_search (fields, "match");
         if (field) {
-            if (streq (amq_field_string (field), "any")) {
+            if (streq (asl_field_string (field), "any")) {
                 if (amq_server_config_trace_route (amq_server_config))
                     icl_console_print ("X: select   match=any", index_key);
                 binding->match_all = FALSE;
@@ -73,7 +73,7 @@ that is in every content header).
         }
         field = asl_field_list_search (fields, "headers");
         if (field) {
-            headers = asl_field_list_new (amq_field_string (field));
+            headers = asl_field_list_new (field->string);
             asl_field_unlink (&field);
             if (headers) {
                 field = asl_field_list_first (headers);
@@ -82,15 +82,15 @@ that is in every content header).
                     //  We truncate name and value to sensible limits
             
                     icl_shortstr_ncpy (index_key, field->name, FIELD_NAME_MAX);
-                    if (*amq_field_string (field)) {
+                    if (*asl_field_string (field)) {
                         icl_shortstr_cat  (index_key, "=");
                         icl_shortstr_ncat (index_key,
-                            amq_field_string (field), FIELD_VALUE_MAX);
+                            asl_field_string (field), FIELD_VALUE_MAX);
                     }
                     if (amq_server_config_trace_route (amq_server_config))
                         icl_console_print ("X: index    request=%s", index_key);
             
-                    index = amq_index_table_search (self->index_hash, index_key);
+                    index = amq_index_hash_search (self->index_hash, index_key);
                     if (index == NULL)
                         index = amq_index_new (self->index_hash, index_key, self->index_array);
 
@@ -102,7 +102,7 @@ that is in every content header).
                     binding->field_count++;
                     amq_index_unlink (&index);
 
-                    field = amq_field_list_next (field);
+                    field = asl_field_list_next (&field);
                 }
                 asl_field_list_destroy (&headers);
             }
@@ -128,8 +128,10 @@ that is in every content header).
         *headers;                       //  Decoded header fields
     icl_shortstr_t
         index_key;                      //  Index key to match on
-    amq_hitset
+    amq_hitset_t
         *hitset;                        //  Match hitset
+    asl_field_t
+        *field;                         //  Field on which to match
     amq_binding_t
         *binding;                       //  Binding object
     int
@@ -142,22 +144,22 @@ that is in every content header).
     if (class_id == AMQ_SERVER_BASIC)
         headers = asl_field_list_new (((amq_content_basic_t *) content)->headers);
 
-    if (headers)
+    if (headers) {
         hitset = amq_hitset_new ();
         field = asl_field_list_first (headers);
         while (field) {
             //  Match on field presence
-            field = amq_field_list_next (field);
+            field = asl_field_list_next (&field);
             icl_shortstr_ncpy (index_key, field->name, FIELD_NAME_MAX);
             amq_hitset_collect (hitset, self->index_hash, index_key);
 
             //  Match on field name and value, if field has a value
-            if (*amq_field_string (field)) {
+            if (*asl_field_string (field)) {
                 icl_shortstr_cat  (index_key, "=");
-                icl_shortstr_ncat (index_key, amq_field_string (field), FIELD_VALUE_MAX);
+                icl_shortstr_ncat (index_key, asl_field_string (field), FIELD_VALUE_MAX);
                 amq_hitset_collect (hitset, self->index_hash, index_key);
             }
-            field = amq_field_list_next (field);
+            field = asl_field_list_next (&field);
         }
         //  The hitset now represents all matching bindings
         for (binding_nbr = hitset->lowest; binding_nbr <= hitset->highest; binding_nbr++) {

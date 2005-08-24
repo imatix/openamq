@@ -88,6 +88,7 @@
 
 ---- BUGS
 
+
 --- TEST CASES
 
     MESSAGES EN ROUTE
@@ -194,6 +195,10 @@ Some ideas
     - icl code generation has become really messy
         - blank lines
         - indentation
+    - icl
+        - coverage check for methods
+        - run test cases, accumulate statistics
+        - check against code
     - smt
         - socket output buffering and flushing
         - socket input buffering
@@ -254,4 +259,50 @@ Some ideas
             - repeat only stored data
                 - messages, subscriptions
 
+---- AUTOBUILD
 
+    check bootstrap
+    - download, build, install bootstrap packages
+    >> every 4 hours
+
+    check repository trunks
+    - check out svn trunk into fresh tree
+    - build each product and project
+    - run project unit tests
+    - run project coverage checks
+    - run product/project regression tests
+    - run performance tests & report results
+    >> every hour, signal failure or recovery
+    >> for multiple configurations
+        - each with name and environment settings
+        - e.g. st, mt, stat, etc.
+            openamq_1.0b2_win32_mtd.exe
+
+    build package
+    - build source package (snapshot or release)
+    - build binary packages
+    - update web site for latest build
+    - upload source package and web site
+    >> automatic daily snapshot, manual planned release
+
+    build bootstrap
+    - build and upload bootstrap package
+    >> when repository trunk build successful
+
+    - write in Perl
+
+---- PACKAGING
+
+    - Unix
+        -> source packages and configure/make
+        - configure includes all build options
+    - win32
+        -> source packages and configure/make
+        - configure includes all build options
+        -> binary packages
+            - using win32 installer
+            - including configuration
+            - control panel application
+    - other
+        -> debian packages?
+        -> very version dependent...

@@ -79,6 +79,7 @@ main (int argc, char *argv [])
     byte
         *test_data = NULL;              //  Test message data
     int
+        rc,                             //  Method return code
         count,
         messages,
         batch_left,
@@ -89,8 +90,6 @@ main (int argc, char *argv [])
         got_messages;                   //  Browsing indicator
     icl_shortstr_t
         message_id;                     //  Message identifier
-    asl_field_list_t
-        *field_list;                    //  For binding arguments
     icl_longstr_t
         *arguments = NULL;              //  Serialised into long string
 
@@ -256,20 +255,19 @@ main (int argc, char *argv [])
     }
     //  Declare exchange and queue
     if (amq_client_session_exchange_declare (session,
-        ticket, opt_exchange, "dest_name", FALSE, FALSE, FALSE, FALSE))
+        ticket, opt_exchange, "dest", FALSE, FALSE, FALSE, FALSE))
         goto finished;
     if (amq_client_session_queue_declare (session,
         ticket, "global", opt_queue, FALSE, FALSE, FALSE, FALSE))
         goto finished;
 
     //  Set-up a simple binding based on queue name
-    field_list = asl_field_list_new (NULL);
-    asl_field_new_string (field_list, "destination", opt_queue);
-    arguments = asl_field_list_flatten (field_list);
-    asl_field_list_destroy (&field_list);
-    if (amq_client_session_queue_bind (session,
-        ticket, "global", opt_queue, opt_exchange, arguments))
-        goto finished;
+    arguments = asl_field_list_build ("destination", opt_queue, NULL);
+    rc = amq_client_session_queue_bind (
+        session, ticket, "global", opt_queue, opt_exchange, arguments);
+    icl_longstr_destroy (&arguments);
+    if (rc)
+        goto finished;                  //  Quit if that failed
 
     if (async_mode) {
         amq_client_session_jms_consume (session,
@@ -370,9 +368,8 @@ main (int argc, char *argv [])
 
     finished:
 
-    icl_mem_free                  (test_data);
-    icl_longstr_destroy           (&arguments);
-    amq_client_session_destroy    (&session);
+    icl_mem_free (test_data);
+    amq_client_session_destroy (&session);
     amq_client_connection_destroy (&connection);
 
     if (showinfo)
