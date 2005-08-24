@@ -1,5 +1,9 @@
 ---- IN PROGRESS
 
+    - how is destination used in headers exchange?
+        - fixed value?
+        - topic value?
+
 ---- TODO
 
     - unify queue domain and template concepts

@@ -149,7 +149,6 @@ that is in every content header).
         field = asl_field_list_first (headers);
         while (field) {
             //  Match on field presence
-            field = asl_field_list_next (&field);
             icl_shortstr_ncpy (index_key, field->name, FIELD_NAME_MAX);
             amq_hitset_collect (hitset, self->index_hash, index_key);
 
@@ -164,12 +163,13 @@ that is in every content header).
         //  The hitset now represents all matching bindings
         for (binding_nbr = hitset->lowest; binding_nbr <= hitset->highest; binding_nbr++) {
             binding = self->exchange->binding_index->data [binding_nbr];
-            if (binding->match_all && hitset->hit_count [binding_nbr] == binding->field_count
-            || !binding->match_all && hitset->hit_count [binding_nbr] > 0) {
+            if ((binding->match_all && hitset->hit_count [binding_nbr] == binding->field_count)
+            || (!binding->match_all && hitset->hit_count [binding_nbr] > 0)) {
                 amq_binding_publish (binding, channel, class_id, content, mandatory, immediate);
                 delivered = TRUE;
                 if (amq_server_config_trace_route (amq_server_config))
-                    icl_console_print ("X: have_hit request=%s", binding->destination);
+                    icl_console_print ("X: have_hit match=%s hits=%d",
+                        binding->match_all? "all": "any", hitset->hit_count [binding_nbr]);
             }
         }
         amq_hitset_destroy (&hitset);

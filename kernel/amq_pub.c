@@ -28,7 +28,6 @@
     "  -Q queue         Queue to consume from (QUEUE)\n"                    \
     "  -t level         Set trace level (default = 0)\n"                    \
     "                   0=none, 1=low, 2=medium, 3=high\n"                  \
-    "  -a               Use async consumers (default is browsing)\n"        \
     "  -m               Publish mandatory (default is no)\n"                \
     "  -I               Publish immediate (default is no)\n"                \
     "  -i               Show program statistics when ending (no)\n"         \
@@ -50,7 +49,6 @@ main (int argc, char *argv [])
         args_ok = TRUE,                 //  Were the arguments okay?
         quiet_mode = FALSE,             //  -q means suppress messages
         delay_mode = FALSE,             //  -d means work slowly
-        async_mode = FALSE,             //  -a means async consumers
         mandatory = FALSE,              //  -m means publish mandatory
         immediate = FALSE,              //  -I means publish immediate
         showinfo = FALSE,               //  -i means show information
@@ -154,9 +152,6 @@ main (int argc, char *argv [])
                     persistent = TRUE;
                     icl_console_print ("W: -p option is not yet implemented");
                     break;
-                case 'a':
-                    async_mode = TRUE;
-                    break;
                 case 'm':
                     mandatory = TRUE;
                     break;
@@ -256,7 +251,7 @@ main (int argc, char *argv [])
                     session,
                     content,
                     ticket,
-                    "topic",
+                    "$topic",
                     topic,
                     mandatory,
                     immediate)) {

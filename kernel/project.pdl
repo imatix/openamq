@@ -118,6 +118,8 @@
 <!-- Test programs -->
 <file name = "amq_pub.c"             class = "main program"      >Topic publisher</file>
 <file name = "amq_sub.c"             class = "main program"      >Topic subscriber</file>
+<file name = "amq_fpub.c"            class = "main program"      >Field publisher</file>
+<file name = "amq_fsub.c"            class = "main program"      >Field subscriber</file>
 
 <!-- Shared classes -->
 <file name = "amq_hash.icl"          class = "icl private class" >Loose hash item</file>
