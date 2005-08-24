@@ -1,13 +1,13 @@
 <?xml?>
 <class
-    name      = "amq_exchange_dest_name"
+    name      = "amq_exchange_dest"
     comment   = "Dest-name exchange class"
     version   = "1.0"
     copyright = "Copyright (c) 2004-2005 iMatix Corporation"
     script    = "icl_gen"
     >
 <doc>
-This class implements the dest-name exchange, which routes messages
+This class implements the dest exchange, which routes messages
 based on their "destination" property.
 </doc>
 
