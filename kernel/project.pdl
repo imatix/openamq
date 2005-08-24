@@ -26,21 +26,21 @@
 <!-- AMQ client implementation -->
 <file name = "amq_client.asl"        class = "gsl data"          >Client definition</file>
 <file name = "amq_client.c"          class = "main program"      >Client test program</file>
-<file name = "amq_client_method.icl" class = "icl private class"
+<file name = "amq_client_method.icl" class = "icl public class"
                                      generated = "1"             >Client method class</file>
 <file name = "amq_client_agent.smt"  class = "fat module"
                                      generated = "1"             >Client protocol agent</file>
-<file name = "amq_client_classes.h"  class = "private resource"  >Client classes</file>
+<file name = "amq_client_classes.h"  class = "public header"     >Client classes</file>
 <file name = "amq_client_connection.icl"
-                                     class = "icl private class"
+                                     class = "icl public class"
                                      generated = "1"             >Client API connection class</file>
 <file name = "amq_client_session.icl"
-                                     class = "icl private class"
+                                     class = "icl public class"
                                      generated = "1"             >Client API session class</file>
 <file name = "amq_client_channel.icl"
-                                     class = "icl private class" >Client channel class</file>
+                                     class = "icl public class"  >Client channel class</file>
 <file name = "amq_client_channel_table.icl"
-                                     class = "icl private cont"  >Client channel table</file>
+                                     class = "icl public cont"   >Client channel table</file>
 
 <!-- AMQ server implementation -->
 <file name = "amq_server.asl"        class = "gsl data"          >Server definition</file>
@@ -112,6 +112,8 @@
 <!-- Deliverables -->
 <file name = "amq_server"            class = "public command"    >Server</file>
 <file name = "amq_client"            class = "public command"    >Client</file>
+<file name = "amq_constants.h"       class = "public header"/>
+<file name = "amq_constants.inc"     class = "public header"/>
 
 <!-- Test programs -->
 <file name = "amq_pub.c"             class = "main program"      >Topic publisher</file>
@@ -120,9 +122,9 @@
 <!-- Shared classes -->
 <file name = "amq_hash.icl"          class = "icl private class" >Loose hash item</file>
 <file name = "amq_hash_table.icl"    class = "icl private cont"  >Loose hash table</file>
-<file name = "amq_content_basic.icl" class = "icl private cont"
+<file name = "amq_content_basic.icl" class = "icl public cont"
                                      generated = "1"             >Basic content class</file>
-<file name = "amq_content_jms.icl"   class = "icl private cont"
+<file name = "amq_content_jms.icl"   class = "icl public cont"
                                      generated = "1"             >JMS content class</file>
 <file name = "amq_constants.icl"     class = "icl private data"
                                      generated = "1"             >Constants class</file>
