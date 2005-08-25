@@ -127,7 +127,9 @@ public class AMQProtocolSession
      */
     public void unprocessedMessageReceived(UnprocessedMessage message) throws AMQException
     {
-        _channelId2UnprocessedMsgMap.put(new Integer(message.channelId), message);
+        // TODO: check change (gustavo)
+        if (message.deliverBody != null) 
+            _channelId2UnprocessedMsgMap.put(new Integer(message.channelId), message);
     }
 
     public void messageContentHeaderReceived(int channelId, JmsContentHeaderBody contentHeader)

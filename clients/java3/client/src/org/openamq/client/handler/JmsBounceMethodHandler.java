@@ -5,6 +5,7 @@ import org.openamq.AMQException;
 import org.openamq.framing.ConnectionCloseBody;
 import org.openamq.framing.ConnectionCloseOkBody;
 import org.openamq.framing.JmsBounceBody;
+import org.openamq.framing.JmsDeliverBody;
 import org.openamq.client.state.AMQState;
 import org.openamq.client.state.AMQStateManager;
 import org.openamq.client.state.StateAwareMethodListener;
@@ -28,7 +29,13 @@ public class JmsBounceMethodHandler implements StateAwareMethodListener
     public void methodReceived(AMQStateManager stateManager, AMQMethodEvent evt) throws AMQException
     {
         _logger.debug("New JmsBounce method received");
+        final UnprocessedMessage msg = new UnprocessedMessage();
         JmsBounceBody method = (JmsBounceBody) evt.getMethod();
+        msg.deliverBody = null;
+        msg.bounceBody = method;
+        msg.channelId = evt.getChannelId();
+        
+        evt.getProtocolSession().unprocessedMessageReceived(msg);
         
         int errorCode = method.replyCode;
         String reason = method.replyText;

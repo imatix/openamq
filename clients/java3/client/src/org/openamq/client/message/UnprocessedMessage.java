@@ -15,6 +15,7 @@ import org.openamq.framing.*;
 public class UnprocessedMessage
 {
     public JmsDeliverBody deliverBody;
+    public JmsBounceBody bounceBody; // TODO: check change (gustavo)
     public int channelId;
     public JmsContentHeaderBody contentHeader;
     public ContentBody[] bodies;
