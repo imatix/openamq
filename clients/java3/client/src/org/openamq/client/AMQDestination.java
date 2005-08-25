@@ -6,12 +6,16 @@ public abstract class AMQDestination implements Destination
 {
     public final static String TOPIC_EXCHANGE_NAME = "topic";
 
-    public final static String TOPIC_EXCHANGE_CLASS = "dest_wild";
+    public final static String TOPIC_EXCHANGE_CLASS = "topic";
 
     public final static String QUEUE_EXCHANGE_NAME = "queue";
 
-    public final static String QUEUE_EXCHANGE_CLASS = "dest_name";
+    public final static String QUEUE_EXCHANGE_CLASS = "dest";
 
+    public final static String HEADERS_EXCHANGE_NAME = "$match";
+
+    public final static String HEADERS_EXCHANGE_CLASS = "headers";
+    
     protected final static String DEFAULT_SCOPE = "defaultScope";
 
     protected final String _exchangeName;
