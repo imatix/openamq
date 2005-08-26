@@ -247,7 +247,7 @@ public class AMQProtocolSession
         }
     }
 
-    private AMQConnection getAMQConnection()
+    public AMQConnection getAMQConnection()
     {
         return (AMQConnection) _minaProtocolSession.getAttribute(AMQ_CONNECTION);
     }
