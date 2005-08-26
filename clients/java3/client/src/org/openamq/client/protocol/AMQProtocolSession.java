@@ -159,9 +159,7 @@ public class AMQProtocolSession
         msg.bodies = new ContentBody[1];
         msg.bodies[0] = contentBody;
         AMQSession session = (AMQSession) _channelId2SessionMap.get(new Integer(channelId));
-        // TODO: check change (gustavo)
-        if (msg.deliverBody != null) 
-            session.messageReceived(msg);
+        session.messageReceived(msg);
         _channelId2UnprocessedMsgMap.remove(new Integer(channelId));
     }
 

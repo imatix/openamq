@@ -11,7 +11,6 @@ import org.openamq.client.state.AMQStateManager;
 import org.openamq.client.state.StateAwareMethodListener;
 import org.openamq.client.protocol.AMQMethodEvent;
 import org.openamq.client.message.UnprocessedMessage;
-import javax.jms.JMSException;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
@@ -31,17 +30,10 @@ public class JmsBounceMethodHandler implements StateAwareMethodListener
     {
         _logger.debug("New JmsBounce method received");
         final UnprocessedMessage msg = new UnprocessedMessage();
-        JmsBounceBody method = (JmsBounceBody) evt.getMethod();
         msg.deliverBody = null;
-        msg.bounceBody = method;
+        msg.bounceBody = (JmsBounceBody) evt.getMethod();
         msg.channelId = evt.getChannelId();
         
         evt.getProtocolSession().unprocessedMessageReceived(msg);
-        
-        int errorCode = method.replyCode;
-        String reason = method.replyText;
-
-        _logger.debug("Message returned with errorCode " + errorCode + ", routing through ExceptionListener");
-        evt.getProtocolSession().getAMQConnection().exceptionReceived(new AMQException(errorCode, "Error: " + reason));
     }
 }

@@ -3,10 +3,15 @@ package org.openamq.client;
 import edu.emory.mathcs.backport.java.util.concurrent.SynchronousQueue;
 import edu.emory.mathcs.backport.java.util.concurrent.TimeUnit;
 import org.apache.log4j.Logger;
+import org.openamq.AMQException;
+import org.openamq.AMQUndeliveredException;
 import org.openamq.client.message.AbstractMessage;
 import org.openamq.client.message.MessageFactoryRegistry;
 import org.openamq.client.message.UnprocessedMessage;
+import org.openamq.client.protocol.AMQConstant;
 import org.openamq.client.protocol.AMQProtocolHandler;
+import org.openamq.framing.AMQFrame;
+import org.openamq.framing.ChannelCloseOkBody;
 import org.openamq.jms.MessageConsumer;
 import org.openamq.jms.Session;
 
@@ -198,38 +203,55 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
         }
         try
         {
-            AbstractMessage jmsMessage = _messageFactory.createMessage(messageFrame.deliverBody.deliveryTag,
-                                                                       messageFrame.deliverBody.redelivered,
-                                                                       messageFrame.contentHeader,
-                                                                       messageFrame.bodies);
-
-            if (acknowledgeMode == Session.PRE_ACKNOWLEDGE)
-            {
-                _session.sendAcknowledgement(messageFrame.deliverBody.deliveryTag);
-            }
-            else if (acknowledgeMode == Session.CLIENT_ACKNOWLEDGE)
-            {
-                // we set the session so that when the user calls acknowledge() it can call the method on session
-                // to send out the appropriate frame
-                jmsMessage.setAMQSession(_session);
-            }
-
-            synchronized (_syncLock)
-            {
-                if (_messageListener != null)
+            if (messageFrame.deliverBody != null)
+            {    
+                AbstractMessage jmsMessage = _messageFactory.createMessage(messageFrame.deliverBody.deliveryTag,
+                        messageFrame.deliverBody.redelivered,
+                        messageFrame.contentHeader,
+                        messageFrame.bodies);
+                
+                if (acknowledgeMode == Session.PRE_ACKNOWLEDGE)
                 {
-                    _messageListener.onMessage(jmsMessage);
+                    _session.sendAcknowledgement(messageFrame.deliverBody.deliveryTag);
                 }
-                else
+                else if (acknowledgeMode == Session.CLIENT_ACKNOWLEDGE)
                 {
-                    _synchronousQueue.put(jmsMessage);
+                    // we set the session so that when the user calls acknowledge() it can call the method on session
+                    // to send out the appropriate frame
+                    jmsMessage.setAMQSession(_session);
+                }
+                
+                synchronized (_syncLock)
+                {
+                    if (_messageListener != null)
+                    {
+                        _messageListener.onMessage(jmsMessage);
+                    }
+                    else
+                    {
+                        _synchronousQueue.put(jmsMessage);
+                    }
+                }
+                if (acknowledgeMode == Session.AUTO_ACKNOWLEDGE)
+                {
+                    _session.sendAcknowledgement(messageFrame.deliverBody.deliveryTag);
                 }
             }
-            if (acknowledgeMode == Session.AUTO_ACKNOWLEDGE)
+            else
             {
-                _session.sendAcknowledgement(messageFrame.deliverBody.deliveryTag);
+                // Bounced message is processed here, away from the mina thread
+                AbstractMessage bouncedMessage = _messageFactory.createMessage(0,
+                        false,
+                        messageFrame.contentHeader,
+                        messageFrame.bodies);
+
+                int errorCode = messageFrame.bounceBody.replyCode;
+                String reason = messageFrame.bounceBody.replyText;
+                _logger.debug("Message returned with errorCode " + errorCode + ", " + reason);
+                    
+                _protocolHandler.getAMQProtocolSession().getAMQConnection().exceptionReceived(new AMQUndeliveredException(errorCode, "Error: " + reason, bouncedMessage));
             }
-        }
+        }   
         catch (Exception e)
         {
             _logger.error("Caught exception (dump follows) - ignoring...", e);

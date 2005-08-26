@@ -30,4 +30,4 @@ public abstract class AbstractMessageFactory implements MessageFactory
         return msg;
     }
 
-    }
+}
