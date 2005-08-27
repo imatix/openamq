@@ -203,53 +203,36 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
         }
         try
         {
-            if (messageFrame.deliverBody != null)
-            {    
-                AbstractMessage jmsMessage = _messageFactory.createMessage(messageFrame.deliverBody.deliveryTag,
-                        messageFrame.deliverBody.redelivered,
-                        messageFrame.contentHeader,
-                        messageFrame.bodies);
+            AbstractMessage jmsMessage = _messageFactory.createMessage(messageFrame.deliverBody.deliveryTag,
+                    messageFrame.deliverBody.redelivered,
+                    messageFrame.contentHeader,
+                    messageFrame.bodies);
                 
-                if (acknowledgeMode == Session.PRE_ACKNOWLEDGE)
-                {
-                    _session.sendAcknowledgement(messageFrame.deliverBody.deliveryTag);
-                }
-                else if (acknowledgeMode == Session.CLIENT_ACKNOWLEDGE)
-                {
-                    // we set the session so that when the user calls acknowledge() it can call the method on session
-                    // to send out the appropriate frame
-                    jmsMessage.setAMQSession(_session);
-                }
+            if (acknowledgeMode == Session.PRE_ACKNOWLEDGE)
+            {
+                _session.sendAcknowledgement(messageFrame.deliverBody.deliveryTag);
+            }
+            else if (acknowledgeMode == Session.CLIENT_ACKNOWLEDGE)
+            {
+                // we set the session so that when the user calls acknowledge() it can call the method on session
+                // to send out the appropriate frame
+                jmsMessage.setAMQSession(_session);
+            }
                 
-                synchronized (_syncLock)
+            synchronized (_syncLock)
+            {
+                if (_messageListener != null)
                 {
-                    if (_messageListener != null)
-                    {
-                        _messageListener.onMessage(jmsMessage);
-                    }
-                    else
-                    {
-                        _synchronousQueue.put(jmsMessage);
-                    }
+                    _messageListener.onMessage(jmsMessage);
                 }
-                if (acknowledgeMode == Session.AUTO_ACKNOWLEDGE)
+                else
                 {
-                    _session.sendAcknowledgement(messageFrame.deliverBody.deliveryTag);
+                    _synchronousQueue.put(jmsMessage);
                 }
             }
-            else
+            if (acknowledgeMode == Session.AUTO_ACKNOWLEDGE)
             {
-                // Bounced message is processed here, away from the mina thread
-                AbstractMessage bouncedMessage = _messageFactory.createMessage(0,
-                        false,
-                        messageFrame.contentHeader,
-                        messageFrame.bodies);
-
-                int errorCode = messageFrame.bounceBody.replyCode;
-                String reason = messageFrame.bounceBody.replyText;
-                _logger.debug("Message returned with errorCode " + errorCode + ", " + reason);
-                    
-                _protocolHandler.getAMQProtocolSession().getAMQConnection().exceptionReceived(new AMQUndeliveredException(errorCode, "Error: " + reason, bouncedMessage));
+                _session.sendAcknowledgement(messageFrame.deliverBody.deliveryTag);
             }
         }   
         catch (Exception e)

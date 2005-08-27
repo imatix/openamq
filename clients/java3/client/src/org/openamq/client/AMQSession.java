@@ -5,8 +5,10 @@ import edu.emory.mathcs.backport.java.util.concurrent.ConcurrentHashMap;
 import edu.emory.mathcs.backport.java.util.concurrent.LinkedBlockingQueue;
 import org.apache.log4j.Logger;
 import org.openamq.AMQException;
+import org.openamq.AMQUndeliveredException;
 import org.openamq.framing.*;
 import org.openamq.client.message.MessageFactoryRegistry;
+import org.openamq.client.message.AbstractMessage;
 import org.openamq.client.message.UnprocessedMessage;
 import org.openamq.client.state.listener.SpecificMethodFrameListener;
 import org.openamq.client.protocol.AMQProtocolHandler;
@@ -78,19 +80,44 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
 
         private void dispatchMessage(UnprocessedMessage message)
         {
-            if (message.deliverBody.queue == null)
-            {
-                throw new IllegalArgumentException("EEK = queue name is null");
-            }
-            final AMQMessageConsumer consumer = (AMQMessageConsumer) _consumers.get(message.deliverBody.queue);
+            if (message.deliverBody != null)
+            {    
+                if (message.deliverBody.queue == null)
+                {
+                    throw new IllegalArgumentException("EEK = queue name is null");
+                }
+                
+                final AMQMessageConsumer consumer = (AMQMessageConsumer) _consumers.get(message.deliverBody.queue);
 
-            if (consumer == null)
-            {
-                _logger.warn("Received a message from queue " + message.deliverBody.queue + " without a handler - ignoring...");
-            }
+                if (consumer == null)
+                {
+                    _logger.warn("Received a message from queue " + message.deliverBody.queue + " without a handler - ignoring...");
+                }
+                else
+                {
+                    consumer.notifyMessage(message, _acknowledgeMode, _channelId);
+                }
+            } 
             else
             {
-                consumer.notifyMessage(message, _acknowledgeMode, _channelId);
+                try 
+                {
+                    // Bounced message is processed here, away from the mina thread
+                    AbstractMessage bouncedMessage = _messageFactoryRegistry.createMessage(0,
+                            false,
+                            message.contentHeader,
+                            message.bodies);
+                    
+                    int errorCode = message.bounceBody.replyCode;
+                    String reason = message.bounceBody.replyText;
+                    _logger.debug("Message returned with error code " + errorCode + " (" + reason + ")");
+                        
+                    _connection.exceptionReceived(new AMQUndeliveredException(errorCode, "Error: " + reason, bouncedMessage));
+                }    
+                catch (Exception e)
+                {
+                    _logger.error("Caught exception trying to raise undelivered message exception (dump follows) - ignoring...", e);
+                }
             }
         }
     }
