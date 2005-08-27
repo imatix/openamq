@@ -4,7 +4,6 @@ import edu.emory.mathcs.backport.java.util.concurrent.SynchronousQueue;
 import edu.emory.mathcs.backport.java.util.concurrent.TimeUnit;
 import org.apache.log4j.Logger;
 import org.openamq.AMQException;
-import org.openamq.AMQUndeliveredException;
 import org.openamq.client.message.AbstractMessage;
 import org.openamq.client.message.MessageFactoryRegistry;
 import org.openamq.client.message.UnprocessedMessage;
