@@ -184,6 +184,7 @@ main (int argc, char *argv [])
                     printf (NOWARRANTY);
                     printf (BUILDMODEL "\n");
                     printf ("Built on: " BUILDDATE "\n");
+                    printf ("Compiler: " CCOPTS "\n");
                     exit (EXIT_SUCCESS);
                 case 'h':
                     printf (CLIENT_NAME);

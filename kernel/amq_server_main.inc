@@ -125,6 +125,7 @@ s_parse_args (int argc, char *argv [])
                     printf (NOWARRANTY);
                     printf (BUILDMODEL "\n");
                     printf ("Built on: " BUILDDATE "\n");
+                    printf ("Compiler: " CCOPTS "\n");
                     exit (EXIT_SUCCESS);
                 case 'h':
                     printf (CURVERSION, SERVER_NAME, SERVER_TEXT);
@@ -133,7 +134,7 @@ s_parse_args (int argc, char *argv [])
                     printf (USAGE, SERVER_NAME);
                     exit (EXIT_SUCCESS);
 
-                //  Anything else is an error                                
+                //  Anything else is an error
                 default:
                     rc = 1;
             }
