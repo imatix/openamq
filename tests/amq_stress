@@ -1,0 +1,141 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use IO::Handle;
+use Getopt::Long;
+use Pod::Usage;
+
+# Variables used to map the command line options to, and their defaults.
+my $man = 0;
+my $help = 0;
+my $color = 0;
+my $processes = 1;
+my $exec = undef;
+
+# Parse the options from the command line.
+GetOptions('help|?'     => \$help, 
+           'man'        => \$man,
+           'color|c!'   => \$color,
+           'exec|e=s'     => \$exec,
+           'number|n=n'   => \$processes,
+          ) or pod2usage(2);
+
+pod2usage(1) if $help;
+pod2usage(-exitstatus => 0, -verbose => 2) if $man;
+pod2usage(1) unless $exec;
+
+
+# A simple hack for autoreaping zombies is to set $SIG{CHLD} to 'IGNORE'.
+$SIG{CHLD} = 'IGNORE';
+
+# Global variables used to keep track of parent/child relations.
+our $parent = $$;
+our $childnr;
+
+# A pipe to let the children communicate to the parent.
+pipe (CHILD_OUT, PARENT_IN);
+CHILD_OUT->autoflush(1);
+PARENT_IN->autoflush(1);
+
+# Start spawning processes from here on.
+spawn ($processes);
+
+if ($$ == $parent) {
+    # The parent process.
+    close PARENT_IN;
+    while (chomp (my $line = <CHILD_OUT>)) {
+        print $line."\n";
+    }
+    print "[$$] waiting for children to finish\n";
+    wait (); 
+    print "[$$] finished\n";
+    close CHILD_OUT;
+} else {
+    # The child process.
+    close CHILD_OUT;
+    $exec =~ s/\$i/$childnr/g;
+    $exec =~ s/{([^}]*)}/eval "$1"/eg;
+    print "[$$] spawning: '$exec'\n";
+    open (CMD,"$exec |");
+    while (chomp (my $line = <CMD>)) {
+        my ($hl,$dl);
+        $hl = '['.(int(($childnr%16)/7)).';3'.($childnr%7 || 7)."m" if ($color);
+        $dl = '[1;37m' if ($color);
+        print PARENT_IN $hl."[$$]{".$childnr."} $line $dl\n";
+    }
+    close PARENT_IN;
+}
+
+
+# A subroutine to spawn (fork) the children.
+sub spawn {
+    my $count = shift;
+    for (my $i = 1; $i <= $count; $i++) {
+        $childnr = $i;
+        my $childpid = fork ();
+        # Get out of the loop if we're in the child process, 
+        # only the parent should spawn children
+        last if $childpid == 0;
+    }
+}
+
+    
+
+__END__
+
+=head1 NAME
+
+amq_stress - A stress test tool which spawns other processes.
+
+=head1 AUTHOR
+
+Tim Esselens <tim@imatix.net>
+
+=head1 SYNOPSIS
+
+amq_stress [options] --exec program
+
+ the string provided to the exec argument can contain some magic:
+ - every $i will be replaced with the number of the current child process (counting from 1 to total children)
+ - every {} (block) will be eval'ed
+
+ examples:
+    amq_stress -n 10 --exec "echo this is child \$i";
+    amq_stress -n 10 --exec 'echo this is child $i'";
+    amq_stress -n 10 --exec 'echo this is child $i with a random number: { int(rand(10)) }';
+    amq_stress -n 10 --exec './amq_client -n { int(rand(10) * 1000) } -Q queue_$i -b 500 -r 10 2>&1';
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<--exec>
+The program that will be spawned.
+
+=item B<--number>
+Number of children to spawn.
+
+=item B<--help>
+Print a brief help message and exits.
+
+=item B<--man>
+Prints the manual page and exits.
+
+=item B<--color>
+Output in color on ansi capable terminals.
+
+
+=back
+
+=head1 NOTE
+
+Every command line option can be written in its short form, for example --exec can
+also be written as --exe or -e.
+
+Only STDOUT is colorized, use 2>&1 to redirect STDERR to STDOUT so it is colorized too.
+
+=head1 DESCRIPTION
+
+B<amq_stress> will spawn several processes of the desired binary.
+
+=cut
