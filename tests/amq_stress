@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 use strict;
-use warnings;
+
 use IO::Handle;
 use Getopt::Long;
 use Pod::Usage;
