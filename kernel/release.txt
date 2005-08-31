@@ -1,18 +1,15 @@
 ---------------------------------------------------------------------
-0.9b2 - 2005/08/24 -
+0.9b2 - 2005/08/31 - 93k lines
 
 Improvements:
 
   - Support added for large message contents (limited only by available
     memory).
-
-Changes:
-
-  -
+  - Server implements auto-named queues (for temporary queues).
 
 Bug fixes:
 
-  - Jira
+  - See Jira
 
 ---------------------------------------------------------------------
 0.9b1 - 2005/08/24 - 89k lines
