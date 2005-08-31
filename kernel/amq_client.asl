@@ -8,6 +8,16 @@
 <inherit name = "asl_client" />
 <option name = "product_name" value = "OpenAMQ Kernel Client" />
 
+<class name = "queue">
+  <context>
+    icl_shortstr_t
+        queue_name;                     //  Returned queue name
+  </context>
+  <action name = "declare-ok">
+    icl_shortstr_cpy (session->queue_name, method->queue);
+  </action>
+</class>
+
 <class name = "basic">
   <action name = "browse-ok">
     amq_content_$(class.name)_possess (self->content);
@@ -31,7 +41,7 @@
 <class name = "jms">
   <context>
     dbyte
-        consumer_tag;                   /*  Returned consumer tag            */
+        consumer_tag;                   //  Returned consumer tag
   </context>
 
   <action name = "browse-ok" sameas = "basic" />
