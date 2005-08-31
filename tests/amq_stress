@@ -4,33 +4,39 @@ use strict;
 use IO::Handle;
 use Getopt::Long;
 use Pod::Usage;
+use POSIX ":sys_wait_h";
 
 # Variables used to map the command line options to, and their defaults.
 my $man = 0;
 my $help = 0;
 my $color = 0;
+my $debug = 0;
 my $processes = 1;
 my $exec = undef;
 
 # Parse the options from the command line.
 GetOptions('help|?'     => \$help, 
            'man'        => \$man,
+           'debug!'     => \$debug,
            'color|c!'   => \$color,
-           'exec|e=s'     => \$exec,
-           'number|n=n'   => \$processes,
+           'exec|e=s'   => \$exec,
+           'number|n=n' => \$processes,
           ) or pod2usage(2);
 
 pod2usage(1) if $help;
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 pod2usage(1) unless $exec;
 
-
-# A simple hack for autoreaping zombies is to set $SIG{CHLD} to 'IGNORE'.
-$SIG{CHLD} = 'IGNORE';
-
 # Global variables used to keep track of parent/child relations.
 our $parent = $$;
 our $childnr;
+
+
+# Signal handeling
+sub quit { print "[$$] ctrl-c received. quitting...\n" if $debug; reap(); }
+sub reap { print "[$$] reaping child $childnr\n" if $debug; wait(); }
+$SIG{CHLD} = \&reap;
+$SIG{INT} = \&quit;
 
 # A pipe to let the children communicate to the parent.
 pipe (CHILD_OUT, PARENT_IN);
@@ -124,6 +130,8 @@ Prints the manual page and exits.
 =item B<--color>
 Output in color on ansi capable terminals.
 
+=item B<--debug>
+Be a bit more verbose, only usefull when developing amq_stress.
 
 =back
 
