@@ -24,6 +24,8 @@ public abstract class BlockingMethodFrameListener implements AMQMethodListener
     private volatile AMQException _error;
 
     protected int _channelId;
+    
+    protected AMQMethodEvent _doneEvt = null;
 
     public BlockingMethodFrameListener(int channelId)
     {
@@ -51,6 +53,7 @@ public abstract class BlockingMethodFrameListener implements AMQMethodListener
                 // will only ever read the flag from within the synchronized block
                 synchronized (_lock)
                 {
+                    _doneEvt = evt;
                     _ready = ready;
                     _lock.notify();
                 }
@@ -69,7 +72,7 @@ public abstract class BlockingMethodFrameListener implements AMQMethodListener
     /**
      * This method is called by the thread that wants to wait for a frame.
      */
-    public void blockForFrame() throws AMQException
+    public AMQMethodEvent blockForFrame() throws AMQException
     {
         synchronized (_lock)
         {
@@ -89,6 +92,8 @@ public abstract class BlockingMethodFrameListener implements AMQMethodListener
         {
             throw _error;
         }
+        
+        return _doneEvt;
     }
 
     /**

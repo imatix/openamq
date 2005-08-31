@@ -12,12 +12,15 @@ import org.openamq.client.message.AbstractMessage;
 import org.openamq.client.message.UnprocessedMessage;
 import org.openamq.client.state.listener.SpecificMethodFrameListener;
 import org.openamq.client.protocol.AMQProtocolHandler;
+import org.openamq.client.protocol.AMQMethodEvent;
 import org.openamq.jms.Session;
 
 import javax.jms.*;
 import javax.jms.IllegalStateException;
 import javax.jms.Queue;
 import java.io.Serializable;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 
 public class AMQSession extends Closeable implements Session, QueueSession, TopicSession
@@ -87,7 +90,8 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                     throw new IllegalArgumentException("EEK = queue name is null");
                 }
                 
-                final AMQMessageConsumer consumer = (AMQMessageConsumer) _consumers.get(message.deliverBody.queue);
+                final String key = message.deliverBody.destination != null ? message.deliverBody.destination : "";
+                final AMQMessageConsumer consumer = (AMQMessageConsumer) _consumers.get(key);
 
                 if (consumer == null)
                 {
@@ -437,27 +441,46 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
 
             try
             {
+                final AMQProtocolHandler protocolHandler = _connection.getProtocolHandler();
+                String queueName;
+                
+                // TODO: remove when server supports queue UUIDs
+                try {
+                    InetAddress address = InetAddress.getLocalHost();
+                    queueName = "quuid_" + (address.getHostName() + System.currentTimeMillis()).replace('.', '_');
+                } catch (UnknownHostException e) {
+                    JMSException je = new JMSException("Cannot create queue UUID");
+                    je.setLinkedException(e);
+                    
+                    throw je;
+                }
+
+                // Declare exchange 
                 AMQFrame exchangeDeclare = ExchangeDeclareBody.createAMQFrame(_channelId, 0, amqd.getExchangeName(),
                                                                               amqd.getExchangeClass(), false, false,
                                                                               false, false);
 
-                final AMQProtocolHandler protocolHandler = _connection.getProtocolHandler();
                 protocolHandler.writeCommandFrameAndWaitForReply(exchangeDeclare,
                                             new SpecificMethodFrameListener(_channelId, ExchangeDeclareOkBody.class));
 
-                AMQFrame queueDeclare = QueueDeclareBody.createAMQFrame(_channelId, 0, amqd.getScope(), amqd.getDestinationName(),
+                // Declare queue (empty name so that server will assign UUID)
+                AMQFrame queueDeclare = QueueDeclareBody.createAMQFrame(_channelId, 0, amqd.getScope(), queueName,
                                                                         false, false, false ,false);
-                protocolHandler.writeCommandFrameAndWaitForReply(queueDeclare,
+                AMQMethodEvent evt = protocolHandler.writeCommandFrameAndWaitForReply(queueDeclare,
                                              new SpecificMethodFrameListener(_channelId, QueueDeclareOkBody.class));
+                //QueueDeclareOkBody queueOk = (QueueDeclareOkBody)evt.getMethod();
 
+                // Bind exchange to queue
                 final FieldTable ft = new FieldTable();
                 ft.put("destination", amqd.getDestinationName());
-                AMQFrame queueBind = QueueBindBody.createAMQFrame(_channelId, 0, amqd.getScope(), amqd.getDestinationName(),
+                AMQFrame queueBind = QueueBindBody.createAMQFrame(_channelId, 0, amqd.getScope(), queueName,
                                                                   amqd.getExchangeName(), ft);
 
                 protocolHandler.writeCommandFrameAndWaitForReply(queueBind,
                                               new SpecificMethodFrameListener(_channelId, QueueBindOkBody.class));
-                AMQFrame jmsConsume = JmsConsumeBody.createAMQFrame(_channelId, 0, amqd.getScope(), amqd.getDestinationName(), 0,
+                
+                // Consume from queue
+                AMQFrame jmsConsume = JmsConsumeBody.createAMQFrame(_channelId, 0, amqd.getScope(), /*queueOk.queue*/queueName, 0,
                                                                     prefetch, noLocal, true, exclusive);
 
                 protocolHandler.writeCommandFrameAndWaitForReply(jmsConsume,

@@ -160,14 +160,14 @@ public class AMQProtocolHandler implements ProtocolHandler
      * @param frame
      * @param listener the blocking listener. Note the calling thread will block.
      */
-    public void writeCommandFrameAndWaitForReply(AMQFrame frame,
+    public AMQMethodEvent writeCommandFrameAndWaitForReply(AMQFrame frame,
                                                  BlockingMethodFrameListener listener)
         throws AMQException
     {
         _frameListeners.add(listener);
         _protocolSession.writeFrame(frame);
-        listener.blockForFrame();
-        // When control resumes at this point, a reply will have been received
+        return listener.blockForFrame();
+        // When control resumes before this line, a reply will have been received
         // that matches the criteria defined in the blocking listener
     }
 

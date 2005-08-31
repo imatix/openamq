@@ -93,22 +93,24 @@ public class AMQMessageProducer extends Closeable implements MessageProducer
         _channelId = channelId;
         _idFactory = idFactory;
         _session = session;
-        if (destination != null)
+        /*if (destination != null)
         {
             declareDestination(destination);
-        }
+        }*/
     }
 
     private void declareDestination(AMQDestination destination) throws AMQException
     {
+        // Declare the exchange
         // Note that the durable and internal arguments are ignored since passive is set to false
-        AMQFrame exchangeDeclareFrame = ExchangeDeclareBody.createAMQFrame(_channelId, 0, destination.getExchangeName(),
+        /*AMQFrame exchangeDeclareFrame = ExchangeDeclareBody.createAMQFrame(_channelId, 0, destination.getExchangeName(),
                                                                            destination.getExchangeClass(), true,
                                                                            false, false, false);
         _protocolHandler.writeCommandFrameAndWaitForReply(exchangeDeclareFrame,
                                                           new SpecificMethodFrameListener(_channelId,
-                                                                                          ExchangeDeclareOkBody.class));
+                                                                                          ExchangeDeclareOkBody.class));*/
 
+        // Publish to destination
         // Note that the durable argument is ignored since passive is set to false
         AMQFrame queueDeclareFrame = QueueDeclareBody.createAMQFrame(_channelId, 0, destination.getScope(),
                                                                      destination.getDestinationName(), true,
