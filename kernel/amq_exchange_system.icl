@@ -21,6 +21,8 @@ routed but are processed according to destination.
 
 <method name = "publish">
     <local>
+    asl_reader_t
+        reader;                         //  Body reader
     ipr_bucket_t
         *bucket;
     </local>
@@ -29,7 +31,9 @@ routed but are processed according to destination.
     //  about self not being used in this method...
     if (self);
 
-    bucket = amq_content_basic_replay_body (content);
+    amq_content_basic_set_reader (content, &reader, 32000);
+    bucket = amq_content_basic_replay_body (content, &reader);
+
     icl_console_print ("System destination: %s", destination);
     icl_console_print ("Data: %s", bucket->data);
     ipr_bucket_destroy (&bucket);
