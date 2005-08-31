@@ -1,30 +1,66 @@
----- IN PROGRESS
+---- DONE
 
-    - how is destination used in headers exchange?
-        - fixed value?
-        - topic value?
+    - handle large contents
+        - read content buckets
+        - looseref list of buckets
+            - reformat / rescan out output
+
+
+    Daisy-chaining exchanges
+
+    e.g. combine topic plus header filter
+
+    - top-level exchange is $topic
+    - secondary exchange is $match
+    - bind $match to $topic
+        - using destination pattern
+    - declare queue
+        - scope = subscription
+    - bind queue to $match
+        - using header specification
+
+    > destination pattern
+    > header specification
+
+    e.g. just topic (no header filter)
+
+    - top-level exchange is $topic
+    - declare queue
+        - scope = subscription
+    - bind queue to $topic
+        - using destination pattern
+
+    > destination pattern
+
+    e.g. combine selector plus topics
+
+    - top-level exchange is $topic
+    - secondary exchange is $select
+    - bind $select to $topic
+        - using destination pattern
+    - declare queue
+        - scope = subscription
+    - bind queue to $select
+        - using selector string
+
+    e.g. combine lossy with topic
+    
+    - top-level exchange is $topic
+    - secondary exchange is $lossy
+    - bind $lossy to $topic
+        - using destination pattern
+    - declare queue
+        - scope = queue
+    - bind queue to $lossy
+        - using loss criteria
+
+
 
 ---- TODO
 
-    - unify queue domain and template concepts
-        - domains are predefined
-        - domains provide default properties
-            - exchange to bind to
-            - private, auto-delete, etc.
-        - rename "auto-delete" to "temporary"?
-
-    - define reply-to as URL:
-        amqp://servername:port/exchange/destination
-
-    - handle large contents
-        - assume recipient can handle same frame size
-            - otherwise complain
-        - read content buckets
-        - array of buckets? looseref list?
-            - on output, write same list...
-            - if just one, collapse into single block
-        
     - store content header without parsing
+        - parse certain items
+            - weight, size, class.
         - store content header in content without parsing it
         - replay from stored block
         - if needed for matching,
@@ -35,6 +71,17 @@
             - headers -> field list
                 -> decode automatically
                 -> destroy at end...
+
+
+    - unify queue domain and template concepts
+        - domains are predefined
+        - domains provide default properties
+            - exchange to bind to
+            - private, auto-delete, etc.
+        - rename "auto-delete" to "temporary"?
+
+    - define reply-to as URL:
+        amqp://servername:port/exchange/destination
 
 ---- PROXY
 
@@ -92,6 +139,22 @@
 
 ---- BUGS
 
+    icl:
+        2005/08/30
+        - error in fat memory manager
+        = FIXED
+        
+    smt:
+        2005/08/30
+        - if server dies while client is writing, client fails with assert
+        
+        2005/08/30
+        - agent does not shutdown cleanly if interrupted during wait
+            - result is leaking connections in server
+            - if killed while waiting for client context timeout
+            - (cannot kill connections at thread destruction, used to do that
+               but it fails since channels are async objects.)
+    
 
 --- TEST CASES
 
@@ -167,8 +230,8 @@ Some ideas
 *        publish / immediate
 *        deliver
     - exchange classes
-*        dest-wild
-        property
+*        topic
+*        headers
     - queue:
 *        jms messages, no priority, no persistence
     - queue templating

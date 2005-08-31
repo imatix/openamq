@@ -3,7 +3,8 @@
 
 Improvements:
 
-  - 
+  - Support added for large message contents (limited only by available
+    memory).
 
 Changes:
 
