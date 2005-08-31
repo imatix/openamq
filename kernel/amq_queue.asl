@@ -65,7 +65,7 @@
       specific scope for such queues to avoid any possible conflict
       with names that might be used elsewhere by clients.
     </doc>
-    <assert check = "regexp" value = "`w+" />
+    <assert check = "regexp" value = "`w*" />
   </field>
 
   <field name = "passive" type = "bit">
