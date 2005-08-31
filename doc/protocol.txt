@@ -3,9 +3,9 @@ gdl
     subtitle  = The AMQP/Fast Wire-Level Protocol
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/08/02
+    date      = 2005/08/19
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.9a7
+    version   = 0.9b0
 end gdl
 
 Cover
@@ -23,6 +23,10 @@ This document is ready for review.
 
 Recent Change History
 ---------------------
+
+2005/08/19 - 0.9b0
+
+- Modified protocol version negotiation procedure.
 
 2005/08/02 - 0.9a7
 
@@ -547,11 +551,11 @@ For AMQP/Fast these are the correct values:
 
 - protocol-class = 1 (this is the class of all AMQP/Fast protocols)
 - protocol-instance = 1 (this is the instance of AMQP/Fast over TCP/IP)
-- protocol-major = 0
-- protocol-minor = 9
+- protocol-major = 9 (version 1.0 is 10, highest possible release is 25.5)
+- protocol-minor = n (current release of minor version)
 
     +---+---+---+---+---+---+---+---+
-    |'A'|'M'|'Q'|'P'| 1 | 1 | 0 | 9 |
+    |'A'|'M'|'Q'|'P'| 1 | 1 | 9 | n |
     +---+---+---+---+---+---+---+---+
                 8 octets
 
@@ -568,7 +572,8 @@ Guidelines for implementors:
 - If the server does not recognise the first 4 octets of data on the
   socket, or does not support the specific protocol version that the
   client requests, it MUST close the socket without sending any
-  response back to the client.
+  response back to the client.  The server SHOULD print a diagnostic
+  message to assist debugging.
 
 - An AMQP client MAY detect the server protocol version by attempting
   to connect with its highest supported version and decreasing this if

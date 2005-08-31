@@ -1,3 +1,115 @@
+---------------------------------------------------------------------
+0.9b2 - 2005/08/31 - 93k lines
+
+Improvements:
+
+  - Support added for large message contents (limited only by available
+    memory).
+  - Server implements auto-named queues (for temporary queues).
+
+Bug fixes:
+
+  - See Jira
+
+---------------------------------------------------------------------
+0.9b1 - 2005/08/24 - 89k lines
+
+Improvements:
+
+  - Implemented the "headers" exchange class (for header-field routing).
+  - Predefined "$match" (headers class) exchange.
+
+Changes:
+
+  - Renamed "dest_name" exchange class to "dest".
+  - Renamed "dest_wild" exchange class to "topic".
+
+Bug fixes:
+
+  - Jira BASE2-30, BASE2-26, BASE2-12
+
+---------------------------------------------------------------------
+0.9b0 - 2005/08/21 - 101k lines
+
+Improvements:
+
+  - Added 'server_properties' field to Connection.Start method.
+  - Added 'client_properties' field to Connection.Start-ok method.
+  - The server now correctly announces itself to clients.
+  - amq_client_connection object has these new properties:
+      - server_product
+      - server_version
+      - server_platform
+      - server_copyright
+      - server_information
+  - Server displays client information in diagnostic messages
+  - Server and C/C++ client use single system call to write messages
+
+Bug fixes:
+
+  - Jira BASE2-6, BASE2-7, BASE2-8
+  - Jira AMQ-6, AMQ-8
+
+---------------------------------------------------------------------
+0.9a3 - 2005/08/18 - 87k lines
+
+Improvements:
+
+  - Exchange, queue, and scope names are now validated in the
+    Declare methods.  These names may now contain only [A-Za-z0-9_].
+    System objects (predeclared) start with $.
+  - Removed template field from queue.declare method. Templating
+    will be done using the domain value.
+  - Queue "domain" field renamed to "scope".
+  - Predefined "$queue" (dest-name) and "$topic" (dest-wild) exchanges.
+  - Implemented the "dest-wild" exchange (for topic-style routing).
+  - Added option to trace exchange and queueing workflow, configurable
+    in server.cfg.
+  - OpenAMQ kernel, C/C++ client now uses new Base2 object reference
+    framework.
+  - C/C++ client API made much more robust its internal queues.
+
+Bug fixes:
+
+  - C/C++ client API was not working in single-threaded builds - fixed.
+  - Server leaked memory if interrupted after all connections closed.
+  - Improved socket tracing display in server.
+  - In rare cases when consumer disconnected, server would continue to
+    send it messages, causing memory leaks - fixed.
+  - C client agent sometimes tried to write to destroyed queue, causing
+    abort - fixed.
+  - Cancelling a consumer failed often, due to error in server channel
+    class - fixed.
+  - Server leaked memory if client did not close channel correctly
+    - fixed.
+  - Client was not reporting errors that it detected on server methods
+    - fixed.
+  - "no-local" function in server was broken - fixed.
+  - C/C++ client layers did not handle server errors correctly - fixed.
+
+---------------------------------------------------------------------
+0.9a2 - 2005/08/08 - 67k lines
+
+  - Destination field moved out of content header, into publish/deliver
+    and browse-ok methods.
+  - Modified client API to be SASL-compliant (pass auth_data block)
+  - Generate protocol constants from ASL specifications
+    - asl_constants.asl
+    - can be inherited and extended
+    - generates asl_constants.icl class
+
+---------------------------------------------------------------------
+0.9a1 - 2005/08/04 - 57k lines
+
+  - Server channels redesigned as async objects for better stability
+  - Channel.Flow method modified - takes "Active" parameter (true/false)
+
+---------------------------------------------------------------------
+0.9a0 - 2005/08/01 - 55k lines
+
+  - Initial alpha release of new server and async clients.
+
+---------------------------------------------------------------------
 0.8d6 - 2005/06/22
   Protocol:
     - in HANDLE OPEN, 'service-type' flag removed.
