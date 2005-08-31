@@ -12,7 +12,7 @@ public abstract class AMQDestination implements Destination
 
     public final static String QUEUE_EXCHANGE_CLASS = "dest";
 
-    public final static String HEADERS_EXCHANGE_NAME = "$match";
+    public final static String HEADERS_EXCHANGE_NAME = "match";
 
     public final static String HEADERS_EXCHANGE_CLASS = "headers";
     
@@ -26,10 +26,17 @@ public abstract class AMQDestination implements Destination
 
     protected final boolean _isTemporary;
 
+    protected final boolean _newQueue;
+
     protected final String _scope;
 
     protected AMQDestination(String exchangeName, String exchangeClass, String destinationName, boolean isTemporary,
-                             String scope)
+            String scope) {
+        this(exchangeName, exchangeClass, destinationName, isTemporary, scope, true);
+    }
+
+    protected AMQDestination(String exchangeName, String exchangeClass, String destinationName, boolean isTemporary,
+                             String scope, boolean newQueue)
     {
         if (destinationName == null)
         {
@@ -48,6 +55,7 @@ public abstract class AMQDestination implements Destination
         _destinationName = destinationName;
         _isTemporary = isTemporary;
         _scope = scope;
+        _newQueue = newQueue;
     }
 
     public abstract String getEncodedName();
@@ -80,6 +88,10 @@ public abstract class AMQDestination implements Destination
     public boolean isTemporary()
     {
         return _isTemporary;
+    }
+    
+    public boolean newQueue() {
+        return _newQueue;
     }
 
     public String getScope()

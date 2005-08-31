@@ -419,7 +419,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
     {
         return createConsumer(destination, _defaultPrefetch, noLocal, false, false, messageSelector);
     }
-
+    
     public MessageConsumer createConsumer(
             Destination destination,
             int prefetch,
@@ -427,6 +427,18 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
             boolean dynamic,
             boolean exclusive,
             String selector) throws JMSException
+    {
+        return createConsumer(destination, prefetch, noLocal, dynamic, exclusive, selector, null);
+    }
+
+    public MessageConsumer createConsumer(
+            Destination destination,
+            int prefetch,
+            boolean noLocal,
+            boolean dynamic,
+            boolean exclusive,
+            String selector,
+            FieldTable rawSelector) throws JMSException
     {
         synchronized (_closingLock)
         {
@@ -442,19 +454,9 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
             try
             {
                 final AMQProtocolHandler protocolHandler = _connection.getProtocolHandler();
-                String queueName;
+                // Upper layer may change the newQueue default value to do different things in AMQ 
+                String queueName = amqd.newQueue() ? "" : amqd.getDestinationName();
                 
-                // TODO: remove when server supports queue UUIDs
-                try {
-                    InetAddress address = InetAddress.getLocalHost();
-                    queueName = "quuid_" + (address.getHostName() + System.currentTimeMillis()).replace('.', '_');
-                } catch (UnknownHostException e) {
-                    JMSException je = new JMSException("Cannot create queue UUID");
-                    je.setLinkedException(e);
-                    
-                    throw je;
-                }
-
                 // Declare exchange 
                 AMQFrame exchangeDeclare = ExchangeDeclareBody.createAMQFrame(_channelId, 0, amqd.getExchangeName(),
                                                                               amqd.getExchangeClass(), false, false,
@@ -468,23 +470,27 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                                                                         false, false, false ,false);
                 AMQMethodEvent evt = protocolHandler.writeCommandFrameAndWaitForReply(queueDeclare,
                                              new SpecificMethodFrameListener(_channelId, QueueDeclareOkBody.class));
-                //QueueDeclareOkBody queueOk = (QueueDeclareOkBody)evt.getMethod();
+                QueueDeclareOkBody queueOk = (QueueDeclareOkBody)evt.getMethod();
 
                 // Bind exchange to queue
+                // TODO: construct the rawSelector from the selector string if rawSelector == null
                 final FieldTable ft = new FieldTable();
                 ft.put("destination", amqd.getDestinationName());
-                AMQFrame queueBind = QueueBindBody.createAMQFrame(_channelId, 0, amqd.getScope(), queueName,
+                if (rawSelector != null)
+                    ft.put("headers", rawSelector.getDataAsBytes());
+                AMQFrame queueBind = QueueBindBody.createAMQFrame(_channelId, 0, amqd.getScope(), queueOk.queue,
                                                                   amqd.getExchangeName(), ft);
 
                 protocolHandler.writeCommandFrameAndWaitForReply(queueBind,
                                               new SpecificMethodFrameListener(_channelId, QueueBindOkBody.class));
                 
                 // Consume from queue
-                AMQFrame jmsConsume = JmsConsumeBody.createAMQFrame(_channelId, 0, amqd.getScope(), /*queueOk.queue*/queueName, 0,
+                AMQFrame jmsConsume = JmsConsumeBody.createAMQFrame(_channelId, 0, amqd.getScope(), queueOk.queue, 0,
                                                                     prefetch, noLocal, true, exclusive);
 
                 protocolHandler.writeCommandFrameAndWaitForReply(jmsConsume,
                                                new SpecificMethodFrameListener(_channelId, JmsConsumeOkBody.class));
+                
 //                consumeFrame.noAck = (_acknowledgeMode == Session.NO_ACKNOWLEDGE);
 //                if (selector != null)
 //                {
