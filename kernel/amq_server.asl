@@ -32,7 +32,7 @@
     //
     exchange_class = amq_exchange_class_lookup (method->class);
     if (exchange_class) {
-        /*  Find exchange and create if necessary                            */
+        //  Find exchange and create if necessary
         exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
         if (!exchange) {
             if (method->passive)
@@ -58,7 +58,7 @@
             else
                 amq_server_channel_close (
                     channel, ASL_NOT_ALLOWED, "Exchange exists with different class");
-                
+
             amq_exchange_unlink (&exchange);
         }
     }
@@ -70,8 +70,8 @@
   <action name = "bind">
     <local>
     amq_exchange_t
-        *exchange,                  /*  Exchange we're working with      */
-        *bind_to;                   /*  Exchange to bind to              */
+        *exchange,                  //  Exchange we're working with
+        *bind_to;                   //  Exchange to bind to
     </local>
     bind_to = amq_exchange_search (amq_vhost->exchange_table, method->bind_to);
     if (bind_to) {
@@ -111,10 +111,19 @@
     <local>
     amq_queue_t
         *queue;
+    static qbyte
+        queue_index = 0;
+    icl_shortstr_t
+        queue_name;
     </local>
     //
-    /*  Find queue and create if necessary                                   */
-    queue = amq_queue_search (amq_vhost->queue_table, method->scope, method->queue);
+    //  Find queue and create if necessary
+    if (*method->queue)
+        icl_shortstr_cpy (queue_name, method->queue);
+    else
+        icl_shortstr_fmt (queue_name, "tmp_%06d", apr_atomic_inc32 (&queue_index));
+
+    queue = amq_queue_search (amq_vhost->queue_table, method->scope, queue_name);
     if (!queue) {
         if (method->passive)
             amq_server_channel_close (
@@ -123,7 +132,7 @@
             queue = amq_queue_new (
                 amq_vhost,
                 method->scope,
-                method->queue,
+                queue_name,
                 method->durable,
                 method->private,
                 method->auto_delete);
@@ -134,7 +143,7 @@
     }
     if (queue) {
         amq_server_agent_queue_declare_ok (
-            channel->connection->thread, (dbyte) channel->key, method->queue, NULL, 0, 0);
+            channel->connection->thread, (dbyte) channel->key, queue_name, NULL, 0, 0);
         amq_queue_list_queue (amq_vhost->queue_list, queue);
         amq_queue_unlink (&queue);
     }
@@ -145,7 +154,7 @@
   <action name = "bind">
     <local>
     amq_exchange_t
-        *bind_to;                   /*  Exchange to bind to              */
+        *bind_to;                   //  Exchange to bind to
     amq_queue_t
         *queue;
     </local>
