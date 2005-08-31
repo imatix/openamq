@@ -113,7 +113,7 @@
         *queue;
     static qbyte
         queue_index = 0;
-    icl_shortstr_t
+    static icl_shortstr_t
         queue_name;
     </local>
     //
