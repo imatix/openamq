@@ -75,7 +75,7 @@ class.  This is a lock-free asynchronous class.
     icl_shortstr_cpy (self->name,  name);
 
     if (amq_server_config_trace_queue (amq_server_config))
-        icl_console_print ("Q: create   queue=%s", self->key);
+        icl_console_print ("Q: create   queue=%s", fullname);
 </method>
 
 <method name = "destroy">
