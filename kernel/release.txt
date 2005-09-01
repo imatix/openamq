@@ -1,4 +1,15 @@
 ---------------------------------------------------------------------
+0.9b3 - 2005/09/01 - 93k lines
+
+Improvements:
+
+  - amq_client shows queue name in trace output.
+
+Bug fixes:
+
+  - Jira AMQ-39
+
+---------------------------------------------------------------------
 0.9b2 - 2005/08/31 - 93k lines
 
 Improvements:
@@ -6,10 +17,11 @@ Improvements:
   - Support added for large message contents (limited only by available
     memory).
   - Server implements auto-named queues (for temporary queues).
+  - New stress testing tool implemented (amq_stress).
 
 Bug fixes:
 
-  - See Jira
+  - Jira AMQ-11, AMQ-5, AMQ-28, AMQ-27, BASE2-29, AMQ-31, BASE2-28.
 
 ---------------------------------------------------------------------
 0.9b1 - 2005/08/24 - 89k lines

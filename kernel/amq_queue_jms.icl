@@ -62,6 +62,11 @@ runs lock-free as a child of the asynchronous queue class.
     if (self_dispatch (self) == 0) {
         if (immediate) {
             //  Bounce content back to publisher
+            if (amq_server_config_trace_queue (amq_server_config))
+                icl_console_print ("Q: bounce   queue=%s message=%s",
+                    self->queue->key,
+                    content->message_id);
+
             ipr_looseref_pop (self->content_list);
             if (amq_server_channel_alive (channel))
                 amq_server_agent_jms_bounce (
