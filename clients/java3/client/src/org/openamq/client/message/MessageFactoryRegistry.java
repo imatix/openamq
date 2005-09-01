@@ -4,6 +4,7 @@ import org.openamq.AMQException;
 import org.openamq.framing.AMQMessage;
 import org.openamq.framing.JmsContentHeaderBody;
 import org.openamq.framing.ContentBody;
+import org.openamq.framing.FieldTable;
 
 import javax.jms.JMSException;
 import java.util.HashMap;
@@ -18,7 +19,7 @@ public class MessageFactoryRegistry
 
     public void registerFactory(String mimeType, MessageFactory mf)
     {
-        if (mimeType == null)
+        if (!FieldTable.grm && mimeType == null)
         {
             throw new IllegalArgumentException("Mime time must not be null");
         }
@@ -74,6 +75,8 @@ public class MessageFactoryRegistry
     {
         MessageFactoryRegistry mf = new MessageFactoryRegistry();
         mf.registerFactory("text/plain", new AMQTextMessageFactory());
+        // TODO: use bytes message for default message factory
+        mf.registerFactory(null, new AMQTextMessageFactory());
         return mf;
     }
 }

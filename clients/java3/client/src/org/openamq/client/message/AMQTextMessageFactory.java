@@ -16,8 +16,15 @@ public class AMQTextMessageFactory extends AbstractMessageFactory
                                                     JmsContentHeaderBody contentHeader,
                                                     ContentBody[] bodies) throws AMQException
     {
-        // TODO: support multiple bodies properly        
-        return new AMQTextMessage(messageNbr, bodies[0].payload, contentHeader);
+        // TODO: support multiple bodies properly
+        byte[] data = null;
+             
+        if (bodies != null && bodies[0] != null) 
+        {
+            data = bodies[0].payload;
+        }
+             
+        return new AMQTextMessage(messageNbr, data, contentHeader);
     }
 
     public AbstractMessage createMessage() throws JMSException

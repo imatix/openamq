@@ -143,6 +143,12 @@ public class AMQProtocolSession
             throw new AMQException("Error: received duplicate content header or did not receive correct number of content body frames");
         }
         msg.contentHeader = contentHeader;
+        if (contentHeader.bodySize == 0) {
+            // TODO: move this to a function, I copied it from the next function
+            AMQSession session = (AMQSession) _channelId2SessionMap.get(new Integer(channelId));
+            session.messageReceived(msg);
+            _channelId2UnprocessedMsgMap.remove(new Integer(channelId));
+        }
     }
 
     public void messageContentBodyReceived(int channelId, ContentBody contentBody) throws AMQException
