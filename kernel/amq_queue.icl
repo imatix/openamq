@@ -33,6 +33,8 @@ class.  This is a lock-free asynchronous class.
         scope;                          //  Queue scope
     icl_shortstr_t
         name;                           //  Queue name
+    qbyte
+        owner_id;                       //  Owner connection
     Bool
         durable,                        //  Is queue durable?
         private,                        //  Is queue private?
@@ -45,6 +47,7 @@ class.  This is a lock-free asynchronous class.
 </context>
 
 <method name = "new">
+    <argument name = "owner id" type = "qbyte">Owner context id</argument>
     <argument name = "vhost"    type = "amq_vhost_t *">Parent vhost</argument>
     <argument name = "scope"    type = "char *">Queue scope</argument>
     <argument name = "name"     type = "char *">Queue name</argument>
@@ -60,6 +63,7 @@ class.  This is a lock-free asynchronous class.
         fullname;
     </local>
     //
+    self->owner_id    = owner_id;
     self->vhost       = vhost;
     self->durable     = durable;
     self->private     = private;
@@ -69,10 +73,16 @@ class.  This is a lock-free asynchronous class.
 
     icl_shortstr_cpy (self->scope, scope);
     icl_shortstr_cpy (self->name,  name);
+
+    if (amq_server_config_trace_queue (amq_server_config))
+        icl_console_print ("Q: create   queue=%s", self->key);
 </method>
 
 <method name = "destroy">
     <action>
+    if (amq_server_config_trace_queue (amq_server_config))
+        icl_console_print ("Q: destroy  queue=%s", self->key);
+
     amq_queue_jms_destroy   (&self->queue_jms);
     amq_queue_basic_destroy (&self->queue_basic);
     </action>

@@ -101,27 +101,22 @@
     request a private queue
     <doc>
       If set when creating a new queue, the queue will be private and
-      owned by the current client. This will fail if the queue already
-      exists and is owned by another client. Private queues cannot be
-      consumed from by clients except the owner.
+      owned by the current connection.  Private queues cannot be consumed
+      from by connection except the owning connection.  Private queues are
+      always deleted when the connection closes.
     </doc>
     <doc name = "rule">
       The server MUST support both private and shared queues.
     </doc>
     <doc name = "rule">
-      The server MUST use the client identifier supplied at connection
-      open time to identify the owner of a private queue.  The client
-      identifier is persistent even if the client disconnects and
-      reconnects.
-    </doc>
-    <doc name = "rule">
-      The server MUST ignore the private field if the queue already
-      exists.
+      The server MUST raise a channel exception if the private field is
+      specified and the queue already exists and is owned by a different
+      connection.
     </doc>
   </field>
 
   <field name = "auto delete" type = "bit">
-    auto-delete queue when unused  
+    auto-delete queue when unused
     <doc>
       If set, the queue is deleted when all clients have finished
       using it.

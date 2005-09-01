@@ -4,6 +4,10 @@
 Improvements:
 
   - amq_client shows queue name in trace output.
+  - added message bounces to queue verbosity (tracing option).
+  - implemented queue private option.
+  - private queues are automatically deleted when connection closes.
+  - <verbosity trace_queue now traces queue creation/destruction.
 
 Bug fixes:
 

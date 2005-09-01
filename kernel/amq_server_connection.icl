@@ -12,6 +12,34 @@ This class implements the connection class for the AMQ server.
 <inherit class = "asl_server_connection" />
 <option name = "basename" value = "amq_server" />
 
+<context>
+    ipr_looseref_list_t
+        *own_queue_list;                //  List of private queues
+</context>
+
+<method name = "new">
+    self->own_queue_list = ipr_looseref_list_new ();
+</method>
+
+<method name = "destroy">
+    <local>
+    amq_queue_t
+        *queue;                         //  Content object reference
+    </local>
+
+    //  Delete connection's private queues
+    while ((queue = (amq_queue_t *) ipr_looseref_pop (self->own_queue_list)))
+        amq_queue_destroy (&queue);
+
+    ipr_looseref_list_destroy (&self->own_queue_list);
+</method>
+
+<method name = "own queue" template = "function">
+    <argument name = "queue" type = "amq_queue_t *">Queue reference</argument>
+    assert (queue->private);
+    ipr_looseref_queue (self->own_queue_list, amq_queue_link (queue));
+</method>
+
 <method name = "start ok" template = "function">
     <local>
     asl_field_t

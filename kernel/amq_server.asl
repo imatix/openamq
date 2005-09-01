@@ -113,7 +113,7 @@
         *queue;
     static qbyte
         queue_index = 0;
-    static icl_shortstr_t
+    icl_shortstr_t
         queue_name;
     </local>
     //
@@ -121,7 +121,7 @@
     if (*method->queue)
         icl_shortstr_cpy (queue_name, method->queue);
     else
-        icl_shortstr_fmt (queue_name, "tmp_%06d", apr_atomic_inc32 (&queue_index));
+        icl_shortstr_fmt (queue_name, "tmp_%06d", icl_atomic_inc32 (&queue_index));
 
     queue = amq_queue_search (amq_vhost->queue_table, method->scope, queue_name);
     if (!queue) {
@@ -130,21 +130,32 @@
                 channel, ASL_NOT_FOUND, "No such queue defined");
         else {
             queue = amq_queue_new (
+                channel->connection->context_id,
                 amq_vhost,
                 method->scope,
                 queue_name,
                 method->durable,
                 method->private,
                 method->auto_delete);
-            if (!queue)
+            if (queue) {
+                //  Add to connection's private queue list
+                if (method->private)
+                    amq_server_connection_own_queue (channel->connection, queue);
+            }
+            else
                 amq_server_channel_close (
                     channel, ASL_RESOURCE_ERROR, "Unable to declare queue");
         }
     }
     if (queue) {
-        amq_server_agent_queue_declare_ok (
-            channel->connection->thread, (dbyte) channel->key, queue_name, NULL, 0, 0);
-        amq_queue_list_queue (amq_vhost->queue_list, queue);
+        if (method->private && queue->owner_id != channel->connection->context_id)
+            amq_server_channel_close (
+                channel, ASL_RESOURCE_ERROR, "Queue cannot be made private to this connection");
+        else {
+            amq_server_agent_queue_declare_ok (
+                channel->connection->thread, (dbyte) channel->key, queue->name, NULL, 0, 0);
+            amq_queue_list_queue (amq_vhost->queue_list, queue);
+        }
         amq_queue_unlink (&queue);
     }
     else

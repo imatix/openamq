@@ -35,7 +35,7 @@ for JMS, Basic, and other content classes.
     amq_queue_t
         *queue;                         //  Parent queue
     dbyte
-        tag;                            //  Consumer tag
+        tag;                            //  Client reference for queue
     amq_consumer_jms_t
         *consumer_jms;                  //  JMS consumer
     amq_consumer_basic_t

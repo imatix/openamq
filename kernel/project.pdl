@@ -49,8 +49,6 @@
 <file name = "amq_server_config.opf" class = "gsl data"          >Server configuration</file>
 <file name = "amq_server_config.icl" class = "icl private class"
                                      generated = "1"             >Server configuration class</file>
-<file name = "amq_server_method.icl" class = "icl private class"
-                                     generated = "1"             >Server method class</file>
 <file name = "amq_server_agent.smt"  class = "fat module"
                                      generated = "1"             >Server protocol agent</file>
 <file name = "amq_server_classes.h"  class = "private resource"  >Server classes</file>
@@ -65,7 +63,6 @@
                                      generated = "1"             >Server channel agent</file>
 <file name = "amq_server_channel_table.icl"
                                      class = "icl private cont"  >Server channel table</file>
-
 <file name = "amq_vhost.icl"         class = "icl private class" >Server vhost class</file>
 <file name = "amq_vhost_config.opf"  class = "gsl data"          >Vhost configuration</file>
 <file name = "amq_vhost_config.icl"  class = "icl private class"
@@ -108,14 +105,14 @@
 <file name = "amq_consumer_basic.icl"
                                      class = "icl private class" >Basic consumer class</file>
 <file name = "amq_consumer_jms.icl"  class = "icl private class" >JMS consumer class</file>
+<file name = "amq_server_method.icl" class = "icl private class"
+                                     generated = "1"             >Server method class</file>
 
 <file name = "server.cfg"            class = "private resource"  >Server config file</file>
 
 <!-- Deliverables -->
 <file name = "amq_server"            class = "public command"    >Server</file>
 <file name = "amq_client"            class = "public command"    >Client</file>
-<file name = "amq_constants.h"       class = "public header"/>
-<file name = "amq_constants.inc"     class = "public header"/>
 
 <!-- Test programs -->
 <file name = "amq_pub.c"             class = "main program"      >Topic publisher</file>
@@ -130,7 +127,7 @@
                                      generated = "1"             >Basic content class</file>
 <file name = "amq_content_jms.icl"   class = "icl public cont"
                                      generated = "1"             >JMS content class</file>
-<file name = "amq_constants.icl"     class = "icl private data"
+<file name = "amq_constants.icl"     class = "icl public data"
                                      generated = "1"             >Constants class</file>
 
 </pdl>
