@@ -285,7 +285,8 @@ main (int argc, char *argv [])
     }
     while (repeats) {
         //  Send messages to the test queue
-        icl_console_print ("I: (%d) sending %d messages to server...", repeats, messages);
+        icl_console_print ("I: [%s] (%d) sending %d messages to server...",
+            opt_queue, repeats, messages);
         batch_left = batch_size;
         for (count = 0; count < messages; count++) {
             content = amq_content_jms_new ();
@@ -301,18 +302,19 @@ main (int argc, char *argv [])
                     opt_dest,
                     mandatory,
                     immediate)) {
-                icl_console_print ("E: Jms.Publish failed - %s", connection->error_text);
-                icl_console_print ("E: ending test");
+                icl_console_print ("E: [%s] could not send message to server - %s",
+                    opt_queue, connection->error_text);
                 goto finished;
             }
             if (--batch_left == 0) {
                 if (!quiet_mode)
-                    icl_console_print ("I: commit batch %d...", count / batch_size);
+                    icl_console_print ("I: [%s] commit batch %d...",
+                        opt_queue, count / batch_size);
                 batch_left = batch_size;
             }
         }
         //  Now read messages off the test queue
-        icl_console_print ("I: (%d) reading back messages...", repeats);
+        icl_console_print ("I: [%s] (%d) - reading back messages...", opt_queue, repeats);
         if (async_mode && simul_mode)
             amq_client_session_flow (session, TRUE);
 
@@ -328,10 +330,12 @@ main (int argc, char *argv [])
                 got_messages = TRUE;
                 count++;
                 if ((delay_mode || messages < 100) && !quiet_mode)
-                    icl_console_print ("I: message number %s arrived", content->message_id);
+                    icl_console_print ("I: [%s] message number %s arrived",
+                        opt_queue, content->message_id);
                 if (count % batch_size == 0) {
                     if (!quiet_mode)
-                        icl_console_print ("I: acknowledge batch %d...", count / batch_size);
+                        icl_console_print ("I: [%s] acknowledge batch %d...",
+                            opt_queue, count / batch_size);
                 }
                 amq_content_jms_destroy (&content);
                 if (delay_mode)
@@ -346,13 +350,14 @@ main (int argc, char *argv [])
             while ((content = amq_client_session_jms_bounced (session)) != NULL) {
                 got_messages = TRUE;
                 count++;
-                icl_console_print ("I: message number %s was bounced", content->message_id);
+                icl_console_print ("I: [%s] message number %s was bounced",
+                    opt_queue, content->message_id);
                 amq_content_jms_destroy (&content);
             }
             if (async_mode) {
                 //  If we expect more, wait for something to happen
                 if (count < messages && amq_client_session_wait (session, 0)) {
-                    icl_console_print ("E: error receiving messages - ending test");
+                    icl_console_print ("E: [%s] error receiving messages - ending test", opt_queue);
                     goto finished;      //  Quit if there was a problem
                 }
             }
@@ -360,7 +365,7 @@ main (int argc, char *argv [])
             if (!got_messages)
                 break;                  //  Browsing ended, no more data
         }
-        icl_console_print ("I: received %d messages back from server", count);
+        icl_console_print ("I: [%s] received %d messages back from server", opt_queue, count);
         if (repeats > 0)
             repeats--;
     }
