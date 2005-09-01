@@ -7,8 +7,11 @@
  *************************************************************************/
 package org.openamq.client.handler;
 
+import javax.jms.JMSException;
+
 import org.apache.log4j.Logger;
 import org.openamq.AMQException;
+import org.openamq.AMQChannelClosedException;
 import org.openamq.framing.AMQFrame;
 import org.openamq.framing.ChannelCloseBody;
 import org.openamq.framing.ChannelCloseOkBody;
@@ -48,7 +51,7 @@ public class ChannelCloseMethodHandler implements StateAwareMethodListener
         if (errorCode != AMQConstant.REPLY_SUCCESS.getCode())
         {
             _logger.debug("Channel close received with errorCode " + errorCode + ", throwing exception");
-            throw new AMQException(errorCode, "Error: " + reason);
+            evt.getProtocolSession().getAMQConnection().exceptionReceived(new AMQChannelClosedException(errorCode, "Error: " + reason));
         }
         evt.getProtocolSession().channelClosed(evt.getChannelId(), errorCode, reason);
     }

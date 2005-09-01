@@ -7,6 +7,7 @@ import org.apache.mina.protocol.ProtocolHandler;
 import org.apache.mina.protocol.ProtocolSession;
 import org.openamq.client.AMQConnection;
 import org.openamq.AMQException;
+import org.openamq.AMQDisconnectedException;
 import org.openamq.client.AMQSession;
 import org.openamq.framing.*;
 import org.openamq.client.state.AMQState;
@@ -58,6 +59,8 @@ public class AMQProtocolHandler implements ProtocolHandler
 
     public void sessionClosed(ProtocolSession session) throws Exception
     {
+        _connection.exceptionReceived(new AMQDisconnectedException("Client disconnected"));
+        
         _logger.info("Protocol Session closed");
     }
 
