@@ -4,6 +4,7 @@ use strict;
 use IO::Handle;
 use Getopt::Long;
 use Pod::Usage;
+use Time::HiRes;
 use POSIX ":sys_wait_h";
 
 # Variables used to map the command line options to, and their defaults.
@@ -12,6 +13,7 @@ my $help = 0;
 my $color = 0;
 my $debug = 0;
 my $processes = 1;
+my $killexpr = undef;
 my $exec = undef;
 
 # Parse the options from the command line.
@@ -20,6 +22,7 @@ GetOptions('help|?'     => \$help,
            'debug!'     => \$debug,
            'color|c!'   => \$color,
            'exec|e=s'   => \$exec,
+           'kill|k=s'   => \$killexpr,
            'number|n=n' => \$processes,
           ) or pod2usage(2);
 
@@ -33,10 +36,12 @@ our $childnr;
 
 
 # Signal handeling
-sub quit { print "[$$] ctrl-c received. quitting...\n" if $debug; reap(); }
-sub reap { print "[$$] reaping child $childnr\n" if $debug; wait(); }
+sub quit { print "[$$] SIGINT received. quitting...\n" if $debug; reap(); }
+sub reap { print "[$$] reaping child...\n" if $debug; wait(); }
+sub alarm { print "+".('-'x79)."\n| Automatic SIG_INT sent. killing pid [$$]\n+".('-'x80)."\n\n"; kill (2,$$); }
 $SIG{CHLD} = \&reap;
 $SIG{INT} = \&quit;
+$SIG{ALRM} = \&alarm;
 
 # A pipe to let the children communicate to the parent.
 pipe (CHILD_OUT, PARENT_IN);
@@ -52,21 +57,38 @@ if ($$ == $parent) {
     while (chomp (my $line = <CHILD_OUT>)) {
         print $line."\n";
     }
-    print "[$$] waiting for children to finish\n";
+    print "[$$]{p} waiting for children to finish\n";
     wait (); 
-    print "[$$] finished\n";
+    print "[$$]{p} finished\n";
     close CHILD_OUT;
 } else {
     # The child process.
     close CHILD_OUT;
+    
+    $SIG{INT} = undef;
+
+    if($killexpr) {
+        $killexpr =~ s/\$i/$childnr/g;
+        $killexpr =~ s/{([^}]*)}/eval "$1"/eg;
+        $killexpr =~ s/[^\d.]//g;
+        Time::HiRes::alarm $killexpr;
+    }
+    
+    my ($hl,$dl);
+    $hl = '['.(int(($childnr%16)/7)).';3'.($childnr%7 || 7)."m" if ($color);
+    $dl = '[1;37m' if ($color);
+    
     $exec =~ s/\$i/$childnr/g;
     $exec =~ s/{([^}]*)}/eval "$1"/eg;
-    print "[$$] spawning: '$exec'\n";
+    
+    if($childnr == 1) { print (('-'x100)."\n"); }
+    print $hl."[$$]{$childnr} spawning: '$exec'";
+    print " WILL BE KILLED IN $killexpr seconds" if($killexpr);
+    print $dl."\n";
+    if($childnr == $processes) { print (('-'x100)."\n\n\n\n"); }
+    
     open (CMD,"$exec |");
     while (chomp (my $line = <CMD>)) {
-        my ($hl,$dl);
-        $hl = '['.(int(($childnr%16)/7)).';3'.($childnr%7 || 7)."m" if ($color);
-        $dl = '[1;37m' if ($color);
         print PARENT_IN $hl."[$$]{".$childnr."} $line $dl\n";
     }
     close PARENT_IN;
@@ -101,7 +123,7 @@ Tim Esselens <tim@imatix.net>
 
 amq_stress [options] --exec program
 
- the string provided to the exec argument can contain some magic:
+ the string provided to the exec and kill argument can contain some magic:
  - every $i will be replaced with the number of the current child process (counting from 1 to total children)
  - every {} (block) will be eval'ed
 
@@ -110,6 +132,7 @@ amq_stress [options] --exec program
     amq_stress -n 10 --exec 'echo this is child $i'";
     amq_stress -n 10 --exec 'echo this is child $i with a random number: { int(rand(10)) }';
     amq_stress -n 10 --exec './amq_client -n { int(rand(10) * 1000) } -Q queue_$i -b 500 -r 10 2>&1';
+    amq_stress -n 10 --kill '{ rand(10) }' --exec './amq_client -n { int(rand(10) * 1000) } -Q queue_$i -b 500 -r 10 2>&1';
 
 =head1 OPTIONS
 
@@ -129,6 +152,9 @@ Prints the manual page and exits.
 
 =item B<--color>
 Output in color on ansi capable terminals.
+
+=item B<--kill>
+Time in seconds (float), after which the child will be send a SIG_INT
 
 =item B<--debug>
 Be a bit more verbose, only usefull when developing amq_stress.
