@@ -38,10 +38,9 @@ our $childnr;
 # Signal handeling
 sub quit { print "[$$] SIGINT received. quitting...\n" if $debug; reap(); }
 sub reap { print "[$$] reaping child...\n" if $debug; wait(); }
-sub alarm { print "+".('-'x79)."\n| Automatic SIG_INT sent. killing pid [$$]\n+".('-'x80)."\n\n"; kill (2,$$); }
+sub alarm { print "+".('-'x79)."\n| Automatic SIG_INT sent. killing pid [$$]\n+".('-'x80)."\n\n"; `echo killing $$ >> /tmp/log; kill -2 $$ && echo kill OK || echo kill NOK`; } 
 $SIG{CHLD} = \&reap;
 $SIG{INT} = \&quit;
-$SIG{ALRM} = \&alarm;
 
 # A pipe to let the children communicate to the parent.
 pipe (CHILD_OUT, PARENT_IN);
@@ -64,9 +63,12 @@ if ($$ == $parent) {
 } else {
     # The child process.
     close CHILD_OUT;
+   
+    $SIG{ALRM} = \&alarm;
+    $SIG{INT} =  \&x; # should be default
+    sub x { print "INT ARRIVED\n\n\n";};
+    $SIG{CHLD} = 'DEFAULT';
     
-    $SIG{INT} = undef;
-
     if($killexpr) {
         $killexpr =~ s/\$i/$childnr/g;
         $killexpr =~ s/{([^}]*)}/eval "$1"/eg;
