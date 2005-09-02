@@ -1,10 +1,5 @@
 ---- DONE
 
-    - handle large contents
-        - read content buckets
-        - looseref list of buckets
-            - reformat / rescan out output
-
 
     Daisy-chaining exchanges
 
@@ -58,6 +53,8 @@
 
 ---- TODO
 
+    - exclusive consumers
+    
     - store content header without parsing
         - parse certain items
             - weight, size, class.

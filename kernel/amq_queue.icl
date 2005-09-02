@@ -40,6 +40,8 @@ class.  This is a lock-free asynchronous class.
         private,                        //  Is queue private?
         auto_delete,                    //  Auto-delete unused queue?
         dirty;                          //  Queue has to be dispatched?
+    int
+        consumers;                      //  Number of consumers
     amq_queue_jms_t
         *queue_jms;                     //  JMS content queue
     amq_queue_basic_t
@@ -55,7 +57,7 @@ class.  This is a lock-free asynchronous class.
     <argument name = "private"  type = "Bool">Is queue private?</argument>
     <argument name = "auto delete" type = "Bool">Auto-delete unused queue?</argument>
     <dismiss argument = "table" value = "vhost->queue_table" />
-    <dismiss argument = "key"   value = "self_fullname (scope, name, fullname)">
+    <dismiss argument = "key"   value = "fullname">
         Hash key is fullname formatted from queue scope plus name
     </dismiss>
     <local>
@@ -74,14 +76,17 @@ class.  This is a lock-free asynchronous class.
     icl_shortstr_cpy (self->scope, scope);
     icl_shortstr_cpy (self->name,  name);
 
+    //  Format fully-scoped queue name
+    self_fullname (scope, name, fullname);
+
     if (amq_server_config_trace_queue (amq_server_config))
-        icl_console_print ("Q: create   queue=%s", fullname);
+        icl_console_print ("Q: create   queue=%s|%s", self->scope, self->name);
 </method>
 
 <method name = "destroy">
     <action>
     if (amq_server_config_trace_queue (amq_server_config))
-        icl_console_print ("Q: destroy  queue=%s", self->key);
+        icl_console_print ("Q: destroy  queue=%s|%s", self->scope, self->name);
 
     amq_queue_jms_destroy   (&self->queue_jms);
     amq_queue_basic_destroy (&self->queue_basic);
@@ -180,6 +185,7 @@ class.  This is a lock-free asynchronous class.
 
     //  Caller linked to the consumer on our behalf
     amq_consumer_unlink (&consumer);
+    self->consumers++;
     </action>
 </method>
 
@@ -190,11 +196,21 @@ class.  This is a lock-free asynchronous class.
     <argument name = "consumer" type = "amq_consumer_t *" ref = "1">Consumer reference</argument>
     //
     <action>
+    amq_queue_t
+        *queue_ref;                     //  Need a reference to call destroy
+
     if (consumer->class_id == AMQ_SERVER_JMS)
         amq_queue_jms_cancel (self->queue_jms, consumer);
     else
     if (consumer->class_id == AMQ_SERVER_BASIC)
         amq_queue_basic_cancel (self->queue_basic, consumer);
+
+    //  Auto-delete queue if appropriate - we should really delay before doing this...
+    self->consumers--;
+    if (self->auto_delete && self->consumers == 0) {
+        queue_ref = amq_queue_link (self);
+        amq_queue_destroy (&queue_ref);
+    }
     </action>
 </method>
 
@@ -242,6 +258,22 @@ class.  This is a lock-free asynchronous class.
     amq_queue_list_push (self->vhost->queue_list, self);
 </method>
 
-<method name = "selftest" inherit = "none"/>
+<method name = "selftest">
+    <local>
+    amq_queue_table_t
+        *queue_table;
+    amq_queue_t
+        *queue;
+    amq_vhost_t
+        *vhost;
+    </local>
+    //
+    vhost = amq_vhost_new ();
+    queue_table = amq_queue_table_new ();
+    queue = amq_queue_new (0, vhost, "global", "test", 0, 0, 0);
+    amq_queue_destroy (&queue);
+    amq_queue_table_destroy (&queue_table);
+    amq_vhost_destroy (&vhost);
+</method>
 
 </class>

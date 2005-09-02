@@ -36,6 +36,10 @@ $\(selftype)
     <property name = "context timeout" type = "int" default = "60">
     Connection context timeout, seconds
     </property>
+
+    <property name = "queue ttl" type = "int" default = "60">
+    Time-to-live for auto-deleted queues
+    </property>
 </path>
 
 <path name = "/config/resources">
@@ -54,7 +58,7 @@ $\(selftype)
 
 <path name = "/config/verbosity">
     <property name = "trace route" type = "Bool">
-    Trace exchange message routing 
+    Trace exchange message routing
     </property>
 
     <property name = "trace queue" type = "Bool">
