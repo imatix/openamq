@@ -15,6 +15,7 @@ my $debug = 0;
 my $processes = 1;
 my $killexpr = undef;
 my $exec = undef;
+my $subchild = 0;
 
 # Parse the options from the command line.
 GetOptions('help|?'     => \$help, 
@@ -36,9 +37,11 @@ our $childnr;
 
 
 # Signal handeling
-sub quit { print "[$$] SIGINT received. quitting...\n" if $debug; reap(); }
+sub quit { print "[$$] SIGINT received. quitting...\n" if $debug; exit; }
 sub reap { print "[$$] reaping child...\n" if $debug; wait(); }
-sub alarm { print "+".('-'x79)."\n| Automatic SIG_INT sent. killing pid [$$]\n+".('-'x80)."\n\n"; `echo killing $$ >> /tmp/log; kill -2 $$ && echo kill OK || echo kill NOK`; } 
+sub alarm { print "+".('-'x79)."\n| Automatic SIG_INT sent. killing pid [$subchild]\n+".('-'x80)."\n\n"; kill (2,$subchild); } 
+
+$SIG{ALRM} = \&alarm;
 $SIG{CHLD} = \&reap;
 $SIG{INT} = \&quit;
 
@@ -64,11 +67,6 @@ if ($$ == $parent) {
     # The child process.
     close CHILD_OUT;
    
-    $SIG{ALRM} = \&alarm;
-    $SIG{INT} =  \&x; # should be default
-    sub x { print "INT ARRIVED\n\n\n";};
-    $SIG{CHLD} = 'DEFAULT';
-    
     if($killexpr) {
         $killexpr =~ s/\$i/$childnr/g;
         $killexpr =~ s/{([^}]*)}/eval "$1"/eg;
@@ -89,10 +87,11 @@ if ($$ == $parent) {
     print $dl."\n";
     if($childnr == $processes) { print (('-'x100)."\n\n\n\n"); }
     
-    open (CMD,"$exec |");
+    $subchild = open (CMD,"$exec |");
     while (chomp (my $line = <CMD>)) {
-        print PARENT_IN $hl."[$$]{".$childnr."} $line $dl\n";
+        print PARENT_IN $hl."[$subchild]{".$childnr."} $line $dl\n";
     }
+    close CMD;
     close PARENT_IN;
 }
 
