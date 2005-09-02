@@ -1,60 +1,12 @@
 ---- DONE
 
 
-    Daisy-chaining exchanges
-
-    e.g. combine topic plus header filter
-
-    - top-level exchange is $topic
-    - secondary exchange is $match
-    - bind $match to $topic
-        - using destination pattern
-    - declare queue
-        - scope = subscription
-    - bind queue to $match
-        - using header specification
-
-    > destination pattern
-    > header specification
-
-    e.g. just topic (no header filter)
-
-    - top-level exchange is $topic
-    - declare queue
-        - scope = subscription
-    - bind queue to $topic
-        - using destination pattern
-
-    > destination pattern
-
-    e.g. combine selector plus topics
-
-    - top-level exchange is $topic
-    - secondary exchange is $select
-    - bind $select to $topic
-        - using destination pattern
-    - declare queue
-        - scope = subscription
-    - bind queue to $select
-        - using selector string
-
-    e.g. combine lossy with topic
-    
-    - top-level exchange is $topic
-    - secondary exchange is $lossy
-    - bind $lossy to $topic
-        - using destination pattern
-    - declare queue
-        - scope = queue
-    - bind queue to $lossy
-        - using loss criteria
-
 
 
 ---- TODO
 
     - exclusive consumers
-    
+
     - store content header without parsing
         - parse certain items
             - weight, size, class.
