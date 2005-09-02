@@ -8,16 +8,16 @@ import org.openamq.client.message.AbstractMessage;
  */
 public class AMQUndeliveredException extends AMQException
 {
-    private AbstractMessage _bounced;
+    private Object _bounced;
     
-    public AMQUndeliveredException(int errorCode, String msg, AbstractMessage bounced)
+    public AMQUndeliveredException(int errorCode, String msg, Object bounced)
     {
         super(errorCode, msg);
         
         _bounced = bounced;
     }
     
-    public AbstractMessage getUndeliveredMessage() 
+    public Object getUndeliveredMessage() 
     {
         return _bounced;
     }
