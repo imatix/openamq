@@ -16,7 +16,7 @@ class.  This is a lock-free asynchronous class.
 <inherit class = "smt_object" />
 <inherit class = "icl_hash_item">
     <option name = "hash_type" value = "str" />
-    <option name = "hash_size" value = "255" />
+    <option name = "hash_size" value = "65535" />
 </inherit>
 <inherit class = "icl_list_item">
     <option name = "prefix" value = "list" />
@@ -266,12 +266,24 @@ class.  This is a lock-free asynchronous class.
         *queue;
     amq_vhost_t
         *vhost;
+    int
+        count;
     </local>
     //
+    //  Queues are async objects, so we must fire-up SMT before using them
+    smt_os_thread_initialise ();        //  Initialise SMT engine
+
+    //  We need a virtual host in which to store our test queues
     vhost = amq_vhost_new ();
     queue_table = amq_queue_table_new ();
-    queue = amq_queue_new (0, vhost, "global", "test", 0, 0, 0);
-    amq_queue_destroy (&queue);
+
+    //  Now let's create and destroy a lot of queues
+    for (count = 0; count < 10000; count++) {
+        queue = amq_queue_new (0, vhost, "global", "test", 0, 0, 0);
+        amq_queue_destroy (&queue);
+        smt_os_thread_wait (0);
+    }
+    //  Release resources
     amq_queue_table_destroy (&queue_table);
     amq_vhost_destroy (&vhost);
 </method>
