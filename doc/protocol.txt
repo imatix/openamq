@@ -3,7 +3,7 @@ gdl
     subtitle  = The AMQP/Fast Wire-Level Protocol
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/08/19
+    date      = 2005/08/23
     copyright = Copyright (c) 2004-2005 JPMorgan
     version   = 0.9b0
 end gdl
@@ -81,8 +81,7 @@ Authors
 =======
 
 AMQP was designed by Pieter Hintjens with help from John O'Hara, Mark
-Atwell, and others. This document was written by Pieter Hintjens. The
-diagrams were drawn by Gustavo Broos.
+Atwell, and others. This document was written by Pieter Hintjens.
 
 Abstract
 ========
@@ -210,8 +209,8 @@ simple clients is possible if we hold to these design rules:
    types or structures) must be optional.
 
 2. The protocol must be able to operate entirely synchronously, since
-   an asynchronous model - though efficient and reliable - is a barrier
-   for simple implementations.
+   an asynchronous model - though more efficient and reliable - is a
+   barrier for simple implementations.
 
 3. The protocol must be formally defined so that significant parts of
    a client or server protocol interface can be mechanically generated
@@ -872,7 +871,9 @@ Guidelines for implementors:
 
 - Content frames on a specific channel form an strict list. That is,
   they may be mixed with frames for different channels, but two contents
-  may not be mixed or overlapped on a single channel.
+  may not be mixed or overlapped on a single channel, nor may content
+  frames for a single content be mixed with method frames on the same
+  channel.
 
 Out-of-Band Transport Frames
 ----------------------------
@@ -1195,7 +1196,14 @@ A content body frame has this format:
     | Opaque binary content | frame-end |
     +-----------------------+-----------+
 
-Where the size of the frame is defined in the frame header.
+Where the size of the frame is defined in the frame header. A body frame
+of size 1 (consisting just of the frame-end octet), which would normally
+be meaningless, has special significance - it tells the recipient that
+the content is ending prematurely, i.e. is incomplete. Thus, if a sender
+decides to cancel a large message but keep the channel open, it will
+send a content frame of size 1 and then continue as if the content had
+been fully sent. The recipient may decide to process or discard the
+content, depending on the application.
 
 Structured Content
 ------------------
