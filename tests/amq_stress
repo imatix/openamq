@@ -84,8 +84,8 @@ if ($$ == $parent) {
         $exec =~ s/{([^}]*)}/eval "$1"/eg;
         
         print "<<< spawning: '$exec'";
-        print " kill in [${killexpr}s] >>>" if($killexpr);
-        print "\n";
+        print " kill in [${killexpr}s] " if($killexpr);
+        print ">>>\n";
         
         $subchild = open (CMD,"$exec |");
         while (chomp (my $line = <CMD>)) {
