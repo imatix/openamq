@@ -37,8 +37,8 @@ $\(selftype)
     Connection context timeout, seconds
     </property>
 
-    <property name = "queue ttl" type = "int" default = "60">
-    Time-to-live for auto-deleted queues
+    <property name = "queue timeout" type = "int" default = "30">
+    Timeout for auto-deleted queues
     </property>
 </path>
 

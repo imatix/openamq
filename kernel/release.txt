@@ -8,6 +8,9 @@ Improvements:
   - implemented queue private option.
   - private queues are automatically deleted when connection closes.
   - <verbosity trace_queue now traces queue creation/destruction.
+  - auto_delete queues are now automatically deleted when consumer leaves.
+     - deletion happens after configurable timeout
+     - server.cfg: <server queue_timeout = "30" />
 
 Bug fixes:
 

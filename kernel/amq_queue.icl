@@ -196,23 +196,34 @@ class.  This is a lock-free asynchronous class.
     <argument name = "consumer" type = "amq_consumer_t *" ref = "1">Consumer reference</argument>
     //
     <action>
-    amq_queue_t
-        *queue_ref;                     //  Need a reference to call destroy
-
     if (consumer->class_id == AMQ_SERVER_JMS)
         amq_queue_jms_cancel (self->queue_jms, consumer);
     else
     if (consumer->class_id == AMQ_SERVER_BASIC)
         amq_queue_basic_cancel (self->queue_basic, consumer);
 
-    //  Auto-delete queue if appropriate - we should really delay before doing this...
+    //  Prepare to auto-delete queue if necessary
     self->consumers--;
-    if (self->auto_delete && self->consumers == 0) {
+    if (self->auto_delete && self->consumers == 0)
+        smt_timer_request_delay (
+            self->thread,
+            amq_server_config_queue_timeout (amq_server_config) * 1000 * 1000,
+            auto_delete_event);
+    </action>
+</method>
+
+<event name = "auto_delete">
+    <action>
+    amq_queue_t
+        *queue_ref;                     //  Need a reference to call destroy
+
+    //  If we're still at zero consumers, self-destruct
+    if (self->consumers == 0) {
         queue_ref = amq_queue_link (self);
         amq_queue_destroy (&queue_ref);
     }
     </action>
-</method>
+</event>
 
 <method name = "flow" template = "async function" async = "1">
     <doc>
