@@ -21,6 +21,7 @@ import java.util.Map;
  */
 public class FieldTable extends LinkedHashMap
 {
+    static public boolean grm = false;
     private long _encodedSize = 0;
 
     public FieldTable()
@@ -35,11 +36,6 @@ public class FieldTable extends LinkedHashMap
      * @throws AMQFrameDecodingException if there is an error decoding the table
      */
     public FieldTable(ByteBuffer buffer, long length) throws AMQFrameDecodingException
-    {
-        this(buffer, length, false);
-    }
-
-    public FieldTable(ByteBuffer buffer, long length, boolean grm) throws AMQFrameDecodingException
     {
         super();
         assert length > 0;
