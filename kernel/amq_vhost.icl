@@ -82,6 +82,16 @@ $(selftype)
     }
 </method>
 
-<method name = "selftest" />
+<method name = "selftest">
+    <local>
+    amq_vhost_t
+        *vhost;
+    </local>
+    //
+    vhost = amq_vhost_new ();
+    amq_vhost_destroy (&vhost);
+
+    icl_console_print ("I: $(selfname) OK");
+</method>
 
 </class>

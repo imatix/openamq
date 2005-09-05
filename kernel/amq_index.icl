@@ -68,9 +68,10 @@
     amq_index_unlink (&index);
 
     assert (index_array->bound == 4);
-
     amq_index_hash_destroy  (&index_hash);
     amq_index_array_destroy (&index_array);
+
+    icl_console_print ("I: $(selfname) OK");
 </method>
 
 </class>

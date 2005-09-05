@@ -297,6 +297,8 @@ class.  This is a lock-free asynchronous class.
     //  Release resources
     amq_queue_table_destroy (&queue_table);
     amq_vhost_destroy (&vhost);
+
+    icl_console_print ("I: $(selfname) OK");
 </method>
 
 </class>

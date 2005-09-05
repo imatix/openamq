@@ -63,6 +63,7 @@
 </method>
 
 <method name = "selftest">
+    icl_console_print ("I: $(selfname) OK");
 </method>
 
 </class>

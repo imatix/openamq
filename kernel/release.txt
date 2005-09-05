@@ -1,4 +1,15 @@
 ---------------------------------------------------------------------
+0.9b4 - 2005/09/ - k lines
+
+Improvements:
+
+  - added self-test of significant classes to openamq build process.
+
+Bug fixes:
+
+  - Jira AMQ-48.
+
+---------------------------------------------------------------------
 0.9b3 - 2005/09/01 - 94k lines
 
 Improvements:
@@ -11,10 +22,12 @@ Improvements:
   - auto_delete queues are now automatically deleted when consumer leaves.
      - deletion happens after configurable timeout
      - server.cfg: <server queue_timeout = "30" />
+  - server now refuses new connections and messages when it reaches the
+    predefined memory limit (specified in server.cfg).
 
 Bug fixes:
 
-  - Jira AMQ-39
+  - Jira AMQ-39, BASE2-41, BASE2-39, AMQ-40
 
 ---------------------------------------------------------------------
 0.9b2 - 2005/08/31 - 93k lines

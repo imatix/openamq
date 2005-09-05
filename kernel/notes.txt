@@ -1,6 +1,33 @@
+All,
+
+I've implemented self-testing in the Base2 build process.  What I've done is:
+
+- extend boom with "test program" and "generated test" classes
+- modify the boom code generation to run the test programs ("boom test")
+- modify the boom scripts to test after building, when doing "boom all"
+- define the icl boom classes to include a "generated test" (icl_classes.pdl)
+- review and fix the self tests in all icl, ipr, and asl classes
+- test that it all works.
+
+On the way I found a bug in the c script, which apparently was compiling all
+files twice when invoked from make (make issues the command "c filename -o filename").
+
+In some classes I've had to remove some (possibly useful) testing code to get clean results.
+Basically all console output (messages, etc.) has gone.  The self tests must use assertions
+to validate the flow and result of work done.  Any test failure must raise an assertion
+which will be caught by boom and stop the build process.
+
+Various messages in other classes have been removed to provide a clean test listing.
+
+The last line of the selftest method is always:
+
+    icl_console_print ("I: $(selfname) OK");
+
+If you have specific test programs - not iCL test classes - to add to the boom test
+phase, define these in your project as "test program".  Please conform to the above
+standard, silence except for the final OK, and assertions to catch errors.
+
 ---- DONE
-
-
 
 
 ---- TODO
@@ -171,24 +198,6 @@ Some ideas
 
 ----------------------------------------------------------------------------
 
-
-- minimum required for GRM
-    - JMS class
-*        consume, consume-ok
-*        cancel, cancel-ok
-*        publish / immediate
-*        deliver
-    - exchange classes
-*        topic
-*        headers
-    - queue:
-*        jms messages, no priority, no persistence
-    - queue templating
-        basics only - queue max. size?
-*    - fanout, queue, dest-wild, property exchanges
-     - jms consumers
-*        - preconfigured exchanges
-        - queue, cbr
 
 ---- DOCUMENTATION
 
