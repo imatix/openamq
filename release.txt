@@ -1,4 +1,22 @@
 ---------------------------------------------------------------------
+0.9b3 - 2005/09/01 - 94k lines
+
+Improvements:
+
+  - amq_client shows queue name in trace output.
+  - added message bounces to queue verbosity (tracing option).
+  - implemented queue private option.
+  - private queues are automatically deleted when connection closes.
+  - <verbosity trace_queue now traces queue creation/destruction.
+  - auto_delete queues are now automatically deleted when consumer leaves.
+     - deletion happens after configurable timeout
+     - server.cfg: <server queue_timeout = "30" />
+
+Bug fixes:
+
+  - Jira AMQ-39
+
+---------------------------------------------------------------------
 0.9b2 - 2005/08/31 - 93k lines
 
 Improvements:
