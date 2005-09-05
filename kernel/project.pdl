@@ -5,6 +5,7 @@
     copyright = "Copyright (c) 2004-2005 iMatix & JPMorganChase"
     workflow  = "standard.pwl"
     library   = "libamq"
+    deploy    = "openamq/kernel"
     >
 
 <include filename = "prelude.pdl" />
