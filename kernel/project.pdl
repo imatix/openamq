@@ -108,7 +108,7 @@
 <file name = "amq_server_method.icl" class = "icl private class"
                                      generated = "1"             >Server method class</file>
 
-<file name = "server.cfg"            class = "private resource"  >Server config file</file>
+<file name = "server.cfg"            class = "public resource"   >Server config file</file>
 
 <!-- Deliverables -->
 <file name = "amq_server"            class = "public command"    >Server</file>
