@@ -1,4 +1,15 @@
 ---------------------------------------------------------------------
+0.9b4 - 2005/09/06 - k lines
+
+Improvements:
+
+  - added self-test of significant classes to openamq build process.
+
+Bug fixes:
+
+  - Jira AMQ-48, BASE2-44, BASE2-46, BASE2-11.
+
+---------------------------------------------------------------------
 0.9b3 - 2005/09/01 - 94k lines
 
 Improvements:
