@@ -1,5 +1,5 @@
 ---------------------------------------------------------------------
-0.9b4 - 2005/09/06 - 99k lines
+0.9b4 - 2005/09/07 - 99k lines
 
 Improvements:
 
@@ -145,3 +145,328 @@ Bug fixes:
 
   - Initial alpha release of new server and async clients.
 
+---------------------------------------------------------------------
+0.8d6 - 2005/06/22
+  Protocol:
+    - in HANDLE OPEN, 'service-type' flag removed.
+    - 'service-type' flag added to HANDLE SEND and HANDLE CONSUME commands.
+    - added 'any' service type for HANDLE SEND only.
+    - server replies HANDLE CREATED only for auto-named dynamic queues.
+  Server:
+    - implements protocol changes noted above.
+    - detects and reports invalid field tables in all places.
+    - incorrectly generated two hits for a topic message field with no value
+        - fixed.
+
+0.8d5 - 2005/06/08
+  Server:
+    - new command line option, -m does monitoring of queue activity
+    - new consumers on paused handle are now also paused
+    - no-ack option on consumers sometimes caused queue jams - fixed
+    - amq_sclient_agent: collects "handle created" for dynamic queues
+    - matching engine did not initialise correctly (crashed) - fixed
+    - matching on topics was broken - fixed
+    - if config file missing or invalid, now reports an error
+
+0.8d4 - 2005/06/03
+
+  Protocol:
+    HANDLE CONSUME:
+        'exclusive' flag allows exclusive consumer
+        destination name can be empty - server generates a name
+        server always replies HANDLE CREATED when queue is created
+    HANDLE OPEN:
+        'temporary' flag removed.
+
+  Server:
+      - removed all temporary queue infrastructure.
+      - supports "auto-named" dynamic queues
+
+0.8d3 - 2005/06/03
+
+  Server:
+      - deletes temporary queues when owner handle closes
+
+0.8d2 - 2005/06/02
+
+  Server:
+      - new code for handling topic subscriptions
+      - topic names are now fully dynamic (no configuration needed)
+      - server catches channel/handle IDs 0, which are illegal
+
+0.8d1 - 2005/06/02
+
+  Server:
+      - deletes dynamic queues when last consumer goes away
+      - framing code did not properly free memory after a framing error
+      - fixed consume command confirmation, which came after notifies,
+        rather than before
+      - same for handle unget, handle flow, and channel ack
+      - when last consumer leaves dynamic queue, queue is purged
+      - all topic messages now held in single vhost queue
+      - added content-based routing
+        HANDLE CONSUME:
+            selector specifies fields (and optional values)
+        HANDLE SEND
+            matching is done on field presence and/or field value equality
+      - topics now created entirely dynamically
+  Protocol:
+      - destination name no longer specified at HANDLE OPEN time
+        - fully specified in HANDLE SEND, HANDLE CONSUME, and HANDLE QUERY
+  Clients:
+      - agnostic/stdc client updated to latest protocol version
+
+0.8d0 - 2005/05/31
+
+  - added new functionality to AMQP/0.8 protocol
+    HANDLE CONSUME:
+        'dynamic' flag allows dynamic queue creation
+        'selector' flag changed from string to table
+        'mime-type' field removed.
+    HANDLE SEND:
+        'streaming' flag removed.
+        'immediate' flag verifies that destination has consumers.
+    HANDLE NOTIFY:
+        'streaming' flag removed.
+  - server implements dynamic queues
+  - server implements immediate flag on HANDLE SEND
+  - stdc clients upgraded for these changes
+     - chat test clients act as test for dynamic/immediate
+
+0.8c5 - 2005/05/09
+
+ - correct packaging of 0.8c4
+
+0.8c4 - 2005/05/08
+
+ - fixed build problems under Windows.
+
+0.8c3 - 2005/05/06
+
+ - fixed Sparc bus errors
+
+0.8c2 - 2005/04/28
+
+ - added matching test program, first implementation of matching code.
+ - matching on topic name now implemented in server.
+pfe
+0.8c1 - 2005/04/26
+
+ - porting to Solaris/sparc (APR changes)
+
+0.8c0 - 2005/04/16
+
+Changes to server kernel:
+
+  - started implementation of topics.
+
+Changes to client kernel:
+
+  - kernel client layer now supports topic destinations.
+
+0.8b4 - 2005/04/14
+
+Changes to server kernel:
+
+  - login/password validation was broken due to error in amq_field class, 
+    fixed.
+
+  - amq_queue class broken into class hierarchy: amq_mesgq, amq_dest,
+    amq_queue, amq_topic, and amq_subsc.
+
+  - 'core' project renamed to 'kernel'.
+
+  - removed NONE security mechanism; all clients must now login correctly.
+
+0.8b3 - 2006/04/07
+
+Changes to server:
+
+  - Server deletes (old) unused queue backing files at startup.  Previously
+    these were left in the data subdirectory.
+
+  - Destination backing files now given unique name (using a simple hash).
+    Previously two queues ("a-b", "a/b") could map to the same backing
+    file name.
+
+  - Destinations can now be configured using templates.  This lets you
+    tune large numbers of destinations (e.g. topics) by modifying a single
+    template.  The "default" template is used by default for normal
+    destinations, and "temporary" for temporary destinations.
+
+Changes to clients:
+
+0.8b2 - 2005/04/06 - internal
+
+  - server now creates and opens queue persistence files 'lazily',
+    allowing pure in-memory queues.
+
+  - amq_message class was ignoring persistent setting in testfill method;
+    thus serial client "persistent" option had no effect - fixed.
+
+  - openamq server now purges memory (50% purge) when it reaches the
+    preset server limit.
+
+  - HANDLE BROWSE fixed to return accurate message number (was always
+    zero).
+
+  - HANDLE REPLY, CHANNEL REPLY were not being sent at end of logical
+    unit of work, but at start.  This has now been fixed.
+
+0.8b1 - 2005/03/28
+
+  - server correctly negotiates channel shut-down in case of soft
+    errors (e.g. transaction too large).
+
+  - serial and asynch clients modified to handle channel & handle
+    shut-down better.
+
+  - first version of agnostic level 2 client finished.
+
+  - now uses dynamic buckets for more efficient storage of in-memory
+    messages (previously used fixed bucket size of 32k).
+
+  - serial test client was not using accurate batch sizes - fixed.
+
+0.8b0 - 2005/03/23
+
+  - transaction handling substantially rewritten to work around
+    limitations of BDB subsystem.
+
+  - consumers were improperly counted at disconnection, so server
+    would eventually report "Too many consumers" for queue - fixed.
+
+  - server misbehaved on some boxes when client disconnected abruptly;
+    caused by bug in SMT layer - fixed.
+
+  - server mishandled ACKs sent in batches of 1 with the result that
+    it would wrongly treat the queue as being "full" when it was not.
+
+  - server now automatically rollsback a transaction if the client
+    disconnects during an open transaction.
+
+  - server sometimes blocked when committing messages; problem was
+    caused by misuse of BDB transaction handles (fixed).
+
+  - if client disconnects before committing acknowledgements, the
+    affected messages are released for dispatching to other clients.
+
+0.8a0 - 14 March 2005
+    - when server exceeds allowed memory, displays console warning
+    - implemented transaction limit (TXN_LIMIT in CONNECTION TUNE)
+    - server core updated to AMQP/0.8
+    - asynch and serial clients updated to AMQP/0.8
+    - implemented layered configuration files (amq_custom.cfg)
+    - first draft of openamq server documentation
+
+0.7d2 - 10 March 2005
+    - added queue 'page-size' option for disk page control
+    - added queue 'extent-size' option for file extent (in pages)
+    - added queue 'block-size' option for block size (physical record)
+
+0.7d1 - 9 March 2005
+    - fixed 'unreliable' HANDLE CONSUME option which auto-acks messages
+    - added 'get content' method to amq_message class
+    - added Java client and chat program
+    - added chat programs to stdc clients (these work with the Java chat)
+    - fixed some portability issues for Win32
+
+0.7d0 - 9 March 2005
+    - added queue 'priority-levels' option
+    - implemented message priorities with up to 10 priority levels
+    - added queue 'persistent' option, forces all messages to disk
+    - fixed several issues with HANDLE QUERY/BROWSE
+    - added support for user authorisation using PLAIN mechanism
+    - added support for NONE security mechanism (default)
+
+0.7c3 - 2 March 2005
+    - added queue 'browsable' option, disables HANDLE QUERY/BROWSE on queue
+    - added queue 'max-messages' option, limits total size of queue
+    - added queue 'max-message-size' option, limits size of messages on queue
+    - added server 'max-memory' option, limits server total memory usage
+    - server did not send useful reply code to oversized fragments - fixed
+
+0.7c2 - 1 March 2005
+    - added queue 'auto-purge' option, empties queue at startup
+    - added queue 'min-consumers' option, disallows producers if no consumers
+    - added queue 'max-consumers' option to limit max consumers
+    - added queue 'memory-queue-max' option to limit memory consumption
+
+0.7c1 - 18 February 2005
+    - server name & banner changed to "openamqd"
+    - fixed various minor issues in the server
+    - HANDLE BROWSE message did not implement confirm tag - fixed
+
+0.7c0 - 17 February 2005
+    - added server support for HANDLE QUERY, HANDLE BROWSE commands
+    - added serial client support for HANDLE INDEX
+    - persistent messages were not dispatched correctly - fixed
+    - server was aborting when dispatching persistent messages - fixed
+
+0.7b6 - 11 February 2005
+    - disconnected clients could not reconnect reliably - fixed
+    - server occasionally got null socket handle from APR and aborted - fixed
+    - transaction management improved for persistent messages
+    - test client can now handle large (gigabyte) messages (it spools them)
+    - server no longer displays 'socket closed' error messages
+    - server politely says 'Interrupted...' when Ctrl-C is used
+    - serial client agent timed-out on large message sending - fixed
+    - serial client was leaking spool files - fixed
+    - server was leaking spool files - fixed
+    - server was leaking messages/buckets if client aborted - fixed
+
+0.7b5 - 9 February 2005
+    - CHANNEL ACK did not work as per AMQ RFC 006; it required that the
+      message was present and returned a code 311 if not.  Now it allows
+      the message number to be defined arbitrarily high
+    - CHANNEL ACK was not failing on non-transacted messages - fixed
+    - HANDLE SEND was not correctly covered by transaction - fixed
+
+0.7b4 - 26 January 2005
+    - com+ component v0.2 added
+
+0.7b3 - 25 January 2005
+    - client failed when receiving handle_notify during close; fixed
+    - queue management got confused when persistent messages used
+    - amqpcli_serial changed to use temporary queue (cleaned at startup)
+    - amqpcli_serial now allows repeated testing (-r option)
+    - temporary queues were not working - fixed
+    - added HANDLE FLOW methods to serial & asynch clients
+    - fixed error in framing code for HANDLE FLOW message
+
+0.7b2 - 19 January 2005
+    - fixes to build process
+
+0.7b1 - 14 January 2005
+    - added tracing control to servers and clients (-t 1 to -t 3)
+    - improved clients to allow wider range of tests
+    - many fixes to boom projects to allow sources to build
+    - full openamq source packager (mksrc)
+
+0.7b0 - 7 January 2005
+    - finished testing of new queue implementation
+
+0.7a2 - 3 January 2005
+    - started using new queue implementation
+    
+0.7a1 - 27 December 2004
+    - various minor fixes
+
+0.7a0 - 21 December 2004
+    - added restartability (HANDLE PREPARE, HANDLE READY)
+    - moved to base/2.1
+
+0.6h4
+    - added verbose reply texts for all server errors
+    - server would crash if run without any config data - fixed
+    - was not handling large messages (HANDLE SEND) - fixed
+    - under Windows, ctrl-C was not being trapped - fixed
+    - file transfer application added in prototype form
+
+0.6h3 - 13 December 2004
+
+    - server did not support named temporary queues correctly - fixed
+    - server failed when persistent messages were sent - fixed
+    - first release of COM+ client component (blocking)
+
+0.6h2 - 9 December 2004
