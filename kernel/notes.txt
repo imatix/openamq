@@ -1,36 +1,73 @@
----- DONE
+---- TEST HARNESS
+
+    - proxy
+        - asl agent
+        - listens on specified port
+        - can be disabled - port = 0
+        - reconnects to main server port
+        - logs traffic
+    - xml language
+        - connection, session control
+        - class.method (args)
+        - client instance control
+        - loops and counters
+        - grammar, part of asl...
+            - or separate scripting language?
+            - will need access to asl methods & classes
 
 
----- TODO
+    - options
+        - command-line
+        - explanation
+        - type (bool, string, int)
+    - inheritance
+        - overall wrappers
+        - add own stuff
+    - skeleton has own options
+        - animate, etc.
+    
+    <connection>
+    connection = amq_client_connection_new (
+        opt_server,
+        amq_client_connection_auth_plain ("guest", "guest"),
+        atoi (opt_trace),
+        30000);                         //  Timeout
 
-    - exclusive consumers
 
-    - store content header without parsing
-        - parse certain items
-            - weight, size, class.
-        - store content header in content without parsing it
-        - replay from stored block
-        - if needed for matching,
-            - decode it
-            - define methods to do this easily...
-            - decode once -> content
-            - then access content fields
-            - headers -> field list
-                -> decode automatically
-                -> destroy at end...
+    option1:
+    <connection>
+        all code here
+    </connection>
+
+    option2:
+    <connection />
+    <next step>
+    ...
+
+    option3:
+    <script>
+        <connection server = "" authenticate = "" ... ?/>
+    </script>
+    <session>    
 
 
-    - unify queue domain and template concepts
-        - domains are predefined
-        - domains provide default properties
-            - exchange to bind to
-            - private, auto-delete, etc.
-        - rename "auto-delete" to "temporary"?
+    - <session>
+        <queue_create name = "$(sid)_queue" />
+        <queue_bind exchange = "$topic" queue = "$(sid)_queue">
+            <!-- field table -->
+            <arguments>
+                <xxx>
+                </xxx>
+            </arguments>
+        </queue_bind>
+        <jms_consume queue = "$(sid)_queue" />
+        <jms_publish exchange = "$topic" />
 
-    - define reply-to as URL:
-        amqp://servername:port/exchange/destination
+        - specify content
+        - specify complex arguments
+        
+        
 
----- PROXY
 
     - standard ASL component
     - built-in to amq_server
@@ -68,6 +105,61 @@
         ... forms part of formal protocol specifications
     - part of asl...
 
+
+
+---- TODO
+
+    - consumer filters
+        - act to divert messages to another queue
+        - not copy, that would be done by binding to exchange
+        - consume on queue X, with params...
+            
+    - single bounce
+        - deliver option: don't care, at least one, all
+        - bounce message: include name of failed queue
+        - queue options for no consumers
+            - bounce, discard, hold, 
+            - overrides delivery option
+        -> part of queue template?
+        -> queue creation option?
+        -> template = another queue?
+
+        ... all attributes required for interoperability must be exposed
+            in protocol so that they can be implemented in a standard way.
+
+        ... other attributes required for tuning and/or administration can
+            be hard-coded, set via config files, or via admin interface.
+
+
+    - durable definitions
+        - exchanges, queues...
+    - consumer windowing
+        - part of transaction management
+
+    - store content header without parsing
+        - parse certain items
+            - weight, size, class.
+        - store content header in content without parsing it
+        - replay from stored block
+        - if needed for matching,
+            - decode it
+            - define methods to do this easily...
+            - decode once -> content
+            - then access content fields
+            - headers -> field list
+                -> decode automatically
+                -> destroy at end...
+
+    - unify queue domain and template concepts
+        - domains are predefined
+        - domains provide default properties
+            - exchange to bind to
+            - private, auto-delete, etc.
+        - rename "auto-delete" to "temporary"?
+
+    - define reply-to as URL:
+        amqp://servername:port/exchange/destination
+
 ---- FOR 1.0
 
     - routing information in contents
@@ -78,30 +170,7 @@
 
 ---- POST-1.0
 
-    - clarify protocol for aborting single large message
-        - send large message via dialog
-        - read incoming data while sending outgoing
-        - abort send with empty body, if Jms.Reject or Browse.Reject sent
-            - can this be done in asl?
-
 ---- BUGS
-
-    icl:
-        2005/08/30
-        - error in fat memory manager
-        = FIXED
-        
-    smt:
-        2005/08/30
-        - if server dies while client is writing, client fails with assert
-
-        2005/08/30
-        - agent does not shutdown cleanly if interrupted during wait
-            - result is leaking connections in server
-            - if killed while waiting for client context timeout
-            - (cannot kill connections at thread destruction, used to do that
-               but it fails since channels are async objects.)
-
 
 --- TEST CASES
 
@@ -116,6 +185,18 @@
     NO CANCEL FOR CONSUMER
     - create consumer
     - close connection
+
+    ---
+    Client A creates private queue
+    Client B attempts to consume from it
+    ---
+    Client A creates private queue
+    Client A closes connection
+    Assert that queue is destroyed
+    ---
+    Client A creates exclusive consumer
+    Client A attempts to create second consumer
+    ---
 
 
 --- WORLDVIEW

@@ -214,9 +214,9 @@ main (int argc, char *argv [])
 
     //  Set-up a headers pattern binding
     headers = asl_field_list_build (
-        "currency", "eur",
-        "stock", "ibm",
-        "realtime", "",                 //  Field presence
+//        "currency", "eur",
+ //       "stock", "ibm",
+  //      "realtime", "",                 //  Field presence
         NULL);
 
     field_list = asl_field_list_new (NULL);

@@ -4,10 +4,13 @@
 Improvements:
 
   - added self-test of significant classes to openamq build process.
+  - implemented consumer 'exclusive' option.
+  - header exchange now allows empty arguments, meaning "all messages".
 
 Bug fixes:
 
-  - Jira AMQ-48, BASE2-44, BASE2-46, BASE2-11.
+  - Jira AMQ-48, BASE2-44, BASE2-46, BASE2-11, BASE2-47, AMQ-48, AMQ-53,
+    AMQ-52, AMQ-47, BASE2-45, BASE2-43, AMQ-46, AMQ-45.
 
 ---------------------------------------------------------------------
 0.9b3 - 2005/09/01 - 94k lines
@@ -16,12 +19,13 @@ Improvements:
 
   - amq_client shows queue name in trace output.
   - added message bounces to queue verbosity (tracing option).
-  - implemented queue private option.
-  - private queues are automatically deleted when connection closes.
-  - <verbosity trace_queue now traces queue creation/destruction.
-  - auto_delete queues are now automatically deleted when consumer leaves.
-     - deletion happens after configurable timeout
-     - server.cfg: <server queue_timeout = "30" />
+  - implemented queue 'private' option.
+  - implemented queue 'auto-delete' option.
+    - private queues are automatically deleted when connection closes.
+    - <verbosity trace_queue now traces queue creation/destruction.
+    - auto_delete queues are now automatically deleted when consumer leaves.
+      - deletion happens after configurable timeout
+       - server.cfg: <server queue_timeout = "30" />
   - server now refuses new connections and messages when it reaches the
     predefined memory limit (specified in server.cfg).
 

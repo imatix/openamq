@@ -39,6 +39,7 @@ class.  This is a lock-free asynchronous class.
         durable,                        //  Is queue durable?
         private,                        //  Is queue private?
         auto_delete,                    //  Auto-delete unused queue?
+        exclusive,                      //  Queue for exclusive consumer
         dirty;                          //  Queue has to be dispatched?
     int
         consumers;                      //  Number of consumers
@@ -176,33 +177,83 @@ class.  This is a lock-free asynchronous class.
     <argument name = "consumer" type = "amq_consumer_t *">Consumer reference</argument>
     <argument name = "active"   type = "Bool">Create active consumer?</argument>
     //
-    <action>
-    if (consumer->class_id == AMQ_SERVER_JMS)
-        amq_queue_jms_consume (self->queue_jms, consumer, active);
-    else
-    if (consumer->class_id == AMQ_SERVER_BASIC)
-        amq_queue_basic_consume (self->queue_basic, consumer, active);
-
-    //  Caller linked to the consumer on our behalf
+    <possess>
+    amq_consumer_link (consumer);
+    </possess>
+    <release>
     amq_consumer_unlink (&consumer);
-    self->consumers++;
+    </release>
+    <action>
+    //
+    char
+        *error = NULL;                  //  If not null, consumer is invalid
+
+    //  Validate consumer
+    if (self->private && self->owner_id != consumer->channel->connection->context_id)
+        error = "Queue is private for another connection";
+    else
+    if (consumer->exclusive) {
+        if (self->consumers == 0)
+            self->exclusive = TRUE;     //  Grant exclusive access
+        else
+            error = "Exclusive access to queue not possible";
+    }
+    else 
+    if (self->exclusive)
+        error = "Queue is being used exclusively by another consumer";
+
+    if (error) {
+        amq_server_channel_close (consumer->channel, ASL_RESOURCE_ERROR, error);
+        amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE);
+    }
+    else {
+        if (consumer->class_id == AMQ_SERVER_JMS) {
+            amq_queue_jms_consume (self->queue_jms, consumer, active);
+            amq_server_agent_jms_consume_ok (
+                consumer->channel->connection->thread,
+                (dbyte) consumer->channel->key,
+                consumer->tag);
+        }
+        else
+        if (consumer->class_id == AMQ_SERVER_BASIC) {
+            amq_queue_basic_consume (self->queue_basic, consumer, active);
+            amq_server_agent_basic_consume_ok (
+                consumer->channel->connection->thread,
+                (dbyte) consumer->channel->key,
+                consumer->tag);
+        }
+        self->consumers++;
+    }
     </action>
 </method>
 
 <method name = "cancel" template = "async function" async = "1">
     <doc>
-    Cancel consumer, by reference.
+    Cancel consumer, by reference, and alert client application if
+    we're doing this in a synchronous exchange of methods.  If the
+    cancel is being done at channel close, no notify will be sent
+    back to the client.
     </doc>
     <argument name = "consumer" type = "amq_consumer_t *" ref = "1">Consumer reference</argument>
+    <argument name = "notify" type = "Bool">Notify client application?</argument>
     //
     <action>
-    if (consumer->class_id == AMQ_SERVER_JMS)
+    if (consumer->class_id == AMQ_SERVER_JMS) {
+        if (notify)
+            amq_server_agent_jms_cancel_ok (
+                consumer->channel->connection->thread,
+                (dbyte) consumer->channel->key);
         amq_queue_jms_cancel (self->queue_jms, consumer);
+    }
     else
-    if (consumer->class_id == AMQ_SERVER_BASIC)
+    if (consumer->class_id == AMQ_SERVER_BASIC) {
+        if (notify)
+            amq_server_agent_basic_cancel_ok (
+                consumer->channel->connection->thread,
+                (dbyte) consumer->channel->key);
         amq_queue_basic_cancel (self->queue_basic, consumer);
-
-    //  Prepare to auto-delete queue if necessary
+    }
+    self->exclusive = FALSE;
     self->consumers--;
     if (self->auto_delete && self->consumers == 0)
         smt_timer_request_delay (
@@ -297,8 +348,6 @@ class.  This is a lock-free asynchronous class.
     //  Release resources
     amq_queue_table_destroy (&queue_table);
     amq_vhost_destroy (&vhost);
-
-    icl_console_print ("I: $(selfname) OK");
 </method>
 
 </class>
