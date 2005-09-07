@@ -75,6 +75,19 @@ fi
 
 EOF
 
+cat <<EOF >$PKGROOT/build.bat
+@echo off
+:-  Build and install $(name:) $(release:) and dependent products
+:-  Set the IBASE variable to the installation directory
+
+if "%IBASE%"=="" (
+    echo The IBASE environment variable is not defined.
+    echo Set this to desired installation directory, e.g. c:\ibase.
+    echo Then, add ^%IBASE^%/bin to your PATH for best results.
+    goto exit
+)
+EOF
+
 .  for product
 cat <<EOF >>$PKGROOT/build.sh
 cd \$$(name:c)_version
@@ -84,10 +97,25 @@ if ! sh ./boomake build test install; then
 fi
 cd ..
 EOF
+
+cat <<EOF >>$PKGROOT/build.bat
+cd \$$(name:c)_version
+boomake build test install
+if errorlevel 1 then
+    echo E: Build of $(name) failed
+    exit /b 1
+endif
+cd ..
+EOF
+
 .  endfor
 
 cat <<EOF >>$PKGROOT/build.sh
 echo "Finished building and installing $(name) $(release)."
+EOF
+
+cat <<EOF >>$PKGROOT/build.bat
+echo Finished building and installing $(name) $(release).
 EOF
 
 cd $PKGROOT
