@@ -42,7 +42,8 @@ that is in every content header).
     presence only (matching any value in the message).  The matching
     function is controlled by a second field, called "match", which
     can be "all" or "any" - like logical AND and OR - and which defaults
-    to "all".
+    to "all".  An empty or missing headers field means, "match all
+    messages."
     </doc>
     <local>
     asl_field_list_t
@@ -52,12 +53,11 @@ that is in every content header).
         *field;                         //  Field on which to match
     icl_shortstr_t
         index_key;                      //  Index key to match on
-    amq_index_t
-        *index;                         //  Index reference from index_hash
     </local>
     //
 #   define FIELD_NAME_MAX   30          //  Arbitrary limit to get
 #   define FIELD_VALUE_MAX  30          //    name=value into shortstr
+#   define MATCH_ALL_KEY    "*"         //  Match all messages
 
     fields = asl_field_list_new (binding->arguments);
     if (fields) {
@@ -87,33 +87,17 @@ that is in every content header).
                         icl_shortstr_ncat (index_key,
                             asl_field_string (field), FIELD_VALUE_MAX);
                     }
-                    if (amq_server_config_trace_route (amq_server_config))
-                        icl_console_print ("X: index    request=%s", index_key);
-            
-                    index = amq_index_hash_search (self->index_hash, index_key);
-                    if (index == NULL)
-                        index = amq_index_new (self->index_hash, index_key, self->index_array);
-
-                    //  Cross-reference binding and index
-                    ipr_bits_set (index->bindset, binding->index);
-                    ipr_looseref_queue (binding->index_list, index);
-
-                    //  We count the number of fields to allow AND matching
-                    binding->field_count++;
-                    amq_index_unlink (&index);
-
+                    s_compile_binding (self, binding, index_key);
                     field = asl_field_list_next (&field);
                 }
                 asl_field_list_destroy (&headers);
             }
         }
-        //  Matching on zero fields has no meaning - no message will ever be
-        //  passed to the binding since we match on a per-field basis
-        if (binding->field_count == 0) {
-            rc = 1;
-            amq_server_channel_close (
-                channel, ASL_COMMAND_INVALID, "No header fields specified, binding failed");
-        }
+        asl_field_list_destroy (&fields);
+
+        //  If zero fields specified, match on all messages
+        if (binding->field_count == 0)
+            s_compile_binding (self, binding, MATCH_ALL_KEY);
     }
     else {
         rc = 1;
@@ -160,6 +144,9 @@ that is in every content header).
             }
             field = asl_field_list_next (&field);
         }
+        //  Add "match all" bindings
+        amq_hitset_collect (hitset, self->index_hash, MATCH_ALL_KEY);
+        
         //  The hitset now represents all matching bindings
         for (binding_nbr = hitset->lowest; binding_nbr <= hitset->highest; binding_nbr++) {
             binding = self->exchange->binding_index->data [binding_nbr];
@@ -179,4 +166,35 @@ that is in every content header).
     }
 </method>
 
+<private name = "header">
+static void
+    s_compile_binding ($(selftype) *self, amq_binding_t *binding, char *index_key);
+</private>
+
+<private>
+static void
+s_compile_binding (
+    $(selftype)   *self,
+    amq_binding_t *binding,
+    char          *index_key)
+{
+    amq_index_t
+        *index;                         //  Index reference from index_hash
+
+    if (amq_server_config_trace_route (amq_server_config))
+        icl_console_print ("X: index    request=%s", index_key);
+
+    index = amq_index_hash_search (self->index_hash, index_key);
+    if (index == NULL)
+        index = amq_index_new (self->index_hash, index_key, self->index_array);
+
+    //  Cross-reference binding and index
+    ipr_bits_set (index->bindset, binding->index);
+    ipr_looseref_queue (binding->index_list, index);
+
+    //  We count the number of fields to allow AND matching
+    binding->field_count++;
+    amq_index_unlink (&index);
+}
+</private>
 </class>
