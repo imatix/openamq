@@ -12,11 +12,7 @@
 <!-- Java API -->
 <directory name = "dist"                                                  class = "shared library">
     <file name = "openamqj-jms.jar"                                                            >JMS layer</file>
-</directory>
-<directory name = "dist"                                                  class = "shared library">
     <file name = "openamqj-common.jar"                                                         >JMS layer</file>
-</directory>
-<directory name = "dist"                                                  class = "shared library">
     <file name = "openamqj-tests.jar"                                                          >JMS layer</file>
 </directory>
 
