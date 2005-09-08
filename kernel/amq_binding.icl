@@ -117,7 +117,8 @@ class.
     <argument name = "immediate" type = "Bool">Warn if no consumers</argument>
     <local>
     ipr_looseref_t
-        *looseref;                      //  Bound object
+        *looseref,                      //  Bound object
+        *oldref;                        //  Backcopy for garbage collection
     amq_queue_t
         *queue;                         //  Queue we publish to
     amq_exchange_t
@@ -128,19 +129,37 @@ class.
     looseref = ipr_looseref_list_first (self->queue_list);
     while (looseref) {
         queue = (amq_queue_t *) (looseref->object);
-        if (amq_server_config_trace_route (amq_server_config))
-            icl_console_print ("X: publish  queue=%s", queue->key);
-        amq_queue_publish (queue, channel, class_id, content, immediate);
-        looseref = ipr_looseref_list_next (&looseref);
+        if (!queue->zombie) {
+            if (amq_server_config_trace_route (amq_server_config))
+                icl_console_print ("X: publish  queue=%s", queue->key);
+            amq_queue_publish (queue, channel, class_id, content, immediate);
+            looseref = ipr_looseref_list_next (&looseref);
+        }
+        else {
+            //  Garbage-collect zombied queue
+            oldref   = ipr_looseref_link      (looseref);
+            looseref = ipr_looseref_list_next (&looseref);
+            ipr_looseref_destroy (&oldref);
+            amq_queue_unlink (&queue);
+        }
     }
     //  Publish to all exchanges, sending method to async exchange class
     looseref = ipr_looseref_list_first (self->exchange_list);
     while (looseref) {
         exchange = (amq_exchange_t *) (looseref->object);
-        if (amq_server_config_trace_route (amq_server_config))
-            icl_console_print ("X: publish  exchange=%s", exchange->key);
-        amq_exchange_publish (exchange, channel, class_id, content, mandatory, immediate);
-        looseref = ipr_looseref_list_next (&looseref);
+        if (!exchange->zombie) {
+            if (amq_server_config_trace_route (amq_server_config))
+                icl_console_print ("X: publish  exchange=%s", exchange->key);
+            amq_exchange_publish (exchange, channel, class_id, content, mandatory, immediate);
+            looseref = ipr_looseref_list_next (&looseref);
+        }
+        else {
+            //  Garbage-collect zombied exchange
+            oldref   = ipr_looseref_link      (looseref);
+            looseref = ipr_looseref_list_next (&looseref);
+            ipr_looseref_destroy (&oldref);
+            amq_exchange_unlink (&exchange);
+        }
     }
 </method>
 
