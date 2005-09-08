@@ -119,7 +119,8 @@ runs lock-free as a child of the asynchronous queue class.
             ipr_looseref_push (self->content_list, content);
             break;                      //  No available consumers
         }
-        if (amq_server_agent_jms_deliver (
+        if (amq_server_channel_alive (consumer->channel)
+        &&  amq_server_agent_jms_deliver (
             consumer->channel->connection->thread,
             (dbyte) consumer->channel->key,
             content,
