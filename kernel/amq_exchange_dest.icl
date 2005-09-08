@@ -43,7 +43,7 @@ based on their "destination" property.
         destination = asl_field_list_search (fields, "destination");
         if (destination) {
             if (amq_server_config_trace_route (amq_server_config))
-                icl_console_print ("X: compile  destination=%s", destination);
+                icl_console_print ("X: compile  destination=%s", asl_field_string (destination));
             hash = amq_hash_new (self->binding_hash, asl_field_string (destination), binding);
             if (hash)
                 amq_hash_unlink (&hash);
