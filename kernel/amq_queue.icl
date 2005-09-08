@@ -209,18 +209,20 @@ class.  This is a lock-free asynchronous class.
     else {
         if (consumer->class_id == AMQ_SERVER_JMS) {
             amq_queue_jms_consume (self->queue_jms, consumer, active);
-            amq_server_agent_jms_consume_ok (
-                consumer->channel->connection->thread,
-                (dbyte) consumer->channel->key,
-                consumer->tag);
+            if (amq_server_channel_alive (consumer->channel))
+                amq_server_agent_jms_consume_ok (
+                    consumer->channel->connection->thread,
+                    (dbyte) consumer->channel->key,
+                    consumer->tag);
         }
         else
         if (consumer->class_id == AMQ_SERVER_BASIC) {
             amq_queue_basic_consume (self->queue_basic, consumer, active);
-            amq_server_agent_basic_consume_ok (
-                consumer->channel->connection->thread,
-                (dbyte) consumer->channel->key,
-                consumer->tag);
+            if (amq_server_channel_alive (consumer->channel))
+                amq_server_agent_basic_consume_ok (
+                    consumer->channel->connection->thread,
+                    (dbyte) consumer->channel->key,
+                    consumer->tag);
         }
         self->consumers++;
     }
@@ -239,7 +241,7 @@ class.  This is a lock-free asynchronous class.
     //
     <action>
     if (consumer->class_id == AMQ_SERVER_JMS) {
-        if (notify)
+        if (notify && amq_server_channel_alive (consumer->channel))
             amq_server_agent_jms_cancel_ok (
                 consumer->channel->connection->thread,
                 (dbyte) consumer->channel->key);
@@ -247,7 +249,7 @@ class.  This is a lock-free asynchronous class.
     }
     else
     if (consumer->class_id == AMQ_SERVER_BASIC) {
-        if (notify)
+        if (notify && amq_server_channel_alive (consumer->channel))
             amq_server_agent_basic_cancel_ok (
                 consumer->channel->connection->thread,
                 (dbyte) consumer->channel->key);
