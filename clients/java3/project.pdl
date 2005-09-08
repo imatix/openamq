@@ -104,20 +104,12 @@
 <actions target = "unix">
     <generate>
         <execute>
-        if test -d ../../../base2; then
-            # We have generation requirements
-            current=\$(pwd)
-            export PATH=$PATH:"../../base2/asl"
-            
-            cd ../../kernel
-            gsl -target:java amq.asl
-            
-            cd $current
-        else    
-            echo ""
-            echo "Warning: base2 trunk from svn not found at '../../../'."
-            echo "Java generation failed."
-        fi    
+        current=\$(pwd)
+        
+        export PATH=$PATH:../../kernel
+        gsl -target:java amq.asl
+        
+        cd $current
         </execute>
     </generate>
     <build>
