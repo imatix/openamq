@@ -1,10 +1,11 @@
 <?xml?>
 <pdl
     name      = "OpenAMQ Kernel"
-    version   = "0.9b4"
+    version   = "0.9b5"
     copyright = "Copyright (c) 2004-2005 iMatix & JPMorganChase"
     workflow  = "standard.pwl"
     library   = "libamq"
+    deploy    = "openamq/kernel"
     >
 
 <include filename = "prelude.pdl" />
