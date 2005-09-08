@@ -111,10 +111,16 @@ for each class of exchange. This is a lock-free asynchronous class.
     }
     else
         icl_console_print ("E: invalid class '%d' in exchange_new", self->class);
+
+    if (amq_server_config_trace_route (amq_server_config))
+        icl_console_print ("X: create   exchange=%s", self->name);
 </method>
 
 <method name = "destroy">
     <action>
+    if (amq_server_config_trace_route (amq_server_config))
+        icl_console_print ("X: destroy  exchange=%s", self->name);
+
     amq_binding_list_destroy (&self->binding_list);
     ipr_index_destroy (&self->binding_index);
     if (self->class == AMQ_EXCHANGE_SYSTEM)
@@ -177,9 +183,20 @@ for each class of exchange. This is a lock-free asynchronous class.
     to the binding.  Otherwise we create a new binding and compile it
     into the exchange, this operation being exchange class-specific.
     </doc>
-    <argument name = "channel"     type = "amq_server_channel_t *">Channel for reply</argument>
-    <argument name = "queue"       type = "amq_queue_t *">The queue to bind</argument>
-    <argument name = "m_arguments" type = "icl_longstr_t *">Bind arguments</argument>
+    <argument name = "channel"   type = "amq_server_channel_t *">Channel for reply</argument>
+    <argument name = "queue"     type = "amq_queue_t *">The queue to bind</argument>
+    <argument name = "arguments" type = "icl_longstr_t *">Bind arguments</argument>
+    //
+    <possess>
+    channel = amq_server_channel_link (channel);
+    queue = amq_queue_link (queue);
+    arguments = icl_longstr_dup (arguments);
+    </possess>
+    <release>
+    amq_server_channel_unlink (&channel);
+    amq_queue_unlink (&queue);
+    icl_longstr_destroy (&arguments);
+    </release>
     //
     <action>
     amq_binding_t
@@ -190,14 +207,17 @@ for each class of exchange. This is a lock-free asynchronous class.
     //  Check existing bindings to see if we have one that matches
     binding = amq_binding_list_first (self->binding_list);
     while (binding) {
-        if (icl_longstr_eq (binding->arguments, m_arguments))
+        if (icl_longstr_eq (binding->arguments, arguments))
             break;
         binding = amq_binding_list_next (&binding);
     }
     //  If no binding matched, create a new one
     if (binding == NULL) {
+        if (amq_server_config_trace_route (amq_server_config))
+            icl_console_print ("X: bind     queue=%s onto=%s", queue->key, self->name);
+
         //  Compile the binding to the exchange
-        binding = amq_binding_new (self, m_arguments);
+        binding = amq_binding_new (self, arguments);
         if (self->compile (self->object, binding, channel) == 0)
             amq_binding_list_queue (self->binding_list, binding);
         else
@@ -215,16 +235,28 @@ for each class of exchange. This is a lock-free asynchronous class.
             amq_binding_bind_queue (binding, queue);
 
         amq_binding_unlink (&binding);
-        amq_server_agent_queue_bind_ok (
-            channel->connection->thread, (dbyte) channel->key);
+        if (amq_server_channel_alive (channel))
+            amq_server_agent_queue_bind_ok (
+                channel->connection->thread, (dbyte) channel->key);
     }
     </action>
 </method>
 
 <method name = "bind exchange" template = "async function" async = "1">
-    <argument name = "channel"     type = "amq_server_channel_t *">Channel for reply</argument>
-    <argument name = "exchange"    type = "amq_exchange_t *">The exchange to bind</argument>
-    <argument name = "m_arguments" type = "icl_longstr_t *">Bind arguments</argument>
+    <argument name = "channel"   type = "amq_server_channel_t *">Channel for reply</argument>
+    <argument name = "exchange"  type = "amq_exchange_t *">The exchange to bind</argument>
+    <argument name = "arguments" type = "icl_longstr_t *">Bind arguments</argument>
+    //
+    <possess>
+    channel = amq_server_channel_link (channel);
+    exchange = amq_exchange_link (exchange);
+    arguments = icl_longstr_dup (arguments);
+    </possess>
+    <release>
+    amq_server_channel_unlink (&channel);
+    amq_exchange_unlink (&exchange);
+    icl_longstr_destroy (&arguments);
+    </release>
     //
     <action>
     amq_binding_t
@@ -235,14 +267,17 @@ for each class of exchange. This is a lock-free asynchronous class.
     //  Check existing bindings to see if we have one that matches
     binding = amq_binding_list_first (self->binding_list);
     while (binding) {
-        if (icl_longstr_eq (binding->arguments, m_arguments))
+        if (icl_longstr_eq (binding->arguments, arguments))
             break;
         binding = amq_binding_list_next (&binding);
     }
     //  If no binding matched, create a new one
     if (binding == NULL) {
+        if (amq_server_config_trace_route (amq_server_config))
+            icl_console_print ("X: bind     exchange=%s onto=%s", exchange->name, self->name);
+
         //  Compile the binding to the exchange
-        binding = amq_binding_new (self, m_arguments);
+        binding = amq_binding_new (self, arguments);
         if (self->compile (self->object, binding, channel) == 0)
             amq_binding_list_queue (self->binding_list, binding);
         else
@@ -260,8 +295,9 @@ for each class of exchange. This is a lock-free asynchronous class.
             amq_binding_bind_exchange (binding, exchange);
 
         amq_binding_unlink (&binding);
-        amq_server_agent_exchange_bind_ok (
-            channel->connection->thread, (dbyte) channel->key);
+        if (amq_server_channel_alive (channel))
+            amq_server_agent_exchange_bind_ok (
+                channel->connection->thread, (dbyte) channel->key);
     }
     </action>
 </method>
