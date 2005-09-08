@@ -18,7 +18,7 @@
 #define USAGE                                                               \
     "Syntax: program [options...]\n"                                        \
     "Options:\n"                                                            \
-    "  -s server        Name or address of server (localhost)\n"            \
+    "  -s server[:port] Name or address, port of server (localhost:7654)\n" \
     "  -n number        Number of messages to send/receive (1)\n"           \
     "  -b batch         Size of each batch (100)\n"                         \
     "  -x size          Size of each message (default = 1024)\n"            \
