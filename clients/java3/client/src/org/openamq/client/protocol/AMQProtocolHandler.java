@@ -153,6 +153,7 @@ public class AMQProtocolHandler implements ProtocolHandler
      */
     public void writeFrame(AMQDataBlock frame)
     {
+        writtenBytes += frame.getSize();
         _protocolSession.writeFrame(frame);
     }
 
@@ -168,6 +169,7 @@ public class AMQProtocolHandler implements ProtocolHandler
         throws AMQException
     {
         _frameListeners.add(listener);
+        writtenBytes += frame.getSize();
         _protocolSession.writeFrame(frame);
         return listener.blockForFrame();
         // When control resumes before this line, a reply will have been received
