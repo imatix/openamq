@@ -1,5 +1,19 @@
 ---- TEST HARNESS
 
+    - generate xnf from protocol
+        - hide internal commands
+        - add control commands
+    - virtual machine:
+        - control commands
+        - protocol methods
+        - wait on synchronous methods
+        - deliver content and bounces
+
+
+    demo.asl
+        -> demo_cl.xnf
+        
+
     - proxy
         - asl agent
         - listens on specified port
@@ -298,6 +312,8 @@ Some ideas
         - unlink when finished with the reference
     - do not link to parent object
         - hierarchy of creation/destruction
+    - looseref to objects
+        - when using, check if zombied and then unlink
 
 ---- HASH HOWTO
 

@@ -34,6 +34,8 @@
             session->reply_code, session->reply_text);
 
     amq_content_$(class.name)_possess (self->content);
+    amq_content_$(class.name)_set_routing (
+        self->content, method->exchange, method->destination, 0);
     ipr_looseref_queue (session->bounced_$(class.name)_list, self->content);
   </action>
 </class>
