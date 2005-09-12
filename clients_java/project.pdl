@@ -106,7 +106,7 @@
         <execute>
         current=\$(pwd)
         
-        export PATH=$PATH:../../kernel
+        export PATH=$PATH:../../openamq/kernel
         gsl -target:java amq.asl
         
         cd $current
