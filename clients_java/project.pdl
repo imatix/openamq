@@ -104,6 +104,11 @@
     <file name = "TransportConnection.java"         />
 </directory>
 
+<!-- Placeholder to make Boom package the dist directory -->
+<directory name = "dist">
+    <file name = "readme.txt" class = "private resource" />
+</directory>
+
 <!-- Classes generated from ASL -->
 <directory name = "common/generated/java/org/openamq/framing" class = "generated">
     <file name = "*.java"                           />
