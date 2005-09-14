@@ -1,121 +1,124 @@
 <?xml?>
 <pdl
     name      = "OpenAMQJ - JMS Client"
-    version   = "0.3b0"
+    acronym   = "openamqj"
+    version   = "0.3b1"
     copyright = "Copyright (c) 2004-2005 JPMorgan"
     workflow  = "standard.pwl"
-    deploy    = "/"
+    deploy    = "openamqj"
  >
 
 <include filename = "prelude.pdl" />
 
+<file name = "build.xml" class = "private resource"  >ANT build file</file>
+
 <!-- These are the JAR files that provide the JMS interface -->
 <directory name = "dist" class = "shared library">
-    <file name = "openamqj-jms.jar" />
-    <file name = "openamqj-common.jar" />
-    <file name = "openamqj-tests.jar" />
+    <file name = "openamqj-jms.jar"                  >JMS layer</file>
+    <file name = "openamqj-common.jar"               >JMS layer</file>
+    <file name = "openamqj-tests.jar"                >JMS layer</file>
 </directory>
 
 <!-- Required libraries -->
 <directory name = "lib/jms"  class = "public binary">
-    <file name = "jms.jar"  >Compiled JMS interfaces</file>
+    <file name = "jms.jar"                           >Compiled JMS interfaces</file>
 </directory>
 <directory name = "lib/mina" class = "public binary">
-    <file name = "mina-0.7.3.jar" />
+    <file name = "mina-0.7.3.jar"                   />
 </directory>
 <directory name = "lib/logging-log4j" class = "public binary">
-    <file name = "log4j-1.2.9.jar" />
+    <file name = "log4j-1.2.9.jar"                  />
 </directory>
 <directory name = "lib/jakarta-commons" class = "public binary">
-    <file name = "commons-collections-3.1.jar" />
+    <file name = "commons-collections-3.1.jar"      />
 </directory>
 <directory name = "lib/util-concurrent" class = "public binary">
-    <file name = "backport-util-concurrent.jar" />
+    <file name = "backport-util-concurrent.jar"     />
 </directory>
 
 <!-- JMS API - Basic classes -->
 <directory name = "client/src/org/openamq/client" class = "private resource">
-    <file name = "AMQConnectionFactory.java" />
-    <file name = "AMQConnection.java" />
-    <file name = "AMQSession.java" />
-    <file name = "AMQMessageConsumer.java" />
-    <file name = "AMQMessageProducer.java" />
-    <file name = "AMQDestination.java" />
-    <file name = "AMQQueue.java" />
-    <file name = "AMQTopic.java" />
+    <file name = "AMQConnectionFactory.java"     />
+    <file name = "AMQConnection.java"            />
+    <file name = "AMQSession.java"               />
+    <file name = "AMQMessageConsumer.java"       />
+    <file name = "AMQMessageProducer.java"       />
+    <file name = "AMQDestination.java"           />
+    <file name = "AMQQueue.java"                 />
+    <file name = "AMQTopic.java"                 />
     <file name = "ConnectionTuneParameters.java" />
-    <file name = "Closeable.java" />
-    <file name = "IdFactory.java" />
+    <file name = "Closeable.java"                />
+    <file name = "IdFactory.java"                />
 </directory>
 
 <!-- JMS API - Message classes -->
 <directory name = "client/src/org/openamq/client/message" class = "private resource">
-    <file name = "MessageFactoryRegistry.java" />
-    <file name = "AMQTextMessageFactory.java" />
-    <file name = "AMQTextMessage.java" />
-    <file name = "MessageFactory.java" />
-    <file name = "AbstractMessageFactory.java" />
-    <file name = "AbstractMessage.java" />
-    <file name = "UnprocessedMessage.java" />
+    <file name = "MessageFactoryRegistry.java"      />
+    <file name = "AMQTextMessageFactory.java"       />
+    <file name = "AMQTextMessage.java"              />
+    <file name = "MessageFactory.java"              />
+    <file name = "AbstractMessageFactory.java"      />
+    <file name = "AbstractMessage.java"             />
+    <file name = "UnprocessedMessage.java"          />
 </directory>
 
 <!-- JMS API - Method handlers -->
 <directory name = "client/src/org/openamq/client/handler" class = "private resource">
-    <file name = "ConnectionStartMethodHandler.java" />
+    <file name = "ConnectionStartMethodHandler.java"  />
     <file name = "ConnectionSecureMethodHandler.java" />
-    <file name = "ConnectionTuneMethodHandler.java" />
+    <file name = "ConnectionTuneMethodHandler.java"   />
     <file name = "ConnectionOpenOkMethodHandler.java" />
-    <file name = "ConnectionCloseMethodHandler.java" />
-    <file name = "ChannelCloseMethodHandler.java" />
-    <file name = "JmsBounceMethodHandler.java" />
-    <file name = "JmsDeliverMethodHandler.java" />
+    <file name = "ConnectionCloseMethodHandler.java"  />
+    <file name = "ChannelCloseMethodHandler.java"     />
+    <file name = "JmsBounceMethodHandler.java"        />
+    <file name = "JmsDeliverMethodHandler.java"       />
 </directory>
 
 <!-- JMS API - Protocol & state -->
 <directory name = "client/src/org/openamq/client/protocol" class = "private resource">
-    <file name = "AMQProtocolSession.java" />
-    <file name = "AMQProtocolHandler.java" />
-    <file name = "AMQMethodEvent.java" />
-    <file name = "AMQMethodListener.java" />
+    <file name = "AMQProtocolSession.java"          />
+    <file name = "AMQProtocolHandler.java"          />
+    <file name = "AMQMethodEvent.java"              />
+    <file name = "AMQMethodListener.java"           />
     <file name = "BlockingMethodFrameListener.java" />
-    <file name = "AMQConstant.java" />
+    <file name = "AMQConstant.java"                 />
 </directory>
 <directory name = "client/src/org/openamq/client/state"  class = "private resource">
-    <file name = "AMQStateManager.java" />
-    <file name = "AMQState.java" />
-    <file name = "AMQStateChangedEvent.java" />
-    <file name = "StateAwareMethodListener.java" />
-    <file name = "AMQStateListener.java" />
-    <file name = "StateListener.java" />
-    <file name = "StateWaiter.java" />
+    <file name = "AMQStateManager.java"             />
+    <file name = "AMQState.java"                    />
+    <file name = "AMQStateChangedEvent.java"        />
+    <file name = "StateAwareMethodListener.java"    />
+    <file name = "AMQStateListener.java"            />
+    <file name = "StateListener.java"               />
+    <file name = "StateWaiter.java"                 />
     <file name = "IllegalStateTransitionException.java" />
 </directory>
 <directory name = "client/src/org/openamq/client/state/listener" class = "private resource">
-    <file name = "ConnectionCloseOkListener.java" />
+    <file name = "ConnectionCloseOkListener.java"   />
     <file name = "SpecificMethodFrameListener.java" />
 </directory>
 
 <!-- JMS API - Transport layer -->
 <directory name = "client/src/org/openamq/client/transport" class = "private resource">
-    <file name = "AMQProtocolProvider.java" />
-    <file name = "TransportConnection.java" />
+    <file name = "AMQProtocolProvider.java"         />
+    <file name = "TransportConnection.java"         />
+</directory>
+
+<!-- Classes generated from ASL -->
+<directory name = "common/generated/java/org/openamq/framing" class = "generated">
+    <file name = "*.java"                           />
 </directory>
 
 <actions target = "unix">
     <generate>
         <execute>
-        current=\$(pwd)
-        
-        export PATH=$PATH:../../openamq/kernel
-        gsl -target:java amq.asl
-        
-        cd $current
+        gsl -q -target:java amq.asl
         </execute>
     </generate>
     <build>
         <execute>
         if test "\$(which ant)" != "" -a "\$(which javac)" != "" -a "\$(which jar)" != ""; then
-            ant jar
+            ant -q -DIBASE=$IBASE jar || croak
         else
             echo ""
             echo "Warning: Cannot find the JDK/Ant, JMS/AMQ build failed."
@@ -125,8 +128,7 @@
     <clean>
         <execute>
         if test "\$(which ant)" != ""; then
-            ant clean
-            ant init
+            ant -q -DIBASE=$IBASE clean || croak
         else
             echo ""
             echo "Warning: Cannot find Apache Ant, clean failed."

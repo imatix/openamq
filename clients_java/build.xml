@@ -24,8 +24,6 @@
         <mkdir dir="${common.classes}"/>
         <mkdir dir="${client.classes}"/>
         <mkdir dir="${client.testclasses}"/>
-        <mkdir dir="${generated.java.src}"/>
-        <mkdir dir="${dist}"/>
     </target>
 
     <path id="openamq.classpath">
@@ -39,8 +37,6 @@
 
     <!-- Remove all built files -->
     <target name="clean" depends="init">
-        <delete dir="${dist}"/>
-        <!--<delete dir="${generated.java.src}"/>-->
         <delete dir="${common.classes}"/>
         <delete dir="${client.classes}"/>
         <delete dir="${client.testclasses}"/>
