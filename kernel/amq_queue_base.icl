@@ -55,6 +55,16 @@ independent of the queue content type.
     //          amq_consumer_destroy (&consumer);
     //  It still remains a danger if the queue and channel destruct at the
     //  same time.
+
+    //  In principle this code should work, in practice it does not work...
+    //  If the channel is closed, the consumer leaks.
+    /*
+    while ((consumer = amq_consumer_by_queue_pop (self->active_consumers))) {
+        amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE);
+        amq_consumer_unlink (&consumer);
+    }
+    */
+
     while ((consumer = amq_consumer_by_queue_pop (self->active_consumers))) {
         amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE);
         amq_consumer_unlink (&consumer);

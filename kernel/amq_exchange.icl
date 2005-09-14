@@ -329,6 +329,7 @@ for each class of exchange. This is a lock-free asynchronous class.
     </release>
     <action>
     self->publish (self->object, channel, class_id, content, mandatory, immediate);
+    amq_monitor_messages++;
     </action>
 </method>
 

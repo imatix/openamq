@@ -51,7 +51,7 @@
   </field>
     
   <field name = "scope" domain = "queue scope">
-    <assert check = "regexp" value = "`w+" />
+    <assert check = "regexp" value = "[A-Za-a0-9_-]+" />
   </field>
   
   <field name = "queue" domain = "queue name">
@@ -65,7 +65,7 @@
       specific scope for such queues to avoid any possible conflict
       with names that might be used elsewhere by clients.
     </doc>
-    <assert check = "regexp" value = "`w*" />
+    <assert check = "regexp" value = "[A-Za-a0-9_-]*" />
   </field>
 
   <field name = "passive" type = "bit">

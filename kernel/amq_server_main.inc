@@ -72,8 +72,8 @@ s_parse_args (int argc, char *argv [])
     s_opt_showinfo = FALSE;
     s_opt_port     = NULL;              
     s_opt_workdir  = NULL;
-    s_opt_trace    = "0";
-    s_opt_monitor  = "0";
+    s_opt_trace    = NULL;
+    s_opt_monitor  = NULL;
 
     myname  = argv [0];
     argparm = NULL;                     //  Argument parameter to pick-up    
@@ -188,7 +188,8 @@ s_load_config (char *config_file, char *overlay)
         exit (EXIT_FAILURE);
     }
     //  Load configuration data, if any, into the config_table               
-    amq_server_config = amq_server_config_new (config_file, atoi (s_opt_trace));
+    amq_server_config = amq_server_config_new (
+        config_file, s_opt_trace? atoi (s_opt_trace): 0);
 }
 
 
@@ -201,7 +202,9 @@ s_run_server (void)
     //  -------------------------------------------------------------------
 
     //  Set tracing options
+    if (s_opt_trace)
     amq_server_config_set_trace   (amq_server_config, atoi (s_opt_trace));
+    if (s_opt_monitor)
     amq_server_config_set_monitor (amq_server_config, (Bool) atoi (s_opt_monitor));
 
     if (s_opt_port)
@@ -209,6 +212,9 @@ s_run_server (void)
 
     //  We use a single global vhost for now
     amq_vhost = amq_vhost_new ();
+
+    //  Set monitor function callback
+    amq_server_callback_monitor (amq_monitor_report);
 
     if (amq_server_agent_init ()) {
         icl_console_print ("E: could not start server protocol agent");

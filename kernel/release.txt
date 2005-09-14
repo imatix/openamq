@@ -1,11 +1,28 @@
 ---------------------------------------------------------------------
+0.9b8 - 2005/09/
+
+Improvements:
+
+  - Server monitors and reports own performance:
+    - messages per second rolling average
+    - messages per second peak throughput
+  - Queue and exchange names now allow hyhens ([A-Za-a0-9_-]+)
+
+---------------------------------------------------------------------
 0.9b7 - 2005/09/13
 
 Bug fixes:
+
   - Frame limit extended to 2MB
 
 ---------------------------------------------------------------------
 0.9b6 - 2005/09/13
+
+Improvements:
+
+  - Temporary increase of frame-max to 1Mb to allow 512k messages
+    used by pilot application, and pending multiframe support from
+    JMS API.
 
 Bug fixes:
 

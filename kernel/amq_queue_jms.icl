@@ -140,6 +140,7 @@ runs lock-free as a child of the asynchronous queue class.
             amq_consumer_by_queue_queue (self->active_consumers, consumer);
             amq_consumer_unlink (&consumer);
             amq_content_jms_destroy (&content);
+            amq_monitor_messages++;
             rc++;
         }
         else
@@ -172,6 +173,7 @@ runs lock-free as a child of the asynchronous queue class.
                 content->destination,
                 ipr_looseref_list_count (self->content_list));
             amq_content_jms_destroy (&content);
+            amq_monitor_messages++;
         }
         else
             amq_server_agent_jms_browse_empty (
