@@ -117,7 +117,7 @@
     </generate>
     <build>
         <execute>
-        if test "\$(which ant)" != "" -a "\$(which javac)" != "" -a "\$(which jar)" != ""; then
+        if [ -n "`which ant`" -a -n "`which javac`" -a -n "`which jar`" ]; then
             ant -q -DIBASE=$IBASE jar || croak
         else
             echo ""
@@ -127,11 +127,11 @@
     </build>
     <clean>
         <execute>
-        if test "\$(which ant)" != ""; then
+        if [ -n "`which ant`" ]; then
             ant -q -DIBASE=$IBASE clean || croak
         else
             echo ""
-            echo "Warning: Cannot find Apache Ant, clean failed."
+            echo "Warning: Cannot find Apache Ant, not cleaning JMS/AMQ."
         fi
         </execute>
     </clean>
