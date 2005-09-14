@@ -1,7 +1,7 @@
 <?xml?>
 <pdl
     name      = "OpenAMQ Kernel"
-    version   = "0.9b7"
+    version   = "0.9b8"
     copyright = "Copyright (c) 2004-2005 iMatix & JPMorganChase"
     workflow  = "standard.pwl"
     library   = "libamq"
@@ -14,14 +14,14 @@
 <file name = "libamq"                class = "public library"    >Object library</file>
 
 <!-- AMQ protocol specification -->
-<file name = "amq.asl"               class = "private resource"  >AMQ protocol definition</file>
-<file name = "amq_access.asl"        class = "private resource"  >Access control</file>
-<file name = "amq_exchange.asl"      class = "private resource"  >Exchange management</file>
-<file name = "amq_queue.asl"         class = "private resource"  >Queue management</file>
-<file name = "amq_basic.asl"         class = "private resource"  >Basic content</file>
-<file name = "amq_jms.asl"           class = "private resource"  >JMS content</file>
-<file name = "amq_file.asl"          class = "private resource"  >File content</file>
-<file name = "amq_stream.asl"        class = "private resource"  >Stream content</file>
+<file name = "amq.asl"               class = "public resource"   >AMQ protocol definition</file>
+<file name = "amq_access.asl"        class = "public resource"   >Access control</file>
+<file name = "amq_exchange.asl"      class = "public resource"   >Exchange management</file>
+<file name = "amq_queue.asl"         class = "public resource"   >Queue management</file>
+<file name = "amq_basic.asl"         class = "public resource"   >Basic content</file>
+<file name = "amq_jms.asl"           class = "public resource"   >JMS content</file>
+<file name = "amq_file.asl"          class = "public resource"   >File content</file>
+<file name = "amq_stream.asl"        class = "public resource"   >Stream content</file>
 
 <!-- AMQ client implementation -->
 <file name = "amq_client.asl"        class = "gsl data"          >Client definition</file>
@@ -107,6 +107,7 @@
 <file name = "amq_consumer_jms.icl"  class = "icl private class" >JMS consumer class</file>
 <file name = "amq_server_method.icl" class = "icl private class"
                                      generated = "1"             >Server method class</file>
+<file name = "amq_monitor.icl"       class = "icl private class" >Monitoring</file>
 
 <file name = "server.cfg"            class = "public resource"   >Server config file</file>
 
