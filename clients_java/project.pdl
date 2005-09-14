@@ -146,6 +146,15 @@
     <file name = "TransportConnection.java"         />
 </directory>
 
+<!-- JMS API - ??? -->
+<directory name = "client/src/org/openamq/jms" class = "private resource">
+    <file name = "ChannelLimitReachedException.java" />
+    <file name = "Connection.java"                   />
+    <file name = "MessageConsumer.java"              />
+    <file name = "MessageProducer.java"              />
+    <file name = "Session.java"                      />
+</directory>
+
 <!-- Placeholder to make Boom package the dist directory -->
 <directory name = "dist">
     <file name = "readme.txt" class = "private resource" />
