@@ -47,7 +47,7 @@
   </field>
     
   <field name = "exchange" domain = "exchange name">
-    <assert check = "regexp" value = "[A-Za-a0-9_-]+" />
+    <assert check = "regexp" value = "[A-Za-z0-9_-]+" />
   </field>
     
   <field name = "class" type = "shortstr">
@@ -63,7 +63,7 @@
       If the exchange already exists with a different class, the server
       MUST raise a channel exception with reply code TBD.
     </doc>
-    <assert check = "regexp" value = "[A-Za-a0-9_-]+" />
+    <assert check = "regexp" value = "[A-Za-z0-9_-]+" />
   </field>
 
   <field name = "passive" type = "bit">
