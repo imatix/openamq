@@ -41,6 +41,43 @@
     <file name = "backport-util-concurrent.jar"     />
 </directory>
 
+<!-- Common classes -->
+<directory name = "common/src/org/openamq" class = "private resource">
+    <file name = "AMQChannelClosedException.java"    />
+    <file name = "AMQConnectionClosedException.java" />
+    <file name = "AMQDisconnectedException.java"     />
+    <file name = "AMQException.java"                 />
+    <file name = "AMQUndeliveredException.java"      />
+</directory>
+
+<!-- Common framing classes, hand written -->
+<directory name = "common/src/org/openamq/framing" class = "private resource">
+    <file name = "AMQBody.java"                      />
+    <file name = "AMQDataBlockDecoder.java"          />
+    <file name = "AMQDataBlockEncoder.java"          />
+    <file name = "AMQDataBlock.java"                 />
+    <file name = "AMQFrameDecodingException.java"    />
+    <file name = "AMQFrame.java"                     />
+    <file name = "AMQMessage.java"                   />
+    <file name = "AMQMethodBodyFactory.java"         />
+    <file name = "AMQMethodBody.java"                />
+    <file name = "BodyFactory.java"                  />
+    <file name = "CompositeAMQDataBlock.java"        />
+    <file name = "ContentBodyFactory.java"           />
+    <file name = "ContentBody.java"                  />
+    <file name = "ContentHeaderBodyFactory.java"     />
+    <file name = "ContentHeaderBody.java"            />
+    <file name = "EncodableAMQDataBlock.java"        />
+    <file name = "EncodingUtils.java"                />
+    <file name = "FieldTable.java"                   />
+    <file name = "JmsContentHeaderBody.java"         />
+    <file name = "ProtocolInitiation.java"           />
+</directory>
+
+<!-- Framing classes generated from ASL -->
+<directory name = "common/generated/java/org/openamq/framing" class = "generated">
+    <file name = "*.java"                           />
+</directory>
 
 <!-- JMS API - Basic classes -->
 <directory name = "client/src/org/openamq/client" class = "private resource">
@@ -115,11 +152,6 @@
     <file name = "readme.txt" class = "private resource" />
 </directory>
 
-<!-- Classes generated from ASL -->
-<directory name = "common/generated/java/org/openamq/framing" class = "generated">
-    <file name = "*.java"                           />
-</directory>
-
 <actions target = "unix">
     <generate>
         <execute>
@@ -132,7 +164,11 @@
             ant -q -DIBASE=$IBASE jar || croak
         else
             echo ""
-            echo "Warning: Cannot find the JDK/Ant, JMS/AMQ build failed."
+            echo "Warning: Cannot find the JDK/Ant, not building JMS/AMQ."
+            #  Fake some JAR files so that "boom install" at product level does not fail.
+            echo "Placeholder; not built due to missing prerequisites." > dist/openamqj-common.jar
+            echo "Placeholder; not built due to missing prerequisites." > dist/openamqj-jms.jar
+            echo "Placeholder; not built due to missing prerequisites." > dist/openamqj-tests.jar
         fi
         </execute>
     </build>
