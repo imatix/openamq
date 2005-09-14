@@ -16,7 +16,6 @@
 <directory name = "dist" class = "shared library">
     <file name = "openamqj-jms.jar"                  >JMS layer</file>
     <file name = "openamqj-common.jar"               >JMS layer</file>
-    <file name = "openamqj-tests.jar"                >JMS layer</file>
 </directory>
 
 <!-- Build dependencies -->
@@ -168,7 +167,6 @@
             #  Fake some JAR files so that "boom install" at product level does not fail.
             echo "Placeholder; not built due to missing prerequisites." > dist/openamqj-common.jar
             echo "Placeholder; not built due to missing prerequisites." > dist/openamqj-jms.jar
-            echo "Placeholder; not built due to missing prerequisites." > dist/openamqj-tests.jar
         fi
         </execute>
     </build>

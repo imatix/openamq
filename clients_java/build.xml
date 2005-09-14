@@ -88,7 +88,7 @@
     </target>
 
     <!-- Build jar archive -->
-    <target name="jar" depends="compile, compiletests">
+    <target name="jar" depends="compile">
         <mkdir dir="${dist}"/>
         <jar basedir="${common.classes}" jarfile="${dist}/openamqj-common.jar"/>
         <jar basedir="${client.classes}" jarfile="${dist}/openamqj-jms.jar"/>
