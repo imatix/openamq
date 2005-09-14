@@ -19,6 +19,11 @@
     <file name = "openamqj-tests.jar"                >JMS layer</file>
 </directory>
 
+<!-- Build dependencies -->
+<directory name = "build" class = "private resource">
+    <file name = "asl_chassis_java.gsl"              >Java ASL chassis</file>
+</directory>
+
 <!-- Required libraries -->
 <directory name = "lib/jms"  class = "public binary">
     <file name = "jms.jar"                           >Compiled JMS interfaces</file>
@@ -35,6 +40,7 @@
 <directory name = "lib/util-concurrent" class = "public binary">
     <file name = "backport-util-concurrent.jar"     />
 </directory>
+
 
 <!-- JMS API - Basic classes -->
 <directory name = "client/src/org/openamq/client" class = "private resource">
