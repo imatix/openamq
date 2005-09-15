@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package name    = "OpenAMQ"
-         release = "0.9b7"
+         release = "0.9b8"
          script  = "makesrc.gsl">
 
   <product name = "base"
@@ -16,7 +16,7 @@
            url  = "https://svn.imatix.net/imatix/base2/trunk/"
            rev  = "HEAD" />
   <product name = "openamq"
-           url  = "https://svn.imatix.net/imatix/openamq/tags/rel_0.9b7_rc1"
+           url  = "https://svn.imatix.net/imatix/openamq/tags/rel_0.9b8_rc1"
            rev  = "HEAD" />
 </package>
 
