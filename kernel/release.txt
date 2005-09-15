@@ -34,6 +34,12 @@ Improvements:
     JMS API.
 
 Bug fixes:
+  - Frame limit extended to 2MB
+
+---------------------------------------------------------------------
+0.9b6 - 2005/09/13
+
+Bug fixes:
 
   - AMQ-7, AMQ-66, AMQ-67, AMQ-70
   - BASE2-36, BASE2-21, BASE2-55  
