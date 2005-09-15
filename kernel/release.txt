@@ -1,5 +1,5 @@
 ---------------------------------------------------------------------
-0.9b8 - 2005/09/
+0.9b8 - 2005/09/15
 
 Improvements:
 
@@ -8,6 +8,12 @@ Improvements:
     - messages per second peak throughput
   - Queue and exchange names now allow hyhens ([A-Za-a0-9_-]+)
 
+Bug fixes:
+
+  - Connection timeout during large message transfer increased from
+    10s to 100s.
+  - Frame size in client kernel API restricted to 64k.
+  
 ---------------------------------------------------------------------
 0.9b7 - 2005/09/13
 
