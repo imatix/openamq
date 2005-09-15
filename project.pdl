@@ -11,11 +11,15 @@
 
     <distrib name = "OpenAMQ source" type = "source">
         <project directory = "kernel"        />
+        <!-- nfg
         <project directory = "clients_java"  />
+        -->
     </distrib>
 
     <distrib name = "OpenAMQ install" type = "install">
         <project directory = "kernel"        />
+        <!-- nfg
         <project directory = "clients_java"  />
+        -->
     </distrib>
 </pdl>
