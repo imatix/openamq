@@ -1,4 +1,22 @@
 ---------------------------------------------------------------------
+0.9b9 - 2005/09/15
+
+Improvements:
+
+  - Custom configuration file, "custom.cfg", holds local definitions that
+    override the default values in server.cfg.  Do not edit server.cfg
+    but instead, create/edit custom.cfg (with same format) and holding
+    only values you need.  E.g., to disable monitoring:
+
+    <config>
+    <resources monitor = "0" />
+    </config>
+
+Bug fixes:
+
+  - 
+
+---------------------------------------------------------------------
 0.9b8 - 2005/09/15
 
 Improvements:
@@ -13,7 +31,7 @@ Bug fixes:
   - Connection timeout during large message transfer increased from
     10s to 100s.
   - Frame size in client kernel API restricted to 64k.
-  
+
   - AMQ-68, AMQ-40, AMQ-76, AMQ-70, AMQ-69, AMQ-72, AMQ-75
   - BASE2-31, BASE2-37
 

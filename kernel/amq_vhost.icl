@@ -44,7 +44,7 @@ $(selftype)
 <method name = "new">
     //TODO: load config from directory
     self->config         = amq_vhost_config_new (
-        NULL, amq_server_config_trace (amq_server_config));
+        NULL, NULL, amq_server_config_trace (amq_server_config));
     self->exchange_table = amq_exchange_table_new ();
     self->queue_table    = amq_queue_table_new ();
     self->queue_list     = amq_queue_list_new ();

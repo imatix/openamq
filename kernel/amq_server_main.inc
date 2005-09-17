@@ -1,7 +1,7 @@
 /*===========================================================================
 
     Main preparation for demo server
-    
+
     This file is defined as an include file so that it can be invoked
     directly from the main, setting up static variables that are used
     at different points in the initialisation process.  The separation
@@ -16,20 +16,19 @@
 #include "amq_server_agent.h"
 
 static Bool
-    s_opt_silent,                       //  -q means suppress messages       
-    s_opt_bkground,                     //  -s means run in background       
-    s_opt_showinfo;                     //  -i means show information        
+    s_opt_silent,                       //  -q means suppress messages
+    s_opt_bkground,                     //  -s means run in background
+    s_opt_showinfo;                     //  -i means show information
 static char
-    *s_opt_port,                        //  -p specifies server port         
-    *s_opt_workdir,                     //  -w specifies working directory   
-    *s_opt_trace,                       //  -t defines trace level           
-    *s_opt_monitor;                     //  -m means monitor server          
+    *s_opt_port,                        //  -p specifies server port
+    *s_opt_workdir,                     //  -w specifies working directory
+    *s_opt_trace,                       //  -t defines trace level
+    *s_opt_monitor;                     //  -m means monitor server
 
 //  Prototypes for local functions
 static void
     s_exchange_declare (char *name, int class);
 
-#define CURVERSION "%s/" VERSION "\n%s\n\n"
 #define NOWARRANTY \
 "This is free software; see the source for copying conditions.  There is NO\n" \
 "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n" \
@@ -78,7 +77,7 @@ s_parse_args (int argc, char *argv [])
     myname  = argv [0];
     argparm = NULL;                     //  Argument parameter to pick-up    
     for (argn = 1; argn < argc; argn++) {
-        //  If argparm is set, we have to collect an argument parameter      
+        //  If argparm is set, we have to collect an argument parameter
         if (argparm) {
             if (*argv [argn] != '-') {  //  Parameter can't start with '-'   
                 *argparm = argv [argn];
@@ -120,15 +119,16 @@ s_parse_args (int argc, char *argv [])
                     s_opt_bkground = FALSE;
                     break;
                 case 'v':
-                    printf (CURVERSION, SERVER_NAME, SERVER_TEXT);
+                    printf (SERVER_NAME "/" VERSION " - revision " SVN_REVISION "\n");
+                    printf (SERVER_TEXT "\n\n");
                     printf (COPYRIGHT "\n");
                     printf (NOWARRANTY);
                     printf (BUILDMODEL "\n");
-                    printf ("Built on: " BUILDDATE "\n");
-                    printf ("Compiler: " CCOPTS "\n");
+                    printf ("Compiled with: " CCOPTS "\n");
                     exit (EXIT_SUCCESS);
                 case 'h':
-                    printf (CURVERSION, SERVER_NAME, SERVER_TEXT);
+                    printf (SERVER_NAME "/" VERSION "\n");
+                    printf (SERVER_TEXT "\n\n");
                     printf (COPYRIGHT "\n");
                     printf (NOWARRANTY);
                     printf (USAGE, SERVER_NAME);
@@ -144,7 +144,7 @@ s_parse_args (int argc, char *argv [])
             break;
         }
     }
-    //  Check that the arguments were valid                                  
+    //  Check that the arguments were valid
     if (rc)
         icl_console_print ("E: invalid arguments - type '%s -h' for help", myname);
     else
@@ -154,11 +154,12 @@ s_parse_args (int argc, char *argv [])
     }
     else {
         if (s_opt_silent) {
-            fclose (stdout);            //  Kill standard output             
-            fclose (stderr);            //   and standard error              
+            fclose (stdout);            //  Kill standard output
+            fclose (stderr);            //   and standard error
         }
         else {
-            printf (CURVERSION, SERVER_NAME, SERVER_TEXT);
+            printf (SERVER_NAME "/" VERSION "\n");
+            printf (SERVER_TEXT "\n\n");
             printf (COPYRIGHT "\n");
             printf (NOWARRANTY);
         }
@@ -189,7 +190,7 @@ s_load_config (char *config_file, char *overlay)
     }
     //  Load configuration data, if any, into the config_table               
     amq_server_config = amq_server_config_new (
-        config_file, s_opt_trace? atoi (s_opt_trace): 0);
+        config_file, overlay, s_opt_trace? atoi (s_opt_trace): 0);
 }
 
 

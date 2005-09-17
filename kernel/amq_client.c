@@ -10,7 +10,7 @@
 #include "amq_client_session.h"
 #include "version.h"
 
-#define CLIENT_NAME "amqp_client/1.0\n\n"
+#define CLIENT_NAME "amqp_client/1.0"
 #define NOWARRANTY \
 "This is free software; see the source for copying conditions.  There is NO\n" \
 "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n" \
@@ -179,15 +179,14 @@ main (int argc, char *argv [])
                     delay_mode = TRUE;
                     break;
                 case 'v':
-                    printf (CLIENT_NAME);
+                    printf (CLIENT_NAME " - revision " SVN_REVISION "\n\n");
                     printf (COPYRIGHT "\n");
                     printf (NOWARRANTY);
                     printf (BUILDMODEL "\n");
-                    printf ("Built on: " BUILDDATE "\n");
-                    printf ("Compiler: " CCOPTS "\n");
+                    printf ("Compiled with: " CCOPTS "\n");
                     exit (EXIT_SUCCESS);
                 case 'h':
-                    printf (CLIENT_NAME);
+                    printf (CLIENT_NAME "\n\n");
                     printf (COPYRIGHT "\n");
                     printf (NOWARRANTY);
                     printf (USAGE);
