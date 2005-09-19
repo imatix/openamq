@@ -121,7 +121,7 @@
     if (*method->queue)
         icl_shortstr_cpy (queue_name, method->queue);
     else
-        icl_shortstr_fmt (queue_name, "tmp_%06d", icl_atomic_inc32 (&queue_index));
+        icl_shortstr_fmt (queue_name, "$tmp_%06d", icl_atomic_inc32 (&queue_index));
 
     queue = amq_queue_search (amq_vhost->queue_table, method->scope, queue_name);
     if (!queue) {
