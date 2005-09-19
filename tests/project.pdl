@@ -10,9 +10,14 @@
 <include filename = "prelude.pdl" />
 
 <file name = "run_tests"                          class = "public resource" >Runs test sets</file>
+
 <directory name = "kernel">
     <file name = "amq_measure_front.c"            class = "main program"    >Client sending test program</file>
     <file name = "amq_measure_back.c"             class = "main program"    >Client passing test program</file>
+    <file name = "amq_large_message.c"            class = "main program"    >Client test program, sending large messages</file>
+</directory>
+<directory name = "tools">
+    <file name = "amq_stress"                     class = "public script"   >A tool which spawns and kills processes</file>
 </directory>
 <directory name = "tests_10_api">
     <file name = "test_syn_que_tem_1000_1K_1.sh"  class = "public resource" >Simple test template</file>
