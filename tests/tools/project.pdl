@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<pdl
+    name      = "OpenAMQ Tools"
+    acronym   = "Tools"
+    version   = "0.1"
+    copyright = "Copyright (c) 1991-2003 iMatix Corporation"
+    workflow  = "standard.pwl"
+    >
+
+<include filename = "prelude.pdl" />
+<file name = "spawn"   class = "command script"  >A tool script that can spawns, kill and monitor many processes</file>
+</pdl>
