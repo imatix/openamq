@@ -226,7 +226,7 @@
   </field>
     
   <field name = "destination" type = "shortstr">
-     Message destination name
+     message destination name
     <doc>
       Specifies the destination for the message.  The destination is
       a name that is used for routing messages depending on the exchange

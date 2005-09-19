@@ -8,16 +8,6 @@
 <inherit name = "asl_client" />
 <option name = "product_name" value = "OpenAMQ Kernel Client" />
 
-<class name = "queue">
-  <context>
-    icl_shortstr_t
-        queue_name;                     //  Returned queue name
-  </context>
-  <action name = "declare-ok">
-    icl_shortstr_cpy (session->queue_name, method->queue);
-  </action>
-</class>
-
 <class name = "basic">
   <action name = "browse-ok">
     amq_content_$(class.name)_possess (self->content);
@@ -27,8 +17,6 @@
   </action>
 
   <action name = "bounce">
-    session->reply_code = method->reply_code;
-    icl_shortstr_cpy (session->reply_text, method->reply_text);
     if (!session->silent)
         icl_console_print ("W: $(class.name) message was bounced: %d - %s",
             session->reply_code, session->reply_text);
@@ -41,11 +29,6 @@
 </class>
 
 <class name = "jms">
-  <context>
-    dbyte
-        consumer_tag;                   //  Returned consumer tag
-  </context>
-
   <action name = "browse-ok" sameas = "basic" />
 
   <action name = "deliver">
@@ -56,10 +39,6 @@
   </action>
 
   <action name = "bounce" sameas = "basic" />
-
-  <action name = "consume-ok">
-    session->consumer_tag = method->consumer_tag;
-  </action>
 </class>
 
 </protocol>
