@@ -2,24 +2,32 @@
 #include "amq_client_connection.h"
 #include "amq_client_session.h"
 
-int main (int argc, char** argv) 
+/*
+    code review comments - ph, 2005/09/17
+        - do not align function arguments to right
+            - instead, indent them 4 spaces from first line
+            - and comment arguments in column 40
+            -> see amq_measure_front.c
+        - spaces around ()
+        - 'else' on new line, don't use "} else {"
+  */
+
+int main (int argc, char** argv)
 {
     amq_client_connection_t
         *connection = NULL;             //  Current connection
     amq_client_session_t
         *session = NULL;                //  Current session
-    
+
     amq_content_jms_t
         *message = NULL;                //  Current message
     icl_longstr_t
         *arguments = NULL;              //  Arguments to bind
     byte
         *payload = NULL;                //  The message payload
-
     int
-        publish_result;                 //  Result of the message publication
-        
-    
+        rc;                             //  Return code from calls
+
     //  Initialize system in order to use console
     icl_system_initialise (argc, argv);
 
@@ -78,29 +86,25 @@ int main (int argc, char** argv)
         TRUE,                       //  Auto-acknowledge
         FALSE);                     //  Exclusive access to queue
 
-    for(;;) {
-        //XXX: why is there no output if you comment the line below?
+    for (;;) {
         amq_client_session_wait (session, 0);
-        message = amq_client_session_jms_arrived (session);
-        if(message) {
+        while ((message = amq_client_session_jms_arrived (session)) != NULL) {
             icl_console_print ("I: [%s] message {%s} arrived",
-                               "service",
-                               message->message_id);
-
-            amq_content_jms_possess(message); 
-            publish_result = amq_client_session_jms_publish (session,
-                                                             message,
-                                                             0,                 //  Ticket
-                                                             "$queue",          //  Exchange
-                                                             message->reply_to, //  Destination
-                                                             FALSE,             //  Mandatory
-                                                             FALSE);            //  Immediate
+                "service", message->message_id);
+            amq_content_jms_possess (message);
+            rc = amq_client_session_jms_publish (
+                session,
+                message,
+                0,                 //  Ticket
+                "$queue",          //  Exchange
+                message->reply_to, //  Destination
+                FALSE,             //  Mandatory
+                FALSE);            //  Immediate
+            if (rc)
+                break;
         }
         amq_content_jms_destroy (&message);
-
     }
-
-    
     //  Clean up
     finished:
     amq_client_session_destroy (&session);
