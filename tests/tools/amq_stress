@@ -132,7 +132,7 @@ __END__
 
 =head1 NAME
 
-spawn - A stress test tool which spawns other processes.
+amq_stress - A stress test tool which spawns other processes.
 
 =head1 AUTHOR
 
@@ -140,18 +140,18 @@ Tim Esselens <tim@imatix.net>
 
 =head1 SYNOPSIS
 
-spawn [options] --exec program
+amq_stress [options] --exec program
 
  the string provided to the exec and kill argument can contain some magic:
  - every $i will be replaced with the number of the current child process (counting from 1 to total children)
  - every {} (block) will be eval'ed
 
  examples:
-    spawn -n 10 --exec "echo this is child \$i";
-    spawn -n 10 --exec 'echo this is child $i'";
-    spawn -n 10 --exec 'echo this is child $i with a random number: { int(rand(10)) }';
-    spawn -n 10 --exec './amq_client -n { int(rand(10) * 1000) } -Q queue_$i -b 500 -r 10 2>&1';
-    spawn -n 10 -r 2 --kill '{ rand(10) }' --exec './amq_client -n { int(rand(10) * 1000) } -Q queue_$i -b 500 -r 10 2>&1';
+    amq_stress -n 10 --exec "echo this is child \$i";
+    amq_stress -n 10 --exec 'echo this is child $i'";
+    amq_stress -n 10 --exec 'echo this is child $i with a random number: { int(rand(10)) }';
+    amq_stress -n 10 --exec './amq_client -n { int(rand(10) * 1000) } -Q queue_$i -b 500 -r 10 2>&1';
+    amq_stress -n 10 -r 2 --kill '{ rand(10) }' --exec './amq_client -n { int(rand(10) * 1000) } -Q queue_$i -b 500 -r 10 2>&1';
 
 =head1 OPTIONS
 
@@ -195,6 +195,6 @@ Only STDOUT is colorized, use 2>&1 to redirect STDERR to STDOUT so it is coloriz
 
 =head1 DESCRIPTION
 
-B<spawn> will spawn several processes of the desired binary.
+B<amq_stress> will spawn several processes of the desired binary.
 
 =cut
