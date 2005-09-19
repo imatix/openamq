@@ -32,16 +32,17 @@ int main (int argc, char** argv)
     icl_system_initialise (argc, argv);
 
     //  Set up a connection
-    connection = amq_client_connection_new ("localhost:9876",
-                                            amq_client_connection_auth_plain("guest","guest"),
-                                            0,      //  Trace level
-                                            30000); //  Timeout
+    connection = amq_client_connection_new (
+        "localhost:9876",
+        amq_client_connection_auth_plain("guest","guest"),
+        0,      //  Trace level
+        30000); //  Timeout
 
-    if (connection) {
+    if (connection) 
         icl_console_print("I: connected to: %s/%s",
                           connection->server_product,
-                          connection->server_version);
-    } else {
+                          connection->server_version); 
+    else {
         icl_console_print("E: could not connect to server"); 
         goto finished;
     }
@@ -56,27 +57,30 @@ int main (int argc, char** argv)
     }
 
     //  Declare a queue
-    amq_client_session_queue_declare (session,      //  The session
-                                      0,            //  Access ticked granted by server
-                                      "global",     //  Queue scope
-                                      "service",    //  Queue name
-                                      FALSE,        //  Passive declaration
-                                      FALSE,        //  Durable declaration
-                                      FALSE,        //  Private queue
-                                      FALSE);       //  Auto delete
+    amq_client_session_queue_declare (
+        session,      //  The session
+        0,            //  Access ticked granted by server
+        "global",     //  Queue scope
+        "service",    //  Queue name
+        FALSE,        //  Passive declaration
+        FALSE,        //  Durable declaration
+        FALSE,        //  Private queue
+        FALSE);       //  Auto delete
 
    
     //  Bind the queue to the exchange (named $queue)
     arguments = asl_field_list_build ("destination", "service", NULL);
-    amq_client_session_queue_bind (session,
-                                   0,               //  Ticket
-                                   "global",        //  Queue scope
-                                   "service",       //  Queue
-                                   "$queue",        //  Exchange
-                                   arguments);      //  Arguments
+    amq_client_session_queue_bind (
+        session,
+        0,               //  Ticket
+        "global",        //  Queue scope
+        "service",       //  Queue
+        "$queue",        //  Exchange
+        arguments);      //  Arguments
     icl_longstr_destroy (&arguments);
 
-    amq_client_session_jms_consume (session,
+    amq_client_session_jms_consume (
+        session,
         0,                          //  Access ticket granted by server
         "global",                   //  Queue scope
         "service",                  //  Queue name
