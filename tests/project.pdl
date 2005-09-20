@@ -12,7 +12,7 @@
 <file name = "run_tests"                          class = "public resource" >Runs test sets</file>
 
 <directory name = "kernel">
-    <!-- <file name = "amq_measure_front.c"            class = "main program"    >Client sending test program</file> -->
+    <file name = "amq_measure_front.c"            class = "main program"    >Client sending test program</file>
     <file name = "amq_measure_back.c"             class = "main program"    >Client passing test program</file>
     <file name = "amq_large_message.c"            class = "main program"    >Client test program, sending large messages</file>
 </directory>

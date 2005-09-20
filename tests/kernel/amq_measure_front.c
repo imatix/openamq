@@ -64,16 +64,16 @@ int main (int argc, char** argv)
         TRUE);                          //  Auto delete?
 
     //  Bind the queue to the exchange
-    arguments = asl_field_list_build ("destination", session->queue_name, NULL);
+    arguments = asl_field_list_build ("destination", session->queue, NULL);
     amq_client_session_queue_bind (
-        session, 0, "global", session->queue_name, "$queue", arguments);
+        session, 0, "global", session->queue, "$queue", arguments);
     icl_longstr_destroy (&arguments);
 
     amq_client_session_jms_consume (
         session,
         0,                              //  Access ticket granted by server
         "global",                       //  Queue scope
-        session->queue_name,            //  Queue name
+        session->queue,            //  Queue name
         0,                              //  Prefetch size
         0,                              //  Prefetch count
         FALSE,                          //  No local messages
@@ -96,7 +96,7 @@ int main (int argc, char** argv)
         //  Insert payload and message_id into the message
         amq_content_jms_set_body       (message_tx, payload, payload_size, NULL);
         amq_content_jms_set_message_id (message_tx, message_id);
-        amq_content_jms_set_reply_to   (message_tx, session->queue_name);
+        amq_content_jms_set_reply_to   (message_tx, session->queue);
 
         rc = amq_client_session_jms_publish (
             session,
@@ -118,7 +118,7 @@ int main (int argc, char** argv)
         amq_client_session_wait (session, 0);
         while ((message_rx = amq_client_session_jms_arrived (session)) != NULL) {
             icl_console_print ("I: [%s] message received from server with id {%s}",
-                session->queue_name, message_rx->message_id);
+                session->queue, message_rx->message_id);
             amq_content_jms_destroy (&message_rx);
         }
     }
