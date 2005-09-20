@@ -15,6 +15,8 @@
     <file name = "amq_measure_front.c"            class = "main program"    >Client sending test program</file>
     <file name = "amq_measure_back.c"             class = "main program"    >Client passing test program</file>
     <file name = "amq_large_message.c"            class = "main program"    >Client test program, sending large messages</file>
+    <file name = "amq_declare_bind.c"             class = "main program"    >Multiple declare binds</file>
+    <file name = "amq_declare_bind_tmp.c"         class = "main program"    >Multiple declare binds</file>
 </directory>
 <directory name = "tools">
     <file name = "amq_stress"                     class = "public script"   >A tool which spawns and kills processes</file>
