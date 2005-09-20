@@ -171,11 +171,10 @@
         if [ -x "`which ant`" -a -x "`which javac`" -a -x "`which jar`" ]; then
             ant -q -DIBASE=$IBASE jar || croak
         else
-            echo ""
             echo "Warning: Cannot find the JDK/Ant, not building JMS/AMQ."
             #  Fake some JAR files so that "boom install" at product level does not fail.
-            echo "Placeholder; not built due to missing prerequisites." > dist/openamqj-common.jar
-            echo "Placeholder; not built due to missing prerequisites." > dist/openamqj-jms.jar
+            echo "Placeholder; not built due to missing JDK/Ant." > dist/openamqj-common.jar
+            echo "Placeholder; not built due to missing JDK/Ant." > dist/openamqj-jms.jar
         fi
         </execute>
     </build>
@@ -184,10 +183,41 @@
         if [ -x "`which ant`" ]; then
             ant -q -DIBASE=$IBASE clean || croak
         else
-            echo ""
             echo "Warning: Cannot find Apache Ant, not cleaning JMS/AMQ."
         fi
         </execute>
     </clean>
 </actions>
+
+<actions target = "win32">
+    <generate>
+        <execute>
+        gsl -q -target:java amq.asl
+        </execute>
+    </generate>
+    <build>
+        <execute>
+        ant -version >nul 2>nul
+        if errorlevel 1 (
+            echo Warning: Cannot find the JDK/Ant, not building JMS/AMQ.
+            :  Fake some JAR files so that "boom install" at product level does not fail.
+            echo Placeholder; not built due to missing JDK/Ant. > dist\\openamqj-common.jar
+            echo Placeholder; not built due to missing JDK/Ant. > dist\\openamqj-jms.jar
+        ) else (
+            ant -q -DIBASE=%IBASE% jar
+        )
+        </execute>
+    </build>
+    <clean>
+        <execute>
+        ant -version >nul 2>nul
+        if errorlevel 1 (
+            echo Warning: Cannot find Apache Ant, not cleaning JMS/AMQ.
+        ) else (
+            ant -q -DIBASE=%IBASE% clean
+        )
+        </execute>
+    </clean>
+</actions>
+
 </pdl>
