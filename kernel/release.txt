@@ -14,7 +14,10 @@ Improvements:
 
 Bug fixes:
 
-  - 
+  -  AMQ-33, AMQ-87, AMQ-85, AMQ-86, AMQ-13, AMQ-49, AMQ-79, AMQ-81, AMQ-51,
+     AMQ-68  
+  -  BASE2-62, BASE2-9, BASE2-56, BASE2-60, BASE2-57, BASE2-61, BASE2-59, 
+     BASE2-53, BASE2-52 
 
 ---------------------------------------------------------------------
 0.9b8 - 2005/09/15
