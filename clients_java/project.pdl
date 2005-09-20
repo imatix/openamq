@@ -168,7 +168,7 @@
     </generate>
     <build>
         <execute>
-        if [ -n "`which ant`" -a -n "`which javac`" -a -n "`which jar`" ]; then
+        if [ -x "`which ant`" -a -x "`which javac`" -a -x "`which jar`" ]; then
             ant -q -DIBASE=$IBASE jar || croak
         else
             echo ""
@@ -181,7 +181,7 @@
     </build>
     <clean>
         <execute>
-        if [ -n "`which ant`" ]; then
+        if [ -x "`which ant`" ]; then
             ant -q -DIBASE=$IBASE clean || croak
         else
             echo ""
