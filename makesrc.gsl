@@ -67,9 +67,9 @@ cat <<EOF >$PKGROOT/build.sh
 #  Set the IBASE variable to the installation directory
 
 if [ -z "\\$IBASE" ]; then
-    echo "The IBASE environment variable is not defined."
-    echo "Set this to desired installation directory, e.g. \\\\$HOME/ibase."
-    echo "Then, add \\\\$IBASE/bin to your PATH for best results."
+    echo 'The IBASE environment variable is not defined.'
+    echo 'Set this to desired installation directory, e.g. $HOME/ibase.'
+    echo 'Then, add $IBASE/bin to your PATH for best results.'
     exit 1
 fi
 
