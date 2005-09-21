@@ -46,11 +46,11 @@ PKGROOT=$WORKDIR/$(name:)-$(release:)
 
 echo "Checking product versions used for $(name:) $(release:)..."
 .  for product
-product_rev=`svn ls -v -r $(rev:) $(url:)/project.pdl | \
-    perl -ne '/^\s*(\d+)/ && print $1'` || croak
+# product_rev=`svn ls -v -r $(rev:) $(url:)/project.pdl | \
+#     perl -ne '/^\\s*(\\d+)/ && print $1'` || croak
 product_ver=`svn cat -r $(rev:) $(url:)/project.pdl | perl -ne \
-    '/<?xml.+version/ && next; /version\s*=\s*"([^"]+)"/ && print $1'` || croak
-echo "$(name:): Revision $product_rev, version $product_ver"
+    '/<?xml.+version/ && next; /version\\s*=\\s*"([^"]+)"/ && print $1'` || croak
+echo "$(name:)\t$(rev:)\t$product_ver"
 .  endfor
 while [ 1 ]; do
     echo -n "Please confirm that the above versions are correct [y/n]: "
