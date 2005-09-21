@@ -44,6 +44,30 @@ cd $WORKDIR
 WORKDIR=`pwd`
 PKGROOT=$WORKDIR/$(name:)-$(release:)
 
+echo "Checking product versions used for $(name:) $(release:)..."
+.  for product
+product_rev=`svn ls -v -r $(rev:) $(url:)/project.pdl | \
+    perl -ne '/^(\d+)/ && print $1'` || croak
+product_ver=`svn cat -r $(rev:) $(url:)/project.pdl | perl -ne \
+    '/<?xml.+version/ && next; /version.*"(.+)"/ && print $1'` || croak
+echo "$(name:): Revision $product_rev, version $product_ver"
+.  endfor
+while [ 1 ]; do
+    echo -n "Please confirm that the above versions are correct [y/N]: "
+    read line
+    case $line in
+        y*)
+        Y*)
+            break;
+        ;;
+        n*)
+        N*)
+            carp "Aborted."
+            exit 1
+        ;;
+    esac
+done
+
 .  for product
 carp "Checking out $(name:) (rev $(rev:)) as $WORKDIR/products/$(name:c)..."
 svn co -q -r $(rev:) $(url:) $WORKDIR/products/$(name:c) || croak
