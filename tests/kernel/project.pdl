@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<pdl
+    name      = "TestCases"
+    acronym   = "test"
+    version   = "0.1a1"
+    copyright = "Copyright (c) 1991-2003 iMatix Corporation"
+    workflow  = "standard.pwl"
+     >
+
+<include filename = "prelude.pdl" />
+<file name = "amq_declare_bind.c" class = "main program"     ></file>
+<file name = "amq_declare_bind_tmp.c" class = "main program"     ></file>
+<file name = "amq_large_message.c" class = "main program"     ></file>
+<file name = "amq_measure_back.c" class = "main program"     ></file>
+<file name = "amq_measure_front.c" class = "main program"     ></file>
+<file name = "amq_receive_declare_bind.c" class = "main program"     ></file>
+</pdl>

@@ -23,7 +23,7 @@ int main (int argc, char** argv)
     connection = amq_client_connection_new (
         "localhost:9876",
         amq_client_connection_auth_plain ("guest","guest"),
-        0,                              //  Trace level
+        3,                              //  Trace level
         30000);                         //  Timeout
 
     if (connection)
