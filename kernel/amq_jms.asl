@@ -351,7 +351,7 @@
     application where functionality is more important than performance.
   </doc>
   <response name = "browse-ok" />
-  <response name = "browse empty" />
+  <response name = "browse-empty" />
   <chassis name = "server" implement = "MUST" />
 
   <field name = "ticket" domain = "access ticket">
