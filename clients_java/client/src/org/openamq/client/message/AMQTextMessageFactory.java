@@ -16,12 +16,22 @@ public class AMQTextMessageFactory extends AbstractMessageFactory
                                                     JmsContentHeaderBody contentHeader,
                                                     ContentBody[] bodies) throws AMQException
     {
-        // TODO: support multiple bodies properly
-        byte[] data = null;
-             
-        if (bodies != null && bodies[0] != null) 
+        byte[] data;
+
+        // we optimise the non-fragmented case to avoid copying
+        if (bodies != null && bodies.length == 1 && bodies[0] != null)
         {
             data = bodies[0].payload;
+        }
+        else
+        {
+            data = new byte[(int)contentHeader.bodySize];
+            int currentPosition = 0;
+            for (int i = 0; i < bodies.length; i++)
+            {
+                System.arraycopy(bodies[i].payload, 0, data, currentPosition, bodies[i].payload.length);
+                currentPosition += bodies[i].payload.length;
+            }
         }
              
         return new AMQTextMessage(messageNbr, data, contentHeader);

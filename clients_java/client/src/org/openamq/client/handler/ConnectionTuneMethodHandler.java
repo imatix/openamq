@@ -35,20 +35,24 @@ public class ConnectionTuneMethodHandler implements StateAwareMethodListener
         _logger.debug("ConnectionTune frame received");
         ConnectionTuneBody frame = (ConnectionTuneBody) evt.getMethod();
         AMQProtocolSession session = evt.getProtocolSession();
+
         ConnectionTuneParameters params = session.getConnectionTuneParameters();
         if (params == null)
         {
             params = new ConnectionTuneParameters();
-            session.setConnectionTuneParameters(params);
         }
 
-        //params.setFrameMax(frame.frameMax);
+        params.setFrameMax(frame.frameMax);
+        //params.setFrameMax(65535);
         params.setChannelMax(frame.channelMax);
         params.setHearbeat(frame.heartbeat);
+        session.setConnectionTuneParameters(params);                
 
         stateManager.changeState(AMQState.CONNECTION_NOT_OPENED);
         session.writeFrame(ConnectionTuneOkBody.createAMQFrame(evt.getChannelId(), frame.channelMax, frame.frameMax,
                                                                frame.heartbeat));
+//        session.writeFrame(ConnectionTuneOkBody.createAMQFrame(evt.getChannelId(), frame.channelMax, 65535,
+//                                                               frame.heartbeat));
         session.writeFrame(ConnectionOpenBody.createAMQFrame(evt.getChannelId(), null));
     }
 }

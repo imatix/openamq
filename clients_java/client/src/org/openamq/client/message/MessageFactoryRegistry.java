@@ -75,6 +75,7 @@ public class MessageFactoryRegistry
     {
         MessageFactoryRegistry mf = new MessageFactoryRegistry();
         mf.registerFactory("text/plain", new AMQTextMessageFactory());
+        mf.registerFactory("application/octet-stream", new AMQBytesMessageFactory());
         // TODO: use bytes message for default message factory
         if (FieldTable.grm)
             mf.registerFactory(null, new AMQTextMessageFactory());

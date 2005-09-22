@@ -9,6 +9,7 @@ import org.openamq.client.AMQConnection;
 import org.openamq.client.AMQSession;
 import org.openamq.client.ConnectionTuneParameters;
 import org.openamq.client.message.UnprocessedMessage;
+import org.openamq.client.message.UnexpectedBodyReceivedException;
 import org.openamq.framing.*;
 
 import javax.jms.JMSException;
@@ -116,7 +117,7 @@ public class AMQProtocolSession
         _minaProtocolSession.setAttribute(CONNECTION_TUNE_PARAMETERS, params);
         AMQConnection con = getAMQConnection();
         con.setMaximumChannelCount(params.getChannelMax());
-        con.setMaximumHandleCount(params.getHandleMax());
+        con.setMaximumFrameSize(params.getFrameMax());
     }
 
     /**
@@ -143,11 +144,17 @@ public class AMQProtocolSession
             throw new AMQException("Error: received duplicate content header or did not receive correct number of content body frames");
         }
         msg.contentHeader = contentHeader;
-        if (contentHeader.bodySize == 0) {
+        if (contentHeader.bodySize == 0)
+        {
             // TODO: move this to a function, I copied it from the next function
             AMQSession session = (AMQSession) _channelId2SessionMap.get(new Integer(channelId));
             session.messageReceived(msg);
             _channelId2UnprocessedMsgMap.remove(new Integer(channelId));
+        }
+        else
+        {
+            int expectedBodies = ((int)contentHeader.bodySize)/(int)getAMQConnection().getMaximumFrameSize() + 1;
+            msg.bodies = new ContentBody[expectedBodies];
         }
     }
 
@@ -160,13 +167,24 @@ public class AMQProtocolSession
         }
         if (msg.contentHeader == null)
         {
+            _channelId2UnprocessedMsgMap.remove(new Integer(channelId));
             throw new AMQException("Error: received content body without having received a ContentHeader frame first");
         }
-        msg.bodies = new ContentBody[1];
-        msg.bodies[0] = contentBody;
-        AMQSession session = (AMQSession) _channelId2SessionMap.get(new Integer(channelId));
-        session.messageReceived(msg);
-        _channelId2UnprocessedMsgMap.remove(new Integer(channelId));
+        try
+        {
+            msg.receiveBody(contentBody);
+        }
+        catch (UnexpectedBodyReceivedException e)
+        {
+            _channelId2UnprocessedMsgMap.remove(new Integer(channelId));
+            throw e;
+        }
+        if (msg.areAllBodiesReceived())
+        {
+            AMQSession session = (AMQSession) _channelId2SessionMap.get(new Integer(channelId));
+            session.messageReceived(msg);
+            _channelId2UnprocessedMsgMap.remove(new Integer(channelId));
+        }
     }
 
     /**

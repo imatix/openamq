@@ -9,8 +9,6 @@ public class ConnectionTuneParameters
 
     private long _channelMax;
 
-    private long _handleMax;
-
     private long _hearbeat;
 
     private long _txnLimit;
@@ -33,17 +31,7 @@ public class ConnectionTuneParameters
     public void setChannelMax(long channelMax)
     {
         _channelMax = channelMax;
-    }
-
-    public long getHandleMax()
-    {
-        return _handleMax;
-    }
-
-    public void setHandleMax(long handleMax)
-    {
-        _handleMax = handleMax;
-    }
+    }    
 
     public long getHearbeat()
     {

@@ -39,8 +39,6 @@ public class AMQProtocolHandler implements ProtocolHandler
     private final AMQStateManager _stateManager = new AMQStateManager();
 
     private final CopyOnWriteArraySet _frameListeners = new CopyOnWriteArraySet();
-    
-    private int writtenBytes = 0;
 
     public AMQProtocolHandler(AMQConnection con)
     {        
@@ -59,7 +57,7 @@ public class AMQProtocolHandler implements ProtocolHandler
 
     public void sessionClosed(ProtocolSession session) throws Exception
     {
-        _connection.exceptionReceived(new AMQDisconnectedException("Client disconnected"));
+        _connection.exceptionReceived(new AMQDisconnectedException("Server closed connection"));
         
         _logger.info("Protocol Session closed");
     }
@@ -153,7 +151,6 @@ public class AMQProtocolHandler implements ProtocolHandler
      */
     public void writeFrame(AMQDataBlock frame)
     {
-        writtenBytes += frame.getSize();
         _protocolSession.writeFrame(frame);
     }
 
@@ -169,7 +166,6 @@ public class AMQProtocolHandler implements ProtocolHandler
         throws AMQException
     {
         _frameListeners.add(listener);
-        writtenBytes += frame.getSize();
         _protocolSession.writeFrame(frame);
         return listener.blockForFrame();
         // When control resumes before this line, a reply will have been received
@@ -221,14 +217,5 @@ public class AMQProtocolHandler implements ProtocolHandler
         _logger.debug("Blocking for connection close frame");
         listener.blockForFrame();
         _protocolSession.closeProtocolSession();
-    }
-    
-    public AMQProtocolSession getAMQProtocolSession() {
-        return _protocolSession;
-    }
-    
-    public long getWrittenBytes()
-    {
-        return writtenBytes;
     }
 }

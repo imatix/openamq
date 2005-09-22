@@ -14,9 +14,21 @@ import org.openamq.framing.*;
  */
 public class UnprocessedMessage
 {
+    private int _receivedBodies = 0;
+
     public JmsDeliverBody deliverBody;
     public JmsBounceBody bounceBody; // TODO: check change (gustavo)
     public int channelId;
     public JmsContentHeaderBody contentHeader;
     public ContentBody[] bodies;
+
+    public void receiveBody(ContentBody body) throws UnexpectedBodyReceivedException
+    {
+        bodies[_receivedBodies++] = body;
+    }
+
+    public boolean areAllBodiesReceived()
+    {
+        return _receivedBodies == bodies.length;
+    }
 }

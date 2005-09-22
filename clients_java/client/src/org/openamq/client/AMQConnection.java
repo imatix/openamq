@@ -35,10 +35,9 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
     private long _maximumChannelCount;
 
     /**
-     * A handle is roughly analogous to a message producer or consumer. The server can negotiate the maximum
-     * number of handles per session and we must prevent the client from opening too many. Zero means unlimited.
+     * The maximum size of frame supported by the server
      */
-    private long _maximumHandleCount;
+    private long _maximumFrameSize;
 
     private AMQProtocolHandler _protocolHandler;
 
@@ -269,16 +268,14 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
         _maximumChannelCount = maximumChannelCount;
     }
 
-    public long getMaximumHandleCount()
+    public void setMaximumFrameSize(long frameMax)
     {
-        checkNotClosed();
-        return _maximumHandleCount;
+        _maximumFrameSize = frameMax;
     }
 
-    public void setMaximumHandleCount(long maximumHandleCount)
+    public long getMaximumFrameSize()
     {
-        checkNotClosed();
-        _maximumHandleCount = maximumHandleCount;
+        return _maximumFrameSize;
     }
 
     public Map getSessions()

@@ -149,6 +149,11 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         this(con, channelId, transacted, acknowledgeMode, MessageFactoryRegistry.newDefaultRegistry());
     }
 
+    AMQConnection getAMQConnection()
+    {
+        return _connection;
+    }
+
     public BytesMessage createBytesMessage() throws JMSException
     {
         checkNotClosed();

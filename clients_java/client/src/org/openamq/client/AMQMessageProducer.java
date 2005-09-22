@@ -289,17 +289,59 @@ public class AMQMessageProducer extends Closeable implements MessageProducer
             _logger.debug("Sending content header frame to " + destination);
         }
 
-        ContentBody messageBody = new ContentBody();
-        messageBody.payload = payload;
-        AMQFrame contentBodyFrame = ContentBody.createAMQFrame(_channelId, messageBody);
+        ContentBody[] contentBodies = createContentBodies(payload);
+        AMQFrame[] frames = new AMQFrame[2 + contentBodies.length];
+        for (int i = 0; i < contentBodies.length; i++)
+        {
+            frames[2 + i] = ContentBody.createAMQFrame(_channelId, contentBodies[i]);
+        }
         if (_logger.isDebugEnabled())
         {
-            _logger.debug("Sending content body frame to " + destination);
+            _logger.debug("Sending content body frames to " + destination);
         }
-        contentHeader.bodySize = messageBody.getSize();
-        AMQFrame[] frames = new AMQFrame[]{publishFrame, contentHeaderFrame, contentBodyFrame};
+        contentHeader.bodySize = payload.length;
+
+        frames[0] = publishFrame;
+        frames[1] = contentHeaderFrame;
         CompositeAMQDataBlock compositeFrame = new CompositeAMQDataBlock(frames);
         _protocolHandler.writeFrame(compositeFrame);
+    }
+
+    /**
+     * Create content bodies. This will split a large message into numerous bodies depending on the negotiated
+     * maximum frame size.
+     * @param payload
+     * @return the array of content bodies
+     */
+    private ContentBody[] createContentBodies(byte[] payload)
+    {
+        if (payload == null)
+        {
+            return null;
+        }
+        // we substract one from the total frame maximum size to account for the end of frame marker in a body frame
+        // (0xCE byte).
+        final long framePayloadMax = _session.getAMQConnection().getMaximumFrameSize() - 1;
+        int frameCount = (int) (payload.length/framePayloadMax) + 1;
+        final ContentBody[] bodies = new ContentBody[frameCount];
+        if (frameCount == 1)
+        {
+            bodies[0] = new ContentBody();
+            bodies[0].payload = payload;
+        }
+        else
+        {
+            long remaining = payload.length;
+            for (int i = 0; i < bodies.length; i++)
+            {
+                bodies[i] = new ContentBody();
+                byte[] framePayload = new byte[(remaining >= framePayloadMax)?(int)framePayloadMax:(int)remaining];
+                System.arraycopy(payload, (int)framePayloadMax * i, framePayload, 0, framePayload.length);
+                bodies[i].payload = framePayload;
+                remaining -= framePayload.length;
+            }
+        }
+        return bodies;
     }
 
     public void setMimeType(String mimeType)
