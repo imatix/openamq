@@ -218,4 +218,12 @@ public class AMQProtocolHandler implements ProtocolHandler
         listener.blockForFrame();
         _protocolSession.closeProtocolSession();
     }
+    
+    public long getReadBytes() {
+        return _protocolSession.getProtocolSession().getReadBytes();
+    }
+    
+    public long getWrittenBytes() {
+        return _protocolSession.getProtocolSession().getWrittenBytes();
+    }
 }
