@@ -225,21 +225,21 @@ s_run_server (void)
     //  -------------------------------------------------------------------  
 
     //  Automatic wiring schemes
-    s_exchange_declare ("$queue",  AMQ_EXCHANGE_DEST);
-    s_exchange_declare ("$topic",  AMQ_EXCHANGE_TOPIC);
-    s_exchange_declare ("$match",  AMQ_EXCHANGE_HEADERS);
-    s_exchange_declare ("$system", AMQ_EXCHANGE_SYSTEM);
-    s_exchange_declare ("$reply",  AMQ_EXCHANGE_DEST);
-    s_exchange_declare ("$alert",  AMQ_EXCHANGE_TOPIC);
+    s_exchange_declare ("queue",  AMQ_EXCHANGE_DEST);
+    s_exchange_declare ("topic",  AMQ_EXCHANGE_TOPIC);
+    s_exchange_declare ("match",  AMQ_EXCHANGE_HEADERS);
+    s_exchange_declare ("system", AMQ_EXCHANGE_SYSTEM);
+    s_exchange_declare ("reply",  AMQ_EXCHANGE_DEST);
+    s_exchange_declare ("alert",  AMQ_EXCHANGE_TOPIC);
 
-    //  Execute the server                                                   
+    //  Execute the server
     smt_os_thread_wait (0);
 
-    //  Shut down cleanly                                                    
+    //  Shut down cleanly
     amq_server_agent_term ();
     smt_os_thread_wait (0);
-    
-    //  Release resources                                                    
+
+    //  Release resources
     amq_vhost_destroy (&amq_vhost);
     smt_os_thread_wait (0);
 
@@ -258,8 +258,8 @@ static void
 s_exchange_declare (char *name, int class)
 {
     amq_exchange_t
-        *exchange;                      //  Predeclared exchanges            
-        
+        *exchange;                      //  Predeclared exchanges
+
     exchange = amq_exchange_new (
         amq_vhost->exchange_table,
         class,                          //  Exchange class
