@@ -267,7 +267,12 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
 
     public void setConnectionListener(ConnectionListener listener)
     {
-        _protocolHandler.
+        _connectionListener = listener;
+    }
+
+    public ConnectionListener getConnectionListener()
+    {
+        return _connectionListener;
     }
 
     public void setMaximumChannelCount(long maximumChannelCount)
