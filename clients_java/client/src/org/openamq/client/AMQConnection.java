@@ -10,6 +10,7 @@ import org.openamq.framing.ChannelOpenBody;
 import org.openamq.framing.ChannelOpenOkBody;
 import org.openamq.jms.ChannelLimitReachedException;
 import org.openamq.jms.Connection;
+import org.openamq.jms.ConnectionListener;
 import org.openamq.AMQException;
 
 import javax.jms.*;
@@ -74,6 +75,8 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
     private String _virtualPath;
 
     private ExceptionListener _exceptionListener;
+
+    private ConnectionListener _connectionListener;
 
     public AMQConnection(String host, int port, String username, String password,
                          String clientName, String virtualPath) throws AMQException
@@ -262,6 +265,11 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
         return _maximumChannelCount;
     }
 
+    public void setConnectionListener(ConnectionListener listener)
+    {
+        _protocolHandler.
+    }
+
     public void setMaximumChannelCount(long maximumChannelCount)
     {
         checkNotClosed();
@@ -316,6 +324,22 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
     public AMQProtocolHandler getProtocolHandler()
     {
         return _protocolHandler;
+    }
+
+    public void bytesSent(long writtenBytes)
+    {
+        if (_connectionListener != null)
+        {
+            _connectionListener.bytesSent(writtenBytes);
+        }
+    }
+
+    public void bytesReceived(long receivedBytes)
+    {
+        if (_connectionListener != null)
+        {
+            _connectionListener.bytesReceived(receivedBytes);
+        }
     }
 
     public void exceptionReceived(Throwable cause)

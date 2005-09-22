@@ -118,10 +118,12 @@ public class AMQProtocolHandler implements ProtocolHandler
             _protocolSession.messageContentBodyReceived(frame.channel,
                                                         (ContentBody) frame.bodyFrame);
         }
+        _connection.bytesReceived(_protocolSession.getProtocolSession().getReadBytes());
     }
 
     public void messageSent(ProtocolSession session, Object message) throws Exception
     {
+        _connection.bytesSent(_protocolSession.getProtocolSession().getWrittenBytes());
         if (_logger.isDebugEnabled())
         {
             _logger.debug("Sent frame " + message);
