@@ -214,9 +214,9 @@ main (int argc, char *argv [])
 
     //  Set-up a headers pattern binding
     headers = asl_field_list_build (
-//        "currency", "eur",
- //       "stock", "ibm",
-  //      "realtime", "",                 //  Field presence
+        "currency", "eur",
+        "stock", "ibm",
+        "realtime", "",                 //  Field presence
         NULL);
 
     field_list = asl_field_list_new (NULL);
@@ -225,7 +225,7 @@ main (int argc, char *argv [])
     arguments = asl_field_list_flatten (field_list);
     asl_field_list_destroy (&field_list);
     rc = amq_client_session_queue_bind (
-        session, ticket, "global", opt_queue, "$match", arguments);
+        session, ticket, "global", opt_queue, "match", arguments);
     icl_longstr_destroy (&headers);
     icl_longstr_destroy (&arguments);
     if (rc)

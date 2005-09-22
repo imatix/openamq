@@ -212,7 +212,7 @@ main (int argc, char *argv [])
     //  Set-up a dest-wild pattern binding
     arguments = asl_field_list_build ("destination", "*.eur", NULL);
     rc = amq_client_session_queue_bind (
-        session, ticket, "global", opt_queue, "$topic", arguments);
+        session, ticket, "global", opt_queue, "topic", arguments);
     icl_longstr_destroy (&arguments);
     if (rc)
         goto finished;                  //  Quit if that failed
