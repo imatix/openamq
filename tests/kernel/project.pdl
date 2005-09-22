@@ -8,10 +8,12 @@
      >
 
 <include filename = "prelude.pdl" />
-<file name = "amq_declare_bind.c" class = "main program"     ></file>
-<file name = "amq_declare_bind_tmp.c" class = "main program"     ></file>
-<file name = "amq_large_message.c" class = "main program"     ></file>
-<file name = "amq_measure_back.c" class = "main program"     ></file>
-<file name = "amq_measure_front.c" class = "main program"     ></file>
-<file name = "amq_receive_declare_bind.c" class = "main program"     ></file>
+
+<file name = "amq_declare_bind.c"           class = "main program">Lots of declare + bind requests (with the same name)</file>
+<file name = "amq_declare_bind_tmp.c"       class = "main program">Lots of declare + bind requests (which different tmp name)</file>
+<file name = "amq_declare_null.c"           class = "main program">Try to declare a queue with NULL name</file>
+<file name = "amq_large_message.c"          class = "main program">Try sending a large message</file>
+<file name = "amq_measure_back.c"           class = "main program">Send back (loop) a packet using the msg->Reply-To field</file>
+<file name = "amq_measure_front.c"          class = "main program">Send messages to queue 'service' (forever loop)</file>
+<file name = "amq_receive_declare_bind.c"   class = "main program">Try declaring and binding queues while messages are being received (w/o waiting)</file>
 </pdl>
