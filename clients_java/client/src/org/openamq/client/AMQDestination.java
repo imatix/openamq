@@ -4,15 +4,15 @@ import javax.jms.Destination;
 
 public abstract class AMQDestination implements Destination
 {
-    public final static String TOPIC_EXCHANGE_NAME = "$topic";
+    public final static String TOPIC_EXCHANGE_NAME = "topic";
 
     public final static String TOPIC_EXCHANGE_CLASS = "topic";
 
-    public final static String QUEUE_EXCHANGE_NAME = "$queue";
+    public final static String QUEUE_EXCHANGE_NAME = "queue";
 
     public final static String QUEUE_EXCHANGE_CLASS = "dest";
 
-    public final static String HEADERS_EXCHANGE_NAME = "$match";
+    public final static String HEADERS_EXCHANGE_NAME = "match";
 
     public final static String HEADERS_EXCHANGE_CLASS = "headers";
     
@@ -33,7 +33,7 @@ public abstract class AMQDestination implements Destination
     protected AMQDestination(String exchangeName, String exchangeClass, String destinationName, boolean isTemporary,
             String scope)
     {
-        this(exchangeName, exchangeClass, destinationName, isTemporary, scope, true);
+        this(exchangeName, exchangeClass, destinationName, isTemporary, scope, false);
     }
 
     protected AMQDestination(String exchangeName, String exchangeClass, String destinationName, boolean isTemporary,
