@@ -18,7 +18,6 @@ int main (int argc, char** argv)
         *connection = NULL;             //  Current connection
     amq_client_session_t
         *session = NULL;                //  Current session
-
     amq_content_jms_t
         *message = NULL;                //  Current message
     icl_longstr_t
@@ -75,7 +74,7 @@ int main (int argc, char** argv)
         0,               //  Ticket
         "global",        //  Queue scope
         "service",       //  Queue
-        "queue",        //  Exchange
+        "queue",         //  Exchange
         arguments);      //  Arguments
     icl_longstr_destroy (&arguments);
 
@@ -91,23 +90,23 @@ int main (int argc, char** argv)
         FALSE);                     //  Exclusive access to queue
 
     for (;;) {
-        amq_client_session_wait (session, 0);
+        if (amq_client_session_wait (session, 0))
+            break;
+        
         while ((message = amq_client_session_jms_arrived (session)) != NULL) {
             icl_console_print ("I: [%s] message {%s} arrived",
                 "service", message->message_id);
-            amq_content_jms_possess (message);
             rc = amq_client_session_jms_publish (
                 session,
                 message,
                 0,                 //  Ticket
-                "queue",          //  Exchange
+                "queue",           //  Exchange
                 message->reply_to, //  Destination
                 FALSE,             //  Mandatory
                 FALSE);            //  Immediate
             if (rc)
                 break;
         }
-        amq_content_jms_destroy (&message);
     }
     //  Clean up
     finished:
