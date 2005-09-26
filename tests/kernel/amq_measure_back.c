@@ -26,7 +26,7 @@ int main (int argc, char** argv)
     byte
         *payload = NULL;                //  The message payload
     int
-        rc;                             //  Return code from calls
+        rc = 0;                         //  Return code from calls
 
     //  Initialize system in order to use console
     icl_system_initialise (argc, argv);
@@ -68,14 +68,14 @@ int main (int argc, char** argv)
         FALSE);       //  Auto delete
 
    
-    //  Bind the queue to the exchange (named $queue)
+    //  Bind the queue to the exchange (named queue)
     arguments = asl_field_list_build ("destination", "service", NULL);
     amq_client_session_queue_bind (
         session,
         0,               //  Ticket
         "global",        //  Queue scope
         "service",       //  Queue
-        "$queue",        //  Exchange
+        "queue",        //  Exchange
         arguments);      //  Arguments
     icl_longstr_destroy (&arguments);
 
@@ -100,7 +100,7 @@ int main (int argc, char** argv)
                 session,
                 message,
                 0,                 //  Ticket
-                "$queue",          //  Exchange
+                "queue",          //  Exchange
                 message->reply_to, //  Destination
                 FALSE,             //  Mandatory
                 FALSE);            //  Immediate
