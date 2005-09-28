@@ -179,7 +179,7 @@ public class AMQProtocolSession
             _channelId2UnprocessedMsgMap.remove(new Integer(channelId));
             throw e;
         }
-        if (msg.areAllBodiesReceived())
+        if (msg.isAllBodyDataReceived())
         {
             AMQSession session = (AMQSession) _channelId2SessionMap.get(new Integer(channelId));
             session.messageReceived(msg);
