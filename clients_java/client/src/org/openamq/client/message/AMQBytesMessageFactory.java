@@ -6,6 +6,8 @@ import org.openamq.framing.ContentBody;
 import org.openamq.AMQException;
 
 import javax.jms.JMSException;
+import java.util.List;
+import java.util.Iterator;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
@@ -13,24 +15,26 @@ import javax.jms.JMSException;
 public class AMQBytesMessageFactory extends AbstractMessageFactory
 {
      protected AbstractMessage createMessageWithBody(long messageNbr,
-                                                    JmsContentHeaderBody contentHeader,
-                                                    ContentBody[] bodies) throws AMQException
+                                                     JmsContentHeaderBody contentHeader,
+                                                     List bodies) throws AMQException
     {
         byte[] data;
 
         // we optimise the non-fragmented case to avoid copying
-        if (bodies != null && bodies.length == 1 && bodies[0] != null)
+        if (bodies != null && bodies.size() == 1)
         {
-            data = bodies[0].payload;
+            data = ((ContentBody)bodies.get(0)).payload;
         }
         else
         {
             data = new byte[(int)contentHeader.bodySize];
             int currentPosition = 0;
-            for (int i = 0; i < bodies.length; i++)
+            final Iterator it = bodies.iterator();
+            while (it.hasNext())
             {
-                System.arraycopy(bodies[i].payload, 0, data, currentPosition, bodies[i].payload.length);
-                currentPosition += bodies[i].payload.length;
+                ContentBody cb = (ContentBody) it.next();
+                System.arraycopy(cb.payload, 0, data, currentPosition, cb.payload.length);
+                currentPosition += cb.payload.length;
             }
         }
 
@@ -39,6 +43,6 @@ public class AMQBytesMessageFactory extends AbstractMessageFactory
 
     public AbstractMessage createMessage() throws JMSException
     {
-        return new AMQBytesMessage();  
+        return new AMQBytesMessage();
     }
 }

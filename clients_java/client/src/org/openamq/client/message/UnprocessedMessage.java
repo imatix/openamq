@@ -2,6 +2,9 @@ package org.openamq.client.message;
 
 import org.openamq.framing.*;
 
+import java.util.List;
+import java.util.LinkedList;
+
 /**
  * This class contains everything needed to process a JMS message. It assembles the
  * deliver body, the content header and the content body/ies.
@@ -14,19 +17,21 @@ import org.openamq.framing.*;
  */
 public class UnprocessedMessage
 {
-    private int _receivedBodies = 0;
     private long _bytesReceived = 0;
 
     public JmsDeliverBody deliverBody;
     public JmsBounceBody bounceBody; // TODO: check change (gustavo)
     public int channelId;
     public JmsContentHeaderBody contentHeader;
-    public ContentBody[] bodies;
 
+    /**
+     * List of ContentBody instances. Due to fragmentation you don't know how big this will be in general
+     */
+    public List bodies = new LinkedList();
 
     public void receiveBody(ContentBody body) throws UnexpectedBodyReceivedException
     {
-        bodies[_receivedBodies++] = body;
+        bodies.add(body);
         if (body.payload != null)
         {
             _bytesReceived += body.payload.length;

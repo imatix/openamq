@@ -10,6 +10,7 @@ import javax.jms.DeliveryMode;
 import javax.jms.JMSException;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.List;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
@@ -19,11 +20,11 @@ public abstract class AbstractMessageFactory implements MessageFactory
 
     protected abstract AbstractMessage createMessageWithBody(long messageNbr,
                                                              JmsContentHeaderBody contentHeader,
-                                                             ContentBody[] bodies) throws AMQException;
+                                                             List bodies) throws AMQException;
 
     public AbstractMessage createMessage(long messageNbr, boolean redelivered,
                                          JmsContentHeaderBody contentHeader,
-                                         ContentBody[] bodies) throws JMSException, AMQException
+                                         List bodies) throws JMSException, AMQException
     {
         final AbstractMessage msg = createMessageWithBody(messageNbr, contentHeader, bodies);
         msg.setJMSRedelivered(redelivered);

@@ -6,6 +6,7 @@ import org.openamq.framing.JmsContentHeaderBody;
 import org.openamq.framing.ContentBody;
 
 import javax.jms.JMSException;
+import java.util.List;
 
 
 /**
@@ -15,7 +16,7 @@ public interface MessageFactory
 {
     AbstractMessage createMessage(long messageNbr, boolean redelivered,
                                   JmsContentHeaderBody contentHeader,
-                                  ContentBody[] bodies)
+                                  List bodies)
         throws JMSException, AMQException;
 
     AbstractMessage createMessage() throws JMSException;

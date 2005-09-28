@@ -150,12 +150,7 @@ public class AMQProtocolSession
             AMQSession session = (AMQSession) _channelId2SessionMap.get(new Integer(channelId));
             session.messageReceived(msg);
             _channelId2UnprocessedMsgMap.remove(new Integer(channelId));
-        }
-        else
-        {
-            int expectedBodies = ((int)contentHeader.bodySize)/(int)getAMQConnection().getMaximumFrameSize() + 1;
-            msg.bodies = new ContentBody[expectedBodies];
-        }
+        }        
     }
 
     public void messageContentBodyReceived(int channelId, ContentBody contentBody) throws AMQException
