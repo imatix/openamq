@@ -42,9 +42,11 @@ maximum number of consumers per channel is set at compile time.
             amq_consumer_unlink (&consumer);
     }
     //  We destroy consumers by asking the respective queues
-    while ((consumer = amq_consumer_by_channel_pop (self->consumer_list)))
-        amq_queue_cancel (consumer->queue, &consumer, FALSE);
-
+    while ((consumer = amq_consumer_by_channel_pop (self->consumer_list))) {
+        if (amq_queue_cancel (consumer->queue, &consumer, FALSE))
+            //  PH:2005/09/28 - Unlink ourselves if cancel method failed
+            amq_consumer_unlink (&consumer);
+    }
     //  Now destroy containers
     amq_vhost_unlink  (&self->vhost);
     ipr_index_destroy (&self->consumer_table);
