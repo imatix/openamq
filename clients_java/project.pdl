@@ -2,7 +2,7 @@
 <pdl
     name      = "OpenAMQJ - JMS Client"
     acronym   = "openamqj"
-    version   = "1.0a0"
+    version   = "1.0a2"
     copyright = "Copyright (c) 2004-2005 JPMorgan"
     workflow  = "standard.pwl"
     deploy    = "openamqj"
@@ -95,6 +95,9 @@
 
 <!-- JMS API - Message classes -->
 <directory name = "client/src/org/openamq/client/message" class = "private resource">
+    <file name = "AMQBytesMessage.java"             />
+    <file name = "AMQBytesMessageFactory.java"            />
+    <file name = "UnexpectedBodyReceivedException.java"  />
     <file name = "MessageFactoryRegistry.java"      />
     <file name = "AMQTextMessageFactory.java"       />
     <file name = "AMQTextMessage.java"              />
@@ -106,14 +109,14 @@
 
 <!-- JMS API - Method handlers -->
 <directory name = "client/src/org/openamq/client/handler" class = "private resource">
-    <file name = "ConnectionStartMethodHandler.java"  />
-    <file name = "ConnectionSecureMethodHandler.java" />
-    <file name = "ConnectionTuneMethodHandler.java"   />
-    <file name = "ConnectionOpenOkMethodHandler.java" />
-    <file name = "ConnectionCloseMethodHandler.java"  />
-    <file name = "ChannelCloseMethodHandler.java"     />
-    <file name = "JmsBounceMethodHandler.java"        />
-    <file name = "JmsDeliverMethodHandler.java"       />
+    <file name = "ConnectionStartMethodHandler.java"    />
+    <file name = "ConnectionSecureMethodHandler.java"   />
+    <file name = "ConnectionTuneMethodHandler.java"     />
+    <file name = "ConnectionOpenOkMethodHandler.java"   />
+    <file name = "ConnectionCloseMethodHandler.java"    />
+    <file name = "ChannelCloseMethodHandler.java"       />
+    <file name = "JmsBounceMethodHandler.java"          />
+    <file name = "JmsDeliverMethodHandler.java"         />
 </directory>
 
 <!-- JMS API - Protocol & state -->
@@ -148,6 +151,7 @@
 
 <!-- JMS API - ??? -->
 <directory name = "client/src/org/openamq/jms" class = "private resource">
+    <file name = "ConnectionListener.java" />
     <file name = "ChannelLimitReachedException.java" />
     <file name = "Connection.java"                   />
     <file name = "MessageConsumer.java"              />
