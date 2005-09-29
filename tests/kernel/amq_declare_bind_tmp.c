@@ -56,7 +56,7 @@ int main (int argc, char** argv)
         //  Bind the queue to the exchange
         arguments = asl_field_list_build ("destination", session->queue, NULL);
         amq_client_session_queue_bind (
-            session, 0, "global", session->queue, "$queue", arguments);
+            session, 0, "global", session->queue, "queue", arguments);
         icl_longstr_destroy (&arguments);
     }
     //  Clean up

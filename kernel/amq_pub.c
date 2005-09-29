@@ -245,13 +245,14 @@ main (int argc, char *argv [])
             icl_shortstr_fmt (message_id, "ID%d", count);
             amq_content_jms_set_body       (content, test_data, msgsize, NULL);
             amq_content_jms_set_message_id (content, message_id);
-            topic = topics [randomof (tblsize (topics))];
+            //topic = topics [randomof (tblsize (topics))];
+            topic = "large";
             icl_console_print ("I: %s", topic);
             if (amq_client_session_jms_publish (
                     session,
                     content,
                     ticket,
-                    "$topic",
+                    "topic",
                     topic,
                     mandatory,
                     immediate)) {
