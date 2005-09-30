@@ -16,4 +16,5 @@
 <file name = "amq_measure_back.c"           class = "main program">Send back (loop) a packet using the msg->Reply-To field</file>
 <file name = "amq_measure_front.c"          class = "main program">Send messages to queue 'service' (forever loop)</file>
 <file name = "amq_receive_declare_bind.c"   class = "main program">Try declaring and binding queues while messages are being received (w/o waiting)</file>
+<file name = "amq_bind_q2ex.c"            class = "main program">Declare Exchange, Declare Queue and bind that queue to the Exchange</file>
 </pdl>
