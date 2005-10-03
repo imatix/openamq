@@ -115,12 +115,6 @@
 <file name = "amq_server"            class = "public command"    >Server</file>
 <file name = "amq_client"            class = "public command"    >Client</file>
 
-<!-- Test programs -->
-<file name = "amq_pub.c"             class = "main program"      >Topic publisher</file>
-<file name = "amq_sub.c"             class = "main program"      >Topic subscriber</file>
-<file name = "amq_fpub.c"            class = "main program"      >Field publisher</file>
-<file name = "amq_fsub.c"            class = "main program"      >Field subscriber</file>
-
 <!-- Shared classes -->
 <file name = "amq_hash.icl"          class = "icl private class" >Loose hash item</file>
 <file name = "amq_hash_table.icl"    class = "icl private cont"  >Loose hash table</file>
@@ -130,6 +124,12 @@
                                      generated = "1"             >JMS content class</file>
 <file name = "amq_constants.icl"     class = "icl public data"
                                      generated = "1"             >Constants class</file>
+
+<!-- Test programs -->
+<file name = "amq_topic_pub.pal"     class = "private resource"  >Topic publisher</file>
+<file name = "amq_topic_sub.pal"     class = "private resource"  >Topic subscriber</file>
+<file name = "amq_fpub.c"            class = "main program"      >Field publisher</file>
+<file name = "amq_fsub.c"            class = "main program"      >Field subscriber</file>
 
 <!-- PAL/AMQ code generator -->
 <file name = "amq_pal.xnf"           class = "generated" />
