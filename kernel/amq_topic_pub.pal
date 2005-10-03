@@ -1,0 +1,29 @@
+<?xml?>
+<!--
+    Test script for topic publisher
+  -->
+<pal
+    name   = "amq_topic_pub"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    <session>
+      <repeat times = "100" counter = "id">
+        <if name = "random" test = "lt" value = "16384">
+          <set name = "topic" value = "forex.usd" />
+        </if>
+        <elsif name = "random" test = "lt" value = "16384">
+          <set name = "topic" value = "forex.eur" />
+        </elsif>
+        <elsif name = "random" test = "lt" value = "16384">
+          <set name = "topic" value = "stock.usd" />
+        </elsif>
+        <else>
+          <set name = "topic" value = "stock.eur" />
+        </else>
+        <jms_content size = "1000" message_id = "id-$random" />
+        <jms_publish exchange = "topic" destination = "$topic" />
+      </repeat>
+    </session>
+</pal>
+

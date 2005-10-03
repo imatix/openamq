@@ -1,0 +1,31 @@
+<?xml?>
+<!--
+    Test script for topic subscriber
+  -->
+<pal
+    name   = "amq_topic_sub"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    <session
+        scope = "subscription"
+        queue = "$queue"
+        >
+      <!-- $queue name is supplied by server -->
+      <queue_declare/>
+      <queue_bind bind_to = "topic">
+        <arguments>
+            <field name = "destination" value = "*.eur" />
+        </arguments>
+      </queue_bind>
+      <echo>Consuming messages from subscription $queue...</echo>
+      <jms_consume auto_ack = "1" />
+      <repeat>
+        <wait/>
+        <jms_arrived>
+            <echo>Arrived: $message_id from $destination</echo>
+        </jms_arrived>
+      </repeat>
+    </session>
+</pal>
+

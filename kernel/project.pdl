@@ -131,4 +131,23 @@
 <file name = "amq_constants.icl"     class = "icl public data"
                                      generated = "1"             >Constants class</file>
 
+<!-- PAL/AMQ code generator -->
+<file name = "amq_pal.xnf"           class = "generated" />
+<file name = "amq_pal_stdc.gsl"      class = "generated resource" />
+<file name = "amq_pal_codegen.gsl"   class = "generated resource" />
+<file name = "amq_pal_gen.gsl"       class = "generated resource" />
+<file name = "amq_pal_inherit.gsl"   class = "generated resource" />
+<file name = "amq_pal_parse.gsl"     class = "generated resource" />
+<file name = "amq_pal_preproc.gsl"   class = "generated resource" />
+
+<!-- Build PAL toolkit for AMQ protocol -->
+<actions>
+  <generate>
+    <execute>
+    gsl -q -quiet:1 -target:pal amq.asl
+    gsl -q -quiet:1 amq_pal.xnf
+    </execute>
+  </generate>
+</actions>
+
 </pdl>
