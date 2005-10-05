@@ -1,3 +1,91 @@
+Destination URLs
+    - Reply-To = destination/url
+    - Not required to be parsed by client API
+
+    - JMS mapping to AMQP commands
+    - standard API functionality
+    
+Format:
+
+    Full URL:
+    
+        amqp://server[:port]/vhpath/exchange/object/?arguments
+
+    - object is single name (no path)
+    - exchange is single name (no path)
+    - vhost is all preceding names
+    - arguments are optional
+    
+    Relative URL:
+    
+        exchange/object/?arguments
+
+    Publisher
+
+        exchange/name
+
+    Consumer
+    
+        queue to declare, or empty
+        exchange to bind to
+        binding arguments, if simple
+        - binding complex arguments?
+        - consume arguments
+
+        -> should destination include topic specifier?
+        -> what is the point of this?
+        -> what _are_ consumer destinations?
+
+    jms.publish ("topic/balsh")
+    jms.consume ("topic/mysubscr?where=*.ibm")
+    jms.consume ("topic?where=*.ibm")
+    jms.consume ("queue/myqueue")
+
+    macro:
+        - create unnamed queue
+        - bind to exchange using arguments name/value pairs
+        - create consumer on queue
+
+    variation 1:
+        - if named queue exists
+            - verify binding arguments are consistent
+        - else
+            - create named queue
+            - bind to exchange using arguments
+        - create consumer on queue
+
+
+
+
+
+
+    - queue type (rather than scope)
+
+
+consume from url
+    - if queue name is specified
+        - create queue if not present
+            - bind as specified
+        - else assert bindings are the same
+    - if queue name is not specified
+        - create temporary queue
+            - bind as specified
+    - create consumer on queue
+
+    /vhost/exchange/queue?topic=balsh
+
+
+    jms.consume ("/topic/subscr?name=*.ibm")
+    jms.publish ("/topic?name=balsh")
+    
+
+
+
+   amqp://server:port/vhpath/servicetype/values
+
+- 
+
+
 ---- TEST HARNESS
 
     - generate xnf from protocol
@@ -40,49 +128,6 @@
     - skeleton has own options
         - animate, etc.
     
-    <connection>
-    connection = amq_client_connection_new (
-        opt_server,
-        amq_client_connection_auth_plain ("guest", "guest"),
-        atoi (opt_trace),
-        30000);                         //  Timeout
-
-
-    option1:
-    <connection>
-        all code here
-    </connection>
-
-    option2:
-    <connection />
-    <next step>
-    ...
-
-    option3:
-    <script>
-        <connection server = "" authenticate = "" ... ?/>
-    </script>
-    <session>    
-
-
-    - <session>
-        <queue_create name = "$(sid)_queue" />
-        <queue_bind exchange = "$topic" queue = "$(sid)_queue">
-            <!-- field table -->
-            <arguments>
-                <xxx>
-                </xxx>
-            </arguments>
-        </queue_bind>
-        <jms_consume queue = "$(sid)_queue" />
-        <jms_publish exchange = "$topic" />
-
-        - specify content
-        - specify complex arguments
-        
-        
-
-
     - standard ASL component
     - built-in to amq_server
     - runs on separate port

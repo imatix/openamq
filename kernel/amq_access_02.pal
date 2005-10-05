@@ -1,0 +1,23 @@
+<?xml?>
+<!--
+    amq_access_02
+    
+    Verify that the server does not accept the "/illegal" realm,
+    and responds with reply code 403 (access refused) and ends
+    the connection.
+  -->
+<pal
+    name   = "amq_access_02"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    <echo>Validation script: $script</echo>
+    <session
+        error_handling = "recover"
+        >
+        <access_request realm = "/illegal" />
+        <assert name = "reply_code" value = "403" />
+        <assert name = "connection" value = "0" />
+    </session>
+</pal>
+

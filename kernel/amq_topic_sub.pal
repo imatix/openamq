@@ -7,13 +7,10 @@
     script = "amq_pal_gen"
     target = "stdc"
     >
-    <session
-        scope = "subscription"
-        queue = "$queue"
-        >
+    <session>
       <!-- $queue name is supplied by server -->
-      <queue_declare/>
-      <queue_bind bind_to = "topic">
+      <queue_declare scope = "subscription" queue = ""/>
+      <queue_bind scope = "subscription" queue = "$queue" bind_to = "topic">
         <arguments>
             <field name = "destination" value = "*.eur" />
         </arguments>

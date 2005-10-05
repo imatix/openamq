@@ -22,7 +22,6 @@
           <set name = "topic" value = "stock.eur" />
         </else>
         <jms_content size = "1000" message_id = "id-$random" />
-        <jms_publish exchange = "topic" destination = "$topic" />
       </repeat>
     </session>
 </pal>

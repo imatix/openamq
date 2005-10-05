@@ -21,6 +21,24 @@
 <chassis name = "server" implement = "MUST" />
 <chassis name = "client" implement = "MUST" />
 
+<testcase name = "amq_access_01">
+    Verify that the server accepts the "/data" realm and returns
+    a valid non-zero ticket.
+</testcase>
+
+<testcase name = "amq_access_02">
+    Verify that the server does not accept the "/illegal" realm,
+    and responds with reply code 403 (access refused) and ends
+    the connection.
+</testcase>
+
+<testcase name = "amq_access_03">
+    Verify that the server does not accept the "/data/unknown"
+    realm, and responds with reply code 402 (invalid path), and
+    ends the channel.
+</testcase>
+
+
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 <method name = "request" synchronous = "1">
@@ -36,6 +54,8 @@
   <doc name = "rule">
     The realm name MUST start with either "/data" (for application
     resources) or "/admin" (for server administration resources).
+    If the realm starts with any other path, the server MUST raise
+    a connection exception with reply code 403 (access refused).
   </doc>
   <doc name = "rule">
     The server MUST implement the /data realm and MAY implement the
@@ -48,6 +68,11 @@
 
   <field name = "realm" domain = "path" >
     name of requested realm
+    <doc name = "rule">
+      If the specified realm is not known to the server, the server
+      must raise a channel exception with reply code 402 (invalid
+      path).
+    </doc>
   </field>
 
   <field name = "exclusive" type = "bit">
