@@ -24,7 +24,6 @@
     "  -b batch         Size of each batch (100)\n"                         \
     "  -x size          Size of each message (default = 1024)\n"            \
     "  -r repeat        Repeat test N times (1)\n"                          \
-    "  -D destination   Destination to publish to(QUEUE)\n"                 \
     "  -Q queue         Queue to consume from (QUEUE)\n"                    \
     "  -t level         Set trace level (default = 0)\n"                    \
     "                   0=none, 1=low, 2=medium, 3=high\n"                  \
@@ -54,7 +53,6 @@ main (int argc, char *argv [])
         *opt_server,                    //  Host to connect to
         *opt_trace,                     //  0-3
         *opt_messages,                  //  Size of test set
-        *opt_dest,                      //  Destination to publish to
         *opt_queue,                     //  Queue to consume from
         *opt_batch,                     //  Size of batches
         *opt_msgsize,                   //  Message size
@@ -85,7 +83,6 @@ main (int argc, char *argv [])
     opt_trace    = "0";
     opt_messages = "1";
     opt_queue    = "QUEUE";
-    opt_dest     =  NULL;               //  Same as queue by default
     opt_batch    = "100";
     opt_msgsize  = "1024";
     opt_repeats  = "1";
@@ -118,9 +115,6 @@ main (int argc, char *argv [])
                     break;
                 case 'b':
                     argparm = &opt_batch;
-                    break;
-                case 'D':
-                    argparm = &opt_dest;
                     break;
                 case 'Q':
                     argparm = &opt_queue;
@@ -187,8 +181,6 @@ main (int argc, char *argv [])
         batch_size = messages;
     if (repeats < 1)
         repeats = -1;                   //  Loop forever
-    if (opt_dest == NULL)
-        opt_dest = opt_queue;
 
     if (atoi (opt_trace) > 2) {
         amq_client_connection_animate (TRUE);
@@ -248,9 +240,9 @@ main (int argc, char *argv [])
         }
         while ((content = amq_client_session_jms_arrived (session)) != NULL) {
             if ((delay_mode || messages < 100) && !quiet_mode)
-                icl_console_print ("I: message number %s arrived from destination %s",
+                icl_console_print ("I: message number %s arrived from %s",
                     content->message_id,
-                    content->destination);
+                    content->routing_key);
 
             amq_content_jms_destroy (&content);
             if (delay_mode)

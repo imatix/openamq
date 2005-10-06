@@ -3,8 +3,6 @@
 
 Changes:
 
-  [- "Exchange" concept renamed to "Router".]
-
   - Queue names, scope, and router names can now contain dots.
   - Virtual host selection moved from session.open to connection.open
     method.
@@ -12,6 +10,11 @@ Changes:
     queue_timeout = "0").
   - Implemented AMQP content-abort mechanism (marked by content body
     frame of size 1 = frame-end).
+  - "destination" protocol field renamed to "routing-key"
+  - new XML-based AMQP scripting language (PAL) for test scenarios.
+  - "dest" exchange class renamed to "direct".
+  - standard exchanges are now: amq.direct, amq.topic, amq.match,
+    amq.reply, amq.system, and amq.system.alert.
 
 Bug fixes:
 

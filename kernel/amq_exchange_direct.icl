@@ -1,14 +1,14 @@
 <?xml?>
 <class
-    name      = "amq_exchange_dest"
-    comment   = "Dest-name exchange class"
+    name      = "amq_exchange_direct"
+    comment   = "Direct routing exchange class"
     version   = "1.0"
     copyright = "Copyright (c) 2004-2005 iMatix Corporation"
     script    = "icl_gen"
     >
 <doc>
 This class implements the dest exchange, which routes messages
-based on their "destination" property.
+based on their "routing_key" property.
 </doc>
 
 <inherit class = "amq_exchange_base" />
@@ -17,7 +17,7 @@ based on their "destination" property.
 
 <context>
     amq_hash_table_t
-        *binding_hash;                  //  Bindings hashed by destination
+        *binding_hash;                  //  Bindings hashed by routing_key
 </context>
 
 <method name = "new">
@@ -33,18 +33,18 @@ based on their "destination" property.
     asl_field_list_t
         *fields;                        //  Decoded arguments
     asl_field_t
-        *destination;                   //  Destination value
+        *routing_key;                   //  Routing key
     amq_hash_t
         *hash;                          //  Hash entry
     </local>
     //
     fields = asl_field_list_new (binding->arguments);
     if (fields) {
-        destination = asl_field_list_search (fields, "destination");
-        if (destination) {
+        routing_key = asl_field_list_search (fields, "routing_key");
+        if (routing_key) {
             if (amq_server_config_trace_route (amq_server_config))
-                icl_console_print ("X: compile  destination=%s", asl_field_string (destination));
-            hash = amq_hash_new (self->binding_hash, asl_field_string (destination), binding);
+                icl_console_print ("X: compile  routing_key=%s", asl_field_string (routing_key));
+            hash = amq_hash_new (self->binding_hash, asl_field_string (routing_key), binding);
             if (hash)
                 amq_hash_unlink (&hash);
             else {
@@ -52,12 +52,12 @@ based on their "destination" property.
                 amq_server_channel_close (
                     channel, ASL_COMMAND_INVALID, "Duplicate binding");
             }
-            asl_field_unlink (&destination);
+            asl_field_unlink (&routing_key);
         }
         else {
             rc = 1;
             amq_server_channel_close (
-                channel, ASL_COMMAND_INVALID, "No destination field specified");
+                channel, ASL_COMMAND_INVALID, "No routing_key field specified");
         }
         asl_field_list_destroy (&fields);
     }
@@ -77,9 +77,9 @@ based on their "destination" property.
      </local>
     //
     if (amq_server_config_trace_route (amq_server_config))
-        icl_console_print ("X: route    destination=%s", destination);
+        icl_console_print ("X: route    routing_key=%s", routing_key);
 
-    hash = amq_hash_table_search (self->binding_hash, destination);
+    hash = amq_hash_table_search (self->binding_hash, routing_key);
     if (hash) {
         binding = hash->data;
         amq_binding_publish (binding, channel, class_id, content, mandatory, immediate);

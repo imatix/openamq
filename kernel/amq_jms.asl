@@ -225,13 +225,12 @@
     <assert check = "notnull" />
   </field>
     
-  <field name = "destination" type = "shortstr">
-     message destination name
+  <field name = "routing key" type = "shortstr">
+     message routing key
     <doc>
-      Specifies the destination for the message.  The destination is
-      a name that is used for routing messages depending on the exchange
-      configuration.
-    </doc>     
+      Specifies the routing key for the message.  The routing key is
+      used for routing messages depending on the exchange configuration.
+    </doc>
   </field>
 
   <field name = "mandatory" type = "bit">
@@ -279,10 +278,10 @@
     <assert check = "notnull" />
   </field>
   
-  <field name = "destination" type = "shortstr">
-     Message destination name
+  <field name = "routing key" type = "shortstr">
+     Message routing key
     <doc>
-      Specifies the destination name specified when the message was
+      Specifies the routing key name specified when the message was
       published.
     </doc>     
   </field>
@@ -320,10 +319,10 @@
     <assert check = "notnull" />
   </field>
     
-  <field name = "destination" type = "shortstr">
-     Message destination name
+  <field name = "routing key" type = "shortstr">
+     Message routing key
     <doc>
-      Specifies the destination name specified when the message was
+      Specifies the routing key name specified when the message was
       published.
     </doc>     
   </field>
@@ -392,10 +391,10 @@
     <assert check = "notnull" />
   </field>
 
-  <field name = "destination" type = "shortstr">
-     Message destination name
+  <field name = "routing key" type = "shortstr">
+     Message routing key
     <doc>
-      Specifies the destination name specified when the message was
+      Specifies the routing key name specified when the message was
       published.
     </doc>     
   </field>

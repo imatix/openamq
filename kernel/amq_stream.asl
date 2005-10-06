@@ -39,9 +39,6 @@
 <field name = "content encoding" type = "shortstr">
     MIME content encoding
 </field>
-<field name = "destination" type = "shortstr">
-    Message destination name
-</field>
 <field name = "headers" type = "table">
     Message header field table
 </field>

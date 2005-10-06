@@ -41,9 +41,9 @@ class.
 
     //  Only used for dest-wild matching, might be moved elsewhere
     icl_shortstr_t
-        destination;                    //  Binding destination value
+        routing_key;                    //  Binding routing key value
     icl_shortstr_t
-        regexp;                         //  Binding destination pattern
+        regexp;                         //  Binding routing key pattern
 
     //  Only used for property matching, might be moved elsewhere
     int
@@ -60,7 +60,13 @@ class.
     self->exchange_list = ipr_looseref_list_new ();
     self->index_list    = ipr_looseref_list_new ();
     self->arguments     = icl_longstr_dup (arguments);
-    self->index         = ipr_index_insert (self->exchange->binding_index, self);
+
+    //  Get an index for the binding and complain if the index is full
+    self->index = ipr_index_insert (self->exchange->binding_index, self);
+    if (!self->index) {
+        icl_console_print ("W: too many bindings in %s exchange", exchange->name);
+        self_destroy (&self);
+    }
 </method>
 
 <method name = "destroy">
@@ -77,7 +83,7 @@ class.
     while ((exchange = (amq_exchange_t *) ipr_looseref_pop (self->exchange_list)))
         amq_exchange_unlink (&exchange);
 
-    ipr_index_delete          (self->exchange->binding_index, self->index);
+    ipr_index_delete (self->exchange->binding_index, self->index);
     ipr_looseref_list_destroy (&self->queue_list);
     ipr_looseref_list_destroy (&self->exchange_list);
     ipr_looseref_list_destroy (&self->index_list);

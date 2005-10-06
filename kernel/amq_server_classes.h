@@ -12,7 +12,7 @@
 #include "amq_content_basic.h"
 #include "amq_content_jms.h"
 #include "amq_exchange.h"
-#include "amq_exchange_dest.h"
+#include "amq_exchange_direct.h"
 #include "amq_exchange_topic.h"
 #include "amq_exchange_headers.h"
 #include "amq_exchange_fanout.h"

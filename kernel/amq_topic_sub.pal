@@ -12,7 +12,7 @@
       <queue_declare scope = "subscription" queue = ""/>
       <queue_bind scope = "subscription" queue = "$queue" bind_to = "topic">
         <arguments>
-            <field name = "destination" value = "*.eur" />
+            <field name = "routing key" value = "*.eur" />
         </arguments>
       </queue_bind>
       <echo>Consuming messages from subscription $queue...</echo>
@@ -20,7 +20,7 @@
       <repeat>
         <wait/>
         <jms_arrived>
-            <echo>Arrived: $message_id from $destination</echo>
+            <echo>Arrived: $message_id from $routing_key</echo>
         </jms_arrived>
       </repeat>
     </session>

@@ -60,7 +60,7 @@ This is an abstract base class for all exchange implementations.
     $(selftype)
         *self = self_v;
     char
-        *destination = "",
+        *routing_key = "",
         *message_id = NULL;
     Bool
         delivered = FALSE;              //  Set to TRUE if message processed
@@ -68,12 +68,12 @@ This is an abstract base class for all exchange implementations.
     //
     <header>
     if (class_id == AMQ_SERVER_JMS) {
-        destination = ((amq_content_jms_t *) content)->destination;
+        routing_key = ((amq_content_jms_t *) content)->routing_key;
         message_id  = ((amq_content_jms_t *) content)->message_id;
     }
     else
     if (class_id == AMQ_SERVER_BASIC) {
-        destination = ((amq_content_basic_t *) content)->destination;
+        routing_key = ((amq_content_basic_t *) content)->routing_key;
         message_id  = ((amq_content_basic_t *) content)->message_id;
     }
     else
@@ -92,9 +92,9 @@ This is an abstract base class for all exchange implementations.
                         (dbyte) channel->key,
                         content,
                         ASL_NOT_DELIVERED,
-                        "No bindings for this destination",
+                        "No bindings for this routing key",
                         ((amq_content_jms_t *) content)->exchange,
-                        ((amq_content_jms_t *) content)->destination);
+                        ((amq_content_jms_t *) content)->routing_key);
             }
             else
             if (class_id == AMQ_SERVER_BASIC) {
@@ -104,9 +104,9 @@ This is an abstract base class for all exchange implementations.
                         (dbyte) channel->key,
                         content,
                         ASL_NOT_DELIVERED,
-                        "No bindings for this destination",
+                        "No bindings for this routing key",
                         ((amq_content_basic_t *) content)->exchange,
-                        ((amq_content_basic_t *) content)->destination);
+                        ((amq_content_basic_t *) content)->routing_key);
             }
         }
         else

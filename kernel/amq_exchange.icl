@@ -24,9 +24,9 @@ for each class of exchange. This is a lock-free asynchronous class.
 
 <context>
     int
-        class;                          //  Destination class
+        class;                          //  Exchange class
     icl_shortstr_t
-        name;                           //  Destination name
+        name;                           //  Exchange name
     Bool
         durable,                        //  Is exchange durable?
         auto_delete,                    //  Auto-delete unused exchange?
@@ -59,7 +59,7 @@ for each class of exchange. This is a lock-free asynchronous class.
 
 #define AMQ_EXCHANGE_SYSTEM         1
 #define AMQ_EXCHANGE_FANOUT         2
-#define AMQ_EXCHANGE_DEST           3
+#define AMQ_EXCHANGE_DIRECT         3
 #define AMQ_EXCHANGE_TOPIC          4
 #define AMQ_EXCHANGE_HEADERS        5
 </public>
@@ -92,10 +92,10 @@ for each class of exchange. This is a lock-free asynchronous class.
         self->compile = amq_exchange_fanout_compile;
     }
     else
-    if (self->class == AMQ_EXCHANGE_DEST) {
-        self->object  = amq_exchange_dest_new (self);
-        self->publish = amq_exchange_dest_publish;
-        self->compile = amq_exchange_dest_compile;
+    if (self->class == AMQ_EXCHANGE_DIRECT) {
+        self->object  = amq_exchange_direct_new (self);
+        self->publish = amq_exchange_direct_publish;
+        self->compile = amq_exchange_direct_compile;
     }
     else
     if (self->class == AMQ_EXCHANGE_TOPIC) {
@@ -129,8 +129,8 @@ for each class of exchange. This is a lock-free asynchronous class.
     if (self->class == AMQ_EXCHANGE_FANOUT)
         amq_exchange_fanout_destroy ((amq_exchange_fanout_t **) &self->object);
     else
-    if (self->class == AMQ_EXCHANGE_DEST)
-        amq_exchange_dest_destroy ((amq_exchange_dest_t **) &self->object);
+    if (self->class == AMQ_EXCHANGE_DIRECT)
+        amq_exchange_direct_destroy ((amq_exchange_direct_t **) &self->object);
     else
     if (self->class == AMQ_EXCHANGE_TOPIC)
         amq_exchange_topic_destroy ((amq_exchange_topic_t **) &self->object);
@@ -163,8 +163,8 @@ for each class of exchange. This is a lock-free asynchronous class.
     if (streq (class_name, "fanout"))
         rc = AMQ_EXCHANGE_FANOUT;
     else
-    if (streq (class_name, "dest"))
-        rc = AMQ_EXCHANGE_DEST;
+    if (streq (class_name, "direct"))
+        rc = AMQ_EXCHANGE_DIRECT;
     else
     if (streq (class_name, "topic"))
         rc = AMQ_EXCHANGE_TOPIC;
@@ -201,9 +201,9 @@ for each class of exchange. This is a lock-free asynchronous class.
     <action>
     amq_binding_t
         *binding;                       //  We examine each binding
-    ipr_looseref_t  
+    ipr_looseref_t
         *looseref;                      //  We check the queues per binding
-        
+
     //  Check existing bindings to see if we have one that matches
     binding = amq_binding_list_first (self->binding_list);
     while (binding) {
@@ -218,10 +218,15 @@ for each class of exchange. This is a lock-free asynchronous class.
 
         //  Compile the binding to the exchange
         binding = amq_binding_new (self, arguments);
-        if (self->compile (self->object, binding, channel) == 0)
-            amq_binding_list_queue (self->binding_list, binding);
+        if (binding) {
+            if (self->compile (self->object, binding, channel) == 0)
+                amq_binding_list_queue (self->binding_list, binding);
+            else
+                amq_binding_destroy (&binding);
+        }
         else
-            amq_binding_destroy (&binding);
+            amq_server_channel_close (
+                channel, ASL_RESOURCE_ERROR, "Cannot make new binding");
     }
     if (binding) {
         //  Add queue to binding if it's not already there
@@ -278,10 +283,15 @@ for each class of exchange. This is a lock-free asynchronous class.
 
         //  Compile the binding to the exchange
         binding = amq_binding_new (self, arguments);
-        if (self->compile (self->object, binding, channel) == 0)
-            amq_binding_list_queue (self->binding_list, binding);
+        if (binding) {
+            if (self->compile (self->object, binding, channel) == 0)
+                amq_binding_list_queue (self->binding_list, binding);
+            else
+                amq_binding_destroy (&binding);
+        }
         else
-            amq_binding_destroy (&binding);
+            amq_server_channel_close (
+                channel, ASL_RESOURCE_ERROR, "Cannot make new binding");
     }
     if (binding) {
         //  Add exchange to binding if it's not already there

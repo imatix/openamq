@@ -75,7 +75,7 @@ runs lock-free as a child of the asynchronous queue class.
                     ASL_NOT_DELIVERED,
                     "No immediate consumers for Basic message",
                     content->exchange,
-                    content->destination);
+                    content->routing_key);
             amq_content_basic_destroy (&content);
         }
         else
@@ -124,7 +124,7 @@ runs lock-free as a child of the asynchronous queue class.
             (dbyte) consumer->channel->key,
             content,
             content->exchange,
-            content->destination,
+            content->routing_key,
             self->queue->scope,
             self->queue->name) == 0) {
 
@@ -165,7 +165,7 @@ runs lock-free as a child of the asynchronous queue class.
                 (dbyte) channel->key,
                 content,
                 content->exchange,
-                content->destination,
+                content->routing_key,
                 ipr_looseref_list_count (self->content_list));
             amq_content_basic_destroy (&content);
             amq_monitor_messages++;

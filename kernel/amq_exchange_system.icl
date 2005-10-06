@@ -8,7 +8,7 @@
     >
 <doc>
 This class implements the system exchange.  System messages are not
-routed but are processed according to destination.
+routed but are processed according to routing key.
 </doc>
 
 <inherit class = "amq_exchange_base" />
@@ -34,7 +34,7 @@ routed but are processed according to destination.
     amq_content_basic_set_reader (content, &reader, 32000);
     bucket = amq_content_basic_replay_body (content, &reader);
 
-    icl_console_print ("System destination: %s", destination);
+    icl_console_print ("System routing key: %s", routing_key);
     icl_console_print ("Data: %s", bucket->data);
     ipr_bucket_destroy (&bucket);
     delivered = TRUE;

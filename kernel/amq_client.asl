@@ -11,8 +11,8 @@
 <class name = "basic">
   <action name = "browse-ok">
     amq_content_$(class.name)_possess (self->content);
-    amq_content_$(class.name)_set_routing (
-        self->content, method->exchange, method->destination, 0);
+    amq_content_$(class.name)_set_routing_key (
+        self->content, method->exchange, method->routing_key, 0);
     ipr_looseref_queue (session->arrived_$(class.name)_list, self->content);
   </action>
 
@@ -22,8 +22,8 @@
             session->reply_code, session->reply_text);
 
     amq_content_$(class.name)_possess (self->content);
-    amq_content_$(class.name)_set_routing (
-        self->content, method->exchange, method->destination, 0);
+    amq_content_$(class.name)_set_routing_key (
+        self->content, method->exchange, method->routing_key, 0);
     ipr_looseref_queue (session->bounced_$(class.name)_list, self->content);
   </action>
 </class>
@@ -33,8 +33,8 @@
 
   <action name = "deliver">
     amq_content_jms_possess (self->content);
-    amq_content_$(class.name)_set_routing (
-        self->content, method->exchange, method->destination, 0);
+    amq_content_$(class.name)_set_routing_key (
+        self->content, method->exchange, method->routing_key, 0);
     ipr_looseref_queue (session->arrived_jms_list, self->content);
   </action>
 

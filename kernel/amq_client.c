@@ -24,7 +24,7 @@
     "  -x size          Size of each message (default = 1024)\n"            \
     "  -r repeat        Repeat test N times (1)\n"                          \
     "  -X exchange      Name of exchange to work with (EXCHANGE)\n"         \
-    "  -D destination   Destination to publish to(QUEUE)\n"                 \
+    "  -R routing key   Routing key to publish to (QUEUE)\n"                \
     "  -Q queue         Queue to consume from (QUEUE)\n"                    \
     "  -t level         Set trace level (default = 0)\n"                    \
     "                   0=none, 1=low, 2=medium, 3=high\n"                  \
@@ -62,7 +62,7 @@ main (int argc, char *argv [])
         *opt_trace,                     //  0-3
         *opt_messages,                  //  Size of test set
         *opt_exchange,                  //  Exchange to work with
-        *opt_dest,                      //  Destination to publish to
+        *opt_routing,                   //  Routing key to publish to
         *opt_queue,                     //  Queue to consume from
         *opt_batch,                     //  Size of batches
         *opt_msgsize,                   //  Message size
@@ -99,7 +99,7 @@ main (int argc, char *argv [])
     opt_messages = "1";
     opt_exchange = "EXCHANGE";
     opt_queue    = "QUEUE";
-    opt_dest     =  NULL;               //  Same as queue by default
+    opt_routing  =  NULL;               //  Same as queue by default
     opt_batch    = "100";
     opt_msgsize  = "1024";
     opt_repeats  = "1";
@@ -136,8 +136,8 @@ main (int argc, char *argv [])
                 case 'X':
                     argparm = &opt_exchange;
                     break;
-                case 'D':
-                    argparm = &opt_dest;
+                case 'R':
+                    argparm = &opt_routing;
                     break;
                 case 'Q':
                     argparm = &opt_queue;
@@ -220,8 +220,8 @@ main (int argc, char *argv [])
         batch_size = messages;
     if (repeats < 1)
         repeats = -1;                   //  Loop forever
-    if (opt_dest == NULL)
-        opt_dest = opt_queue;
+    if (opt_routing == NULL)
+        opt_routing = opt_queue;
 
     //  Allocate a test message for publishing
     test_data = icl_mem_alloc (msgsize);
@@ -255,14 +255,14 @@ main (int argc, char *argv [])
     }
     //  Declare exchange and queue
     if (amq_client_session_exchange_declare (session,
-        ticket, opt_exchange, "dest", FALSE, FALSE, FALSE, FALSE))
+        ticket, opt_exchange, "amq.direct", FALSE, FALSE, FALSE, FALSE))
         goto finished;
     if (amq_client_session_queue_declare (session,
         ticket, "global", opt_queue, FALSE, FALSE, FALSE, FALSE))
         goto finished;
 
     //  Set-up a simple binding based on queue name
-    arguments = asl_field_list_build ("destination", opt_queue, NULL);
+    arguments = asl_field_list_build ("routing_key", opt_queue, NULL);
     rc = amq_client_session_queue_bind (
         session, ticket, "global", opt_queue, opt_exchange, arguments);
     icl_longstr_destroy (&arguments);
@@ -298,7 +298,7 @@ main (int argc, char *argv [])
                     content,
                     ticket,
                     opt_exchange,
-                    opt_dest,
+                    opt_routing,
                     mandatory,
                     immediate)) {
                 icl_console_print ("E: [%s] could not send message to server - %s",

@@ -222,15 +222,15 @@ s_run_server (void)
         return (1);
     }
     //  Do asynchronous class initialisations here
-    //  -------------------------------------------------------------------  
+    //  -------------------------------------------------------------------
 
     //  Automatic wiring schemes
-    s_exchange_declare ("queue",  AMQ_EXCHANGE_DEST);
-    s_exchange_declare ("topic",  AMQ_EXCHANGE_TOPIC);
-    s_exchange_declare ("match",  AMQ_EXCHANGE_HEADERS);
-    s_exchange_declare ("system", AMQ_EXCHANGE_SYSTEM);
-    s_exchange_declare ("reply",  AMQ_EXCHANGE_DEST);
-    s_exchange_declare ("alert",  AMQ_EXCHANGE_TOPIC);
+    s_exchange_declare ("amq.direct",       AMQ_EXCHANGE_DIRECT);
+    s_exchange_declare ("amq.reply",        AMQ_EXCHANGE_DIRECT);
+    s_exchange_declare ("amq.topic",        AMQ_EXCHANGE_TOPIC);
+    s_exchange_declare ("amq.match",        AMQ_EXCHANGE_HEADERS);
+    s_exchange_declare ("amq.system",       AMQ_EXCHANGE_SYSTEM);
+    s_exchange_declare ("amq.system.alert", AMQ_EXCHANGE_TOPIC);
 
     //  Execute the server
     smt_os_thread_wait (0);

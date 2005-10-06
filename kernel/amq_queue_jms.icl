@@ -76,7 +76,7 @@ runs lock-free as a child of the asynchronous queue class.
                     ASL_NOT_DELIVERED,
                     "No immediate consumers for JMS message",
                     content->exchange,
-                    content->destination);
+                    content->routing_key);
             amq_content_jms_destroy (&content);
         }
         else
@@ -127,7 +127,7 @@ runs lock-free as a child of the asynchronous queue class.
             0,                          //  Delivery tag
             FALSE,                      //  Redelivered
             content->exchange,
-            content->destination,
+            content->routing_key,
             self->queue->scope,
             self->queue->name) == 0) {
 
@@ -170,7 +170,7 @@ runs lock-free as a child of the asynchronous queue class.
                 0,                      //  Delivery tag
                 FALSE,                  //  Redelivered
                 content->exchange,
-                content->destination,
+                content->routing_key,
                 ipr_looseref_list_count (self->content_list));
             amq_content_jms_destroy (&content);
             amq_monitor_messages++;

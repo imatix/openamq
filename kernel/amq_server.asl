@@ -231,10 +231,10 @@
     exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
     if (exchange) {
         if (!exchange->internal) {
-            amq_content_$(class.name)_set_routing (
+            amq_content_$(class.name)_set_routing_key (
                 self->content,
                 method->exchange,
-                method->destination,
+                method->routing_key,
                 connection->context_id);
 
             amq_exchange_publish (
