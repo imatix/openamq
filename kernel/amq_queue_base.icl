@@ -43,31 +43,8 @@ independent of the queue content type.
 </method>
 
 <method name = "destroy">
-    <local>
-    amq_consumer_t
-        *consumer;                      //  Consumer reference
-    </local>
-    //  We destroy consumers by asking the respective channels to do the work
-    while ((consumer = amq_consumer_by_queue_pop (self->active_consumers))) {
-        if (amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE)) {
-            //  PH:2005/09/28 - Unlink ourselves if cancel method failed
-            amq_consumer_t
-                *link_ref = consumer;
-            amq_consumer_unlink (&link_ref);
-        }
-        amq_consumer_unlink (&consumer);
-    }
-    while ((consumer = amq_consumer_by_queue_pop (self->paused_consumers))) {
-        if (amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE)) {
-            //  PH:2005/09/28 - Unlink ourselves if cancel method failed
-            amq_consumer_t
-                *link_ref = consumer;
-            amq_consumer_unlink (&link_ref);
-        }
-        amq_consumer_unlink (&consumer);
-    }
-    amq_consumer_by_queue_destroy (&self->active_consumers);
-    amq_consumer_by_queue_destroy (&self->paused_consumers);
+    s_free_consumer_queue (&self->active_consumers);
+    s_free_consumer_queue (&self->paused_consumers);
 </method>
 
 <method name = "consume" template = "function">
@@ -114,6 +91,8 @@ independent of the queue content type.
 <private name = "header">
 static amq_consumer_t *
     s_get_next_consumer ($(selftype) *self, qbyte producer_id);
+static void
+    s_free_consumer_queue (amq_consumer_by_queue_t **queue);
 </private>
 
 <private name = "footer">
@@ -138,6 +117,25 @@ s_get_next_consumer ($(selftype) *self, qbyte producer_id)
             consumer = amq_consumer_by_queue_next (&consumer);
     }
     return (consumer);
+}
+
+static void
+s_free_consumer_queue (amq_consumer_by_queue_t **queue)
+{
+    amq_consumer_t
+        *consumer,
+        *consumer_ref;
+
+    while ((consumer = amq_consumer_by_queue_pop (*queue))) {
+        if (amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE)) {
+            consumer_ref = consumer;
+            amq_consumer_unlink  (&consumer_ref);
+            amq_consumer_destroy (&consumer);
+        }
+        else
+            amq_consumer_unlink (&consumer);
+    }
+    amq_consumer_by_queue_destroy (queue);
 }
 </private>
 
