@@ -141,7 +141,7 @@ main (int argc, char *argv [])
         amq_client_session_animate (TRUE);
     }
     connection = amq_client_connection_new (
-        opt_server,
+        opt_server, "/",
         amq_client_connection_auth_plain ("guest", "guest"),
         atoi (opt_trace),
         30000);                         //  Timeout
@@ -149,7 +149,7 @@ main (int argc, char *argv [])
         icl_console_print ("E: could not connect to server");
         goto finished;
     }
-    session = amq_client_session_new (connection, "/");
+    session = amq_client_session_new (connection);
     if (!session) {
         icl_console_print ("E: could not open session to server");
         goto finished;

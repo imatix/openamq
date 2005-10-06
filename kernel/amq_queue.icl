@@ -257,11 +257,13 @@ class.  This is a lock-free asynchronous class.
     }
     self->exclusive = FALSE;
     self->consumers--;
-    if (self->auto_delete && self->consumers == 0)
-        smt_timer_request_delay (
-            self->thread,
-            amq_server_config_queue_timeout (amq_server_config) * 1000 * 1000,
-            auto_delete_event);
+    if (self->auto_delete && self->consumers == 0) {
+        int timeout
+            = amq_server_config_queue_timeout (amq_server_config) * 1000 * 1000;
+        if (timeout == 0)
+            timeout = 1;
+        smt_timer_request_delay (self->thread, timeout, auto_delete_event);
+    }
     </action>
 </method>
 

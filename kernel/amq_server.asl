@@ -14,9 +14,6 @@
   <action name = "flow">
     amq_server_channel_flow (channel, method->active);
   </action>
-  <action name = "open">
-    amq_server_channel_open (channel, method->virtual_host);
-  </action>
 </class>
 
 <!-- EXCHANGE -->
@@ -54,7 +51,7 @@
         if (exchange) {
             if (exchange->class == exchange_class)
                 amq_server_agent_exchange_declare_ok (
-                    channel->connection->thread, (dbyte) channel->key);
+                    connection->thread, (dbyte) channel->key);
             else
                 amq_server_channel_close (
                     channel, ASL_NOT_ALLOWED, "Exchange exists with different class");
@@ -96,7 +93,7 @@
     exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
     if (exchange) {
         amq_server_agent_exchange_delete_ok (
-            channel->connection->thread, (dbyte) channel->key);
+            connection->thread, (dbyte) channel->key);
         amq_exchange_destroy (&exchange);
     }
     else
@@ -130,7 +127,7 @@
                 channel, ASL_NOT_FOUND, "No such queue defined");
         else {
             queue = amq_queue_new (
-                channel->connection->context_id,
+                connection->context_id,
                 amq_vhost,
                 method->scope,
                 queue_name,
@@ -140,7 +137,7 @@
             if (queue) {
                 //  Add to connection's private queue list
                 if (method->private)
-                    amq_server_connection_own_queue (channel->connection, queue);
+                    amq_server_connection_own_queue (connection, queue);
             }
             else
                 amq_server_channel_close (
@@ -148,12 +145,12 @@
         }
     }
     if (queue) {
-        if (method->private && queue->owner_id != channel->connection->context_id)
+        if (method->private && queue->owner_id != connection->context_id)
             amq_server_channel_close (
                 channel, ASL_RESOURCE_ERROR, "Queue cannot be made private to this connection");
         else {
             amq_server_agent_queue_declare_ok (
-                channel->connection->thread, (dbyte) channel->key, queue->name, NULL, 0, 0);
+                connection->thread, (dbyte) channel->key, queue->name, NULL, 0, 0);
             amq_queue_list_queue (amq_vhost->queue_list, queue);
         }
         amq_queue_unlink (&queue);
@@ -192,7 +189,7 @@
     queue = amq_queue_search (amq_vhost->queue_table, method->scope, method->queue);
     if (queue) {
         amq_server_agent_queue_delete_ok (
-            channel->connection->thread, (dbyte) channel->key, 0);
+            connection->thread, (dbyte) channel->key, 0);
         amq_queue_destroy (&queue);
     }
     else

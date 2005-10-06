@@ -1,10 +1,29 @@
+0.9c0 - 2005/10/
+---------------------------------------------------------------------
+
+Changes:
+
+  [- "Exchange" concept renamed to "Router".]
+
+  - Queue names, scope, and router names can now contain dots.
+  - Virtual host selection moved from session.open to connection.open
+    method.
+  - Auto-destroy queues can now be deleted immediately (in server.cfg,
+    queue_timeout = "0").
+  - Implemented AMQP content-abort mechanism (marked by content body
+    frame of size 1 = frame-end).
+
+Bug fixes:
+
+  - AMQ-99
+
 0.9b14 - 2005/10/04
 ---------------------------------------------------------------------
 
 Bug fixes:
 
   - AMQ-37, AMQ-47, AMQ-52, AMQ-61, AMQ-68, AMQ-97, AMQ-101
-  - BASE-11, BASE2-68, BASE2-69, BASE2-14 
+  - BASE-11, BASE2-68, BASE2-69, BASE2-14
 
 0.9b13 - 2005/09/29
 ---------------------------------------------------------------------

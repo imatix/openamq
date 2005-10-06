@@ -15,8 +15,6 @@ maximum number of consumers per channel is set at compile time.
 <option name = "basename" value = "amq_server" />
 
 <context>
-    amq_vhost_t
-        *vhost;                         //  Parent virtual host
     amq_consumer_by_channel_t
         *consumer_list;                 //  List of consumers for channel
     ipr_index_t
@@ -44,26 +42,11 @@ maximum number of consumers per channel is set at compile time.
     //  We destroy consumers by asking the respective queues
     while ((consumer = amq_consumer_by_channel_pop (self->consumer_list))) {
         if (amq_queue_cancel (consumer->queue, &consumer, FALSE))
-            //  PH:2005/09/28 - Unlink ourselves if cancel method failed
-            amq_consumer_unlink (&consumer);
+            amq_consumer_destroy (&consumer);
     }
     //  Now destroy containers
-    amq_vhost_unlink  (&self->vhost);
     ipr_index_destroy (&self->consumer_table);
     amq_consumer_by_channel_destroy (&self->consumer_list);
-    </action>
-</method>
-
-<method name = "open" template = "async function" async = "1">
-    <doc>
-    Implements the channel.open method.
-    </doc>
-    <argument name = "path" type = "char *">Virtual host path</argument>
-    //
-    <action>
-    //  For now, link to single global vhost object
-    self->vhost = amq_vhost_link (amq_vhost);
-    assert (self->vhost);
     </action>
 </method>
 
@@ -85,7 +68,7 @@ maximum number of consumers per channel is set at compile time.
         consumer = amq_consumer_by_channel_next (&consumer);
     }
     if (self->active)
-        amq_vhost_dispatch (self->vhost);
+        amq_vhost_dispatch (self->connection->vhost);
     </action>
 </method>
 

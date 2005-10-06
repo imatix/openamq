@@ -51,9 +51,9 @@
   </field>
     
   <field name = "scope" domain = "queue scope">
-    <assert check = "regexp" value = "^[a-zA-Z0-9-_]+$" />
+    <assert check = "regexp" value = "^[a-zA-Z0-9-_.]+$" />
   </field>
-  
+
   <field name = "queue" domain = "queue name">
     <doc name = "rule">
       The queue name MAY be empty, in which case the server MUST create
@@ -65,7 +65,7 @@
       specific scope for such queues to avoid any possible conflict
       with names that might be used elsewhere by clients.
     </doc>
-    <assert check = "regexp" value = "^[a-zA-Z0-9-_]*$" />
+    <assert check = "regexp" value = "^[a-zA-Z0-9-_.]*$" />
   </field>
 
   <field name = "passive" type = "bit">

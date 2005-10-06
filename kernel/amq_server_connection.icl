@@ -13,6 +13,8 @@ This class implements the connection class for the AMQ server.
 <option name = "basename" value = "amq_server" />
 
 <context>
+    amq_vhost_t
+        *vhost;                         //  Parent virtual host
     ipr_looseref_list_t
         *own_queue_list;                //  List of private queues
 </context>
@@ -31,6 +33,7 @@ This class implements the connection class for the AMQ server.
     while ((queue = (amq_queue_t *) ipr_looseref_pop (self->own_queue_list)))
         amq_queue_destroy (&queue);
 
+    amq_vhost_unlink (&self->vhost);
     ipr_looseref_list_destroy (&self->own_queue_list);
 </method>
 
@@ -70,6 +73,12 @@ This class implements the connection class for the AMQ server.
     else
         self_exception (self,
             ASL_SYNTAX_ERROR, "Invalid response field table");
+</method>
+
+<method name = "open">
+    //  For now, link to single global vhost object
+    self->vhost = amq_vhost_link (amq_vhost);
+    assert (self->vhost);
 </method>
 
 </class>
