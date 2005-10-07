@@ -10,9 +10,9 @@
     <session>
       <!-- $queue name is supplied by server -->
       <queue_declare scope = "subscription" queue = ""/>
-      <queue_bind scope = "subscription" queue = "$queue" bind_to = "topic">
+      <queue_bind scope = "subscription" queue = "$queue" exchange = "amq.topic">
         <arguments>
-            <field name = "routing key" value = "*.eur" />
+            <field name = "routing_key" value = "*.eur" />
         </arguments>
       </queue_bind>
       <echo>Consuming messages from subscription $queue...</echo>
