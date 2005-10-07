@@ -1,0 +1,15 @@
+<?xml?>
+<pal
+    name = "pal_queue_declare_bind_many"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    <session scope="default">
+        <exchange_declare exchange = "tmp" class="fanout" />
+        <repeat times = "10" counter = "index">
+            <echo>I can count up to $index</echo>
+            <queue_declare queue="queue_$index" scope="default" />
+            <queue_bind queue="queue_$index" scope="default" exchange="tmp" />
+        </repeat>
+    </session>
+</pal>
