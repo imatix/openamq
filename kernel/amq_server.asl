@@ -64,27 +64,6 @@
             channel, ASL_COMMAND_INVALID, "Unknown exchange class");
   </action>
 
-  <action name = "bind">
-    <local>
-    amq_exchange_t
-        *exchange,                  //  Exchange we're working with
-        *bind_to;                   //  Exchange to bind to
-    </local>
-    bind_to = amq_exchange_search (amq_vhost->exchange_table, method->bind_to);
-    if (bind_to) {
-        exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
-        if (exchange) {
-            amq_exchange_bind_exchange (bind_to, channel, exchange, method->arguments);
-            amq_exchange_unlink (&exchange);
-        }
-        else
-            amq_server_channel_close (channel, ASL_NOT_FOUND, "No such queue defined");
-        amq_exchange_unlink (&bind_to);
-    }
-    else
-        amq_server_channel_close (channel, ASL_NOT_FOUND, "No such exchange defined");
-  </action>
-
   <action name = "delete">
     <local>
     amq_exchange_t
@@ -162,20 +141,20 @@
   <action name = "bind">
     <local>
     amq_exchange_t
-        *bind_to;                   //  Exchange to bind to
+        *exchange;                      //  Exchange to bind to
     amq_queue_t
         *queue;
     </local>
-    bind_to = amq_exchange_search (amq_vhost->exchange_table, method->bind_to);
-    if (bind_to) {
+    exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
+    if (exchange) {
         queue = amq_queue_search (amq_vhost->queue_table, method->scope, method->queue);
         if (queue) {
-            amq_exchange_bind_queue (bind_to, channel, queue, method->arguments);
+            amq_exchange_bind_queue (exchange, channel, queue, method->arguments);
             amq_queue_unlink (&queue);
         }
         else
             amq_server_channel_close (channel, ASL_NOT_FOUND, "No such queue defined");
-        amq_exchange_unlink (&bind_to);
+        amq_exchange_unlink (&exchange);
     }
     else
         amq_server_channel_close (channel, ASL_NOT_FOUND, "No such exchange defined");
