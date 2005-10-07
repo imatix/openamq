@@ -14,7 +14,6 @@
 
 <doc name = "grammar">
     exchange            = C:DECLARE  S:DECLARE-OK
-                        / C:BIND     S:BIND-OK
                         / C:DELETE   S:DELETE-OK
 </doc>
 
@@ -128,81 +127,6 @@
   <doc>
     This method confirms a Declare method and confirms the name of the
     exchange, essential for automatically-named exchanges.
-  </doc>
-  <chassis name = "client" implement = "MUST" />
-</method>
-
-
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-
-<method name = "bind" synchronous = "1">
-  bind queue to an exchange
-  <doc>
-    This method binds an exchange to another exchange.  This allows
-    multi-level wiring schemas.
-  </doc>
-  <doc name = "rule">
-    A server MUST allow ignore duplicate bindings without treating
-    these as an error.  Two bindings are considered to be "identical"
-    if they have the same value for the arguments field.  This is
-    designed to provide server implementations with a fast method for
-    comparing binding equality.  A client MAY manipulate the arguments
-    field to create two "different" bindings that actually have the
-    same meaning, by adding unused, ignored values to the arguments
-    field, or changing the order of values in the arguments field.
-  </doc>
-  <doc name = "rule">
-    If a bind fails, the server MUST raise a connection exception.
-  </doc>
-  <doc name = "rule">
-    The server MUST NOT allow a durable exchange to bind to a transient
-    exchange. If the client attempts this the server MUST raise a
-    channel exception.
-  </doc>
-  <doc name = "rule">
-    Bindings for durable exchange are automatically durable and the
-    server SHOULD restore such bindings after a server restart.
-  </doc>
-  <chassis name = "server" implement = "MUST" />
-  <response name = "bind-ok" />
-
-  <field name = "ticket" domain = "access ticket">
-    <doc name = "rule">
-      The client MUST provide a valid access ticket giving "active"
-      access rights to the exchange's access realm.
-    </doc>
-  </field>
-
-  <field name = "scope" domain = "queue scope" />
-
-  <field name = "exchange" domain = "exchange name">
-    <doc name = "rule">
-      The exchange must exist. Attempting to bind a non-existing exchange
-      causes a channel exception.
-    </doc>
-    <assert check = "notnull" />
-  </field>
-
-  <field name = "bind to" domain = "exchange name">
-    <doc>
-      The name of the exchange to bind to. If the exchange does not
-      exist the server will raise a channel exception.
-    </doc>
-  </field>
-
-  <field name = "arguments" type = "table">
-    arguments for binding
-    <doc>
-      A set of arguments for the binding.  The syntax and semantics of
-      these arguments depends on the exchange class.
-    </doc>
-  </field>
-</method>
-
-<method name = "bind-ok" synchronous = "1">
-  confirm bind successful
-  <doc>
-    This method confirms that the bind was successful.
   </doc>
   <chassis name = "client" implement = "MUST" />
 </method>

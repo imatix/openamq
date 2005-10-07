@@ -236,7 +236,7 @@
     <assert check = "notnull" />
   </field>
 
-  <field name = "bind to" domain = "exchange name">
+  <field name = "exchange" domain = "exchange name">
     <doc>
       The name of the exchange to bind to. If the exchange does not
       exist the server will raise a channel exception.
