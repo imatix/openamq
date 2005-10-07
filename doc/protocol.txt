@@ -5,7 +5,7 @@ gdl
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/08/23
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.9b0
+    version   = 0.9b1
 end gdl
 
 Cover
@@ -23,6 +23,11 @@ This document is ready for review.
 
 Recent Change History
 ---------------------
+
+2005/08/19 - 0.9b1
+
+- Removed short-string type from field table; field tables only contain
+  long strings.
 
 2005/08/19 - 0.9b0
 
@@ -402,8 +407,7 @@ This formal grammar defines the AMQP/Fast data types:
     field-table         = long-integer *field-value-pair
     field-value-pair    = field-name field-value
     field-name          = short-string
-    field-value         = 'S' short-string
-                        / 'L' long-string
+    field-value         = 'S' long-string
                         / 'I' signed-integer
                         / 'D' decimal-value
                         / 'T' time-stamp

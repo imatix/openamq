@@ -1,0 +1,51 @@
+OpenAMQ Operational Control
+***************************
+
+Goals
+=====
+
+To allow remote control of an OpenAMQ server, including:
+
+ - monitoring of key entities (queues, etc.)
+ - collection of status information (performance, statistics)
+ - setting of alerts (on queue size, etc.)
+
+Principles
+==========
+
+AMQP-based Access
+-----------------
+
+All access to the operational control will be done via the AMQP protocol
+rather than some other means.  Specifically by:
+
+ - sending requests to a "system" exchange
+ - reading responses from a queue
+ - subscribing to alerts and reading these from subscription queues
+
+Hierarchical Data View
+----------------------
+
+The operational model is a hierarchy of objects.  The hierarchy is easy
+to navigate, obvious to use, and extensible over time.
+
+XML-formatted Messages
+----------------------
+
+All messages to/from the system exchange are XML-formatted using simple
+XML.  This eliminates discussion of message formatting rules and allows
+easy backwards compatability (unknown attributes are ignored and missing
+attributes are given default values).
+
+Concepts
+--------
+
+ - We work with a "operable object tree", which is the hierarchy of
+   objects that exist and can be examined and manipulated.
+
+ - Each object has an identifier, a unique 64-bit ID.  Identifiers are
+   not durable - if the server restarts, 
+
+
+
+
