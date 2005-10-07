@@ -255,7 +255,7 @@ main (int argc, char *argv [])
     }
     //  Declare exchange and queue
     if (amq_client_session_exchange_declare (session,
-        ticket, opt_exchange, "amq.direct", FALSE, FALSE, FALSE, FALSE))
+        ticket, opt_exchange, "direct", FALSE, FALSE, FALSE, FALSE))
         goto finished;
     if (amq_client_session_queue_declare (session,
         ticket, "global", opt_queue, FALSE, FALSE, FALSE, FALSE))
