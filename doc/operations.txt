@@ -1,5 +1,5 @@
-OpenAMQ Operational Control
-***************************
+OpenAMQ Operator Console
+************************
 
 Goals
 =====
@@ -13,21 +13,67 @@ To allow remote control of an OpenAMQ server, including:
 Principles
 ==========
 
-AMQP-based Access
------------------
+Uses AMQP Mechanisms
+--------------------
 
-All access to the operational control will be done via the AMQP protocol
-rather than some other means.  Specifically by:
+The operator console is built using the AMQP protocol.  The overall
+architecture is:
 
- - sending requests to a "system" exchange
- - reading responses from a queue
- - subscribing to alerts and reading these from subscription queues
+    .------------.               .-----------.       .----------.
+    |            | <- Request -- |  Console  |       |          |
+    | AMQ Server |               | Interface | <===> |   GUI    |
+    |            | - Response -> |   Layer   |       |          |
+    `------------'               `-----------'       `----------'
+
+In the OpenAMQ server, requests are handled by a standard exchange,
+the system exchange amq.system.  Responses are sent to a temporary
+reply queue created by the console interface layer.
+
+Asynchronous information - alerts - are sent to the amq.system.alert
+exchange, and console interface layer(s) get these alerts using a
+pub/sub model.  Alerts are published with a topic-style routing key
+that allows selective subscription to specific types of alert.
 
 Hierarchical Data View
 ----------------------
 
-The operational model is a hierarchy of objects.  The hierarchy is easy
-to navigate, obvious to use, and extensible over time.
+The operational model is a hierarchy of objects as follows:
+
+    server
+     :
+     :-- vhost
+     :
+     :-- exchange
+     :
+     :-- queue
+     :    :
+     :    `-- consumer
+     :
+     `-- connection
+
+These entities are:
+
+ - server: the openamq server.  Server properties include the server IP
+   address and port, number of connections, traffic statistics, etc.
+
+ - vhost: each virtual host defined in the server.  Virtual host properties
+   include the vhost path, number of connections, traffic statistics, etc.
+
+ - exchange: each exchange defined in the virtual host.  Exchange properties
+   include the exchange name, number of bindings, traffic statistics, etc.
+
+ - queue: each queue defined in the virtual host.  Queue properties include
+   the queue name, current size, maximum size, overflow limits, number of
+   consumers, etc.
+
+ - consumer: each consumer working with the queue.  A consumer refers to a
+   connection.  Consumer properties cover the exchange 
+
+ - connection: each active connection. A connection refers to a client IP
+   address, and to a virtual host.  Connection properties include the time
+   of connection, traffic statistics, number of errors, last error, etc.
+
+
 
 XML-formatted Messages
 ----------------------
@@ -44,8 +90,38 @@ Concepts
    objects that exist and can be examined and manipulated.
 
  - Each object has an identifier, a unique 64-bit ID.  Identifiers are
-   not durable - if the server restarts, 
+   not durable - if the server restarts,
 
+ -
+
+
+hierarchy
+
+
+    <request>
+        inspect
+        modify
+        monitor
+    </request>
+
+    <response>
+        inspect-ok
+        modify-ok
+        monitor-ok
+    </response>
+
+    <alert>
+    </alert>
+
+    object: class, ID, name, created, children
+        + properties
+
+    property:
+        type        bool, int, str, id
+        name
+        inspect     y/n
+        modify      y/n
+        monitor     y/n
 
 
 
