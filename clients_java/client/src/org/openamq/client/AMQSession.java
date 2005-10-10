@@ -90,7 +90,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                     throw new IllegalArgumentException("EEK = queue name is null");
                 }
                 
-                final String key = message.deliverBody.destination != null ? message.deliverBody.destination : "";
+                final String key = message.deliverBody.routingKey/*.destination*/ != null ? message.deliverBody.routingKey/*.destination*/ : "";
                 final AMQMessageConsumer consumer = (AMQMessageConsumer) _consumers.get(key);
 
                 if (consumer == null)

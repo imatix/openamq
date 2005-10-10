@@ -53,6 +53,6 @@ public class ConnectionTuneMethodHandler implements StateAwareMethodListener
                                                                frame.heartbeat));
 //        session.writeFrame(ConnectionTuneOkBody.createAMQFrame(evt.getChannelId(), frame.channelMax, 65535,
 //                                                               frame.heartbeat));
-        session.writeFrame(ConnectionOpenBody.createAMQFrame(evt.getChannelId(), null));
+        session.writeFrame(ConnectionOpenBody.createAMQFrame(evt.getChannelId(), "/test", null));
     }
 }
