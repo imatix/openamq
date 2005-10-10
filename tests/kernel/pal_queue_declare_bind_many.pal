@@ -4,12 +4,15 @@
     script = "amq_pal_gen"
     target = "stdc"
     >
-    <session scope="default">
-        <exchange_declare exchange = "tmp" class="fanout" />
-        <repeat times = "100000000" counter = "index">
-            <echo>I can count up to $index</echo>
+    
+    <repeat times = "100000000" counter = "index">
+        <echo>setting up session $index</echo>
+        <session scope="default">
+            <exchange_declare exchange="tmp" class="fanout" />
             <queue_declare queue="queue_$index" scope="default" />
             <queue_bind queue="queue_$index" scope="default" exchange="tmp" />
-        </repeat>
-    </session>
+        </session>
+        <echo>closing session $index, waiting 1 second...</echo>
+        <!-- <wait timeout="1000"/> -->
+    </repeat>
 </pal>
