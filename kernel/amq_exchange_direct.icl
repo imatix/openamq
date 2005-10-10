@@ -82,9 +82,9 @@ based on their "routing_key" property.
     hash = amq_hash_table_search (self->binding_hash, routing_key);
     if (hash) {
         binding = hash->data;
-        amq_binding_publish (binding, channel, class_id, content, mandatory, immediate);
+        if (amq_binding_publish (binding, channel, class_id, content, mandatory, immediate))
+            delivered = TRUE;
         amq_hash_unlink (&hash);
-        delivered = TRUE;
     }
 </method>
 

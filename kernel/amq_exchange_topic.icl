@@ -131,7 +131,7 @@ topic tree specification.
                 if (amq_server_config_trace_route (amq_server_config))
                     icl_console_print ("X: index  routing_key=%s wildcard=%s",
                         routing_key, binding->routing_key);
-                        
+
                 //  Cross-reference binding and index
                 ipr_bits_set (index->bindset, binding->index);
                 ipr_looseref_queue (binding->index_list, index);
@@ -148,8 +148,8 @@ topic tree specification.
         binding = self->exchange->binding_index->data [binding_nbr];
         if (amq_server_config_trace_route (amq_server_config))
             icl_console_print ("X: hit      wildcard=%s", binding->routing_key);
-        amq_binding_publish (binding, channel, class_id, content, mandatory, immediate);
-        delivered = TRUE;
+        if (amq_binding_publish (binding, channel, class_id, content, mandatory, immediate))
+            delivered = TRUE;
     }
     amq_index_unlink (&index);
 </method>

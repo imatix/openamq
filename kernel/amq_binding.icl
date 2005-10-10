@@ -140,6 +140,7 @@ class.
                 icl_console_print ("X: publish  queue=%s", queue->key);
             amq_queue_publish (queue, channel, class_id, content, immediate);
             looseref = ipr_looseref_list_next (&looseref);
+            rc++;
         }
         else {
             //  Garbage-collect zombied queue
