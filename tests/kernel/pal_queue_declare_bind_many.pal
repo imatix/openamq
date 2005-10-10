@@ -13,6 +13,6 @@
             <queue_bind queue="queue_$index" scope="default" exchange="tmp" />
         </session>
         <echo>closing session $index, waiting 1 second...</echo>
-        <!-- <wait timeout="1000"/> -->
+        <wait timeout="1000"/> 
     </repeat>
 </pal>
