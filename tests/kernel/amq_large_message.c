@@ -23,10 +23,11 @@ main (int argc, char *argv [])
 
     /*  Connect to AMQ server */
     connection = amq_client_connection_new ("localhost:9876",
+                                            "/",
                                             amq_client_connection_auth_plain ("guest", "guest"), 
                                             0, 
                                             300000);
-    channel = amq_client_session_new (connection, "/");
+    channel = amq_client_session_new (connection);
     amq_client_session_exchange_declare (channel, 0, "service", "dest", 0, 1, 0, 0);
 
     /*  Send a message */

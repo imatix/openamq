@@ -6,7 +6,7 @@
     >
     <session scope="default">
         <exchange_declare exchange = "tmp" class="fanout" />
-        <repeat times = "10" counter = "index">
+        <repeat times = "100000000" counter = "index">
             <echo>I can count up to $index</echo>
             <queue_declare queue="queue_$index" scope="default" />
             <queue_bind queue="queue_$index" scope="default" exchange="tmp" />

@@ -22,6 +22,7 @@ int main (int argc, char** argv)
     //  Set up a connection
     connection = amq_client_connection_new (
         "localhost:9876",
+        "/",
         amq_client_connection_auth_plain ("guest","guest"),
         0,                              //  Trace level
         30000);                         //  Timeout
@@ -35,7 +36,7 @@ int main (int argc, char** argv)
     }
 
     //  Set up a session
-    session = amq_client_session_new (connection,"/");
+    session = amq_client_session_new (connection);
     if (!session) {
         icl_console_print("E: could not open session to server");
         goto finished;
@@ -56,7 +57,7 @@ int main (int argc, char** argv)
         //  Bind the queue to the exchange
         arguments = asl_field_list_build ("destination", session->queue, NULL);
         amq_client_session_queue_bind (
-            session, 0, "global", session->queue, "queue", arguments);
+            session, 0, "global", session->queue, "amq.direct", arguments);
         icl_longstr_destroy (&arguments);
     }
     //  Clean up
