@@ -213,9 +213,6 @@ for each class of exchange. This is a lock-free asynchronous class.
     }
     //  If no binding matched, create a new one
     if (binding == NULL) {
-        if (amq_server_config_trace_route (amq_server_config))
-            icl_console_print ("X: bind     queue=%s onto=%s", queue->key, self->name);
-
         //  Compile the binding to the exchange
         binding = amq_binding_new (self, arguments);
         if (binding) {
@@ -236,9 +233,11 @@ for each class of exchange. This is a lock-free asynchronous class.
 
         if (looseref)                   //  Ignore duplicates
             ipr_looseref_unlink (&looseref);
-        else
+        else {
+            if (amq_server_config_trace_route (amq_server_config))
+                icl_console_print ("X: bind     queue=%s onto=%s", queue->key, self->name);
             amq_binding_bind_queue (binding, queue);
-
+        }
         amq_binding_unlink (&binding);
         if (amq_server_channel_alive (channel))
             amq_server_agent_queue_bind_ok (
