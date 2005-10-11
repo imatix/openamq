@@ -480,7 +480,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                 // Bind exchange to queue
                 // TODO: construct the rawSelector from the selector string if rawSelector == null
                 final FieldTable ft = new FieldTable();
-                ft.put("destination", amqd.getDestinationName());
+                ft.put("routing_key", amqd.getDestinationName());
                 if (rawSelector != null)
                     ft.put("headers", rawSelector.getDataAsBytes());
                 AMQFrame queueBind = QueueBindBody.createAMQFrame(_channelId, 0, amqd.getScope(), queueOk.queue,

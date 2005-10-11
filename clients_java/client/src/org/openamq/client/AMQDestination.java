@@ -10,7 +10,7 @@ public abstract class AMQDestination implements Destination
 
     public final static String QUEUE_EXCHANGE_NAME = "queue";
 
-    public final static String QUEUE_EXCHANGE_CLASS = "dest";
+    public final static String QUEUE_EXCHANGE_CLASS = "direct";
 
     public final static String HEADERS_EXCHANGE_NAME = "match";
 
