@@ -1,6 +1,6 @@
 <?xml?>
 <pal
-    name = "pal_queue_declare_bind_many"
+    name = "amq_queue_declare-bind-many"
     script = "amq_pal_gen"
     target = "stdc"
     >
