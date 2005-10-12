@@ -1,0 +1,372 @@
+gdl
+    title     = AMQ "RAIS" Clustering
+    subtitle  = A Redundant Array of Inexpensive Servers
+    product   = OpenAMQ
+    author    = iMatix Corporation <amq@imatix.com>
+    date      = 2005/10/12
+    copyright = Copyright (c) 2004-2005 JPMorgan
+    version   = 1.0a
+end gdl
+
+Redundant Array of Inexpensive Servers
+**************************************
+
+Statement of Goals
+==================
+
+RAIS is a proposal for clustering OpenAMQ servers.  RAIS was designed by
+Pieter Hintjens after discussions with Mark Atwell and Steve Connelly.
+
+The goals of the RAIS proposal are:
+
+ 1. To provide arbitrarily scalable performance through the addition of
+    cheap hardware.
+
+ 2. To provide high reliability through the use of redundancy.
+
+ 3. To support all AMQP scenarios, including transient pub-sub, persistent
+    request-response, point-to-point queues, file-transfer, streaming etc.
+
+Our goal in a transient pub-sub scenario is to achieve a sustained traffic
+rate of 1M messages per second, or 500K reliable messages per second on a
+server cluster costing under EUR 10,000.
+
+RAIS is inspired by three things:
+
+ 1. The original concepts of RAID storage.
+
+ 2. The design approach of Google's networks, which are based on cheap
+    boxes interconnected by smart software.
+
+ 3. The desire to find a way to scale OpenAMQ servers that does not depend
+    on optimisation.
+
+General Principles
+==================
+
+Overall Architecture
+--------------------
+
+The architecture consists of:
+
+ - A set of information publishers (P).
+ - A set of information subscribers (S).
+ - A set of OpenAMQ servers (A).
+
+Each publisher maintains a persistent connection to each server.  Each subscriber
+likewise maintains a persistent connection to each server.  The servers do not
+communicate with each other but remain connected to the entire set of publishers
+and subscribers:
+
+    P   P   P
+     \ / \ /
+      A   A
+     / \ / \
+    S   S   S
+
+The state on any server A consists of the subscription information needed to
+route messages to the appropriate subscriber.  In AMQP terms this consists of
+queues, bindings, and consumers.
+
+If a new server joins the network, every publisher connects to the new server,
+and every subscriber connects to the new server and recreates its subscription
+information:
+
+    P   P   P
+     \ / \ / \
+      A   A   A
+     / \ / \ /<-- declare queues, bind queues, define consumers
+    S   S   S
+
+We avoid the complexity of synchronising the state of different servers by
+eliminating inter-server communication from the architecture.  Servers do not
+talk to each other.
+
+Thus in its stable state, every server A has an exact mirror of the subscription
+state of every other A.  We will now explore the different ways we can exploit
+this.
+
+Performance Through Striping
+----------------------------
+
+To gain performance, we "stripe" the messages.  This is exactly the same technique
+as used in RAID: each publisher writes data a round-robin fashion to the different
+servers it is connected to.
+
+Since each consumer is connected to every server, consumers will receive the same
+messages.  Ordering may not be maintained, since messages flow through different
+paths.
+
+Reliability Through Mirroring
+-----------------------------
+
+To gain reliability, we "mirror" the messages.  This means: sending the same
+message redundantly to more than one server, and rejecting duplicate messages
+on receipt.
+
+If the risk of a server crash is 1/R, then a double-redundancy (sending each
+message to 2 servers) will reduce the risk of a server crash to 1/(R*R).
+
+Combined Striping and Mirroring
+-------------------------------
+
+Given a cluster of more than 2 servers, we can combine striping and mirroring
+to achieve both reliability and performance.
+
+Implementation Proposal
+=======================
+
+RAIS Implementation
+-------------------
+
+RAIS depends on client-side intelligence.  We can place this intelligence
+in the client application, in the client API, or elsewhere.  The first two
+solutions present some difficulties, because RAIS is potentially a complex
+problem and it is not a good idea to mix this complexity with existing
+applications (they will do it wrong or in different ways), nor with the
+existing APIs (we would need multiple implementations, one for each API
+technology - C, JMS, Perl, etc.).
+
+So, we propose to implement RAIS as a proxy server.  A RAIS proxy (R)
+runs on every client system, and maps a single virtual connection into
+the full set of connections to the RAIS cluster:
+
+    P   P   P
+    R   R   R
+     \ / \ /
+      A   A
+     / \ / \
+    R   R   R
+    S   S   S
+
+Applications connect to the RAIS port on 127.0.0.1, and conduct a normal
+single-connection AMQP dialogue.  The RAIS proxy does the following:
+
+ 1. It caches security information so that it can connect to all
+    servers using identical parameters.
+
+ 2. It caches all subscription information (queue.declare, queue.bind,
+    jms.consume, channel.flow, etc. methods) so that it can recreate
+    this on all servers identically.
+
+ 3. It applies the desired striping and mirroring of messages on all
+    jms.publish methods.
+
+ 4. It caches received messages (jms.deliver) and eliminates duplicates
+    coming from multiple servers.
+
+The RAIS proxy holds its data in memory only, since if the client
+application ends, the RAIS proxy can also disconnect and end.
+
+Browsing Queues
+---------------
+
+Compared to a real single server, a RAIS cluster does not hold messages on
+a single queue but rather holds them (usually redundantly) on several queues
+that have the same name but are in different locations.
+
+To implement a "browse" command that selects individual messages from a queue,
+we must:
+
+ - Send the browse command to all servers.
+ - Wait for all replies and collate them.
+ - Present a single coherent response to the application.
+
+Cluster Synchronisation
+-----------------------
+
+When a new server joins the cluster, we face a synchronisation problem:
+all subscribers must reconnect before publishers start to send data to
+that server.  Otherwise messages striped to that server will not reach
+all subscribers.
+
+We need to tell publishers when a newly-started server is "ready", that
+is, when it has the same state as all the other servers.
+
+
+
+
+Shared Queues
+-------------
+
+Pub-sub is trivial to implement in RAIS since each queue has a single
+consumer, and fan-out is done by creating multiple queues, one for each
+subscriber.  Thus, each queue can unambiguously send its messages to
+its consuming client without problem.
+
+But AMQ also allows shared queues, essential for work-load distribution,
+the main way of using standard message queues.
+
+Given the description of RAIS so far, this presents us with a problem.
+If a message is sent to two queues - on two cluster servers - how do we
+ensure the two messages are delivered to the same client application?
+
+Consider the following scenario:
+
+ - We have three servers, S1, S2, S3.
+ - We have two consumers, C1 and C2, each connected to a queue Q
+   that has one instance (Q1, Q2, Q3) on each server.
+ - A publisher sends a series of messages, M1, M2, M3, M4...
+ - We use mirroring for reliability, and send the message to
+   two servers each time.
+
+The queues will receive messages as follows (assuming the publishers
+use simple a round-robin):
+
+    Q1: M1, M2, M4
+    Q2: M1, M3, M4
+    Q3: M2, M3
+
+Our ideal routing of messages to consumers would be:
+
+    C1: M1, M3
+    C2: M2, M4
+
+At the very least, each message must be sent to the same consumer,
+irrespective of the messages that were sent before it from the same
+queue.  If we cannot guarantee this, RAIS cannot work for shared
+queues.
+
+We can resolve this problem if:
+
+ - The servers activate new consumers in a synchronised manner, so the
+   set of consumers for a queue is always identical across all servers.
+   Thus, until all servers have signalled that a consumer is ready,
+   that consumer will not be used to receive messages.
+
+ - The servers use a stateless hashing function to select the next
+   consumer for a message, rather than using a round-robin technique.
+   Thus, given a specific message, and a specific set of consumers,
+   the message will always go to the same consumer.
+
+There are probably other solutions, this appears to be a simple point
+to start with.
+
+To synchronise consumers requires some coordination between the servers.
+We do not want the servers to be RAIS-aware, so this communication must
+be between each server and one or more of the RAIS proxies.  Each RAIS
+proxy has the same capabilities, so it does not matter which one is
+chosen, except for optimisation.
+
+We propose a hand-shaked synchronisation mechanism based on AMQP
+mechanisms.  We have these participants:
+
+ - A set of servers.
+ - One or more synchronisation managers (SYNCMAN), which are RAIS
+   proxies that have been configured to play this role.
+ - A queue and bindings to allow each SYNCMAN to receive messages
+   from each server.
+ - A queue to allow each server to receive messages back from each
+   SYNCMAN.
+
+The process is a two-phase handshake that works as follows:
+
+ - A new consumer joins a server.
+ - The server marks the consumer as "inactive" and tells the SYNCMAN
+   that it has a new consumer, specifying the consumer identity.
+ - The server pauses its queue, so that new incoming messages are not
+   routed to consumers.
+ - This process repeats for each server (unless there is a problem).
+ - The SYNCMAN collects these reports from each server and expects
+   to receive exactly one per server for a given consumer.
+ - When all reports are received, the SYNCMAN tells all servers to
+   activate their consumers.  The servers each do this, and then
+   confirm to the SYNCMAN.
+ - The SYNCMAN then tells all servers to restart their queue.  This
+   action happens with no further hand-shaking, and the queues will
+   restart at roughly different instants, without affecting the
+   delivery order of messages.
+
+We can use multiple SYNCMANs to avoid a single failure point. Servers
+would send their reports to all SYNCMANs but wait for the first "start
+consumer" response and "start queue" response, ignoring the rest.
+
+Cluster Maintenance
+-------------------
+
+There are (at least) two ways of maintaining the cluster.  One is to
+define the set of servers (their IP address and port) manually so
+that all RAIS proxies share this information.  The second is to use
+multicast techniques to detect when new servers are added to the
+cluster.
+
+Server Configuration
+--------------------
+
+As the number of servers increase, it is clearly more work to manage
+these.  We propose several techniques to minimise this work:
+
+ 1. To use static configuration rather than on-line operational
+    control.  I.e. rather than configure servers interactively, the
+    servers should be configured from configuration files.
+
+ 2. To use network booted RAM disks to load the server operating system,
+    software, and configuration data.  We have used this successfully
+    in high-reliability projects.  It does require a separate boot
+    server but this can itself be CD-booted, and is only a point of
+    failure when the cluster changes.
+
+ 3. To make the RAIS proxy can be aware of the operational control
+    process so that operational control commands - such as alerts -
+    can be applied to all servers in the cluster automatically.
+
+Cost and Planning
+=================
+
+Costs
+-----
+
+A very rough estimate of the cost of this work is:
+
+ 1. RAIS proxy alpha: 10 days' work.
+ 2. RAIS proxy beta: 15 days' work.
+ 3. RAIS integration with operational control: 10 days' work.
+ 4. Add RAIS support to JMS and C APIs: 2 days' work.
+ 5. Stability and load testing: 15 days' work.
+
+It should be possible to build a working RAIS implementation with
+2-3 months of work.
+
+Proof-of-Concept Proposal
+-------------------------
+
+We estimate that a single CPU is capable of transferring 40K messages
+per second given a very fast network card.  (Previous tests have shown
+50K messages per second on loopback networks.)
+
+The following architecture should demonstrate the capacity of the RAIS
+cluster:
+
+ - One fast server acting as publisher.
+ - A cluster of 4 inexpensive servers, providing fast CPU, fast NIC,
+   and with minimum RAM, no storage, no case, etc.  Estimated cost:
+   EUR 400 per server.
+ - A set of 4 workstations acting as sink clients (to accept and
+   discard messages).  Each workstation would run one client process.
+ - A fast switch interconnecting these systems, all using gigabit
+   networking.
+
+Using full fan-out (all subscribers receive all data), the volumes we
+expect to see are:
+
+ - 40K messages per second outgoing from each publisher.
+ - 10K messages per second incoming to each server (40K in total).
+ - 40K messages per second outgoing from each server (160K in total).
+ - 40K messages per second incoming to each client (160K in total).
+
+Giving us a total cluster throughput of 200K messages per second for
+a cluster cost of EUR 1,600.  This should be scalable to 1M messages
+per second, using an appropriate network organisation, for well under
+EUR 10,000.
+
+Proof-of-Concept Demonstration
+------------------------------
+
+For an effective demonstration, we would want to see:
+
+ - A sustained message transfer rate that is proportional to the size
+   of the cluster.
+ - Cluster stability as clients and servers are removed and added on
+   the fly.
+ - Different messaging scenarios, including pub-sub with private
+   subscription queues, and request-response with shared work queues.
