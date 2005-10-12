@@ -146,9 +146,13 @@ public class FieldTable extends LinkedHashMap
 
     public Object put(Object key, Object value)
     {
-        if (!(key instanceof String))
+        if (key == null)
         {
-            throw new IllegalArgumentException("All keys must be Strings - was passed " + key.getClass());
+            throw new IllegalArgumentException("All keys must be Strings - was passed: null");
+        }
+        else if (!(key instanceof String))
+        {
+            throw new IllegalArgumentException("All keys must be Strings - was passed: " + key.getClass());
         }
         _encodedSize += EncodingUtils.encodedShortStringLength((String) key);
         // the extra byte if for the type indicator what is written out
