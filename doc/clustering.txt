@@ -27,6 +27,10 @@ The goals of the RAIS proposal are:
  3. To support all AMQP scenarios, including transient pub-sub, persistent
     request-response, point-to-point queues, file-transfer, streaming etc.
 
+ 4. To implement clustering with minimum impact on the AMQ server and in
+    such a way that clustering of different AMQ server implementations is
+    possible.
+
 Our goal in a transient pub-sub scenario is to achieve a sustained traffic
 rate of 1M messages per second, or 500K reliable messages per second on a
 server cluster costing under EUR 10,000.
@@ -35,8 +39,8 @@ RAIS is inspired by three things:
 
  1. The original concepts of RAID storage.
 
- 2. The design approach of Google's networks, which are based on cheap
-    boxes interconnected by smart software.
+ 2. The design approach of Google's networks, which are based on cheap boxes
+    interconnected by smart software.
 
  3. The desire to find a way to scale OpenAMQ servers that does not depend
     on optimisation.
@@ -175,24 +179,45 @@ we must:
 Cluster Synchronisation
 -----------------------
 
-When a new server joins the cluster, we face a synchronisation problem:
-all subscribers must reconnect before publishers start to send data to
-that server.  Otherwise messages striped to that server will not reach
-all subscribers.
+We do not care about the set of publishers on the cluster - adding or
+removing a publisher has no impact on the way messages are routed.
 
-We need to tell publishers when a newly-started server is "ready", that
-is, when it has the same state as all the other servers.
+When a new subscriber joins the cluster, it will register with each
+server one-by-one.  It can send its registration commands (queue.create,
+queue.bind, jms.consume) in batches to each server, but there is still
+a significant window during which some servers will not be ready while
+others will be.
 
+During this window, the subscriber will not be guaranteed of getting
+all its messages correctly, as messages that are sent to an out-of-date
+server will not reach it.
 
+A new subscriber - or rather, the RAIS proxy that is acting for it -
+can monitor the cluster to know when it is "ready", and the incoming
+message stream is reliable enough to pass to the application.
 
+We propose the following mechanism:
 
-Shared Queues
--------------
+ 1. Each server will publish metadata about new consumers on a standard
+    topic exchange.
+ 2. Each RAIS proxy will subscribe to this information steam and thus
+    be able to monitor the state of each server.
+ 3. The RAIS proxies will use this state information to decide what
+    servers are safe to publish to, and when the stream of data from
+    the cluster is stable enough to pass to the application.
+
+We can use a standard topic exchange, e.g. amq.system.rais.  The
+presence or absence of this exchange will tell RAIS proxies whether
+the server supports RAIS synchronisation or not.
+
+Clustered Shared Queues
+-----------------------
 
 Pub-sub is trivial to implement in RAIS since each queue has a single
 consumer, and fan-out is done by creating multiple queues, one for each
 subscriber.  Thus, each queue can unambiguously send its messages to
-its consuming client without problem.
+its consuming client without problems (the only effect being that
+messages may arrive out of sequence as they travel different paths).
 
 But AMQ also allows shared queues, essential for work-load distribution,
 the main way of using standard message queues.
@@ -207,8 +232,8 @@ Consider the following scenario:
  - We have two consumers, C1 and C2, each connected to a queue Q
    that has one instance (Q1, Q2, Q3) on each server.
  - A publisher sends a series of messages, M1, M2, M3, M4...
- - We use mirroring for reliability, and send the message to
-   two servers each time.
+ - We use mirroring for reliability, and send the message to two
+   servers each time.
 
 The queues will receive messages as follows (assuming the publishers
 use simple a round-robin):
@@ -222,10 +247,10 @@ Our ideal routing of messages to consumers would be:
     C1: M1, M3
     C2: M2, M4
 
-At the very least, each message must be sent to the same consumer,
-irrespective of the messages that were sent before it from the same
-queue.  If we cannot guarantee this, RAIS cannot work for shared
-queues.
+A duplicated message sent from a clustered queue (a queue with the same
+name held on two different servers) must be sent to the same consumer,
+whatever the messages that were sent before it from the same queue.
+If we cannot guarantee this, RAIS cannot work for shared queues.
 
 We can resolve this problem if:
 
@@ -242,11 +267,9 @@ We can resolve this problem if:
 There are probably other solutions, this appears to be a simple point
 to start with.
 
-To synchronise consumers requires some coordination between the servers.
-We do not want the servers to be RAIS-aware, so this communication must
-be between each server and one or more of the RAIS proxies.  Each RAIS
-proxy has the same capabilities, so it does not matter which one is
-chosen, except for optimisation.
+To synchronise consumers requires some coordination between the servers
+and one or more RAIS proxies.  Each RAIS proxy has the same capabilities,
+so it does not matter which one is chosen, except for network optimisation.
 
 We propose a hand-shaked synchronisation mechanism based on AMQP
 mechanisms.  We have these participants:
@@ -318,11 +341,11 @@ Costs
 
 A very rough estimate of the cost of this work is:
 
- 1. RAIS proxy alpha: 10 days' work.
- 2. RAIS proxy beta: 15 days' work.
- 3. RAIS integration with operational control: 10 days' work.
- 4. Add RAIS support to JMS and C APIs: 2 days' work.
- 5. Stability and load testing: 15 days' work.
+ - RAIS proxy alpha: 10 days' work.
+ - RAIS proxy beta: 15 days' work.
+ - RAIS integration with operational control: 10 days' work.
+ - Add RAIS support to JMS and C APIs: 2 days' work.
+ - Stability and load testing: 15 days' work.
 
 It should be possible to build a working RAIS implementation with
 2-3 months of work.
