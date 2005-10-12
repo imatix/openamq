@@ -202,9 +202,9 @@ We propose the following mechanism:
     topic exchange.
  2. Each RAIS proxy will subscribe to this information steam and thus
     be able to monitor the state of each server.
- 3. The RAIS proxies will use this state information to decide what
-    servers are safe to publish to, and when the stream of data from
-    the cluster is stable enough to pass to the application.
+ 3. Subscriber-side RAIS proxies will use this state information to
+    decide when the stream of data from the cluster is stable enough to
+    pass to the application.
 
 We can use a standard topic exchange, e.g. amq.system.rais.  The
 presence or absence of this exchange will tell RAIS proxies whether
@@ -250,64 +250,61 @@ Our ideal routing of messages to consumers would be:
 A duplicated message sent from a clustered queue (a queue with the same
 name held on two different servers) must be sent to the same consumer,
 whatever the messages that were sent before it from the same queue.
-If we cannot guarantee this, RAIS cannot work for shared queues.
 
-We can resolve this problem if:
+We can achieve this by using a stateless hashing function to select the
+consumer for a given message, rather than using a round-robin technique.
+Given a specific message, and a specific set of consumers, a stateless
+hashing function will always send the message to the same consumer.
 
- - The servers activate new consumers in a synchronised manner, so the
-   set of consumers for a queue is always identical across all servers.
-   Thus, until all servers have signalled that a consumer is ready,
-   that consumer will not be used to receive messages.
+Our second challenge is to stop messages from arriving in queues that
+do not have the same set of consumers.  We see two ways of doing this,
+a simple way and a more complex but probably more correct way.
 
- - The servers use a stateless hashing function to select the next
-   consumer for a message, rather than using a round-robin technique.
-   Thus, given a specific message, and a specific set of consumers,
-   the message will always go to the same consumer.
+The simple way is to not send messages to servers that are "out of
+date" from the point of view of publishers.  We have already described
+a mechanism by which RAIS proxies can track the state of each server.
+We can use this mechanism in publisher-side RAIS proxies to detect
+out-of-date servers.
 
-There are probably other solutions, this appears to be a simple point
-to start with.
+There is a window for error here - a consumer may have been registered
+with a server but the server may not yet have warned the RAIS proxies
+that there is a state change.
 
-To synchronise consumers requires some coordination between the servers
-and one or more RAIS proxies.  Each RAIS proxy has the same capabilities,
-so it does not matter which one is chosen, except for network optimisation.
+A more complete solution needs a two-level handshake between the
+servers and a selected RAIS proxy that we will designate the "cluster
+manager".  This works as follows:
 
-We propose a hand-shaked synchronisation mechanism based on AMQP
-mechanisms.  We have these participants:
+ - A new subscriber joins a server, creating a consumer on that
+   server.
+ - The server marks the consumer as "inactive" and publishes its
+   change of state to the cluster manager.
+ - The server pauses its queue, so that new incoming messages are
+   not routed to consumers on this queue.  Other queues continue
+   to work unaffected.
+ - This process repeats as the subscriber joins each server in turn.
+ - The cluster manager collect these reports in turn and collates
+   the results.
+ - When all servers report the same status, the cluster manager
+   sends all servers a "accept consumer" message.
+ - Given this message, the servers activate the new consumer and
+   then reply with an acknowledgement.
+ - The cluster manager collects these acknowledgements and when it
+   has them all, it sends all servers a "resume queue" message.
+ - The servers, on receiving this message, start sending messages
+   out to all consumers on the queue.
 
- - A set of servers.
- - One or more synchronisation managers (SYNCMAN), which are RAIS
-   proxies that have been configured to play this role.
- - A queue and bindings to allow each SYNCMAN to receive messages
-   from each server.
- - A queue to allow each server to receive messages back from each
-   SYNCMAN.
+This model guarantees that the set of consumers is identical across
+all servers before messages are sent out of a queue.
 
-The process is a two-phase handshake that works as follows:
-
- - A new consumer joins a server.
- - The server marks the consumer as "inactive" and tells the SYNCMAN
-   that it has a new consumer, specifying the consumer identity.
- - The server pauses its queue, so that new incoming messages are not
-   routed to consumers.
- - This process repeats for each server (unless there is a problem).
- - The SYNCMAN collects these reports from each server and expects
-   to receive exactly one per server for a given consumer.
- - When all reports are received, the SYNCMAN tells all servers to
-   activate their consumers.  The servers each do this, and then
-   confirm to the SYNCMAN.
- - The SYNCMAN then tells all servers to restart their queue.  This
-   action happens with no further hand-shaking, and the queues will
-   restart at roughly different instants, without affecting the
-   delivery order of messages.
-
-We can use multiple SYNCMANs to avoid a single failure point. Servers
-would send their reports to all SYNCMANs but wait for the first "start
-consumer" response and "start queue" response, ignoring the rest.
+We can choose the cluster manager in several ways.  Our preference
+is to allow each server to choose several cluster managers from the
+set of publishing RAIS proxies known to it, using some algorithm
+that gurantees that there will be an overlap of at least one.
 
 Cluster Maintenance
 -------------------
 
-There are (at least) two ways of maintaining the cluster.  One is to
+There are (at least) two ways of maintaining the cluster. One is to
 define the set of servers (their IP address and port) manually so
 that all RAIS proxies share this information.  The second is to use
 multicast techniques to detect when new servers are added to the
@@ -354,8 +351,8 @@ Proof-of-Concept Proposal
 -------------------------
 
 We estimate that a single CPU is capable of transferring 40K messages
-per second given a very fast network card.  (Previous tests have shown
-50K messages per second on loopback networks.)
+per second given a very fast network card.  This figure comes from tests
+that have shown rates of 50K messages per second on loopback networks.
 
 The following architecture should demonstrate the capacity of the RAIS
 cluster:
