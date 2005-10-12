@@ -1,5 +1,5 @@
 gdl
-    title     = AMQ "RAIS" Clustering
+    title     = AMQ R.A.I.S. Clustering
     subtitle  = A Redundant Array of Inexpensive Servers
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>

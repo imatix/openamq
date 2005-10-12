@@ -6,9 +6,32 @@ Goals
 
 To allow remote control of an OpenAMQ server, including:
 
- - monitoring of key entities (queues, etc.)
+ - monitoring of key objects (queues, etc.)
  - collection of status information (performance, statistics)
- - setting of alerts (on queue size, etc.)
+ - setting of watches (on queue size, etc.)
+
+We want the operator console to have these features:
+
+ - to be very rapid, even when many people are operating (different
+   parts of) an OpenAMQ server.
+   
+ - to be portable to any desired user interface technology, including
+   web, command-line, JMX, etc.
+
+ - to provide access to all "operable" internals of the server, i.e.
+   to any object that may be tuned, configured, or managed.
+
+ - to hide all aspects of the server that are not "operable", i.e.
+   any object that should not be touched or seen.
+
+ - all messages are formally defined so that the necessary code and
+   can documentation can be fully generated.
+
+ - the operator console is stateless, with no concept of "session".
+   All operations work directly on the live server.
+
+ - the operator console may have the notion of transaction, in which
+   an operation will be completed fully, or not at all.
 
 Principles
 ==========
@@ -16,23 +39,66 @@ Principles
 Uses AMQP Mechanisms
 --------------------
 
-The operator console is built using the AMQP protocol.  The overall
+The operator console is built using the AMQP protocol. The overall
 architecture is:
 
     .------------.               .-----------.       .----------.
     |            | <- Request -- |  Console  |       |          |
     | AMQ Server |               | Interface | <===> |   GUI    |
-    |            | - Response -> |   Layer   |       |          |
+    |            | - Response -> |  Client   |       |          |
     `------------'               `-----------'       `----------'
 
-In the OpenAMQ server, requests are handled by a standard exchange,
-the system exchange amq.system.  Responses are sent to a temporary
-reply queue created by the console interface layer.
+In the OpenAMQ server, requests are handled by a standard exchange, the
+system exchange amq.system. Responses are sent to a temporary reply
+queue created by the console interface layer.
 
 Asynchronous information - alerts - are sent to the amq.system.alert
 exchange, and console interface layer(s) get these alerts using a
-pub/sub model.  Alerts are published with a topic-style routing key
-that allows selective subscription to specific types of alert.
+pub/sub model. Alerts are published with a topic-style routing key that
+allows selective subscription to specific types of alert.
+
+Object Properties
+-----------------
+
+We define an object as:
+
+ - belonging to a certain 'class' of objects.
+ - having a unique identifier - see below.
+ - having a set of named properties that can be inspected.
+ - having a set of named properties that can be modified.
+ - having a set of named properties that can be watched - see below.
+
+Some properties are both inspectable and modifiable. For instance if an
+object has a status option ("active", "inactive") that the operator can
+change, this would be both inspectable and modifiable.
+
+Other properties are purely inspectable - typically, statistics and
+counters. We do not have any immediate cases of properties that are only
+modifiable.
+
+Watches
+-------
+
+A watch is a concept designed to let an operator monitor specific
+objects without having to watch them constantly. Watches are set on
+specific properties.
+
+While the specifics of watch implementation depend on the server, we
+assume a model like this:
+
+ - watches are global and shared between all operators
+ - a watch specifies some upper or lower limit for a property
+ - the server will regularly check all watches on all objects
+ - when a watch limit is crossed, the server will send an alert
+   message to the amq.system.alert exchange using the watch routing
+   key.
+ - in order to receive a watch alert the operator console must have
+   correctly subscribed to messages coming from amq.system.alert.
+
+Watches have the same lifespan as the objects they are applied to.
+That is, durable objects have durable watches.  Note that in the
+current OpenAMQ server implementation, all objects are temporary,
+and so are all watches.
 
 Hierarchical Data View
 ----------------------
@@ -51,7 +117,7 @@ The operational model is a hierarchy of objects as follows:
      :
      `-- connection
 
-These entities are:
+These objects are:
 
  - server: the openamq server.  Server properties include the server IP
    address and port, number of connections, traffic statistics, etc.
@@ -73,26 +139,281 @@ These entities are:
    address, and to a virtual host.  Connection properties include the time
    of connection, traffic statistics, number of errors, last error, etc.
 
-
-
 XML-formatted Messages
 ----------------------
 
-All messages to/from the system exchange are XML-formatted using simple
-XML.  This eliminates discussion of message formatting rules and allows
-easy backwards compatability (unknown attributes are ignored and missing
-attributes are given default values).
+All messages between the Console Interface Client (CIC) and the server
+are formatted using simple XML. We use a minimalistic XML syntax - no
+stylesheets, namespaces, document types, etc.
 
-Concepts
---------
+We define two categories of message:
 
- - We work with a "operable object tree", which is the hierarchy of
-   objects that exist and can be examined and manipulated.
+ 1. Synchronous request-response messages in which the CIC makes a
+    request and the server replies with a response.
+ 2. Asynchronous information messages provoked by events in the server,
+    to which the CIC may subscribe.
+    
+These messages carry descriptions of a variety of objects (exchange,
+queue, etc.) along with meta data.
 
- - Each object has an identifier, a unique 64-bit ID.  Identifiers are
-   not durable - if the server restarts,
+The Console Interface Language
+------------------------------
 
- -
+We will define the CIL grammar to specify:
+
+ - The general format of messages.
+ - The set of inspectable objects and their organisation into a tree.
+ - The inspectable properties of each object.
+ - The modifiable properties of each object.
+ - The monitorable properties of each object.
+ - Any other synchronous methods that are allowed on each object,
+   along with the request and response arguments for these methods.
+   Note that 'inspect', 'modify', and 'monitor' are simply special
+   cases of synchronous object methods.
+ - The asynchronous methods that each object can produce.  Note that
+   the 'alert' method is simply a special case of an asynchronous
+   object method.
+
+Object Identification
+---------------------
+
+Each object has a unique 64-bit identifier assigned by the server when
+it creates the object. This identifier is used in all messages when
+referring to an object.
+
+By convention, ID 0 is reserved for the root object, namely the "server"
+level.
+
+Message Implementation
+======================
+
+General Request/Response Model
+------------------------------
+
+The general format of a request is:
+
+    <request name = "methodname">
+        [message arguments]
+    </request>
+    ----
+    <otl request = "methodname">
+        [message arguments]
+    </otl>
+    
+The general format of a response is:
+
+    <response name = "methodname">
+        [message arguments]
+    </response>
+    ----
+    <otl response = "methodname">
+        [message arguments]
+    </otl>
+
+These are the standard methods we implement:
+
+ - "inspect" - inspect a set of server objects.
+ - "modify" - modify the properties of a set of server objects.
+ - "monitor" - query or modify the watches on a set of objects.
+ 
+Each request that the CIC sends results in exactly one response from the
+server, with the same method name. We will probably define more methods,
+especially on an object-by-object base as we progress with the operator
+console implementation.
+
+The 'Inspect' Method
+--------------------
+
+The 'inspect' method asks the server to provide a detailed description
+of one or more objects:
+
+    <request name = "inspect">
+      [ <objectname id = "idvalue" expand = "0|1" /> ]...
+    </request>
+    ----
+    <otl
+        request = "inspect">
+      [ <object name = "objectname" id = "idvalue" expand = "0|1" /> ]...
+    </otl>
+
+Where the 'expand' option (default 0) asks for a list of all child
+objects. For example, to get the top-level server object and all its
+children:
+
+    <request name = "inspect">
+        <server id = "0" expand = "1" />
+    </request>
+    ----
+    <otl request = "inspect">
+        <object name = "server" id = "0" expand = "1" />
+    </otl>
+
+The 'inspect' response provides details for a set of objects:
+
+    <response name = "inspect">
+      [ <objectname id = "idvalue" status = "ok|notfound|noaccess">
+          [ <objectprop>objectpropvalue</objectprop> ]...
+          [ <objectname ... /> ]...
+        </objectname> ]...
+    </response>
+    ----
+    <otl response = "inspect">
+      [ <object name = "objectname" id = "idvalue"
+                status = "ok|notfound|noaccess">
+          [ <field name = "objectprop">objectpropvalue</field> ]...
+          [ <object name = "childname" id = "idvalue" /> ]...
+        </object> ]...
+    </otl>
+
+For example, the inspect response for a freshly-started server instance
+- with its default exchanges but no queues or connections - would be
+something like:
+
+    <response name = "inspect">
+        <server id = "0" status = "ok">
+            <ipaddress>192.168.55.142</ipaddress>
+            <port>7654</port>
+            <connection_count>0</connection_count>
+            <message_count>0</message_count>
+            <octet_in_count>0</octet_in_count>
+            <octet_out_count>0</octet_out_count>
+            <exchange id = "1" />
+            <exchange id = "2" />
+            ...
+            <exchange id = "n" />
+        </server>
+    </response>
+    ----
+    <otl response = "inspect">
+        <object name = "server" id = "0" status = "ok">
+            <field name = "ipaddress">192.168.55.142</field>
+            <field name = "port">7654</field>
+            <field name = "connection_count">0</field>
+            <field name = "message_count">0</field>
+            <field name = "octet_in_count">0</field>
+            <field name = "octet_out_count">0</field>
+            <object name = "exchange" id = "1" />
+            <object name = "exchange" id = "2" />
+            ...
+            <object name = "exchange" id = "n" />
+        </object>
+    </otl>
+    
+Note that the set of properties that the inspect method returns are
+defined on a per-object basis later in this document.
+
+The 'Modify' Method
+-------------------
+
+The 'modify' method asks the server to modify certain properties of one
+or more specified objects:
+
+    <request name = "modify">
+      [ <objectname id = "idvalue">
+          [ <objectprop>objectpropvalue</objectprop> ]...
+        </objectname> ]...
+    </request>
+    ----
+    <otl request = "modify">
+      [ <object name = "objectname" id = "idvalue">
+          [ <field name = "objectprop">objectpropvalue</field> ]...
+        </object> ]...
+    </otl>
+
+The 'modify' response signals that whether the objects were modified
+successfully or not:
+
+    <response name = "modify">
+      [ <objectname id = "idvalue" status = "ok|notfound|noaccess"> ]...
+    </response >
+    ----
+    <otl response = "modify">
+      [ <object
+            name = "objectname"
+            id = "idvalue"
+            status = "ok|notfound|noaccess"> ]...
+    </otl>
+
+Note that the set of properties that can be modified are defined on
+a per-object basis in the CIL specifications. 
+
+The 'Monitor' Method
+--------------------
+
+The 'monitor' method asks the server to monitor certain properties of
+one or more objects:
+
+    <request name = "monitor">
+      [ <objectname id = "idvalue" reset = "0|1">
+          [ <objectprop watch = "watchtype" value = "watchvalue"
+              [ routing_key = "routingkey" ] >
+            Alert message
+            </objectprop> ]...
+        </objectname> ]...
+    </request>
+    ----
+    <otl request = "monitor">
+      [ <object name = "objectname" id = "idvalue" reset = "0|1">
+          [ <watch name = "watchtype" value = "watchvalue" 
+              [ routing_key = "routingkey" ] >
+            Alert message
+            </watch> ]...
+        </object> ]...
+    </otl>
+
+- The watchtypes are: eq, ne, lt, gt, le, ge, which correspond to the
+  standard set of comparison operators. The watchvalue is a numeric
+  value - only numeric and Boolean fields are monitorable.
+
+- If the reset option is not specified, or is 0, the watches are added
+  to those already present.  If the reset option is 1, the server will
+  delete all existing watches before adding those specified (if any).
+
+- Alerts are sent to the amq.system.alert exchange using the routing
+  key, which defaults to "amq.<objectname>.<idvalue>".
+
+The monitor reply lists all current watches for the specified object:
+
+    <response name = "monitor">
+      [ <objectname id = "idvalue">
+          [ <objectprop watch = "watchtype" value = "watchvalue">
+            Alert message
+            </objectprop> ]...
+        </objectname> ]...
+    </request>
+    ----
+    <otl response = "monitor">
+      [ <object name = "objectname" id = "idvalue">
+          [ <watch name = "watchtype" value = "watchvalue">
+            Alert message
+            </watch> ]...
+        </object> ]...
+    </otl>
+
+
+
+ 
+
+Response Message
+----------------
+
+The general format of a request message is:
+
+    <request name = "...">
+        [objects]
+    </response>
+    
+
+Alert Message
+-------------
+
+
+Message Transfer Protocol
+=========================
+
+- Basic.Publish
+- temporary queues
+
 
 
 hierarchy

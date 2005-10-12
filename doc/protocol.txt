@@ -3,7 +3,7 @@ gdl
     subtitle  = The AMQP/Fast Wire-Level Protocol
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/08/23
+    date      = 2005/09/21
     copyright = Copyright (c) 2004-2005 JPMorgan
     version   = 0.9b1
 end gdl
@@ -477,9 +477,9 @@ Field Tables
 
 Field tables are long strings that contain name-value pairs. Each
 name-value pair is a structure that provides a field name, a field type,
-and a field value. A field can hold a tiny text string, a short binary
-string, a long signed integer, a decimal, a date and/or time, or another
-field table.
+and a field value. A field can hold a tiny text string, a long string,
+a long signed integer, a decimal, a date and/or time, or another field
+table.
 
 Guidelines for implementors:
 
