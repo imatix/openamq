@@ -214,8 +214,10 @@ public class AMQProtocolHandler implements ProtocolHandler
         BlockingMethodFrameListener listener = new ConnectionCloseOkListener();
         _frameListeners.add(listener);
         _stateManager.changeState(AMQState.CONNECTION_CLOSING);
-        /*final Connection.Close frame = new Connection.Close();
-        writeFrame(frame);*/
+        
+        // TODO: Polish        
+        final AMQFrame frame = ConnectionCloseBody.createAMQFrame(0, AMQConstant.REPLY_SUCCESS.getCode(), "JMS client is closing the connection.", 0, 0);
+        writeFrame(frame);
         _logger.debug("Blocking for connection close frame");
         listener.blockForFrame();
         _protocolSession.closeProtocolSession();
