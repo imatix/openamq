@@ -228,9 +228,11 @@ s_compile_binding (
         icl_console_print ("X: index    request=%s binding=%d", index_key, binding->index);
 
     index = amq_index_hash_search (self->index_hash, index_key);
-    if (index == NULL)
+    if (index == NULL) {
         index = amq_index_new (self->index_hash, index_key, self->index_array);
-
+        if (amq_server_config_trace_route (amq_server_config))
+            icl_console_print ("X: newhash  table=%p", self->index_hash);
+    }
     //  Cross-reference binding and index
     ipr_bits_set (index->bindset, binding->index);
     ipr_looseref_queue (binding->index_list, index);
