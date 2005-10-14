@@ -301,6 +301,55 @@ is to allow each server to choose several cluster managers from the
 set of publishing RAIS proxies known to it, using some algorithm
 that gurantees that there will be an overlap of at least one.
 
+
+Problem Statement
+
+ - Message M is sent to two instances of queue, Q1 and Q2.
+ - A new consumer C is attaching to both queues.  It attaches to Q1.
+ - M now arrives in both queues, and both queues dispatch it.
+ - New consumer C now attaches to Q2.
+
+System:
+
+ - RAIS proxy that is doing the consume acts as "sentinel".
+ - The sentinel sends all servers a "prepare" command specifying the
+   queue.
+ - Each server responds with an acknowledgment.
+ - At this point, arbitrary messages have been passed through the queues.
+ -
+
+ - sentinel can be proxy making consumer
+ - how do we synchronise same message on two servers...
+    - message has to do out before queue is paused
+    - can we introduce syncpoints?
+
+ - proxy wants to consume
+    - asks all queues to prepare
+    -
+
+queues know last message
+    - 
+
+    Q1:    M1  *  M2 *   M4
+    Q2:    M1  *  M3     M4
+    Q3:    M2  *  M3
+    
+ 
+Goal: to ensure that all instances of queue have same set of consumers
+while messages are exchanged.
+
+Note that queues may be receiving messages arbitrarily, i.e. message N
+may arrive at queues Q1 and Q2 with consirable lag.  [need a diagram to
+demonstrate the problem windows].
+
+
+
+Method: pause and flush queues with existing consumers, allow all queues to get
+new consumers, 
+
+    - RAIS proxy that is making the consumer
+
+
 Cluster Maintenance
 -------------------
 

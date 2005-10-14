@@ -1,8 +1,8 @@
 OpenAMQ Operator Console
 ************************
 
-Goals
-=====
+Goals of the Operator Console
+=============================
 
 To allow remote control of an OpenAMQ server, including:
 
@@ -44,8 +44,8 @@ architecture is:
 
     .------------.               .-----------.       .----------.
     |            | <- Request -- |  Console  |       |          |
-    | AMQ Server |               | Interface | <===> |   GUI    |
-    |            | - Response -> |  Client   |       |          |
+    | AMQ Server | - Response -> | Interface | <===> |   GUI    |
+    |            | --- Alert --> |  Client   |       |          |
     `------------'               `-----------'       `----------'
 
 In the OpenAMQ server, requests are handled by a standard exchange, the
@@ -65,16 +65,11 @@ We define an object as:
  - belonging to a certain 'class' of objects.
  - having a unique identifier - see below.
  - having a set of named properties that can be inspected.
+ - having a set of named properties that can be watched.
  - having a set of named properties that can be modified.
- - having a set of named properties that can be watched - see below.
 
-Some properties are both inspectable and modifiable. For instance if an
-object has a status option ("active", "inactive") that the operator can
-change, this would be both inspectable and modifiable.
-
-Other properties are purely inspectable - typically, statistics and
-counters. We do not have any immediate cases of properties that are only
-modifiable.
+A watchable property is always inspectable. A modifiable property may or
+may not be inspectable and/or watchable.
 
 Watches
 -------
@@ -156,6 +151,12 @@ We define two categories of message:
 These messages carry descriptions of a variety of objects (exchange,
 queue, etc.) along with meta data.
 
+Note: this document provides two alternate XML mappings for objects and
+the meta data needed for various methods. The first mapping is simple
+but introduces the possibility of name clashes between meta-data and
+real data. The second mapping eliminates the possibility of clashes but
+is a little more work to understand and use.
+
 The Console Interface Language
 ------------------------------
 
@@ -187,8 +188,11 @@ level.
 Message Implementation
 ======================
 
-General Request/Response Model
-------------------------------
+Synchronous Method Model
+------------------------
+
+A synchronous method consists of one request from the CIC to the
+server and one response from the server back to the CIC.
 
 The general format of a request is:
 
@@ -210,7 +214,7 @@ The general format of a response is:
         [message arguments]
     </otl>
 
-These are the standard methods we implement:
+These are the standard synchronous methods we implement:
 
  - "inspect" - inspect a set of server objects.
  - "modify" - modify the properties of a set of server objects.
@@ -220,6 +224,16 @@ Each request that the CIC sends results in exactly one response from the
 server, with the same method name. We will probably define more methods,
 especially on an object-by-object base as we progress with the operator
 console implementation.
+
+Asynchronous Method Model
+-------------------------
+
+An asynchronous method consists of one notify message from the CIC to
+the server or vice-versa.
+
+These are the standard asynchronous methods we implement:
+
+ - "alert" - when a watched property has reached the specified value.
 
 The 'Inspect' Method
 --------------------
@@ -251,15 +265,21 @@ children:
 The 'inspect' response provides details for a set of objects:
 
     <response name = "inspect">
-      [ <objectname id = "idvalue" status = "ok|notfound|noaccess">
+      [ <objectname
+            id = "idvalue"
+            status = "ok|notfound|noaccess"
+            children = "nbrchildren">
           [ <objectprop>objectpropvalue</objectprop> ]...
           [ <objectname ... /> ]...
         </objectname> ]...
     </response>
     ----
     <otl response = "inspect">
-      [ <object name = "objectname" id = "idvalue"
-                status = "ok|notfound|noaccess">
+      [ <object
+            name = "objectname"
+            id = "idvalue"
+            status = "ok|notfound|noaccess"
+            children = "nbrofchildren>
           [ <field name = "objectprop">objectpropvalue</field> ]...
           [ <object name = "childname" id = "idvalue" /> ]...
         </object> ]...
@@ -270,7 +290,7 @@ For example, the inspect response for a freshly-started server instance
 something like:
 
     <response name = "inspect">
-        <server id = "0" status = "ok">
+        <server id = "0" status = "ok" children = "32">
             <ipaddress>192.168.55.142</ipaddress>
             <port>7654</port>
             <connection_count>0</connection_count>
@@ -285,7 +305,7 @@ something like:
     </response>
     ----
     <otl response = "inspect">
-        <object name = "server" id = "0" status = "ok">
+        <object name = "server" id = "0" status = "ok" children = "32">
             <field name = "ipaddress">192.168.55.142</field>
             <field name = "port">7654</field>
             <field name = "connection_count">0</field>
@@ -345,19 +365,23 @@ one or more objects:
 
     <request name = "monitor">
       [ <objectname id = "idvalue" reset = "0|1">
-          [ <objectprop watch = "watchtype" value = "watchvalue"
-              [ routing_key = "routingkey" ] >
-            Alert message
-            </objectprop> ]...
+          [ <objectprop
+                watch = "watchtype"
+                value = "watchvalue"
+                alert = "alertmessage"
+              [ route = "routingkey" ] /> ]...
         </objectname> ]...
     </request>
     ----
     <otl request = "monitor">
       [ <object name = "objectname" id = "idvalue" reset = "0|1">
-          [ <watch name = "watchtype" value = "watchvalue" 
-              [ routing_key = "routingkey" ] >
-            Alert message
-            </watch> ]...
+          [ <field name = "objectprop">
+              [ <watch
+                    name  = "watchtype"
+                    value = "watchvalue" 
+                    alert = "alertmessage"
+                  [ route = "routingkey" ] /> ]...
+            </field> ]...
         </object> ]...
     </otl>
 
@@ -376,73 +400,200 @@ The monitor reply lists all current watches for the specified object:
 
     <response name = "monitor">
       [ <objectname id = "idvalue">
-          [ <objectprop watch = "watchtype" value = "watchvalue">
-            Alert message
-            </objectprop> ]...
+          [ <objectprop
+                watch = "watchtype"
+                value = "watchvalue"
+                alert = "alertmessage"
+                route = "routingkey" /> ]...
         </objectname> ]...
     </request>
     ----
     <otl response = "monitor">
       [ <object name = "objectname" id = "idvalue">
-          [ <watch name = "watchtype" value = "watchvalue">
-            Alert message
-            </watch> ]...
+          [ <watch
+                name  = "watchtype"
+                value = "watchvalue"
+                alert = "alertmessage"
+                route = "routingkey" /> ]...
         </object> ]...
     </otl>
 
+The 'Alert' Method
+-------------------
 
+The 'alert' method tells the CIC that a watched property has reached
+the specified value:
 
- 
-
-Response Message
-----------------
-
-The general format of a request message is:
-
-    <request name = "...">
-        [objects]
-    </response>
-    
-
-Alert Message
--------------
-
+    <notify name = "alert">
+        <objectname id = "idvalue">
+            <objectprop alert = "alertmessage">objectpropvalue</objectprop>
+        </objectname>
+    </notify>
+    ----
+    <otl
+        notify = "alert">
+        <object name = "objectname" id = "idvalue">
+            <field name = "objectprop" alert = "alertmessage">objectpropvalue</field>
+        </object>
+    </otl>
 
 Message Transfer Protocol
 =========================
 
-- Basic.Publish
-- temporary queues
+Basic Content Class
+-------------------
 
+We will use the Basic content class, and these AMQP methods:
 
+ - Basic.Publish
+ - Basic.Consume
+ - Basic.Deliver
+ - Basic.Browse
+ - Basic.Browse-Ok
 
-hierarchy
+Using the Basic content class means the operator console can be used in
+AMQ servers that do not support JMS semantics but are built for file
+transfer or content streaming. The Basic class is the only class that
+all AMQ servers MUST support, according to the AMQP specifications.
 
+Initialising a Console Session
+------------------------------
 
-    <request>
-        inspect
-        modify
-        monitor
-    </request>
+Before sending methods to the server, the console interface layer - or
+whatever application is acting as client - must create a temporary
+private queue for replies:
 
-    <response>
-        inspect-ok
-        modify-ok
-        monitor-ok
-    </response>
+ - Queue.Declare, no name, private = 1, auto-delete = 1.
 
-    <alert>
-    </alert>
+It must then bind this queue to the amq.direct exchange:
 
-    object: class, ID, name, created, children
-        + properties
+ - Queue.Bind, queue=<provided name>, exchange=amq.direct,
+   routing_key=<provided name>.
 
-    property:
-        type        bool, int, str, id
-        name
-        inspect     y/n
-        modify      y/n
-        monitor     y/n
+Sending a Method to The Server
+------------------------------
+
+The client sends a method to the server as follows:
+
+ - The method is formatted as XML according to the specifications
+   defined previously.
+ - The client creates a Basic content containing this XML, and with
+   the content type "text/xml".
+ - The client sets the reply-to property to the name of its reply
+   queue.  This name must not be encoded in any way.
+ - The client sends this content to the amq.system exchange, using
+   the Basic.Publish method and the routing_key "amq.console".
+ - The client can then wait for a reply to arrive on its reply queue.
+
+Subscribing to Alert Methods
+----------------------------
+
+The server sends alert methods to the amq.system.alert exchange,
+which is a topic exchange.  It uses the routing key specified for
+the watch.
+
+Server Implementation
+=====================
+
+Operable Objects
+----------------
+
+We are concerned only with operable objects, those we can work with
+via the operator console.
+
+All operable objects are implemented as iCL asynchronous objects (using
+the icl_smt framework). This ensures that objects can safely and
+atomically process all methods they receive.
+
+The inspect and modify methods are defined in an abstract iCL class that
+uses GSL code generation - a type of templating - to produce the actual
+code for each method instance.
+
+Object Identification
+---------------------
+
+When an operable object is created (the new method), it takes a new
+identification value. This will be done using a global 64-bit variable
+that is atomically incremented.
+
+Object Registry
+---------------
+
+The system exchange maintains a registry of all active operable objects.
+This is a tree structure, held in memory, with each node consisting of:
+
+ - A reference to the object.
+ - A pointer to the parent node.
+ - The object's ID value.
+ - A linked list of child objects (mixed and unordered).
+ - A pointer to a class descriptor.
+
+The class descriptor defines a single object type, e.g. "queue", and has
+these properties:
+
+ - Short name of class, e.g. "queue".
+ - Callback address of 'inspect' method.
+ - Callback address of 'modify' method.
+ 
+Class descriptors are created automatically when a specific class is
+initialised - i.e. used for the first time. They never change during the
+lifetime of the server.
+
+The registry can do a lookup from object ID to registry node, so object
+ID forms a primary key for accessing objects in the registry.
+
+Object Registation
+------------------
+
+A new object registers by sending a "register" method to the system
+exchange, which is an asynchronous object. The register method has these
+arguments:
+
+ - The ID of the new object.
+ - The ID of the parent object.
+ - The address of the corresponding class descriptor.
+
+Object Deregistration
+---------------------
+
+The destroy method for an object sends a "cancel" method to the system
+exchange. The cancel method has these arguments:
+
+ - ID of object being destroyed
+
+The 'Inspect' Method
+--------------------
+
+An inspect method can apply to several objects. When the system exchange
+receives an inspect method, it decodes the XML to give a list of objects
+to inspect. It sends a method to each object in turn, waiting for a
+response. It collects these responses into a response XML and when it
+has done each object, it sends the reply back to the client (using the
+mechanism explained previously).
+
+For simplicity, all XML encoding and decoding is done in the system
+exchange only.  Data is passed between the system exchange and objects
+in the form of field tables (the asl_field_list class).
+
+The 'Modify' Method
+-------------------
+
+A modify method can apply changes to several objects. The system
+exchange decodes the XML, and sends a modify method to each affected
+object. It constructs a response and sends this back to the client.
+
+The 'Monitor' Method
+--------------------
+
+The system exchange is responsible for monitoring watches.  It does
+this by maintaining a list of watches and checking each one after
+some regular interval - e.g. every 30 seconds.  It asks the watched
+object to provide its properties ("inspect"), checks the properties
+and if they hit the watch limit, sends an alert.
+
+Once watch has provoked an alert, the system exchange will suppress
+successive alerts unless there is significant variance - e.g. 5%.
+
 
 
 
