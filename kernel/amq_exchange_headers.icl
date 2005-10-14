@@ -35,6 +35,15 @@ that is in every content header).
 
 <method name = "compile">
     <doc>
+    Compiles a headers binding. The arguments hold a set of fields
+    to match on.  Each field with a non-empty value is matched for
+    that field/value pair.  Each field with an empty value is matched
+    for presence only (matching any value in the message).  Fields
+    prefixed by X- are not matched on.  The field called "X-match"
+    can have the value "all" or "any", meaning logical AND or OR of
+    all matches.  It defaults to "all".
+
+    Deprecated:
     Compiles a property binding.  The arguments must contain a field
     called "headers", which is a field table that holds a set of fields
     to match on.  Each field with a non-empty value is matched for that
@@ -62,17 +71,20 @@ that is in every content header).
     fields = asl_field_list_new (binding->arguments);
     if (fields) {
         binding->match_all = TRUE;      //  By default, want full match
-        field = asl_field_list_search (fields, "match");
-        if (field) {
-            if (streq (asl_field_string (field), "any")) {
-                if (amq_server_config_trace_route (amq_server_config))
-                    icl_console_print ("X: select   match=any", index_key);
-                binding->match_all = FALSE;
-            }
-            asl_field_unlink (&field);
-        }
+
         field = asl_field_list_search (fields, "headers");
         if (field) {
+            //  0.9b style
+            icl_console_print ("X: warning -- deprecated headers arguments - see AMQ-116");
+            field = asl_field_list_search (fields, "match");
+            if (field) {
+                if (streq (asl_field_string (field), "any")) {
+                    if (amq_server_config_trace_route (amq_server_config))
+                        icl_console_print ("X: select   match=any", index_key);
+                    binding->match_all = FALSE;
+                }
+                asl_field_unlink (&field);
+            }
             headers = asl_field_list_new (field->string);
             asl_field_unlink (&field);
             if (headers) {
@@ -80,7 +92,7 @@ that is in every content header).
                 while (field) {
                     //  Index key is field name, or field name and value
                     //  We truncate name and value to sensible limits
-            
+
                     icl_shortstr_ncpy (index_key, field->name, FIELD_NAME_MAX);
                     if (*asl_field_string (field)) {
                         icl_shortstr_cat  (index_key, "=");
@@ -91,6 +103,36 @@ that is in every content header).
                     field = asl_field_list_next (&field);
                 }
                 asl_field_list_destroy (&headers);
+            }
+        }
+        else {
+            //  0.9c style
+            field = asl_field_list_first (headers);
+            while (field) {
+                if (field->name [0] == 'X' && field->name [1] == '-') {
+                    if (streq (field->name, "X-match")) {
+                        if (streq (asl_field_string (field), "any")) {
+                            if (amq_server_config_trace_route (amq_server_config))
+                                icl_console_print ("X: select   match=any", index_key);
+                            binding->match_all = FALSE;
+                        }
+                    }
+                    else
+                        icl_console_print ("W: unknown field '%s' in bind arguments", field->name);
+                }
+                else {
+                    //  Index key is field name, or field name and value
+                    //  We truncate name and value to sensible limits
+
+                    icl_shortstr_ncpy (index_key, field->name, FIELD_NAME_MAX);
+                    if (*asl_field_string (field)) {
+                        icl_shortstr_cat  (index_key, "=");
+                        icl_shortstr_ncat (index_key,
+                            asl_field_string (field), FIELD_VALUE_MAX);
+                    }
+                    s_compile_binding (self, binding, index_key);
+                }
+                field = asl_field_list_next (&field);
             }
         }
         asl_field_list_destroy (&fields);
