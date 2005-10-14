@@ -144,12 +144,14 @@ topic tree specification.
         icl_console_print ("X: route    routing_key=%s", routing_key);
 
     assert (index);
-    for (IPR_BITS_EACH (binding_nbr, index->bindset)) {
+    binding_nbr = ipr_bits_first (index->bindset);
+    while (binding_nbr >= 0) {
         binding = self->exchange->binding_index->data [binding_nbr];
         if (amq_server_config_trace_route (amq_server_config))
             icl_console_print ("X: hit      wildcard=%s", binding->routing_key);
         if (amq_binding_publish (binding, channel, class_id, content, mandatory, immediate))
             delivered = TRUE;
+        binding_nbr = ipr_bits_next (index->bindset);
     }
     amq_index_unlink (&index);
 </method>

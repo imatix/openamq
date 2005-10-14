@@ -45,7 +45,8 @@
     </local>
     index = amq_index_hash_search (index_hash, index_key);
     if (index) {
-        for (IPR_BITS_EACH (item_nbr, index->bindset)) {
+        item_nbr = ipr_bits_first (index->bindset);
+        while (item_nbr >= 0) {
             if (amq_server_config_trace_route (amq_server_config))
                 icl_console_print ("X: route    header=%s binding=%d", index_key, item_nbr);
             if (item_nbr < self->lowest)
@@ -56,6 +57,7 @@
                 self->highest = item_nbr;
             }
             self->hit_count [item_nbr]++;
+            item_nbr = ipr_bits_next (index->bindset);
         }
         amq_index_unlink (&index);
     }

@@ -237,11 +237,6 @@ s_compile_binding (
     ipr_bits_set (index->bindset, binding->index);
     ipr_looseref_queue (binding->index_list, index);
 
-    for (IPR_BITS_EACH (item_nbr, index->bindset)) {
-        if (amq_server_config_trace_route (amq_server_config))
-            icl_console_print ("X: accumul8 binding=%d", item_nbr);
-    }
-
     //  We count the number of fields to allow AND matching
     binding->field_count++;
     amq_index_unlink (&index);
