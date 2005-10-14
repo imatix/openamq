@@ -217,7 +217,7 @@ main (int argc, char *argv [])
     arguments = asl_field_list_flatten (field_list);
     asl_field_list_destroy (&field_list);
     rc = amq_client_session_queue_bind (
-        session, ticket, "global", opt_queue, "match", arguments);
+        session, ticket, "global", opt_queue, "amq.match", arguments);
     icl_longstr_destroy (&headers);
     icl_longstr_destroy (&arguments);
     if (rc)

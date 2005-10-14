@@ -76,6 +76,9 @@ that is in every content header).
         if (field) {
             //  0.9b style
             icl_console_print ("X: warning -- deprecated headers arguments - see AMQ-116");
+            headers = asl_field_list_new (field->string);
+            asl_field_unlink (&field);
+
             field = asl_field_list_search (fields, "match");
             if (field) {
                 if (streq (asl_field_string (field), "any")) {
@@ -85,8 +88,6 @@ that is in every content header).
                 }
                 asl_field_unlink (&field);
             }
-            headers = asl_field_list_new (field->string);
-            asl_field_unlink (&field);
             if (headers) {
                 field = asl_field_list_first (headers);
                 while (field) {

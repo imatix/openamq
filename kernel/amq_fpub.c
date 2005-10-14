@@ -160,7 +160,7 @@ main (int argc, char *argv [])
     amq_content_jms_set_message_id (content, "ID-1");
     amq_content_jms_set_headers    (content, headers);
     amq_client_session_jms_publish (session,
-        content, ticket, "match", "stocks", FALSE, FALSE);
+        content, ticket, "amq.match", "stocks", FALSE, FALSE);
     icl_longstr_destroy (&headers);
 
     content = amq_content_jms_new ();
