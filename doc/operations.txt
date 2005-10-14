@@ -1,104 +1,156 @@
-OpenAMQ Operator Console
-************************
+gdl
+    title     = OpenAMQ Console
+    subtitle  = Operator Control for OpenAMQ Servers
+    product   = OpenAMQ
+    author    = iMatix Corporation <amq@imatix.com>
+    date      = 2005/10/14
+    copyright = Copyright (c) 2004-2005 JPMorgan
+    version   = 1.0b
+end gdl
 
-Goals of the Operator Console
-=============================
+OpenAMQ Console
+***************
 
-To allow remote control of an OpenAMQ server, including:
+Summary
+=======
 
- - monitoring of key objects (queues, etc.)
- - collection of status information (performance, statistics)
- - setting of watches (on queue size, etc.)
+Goals
+-----
 
-We want the operator console to have these features:
+The OpenAMQ console is designed to allow remote configuration, control
+and management of an OpenAMQ server, including:
 
- - to be very rapid, even when many people are operating (different
-   parts of) an OpenAMQ server.
-   
- - to be portable to any desired user interface technology, including
-   web, command-line, JMX, etc.
+ - Server and virtual host configuration.
+ - Security configuration (authentication and access controls).
+ - Monitoring of key entities (queues, etc.)
+ - Collection of status information (performance, statistics)
+ - Setting of watches (on queue size, etc.)
+ - Administrative actions (purge queue, disconnect connection, etc.)
 
- - to provide access to all "operable" internals of the server, i.e.
+We want the console to have these features:
+
+ - To be very rapid, even when many people are operating (different
+   parts of) an OpenAMQ server.  The speed of reaction of the console
+   is a very important part of its functionality.
+
+ - To be portable to any desired user interface technology, including
+   web, command-line, JMX, etc.  Ideally, end-users should be able to
+   make customised operator interfaces, scripts, etc.  We want the
+   console to be user-extensible.
+
+ - To provide access to all "operable" internals of the server, i.e.
    to any object that may be tuned, configured, or managed.
 
- - to hide all aspects of the server that are not "operable", i.e.
-   any object that should not be touched or seen.
+ - To hide all aspects of the server that are not "operable", i.e.
+   any object that should not be touched or seen.  The operator must
+   not be able to cause harm by misuse of the console.
 
- - all messages are formally defined so that the necessary code and
-   can documentation can be fully generated.
+ - To have no significant impact on server performance or stability
+   even when heavily used.  The console must be non-intrusive, and
+   wholly safe.
 
- - the operator console is stateless, with no concept of "session".
-   All operations work directly on the live server.
+ - Eventually, to be transactional, so that operations are completed
+   fully, or not at all.
 
- - the operator console may have the notion of transaction, in which
-   an operation will be completed fully, or not at all.
+We want the console implementation to be:
 
-Principles
-==========
+ - Easily extensible as we extend its scope to cover more aspects of
+   the OpenAMQ server.
 
-Uses AMQP Mechanisms
---------------------
+ - Generic, so that the same console clients can work with arbitrary
+   AMQ server implementations.
 
-The operator console is built using the AMQP protocol. The overall
-architecture is:
+To achieve this, we will use certain abstractions.  Mainly, we will
+not define any specific data model, but provide mechanisms for the
+server to tell the client, "this is the data model I support".
 
-    .------------.               .-----------.       .----------.
-    |            | <- Request -- |  Console  |       |          |
-    | AMQ Server | - Response -> | Interface | <===> |   GUI    |
-    |            | --- Alert --> |  Client   |       |          |
-    `------------'               `-----------'       `----------'
+Version 1
+---------
 
-In the OpenAMQ server, requests are handled by a standard exchange, the
-system exchange amq.system. Responses are sent to a temporary reply
-queue created by the console interface layer.
+This is a preliminary design.  We expect that the console will evolve
+considerably.  The goal of this version is to provide the minimum needed
+functionality in the simplest possible way.
 
-Asynchronous information - alerts - are sent to the amq.system.alert
-exchange, and console interface layer(s) get these alerts using a
-pub/sub model. Alerts are published with a topic-style routing key that
-allows selective subscription to specific types of alert.
+General Console Architecture
+============================
 
-Object Properties
+Server and Client Layers
+------------------------
+
+The console is built using the AMQP protocol.  That is, the server does
+not export any user interface, but rather an API on top of which arbitrary
+user interfaces can be built.  The simplest architecture is this:
+
+    OpenAMQ Server           GUI or cmdline
+    .-----------.             .-----------.
+    |           |             |           |
+    |  Console  | <==AMQP==>  |  Console  |
+    |  Server   |             |  Client   |
+    |           |             |           |
+    `-----------'             `-----------'
+
+Where the console client is responsible for the user interface -
+command line or GUI.  A more sophisticated architecture uses a console
+standard such as JMX so that it is easy to write arbitrary operator
+applications:
+
+    OpenAMQ Server               Proxy               GUI or cmdline
+    .-----------.             .-----------.           .----------.
+    |           |             |           |           |          |
+    |  Console  | <==AMQP==>  |  Console  | <==JMX==> | Operator |
+    |  Server   |             |  Client   |           |   Appl   |
+    |           |             |           |           |          |
+    `-----------'             `-----------'           `----------'
+
+ - The console consists of a server component and a client component.
+
+ - The console server is an application that is embedded into the
+   OpenAMQ server.
+
+ - The console client is an application written in an arbitrary
+   language.
+
+ - The console client and server communicate using AMQP.
+
+The Server Schema
 -----------------
 
-We define an object as:
+The console works on a set of entities we call "objects".  In many
+cases the console objects will match internal server objects, but this
+is not mandatory.
 
- - belonging to a certain 'class' of objects.
- - having a unique identifier - see below.
- - having a set of named properties that can be inspected.
- - having a set of named properties that can be watched.
- - having a set of named properties that can be modified.
+Note: it is tiresome to use different terms for the definition of an
+object, and an instance of an object.  When I say, "the model X coffee
+machine can produce twenty cups of espresso per minute", it is clear
+I am talking about the whole class of model X coffee machines.  When
+I say, "the model X coffee machine on the third floor is broken", it
+is clear I am talking about one specific instance.  So, we use the term
+"object" to mean both the whole class of a certain type of object,
+and a specific object instance of that class.
 
-A watchable property is always inspectable. A modifiable property may or
-may not be inspectable and/or watchable.
+The collection of objects that the server supports is its "schema".
 
-Watches
--------
+Every AMQ server can implement its own schema, and this is critical
+to making a useful console - depending on the server implementation,
+or configuration, we need different schemas.  It is not useful to
+assume that all console clients know all schemas in advance.
 
-A watch is a concept designed to let an operator monitor specific
-objects without having to watch them constantly. Watches are set on
-specific properties.
+The minimal server schema consists of one object:
 
-While the specifics of watch implementation depend on the server, we
-assume a model like this:
+    server
 
- - watches are global and shared between all operators
- - a watch specifies some upper or lower limit for a property
- - the server will regularly check all watches on all objects
- - when a watch limit is crossed, the server will send an alert
-   message to the amq.system.alert exchange using the watch routing
-   key.
- - in order to receive a watch alert the operator console must have
-   correctly subscribed to messages coming from amq.system.alert.
+All AMQ servers will support this schema, and all console clients will
+assume it.  Note that this object is both the class and instance: there
+will be exactly one server object for a running server.
 
-Watches have the same lifespan as the objects they are applied to.
-That is, durable objects have durable watches.  Note that in the
-current OpenAMQ server implementation, all objects are temporary,
-and so are all watches.
+The server can then extend the schema by adding arbitrary objects to
+it:
 
-Hierarchical Data View
-----------------------
+    server
+     :
+     (arbitrary objects)
 
-The operational model is a hierarchy of objects as follows:
+Objects can include objects, so we can build schemas like this:
 
     server
      :
@@ -112,78 +164,209 @@ The operational model is a hierarchy of objects as follows:
      :
      `-- connection
 
-These objects are:
+Which represents the operable core of an OpenAMQ/0.9 server.  Note that
+this schema is an example: the actual server schema is probably larger
+and more complex.
 
- - server: the openamq server.  Server properties include the server IP
-   address and port, number of connections, traffic statistics, etc.
+Object Definition
+-----------------
 
- - vhost: each virtual host defined in the server.  Virtual host properties
-   include the vhost path, number of connections, traffic statistics, etc.
+An object is defined as follows:
 
- - exchange: each exchange defined in the virtual host.  Exchange properties
-   include the exchange name, number of bindings, traffic statistics, etc.
+ - It has a class name, e.g. "server", unique within the schema.
 
- - queue: each queue defined in the virtual host.  Queue properties include
-   the queue name, current size, maximum size, overflow limits, number of
-   consumers, etc.
+ - Each object instance has a server-wide unique identifier.
 
- - consumer: each consumer working with the queue.  A consumer refers to a
-   connection.  Consumer properties cover the exchange 
+ - The object supports a set of synchronous methods, which we explain below.
 
- - connection: each active connection. A connection refers to a client IP
-   address, and to a virtual host.  Connection properties include the time
-   of connection, traffic statistics, number of errors, last error, etc.
+ - The object has a set of child objects.
 
-XML-formatted Messages
-----------------------
+An object method consists of a request from client to server and a reply
+from server to client.  Each object method is defined as follows:
 
-All messages between the Console Interface Client (CIC) and the server
-are formatted using simple XML. We use a minimalistic XML syntax - no
-stylesheets, namespaces, document types, etc.
+ - It has a name, unique within the object.
 
-We define two categories of message:
+ - It has a set of request arguments.
 
- 1. Synchronous request-response messages in which the CIC makes a
-    request and the server replies with a response.
- 2. Asynchronous information messages provoked by events in the server,
-    to which the CIC may subscribe.
-    
-These messages carry descriptions of a variety of objects (exchange,
-queue, etc.) along with meta data.
+ - It has a set of reply arguments.
 
-Note: this document provides two alternate XML mappings for objects and
-the meta data needed for various methods. The first mapping is simple
-but introduces the possibility of name clashes between meta-data and
-real data. The second mapping eliminates the possibility of clashes but
-is a little more work to understand and use.
+ - It has a description, used to construct a user interface.
 
-The Console Interface Language
-------------------------------
+Objects do not have any operable properties as such.  All data about
+objects and changes made to objects are carried as methods between the
+client and the server.
 
-We will define the CIL grammar to specify:
+Each method argument is defined as follows:
 
- - The general format of messages.
- - The set of inspectable objects and their organisation into a tree.
- - The inspectable properties of each object.
- - The modifiable properties of each object.
- - The monitorable properties of each object.
- - Any other synchronous methods that are allowed on each object,
-   along with the request and response arguments for these methods.
-   Note that 'inspect', 'modify', and 'monitor' are simply special
-   cases of synchronous object methods.
- - The asynchronous methods that each object can produce.  Note that
-   the 'alert' method is simply a special case of an asynchronous
-   object method.
+ - It has a name.
+
+ - It has a type: string, integer, time, Boolean, enumerated, or object.
+
+ - If an enumerated property, it has a set of named values.
+
+ - It has a prompt, used to construct a user interface.
+
+ - It has a description, used to construct a user interface.
 
 Object Identification
 ---------------------
 
-Each object has a unique 64-bit identifier assigned by the server when
-it creates the object. This identifier is used in all messages when
-referring to an object.
+Each object has a unique 64-bit identifier assigned by the server when it
+creates the object. This identifier is used in all messages when referring
+to an object.
 
-By convention, ID 0 is reserved for the root object, namely the "server"
-level.
+By convention, ID 0 is reserved for the root object, which is the "server".
+
+This is the only object that is guranteed to be present in all server
+schemas.
+
+The Console API
+===============
+
+General Design
+--------------
+
+The console API consists of three pieces:
+
+ - Get the structure of an object (class).  This consists of a request from
+   the client to the server, with a reply back from the server to the
+   client.
+
+ - Execute a method on a given object.  This consists of a request from the
+   client to the server, with a reply back from the server to the client.
+
+ - Notifications from the server.  These are sent asynchronously using the
+   AMQP topic routing mechanisms.
+
+The console uses the Basic content class, and these AMQP methods:
+
+ - Basic.Publish
+ - Basic.Consume and Basic.Deliver
+ - Basic.Browse and Basic.Browse-Ok / Browse-Empty.
+
+By using the Basic content class we ensure that the console works with all
+future AMQ servers.  The Basic class is the only class that all AMQ servers
+MUST support, according to the AMQP specifications.
+
+The request-reply mechanism uses standard queues as follows:
+
+ - Each client creates a temporary reply queue and binds this as usual
+   for a reply queue.
+
+ - Each request to the server specifies this queue in the "reply-to" field.
+
+To implement a request-reply method, the client must:
+
+ - Create a suitably-formatted message.
+
+ - Set the reply-to field correctly to refer to its reply queue.
+
+ - Use the Basic.Publish method to send the message to the amq.console
+   exchange.
+
+ - Wait for a reply on its reply queue.
+
+The notification mechanism uses topic routing and subscription queues as
+follows:
+
+ - Each client wishing to receive notifications creates a temporary queue
+   and binds this to the amq.console.notify exchange.
+
+ - The routing key used during binding specifies which notifications the
+   client wishes to receive.
+
+ - The client can bind the same queue many times with different routing
+   keys.
+
+ - The client can use the same queue both for replies and notifications.
+
+Console Message Language
+------------------------
+
+All messages between the console client and the server are formatted using
+simple XML. We use a minimalistic XML syntax - no stylesheets, namespaces,
+document types, etc.
+
+We define an XML language: CML, the console message language - to carry
+console API commands between the console server and console client.  CML
+has the following overall syntax:
+
+    <cml version = "1.0" name = "request|reply|notify" >
+        <object name = "objectname" method = "methodname" id = "objectid">
+            ...
+        </object>
+    </cml>
+
+
+
+
+
+We use a simple set of tags:
+
+    <cml>
+        <object>
+            <field>
+
+Where objects can contain other objects and fields.  Here is an example of an OTL message that shows metadata (object IDs and status),
+object properties, and child objects:
+
+    <cml name = "inspect">
+        <object name = "server" id = "0" status = "ok">
+            <field name = "ipaddress">192.168.55.62</field>
+            <field name = "port">7654</field>
+            <field name = "message count">0</field>
+            <field name = "connection count">0</field>
+            <field name = "octet in count">0</field>
+            <field name = "octet out count">0</field>
+            <object name = "exchange" id = "1">
+                <field name = "name">amq.direct</field>
+            </object>
+            <object name = "exchange" id = "2">
+                <field name = "name">amq.topic</field>
+            </object>
+            <object name = "exchange" id = "3">
+                <field name = "name">amq.system</field>
+            </object>
+            <object name = "exchange" id = "4">
+                <field name = "name">amq.system.alert</field>
+            </object>
+        </object>
+    </cml>
+
+
+
+
+
+
+
+Watches
+-------
+
+A watch is a concept designed to let an operator monitor specific
+objects without having to watch them constantly. Watches are set on
+specific properties of specific objects.  I.e. if you want to watch
+the size of two different queues, this requires two watches.
+
+While the specifics of watch implementation depend on the server, we
+assume a model like this:
+
+ - Watches are global to an OpenAMQ server.
+
+ - A watch specifies some upper or lower limit for a property.
+
+ - The console server will regularly check all watches.
+
+ - When a watch limit is crossed, the console will send an alert
+   message to the amq.console.alert exchange using the watch routing
+   key.
+
+ - All correctly-subscribed clients can receive these alerts.
+
+Watches have the same lifespan as the objects they are applied to.
+That is, durable objects have durable watches.  Note that in the
+current OpenAMQ server implementation, all objects are temporary,
+and so all watches are also temporary.
+
 
 Message Implementation
 ======================
@@ -191,36 +374,28 @@ Message Implementation
 Synchronous Method Model
 ------------------------
 
-A synchronous method consists of one request from the CIC to the
-server and one response from the server back to the CIC.
+A synchronous method consists of one request from the console client to the
+server and one reply from the server back to the console client.
 
 The general format of a request is:
 
-    <request name = "methodname">
+    <cml request = "methodname">
         [message arguments]
-    </request>
-    ----
-    <otl request = "methodname">
-        [message arguments]
-    </otl>
-    
-The general format of a response is:
+    </cml>
 
-    <response name = "methodname">
+The general format of a reply is:
+
+    <cml reply = "methodname">
         [message arguments]
-    </response>
-    ----
-    <otl response = "methodname">
-        [message arguments]
-    </otl>
+    </cml>
 
 These are the standard synchronous methods we implement:
 
  - "inspect" - inspect a set of server objects.
  - "modify" - modify the properties of a set of server objects.
  - "monitor" - query or modify the watches on a set of objects.
- 
-Each request that the CIC sends results in exactly one response from the
+
+Each request that the console client sends results in exactly one reply from the
 server, with the same method name. We will probably define more methods,
 especially on an object-by-object base as we progress with the operator
 console implementation.
@@ -228,7 +403,7 @@ console implementation.
 Asynchronous Method Model
 -------------------------
 
-An asynchronous method consists of one notify message from the CIC to
+An asynchronous method consists of one notify message from the console client to
 the server or vice-versa.
 
 These are the standard asynchronous methods we implement:
@@ -241,40 +416,22 @@ The 'Inspect' Method
 The 'inspect' method asks the server to provide a detailed description
 of one or more objects:
 
-    <request name = "inspect">
-      [ <objectname id = "idvalue" expand = "0|1" /> ]...
-    </request>
-    ----
-    <otl
+    <cml
         request = "inspect">
       [ <object name = "objectname" id = "idvalue" expand = "0|1" /> ]...
-    </otl>
+    </cml>
 
 Where the 'expand' option (default 0) asks for a list of all child
 objects. For example, to get the top-level server object and all its
 children:
 
-    <request name = "inspect">
-        <server id = "0" expand = "1" />
-    </request>
-    ----
-    <otl request = "inspect">
+    <cml request = "inspect">
         <object name = "server" id = "0" expand = "1" />
-    </otl>
+    </cml>
 
-The 'inspect' response provides details for a set of objects:
+The 'inspect' reply provides details for a set of objects:
 
-    <response name = "inspect">
-      [ <objectname
-            id = "idvalue"
-            status = "ok|notfound|noaccess"
-            children = "nbrchildren">
-          [ <objectprop>objectpropvalue</objectprop> ]...
-          [ <objectname ... /> ]...
-        </objectname> ]...
-    </response>
-    ----
-    <otl response = "inspect">
+    <cml reply = "inspect">
       [ <object
             name = "objectname"
             id = "idvalue"
@@ -283,28 +440,13 @@ The 'inspect' response provides details for a set of objects:
           [ <field name = "objectprop">objectpropvalue</field> ]...
           [ <object name = "childname" id = "idvalue" /> ]...
         </object> ]...
-    </otl>
+    </cml>
 
-For example, the inspect response for a freshly-started server instance
+For example, the inspect reply for a freshly-started server instance
 - with its default exchanges but no queues or connections - would be
 something like:
 
-    <response name = "inspect">
-        <server id = "0" status = "ok" children = "32">
-            <ipaddress>192.168.55.142</ipaddress>
-            <port>7654</port>
-            <connection_count>0</connection_count>
-            <message_count>0</message_count>
-            <octet_in_count>0</octet_in_count>
-            <octet_out_count>0</octet_out_count>
-            <exchange id = "1" />
-            <exchange id = "2" />
-            ...
-            <exchange id = "n" />
-        </server>
-    </response>
-    ----
-    <otl response = "inspect">
+    <cml reply = "inspect">
         <object name = "server" id = "0" status = "ok" children = "32">
             <field name = "ipaddress">192.168.55.142</field>
             <field name = "port">7654</field>
@@ -317,7 +459,7 @@ something like:
             ...
             <object name = "exchange" id = "n" />
         </object>
-    </otl>
+    </cml>
     
 Note that the set of properties that the inspect method returns are
 defined on a per-object basis later in this document.
@@ -328,31 +470,21 @@ The 'Modify' Method
 The 'modify' method asks the server to modify certain properties of one
 or more specified objects:
 
-    <request name = "modify">
-      [ <objectname id = "idvalue">
-          [ <objectprop>objectpropvalue</objectprop> ]...
-        </objectname> ]...
-    </request>
-    ----
-    <otl request = "modify">
+    <cml request = "modify">
       [ <object name = "objectname" id = "idvalue">
           [ <field name = "objectprop">objectpropvalue</field> ]...
         </object> ]...
-    </otl>
+    </cml>
 
-The 'modify' response signals that whether the objects were modified
+The 'modify' reply signals that whether the objects were modified
 successfully or not:
 
-    <response name = "modify">
-      [ <objectname id = "idvalue" status = "ok|notfound|noaccess"> ]...
-    </response >
-    ----
-    <otl response = "modify">
+    <cml reply = "modify">
       [ <object
             name = "objectname"
             id = "idvalue"
             status = "ok|notfound|noaccess"> ]...
-    </otl>
+    </cml>
 
 Note that the set of properties that can be modified are defined on
 a per-object basis in the CIL specifications. 
@@ -363,27 +495,17 @@ The 'Monitor' Method
 The 'monitor' method asks the server to monitor certain properties of
 one or more objects:
 
-    <request name = "monitor">
-      [ <objectname id = "idvalue" reset = "0|1">
-          [ <objectprop
-                watch = "watchtype"
-                value = "watchvalue"
-                alert = "alertmessage"
-              [ route = "routingkey" ] /> ]...
-        </objectname> ]...
-    </request>
-    ----
-    <otl request = "monitor">
+    <cml request = "monitor">
       [ <object name = "objectname" id = "idvalue" reset = "0|1">
           [ <field name = "objectprop">
               [ <watch
                     name  = "watchtype"
-                    value = "watchvalue" 
+                    value = "watchvalue"
                     alert = "alertmessage"
                   [ route = "routingkey" ] /> ]...
             </field> ]...
         </object> ]...
-    </otl>
+    </cml>
 
 - The watchtypes are: eq, ne, lt, gt, le, ge, which correspond to the
   standard set of comparison operators. The watchvalue is a numeric
@@ -393,22 +515,12 @@ one or more objects:
   to those already present.  If the reset option is 1, the server will
   delete all existing watches before adding those specified (if any).
 
-- Alerts are sent to the amq.system.alert exchange using the routing
+- Alerts are sent to the amq.console.alert exchange using the routing
   key, which defaults to "amq.<objectname>.<idvalue>".
 
 The monitor reply lists all current watches for the specified object:
 
-    <response name = "monitor">
-      [ <objectname id = "idvalue">
-          [ <objectprop
-                watch = "watchtype"
-                value = "watchvalue"
-                alert = "alertmessage"
-                route = "routingkey" /> ]...
-        </objectname> ]...
-    </request>
-    ----
-    <otl response = "monitor">
+    <cml reply = "monitor">
       [ <object name = "objectname" id = "idvalue">
           [ <watch
                 name  = "watchtype"
@@ -416,81 +528,23 @@ The monitor reply lists all current watches for the specified object:
                 alert = "alertmessage"
                 route = "routingkey" /> ]...
         </object> ]...
-    </otl>
+    </cml>
 
 The 'Alert' Method
 -------------------
 
-The 'alert' method tells the CIC that a watched property has reached
+The 'alert' method tells the console client that a watched property has reached
 the specified value:
 
-    <notify name = "alert">
-        <objectname id = "idvalue">
-            <objectprop alert = "alertmessage">objectpropvalue</objectprop>
-        </objectname>
-    </notify>
-    ----
-    <otl
+    <cml
         notify = "alert">
         <object name = "objectname" id = "idvalue">
             <field name = "objectprop" alert = "alertmessage">objectpropvalue</field>
         </object>
-    </otl>
+    </cml>
 
 Message Transfer Protocol
 =========================
-
-Basic Content Class
--------------------
-
-We will use the Basic content class, and these AMQP methods:
-
- - Basic.Publish
- - Basic.Consume
- - Basic.Deliver
- - Basic.Browse
- - Basic.Browse-Ok
-
-Using the Basic content class means the operator console can be used in
-AMQ servers that do not support JMS semantics but are built for file
-transfer or content streaming. The Basic class is the only class that
-all AMQ servers MUST support, according to the AMQP specifications.
-
-Initialising a Console Session
-------------------------------
-
-Before sending methods to the server, the console interface layer - or
-whatever application is acting as client - must create a temporary
-private queue for replies:
-
- - Queue.Declare, no name, private = 1, auto-delete = 1.
-
-It must then bind this queue to the amq.direct exchange:
-
- - Queue.Bind, queue=<provided name>, exchange=amq.direct,
-   routing_key=<provided name>.
-
-Sending a Method to The Server
-------------------------------
-
-The client sends a method to the server as follows:
-
- - The method is formatted as XML according to the specifications
-   defined previously.
- - The client creates a Basic content containing this XML, and with
-   the content type "text/xml".
- - The client sets the reply-to property to the name of its reply
-   queue.  This name must not be encoded in any way.
- - The client sends this content to the amq.system exchange, using
-   the Basic.Publish method and the routing_key "amq.console".
- - The client can then wait for a reply to arrive on its reply queue.
-
-Subscribing to Alert Methods
-----------------------------
-
-The server sends alert methods to the amq.system.alert exchange,
-which is a topic exchange.  It uses the routing key specified for
-the watch.
 
 Server Implementation
 =====================
@@ -567,7 +621,7 @@ The 'Inspect' Method
 An inspect method can apply to several objects. When the system exchange
 receives an inspect method, it decodes the XML to give a list of objects
 to inspect. It sends a method to each object in turn, waiting for a
-response. It collects these responses into a response XML and when it
+reply. It collects these replis into a reply XML and when it
 has done each object, it sends the reply back to the client (using the
 mechanism explained previously).
 
@@ -580,7 +634,7 @@ The 'Modify' Method
 
 A modify method can apply changes to several objects. The system
 exchange decodes the XML, and sends a modify method to each affected
-object. It constructs a response and sends this back to the client.
+object. It constructs a reply and sends this back to the client.
 
 The 'Monitor' Method
 --------------------

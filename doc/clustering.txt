@@ -1,12 +1,29 @@
 gdl
-    title     = AMQ R.A.I.S. Clustering
+    title     = OpenAMQ Clustering
     subtitle  = A Redundant Array of Inexpensive Servers
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/10/12
+    date      = 2005/10/13
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 1.0a
+    version   = 1.0b
 end gdl
+
+- clustered console
+
+- no publishing while consumer set is changing
+- flush from publishers down
+- controller tells all servers, "prepare"
+- all servers tell all publishers, "prepare"
+- all publishers flush outgoing messages
+- any new messages to publish are queued in publisher
+- all publishers signal all servers, "ready"
+- servers collect all "ready" responses, signal controller "ready"
+- controller creates new consumer on each server
+- controller tells all servers, "clear"
+- all servers tell all publishers, "clear"
+
+-> what if this overlaps?
+
 
 Redundant Array of Inexpensive Servers
 **************************************
@@ -17,7 +34,7 @@ Statement of Goals
 RAIS is a proposal for clustering OpenAMQ servers.  RAIS was designed by
 Pieter Hintjens after discussions with Mark Atwell and Steve Connelly.
 
-The goals of the RAIS proposal are:
+The goals of the RAIS design are:
 
  1. To provide arbitrarily scalable performance through the addition of
     cheap hardware.
@@ -37,13 +54,14 @@ server cluster costing under EUR 10,000.
 
 RAIS is inspired by three things:
 
- 1. The original concepts of RAID storage.
+ 1. The original concepts of RAID storage, namely the assembly of modest
+    components into a high-performance array.
 
  2. The design approach of Google's networks, which are based on cheap boxes
     interconnected by smart software.
 
  3. The desire to find a way to scale OpenAMQ servers that does not depend
-    on optimisation.
+    on optimisation, which always reaches limits.
 
 General Principles
 ==================
@@ -67,6 +85,9 @@ and subscribers:
       A   A
      / \ / \
     S   S   S
+
+Each P and each S is connected to each A, though most of these connections are
+not shown to keep the diagram simple.
 
 The state on any server A consists of the subscription information needed to
 route messages to the appropriate subscriber.  In AMQP terms this consists of
@@ -200,8 +221,10 @@ We propose the following mechanism:
 
  1. Each server will publish metadata about new consumers on a standard
     topic exchange.
+
  2. Each RAIS proxy will subscribe to this information steam and thus
     be able to monitor the state of each server.
+
  3. Subscriber-side RAIS proxies will use this state information to
     decide when the stream of data from the cluster is stable enough to
     pass to the application.
@@ -229,9 +252,12 @@ ensure the two messages are delivered to the same client application?
 Consider the following scenario:
 
  - We have three servers, S1, S2, S3.
+
  - We have two consumers, C1 and C2, each connected to a queue Q
    that has one instance (Q1, Q2, Q3) on each server.
+
  - A publisher sends a series of messages, M1, M2, M3, M4...
+
  - We use mirroring for reliability, and send the message to two
    servers each time.
 
@@ -257,8 +283,9 @@ Given a specific message, and a specific set of consumers, a stateless
 hashing function will always send the message to the same consumer.
 
 Our second challenge is to stop messages from arriving in queues that
-do not have the same set of consumers.  We see two ways of doing this,
-a simple way and a more complex but probably more correct way.
+do not have the same set of consumers, what we call the "broken mirror"
+syndrome.  We see two ways of preventing broken mirror syndrome, a
+simple way and a more complex but possibly more correct way.
 
 The simple way is to not send messages to servers that are "out of
 date" from the point of view of publishers.  We have already described
@@ -270,31 +297,48 @@ There is a window for error here - a consumer may have been registered
 with a server but the server may not yet have warned the RAIS proxies
 that there is a state change.
 
+To be totally robust, we must pause each queue that receives a new
+consumer (a paused queue will accept new messages but not deliver
+them to consumers), and then resume the paused queues once every
+server has confirmed that it has registered the new consumer.
+
 A more complete solution needs a two-level handshake between the
 servers and a selected RAIS proxy that we will designate the "cluster
 manager".  This works as follows:
 
  - A new subscriber joins a server, creating a consumer on that
    server.
+
  - The server marks the consumer as "inactive" and publishes its
    change of state to the cluster manager.
+
  - The server pauses its queue, so that new incoming messages are
    not routed to consumers on this queue.  Other queues continue
    to work unaffected.
+
  - This process repeats as the subscriber joins each server in turn.
+
  - The cluster manager collect these reports in turn and collates
    the results.
+
  - When all servers report the same status, the cluster manager
    sends all servers a "accept consumer" message.
+
  - Given this message, the servers activate the new consumer and
    then reply with an acknowledgement.
+
  - The cluster manager collects these acknowledgements and when it
    has them all, it sends all servers a "resume queue" message.
+
  - The servers, on receiving this message, start sending messages
    out to all consumers on the queue.
 
 This model guarantees that the set of consumers is identical across
 all servers before messages are sent out of a queue.
+
+[Author's note: in fact the above model still allows broken mirrors:
+queues are paused one by one, leaving the chance for the same message
+to be sent to two different consumers.  Needs more work...]
 
 We can choose the cluster manager in several ways.  Our preference
 is to allow each server to choose several cluster managers from the
@@ -359,6 +403,9 @@ that all RAIS proxies share this information.  The second is to use
 multicast techniques to detect when new servers are added to the
 cluster.
 
+It should also be possible to use AMQP to distribute information about
+the cluster.
+
 Server Configuration
 --------------------
 
@@ -375,9 +422,9 @@ these.  We propose several techniques to minimise this work:
     server but this can itself be CD-booted, and is only a point of
     failure when the cluster changes.
 
- 3. To make the RAIS proxy can be aware of the operational control
-    process so that operational control commands - such as alerts -
-    can be applied to all servers in the cluster automatically.
+ 3. To make the RAIS proxy aware of the operational control process so
+    that operational control commands - such as watches - can be applied
+    to all servers in the cluster automatically.
 
 Cost and Planning
 =================
@@ -389,6 +436,7 @@ A very rough estimate of the cost of this work is:
 
  - RAIS proxy alpha: 10 days' work.
  - RAIS proxy beta: 15 days' work.
+ - RAIS synchronisation support in server: 5 days' work.
  - RAIS integration with operational control: 10 days' work.
  - Add RAIS support to JMS and C APIs: 2 days' work.
  - Stability and load testing: 15 days' work.
