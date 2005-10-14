@@ -151,7 +151,7 @@ topic tree specification.
             icl_console_print ("X: hit      wildcard=%s", binding->routing_key);
         if (amq_binding_publish (binding, channel, class_id, content, mandatory, immediate))
             delivered = TRUE;
-        binding_nbr = ipr_bits_next (index->bindset);
+        binding_nbr = ipr_bits_next (index->bindset, binding_nbr);
     }
     amq_index_unlink (&index);
 </method>

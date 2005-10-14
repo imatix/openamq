@@ -57,7 +57,7 @@
                 self->highest = item_nbr;
             }
             self->hit_count [item_nbr]++;
-            item_nbr = ipr_bits_next (index->bindset);
+            item_nbr = ipr_bits_next (index->bindset, item_nbr);
         }
         amq_index_unlink (&index);
     }

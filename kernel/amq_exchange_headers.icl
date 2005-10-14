@@ -223,8 +223,6 @@ s_compile_binding (
 {
     amq_index_t
         *index;                         //  Index reference from index_hash
-    int
-        item_nbr;
 
     if (amq_server_config_trace_route (amq_server_config))
         icl_console_print ("X: index    request=%s binding=%d", index_key, binding->index);
