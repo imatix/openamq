@@ -43,12 +43,11 @@
     int
         item_nbr;
     </local>
-    if (amq_server_config_trace_route (amq_server_config))
-        icl_console_print ("X: route    header=%s", index_key);
-
     index = amq_index_hash_search (index_hash, index_key);
     if (index) {
         for (IPR_BITS_EACH (item_nbr, index->bindset)) {
+            if (amq_server_config_trace_route (amq_server_config))
+                icl_console_print ("X: route    header=%s binding=%d", index_key, item_nbr);
             if (item_nbr < self->lowest)
                 self->lowest = item_nbr;
             if (item_nbr > self->highest) {

@@ -188,7 +188,7 @@ that is in every content header).
         }
         //  Add "match all" bindings
         amq_hitset_collect (hitset, self->index_hash, MATCH_ALL_KEY);
-        
+
         //  The hitset now represents all matching bindings
         for (binding_nbr = hitset->lowest; binding_nbr <= hitset->highest; binding_nbr++) {
             binding = self->exchange->binding_index->data [binding_nbr];
@@ -198,8 +198,8 @@ that is in every content header).
                     if (amq_binding_publish (binding, channel, class_id, content, mandatory, immediate))
                         delivered = TRUE;
                     if (amq_server_config_trace_route (amq_server_config))
-                        icl_console_print ("X: have_hit match=%s hits=%d",
-                            binding->match_all? "all": "any", hitset->hit_count [binding_nbr]);
+                        icl_console_print ("X: have_hit match=%s hits=%d binding=%d",
+                            binding->match_all? "all": "any", hitset->hit_count [binding_nbr], binding_nbr);
                 }
             }
         }
@@ -224,7 +224,7 @@ s_compile_binding (
         *index;                         //  Index reference from index_hash
 
     if (amq_server_config_trace_route (amq_server_config))
-        icl_console_print ("X: index    request=%s", index_key);
+        icl_console_print ("X: index    request=%s binding=%d", index_key, binding->index);
 
     index = amq_index_hash_search (self->index_hash, index_key);
     if (index == NULL)

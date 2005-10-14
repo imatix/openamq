@@ -204,6 +204,9 @@ for each class of exchange. This is a lock-free asynchronous class.
     ipr_looseref_t
         *looseref;                      //  We check the queues per binding
 
+    if (amq_server_config_trace_route (amq_server_config))
+        icl_console_print ("X: bind     queue=%s onto=%s", queue->key, self->name);
+
     //  Check existing bindings to see if we have one that matches
     binding = amq_binding_list_first (self->binding_list);
     while (binding) {
@@ -233,11 +236,9 @@ for each class of exchange. This is a lock-free asynchronous class.
 
         if (looseref)                   //  Ignore duplicates
             ipr_looseref_unlink (&looseref);
-        else {
-            if (amq_server_config_trace_route (amq_server_config))
-                icl_console_print ("X: bind     queue=%s onto=%s", queue->key, self->name);
+        else
             amq_binding_bind_queue (binding, queue);
-        }
+
         amq_binding_unlink (&binding);
         if (amq_server_channel_alive (channel))
             amq_server_agent_queue_bind_ok (
