@@ -1,5 +1,5 @@
 gdl
-    title     = OpenAMQ Console
+    title     = The OpenAMQ Console
     subtitle  = Operator Control for OpenAMQ Servers
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
@@ -135,7 +135,7 @@ to making a useful console - depending on the server implementation,
 or configuration, we need different schemas.  It is not useful to
 assume that all console clients know all schemas in advance.
 
-The minimal server schema consists of one object:
+The minimal server schema consists of exactly one object:
 
     server
 
@@ -155,12 +155,12 @@ Objects can include objects, so we can build schemas like this:
     server
      :
      :-- vhost
-     :
-     :-- exchange
-     :
-     :-- queue
      :    :
-     :    `-- consumer
+     :    :-- exchange
+     :    :
+     :    `-- queue
+     :        :
+     :        `-- consumer
      :
      `-- connection
 
@@ -182,13 +182,14 @@ An object is defined as follows:
  - The object has a set of child objects.
 
 An object method consists of a request from client to server and a reply
-from server to client.  Each object method is defined as follows:
+from server to client.  A method always refers to a specific object,
+and is defined as follows:
 
  - It has a name, unique within the object.
 
- - It has a set of request arguments.
+ - It has a set of request fields.
 
- - It has a set of reply arguments.
+ - It has a set of reply fields.
 
  - It has a description, used to construct a user interface.
 
@@ -196,7 +197,7 @@ Objects do not have any operable properties as such.  All data about
 objects and changes made to objects are carried as methods between the
 client and the server.
 
-Each method argument is defined as follows:
+Each method field is defined as follows:
 
  - It has a name.
 
@@ -208,6 +209,29 @@ Each method argument is defined as follows:
 
  - It has a description, used to construct a user interface.
 
+Standard Methods
+----------------
+
+The following methods have standard behaviour:
+
+ - 'inspect' - returns a set of object properties, as reply fields.
+   All objects always accept 'inspect'.
+
+ - 'modify' - accepts a set of fields and modifies the object
+   accordingly.  Not all objects may accept the modify method.
+
+ - 'monitor' - accepts the specification of a "watch", being a request
+   to regularly check the value of some object property, and signal an
+   alarm if the property reaches or falls to some value.  Not all
+   objects will accept the monitor method.
+
+The 'meta' Command
+------------------
+
+The 'meta' command (it is not implemented as an object method because it
+needs a separate syntax) returns the description of a specified object
+class.
+
 Object Identification
 ---------------------
 
@@ -215,10 +239,8 @@ Each object has a unique 64-bit identifier assigned by the server when it
 creates the object. This identifier is used in all messages when referring
 to an object.
 
-By convention, ID 0 is reserved for the root object, which is the "server".
-
-This is the only object that is guranteed to be present in all server
-schemas.
+By convention, ID 0 is reserved for the root object, "server".  This is
+the only object that is guaranteed to be present in all server schemas.
 
 The Console API
 ===============
@@ -270,7 +292,7 @@ The notification mechanism uses topic routing and subscription queues as
 follows:
 
  - Each client wishing to receive notifications creates a temporary queue
-   and binds this to the amq.console.notify exchange.
+   and binds this to the amq.console.notify exchange (a topic exchange).
 
  - The routing key used during binding specifies which notifications the
    client wishes to receive.
@@ -288,16 +310,69 @@ simple XML. We use a minimalistic XML syntax - no stylesheets, namespaces,
 document types, etc.
 
 We define an XML language: CML, the console message language - to carry
-console API commands between the console server and console client.  CML
-has the following overall syntax:
+console API commands between the console server and console client.  A CML
+message carries exactly one method, containing a number of fields:
 
-    <cml version = "1.0" name = "request|reply|notify" >
-        <object name = "objectname" method = "methodname" id = "objectid">
-            ...
-        </object>
+    <cml version = "1.0">
+        <meta object = "objectname">
+            objectdescription...
+        </meta> |
+        <method name = "methodname" object = "objectid">
+          [ <field name = "fieldname">fieldvalue</field> ]...
+        </method>
     </cml>
 
+The 'Meta' Command
+------------------
 
+The client will start a new session by doing a series of 'meta' commands
+to get the server schema.  It first does 'meta' on the "server" object,
+then repeats this for all child objects until the schema is completely
+analysed.  It then uses the schema to generate user-interface screens,
+JMX interfaces, command-line prompts, etc.
+
+[Author's note: hopefully JMX allows its interfaces to be generated on
+the fly...]
+
+Here is an example of a 'meta' command request from client to server:
+
+    <cml version = "1.0">
+        <meta object = "vhost" />
+    </cml>
+
+And an example of the reply, which lists the methods and child objects
+that make up the specified object:
+
+    <cml version = "1.0">
+        <meta object = "vhost">
+            <method name = "inspect">
+                <reply>
+                    <field name = "path" type = "string" prompt = "Virtual host path">
+                    The virtual host path is used to select the virtual host. The
+                    default path is "/".
+                    </field>
+                    <field name = "locked" type = "boolean" prompt = "Locked down?">
+                    When locked down, a virtual host cannot be used by applications.
+                    This can be useful when configuring a new virtual host.
+                    </field>
+                    <field name = "queues" type = "integer" prompt = "Number of queues">
+                    Reports the number of queues currently defined for the virtual
+                    host.
+                    </field>
+                </reply>
+            </method>
+            <method name = "modify">
+                <request>
+                    <field name = "locked" type = "boolean" prompt = "Locked down?">
+                    When locked down, a virtual host cannot be used by applications.
+                    This can be useful when configuring a new virtual host.
+                    </field>
+                </reply>
+            </method>
+            <object name = "queue" />
+            <object name = "exchange" />
+        </meta>
+    </cml>
 
 
 
@@ -380,7 +455,7 @@ server and one reply from the server back to the console client.
 The general format of a request is:
 
     <cml request = "methodname">
-        [message arguments]
+        [message fields]
     </cml>
 
 The general format of a reply is:
@@ -650,4 +725,25 @@ successive alerts unless there is significant variance - e.g. 5%.
 
 
 
+
+In the OpenAMQ server, requests are handled by the standard system
+exchange "amq.console". Responses are sent to a temporary reply queue
+created by the console interface layer.
+
+Asynchronous information - alerts - are sent to the amq.console.alert
+exchange, and console interface layer(s) get these alerts using a
+pub/sub model. Alerts are published with a topic-style routing key that
+allows selective subscription to specific types of alert.
+
+
+
+Before sending methods to the server, the client creates a temporary private
+queue for replies:
+
+ - Queue.Declare, no name, private = 1, auto-delete = 1.
+
+It then binds this queue to the amq.direct exchange:
+
+ - Queue.Bind, queue=<provided name>, exchange=amq.direct,
+   routing_key=<provided name>.
 
