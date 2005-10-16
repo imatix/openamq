@@ -52,17 +52,46 @@ We want the console to have these features:
  - Eventually, to be transactional, so that operations are completed
    fully, or not at all.
 
-We want the console implementation to be:
+Meta or Not?
+------------
 
- - Easily extensible as we extend its scope to cover more aspects of
-   the OpenAMQ server.
+The main design question is/was, does the console implement a specific
+data model (schema) or rather a meta-model capable of supporting any
+given server implementation.
 
- - Generic, so that the same console clients can work with arbitrary
-   AMQ server implementations.
+For example, do we hard-code the fact that the server is composed of
+virtual hosts, queues, exchanges, etc. in a specific schema?  This
+approach has the advantage of being explicit and easy to understand.
 
-To achieve this, we will use certain abstractions.  Mainly, we will
-not define any specific data model, but provide mechanisms for the
-server to tell the client, "this is the data model I support".
+But it has some strong disadvantages. First, operational control is
+necessarily tied to actual server functionality... that is, the entities
+we want to control are by definition related to the internal design of
+the server. While it is true that certain entities are defined by the
+AMQP protocol and therefore present in all servers, other entities are
+not. For example, security consists of entities (access control lists,
+user groups, etc.) which are completely server-specific. If we define a
+standard AMQ console schema that includes these, we force our security
+model on all AMQ server implementations, or we create an AMQ console
+that will only work with our specific server implementation. Both
+options are undesirable. In making an open standard, it is desirable
+that every layer is reusable and generic.
+
+Not only is a single hard-coded console schema bad for reusability, it
+is also a problem for change management.  These are some of the issues:
+
+ - Any change to the console server will need matching changes to the
+   console client.
+
+ - We will get version incompatibilities with old clients unable to
+   work with new servers and vice-versa.  This can be managed somewhat
+   by keeping schemas backwards-compatible but it is not sustainable
+   over any schema refactoring.
+
+ - Any network with different versions of the server will need
+   different versions of the clients as well.
+
+In our experience these problems can be simply and cheaply avoided by
+using a meta-schema from the start.
 
 Version 1
 ---------
@@ -290,7 +319,8 @@ Here are some examples of CML:
         </modify>
     </cml>
 
-CML has a grammar that covers all possible server schemas:
+CML has a grammar that covers all possible server schemas. Client requests
+are shown as "C:", server responses as "S:":
 
     cml-command   = C:meta    S:meta
                   | C:inspect S:inspect
@@ -313,15 +343,17 @@ CML has a grammar that covers all possible server schemas:
 
     view-name     = inspect | modify
 
-    field-meta    = <field name = "field-name" type = "field-type"
-                        prompt = "field-prompt">
-                        field-text
+    field-meta    = <field
+                        name = "field-name"
+                      [ type = "field-type" ]
+                      [ prompt = "field-prompt" ]>
+                      [ field-text ]
                       [ enum-value ] ...
                     </field>
 
     field-name    = valid-name
 
-    field-type    = string | int | bool | enum | action | object
+    field-type    = (string) | int | bool | action | object
 
     field-prompt  = valid-text
 
@@ -333,10 +365,12 @@ CML has a grammar that covers all possible server schemas:
 
     field-value   = string representation of allowed field value
 
-    C:inspect     = <inspect object = "object-id" detail = "0|1" />
+    C:inspect     = <inspect object = "object-id" [ detail = "ask-detail" ] />
 
     object-id     = 0..maxlongint-1
 
+    ask-detail    = (0) | 1
+    
     S:inspect     = <inspect object = "object-id" status = "object-status">
                       [ field-data ]...
                       [ object-data ]...
@@ -354,35 +388,66 @@ CML has a grammar that covers all possible server schemas:
 
     S:modify      = <modify object = "object-id" status = "object-status" />
 
-    C:watch       = <watch object = "object-id">
+    C:watch       = <watch object = "object-id" [reset = "ask-reset"] >
                       [ watch-field ]...
                     </watch>
 
     watch-field   = <field
                         name  = "field-name"
-                        test  = "watch-type"
+                      [ test  = "watch-type" ]
                         value = "watch-value"
-                        alert = "alert-message"
-                        route = "routing-key"
+                      [ alert = "alert-message" ]
+                      [ route = "routing-key" ]
                         />
 
-    watch-type    = eq | ne | lt | le | gt | ge
+    watch-type    = eq | ne | lt | le | gt | (ge)
 
-    watch
+    watch-value   = integer
+
+    alert-message = valid-text
+
+    routing-key   = valid-name
+
+    ask-reset     = (0) | 1
 
     S:watch       = <watch object = "object-id" status = "object-status">
-
+                      [ watch-field ]...
                     </watch>
-
 
 Field Types
 -----------
 
-string | int | bool | enum | action | object
+The goal of defining fields is to allow the automatic production of
+user interface forms without too much work.  We allow these types
+of field:
 
+ - string: defines a string field.  The maximum value of a string field
+   is 255 octets when an object is modified, and no limit on output.
+ - int: defines an integer.  Integers are assumed to be unsigned 32 bits.
+ - bool: defines a boolean value, which can be shown as a check box.
+ - action: defines a form action, only allowed in the modify view.
+ - object: defines a relationship to another object.
+
+String and integer fields can be enumerated, with one or more values.
+These would show as radio options (for 3-4 or fewer fields) or select
+boxes (for 5 or more options).
+
+Note: this is a minimalistic model that we will probably want to refine
+over time, e.g. defining the shown and maximum length for strings and
+integers, and allowing multiline text fields.
 
 The 'Meta' Command
 ------------------
+
+The 'Inspect' Command
+---------------------
+
+The 'Modify' Command
+--------------------
+
+The 'Watch' Command
+-------------------
+
 
 The client may start a new session by doing a series of 'meta' commands
 to get the server schema.  It first does 'meta' on the "server" object,
