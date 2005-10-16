@@ -173,64 +173,40 @@ Object Definition
 
 An object is defined as follows:
 
- - It has a class name, e.g. "server", unique within the schema.
-
- - Each object instance has a server-wide unique identifier.
-
- - The object supports a set of synchronous methods, which we explain below.
-
+ - The object has a class name, e.g. "server", unique within the schema.
+ - The object instance has a server-wide unique identifier.
+ - The object has a set of 'views', which are sets of properties.
  - The object has a set of child objects.
 
-An object method consists of a request from client to server and a reply
-from server to client.  A method always refers to a specific object,
-and is defined as follows:
+Object views are composed of sets of fields, each defined as follows:
 
- - It has a name, unique within the object.
+ - The field has a name.
+ - The field has a type, explained later.
+ - If the field is enumerated, it has a set of named values.
+ - The field has a prompt, used to construct a user interface.
+ - The field has a description, used to construct a user interface.
 
- - It has a set of request fields.
+Standard Views
+--------------
 
- - It has a set of reply fields.
+All objects have these two standard views:
 
- - It has a description, used to construct a user interface.
+ - "inspect" - containing the object fields that may be shown to the operator.
+ - "modify" - containing the object fields that the operator may change.
 
-Objects do not have any operable properties as such.  All data about
-objects and changes made to objects are carried as methods between the
-client and the server.
+Other views can be defined on an object-by-object basis.
 
-Each method field is defined as follows:
+Object Commands
+---------------
 
- - It has a name.
+All objects support these standard commands:
 
- - It has a type: string, integer, time, Boolean, enumerated, or object.
+ - "meta" - returns the description of a specified object class.
+ - "inspect" - returns an inspect view for a specified object.
+ - "modify" - applies a modify view to a specified object.
+ - "watch" - sets watches on fields from an object's inspect view.
 
- - If an enumerated property, it has a set of named values.
-
- - It has a prompt, used to construct a user interface.
-
- - It has a description, used to construct a user interface.
-
-Standard Methods
-----------------
-
-The following methods have standard behaviour:
-
- - 'inspect' - returns a set of object properties, as reply fields.
-   All objects always accept 'inspect'.
-
- - 'modify' - accepts a set of fields and modifies the object
-   accordingly.  Not all objects may accept the modify method.
-
- - 'monitor' - accepts the specification of a "watch", being a request
-   to regularly check the value of some object property, and signal an
-   alarm if the property reaches or falls to some value.  Not all
-   objects will accept the monitor method.
-
-The 'meta' Command
-------------------
-
-The 'meta' command (it is not implemented as an object method because it
-needs a separate syntax) returns the description of a specified object
-class.
+We will extend the API with other commands at a later stage.
 
 Object Identification
 ---------------------
@@ -248,14 +224,10 @@ The Console API
 General Design
 --------------
 
-The console API consists of three pieces:
+The console API consists of two pieces:
 
- - Get the structure of an object (class).  This consists of a request from
-   the client to the server, with a reply back from the server to the
-   client.
-
- - Execute a method on a given object.  This consists of a request from the
-   client to the server, with a reply back from the server to the client.
+ - Execute a command on a given object.  This consists of a request from
+   the client to the server, and a reply back from the server to the client.
 
  - Notifications from the server.  These are sent asynchronously using the
    AMQP topic routing mechanisms.
@@ -274,18 +246,14 @@ The request-reply mechanism uses standard queues as follows:
 
  - Each client creates a temporary reply queue and binds this as usual
    for a reply queue.
-
  - Each request to the server specifies this queue in the "reply-to" field.
 
-To implement a request-reply method, the client must:
+To implement a request-reply method, the client will:
 
  - Create a suitably-formatted message.
-
  - Set the reply-to field correctly to refer to its reply queue.
-
  - Use the Basic.Publish method to send the message to the amq.console
    exchange.
-
  - Wait for a reply on its reply queue.
 
 The notification mechanism uses topic routing and subscription queues as
@@ -293,39 +261,130 @@ follows:
 
  - Each client wishing to receive notifications creates a temporary queue
    and binds this to the amq.console.notify exchange (a topic exchange).
-
  - The routing key used during binding specifies which notifications the
    client wishes to receive.
-
  - The client can bind the same queue many times with different routing
    keys.
-
  - The client can use the same queue both for replies and notifications.
 
 Console Message Language
 ------------------------
 
 All messages between the console client and the server are formatted using
-simple XML. We use a minimalistic XML syntax - no stylesheets, namespaces,
-document types, etc.
+an XML language we call "CML", the Console Message Language.  CML uses a
+minimalistic XML syntax - no stylesheets, namespaces, document types, etc.
 
-We define an XML language: CML, the console message language - to carry
-console API commands between the console server and console client.  A CML
-message carries exactly one method, containing a number of fields:
+Here are some examples of CML:
 
     <cml version = "1.0">
-        <meta object = "objectname">
-            objectdescription...
-        </meta> |
-        <method name = "methodname" object = "objectid">
-          [ <field name = "fieldname">fieldvalue</field> ]...
-        </method>
+        <meta class = "server" />
     </cml>
+
+    <cml version = "1.0">
+        <inspect object = "0" />
+    </cml>
+
+    <cml version = "1.0">
+        <modify object = "0">
+            <field name = "shutdown">1</field>
+        </modify>
+    </cml>
+
+CML has a grammar that covers all possible server schemas:
+
+    cml-command   = C:meta    S:meta
+                  | C:inspect S:inspect
+                  | C:modify  S:modify
+                  | C:watch   S:watch
+
+    C:meta        = <meta class = "class-name" />
+
+    class-name    = valid-name
+
+    valid-name    = {A-Za-z0-9-_.}...
+
+    S:meta        = <meta class = "class-name">
+                      [ view-meta ]...
+                    </meta>
+
+    view-meta     = <view name = "view-name">
+                      [ field-meta ] ...
+                    </view>
+
+    view-name     = inspect | modify
+
+    field-meta    = <field name = "field-name" type = "field-type"
+                        prompt = "field-prompt">
+                        field-text
+                      [ enum-value ] ...
+                    </field>
+
+    field-name    = valid-name
+
+    field-type    = string | int | bool | enum | action | object
+
+    field-prompt  = valid-text
+
+    valid-text    = {printable}...
+
+    enum-value    = <value name = "value-name">field-value</value>
+
+    value-name    = valid-text
+
+    field-value   = string representation of allowed field value
+
+    C:inspect     = <inspect object = "object-id" detail = "0|1" />
+
+    object-id     = 0..maxlongint-1
+
+    S:inspect     = <inspect object = "object-id" status = "object-status">
+                      [ field-data ]...
+                      [ object-data ]...
+                    </inspect>
+
+    object-status = ok | notfound | noaccess
+
+    field-data    = <field name = "field-name">field-value</field>
+
+    object-data   = <object class = "class-name" id = "object-id" />
+
+    C:modify      = <modify object = "object-id">
+                      [ field-data ] ...
+                    </modify>
+
+    S:modify      = <modify object = "object-id" status = "object-status" />
+
+    C:watch       = <watch object = "object-id">
+                      [ watch-field ]...
+                    </watch>
+
+    watch-field   = <field
+                        name  = "field-name"
+                        test  = "watch-type"
+                        value = "watch-value"
+                        alert = "alert-message"
+                        route = "routing-key"
+                        />
+
+    watch-type    = eq | ne | lt | le | gt | ge
+
+    watch
+
+    S:watch       = <watch object = "object-id" status = "object-status">
+
+                    </watch>
+
+
+Field Types
+-----------
+
+string | int | bool | enum | action | object
+
 
 The 'Meta' Command
 ------------------
 
-The client will start a new session by doing a series of 'meta' commands
+The client may start a new session by doing a series of 'meta' commands
 to get the server schema.  It first does 'meta' on the "server" object,
 then repeats this for all child objects until the schema is completely
 analysed.  It then uses the schema to generate user-interface screens,
@@ -353,20 +412,24 @@ that make up the specified object:
                     </field>
                     <field name = "locked" type = "boolean" prompt = "Locked down?">
                     When locked down, a virtual host cannot be used by applications.
-                    This can be useful when configuring a new virtual host.
                     </field>
                     <field name = "queues" type = "integer" prompt = "Number of queues">
-                    Reports the number of queues currently defined for the virtual
-                    host.
+                    Reports the number of queues currently defined for the virtual host.
                     </field>
                 </reply>
             </method>
             <method name = "modify">
-                <request>
+                <reply>
                     <field name = "locked" type = "boolean" prompt = "Locked down?">
                     When locked down, a virtual host cannot be used by applications.
-                    This can be useful when configuring a new virtual host.
                     </field>
+                </reply>
+            </method>
+            <method name = "monitor">
+                <request>
+
+                </request>
+                <reply>
                 </reply>
             </method>
             <object name = "queue" />
