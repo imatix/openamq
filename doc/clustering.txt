@@ -3,27 +3,10 @@ gdl
     subtitle  = A Redundant Array of Inexpensive Servers
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/10/13
+    date      = 2005/10/17
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 1.0b
+    version   = 1.0c
 end gdl
-
-- clustered console
-
-- no publishing while consumer set is changing
-- flush from publishers down
-- controller tells all servers, "prepare"
-- all servers tell all publishers, "prepare"
-- all publishers flush outgoing messages
-- any new messages to publish are queued in publisher
-- all publishers signal all servers, "ready"
-- servers collect all "ready" responses, signal controller "ready"
-- controller creates new consumer on each server
-- controller tells all servers, "clear"
-- all servers tell all publishers, "clear"
-
--> what if this overlaps?
-
 
 Redundant Array of Inexpensive Servers
 **************************************
@@ -243,11 +226,46 @@ its consuming client without problems (the only effect being that
 messages may arrive out of sequence as they travel different paths).
 
 But AMQ also allows shared queues, essential for work-load distribution,
-the main way of using standard message queues.
+and the main way of using standard message queues.
 
 Given the description of RAIS so far, this presents us with a problem.
-If a message is sent to two queues - on two cluster servers - how do we
-ensure the two messages are delivered to the same client application?
+If a message is sent to a queue that is mirrored on two or more cluster
+servers, how do we ensure the messages are delivered to the same client
+application at all times?
+
+We have examined several plausible solutions to this problem.  The main
+issues can be boiled down to these points:
+
+ 1. If a queue is mirrored on N servers and publishers send messages
+    to a subset of those N servers, each queue will have a different
+    state.  This means that any state-based dispatching (round-robin
+    selection of next consumer being the classic case) will fail, as
+    queues apply different states to the same message, and send this
+    message to different consumers (which would be wrong).
+
+ 2. When a consumer joins or leaves the cluster, there is a window
+    during which the queues have different sets of consumers.  During
+    this window, messages cannot be safely dispatched.  Indeed, all
+    queues must synchronise to the same stage before they can include
+    the new consumer in their consumer set.
+
+
+- clustered console
+
+- no publishing while consumer set is changing
+- flush from publishers down
+- controller tells all servers, "prepare"
+- all servers tell all publishers, "prepare"
+- all publishers flush outgoing messages
+- any new messages to publish are queued in publisher
+- all publishers signal all servers, "ready"
+- servers collect all "ready" responses, signal controller "ready"
+- controller creates new consumer on each server
+- controller tells all servers, "clear"
+- all servers tell all publishers, "clear"
+
+
+
 
 Consider the following scenario:
 
