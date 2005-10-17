@@ -216,8 +216,8 @@ We can use a standard topic exchange, e.g. amq.system.rais.  The
 presence or absence of this exchange will tell RAIS proxies whether
 the server supports RAIS synchronisation or not.
 
-Clustered Shared Queues
------------------------
+Clustered Point-to-Point
+------------------------
 
 Pub-sub is trivial to implement in RAIS since each queue has a single
 consumer, and fan-out is done by creating multiple queues, one for each
@@ -225,33 +225,102 @@ subscriber.  Thus, each queue can unambiguously send its messages to
 its consuming client without problems (the only effect being that
 messages may arrive out of sequence as they travel different paths).
 
-But AMQ also allows shared queues, essential for work-load distribution,
-and the main way of using standard message queues.
+But AMQ also allows point-to-point communications, using shared queues,
+which is essential for work-load distribution, and the classic scenario
+for message queues.
 
 Given the description of RAIS so far, this presents us with a problem.
 If a message is sent to a queue that is mirrored on two or more cluster
-servers, how do we ensure the messages are delivered to the same client
-application at all times?
+servers, for reliability, how do we ensure consistent delivery?  A
+quick sketch of messages flowing arbitrarily across servers in a cluster
+shows that it is not at all stable.
 
-We have examined several plausible solutions to this problem.  The main
-issues can be boiled down to these points:
+Summary of the Problem
+......................
 
- 1. If a queue is mirrored on N servers and publishers send messages
-    to a subset of those N servers, each queue will have a different
-    state.  This means that any state-based dispatching (round-robin
-    selection of next consumer being the classic case) will fail, as
-    queues apply different states to the same message, and send this
-    message to different consumers (which would be wrong).
+The main issues can be boiled down to three points:
 
- 2. When a consumer joins or leaves the cluster, there is a window
-    during which the queues have different sets of consumers.  During
-    this window, messages cannot be safely dispatched.  Indeed, all
-    queues must synchronise to the same stage before they can include
-    the new consumer in their consumer set.
+ 1. Ensuring that a specific message, passing through two or more
+    mirrored queues in parallel, will always reach the same end-point.
+
+ 2. Synchronising changes to consumers for queue so that all mirrored
+    queues have the same set of active consumers at all instants.
+
+ 3. Allowing the mirrored distribution of consumer-queue state such
+    as prefetch and transactions.
+
+We have examined several plausible solutions to this problem.  There
+seems to be only one that works.  The key insight is this: when we mirror
+a queue across multiple servers, we must keep the state of each instance
+of the queue identical.  That means: the exact same set of consumers and
+the exact same set of messages.  If the queues do not have the same state,
+there is no guarantee that a message that has been mirrored to two or
+more queues will be dispatched in the same way, to the same consumer.
+
+The General Solution
+.....................
+
+The solution is this: when doing point-to-point publishing, the publisher
+must send the message to *all* servers, so that it arrives equally on all
+queues, and each queue must perform an identical calculation - taking into
+account the queue and consumer state - and thus send the message to the
+same consumer.  And this must remain stable even when consumers join and
+leave the cluster.
+
+Clearly when we speak of large clusters, sending every message to every
+server would create significant extra network traffic.
+
+Sub-Clusters Through Virtual Hosts
+..................................
+
+We can create sub-clusters using the AMQ concept of "virtual host", as
+follows:
+
+ - Each server in the cluster would support one or more virtual hosts,
+   creating an overlapping set of virtual hosts, each running on one
+   or more servers.
+
+ - When a client (consumer or publisher) connects to the cluster and
+   then to a specific virtual host, via its RAIS proxy, the proxy will
+   successfully connect only to those servers that implement the desired
+   virtual host.  This creates the sub-cluster.
+
+We can now use the cluster to gain throughput by separating applications,
+sets of queues, or even individual queues into different virtual hosts.
+
+At the same time, by tuning the number of instances of each virtual
+host (the number of servers that support it), we can tune the redundancy
+level of the network.  Since a single server can support an arbitrary
+number of virtual hosts, sub-clustering will be easy to manage.
+
+The End-Points
+..............
+
+The publishing proxy needs to know whether it is working in pub-sub or
+point-to-point mode.  In the former case it sends to one or more servers
+depending on the reliability vs. performance tuning.  In the latter case
+it sends to all servers.
+
+The consuming proxy is connected to all queues, so can expect to receive
+a message exactly one time per connected server.  It can process and
+acknowledge the first instance of the message that arrives, and
+acknowledge and discard the remaining messages that arrive.
+
+The Vanishing Consumer Problem
+..............................
+
+What happens if a consumer crashes and leaves the cluster while it has
+processed one instance of a message but not others?  We now risk getting
+inconsistency between the queues.
+
+ - process first, ack last
+ - acks may get lost
+    - cross-ack between queues
+
+ -
 
 
 - clustered console
-
 - no publishing while consumer set is changing
 - flush from publishers down
 - controller tells all servers, "prepare"
@@ -265,45 +334,6 @@ issues can be boiled down to these points:
 - all servers tell all publishers, "clear"
 
 
-
-
-Consider the following scenario:
-
- - We have three servers, S1, S2, S3.
-
- - We have two consumers, C1 and C2, each connected to a queue Q
-   that has one instance (Q1, Q2, Q3) on each server.
-
- - A publisher sends a series of messages, M1, M2, M3, M4...
-
- - We use mirroring for reliability, and send the message to two
-   servers each time.
-
-The queues will receive messages as follows (assuming the publishers
-use simple a round-robin):
-
-    Q1: M1, M2, M4
-    Q2: M1, M3, M4
-    Q3: M2, M3
-
-Our ideal routing of messages to consumers would be:
-
-    C1: M1, M3
-    C2: M2, M4
-
-A duplicated message sent from a clustered queue (a queue with the same
-name held on two different servers) must be sent to the same consumer,
-whatever the messages that were sent before it from the same queue.
-
-We can achieve this by using a stateless hashing function to select the
-consumer for a given message, rather than using a round-robin technique.
-Given a specific message, and a specific set of consumers, a stateless
-hashing function will always send the message to the same consumer.
-
-Our second challenge is to stop messages from arriving in queues that
-do not have the same set of consumers, what we call the "broken mirror"
-syndrome.  We see two ways of preventing broken mirror syndrome, a
-simple way and a more complex but possibly more correct way.
 
 The simple way is to not send messages to servers that are "out of
 date" from the point of view of publishers.  We have already described
