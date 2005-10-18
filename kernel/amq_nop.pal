@@ -1,0 +1,13 @@
+<?xml?>
+<!--
+    Test a connection that does nothing
+  -->
+<pal
+    name   = "amq_nop"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    <session>
+    </session>
+</pal>
+

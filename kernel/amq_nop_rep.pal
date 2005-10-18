@@ -1,0 +1,15 @@
+<?xml?>
+<!--
+    Test 1000 connects and disconnects to the server
+  -->
+<pal
+    name   = "amq_nop_rep"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    <repeat time = "1000" counter = "id">
+      <session>
+      </session>
+    </repeat>
+</pal>
+
