@@ -1,0 +1,14 @@
+<?xml?>
+<pal
+    name = "amq_queue_declare-ticket"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    <session scope="default">
+        <queue_declare queue="queue-ticket_1" ticket="0" scope="default" />
+        <!-- 
+        FIXME: Testcase for invalid tickets needed
+        <queue_declare queue="queue-ticket_1" ticket="invalid" scope="default" />
+        -->
+    </session>
+</pal>

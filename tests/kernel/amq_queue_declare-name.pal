@@ -1,0 +1,14 @@
+<?xml?>
+<pal
+    name = "amq_queue_declare-name"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    <session scope="default">
+        <queue_declare queue="abcdefghijklmnopqrstuvw0123456789-_" scope="default" />
+    </session>
+    <session scope="default" error_handling="recover">
+        <queue_declare queue="@%$^&*()!" scope="default" />
+        <assert name="reply_code" value="502" />
+    </session>
+</pal>

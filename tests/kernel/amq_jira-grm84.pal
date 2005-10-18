@@ -1,0 +1,31 @@
+<?xml?>
+<pal
+    name = "amq_jira-grm84"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    <session>
+    <repeat times = "4" counter = "index">
+        <exchange_declare exchange = "pubsub" class = "headers" />
+        <queue_declare queue = "myqueue_$index" scope = "pubsub">
+        <queue_bind queue = "myqueue_$index" scope = "pubsub" exchange = "pubsub" >
+                <arguments>
+                    <field name = "headers" value = "" />
+                    <!-- is routing_key needed here? -->
+                </arguments>
+        </queue_bind>
+        <jms_consume scope = "pubsub" queue = "myqueue_$index" prefetch_count = "1" auto_ack = "1" />
+        
+        <jms_content size = "64000" message_id = "id-$index" />
+        <jms_publish exchange = "pubsub" routing_key = "pubsub" mandatory = "1">
+            <headers>
+        </jms_publish>
+        <jms_arrived>
+            <echo>Message '$message_id' came back to us</echo>
+        </jms_arrived>
+        <empty>
+            <echo>Message did not come back, this is bad!</echo>
+        </empty>
+    </repeat>
+    </session>
+</pal>

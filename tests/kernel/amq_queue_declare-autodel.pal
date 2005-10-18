@@ -1,0 +1,15 @@
+<?xml?>
+<pal
+    name = "amq_queue_declare-autodel"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    <session scope="default">
+        <queue_declare queue="queue-autodel_1" auto_delete="1" scope="default" />
+    </session>
+    <!-- 
+    TODO: write code to check queue is gone 
+    FIXME: try to lower the timout for this particular case
+    <wait timeout="60000">
+    -->
+</pal>
