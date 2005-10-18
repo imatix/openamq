@@ -1,0 +1,33 @@
+<?xml?>
+<!--
+    Test script for queue declare
+  -->
+<pal
+    name   = "amq_queue_bind-basic"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    <echo>TEST: queue_bind</echo>
+    <session>
+        <echo>CASE: direct class</echo>
+        <!-- Queue name supplied by server, default scope -->
+        <queue_declare scope = "azAZ09-_." queue = ""/>
+        <!-- Since $queue should now be available, expect a clean bind -->
+        <queue_bind scope = "azAZ09-_." queue = "$queue" exchange = "amq.direct">
+            <arguments>
+                <field name = "routing_key" value = "a_dest"/>
+            </arguments>      
+        </queue_bind>
+        <basic_consume scope = "azAZ09-_." queue = "$queue" />
+        <basic_content size = "1024" message_id = "id-0001" />
+        <basic_publish scope = "azAZ09-_." exchange = "amq.direct" routing_key = "a_dest" />
+        <wait timeout = "1000"/>
+        <basic_arrived>
+            <!-- assert name = "$message_id" value = "id-0001"/-->
+        </basic_arrived>
+        <empty>
+            <abort>Message did not arrive to the binded queue</abort>
+        </empty>
+    </session>
+    <echo>PASS: queue_bind</echo>
+</pal>
