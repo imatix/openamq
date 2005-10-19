@@ -483,6 +483,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                 ft.put("routing_key", amqd.getDestinationName());
                 if (rawSelector != null)
                     ft.put("headers", rawSelector.getDataAsBytes());
+                //ft.putAll(rawSelector);
                 AMQFrame queueBind = QueueBindBody.createAMQFrame(_channelId, 0, amqd.getScope(), queueOk.queue,
                                                                   amqd.getExchangeName(), ft);
 
