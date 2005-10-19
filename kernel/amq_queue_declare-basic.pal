@@ -8,15 +8,9 @@
     target = "stdc"
     >
     <session>
-      <echo>TEST: queue_declare</echo>
-      <!-- Queue name supplied by server, default scope -->
-      <queue_declare scope = "azAZ09-_." queue = ""/>
-      <!-- Since $queue should now be available, expect a clean bind -->
-      <queue_bind scope = "azAZ09-_." queue = "$queue" exchange = "amq.direct">
-          <arguments>
-              <field name = "routing_key" value = "x"/>
-          </arguments>      
-      </queue_bind>
+        <echo>TEST: queue_declare</echo>
+        <!-- Queue name supplied by server -->
+        <queue_declare scope = "test" queue = ""/>
     </session>
     <echo>PASS: queue_declare</echo>
 </pal>
