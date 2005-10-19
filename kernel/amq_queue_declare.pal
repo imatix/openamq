@@ -1,0 +1,52 @@
+<?xml?>
+<pal
+    name   = "amq_queue_declare"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    <session error_handling="recover">
+       <!-- "should pass" tests -->
+       <queue_declare queue="queue-autodel_1"   auto_delete="1" scope="default" />
+       <queue_declare queue="queue-ticket_1"    ticket="0"      scope="default" />
+       <queue_declare queue="queue-scope_1"                     scope="default" />
+       <queue_declare queue="queue-durable_1"   durable="1"     scope="default" />
+       <queue_declare queue="az09-_"                            scope="default" />
+       <queue_declare queue=""                                  scope="aZ09-_." />
+       <queue_declare queue="queue-passive_0"                   scope="default" />
+       <queue_declare queue="queue-passive_0"   passive="1"     scope="default" />
+       <queue_declare queue="queue-private_1"   private="1"     scope="default" />
+
+       <!-- "should fail" tests FIXME: this still prints a warning, why? -->
+       <queue_declare queue="@%$^&*()!"                         scope="default" />
+       <assert        name="reply_code"         value="502" />
+       <queue_declare queue="queue-scope_2"                                     />
+       <assert        name="reply_code"         value="502" />
+       <queue_declare queue="queue-scope_3"                     scope="&^%{}[]" />
+       <assert        name="reply_code"         value="502" />
+
+       <!-- 
+       FIXME: Testcase for invalid tickets needed
+       <queue_declare queue="queue-ticket_1" ticket="invalid" scope="default" />
+       -->
+
+       <!--
+       FIXME: need a new connection here TODO: catch binding private queue violation (507?)
+       <session scope="default">
+           <queue_bind queue="queue-private_1" exchange="amq.direct" scope="default">
+              <arguments>
+                 <field name="routing_key" value="bogus" />
+              </arguments>
+           </queue_bind>
+       </session>
+       -->
+
+       <!-- FIXME: channel gets closed, I want to be able to catch this
+       <session scope="default" error_handling="recover">
+          <queue_declare queue="queue-passive_1" passive="1" scope="default" />
+          <assert name="reply_code" value="404" />
+       </session>
+       -->
+
+                                
+    </session>
+</pal>

@@ -1,0 +1,76 @@
+<?xml?>
+<pal
+    name   = "amq_queue_bind"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    <session error_handling="recover">
+        <!-- ....... "should work" testcases .............................. -->
+
+        <!-- default testcase -->
+        <queue_declare scope = "default" queue = "queue-bind_0"/>
+        <queue_bind scope = "default" queue = "queue-bind_0" exchange = "amq.direct">
+            <arguments>
+                <field name = "routing_key" value = "a_dest"/>
+            </arguments>      
+        </queue_bind>
+        
+        <!-- ignore duplicate bindings -->
+        <queue_bind scope = "default" queue = "queue-bind_0" exchange = "amq.direct">
+            <arguments>
+                <field name = "routing_key" value = "a_dest"/>
+            </arguments>      
+        </queue_bind>
+        
+
+        <!-- ticket test -->
+        <queue_declare scope = "default" queue = "queue-bind-ticket_0"/>
+        <queue_bind scope = "default" queue = "queue-bind-ticket_0" ticket="0" exchange = "amq.direct">
+            <arguments>
+                <field name = "routing_key" value = "a_dest"/>
+            </arguments>
+        </queue_bind>
+
+        <!-- ....... "should fail" testcases .............................. -->
+
+        <!-- bind to unknown exchange -->
+        <queue_declare scope = "default" queue = "queue-bind_1"/>
+        <queue_bind scope = "default" queue = "queue-bind_1" exchange = "provoke_fail">
+            <arguments>
+                <field name = "routing_key" value = "a_dest"/>
+            </arguments>      
+        </queue_bind>
+        <assert name="reply_code" value="504" />
+        
+        <!-- bind durable queue to transient exchange -->
+        <!-- FIXME: this should raise a channel exception -->
+        <queue_declare scope = "default" durable="1" queue = "queue-bind_2"/>
+        <exchange_declare scope = "default" exchange = "queue-bind-exch" class="direct" />
+        <queue_bind scope = "default" queue = "queue-bind_2" exchange = "queue-bind-exch">
+            <arguments>
+                <field name = "routing_key" value = "a_dest"/>
+            </arguments>      
+        </queue_bind>
+        <assert name="reply_code" value="504" />
+        
+        <!-- bind unknown queue -->
+        <queue_bind scope = "default" queue = "blah" exchange = "amq.direct">
+            <arguments>
+                <field name = "routing_key" value = "a_dest"/>
+            </arguments>      
+        </queue_bind>
+        <assert name="reply_code" value="504" />
+
+
+        <!-- ticket test FIXME: not implemented in core yet -->
+        <!--
+        <queue_declare scope = "default" queue = "queue-bind-ticket_1"/>
+        <queue_bind scope = "default" queue = "queue-bind-ticket_1" ticket="foo" exchange = "amq.direct">
+            <arguments>
+                <field name = "routing_key" value = "a_dest"/>
+            </arguments>      
+        </queue_bind>
+        -->
+
+    </session>
+</pal>

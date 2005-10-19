@@ -1,18 +1,15 @@
 <?xml?>
 <pal
-    name = "amq_queue_declare-bind-many"
+    name = "amq_queue_bind-many"
     script = "amq_pal_gen"
     target = "stdc"
     >
     
     <repeat times = "100000000" counter = "index">
-        <echo>setting up session $index</echo>
         <session scope="default">
             <exchange_declare exchange="tmp" class="fanout" />
             <queue_declare queue="queue_$index" scope="default" />
             <queue_bind queue="queue_$index" scope="default" exchange="tmp" />
         </session>
-        <echo>closing session $index, waiting 1 second...</echo>
-        <wait timeout="1000"/> 
     </repeat>
 </pal>
