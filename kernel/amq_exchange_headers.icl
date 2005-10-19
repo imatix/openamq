@@ -108,7 +108,7 @@ that is in every content header).
         }
         else {
             //  0.9c style
-            field = asl_field_list_first (headers);
+            field = asl_field_list_first (fields);
             while (field) {
                 if (field->name [0] == 'X' && field->name [1] == '-') {
                     if (streq (field->name, "X-match")) {

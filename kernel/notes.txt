@@ -1,3 +1,142 @@
+Console Server Implementation
+=============================
+
+This section provides a plan for the console server implementation in
+the current OpenAMQ server.  This section is intended for use by the
+OpenAMQ development team, and does not form part of the AMQ Console
+Specifications.
+
+Operable Objects
+----------------
+
+We are concerned only with operable objects, those we can work with
+via the operator console.
+
+All operable objects are implemented as iCL asynchronous objects (using
+the icl_smt framework). This ensures that objects can safely and
+atomically process all methods they receive.
+
+The inspect and modify methods are defined in an abstract iCL class that
+uses GSL code generation - a type of templating - to produce the actual
+code for each method instance.
+
+Object Identification
+---------------------
+
+When an operable object is created (the new method), it takes a new
+identification value. This will be done using a global 64-bit variable
+that is atomically incremented.
+
+Object Registry
+---------------
+
+The system exchange maintains a registry of all active operable objects.
+This is a tree structure, held in memory, with each node consisting of:
+
+ - A reference to the object.
+ - A pointer to the parent node.
+ - The object's ID value.
+ - A linked list of child objects (mixed and unordered).
+ - A pointer to a class descriptor.
+
+The class descriptor defines a single object type, e.g. "queue", and has
+these properties:
+
+ - Short name of class, e.g. "queue".
+ - Callback address of 'meta' method.
+ - Callback address of 'inspect' method.
+ - Callback address of 'modify' method.
+
+Class descriptors are created automatically when a specific class is
+initialised - i.e. used for the first time. They never change during the
+lifetime of the server.
+
+The registry can do a lookup from object ID to registry node, so object
+ID forms a primary key for accessing objects in the registry.
+
+Object Registation
+------------------
+
+A new object registers by sending a "register" method to the system
+exchange, which is an asynchronous object. The register method has these
+arguments:
+
+ - The ID of the new object.
+ - The ID of the parent object.
+ - The address of the corresponding class descriptor.
+
+Object Deregistration
+---------------------
+
+The destroy method for an object sends a "cancel" method to the system
+exchange. The cancel method has these arguments:
+
+ - ID of object being destroyed
+
+The 'Meta' Method
+-----------------
+
+The system exchange decodes the method, looks up the object class,
+and sends this class the meta method.
+
+The 'Inspect' Method
+--------------------
+
+
+When the system exchange receives an inspect method, it decodes the
+XML to give the object to inspect. It sends a method to this object and
+waits for a reply. It formats a reply XML sends the reply back to the
+client (using the mechanism explained previously).
+
+For simplicity, we do all XML encoding and decoding in the system
+exchange only.  Data is passed between the system exchange and objects
+in the form of field tables (the asl_field_list class).
+
+The 'Modify' Method
+-------------------
+
+A modify method can apply changes to several objects. The system
+exchange decodes the XML, and sends a modify method to each affected
+object. It constructs a reply and sends this back to the client.
+
+The 'Watch' Method
+------------------
+
+The system exchange is responsible for monitoring watches.  It does
+this by maintaining a list of watches and checking each one after
+some regular interval - e.g. every 30 seconds.  It asks the watched
+object to provide its properties ("inspect"), checks the properties
+and if they hit the watch limit, sends an alert.
+
+Once watch has provoked an alert, the system exchange will suppress
+successive alerts unless there is significant variance - e.g. 5%.
+
+
+
+
+In the OpenAMQ server, requests are handled by the standard system
+exchange "amq.console". Responses are sent to a temporary reply queue
+created by the console interface layer.
+
+Asynchronous information - alerts - are sent to the amq.console.alert
+exchange, and console interface layer(s) get these alerts using a
+pub/sub model. Alerts are published with a topic-style routing key that
+allows selective subscription to specific types of alert.
+
+
+
+Before sending methods to the server, the client creates a temporary private
+queue for replies:
+
+ - Queue.Declare, no name, private = 1, auto-delete = 1.
+
+It then binds this queue to the amq.direct exchange:
+
+ - Queue.Bind, queue=<provided name>, exchange=amq.direct,
+   routing_key=<provided name>.
+
+
+
 Destination URLs
     - Reply-To = destination/url
     - Not required to be parsed by client API
