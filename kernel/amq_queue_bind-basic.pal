@@ -29,4 +29,5 @@
             <abort>Message did not arrive to the binded queue</abort>
         </empty>
     </session>
+    <echo>PASS: queue_bind</echo>
 </pal>

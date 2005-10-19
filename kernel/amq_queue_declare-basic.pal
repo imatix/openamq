@@ -18,4 +18,5 @@
           </arguments>      
       </queue_bind>
     </session>
+    <echo>PASS: queue_declare</echo>
 </pal>
