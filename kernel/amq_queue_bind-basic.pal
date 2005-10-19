@@ -8,19 +8,21 @@
     target = "stdc"
     >
     <echo>TEST: queue_bind</echo>
-    <session>
+    <session
+        scope = "test"
+        >
         <echo>CASE: direct class</echo>
-        <!-- Queue name supplied by server, default scope -->
-        <queue_declare scope = "azAZ09-_." queue = ""/>
+        <!-- Queue name supplied by server -->
+        <queue_declare queue = ""/>
         <!-- Since $queue should now be available, expect a clean bind -->
-        <queue_bind scope = "azAZ09-_." queue = "$queue" exchange = "amq.direct">
+        <queue_bind queue = "$queue" exchange = "amq.direct">
             <arguments>
                 <field name = "routing_key" value = "a_dest"/>
             </arguments>      
         </queue_bind>
-        <basic_consume scope = "azAZ09-_." queue = "$queue" />
+        <basic_consume queue = "$queue" />
         <basic_content size = "1024" message_id = "id-0001" />
-        <basic_publish scope = "azAZ09-_." exchange = "amq.direct" routing_key = "a_dest" />
+        <basic_publish exchange = "amq.direct" routing_key = "a_dest" />
         <wait timeout = "1000"/>
         <basic_arrived>
             <!-- assert name = "$message_id" value = "id-0001"/-->
