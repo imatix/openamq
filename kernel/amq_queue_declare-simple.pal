@@ -3,7 +3,7 @@
     Test script for queue declare
   -->
 <pal
-    name   = "amq_queue_declare-basic"
+    name   = "amq_queue_declare-simple"
     script = "amq_pal_gen"
     target = "stdc"
     >
