@@ -1,0 +1,19 @@
+<?xml?>
+<pal
+    name   = "amq_116"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+<!-- This tests that we can make a headers binding using argument fields -->
+
+<session scope = "default">
+    <queue_declare />
+    <queue_bind exchange = "amq.match" queue = "$queue" >
+        <arguments>
+            <field name = "currency" value = "eur" />
+        </arguments>
+    </queue_bind>
+</session>
+
+</pal>
+
