@@ -1,0 +1,21 @@
+<?xml?>
+<pal
+    name   = "amq_queue_purge"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    <session error_handling="recover">
+        <!-- ....... "should work" testcases .............................. --> 
+        <exchange_declare exchange = "myexchange" class = "fanout" />
+        <queue_declare  scope = "default"   queue = "queue-purge_0" />
+        <queue_bind     scope = "default"   queue = "queue-purge_0" exchange = "amq.direct" routing_key = "match" />
+        <basic_browse   scope = "default"   queue = "queue-purge_0"/>
+        <basic_content  size = "64000"      message_id = "id-$random" />
+        <basic_publish  exchange = "amq.direct" routing_key = "match" />
+        <basic_publish  exchange = "amq.direct" routing_key = "match" />
+        <!-- <queue_purge    queue = "queue-purge_0" /> -->
+        <basic_arrived>
+            <echo>arrived: $message_id</echo>
+        </basic_arrived>
+    </session>
+</pal>
