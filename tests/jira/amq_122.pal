@@ -1,7 +1,7 @@
 <?xml?>
 <!-- incomplete, needs review -->
 <pal
-    name = "amq_112"
+    name = "amq_122"
     script = "amq_pal_gen"
     target = "stdc"
     >
