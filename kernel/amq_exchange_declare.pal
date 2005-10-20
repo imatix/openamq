@@ -1,0 +1,21 @@
+<?xml?>
+<pal
+    name   = "amq_exchange_declare"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    <session error_handling = "recover">
+        <!-- ....... "should work" tests ....................... -->
+        <exchange_declare   exchange = "exchange-declare_0" />
+        <exchange_declare   exchange = "exchange_declare_1" ticket = "0" />
+        <exchange_declare   exchange = "exchange-declare_2" class="exchange-declare_class"/>
+        <exchange_declare   exchange = "exchange-declare_3" class="direct"/>
+
+        <!-- ....... "should fail" tests ....................... -->
+        <exchange_declare   exchange = "exchange-declare_4" class="topic"/>
+
+        <!-- FIXME: ticket not implemented yet
+        <exchange_declare   ticket = "foobar" />
+        -->
+    </session>
+</pal>
