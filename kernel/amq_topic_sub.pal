@@ -7,16 +7,12 @@
     script = "amq_pal_gen"
     target = "stdc"
     >
-    <session>
+    <session scope = "subscription" >
       <!-- $queue name is supplied by server -->
-      <queue_declare scope = "subscription" queue = ""/>
-      <queue_bind scope = "subscription" queue = "$queue" exchange = "amq.topic">
-        <arguments>
-            <field name = "routing_key" value = "*.eur" />
-        </arguments>
-      </queue_bind>
+      <queue_declare queue = ""/>
+      <queue_bind queue = "$queue" exchange = "amq.topic" routing_key = "*.eur" />
       <echo>Consuming messages from subscription $queue...</echo>
-      <jms_consume auto_ack = "1" />
+      <jms_consume queue = "$queue" auto_ack = "1" />
       <repeat>
         <wait/>
         <jms_arrived>

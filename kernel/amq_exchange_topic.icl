@@ -8,8 +8,8 @@
     >
 <doc>
 This class implements the topic exchange, which routes messages
-based on their "routing_key" property matched against a wild-card
-topic tree specification.
+based on the routing_key matched against a wild-card topic tree
+specification.
 </doc>
 
 <inherit class = "amq_exchange_base" />
@@ -35,20 +35,17 @@ topic tree specification.
 
 <method name = "compile">
     <doc>
-    Compiles a topic binding.  The arguments must contain a field
-    called "routing_key", who's value is a routing_key wildcard pattern
-    that conforms to the AMQP specifications for topic matching.  This
-    means:
-    
+    Compiles a topic binding, based on the routing key, which is a
+    wildcard pattern that conforms to the AMQP specifications for topic
+    matching.  This means:
+
       - multiple levels separated by '.', e.g. "nasdaq.ibm.usd"
       - single level wildcard represented by '*', e.g. "nasdaq.*.usd"
       - multiple level wildcard represented by '#', e.g. "#.usd"
+
+    An empty routing key is valid, and is treated as matching nothing.
     </doc>
     <local>
-    asl_field_list_t
-        *fields;                        //  Decoded arguments
-    asl_field_t
-        *routing_key;                   //  Routing key value
     ipr_regexp_t
         *regexp;                        //  Regular expression object
     uint
@@ -57,49 +54,30 @@ topic tree specification.
         *index;                         //  Index reference from index_array
     </local>
     //
-    fields = asl_field_list_new (binding->arguments);
-    if (fields) {
-        routing_key = asl_field_list_search (fields, "routing_key");
-        if (routing_key) {
-            //  Turn the routing_key string into a nice regexp
-            icl_shortstr_cpy (binding->routing_key, asl_field_string (routing_key));
-            s_topic_to_regexp (asl_field_string (routing_key), binding->regexp);
-            regexp = ipr_regexp_new (binding->regexp);
+    //  Turn the routing_key string into a nice regexp
+    s_topic_to_regexp (binding->routing_key, binding->regexp);
+    regexp = ipr_regexp_new (binding->regexp);
 
-            if (amq_server_config_trace_route (amq_server_config))
-                icl_console_print ("X: reindex  wildcard=%s", binding->routing_key);
+    if (amq_server_config_trace_route (amq_server_config))
+        icl_console_print ("X: reindex  wildcard=%s", binding->routing_key);
 
-            //  We scan all indices to see which ones match our regexp
-            for (index_nbr = 0; index_nbr < self->index_array->bound; index_nbr++) {
-                index = amq_index_array_fetch (self->index_array, index_nbr);
-                if (index) {
-                    if (ipr_regexp_match (regexp, index->key, NULL)) {
-                        if (amq_server_config_trace_route (amq_server_config))
-                            icl_console_print ("X: index    wildcard=%s routing_key=%s",
-                                binding->routing_key, index->key);
+    //  We scan all indices to see which ones match our regexp
+    for (index_nbr = 0; index_nbr < self->index_array->bound; index_nbr++) {
+        index = amq_index_array_fetch (self->index_array, index_nbr);
+        if (index) {
+            if (ipr_regexp_match (regexp, index->key, NULL)) {
+                if (amq_server_config_trace_route (amq_server_config))
+                    icl_console_print ("X: index    wildcard=%s routing_key=%s",
+                        binding->routing_key, index->key);
 
-                        //  Cross-reference binding and index
-                        ipr_bits_set (index->bindset, binding->index);
-                        ipr_looseref_queue (binding->index_list, index);
-                    }
-                    amq_index_unlink (&index);
-                }
+                //  Cross-reference binding and index
+                ipr_bits_set (index->bindset, binding->index);
+                ipr_looseref_queue (binding->index_list, index);
             }
-            ipr_regexp_destroy (&regexp);
-            asl_field_unlink (&routing_key);
+            amq_index_unlink (&index);
         }
-        else {
-            rc = 1;
-            amq_server_channel_close (
-                channel, ASL_COMMAND_INVALID, "No routing_key field specified");
-        }
-        asl_field_list_destroy (&fields);
     }
-    else {
-        rc = 1;
-        amq_server_channel_close (
-            channel, ASL_COMMAND_INVALID, "Invalid binding arguments");
-    }
+    ipr_regexp_destroy (&regexp);
 </method>
 
 <method name = "publish">

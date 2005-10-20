@@ -171,7 +171,7 @@
   </field>
 
   <field name = "message count" type = "long">
-    number of messages in queue 
+    number of messages in queue
     <doc>
       Reports the number of messages in the queue, which will be zero
       for newly-created queues.
@@ -240,6 +240,16 @@
     <doc>
       The name of the exchange to bind to. If the exchange does not
       exist the server will raise a channel exception.
+    </doc>
+  </field>
+
+  <field name = "routing key" type = "shortstr">
+     message routing key
+    <doc>
+      Specifies the routing key for the binding.  The routing key is
+      used for routing messages depending on the exchange configuration.
+      Not all exchanges use a routing key - refer to the specific exchange
+      documentation.
     </doc>
   </field>
 

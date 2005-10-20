@@ -90,8 +90,6 @@ main (int argc, char *argv [])
         got_messages;                   //  Browsing indicator
     icl_shortstr_t
         message_id;                     //  Message identifier
-    icl_longstr_t
-        *arguments = NULL;              //  Serialised into long string
 
     //  These are the arguments we may get on the command line
     opt_server   = "localhost";
@@ -262,10 +260,8 @@ main (int argc, char *argv [])
         goto finished;
 
     //  Set-up a simple binding based on queue name
-    arguments = asl_field_list_build ("routing_key", opt_queue, NULL);
     rc = amq_client_session_queue_bind (
-        session, ticket, "global", opt_queue, opt_exchange, arguments);
-    icl_longstr_destroy (&arguments);
+        session, ticket, "global", opt_queue, opt_exchange, opt_queue, NULL);
     if (rc)
         goto finished;                  //  Quit if that failed
 

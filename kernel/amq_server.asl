@@ -149,7 +149,8 @@
     if (exchange) {
         queue = amq_queue_search (amq_vhost->queue_table, method->scope, method->queue);
         if (queue) {
-            amq_exchange_bind_queue (exchange, channel, queue, method->arguments);
+            amq_exchange_bind_queue (
+                exchange, channel, queue, method->routing_key, method->arguments);
             amq_queue_unlink (&queue);
         }
         else

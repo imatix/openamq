@@ -7,8 +7,8 @@
     script    = "icl_gen"
     >
 <doc>
-This class implements the dest exchange, which routes messages
-based on their "routing_key" property.
+This class implements the dest exchange, which routes messages based
+on the routing_key.
 </doc>
 
 <inherit class = "amq_exchange_base" />
@@ -30,41 +30,18 @@ based on their "routing_key" property.
 
 <method name = "compile">
     <local>
-    asl_field_list_t
-        *fields;                        //  Decoded arguments
-    asl_field_t
-        *routing_key;                   //  Routing key
     amq_hash_t
         *hash;                          //  Hash entry
     </local>
     //
-    fields = asl_field_list_new (binding->arguments);
-    if (fields) {
-        routing_key = asl_field_list_search (fields, "routing_key");
-        if (routing_key) {
-            if (amq_server_config_trace_route (amq_server_config))
-                icl_console_print ("X: compile  routing_key=%s", asl_field_string (routing_key));
-            hash = amq_hash_new (self->binding_hash, asl_field_string (routing_key), binding);
-            if (hash)
-                amq_hash_unlink (&hash);
-            else {
-                rc = 1;
-                amq_server_channel_close (
-                    channel, ASL_COMMAND_INVALID, "Duplicate binding");
-            }
-            asl_field_unlink (&routing_key);
-        }
-        else {
-            rc = 1;
-            amq_server_channel_close (
-                channel, ASL_COMMAND_INVALID, "No routing_key field specified");
-        }
-        asl_field_list_destroy (&fields);
-    }
+    if (amq_server_config_trace_route (amq_server_config))
+        icl_console_print ("X: compile  routing_key=%s", binding->routing_key);
+    hash = amq_hash_new (self->binding_hash, binding->routing_key, binding);
+    if (hash)
+        amq_hash_unlink (&hash);
     else {
         rc = 1;
-        amq_server_channel_close (
-            channel, ASL_COMMAND_INVALID, "Invalid binding arguments");
+        amq_server_channel_close (channel, ASL_COMMAND_INVALID, "Duplicate binding");
     }
 </method>
 

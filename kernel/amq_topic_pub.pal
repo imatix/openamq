@@ -22,7 +22,7 @@
           <set name = "topic" value = "stock.eur" />
         </else>
         <jms_content size = "1000" message_id = "id-$random" />
-        <jms_publish exchange = "topic" routing_key = "$topic" />
+        <jms_publish exchange = "amq.topic" routing_key = "$topic" />
       </repeat>
     </session>
 </pal>

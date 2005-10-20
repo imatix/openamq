@@ -34,14 +34,14 @@ class.
         *exchange_list;                 //  List of exchanges for binding
     ipr_looseref_list_t
         *index_list;                    //  List of indices for binding
+    icl_shortstr_t
+        routing_key;                    //  Binding routing key
     icl_longstr_t
-        *arguments;                     //  Binding arguments
+        *arguments;                     //  Additional binding arguments
     int
         index;                          //  Index in exchange->binding_index
 
     //  Only used for dest-wild matching, might be moved elsewhere
-    icl_shortstr_t
-        routing_key;                    //  Binding routing key value
     icl_shortstr_t
         regexp;                         //  Binding routing key pattern
 
@@ -53,13 +53,15 @@ class.
 </context>
 
 <method name = "new">
-    <argument name = "exchange"  type = "amq_exchange_t *">Parent exchange</argument>
-    <argument name = "arguments" type = "icl_longstr_t *" >Arguments</argument>
+    <argument name = "exchange"    type = "amq_exchange_t *">Parent exchange</argument>
+    <argument name = "routing key" type = "char *">Bind to routing key</argument>
+    <argument name = "arguments"   type = "icl_longstr_t *" >Additional arguments</argument>
     self->exchange      = exchange;
     self->queue_list    = ipr_looseref_list_new ();
     self->exchange_list = ipr_looseref_list_new ();
     self->index_list    = ipr_looseref_list_new ();
     self->arguments     = icl_longstr_dup (arguments);
+    icl_shortstr_cpy (self->routing_key, routing_key);
 
     //  Get an index for the binding and complain if the index is full
     self->index = ipr_index_insert (self->exchange->binding_index, self);

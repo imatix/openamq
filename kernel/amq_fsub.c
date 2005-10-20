@@ -89,7 +89,7 @@ main (int argc, char *argv [])
 
     //  Initialise system in order to use console.
     icl_system_initialise (argc, argv);
-    
+
     argparm = NULL;                     //  Argument parameter to pick-up
     for (argn = 1; argn < argc; argn++) {
         //  If argparm is set, we have to collect an argument parameter
@@ -217,7 +217,7 @@ main (int argc, char *argv [])
     arguments = asl_field_list_flatten (field_list);
     asl_field_list_destroy (&field_list);
     rc = amq_client_session_queue_bind (
-        session, ticket, "global", opt_queue, "amq.match", arguments);
+        session, ticket, "global", opt_queue, "amq.match", NULL, arguments);
     icl_longstr_destroy (&headers);
     icl_longstr_destroy (&arguments);
     if (rc)
