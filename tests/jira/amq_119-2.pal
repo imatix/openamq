@@ -3,7 +3,7 @@
     Test 1000 connects and disconnects to the server
   -->
 <pal
-    name   = "amq_nop_rep"
+    name   = "amq_119-2"
     script = "amq_pal_gen"
     target = "stdc"
     >

@@ -4,7 +4,7 @@
 #
 
 for i in `yes | head -1000`; do
-    ./amq_nop &
+    ./amq_119 &
 done
 
 wait

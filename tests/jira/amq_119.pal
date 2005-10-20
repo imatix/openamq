@@ -3,7 +3,7 @@
     Test a connection that does nothing
   -->
 <pal
-    name   = "amq_nop"
+    name   = "amq_119"
     script = "amq_pal_gen"
     target = "stdc"
     >
