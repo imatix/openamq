@@ -482,7 +482,8 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                 final FieldTable ft = new FieldTable();
                 //if (rawSelector != null)
                 //    ft.put("headers", rawSelector.getDataAsBytes());
-                ft.putAll(rawSelector);
+                if (rawSelector != null)
+                    ft.putAll(rawSelector);
                 AMQFrame queueBind = QueueBindBody.createAMQFrame(_channelId, 0, amqd.getScope(), queueOk.queue,
                                                                   amqd.getExchangeName(), amqd.getDestinationName(), ft);
 
