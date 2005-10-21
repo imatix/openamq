@@ -16,12 +16,14 @@
         <jms_publish exchange = "amq.direct" routing_key = "D1" immediate = "1"/>
         <echo>I: Checking bounces</echo>
         <set name = "count" value = "0" />
-        <repeat times = "2" counter = "count">
+        <repeat times = "3">
             <wait timeout = "1000"/>
             <jms_bounced>
                 <echo>Bounced: $message_id</echo>
+                <inc name = "count"/>
             </jms_bounced>
         </repeat>
+        <echo>Count: $count</echo>
         <assert name = "count" value = "2"/>
         <echo>PASS</echo>
     </session>
