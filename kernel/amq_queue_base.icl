@@ -27,6 +27,8 @@ independent of the queue content type.
     amq_consumer_by_queue_t
         *active_consumers,              //  Active consumers
         *paused_consumers;              //  Paused consumers
+    ipr_looseref_list_t
+        *content_list;                  //  List of message contents
 
     //  Statistics
     size_t
@@ -40,11 +42,13 @@ independent of the queue content type.
     self->queue            = queue;
     self->active_consumers = amq_consumer_by_queue_new ();
     self->paused_consumers = amq_consumer_by_queue_new ();
+    self->content_list     = ipr_looseref_list_new ();
 </method>
 
 <method name = "destroy">
     s_free_consumer_queue (&self->active_consumers);
     s_free_consumer_queue (&self->paused_consumers);
+    ipr_looseref_list_destroy (&self->content_list);
 </method>
 
 <method name = "consume" template = "function">
@@ -86,6 +90,22 @@ independent of the queue content type.
     }
     else
         amq_consumer_by_queue_queue (self->paused_consumers, consumer);
+</method>
+
+<method name = "consumer count" template = "function">
+    <doc>
+    Return number of active consumers for queue.
+    </doc>
+    //
+    rc = amq_consumer_by_queue_count (self->active_consumers);
+</method>
+
+<method name = "message count" template = "function">
+    <doc>
+    Returns number of messages on queue.
+    </doc>
+    //
+    rc = ipr_looseref_list_count (self->content_list);
 </method>
 
 <private name = "header">

@@ -314,6 +314,24 @@ class.  This is a lock-free asynchronous class.
     </action>
 </method>
 
+<method name = "message count" template = "function">
+    <doc>
+    Return number of messages on queue.
+    </doc>
+    //
+    rc = amq_queue_jms_message_count   (self->queue_jms)
+       + amq_queue_basic_message_count (self->queue_basic);
+</method>
+
+<method name = "consumer count" template = "function">
+    <doc>
+    Return number of consumers on queue.
+    </doc>
+    //
+    rc = amq_queue_jms_consumer_count   (self->queue_jms)
+       + amq_queue_basic_consumer_count (self->queue_basic);
+</method>
+
 <method name = "pre dispatch" template = "function">
     <doc>
     Flags the queue as "dirty" and moves it to the front of the dispatch

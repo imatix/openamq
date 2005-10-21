@@ -129,7 +129,12 @@
                 channel, ASL_RESOURCE_ERROR, "Queue cannot be made private to this connection");
         else {
             amq_server_agent_queue_declare_ok (
-                connection->thread, (dbyte) channel->key, queue->name, NULL, 0, 0);
+                connection->thread,
+                (dbyte) channel->key,
+                queue->name,
+                NULL,
+                amq_queue_message_count (queue),
+                amq_queue_consumer_count (queue));
             amq_queue_list_queue (amq_vhost->queue_list, queue);
         }
         amq_queue_unlink (&queue);
@@ -169,7 +174,7 @@
     queue = amq_queue_search (amq_vhost->queue_table, method->scope, method->queue);
     if (queue) {
         amq_server_agent_queue_delete_ok (
-            connection->thread, (dbyte) channel->key, 0);
+            connection->thread, (dbyte) channel->key, amq_queue_message_count (queue));
         amq_queue_destroy (&queue);
     }
     else

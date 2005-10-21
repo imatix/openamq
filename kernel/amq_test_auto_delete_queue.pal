@@ -1,0 +1,15 @@
+<?xml?>
+<!--
+    Test script for topic subscriber
+  -->
+<pal
+    name   = "amq_test_auto_delete_queue"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    <session>
+      <queue_declare scope = "test" queue = "myqueue" auto_delete = "1" />
+      <jms_consume scope = "test" queue = "myqueue" />
+    </session>
+</pal>
+

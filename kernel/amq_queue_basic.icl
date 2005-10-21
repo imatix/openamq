@@ -7,19 +7,16 @@
     script    = "icl_gen"
     >
 <doc>
-This class implements the basic contenQ manager. This class
+This class implements the basic content queue manager. This class
 runs lock-free as a child of the asynchronous queue class.
 </doc>
 
 <inherit class = "amq_queue_base" />
 
 <context>
-    ipr_looseref_list_t
-        *content_list;                  //  List of message contents
 </context>
 
 <method name = "new">
-    self->content_list = ipr_looseref_list_new ();
 </method>
 
 <method name = "destroy">
@@ -30,14 +27,13 @@ runs lock-free as a child of the asynchronous queue class.
     //
     while ((content = (amq_content_basic_t *) ipr_looseref_pop (self->content_list)))
         amq_content_basic_destroy (&content);
-
-    ipr_looseref_list_destroy (&self->content_list);
 </method>
 
 <method name = "publish" template = "function">
     <doc>
-    Publish message content onto queue. Returns true if the queue had
-    one or more active consumers, else false.
+    Publish message content onto queue.  If the message was marked
+    as "immediate" and could not be dispatched, bounces it back to
+    the producer.
     </doc>
     <argument name = "channel"   type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "content"   type = "amq_content_basic_t *">Message content</argument>

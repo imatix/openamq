@@ -1,0 +1,47 @@
+<?xml?>
+<pal
+    name   = "amq_test_queue_expire"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+<!-- This tests that a deleted queue really goes away -->
+
+<!-- Don't use own variables with the same name as standard variables -->
+<set name = "myqueue" value = "my.test" />
+<macro name = "check queue">
+    <jms_browse />
+    <jms_arrived>
+        <echo>Arrived: $message_id</echo>
+    </jms_arrived>
+    <jms_bounced>
+        <echo>Bounced: $message_id</echo>
+    </jms_bounced>
+</macro>
+
+<session
+    scope     = "default"
+    exchange  = "amq.direct"
+    queue     = "$myqueue"
+    error_handling = "recover">
+
+    <jms_content message_id = "should-bounce-before" />
+    <jms_publish routing_key = "$myqueue" mandatory = "1" />
+    <invoke macro = "check queue" />
+
+    <queue_declare />
+    <queue_bind>
+        <arguments>
+            <field name = "routing_key" value = "$myqueue" />
+        </arguments>
+    </queue_bind>
+    <jms_content message_id = "should-arrive" />
+    <jms_publish routing_key = "$myqueue" mandatory = "1" />
+    <invoke macro = "check queue" />
+
+    <queue_delete />
+    <jms_content message_id = "should-bounce-after" />
+    <jms_publish routing_key = "$myqueue" mandatory = "1" />
+    <invoke macro = "check queue" />
+</session>
+
+</pal>

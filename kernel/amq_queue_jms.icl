@@ -14,12 +14,9 @@ runs lock-free as a child of the asynchronous queue class.
 <inherit class = "amq_queue_base" />
 
 <context>
-    ipr_looseref_list_t
-        *content_list;                  //  List of message contents
 </context>
 
 <method name = "new">
-    self->content_list = ipr_looseref_list_new ();
 </method>
 
 <method name = "destroy">
@@ -30,8 +27,6 @@ runs lock-free as a child of the asynchronous queue class.
     //
     while ((content = (amq_content_jms_t *) ipr_looseref_pop (self->content_list)))
         amq_content_jms_destroy (&content);
-
-    ipr_looseref_list_destroy (&self->content_list);
 </method>
 
 <method name = "publish" template = "function">
