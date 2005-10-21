@@ -112,7 +112,7 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
         {
             // TODO: check thread safety
             short channelId = _idFactory.getChannelId();
-            AMQFrame frame = ChannelOpenBody.createAMQFrame(channelId, /*_virtualPath,*/ 100,
+            AMQFrame frame = ChannelOpenBody.createAMQFrame(channelId, 100,
                                                             null);
             
             if (_logger.isDebugEnabled())

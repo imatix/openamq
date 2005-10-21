@@ -97,7 +97,7 @@ public class AMQProtocolSession
         return _minaProtocolSession;
     }
 
-    public String getSecurityMechanism()
+    public String getSecurityMechanism() 
     {
         return (String) _minaProtocolSession.getAttribute(SECURITY_MECHANISM);
     }
