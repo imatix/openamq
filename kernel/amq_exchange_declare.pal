@@ -1,4 +1,7 @@
 <?xml?>
+<!--
+    DOC: Regression testing of the AMQ protocol, specifically the exchange_declare method
+-->
 <pal
     name   = "amq_exchange_declare"
     script = "amq_pal_gen"
@@ -11,6 +14,9 @@
         <exchange_declare   exchange="exchange-declare_2" class="topic" />
         <exchange_declare   exchange="exchange-declare_3" class="direct" />
         <exchange_declare   exchange="exchange-declare_3" class="direct" passive="1"/>
+        <exchange_declare   exchange="exchange-declare_6" class="direct" durable="1"/>
+        <exchange_declare   exchange="exchange-declare_7" class="direct" auto_delete="1"/>
+        <exchange_declare   exchange="exchange-declare_8" class="direct" internal="1"/>
 
         <!-- ....... "should fail" tests ....................... -->
         <!-- [0] declare exch with illegal name -->
@@ -32,6 +38,10 @@
         <!-- [4] declare passive exch which had a different class -->
         <exchange_declare   exchange="exchange-declare_2" class="direct" passive="1"/>
         <assert             name="reply_code"             value="502">E: Failure in '[4] Declare passive exch with other class' reply code != 502</assert>
+        
+        <!-- [5] declare exch with unknown class -->
+        <exchange_declare   exchange="exchange-declare_9" class="someclass"/>
+        <assert             name="reply_code"             value="502">E: Failure in '[5] Declare exch with unknown class' reply code != 502</assert>
 
         <!-- FIXME: ticket not implemented yet
         <exchange_declare   ticket = "foobar" />

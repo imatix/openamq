@@ -1,0 +1,32 @@
+<?xml?>
+<!--
+    DOC: Regression testing of the AMQ protocol, specifically the exchange_delete method
+-->
+<pal
+    name   = "amq_exchange_delete"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    <session error_handling="recover">
+        <!-- ....... "should work" tests ....................... -->
+        <exchange_declare   exchange="exchange-delete_0" class="direct" />
+        <exchange_delete    exchange="exchange-delete_0" />
+        
+        <exchange_declare   exchange="exchange-delete_2" class="direct" />
+        <exchange_delete    exchange="exchange-delete_2" if_unused="1"/>
+
+        <!-- ....... "should fail" tests ....................... -->
+        <!-- [0] delete unknown exchange -->
+        <exchange_delete    exchange="exchange-delete_1" />
+        <assert             name="reply_code"   value="504">E: Failure in '[0] Delete unknown exchange' reply code != 504</assert>
+
+
+        <!-- [1] delete with if_unused flag and queue bound to the exch -->
+        <exchange_declare   exchange="exchange-delete_2" class="direct" />
+        <queue_declare      queue="exchange-delete_2_q"  scope="default" />
+        <queue_bind         exchange="exchange-delete_2" scope="default" queue="exchange-delete_2_q"/>
+        <exchange_delete    exchange="exchange-delete_2" if_unused="1"/>
+        <assert             name="reply_code"   value="504">E: Failure in '[1] Delete with if_unused flag and queue bound to the exch' reply code != 504</assert>
+
+    </session>
+</pal>

@@ -8,7 +8,7 @@
     target = "stdc"
     >
     <session error_handling="recover">
-       <!-- "should pass" tests -->
+       <!-- .......... "should pass" tests .............................-->
        <queue_declare queue="queue-autodel_1"   auto_delete="1" scope="default" />
        <queue_declare queue="queue-ticket_1"    ticket="0"      scope="default" />
        <queue_declare queue="queue-scope_1"                     scope="default" />
@@ -19,7 +19,7 @@
        <queue_declare queue="queue-passive_0"   passive="1"     scope="default" />
        <queue_declare queue="queue-private_1"   private="1"     scope="default" />
 
-       <!-- "should fail" tests FIXME: this still prints a warning, why? -->
+       <!-- .......... "should fail" tests .............................-->
        <!-- [0] Declare queue with illegal name -->
        <queue_declare queue="@%$^&*()!"                         scope="default" />
        <assert        name="reply_code"         value="502">E: Failure in '[0] Declare queue with illegal name' reply code != 502</assert>
@@ -38,7 +38,8 @@
        -->
 
        <!--
-       FIXME: need a new connection here TODO: catch binding private queue violation (507?)
+       FIXME: need a new connection here, while the other is still open
+       TODO: catch binding private queue violation (507?)
        <session scope="default">
            <queue_bind queue="queue-private_1" exchange="amq.direct" scope="default">
               <arguments>
@@ -54,7 +55,5 @@
           <assert name="reply_code" value="404" />
        </session>
        -->
-
-                                
     </session>
 </pal>
