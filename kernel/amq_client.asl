@@ -16,29 +16,29 @@
     ipr_looseref_queue (session->arrived_$(class.name)_list, self->content);
   </action>
 
-  <action name = "bounce">
-    if (!session->silent)
-        icl_console_print ("W: $(class.name) message was bounced: %d - %s",
-            session->reply_code, session->reply_text);
+  <action name = "deliver">
+    amq_content_$(class.name)_possess (self->content);
+    amq_content_$(class.name)_set_routing_key (
+        self->content, method->exchange, method->routing_key, 0);
+    ipr_looseref_queue (session->arrived_$(class.name)_list, self->content);
+  </action>
 
+  <action name = "bounce">
     amq_content_$(class.name)_possess (self->content);
     amq_content_$(class.name)_set_routing_key (
         self->content, method->exchange, method->routing_key, 0);
     ipr_looseref_queue (session->bounced_$(class.name)_list, self->content);
+
+    if (!session->silent)
+        icl_console_print ("W: $(class.name) message was bounced: %d - %s",
+            session->reply_code, session->reply_text);
   </action>
 </class>
 
 <class name = "jms">
   <action name = "browse-ok" sameas = "basic" />
-
-  <action name = "deliver">
-    amq_content_jms_possess (self->content);
-    amq_content_$(class.name)_set_routing_key (
-        self->content, method->exchange, method->routing_key, 0);
-    ipr_looseref_queue (session->arrived_jms_list, self->content);
-  </action>
-
-  <action name = "bounce" sameas = "basic" />
+  <action name = "deliver"   sameas = "basic" />
+  <action name = "bounce"    sameas = "basic" />
 </class>
 
 </protocol>
