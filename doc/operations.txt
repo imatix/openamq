@@ -1,3 +1,17 @@
+jmx
+    - mbeans = management beans
+    - properties read/write
+        - properties structured
+    - schema describes this
+    - remove views
+    - single schema operation
+        - schema name & version
+        - as static file delivered with server
+    - object ids -> full path
+    - configuration objects are separate from runtime objects
+        - separate tree in schema
+    - clustering: one console 
+    
 gdl
     title     = The AMQ Console
     subtitle  = Operator Control for AMQ Servers

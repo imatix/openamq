@@ -1,537 +1,774 @@
 gdl
-    title     = OpenAMQ Clustering
-    subtitle  = A Redundant Array of Inexpensive Servers
+    title     = AMQ Clustering
+    subtitle  = Providing Reliability and Scalability
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/10/17
+    date      = 2005/10/21
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 1.0c
+    version   = 1.2a1
 end gdl
 
-Redundant Array of Inexpensive Servers
-**************************************
-
-Statement of Goals
-==================
-
-RAIS is a proposal for clustering OpenAMQ servers.  RAIS was designed by
-Pieter Hintjens after discussions with Mark Atwell and Steve Connelly.
-
-The goals of the RAIS design are:
-
- 1. To provide arbitrarily scalable performance through the addition of
-    cheap hardware.
-
- 2. To provide high reliability through the use of redundancy.
-
- 3. To support all AMQP scenarios, including transient pub-sub, persistent
-    request-response, point-to-point queues, file-transfer, streaming etc.
-
- 4. To implement clustering with minimum impact on the AMQ server and in
-    such a way that clustering of different AMQ server implementations is
-    possible.
-
-Our goal in a transient pub-sub scenario is to achieve a sustained traffic
-rate of 1M messages per second, or 500K reliable messages per second on a
-server cluster costing under EUR 10,000.
-
-RAIS is inspired by three things:
-
- 1. The original concepts of RAID storage, namely the assembly of modest
-    components into a high-performance array.
-
- 2. The design approach of Google's networks, which are based on cheap boxes
-    interconnected by smart software.
-
- 3. The desire to find a way to scale OpenAMQ servers that does not depend
-    on optimisation, which always reaches limits.
-
-General Principles
-==================
-
-Overall Architecture
---------------------
-
-The architecture consists of:
-
- - A set of information publishers (P).
- - A set of information subscribers (S).
- - A set of OpenAMQ servers (A).
-
-Each publisher maintains a persistent connection to each server.  Each subscriber
-likewise maintains a persistent connection to each server.  The servers do not
-communicate with each other but remain connected to the entire set of publishers
-and subscribers:
-
-    P   P   P
-     \ / \ /
-      A   A
-     / \ / \
-    S   S   S
-
-Each P and each S is connected to each A, though most of these connections are
-not shown to keep the diagram simple.
-
-The state on any server A consists of the subscription information needed to
-route messages to the appropriate subscriber.  In AMQP terms this consists of
-queues, bindings, and consumers.
-
-If a new server joins the network, every publisher connects to the new server,
-and every subscriber connects to the new server and recreates its subscription
-information:
-
-    P   P   P
-     \ / \ / \
-      A   A   A
-     / \ / \ /<-- declare queues, bind queues, define consumers
-    S   S   S
-
-We avoid the complexity of synchronising the state of different servers by
-eliminating inter-server communication from the architecture.  Servers do not
-talk to each other.
-
-Thus in its stable state, every server A has an exact mirror of the subscription
-state of every other A.  We will now explore the different ways we can exploit
-this.
-
-Performance Through Striping
-----------------------------
-
-To gain performance, we "stripe" the messages.  This is exactly the same technique
-as used in RAID: each publisher writes data a round-robin fashion to the different
-servers it is connected to.
-
-Since each consumer is connected to every server, consumers will receive the same
-messages.  Ordering may not be maintained, since messages flow through different
-paths.
-
-Reliability Through Mirroring
------------------------------
-
-To gain reliability, we "mirror" the messages.  This means: sending the same
-message redundantly to more than one server, and rejecting duplicate messages
-on receipt.
-
-If the risk of a server crash is 1/R, then a double-redundancy (sending each
-message to 2 servers) will reduce the risk of a server crash to 1/(R*R).
-
-Combined Striping and Mirroring
--------------------------------
-
-Given a cluster of more than 2 servers, we can combine striping and mirroring
-to achieve both reliability and performance.
-
-Implementation Proposal
-=======================
-
-RAIS Implementation
--------------------
-
-RAIS depends on client-side intelligence.  We can place this intelligence
-in the client application, in the client API, or elsewhere.  The first two
-solutions present some difficulties, because RAIS is potentially a complex
-problem and it is not a good idea to mix this complexity with existing
-applications (they will do it wrong or in different ways), nor with the
-existing APIs (we would need multiple implementations, one for each API
-technology - C, JMS, Perl, etc.).
-
-So, we propose to implement RAIS as a proxy server.  A RAIS proxy (R)
-runs on every client system, and maps a single virtual connection into
-the full set of connections to the RAIS cluster:
-
-    P   P   P
-    R   R   R
-     \ / \ /
-      A   A
-     / \ / \
-    R   R   R
-    S   S   S
-
-Applications connect to the RAIS port on 127.0.0.1, and conduct a normal
-single-connection AMQP dialogue.  The RAIS proxy does the following:
-
- 1. It caches security information so that it can connect to all
-    servers using identical parameters.
-
- 2. It caches all subscription information (queue.declare, queue.bind,
-    jms.consume, channel.flow, etc. methods) so that it can recreate
-    this on all servers identically.
-
- 3. It applies the desired striping and mirroring of messages on all
-    jms.publish methods.
-
- 4. It caches received messages (jms.deliver) and eliminates duplicates
-    coming from multiple servers.
-
-The RAIS proxy holds its data in memory only, since if the client
-application ends, the RAIS proxy can also disconnect and end.
-
-Browsing Queues
----------------
-
-Compared to a real single server, a RAIS cluster does not hold messages on
-a single queue but rather holds them (usually redundantly) on several queues
-that have the same name but are in different locations.
-
-To implement a "browse" command that selects individual messages from a queue,
-we must:
-
- - Send the browse command to all servers.
- - Wait for all replies and collate them.
- - Present a single coherent response to the application.
-
-Cluster Synchronisation
------------------------
-
-We do not care about the set of publishers on the cluster - adding or
-removing a publisher has no impact on the way messages are routed.
-
-When a new subscriber joins the cluster, it will register with each
-server one-by-one.  It can send its registration commands (queue.create,
-queue.bind, jms.consume) in batches to each server, but there is still
-a significant window during which some servers will not be ready while
-others will be.
-
-During this window, the subscriber will not be guaranteed of getting
-all its messages correctly, as messages that are sent to an out-of-date
-server will not reach it.
-
-A new subscriber - or rather, the RAIS proxy that is acting for it -
-can monitor the cluster to know when it is "ready", and the incoming
-message stream is reliable enough to pass to the application.
-
-We propose the following mechanism:
-
- 1. Each server will publish metadata about new consumers on a standard
-    topic exchange.
-
- 2. Each RAIS proxy will subscribe to this information steam and thus
-    be able to monitor the state of each server.
-
- 3. Subscriber-side RAIS proxies will use this state information to
-    decide when the stream of data from the cluster is stable enough to
-    pass to the application.
-
-We can use a standard topic exchange, e.g. amq.system.rais.  The
-presence or absence of this exchange will tell RAIS proxies whether
-the server supports RAIS synchronisation or not.
-
-Clustered Point-to-Point
-------------------------
-
-Pub-sub is trivial to implement in RAIS since each queue has a single
-consumer, and fan-out is done by creating multiple queues, one for each
-subscriber.  Thus, each queue can unambiguously send its messages to
-its consuming client without problems (the only effect being that
-messages may arrive out of sequence as they travel different paths).
-
-But AMQ also allows point-to-point communications, using shared queues,
-which is essential for work-load distribution, and the classic scenario
-for message queues.
-
-Given the description of RAIS so far, this presents us with a problem.
-If a message is sent to a queue that is mirrored on two or more cluster
-servers, for reliability, how do we ensure consistent delivery?  A
-quick sketch of messages flowing arbitrarily across servers in a cluster
-shows that it is not at all stable.
-
-Summary of the Problem
-......................
-
-The main issues can be boiled down to three points:
-
- 1. Ensuring that a specific message, passing through two or more
-    mirrored queues in parallel, will always reach the same end-point.
-
- 2. Synchronising changes to consumers for queue so that all mirrored
-    queues have the same set of active consumers at all instants.
-
- 3. Allowing the mirrored distribution of consumer-queue state such
-    as prefetch and transactions.
-
-We have examined several plausible solutions to this problem.  There
-seems to be only one that works.  The key insight is this: when we mirror
-a queue across multiple servers, we must keep the state of each instance
-of the queue identical.  That means: the exact same set of consumers and
-the exact same set of messages.  If the queues do not have the same state,
-there is no guarantee that a message that has been mirrored to two or
-more queues will be dispatched in the same way, to the same consumer.
-
-The General Solution
-.....................
-
-The solution is this: when doing point-to-point publishing, the publisher
-must send the message to *all* servers, so that it arrives equally on all
-queues, and each queue must perform an identical calculation - taking into
-account the queue and consumer state - and thus send the message to the
-same consumer.  And this must remain stable even when consumers join and
-leave the cluster.
-
-Clearly when we speak of large clusters, sending every message to every
-server would create significant extra network traffic.
-
-Sub-Clusters Through Virtual Hosts
-..................................
-
-We can create sub-clusters using the AMQ concept of "virtual host", as
-follows:
-
- - Each server in the cluster would support one or more virtual hosts,
-   creating an overlapping set of virtual hosts, each running on one
-   or more servers.
-
- - When a client (consumer or publisher) connects to the cluster and
-   then to a specific virtual host, via its RAIS proxy, the proxy will
-   successfully connect only to those servers that implement the desired
-   virtual host.  This creates the sub-cluster.
-
-We can now use the cluster to gain throughput by separating applications,
-sets of queues, or even individual queues into different virtual hosts.
-
-At the same time, by tuning the number of instances of each virtual
-host (the number of servers that support it), we can tune the redundancy
-level of the network.  Since a single server can support an arbitrary
-number of virtual hosts, sub-clustering will be easy to manage.
-
-The End-Points
-..............
-
-The publishing proxy needs to know whether it is working in pub-sub or
-point-to-point mode.  In the former case it sends to one or more servers
-depending on the reliability vs. performance tuning.  In the latter case
-it sends to all servers.
-
-The consuming proxy is connected to all queues, so can expect to receive
-a message exactly one time per connected server.  It can process and
-acknowledge the first instance of the message that arrives, and
-acknowledge and discard the remaining messages that arrive.
-
-The Vanishing Consumer Problem
-..............................
-
-What happens if a consumer crashes and leaves the cluster while it has
-processed one instance of a message but not others?  We now risk getting
-inconsistency between the queues.
-
- - process first, ack last
- - acks may get lost
-    - cross-ack between queues
-
- -
-
-
-- clustered console
-- no publishing while consumer set is changing
-- flush from publishers down
-- controller tells all servers, "prepare"
-- all servers tell all publishers, "prepare"
-- all publishers flush outgoing messages
-- any new messages to publish are queued in publisher
-- all publishers signal all servers, "ready"
-- servers collect all "ready" responses, signal controller "ready"
-- controller creates new consumer on each server
-- controller tells all servers, "clear"
-- all servers tell all publishers, "clear"
-
-
-
-The simple way is to not send messages to servers that are "out of
-date" from the point of view of publishers.  We have already described
-a mechanism by which RAIS proxies can track the state of each server.
-We can use this mechanism in publisher-side RAIS proxies to detect
-out-of-date servers.
-
-There is a window for error here - a consumer may have been registered
-with a server but the server may not yet have warned the RAIS proxies
-that there is a state change.
-
-To be totally robust, we must pause each queue that receives a new
-consumer (a paused queue will accept new messages but not deliver
-them to consumers), and then resume the paused queues once every
-server has confirmed that it has registered the new consumer.
-
-A more complete solution needs a two-level handshake between the
-servers and a selected RAIS proxy that we will designate the "cluster
-manager".  This works as follows:
-
- - A new subscriber joins a server, creating a consumer on that
+General Discussion
+******************
+
+What is "Clustering"?
+=====================
+
+We use the term "cluster" to mean a set of servers that are tied
+together in such a way as to create a single virtual server:
+
+           +------------------+------------------+
+           |                  |                  |
+    +------+-----+     +------+-----+     +------+-----+
+    |            |     |            |     |            |
+    |   Server   |     |   Server   |     |   Server   |
+    |            |     |            |     |            |
+    +------+-----+     +------+-----+     +------+-----+
+           |                  |                  |
+           +------------------+------------------+
+                              | Cluster
+                              |
+    --------------------------+-------------------------
+                              |
+                       +------+------+
+                       |             |
+                       | Application |
+                       |             |
+                       +-------------+
+
+Note that the servers may be physically distant.  We do not use the
+term to describe sets of interconnected servers that serve different
+sets of applications, e.g.:
+
+        +---+                      +---+
+      +-+   +-+                  +-+   +-+
+      |       |      Bridge      |       |
+      |       | ---------------- |       |
+      +-+   +-+                  +-+   +-+
+        +-+-+                      +-+-+
+          |                          |
+          |                          |
+    +-----+-----+              +-----+-----+
+    |           |              |           |
+    |Application|              |Application|
+    |           |              |           |
+    +-----------+              +-----------+
+      New York                     Tokyo
+
+The correct term for this is "bridging", something that is done by
+specialised applications.  See the document entitled "AMQ Bridging".
+
+Why Cluster?
+============
+
+The main reasons for clustering are:
+
+1. Reliability: using redundant servers so that if one fails, another
+   can take its place.  Reliability is principally for point-to-point
+   messages, the classic "queue service" scenario.
+
+2. Scalability: using multiple servers so that work can be distributed
+   over more boxes and/or networks.  Scalability is principally for
+   transient publish/subscribe messages, the classic "topic service"
+   scenario.
+
+Since AMQ allows applications to mix the classic concepts of queue and
+topic into arbitrary messaging models, AMQ clustering must support both
+reliability and scalability, though these are somewhat different
+problems.
+
+Features of AMQ Clustering
+==========================
+
+We have some specific design goals for AMQ clustering:
+
+1. Simple to configure, administrater, and use in applications.
+
+2. Simplicity of implementation, except where the system becomes more
+   complex to use.
+
+3. Ability to scale to any size.
+
+4. Ability to use arbitrary storage systems (SAN, RAID, IDE).
+
+5. A single solution that provides both scalability and reliability,
+   albeit targetted towards specific application scenarios.
+
+Terminology
+===========
+
+We use the term "persistent" to mean data that is saved on disk, and
+survives server restarts. This is contrasted with "transient", which
+means data held only in memory, and lost if the server restarts. We use
+the term "reliable" to mean persistent data that is mirrored in some way
+to make it robust against disk failures.
+
+Levels of Reliability
+=====================
+
+We can define four levels of message reliability, each providing a
+different cost/reliability trade-off:
+
+ - Fully transient: the message is held only in one memory and is
+   lost if that memory is reset.
+
+ - Reliable transient: the message is replicated to a second memory
+   and is lost only if both memories are reset.
+
+ - Persistent: the message is saved to a single disk system and is
+   lost if that disk system is damaged.
+
+ - Reliable persistent: the message is saved to two distinct disk
+   systems and is lost only if both disk systems are damaged.
+
+Transactions vs. Messages
+=========================
+
+Although AMQ is a message-oriented middleware system, it is useful to
+consider reliability in terms of "transactions". A transaction consists
+of a set of actions that imply change to the server state, and
+specifically, the set of messages held by a queue:
+
+ - The simplest transactional model wraps every method in a transaction.
+   We call this an "automatic transaction".
+
+ - The classic transaction model wraps a set of methods in a transaction.
+
+ - The distributed transaction model coordinates transactions across a
+   set of servers using a distributed transaction coordinator.  This is
+   more complex than we want to implement at present.
+
+Transactions can cover any mix of persistent, or transient messages, and
+durable or temporary queues.
+
+We do not make any a-priori distinction between persistent and transient
+messages, except that they are stored on more or less reliable media.
+We might have several types of persistent messages, for instance.
+
+General Solution for Reliability
+================================
+
+We consider the problem of storing persistent transactions in such a
+way that a server or disk system failure does not cause loss of data.
+This is the classic "reliable point-to-point messaging" scenario.
+
+The cluster consists of two servers, one acting as "primary" and one as
+secondary. In normal operation, all clients connect to the primary
+server, as shown by this diagram:
+
+        +-----------+        +-----------+
+        |           |        |           |
+        |  Primary  +--------+  Backup   |
+        |  Server   +--------+  Server   |
+        |           |        |           |
+        +----/+\----+        +-----------+
+           // | \\
+          /   |   \\
+         /    |     \
+       //     |      \\
+     //-\    /+-\    /-\\
+    |    |  |    |  |    |
+    |    |  |    |  |    |
+     \--/    \--/    \--/
+
+      Client Applications
+
+Each server maintains its own storage, and the primary server replicates
+transactions to the secondary server as follows:
+
+        -----                -----
+      //     \\            //     \\
+     | Disk 1  |          | Disk 2  |
+      \\     //            \\     //
+        --+--                --+--
+          | ||||||             | ||||||
+          |  B                 |  D
+    +-----+-----+        +-----+-----+
+    |           |  C     |           |
+    |  Primary  +-||||||-+  Backup   |
+    |  Server   +--------+  Server   |
+    |           |     E  |           |
+    +-----+-----+        +-----------+
+          | ||||||
+         F|  A
+          |
+         /+-\
+        |    |
+        |    |
+         \--/
+        Client
+
+ - (A) The client prepares a transaction (publishes messages and
+   acknowledges received messages) on the primary server.  The
+   client then does a COMMIT.
+
+ - (B) The primary server writes this transaction to disk.  It may
+   or may not flush the disk, this is a matter of optimisation.
+
+ - (C) The primary server passes the transaction to the backup
    server.
 
- - The server marks the consumer as "inactive" and publishes its
-   change of state to the cluster manager.
+ - (D) The backup server writes this transaction to disk.  Again,
+   it may or may not flush the disk depending on the degree of
+   reliability wanted.
 
- - The server pauses its queue, so that new incoming messages are
-   not routed to consumers on this queue.  Other queues continue
-   to work unaffected.
+ - (E) The backup server confirms that the transaction has been
+   recorded safely.
 
- - This process repeats as the subscriber joins each server in turn.
+ - (F) The primary server confirms to the client application that
+   the transacton has been completed.
 
- - The cluster manager collect these reports in turn and collates
-   the results.
+If the primary server fails, the client can detect this and switch
+to the backup server:
 
- - When all servers report the same status, the cluster manager
-   sends all servers a "accept consumer" message.
+           -----                -----
+         //     \\            //     \\
+        | Disk 1  |          | Disk 2  |
+         \\     //            \\     //
+           --+--                --+--
+             |                    |
+          ---+---                 |
+      / //-------\\ \       +-----+-----+
+     | |           | |      |           |
+    |  |  Primary  |  |     |  Backup   |
+    |  |  Server   |  |     |  Server   |
+     | |           | |      |           |
+      \ \\\-----/// /       +-----------+
+           -----            ----
+                        ----
+                    ----
+                ----
+            /--\
+           |    |
+           |    |
+            \--/
+           Client
 
- - Given this message, the servers activate the new consumer and
-   then reply with an acknowledgement.
+There are some non-trivial details to solve, such as:
 
- - The cluster manager collects these acknowledgements and when it
-   has them all, it sends all servers a "resume queue" message.
+ - How does the secondary server know the primary server has
+   crashed?  How can it differentiate this from - e.g. - a
+   network failure?
 
- - The servers, on receiving this message, start sending messages
-   out to all consumers on the queue.
+ - How does the client know which server is the primary and
+   which is the secondary?
 
-This model guarantees that the set of consumers is identical across
-all servers before messages are sent out of a queue.
+ - What happens if the secondary server crashes?  Does this
+   need special attention?
 
-[Author's note: in fact the above model still allows broken mirrors:
-queues are paused one by one, leaving the chance for the same message
-to be sent to two different consumers.  Needs more work...]
+ - How does the primary server come back on-line?
 
-We can choose the cluster manager in several ways.  Our preference
-is to allow each server to choose several cluster managers from the
-set of publishing RAIS proxies known to it, using some algorithm
-that gurantees that there will be an overlap of at least one.
+ - Can we extend this solution to N servers, and does that help
+   to provide a more general (and simpler) solution?
 
+We will work through these in the detailed design section.
 
-Problem Statement
+General Solution for Scalabilty
+===============================
 
- - Message M is sent to two instances of queue, Q1 and Q2.
- - A new consumer C is attaching to both queues.  It attaches to Q1.
- - M now arrives in both queues, and both queues dispatch it.
- - New consumer C now attaches to Q2.
+We consider the problem of handling very large numbers of clients (100k
+or more) that consume data from a small number of high-volume
+publishers. This is the classic "transient publish-subscribe scenario".
 
-System:
+This scenario has several particular features:
 
- - RAIS proxy that is doing the consume acts as "sentinel".
- - The sentinel sends all servers a "prepare" command specifying the
-   queue.
- - Each server responds with an acknowledgment.
- - At this point, arbitrary messages have been passed through the queues.
- -
+ - It does not use persistent transactions. This means
+   there is no requirement to replicate transactions.
 
- - sentinel can be proxy making consumer
- - how do we synchronise same message on two servers...
-    - message has to do out before queue is paused
-    - can we introduce syncpoints?
+ - It has a strong fan-out ratio from publishers to subscribers.
+   This means the same message can be sent to very many end-points.
 
- - proxy wants to consume
-    - asks all queues to prepare
-    -
+We in fact have two kinds of client application, publishers and
+subscribers, and we can draw the cluster like this, showing a
+set publisher and several sets of subscribers:
 
-queues know last message
-    - 
+                       Publishers
+                          ---
+                        //   \\
+                       |       |
+                       |       |
+                        \\   //
+                          -+-
+                           |
+          +----------------+-----------------+
+          |                |                 |
+    +-----+-----+    +-----+-----+     +-----+-----+
+    |           |    |           |     |           |
+    |  Server   +----+  Server   +-----+  Server   |
+    |           |    |           |     |           |
+    +-----+-----+    +-----+-----+     +-----+-----+
+          |                |                 |
+          |                |                 |
+        /-+-\            /-+-\             /-+-\
+       |     |          |     |           |     |
+       |     |          |     |           |     |
+        \---/            \---/             \---/
+     Subscribers      Subscribers       Subscribers
 
-    Q1:    M1  *  M2 *   M4
-    Q2:    M1  *  M3     M4
-    Q3:    M2  *  M3
-    
+ 1. Subscribers are distributed across the servers, so that each
+    server has a segment of the subscriber population.
+
+ 2. Subscriptions (AMQ bindings and subscription queues) are held
+    separately for each subscriber on 'their' server.
+
+ 3. Every publisher sends every message to every server.
+
+It is clear that this model only works where we can exploit a strong
+fan-out from publisher to subscriber.  If every published message goes
+only to a few subscribers, this model will not provide any advantage.
+
+Failover is relatively easy: all subscribers from the failing server
+reconnect to another server, resubscribe, and start to collect their
+messages.
+
+In addition to the questions raised for the reliability design, we must
+answer these questions for the scalability design:
+
+ - How do subscribers decide which server to connect to?
+
+ - Where does the 'fan-out publish' intelligence sit?
+
+ - Where does the 'recreate subscriptions' intelligence sit?
+
+ - How do we support (more or less) reliable durable subscriptions with
+   persistent messages?
+
+We will work through these questions in the detailed design section.
+
+Design Methodology
+==================
+
+Our design methodology is the conventional one: start with the simplest
+plausible model, and build up from there.  We will define a series of
+"levels", each more complex.  Each level is fully implementable, and
+will implement and test each level before attempting the next.
+
+Level 0 Clustering
+******************
+
+Functional Goals
+================
+
+Level 0 clustering is our ground floor. This provides system failover
+without any data reliability or state replication. 
+
+We do not attempt to safeguard persistent messages, transactions,
+durable resources, or connection state. All messages are "fully
+transient" (i.e. held in a single memory only), and all queues and
+bindings are temporary and created on-demand.
+
+The main functionality of level 0 clustering is to redirect clients to
+the "right" server and to allow graceful failover to a backup server.
+
+We expect that some of the design decisions in the Level 0 clustering
+proposal will be "wrong", but we feel it is more important to implement
+a minimal working solution and learn from that than to attempt to design
+the complete and perfect solution without intermediate stages.
+
+Level 0 clustering is a problem is worth solving because:
+
+ 1. It is a real problem that we must solve for our first target
+    applications.
+
+ 2. It is significantly simpler than the full clustering problem.
+
+General Implementation
+======================
+
+Level 0 clustering has this general organisation:
+
+ - The cluster consists of two servers: one is the "primary" server
+   and the others is the "secondary" server.
+
+ - All clients connect the primary server.
+
+ - All queues are created and held on the primary server.
+
+ - All clients publish messages to the primary server.
+
+ - The primary and secondary servers are connected and monitor each
+   other for failure.
+
+If the primary server crashes, the fail-over process is as follows:
+
+ - The secondary server takes over the role of primary server.
+
+ - The clients of the old primary server reconnect to the new primary
+   server.
+
+ - The clients recreate all state (queues, consumers, etc.) on the new
+   primary server.
+
+ - Clients can start publishing again.
+
+The recovery process is as follows:
+
+ - The old primary server is restarted and checked, and now assumes the
+   role of secondary server.
+
+Server-side Functionality
+=========================
+
+The cluster looks like this:
+
+    +-----------+        +-----------+
+    |           |        |           |
+    |  Primary  +--------+ Secondary |
+    |           |        |           |
+    +-----+-----+        +-----------+
+          |
+          |
+        /-+-\
+       /     \
+      |Client |
+       \     /
+        \---/
+
+We build a cluster failover model that:
+
+ 1. Does not require any external administration or manual control.
+
+ 2. Does not require any external tokens or shared resources.
+
+ 3. Is invisible to the client applications.
+
+The servers are interconnected, so if the primary server crashes or
+freezes, the secondary server can unambiguously detect this. However,
+if the network connection between the two servers dies, this may give
+a similar symptom, while in fact the primary server is still running.
+
+The main difference between the two scenarios is this: if the primary
+server really crashes, the cluster clients will start to reconnect at
+the secondary server. Until this happens, even if the primary server
+goes offline, the secondary server does not need to change its role.
+
+The secondary server must rely on the clients to confirm that the
+primary server has really gone away.  So, failover works as follows:
+
+ 1. The secondary server monitors the primary server, and if that
+    server stops responding or disappers, the secondary server
+    puts itself into "alert" mode.
+
+ 2. When a client connects to the secondary server, in alert mode,
+    the secondary server redirects the client to the primary server.
+
+ 3. The client can force the connection, using the "insist" option
+    on the new connection.  In this case, when in alert mode, the
+    secondary server now knows that at least one client confirms
+    that the primary server has gone.  It switches to the role of
+    primary server and accepts the client connection.
+
+We can solve the question of how to nominate a primary server at startup
+using the same technique.
+
+ - First, the cluster has a static configuration that is shared by
+   all servers. By convention, when all servers start at the same time,
+   the first server that is defined will take the role of primary server.
+
+ - If the primary server has failed, and the cluster is restarted, the
+   procedure will work following the above scenario for failover; the
+   secondary server will take on the role of primary server when it gets
+   a client that insists on connecting to it.
+
+ - Lastly, so that the superceded primary server does not nominate
+   itself as current primary, when that role has already been taken, we
+   use some simple inter-server communcation: the primary server will
+   open a port, and before taking on the role of primary server, a
+   newly-starting server will first probe the other server(s) to
+   see if there is already a primary server.
+
+This lets us start the cluster in any order, and lets us switch an
+old primary server back on after a failure (it will assume the role
+of secondary server).
+
+The design has one flaw that we can see: if there are intermittent
+communication problems both between the servers, and between the
+servers, and clients, we may get both servers acting as primary
+server at some stage.  This would cause messages to get lost, with
+producers and consumers unable to communicate.
+
+To avoid this risk, the servers should continuously verify that
+they are not usurping the role of primary server, by checking the
+other server.  The "junior" server, detecting such a conflict, will
+disconnect its clients, and become a secondary server.
+
+Client-side Functionality
+=========================
+
+To work with this cluster design, the client application must be able
+to:
+
+ 1. Reconnect to the cluster if it is disconnected for any reason.
+
+ 2. Recreate all transient resources (temporary queues, consumers, etc.)
+
+ 3. Resume work.
+
+The client API (StdC or Java) must be able to:
+
+ 1. Connect to an arbitrary cluster server, by trying them all at random
+    until one accepts the connection.
+
+ 2. Disconnect and reconnect to a different server, if the first choice
+    of server requests this.  (We call this a "redirection").
+
+ 3. Reconnect to the first choice if the redirection fails, using the
+    "insist" option.
+
+ 4. Detect a server failure and report this to the application (this is
+    already a standard part of the API).
+
+Implementation Details
+======================
+
+AMQ Protocol
+------------
+
+ - Addition of S:Connection.Redirect method.
+
+ - Addition of insist option to S:Connection.Start method.
  
-Goal: to ensure that all instances of queue have same set of consumers
-while messages are exchanged.
+Client APIs
+-----------
 
-Note that queues may be receiving messages arbitrarily, i.e. message N
-may arrive at queues Q1 and Q2 with consirable lag.  [need a diagram to
-demonstrate the problem windows].
+ - Accept multiple server names in connection string.
 
+ - Connect to random server.
 
+ - Handle S:Connection.Redirect method as defined above.
 
-Method: pause and flush queues with existing consumers, allow all queues to get
-new consumers, 
+Applications
+------------
 
-    - RAIS proxy that is making the consumer
+ - Handle server disconnection by restarting connection logic from
+   scratch.
 
+OpenAMQ Server
+--------------
 
-Cluster Maintenance
--------------------
+ - Configuration file for cluster definition.
+ 
+ - Server "active" / "passive" mode.
 
-There are (at least) two ways of maintaining the cluster. One is to
-define the set of servers (their IP address and port) manually so
-that all RAIS proxies share this information.  The second is to use
-multicast techniques to detect when new servers are added to the
-cluster.
+ - Implement Connection.Redirect for passive mode.
 
-It should also be possible to use AMQP to distribute information about
-the cluster.
+ - Cluster monitoring agent (asynchronous agent that monitors other
+   servers).
 
-Server Configuration
---------------------
+Level N Clustering
+******************
 
-As the number of servers increase, it is clearly more work to manage
-these.  We propose several techniques to minimise this work:
+Extensions to Level 0. These are different issues that we want to
+discuss and get authoratitive answers to whether we tackle them, and if
+so, how. This list is not meant to be exhaustive.
 
- 1. To use static configuration rather than on-line operational
-    control.  I.e. rather than configure servers interactively, the
-    servers should be configured from configuration files.
+Cluster Console
+===============
 
- 2. To use network booted RAM disks to load the server operating system,
-    software, and configuration data.  We have used this successfully
-    in high-reliability projects.  It does require a separate boot
-    server but this can itself be CD-booted, and is only a point of
-    failure when the cluster changes.
+Question:
+    Can we provide a single view for operators of a cluster?
+Answer:
+    For general administration this is not a good idea. Each cluster
+    server has its own set of queues and needs to be manageable by
+    itself. For configuration this is a good idea.
+Method:
+    To create a single configuration file, we can either use shared
+    storage (NFS) or pass configuration data between servers.
+Pros:
+    A single configuration for the cluster is highly desirable. E.g.
+    security controls are set once, and apply everywhere.
+Gotchas:
+    Shared storage is simple but creates a dependency on some other
+    server. Passing configuration data between servers is more complex,
+    needing server-side intelligence, or a cluster-aware console.
 
- 3. To make the RAIS proxy aware of the operational control process so
-    that operational control commands - such as watches - can be applied
-    to all servers in the cluster automatically.
+Connection State Replication
+============================
 
-Cost and Planning
-=================
+Problem:
+    Can we make the cluster smart enough to hold all connection
+    state so that a client application can failover without
+    restarting?
+Answer:
+    Yes, so long as the cluster itself is reliable. If there is
+    a problem between the cluster servers, connection state can't be
+    replicated reliably.
+Method:
+    Primary server acts as client of secondary server, and passes
+    all connection commands through. Secondary server thus holds same
+    set of queues, consumers, channels as primary server, for given
+    client connection. Both servers use same 'connection key'.  If primary
+    server goes away, client reconnects to secondary server using
+    connection key, and gets back its resources.
+Gotchas:
+    If primary and secondary server cannot communicate reliable,
+    connection state will be wrong or out of date.  We could try to
+    detect this and force a client disconnection if that happens.
+    Then the application must be able to restart (Level 0 behaviour).
+Pros:
+    Much faster failover, handled at client API level, rather than
+    application. Reconnection (and connection state recovery) is already
+    defined in AMQP and supported by the StdC client.
+Cons:
+    Reconnection protocol may be complex to implement in non-StdC
+    client APIs.
 
-Costs
------
+Transactional Memory
+====================
 
-A very rough estimate of the cost of this work is:
+Problem:
+    How to treat memory and disk through a single transactional
+    API that happens to have different implementations?
+Answer:
+    Not really a clustering problem but possibly a key solution.
+Method:
+    Define transaction-based API for writing messages to queues,
+    and removing messages from queue.  Implement API using pure
+    memory, for transient messages, and using arbitrary storage
+    layers, for persistent messages.  Note that single transaction
+    can cover multiple queues, so transactions should be set at
+    virtual host level.
+Pros:
+    Abstracting persistence makes queue and cluster implementation
+    much simpler.
+Cons:
+    May add unwanted overhead for non-transacted messages. If used
+    systematically, memory implementation must be as rapid as current
+    queue implementation (based on ordered memory lists).
 
- - RAIS proxy alpha: 10 days' work.
- - RAIS proxy beta: 15 days' work.
- - RAIS synchronisation support in server: 5 days' work.
- - RAIS integration with operational control: 10 days' work.
- - Add RAIS support to JMS and C APIs: 2 days' work.
- - Stability and load testing: 15 days' work.
+Reliable Transient Messages
+===========================
 
-It should be possible to build a working RAIS implementation with
-2-3 months of work.
+Problem:
+    Can we copy messages to the backup server so that if the
+    primary server fails, a reconnecting client will find queues
+    that are populated with the messages?
+Answer:
+    Yes, as an extension of state replication.
+Method:
+    Primary server would manage the secondary queues by proxy,
+    consuming messages and sending acknowledgements to the secondary
+    server according to the client's work. Probably simplest
+    implementation is as transaction replication (where transaction
+    happens to use memory rather than disk as storage).
+Reliability:
+    If primary server fails, transient messages will not be lost.
+Gotchas:
+    Assumes reliable communications between servers. 
 
-Proof-of-Concept Proposal
--------------------------
+Reliable Persistent Messages
+============================
 
-We estimate that a single CPU is capable of transferring 40K messages
-per second given a very fast network card.  This figure comes from tests
-that have shown rates of 50K messages per second on loopback networks.
+Problem:
+    To copy persistent messages across to backup server.
+Method:
+    As extension of reliable transient messages, using transactions,
+    and using persistence to hold messages.
+Pros:
+    Enterprise-level clustering, this is what people really want for
+    their business-critical data.
+Gotchas:
+    Needs message persistence, and transaction replication, but
+    these are both solvable as independent problems, it seems.
 
-The following architecture should demonstrate the capacity of the RAIS
-cluster:
+Multiple Secondaries
+====================
 
- - One fast server acting as publisher.
- - A cluster of 4 inexpensive servers, providing fast CPU, fast NIC,
-   and with minimum RAM, no storage, no case, etc.  Estimated cost:
-   EUR 400 per server.
- - A set of 4 workstations acting as sink clients (to accept and
-   discard messages).  Each workstation would run one client process.
- - A fast switch interconnecting these systems, all using gigabit
-   networking.
+Problem:
+    How do we support N servers rather than just two?
+Method:
+    Servers share common configuration file and agree on order of
+    succession. Each server tracks current primary and applies Level
+    0 algorithm in deciding to take over.  All servers monitor for
+    possible conflicts, and junior server (defined as server with
+    fewest clients?) steps back.
+Pros:
+    More servers = more reliability (if done correctly).
+Cons:
+    Servers need to be visible to client application, creating
+    administration difficulties.
 
-Using full fan-out (all subscribers receive all data), the volumes we
-expect to see are:
+Topic Fanout
+============
 
- - 40K messages per second outgoing from each publisher.
- - 10K messages per second incoming to each server (40K in total).
- - 40K messages per second outgoing from each server (160K in total).
- - 40K messages per second incoming to each client (160K in total).
+Problem:
+    How can we segment clients across multiple servers so that we
+    can use whole cluster actively, rather than just one server at
+    a time?
+Method:
+    Consumers will attach to a single server, publishers will send
+    messages to all servers. Relies on high-degree of fanout, with
+    same message going to many consumers.
+Pros:
+    Scalable to high-volume pub-sub scenarios. Could be layered on
+    level 0 with small changes.
+Gotchas:
+    How do we mix this with reliable messaging? Maybe, using virtual
+    host as key. I.e. a virtual host implements a specific clustering
+    model, and connections are to virtual hosts within the cluster.
 
-Giving us a total cluster throughput of 200K messages per second for
-a cluster cost of EUR 1,600.  This should be scalable to 1M messages
-per second, using an appropriate network organisation, for well under
-EUR 10,000.
+Clustering Agent
+================
 
-Proof-of-Concept Demonstration
-------------------------------
+Problem:
+    Can we let trivial clients to work usefully with a cluster?
+Answer:
+    Yes, but it needs some assistance at the client side.
+Method:
+    Proxy "cluster agent" layer, run as process on client system,
+    stopped and started by client API as needed. Cluster agent
+    de-virtualises server address, using configured knowledge of
+    cluster: turns single server address into cluster lookup. Cluster
+    agent implements re-connection, redirection, etc.
+Pros:
+    Can be implemented cheaply using existing technology. Can work
+    with any client technology. Hides cluster totally from client.
+    Allows full virtualization, i.e. cluster address and structure can
+    be completely hidden and updated dynamically. Creates a single point
+    for adding extra client-side intelligence. Lets us build very large
+    clusters with dumb clients.
+Cons:
+    Extra process on client server. Starts to look like p2p, may be
+    confusing for some people.
+Gotchas:
+    None. This seems an elegant way to help unsophisticated applications
+    get onto an AMQ cluster.  
 
-For an effective demonstration, we would want to see:
+Proposed Evolution
+******************
 
- - A sustained message transfer rate that is proportional to the size
-   of the cluster.
- - Cluster stability as clients and servers are removed and added on
-   the fly.
- - Different messaging scenarios, including pub-sub with private
-   subscription queues, and request-response with shared work queues.
+We propose the following plan for implementing the different aspects
+of clustering:
+
+ - Level 1: topic fanout, cluster console, multiple secondaries.
+   This addresses GTW needs.
+
+ - Level 1b: transactional memory, connection state replication.
+
+ - Level 2: reliable transient messages, reliable persistent messages,
+   clustering agent.
+
+Level 1 Clustering
+==================
+
+We do not add any message reliability, but we add scalability for
+large-scale transient pub/sub, and ensure the cluster can be managed
+using the AMQ Console. We generalise the cluster from two to N servers,
+consisting of a primary and a secondary for shared queues, and a
+set of segmented servers for topic pub/sub.
+
+Level 1b Clustering
+===================
+
+We move the queues onto a transactional memory model, with both
+transient (memory) and persistent (disk) implementations. We do not
+attempt to replicate transactions, but we do replicate the basic
+connection state to allow faster failover for scenarios where response
+time is critical.
+
+Level 2 Clustering
+==================
+
+We implement transaction replication, for transient and persistent
+messages, and on temporary and durable queues.
+
