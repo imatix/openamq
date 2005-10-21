@@ -1,0 +1,28 @@
+<?XML?>
+<pal
+    name   = "amq_43"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    <session scope = "test">
+        <echo>I: Declaring queues</echo>
+        <queue_declare queue = "Q1"/>
+        <queue_declare queue = "Q2"/>
+        <echo>I: Binding queues</echo>
+        <queue_bind queue = "Q1" exchange = "amq.direct" routing_key = "D1"/>
+        <queue_bind queue = "Q2" exchange = "amq.direct" routing_key = "D1"/>
+        <echo>I: Publishing message</echo>
+        <jms_content size = "1024" message_id = "id-0001"/>
+        <jms_publish exchange = "amq.direct" routing_key = "D1" immediate = "1"/>
+        <echo>I: Checking bounces</echo>
+        <set name = "count" value = "0" />
+        <repeat times = "2" counter = "count">
+            <wait timeout = "1000"/>
+            <jms_bounced>
+                <echo>Bounced: $message_id</echo>
+            </jms_bounced>
+        </repeat>
+        <assert name = "count" value = "2"/>
+        <echo>PASS</echo>
+    </session>
+</pal>
