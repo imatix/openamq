@@ -280,8 +280,9 @@ main (int argc, char *argv [])
     }
     while (repeats) {
         //  Send messages to the test queue
-        icl_console_print ("I: [%s] (%d) sending %d messages to server...",
-            opt_queue, repeats, messages);
+        if (!quiet_mode)
+            icl_console_print ("I: [%s] (%d) sending %d messages to server...",
+                opt_queue, repeats, messages);
         batch_left = batch_size;
         for (count = 0; count < messages; count++) {
             content = amq_content_jms_new ();
@@ -309,7 +310,8 @@ main (int argc, char *argv [])
             }
         }
         //  Now read messages off the test queue
-        icl_console_print ("I: [%s] (%d) - reading back messages...", opt_queue, repeats);
+        if (!quiet_mode)
+            icl_console_print ("I: [%s] (%d) - reading back messages...", opt_queue, repeats);
         if (async_mode && simul_mode)
             amq_client_session_flow (session, TRUE);
 
@@ -360,7 +362,8 @@ main (int argc, char *argv [])
             if (!got_messages)
                 break;                  //  Browsing ended, no more data
         }
-        icl_console_print ("I: [%s] received %d messages back from server", opt_queue, count);
+        if (!quiet_mode)
+            icl_console_print ("I: [%s] received %d messages back from server", opt_queue, count);
         if (repeats > 0)
             repeats--;
     }
