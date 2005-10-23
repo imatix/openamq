@@ -46,9 +46,11 @@ independent of the queue content type.
 </method>
 
 <method name = "destroy">
+    <footer>
     s_free_consumer_queue (&self->active_consumers);
     s_free_consumer_queue (&self->paused_consumers);
     ipr_looseref_list_destroy (&self->content_list);
+    </footer>
 </method>
 
 <method name = "consume" template = "function">
