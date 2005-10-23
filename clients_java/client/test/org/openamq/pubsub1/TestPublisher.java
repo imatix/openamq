@@ -1,6 +1,7 @@
 package org.openamq.pubsub1;
 
 import org.apache.log4j.Logger;
+import org.apache.log4j.BasicConfigurator;
 import org.openamq.client.AMQConnection;
 import org.openamq.AMQException;
 import org.openamq.client.AMQTopic;
@@ -102,8 +103,8 @@ public class TestPublisher
             {
                 TextMessage msg = _session.createTextMessage(destination.getTopicName() + "/Presented to in conjunction with Mahnah Mahnah and the Snowths: " + i);
 
-                msg.setIntProperty("a",i % 2);
-                msg.setIntProperty("b",i % 4);
+                //msg.setIntProperty("a",i % 2);
+                //msg.setIntProperty("b",i % 4);
 
                 producer.send(msg);
             }
@@ -130,7 +131,7 @@ public class TestPublisher
     {
         if (args.length == 0)
         {
-            System.err.println("Usage: ServiceRequestingClient <host> <port> <command queue name> <number of messages>");
+            System.err.println("Usage: TestPublisher <host> <port> <command queue name> <number of messages>");
         }
         try
         {
