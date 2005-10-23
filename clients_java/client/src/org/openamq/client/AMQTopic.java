@@ -27,7 +27,7 @@ public class AMQTopic extends AMQDestination implements Topic
 
     public AMQTopic(String name, String scope, boolean temporary)
     {
-        super(AMQDestination.TOPIC_EXCHANGE_NAME, AMQDestination.TOPIC_EXCHANGE_CLASS, name, temporary, scope);
+        super(AMQDestination.TOPIC_EXCHANGE_NAME, AMQDestination.TOPIC_EXCHANGE_CLASS, name, temporary, scope, true);
     }
 
     public String getTopicName() throws JMSException
