@@ -21,6 +21,7 @@
         <basic_publish exchange = "amq.direct" routing_key = "a_dest" />
         <wait timeout = "1000"/>
         <basic_arrived>
+            <echo>Message arrived</echo>
             <!-- assert name = "$message_id" value = "id-0001"/-->
         </basic_arrived>
         <empty>
