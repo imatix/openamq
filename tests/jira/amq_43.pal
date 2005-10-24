@@ -24,7 +24,7 @@
             </jms_bounced>
         </repeat>
         <echo>Count: $count</echo>
-        <assert name = "count" value = "2"/>
+        <assert name = "count" value = "1"/>
         <echo>PASS</echo>
     </session>
 </pal>
