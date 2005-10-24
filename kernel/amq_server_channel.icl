@@ -183,7 +183,6 @@ maximum number of consumers per channel is set at compile time.
         channel_nbr;
     </local>
 
-    randomize ();
     smt_os_thread_initialise ();
     table = amq_server_channel_table_new ();
 
@@ -198,7 +197,7 @@ maximum number of consumers per channel is set at compile time.
     amq_server_channel_destroy (&channel);
 
     //  Now some random table bashing
-    for (count = 0; count < 10000; count++) {
+    for (count = 0; count < 50; count++) {
         channel_nbr = randomof (0xffff);
         channel = amq_server_channel_new (table, channel_nbr, NULL);
         amq_server_channel_destroy (&channel);
