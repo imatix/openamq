@@ -28,7 +28,7 @@
     amq_content_$(class.name)_set_routing_key (
         self->content, method->exchange, method->routing_key, 0);
     ipr_looseref_queue (session->bounced_$(class.name)_list, self->content);
-    self->content->bounced = TRUE;
+    ((amq_content_$(class.name)_t *) self->content)->bounced = TRUE;
 
     if (!session->silent)
         icl_console_print ("W: $(class.name) message was bounced: %d - %s",
