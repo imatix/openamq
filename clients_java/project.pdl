@@ -201,7 +201,7 @@
     </generate>
     <build>
         <execute>
-        ant -version >nul 2>nul
+        call ant -version >nul 2>nul
         if errorlevel 1 (
             echo Warning: Cannot find the JDK/Ant, not building JMS/AMQ.
             :  Fake some JAR files so that "boom install" at product level does not fail.
