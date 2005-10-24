@@ -56,14 +56,9 @@ runs lock-free as a child of the asynchronous queue class.
     //  Dispatch and handle case where no message was sent
     if (self_dispatch (self) == 0) {
         if (immediate) {
-            //  Bounce content back to publisher
-            if (amq_server_config_trace_queue (amq_server_config))
-                icl_console_print ("Q: bounce   queue=%s message=%s",
-                    self->queue->key,
-                    content->message_id);
-
             ipr_looseref_pop (self->content_list);
-            if (amq_server_channel_alive (channel))
+            if (amq_server_channel_alive (channel)
+            && !content->bounced) {
                 amq_server_agent_basic_bounce (
                     channel->connection->thread,
                     (dbyte) channel->key,
@@ -72,6 +67,13 @@ runs lock-free as a child of the asynchronous queue class.
                     "No immediate consumers for Basic message",
                     content->exchange,
                     content->routing_key);
+                content->bounced = TRUE;
+
+                if (amq_server_config_trace_queue (amq_server_config))
+                    icl_console_print ("Q: bounce   queue=%s message=%s",
+                        self->queue->key,
+                        content->message_id);
+            }
             amq_content_basic_destroy (&content);
         }
         else

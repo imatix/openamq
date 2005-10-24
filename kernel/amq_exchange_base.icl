@@ -63,7 +63,8 @@ This is an abstract base class for all exchange implementations.
         *routing_key = "",
         *message_id = NULL;
     Bool
-        delivered = FALSE;              //  Set to TRUE if message processed
+        delivered = FALSE,              //  Set to TRUE if message processed
+        bounced = FALSE;
     </local>
     //
     <header>
@@ -80,39 +81,47 @@ This is an abstract base class for all exchange implementations.
         icl_console_print ("E: $(selfname) - bad class_id");
     </header>
     <footer>
-    if (!delivered) {
-        if (mandatory) {
-            if (amq_server_config_trace_route (amq_server_config))
-                icl_console_print ("X: bounce   message=%s reason=unroutable_mandatory",
-                    message_id);
-            if (class_id == AMQ_SERVER_JMS) {
-                if (amq_server_channel_alive (channel))
-                    amq_server_agent_jms_bounce (
-                        channel->connection->thread,
-                        (dbyte) channel->key,
-                        content,
-                        ASL_NOT_DELIVERED,
-                        "No bindings for this routing key",
-                        ((amq_content_jms_t *) content)->exchange,
-                        ((amq_content_jms_t *) content)->routing_key);
-            }
-            else
-            if (class_id == AMQ_SERVER_BASIC) {
-                if (amq_server_channel_alive (channel))
-                    amq_server_agent_basic_bounce (
-                        channel->connection->thread,
-                        (dbyte) channel->key,
-                        content,
-                        ASL_NOT_DELIVERED,
-                        "No bindings for this routing key",
-                        ((amq_content_basic_t *) content)->exchange,
-                        ((amq_content_basic_t *) content)->routing_key);
+    if (delivered == FALSE && mandatory) {
+        if (class_id == AMQ_SERVER_JMS) {
+            if (amq_server_channel_alive (channel)
+            && !((amq_content_jms_t *) content)->bounced) {
+                amq_server_agent_jms_bounce (
+                    channel->connection->thread,
+                    (dbyte) channel->key,
+                    content,
+                    ASL_NOT_DELIVERED,
+                    "No bindings for this routing key",
+                    ((amq_content_jms_t *) content)->exchange,
+                    ((amq_content_jms_t *) content)->routing_key);
+                ((amq_content_jms_t *) content)->bounced = TRUE;
+                bounced = TRUE;
             }
         }
         else
-            if (amq_server_config_trace_route (amq_server_config))
-                icl_console_print ("X: discard  message=%s reason=unroutable_optional",
-                    message_id);
+        if (class_id == AMQ_SERVER_BASIC) {
+            if (amq_server_channel_alive (channel)
+            && !((amq_content_basic_t *) content)->bounced) {
+                amq_server_agent_basic_bounce (
+                    channel->connection->thread,
+                    (dbyte) channel->key,
+                    content,
+                    ASL_NOT_DELIVERED,
+                    "No bindings for this routing key",
+                    ((amq_content_basic_t *) content)->exchange,
+                    ((amq_content_basic_t *) content)->routing_key);
+                ((amq_content_basic_t *) content)->bounced = TRUE;
+                bounced = TRUE;
+            }
+        }
+    }
+    if (amq_server_config_trace_route (amq_server_config)) {
+        if (bounced)
+            icl_console_print ("X: bounce   message=%s reason=unroutable_mandatory",
+                message_id);
+        else
+        if (!delivered)
+            icl_console_print ("X: discard  message=%s reason=unroutable_optional",
+                message_id);
     }
     </footer>
 </method>

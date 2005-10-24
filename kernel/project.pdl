@@ -127,7 +127,8 @@
                                      generated = "1"             >Constants class</file>
 
 <!-- Test programs -->
-<file name = "amq_topic_pub.pal"     class = "private resource"  >Topic publisher</file>
+<file name = "amq_test_base.pal"     class = "public resource"   >Base test header</file>
+<file name = "amq_topic_pub.pal"     class = "fat test"          >Topic publisher</file>
 <file name = "amq_topic_sub.pal"     class = "private resource"  >Topic subscriber</file>
 <file name = "amq_fpub.c"            class = "main program"      >Field publisher</file>
 <file name = "amq_fsub.c"            class = "main program"      >Field subscriber</file>
