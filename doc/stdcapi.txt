@@ -7,7 +7,7 @@ Introduction
 Version
 -------
 
-This describes OpenAMQ kernel release 0.9c0.
+This describes OpenAMQ kernel release 0.9c2.
 
 Goals and Principles
 --------------------
@@ -333,7 +333,6 @@ and you should read the AMQP specifications for details:
  - amq_client_session_flow - mapped to Session.Flow.
  - amq_client_session_access_request - mapped to Access.Request.
  - amq_client_session_exchange_declare - mapped to Exchange.Declare.
- - amq_client_session_exchange_bind - mapped to Exchange.Bind.
  - amq_client_session_exchange_delete - mapped to Exchange.Delete.
  - amq_client_session_queue_declare - mapped to Queue.Declare.
  - amq_client_session_queue_bind - mapped to Queue.Bind.

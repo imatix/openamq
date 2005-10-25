@@ -3,9 +3,9 @@ gdl
     subtitle  = The AMQP/Fast Wire-Level Protocol
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/09/21
+    date      = 2005/10/25
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.9b1
+    version   = 0.9c2
 end gdl
 
 Cover
@@ -2100,7 +2100,7 @@ We define methods as being either:
 A full explanation of classes and methods is provided in the Reference
 section of this document.
 
-[see amq_rfc006_quick.txt]
+[see ../kernel/amq_quick.txt]
 
 Explanatory Notes
 -----------------
@@ -2399,5 +2399,5 @@ exceptions and flag or block clients provoking multiple failures.
 Reference Section
 *****************
 
-[see amq_rfc006_full.txt]
+[see ../kernel/amq_full.txt]
 
