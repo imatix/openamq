@@ -24,11 +24,11 @@
     amq_exchange_t
         *exchange;
     int
-        exchange_class;
+        exchange_type;
     </local>
     //
-    exchange_class = amq_exchange_class_lookup (method->class);
-    if (exchange_class) {
+    exchange_type = amq_exchange_type_lookup (method->type);
+    if (exchange_type) {
         //  Find exchange and create if necessary
         exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
         if (!exchange) {
@@ -38,7 +38,7 @@
             else {
                 exchange = amq_exchange_new (
                     amq_vhost->exchange_table,
-                    exchange_class,
+                    exchange_type,
                     method->exchange,
                     method->durable,
                     method->auto_delete,
@@ -49,19 +49,19 @@
             }
         }
         if (exchange) {
-            if (exchange->class == exchange_class)
+            if (exchange->type == exchange_type)
                 amq_server_agent_exchange_declare_ok (
                     connection->thread, (dbyte) channel->key);
             else
                 amq_server_channel_close (
-                    channel, ASL_NOT_ALLOWED, "Exchange exists with different class");
+                    channel, ASL_NOT_ALLOWED, "Exchange exists with different type");
 
             amq_exchange_unlink (&exchange);
         }
     }
     else
         amq_server_channel_close (
-            channel, ASL_COMMAND_INVALID, "Unknown exchange class");
+            channel, ASL_COMMAND_INVALID, "Unknown exchange type");
   </action>
 
   <action name = "delete">
@@ -111,11 +111,11 @@
                 method->scope,
                 queue_name,
                 method->durable,
-                method->private,
+                method->exclusive,
                 method->auto_delete);
             if (queue) {
-                //  Add to connection's private queue list
-                if (method->private)
+                //  Add to connection's exclusive queue list
+                if (method->exclusive)
                     amq_server_connection_own_queue (connection, queue);
             }
             else
@@ -124,9 +124,9 @@
         }
     }
     if (queue) {
-        if (method->private && queue->owner_id != connection->context_id)
+        if (method->exclusive && queue->owner_id != connection->context_id)
             amq_server_channel_close (
-                channel, ASL_RESOURCE_ERROR, "Queue cannot be made private to this connection");
+                channel, ASL_RESOURCE_ERROR, "Queue cannot be made exclusive to this connection");
         else {
             amq_server_agent_queue_declare_ok (
                 connection->thread,

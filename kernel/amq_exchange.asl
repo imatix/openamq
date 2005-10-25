@@ -44,22 +44,21 @@
       "passive" access if the if-exists flag is set.
     </doc>
   </field>
-    
+
   <field name = "exchange" domain = "exchange name">
     <assert check = "regexp" value = "^[a-zA-Z0-9-_.]+$" />
   </field>
 
-  <field name = "class" type = "shortstr">
-    exchange class
+  <field name = "type" type = "shortstr">
+    exchange type
     <doc>
-      Each exchange belongs to one of a set of exchange classes
-      implemented by the server.  The exchange classes define the
-      functionality of the exchange - i.e. how messages are routed
-      through it.  It is not valid to attempt to change the class
-      of an existing exchange.
+      Each exchange belongs to one of a set of exchange types implemented
+      by the server.  The exchange types define the functionality of the
+      exchange - i.e. how messages are routed through it.  It is not valid
+      or meaningful to attempt to change the type of an existing exchange.
     </doc>
     <doc name = "rule">
-      If the exchange already exists with a different class, the server
+      If the exchange already exists with a different type, the server
       MUST raise a channel exception with reply code TBD.
     </doc>
     <assert check = "regexp" value = "^[a-zA-Z0-9-_.]+$" />

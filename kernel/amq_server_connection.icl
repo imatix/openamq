@@ -16,7 +16,7 @@ This class implements the connection class for the AMQ server.
     amq_vhost_t
         *vhost;                         //  Parent virtual host
     ipr_looseref_list_t
-        *own_queue_list;                //  List of private queues
+        *own_queue_list;                //  List of exclusive queues
 </context>
 
 <method name = "new">
@@ -29,7 +29,7 @@ This class implements the connection class for the AMQ server.
         *queue;                         //  Content object reference
     </local>
 
-    //  Delete connection's private queues
+    //  Delete connection's exclusive queues
     while ((queue = (amq_queue_t *) ipr_looseref_pop (self->own_queue_list)))
         amq_queue_destroy (&queue);
 
@@ -39,7 +39,7 @@ This class implements the connection class for the AMQ server.
 
 <method name = "own queue" template = "function">
     <argument name = "queue" type = "amq_queue_t *">Queue reference</argument>
-    assert (queue->private);
+    assert (queue->exclusive);
     ipr_looseref_queue (self->own_queue_list, amq_queue_link (queue));
 </method>
 

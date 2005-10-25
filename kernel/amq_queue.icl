@@ -37,9 +37,9 @@ class.  This is a lock-free asynchronous class.
         owner_id;                       //  Owner connection
     Bool
         durable,                        //  Is queue durable?
-        private,                        //  Is queue private?
+        exclusive,                      //  Is queue exclusive?
         auto_delete,                    //  Auto-delete unused queue?
-        exclusive,                      //  Queue for exclusive consumer
+        locked,                         //  Queue for exclusive consumer
         dirty;                          //  Queue has to be dispatched?
     int
         consumers;                      //  Number of consumers
@@ -50,12 +50,12 @@ class.  This is a lock-free asynchronous class.
 </context>
 
 <method name = "new">
-    <argument name = "owner id" type = "qbyte">Owner context id</argument>
-    <argument name = "vhost"    type = "amq_vhost_t *">Parent vhost</argument>
-    <argument name = "scope"    type = "char *">Queue scope</argument>
-    <argument name = "name"     type = "char *">Queue name</argument>
-    <argument name = "durable"  type = "Bool">Is queue durable?</argument>
-    <argument name = "private"  type = "Bool">Is queue private?</argument>
+    <argument name = "owner id"    type = "qbyte">Owner context id</argument>
+    <argument name = "vhost"       type = "amq_vhost_t *">Parent vhost</argument>
+    <argument name = "scope"       type = "char *">Queue scope</argument>
+    <argument name = "name"        type = "char *">Queue name</argument>
+    <argument name = "durable"     type = "Bool">Is queue durable?</argument>
+    <argument name = "exclusive"   type = "Bool">Is queue exclusive?</argument>
     <argument name = "auto delete" type = "Bool">Auto-delete unused queue?</argument>
     <dismiss argument = "table" value = "vhost->queue_table" />
     <dismiss argument = "key"   value = "fullname">
@@ -69,7 +69,7 @@ class.  This is a lock-free asynchronous class.
     self->owner_id    = owner_id;
     self->vhost       = vhost;
     self->durable     = durable;
-    self->private     = private;
+    self->exclusive   = exclusive;
     self->auto_delete = auto_delete;
     self->queue_jms   = amq_queue_jms_new   (self);
     self->queue_basic = amq_queue_basic_new (self);
@@ -189,17 +189,17 @@ class.  This is a lock-free asynchronous class.
         *error = NULL;                  //  If not null, consumer is invalid
 
     //  Validate consumer
-    if (self->private && self->owner_id != consumer->channel->connection->context_id)
-        error = "Queue is private for another connection";
+    if (self->exclusive && self->owner_id != consumer->channel->connection->context_id)
+        error = "Queue is exclusive to another connection";
     else
     if (consumer->exclusive) {
         if (self->consumers == 0)
-            self->exclusive = TRUE;     //  Grant exclusive access
+            self->locked = TRUE;        //  Grant exclusive access
         else
             error = "Exclusive access to queue not possible";
     }
-    else 
-    if (self->exclusive)
+    else
+    if (self->locked)
         error = "Queue is being used exclusively by another consumer";
 
     if (error) {
@@ -255,7 +255,7 @@ class.  This is a lock-free asynchronous class.
                 (dbyte) consumer->channel->key);
         amq_queue_basic_cancel (self->queue_basic, consumer);
     }
-    self->exclusive = FALSE;
+    self->locked = FALSE;
     self->consumers--;
     if (self->auto_delete && self->consumers == 0) {
         int timeout

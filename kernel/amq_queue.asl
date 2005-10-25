@@ -97,21 +97,18 @@
     </doc>
   </field>
 
-  <field name = "private" type = "bit">
-    request a private queue
+  <field name = "exclusive" type = "bit">
+    request an exclusive queue
     <doc>
-      If set when creating a new queue, the queue will be private and
-      owned by the current connection.  Private queues cannot be consumed
-      from by connection except the owning connection.  Private queues are
-      always deleted when the connection closes.
+      Exclusive queues may only be consumed from by the current connection.
+      Setting the 'exclusive' flag always implies 'auto-delete'.
     </doc>
     <doc name = "rule">
-      The server MUST support both private and shared queues.
+      The server MUST support both exclusive and non-exclusive queues.
     </doc>
     <doc name = "rule">
-      The server MUST raise a channel exception if the private field is
-      specified and the queue already exists and is owned by a different
-      connection.
+      The server MUST raise a channel exception if 'exclusive' is specified
+      and the queue already exists and is owned by a different connection.
     </doc>
   </field>
 

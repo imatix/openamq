@@ -7,9 +7,9 @@
     target    = "smt"
     >
 <doc>
-This class implements the server exchange class, an asynchronous
+This class implements the server exchange, an asynchronous
 object that acts as a envelope for the separate exchange managers
-for each class of exchange. This is a lock-free asynchronous class.
+for each type of exchange. This is a lock-free asynchronous class.
 </doc>
 
 <inherit class = "smt_object" />
@@ -24,7 +24,7 @@ for each class of exchange. This is a lock-free asynchronous class.
 
 <context>
     int
-        class;                          //  Exchange class
+        type;                           //  Exchange type
     icl_shortstr_t
         name;                           //  Exchange name
     Bool
@@ -43,7 +43,7 @@ for each class of exchange. This is a lock-free asynchronous class.
         (*publish) (
             void                 *self,
             amq_server_channel_t *channel,
-            int                   class_id,
+            int                   type_id,
             void                 *content,
             Bool                  mandatory,
             Bool                  immediate);
@@ -55,7 +55,7 @@ for each class of exchange. This is a lock-free asynchronous class.
 </context>
 
 <public name = "header">
-//  Exchange classes we implement
+//  Exchange types we implement
 
 #define AMQ_EXCHANGE_SYSTEM         1
 #define AMQ_EXCHANGE_FANOUT         2
@@ -65,7 +65,7 @@ for each class of exchange. This is a lock-free asynchronous class.
 </public>
 
 <method name = "new">
-    <argument name = "class"       type = "int">Exchange class</argument>
+    <argument name = "type"        type = "int">Exchange type</argument>
     <argument name = "name"        type = "char *">Exchange name</argument>
     <argument name = "durable"     type = "Bool">Is exchange durable?</argument>
     <argument name = "auto delete" type = "Bool">Auto-delete unused exchange?</argument>
@@ -73,44 +73,44 @@ for each class of exchange. This is a lock-free asynchronous class.
     <dismiss argument = "key"   value = "name">Key is exchange name</dismiss>
     //
     icl_shortstr_cpy (self->name, name);
-    self->class         = class;
+    self->type          = type;
     self->durable       = durable;
     self->auto_delete   = auto_delete;
     self->internal      = internal;
     self->binding_list  = amq_binding_list_new ();
     self->binding_index = ipr_index_new ();
 
-    if (self->class == AMQ_EXCHANGE_SYSTEM) {
+    if (self->type == AMQ_EXCHANGE_SYSTEM) {
         self->object  = amq_exchange_system_new (self);
         self->publish = amq_exchange_system_publish;
         self->compile = amq_exchange_system_compile;
     }
     else
-    if (self->class == AMQ_EXCHANGE_FANOUT) {
+    if (self->type == AMQ_EXCHANGE_FANOUT) {
         self->object  = amq_exchange_fanout_new (self);
         self->publish = amq_exchange_fanout_publish;
         self->compile = amq_exchange_fanout_compile;
     }
     else
-    if (self->class == AMQ_EXCHANGE_DIRECT) {
+    if (self->type == AMQ_EXCHANGE_DIRECT) {
         self->object  = amq_exchange_direct_new (self);
         self->publish = amq_exchange_direct_publish;
         self->compile = amq_exchange_direct_compile;
     }
     else
-    if (self->class == AMQ_EXCHANGE_TOPIC) {
+    if (self->type == AMQ_EXCHANGE_TOPIC) {
         self->object  = amq_exchange_topic_new (self);
         self->publish = amq_exchange_topic_publish;
         self->compile = amq_exchange_topic_compile;
     }
     else
-    if (self->class == AMQ_EXCHANGE_HEADERS) {
+    if (self->type == AMQ_EXCHANGE_HEADERS) {
         self->object  = amq_exchange_headers_new (self);
         self->publish = amq_exchange_headers_publish;
         self->compile = amq_exchange_headers_compile;
     }
     else
-        icl_console_print ("E: invalid class '%d' in exchange_new", self->class);
+        icl_console_print ("E: invalid type '%d' in exchange_new", self->type);
 
     if (amq_server_config_trace_route (amq_server_config))
         icl_console_print ("X: create   exchange=%s", self->name);
@@ -123,19 +123,19 @@ for each class of exchange. This is a lock-free asynchronous class.
 
     amq_binding_list_destroy (&self->binding_list);
     ipr_index_destroy (&self->binding_index);
-    if (self->class == AMQ_EXCHANGE_SYSTEM)
+    if (self->type == AMQ_EXCHANGE_SYSTEM)
         amq_exchange_system_destroy ((amq_exchange_system_t **) &self->object);
     else
-    if (self->class == AMQ_EXCHANGE_FANOUT)
+    if (self->type == AMQ_EXCHANGE_FANOUT)
         amq_exchange_fanout_destroy ((amq_exchange_fanout_t **) &self->object);
     else
-    if (self->class == AMQ_EXCHANGE_DIRECT)
+    if (self->type == AMQ_EXCHANGE_DIRECT)
         amq_exchange_direct_destroy ((amq_exchange_direct_t **) &self->object);
     else
-    if (self->class == AMQ_EXCHANGE_TOPIC)
+    if (self->type == AMQ_EXCHANGE_TOPIC)
         amq_exchange_topic_destroy ((amq_exchange_topic_t **) &self->object);
     else
-    if (self->class == AMQ_EXCHANGE_HEADERS)
+    if (self->type == AMQ_EXCHANGE_HEADERS)
         amq_exchange_headers_destroy ((amq_exchange_headers_t **) &self->object);
     </action>
 </method>
@@ -148,28 +148,28 @@ for each class of exchange. This is a lock-free asynchronous class.
     self = $(selfname)_table_search (table, name);
 </method>
 
-<method name = "class lookup" return = "rc">
+<method name = "type lookup" return = "rc">
     <doc>
-    Translates an exchange class name into an internal class number.  If
-    the class name is not valid, returns zero, else returns one of the
-    class numbers supported by this implementation.
+    Translates an exchange type name into an internal type number.  If
+    the type name is not valid, returns zero, else returns one of the
+    type numbers supported by this implementation.
     </doc>
-    <argument name = "class name" type = "char *">Class name to lookup</argument>
-    <declare name = "rc" type = "int">Class number</declare>
+    <argument name = "type name" type = "char *">Type name to lookup</argument>
+    <declare name = "rc" type = "int">Type number</declare>
     //
-    if (streq (class_name, "system"))
+    if (streq (type_name, "system"))
         rc = AMQ_EXCHANGE_SYSTEM;
     else
-    if (streq (class_name, "fanout"))
+    if (streq (type_name, "fanout"))
         rc = AMQ_EXCHANGE_FANOUT;
     else
-    if (streq (class_name, "direct"))
+    if (streq (type_name, "direct"))
         rc = AMQ_EXCHANGE_DIRECT;
     else
-    if (streq (class_name, "topic"))
+    if (streq (type_name, "topic"))
         rc = AMQ_EXCHANGE_TOPIC;
     else
-    if (streq (class_name, "headers"))
+    if (streq (type_name, "headers"))
         rc = AMQ_EXCHANGE_HEADERS;
     else
         rc = 0;
@@ -178,10 +178,10 @@ for each class of exchange. This is a lock-free asynchronous class.
 <method name = "bind queue" template = "async function" async = "1">
     <doc>
     Bind a queue to the exchange.  The logic is the same for all exchange
-    classes - we compare all existing bindings and if we find one that
+    types - we compare all existing bindings and if we find one that
     matches our arguments (has identical arguments) we attach the queue
     to the binding.  Otherwise we create a new binding and compile it
-    into the exchange, this operation being exchange class-specific.
+    into the exchange, this operation being exchange type-specific.
     </doc>
     <argument name = "channel"     type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "queue"       type = "amq_queue_t *">The queue to bind</argument>
@@ -255,27 +255,27 @@ for each class of exchange. This is a lock-free asynchronous class.
     is defined in the exchange implementations.
     </doc>
     <argument name = "channel"   type = "amq_server_channel_t *">Channel for reply</argument>
-    <argument name = "class id"  type = "int">The content class</argument>
+    <argument name = "type id"   type = "int">The content type</argument>
     <argument name = "content"   type = "void *">The message content</argument>
     <argument name = "mandatory" type = "Bool">Warn if unroutable</argument>
     <argument name = "immediate" type = "Bool">Warn if no consumers</argument>
     //
     <possess>
-    if (class_id == AMQ_SERVER_JMS)
+    if (type_id == AMQ_SERVER_JMS)
         amq_content_jms_possess (content);
     else
-    if (class_id == AMQ_SERVER_BASIC)
+    if (type_id == AMQ_SERVER_BASIC)
         amq_content_basic_possess (content);
     </possess>
     <release>
-    if (class_id == AMQ_SERVER_JMS)
+    if (type_id == AMQ_SERVER_JMS)
         amq_content_jms_destroy ((amq_content_jms_t **) &content);
     else
-    if (class_id == AMQ_SERVER_BASIC)
+    if (type_id == AMQ_SERVER_BASIC)
         amq_content_basic_destroy ((amq_content_basic_t **) &content);
     </release>
     <action>
-    self->publish (self->object, channel, class_id, content, mandatory, immediate);
+    self->publish (self->object, channel, type_id, content, mandatory, immediate);
     amq_monitor_messages++;
     </action>
 </method>
