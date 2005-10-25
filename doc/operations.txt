@@ -1,5 +1,4 @@
 jmx
-    - mbeans = management beans
     - properties read/write
         - properties structured
     - schema describes this
@@ -17,19 +16,16 @@ gdl
     subtitle  = Operator Control for AMQ Servers
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/10/14
+    date      = 2005/10/24
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 1.0b
+    version   = 1.1a
 end gdl
 
-The AMQ Console
-***************
-
-Summary
-=======
+Overview
+********
 
 Goals
------
+=====
 
 The AMQ console is designed to allow remote configuration, control
 and management of an AMQ server, including:
@@ -52,6 +48,9 @@ We want the console to have these features:
    make customised operator interfaces, scripts, etc.  We want the
    console to be user-extensible.
 
+ - To be generally compatible with conventional console abstractions,
+   e.g. Java management beans.
+   
  - To provide access to all "operable" internals of the server, i.e.
    to any object that may be tuned, configured, or managed.
 
@@ -66,53 +65,8 @@ We want the console to have these features:
  - Eventually, to be transactional, so that operations are completed
    fully, or not at all.
 
-Meta or Not?
-------------
-
-The main design question is/was, does the console implement a specific
-data model (schema) or rather a meta-model capable of supporting any
-given server implementation.
-
-For example, do we hard-code the fact that the server is composed of
-virtual hosts, queues, exchanges, etc. in a specific schema?  This
-approach has the advantage of being explicit and easy to understand.
-
-But it has some strong disadvantages. First, operational control is
-necessarily tied to actual server functionality... that is, the entities
-we want to control are by definition related to the internal design of
-the server. While it is true that certain entities are defined by the
-AMQP protocol and therefore present in all servers, other entities are
-not. For example, security consists of entities (access control lists,
-user groups, etc.) which are completely server-specific. If we define a
-standard AMQ console schema that includes these, we force our security
-model on all AMQ server implementations, or we create an AMQ console
-that will only work with our specific server implementation. Both
-options are undesirable. In making an open standard, it is desirable
-that every layer is reusable and generic.
-
-Not only is a single hard-coded console schema bad for reusability, it
-is also a problem for change management.  These are some of the issues:
-
- - Any change to the console server will need matching changes to the
-   console client.
-
- - We will get version incompatibilities with old clients unable to
-   work with new servers and vice-versa.  This can be managed somewhat
-   by keeping schemas backwards-compatible but it is not sustainable
-   over any schema refactoring.
-
- - Any network with different versions of the server will need
-   different versions of the clients as well.
-
-In our experience these problems can be simply and cheaply avoided by
-using a meta-schema from the start.
-
-Version 1
----------
-
-This is a preliminary design.  We expect that the console will evolve
-considerably.  The goal of this version is to provide the minimum needed
-functionality in the simplest possible way.
+ - Lastly, to be self-describing, using data schemas that clients can
+   refer to, adapting statically or dynamically as suitable.
 
 General Console Architecture
 ============================
@@ -156,44 +110,26 @@ applications:
  - The console client and server communicate using AMQP.
 
 The Server Schema
------------------
+=================
 
-The console works on a set of entities we call "objects".  In many
-cases the console objects will match internal server objects, but this
-is not mandatory.
+We define that:
 
-Note: it is tiresome to use different terms for the definition of an
-object, and an instance of an object.  When I say, "the model X coffee
-machine can produce twenty cups of espresso per minute", it is clear
-I am talking about the whole class of model X coffee machines.  When
-I say, "the model X coffee machine on the third floor is broken", it
-is clear I am talking about one specific instance.  So, we use the term
-"object" to mean both the whole class of a certain type of object,
-and a specific object instance of that class.
+ - The console works on a set of entities we call "objects".
 
-The collection of objects that the server supports is its "schema".
+ - The collection of objects that the server supports is its "schema".
 
-Every AMQ server can implement its own schema, and this is critical
-to making a useful console - depending on the server implementation,
-or configuration, we need different schemas.  It is not useful to
-assume that all console clients know all schemas in advance.
+ - Schemas are given globally-unique names and versions.
+ 
+We will generally use the term "object" to mean both the whole class of
+a certain type of object, and a specific object instance of that class,
+depending on context. When the context is ambiguous we will say "object
+instance" and "object class" to be explicit.
 
-The minimal server schema consists of exactly one object:
+Every AMQ server can implement its own schema, depending on its specific
+functionality. We do not assume that all console clients know all
+schemas in advance.
 
-    server
-
-All AMQ servers will support this schema, and all console clients will
-assume it.  Note that this object is both the class and instance: there
-will be exactly one server object for a running server.
-
-The server can then extend the schema by adding arbitrary objects to
-it:
-
-    server
-     :
-     (arbitrary objects)
-
-Objects can include objects, so we can build schemas like this:
+This is an example of a schema structure:
 
     server
      :
@@ -207,67 +143,68 @@ Objects can include objects, so we can build schemas like this:
      :
      `-- connection
 
-Which represents the operable core of an OpenAMQ/0.9 server.  Note that
-this schema is an example: the actual server schema is probably larger
-and more complex.
+(This represents the operable core of an OpenAMQ/0.9 server.)
 
-Object Definition
------------------
+Object, Fields, and Methods
+===========================
+
+Objects are constructed as arbitrarily-complex hierarchical structures,
+representing entities in the server.
 
 An object is defined as follows:
 
  - The object has a class name, e.g. "server", unique within the schema.
- - The object instance has a server-wide unique identifier.
- - The object has a set of 'views', which are sets of properties.
- - The object has a set of child objects.
+ - Each object instance has a numeric identifier.
+ - The object is composed of zero or more data fields (the object's
+   properties).
+ - The object may contain one or more child objects.
+ - The object may allow one or more methods.
 
-Object views are composed of sets of fields, each defined as follows:
+A data field is defined as follows:
 
  - The field has a name.
- - The field has a type, explained later.
- - If the field is enumerated, it has a set of named values.
- - The field has a prompt, used to construct a user interface.
+ - The field has a data type.
+ - The field may be restricted to a set of named values.
+ - The field has a label, used to construct a user interface.
  - The field has a description, used to construct a user interface.
+ - The field has a set of access indicators (inspect, modify).
+ - The field may contain one or more child fields.
 
-Standard Views
---------------
+Methods accept a number of arguments and perform some action on an
+object, and return a status value. A method is defined as follows:
 
-All objects have these two standard views:
+ - The method has an internal name.
+ - The method has a label, used to construct a user interface.
+ - The method carries zero or more data fields (the method's arguments).
+ - The method has a description, used to construct a user interface.
 
- - "inspect" - containing the object fields that may be shown to the
-    operator.
- - "modify" - containing the object fields that the operator may change.
+Commands
+========
 
-We will extend the API with other views at a later stage.
+The API consists of these commands:
 
-Object Commands
----------------
-
-All objects support these standard commands:
-
- - "meta" - returns the description of a specified object class.
- - "inspect" - returns an inspect view for a specified object.
- - "modify" - applies a modify view to a specified object.
- - "watch" - sets watches on fields from an object's inspect view.
-
-We will extend the API with other commands at a later stage.
+ - "schema" - returns the server schema.
+ - "inspect" - returns the properties of a specific object.
+ - "modify" - modifies the properties of a specific object.
+ - "method" - executes a named method on a specific object.
+ - "watch" - sets watches on fields of a specific object.
+ - "notify" - (from server to client) send a notification.
 
 Object Identification
----------------------
+=====================
 
-Each object has a unique 64-bit identifier assigned by the server when it
-creates the object. This identifier is used in all messages when referring
-to an object.
+Each object has a unique 64-bit identifier assigned by the server when
+it creates the object. This identifier is used in all messages when
+referring to an object.
 
-By convention, ID 0 is reserved for the root object, "server".  This is
-the only object that is guaranteed to be present in all server schemas.
+ID 0 (zero) always represents the root object.
 
 Watches
--------
+=======
 
 Watch are tools that let an operator monitor specific objects without
 having to watch them constantly. Watches are set on specific properties
-of specific objects.  I.e. to watch the size of two different queues
+of specific objects. I.e. to watch the size of two different queues
 requires two watches.
 
 While the specifics of watch implementation depend on the server, we
@@ -282,26 +219,30 @@ assume a model like this:
 
  - All correctly-subscribed clients can receive these notifications.
 
-Watches have the same lifespan as the objects they are applied to.  That
-is, durable objects have durable watches.  Note that in the current
-OpenAMQ server implementation, all objects are temporary, and so all
-watches are also temporary.
+Watches have the same lifespan as the objects they are applied to. That
+is, durable objects have durable watches. We assume that any mechanism
+in the server for serialising objects is also capable of serialising
+watches on objects. Note that in the current OpenAMQ server
+implementation, all objects are temporary, and so all watches are also
+temporary. 
 
 The Console API
-===============
+***************
 
 General Design
---------------
+==============
 
 The console API consists of two pieces:
 
- - Execute a command on a given object.  This consists of a request from
-   the client to the server, and a reply back from the server to the client.
+ - Execute a command on a given object. This consists of a request
+   from the client to the server, and a reply back from the server to
+   the client.
 
- - Notifications from the server.  These are sent asynchronously using the
-   AMQP topic routing mechanisms.
+ - Get a notification from the server. Notifications are sent
+   asynchronously using the AMQP topic routing mechanisms.
 
-The console uses the Basic content class, and these AMQP methods:
+The console API consist of Basic content messages, exchanged using these
+AMQP methods:
 
  - Basic.Publish
  - Basic.Consume and Basic.Deliver
@@ -337,7 +278,7 @@ follows:
  - The client can use the same queue both for replies and notifications.
 
 Console Message Language
-------------------------
+========================
 
 All messages between the console client and the server are formatted using
 an XML language we call "CML", the Console Message Language.  CML uses a
@@ -346,7 +287,7 @@ minimalistic XML syntax - no stylesheets, namespaces, document types, etc.
 Here are some examples of CML:
 
     <cml version = "1.0">
-        <meta class = "server" />
+        <schema />
     </cml>
 
     <cml version = "1.0">
@@ -355,134 +296,169 @@ Here are some examples of CML:
 
     <cml version = "1.0">
         <modify object = "0">
-            <field name = "shutdown">1</field>
+            <field name = "active">0</field>
         </modify>
     </cml>
 
 CML has a grammar that covers all possible server schemas. Client requests
 are shown as "C:", server responses as "S:":
 
-    cml            = <cml version = "1.0">
-                        cml-command
-                     </cml>
+    cml             = <cml version = "1.0">
+                         cml-command
+                      </cml>
 
-    cml-command    = C:meta    S:meta
-                   | C:inspect S:inspect
-                   | C:modify  S:modify
-                   | C:watch   S:watch
-                   | S:notify
+    cml-command     = C:schema  S:schema
+                    | C:inspect S:inspect
+                    | C:modify  S:modify
+                    | C:method  S:method
+                    | C:watch   S:watch
+                    | S:notify
 
-    C:meta         = <meta class = "class-name" />
+    C:schema        = <schema />
 
-    class-name     = valid-name
+    S:schema        = <schema
+                         name = "schema-name"
+                         version = "schema-version"
+                         status = "reply-status" >
+                       [ schema-object ]...
+                      </schema>
 
-    valid-name     = {A-Za-z0-9-_.}...
+    schema-name     = valid-name
 
-    S:meta         = <meta class = "class-name" status = "reply-status" >
-                       [ meta-view ]...
-                       [ meta-object ]...
-                     </meta>
+    valid-name      = {A-Za-z0-9-_.}...
 
-    reply-status   = ok | notfound | noaccess | invalid
+    schame-version  = valid-name
 
-    meta-view      = <view name = "view-name">
-                       [ meta-field ] ...
-                     </view>
+    reply-status    = ok | notfound | noaccess | invalid
 
-    view-name      = inspect | modify
+    schema-object   = <object class = "class-name">
+                       [ schema-field ]...
+                       [ schema-method ]...
+                       [ schema-object ]...
+                      </object>
 
-    meta-field     = <field
+    class-name      = valid-name
+
+    schema-field    = group-field | simple-field
+    
+    group-field     = <field
+                         name = "field-name"
+                       [ label = "field-label" ]>
+                       [ field-text ]
+                       [ field-access ]...
+                       [ schema-field ]...
+                      </field>
+
+    field-name      = valid-name
+
+    field-label     = valid-text
+
+    valid-text      = {printable}...
+
+    field-text      = valid-text
+
+    field-access    = <allow access = "access-type" />
+
+    access-type     = inspect | modify
+    
+    simple-field    = <field
                          name = "field-name"
                        [ type = "field-type" ]
-                       [ prompt = "field-prompt" ]>
+                       [ label = "field-label" ]>
                        [ field-text ]
                        [ enum-value ] ...
+                       [ field-access ]...
                      </field>
 
-    field-name     = valid-name
+    field-type      = string | int | bool | object
 
-    field-type     = (string) | int | bool | action | object
+    enum-value      = <value name = "value-name">field-value</value>
 
-    field-prompt   = valid-text
+    value-name      = valid-text
 
-    valid-text     = {printable}...
+    field-value     = string representation of allowed field
 
-    enum-value     = <value name = "value-name">field-value</value>
+    schema-method   = <method name = "method-name">
+                       [ schema-field ]...
+                      </method>
 
-    value-name     = valid-text
+    method-name     = valid-name
+    
+    C:inspect       = <inspect object = "object-id" [ detail = "ask-detail" ] />
 
-    field-value    = string representation of allowed field value
+    object-id       = 0..maxlongint-1
 
-    meta-object     = <object class = "class-name" />
+    ask-detail      = (0) | 1
 
-    C:inspect      = <inspect object = "object-id" [ detail = "ask-detail" ] />
+    S:inspect       = <inspect
+                         object   = "object-id"
+                       [ children = "child-count" ]
+                       [ watches  = "watch-count" ]
+                         status   = "reply-status">
+                        [ field-data ]...
+                        [ object-data ]...
+                      </inspect>
 
-    object-id      = 0..maxlongint-1
+    child-count     = 0..maxint - 1
 
-    ask-detail     = (0) | 1
+    watch-count     = 0..maxint - 1
 
-    S:inspect      = <inspect
-                        object   = "object-id"
-                      [ children = "child-count" ]
-                      [ watches  = "watch-count" ]
-                        status   = "reply-status">
-                       [ field-data ]...
-                       [ object-data ]...
-                     </inspect>
+    field-data      = <field name = "field-name">field-value</field>
 
-    child-count    = 0..maxint - 1
+    object-data     = <object class = "class-name" id = "object-id" />
 
-    watch-count    = 0..maxint - 1
+    C:modify        = <modify object = "object-id">
+                        [ field-data ] ...
+                      </modify>
 
-    field-data     = <field name = "field-name">field-value</field>
+    S:modify        = <modify object = "object-id" status = "reply-status" />
 
-    object-data    = <object class = "class-name" id = "object-id" />
+    C:method        = <method object = "object-id" name = "method-name">
+                        [ field-data ] ...
+                      </method>
 
-    C:modify       = <modify object = "object-id">
-                       [ field-data ] ...
-                     </modify>
+    S:method        = <method object = "object-id" status = "reply-status" />
 
-    S:modify       = <modify object = "object-id" status = "reply-status" />
+    C:watch         = <watch object = "object-id" [reset = "ask-reset"] >
+                        [ watch-field ]...
+                      </watch>
 
-    C:watch        = <watch object = "object-id" [reset = "ask-reset"] >
-                       [ watch-field ]...
-                     </watch>
+    watch-field     = <field
+                          name  = "field-name"
+                        [ test  = "watch-type" ]
+                          value = "watch-value"
+                        [ route = "routing-key" ]
+                          >[alert-message]
+                      </field>
 
-    watch-field    = <field
-                         name  = "field-name"
-                       [ test  = "watch-type" ]
-                         value = "watch-value"
-                       [ route = "routing-key" ]
-                         >[alert-message]</field>
+    watch-type      = eq | ne | lt | le | gt | (ge)
 
-    watch-type     = eq | ne | lt | le | gt | (ge)
+    watch-value     = integer
 
-    watch-value    = integer
+    alert-message   = valid-text
 
-    alert-message  = valid-text
+    routing-key     = valid-name
 
-    routing-key    = valid-name
+    ask-reset       = (0) | 1
 
-    ask-reset      = (0) | 1
+    S:watch         = <watch object = "object-id" status = "reply-status">
+                        [ watch-field ]...
+                      </watch>
 
-    S:watch        = <watch object = "object-id" status = "reply-status">
-                       [ watch-field ]...
-                     </watch>
+    S:notify        = <notify object = "object-id">
+                         [ notification ]...
+                         [ <field name = "field-name">
+                             notification
+                         </field> ]...
+                      </notify>
 
-    S:notify       = <notify object = "object-id">
-                        [ notification ]...
-                        [ <field name = "field-name">
-                            notification
-                        </field> ]...
-                     </notify>
+    notification    = <alert>alert-message</alert>
+                      <cause>cause-message</cause>
 
-    notification   = <alert>alert-message</alert>
-                     <cause>cause-message</cause>
-
-    cause-message  = valid-text
+    cause-message   = valid-text
 
 Field Types
------------
+===========
 
 The goal of defining fields is to allow the automatic production of user
 interface forms without too much work.  We allow these types of field:
@@ -490,57 +466,53 @@ interface forms without too much work.  We allow these types of field:
  - string: defines a string field.  The maximum value of a string field
    is 255 octets when an object is modified, and no limit on output.
    This is the default type.
- - int: defines an integer.  Integers are assumed to be unsigned 32 bits.
+ - int: defines an integer. Integers are unsigned 32 bits.
  - bool: defines a boolean value, which can be shown as a check box.
- - action: defines a form action, only allowed in the modify view.
  - object: defines a relationship to another object.
 
 String and integer fields can be enumerated, with one or more values.
 These would show as radio options (for 3-4 or fewer fields) or select
 boxes (for 5 or more options), e.g.:
 
-    <field name = "status" type = "int" prompt = "Operational status">
+    <field name = "status" type = "int" label = "Operational status">
         <value name = "not ready"    >0</value>
         <value name = "active"       >1</value>
         <value name = "shutting down">2</value>
     </field>
 
-A field enumeration must be respecified in each view where the field
-is used.
-
 Note: this is a minimalistic typing model that we will probably want to
 refine over time, e.g. defining the shown and maximum length for strings
 and integers, and allowing multiline text fields.
 
-The 'Meta' Command
-------------------
+The 'schema' Command
+==================
 
-The 'meta' commmand asks the server for a class description.  The server
+The 'schema' commmand asks the server for a class description.  The server
 responds with the definition of the specified class.  The top-level class
 is always "server".
 
 For example:
 
     C: <cml version = "1.0">
-          <meta class = "server" />
+          <schema class = "server" />
        </cml>
 
     S: <cml version = "1.0">
-          <meta class = "server" status = "ok">
+          <schema class = "server" status = "ok">
              <view name = "inspect">
-                <field name = "ip-address" prompt = "Server IP address" />
-                <field name = "port"       prompt = "Port for connections" />
-                <field name = "version"    prompt = "Server software version" />
-                <field name = "platform"   prompt = "Server platform" />
+                <field name = "ip-address" label = "Server IP address" />
+                <field name = "port"       label = "Port for connections" />
+                <field name = "version"    label = "Server software version" />
+                <field name = "platform"   label = "Server platform" />
              </view>
              <view name = "modify">
              </view>
              <object class = "vhost" />
              <object class = "connection" />
-          </meta>
+          </schema>
        </cml>
 
-The console client should start by doing a 'meta' command on "server" and
+The console client should start by doing a 'schema' command on "server" and
 then repeating this for each child class, building up a tree, until it has
 fully explored the schema.
 
@@ -555,7 +527,7 @@ This field has these possible values:
  - 'invalid' means the command was wrongly formatted or incorrect.
 
 The 'Inspect' Command
----------------------
+=====================
 
 The 'inspect' command asks the server for the inspect view of a specific
 object.  This command takes an object ID as argument, and will return
@@ -583,7 +555,7 @@ For example:
        </cml>
 
 The 'Modify' Command
---------------------
+====================
 
 The 'modify' command provides a set of fields (from the object's modify
 view) and asks the server to change a specific object accordingly.  For
@@ -603,7 +575,7 @@ If the client specifies fields that are not valid (not in the modify
 view), the server will respond with an "invalid" status.
 
 The 'Watch' Command
--------------------
+===================
 
 The 'watch' command sets, removes, or queries the watches for a
 specific object.  The command works as follows:
@@ -655,7 +627,7 @@ To add a watch to the object:
    key, which defaults to "amq.<classname>.<idvalue>.<fieldname>".
 
 The 'Notify' Command
---------------------
+====================
 
 The server broadcasts warnings, error reports, and watch alarms using
 'notify' commands.  Any correctly subscribed AMQP client can get these
