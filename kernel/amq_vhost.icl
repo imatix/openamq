@@ -3,18 +3,14 @@
     name      = "amq_vhost"
     comment   = "Virtual host class"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
-    script    = "icl_gen"
+    script    = "smt_object_gen"
+    target    = "smt"
     >
 <doc>
-Defines a virtual host.
+Defines a virtual host. This is a lock-free asynchronous class.
 </doc>
 
-<inherit class = "icl_object">
-    <option name = "alloc"  value = "cache" />
-    <option name = "rwlock" value = "1" />
-    <option name = "links"  value = "1" />
-</inherit>
+<inherit class = "smt_object" />
 
 <public name = "include">
 #include "amq_server_classes.h"
@@ -27,10 +23,12 @@ extern $(selftype)
 
 <private>
 $(selftype)
-    *amq_vhost = NULL;                  
+    *amq_vhost = NULL;
 </private>
 
 <context>
+    icl_shortstr_t
+        name;                           //  Virtual host name
     amq_vhost_config_t
         *config;                        //  Virtual host configuration
     amq_exchange_table_t
@@ -42,7 +40,13 @@ $(selftype)
 </context>
 
 <method name = "new">
+    <argument name = "name" type = "char *">Virtual host name</argument>
+
     //TODO: load config from directory
+    //TODO: amq_server object, holding vhost hash table
+    icl_shortstr_cpy (self->name, name);
+    icl_console_print ("I: starting virtual host '%s'", self->name);
+
     self->config         = amq_vhost_config_new (
         NULL, NULL, amq_server_config_trace (amq_server_config));
     self->exchange_table = amq_exchange_table_new ();
@@ -51,23 +55,25 @@ $(selftype)
 </method>
 
 <method name = "destroy">
+    <action>
+    icl_console_print ("I: stopping virtual host '%s'...", self->name);
     amq_vhost_config_destroy   (&self->config);
     amq_exchange_table_destroy (&self->exchange_table);
     amq_queue_table_destroy    (&self->queue_table);
     amq_queue_list_destroy     (&self->queue_list);
+    </action>
 </method>
 
-<method name = "dispatch" template = "function">
+<method name = "dispatch" template = "async function" async = "1">
     <doc>
     Dispatches all queues that have received new messages, i.e. have the
     'dirty' property set. All dispatchable queues are at the head of the
     vhost queue list.
     </doc>
-    <local>
+    <action>
     amq_queue_t
         *queue;
-    </local>
-    //
+
     //  Dispatch all dirty message queues, which come at start of list
     queue = amq_queue_list_first (self->queue_list);
     while (queue) {
@@ -80,6 +86,7 @@ $(selftype)
             break;
         }
     }
+    </action>
 </method>
 
 <method name = "selftest">
@@ -88,7 +95,8 @@ $(selftype)
         *vhost;
     </local>
     //
-    vhost = amq_vhost_new ();
+    smt_os_thread_initialise ();
+    vhost = amq_vhost_new ("/");
     amq_vhost_destroy (&vhost);
 </method>
 

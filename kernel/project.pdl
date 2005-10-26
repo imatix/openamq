@@ -64,6 +64,8 @@
 <file name = "amq_server_channel_table.icl"
                                      class = "icl private cont"  >Server channel table</file>
 <file name = "amq_vhost.icl"         class = "icl private class" >Server vhost class</file>
+<file name = "amq_vhost_agent.smt"   class = "fat module"
+                                     generated = "1"             >Server vhost agent</file>
 <file name = "amq_vhost_config.opf"  class = "gsl data"          >Vhost configuration</file>
 <file name = "amq_vhost_config.icl"  class = "icl private class"
                                      generated = "1"             >Vhost configuration class</file>
@@ -78,7 +80,7 @@
                                      class = "icl private class" >Server system exchange class</file>
 <file name = "amq_exchange_fanout.icl"
                                      class = "icl private class" >Server fanout exchange class</file>
-<file name = "amq_exchange_direct.icl" 
+<file name = "amq_exchange_direct.icl"
                                      class = "icl private class" >Server direct exchange class</file>
 <file name = "amq_exchange_topic.icl"
                                      class = "icl private class" >Server topic exchange class</file>
@@ -130,8 +132,6 @@
 <file name = "amq_test_base.pal"     class = "public resource"   >Base test header</file>
 <file name = "amq_topic_pub.pal"     class = "fat test"          >Topic publisher</file>
 <file name = "amq_topic_sub.pal"     class = "private resource"  >Topic subscriber</file>
-<file name = "amq_fpub.c"            class = "main program"      >Field publisher</file>
-<file name = "amq_fsub.c"            class = "main program"      >Field subscriber</file>
 
 <!-- PAL/AMQ code generator -->
 <file name = "amq_pal.xnf"           class = "generated" />

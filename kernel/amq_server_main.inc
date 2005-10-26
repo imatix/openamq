@@ -44,7 +44,7 @@ static void
     "  -t level         Set trace level 0-3 (0)\n"                           \
     "  -v               Show version information\n"                          \
     "  -h               Show summary of command-line options\n"              \
-    "  -m n             Monitor server status every N seconds (off)\n"       \
+    "  -m n             Monitor server status every N seconds (1)\n"         \
     "\nThe order of arguments is not important. Switches and filenames\n"    \
     "are case sensitive. See documentation for detailed information.\n"      \
     "\n"
@@ -60,12 +60,9 @@ s_parse_args (int argc, char *argv [])
         argn;                           //  Argument number                  
     char
         *myname,                        //  Executable's name                
-        **argparm;                      //  Argument parameter to pick-up    
+        **argparm;                      //  Argument parameter to pick-up
 
-    icl_system_initialise (argc, argv);
-    ipr_uid_set_real_user ();
-
-    //  These are the arguments we may get on the command line               
+    //  These are the arguments we may get on the command line
     s_opt_silent   = FALSE;
     s_opt_bkground = FALSE;
     s_opt_showinfo = FALSE;
@@ -75,11 +72,11 @@ s_parse_args (int argc, char *argv [])
     s_opt_monitor  = NULL;
 
     myname  = argv [0];
-    argparm = NULL;                     //  Argument parameter to pick-up    
+    argparm = NULL;                     //  Argument parameter to pick-up
     for (argn = 1; argn < argc; argn++) {
         //  If argparm is set, we have to collect an argument parameter
         if (argparm) {
-            if (*argv [argn] != '-') {  //  Parameter can't start with '-'   
+            if (*argv [argn] != '-') {  //  Parameter can't start with '-'
                 *argparm = argv [argn];
                 argparm = NULL;
             }
@@ -91,7 +88,7 @@ s_parse_args (int argc, char *argv [])
         else
         if (*argv [argn] == '-') {
             switch (argv [argn][1]) {
-                //  These switches take a parameter                          
+                //  These switches take a parameter
                 case 'p':
                     argparm = &s_opt_port;
                     break;
@@ -153,17 +150,19 @@ s_parse_args (int argc, char *argv [])
         rc = 1;
     }
     else {
-        if (s_opt_silent) {
-            fclose (stdout);            //  Kill standard output
-            fclose (stderr);            //   and standard error
-        }
+        if (s_opt_silent)
+            icl_console_mode (ICL_CONSOLE_QUIET, TRUE);
         else {
             printf (SERVER_NAME "/" VERSION "\n");
             printf (SERVER_TEXT "\n\n");
             printf (COPYRIGHT "\n");
             printf (NOWARRANTY);
         }
-        //  Move into the background if so desired                           
+        icl_system_initialise (argc, argv);
+        smt_os_thread_initialise ();    //  Initialise SMT engine
+        ipr_uid_set_real_user ();
+
+        //  Move into the background if so desired
         if (s_opt_bkground) {
             char
                *background_args [] = { "-s", NULL };
@@ -178,17 +177,17 @@ s_parse_args (int argc, char *argv [])
     return (rc);
 }
 
-//  Load server configuration files                                          
+//  Load server configuration files
 
 static void
 s_load_config (char *config_file, char *overlay)
 {
-    //  Set server working directory if necessary                            
+    //  Set server working directory if necessary
     if (s_opt_workdir && apr_filepath_set (s_opt_workdir, icl_global_pool) != APR_SUCCESS) {
         icl_console_print ("E: can't work in '%s' - %s", s_opt_workdir, strerror (errno));
         exit (EXIT_FAILURE);
     }
-    //  Load configuration data, if any, into the config_table               
+    //  Load configuration data, if any, into the config_table
     amq_server_config = amq_server_config_new (
         config_file, overlay, s_opt_trace? atoi (s_opt_trace): 0);
 }
@@ -202,17 +201,13 @@ s_run_server (void)
     //  Do synchronous class initialisations here
     //  -------------------------------------------------------------------
 
-    //  Set tracing options
+    //  Set tracing options from command-line
     if (s_opt_trace)
-    amq_server_config_set_trace   (amq_server_config, atoi (s_opt_trace));
+        amq_server_config_set_trace   (amq_server_config, atoi (s_opt_trace));
     if (s_opt_monitor)
-    amq_server_config_set_monitor (amq_server_config, (Bool) atoi (s_opt_monitor));
-
+        amq_server_config_set_monitor (amq_server_config, (Bool) atoi (s_opt_monitor));
     if (s_opt_port)
-        amq_server_config_set_port (amq_server_config, s_opt_port);
-
-    //  We use a single global vhost for now
-    amq_vhost = amq_vhost_new ();
+        amq_server_config_set_port    (amq_server_config, s_opt_port);
 
     //  Set monitor function callback
     amq_server_callback_monitor (amq_monitor_report);
@@ -224,28 +219,29 @@ s_run_server (void)
     //  Do asynchronous class initialisations here
     //  -------------------------------------------------------------------
 
+    //  We use a single global vhost for now
+    amq_vhost = amq_vhost_new ("/");
+
     //  Automatic wiring schemes
-    s_exchange_declare ("amq.direct",       AMQ_EXCHANGE_DIRECT);
-    s_exchange_declare ("amq.reply",        AMQ_EXCHANGE_DIRECT);
-    s_exchange_declare ("amq.topic",        AMQ_EXCHANGE_TOPIC);
-    s_exchange_declare ("amq.match",        AMQ_EXCHANGE_HEADERS);
-    s_exchange_declare ("amq.system",       AMQ_EXCHANGE_SYSTEM);
-    s_exchange_declare ("amq.system.alert", AMQ_EXCHANGE_TOPIC);
+    s_exchange_declare ("amq.direct",         AMQ_EXCHANGE_DIRECT);
+    s_exchange_declare ("amq.reply",          AMQ_EXCHANGE_DIRECT);
+    s_exchange_declare ("amq.topic",          AMQ_EXCHANGE_TOPIC);
+    s_exchange_declare ("amq.match",          AMQ_EXCHANGE_HEADERS);
+    s_exchange_declare ("amq.console",        AMQ_EXCHANGE_SYSTEM);
+    s_exchange_declare ("amq.console.notify", AMQ_EXCHANGE_TOPIC);
 
     //  Execute the server
     smt_os_thread_wait (0);
 
     //  Shut down cleanly
-    amq_server_agent_term ();
-    smt_os_thread_wait (0);
-
-    //  Release resources
     amq_vhost_destroy (&amq_vhost);
+    amq_server_agent_term ();
     smt_os_thread_wait (0);
 
     amq_server_config_destroy (&amq_server_config);
     if (s_opt_showinfo)
         icl_stats_dump ();
+    icl_console_print ("I: shutdown is complete");
     icl_system_terminate ();
     return (0);
 }

@@ -358,7 +358,7 @@ class.  This is a lock-free asynchronous class.
     smt_os_thread_initialise ();        //  Initialise SMT engine
 
     //  We need a virtual host in which to store our test queues
-    vhost = amq_vhost_new ();
+    vhost = amq_vhost_new ("/");
     queue_table = amq_queue_table_new ();
 
     //  Now let's create and destroy a lot of queues

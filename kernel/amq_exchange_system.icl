@@ -7,16 +7,31 @@
     script    = "icl_gen"
     >
 <doc>
-This class implements the system exchange.  System messages are not
-routed but are processed according to routing key.
+This class implements system functions:
+
+    - AMQ Console (console exchange).
+
+System messages are not routed to queues but are processed according
+to the exchange name and in some cases, the routing key.
 </doc>
+
+<public>
+//  This ID is used to number all objects that are exposed via the
+//  Console.
+//
+extern qbyte
+    amq_object_id;                      //  Global object ID
+</public>
+
+<private>
+qbyte
+    amq_object_id = 0;
+</private>
 
 <inherit class = "amq_exchange_base" />
 
 <method name = "compile">
-    //  Until we actually do something here, stop the compiler complaining
-    //  about self not being used in this method...
-    if (self);
+    icl_console_print ("E: cannot bind queue to a system exchange");
 </method>
 
 <method name = "publish">
@@ -26,15 +41,11 @@ routed but are processed according to routing key.
     ipr_bucket_t
         *bucket;
     </local>
-    //
-    //  Until we actually do something here, stop the compiler complaining
-    //  about self not being used in this method...
-    if (self);
 
+    
     amq_content_basic_set_reader (content, &reader, 32000);
     bucket = amq_content_basic_replay_body (content, &reader);
 
-    icl_console_print ("System routing key: %s", routing_key);
     icl_console_print ("Data: %s", bucket->data);
     ipr_bucket_destroy (&bucket);
     delivered = TRUE;

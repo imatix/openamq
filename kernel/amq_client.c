@@ -90,6 +90,8 @@ main (int argc, char *argv [])
         got_messages;                   //  Browsing indicator
     icl_shortstr_t
         message_id;                     //  Message identifier
+    icl_longstr_t
+        *auth_data;                     //  Authorisation data
 
     //  These are the arguments we may get on the command line
     opt_server   = "localhost";
@@ -229,12 +231,10 @@ main (int argc, char *argv [])
         amq_client_connection_animate (TRUE);
         amq_client_session_animate (TRUE);
     }
-
+    auth_data  = amq_client_connection_auth_plain ("guest", "guest");
     connection = amq_client_connection_new (
-        opt_server, "/",
-        amq_client_connection_auth_plain ("guest", "guest"),
-        atoi (opt_trace),
-        30000);                         //  Timeout
+        opt_server, "/", auth_data, atoi (opt_trace), 30000);
+    icl_longstr_destroy (&auth_data);
 
     if (connection)
         icl_console_print ("I: connected to %s/%s - %s - %s",
@@ -290,16 +290,13 @@ main (int argc, char *argv [])
             amq_content_jms_set_body       (content, test_data, msgsize, NULL);
             amq_content_jms_set_message_id (content, message_id);
 
-            if (amq_client_session_jms_publish (
-                    session,
-                    content,
-                    ticket,
-                    opt_exchange,
-                    opt_routing,
-                    mandatory,
-                    immediate)) {
+            rc = amq_client_session_jms_publish (
+                    session, content, ticket, opt_exchange,
+                    opt_routing, mandatory, immediate);
+            amq_content_jms_destroy (&content);
+            if (rc) {
                 icl_console_print ("E: [%s] could not send message to server - %s",
-                    opt_queue, connection->error_text);
+                    opt_queue, session->error_text);
                 goto finished;
             }
             if (--batch_left == 0) {

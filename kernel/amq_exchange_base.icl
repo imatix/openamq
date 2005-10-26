@@ -43,6 +43,9 @@ This is an abstract base class for all exchange implementations.
     $(selftype)
         *self = self_v;
     </local>
+    <header>
+    assert (self);
+    </header>
 </method>
 
 <method name = "publish" return = "rc">
@@ -68,6 +71,7 @@ This is an abstract base class for all exchange implementations.
     </local>
     //
     <header>
+    assert (self);
     if (class_id == AMQ_SERVER_JMS) {
         routing_key = ((amq_content_jms_t *) content)->routing_key;
         message_id  = ((amq_content_jms_t *) content)->message_id;
