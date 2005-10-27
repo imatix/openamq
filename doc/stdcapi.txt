@@ -7,7 +7,7 @@ Introduction
 Version
 -------
 
-This describes OpenAMQ kernel release 0.9c2.
+This describes OpenAMQ kernel release 0.9c3.
 
 Goals and Principles
 --------------------
@@ -86,7 +86,8 @@ program does no error handling so you should *not* copy this code:
         auth_data  = amq_client_connection_auth_plain ("guest", "guest");
         connection = amq_client_connection_new (
             "localhost", "/", auth_data, 0, 30000);
-        session    = amq_client_session_new (connection);
+        icl_longstr_destroy (&auth_data);
+        session = amq_client_session_new (connection);
 
         //  Create a content and send it to the "queue" exchange
         content = amq_content_jms_new ();
@@ -94,6 +95,7 @@ program does no error handling so you should *not* copy this code:
         amq_content_jms_set_message_id (content, "ID001");
         amq_client_session_jms_publish (
             session, content, 0, "queue", "mydest", FALSE, FALSE);
+        amq_content_jms_set_destroy (&content);
 
         //  Shutdown connection and session
         amq_client_session_destroy    (&session);
@@ -133,8 +135,10 @@ returning a non-zero error code (after other methods).
 Thus the correct way to open a connection and session is actually like
 this:
 
+    auth_data  = amq_client_connection_auth_plain ("guest", "guest");
     connection = amq_client_connection_new (
         "localhost", "/", auth_data, 0, 30000);
+    icl_longstr_destroy (&auth_data);
     if (!connection) {
         icl_console_print ("E: could not open connection");
         return (1);
@@ -149,8 +153,11 @@ And the correct way to call a method like publish is:
 
     int rc;
     ...
+    content = amq_content_jms_new ();
+    ...
     rc = amq_client_session_jms_publish (
         session, content, 0, "queue", "mydest", FALSE, FALSE);
+    amq_content_jms_set_destroy (&content);
     if (rc) {
         icl_console_print ("E: could not publish message");
         return (1);
@@ -610,6 +617,20 @@ The application can print the right error message using code like this:
 Miscellaneous Topics
 ====================
 
+Object Ownership
+----------------
+
+The C API uses the standard iCL model to define object ownership:
+
+ - The layer which calls the "new" method on an object also destroys it.
+
+ - If an intermediate layer wants to co-own the object, it does this
+   using possession.  An object must explicitly allow this. The content
+   objects are designed for this.
+
+ - If an intermediate layer wants to hold a reference to an object, it does
+   this using linking.  An object must explicitly allow this.
+
 Synchronous vs. Asynchronous Methods
 ------------------------------------
 
@@ -650,8 +671,8 @@ Unimplemented Functions
 
 The current OpenAMQ kernel implementation does not support:
 
- - multilevel contents (which AMQP allows).
- - large parts of the AMQP protocol, including: the File, Stream, Tx,
+ - Multilevel contents (which AMQP allows).
+ - Large parts of the AMQP protocol, including: the File, Stream, Tx,
    Dtx classes, and acknowledgements.
  - Disk-based contents - we assume all contents fit into memory.
 

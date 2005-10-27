@@ -1,16 +1,3 @@
-jmx
-    - properties read/write
-        - properties structured
-    - schema describes this
-    - remove views
-    - single schema operation
-        - schema name & version
-        - as static file delivered with server
-    - object ids -> full path
-    - configuration objects are separate from runtime objects
-        - separate tree in schema
-    - clustering: one console 
-    
 gdl
     title     = The AMQ Console
     subtitle  = Operator Control for AMQ Servers
@@ -18,8 +5,15 @@ gdl
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/10/24
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 1.1a
+    version   = 1.1b
 end gdl
+
+Change History
+**************
+
+1.1b:
+    Changed '<object class = ' in schema to '<class name = ' for
+    consistency with other XML languages we use.
 
 Overview
 ********
@@ -114,16 +108,12 @@ The Server Schema
 
 We define that:
 
- - The console works on a set of entities we call "objects".
+ - The console works on a set of entity definitions we call "classes",
+   and a set of live entities we call "objects".
 
- - The collection of objects that the server supports is its "schema".
+ - The collection of classes that the server supports is its "schema".
 
  - Schemas are given globally-unique names and versions.
- 
-We will generally use the term "object" to mean both the whole class of
-a certain type of object, and a specific object instance of that class,
-depending on context. When the context is ambiguous we will say "object
-instance" and "object class" to be explicit.
 
 Every AMQ server can implement its own schema, depending on its specific
 functionality. We do not assume that all console clients know all
@@ -145,20 +135,20 @@ This is an example of a schema structure:
 
 (This represents the operable core of an OpenAMQ/0.9 server.)
 
-Object, Fields, and Methods
-===========================
+Classes, Fields, and Methods
+============================
 
-Objects are constructed as arbitrarily-complex hierarchical structures,
-representing entities in the server.
+The schema is an arbitrarily-complex hierarchical structure
+representing the classes of entities in the server.
 
-An object is defined as follows:
+An object class is defined as follows:
 
- - The object has a class name, e.g. "server", unique within the schema.
+ - The class has a name, e.g. "server", unique within the schema.
  - Each object instance has a numeric identifier.
- - The object is composed of zero or more data fields (the object's
+ - The class is composed of zero or more data fields (the object's
    properties).
- - The object may contain one or more child objects.
- - The object may allow one or more methods.
+ - The class may contain one or more child classes.
+ - The class may allow one or more methods.
 
 A data field is defined as follows:
 
@@ -167,7 +157,7 @@ A data field is defined as follows:
  - The field may be restricted to a set of named values.
  - The field has a label, used to construct a user interface.
  - The field has a description, used to construct a user interface.
- - The field has a set of access indicators (inspect, modify).
+ - The field is marked as readable and/or writeable.
  - The field may contain one or more child fields.
 
 Methods accept a number of arguments and perform some action on an
@@ -224,7 +214,7 @@ is, durable objects have durable watches. We assume that any mechanism
 in the server for serialising objects is also capable of serialising
 watches on objects. Note that in the current OpenAMQ server
 implementation, all objects are temporary, and so all watches are also
-temporary. 
+temporary.
 
 The Console API
 ***************
@@ -262,15 +252,15 @@ To implement a request-reply method, the client will:
 
  - Create a suitably-formatted message.
  - Set the reply-to field correctly to refer to its reply queue.
- - Use the Basic.Publish method to send the message to the amq.console
-   exchange.
+ - Use the Basic.Publish method to send the message to the amq.system
+   exchange with the routing key "amq.console".
  - Wait for a reply on its reply queue.
 
 The notification mechanism uses topic routing and subscription queues as
 follows:
 
  - Each client wishing to receive notifications creates a temporary queue
-   and binds this to the amq.console.notify exchange (a topic exchange).
+   and binds this to the amq.notify exchange (a topic exchange).
  - The routing key used during binding specifies which notifications the
    client wishes to receive.
  - The client can bind the same queue many times with different routing
@@ -320,7 +310,7 @@ are shown as "C:", server responses as "S:":
                          name = "schema-name"
                          version = "schema-version"
                          status = "reply-status" >
-                       [ schema-object ]...
+                       [ schema-class ]...
                       </schema>
 
     schema-name     = valid-name
@@ -331,19 +321,21 @@ are shown as "C:", server responses as "S:":
 
     reply-status    = ok | notfound | noaccess | invalid
 
-    schema-object   = <object class = "class-name">
+    schema-class    = <class name = "class-name">
                        [ schema-field ]...
                        [ schema-method ]...
-                       [ schema-object ]...
-                      </object>
+                       [ schema-class ]...
+                      </class>
 
     class-name      = valid-name
 
     schema-field    = group-field | simple-field
-    
+
     group-field     = <field
                          name = "field-name"
-                       [ label = "field-label" ]>
+                       [ inspect = "inspect-flag" ]
+                       [ modify = "modify-flag" ]
+                       [ label = "field-label" ] >
                        [ field-text ]
                        [ field-access ]...
                        [ schema-field ]...
@@ -355,16 +347,22 @@ are shown as "C:", server responses as "S:":
 
     valid-text      = {printable}...
 
+    inspect-flag    = 0 | (1)
+
+    modify-flag     = (0) | 1
+
     field-text      = valid-text
 
     field-access    = <allow access = "access-type" />
 
     access-type     = inspect | modify
-    
+
     simple-field    = <field
                          name = "field-name"
                        [ type = "field-type" ]
-                       [ label = "field-label" ]>
+                       [ inspect = "inspect-flag" ]
+                       [ modify = "modify-flag" ]
+                       [ label = "field-label" ] >
                        [ field-text ]
                        [ enum-value ] ...
                        [ field-access ]...
@@ -383,7 +381,7 @@ are shown as "C:", server responses as "S:":
                       </method>
 
     method-name     = valid-name
-    
+
     C:inspect       = <inspect object = "object-id" [ detail = "ask-detail" ] />
 
     object-id       = 0..maxlongint-1
@@ -411,24 +409,30 @@ are shown as "C:", server responses as "S:":
                         [ field-data ] ...
                       </modify>
 
-    S:modify        = <modify object = "object-id" status = "reply-status" />
+    S:modify        = <modify
+                         object = "object-id"
+                         status = "reply-status"
+                         />
 
     C:method        = <method object = "object-id" name = "method-name">
                         [ field-data ] ...
                       </method>
 
-    S:method        = <method object = "object-id" status = "reply-status" />
+    S:method        = <method
+                         object = "object-id"
+                         status = "reply-status"
+                         />
 
     C:watch         = <watch object = "object-id" [reset = "ask-reset"] >
-                        [ watch-field ]...
+                       [ watch-field ]...
                       </watch>
 
     watch-field     = <field
-                          name  = "field-name"
-                        [ test  = "watch-type" ]
-                          value = "watch-value"
-                        [ route = "routing-key" ]
-                          >[alert-message]
+                         name  = "field-name"
+                       [ test  = "watch-type" ]
+                         value = "watch-value"
+                       [ route = "routing-key" ]>
+                       [ alert-message ]
                       </field>
 
     watch-type      = eq | ne | lt | le | gt | (ge)
@@ -441,15 +445,16 @@ are shown as "C:", server responses as "S:":
 
     ask-reset       = (0) | 1
 
-    S:watch         = <watch object = "object-id" status = "reply-status">
-                        [ watch-field ]...
+    S:watch         = <watch
+                         object = "object-id" status = "reply-status">
+                       [ watch-field ]...
                       </watch>
 
     S:notify        = <notify object = "object-id">
-                         [ notification ]...
-                         [ <field name = "field-name">
-                             notification
-                         </field> ]...
+                        [ notification ]...
+                        [ <field name = "field-name">
+                            notification
+                      </field> ]...
                       </notify>
 
     notification    = <alert>alert-message</alert>
@@ -484,58 +489,62 @@ Note: this is a minimalistic typing model that we will probably want to
 refine over time, e.g. defining the shown and maximum length for strings
 and integers, and allowing multiline text fields.
 
-The 'schema' Command
-==================
+Command Implementations
+=======================
 
-The 'schema' commmand asks the server for a class description.  The server
-responds with the definition of the specified class.  The top-level class
-is always "server".
+The 'Schema' Command
+--------------------
 
-For example:
+The 'schema' commmand asks the server for the server schema. Any AMQ
+server implements exactly one schema.  Schemas are named and versioned
+so that clients can either download schemas fully dynamically, or work
+with in-built schemas and verify that their servers are compatible.
+
+An example of the schema command:
 
     C: <cml version = "1.0">
-          <schema class = "server" />
+          <schema />
        </cml>
 
     S: <cml version = "1.0">
-          <schema class = "server" status = "ok">
-             <view name = "inspect">
+          <schema name = "www.openamq.org/kernel" version = "0.1" status = "ok">
+             <class name = "server">
                 <field name = "ip-address" label = "Server IP address" />
                 <field name = "port"       label = "Port for connections" />
                 <field name = "version"    label = "Server software version" />
                 <field name = "platform"   label = "Server platform" />
-             </view>
-             <view name = "modify">
-             </view>
-             <object class = "vhost" />
-             <object class = "connection" />
+             </class>
+             <class name = "vhost">
+                ...
+             </class>
+             <class name = "connection">
+                ...
+             </class>
           </schema>
        </cml>
-
-The console client should start by doing a 'schema' command on "server" and
-then repeating this for each child class, building up a tree, until it has
-fully explored the schema.
 
 The reply-status field defines whether the command was successful or not.
 This field has these possible values:
 
  - 'ok' means the command completed successfully.
+
  - 'notfound' means the specified class (or object, for other commands)
    did not exist.
+
  - 'noaccess' means the client application was not allowed to execute the
    command.
+
  - 'invalid' means the command was wrongly formatted or incorrect.
 
 The 'Inspect' Command
-=====================
+---------------------
 
-The 'inspect' command asks the server for the inspect view of a specific
-object.  This command takes an object ID as argument, and will return
-either just the inspect view for that object, or also a list of all
-child objects.
+The 'inspect' command asks the server for a specific object.  The command
+takes an object ID as argument, and returns all readable fields for the
+object, with optionally a list of all child objects.
 
-The top-level "server" object always has an ID zero, so the client will
-inspect this object before looking at others.
+The top-level object always has an ID zero, so the client will inspect
+this object first, in order to navigate the object tree.
 
 For example:
 
@@ -555,11 +564,11 @@ For example:
        </cml>
 
 The 'Modify' Command
-====================
+--------------------
 
-The 'modify' command provides a set of fields (from the object's modify
-view) and asks the server to change a specific object accordingly.  For
-example:
+The 'modify' command asks the server to set certain fields of an object.
+These must be fields with the "modify" attribute set to 1 in the schema.
+For example:
 
     C: <cml version = "1.0">
           <modify object = "2">
@@ -574,8 +583,26 @@ example:
 If the client specifies fields that are not valid (not in the modify
 view), the server will respond with an "invalid" status.
 
+The 'Method' Command
+--------------------
+
+The 'method' command provides a set of fields and a method name and
+asks the server to execute that method.  Methods do not return values
+except a status code.  For example:
+
+    C: <cml version = "1.0">
+          <method name = "purge" object = "32" />
+       </cml>
+
+    S: <cml version = "1.0">
+          <method name = "purge" object = "32" status = "ok" />
+       </cml>
+
+If the client specifies fields that are not valid (not in the modify
+view), the server will respond with an "invalid" status.
+
 The 'Watch' Command
-===================
+-------------------
 
 The 'watch' command sets, removes, or queries the watches for a
 specific object.  The command works as follows:
@@ -623,11 +650,11 @@ To add a watch to the object:
  - The watched value is a numeric value - only numeric and Boolean fields
    can be watched.
 
- - Notifications sent to the amq.console.notify exchange using the routing
+ - Notifications sent to the amq.notify exchange using the routing
    key, which defaults to "amq.<classname>.<idvalue>.<fieldname>".
 
 The 'Notify' Command
-====================
+--------------------
 
 The server broadcasts warnings, error reports, and watch alarms using
 'notify' commands.  Any correctly subscribed AMQP client can get these
