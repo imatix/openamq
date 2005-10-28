@@ -1,10 +1,7 @@
 package org.openamq.client.protocol;
 
 import org.openamq.AMQException;
-import org.openamq.framing.AMQDataBlock;
 import org.openamq.framing.AMQMethodBody;
-import org.openamq.framing.AMQMethodBody;
-import org.openamq.AMQException;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
@@ -24,7 +21,7 @@ public abstract class BlockingMethodFrameListener implements AMQMethodListener
     private volatile AMQException _error;
 
     protected int _channelId;
-    
+
     protected AMQMethodEvent _doneEvt = null;
 
     public BlockingMethodFrameListener(int channelId)
@@ -92,7 +89,7 @@ public abstract class BlockingMethodFrameListener implements AMQMethodListener
         {
             throw _error;
         }
-        
+
         return _doneEvt;
     }
 

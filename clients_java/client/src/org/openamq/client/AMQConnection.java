@@ -114,7 +114,7 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
             short channelId = _idFactory.getChannelId();
             AMQFrame frame = ChannelOpenBody.createAMQFrame(channelId, 100,
                                                             null);
-            
+
             if (_logger.isDebugEnabled())
             {
                 _logger.debug("Write channel open frame for channel id " + channelId);

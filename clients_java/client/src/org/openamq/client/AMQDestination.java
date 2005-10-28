@@ -15,7 +15,7 @@ public abstract class AMQDestination implements Destination
     public final static String HEADERS_EXCHANGE_NAME = "amq.match";
 
     public final static String HEADERS_EXCHANGE_CLASS = "headers";
-    
+
     protected final static String DEFAULT_SCOPE = "defaultScope";
 
     protected final String _exchangeName;
@@ -26,18 +26,18 @@ public abstract class AMQDestination implements Destination
 
     protected final boolean _isTemporary;
 
-    protected final boolean _newQueue;
+    protected final String _queueName;
 
-    protected final String _scope;
+    protected final String _queueScope;
 
-    protected AMQDestination(String exchangeName, String exchangeClass, String destinationName, boolean isTemporary,
-            String scope)
+    protected AMQDestination(String exchangeName, String exchangeClass, String destinationName, String queueName,
+            String queueScope)
     {
-        this(exchangeName, exchangeClass, destinationName, isTemporary, scope, false);
+        this(exchangeName, exchangeClass, destinationName, false, queueName, queueScope);
     }
 
     protected AMQDestination(String exchangeName, String exchangeClass, String destinationName, boolean isTemporary,
-                             String scope, boolean newQueue)
+                             String queueName, String queueScope)
     {
         if (destinationName == null)
         {
@@ -55,8 +55,8 @@ public abstract class AMQDestination implements Destination
         _exchangeClass = exchangeClass;
         _destinationName = destinationName;
         _isTemporary = isTemporary;
-        _scope = scope;
-        _newQueue = newQueue;
+        _queueScope = queueScope;
+        _queueName = queueName;
     }
 
     public abstract String getEncodedName();
@@ -90,19 +90,21 @@ public abstract class AMQDestination implements Destination
     {
         return _isTemporary;
     }
-    
-    public boolean newQueue() {
-        return _newQueue;
+
+    public String getQueueScope()
+    {
+        return _queueScope;
     }
 
-    public String getScope()
+    public String getQueueName()
     {
-        return _scope;
+        return _queueName;
     }
 
     public String toString()
     {
-        return "Scope: " + _scope + ", Destination: " + _destinationName + ", Exchange: " + _exchangeName +
+        return "Destination: " + _destinationName + ", Queue Scope: " + _queueScope + ", " +
+               "Queue Name: " + _queueName + ", Exchange: " + _exchangeName +
                ", Exchange class: " + _exchangeClass + ", Temporary: " + _isTemporary;
     }
 
@@ -131,7 +133,12 @@ public abstract class AMQDestination implements Destination
         {
             return false;
         }
-        if (!_scope.equals(that._scope))
+        if (!_queueScope.equals(that._queueScope))
+        {
+            return false;
+        }
+        if ((_queueName == null && that._queueName != null) ||
+            (_queueName != null && !_queueName.equals(that._queueName)))
         {
             return false;
         }
@@ -149,7 +156,14 @@ public abstract class AMQDestination implements Destination
         result = _exchangeName.hashCode();
         result = 29 * result + _exchangeClass.hashCode();
         result = 29 * result + _destinationName.hashCode();
-        result = 29 * result + _scope.hashCode();
+        if (_queueScope != null)
+        {
+            result = 29 * result + _queueScope.hashCode();
+        }
+        if (_queueName != null)
+        {
+            result = 29 * result + _queueName.hashCode();
+        }
         result = result * (_isTemporary?13:7);
         return result;
     }

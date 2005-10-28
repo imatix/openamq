@@ -6,21 +6,19 @@ import edu.emory.mathcs.backport.java.util.concurrent.LinkedBlockingQueue;
 import org.apache.log4j.Logger;
 import org.openamq.AMQException;
 import org.openamq.AMQUndeliveredException;
-import org.openamq.framing.*;
-import org.openamq.client.message.MessageFactoryRegistry;
 import org.openamq.client.message.AbstractMessage;
+import org.openamq.client.message.MessageFactoryRegistry;
 import org.openamq.client.message.UnprocessedMessage;
-import org.openamq.client.state.listener.SpecificMethodFrameListener;
-import org.openamq.client.protocol.AMQProtocolHandler;
 import org.openamq.client.protocol.AMQMethodEvent;
+import org.openamq.client.protocol.AMQProtocolHandler;
+import org.openamq.client.state.listener.SpecificMethodFrameListener;
+import org.openamq.framing.*;
 import org.openamq.jms.Session;
 
 import javax.jms.*;
 import javax.jms.IllegalStateException;
 import javax.jms.Queue;
 import java.io.Serializable;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.*;
 
 public class AMQSession extends Closeable implements Session, QueueSession, TopicSession
@@ -84,13 +82,14 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         private void dispatchMessage(UnprocessedMessage message)
         {
             if (message.deliverBody != null)
-            {    
+            {
                 if (message.deliverBody.queue == null)
                 {
                     throw new IllegalArgumentException("EEK = queue name is null");
                 }
-                
-                final String key = message.deliverBody.routingKey/*.destination*/ != null ? message.deliverBody.routingKey : "";
+
+                final String key = message.deliverBody.routingKey != null ? message.deliverBody.routingKey : "";
+
                 final AMQMessageConsumer consumer = (AMQMessageConsumer) _consumers.get(key);
 
                 if (consumer == null)
@@ -101,23 +100,23 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                 {
                     consumer.notifyMessage(message, _acknowledgeMode, _channelId);
                 }
-            } 
+            }
             else
             {
-                try 
+                try
                 {
                     // Bounced message is processed here, away from the mina thread
                     AbstractMessage bouncedMessage = _messageFactoryRegistry.createMessage(0,
                             false,
                             message.contentHeader,
                             message.bodies);
-                    
+
                     int errorCode = message.bounceBody.replyCode;
                     String reason = message.bounceBody.replyText;
                     _logger.debug("Message returned with error code " + errorCode + " (" + reason + ")");
-                        
+
                     _connection.exceptionReceived(new AMQUndeliveredException(errorCode, "Error: " + reason, bouncedMessage));
-                }    
+                }
                 catch (Exception e)
                 {
                     _logger.error("Caught exception trying to raise undelivered message exception (dump follows) - ignoring...", e);
@@ -424,7 +423,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
     {
         return createConsumer(destination, _defaultPrefetch, noLocal, false, false, messageSelector);
     }
-    
+
     public MessageConsumer createConsumer(
             Destination destination,
             int prefetch,
@@ -459,10 +458,8 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
             try
             {
                 final AMQProtocolHandler protocolHandler = _connection.getProtocolHandler();
-                // Upper layer may change the newQueue default value to do different things in AMQ 
-                String queueName = amqd.newQueue() ? "" : amqd.getDestinationName();
-                
-                // Declare exchange 
+
+                // Declare exchange
                 AMQFrame exchangeDeclare = ExchangeDeclareBody.createAMQFrame(_channelId, 0, amqd.getExchangeName(),
                                                                               amqd.getExchangeClass(), false, false,
                                                                               false, false);
@@ -470,12 +467,14 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                 protocolHandler.writeCommandFrameAndWaitForReply(exchangeDeclare,
                                             new SpecificMethodFrameListener(_channelId, ExchangeDeclareOkBody.class));
 
-                // Declare queue (empty name so that server will assign UUID)
-                AMQFrame queueDeclare = QueueDeclareBody.createAMQFrame(_channelId, 0, amqd.getScope(), queueName,
+                AMQFrame queueDeclare = QueueDeclareBody.createAMQFrame(_channelId, 0, amqd.getQueueScope(),
+                                                                        amqd.getQueueName(),
                                                                         false, false, false ,false);
+
                 AMQMethodEvent evt = protocolHandler.writeCommandFrameAndWaitForReply(queueDeclare,
                                              new SpecificMethodFrameListener(_channelId, QueueDeclareOkBody.class));
                 QueueDeclareOkBody queueOk = (QueueDeclareOkBody)evt.getMethod();
+                final String queueName = queueOk.queue;
 
                 // Bind exchange to queue
                 // TODO: construct the rawSelector from the selector string if rawSelector == null
@@ -484,38 +483,20 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                 //    ft.put("headers", rawSelector.getDataAsBytes());
                 if (rawSelector != null)
                     ft.putAll(rawSelector);
-                AMQFrame queueBind = QueueBindBody.createAMQFrame(_channelId, 0, amqd.getScope(), queueOk.queue,
+                AMQFrame queueBind = QueueBindBody.createAMQFrame(_channelId, 0, amqd.getQueueScope(), queueOk.queue,
                                                                   amqd.getExchangeName(), amqd.getDestinationName(), ft);
 
                 protocolHandler.writeCommandFrameAndWaitForReply(queueBind,
                                               new SpecificMethodFrameListener(_channelId, QueueBindOkBody.class));
-                
+
                 // Consume from queue
-                AMQFrame jmsConsume = JmsConsumeBody.createAMQFrame(_channelId, 0, amqd.getScope(), queueOk.queue, 0,
+                AMQFrame jmsConsume = JmsConsumeBody.createAMQFrame(_channelId, 0, amqd.getQueueScope(), queueName, 0,
                                                                     prefetch, noLocal, true, exclusive);
 
-                protocolHandler.writeCommandFrameAndWaitForReply(jmsConsume,
-                                               new SpecificMethodFrameListener(_channelId, JmsConsumeOkBody.class));
-                
-//                consumeFrame.noAck = (_acknowledgeMode == Session.NO_ACKNOWLEDGE);
-//                if (selector != null)
-//                {
-//                    try
-//                    {
-//                        consumeFrame.selector = EncodingUtils.createFieldTableFromMessageSelector(selector);
-//                    }
-//                    catch(IllegalArgumentException e)
-//                    {
-//                        throw new JMSException("Failed to parse message selector: " + e);
-//                    }
-//                }
-//                else
-//                {
-//                    consumeFrame.selector = null;
-//                }
-//
-//                _connection.getProtocolHandler().writeCommandFrameAndWaitForReply(consumeFrame,
-//                                                                                  new HandleReplyListener(frame.handleId));
+                AMQMethodEvent consumeOkEvent = protocolHandler.writeCommandFrameAndWaitForReply(jmsConsume,
+                                                                 new SpecificMethodFrameListener(_channelId,
+                                                                                                 JmsConsumeOkBody.class));
+                consumer.setConsumerTag(((JmsConsumeOkBody) consumeOkEvent.getMethod()).consumerTag);
               }
               catch (AMQException e)
             {

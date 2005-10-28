@@ -3,18 +3,13 @@ package org.openamq.client;
 import edu.emory.mathcs.backport.java.util.concurrent.SynchronousQueue;
 import edu.emory.mathcs.backport.java.util.concurrent.TimeUnit;
 import org.apache.log4j.Logger;
-import org.openamq.AMQException;
 import org.openamq.client.message.AbstractMessage;
 import org.openamq.client.message.MessageFactoryRegistry;
 import org.openamq.client.message.UnprocessedMessage;
-import org.openamq.client.protocol.AMQConstant;
 import org.openamq.client.protocol.AMQProtocolHandler;
-import org.openamq.framing.AMQFrame;
-import org.openamq.framing.ChannelCloseOkBody;
 import org.openamq.jms.MessageConsumer;
 import org.openamq.jms.Session;
 
-import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
@@ -33,6 +28,8 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
     private AMQDestination _destination;
 
     private MessageListener _messageListener;
+
+    private int _consumerTag;
 
     /**
      * Protects the setting of a messageListener
@@ -206,7 +203,7 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
                     messageFrame.deliverBody.redelivered,
                     messageFrame.contentHeader,
                     messageFrame.bodies);
-                
+
             if (acknowledgeMode == Session.PRE_ACKNOWLEDGE)
             {
                 _session.sendAcknowledgement(messageFrame.deliverBody.deliveryTag);
@@ -217,7 +214,7 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
                 // to send out the appropriate frame
                 jmsMessage.setAMQSession(_session);
             }
-                
+
             synchronized (_syncLock)
             {
                 if (_messageListener != null)
@@ -233,10 +230,20 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
             {
                 _session.sendAcknowledgement(messageFrame.deliverBody.deliveryTag);
             }
-        }   
+        }
         catch (Exception e)
         {
             _logger.error("Caught exception (dump follows) - ignoring...", e);
         }
+    }
+
+    public int getConsumerTag()
+    {
+        return _consumerTag;
+    }
+
+    public void setConsumerTag(int consumerTag)
+    {
+        _consumerTag = consumerTag;
     }
 }

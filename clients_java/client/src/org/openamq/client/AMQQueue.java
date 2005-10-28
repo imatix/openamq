@@ -1,14 +1,13 @@
 /**
  * Date Created: 20-Jun-2005
  *************************************************************************
- * (c) Copyright JP Morgan Chase Ltd 2005. All rights reserved. No part of 
- * this program may be photocopied reproduced or translated to another 
+ * (c) Copyright JP Morgan Chase Ltd 2005. All rights reserved. No part of
+ * this program may be photocopied reproduced or translated to another
  * program language without prior written consent of JP Morgan Chase Ltd
  *************************************************************************/
 package org.openamq.client;
 
 import javax.jms.Queue;
-import javax.jms.JMSException;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
@@ -36,14 +35,9 @@ public class AMQQueue extends AMQDestination implements Queue
 
     public AMQQueue(String name, String scope, boolean temporary)
     {
-        super(AMQDestination.QUEUE_EXCHANGE_NAME, AMQDestination.QUEUE_EXCHANGE_CLASS, name, temporary, scope);
+        super(AMQDestination.QUEUE_EXCHANGE_NAME, AMQDestination.QUEUE_EXCHANGE_CLASS, name, temporary, name, scope);
     }
-
-    public String getQueueName() throws JMSException
-    {
-        return super.getDestinationName();
-    }
-
+    
     public String getEncodedName()
     {
         return 'Q' + getDestinationName();

@@ -41,7 +41,7 @@ public class AMQProtocolHandler implements ProtocolHandler
     private final CopyOnWriteArraySet _frameListeners = new CopyOnWriteArraySet();
 
     public AMQProtocolHandler(AMQConnection con)
-    {        
+    {
         _connection = con;
         _frameListeners.add(_stateManager);
     }
@@ -58,7 +58,7 @@ public class AMQProtocolHandler implements ProtocolHandler
     public void sessionClosed(ProtocolSession session) throws Exception
     {
         _connection.exceptionReceived(new AMQDisconnectedException("Server closed connection"));
-        
+
         _logger.info("Protocol Session closed");
     }
 
@@ -77,7 +77,7 @@ public class AMQProtocolHandler implements ProtocolHandler
     {
         Iterator it = _frameListeners.iterator();
         AMQFrame frame = (AMQFrame) message;
-        
+
         if (frame.bodyFrame instanceof AMQMethodBody)
         {
             if (_logger.isDebugEnabled())
@@ -164,7 +164,7 @@ public class AMQProtocolHandler implements ProtocolHandler
      * @param listener the blocking listener. Note the calling thread will block.
      */
     public AMQMethodEvent writeCommandFrameAndWaitForReply(AMQFrame frame,
-                                                 BlockingMethodFrameListener listener)
+                                                           BlockingMethodFrameListener listener)
         throws AMQException
     {
         _frameListeners.add(listener);
@@ -214,19 +214,19 @@ public class AMQProtocolHandler implements ProtocolHandler
         BlockingMethodFrameListener listener = new ConnectionCloseOkListener();
         _frameListeners.add(listener);
         _stateManager.changeState(AMQState.CONNECTION_CLOSING);
-        
-        // TODO: Polish        
+
+        // TODO: Polish
         final AMQFrame frame = ConnectionCloseBody.createAMQFrame(0, AMQConstant.REPLY_SUCCESS.getCode(), "JMS client is closing the connection.", 0, 0);
         writeFrame(frame);
         _logger.debug("Blocking for connection close frame");
         listener.blockForFrame();
         _protocolSession.closeProtocolSession();
     }
-    
+
     public long getReadBytes() {
         return _protocolSession.getProtocolSession().getReadBytes();
     }
-    
+
     public long getWrittenBytes() {
         return _protocolSession.getProtocolSession().getWrittenBytes();
     }
