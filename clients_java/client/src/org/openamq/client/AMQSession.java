@@ -51,7 +51,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
     private Set _producers = new HashSet();
 
     /**
-     * Maps from queue name to AMQMessageConsumer instance
+     * Maps from consumer tag to AMQMessageConsumer instance
      */
     private Map _consumers = new ConcurrentHashMap();
 
@@ -83,18 +83,14 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         {
             if (message.deliverBody != null)
             {
-                if (message.deliverBody.queue == null)
-                {
-                    throw new IllegalArgumentException("EEK = queue name is null");
-                }
 
                 final String key = message.deliverBody.routingKey != null ? message.deliverBody.routingKey : "";
 
-                final AMQMessageConsumer consumer = (AMQMessageConsumer) _consumers.get(key);
+                final AMQMessageConsumer consumer = (AMQMessageConsumer) _consumers.get(new Integer(message.deliverBody.consumerTag));
 
                 if (consumer == null)
                 {
-                    _logger.warn("Received a message from queue " + message.deliverBody.queue + " without a handler - ignoring...");
+                    _logger.warn("Received a message from queue " + message.deliverBody.consumerTag + " without a handler - ignoring...");
                 }
                 else
                 {
@@ -453,7 +449,6 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
             AMQMessageConsumer consumer = new AMQMessageConsumer(amqd, selector, noLocal,
                                                                  _messageFactoryRegistry, this,
                                                                  _connection.getProtocolHandler());
-            registerConsumerQueue(amqd.getDestinationName(), consumer);
 
             try
             {
@@ -473,8 +468,8 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
 
                 AMQMethodEvent evt = protocolHandler.writeCommandFrameAndWaitForReply(queueDeclare,
                                              new SpecificMethodFrameListener(_channelId, QueueDeclareOkBody.class));
-                QueueDeclareOkBody queueOk = (QueueDeclareOkBody)evt.getMethod();
-                final String queueName = queueOk.queue;
+                QueueDeclareOkBody qdb = (QueueDeclareOkBody) evt.getMethod();
+                String queueName = qdb.queue;
 
                 // Bind exchange to queue
                 // TODO: construct the rawSelector from the selector string if rawSelector == null
@@ -483,7 +478,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                 //    ft.put("headers", rawSelector.getDataAsBytes());
                 if (rawSelector != null)
                     ft.putAll(rawSelector);
-                AMQFrame queueBind = QueueBindBody.createAMQFrame(_channelId, 0, amqd.getQueueScope(), queueOk.queue,
+                AMQFrame queueBind = QueueBindBody.createAMQFrame(_channelId, 0, amqd.getQueueScope(), qdb.queue,
                                                                   amqd.getExchangeName(), amqd.getDestinationName(), ft);
 
                 protocolHandler.writeCommandFrameAndWaitForReply(queueBind,
@@ -496,7 +491,9 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                 AMQMethodEvent consumeOkEvent = protocolHandler.writeCommandFrameAndWaitForReply(jmsConsume,
                                                                  new SpecificMethodFrameListener(_channelId,
                                                                                                  JmsConsumeOkBody.class));
-                consumer.setConsumerTag(((JmsConsumeOkBody) consumeOkEvent.getMethod()).consumerTag);
+                int consumerTag = ((JmsConsumeOkBody) consumeOkEvent.getMethod()).consumerTag;
+                consumer.setConsumerTag(consumerTag);
+                registerConsumerQueue(new Integer(consumerTag), consumer);
               }
               catch (AMQException e)
             {
@@ -675,9 +672,9 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         t.start();
     }
 
-    void registerConsumerQueue(String queueName, MessageConsumer consumer)
+    void registerConsumerQueue(int consumerTag, MessageConsumer consumer)
     {
-        _consumers.put(queueName, consumer);
+        _consumers.put(new Integer(consumerTag), consumer);
         //_connection.getProtocolHandler().addSessionByQueue(queueName, this);
     }
 
