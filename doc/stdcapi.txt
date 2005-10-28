@@ -1,16 +1,23 @@
-Standard C Client API for OpenAMQ
-*********************************
+gdl
+    title     = AMQ C API
+    subtitle  = Standard C API for AMQP Server
+    product   = OpenAMQ
+    author    = iMatix Corporation <amq@imatix.com>
+    date      = 2005/10/28
+    copyright = Copyright (c) 2004-2005 JPMorgan
+    version   = 1.2b0
+end gdl
 
 Introduction
-============
+************
 
 Version
--------
+=======
 
 This describes OpenAMQ kernel release 0.9c3.
 
 Goals and Principles
---------------------
+====================
 
 The standard C client API is built using the same technology as the
 OpenAMQ server, and provides a simple object-oriented interface to the
@@ -29,7 +36,7 @@ It is designed to:
  - Work with any AMQ server (obviously).
 
 Technicalities
---------------
+==============
 
 It is mainly built using these technologies:
 
@@ -50,7 +57,7 @@ package.  The difference is mainly invisible but you may find the
 single-threaded build easier to debug.
 
 Basic Architecture
-------------------
+==================
 
 The C client API sits between the application:
 
@@ -115,7 +122,7 @@ This shows some of the main object classes that compose the client API:
    or process JMS content received from the server.
 
 The iCL Class Syntax
---------------------
+====================
 
 The client API classes are all constructed using iCL and some knowledge
 of iCL will make your life easier.  However, the syntax for using iCL
@@ -164,19 +171,19 @@ And the correct way to call a method like publish is:
     }
 
 The Connection Class
-====================
+********************
 
 AMQP is a multi-channel protocol, meaning that one network connection can
 carry an arbitrary number of parallel, independent virtual connections,
 which AMQP calls "channels".  In the C API these are called "sessions"
 for compatability with other middleware APIs.
 
-Note: before calling any iCL method including amq_client_connection_new,
+Before calling any iCL method including amq_client_connection_new,
 you must have called icl_system_initialise (), or your application will
 fail with an abort.
 
 amq_client_connection_new
--------------------------
+=========================
 
 Creates a new connection to the server.
 
@@ -187,6 +194,7 @@ Creates a new connection to the server.
 
     auth_data  = amq_client_connection_auth_plain ("guest", "guest");
     connection = amq_client_connection_new ("localhost", authdata, 0, 30000);
+    icl_longstr_destroy (&auth_data);
     if (connection)
         icl_console_print ("I: connected to %s/%s - %s - %s",
             connection->server_product,
@@ -218,7 +226,7 @@ Creates a new connection to the server.
    of 30 seconds or more is reasonable.
 
 amq_client_connection_destroy
------------------------------
+=============================
 
 Closes an open connection, doing a clean shut-down.  Applications should
 use this to end a connection (rather than just exiting):
@@ -226,7 +234,7 @@ use this to end a connection (rather than just exiting):
     amq_client_connection_destroy (&connection);
 
 amq_client_connection_auth_plain
---------------------------------
+================================
 
 Returns an authentication block for a plain login:
 
@@ -236,7 +244,7 @@ Returns an authentication block for a plain login:
     auth_data = amq_client_connection_auth_plain ("guest", "guest");
 
 Connection Properties
----------------------
+=====================
 
 These are the properties of a connection object:
 
@@ -254,7 +262,7 @@ These are the properties of a connection object:
  - server_information (string) - other information reported by server
 
 The Session Class
-=================
+*****************
 
 A session corresponds to an AMQP channel, and is a virtual connection to
 an AMQ server.  You must at least create one session in order to talk
@@ -264,7 +272,7 @@ fast, much faster than creating a new connection, especially across slow
 networks and/or firewalls.
 
 amq_client_session_new ()
--------------------------
+=========================
 
 Creates a new session:
 
@@ -278,7 +286,7 @@ Creates a new session:
     }
 
 amq_client_session_destroy ()
------------------------------
+=============================
 
 Closes an open session, doing a clean shut-down.  Applications should
 call this method when closing a session.  Closing the connection is
@@ -287,7 +295,7 @@ a valid way of closing all open sessions for that connection:
     amq_client_session_destroy (&session);
 
 amq_client_session_wait ()
---------------------------
+==========================
 
 Waits for content to arrive from the server.  You must call this method
 in order to get content.  Returns zero if content arrived, or -1 if the
@@ -302,7 +310,7 @@ timeout expired:
         //  zero or more contents arrived
 
 Content Access Methods
-----------------------
+======================
 
 For each content class (Basic, JMS), the API provides a set of methods
 to access arrived and bounced content:
@@ -332,7 +340,7 @@ more contents arrived or bounced, and process each of them, and wait
 again if it needs to.
 
 Protocol methods
-----------------
+================
 
 The following methods are directly mapped to the AMQP protocol methods
 and you should read the AMQP specifications for details:
@@ -357,7 +365,7 @@ and you should read the AMQP specifications for details:
  - amq_client_session_jms_reject - mapped to Jms.Reject.
 
 Session Properties
-------------------
+==================
 
 These are the properties of a session object:
 
@@ -386,7 +394,7 @@ argument of an incoming Basic.Browse-Ok method will be stored in the
 message_count property.
 
 The Content Classes
-===================
+*******************
 
 AMQP uses the term "content" to mean an application message (the term
 "message" means different things at the application, protocol, and
@@ -410,7 +418,7 @@ To create a new content, use the 'new' method.  To destroy a content,
 use the 'destroy' method.
 
 Content Properties
-------------------
+==================
 
 All contents have these properties, which you can inspect directly:
 
@@ -423,7 +431,7 @@ Additionally, each content class defines a set of properties which are
 noted in the AMQP protocol specifications.
 
 Basic Content Properties
-------------------------
+========================
 
 Basic content has these specific properties:
 
@@ -439,7 +447,7 @@ directly but use the method:
     amq_content_basic_set_<propertyname> (content, newvalue)
 
 Basic Content Properties
-------------------------
+========================
 
 JMS content has these specific properties:
 
@@ -463,7 +471,7 @@ directly but use the method:
     amq_content_jms_set_<propertyname> (content, newvalue)
 
 Content Body Data
------------------
+=================
 
 To set a content's body, use this method (depending on the content class):
 
@@ -482,7 +490,7 @@ Where the buffer is at least as large as content->body_size.  This method
 returns the number of bytes copied, or -1 if the buffer was too small.
 
 Advanced Content Manipulation
------------------------------
+=============================
 
 To work with large contents - which do not fit into memory - you must
 use a more complex API to read and write contents.  For details of this
@@ -491,10 +499,10 @@ demonstrates how to read and write content bodies in frames rather than
 as single buffers.
 
 ASL Field Table Classes
-=======================
+***********************
 
 The Easy Way to Make a Field Table
-----------------------------------
+==================================
 
 The C API uses ASL field tables as a basic type to implement all "field
 table" arguments.  There are two classes that you can use:
@@ -533,7 +541,7 @@ calls to individual methods:
     icl_longstr_destroy (&field_table);
 
 Field Tables in More Detail
----------------------------
+===========================
 
 Field tables are held in two ways:
 
@@ -590,7 +598,7 @@ You can also access a field's properties directly:
  - integer (int64_t) - integer value for the field.
 
 Error Handling
-==============
+**************
 
 The C API returns two types of error:
 
@@ -615,10 +623,10 @@ The application can print the right error message using code like this:
         icl_console_print ("E: %s", s_session->error_text);
 
 Miscellaneous Topics
-====================
+********************
 
 Object Ownership
-----------------
+================
 
 The C API uses the standard iCL model to define object ownership:
 
@@ -632,7 +640,7 @@ The C API uses the standard iCL model to define object ownership:
    this using linking.  An object must explicitly allow this.
 
 Synchronous vs. Asynchronous Methods
-------------------------------------
+====================================
 
 AMQP (like all ASL protocols) divides methods strictly into those that
 expect an immediate reply (synchronous) and those that do not
@@ -651,7 +659,7 @@ follows:
    can, and process them in the background.
 
 Single-Threaded Background Processing
--------------------------------------
+=====================================
 
 The standard C client API works in both a multi-threaded model (in which
 one thread handles all dialogue with the server and a second handles the
@@ -667,7 +675,7 @@ during this call that asynchronous incoming methods are processed.  Always
 call this method instead of "sleep" or an equivalent in your application.
 
 Unimplemented Functions
------------------------
+=======================
 
 The current OpenAMQ kernel implementation does not support:
 

@@ -8,12 +8,22 @@ gdl
     version   = 1.1b
 end gdl
 
+Document Control
+****************
+
 Change History
-**************
+==============
 
 1.1b:
     Changed '<object class = ' in schema to '<class name = ' for
     consistency with other XML languages we use.
+
+Tasks Pending
+=============
+
+ - Define CML language as AMQ RFC, and using formal grammar(s).
+ - In separate document, describe OpenAMQ openamq.org/kernel console
+   schema.
 
 Overview
 ********
@@ -242,30 +252,86 @@ By using the Basic content class we ensure that the console works with all
 future AMQ servers.  The Basic class is the only class that all AMQ servers
 MUST support, according to the AMQP specifications.
 
-The request-reply mechanism uses standard queues as follows:
+The request-reply mechanism uses standard queues. The client creates a
+temporary, private queue and binds this to amq.direct using the queue
+name as routing key. It then sends CML commands to the amq.system
+exchange, specifying "amq.console" as the routing key, and its queue
+name as the reply-to field. To match up responses with requests, it can
+set the message-id in requests - the Console will use the same value in
+responses.
 
- - Each client creates a temporary reply queue and binds this as usual
-   for a reply queue.
- - Each request to the server specifies this queue in the "reply-to" field.
+Every request generates a response, on the condition that the reply-to
+field correctly refers to a queue.
 
-To implement a request-reply method, the client will:
+We can show the client's request-response logic using PAL scripting:
 
- - Create a suitably-formatted message.
- - Set the reply-to field correctly to refer to its reply queue.
- - Use the Basic.Publish method to send the message to the amq.system
-   exchange with the routing key "amq.console".
- - Wait for a reply on its reply queue.
+ - The client creates a temporary, private reply queue and binds this
+   to the amq.direct exchange:
+   
+    <queue_declare queue = "" />
+    <queue_bind
+        queue = "$queue"
+        exchange = "amq.direct"
+        routing_key = "$queue" />
 
-The notification mechanism uses topic routing and subscription queues as
-follows:
+ - The client formats a request (in this case we read a test CML message
+   from a text file):
 
- - Each client wishing to receive notifications creates a temporary queue
-   and binds this to the amq.notify exchange (a topic exchange).
- - The routing key used during binding specifies which notifications the
-   client wishes to receive.
- - The client can bind the same queue many times with different routing
-   keys.
- - The client can use the same queue both for replies and notifications.
+    <basic_content
+        read = "console.txt"
+        reply_to = "$queue"
+        message_id = "id-001" />
+   
+ - The client publishes the request to the amq.system exchange:
+
+    <basic_publish
+        exchange = "amq.system"
+        routing_key = "amq.console" />
+
+ - The client waits for a response on its queue:
+
+    <repeat>
+        <basic_browse queue = "$queue" />
+        <basic_bounced>
+            <echo>Message was bounced: $message_id</echo>
+            <break/>
+        </basic_bounced>
+        <basic_arrived>
+            <echo>Response arrived from console</echo>
+            <break/>
+        </basic_arrived>
+        <wait timeout = "100" />
+    </repeat>
+
+The notification mechanism uses topic routing and subscription queues.
+The client creates a temporary, private queue and binds this to the
+amq.notify exchange (a topic exchange), with a routing key that
+specifies which notifications it wants to receive.  The client can
+bind many times with different routing keys:
+
+We can show the client's notification logic using PAL scripting:
+
+ - The client creates a temporary, private reply queue and binds this
+   to the amq.notify exchange:
+   
+    <queue_declare queue = "" />
+    <queue_bind
+        queue = "$queue"
+        exchange = "amq.notify"
+        routing_key = "amq.queue.*.size" />
+
+ - The client defines a consumer on the queue:
+
+    <basic_consume queue = "$queue" />
+    
+ - The client waits for notifications on its queue:
+
+    <repeat>
+        <wait/>
+        <basic_arrived>
+            <echo>Response arrived from console</echo>
+        </basic_arrived>
+    </repeat>
 
 Console Message Language
 ========================
@@ -290,32 +356,78 @@ Here are some examples of CML:
         </modify>
     </cml>
 
-CML has a grammar that covers all possible server schemas. Client requests
-are shown as "C:", server responses as "S:":
+CML has a grammar that covers all possible server schemas. This is the
+overall grammar for CML messages:
 
     cml             = <cml version = "1.0">
-                         cml-command
+                         c:cml | s:cml
                       </cml>
 
-    cml-command     = C:schema  S:schema
-                    | C:inspect S:inspect
-                    | C:modify  S:modify
-                    | C:method  S:method
-                    | C:watch   S:watch
-                    | S:notify
+This is the grammar for client messages:
+
+    c:cml           = C:schema | C:inspect | C:modify | C:method | C:watch   
 
     C:schema        = <schema />
 
-    S:schema        = <schema
-                         name = "schema-name"
-                         version = "schema-version"
-                         status = "reply-status" >
+    C:inspect       = <inspect object = "object-id" [ detail = "ask-detail" ] />
+
+    object-id       = 0..maxlongint-1
+
+    ask-detail      = (0) | 1
+
+    C:modify        = <modify object = "object-id">
+                        [ field-data ] ...
+                      </modify>
+
+    field-data      = <field name = "field-name">field-value</field>
+
+    field-name      = valid-name
+
+    valid-name      = {A-Za-z0-9-_.}...
+
+    field-value     = string representation of field value
+
+    C:method        = <method object = "object-id" name = "method-name">
+                        [ field-data ] ...
+                      </method>
+
+    method-name     = valid-name
+
+    C:watch         = <watch object = "object-id" [reset = "ask-reset"] >
+                       [ watch-field ]...
+                      </watch>
+
+    ask-reset       = (0) | 1
+
+    watch-field     = <field
+                         name  = "field-name"
+                       [ test  = "watch-type" ]
+                         value = "watch-value"
+                       [ route = "routing-key" ]>
+                       [ alert-message ]
+                      </field>
+
+
+    watch-type      = eq | ne | lt | le | gt | (ge)
+
+    watch-value     = integer
+
+    alert-message   = valid-text
+
+    valid-text      = {printable}...
+
+    routing-key     = valid-name
+
+This is the grammar for server messages:
+
+    cml-command     = S:schema | S:inspect | S:modify | S:method | S:watch | S:invalid
+
+    S:schema        = <schema name = "schema-name" version = "schema-version"
+                        status = "reply-status" >
                        [ schema-class ]...
                       </schema>
 
     schema-name     = valid-name
-
-    valid-name      = {A-Za-z0-9-_.}...
 
     schame-version  = valid-name
 
@@ -331,41 +443,26 @@ are shown as "C:", server responses as "S:":
 
     schema-field    = group-field | simple-field
 
-    group-field     = <field
-                         name = "field-name"
-                       [ inspect = "inspect-flag" ]
-                       [ modify = "modify-flag" ]
+    group-field     = <field name = "field-name"
+                       [ inspect = "inspect-flag" ] [ modify = "modify-flag" ]
                        [ label = "field-label" ] >
                        [ field-text ]
-                       [ field-access ]...
                        [ schema-field ]...
                       </field>
-
-    field-name      = valid-name
-
-    field-label     = valid-text
-
-    valid-text      = {printable}...
 
     inspect-flag    = 0 | (1)
 
     modify-flag     = (0) | 1
 
+    field-label     = valid-text
+
     field-text      = valid-text
 
-    field-access    = <allow access = "access-type" />
-
-    access-type     = inspect | modify
-
-    simple-field    = <field
-                         name = "field-name"
-                       [ type = "field-type" ]
-                       [ inspect = "inspect-flag" ]
-                       [ modify = "modify-flag" ]
+    simple-field    = <field name = "field-name" [ type = "field-type" ]
+                       [ inspect = "inspect-flag" ] [ modify = "modify-flag" ]
                        [ label = "field-label" ] >
                        [ field-text ]
                        [ enum-value ] ...
-                       [ field-access ]...
                      </field>
 
     field-type      = string | int | bool | object
@@ -374,22 +471,11 @@ are shown as "C:", server responses as "S:":
 
     value-name      = valid-text
 
-    field-value     = string representation of allowed field
-
     schema-method   = <method name = "method-name">
                        [ schema-field ]...
                       </method>
 
-    method-name     = valid-name
-
-    C:inspect       = <inspect object = "object-id" [ detail = "ask-detail" ] />
-
-    object-id       = 0..maxlongint-1
-
-    ask-detail      = (0) | 1
-
-    S:inspect       = <inspect
-                         object   = "object-id"
+    S:inspect       = <inspect object   = "object-id"
                        [ children = "child-count" ]
                        [ watches  = "watch-count" ]
                          status   = "reply-status">
@@ -401,60 +487,23 @@ are shown as "C:", server responses as "S:":
 
     watch-count     = 0..maxint - 1
 
-    field-data      = <field name = "field-name">field-value</field>
-
     object-data     = <object class = "class-name" id = "object-id" />
 
-    C:modify        = <modify object = "object-id">
-                        [ field-data ] ...
-                      </modify>
+    S:modify        = <modify object = "object-id" status = "reply-status" />
 
-    S:modify        = <modify
-                         object = "object-id"
-                         status = "reply-status"
-                         />
+    S:method        = <method object = "object-id" status = "reply-status" />
 
-    C:method        = <method object = "object-id" name = "method-name">
-                        [ field-data ] ...
-                      </method>
-
-    S:method        = <method
-                         object = "object-id"
-                         status = "reply-status"
-                         />
-
-    C:watch         = <watch object = "object-id" [reset = "ask-reset"] >
+    S:watch         = <watch object = "object-id" status = "reply-status">
                        [ watch-field ]...
                       </watch>
 
-    watch-field     = <field
-                         name  = "field-name"
-                       [ test  = "watch-type" ]
-                         value = "watch-value"
-                       [ route = "routing-key" ]>
-                       [ alert-message ]
-                      </field>
-
-    watch-type      = eq | ne | lt | le | gt | (ge)
-
-    watch-value     = integer
-
-    alert-message   = valid-text
-
-    routing-key     = valid-name
-
-    ask-reset       = (0) | 1
-
-    S:watch         = <watch
-                         object = "object-id" status = "reply-status">
-                       [ watch-field ]...
-                      </watch>
+    S:invalid       = <invalid />
 
     S:notify        = <notify object = "object-id">
-                        [ notification ]...
-                        [ <field name = "field-name">
+                       [ notification ]...
+                       [ <field name = "field-name">
                             notification
-                      </field> ]...
+                         </field> ]...
                       </notify>
 
     notification    = <alert>alert-message</alert>
@@ -485,9 +534,9 @@ boxes (for 5 or more options), e.g.:
         <value name = "shutting down">2</value>
     </field>
 
-Note: this is a minimalistic typing model that we will probably want to
-refine over time, e.g. defining the shown and maximum length for strings
-and integers, and allowing multiline text fields.
+This is a minimalistic typing model that we will most likely refine over
+time, e.g. defining visible and internal size limits for strings and
+integers, and allowing multiline text fields.
 
 Command Implementations
 =======================
