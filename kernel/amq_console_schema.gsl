@@ -1,0 +1,47 @@
+#   This script extracts the console schema by walking
+#   the amq class definitions, starting with amq_broker.
+
+schema_name    = "openamq.org/kernel"
+schema_version = "0.1"
+
+#   Formatting
+shuffle = 0
+indent  = "   "
+
+function process_field (field, margin)
+    >$(my.margin)<field name = "$(name)" type = "$(type?'string')"
+    >$(my.margin)   inspect = "1" modify = "0" label = "$(label)" />
+    for values
+        echo "Field values are not supported yet"
+    endfor
+endfunction
+
+function process_method (method, margin)
+    echo "Methods are not supported yet"
+endfunction
+
+function process_class (name, margin)
+    xml from "amq_$(my.name).icl"
+    for ->class.data where name = "cml"
+        for class
+            >$(my.margin)<class name = "$(name)">
+            for field
+                process_field (field, my.margin + indent)
+            endfor
+            for method
+                process_method (method, my.margin + indent)
+            endfor
+            for class
+                process_class (name, my.margin + indent)
+            endfor
+            >$(my.margin)</class>
+        endfor
+    endfor
+endfunction
+
+output "amq_console_schema.cml"
+><cml version = "1.0">
+><schema name = "$(schema_name)" version = "$(schema_version)" status = "ok">
+process_class ("broker", indent)
+></schema>
+></cml>
