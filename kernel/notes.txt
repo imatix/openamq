@@ -1,31 +1,4 @@
-Console Server Implementation
-=============================
 
-This section provides a plan for the console server implementation in
-the current OpenAMQ server.  This section is intended for use by the
-OpenAMQ development team, and does not form part of the AMQ Console
-Specifications.
-
-Operable Objects
-----------------
-
-We are concerned only with operable objects, those we can work with
-via the operator console.
-
-All operable objects are implemented as iCL asynchronous objects (using
-the icl_smt framework). This ensures that objects can safely and
-atomically process all methods they receive.
-
-The inspect and modify methods are defined in an abstract iCL class that
-uses GSL code generation - a type of templating - to produce the actual
-code for each method instance.
-
-Object Identification
----------------------
-
-When an operable object is created (the new method), it takes a new
-identification value. This will be done using a global 64-bit variable
-that is atomically incremented.
 
 Object Registry
 ---------------
@@ -53,25 +26,6 @@ lifetime of the server.
 
 The registry can do a lookup from object ID to registry node, so object
 ID forms a primary key for accessing objects in the registry.
-
-Object Registation
-------------------
-
-A new object registers by sending a "register" method to the system
-exchange, which is an asynchronous object. The register method has these
-arguments:
-
- - The ID of the new object.
- - The ID of the parent object.
- - The address of the corresponding class descriptor.
-
-Object Deregistration
----------------------
-
-The destroy method for an object sends a "cancel" method to the system
-exchange. The cancel method has these arguments:
-
- - ID of object being destroyed
 
 The 'Meta' Method
 -----------------

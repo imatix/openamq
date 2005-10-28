@@ -17,12 +17,26 @@ for each type of exchange. This is a lock-free asynchronous class.
     <option name = "hash_type" value = "str" />
     <option name = "hash_size" value = "65535" />
 </inherit>
+<inherit class = "amq_console_object" />
+
+<!-- Console definitions for this object -->
+<data type = "cml">
+    <class name = "exchange" parent = "vhost">
+        <field name = "name"        label = "Exchange name" />
+        <field name = "durable"     label = "Durable exchange?"             type = "bool" />
+        <field name = "exclusive"   label = "Exclusive to one connection?"  type = "bool" />
+        <field name = "auto_delete" label = "Auto-deleted?"                 type = "bool" />
+        <field name = "bindings"    label = "Number of bindings"            type = "int" />
+    </class>
+</data>
 
 <public name = "include">
 #include "amq_server_classes.h"
 </public>
 
 <context>
+    amq_vhost_t
+        *vhost;                         //  Parent vhost
     int
         type;                           //  Exchange type
     icl_shortstr_t
@@ -65,20 +79,22 @@ for each type of exchange. This is a lock-free asynchronous class.
 </public>
 
 <method name = "new">
-    <argument name = "type"        type = "int">Exchange type</argument>
-    <argument name = "name"        type = "char *">Exchange name</argument>
-    <argument name = "durable"     type = "Bool">Is exchange durable?</argument>
+    <argument name = "vhost" type = "amq_vhost_t *">Parent vhost</argument>
+    <argument name = "type" type = "int">Exchange type</argument>
+    <argument name = "name" type = "char *">Exchange name</argument>
+    <argument name = "durable" type = "Bool">Is exchange durable?</argument>
     <argument name = "auto delete" type = "Bool">Auto-delete unused exchange?</argument>
-    <argument name = "internal"    type = "Bool">Internal exchange?</argument>
-    <dismiss argument = "key"   value = "name">Key is exchange name</dismiss>
+    <argument name = "internal" type = "Bool">Internal exchange?</argument>
+    <dismiss argument = "key" value = "name">Key is exchange name</dismiss>
     //
-    icl_shortstr_cpy (self->name, name);
+    self->vhost         = vhost;
     self->type          = type;
     self->durable       = durable;
     self->auto_delete   = auto_delete;
     self->internal      = internal;
     self->binding_list  = amq_binding_list_new ();
     self->binding_index = ipr_index_new ();
+    icl_shortstr_cpy (self->name, name);
 
     if (self->type == AMQ_EXCHANGE_SYSTEM) {
         self->object  = amq_exchange_system_new (self);
@@ -255,31 +271,31 @@ for each type of exchange. This is a lock-free asynchronous class.
     is defined in the exchange implementations.
     </doc>
     <argument name = "channel"   type = "amq_server_channel_t *">Channel for reply</argument>
-    <argument name = "type id"   type = "int">The content type</argument>
+    <argument name = "class id"  type = "int">The content class</argument>
     <argument name = "content"   type = "void *">The message content</argument>
     <argument name = "mandatory" type = "Bool">Warn if unroutable</argument>
     <argument name = "immediate" type = "Bool">Warn if no consumers</argument>
     //
     <possess>
-    if (type_id == AMQ_SERVER_JMS)
+    if (class_id == AMQ_SERVER_JMS)
         amq_content_jms_possess (content);
     else
-    if (type_id == AMQ_SERVER_BASIC)
+    if (class_id == AMQ_SERVER_BASIC)
         amq_content_basic_possess (content);
     </possess>
     <release>
-    if (type_id == AMQ_SERVER_JMS)
+    if (class_id == AMQ_SERVER_JMS)
         amq_content_jms_destroy ((amq_content_jms_t **) &content);
     else
-    if (type_id == AMQ_SERVER_BASIC)
+    if (class_id == AMQ_SERVER_BASIC)
         amq_content_basic_destroy ((amq_content_basic_t **) &content);
     </release>
     <action>
-    self->publish (self->object, channel, type_id, content, mandatory, immediate);
-    amq_monitor_messages++;
+    self->publish (self->object, channel, class_id, content, mandatory, immediate);
+    amq_broker_messages++;
     </action>
 </method>
 
-<method name = "selftest" inherit = "none"/>
+<method name = "selftest" />
 
 </class>

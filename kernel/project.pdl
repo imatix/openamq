@@ -63,6 +63,14 @@
                                      generated = "1"             >Server channel agent</file>
 <file name = "amq_server_channel_table.icl"
                                      class = "icl private cont"  >Server channel table</file>
+<file name = "amq_broker.icl"        class = "icl private class" >Server broker class</file>
+<file name = "amq_broker_agent.smt"  class = "fat module"
+                                     generated = "1"             >Server broker agent</file>
+<file name = "amq_console.icl"       class = "icl private class" >Server console class</file>
+<file name = "amq_console_agent.smt" class = "fat module"
+                                     generated = "1"             >Server console agent</file>
+<file name = "amq_console_object.icl"
+                                     class = "private resource"  >Console object abstract class</file>
 <file name = "amq_vhost.icl"         class = "icl private class" >Server vhost class</file>
 <file name = "amq_vhost_agent.smt"   class = "fat module"
                                      generated = "1"             >Server vhost agent</file>
@@ -110,7 +118,6 @@
 <file name = "amq_consumer_jms.icl"  class = "icl private class" >JMS consumer class</file>
 <file name = "amq_server_method.icl" class = "icl private class"
                                      generated = "1"             >Server method class</file>
-<file name = "amq_monitor.icl"       class = "icl private class" >Monitoring</file>
 
 <file name = "server.cfg"            class = "public resource"   >Server config file</file>
 
@@ -118,7 +125,7 @@
 <file name = "amq_server"            class = "public command"    >Server</file>
 <file name = "amq_client"            class = "public command"    >Client</file>
 
-<!-- Shared classes -->
+<!-- Shared classes & resources -->
 <file name = "amq_hash.icl"          class = "icl private class" >Loose hash item</file>
 <file name = "amq_hash_table.icl"    class = "icl private cont"  >Loose hash table</file>
 <file name = "amq_content_basic.icl" class = "icl public cont"
@@ -127,6 +134,8 @@
                                      generated = "1"             >JMS content class</file>
 <file name = "amq_constants.icl"     class = "icl public data"
                                      generated = "1"             >Constants class</file>
+<file name = "amq_console_schema.cml"
+                                     class = "generated resource">Console schema</file>
 
 <!-- Test programs -->
 <file name = "amq_test_base.pal"     class = "public resource"   >Base test header</file>
@@ -141,6 +150,15 @@
 <file name = "amq_pal_inherit.gsl"   class = "generated resource" />
 <file name = "amq_pal_parse.gsl"     class = "generated resource" />
 <file name = "amq_pal_preproc.gsl"   class = "generated resource" />
+
+<!-- Generate AMQ Console schema -->
+<actions>
+  <generate>
+    <execute>
+    gsl -q amq_console_schema
+    </execute>
+  </generate>
+</actions>
 
 <!-- Generate AMQ protocol documentation -->
 <actions>

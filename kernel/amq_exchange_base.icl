@@ -94,7 +94,7 @@ This is an abstract base class for all exchange implementations.
                     (dbyte) channel->key,
                     content,
                     ASL_NOT_DELIVERED,
-                    "No bindings for this routing key",
+                    "Message cannot be processed - no route is defined",
                     ((amq_content_jms_t *) content)->exchange,
                     ((amq_content_jms_t *) content)->routing_key);
                 ((amq_content_jms_t *) content)->bounced = TRUE;
@@ -110,7 +110,7 @@ This is an abstract base class for all exchange implementations.
                     (dbyte) channel->key,
                     content,
                     ASL_NOT_DELIVERED,
-                    "No bindings for this routing key",
+                    "Message cannot be processed - no route is defined",
                     ((amq_content_basic_t *) content)->exchange,
                     ((amq_content_basic_t *) content)->routing_key);
                 ((amq_content_basic_t *) content)->bounced = TRUE;

@@ -158,12 +158,16 @@ maximum number of consumers per channel is set at compile time.
     </action>
 </method>
 
-<method name = "alive" template = "function">
+<method name = "alive" return = "rc">
+    <argument name = "self" type = "amq_server_channel_t *">Reference to channel</argument>
+    <declare name = "rc" type = "int" default = "0">Return code</declare>
     <doc>
-    Returns TRUE if the channel appears to be alive.
+    Returns TRUE if the channel appears to be alive.  Accepts
+    a null channel reference (which is considered as 'not alive').
     </doc>
     //
-    if (self->zombie == FALSE
+    if (self
+    &&  self->zombie == FALSE
     &&  self->connection
     &&  self->connection->thread
     &&  self->connection->suspended == FALSE)

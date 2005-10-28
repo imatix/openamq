@@ -13,7 +13,7 @@
 
 #include "asl.h"
 #include "version.h"
-#include "amq_server_agent.h"
+#include "amq_server_classes.h"
 
 static Bool
     s_opt_silent,                       //  -q means suppress messages
@@ -24,10 +24,6 @@ static char
     *s_opt_workdir,                     //  -w specifies working directory
     *s_opt_trace,                       //  -t defines trace level
     *s_opt_monitor;                     //  -m means monitor server
-
-//  Prototypes for local functions
-static void
-    s_exchange_declare (char *name, int class);
 
 #define NOWARRANTY \
 "This is free software; see the source for copying conditions.  There is NO\n" \
@@ -50,7 +46,7 @@ static void
     "\n"
 
 
-//  Parse arguments, return 0 if OK, 1 if error                              
+//  Parse arguments, return 0 if OK, 1 if error
 
 static int
 s_parse_args (int argc, char *argv [])
@@ -198,10 +194,7 @@ s_load_config (char *config_file, char *overlay)
 static int
 s_run_server (void)
 {
-    //  Do synchronous class initialisations here
-    //  -------------------------------------------------------------------
-
-    //  Set tracing options from command-line
+    //  Synchronous start-up
     if (s_opt_trace)
         amq_server_config_set_trace   (amq_server_config, atoi (s_opt_trace));
     if (s_opt_monitor)
@@ -209,60 +202,19 @@ s_run_server (void)
     if (s_opt_port)
         amq_server_config_set_port    (amq_server_config, s_opt_port);
 
-    //  Set monitor function callback
-    amq_server_callback_monitor (amq_monitor_report);
+    //  Main processing
+    amq_console = amq_console_new ();
+    amq_broker  = amq_broker_new  ();  
+    smt_os_thread_wait (0);             //  Execute the server
+    amq_broker_destroy  (&amq_broker); 
+    amq_console_destroy (&amq_console);
+    smt_os_thread_wait (0);             //  Shutdown SMT kernel
 
-    if (amq_server_agent_init ()) {
-        icl_console_print ("E: could not start server protocol agent");
-        return (1);
-    }
-    //  Do asynchronous class initialisations here
-    //  -------------------------------------------------------------------
-
-    //  We use a single global vhost for now
-    amq_vhost = amq_vhost_new ("/");
-
-    //  Automatic wiring schemes
-    s_exchange_declare ("amq.direct",         AMQ_EXCHANGE_DIRECT);
-    s_exchange_declare ("amq.reply",          AMQ_EXCHANGE_DIRECT);
-    s_exchange_declare ("amq.topic",          AMQ_EXCHANGE_TOPIC);
-    s_exchange_declare ("amq.match",          AMQ_EXCHANGE_HEADERS);
-    s_exchange_declare ("amq.console",        AMQ_EXCHANGE_SYSTEM);
-    s_exchange_declare ("amq.console.notify", AMQ_EXCHANGE_TOPIC);
-
-    //  Execute the server
-    smt_os_thread_wait (0);
-
-    //  Shut down cleanly
-    amq_vhost_destroy (&amq_vhost);
-    amq_server_agent_term ();
-    smt_os_thread_wait (0);
-
+    //  Synchronous shutdown
     amq_server_config_destroy (&amq_server_config);
     if (s_opt_showinfo)
         icl_stats_dump ();
     icl_console_print ("I: shutdown is complete");
     icl_system_terminate ();
     return (0);
-}
-
-
-//  Declare a default/standard exchange
-//  Uses the single amq_vhost for now
-
-static void
-s_exchange_declare (char *name, int class)
-{
-    amq_exchange_t
-        *exchange;                      //  Predeclared exchanges
-
-    exchange = amq_exchange_new (
-        amq_vhost->exchange_table,
-        class,                          //  Exchange class
-        name,                           //  Exchange name
-        TRUE,                           //  Durable, allows durable queues
-        FALSE,                          //  Do not auto-delete
-        FALSE);                         //  Not internal
-    assert (exchange);
-    amq_exchange_unlink (&exchange);
 }

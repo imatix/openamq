@@ -21,6 +21,20 @@ class.  This is a lock-free asynchronous class.
 <inherit class = "icl_list_item">
     <option name = "prefix" value = "list" />
 </inherit>
+<inherit class = "amq_console_object" />
+
+<!-- Console definitions for this object -->
+<data name = "cml">
+    <class name = "queue" parent = "vhost">
+        <field name = "scope"       label = "Queue scope" />
+        <field name = "name"        label = "Queue name" />
+        <field name = "durable"     label = "Durable queue?"                type = "bool" />
+        <field name = "exclusive"   label = "Exclusive to one connection?"  type = "bool" />
+        <field name = "auto_delete" label = "Auto-deleted?"                 type = "bool" />
+        <field name = "consumers"   label = "Number of consumers"           type = "int" />
+        <field name = "messages"    label = "Number of messages"            type = "int" />
+    </class>
+</data>
 
 <public name = "include">
 #include "amq_server_classes.h"
@@ -50,28 +64,30 @@ class.  This is a lock-free asynchronous class.
 </context>
 
 <method name = "new">
-    <argument name = "owner id"    type = "qbyte">Owner context id</argument>
-    <argument name = "vhost"       type = "amq_vhost_t *">Parent vhost</argument>
-    <argument name = "scope"       type = "char *">Queue scope</argument>
-    <argument name = "name"        type = "char *">Queue name</argument>
-    <argument name = "durable"     type = "Bool">Is queue durable?</argument>
-    <argument name = "exclusive"   type = "Bool">Is queue exclusive?</argument>
+    <argument name = "vhost" type = "amq_vhost_t *">Parent vhost</argument>
+    <argument name = "owner id" type = "qbyte">Owner context id</argument>
+    <argument name = "scope" type = "char *">Queue scope</argument>
+    <argument name = "name" type = "char *">Queue name</argument>
+    <argument name = "durable" type = "Bool">Is queue durable?</argument>
+    <argument name = "exclusive" type = "Bool">Is queue exclusive?</argument>
     <argument name = "auto delete" type = "Bool">Auto-delete unused queue?</argument>
+
     <dismiss argument = "table" value = "vhost->queue_table" />
-    <dismiss argument = "key"   value = "fullname">
+    <dismiss argument = "key" value = "fullname">
         Hash key is fullname formatted from queue scope plus name
     </dismiss>
+
     <local>
     icl_shortstr_t
         fullname;
     </local>
     //
-    self->owner_id    = owner_id;
     self->vhost       = vhost;
+    self->owner_id    = owner_id;
     self->durable     = durable;
     self->exclusive   = exclusive;
     self->auto_delete = auto_delete;
-    self->queue_jms   = amq_queue_jms_new   (self);
+    self->queue_jms   = amq_queue_jms_new (self);
     self->queue_basic = amq_queue_basic_new (self);
 
     icl_shortstr_cpy (self->scope, scope);
@@ -342,34 +358,6 @@ class.  This is a lock-free asynchronous class.
     amq_queue_list_push (self->vhost->queue_list, self);
 </method>
 
-<method name = "selftest">
-    <local>
-    amq_queue_table_t
-        *queue_table;
-    amq_queue_t
-        *queue;
-    amq_vhost_t
-        *vhost;
-    int
-        count;
-    </local>
-    //
-    //  Queues are async objects, so we must fire-up SMT before using them
-    smt_os_thread_initialise ();        //  Initialise SMT engine
-
-    //  We need a virtual host in which to store our test queues
-    vhost = amq_vhost_new ("/");
-    queue_table = amq_queue_table_new ();
-
-    //  Now let's create and destroy a lot of queues
-    for (count = 0; count < 10000; count++) {
-        queue = amq_queue_new (0, vhost, "global", "test", 0, 0, 0);
-        amq_queue_destroy (&queue);
-        smt_os_thread_wait (0);
-    }
-    //  Release resources
-    amq_queue_table_destroy (&queue_table);
-    amq_vhost_destroy (&vhost);
-</method>
+<method name = "selftest" />
 
 </class>

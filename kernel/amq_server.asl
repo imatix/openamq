@@ -38,6 +38,7 @@
             else {
                 exchange = amq_exchange_new (
                     amq_vhost->exchange_table,
+                    amq_vhost,
                     exchange_type,
                     method->exchange,
                     method->durable,
@@ -106,8 +107,8 @@
                 channel, ASL_NOT_FOUND, "No such queue defined");
         else {
             queue = amq_queue_new (
-                connection->context_id,
                 amq_vhost,
+                connection->context_id,
                 method->scope,
                 queue_name,
                 method->durable,

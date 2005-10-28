@@ -6,6 +6,8 @@
  *===========================================================================*/
 
 #include "amq_binding.h"
+#include "amq_broker.h"
+#include "amq_console.h"
 #include "amq_consumer.h"
 #include "amq_consumer_basic.h"
 #include "amq_consumer_jms.h"
@@ -19,7 +21,6 @@
 #include "amq_exchange_system.h"
 #include "amq_hitset.h"
 #include "amq_index.h"
-#include "amq_monitor.h"
 #include "amq_queue.h"
 #include "amq_queue_basic.h"
 #include "amq_queue_jms.h"

@@ -7,48 +7,35 @@
     script    = "icl_gen"
     >
 <doc>
-This class implements system functions:
+This class implements these system services (specified by the
+routing key):
 
-    - AMQ Console (console exchange).
-
-System messages are not routed to queues but are processed according
-to the exchange name and in some cases, the routing key.
+  - amq.console - AMQ Console service
 </doc>
-
-<public>
-//  This ID is used to number all objects that are exposed via the
-//  Console.
-//
-extern qbyte
-    amq_object_id;                      //  Global object ID
-</public>
-
-<private>
-qbyte
-    amq_object_id = 0;
-</private>
 
 <inherit class = "amq_exchange_base" />
 
 <method name = "compile">
-    icl_console_print ("E: cannot bind queue to a system exchange");
+    icl_console_print ("E: cannot bind queue to the system exchange");
 </method>
 
 <method name = "publish">
-    <local>
-    asl_reader_t
-        reader;                         //  Body reader
-    ipr_bucket_t
-        *bucket;
-    </local>
-
-    
-    amq_content_basic_set_reader (content, &reader, 32000);
-    bucket = amq_content_basic_replay_body (content, &reader);
-
-    icl_console_print ("Data: %s", bucket->data);
-    ipr_bucket_destroy (&bucket);
-    delivered = TRUE;
+    //
+    //  Examine routing key, and use that to pass content to internal
+    //  service.  Since we have just one service (amq.console), the
+    //  lookup is hard-coded, but in future we may use the compile
+    //  method to allow arbitrary system services to register.
+    //    
+    if (class_id == AMQ_SERVER_BASIC) {
+        if (streq (routing_key, "amq.console")) {
+            amq_console_publish (amq_console, content);
+            delivered = TRUE;
+        }
+        else
+            icl_console_print ("E: unknown system routing key '%s' rejected", routing_key);
+    }
+    else
+        icl_console_print ("E: system exchange only accepts BASIC contents");
 </method>
 
 </class>
