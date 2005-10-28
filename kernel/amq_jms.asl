@@ -308,6 +308,7 @@
   </doc>
   <chassis name = "client" implement = "MUST" />
 
+  <field name = "consumer tag" domain = "consumer tag" />
   <field name = "delivery tag" domain = "delivery tag" />
   <field name = "redelivered" domain = "redelivered" />
 
@@ -325,17 +326,6 @@
       Specifies the routing key name specified when the message was
       published.
     </doc>     
-  </field>
-
-  <field name = "scope" domain = "queue scope" />
-    
-  <field name = "queue" domain = "queue name">
-    <doc>
-      Specifies the name of the queue that the message came from. Note
-      that a single channel can start many consumers on different
-      queues.
-    </doc>
-    <assert check = "notnull" />
   </field>
 </method>
 

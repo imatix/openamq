@@ -121,12 +121,11 @@ runs lock-free as a child of the asynchronous queue class.
             consumer->channel->connection->thread,
             (dbyte) consumer->channel->key,
             content,
+            consumer->tag,             
             0,                          //  Delivery tag
             FALSE,                      //  Redelivered
             content->exchange,
-            content->routing_key,
-            self->queue->scope,
-            self->queue->name) == 0) {
+            content->routing_key) == 0) {
 
             if (amq_server_config_trace_queue (amq_server_config))
                 icl_console_print ("Q: deliver  queue=%s message=%s",
@@ -137,7 +136,7 @@ runs lock-free as a child of the asynchronous queue class.
             amq_consumer_by_queue_queue (self->active_consumers, consumer);
             amq_consumer_unlink (&consumer);
             amq_content_jms_destroy (&content);
-            amq_monitor_messages++;
+            amq_broker_messages++;
             rc++;
         }
         else
@@ -170,7 +169,7 @@ runs lock-free as a child of the asynchronous queue class.
                 content->routing_key,
                 ipr_looseref_list_count (self->content_list));
             amq_content_jms_destroy (&content);
-            amq_monitor_messages++;
+            amq_broker_messages++;
         }
         else
             amq_server_agent_jms_browse_empty (
