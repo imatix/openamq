@@ -1,0 +1,23 @@
+<?xml?>
+<pal
+    name = "test_console"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    <!-- Start a server for us -->
+    <server name = "amq_server" />
+    <session scope = "test">
+        <queue_declare />
+        <queue_bind queue = "$queue" exchange = "amq.direct" routing_key = "$queue" />
+        <basic_consume queue = "$queue" auto_ack = "1" />
+        <repeat>
+            <basic_content exec = "perl -S test_console.pl" reply_to = "$queue" />
+            <if name = "body_size" value = "0">
+                <break/>
+            </if>
+            <basic_publish exchange = "amq.system" routing_key = "amq.console" />
+            <wait/>
+        </repeat>
+    </session>
+</pal>
+
