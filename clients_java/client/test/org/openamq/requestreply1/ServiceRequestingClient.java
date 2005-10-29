@@ -129,7 +129,7 @@ public class ServiceRequestingClient
             producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
 
             AMQQueue tempDestination = new AMQQueue("TempResponse" +
-                                                    Long.toString(System.currentTimeMillis()));
+                                                    Long.toString(System.currentTimeMillis()), true);
             MessageConsumer messageConsumer = (MessageConsumer) _session.createConsumer(tempDestination, 100, true, true, true, null);
 
             final long startTime = System.currentTimeMillis();
