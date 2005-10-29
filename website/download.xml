@@ -14,20 +14,20 @@ the terms described here.
 
 Download OpenAMQ
 ****************
-The current version is 0.8d6.  This is a beta release of the server
+The current version is 0.9b11.  This is a beta release of the server
 and clients.
 
 Source Packages
 ===============
 
- - [http://www.openamq.org/pub/OpenAMQ-0.8d6.tar.gz]
+ - [http://www.openamq.org/pub/OpenAMQ-0.9b11.tar.gz]
    POSIX (Linux, Solaris, Unix) source package
- - [http://www.openamq.org/pub/OpenAMQ-0.8d6.zip]
+ - [http://www.openamq.org/pub/OpenAMQ-0.9b11.zip]
    Win32 source package
 
-Unpack into a working directory and run configure and then
-make.  The source package includes recent validated versions
-of the Apache Portable Runtime (APR) and the Berkeley Database (BDB) as
+Unpack into a working directory and run 'configure' and then 'make', or 
+alternatively run 'boom all'.  The source package includes recent validated 
+versions of the Apache Portable Runtime (APR) and other external packages
 used by OpenAMQ.
 
 More information: [/build.html:Building and installing OpenAMQ].

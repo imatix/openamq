@@ -7,7 +7,7 @@
     script = "amq_pal_gen"
     target = "stdc"
     >
-    <repeat times = "10000" counter = "id">
+    <repeat times = "100000" counter = "id">
       <session>
       </session>
     </repeat>
