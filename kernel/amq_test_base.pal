@@ -2,7 +2,7 @@
 
 <!-- All standard macros should be defined in this file -->
 
-<server name = "amq_server" where = "." />
+<server name = "amq_server" where = "." stdout = "amq_server.log" stderr = "amq_server.log" />
 <session>
     <echo>Connected to $server_product/$server_version - $server_platform</echo>
     <echo>Running $script...</echo>

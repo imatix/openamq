@@ -4,8 +4,12 @@
     script = "amq_pal_gen"
     target = "stdc"
     >
-    <!-- Start a server for us -->
-    <server name = "amq_server" />
+    The test console works as follows:
+    - get schema
+    
+
+
+    <include filename = "amq_test_base.pal" />
     <session scope = "test">
         <queue_declare />
         <queue_bind queue = "$queue" exchange = "amq.direct" routing_key = "$queue" />

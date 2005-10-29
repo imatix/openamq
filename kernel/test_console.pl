@@ -1,6 +1,11 @@
+#! /usr/bin/perl
+#
 #   Test console
 while (<>) {
-    print $_;
+    printf STDERR $_;
 }
+print << ".";
+HELLO
+.
 exit (0);
 
