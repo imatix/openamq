@@ -146,10 +146,7 @@ public class AMQProtocolSession
         msg.contentHeader = contentHeader;
         if (contentHeader.bodySize == 0)
         {
-            // TODO: move this to a function, I copied it from the next function
-            AMQSession session = (AMQSession) _channelId2SessionMap.get(new Integer(channelId));
-            session.messageReceived(msg);
-            _channelId2UnprocessedMsgMap.remove(new Integer(channelId));
+            deliverMessageToAMQSession(channelId, msg);
         }        
     }
 
@@ -176,10 +173,21 @@ public class AMQProtocolSession
         }
         if (msg.isAllBodyDataReceived())
         {
-            AMQSession session = (AMQSession) _channelId2SessionMap.get(new Integer(channelId));
-            session.messageReceived(msg);
-            _channelId2UnprocessedMsgMap.remove(new Integer(channelId));
+            deliverMessageToAMQSession(channelId,  msg);
         }
+    }
+
+    /**
+     * Deliver a message to the appropriate session, removing the unprocessed message
+     * from our map
+     * @param channelId the channel id the message should be delivered to
+     * @param msg the message
+     */
+    private void deliverMessageToAMQSession(int channelId, UnprocessedMessage msg)
+    {
+        AMQSession session = (AMQSession) _channelId2SessionMap.get(new Integer(channelId));
+        session.messageReceived(msg);
+        _channelId2UnprocessedMsgMap.remove(new Integer(channelId));
     }
 
     /**

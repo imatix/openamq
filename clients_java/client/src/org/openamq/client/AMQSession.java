@@ -83,9 +83,6 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         {
             if (message.deliverBody != null)
             {
-
-                final String key = message.deliverBody.routingKey != null ? message.deliverBody.routingKey : "";
-
                 final AMQMessageConsumer consumer = (AMQMessageConsumer) _consumers.get(new Integer(message.deliverBody.consumerTag));
 
                 if (consumer == null)
@@ -464,7 +461,8 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
 
                 AMQFrame queueDeclare = QueueDeclareBody.createAMQFrame(_channelId, 0, amqd.getQueueScope(),
                                                                         amqd.getQueueName(),
-                                                                        false, false, false ,false);
+                                                                        false, false, amqd.isTemporary(),
+                                                                        amqd.isTemporary());
 
                 AMQMethodEvent evt = protocolHandler.writeCommandFrameAndWaitForReply(queueDeclare,
                                              new SpecificMethodFrameListener(_channelId, QueueDeclareOkBody.class));
@@ -493,13 +491,13 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                                                                                                  JmsConsumeOkBody.class));
                 int consumerTag = ((JmsConsumeOkBody) consumeOkEvent.getMethod()).consumerTag;
                 consumer.setConsumerTag(consumerTag);
-                registerConsumerQueue(new Integer(consumerTag), consumer);
+                registerConsumerQueue(consumerTag, consumer);
               }
               catch (AMQException e)
-            {
-                deregisterConsumerQueue(amqd.getDestinationName());
-                throw new JMSException("Error creating consumer: " + e);
-            }
+              {
+                  deregisterConsumerQueue(amqd.getDestinationName());
+                  throw new JMSException("Error creating consumer: " + e);
+              }
 
             return consumer;
         }

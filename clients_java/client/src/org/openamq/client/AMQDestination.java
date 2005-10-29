@@ -8,9 +8,9 @@ public abstract class AMQDestination implements Destination
 
     public final static String TOPIC_EXCHANGE_CLASS = "topic";
 
-    public final static String QUEUE_EXCHANGE_NAME = "queue";
+    public final static String QUEUE_EXCHANGE_NAME = "amq.direct";
 
-    public final static String QUEUE_EXCHANGE_CLASS = "amq.direct";
+    public final static String QUEUE_EXCHANGE_CLASS = "direct";
 
     public final static String HEADERS_EXCHANGE_NAME = "amq.match";
 
