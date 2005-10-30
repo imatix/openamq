@@ -208,17 +208,17 @@
             echo Placeholder; not built due to missing JDK/Ant. > dist\\openamqj-common.jar
             echo Placeholder; not built due to missing JDK/Ant. > dist\\openamqj-jms.jar
         ) else (
-            ant -q -DIBASE=%IBASE% jar
+            call ant -q -DIBASE=%IBASE% jar
         )
         </execute>
     </build>
     <clean>
         <execute>
-        ant -version >nul 2>nul
+        call ant -version >nul 2>nul
         if errorlevel 1 (
             echo Warning: Cannot find Apache Ant, not cleaning JMS/AMQ.
         ) else (
-            ant -q -DIBASE=%IBASE% clean
+            call ant -q -DIBASE=%IBASE% clean
         )
         </execute>
     </clean>
