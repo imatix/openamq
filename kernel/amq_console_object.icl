@@ -16,17 +16,13 @@ an object work with the AMQ Console (amq.console system exchange).
 .if count (global.top.data) = 0
 .   abort "E: no CML data definitions for console object"
 .endif
-.for global.top.data
-.   for class
-.       global.top.console_class  = name
-.       if defined (parent)
-.           global.top.console_parent = "$(parent)->object_id"
-.       else
-.           global.top.console_parent = "0"
-.       endif
+.for global.top->data.class
+.   global.top.console_class = name
+.   if defined (parent)
+.       global.top.console_parent = "$(parent)->object_id"
 .   else
-.       abort "E: invalid CML definition for $(class.name)"
-.   endfor
+.       global.top.console_parent = "0"
+.   endif
 .else
 .   abort "E: missing CML definition for $(class.name)"
 .endfor
@@ -42,15 +38,15 @@ an object work with the AMQ Console (amq.console system exchange).
 </context>
 
 <private name = "header">
-static amq_classdesc_t
-    s_classdesc;                        //  Class descriptor
+static amq_console_class_t
+    *s_class;                           //  Class descriptor
 </private>
 
 <method name = "new">
     <header>
     self->console   = amq_console_link (amq_console);
     self->object_id = icl_atomic_inc32 ((volatile qbyte *) &amq_object_id);
-    amq_console_register (self->console, &s_classdesc, $(console_parent), self->object_id);
+    amq_console_register (self->console, self->object_id, self, s_class, $(console_parent));
     </header>
 </method>
 
@@ -59,8 +55,50 @@ static amq_classdesc_t
     amq_console_unlink (&self->console);
 </method>
 
+<method name = "inspect" async = "1" return = "rc">
+    <argument name = "self_v"  type = "void *">Object cast as a void *</argument>
+    <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
+    <argument name = "detail"  type = "Bool"  >Return child object list?</argument>
+    <declare name = "rc" type = "int" default = "0" />
+    <local>
+    $(selftype)
+        *self = self_v;
+    </local>
+    <header>
+    assert (self);
+    </header>
+    <possess>
+    amq_content_basic_possess (request);
+    </possess>
+    <release>
+    amq_content_basic_destroy (&request);
+    </release>
+    <action>
+    asl_field_list_t
+        *fields;
+    icl_shortstr_t
+        field_value;
+        
+    fields = asl_field_list_new (NULL);
+.for global.top->data->class.field
+.   for get
+    $(string.trim (get.))
+    asl_field_new_string (fields, "$(field.name)", field_value);
+.   endfor
+.endfor
+    amq_console_inspect_ok (amq_console, request, self->object_id, 123, fields);
+    asl_field_list_destroy (&fields);
+    </action>
+</method>
+
 <method name = "initialise">
-    s_classdesc.name = "$(console_class)";
+    s_class = amq_console_class_new ();
+    s_class->name    = "$(console_class)";
+    s_class->inspect = $(selfname)_inspect;
+</method>
+
+<method name = "terminate">
+    amq_console_class_destroy (&s_class);
 </method>
 
 </class>

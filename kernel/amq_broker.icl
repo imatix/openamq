@@ -17,6 +17,11 @@ object holding server-wide values.
 <!-- Console definitions for this object -->
 <data name = "cml">
     <class name = "broker">
+        <field name = "started" label = "Date, time broker started">
+          <get>
+            apr_rfc822_date (field_value, self->started);
+          </get>
+        </field>
         <class name = "vhost" />
     </class>
 </data>
@@ -39,13 +44,15 @@ qbyte
     amq_broker_messages = 0;
 </private>
 
-
 <context>
+    apr_time_t
+        started;                        //  Time started
 </context>
 
 <method name = "new">
     //  We use a single global vhost for now
     //  TODO: load list of vhosts from config file
+    self->started = apr_time_now ();
     amq_server_agent_init ();
     amq_vhost = amq_vhost_new (self, "/");
     amq_server_callback_monitor (amq_broker_report);
@@ -106,26 +113,6 @@ qbyte
     }
 </method>
 
-<method name = "selftest">
-    <!-- can't run this because server does not terminate
-    amq_broker_t
-        *broker;                        //  Test broker instance
-    //
-    smt_os_thread_initialise ();
-    amq_console = amq_console_new ();
-    broker = amq_broker_new ();
-
-    amq_broker_report (10);
-    amq_broker_messages += 100;
-    amq_broker_report (10);
-    amq_broker_messages += 200;
-    amq_broker_report (10);
-    amq_broker_messages += 150;
-    amq_broker_report (10);
-
-    amq_broker_destroy (&broker);
-    amq_console_destroy (&amq_console);
-    -->
-</method>
+<method name = "selftest" />
 
 </class>

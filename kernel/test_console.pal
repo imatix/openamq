@@ -7,20 +7,31 @@
     The test console works as follows:
     - get schema
     
-
-
     <include filename = "amq_test_base.pal" />
     <session scope = "test">
         <queue_declare />
         <queue_bind queue = "$queue" exchange = "amq.direct" routing_key = "$queue" />
         <basic_consume queue = "$queue" auto_ack = "1" />
-        <repeat>
-            <basic_content exec = "perl -S test_console.pl" reply_to = "$queue" />
+        <repeat counter = "count" times = "5">
+            <echo>BODY SIZE: $body_size</echo>
+            <basic_content
+                exec = "perl -S test_console.pl"
+                reply_to = "$queue"
+                message_id = "message-$count"
+            />
             <if name = "body_size" value = "0">
+                <echo>No next stage, ending</echo>
                 <break/>
             </if>
             <basic_publish exchange = "amq.system" routing_key = "amq.console" />
             <wait/>
+            <basic_arrived>
+                <echo>Got response from console - $message_id</echo>
+            </basic_arrived>
+            <empty>
+                <echo>No response arrived from console, aborting</echo>
+                <break/>
+            </empty>
         </repeat>
     </session>
 </pal>

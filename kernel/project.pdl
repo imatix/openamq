@@ -71,6 +71,7 @@
                                      generated = "1"             >Server console agent</file>
 <file name = "amq_console_object.icl"
                                      class = "private resource"  >Console object abstract class</file>
+<file name = "amq_console_class.icl" class = "icl private class" >Console class definition</file>
 <file name = "amq_vhost.icl"         class = "icl private class" >Server vhost class</file>
 <file name = "amq_vhost_agent.smt"   class = "fat module"
                                      generated = "1"             >Server vhost agent</file>
