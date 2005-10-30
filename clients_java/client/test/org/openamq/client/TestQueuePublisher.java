@@ -37,6 +37,8 @@ public class TestQueuePublisher
             MessageProducer producer = session.createProducer(destination);
             TextMessage msg = session.createTextMessage("mahnah mahnah");
             producer.send(msg);
+            _logger.info("Closing producer...");
+            producer.close();
             _logger.info("Closing session...");
             session.close();
             _logger.info("Closing connection...");

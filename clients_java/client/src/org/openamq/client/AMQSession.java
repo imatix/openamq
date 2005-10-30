@@ -327,6 +327,16 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
     }
 
     /**
+     * Called by the containing AMQException to propagate a connection exception
+     * to the session. We ensure that any necessary propagation takes place.
+     * @param cause the exception
+     */
+    void connectionExceptionReceived(Throwable cause)
+    {
+         // TODO: implement this method
+    }
+
+    /**
      * Called when the server initiates the closure of the session
      * unilaterally.
      * @param code the code (reason code) given by the server
@@ -336,6 +346,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
     public void closed(int code, String text)
     {
         _logger.error("Session closed by server: (" + code + ") Message; " + text);
+        // TODO: propagate
     }
 
     public void recover() throws JMSException
@@ -389,18 +400,6 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         }
     }
 
-    /*private Handle.Open createHandleOpenFrame(boolean producer, int confirmTag)
-    {
-        int handleId = _idFactory.getHandleId();
-        Handle.Open frame = new Handle.Open();
-        frame.channelId = _channelId;
-        frame.handleId = handleId;
-        frame.producer = producer;
-        frame.consumer = !producer;
-        frame.confirmTag = confirmTag;
-        return frame;
-    } */
-
     public MessageConsumer createConsumer(Destination destination) throws JMSException
     {
         return createConsumer(destination, _defaultPrefetch, false, false, false, null);
@@ -443,10 +442,11 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
 
             AMQDestination amqd = (AMQDestination)destination;
 
-            AMQMessageConsumer consumer = new AMQMessageConsumer(amqd, selector, noLocal,
+            AMQMessageConsumer consumer = new AMQMessageConsumer(_channelId, amqd, selector, noLocal,
                                                                  _messageFactoryRegistry, this,
                                                                  _connection.getProtocolHandler());
 
+            int consumerTag = -1;
             try
             {
                 final AMQProtocolHandler protocolHandler = _connection.getProtocolHandler();
@@ -489,13 +489,16 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                 AMQMethodEvent consumeOkEvent = protocolHandler.writeCommandFrameAndWaitForReply(jmsConsume,
                                                                  new SpecificMethodFrameListener(_channelId,
                                                                                                  JmsConsumeOkBody.class));
-                int consumerTag = ((JmsConsumeOkBody) consumeOkEvent.getMethod()).consumerTag;
+                consumerTag = ((JmsConsumeOkBody) consumeOkEvent.getMethod()).consumerTag;
                 consumer.setConsumerTag(consumerTag);
                 registerConsumerQueue(consumerTag, consumer);
               }
               catch (AMQException e)
               {
-                  deregisterConsumerQueue(amqd.getDestinationName());
+                  if (consumerTag >= 0)
+                  {
+                    deregisterConsumerQueue(consumerTag);
+                  }
                   throw new JMSException("Error creating consumer: " + e);
               }
 
@@ -676,9 +679,14 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         //_connection.getProtocolHandler().addSessionByQueue(queueName, this);
     }
 
-    void deregisterConsumerQueue(String queueName)
+    /**
+     * Called by the MessageConsumer when closing, to deregister the consumer from the
+     * map from consumerTag to consumer instance.
+     * @param consumerTag the consumer tag, that was broker-generated
+     */
+    void deregisterConsumerQueue(int consumerTag)
     {
         //_connection.getProtocolHandler().removeSessionByQueue(queueName);
-        _consumers.remove(queueName);
+        _consumers.remove(new Integer(consumerTag));
     }
 }

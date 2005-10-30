@@ -57,7 +57,11 @@ public class AMQProtocolHandler implements ProtocolHandler
 
     public void sessionClosed(ProtocolSession session) throws Exception
     {
-        _connection.exceptionReceived(new AMQDisconnectedException("Server closed connection"));
+        // we only raise an exception if the close was not initiated by the client
+        if (!_connection.isClosed())
+        {
+            _connection.exceptionReceived(new AMQDisconnectedException("Server closed connection"));
+        }
 
         _logger.info("Protocol Session closed");
     }
@@ -216,18 +220,27 @@ public class AMQProtocolHandler implements ProtocolHandler
         _stateManager.changeState(AMQState.CONNECTION_CLOSING);
 
         // TODO: Polish
-        final AMQFrame frame = ConnectionCloseBody.createAMQFrame(0, AMQConstant.REPLY_SUCCESS.getCode(), "JMS client is closing the connection.", 0, 0);
+        final AMQFrame frame = ConnectionCloseBody.createAMQFrame(0, AMQConstant.REPLY_SUCCESS.getCode(),
+                                                                  "JMS client is closing the connection.", 0, 0);
         writeFrame(frame);
-        _logger.debug("Blocking for connection close frame");
+        _logger.debug("Blocking for connection close ok frame");
         listener.blockForFrame();
         _protocolSession.closeProtocolSession();
     }
 
-    public long getReadBytes() {
+    /**
+     * @return the number of bytes read from this protocol session
+     */
+    public long getReadBytes()
+    {
         return _protocolSession.getProtocolSession().getReadBytes();
     }
 
-    public long getWrittenBytes() {
+    /**
+     * @return the number of bytes written to this protocol session
+     */
+    public long getWrittenBytes()
+    {
         return _protocolSession.getProtocolSession().getWrittenBytes();
     }
 }

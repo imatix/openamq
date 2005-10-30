@@ -7,8 +7,11 @@ import org.openamq.client.message.AbstractMessage;
 import org.openamq.client.message.MessageFactoryRegistry;
 import org.openamq.client.message.UnprocessedMessage;
 import org.openamq.client.protocol.AMQProtocolHandler;
+import org.openamq.client.state.listener.SpecificMethodFrameListener;
 import org.openamq.jms.MessageConsumer;
 import org.openamq.jms.Session;
+import org.openamq.framing.*;
+import org.openamq.AMQException;
 
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -29,7 +32,16 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
 
     private MessageListener _messageListener;
 
+    /**
+     * The consumer tag allows us to close the consumer by sending a jmsCancel method to the
+     * broker
+     */
     private int _consumerTag;
+
+    /**
+     * We need to know the channel id when constructing frames
+     */
+    private int _channelId;
 
     /**
      * Protects the setting of a messageListener
@@ -54,9 +66,10 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
 
     private AMQProtocolHandler _protocolHandler;
 
-    AMQMessageConsumer(AMQDestination destination, String messageSelector, boolean noLocal,
+    AMQMessageConsumer(int channelId, AMQDestination destination, String messageSelector, boolean noLocal,
                        MessageFactoryRegistry messageFactory, AMQSession session, AMQProtocolHandler protocolHandler)
     {
+        _channelId = channelId;
         _messageSelector = messageSelector;
         _noLocal = noLocal;
         _destination = destination;
@@ -177,18 +190,21 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
             _closed.set(true);
         }
 
-        _session.deregisterConsumerQueue(_destination.getDestinationName());
-        /*Handle.Close frame = new Handle.Close();
-        frame.handleId = _handleId;*/
-//        try
-//        {
-//            _protocolHandler.writeCommandFrameAndWaitForReply(frame,
-//                                                              new HandleCloseListener(_handleId));
-//        }
-//        catch (AMQException e)
-//        {
-//            throw new JMSException("Error closing consumer: " + e);
-//        }
+        final AMQFrame jmsCancel = JmsCancelBody.createAMQFrame(_channelId, _consumerTag);
+
+        try
+        {
+            _protocolHandler.writeCommandFrameAndWaitForReply(jmsCancel,
+                                                              new SpecificMethodFrameListener(_channelId,
+                                                                                              JmsCancelOkBody.class));
+        }
+        catch (AMQException e)
+        {
+            _logger.error("Error closing consumer: " + e, e);
+            throw new JMSException("Error closing consumer: " + e);
+        }
+
+        _session.deregisterConsumerQueue(_consumerTag);
     }
 
     public void notifyMessage(UnprocessedMessage messageFrame, int acknowledgeMode, int channelId)
@@ -200,9 +216,9 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
         try
         {
             AbstractMessage jmsMessage = _messageFactory.createMessage(messageFrame.deliverBody.deliveryTag,
-                    messageFrame.deliverBody.redelivered,
-                    messageFrame.contentHeader,
-                    messageFrame.bodies);
+                                                                       messageFrame.deliverBody.redelivered,
+                                                                       messageFrame.contentHeader,
+                                                                       messageFrame.bodies);
 
             if (acknowledgeMode == Session.PRE_ACKNOWLEDGE)
             {

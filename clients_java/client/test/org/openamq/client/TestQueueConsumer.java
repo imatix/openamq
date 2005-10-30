@@ -71,6 +71,11 @@ public class TestQueueConsumer
             _logger.info("Message received: " + m);
             m = consumer.receive();
             m.acknowledge();
+            _logger.info("Closing consumer");
+            consumer.close();
+            _logger.info("Closing session");
+            session.close();
+            _logger.info("Closing connection");
             con.close();
             //_logger.info("Waiting...");
         }

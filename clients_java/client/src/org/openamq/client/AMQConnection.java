@@ -347,6 +347,14 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
         }
     }
 
+    /**
+     * Invoked by the AMQProtocolSession when a protocol session exception has occurred.
+     * This method sends the exception to a JMS exception listener, if configured, and
+     * propagates the exception to sessions, which in turn will propagate to consumers.
+     * This allows synchronous consumers to have exceptions thrown to them.
+     *
+     * @param cause the exception
+     */
     public void exceptionReceived(Throwable cause)
     {
         if (_exceptionListener != null)
@@ -360,9 +368,18 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
             {
                 je = new JMSException("Exception thrown against " + toString() + ": " + cause);
                 if (cause instanceof Exception)
+                {
                     je.setLinkedException((Exception)cause);
+                }
             }
             _exceptionListener.onException(je);
+        }
+        // we also must propagate exceptions to any consumers
+        final Iterator it = _sessions.values().iterator();
+        while (it.hasNext())
+        {
+            final AMQSession session = (AMQSession) it.next();
+            session.connectionExceptionReceived(Throwable cause);
         }
     }
 
