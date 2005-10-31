@@ -27,7 +27,14 @@ This class defines a class descriptor.
         amq_content_basic_t
             *request                    //  Original request
     );
-    //  modify method
+    int (*modify) (
+        void
+            *self,                      //  Object reference
+        amq_content_basic_t
+            *request,                   //  Original request
+        asl_field_list_t
+            *fields                     //  Fields to modify
+    );
     //  method method
 </context>
 

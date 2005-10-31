@@ -198,14 +198,17 @@ $(selftype)
     </doc>
     <argument name = "request"   type = "amq_content_basic_t *">Original request</argument>
     <argument name = "object id" type = "qbyte">Object id</argument>
-    <argument name = "fields"    type = "asl_field_list_t *">Object properties</argument>
+    <argument name = "fields"    type = "asl_field_list_t *">Object fields</argument>
+    <argument name = "objects"   type = "asl_field_list_t *">Object children</argument>
     <possess>
     amq_content_basic_possess (request);
     asl_field_list_possess (fields);
+    asl_field_list_possess (objects);
     </possess>
     <release>
     amq_content_basic_destroy (&request);
     asl_field_list_destroy (&fields);
+    asl_field_list_destroy (&objects);
     </release>
     <action>
     asl_field_t
@@ -228,23 +231,51 @@ $(selftype)
 
     field = asl_field_list_first (fields);
     while (field) {
-        //  Fields are encoded Fname, classes as Cname
-        if (*field->name == 'F') {
-            sub_item = ipr_xml_new (cur_item, "field", NULL);
-            ipr_xml_attr_set (sub_item, "name", field->name + 1);
-            val_item = ipr_xml_new (sub_item, NULL, asl_field_string (field));
-            ipr_xml_unlink (&val_item);
-            ipr_xml_unlink (&sub_item);
-        }
-        else
-        if (*field->name == 'C') {
-            sub_item = ipr_xml_new (cur_item, "object", NULL);
-            ipr_xml_attr_set (sub_item, "class", field->name + 1);
-            ipr_xml_attr_set (sub_item, "id", asl_field_string (field));
-            ipr_xml_unlink (&sub_item);
-        }
+        sub_item = ipr_xml_new (cur_item, "field", NULL);
+        ipr_xml_attr_set (sub_item, "name", field->name);
+        val_item = ipr_xml_new (sub_item, NULL, asl_field_string (field));
+        ipr_xml_unlink (&val_item);
+        ipr_xml_unlink (&sub_item);
         field = asl_field_list_next (&field);
     }
+    field = asl_field_list_first (objects);
+    while (field) {
+        sub_item = ipr_xml_new (cur_item, "object", NULL);
+        ipr_xml_attr_set (sub_item, "class", field->name);
+        ipr_xml_attr_set (sub_item, "id", asl_field_string (field));
+        ipr_xml_unlink (&sub_item);
+        field = asl_field_list_next (&field);
+    }
+    s_reply_xml (request, cml_item);
+    ipr_xml_unlink  (&cur_item);
+    ipr_xml_destroy (&cml_item);
+    </action>
+</method>
+
+<method name = "modify ok" template = "async function" async = "1">
+    <doc>
+    Accepts a modify response from an object.
+    </doc>
+    <argument name = "request"   type = "amq_content_basic_t *">Original request</argument>
+    <argument name = "object id" type = "qbyte">Object id</argument>
+    <possess>
+    amq_content_basic_possess (request);
+    </possess>
+    <release>
+    amq_content_basic_destroy (&request);
+    </release>
+    <action>
+    ipr_xml_t
+        *cml_item,                      //  CML item
+        *cur_item;                      //  Top level object
+    icl_shortstr_t
+        strvalue;                       //  Stringified numeric value
+    
+    cml_item = ipr_xml_new (NULL, "cml", NULL);
+    ipr_xml_attr_set (cml_item, "version", "1.0");
+    cur_item = ipr_xml_new (cml_item, "modify", NULL);
+    ipr_xml_attr_set (cur_item, "object", icl_shortstr_fmt (strvalue, "%ld", object_id));
+    ipr_xml_attr_set (cur_item, "status", "ok");
     s_reply_xml (request, cml_item);
     ipr_xml_unlink  (&cur_item);
     ipr_xml_destroy (&cml_item);

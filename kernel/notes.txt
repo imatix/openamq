@@ -1,57 +1,14 @@
 
+amq console
+    broker
+       \
+        connection (ipaddress)
+            \
+           consumer (->queue)
 
-Object Registry
----------------
+1. rename existing amq_server_connection
+    - make it an async object?
 
-The system exchange maintains a registry of all active operable objects.
-This is a tree structure, held in memory, with each node consisting of:
-
- - A reference to the object.
- - A pointer to the parent node.
- - The object's ID value.
- - A linked list of child objects (mixed and unordered).
- - A pointer to a class descriptor.
-
-The class descriptor defines a single object type, e.g. "queue", and has
-these properties:
-
- - Short name of class, e.g. "queue".
- - Callback address of 'meta' method.
- - Callback address of 'inspect' method.
- - Callback address of 'modify' method.
-
-Class descriptors are created automatically when a specific class is
-initialised - i.e. used for the first time. They never change during the
-lifetime of the server.
-
-The registry can do a lookup from object ID to registry node, so object
-ID forms a primary key for accessing objects in the registry.
-
-The 'Meta' Method
------------------
-
-The system exchange decodes the method, looks up the object class,
-and sends this class the meta method.
-
-The 'Inspect' Method
---------------------
-
-
-When the system exchange receives an inspect method, it decodes the
-XML to give the object to inspect. It sends a method to this object and
-waits for a reply. It formats a reply XML sends the reply back to the
-client (using the mechanism explained previously).
-
-For simplicity, we do all XML encoding and decoding in the system
-exchange only.  Data is passed between the system exchange and objects
-in the form of field tables (the asl_field_list class).
-
-The 'Modify' Method
--------------------
-
-A modify method can apply changes to several objects. The system
-exchange decodes the XML, and sends a modify method to each affected
-object. It constructs a reply and sends this back to the client.
 
 The 'Watch' Method
 ------------------
@@ -181,46 +138,13 @@ consume from url
 
 ---- TEST HARNESS
 
-    - generate xnf from protocol
-        - hide internal commands
-        - add control commands
-    - virtual machine:
-        - control commands
-        - protocol methods
-        - wait on synchronous methods
-        - deliver content and bounces
-
-
-    demo.asl
-        -> demo_cl.xnf
-        
-
     - proxy
         - asl agent
         - listens on specified port
         - can be disabled - port = 0
         - reconnects to main server port
         - logs traffic
-    - xml language
-        - connection, session control
-        - class.method (args)
-        - client instance control
-        - loops and counters
-        - grammar, part of asl...
-            - or separate scripting language?
-            - will need access to asl methods & classes
 
-
-    - options
-        - command-line
-        - explanation
-        - type (bool, string, int)
-    - inheritance
-        - overall wrappers
-        - add own stuff
-    - skeleton has own options
-        - animate, etc.
-    
     - standard ASL component
     - built-in to amq_server
     - runs on separate port
@@ -236,26 +160,10 @@ consume from url
             - expect Y bytes
             - etc.
     - tool to generate test clients
-        - standard set of options for all test programs
-        - define methods wanted as XML program
-            - methods plus arguments
-        - repetitions as loops
-        - success/failure for each method?
         - documentation at start, what is the test case?
         - ability to stop/start child processes
             - monitor crashes
             - exit status
-        - need server control facilities
-            - STOP command
-            - RESTART command
-            - send to $system exchange...
-            - server command line option to enable this...
-        - wait
-        - random
-        ... fully abstract, no C code!
-        ... generate test sets in Perl, C, etc.
-        ... forms part of formal protocol specifications
-    - part of asl...
 
 
 
@@ -266,22 +174,6 @@ consume from url
         - not copy, that would be done by binding to exchange
         - consume on queue X, with params...
             
-    - single bounce
-        - deliver option: don't care, at least one, all
-        - bounce message: include name of failed queue
-        - queue options for no consumers
-            - bounce, discard, hold, 
-            - overrides delivery option
-        -> part of queue template?
-        -> queue creation option?
-        -> template = another queue?
-
-        ... all attributes required for interoperability must be exposed
-            in protocol so that they can be implemented in a standard way.
-
-        ... other attributes required for tuning and/or administration can
-            be hard-coded, set via config files, or via admin interface.
-
 
     - durable definitions
         - exchanges, queues...

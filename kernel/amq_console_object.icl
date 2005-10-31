@@ -76,7 +76,8 @@ static amq_console_class_t
     </release>
     <action>
     asl_field_list_t
-        *fields;
+        *fields,                        //  Properties of object
+        *objects;                       //  Children of object
     icl_shortstr_t
         field_value;
 .for global.top->data->class.class
@@ -93,22 +94,65 @@ static amq_console_class_t
 .for global.top->data->class.field
 .   for get
     $(string.trim (.))
-    asl_field_new_string (fields, "F$(field.name)", field_value);
+    asl_field_new_string (fields, "$(field.name)", field_value);
 .   endfor
 .endfor
+    objects = asl_field_list_new (NULL);
 .for global.top->data->class.class where count (first)
 .   for first
     $(string.trim (.))
 .   endfor
     while (child_id) {
-        asl_field_new_integer (fields, "C$(class.name)", child_id);
+        asl_field_new_integer (objects, "$(class.name)", child_id);
 .   for next
         $(string.trim (.))
 .   endfor
     }
 .endfor
-    amq_console_inspect_ok (amq_console, request, self->object_id, fields);
+    amq_console_inspect_ok (amq_console, request, self->object_id, fields, objects);
     asl_field_list_destroy (&fields);
+    asl_field_list_destroy (&objects);
+    </action>
+</method>
+
+<method name = "modify" async = "1" return = "rc">
+    <argument name = "self_v"  type = "void *">Object cast as a void *</argument>
+    <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
+    <argument name = "fields"  type = "asl_field_list_t *">Fields to modify</argument>
+    <declare name = "rc" type = "int" default = "0" />
+    <local>
+    $(selftype)
+        *self = self_v;
+    </local>
+    <header>
+    assert (self);
+    </header>
+    <possess>
+    amq_content_basic_possess (request);
+    asl_field_list_possess (fields);
+    </possess>
+    <release>
+    amq_content_basic_destroy (&request);
+    asl_field_list_destroy (&fields);
+    </release>
+    <action>
+.for global.top->data->class.field where count (put)
+    asl_field_t
+        *field;
+    icl_shortstr_t
+        field_value;
+.   last
+.endfor
+.for global.top->data->class.field
+.   for put
+    field = asl_field_list_search (fields, "$(field.name)");
+    if (field) {
+        icl_shortstr_cpy (field_value, asl_field_string (field));
+        $(string.trim (.))
+    }
+.   endfor
+.endfor
+    amq_console_modify_ok (amq_console, request, self->object_id);
     </action>
 </method>
 
@@ -116,6 +160,7 @@ static amq_console_class_t
     s_class = amq_console_class_new ();
     s_class->name    = "$(console_class)";
     s_class->inspect = $(selfname)_inspect;
+    s_class->modify  = $(selfname)_modify;
 </method>
 
 <method name = "terminate">

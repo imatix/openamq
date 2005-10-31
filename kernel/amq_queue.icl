@@ -4,7 +4,6 @@
     comment   = "Polymorphic queue class"
     version   = "1.0"
     script    = "smt_object_gen"
-    copyright = "Copyright (c) 2004-2005 iMatix Corporation"
     target    = "smt"
     >
 <doc>
@@ -26,6 +25,10 @@ class.  This is a lock-free asynchronous class.
 <!-- Console definitions for this object -->
 <data name = "cml">
     <class name = "queue" parent = "vhost">
+        <field name = "enabled"     label = "Queue accepts new messages?">
+          <get>icl_shortstr_fmt (field_value, "%d", self->enabled);</get>
+          <put>self->enabled = atoi (field_value);</put>
+        </field>
         <field name = "scope"       label = "Queue scope">
           <get>icl_shortstr_cpy (field_value, self->scope);</get>
         </field>
@@ -64,6 +67,7 @@ class.  This is a lock-free asynchronous class.
     qbyte
         owner_id;                       //  Owner connection
     Bool
+        enabled,                        //  Queue is enabled?
         durable,                        //  Is queue durable?
         exclusive,                      //  Is queue exclusive?
         auto_delete,                    //  Auto-delete unused queue?
@@ -98,6 +102,7 @@ class.  This is a lock-free asynchronous class.
     //
     self->vhost       = vhost;
     self->owner_id    = owner_id;
+    self->enabled     = TRUE;
     self->durable     = durable;
     self->exclusive   = exclusive;
     self->auto_delete = auto_delete;
@@ -175,11 +180,15 @@ class.  This is a lock-free asynchronous class.
         amq_content_basic_destroy ((amq_content_basic_t **) &content);
     </release>
     <action>
-    if (class_id == AMQ_SERVER_JMS)
-        amq_queue_jms_publish (self->queue_jms, channel, content, immediate);
+    if (self->enabled) {
+        if (class_id == AMQ_SERVER_JMS)
+            amq_queue_jms_publish (self->queue_jms, channel, content, immediate);
+        else
+        if (class_id == AMQ_SERVER_BASIC)
+            amq_queue_basic_publish (self->queue_basic, channel, content, immediate);
+    }
     else
-    if (class_id == AMQ_SERVER_BASIC)
-        amq_queue_basic_publish (self->queue_basic, channel, content, immediate);
+        amq_server_channel_close (channel, ASL_NOT_ALLOWED, "Queue is disabled");
     </action>
 </method>
 
