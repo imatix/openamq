@@ -78,7 +78,7 @@ static amq_console_class_t
         *fields;
     icl_shortstr_t
         field_value;
-.if count (global.top->data->class.object)
+.if count (global.top->data->class.class)
     qbyte
         child_id;                       //  ID of child object
 .endif
