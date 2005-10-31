@@ -91,7 +91,7 @@ static amq_console_class_t
 .   endfor
 .endfor
     if (detail) {
-.for global.top->data->class.class
+.for global.top->data->class.class where count (first)
 .   for first
     $(string.trim (.))
 .   endfor
