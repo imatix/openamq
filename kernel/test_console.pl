@@ -28,7 +28,6 @@ else {
     print LOGFILE $stdin . "\n";
 
     if ($stdin =~ /<schema.*status = "ok"/) {
-        print LOGFILE "inspect=0\n";
         push (@object_ids, "0");
     }
     elsif ($stdin =~ /<inspect.*status\s*=\s*"ok"/) {

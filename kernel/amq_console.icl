@@ -213,7 +213,8 @@ $(selftype)
     ipr_xml_t
         *cml_item,                      //  CML item
         *cur_item,                      //  Top level object
-        *sub_item;                      //  Field or class within object
+        *sub_item,                      //  Field or class within object
+        *val_item;                      //  Value of field
     icl_shortstr_t
         strvalue;                       //  Stringified numeric value
     
@@ -229,8 +230,10 @@ $(selftype)
     while (field) {
         //  Fields are encoded Fname, classes as Cname
         if (*field->name == 'F') {
-            sub_item = ipr_xml_new (cur_item, "field", asl_field_string (field));
+            sub_item = ipr_xml_new (cur_item, "field", NULL);
             ipr_xml_attr_set (sub_item, "name", field->name + 1);
+            val_item = ipr_xml_new (sub_item, NULL, asl_field_string (field));
+            ipr_xml_unlink (&val_item);
             ipr_xml_unlink (&sub_item);
         }
         else
