@@ -24,7 +24,7 @@ object holding server-wide values.
         </field>
         <class name = "vhost">
           <first>
-            child_id = amq_vhost->id;
+            child_id = amq_vhost->object_id;
           </first>
           <next>
             child_id = 0;
