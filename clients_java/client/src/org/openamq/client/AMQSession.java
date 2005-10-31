@@ -3,6 +3,7 @@ package org.openamq.client;
 import edu.emory.mathcs.backport.java.util.concurrent.BlockingQueue;
 import edu.emory.mathcs.backport.java.util.concurrent.ConcurrentHashMap;
 import edu.emory.mathcs.backport.java.util.concurrent.LinkedBlockingQueue;
+import edu.emory.mathcs.backport.java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.log4j.Logger;
 import org.openamq.AMQException;
 import org.openamq.AMQUndeliveredException;
@@ -65,17 +66,19 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
     private long _nextProducerId;
 
     /**
-     * Responsible for decoding a message fragment and passing it to the appropriate message consumer
+     * Responsible for decoding a message fragment and passing it to the appropriate message consumer.
      */
-    private class Dispatcher implements Runnable
+    private class Dispatcher extends Thread
     {
+        private volatile AtomicBoolean _stopped = new AtomicBoolean(false);
+
         public void run()
         {
             UnprocessedMessage message;
 
             try
             {
-                while ((message = (UnprocessedMessage)_queue.take()) != null)
+                while (!_stopped.get() && (message = (UnprocessedMessage)_queue.take()) != null)
                 {
                     dispatchMessage(message);
                 }
@@ -85,7 +88,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                 ;
             }
 
-            _logger.info("Dispatcher thread terminating...");
+            _logger.info("Dispatcher thread terminating for channel " + _channelId);
         }
 
         private void dispatchMessage(UnprocessedMessage message)
@@ -124,6 +127,12 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                     _logger.error("Caught exception trying to raise undelivered message exception (dump follows) - ignoring...", e);
                 }
             }
+        }
+
+        public void stopDispatcher()
+        {
+            _stopped.set(true);
+            interrupt();
         }
     }
 
@@ -407,6 +416,10 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
      */
     private void closeConsumers(Throwable error) throws JMSException
     {
+        if (_dispatcher != null)
+        {
+            _dispatcher.stopDispatcher();
+        }
         // we need to clone the list of consumers since the close() method updates the _consumers collection
         // which would result in a concurrent modification exception
         final ArrayList clonedConsumers = new ArrayList(_consumers.values());
@@ -736,9 +749,8 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
     void start()
     {
         _dispatcher = new Dispatcher();
-        Thread t = new Thread(_dispatcher);
-        t.setDaemon(true);
-        t.start();
+        _dispatcher.setDaemon(true);
+        _dispatcher.start();
     }
 
     void registerConsumer(int consumerTag, MessageConsumer consumer)
