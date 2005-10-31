@@ -14,12 +14,49 @@ Defines a virtual host. This is a lock-free asynchronous class.
 <!-- any containers must come here -->
 <inherit class = "amq_console_object" />
 
-<!-- Console definitions for this object -->
 <data name = "cml">
     <class name = "vhost" parent = "broker">
-        <field name = "name" label = "Virtual host path" />
-        <class name = "exchange" />
-        <class name = "queue"    />
+        <field name = "name" label = "Virtual host path">
+          <get>icl_shortstr_cpy (field_value, self->name);</get>
+        </field>
+        <class name = "exchange">
+          <local>
+            amq_exchange_t
+                *exchange;
+          </local>
+          <first>
+            exchange = amq_exchange_list_first (self->exchange_list);
+            child_id = exchange->object_id;
+          </first>
+          <next>
+            exchange = amq_exchange_list_next (&exchange);
+            if (exchange)
+                child_id = exchange->object_id;
+            else
+                child_id = 0;
+          </next>
+        </class>
+        <class name = "queue">
+          <local>
+            amq_queue_t
+                *queue;
+          </local>
+          <first>
+            queue = amq_queue_list_first (self->queue_list);
+            child_id = queue->object_id;
+          </first>
+          <next>
+            queue = amq_queue_list_next (&queue);
+            if (queue)
+                child_id = queue->object_id;
+            else
+                child_id = 0;
+          </next>
+        </class>
+        <children>
+            children = amq_exchange_list_count (self->exchange_list)
+                     + amq_queue_list_count    (self->queue_list);
+        </children>
     </class>
 </data>
 
@@ -46,6 +83,8 @@ $(selftype)
         *config;                        //  Virtual host configuration
     amq_exchange_table_t
         *exchange_table;                //  Exchanges for vhost, hash table
+    amq_exchange_list_t
+        *exchange_list;                 //  Queues for dispatching
     amq_queue_table_t
         *queue_table;                   //  Queues for vhost, hash table
     amq_queue_list_t
@@ -66,6 +105,7 @@ $(selftype)
         NULL, NULL, amq_server_config_trace (amq_server_config));
 
     self->exchange_table = amq_exchange_table_new ();
+    self->exchange_list  = amq_exchange_list_new ();
     self->queue_table    = amq_queue_table_new ();
     self->queue_list     = amq_queue_list_new ();
 
@@ -83,6 +123,7 @@ $(selftype)
     icl_console_print ("I: stopping virtual host '%s'", self->name);
     amq_vhost_config_destroy   (&self->config);
     amq_exchange_table_destroy (&self->exchange_table);
+    amq_exchange_list_destroy  (&self->exchange_list);
     amq_queue_table_destroy    (&self->queue_table);
     amq_queue_list_destroy     (&self->queue_list);
     </action>

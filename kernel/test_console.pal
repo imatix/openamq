@@ -6,14 +6,15 @@
     >
     The test console works as follows:
     - get schema
+    - recursive descent through all objects
+    - see test_console.pl for details
     
     <include filename = "amq_test_base.pal" />
     <session scope = "test">
         <queue_declare />
         <queue_bind queue = "$queue" exchange = "amq.direct" routing_key = "$queue" />
         <basic_consume queue = "$queue" auto_ack = "1" />
-        <repeat counter = "count" times = "5">
-            <echo>BODY SIZE: $body_size</echo>
+        <repeat counter = "count">
             <basic_content
                 exec = "perl -S test_console.pl"
                 reply_to = "$queue"

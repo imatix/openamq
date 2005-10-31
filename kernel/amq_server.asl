@@ -136,7 +136,6 @@
                 NULL,
                 amq_queue_message_count (queue),
                 amq_queue_consumer_count (queue));
-            amq_queue_list_queue (amq_vhost->queue_list, queue);
         }
         amq_queue_unlink (&queue);
     }
@@ -177,6 +176,20 @@
         amq_server_agent_queue_delete_ok (
             connection->thread, (dbyte) channel->key, amq_queue_message_count (queue));
         amq_queue_destroy (&queue);
+    }
+    else
+        amq_server_channel_close (channel, ASL_NOT_FOUND, "No such queue defined");
+  </action>
+
+  <action name = "purge">
+    <local>
+    amq_queue_t
+        *queue;
+    </local>
+    queue = amq_queue_search (amq_vhost->queue_table, method->scope, method->queue);
+    if (queue) {
+        amq_queue_purge (queue, channel);
+        amq_queue_unlink (&queue);
     }
     else
         amq_server_channel_close (channel, ASL_NOT_FOUND, "No such queue defined");

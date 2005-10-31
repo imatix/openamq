@@ -2,16 +2,19 @@
 #
 #   Test console
 #
-#    - if stdin empty, reset
-#    - if stdin contains <schema>, inspect object 0, ask for details
-#        - recurse over all children
-#    - how do we maintain context?
-#    - simple: context file...
 
 #   Collect stdin into a single string
 while (<>) {
     $stdin .= $_;
 }
+
+#   Read inspect set from context file
+open (CONTEXT, "test_console.lst");
+while (<CONTEXT>) {
+    chop;
+    push (@object_ids, $_);
+}
+close (CONTEXT);
 
 if ($stdin eq "") {
     #   Reset console tests
@@ -22,11 +25,28 @@ if ($stdin eq "") {
 else {
     open (LOGFILE, ">>test_console.log");
     print LOGFILE "-------------------\n";
-    print LOGFILE $stdin;
+    print LOGFILE $stdin . "\n";
 
     if ($stdin =~ /<schema.*status = "ok"/) {
-        #   Ask to inspect broker
-        print "<cml><inspect object = \"0\" detail = \"1\"/></cml>";
+        print LOGFILE "inspect=0\n";
+        push (@object_ids, "0");
+    }
+    elsif ($stdin =~ /<inspect.*status\s*=\s*"ok"/) {
+        #   Ask to inspect all child objects
+        while ($stdin =~ /<object\s+class\s*=\s*"[^"]*"\s+id\s*=\s*"([^"]*)"/) {
+            push (@object_ids, $1);
+            $stdin = $';
+        }
+    }
+    if (@object_ids > 0) {
+        #   Get next object id to inspect
+        $next = $object_ids [0];
+        print "<cml><inspect object = \"$next\" detail = \"1\"/></cml>";
+        open (CONTEXT, ">test_console.lst");
+        for ($item = 1; $item < @object_ids; $item++) {
+            print CONTEXT $object_ids [$item] . "\n";
+        }
+        close (CONTEXT);
     }
 }
 exit (0);

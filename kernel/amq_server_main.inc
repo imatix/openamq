@@ -204,9 +204,9 @@ s_run_server (void)
 
     //  Main processing
     amq_console = amq_console_new ();
-    amq_broker  = amq_broker_new  ();  
+    amq_broker  = amq_broker_new  ();
     smt_os_thread_wait (0);             //  Execute the server
-    amq_broker_destroy  (&amq_broker); 
+    amq_broker_destroy  (&amq_broker);
     amq_console_destroy (&amq_console);
     smt_os_thread_wait (0);             //  Shutdown SMT kernel
 

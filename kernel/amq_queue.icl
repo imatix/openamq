@@ -26,13 +26,27 @@ class.  This is a lock-free asynchronous class.
 <!-- Console definitions for this object -->
 <data name = "cml">
     <class name = "queue" parent = "vhost">
-        <field name = "scope"       label = "Queue scope" />
-        <field name = "name"        label = "Queue name" />
-        <field name = "durable"     label = "Durable queue?"                type = "bool" />
-        <field name = "exclusive"   label = "Exclusive to one connection?"  type = "bool" />
-        <field name = "auto_delete" label = "Auto-deleted?"                 type = "bool" />
-        <field name = "consumers"   label = "Number of consumers"           type = "int" />
-        <field name = "messages"    label = "Number of messages"            type = "int" />
+        <field name = "scope"       label = "Queue scope">
+          <get>icl_shortstr_cpy (field_value, self->scope);</get>
+        </field>
+        <field name = "name"        label = "Queue name">
+          <get>icl_shortstr_cpy (field_value, self->name);</get>
+        </field>
+        <field name = "durable"     label = "Durable queue?" type = "bool">
+          <get>icl_shortstr_fmt (field_value, "%d", self->durable);</get>
+        </field>
+        <field name = "exclusive"   label = "Exclusive to one connection?" type = "bool">
+          <get>icl_shortstr_fmt (field_value, "%d", self->exclusive);</get>
+        </field>
+        <field name = "auto_delete" label = "Auto-deleted?" type = "bool">
+          <get>icl_shortstr_fmt (field_value, "%d", self->auto_delete);</get>
+        </field>
+        <field name = "consumers"   label = "Number of consumers" type = "int">
+          <get>icl_shortstr_fmt (field_value, "%d", self->consumers);</get>
+        </field>
+        <field name = "messages"    label = "Number of messages" type = "int">
+          <get>icl_shortstr_fmt (field_value, "%d", amq_queue_message_count (self));</get>
+        </field>
     </class>
 </data>
 
@@ -96,6 +110,7 @@ class.  This is a lock-free asynchronous class.
     //  Format fully-scoped queue name
     self_fullname (scope, name, fullname);
 
+    amq_queue_list_queue (self->vhost->queue_list, self);
     if (amq_server_config_trace_queue (amq_server_config))
         icl_console_print ("Q: create   queue=%s|%s", self->scope, self->name);
 </method>
@@ -296,6 +311,24 @@ class.  This is a lock-free asynchronous class.
     </action>
 </event>
 
+<method name = "purge" template = "async function" async = "1">
+    <doc>
+    Purge all content on a queue.
+    </doc>
+    <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
+    <action>
+    long
+        messages = 0;
+        
+    messages += amq_queue_jms_purge   (self->queue_jms);
+    messages += amq_queue_basic_purge (self->queue_basic);
+    amq_server_agent_queue_purge_ok (
+        channel->connection->thread,
+        (dbyte) channel->key,
+        messages);
+    </action>
+</method>
+
 <method name = "flow" template = "async function" async = "1">
     <doc>
     Pause or restart consumer.
@@ -344,8 +377,7 @@ class.  This is a lock-free asynchronous class.
     Return number of consumers on queue.
     </doc>
     //
-    rc = amq_queue_jms_consumer_count   (self->queue_jms)
-       + amq_queue_basic_consumer_count (self->queue_basic);
+    rc = self->consumers;
 </method>
 
 <method name = "pre dispatch" template = "function">

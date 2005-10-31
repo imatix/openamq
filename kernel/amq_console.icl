@@ -198,7 +198,6 @@ $(selftype)
     </doc>
     <argument name = "request"   type = "amq_content_basic_t *">Original request</argument>
     <argument name = "object id" type = "qbyte">Object id</argument>
-    <argument name = "children"  type = "qbyte">Number of children</argument>
     <argument name = "fields"    type = "asl_field_list_t *">Object properties</argument>
     <possess>
     amq_content_basic_possess (request);
@@ -209,43 +208,43 @@ $(selftype)
     asl_field_list_destroy (&fields);
     </release>
     <action>
-    ipr_bucket_t
-        *bucket;
     asl_field_t
         *field;
-
-    bucket = ipr_bucket_new (IPR_BUCKET_MAX_SIZE);
-
-    //  Better to build this as a tree and then send the tree separately
+    ipr_xml_t
+        *cml_item,                      //  CML item
+        *cur_item,                      //  Top level object
+        *sub_item;                      //  Field or class within object
+    icl_shortstr_t
+        strvalue;                       //  Stringified numeric value
     
-    sprintf (bucket->data,
-        "&amp;lt;cml version = \\"1.0\\"&amp;gt;\\n"
-        "    &amp;lt;inspect object = \\"%ld\\" children = \\"%ld\\" status = \\"ok\\"&amp;gt;\\n",
-        object_id, children);
+    cml_item = ipr_xml_new (NULL, "cml", NULL);
+    ipr_xml_attr_set (cml_item, "version", "1.0");
+    
+    cur_item = ipr_xml_new (cml_item, "inspect", NULL);
+    ipr_xml_attr_set (cur_item, "class",  self->class_ref [object_id]->name);
+    ipr_xml_attr_set (cur_item, "object", icl_shortstr_fmt (strvalue, "%ld", object_id));
+    ipr_xml_attr_set (cur_item, "status", "ok");
 
     field = asl_field_list_first (fields);
     while (field) {
+        //  Fields are encoded Fname, classes as Cname
         if (*field->name == 'F') {
-            strcat (bucket->data, "    &amp;lt;field name = \\"");
-            strcat (bucket->data, field->name + 1);
-            strcat (bucket->data, "\\"&amp;gt;");
-            strcat (bucket->data, asl_field_string (field));
-            strcat (bucket->data, "&amp;lt;/field&amp;gt;\\n");
+            sub_item = ipr_xml_new (cur_item, "field", asl_field_string (field));
+            ipr_xml_attr_set (sub_item, "name", field->name + 1);
+            ipr_xml_unlink (&sub_item);
         }
         else
         if (*field->name == 'C') {
-            strcat (bucket->data, "    &amp;lt;object class = \\"");
-            strcat (bucket->data, field->name + 1);
-            strcat (bucket->data, "\\" id = \\"");
-            strcat (bucket->data, asl_field_string (field));
-            strcat (bucket->data, "\\"/&amp;gt;\\n");
+            sub_item = ipr_xml_new (cur_item, "object", NULL);
+            ipr_xml_attr_set (sub_item, "class", field->name + 1);
+            ipr_xml_attr_set (sub_item, "id", asl_field_string (field));
+            ipr_xml_unlink (&sub_item);
         }
         field = asl_field_list_next (&field);
     }
-    strcat (bucket->data, "&amp;lt;/cml&amp;gt;");
-    bucket->cur_size = strlen (bucket->data);
-    s_reply_bucket (request, bucket);
-    ipr_bucket_destroy (&bucket);
+    s_reply_xml (request, cml_item);
+    ipr_xml_unlink  (&cur_item);
+    ipr_xml_destroy (&cml_item);
     </action>
 </method>
 
@@ -266,7 +265,9 @@ static void
 static void
     s_invalid_cml     (amq_content_basic_t *request, ipr_bucket_t *bucket, char *error);
 static void
-    s_reply_error     (amq_content_basic_t *request, char *body);
+    s_reply_error     (amq_content_basic_t *request, char *top, char *status);
+static void
+    s_reply_xml       (amq_content_basic_t *request, ipr_xml_t *xml_item);
 static void
     s_reply_bucket    (amq_content_basic_t *request, ipr_bucket_t *bucket);
 </private>
@@ -289,12 +290,12 @@ s_execute_schema (amq_content_basic_t *request, ipr_xml_t *xml_command)
         }
         else {
             icl_console_print ("E: can't read '%s'", schema_file);
-            s_reply_error (request, "&amp;lt;schema status = \\"notfound\\"/&amp;gt;");
+            s_reply_error (request, "schema", "notfound");
         }
     }
     else {
         icl_console_print ("E: can't find '%s'", schema_file);
-        s_reply_error (request, "&amp;lt;schema status = \\"notfound\\"/&amp;gt;");
+        s_reply_error (request, "schema", "notfound");
     }
 }
 
@@ -305,26 +306,22 @@ s_execute_inspect (
     ipr_xml_t *xml_command)
 {
     char
-        *object_str,
-        *detail_str;
+        *object_str;
     qbyte
         object_id;
         
     object_str = ipr_xml_attr_get (xml_command, "object", "");
-    detail_str = ipr_xml_attr_get (xml_command, "detail", "");
-
     if (*object_str) {
         object_id = atol (object_str);
         if (object_id < self->max_objects
         && self->object_ref [object_id]) {
-            self->class_ref [object_id]->inspect (
-                self->object_ref [object_id], request, (Bool) atoi (detail_str));
+            self->class_ref [object_id]->inspect (self->object_ref [object_id], request);
         }
         else
-            s_reply_error (request, "&amp;lt;inspect status = \\"notfound\\"/&amp;gt;");
+            s_reply_error (request, "inspect", "notfound");
     }        
     else
-        s_reply_error (request, "&amp;lt;inspect status = \\"invalid\\"/&amp;gt;");
+        s_reply_error (request, "inspect", "invalid");
 }
 
 static void
@@ -359,25 +356,49 @@ s_invalid_cml (amq_content_basic_t *request, ipr_bucket_t *bucket, char *error)
 {
     icl_console_print ("W: amq.console: content body is not valid CML: %s", error);
     ipr_bucket_dump (bucket);
-    s_reply_error (request, "&amp;lt;invalid/&amp;gt;");
+    s_reply_error (request, "invalid", NULL);
 }
 
 static void
-s_reply_error (amq_content_basic_t *request, char *body)
+s_reply_error (amq_content_basic_t *request, char *top, char *status)
 {
-    ipr_bucket_t
-        *bucket;                        //  Schema loaded from disk
+    ipr_xml_t
+        *cml_item,
+        *cur_item;
 
-    icl_console_print ("I: console error: %s", body);
-    bucket = ipr_bucket_new (1024);
-    bucket->cur_size = sprintf (bucket->data,
-        "&amp;lt;cml version = \\"1.0\\"&amp;gt;%s&amp;lt;/cml&amp;gt;", body);
-    s_reply_bucket (request, bucket);
-    ipr_bucket_destroy (&bucket);
+    cml_item = ipr_xml_new (NULL, "cml", NULL);
+    ipr_xml_attr_set (cml_item, "version", "1.0");
+    cur_item = ipr_xml_new (cml_item, top, NULL);
+    if (status) 
+        ipr_xml_attr_set (cur_item, "status", status);
+
+    s_reply_xml (request, cml_item);
+    ipr_xml_unlink  (&cur_item);
+    ipr_xml_destroy (&cml_item);
 }
 
-//  Send reply back to original requestor, using same message id
-//  and using original reply-to as routing key.
+
+//  Send XML tree as reply back to original requestor, using same
+//  message id and using original reply-to as routing key.
+//
+static void
+s_reply_xml (amq_content_basic_t *request, ipr_xml_t *xml_item)
+{
+    char
+        *xml_text;                      //  Serialised XML text
+    ipr_bucket_t
+        *bucket;
+        
+    xml_text = ipr_xml_save_string (xml_item);
+    bucket = ipr_bucket_new (strlen (xml_text));
+    ipr_bucket_fill (bucket, xml_text, strlen (xml_text));
+    icl_mem_free (xml_text);
+    s_reply_bucket (request, bucket);
+}
+
+
+//  Send ipr bucket reply back to original requestor, using same
+//  message id and using original reply-to as routing key.
 //
 static void
 s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)

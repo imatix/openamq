@@ -18,9 +18,7 @@ object holding server-wide values.
 <data name = "cml">
     <class name = "broker">
         <field name = "started" label = "Date, time broker started">
-          <get>
-            apr_rfc822_date (field_value, self->started);
-          </get>
+          <get>apr_rfc822_date (field_value, self->started);</get>
         </field>
         <class name = "vhost">
           <first>
@@ -30,6 +28,9 @@ object holding server-wide values.
             child_id = 0;
           </next>
         </class>
+        <children>
+            children = 1;               //  One child, the vhost
+        </children>
     </class>
 </data>
 

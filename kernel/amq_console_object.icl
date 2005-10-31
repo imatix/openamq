@@ -51,14 +51,15 @@ static amq_console_class_t
 </method>
 
 <method name = "destroy">
+    <action>
     amq_console_cancel (self->console, self->object_id);
     amq_console_unlink (&self->console);
+    </action>
 </method>
 
 <method name = "inspect" async = "1" return = "rc">
     <argument name = "self_v"  type = "void *">Object cast as a void *</argument>
     <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
-    <argument name = "detail"  type = "Bool"  >Return child object list?</argument>
     <declare name = "rc" type = "int" default = "0" />
     <local>
     $(selftype)
@@ -78,6 +79,11 @@ static amq_console_class_t
         *fields;
     icl_shortstr_t
         field_value;
+.for global.top->data->class.class
+.   for local
+    $(string.trim (.))
+.   endfor
+.endfor
 .if count (global.top->data->class.class)
     qbyte
         child_id;                       //  ID of child object
@@ -90,20 +96,18 @@ static amq_console_class_t
     asl_field_new_string (fields, "F$(field.name)", field_value);
 .   endfor
 .endfor
-    if (detail) {
 .for global.top->data->class.class where count (first)
 .   for first
     $(string.trim (.))
 .   endfor
-        while (child_id) {
-            asl_field_new_integer (fields, "C$(class.name)", child_id);
+    while (child_id) {
+        asl_field_new_integer (fields, "C$(class.name)", child_id);
 .   for next
-            $(string.trim (.))
+        $(string.trim (.))
 .   endfor
-        }
-.endfor
     }
-    amq_console_inspect_ok (amq_console, request, self->object_id, 123, fields);
+.endfor
+    amq_console_inspect_ok (amq_console, request, self->object_id, fields);
     asl_field_list_destroy (&fields);
     </action>
 </method>

@@ -25,9 +25,7 @@ This class defines a class descriptor.
         void
             *self,                      //  Object reference
         amq_content_basic_t
-            *request,                   //  Original request
-        Bool
-            detail                      //  Want details of children?
+            *request                    //  Original request
     );
     //  modify method
     //  method method

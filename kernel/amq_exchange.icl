@@ -17,16 +17,29 @@ for each type of exchange. This is a lock-free asynchronous class.
     <option name = "hash_type" value = "str" />
     <option name = "hash_size" value = "65535" />
 </inherit>
+<inherit class = "icl_list_item">
+    <option name = "prefix" value = "list" />
+</inherit>
 <inherit class = "amq_console_object" />
 
 <!-- Console definitions for this object -->
 <data type = "cml">
     <class name = "exchange" parent = "vhost">
-        <field name = "name"        label = "Exchange name" />
-        <field name = "durable"     label = "Durable exchange?"             type = "bool" />
-        <field name = "exclusive"   label = "Exclusive to one connection?"  type = "bool" />
-        <field name = "auto_delete" label = "Auto-deleted?"                 type = "bool" />
-        <field name = "bindings"    label = "Number of bindings"            type = "int" />
+        <field name = "name"        label = "Exchange name">
+          <get>icl_shortstr_cpy (field_value, self->name);</get>
+        </field>
+        <field name = "type"        label = "Exchange type">
+          <get>icl_shortstr_cpy (field_value, amq_exchange_type_name (self->type));</get>
+        </field>
+        <field name = "durable"     label = "Durable exchange?" type = "bool">
+          <get>icl_shortstr_fmt (field_value, "%d", self->durable);</get>
+        </field>
+        <field name = "auto_delete" label = "Auto-deleted?" type = "bool">
+          <get>icl_shortstr_fmt (field_value, "%d", self->auto_delete);</get>
+        </field>
+        <field name = "bindings"    label = "Number of bindings" type = "int">
+          <get>icl_shortstr_fmt (field_value, "%ld", amq_binding_list_count (self->binding_list));</get>
+        </field>
     </class>
 </data>
 
@@ -128,6 +141,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     else
         icl_console_print ("E: invalid type '%d' in exchange_new", self->type);
 
+    amq_exchange_list_queue (self->vhost->exchange_list, self);
     if (amq_server_config_trace_route (amq_server_config))
         icl_console_print ("X: create   exchange=%s", self->name);
 </method>
@@ -189,6 +203,31 @@ for each type of exchange. This is a lock-free asynchronous class.
         rc = AMQ_EXCHANGE_HEADERS;
     else
         rc = 0;
+</method>
+
+<method name = "type name" return = "name">
+    <doc>
+    Translates an exchange type index into an external name.
+    </doc>
+    <argument name = "type" type = "int">Type index to translate</argument>
+    <declare name = "name" type = "char *">Type name</declare>
+    //
+    if (type == AMQ_EXCHANGE_SYSTEM)
+        name = "system";
+    else
+    if (type == AMQ_EXCHANGE_FANOUT)
+        name = "fanout";
+    else
+    if (type == AMQ_EXCHANGE_DIRECT)
+        name = "direct";
+    else
+    if (type == AMQ_EXCHANGE_TOPIC)
+        name = "topic";
+    else
+    if (type == AMQ_EXCHANGE_HEADERS)
+        name = "headers";
+    else
+        name = "(unknown)";
 </method>
 
 <method name = "bind queue" template = "async function" async = "1">

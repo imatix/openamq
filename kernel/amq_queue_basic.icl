@@ -174,4 +174,19 @@ runs lock-free as a child of the asynchronous queue class.
     }
 </method>
 
+<method name = "purge" template = "function">
+    <doc>
+    Destroy all queue contents, return number of contents destroyed.
+    </doc>
+    <local>
+    amq_content_basic_t
+        *content;                       //  Content object reference
+    </local>
+    //
+    while ((content = (amq_content_basic_t *) ipr_looseref_pop (self->content_list))) {
+        amq_content_basic_destroy (&content);
+        rc++;
+    }
+</method>
+
 </class>
