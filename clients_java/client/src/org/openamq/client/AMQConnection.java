@@ -379,7 +379,7 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
         while (it.hasNext())
         {
             final AMQSession session = (AMQSession) it.next();
-            session.connectionExceptionReceived(Throwable cause);
+            session.connectionExceptionReceived(cause);
         }
     }
 
