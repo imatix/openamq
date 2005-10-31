@@ -24,6 +24,10 @@ import java.net.UnknownHostException;
  */
 public class ServiceRequestingClient
 {
+    private static final String MESSAGE_DATA_BYTES = "jfd ghljgl hjvhlj cvhvjf ldhfsj lhfdsjf hldsjfk hdslkfj hsdflk  ";
+
+    private static final String MESSAGE_DATA;
+
     private static final Logger _log = Logger.getLogger(ServiceRequestingClient.class);
 
     private AMQConnection _connection;
@@ -31,6 +35,16 @@ public class ServiceRequestingClient
     private Session _session;
 
     private long _averageLatency;
+
+    static
+    {
+        StringBuffer buf = new StringBuffer(4096);
+        for (int i = 0; i < 63; i++)
+        {
+            buf.append(MESSAGE_DATA_BYTES);
+        }
+        MESSAGE_DATA = buf.toString();
+    }
 
     private class CallbackHandler implements MessageListener
     {
@@ -78,7 +92,7 @@ public class ServiceRequestingClient
             _actualMessageCount++;
             if (_actualMessageCount%1000 == 0)
             {
-                _log.info("Received message count: " + _actualMessageCount);                                
+                _log.info("Received message count: " + _actualMessageCount);
             }
             /*if (!"henson".equals(m.toString()))
            {
@@ -138,7 +152,8 @@ public class ServiceRequestingClient
             _connection.start();
             for (int i = 0; i < messageCount; i++)
             {
-                TextMessage msg = _session.createTextMessage("Presented to in conjunction with Mahnah Mahnah and the Snowths:" + i);
+                //TextMessage msg = _session.createTextMessage("Presented to in conjunction with Mahnah Mahnah and the Snowths:" + i);
+                TextMessage msg = _session.createTextMessage(MESSAGE_DATA + i);
                 msg.setJMSReplyTo(tempDestination);
                 if (i%1000 == 0)
                 {
