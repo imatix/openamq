@@ -768,12 +768,12 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         _consumers.remove(new Integer(consumerTag));
     }
 
-    void registerProducer(int producerId, MessageProducer producer)
+    void registerProducer(long producerId, MessageProducer producer)
     {
         _producers.put(new Long(producerId), producer);
     }
 
-    void deregisterProducer(Long producerId)
+    void deregisterProducer(long producerId)
     {
         _producers.remove(new Long(producerId));
     }
