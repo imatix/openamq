@@ -125,7 +125,8 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
             // handle it appropriately.
             AMQSession session = new AMQSession(this, channelId, transacted, acknowledgeMode);
             _protocolHandler.addSessionByChannel(channelId, session);
-            _sessions.put(new Integer(channelId), session);
+            registerSession(channelId, session);
+
             try
             {
                 _protocolHandler.writeCommandFrameAndWaitForReply(frame,
@@ -135,7 +136,7 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
             catch (AMQException e)
             {
                 _protocolHandler.removeSessionByChannel(channelId);
-                _sessions.remove(new Integer(channelId));
+                deregisterSession(channelId);
                 throw new JMSException("Error creating session: " + e);
             }
             return session;
@@ -212,7 +213,7 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
         {
             try
             {
-                // TODO: close the sessions in an order fashion
+                closeAllSessions(null);
                 _protocolHandler.closeConnection();
             }
             catch (AMQException e)
@@ -222,6 +223,33 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
         }
     }
 
+    /**
+     * Close all the sessions, either due to normal connection closure or due to an error occurring.
+     * @param cause if not null, the error that is causing this shutdown
+     */
+    private void closeAllSessions(Throwable cause)
+    {
+        final Iterator it = _sessions.values().iterator();
+        while (it.hasNext())
+        {
+            final AMQSession session = (AMQSession) it.next();
+            if (cause != null)
+            {
+                session.closed(cause);
+            }
+            else
+            {
+                try
+                {
+                    session.close();
+                }
+                catch (JMSException e)
+                {
+                    _logger.error("Error closing session: " + e);
+                }
+            }
+        }
+    }
     public ConnectionConsumer createConnectionConsumer(Destination destination, String messageSelector,
                                                        ServerSessionPool sessionPool, int maxMessages) throws JMSException
     {
@@ -372,15 +400,26 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
                     je.setLinkedException((Exception)cause);
                 }
             }
+            // in the case of an IOException, MINA has closed the protocol session so we set _closed to true
+            // so that any generic client code that tries to close the connection will not mess up this error
+            // handling sequence
+            if (cause instanceof IOException)
+            {
+                _closed.set(true);
+            }
             _exceptionListener.onException(je);
         }
-        // we also must propagate exceptions to any consumers
-        final Iterator it = _sessions.values().iterator();
-        while (it.hasNext())
-        {
-            final AMQSession session = (AMQSession) it.next();
-            session.connectionExceptionReceived(cause);
-        }
+        closeAllSessions(cause);
+    }
+
+    void registerSession(int channelId, AMQSession session)
+    {
+        _sessions.put(new Integer(channelId), session);
+    }
+
+    void deregisterSession(int channelId)
+    {
+        _sessions.remove(new Integer(channelId));
     }
 
     public String toString()

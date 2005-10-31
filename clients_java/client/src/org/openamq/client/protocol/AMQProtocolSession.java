@@ -97,7 +97,7 @@ public class AMQProtocolSession
         return _minaProtocolSession;
     }
 
-    public String getSecurityMechanism() 
+    public String getSecurityMechanism()
     {
         return (String) _minaProtocolSession.getAttribute(SECURITY_MECHANISM);
     }
@@ -147,7 +147,7 @@ public class AMQProtocolSession
         if (contentHeader.bodySize == 0)
         {
             deliverMessageToAMQSession(channelId, msg);
-        }        
+        }
     }
 
     public void messageContentBodyReceived(int channelId, ContentBody contentBody) throws AMQException
@@ -242,7 +242,7 @@ public class AMQProtocolSession
         // on that channel
         _closingChannels.putIfAbsent(new Integer(channelId), session);
 
-        final AMQFrame frame = ChannelCloseBody.createAMQFrame(channelId, AMQConstant.REPLY_SUCCESS.getCode(), null, 0, 0);        
+        final AMQFrame frame = ChannelCloseBody.createAMQFrame(channelId, AMQConstant.REPLY_SUCCESS.getCode(), null, 0, 0);
         writeFrame(frame);
     }
 
@@ -263,7 +263,7 @@ public class AMQProtocolSession
         if (_closingChannels.remove(chId) == null)
         {
             final AMQSession session = (AMQSession) _channelId2SessionMap.get(chId);
-            session.closed(code, text);
+            session.closed(new AMQException(_logger, code, text));
             return true;
         }
         else

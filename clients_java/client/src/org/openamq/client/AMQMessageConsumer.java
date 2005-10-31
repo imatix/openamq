@@ -56,9 +56,9 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
 
     /**
      * Used in the blocking receive methods to receive a message from
-     * the Session thread.
+     * the Session thread. Argument true indicates we want strict FIFO semantics
      */
-    private final SynchronousQueue _synchronousQueue = new SynchronousQueue();
+    private final SynchronousQueue _synchronousQueue = new SynchronousQueue(true);
 
     private MessageFactoryRegistry _messageFactory;
 
@@ -133,14 +133,16 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
 
         try
         {
+            Object o = null;
             if (l > 0)
             {
-                return (Message) _synchronousQueue.poll(l, TimeUnit.MILLISECONDS);
+                o = _synchronousQueue.poll(l, TimeUnit.MILLISECONDS);
             }
             else
             {
-                return (Message) _synchronousQueue.take();
+                o = _synchronousQueue.take();
             }
+            return returnMessageOrThrow(o);
         }
         catch (InterruptedException e)
         {
@@ -172,7 +174,8 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
 
         try
         {
-            return (Message) _synchronousQueue.poll();
+            Object o = _synchronousQueue.poll();
+            return returnMessageOrThrow(o);
         }
         finally
         {
@@ -183,31 +186,65 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
         }
     }
 
+    /**
+     * We can get back either a Message or an exception from the queue. This method examines the argument and deals
+     * with it by throwing it (if an exception) or returning it (in any other case).
+     * @param o
+     * @return a message only if o is a Message
+     * @throws JMSException if the argument is a throwable. If it is a JMSException it is rethrown as is, but if not
+     * a JMSException is created with the linked exception set appropriately 
+     */
+    private Message returnMessageOrThrow(Object o)
+            throws JMSException
+    {
+        // errors are passed via the queue too since there is no way of interrupting the poll() via the API.
+        if (o instanceof Throwable)
+        {
+            JMSException e = new JMSException("Message consumer forcibly closed due to error: " + o);
+            if (o instanceof Exception)
+            {
+                e.setLinkedException((Exception) o);
+            }
+            throw e;
+        }
+        else
+        {
+            return (Message) o;
+        }
+    }
+
     public void close() throws JMSException
     {
         synchronized (_closingLock)
         {
             _closed.set(true);
-        }
 
-        final AMQFrame jmsCancel = JmsCancelBody.createAMQFrame(_channelId, _consumerTag);
+            final AMQFrame jmsCancel = JmsCancelBody.createAMQFrame(_channelId, _consumerTag);
 
-        try
-        {
-            _protocolHandler.writeCommandFrameAndWaitForReply(jmsCancel,
-                                                              new SpecificMethodFrameListener(_channelId,
-                                                                                              JmsCancelOkBody.class));
-        }
-        catch (AMQException e)
-        {
-            _logger.error("Error closing consumer: " + e, e);
-            throw new JMSException("Error closing consumer: " + e);
-        }
+            try
+            {
+                _protocolHandler.writeCommandFrameAndWaitForReply(jmsCancel,
+                                                                  new SpecificMethodFrameListener(_channelId,
+                                                                                                  JmsCancelOkBody.class));
+            }
+            catch (AMQException e)
+            {
+                _logger.error("Error closing consumer: " + e, e);
+                throw new JMSException("Error closing consumer: " + e);
+            }
 
-        _session.deregisterConsumerQueue(_consumerTag);
+            deregisterConsumer();
+        }
     }
 
-    public void notifyMessage(UnprocessedMessage messageFrame, int acknowledgeMode, int channelId)
+    /**
+     * Called from the AMQSession when a message has arrived for this consumer. This methods handles both the case
+     * of a message listener or a synchronous receive() caller.
+     * @param messageFrame the raw unprocessed mesage
+     * @param acknowledgeMode the acknowledge mode requested for this message
+     * @param channelId channel on which this message was sent
+     */
+    void notifyMessage(UnprocessedMessage messageFrame, int acknowledgeMode, int channelId)
     {
         if (_logger.isDebugEnabled())
         {
@@ -251,6 +288,35 @@ public class AMQMessageConsumer extends Closeable implements MessageConsumer
         {
             _logger.error("Caught exception (dump follows) - ignoring...", e);
         }
+    }
+
+    void notifyError(Throwable cause)
+    {
+        synchronized (_syncLock)
+        {
+            _closed.set(true);
+
+            // we have no way of propagating the exception to a message listener - a JMS limitation - so we
+            // deal with the case where we have a synchronous receive() waiting for a message to arrive
+            if (_messageListener == null)
+            {
+                // offer only succeeds if there is a thread waiting for an item from the queue
+                if (_synchronousQueue.offer(cause))
+                {
+                    _logger.debug("Passed exception to synchronous queue for propagation to receive()");
+                }
+            }
+            deregisterConsumer();
+        }
+    }
+
+    /**
+     * Perform cleanup to deregister this consumer. This occurs when closing the consumer in both the clean
+     * case and in the case of an error occurring.
+     */
+    private void deregisterConsumer()
+    {
+        _session.deregisterConsumer(_consumerTag);
     }
 
     public int getConsumerTag()
