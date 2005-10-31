@@ -99,6 +99,7 @@ public class TestLargeSubscriber
                                               data[i]);
                             }
                         }
+                        _logger.info("***** Validated message successfully");
                     }
                     catch (JMSException e)
                     {

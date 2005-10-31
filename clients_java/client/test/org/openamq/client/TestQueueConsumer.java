@@ -1,10 +1,13 @@
 package org.openamq.client;
 
+import org.apache.log4j.Logger;
 import org.openamq.jms.Session;
-import javax.jms.*;
 
+import javax.jms.ExceptionListener;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.MessageConsumer;
 import java.net.InetAddress;
-import org.apache.log4j.*;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
@@ -49,7 +52,7 @@ public class TestQueueConsumer
                     }
                 }
             });*/
-            
+
             con.setExceptionListener(new ExceptionListener()
             {
                 public void onException(JMSException jmsException)
