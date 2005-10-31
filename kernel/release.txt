@@ -2,49 +2,52 @@
 ---------------------------------------------------------------------
 Bug fixes:
 
-AMQ-145 Console: implement alpha version
-AMQ-140 Queue-purge kernel pal test case fails with 'No reply received - timeout'
-AMQ-154 server assert amq_console_destroy
-AMQ-132 Regression tests fail: amq_server_channel_test hangs
-AMQ-152 JMS does not build
-AMQ-151 AMQ doesn't buid
-AMQ-147 Add implementation of jms cancel method
-AMQ-150 amq_server outputs various log messages on stderr
-AMQ-149 RFC 006 does not document exchange type names accurately
-AMQ-148 Alter jms.consume method to use consumer tag
-AMQ-117 Memory Leaks
-AMQ-137 Client Aborts
-AMQ-115 amq_client: memory leak on server abort
-AMQ-93  Define XML language for operational control
-AMQ-92  Define operable properties per operable object
-AMQ-91  All operable server objects need an external ID
-AMQ-139 Change names that clash with C++ keywords
-AMQ-135 Update AMQP/Fast protocol documentation on openamq.org
-AMQ-133 Build hangs on win32
-AMQ-43  Multiple bounces for single message  
-AMQ-129 Implement queue.declare-ok queue and consumer counts
-AMQ-121 Pal basic queue bind test case works for jms class but not for basic class
-AMQ-128 Clustering: finish draft clustering proposal
-AMQ-90  Move virtual host selection to connection.open, from channel.open
+    AMQ-140  Queue-purge kernel pal test case fails with 'No reply received -
+             timeout'
+    AMQ-154  server assert amq_console_destroy
+    AMQ-132  Regression tests fail: amq_server_channel_test hangs
+    AMQ-152  JMS does not build
+    AMQ-151  AMQ doesn't buid
+    AMQ-149  RFC 006 does not document exchange type names accurately
+    AMQ-117  Memory Leaks
+    AMQ-137  Client Aborts
+    AMQ-115  amq_client: memory leak on server abort
+    AMQ-133  Build hangs on win32
+    AMQ-43   Multiple bounces for single message  
+    AMQ-121  Pal basic queue bind test case works for jms class but not for
+             basic class
+    BASE2-95 Link counting is failing in certain cases
+    BASE2-83 Free Memory Read and (less signififcant) memory leaks.
+    BASE2-92 icl_mem_fat_possess_: Assertion `self->tag == 0xFabbU' failed.
+    BASE2-90 client aborts
+    BASE2-84 SMT appears to accept arbitrary signals
+    BASE2-87 queue free + queue insert race corrupts memomy
+    BASE2-85 Client session methods that accept content should not destroy it
+    BASE2-77 icl_console cannot print pointers
 
-BASE2-95 Link counting is failing in certain cases
-BASE2-83 Free Memory Read and (less signififcant) memory leaks.
-BASE2-92 icl_mem_fat_possess_: Assertion `self->tag == 0xFabbU' failed.
-BASE2-90 client aborts
-BASE2-89 PAL scripts need to be able to run arbitrary commands
-BASE2-91 Content class should be able to write content body to a file
-BASE2-84 SMT appears to accept arbitrary signals
-BASE2-88 Allow async objects to define local static functions
-BASE2-72 Reduce number of speculative poll() calls
-BASE2-87 queue free + queue insert race corrupts memomy
-BASE2-86 PAL scripts need to be able to send formatted content
-BASE2-85 Client session methods that accept content should not destroy it
-BASE2-78 Switch off memory pools so that malloc & free are used.
-BASE2-82 Make inserted XNF code appear after <insert> tag
-BASE2-80 Allow PAL scripts to stop/start the server
-BASE2-77 icl_console cannot print pointers
-BASE2-76 Changes to PAL for test automation
-BASE2-79 PAL assert, echo blocks don't accept newlines  
+Changes:
+
+    AMQ-145  Console: implement alpha version
+    AMQ-147  Add implementation of jms cancel method
+    AMQ-148  Alter jms.consume method to use consumer tag
+    AMQ-93   Define XML language for operational control
+    AMQ-92   Define operable properties per operable object
+    AMQ-91   All operable server objects need an external ID
+    AMQ-139  Change names that clash with C++ keywords
+    AMQ-135  Update AMQP/Fast protocol documentation on openamq.org
+    AMQ-129  Implement queue.declare-ok queue and consumer counts
+    AMQ-128  Clustering: finish draft clustering proposal
+    AMQ-90   Move virtual host selection to connection.open, from channel.open
+    BASE2-89 PAL scripts need to be able to run arbitrary commands
+    BASE2-91 Content class should be able to write content body to a file
+    BASE2-88 Allow async objects to define local static functions
+    BASE2-72 Reduce number of speculative poll() calls
+    BASE2-86 PAL scripts need to be able to send formatted content
+    BASE2-78 Switch off memory pools so that malloc & free are used.
+    BASE2-82 Make inserted XNF code appear after <insert> tag
+    BASE2-80 Allow PAL scripts to stop/start the server
+    BASE2-76 Changes to PAL for test automation
+    BASE2-79 PAL assert, echo blocks don't accept newlines  
        
 0.9c2 - 2005/10/21
 ---------------------------------------------------------------------
