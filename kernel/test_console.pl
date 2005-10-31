@@ -26,7 +26,7 @@ else {
 
     if ($stdin =~ /<schema.*status = "ok"/) {
         #   Ask to inspect broker
-        print "<cml><inspect object = \"0\"/></cml>";
+        print "<cml><inspect object = \"0\" detail = \"1\"/></cml>";
     }
 }
 exit (0);

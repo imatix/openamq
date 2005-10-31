@@ -22,7 +22,14 @@ object holding server-wide values.
             apr_rfc822_date (field_value, self->started);
           </get>
         </field>
-        <class name = "vhost" />
+        <class name = "vhost">
+          <first>
+            child_id = amq_vhost->id;
+          </first>
+          <next>
+            child_id = 0;
+          </next>
+        </class>
     </class>
 </data>
 

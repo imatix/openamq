@@ -78,14 +78,31 @@ static amq_console_class_t
         *fields;
     icl_shortstr_t
         field_value;
+.if count (global.top->data->class.object)
+    qbyte
+        child_id;                       //  ID of child object
+.endif
         
     fields = asl_field_list_new (NULL);
 .for global.top->data->class.field
 .   for get
-    $(string.trim (get.))
-    asl_field_new_string (fields, "$(field.name)", field_value);
+    $(string.trim (.))
+    asl_field_new_string (fields, "F$(field.name)", field_value);
 .   endfor
 .endfor
+    if (detail) {
+.for global.top->data->class.class
+.   for first
+    $(string.trim (.))
+.   endfor
+        while (child_id) {
+            asl_field_new_integer (fields, "C$(class.name)", child_id);
+.   for next
+            $(string.trim (.))
+.   endfor
+        }
+.endfor
+    }
     amq_console_inspect_ok (amq_console, request, self->object_id, 123, fields);
     asl_field_list_destroy (&fields);
     </action>

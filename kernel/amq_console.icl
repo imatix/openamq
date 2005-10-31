@@ -225,11 +225,21 @@ $(selftype)
 
     field = asl_field_list_first (fields);
     while (field) {
-        strcat (bucket->data, "    &amp;lt;field name = \\"");
-        strcat (bucket->data, field->name);
-        strcat (bucket->data, "\\"&amp;gt;");
-        strcat (bucket->data, asl_field_string (field));
-        strcat (bucket->data, "&amp;lt;/field&amp;gt;\\n");
+        if (*field->name == 'F') {
+            strcat (bucket->data, "    &amp;lt;field name = \\"");
+            strcat (bucket->data, field->name + 1);
+            strcat (bucket->data, "\\"&amp;gt;");
+            strcat (bucket->data, asl_field_string (field));
+            strcat (bucket->data, "&amp;lt;/field&amp;gt;\\n");
+        }
+        else
+        if (*field->name == 'C') {
+            strcat (bucket->data, "    &amp;lt;object class = \\"");
+            strcat (bucket->data, field->name + 1);
+            strcat (bucket->data, "\\" id = \\"");
+            strcat (bucket->data, asl_field_string (field));
+            strcat (bucket->data, "\\"/&amp;gt;\\n");
+        }
         field = asl_field_list_next (&field);
     }
     strcat (bucket->data, "&amp;lt;/cml&amp;gt;");
