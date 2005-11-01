@@ -242,7 +242,8 @@ public class AMQProtocolSession
         // on that channel
         _closingChannels.putIfAbsent(new Integer(channelId), session);
 
-        final AMQFrame frame = ChannelCloseBody.createAMQFrame(channelId, AMQConstant.REPLY_SUCCESS.getCode(), null, 0, 0);
+        final AMQFrame frame = ChannelCloseBody.createAMQFrame(channelId, AMQConstant.REPLY_SUCCESS.getCode(),
+                                                               "JMS client closing channel", 0, 0);
         writeFrame(frame);
     }
 

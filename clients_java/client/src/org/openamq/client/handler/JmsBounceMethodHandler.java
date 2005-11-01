@@ -2,15 +2,11 @@ package org.openamq.client.handler;
 
 import org.apache.log4j.Logger;
 import org.openamq.AMQException;
-import org.openamq.framing.ConnectionCloseBody;
-import org.openamq.framing.ConnectionCloseOkBody;
-import org.openamq.framing.JmsBounceBody;
-import org.openamq.framing.JmsDeliverBody;
-import org.openamq.client.state.AMQState;
+import org.openamq.client.message.UnprocessedMessage;
+import org.openamq.client.protocol.AMQMethodEvent;
 import org.openamq.client.state.AMQStateManager;
 import org.openamq.client.state.StateAwareMethodListener;
-import org.openamq.client.protocol.AMQMethodEvent;
-import org.openamq.client.message.UnprocessedMessage;
+import org.openamq.framing.JmsBounceBody;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
@@ -33,7 +29,7 @@ public class JmsBounceMethodHandler implements StateAwareMethodListener
         msg.deliverBody = null;
         msg.bounceBody = (JmsBounceBody) evt.getMethod();
         msg.channelId = evt.getChannelId();
-        
+
         evt.getProtocolSession().unprocessedMessageReceived(msg);
     }
 }

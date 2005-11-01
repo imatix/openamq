@@ -144,7 +144,8 @@ public class ServiceRequestingClient
 
             AMQQueue tempDestination = new AMQQueue("TempResponse" +
                                                     Long.toString(System.currentTimeMillis()), true);
-            MessageConsumer messageConsumer = (MessageConsumer) _session.createConsumer(tempDestination, 100, true, true, true, null);
+            MessageConsumer messageConsumer = (MessageConsumer) _session.createConsumer(tempDestination, 100, true,
+                                                                                        true, null);
 
             final long startTime = System.currentTimeMillis();
 

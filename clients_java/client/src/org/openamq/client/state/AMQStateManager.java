@@ -51,12 +51,12 @@ public class AMQStateManager implements AMQMethodListener
         // no handlers are registered
         //
         _state2HandlersMap.put(null, frame2handlerMap);
-        
+
         frame2handlerMap = new HashMap();
         frame2handlerMap.put(ConnectionStartBody.class, ConnectionStartMethodHandler.getInstance());
         _state2HandlersMap.put(AMQState.CONNECTION_NOT_STARTED, frame2handlerMap);
 
-        frame2handlerMap = new HashMap();        
+        frame2handlerMap = new HashMap();
         frame2handlerMap.put(ConnectionTuneBody.class, ConnectionTuneMethodHandler.getInstance());
         frame2handlerMap.put(ConnectionSecureBody.class, ConnectionSecureMethodHandler.getInstance());
         _state2HandlersMap.put(AMQState.CONNECTION_NOT_TUNED, frame2handlerMap);
@@ -64,13 +64,15 @@ public class AMQStateManager implements AMQMethodListener
         frame2handlerMap = new HashMap();
         frame2handlerMap.put(ConnectionOpenOkBody.class, ConnectionOpenOkMethodHandler.getInstance());
         _state2HandlersMap.put(AMQState.CONNECTION_NOT_OPENED, frame2handlerMap);
-        
+
         //
         // ConnectionOpen handlers
         //
-        frame2handlerMap = new HashMap();        
+        frame2handlerMap = new HashMap();
         frame2handlerMap.put(ChannelCloseBody.class, ChannelCloseMethodHandler.getInstance());
         frame2handlerMap.put(ConnectionCloseBody.class, ConnectionCloseMethodHandler.getInstance());
+        frame2handlerMap.put(BasicDeliverBody.class, BasicDeliverMethodHandler.getInstance());
+        frame2handlerMap.put(BasicBounceBody.class, BasicBounceMethodHandler.getInstance());
         frame2handlerMap.put(JmsDeliverBody.class, JmsDeliverMethodHandler.getInstance());
         frame2handlerMap.put(JmsBounceBody.class, JmsBounceMethodHandler.getInstance());
         _state2HandlersMap.put(AMQState.CONNECTION_OPEN, frame2handlerMap);

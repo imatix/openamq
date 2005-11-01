@@ -35,7 +35,7 @@ public class TestQueueConsumer
             AMQQueue destination = new AMQQueue(args[5], false);
 
             MessageConsumer consumer = session.createConsumer(destination,
-            		100, false, true, false, null);
+            		100, true, false, null);
 
             /*consumer.setMessageListener(new MessageListener()
             {

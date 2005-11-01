@@ -3,7 +3,6 @@ package org.openamq.fragmentation;
 import org.apache.log4j.Logger;
 import org.openamq.client.AMQConnection;
 import org.openamq.client.AMQTopic;
-import org.openamq.client.AMQQueue;
 import org.openamq.jms.Session;
 
 import javax.jms.*;
@@ -33,13 +32,13 @@ public class TestLargeSubscriber
         {
             InetAddress address = InetAddress.getLocalHost();
             AMQConnection con = new AMQConnection(args[0], Integer.parseInt(args[1]), args[2], args[3],
-                                                  address.getHostName(), args[4]);            
+                                                  address.getHostName(), args[4]);
             final Session session = (Session) con.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
             final int expectedMessageCount = Integer.parseInt(args[5]);
 
             MessageConsumer consumer = session.createConsumer(new AMQTopic("large", false),
-                                                              100, false, true, true, null);
+                                                              100, true, false, null);
 
             consumer.setMessageListener(new MessageListener()
             {

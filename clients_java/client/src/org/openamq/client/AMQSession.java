@@ -34,8 +34,6 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
 
     private int _acknowledgeMode;
 
-    private IdFactory _idFactory;
-
     private int _channelId;
 
     private int _defaultPrefetch = DEFAULT_PREFETCH;
@@ -52,7 +50,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
     private Map _producers = new ConcurrentHashMap();
 
     /**
-     * Maps from consumer tag to AMQMessageConsumer instance
+     * Maps from consumer tag to JMSMessageConsumer instance
      */
     private Map _consumers = new ConcurrentHashMap();
 
@@ -95,7 +93,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         {
             if (message.deliverBody != null)
             {
-                final AMQMessageConsumer consumer = (AMQMessageConsumer) _consumers.get(new Integer(message.deliverBody.consumerTag));
+                final AbstractMessageConsumer consumer = (AbstractMessageConsumer) _consumers.get(new Integer(message.deliverBody.consumerTag));
 
                 if (consumer == null)
                 {
@@ -149,7 +147,6 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         {
             _acknowledgeMode = acknowledgeMode;
         }
-        _idFactory = con.getIdFactory();
         _channelId = channelId;
         _messageFactoryRegistry = messageFactoryRegistry;
     }
@@ -404,7 +401,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         final Iterator it = clonedProducers.iterator();
         while (it.hasNext())
         {
-            final AMQMessageProducer prod = (AMQMessageProducer) it.next();
+            final JMSMessageProducer prod = (JMSMessageProducer) it.next();
             prod.close();
         }
         // at this point the _producers map is empty
@@ -427,7 +424,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         final Iterator it = clonedConsumers.iterator();
         while (it.hasNext())
         {
-            final AMQMessageConsumer con = (AMQMessageConsumer) it.next();
+            final AbstractMessageConsumer con = (AbstractMessageConsumer) it.next();
             if (error != null)
             {
                 con.notifyError(error);
@@ -470,23 +467,38 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
 
     public MessageProducer createProducer(Destination destination) throws JMSException
     {
+        return createProducerImpl(new JMSSessionContentTypeFactory(), destination);
+    }
+
+    public org.openamq.jms.MessageProducer createBasicProducer(Destination destination) throws JMSException
+    {
+        return createProducerImpl(new BasicSessionContentTypeFactory(), destination);
+    }
+
+    private org.openamq.jms.MessageProducer createProducerImpl(SessionContentTypeFactory contentTypeFactory,
+                                                               Destination destination)
+            throws JMSException
+    {
         synchronized (_closingLock)
         {
             checkNotClosed();
 
             AMQDestination amqd = (AMQDestination)destination;
 
-            AMQMessageProducer producer = null;
+            AbstractMessageProducer producer = null;
             try
             {
-                producer = new AMQMessageProducer(amqd, _transacted, _channelId,
-                                                  this, _connection.getProtocolHandler(),
-                                                  getNextProducerId());
+                producer = contentTypeFactory.createProducer(amqd, _transacted, _channelId,
+                                                             this, _connection.getProtocolHandler(),
+                                                             getNextProducerId());
             }
             catch (AMQException e)
             {
                 _logger.error("Error creating message producer: " + e, e);
-                throw new JMSException("Error creating message producer: " + e);
+                final JMSException jmse = new JMSException("Error creating message producer");
+                jmse.setLinkedException(e);
+                throw jmse;
+
             }
             return producer;
         }
@@ -494,39 +506,54 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
 
     public MessageConsumer createConsumer(Destination destination) throws JMSException
     {
-        return createConsumer(destination, _defaultPrefetch, false, false, false, null);
+        return createConsumer(destination, _defaultPrefetch, false, false, null);
     }
 
     public MessageConsumer createConsumer(Destination destination, String messageSelector) throws JMSException
     {
-        return createConsumer(destination, _defaultPrefetch, false, false, false, messageSelector);
+        return createConsumer(destination, _defaultPrefetch, false, false, messageSelector);
     }
 
     public MessageConsumer createConsumer(Destination destination, String messageSelector, boolean noLocal)
             throws JMSException
     {
-        return createConsumer(destination, _defaultPrefetch, noLocal, false, false, messageSelector);
+        return createConsumer(destination, _defaultPrefetch, noLocal, false, messageSelector);
     }
 
-    public MessageConsumer createConsumer(
-            Destination destination,
-            int prefetch,
-            boolean noLocal,
-            boolean dynamic,
-            boolean exclusive,
-            String selector) throws JMSException
+    public MessageConsumer createConsumer(Destination destination,
+                                          int prefetch,
+                                          boolean noLocal,
+                                          boolean exclusive,
+                                          String selector) throws JMSException
     {
-        return createConsumer(destination, prefetch, noLocal, dynamic, exclusive, selector, null);
+        return createConsumer(destination, prefetch, noLocal, exclusive, selector, null);
     }
 
-    public MessageConsumer createConsumer(
-            Destination destination,
-            int prefetch,
-            boolean noLocal,
-            boolean dynamic,
-            boolean exclusive,
-            String selector,
-            FieldTable rawSelector) throws JMSException
+    public MessageConsumer createBasicConsumer(Destination destination,
+                                               boolean noLocal,
+                                               boolean exclusive) throws JMSException
+    {
+        return createConsumerImpl(new BasicSessionContentTypeFactory(), destination, 0, noLocal, exclusive, null, null);
+    }
+
+    public MessageConsumer createConsumer(Destination destination,
+                                          int prefetch,
+                                          boolean noLocal,
+                                          boolean exclusive,
+                                          String selector,
+                                          FieldTable rawSelector) throws JMSException
+    {
+        return createConsumerImpl(new JMSSessionContentTypeFactory(), destination, prefetch, noLocal, exclusive,
+                                  selector, rawSelector);
+    }
+
+    protected MessageConsumer createConsumerImpl(SessionContentTypeFactory contentTypeFactory,
+                                                 Destination destination,
+                                                 int prefetch,
+                                                 boolean noLocal,
+                                                 boolean exclusive,
+                                                 String selector,
+                                                 FieldTable rawSelector) throws JMSException
     {
         synchronized (_closingLock)
         {
@@ -534,15 +561,15 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
 
             AMQDestination amqd = (AMQDestination)destination;
 
-            AMQMessageConsumer consumer = new AMQMessageConsumer(_channelId, amqd, selector, noLocal,
-                                                                 _messageFactoryRegistry, this,
-                                                                 _connection.getProtocolHandler());
+            final AMQProtocolHandler protocolHandler = _connection.getProtocolHandler();
+            AbstractMessageConsumer consumer = contentTypeFactory.createConsumer(_channelId, amqd, selector,
+                                                                                 noLocal,
+                                                                                 _messageFactoryRegistry, this,
+                                                                                 protocolHandler);
 
             int consumerTag = -1;
             try
             {
-                final AMQProtocolHandler protocolHandler = _connection.getProtocolHandler();
-
                 // Declare exchange
                 AMQFrame exchangeDeclare = ExchangeDeclareBody.createAMQFrame(_channelId, 0, amqd.getExchangeName(),
                                                                               amqd.getExchangeClass(), false, false,
@@ -575,13 +602,15 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                                               new SpecificMethodFrameListener(_channelId, QueueBindOkBody.class));
 
                 // Consume from queue
-                AMQFrame jmsConsume = JmsConsumeBody.createAMQFrame(_channelId, 0, amqd.getQueueScope(), queueName, 0,
-                                                                    prefetch, noLocal, true, exclusive);
+                AMQFrame jmsConsume = contentTypeFactory.createConsumeFrame(_channelId, 0, amqd.getQueueScope(), queueName, 0,
+                                                                            prefetch, noLocal, true, exclusive);
 
                 AMQMethodEvent consumeOkEvent = protocolHandler.writeCommandFrameAndWaitForReply(jmsConsume,
-                                                                 new SpecificMethodFrameListener(_channelId,
-                                                                                                 JmsConsumeOkBody.class));
-                consumerTag = ((JmsConsumeOkBody) consumeOkEvent.getMethod()).consumerTag;
+                                                 new SpecificMethodFrameListener(_channelId,
+                                                                                 contentTypeFactory.getConsumeOkClass()));
+
+                //consumerTag = ((JmsConsumeOkBody) consumeOkEvent.getMethod()).consumerTag;
+                consumerTag = contentTypeFactory.getConsumerTag(consumeOkEvent);
                 consumer.setConsumerTag(consumerTag);
                 registerConsumer(consumerTag, consumer);
               }

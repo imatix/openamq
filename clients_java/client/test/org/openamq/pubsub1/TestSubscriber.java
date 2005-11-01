@@ -1,7 +1,6 @@
 package org.openamq.pubsub1;
 
 import org.apache.log4j.Logger;
-import org.apache.log4j.BasicConfigurator;
 import org.openamq.client.AMQConnection;
 import org.openamq.client.AMQTopic;
 import org.openamq.jms.Session;
@@ -58,7 +57,7 @@ public class TestSubscriber
     }
 
     public static void main(String[] args)
-    {        
+    {
         _logger.info("Starting...");
 
         if (args.length != 7)
@@ -70,7 +69,7 @@ public class TestSubscriber
         {
             InetAddress address = InetAddress.getLocalHost();
             AMQConnection con1 = new AMQConnection(args[0], Integer.parseInt(args[1]), args[2], args[3],
-                                                  address.getHostName(), args[4]);            
+                                                  address.getHostName(), args[4]);
             final org.openamq.jms.Session session1 = (org.openamq.jms.Session) con1.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
             AMQConnection con2 = new AMQConnection(args[0], Integer.parseInt(args[1]), args[2], args[3],
@@ -83,9 +82,9 @@ public class TestSubscriber
 
             Topic t = new AMQTopic("cbr", false);
             MessageConsumer consumer1 = session1.createConsumer(t,
-                                                                100, false, true, false, selector);
+                                                                100, false, false, selector);
             MessageConsumer consumer2 = session2.createConsumer(t,
-                                                                100, false, true, false, selector);
+                                                                100, false, false, selector);
 
             consumer1.setMessageListener(new TestMessageListener("ML 1", expectedMessageCount));
             consumer2.setMessageListener(new TestMessageListener("ML 2", expectedMessageCount));

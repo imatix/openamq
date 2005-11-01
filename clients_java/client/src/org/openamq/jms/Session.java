@@ -1,7 +1,6 @@
 package org.openamq.jms;
 
-import javax.jms.Destination;
-import javax.jms.JMSException;
+import javax.jms.*;
 import javax.jms.MessageConsumer;
 
 
@@ -21,10 +20,20 @@ public interface Session extends javax.jms.Session
 
     MessageConsumer createConsumer(Destination destination,
                                    int prefetch,
-                                   boolean noLocal,                                   
-                                   boolean dynamic,
+                                   boolean noLocal,
                                    boolean exclusive,
                                    String selector) throws JMSException;
+
+    /**
+     * Creates a "basic" consumer to work with the basic content class.
+     * @param destination
+     * @return a message consumer
+     */
+    MessageConsumer createBasicConsumer(Destination destination,
+                                        boolean noLocal,
+                                        boolean exclusive) throws JMSException;
+
+    MessageProducer createBasicProducer(Destination destination) throws JMSException;
 
     /**
      * @return the prefetch value used by default for consumers created on this session.

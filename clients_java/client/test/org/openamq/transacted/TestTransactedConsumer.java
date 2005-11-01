@@ -1,14 +1,15 @@
 package org.openamq.transacted;
 
-import org.openamq.jms.Session;
-import org.openamq.client.TestQueueConsumer;
+import org.apache.log4j.Logger;
 import org.openamq.client.AMQConnection;
 import org.openamq.client.AMQQueue;
+import org.openamq.jms.Session;
 
-import javax.jms.*;
-
+import javax.jms.ExceptionListener;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.MessageConsumer;
 import java.net.InetAddress;
-import org.apache.log4j.*;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
@@ -35,7 +36,7 @@ public class TestTransactedConsumer
             AMQQueue destination = new AMQQueue(args[5]);
 
             MessageConsumer consumer = session.createConsumer(destination,
-            		                                          100, false, true, false, null);
+            		                                          100, true, false, null);
 
             /*consumer.setMessageListener(new MessageListener()
             {
@@ -52,7 +53,7 @@ public class TestTransactedConsumer
                     }
                 }
             });*/
-            
+
             con.setExceptionListener(new ExceptionListener()
             {
                 public void onException(JMSException jmsException)

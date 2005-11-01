@@ -47,7 +47,7 @@ public class ServiceProvidingClient
             _logger.info("Message selector is <" + selector + ">...");
 
             MessageConsumer consumer = session.createConsumer(destination,
-                                                              100, false, true, true, selector);
+                                                              100, true, false, selector);
 
             consumer.setMessageListener(new MessageListener()
             {
