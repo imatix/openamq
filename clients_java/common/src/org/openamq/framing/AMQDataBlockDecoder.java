@@ -44,7 +44,7 @@ public class AMQDataBlockDecoder implements MessageDecoder
         final byte type = in.get();
 
         // we have to check this isn't a protocol initiation frame here - we can't tell later on and we end up
-        // waiting for more data
+        // waiting for more data. This could be improved if MINA supported some kind of state awareness when decoding
         if ((char)type == 'A')
         {
             return MessageDecoderResult.NOT_OK;
@@ -69,9 +69,16 @@ public class AMQDataBlockDecoder implements MessageDecoder
         {
             return MessageDecoderResult.NEED_DATA;
         }
-        
+
         if (isSupportedFrameType(type))
         {
+            if (_logger.isDebugEnabled())
+            {
+                // we have read 8 bytes so far, so output 8 + bodysize to get complete data block size
+                // this logging statement is useful when looking at exactly what size of data is coming in/out
+                // the broker
+                _logger.debug("Able to decode data block of size " + (bodySize + 8));
+            }
             return MessageDecoderResult.OK;
         }
         /*else if (size < frameSize)
@@ -95,7 +102,7 @@ public class AMQDataBlockDecoder implements MessageDecoder
 
         return result;
     }
-    
+
     protected Object createAndPopulateFrame(ByteBuffer in)
                     throws AMQFrameDecodingException
     {
@@ -109,7 +116,7 @@ public class AMQDataBlockDecoder implements MessageDecoder
 
         // Note that bodySize here includes the end of frame marker
         frame.populateFromBuffer(in, channel, bodySize - 1, bodyFactory);
-        
+
         byte marker = in.get();
         assert marker == 0xCE;
         return frame;
