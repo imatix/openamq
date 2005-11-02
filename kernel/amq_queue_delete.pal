@@ -10,7 +10,7 @@
         <queue_bind     scope = "default"   queue = "queue-delete_0" exchange = "amq.direct" routing_key = "rk_delete" />
         <basic_content  size = "64000"      message_id = "id-$random" />
         <basic_publish  exchange = "amq.direct" routing_key = "rk_delete" />
-        <basic_browse   scope = "default"   queue = "queue-delete_0"/>
+        <basic_get      scope = "default"   queue = "queue-delete_0"/>
         <queue_delete   queue = "queue-delete_0" /> 
         <!-- TODO: how to assert this delete? -->
         <!-- TODO: how to assert messages moved to dead-letter -->
@@ -19,7 +19,7 @@
         <queue_bind     scope = "default"   queue = "queue-delete_1" exchange = "amq.direct" routing_key = "rk_delete" />
         <basic_content  size = "64000"      message_id = "id-$random" />
         <basic_publish  exchange = "amq.direct" routing_key = "rk_delete" />
-        <basic_browse   scope = "default"   queue = "queue-delete_1"/>
+        <basic_get      scope = "default"   queue = "queue-delete_1"/>
         <queue_delete   queue = "queue-delete_1" ticket = "0" /> 
        
         <!-- ....... "should fail" testcases .............................. --> 

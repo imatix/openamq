@@ -314,9 +314,9 @@ main (int argc, char *argv [])
 
         count = 0;
         while (count < messages) {
-            //  If we're browsing, do a synchronous browse
+            //  If we're browsing, do a synchronous get
             if (!async_mode)
-                amq_client_session_jms_browse (session, ticket, "global", opt_queue, TRUE);
+                amq_client_session_jms_get (session, ticket, "global", opt_queue, TRUE);
 
             //  Process whatever content has already arrived
             got_messages = FALSE;

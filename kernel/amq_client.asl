@@ -9,7 +9,7 @@
 <option name = "product_name" value = "OpenAMQ Kernel Client" />
 
 <class name = "basic">
-  <action name = "browse-ok">
+  <action name = "get-ok">
     amq_content_$(class.name)_possess (self->content);
     amq_content_$(class.name)_set_routing_key (
         self->content, method->exchange, method->routing_key, 0);
@@ -37,9 +37,9 @@
 </class>
 
 <class name = "jms">
-  <action name = "browse-ok" sameas = "basic" />
-  <action name = "deliver"   sameas = "basic" />
-  <action name = "bounce"    sameas = "basic" />
+  <action name = "get-ok"  sameas = "basic" />
+  <action name = "deliver" sameas = "basic" />
+  <action name = "bounce"  sameas = "basic" />
 </class>
 
 </protocol>

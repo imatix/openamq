@@ -9,7 +9,7 @@
 <!-- Don't use own variables with the same name as standard variables -->
 <set name = "myqueue" value = "my.test" />
 <macro name = "check queue">
-    <jms_browse />
+    <jms_get />
     <jms_arrived>
         <echo>Arrived: $message_id</echo>
     </jms_arrived>

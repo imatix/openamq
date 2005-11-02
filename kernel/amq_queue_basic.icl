@@ -143,7 +143,7 @@ runs lock-free as a child of the asynchronous queue class.
     }
 </method>
 
-<method name = "browse" template = "function">
+<method name = "get" template = "function">
     <doc>
     Returns next message off queue, if any.
     </doc>
@@ -157,7 +157,7 @@ runs lock-free as a child of the asynchronous queue class.
     if (amq_server_channel_alive (channel)) {
         content = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
         if (content) {
-            amq_server_agent_basic_browse_ok (
+            amq_server_agent_basic_get_ok (
                 channel->connection->thread,
                 (dbyte) channel->key,
                 content,
@@ -168,7 +168,7 @@ runs lock-free as a child of the asynchronous queue class.
             amq_broker_messages++;
         }
         else
-            amq_server_agent_basic_browse_empty (
+            amq_server_agent_basic_get_empty (
                 channel->connection->thread,
                 (dbyte) channel->key);
     }

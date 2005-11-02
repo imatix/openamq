@@ -13,7 +13,7 @@
         <queue_bind     scope = "default"   queue = "queue-purge_0" exchange = "amq.direct" routing_key = "rk_purge" />
         <basic_content  size = "64000"      message_id = "id-$random" />
         <basic_publish  exchange = "amq.direct" routing_key = "rk_purge" />
-        <basic_browse   scope = "default"   queue = "queue-purge_0"/>
+        <basic_get      scope = "default"   queue = "queue-purge_0"/>
         <queue_purge    queue = "queue-purge_0" /> 
         <!-- TODO: how to assert this purge? -->
         <!-- TODO: how to assert that tx-based un-acked msg's are not deleted -->
@@ -22,7 +22,7 @@
         <queue_bind     scope = "default"   queue = "queue-purge_1" exchange = "amq.direct" routing_key = "rk_purge" />
         <basic_content  size = "64000"      message_id = "id-$random" />
         <basic_publish  exchange = "amq.direct" routing_key = "rk_purge" />
-        <basic_browse   scope = "default"   queue = "queue-purge_1"/>
+        <basic_get      scope = "default"   queue = "queue-purge_1"/>
         <queue_purge    queue = "queue-purge_1" ticket = "0"/> 
        
         <!-- ....... "should fail" testcases .............................. --> 

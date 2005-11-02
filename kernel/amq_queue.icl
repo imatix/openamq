@@ -192,7 +192,7 @@ class.  This is a lock-free asynchronous class.
     </action>
 </method>
 
-<method name = "browse" template = "async function" async = "1">
+<method name = "get" template = "async function" async = "1">
     <doc>
     Returns next message off queue, if any.
     </doc>
@@ -201,10 +201,10 @@ class.  This is a lock-free asynchronous class.
     //
     <action>
     if (class_id == AMQ_SERVER_JMS)
-        amq_queue_jms_browse (self->queue_jms, channel);
+        amq_queue_jms_get (self->queue_jms, channel);
     else
     if (class_id == AMQ_SERVER_BASIC)
-        amq_queue_basic_browse (self->queue_basic, channel);
+        amq_queue_basic_get (self->queue_basic, channel);
     else
         icl_console_print ("E: illegal content class (%d)", class_id);
     </action>

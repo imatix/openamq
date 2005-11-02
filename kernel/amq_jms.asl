@@ -19,7 +19,7 @@
                         / C:PUBLISH content
                         / S:BOUNCE content
                         / S:DELIVER content
-                        / C:BROWSE ( S:BROWSE-OK content / S:BROWSE-EMPTY )
+                        / C:GET ( S:GET-OK content / S:GET-EMPTY )
                         / C:ACK
                         / C:REJECT
 </doc>
@@ -332,15 +332,15 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "browse" synchronous = "1">
+<method name = "get" synchronous = "1">
   direct access to a queue
   <doc>
     This method provides a direct access to the messages in a queue
     using a synchronous dialogue that is designed for specific types of
     application where functionality is more important than performance.
   </doc>
-  <response name = "browse-ok" />
-  <response name = "browse empty" />
+  <response name = "get-ok" />
+  <response name = "get empty" />
   <chassis name = "server" implement = "MUST" />
 
   <field name = "ticket" domain = "access ticket">
@@ -354,19 +354,19 @@
     
   <field name = "queue" domain = "queue name">
     <doc>
-      Specifies the name of the queue to browse from.
+      Specifies the name of the queue to get from.
     </doc>
   </field>
 
   <field name = "auto ack" domain = "auto ack" />
 </method>
 
-<method name = "browse-ok" synchronous = "1" content = "1">
-  provide client with a browsed message
+<method name = "get-ok" synchronous = "1" content = "1">
+  provide client with a message
   <doc>
-    This method delivers a message to the client following a browse
-    method.  A browsed message must be acknowledged unless the
-    auto-ack option was set in the Browse method.
+    This method delivers a message to the client following a get
+    method.  A message delivered by 'get-ok' must be acknowledged
+    unless the auto-ack option was set in the get method.
   </doc>
   <chassis name = "client" implement = "MAY" />
 
@@ -400,7 +400,7 @@
   </field>
 </method>
 
-<method name = "browse empty" synchronous = "1">
+<method name = "get empty" synchronous = "1">
   indicate no messages available
   <doc>
     This method tells the client that the queue has no messages
@@ -416,7 +416,7 @@
   acknowledge one or more messages
   <doc>
     This method acknowledges one or more messages delivered via the
-    Deliver or Browse-Ok methods.  The client can ask to confirm a
+    Deliver or Get-Ok methods.  The client can ask to confirm a
     single message or a set of messages up to and including a specific
     message.
   </doc>
@@ -452,7 +452,7 @@
   </doc>
   <doc name = "rule">
     The server SHOULD be capable of accepting and process the Reject
-    method while sending message content with a Deliver or Browse-Ok
+    method while sending message content with a Deliver or Get-Ok
     method.  I.e. the server should read and process incoming methods
     while sending output frames.  To cancel a partially-send content,
     the server sends a content body frame of size 1 (i.e. with no data

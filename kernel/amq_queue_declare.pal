@@ -22,15 +22,21 @@
        <!-- .......... "should fail" tests .............................-->
        <!-- [0] Declare queue with illegal name -->
        <queue_declare queue="@%$^&*()!"                         scope="default" />
-       <assert        name="reply_code"         value="502">E: Failure in '[0] Declare queue with illegal name' reply code != 502</assert>
-       
+        <assert name = "reply_code" value = "502">
+        E: Failure in '[0] Declare queue with illegal name' reply code != 502
+        </assert>
+
        <!-- [1] Declare queue with empty scope -->
        <queue_declare queue="queue-scope_2"                                     />
-       <assert        name="reply_code"         value="502">E: Failure in '[1] Declare queue with empty scope' reply code != 502</assert>
+       <assert name = "reply_code" value = "502">
+        E: Failure in '[1] Declare queue with empty scope' reply code != 502
+       </assert>
 
        <!-- [2] Declare queue with illegal scope -->
        <queue_declare queue="queue-scope_3"                     scope="&^%{}[]" />
-       <assert        name="reply_code"         value="502">E: Failure in '[2] Declare queue with illegal scope' reply code != 502</assert>
+       <assert name = "reply_code" value = "502">
+        E: Failure in '[2] Declare queue with illegal scope' reply code != 502
+       </assert>
 
        <!-- 
        FIXME: Testcase for invalid tickets needed

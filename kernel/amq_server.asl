@@ -200,7 +200,7 @@
 
 <class name = "basic">
   <action name = "publish" sameas = "jms" />
-  <action name = "browse"  sameas = "jms" />
+  <action name = "get"     sameas = "jms" />
 
   <action name = "consume">
     //  The channel is responsible for creating/cancelling consumers
@@ -254,14 +254,14 @@
         amq_server_channel_close (channel, ASL_NOT_FOUND, "No such exchange defined");
   </action>
 
-  <action name = "browse">
+  <action name = "get">
     <local>
     amq_queue_t
         *queue;
     </local>
     queue = amq_queue_search (amq_vhost->queue_table, method->scope, method->queue);
     if (queue) {
-        amq_queue_browse (queue, channel, self->class_id);
+        amq_queue_get (queue, channel, self->class_id);
         amq_queue_unlink (&queue);
     }
     else
