@@ -4,31 +4,28 @@
     script = "amq_pal_gen"
     target = "stdc"
     >
-    The test console works as follows:
-    - get schema
-    - recursive descent through all objects
-    - see test_console.pl for details
-    
+    The test console works in collaboration with test_console.pl,
+    which drives the actual test scenarios.  Please read the perl
+    script for details.
     <include filename = "amq_test_base.pal" />
     <session scope = "test">
         <queue_declare />
         <queue_bind queue = "$queue" exchange = "amq.direct" routing_key = "$queue" />
-        <basic_consume queue = "$queue" auto_ack = "1" />
+        <jms_consume queue = "$queue" auto_ack = "1" />
         <repeat counter = "count">
-            <basic_content
+            <jms_content
                 exec = "perl test_console.pl"
                 reply_to = "$queue"
                 message_id = "message-$count"
             />
             <if name = "body_size" value = "0">
-                <echo>No next stage, ending</echo>
                 <break/>
             </if>
-            <basic_publish exchange = "amq.system" routing_key = "amq.console" />
+            <jms_publish exchange = "amq.system" routing_key = "amq.console" />
             <wait/>
-            <basic_arrived>
+            <jms_arrived>
                 <echo>Got response from console - $message_id</echo>
-            </basic_arrived>
+            </jms_arrived>
             <empty>
                 <echo>No response arrived from console, aborting</echo>
                 <break/>

@@ -124,12 +124,12 @@ $(selftype)
     Accepts an AMQ Console message, which must be formatted in CML according
     to the AMQ Console specifications.
     </doc>
-    <argument name = "content" type = "amq_content_basic_t *">The message content</argument>
+    <argument name = "content" type = "amq_content_jms_t *">The message content</argument>
     <possess>
-    amq_content_basic_possess (content);
+    amq_content_jms_possess (content);
     </possess>
     <release>
-    amq_content_basic_destroy (&content);
+    amq_content_jms_destroy (&content);
     </release>
     <action>
     //
@@ -146,7 +146,7 @@ $(selftype)
 
     //  Get content body into a bucket
     bucket = ipr_bucket_new (IPR_BUCKET_MAX_SIZE);
-    bucket->cur_size = amq_content_basic_get_body (
+    bucket->cur_size = amq_content_jms_get_body (
         content, bucket->data, bucket->max_size);
     descr.data = bucket->data;
     descr.size = bucket->cur_size;
@@ -196,17 +196,17 @@ $(selftype)
     Accepts an inspect response from an object, in the form of a field
     list which the console can then reformat as a CML response.
     </doc>
-    <argument name = "request"   type = "amq_content_basic_t *">Original request</argument>
+    <argument name = "request"   type = "amq_content_jms_t *">Original request</argument>
     <argument name = "object id" type = "qbyte">Object id</argument>
     <argument name = "fields"    type = "asl_field_list_t *">Object fields</argument>
     <argument name = "objects"   type = "asl_field_list_t *">Object children</argument>
     <possess>
-    amq_content_basic_possess (request);
+    amq_content_jms_possess (request);
     asl_field_list_possess (fields);
     asl_field_list_possess (objects);
     </possess>
     <release>
-    amq_content_basic_destroy (&request);
+    amq_content_jms_destroy (&request);
     asl_field_list_destroy (&fields);
     asl_field_list_destroy (&objects);
     </release>
@@ -256,13 +256,13 @@ $(selftype)
     <doc>
     Accepts a modify response from an object.
     </doc>
-    <argument name = "request"   type = "amq_content_basic_t *">Original request</argument>
+    <argument name = "request"   type = "amq_content_jms_t *">Original request</argument>
     <argument name = "object id" type = "qbyte">Object id</argument>
     <possess>
-    amq_content_basic_possess (request);
+    amq_content_jms_possess (request);
     </possess>
     <release>
-    amq_content_basic_destroy (&request);
+    amq_content_jms_destroy (&request);
     </release>
     <action>
     ipr_xml_t
@@ -287,28 +287,28 @@ $(selftype)
 #define AMQ_CONSOLE_SCHEMA      "amq_console_schema.cml"
 
 static void
-    s_execute_schema  (amq_content_basic_t *request, ipr_xml_t *xml_command);
+    s_execute_schema  (amq_content_jms_t *request, ipr_xml_t *xml_command);
 static void
-    s_execute_inspect (amq_console_t *self, amq_content_basic_t *request, ipr_xml_t *xml_command);
+    s_execute_inspect (amq_console_t *self, amq_content_jms_t *request, ipr_xml_t *xml_command);
 static void
-    s_execute_modify  (amq_console_t *self, amq_content_basic_t *request, ipr_xml_t *xml_command);
+    s_execute_modify  (amq_console_t *self, amq_content_jms_t *request, ipr_xml_t *xml_command);
 static void
-    s_execute_monitor (amq_console_t *self, amq_content_basic_t *request, ipr_xml_t *xml_command);
+    s_execute_monitor (amq_console_t *self, amq_content_jms_t *request, ipr_xml_t *xml_command);
 static void
-    s_execute_method  (amq_console_t *self, amq_content_basic_t *request, ipr_xml_t *xml_command);
+    s_execute_method  (amq_console_t *self, amq_content_jms_t *request, ipr_xml_t *xml_command);
 static void
-    s_invalid_cml     (amq_content_basic_t *request, ipr_bucket_t *bucket, char *error);
+    s_invalid_cml     (amq_content_jms_t *request, ipr_bucket_t *bucket, char *error);
 static void
-    s_reply_error     (amq_content_basic_t *request, char *top, char *status);
+    s_reply_error     (amq_content_jms_t *request, char *top, char *status);
 static void
-    s_reply_xml       (amq_content_basic_t *request, ipr_xml_t *xml_item);
+    s_reply_xml       (amq_content_jms_t *request, ipr_xml_t *xml_item);
 static void
-    s_reply_bucket    (amq_content_basic_t *request, ipr_bucket_t *bucket);
+    s_reply_bucket    (amq_content_jms_t *request, ipr_bucket_t *bucket);
 </private>
 
 <private name = "async footer">
 static void
-s_execute_schema (amq_content_basic_t *request, ipr_xml_t *xml_command)
+s_execute_schema (amq_content_jms_t *request, ipr_xml_t *xml_command)
 {
     ipr_bucket_t
         *bucket;                        //  Schema loaded from disk
@@ -336,14 +336,14 @@ s_execute_schema (amq_content_basic_t *request, ipr_xml_t *xml_command)
 static void
 s_execute_inspect (
     amq_console_t *self,
-    amq_content_basic_t *request,
+    amq_content_jms_t *request,
     ipr_xml_t *xml_command)
 {
     char
         *object_str;
     qbyte
         object_id;
-        
+
     object_str = ipr_xml_attr_get (xml_command, "object", "");
     if (*object_str) {
         object_id = atol (object_str);
@@ -361,16 +361,50 @@ s_execute_inspect (
 static void
 s_execute_modify (
     amq_console_t *self,
-    amq_content_basic_t *request,
+    amq_content_jms_t *request,
     ipr_xml_t *xml_command)
 {
-    icl_console_print ("amq_console: modify");
+    char
+        *object_str,
+        *field_value;
+    qbyte
+        object_id;
+    asl_field_list_t
+        *fields;                        //  Properties to set
+    ipr_xml_t
+        *xml_field;
+
+    object_str = ipr_xml_attr_get (xml_command, "object", "");
+    if (*object_str) {
+        object_id = atol (object_str);
+        if (object_id < self->max_objects
+        && self->object_ref [object_id]) {
+            fields = asl_field_list_new (NULL);
+            xml_field = ipr_xml_first_child (xml_command);
+            while (xml_field) {
+                field_value = ipr_xml_child_value (xml_field);
+                asl_field_new_string (
+                    fields,
+                    ipr_xml_attr_get (xml_field, "name", "unnamed"),
+                    field_value);
+                icl_mem_free (field_value);
+                xml_field = ipr_xml_next_sibling (&xml_field);
+            }
+            self->class_ref [object_id]->modify (
+                self->object_ref [object_id], request, fields);
+            asl_field_list_destroy (&fields);
+        }
+        else
+            s_reply_error (request, "modify", "notfound");
+    }        
+    else
+        s_reply_error (request, "modify", "invalid");
 }
 
 static void
 s_execute_monitor (
     amq_console_t *self, 
-    amq_content_basic_t *request,
+    amq_content_jms_t *request,
     ipr_xml_t *xml_command)
 {
     icl_console_print ("amq_console: monitor");
@@ -379,14 +413,14 @@ s_execute_monitor (
 static void
 s_execute_method (
     amq_console_t *self,
-    amq_content_basic_t *request,
+    amq_content_jms_t *request,
     ipr_xml_t *xml_command)
 {
     icl_console_print ("amq_console: method");
 }
 
 static void
-s_invalid_cml (amq_content_basic_t *request, ipr_bucket_t *bucket, char *error)
+s_invalid_cml (amq_content_jms_t *request, ipr_bucket_t *bucket, char *error)
 {
     icl_console_print ("W: amq.console: content body is not valid CML: %s", error);
     ipr_bucket_dump (bucket);
@@ -394,7 +428,7 @@ s_invalid_cml (amq_content_basic_t *request, ipr_bucket_t *bucket, char *error)
 }
 
 static void
-s_reply_error (amq_content_basic_t *request, char *top, char *status)
+s_reply_error (amq_content_jms_t *request, char *top, char *status)
 {
     ipr_xml_t
         *cml_item,
@@ -416,7 +450,7 @@ s_reply_error (amq_content_basic_t *request, char *top, char *status)
 //  message id and using original reply-to as routing key.
 //
 static void
-s_reply_xml (amq_content_basic_t *request, ipr_xml_t *xml_item)
+s_reply_xml (amq_content_jms_t *request, ipr_xml_t *xml_item)
 {
     char
         *xml_text;                      //  Serialised XML text
@@ -435,9 +469,9 @@ s_reply_xml (amq_content_basic_t *request, ipr_xml_t *xml_item)
 //  message id and using original reply-to as routing key.
 //
 static void
-s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
+s_reply_bucket (amq_content_jms_t *request, ipr_bucket_t *bucket)
 {
-    amq_content_basic_t
+    amq_content_jms_t
         *reply;                         //  Reply content
     amq_exchange_t
         *exchange;                      //  Reply to amq.direct
@@ -446,15 +480,15 @@ s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
     exchange = amq_exchange_search (amq_vhost->exchange_table, "amq.direct");
     assert (exchange);
 
-    reply = amq_content_basic_new ();
-    amq_content_basic_set_message_id   (reply, request->message_id);
-    amq_content_basic_set_content_type (reply, "text/xml");
-    amq_content_basic_record_body      (reply, bucket);
-    amq_content_basic_set_routing_key  (reply, "amq.direct", request->reply_to, 0);
+    reply = amq_content_jms_new ();
+    amq_content_jms_set_message_id   (reply, request->message_id);
+    amq_content_jms_set_content_type (reply, "text/xml");
+    amq_content_jms_record_body      (reply, bucket);
+    amq_content_jms_set_routing_key  (reply, "amq.direct", request->reply_to, 0);
 
-    amq_exchange_publish (exchange, NULL, AMQ_SERVER_BASIC, reply, FALSE, FALSE);
+    amq_exchange_publish (exchange, NULL, AMQ_SERVER_jms, reply, FALSE, FALSE);
     amq_exchange_unlink (&exchange);
-    amq_content_basic_destroy (&reply);
+    amq_content_jms_destroy (&reply);
 }
 </private>
 

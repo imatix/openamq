@@ -1,4 +1,54 @@
+General rule for handling issues
+    - imagine you are paying for each one
+    - because you are!
+        - in terms of overall planning
 
+1. Bug process
+    - describe the problem
+    - localise the layer
+        - platform dependent? (5%)
+        - build dependent? (15%)
+        - functional scenario? (85%)
+    - reproduce it consistently
+        - specific test case if needed
+    - assign to the developer
+        - on basis of test case
+    - fix the problem
+        - in vitro
+    - confirm the fix
+        - in vitro
+        - in veritas
+
+2. Change process
+    - describe the requirement
+        - _not_ the solution!
+    - assign to the developer
+    - document
+        - confirm the requirement
+        - propose a solution
+        - argumentation and alternatives
+        - cost and planning
+    - confirm
+        - silence means consent
+    - develop
+        - solution
+        - test cases
+    - confirm
+        - in vitro
+        - in veritas
+    
+
+Console Schema
+
+    console                 -
+        broker              *
+            vhost           *
+                exchange    *
+                queue       *
+            connection      -
+                consumer    -
+        config
+        
 amq console
     broker
        \
