@@ -16,7 +16,7 @@
         <basic_consume queue = "$queue" auto_ack = "1" />
         <repeat counter = "count">
             <basic_content
-                exec = "perl -S test_console.pl"
+                exec = "perl test_console.pl"
                 reply_to = "$queue"
                 message_id = "message-$count"
             />
