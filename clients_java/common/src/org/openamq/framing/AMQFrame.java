@@ -33,7 +33,8 @@ public class AMQFrame extends AMQDataBlock implements EncodableAMQDataBlock
      * @param bodyFactory
      * @throws AMQFrameDecodingException
      */
-    public void populateFromBuffer(ByteBuffer buffer, int channel, long bodySize, BodyFactory bodyFactory) throws AMQFrameDecodingException
+    public void populateFromBuffer(ByteBuffer buffer, int channel, long bodySize, BodyFactory bodyFactory)
+            throws AMQFrameDecodingException
     {
         this.channel = channel;
         bodyFrame = bodyFactory.createBody(buffer);

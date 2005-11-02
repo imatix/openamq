@@ -24,8 +24,10 @@ public class ContentHeaderBodyFactory implements BodyFactory
 
     public AMQBody createBody(ByteBuffer in) throws AMQFrameDecodingException
     {
-        // we support only one content header type at the moment
-        // TODO: implement support for other content types
-        return new JmsContentHeaderBody();
+        // all content headers are the same - it is only the properties that differ.
+        // the content header body further delegates construction of properties
+        return new ContentHeaderBody();
     }
+
+
 }
