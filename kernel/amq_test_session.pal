@@ -1,0 +1,28 @@
+<?xml?>
+<!--
+    DOC: Testing multiple sessions, testcase needs SMT_STEP
+-->
+<pal
+    name   = "amq_test_session"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    <session error_handling="recover">
+    </session>
+    <session error_handling="recover">
+    </session>
+    <session error_handling="recover">
+    </session>
+    <session error_handling="recover">
+    </session>
+    <session error_handling="recover">
+    </session>
+    <session error_handling="recover">
+    </session>
+    <session error_handling="recover">
+    </session>
+    <session error_handling="recover">
+    </session>
+    <session error_handling="recover">
+    </session>
+</pal>
