@@ -24,13 +24,13 @@ This class defines a class descriptor.
     int (*inspect) (
         void
             *self,                      //  Object reference
-        amq_content_basic_t
+        amq_content_jms_t
             *request                    //  Original request
     );
     int (*modify) (
         void
             *self,                      //  Object reference
-        amq_content_basic_t
+        amq_content_jms_t
             *request,                   //  Original request
         asl_field_list_t
             *fields                     //  Fields to modify

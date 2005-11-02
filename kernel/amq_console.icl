@@ -486,7 +486,7 @@ s_reply_bucket (amq_content_jms_t *request, ipr_bucket_t *bucket)
     amq_content_jms_record_body      (reply, bucket);
     amq_content_jms_set_routing_key  (reply, "amq.direct", request->reply_to, 0);
 
-    amq_exchange_publish (exchange, NULL, AMQ_SERVER_jms, reply, FALSE, FALSE);
+    amq_exchange_publish (exchange, NULL, AMQ_SERVER_JMS, reply, FALSE, FALSE);
     amq_exchange_unlink (&exchange);
     amq_content_jms_destroy (&reply);
 }
