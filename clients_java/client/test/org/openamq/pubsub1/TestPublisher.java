@@ -1,7 +1,6 @@
 package org.openamq.pubsub1;
 
 import org.apache.log4j.Logger;
-import org.apache.log4j.BasicConfigurator;
 import org.openamq.client.AMQConnection;
 import org.openamq.AMQException;
 import org.openamq.client.AMQTopic;
@@ -60,17 +59,17 @@ public class TestPublisher
             }
             /*if (!"henson".equals(m.toString()))
            {
-               _log.error("AbstractMessage response not correct: expected 'henson' but got " + m.toString());
+               _log.error("AbstractJMSMessage response not correct: expected 'henson' but got " + m.toString());
            }
            else
            {
                if (_log.isDebugEnabled())
                {
-                   _log.debug("AbstractMessage " + m + " received");
+                   _log.debug("AbstractJMSMessage " + m + " received");
                }
                else
                {
-                   _log.info("AbstractMessage received");
+                   _log.info("AbstractJMSMessage received");
                }
            } */
 
