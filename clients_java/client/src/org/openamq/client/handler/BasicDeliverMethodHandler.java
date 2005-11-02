@@ -31,7 +31,7 @@ public class BasicDeliverMethodHandler implements StateAwareMethodListener
         JmsDeliverBody body = new JmsDeliverBody();
 
         // copy the fields from basic body into the jms body
-        body.consumerTag = basicBody.consumerTag;
+        //body.deliveryTag = basicBody.deliveryTag;
         body.exchange = basicBody.exchange;
         body.routingKey = basicBody.routingKey;
 

@@ -93,11 +93,11 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         {
             if (message.deliverBody != null)
             {
-                final AbstractMessageConsumer consumer = (AbstractMessageConsumer) _consumers.get(new Integer(message.deliverBody.consumerTag));
+                final AbstractMessageConsumer consumer = (AbstractMessageConsumer) _consumers.get(new Integer((int)message.deliverBody.deliveryTag));
 
                 if (consumer == null)
                 {
-                    _logger.warn("Received a message from queue " + message.deliverBody.consumerTag + " without a handler - ignoring...");
+                    _logger.warn("Received a message from queue " + message.deliverBody.deliveryTag + " without a handler - ignoring...");
                 }
                 else
                 {
@@ -567,7 +567,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                                                                                  _messageFactoryRegistry, this,
                                                                                  protocolHandler);
 
-            int consumerTag = -1;
+            int deliveryTag = -1;
             try
             {
                 // Declare exchange
@@ -609,16 +609,16 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                                                  new SpecificMethodFrameListener(_channelId,
                                                                                  contentTypeFactory.getConsumeOkClass()));
 
-                //consumerTag = ((JmsConsumeOkBody) consumeOkEvent.getMethod()).consumerTag;
-                consumerTag = contentTypeFactory.getConsumerTag(consumeOkEvent);
-                consumer.setConsumerTag(consumerTag);
-                registerConsumer(consumerTag, consumer);
+                //deliveryTag = ((JmsConsumeOkBody) consumeOkEvent.getMethod()).deliveryTag;
+                deliveryTag = contentTypeFactory.getConsumerTag(consumeOkEvent);
+                consumer.setConsumerTag(deliveryTag);
+                registerConsumer(deliveryTag, consumer);
               }
               catch (AMQException e)
               {
-                  if (consumerTag >= 0)
+                  if (deliveryTag >= 0)
                   {
-                    deregisterConsumer(consumerTag);
+                    deregisterConsumer(deliveryTag);
                   }
                   throw new JMSException("Error creating consumer: " + e);
               }
@@ -782,19 +782,19 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         _dispatcher.start();
     }
 
-    void registerConsumer(int consumerTag, MessageConsumer consumer)
+    void registerConsumer(int deliveryTag, MessageConsumer consumer)
     {
-        _consumers.put(new Integer(consumerTag), consumer);
+        _consumers.put(new Integer(deliveryTag), consumer);
     }
 
     /**
      * Called by the MessageConsumer when closing, to deregister the consumer from the
-     * map from consumerTag to consumer instance.
-     * @param consumerTag the consumer tag, that was broker-generated
+     * map from deliveryTag to consumer instance.
+     * @param deliveryTag the consumer tag, that was broker-generated
      */
-    void deregisterConsumer(int consumerTag)
+    void deregisterConsumer(int deliveryTag)
     {
-        _consumers.remove(new Integer(consumerTag));
+        _consumers.remove(new Integer(deliveryTag));
     }
 
     void registerProducer(long producerId, MessageProducer producer)
