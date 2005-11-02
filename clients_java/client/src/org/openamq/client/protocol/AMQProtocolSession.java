@@ -131,7 +131,7 @@ public class AMQProtocolSession
         _channelId2UnprocessedMsgMap.put(new Integer(message.channelId), message);
     }
 
-    public void messageContentHeaderReceived(int channelId, JmsContentHeaderBody contentHeader)
+    public void messageContentHeaderReceived(int channelId, ContentHeaderBody contentHeader)
             throws AMQException
     {
         UnprocessedMessage msg = (UnprocessedMessage) _channelId2UnprocessedMsgMap.get(new Integer(channelId));

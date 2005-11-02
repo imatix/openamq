@@ -1,6 +1,7 @@
 package org.openamq.client.message;
 
-import org.openamq.framing.JmsContentHeaderBody;
+import org.openamq.framing.JmsContentHeaderProperties;
+import org.openamq.framing.ContentHeaderBody;
 import org.openamq.AMQException;
 
 import javax.jms.JMSException;
@@ -11,7 +12,7 @@ import java.io.*;
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
-public class AMQBytesMessage extends AbstractMessage implements javax.jms.BytesMessage
+public class JMSBytesMessage extends AbstractJMSMessage implements javax.jms.BytesMessage
 {
     private static final String MIME_TYPE = "application/octet-stream";
 
@@ -29,7 +30,7 @@ public class AMQBytesMessage extends AbstractMessage implements javax.jms.BytesM
      */
     private DataOutputStream _dos;
 
-    AMQBytesMessage()
+    JMSBytesMessage()
     {
         this(null);
     }
@@ -39,10 +40,10 @@ public class AMQBytesMessage extends AbstractMessage implements javax.jms.BytesM
      * @param data if data is not null, the message is immediately in read only mode. if data is null, it is in
      * write-only mode
      */
-    AMQBytesMessage(byte[] data)
+    JMSBytesMessage(byte[] data)
     {
         super(); // this instanties a content header
-        _contentHeader.contentType = MIME_TYPE;
+        getJmsContentHeaderProperties().contentType = MIME_TYPE;
         if (data == null)
         {
             _baos = new ByteArrayOutputStream();
@@ -55,11 +56,12 @@ public class AMQBytesMessage extends AbstractMessage implements javax.jms.BytesM
         }
     }
 
-    AMQBytesMessage(long messageNbr, byte[] data, JmsContentHeaderBody contentHeader)
+    JMSBytesMessage(long messageNbr, byte[] data, ContentHeaderBody contentHeader)
             throws AMQException
     {
-        super(messageNbr, contentHeader);
-        contentHeader.contentType = MIME_TYPE;
+        // TODO: this casting is ugly. Need to review whole ContentHeaderBody idea
+        super(messageNbr, (JmsContentHeaderProperties) contentHeader.properties);
+        getJmsContentHeaderProperties().contentType = MIME_TYPE;
         _dis = new DataInputStream(new ByteArrayInputStream(data));
         _bodyLength = data.length;
     }

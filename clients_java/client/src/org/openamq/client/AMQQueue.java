@@ -35,7 +35,8 @@ public class AMQQueue extends AMQDestination implements Queue
 
     public AMQQueue(String name, String scope, boolean temporary)
     {
-        super(AMQDestination.QUEUE_EXCHANGE_NAME, AMQDestination.QUEUE_EXCHANGE_CLASS, name, temporary, name, scope);
+        super(AMQDestination.QUEUE_EXCHANGE_NAME, AMQDestination.QUEUE_EXCHANGE_CLASS, name, temporary,
+              temporary?null:name, scope);
     }
     
     public String getEncodedName()

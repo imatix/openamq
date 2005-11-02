@@ -26,10 +26,14 @@ public abstract class AMQDestination implements Destination
 
     protected final boolean _isTemporary;
 
-    protected final String _queueName;
+    protected String _queueName;
 
     protected final String _queueScope;
 
+    protected AMQDestination(String exchangeName, String exchangeClass, String destinationName)
+    {
+        this(exchangeName, exchangeClass, destinationName, false, null, null);
+    }
     protected AMQDestination(String exchangeName, String exchangeClass, String destinationName, String queueName,
             String queueScope)
     {
@@ -99,6 +103,11 @@ public abstract class AMQDestination implements Destination
     public String getQueueName()
     {
         return _queueName;
+    }
+
+    public void setQueueName(String queueName)
+    {
+        _queueName = queueName;
     }
 
     public String toString()

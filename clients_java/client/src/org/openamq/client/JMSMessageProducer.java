@@ -6,7 +6,7 @@ import org.openamq.framing.AMQFrame;
 import org.openamq.framing.JmsPublishBody;
 
 /**
- * An implementation of an JMSMessageProducer which extends the JMS AbstractMessage Producer.
+ * An implementation of an JMSMessageProducer which extends the JMS AbstractJMSMessage Producer.
  */
 public class JMSMessageProducer extends AbstractMessageProducer
 {

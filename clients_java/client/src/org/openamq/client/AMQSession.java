@@ -7,7 +7,7 @@ import edu.emory.mathcs.backport.java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.log4j.Logger;
 import org.openamq.AMQException;
 import org.openamq.AMQUndeliveredException;
-import org.openamq.client.message.AbstractMessage;
+import org.openamq.client.message.AbstractJMSMessage;
 import org.openamq.client.message.MessageFactoryRegistry;
 import org.openamq.client.message.UnprocessedMessage;
 import org.openamq.client.protocol.AMQMethodEvent;
@@ -93,11 +93,11 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         {
             if (message.deliverBody != null)
             {
-                final AbstractMessageConsumer consumer = (AbstractMessageConsumer) _consumers.get(new Integer((int)message.deliverBody.deliveryTag));
+                final AbstractMessageConsumer consumer = (AbstractMessageConsumer) _consumers.get(new Integer(message.deliverBody.consumerTag));
 
                 if (consumer == null)
                 {
-                    _logger.warn("Received a message from queue " + message.deliverBody.deliveryTag + " without a handler - ignoring...");
+                    _logger.warn("Received a message from queue " + message.deliverBody.consumerTag + " without a handler - ignoring...");
                 }
                 else
                 {
@@ -109,7 +109,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                 try
                 {
                     // Bounced message is processed here, away from the mina thread
-                    AbstractMessage bouncedMessage = _messageFactoryRegistry.createMessage(0,
+                    AbstractJMSMessage bouncedMessage = _messageFactoryRegistry.createMessage(0,
                                                                                            false,
                                                                                            message.contentHeader,
                                                                                            message.bodies);
@@ -567,7 +567,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                                                                                  _messageFactoryRegistry, this,
                                                                                  protocolHandler);
 
-            int deliveryTag = -1;
+            int consumerTag = -1;
             try
             {
                 // Declare exchange
@@ -586,7 +586,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                 AMQMethodEvent evt = protocolHandler.writeCommandFrameAndWaitForReply(queueDeclare,
                                              new SpecificMethodFrameListener(_channelId, QueueDeclareOkBody.class));
                 QueueDeclareOkBody qdb = (QueueDeclareOkBody) evt.getMethod();
-                String queueName = qdb.queue;
+                amqd.setQueueName(qdb.queue);
 
                 // Bind exchange to queue
                 // TODO: construct the rawSelector from the selector string if rawSelector == null
@@ -602,23 +602,23 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                                               new SpecificMethodFrameListener(_channelId, QueueBindOkBody.class));
 
                 // Consume from queue
-                AMQFrame jmsConsume = contentTypeFactory.createConsumeFrame(_channelId, 0, amqd.getQueueScope(), queueName, 0,
+                AMQFrame jmsConsume = contentTypeFactory.createConsumeFrame(_channelId, 0, amqd.getQueueScope(),
+                                                                            qdb.queue, 0,
                                                                             prefetch, noLocal, true, exclusive);
 
                 AMQMethodEvent consumeOkEvent = protocolHandler.writeCommandFrameAndWaitForReply(jmsConsume,
                                                  new SpecificMethodFrameListener(_channelId,
                                                                                  contentTypeFactory.getConsumeOkClass()));
 
-                //deliveryTag = ((JmsConsumeOkBody) consumeOkEvent.getMethod()).deliveryTag;
-                deliveryTag = contentTypeFactory.getConsumerTag(consumeOkEvent);
-                consumer.setConsumerTag(deliveryTag);
-                registerConsumer(deliveryTag, consumer);
+                consumerTag = contentTypeFactory.getConsumerTag(consumeOkEvent);
+                consumer.setConsumerTag(consumerTag);
+                registerConsumer(consumerTag, consumer);
               }
               catch (AMQException e)
               {
-                  if (deliveryTag >= 0)
+                  if (consumerTag >= 0)
                   {
-                    deregisterConsumer(deliveryTag);
+                    deregisterConsumer(consumerTag);
                   }
                   throw new JMSException("Error creating consumer: " + e);
               }
@@ -782,19 +782,19 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         _dispatcher.start();
     }
 
-    void registerConsumer(int deliveryTag, MessageConsumer consumer)
+    void registerConsumer(int consumerTag, MessageConsumer consumer)
     {
-        _consumers.put(new Integer(deliveryTag), consumer);
+        _consumers.put(new Integer(consumerTag), consumer);
     }
 
     /**
      * Called by the MessageConsumer when closing, to deregister the consumer from the
-     * map from deliveryTag to consumer instance.
-     * @param deliveryTag the consumer tag, that was broker-generated
+     * map from consumerTag to consumer instance.
+     * @param consumerTag the consumer tag, that was broker-generated
      */
-    void deregisterConsumer(int deliveryTag)
+    void deregisterConsumer(int consumerTag)
     {
-        _consumers.remove(new Integer(deliveryTag));
+        _consumers.remove(new Integer(consumerTag));
     }
 
     void registerProducer(long producerId, MessageProducer producer)

@@ -115,7 +115,7 @@ public class AMQProtocolHandler implements ProtocolHandler
         else if (frame.bodyFrame instanceof ContentHeaderBody)
         {
             _protocolSession.messageContentHeaderReceived(frame.channel,
-                                                          (JmsContentHeaderBody) frame.bodyFrame);
+                                                          (ContentHeaderBody) frame.bodyFrame);
         }
         else if (frame.bodyFrame instanceof ContentBody)
         {

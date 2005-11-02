@@ -22,7 +22,7 @@ public class UnprocessedMessage
     public JmsDeliverBody deliverBody;
     public JmsBounceBody bounceBody; // TODO: check change (gustavo)
     public int channelId;
-    public JmsContentHeaderBody contentHeader;
+    public ContentHeaderBody contentHeader;
 
     /**
      * List of ContentBody instances. Due to fragmentation you don't know how big this will be in general

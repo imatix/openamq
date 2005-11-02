@@ -1,10 +1,8 @@
 package org.openamq.client.message;
 
 import org.openamq.AMQException;
-import org.openamq.framing.AMQMessage;
-import org.openamq.framing.JmsContentHeaderBody;
-import org.openamq.framing.ContentBody;
-import org.openamq.framing.FieldTable;
+import org.openamq.framing.JmsContentHeaderProperties;
+import org.openamq.framing.ContentHeaderBody;
 
 import javax.jms.JMSException;
 import java.util.HashMap;
@@ -47,14 +45,15 @@ public class MessageFactoryRegistry
      * @throws AMQException
      * @throws JMSException
      */
-    public AbstractMessage createMessage(long messageNbr, boolean redelivered,
-                                         JmsContentHeaderBody contentHeader,
-                                         List bodies) throws AMQException, JMSException
+    public AbstractJMSMessage createMessage(long messageNbr, boolean redelivered,
+                                            ContentHeaderBody contentHeader,
+                                            List bodies) throws AMQException, JMSException
     {
-        MessageFactory mf = (MessageFactory) _mimeToFactoryMap.get(contentHeader.contentType);
+        JmsContentHeaderProperties properties =  (JmsContentHeaderProperties) contentHeader.properties;
+        MessageFactory mf = (MessageFactory) _mimeToFactoryMap.get(properties.contentType);
         if (mf == null)
         {
-            throw new AMQException("Unsupport MIME type of " + contentHeader.contentType);
+            throw new AMQException("Unsupport MIME type of " + properties.contentType);
         }
         else
         {
@@ -62,7 +61,7 @@ public class MessageFactoryRegistry
         }
     }
 
-    public AbstractMessage createMessage(String mimeType) throws AMQException, JMSException
+    public AbstractJMSMessage createMessage(String mimeType) throws AMQException, JMSException
     {
         if (mimeType == null)
         {
@@ -86,11 +85,11 @@ public class MessageFactoryRegistry
     public static MessageFactoryRegistry newDefaultRegistry()
     {
         MessageFactoryRegistry mf = new MessageFactoryRegistry();
-        mf.registerFactory("text/plain", new AMQTextMessageFactory());
-        mf.registerFactory("application/octet-stream", new AMQBytesMessageFactory());
+        mf.registerFactory("text/plain", new JMSTextMessageFactory());
+        mf.registerFactory("application/octet-stream", new JMSBytesMessageFactory());
         // TODO: use bytes message for default message factory
         //if (FieldTable.grm)
-            mf.registerFactory(null, new AMQTextMessageFactory());
+            mf.registerFactory(null, new JMSTextMessageFactory());
         return mf;
     }
 }

@@ -4,9 +4,9 @@ import edu.emory.mathcs.backport.java.util.concurrent.SynchronousQueue;
 import edu.emory.mathcs.backport.java.util.concurrent.TimeUnit;
 import org.apache.log4j.Logger;
 import org.openamq.AMQException;
-import org.openamq.client.message.AbstractMessage;
 import org.openamq.client.message.MessageFactoryRegistry;
 import org.openamq.client.message.UnprocessedMessage;
+import org.openamq.client.message.AbstractJMSMessage;
 import org.openamq.client.protocol.AMQProtocolHandler;
 import org.openamq.client.state.listener.SpecificMethodFrameListener;
 import org.openamq.framing.AMQFrame;
@@ -256,7 +256,7 @@ public abstract class AbstractMessageConsumer extends Closeable implements Messa
         }
         try
         {
-            AbstractMessage jmsMessage = _messageFactory.createMessage(messageFrame.deliverBody.deliveryTag,
+            AbstractJMSMessage jmsMessage = _messageFactory.createMessage(messageFrame.deliverBody.deliveryTag,
                                                                        messageFrame.deliverBody.redelivered,
                                                                        messageFrame.contentHeader,
                                                                        messageFrame.bodies);

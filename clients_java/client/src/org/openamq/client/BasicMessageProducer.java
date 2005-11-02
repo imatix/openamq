@@ -1,7 +1,7 @@
 package org.openamq.client;
 
 import org.openamq.AMQException;
-import org.openamq.client.message.AbstractMessage;
+import org.openamq.client.message.AbstractJMSMessage;
 import org.openamq.client.protocol.AMQProtocolHandler;
 import org.openamq.framing.AMQFrame;
 import org.openamq.framing.BasicPublishBody;
@@ -25,7 +25,7 @@ public class BasicMessageProducer extends AbstractMessageProducer
             throws JMSException
     {
         checkNotClosed();
-        sendImpl(_destination, (AbstractMessage) message, 0, 0, 0, DEFAULT_MANDATORY, DEFAULT_IMMEDIATE);
+        sendImpl(_destination, (AbstractJMSMessage) message, 0, 0, 0, DEFAULT_MANDATORY, DEFAULT_IMMEDIATE);
     }
 
     protected AMQFrame createPublishFrame(int channelId, int ticket, String exchangeName,

@@ -1,9 +1,8 @@
 package org.openamq.client.message;
 
 import org.openamq.AMQException;
-import org.openamq.framing.AMQMessage;
-import org.openamq.framing.JmsContentHeaderBody;
-import org.openamq.framing.ContentBody;
+import org.openamq.framing.JmsContentHeaderProperties;
+import org.openamq.framing.ContentHeaderBody;
 
 import javax.jms.JMSException;
 import java.util.List;
@@ -14,10 +13,10 @@ import java.util.List;
  */
 public interface MessageFactory
 {
-    AbstractMessage createMessage(long messageNbr, boolean redelivered,
-                                  JmsContentHeaderBody contentHeader,
-                                  List bodies)
+    AbstractJMSMessage createMessage(long messageNbr, boolean redelivered,
+                                     ContentHeaderBody contentHeader,
+                                     List bodies)
         throws JMSException, AMQException;
 
-    AbstractMessage createMessage() throws JMSException;
+    AbstractJMSMessage createMessage() throws JMSException;
 }

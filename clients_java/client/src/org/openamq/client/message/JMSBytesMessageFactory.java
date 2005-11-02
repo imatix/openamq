@@ -1,8 +1,8 @@
 package org.openamq.client.message;
 
-import org.openamq.framing.AMQMessage;
-import org.openamq.framing.JmsContentHeaderBody;
+import org.openamq.framing.JmsContentHeaderProperties;
 import org.openamq.framing.ContentBody;
+import org.openamq.framing.ContentHeaderBody;
 import org.openamq.AMQException;
 
 import javax.jms.JMSException;
@@ -12,11 +12,11 @@ import java.util.Iterator;
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
-public class AMQBytesMessageFactory extends AbstractMessageFactory
+public class JMSBytesMessageFactory extends AbstractJMSMessageFactory
 {
-     protected AbstractMessage createMessageWithBody(long messageNbr,
-                                                     JmsContentHeaderBody contentHeader,
-                                                     List bodies) throws AMQException
+     protected AbstractJMSMessage createMessageWithBody(long messageNbr,
+                                                        ContentHeaderBody contentHeader,
+                                                        List bodies) throws AMQException
     {
         byte[] data;
 
@@ -38,11 +38,11 @@ public class AMQBytesMessageFactory extends AbstractMessageFactory
             }
         }
 
-        return new AMQBytesMessage(messageNbr, data, contentHeader);
+        return new JMSBytesMessage(messageNbr, data, contentHeader);
     }
 
-    public AbstractMessage createMessage() throws JMSException
+    public AbstractJMSMessage createMessage() throws JMSException
     {
-        return new AMQBytesMessage();
+        return new JMSBytesMessage();
     }
 }

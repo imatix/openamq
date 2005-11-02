@@ -3,7 +3,7 @@ package org.openamq.client;
 import org.apache.log4j.Logger;
 import org.openamq.client.protocol.AMQProtocolHandler;
 import org.openamq.client.state.listener.SpecificMethodFrameListener;
-import org.openamq.client.message.AbstractMessage;
+import org.openamq.client.message.AbstractJMSMessage;
 import org.openamq.AMQException;
 import org.openamq.framing.*;
 
@@ -202,14 +202,14 @@ public abstract class AbstractMessageProducer extends Closeable implements org.o
 
     public void send(Message message) throws JMSException
     {
-        sendImpl(_destination, (AbstractMessage) message, _deliveryMode, _messagePriority, _timeToLive,
+        sendImpl(_destination, (AbstractJMSMessage) message, _deliveryMode, _messagePriority, _timeToLive,
                  DEFAULT_MANDATORY, DEFAULT_IMMEDIATE);
     }
 
     public void send(Message message, int deliveryMode, int priority,
                      long timeToLive) throws JMSException
     {
-        sendImpl(_destination, (AbstractMessage)message, deliveryMode, priority, timeToLive, DEFAULT_MANDATORY,
+        sendImpl(_destination, (AbstractJMSMessage)message, deliveryMode, priority, timeToLive, DEFAULT_MANDATORY,
                  DEFAULT_IMMEDIATE);
     }
 
@@ -217,7 +217,7 @@ public abstract class AbstractMessageProducer extends Closeable implements org.o
     {
         checkNotClosed();
         validateDestination(destination);
-        sendImpl((AMQDestination) destination, (AbstractMessage) message, _deliveryMode, _messagePriority, _timeToLive,
+        sendImpl((AMQDestination) destination, (AbstractJMSMessage) message, _deliveryMode, _messagePriority, _timeToLive,
                  DEFAULT_MANDATORY, DEFAULT_IMMEDIATE);
     }
 
@@ -227,7 +227,7 @@ public abstract class AbstractMessageProducer extends Closeable implements org.o
     {
         checkNotClosed();
         validateDestination(destination);
-        sendImpl((AMQDestination) destination, (AbstractMessage) message, deliveryMode, priority, timeToLive,
+        sendImpl((AMQDestination) destination, (AbstractJMSMessage) message, deliveryMode, priority, timeToLive,
                  DEFAULT_MANDATORY, DEFAULT_IMMEDIATE);
     }
 
@@ -251,7 +251,7 @@ public abstract class AbstractMessageProducer extends Closeable implements org.o
     protected abstract AMQFrame createPublishFrame(int channelId, int ticket, String exchangeName,
                                                    String routingKey, boolean mandatory, boolean immediate);
 
-    protected void sendImpl(AMQDestination destination, AbstractMessage message, int deliveryMode, int priority,
+    protected void sendImpl(AMQDestination destination, AbstractJMSMessage message, int deliveryMode, int priority,
                           long timeToLive, boolean mandatory, boolean immediate) throws JMSException
     {
         AMQFrame publishFrame = createPublishFrame(_channelId, 0, destination.getExchangeName(),
@@ -264,27 +264,21 @@ public abstract class AbstractMessageProducer extends Closeable implements org.o
             message.setJMSTimestamp(currentTime);
         }
         byte[] payload = message.getData();
-        JmsContentHeaderBody contentHeader = message.getContentHeader();
-        contentHeader.weight = 0; // indicates no child content headers, just bodies
+        JmsContentHeaderProperties contentHeaderProperties = message.getJmsContentHeaderProperties();
+
         if (timeToLive > 0)
         {
             if (!_disableTimestamps)
             {
-                contentHeader.expiration = currentTime + timeToLive;
+                contentHeaderProperties.expiration = currentTime + timeToLive;
             }
         }
         else
         {
-            contentHeader.expiration = 0;
+            contentHeaderProperties.expiration = 0;
         }
-        contentHeader.deliveryMode = (byte) deliveryMode;
-        contentHeader.priority = (byte) priority;
-
-        AMQFrame contentHeaderFrame = ContentHeaderBody.createAMQFrame(_channelId, contentHeader);
-        if (_logger.isDebugEnabled())
-        {
-            _logger.debug("Sending content header frame to " + destination);
-        }
+        contentHeaderProperties.deliveryMode = (byte) deliveryMode;
+        contentHeaderProperties.priority = (byte) priority;
 
         ContentBody[] contentBodies = createContentBodies(payload);
         AMQFrame[] frames = new AMQFrame[2 + contentBodies.length];
@@ -296,7 +290,15 @@ public abstract class AbstractMessageProducer extends Closeable implements org.o
         {
             _logger.debug("Sending content body frames to " + destination);
         }
-        contentHeader.bodySize = payload.length;
+
+        // weight argument of zero indicates no child content headers, just bodies
+        // TODO: remove hardcoded 7 as class id of JMS
+        AMQFrame contentHeaderFrame = ContentHeaderBody.createAMQFrame(_channelId, 7, 0, contentHeaderProperties,
+                                                                       payload.length);
+        if (_logger.isDebugEnabled())
+        {
+            _logger.debug("Sending content header frame to " + destination);
+        }
 
         frames[0] = publishFrame;
         frames[1] = contentHeaderFrame;
