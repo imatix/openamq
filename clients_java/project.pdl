@@ -83,8 +83,6 @@
     <file name = "AMQConnectionFactory.java"     />
     <file name = "AMQConnection.java"            />
     <file name = "AMQSession.java"               />
-    <file name = "AMQMessageConsumer.java"       />
-    <file name = "AMQMessageProducer.java"       />
     <file name = "AMQDestination.java"           />
     <file name = "AMQQueue.java"                 />
     <file name = "AMQTopic.java"                 />
