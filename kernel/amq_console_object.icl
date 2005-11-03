@@ -76,42 +76,33 @@ static amq_console_class_t
     </release>
     <action>
     asl_field_list_t
-        *fields,                        //  Properties of object
-        *objects;                       //  Children of object
+        *fields;                        //  Properties of object
     icl_shortstr_t
         field_value;
-.for global.top->data->class.class
+.for global.top->data->class.field where repeat ?= 1
 .   for local
-    $(string.trim (.))
+    $(string.trim (local.?''))
 .   endfor
 .endfor
-.if count (global.top->data->class.class)
-    qbyte
-        child_id;                       //  ID of child object
-.endif
         
     fields = asl_field_list_new (NULL);
 .for global.top->data->class.field
 .   for get
-    $(string.trim (.))
-    asl_field_new_string (fields, "$(field.name)", field_value);
+    $(string.trim (get.?''))
 .   endfor
-.endfor
-    objects = asl_field_list_new (NULL);
-.for global.top->data->class.class where count (first)
-.   for first
-    $(string.trim (.))
-.   endfor
-    while (child_id) {
-        asl_field_new_integer (objects, "$(class.name)", child_id);
-.   for next
-        $(string.trim (.))
-.   endfor
+.   if repeat ?= 1
+    while (*field_value) {
+        asl_field_new_string (fields, "$(field.name)", field_value);
+.       for next
+    $(string.trim (next.?''))
+.       endfor
     }
+.   else
+    asl_field_new_string (fields, "$(field.name)", field_value);
+.   endif
 .endfor
-    amq_console_inspect_ok (amq_console, request, self->object_id, fields, objects);
+    amq_console_inspect_ok (amq_console, request, self->object_id, fields);
     asl_field_list_destroy (&fields);
-    asl_field_list_destroy (&objects);
     </action>
 </method>
 

@@ -1,7 +1,4 @@
 General rule for handling issues
-    - imagine you are paying for each one
-    - because you are!
-        - in terms of overall planning
 
 1. Bug process
     - describe the problem

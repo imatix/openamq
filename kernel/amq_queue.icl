@@ -25,15 +25,15 @@ class.  This is a lock-free asynchronous class.
 <!-- Console definitions for this object -->
 <data name = "cml">
     <class name = "queue" parent = "vhost">
+        <field name = "scope">
+          <get>icl_shortstr_cpy (field_value, self->scope);</get>
+        </field>
+        <field name = "name">
+          <get>icl_shortstr_cpy (field_value, self->name);</get>
+        </field>
         <field name = "enabled"     label = "Queue accepts new messages?">
           <get>icl_shortstr_fmt (field_value, "%d", self->enabled);</get>
           <put>self->enabled = atoi (field_value);</put>
-        </field>
-        <field name = "scope"       label = "Queue scope">
-          <get>icl_shortstr_cpy (field_value, self->scope);</get>
-        </field>
-        <field name = "name"        label = "Queue name">
-          <get>icl_shortstr_cpy (field_value, self->name);</get>
         </field>
         <field name = "durable"     label = "Durable queue?" type = "bool">
           <get>icl_shortstr_fmt (field_value, "%d", self->durable);</get>

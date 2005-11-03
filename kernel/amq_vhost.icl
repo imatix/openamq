@@ -19,44 +19,36 @@ Defines a virtual host. This is a lock-free asynchronous class.
         <field name = "name" label = "Virtual host path">
           <get>icl_shortstr_cpy (field_value, self->name);</get>
         </field>
-        <class name = "exchange">
+        <field name = "exchange" type = "objref" repeat = "1">
           <local>
             amq_exchange_t
                 *exchange;
           </local>
-          <first>
+          <get>
             exchange = amq_exchange_list_first (self->exchange_list);
-            child_id = exchange->object_id;
-          </first>
+            icl_shortstr_fmt (field_value, "%ld", exchange->object_id);
+          </get>
           <next>
             exchange = amq_exchange_list_next (&exchange);
             if (exchange)
-                child_id = exchange->object_id;
-            else
-                child_id = 0;
+                icl_shortstr_fmt (field_value, "%ld", exchange->object_id);
           </next>
-        </class>
-        <class name = "queue">
+        </field>
+        <field name = "queue" type = "objref" repeat = "1">
           <local>
             amq_queue_t
                 *queue;
           </local>
-          <first>
+          <get>
             queue = amq_queue_list_first (self->queue_list);
-            child_id = queue->object_id;
-          </first>
+            icl_shortstr_fmt (field_value, "%ld", queue->object_id);
+          </get>
           <next>
             queue = amq_queue_list_next (&queue);
             if (queue)
-                child_id = queue->object_id;
-            else
-                child_id = 0;
+                icl_shortstr_fmt (field_value, "%ld", queue->object_id);
           </next>
-        </class>
-        <children>
-            children = amq_exchange_list_count (self->exchange_list)
-                     + amq_queue_list_count    (self->queue_list);
-        </children>
+        </field>
     </class>
 </data>
 

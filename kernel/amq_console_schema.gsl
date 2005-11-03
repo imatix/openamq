@@ -10,8 +10,23 @@ indent  = "   "
 ignorecase = 0
 
 function process_field (field, margin)
-    >$(my.margin)<field name = "$(name)" label = "$(label)"
-    >$(my.margin)$(indent)type = "$(type?'string')" inspect = "$(count (get)??1 ?0)" modify = "$(count (set)??1 ?0)"/>
+    >$(my.margin)<field name = "$(name)"\
+    if defined (field.label)
+        > label = "$(label)"\
+    endif
+    if defined (field.type)
+        > type = "$(type)"\
+    endif
+    if defined (field.repeat)
+        > repeat = "$(repeat)"\
+    endif
+    if count (field.get) = 0
+        > inspect = "0"\
+    endif
+    if count (field.put)
+        > modify = "1"\
+    endif
+    > />
     for values
         echo "Field values are not supported yet"
     endfor
@@ -32,10 +47,13 @@ function process_class (name, margin)
             for method
                 process_method (method, my.margin + indent)
             endfor
-            for class
-                process_class (name, my.margin + indent)
-            endfor
             >$(my.margin)</class>
+            for field where field.type ?= "objref"
+                if count (root.class, name = field.name) = 0
+                    copy field to root as class
+                    process_class (name, my.margin)
+                endif
+            endfor
         endfor
     endfor
 endfunction

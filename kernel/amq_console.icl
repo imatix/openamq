@@ -199,16 +199,13 @@ $(selftype)
     <argument name = "request"   type = "amq_content_jms_t *">Original request</argument>
     <argument name = "object id" type = "qbyte">Object id</argument>
     <argument name = "fields"    type = "asl_field_list_t *">Object fields</argument>
-    <argument name = "objects"   type = "asl_field_list_t *">Object children</argument>
     <possess>
     amq_content_jms_possess (request);
     asl_field_list_possess (fields);
-    asl_field_list_possess (objects);
     </possess>
     <release>
     amq_content_jms_destroy (&request);
     asl_field_list_destroy (&fields);
-    asl_field_list_destroy (&objects);
     </release>
     <action>
     asl_field_t
@@ -235,14 +232,6 @@ $(selftype)
         ipr_xml_attr_set (sub_item, "name", field->name);
         val_item = ipr_xml_new (sub_item, NULL, asl_field_string (field));
         ipr_xml_unlink (&val_item);
-        ipr_xml_unlink (&sub_item);
-        field = asl_field_list_next (&field);
-    }
-    field = asl_field_list_first (objects);
-    while (field) {
-        sub_item = ipr_xml_new (cur_item, "object", NULL);
-        ipr_xml_attr_set (sub_item, "class", field->name);
-        ipr_xml_attr_set (sub_item, "id", asl_field_string (field));
         ipr_xml_unlink (&sub_item);
         field = asl_field_list_next (&field);
     }

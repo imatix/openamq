@@ -20,17 +20,11 @@ object holding server-wide values.
         <field name = "started" label = "Date, time broker started">
           <get>apr_rfc822_date (field_value, self->started);</get>
         </field>
-        <class name = "vhost">
-          <first>
-            child_id = amq_vhost->object_id;
-          </first>
-          <next>
-            child_id = 0;
-          </next>
-        </class>
-        <children>
-            children = 1;               //  One child, the vhost
-        </children>
+        <field name = "vhost" type = "objref" repeat = "1">
+          <get>
+            icl_shortstr_fmt (field_value, "%ld", amq_vhost->object_id);
+          </get>
+        </field>
     </class>
 </data>
 

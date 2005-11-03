@@ -23,12 +23,12 @@ for each type of exchange. This is a lock-free asynchronous class.
 <inherit class = "amq_console_object" />
 
 <!-- Console definitions for this object -->
-<data type = "cml">
+<data name = "cml">
     <class name = "exchange" parent = "vhost">
-        <field name = "name"        label = "Exchange name">
+        <field name = "name">
           <get>icl_shortstr_cpy (field_value, self->name);</get>
         </field>
-        <field name = "type"        label = "Exchange type">
+        <field name = "type">
           <get>icl_shortstr_cpy (field_value, amq_exchange_type_name (self->type));</get>
         </field>
         <field name = "durable"     label = "Durable exchange?" type = "bool">
