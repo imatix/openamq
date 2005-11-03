@@ -1,0 +1,34 @@
+<?xml?>
+<pal
+    name = "file_client"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    This script fetches arbitrary files from an openamq service
+    network.  See file_server.pal for the other side.  Will
+    transfer files of any size but transferring files larger than
+    system memory will cause the system to start swapping.
+
+    <set name = "filename" cmdline = "f" />
+    <if name = "filename" value = "">
+        <echo>Usage: file_client -f filename [ -s server ]</echo>
+        <echo>For more instructions, use file_client -h</echo>
+        <exit status = "1" />
+    </if>
+    <session scope = "test" exchange = "amq.direct">
+        <queue_declare />
+        <queue_bind queue = "$queue" routing_key = "$queue" />
+        <basic_consume queue = "$queue" />
+        <basic_content message_id = "$filename" reply_to = "$queue" />
+        <basic_publish routing_key = "file server" mandatory = "1" />
+        <wait />
+        <basic_arrived>
+            <echo>File $message_id arrived...</echo>
+            <!-- We would write this to disk now -->
+        </basic_arrived>
+        <basic_bounced>
+            <echo>No response, file server not listening</echo>
+        </basic_bounced>
+    </session>
+</pal>
+

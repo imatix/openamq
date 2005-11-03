@@ -1,0 +1,28 @@
+<?xml?>
+<pal
+    name = "file_server"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    This script serves up arbitrary files just like a web server.
+    We take the file specified in the message-id and we send it to
+    the amq.direct exchange using the reply-to field.  To talk to
+    this script, we send a request to amq.direct using the routing
+    key "file server".  See file_client.pal for an example.
+
+    <include filename = "amq_test_base.pal" />
+    <session scope = "test" exchange = "amq.direct">
+        <queue_declare />
+        <queue_bind    queue = "$queue" routing_key = "file server" />
+        <basic_consume queue = "$queue" />
+        <repeat>
+            <wait />
+            <basic_arrived>
+                <echo>Serving file $message_id...</echo>
+                <basic_content read = "$message_id" message_id = "$message_id" />
+                <basic_publish routing_key = "$reply_to" />
+            </basic_arrived>
+        </repeat>
+    </session>
+</pal>
+
