@@ -38,9 +38,14 @@ public class AMQQueue extends AMQDestination implements Queue
         super(AMQDestination.QUEUE_EXCHANGE_NAME, AMQDestination.QUEUE_EXCHANGE_CLASS, name, temporary,
               temporary?null:name, scope);
     }
-    
+
     public String getEncodedName()
     {
-        return 'Q' + getDestinationName();
+        return 'Q' + getQueueName();
+    }
+
+    public String getRoutingKey()
+    {
+        return getQueueName();
     }
 }

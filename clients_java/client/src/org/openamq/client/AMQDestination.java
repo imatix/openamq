@@ -110,11 +110,14 @@ public abstract class AMQDestination implements Destination
         _queueName = queueName;
     }
 
+    public abstract String getRoutingKey();
+
     public String toString()
     {
         return "Destination: " + _destinationName + ", Queue Scope: " + _queueScope + ", " +
                "Queue Name: " + _queueName + ", Exchange: " + _exchangeName +
-               ", Exchange class: " + _exchangeClass + ", Temporary: " + _isTemporary;
+               ", Exchange class: " + _exchangeClass + ", Temporary: " + _isTemporary +
+                ", Routing  Key: " + getRoutingKey();
     }
 
     public boolean equals(Object o)

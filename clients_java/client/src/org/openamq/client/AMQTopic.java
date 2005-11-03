@@ -39,4 +39,9 @@ public class AMQTopic extends AMQDestination implements Topic
     {
         return 'T' + getDestinationName();
     }
+
+     public String getRoutingKey()
+    {
+        return getDestinationName();
+    }
 }

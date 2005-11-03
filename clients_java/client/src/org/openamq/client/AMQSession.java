@@ -595,8 +595,9 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                 //    ft.put("headers", rawSelector.getDataAsBytes());
                 if (rawSelector != null)
                     ft.putAll(rawSelector);
-                AMQFrame queueBind = QueueBindBody.createAMQFrame(_channelId, 0, amqd.getQueueScope(), qdb.queue,
-                                                                  amqd.getExchangeName(), amqd.getQueueName(), ft);
+                AMQFrame queueBind = QueueBindBody.createAMQFrame(_channelId, 0, amqd.getQueueScope(),
+                                                                  amqd.getQueueName(), amqd.getExchangeName(),
+                                                                  amqd.getRoutingKey(), ft);
 
                 protocolHandler.writeCommandFrameAndWaitForReply(queueBind,
                                               new SpecificMethodFrameListener(_channelId, QueueBindOkBody.class));
