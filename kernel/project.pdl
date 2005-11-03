@@ -141,10 +141,6 @@
 
 <!-- Test programs -->
 <file name = "amq_test_base.pal"     class = "public resource"   >Base test header</file>
-<file name = "amq_topic_pub.pal"     class = "fat test"          >Topic publisher</file>
-<file name = "amq_topic_sub.pal"     class = "private resource"  >Topic subscriber</file>
-<file name = "file_server.pal"       class = "private resource"  >File server example</file>
-<file name = "file_client.pal"       class = "private resource"  >File client example</file>
 
 <!-- PAL/AMQ code generator -->
 <file name = "amq_pal.xnf"           class = "generated" />
