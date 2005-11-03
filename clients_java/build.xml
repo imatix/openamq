@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 
-<!-- OpenAMQ Java build file (temporarily using ant!) -->
+<!-- OpenAMQ Java build file -->
 
 <project name="openamq" default="jar" basedir=".">
     <property name="lib" value="${basedir}/lib"/>
@@ -88,7 +88,7 @@
     </target>
 
     <!-- Build jar archive -->
-    <target name="jar" depends="compile">
+    <target name="jar" depends="compiletests">
         <mkdir dir="${dist}"/>
         <jar basedir="${common.classes}" jarfile="${dist}/openamqj-common.jar"/>
         <jar basedir="${client.classes}" jarfile="${dist}/openamqj-jms.jar"/>
@@ -105,35 +105,58 @@
                  use="true" verbose="false"/>
     </target>
     
-    <target name="runclient1" depends="compile">
-        <java classpathref="openamq.classpath" fork="yes" classname="org.openamq.requestreply1.ServiceProvidingClient">
+    <target name="ServiceProvidingClient" depends="compiletests">
+        <java fork="yes" classname="org.openamq.requestreply1.ServiceProvidingClient">
+              <classpath refid="openamq.classpath"/>
+              <jvmarg value="-server"/>
+              <jvmarg value="-Damqj.logging.level=INFO"/>
               <arg value="localhost"/>
               <arg value="7654"/>
-              <arg value="serviceQ1"/>
-              <arg value="x"/>
-              <arg value="x"/>
+              <arg value="guest"/>
+              <arg value="guest"/>
+              <arg value="/vpath"/>
+              <arg value="serviceQ1"/>              
         </java>
     </target>
     
-     <target name="ServiceRequestingClient" depends="compile">
-        <java jvmargs="-server -Damqj.logging.level=INFO" classpathref="openamq.classpath" fork="yes" classname="org.openamq.requestreply1.ServiceRequestingClient">
+     <target name="ServiceRequestingClient" depends="compiletests">
+        <java fork="yes" classname="org.openamq.requestreply1.ServiceRequestingClient">
+              <classpath refid="openamq.classpath"/>
+              <jvmarg value="-server"/>
+              <jvmarg value="-Damqj.logging.level=INFO"/>
               <arg value="localhost"/>
               <arg value="7654"/>
               <arg value="guest"/>
               <arg value="guest"/>
               <arg value="/vpath"/>
               <arg value="serviceQ1"/>
-              <arg value="2000"/>
+              <arg value="5000"/>
         </java>
     </target>
     
     <target name="profile" depends="compile" description="Profile Project">
         <fail unless="netbeans.home">This target can only run inside the NetBeans IDE.</fail>
-        <nbprofile jvmargs="-Damqj.logging.level=INFO" classname="org.openamq.requestreply1.ServiceProvidingClient" args="localhost 7654 guest guest /test serviceQ1">
-            <classpath refid="openamq.classpath"/>
-        </nbprofile>
+        <nbprofiledirect>            
+          <classpath refid="openamq.classpath"/>
+        </nbprofiledirect>
+        <java fork="true" classname="org.openamq.requestreply1.ServiceRequestingClient"
+              dir="${profiler.session.working.dir}"
+              jvm="${profiler.info.jvm}">
+          <jvmarg value="${profiler.info.jvmargs.agent}"/>
+          <jvmarg line="${profiler.info.jvmargs}"/>
+          <env key="Path" path="${profiler.info.agentpath}:${env.Path}"/>
+          <classpath refid="openamq.classpath"/>
+          <jvmarg value="-server"/>
+          <jvmarg value="-Damqj.logging.level=INFO"/>
+          <arg value="localhost"/>
+          <arg value="7654"/>
+          <arg value="guest"/>
+          <arg value="guest"/>
+          <arg value="/vpath"/>
+          <arg value="serviceQ1"/>
+          <arg value="5000"/>
+        </java>
     </target>
-
 
     <target name="profile-single" depends="compile" description="Profile File">
         <fail unless="netbeans.home">This target can only run inside the NetBeans IDE.</fail>
