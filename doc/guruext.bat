@@ -11,3 +11,6 @@ call gsl3 -quiet -tpl:latex_simple -gdl:%FILE% gurudoc
 pdflatex %FILE%.tex
 pdflatex %FILE%.tex
 
+:- clean-up intermediary files
+del %FILE%.aux %FILE%.gdl %FILE%.log %FILE%.tex %FILE%.toc
+

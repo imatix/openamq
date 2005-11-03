@@ -3,9 +3,9 @@ gdl
     subtitle  = Operator Control for AMQ Servers
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/10/24
+    date      = 2005/11/03
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 1.1b
+    version   = 1.1c0
 end gdl
 
 Document Control
@@ -14,7 +14,18 @@ Document Control
 Change History
 ==============
 
-1.1b:
+1.1c0:
+    Removed concept of child class, replaced with repeating fields
+    of type "object".
+1.1c0:
+    Added 'repeat' option on fields.
+1.1b1:
+    Removed 'children' attribute of inspect response.
+1.1b1:
+    Added class attribute to inspect response.
+1.1b1:
+    Removed 'detail' option on inspect (details are always returned).
+1.1b0:
     Changed '<object class = ' in schema to '<class name = ' for
     consistency with other XML languages we use.
 
@@ -157,7 +168,6 @@ An object class is defined as follows:
  - Each object instance has a numeric identifier.
  - The class is composed of zero or more data fields (the object's
    properties).
- - The class may contain one or more child classes.
  - The class may allow one or more methods.
 
 A data field is defined as follows:
@@ -369,11 +379,9 @@ This is the grammar for client messages:
 
     C:schema        = <schema />
 
-    C:inspect       = <inspect object = "object-id" [ detail = "ask-detail" ] />
+    C:inspect       = <inspect object = "object-id" />
 
     object-id       = 0..maxlongint-1
-
-    ask-detail      = (0) | 1
 
     C:modify        = <modify object = "object-id">
                         [ field-data ] ...
@@ -407,7 +415,6 @@ This is the grammar for client messages:
                        [ alert-message ]
                       </field>
 
-
     watch-type      = eq | ne | lt | le | gt | (ge)
 
     watch-value     = integer
@@ -436,7 +443,6 @@ This is the grammar for server messages:
     schema-class    = <class name = "class-name">
                        [ schema-field ]...
                        [ schema-method ]...
-                       [ schema-class ]...
                       </class>
 
     class-name      = valid-name
@@ -458,14 +464,17 @@ This is the grammar for server messages:
 
     field-text      = valid-text
 
-    simple-field    = <field name = "field-name" [ type = "field-type" ]
+    simple-field    = <field name = "field-name"
+                       [ type = "field-type" ] [ repeat = "repeat-flag" ]
                        [ inspect = "inspect-flag" ] [ modify = "modify-flag" ]
                        [ label = "field-label" ] >
                        [ field-text ]
                        [ enum-value ] ...
                      </field>
 
-    field-type      = string | int | bool | object
+    field-type      = string | int | bool | objref
+
+    repeat-flag     = (0) | 1
 
     enum-value      = <value name = "value-name">field-value</value>
 
@@ -475,15 +484,12 @@ This is the grammar for server messages:
                        [ schema-field ]...
                       </method>
 
-    S:inspect       = <inspect object   = "object-id"
-                       [ children = "child-count" ]
+    S:inspect       = <inspect class = "class-name" object = "object-id"
                        [ watches  = "watch-count" ]
                          status   = "reply-status">
                         [ field-data ]...
                         [ object-data ]...
                       </inspect>
-
-    child-count     = 0..maxint - 1
 
     watch-count     = 0..maxint - 1
 
@@ -598,11 +604,11 @@ this object first, in order to navigate the object tree.
 For example:
 
     C: <cml version = "1.0">
-          <inspect object = "0" detail = "1" />
+          <inspect object = "0" />
        </cml>
 
     S: <cml version = "1.0">
-          <inspect object = "0" children = "2" status = "ok">
+          <inspect class = "broker" object = "0" status = "ok">
              <field name = "ip-address">192.168.55.142</field>
              <field name = "port">7654</field>
              <field name = "version">0.9c2</field>
