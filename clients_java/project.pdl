@@ -23,6 +23,74 @@
     <file name = "asl_chassis_java.gsl"              >Java ASL chassis</file>
 </directory>
 
+<!-- Required libraries -->
+<directory name = "lib/jms"  class = "public binary">
+    <file name = "jms.jar"                           >Compiled JMS interfaces</file>
+</directory>
+<directory name = "lib/mina" class = "public binary">
+    <file name = "mina-0.7.3.jar"                   />
+</directory>
+<directory name = "lib/logging-log4j" class = "public binary">
+    <file name = "log4j-1.2.9.jar"                  />
+</directory>
+<directory name = "lib/jakarta-commons" class = "public binary">
+    <file name = "commons-collections-3.1.jar"      />
+</directory>
+<directory name = "lib/util-concurrent" class = "public binary">
+    <file name = "backport-util-concurrent.jar"     />
+</directory>
+
+<!-- Common classes -->
+<directory name = "common/src/org/openamq" class = "private resource">
+    <file name = "*.java"                           />
+</directory>
+
+<!-- Common framing classes, hand written -->
+<directory name = "common/src/org/openamq/framing" class = "private resource">
+    <file name = "*.java"                           />
+</directory>
+
+<!-- Framing classes generated from ASL -->
+<directory name = "common/generated/java/org/openamq/framing" class = "generated">
+    <file name = "*.java"                           />
+</directory>
+
+<!-- JMS API - Basic classes -->
+<directory name = "client/src/org/openamq/client" class = "private resource">
+    <file name = "*.java"                           />
+</directory>
+
+<!-- JMS API - Method handlers -->
+<directory name = "client/src/org/openamq/client/handler" class = "private resource">
+    <file name = "*.java"                           />
+</directory>
+
+<!-- JMS API - Message classes -->
+<directory name = "client/src/org/openamq/client/message" class = "private resource">
+    <file name = "*.java"                           />
+</directory>
+
+<!-- JMS API - Protocol & state -->
+<directory name = "client/src/org/openamq/client/protocol" class = "private resource">
+    <file name = "*.java"                           />
+</directory>
+<directory name = "client/src/org/openamq/client/state"  class = "private resource">
+    <file name = "*.java"                           />
+</directory>
+<directory name = "client/src/org/openamq/client/state/listener" class = "private resource">
+    <file name = "*.java"                           />
+</directory>
+
+<!-- JMS API - Transport layer -->
+<directory name = "client/src/org/openamq/client/transport" class = "private resource">
+    <file name = "*.java"                           />
+</directory>
+
+<!-- JMS API -->
+<directory name = "client/src/org/openamq/jms" class = "private resource">
+    <file name = "*.java"                           />
+</directory>
+
 <!-- Placeholder to make Boom package the dist directory -->
 <directory name = "dist">
     <file name = "readme.txt" class = "private resource" />
