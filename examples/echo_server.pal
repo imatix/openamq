@@ -1,0 +1,25 @@
+<?xml?>
+<pal
+    name = "echo_server"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    This script echoes back arbitrary messages sent to it.  To talk to
+    this script, we send a request to amq.direct using the routing key
+    "echo server".  See echo_client.pal for an example.
+
+    <include filename = "amq_test_base.pal" />
+    <session scope = "test" exchange = "amq.direct">
+        <queue_declare />
+        <queue_bind    queue = "$queue" routing_key = "echo server" />
+        <basic_consume queue = "$queue" />
+        <repeat>
+            <wait />
+            <basic_arrived>
+                <echo>Got $body_size byte request $message_id from $reply_to...</echo>
+                <basic_publish routing_key = "$reply_to" />
+            </basic_arrived>
+        </repeat>
+    </session>
+</pal>
+

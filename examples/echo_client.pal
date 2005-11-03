@@ -1,0 +1,33 @@
+<?xml?>
+<pal
+    name = "echo_client"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    This script feeds arbitrarily sized messages to the echo server.
+
+    <set name = "count" value = "10"   cmdline = "C" />
+    <set name = "delay" value = "0"    cmdline = "D" />
+    <set name = "size"  value = "1024" cmdline = "S" />
+    <session scope = "test" exchange = "amq.direct">
+        <queue_declare />
+        <queue_bind queue = "$queue" routing_key = "$queue" />
+        <basic_consume queue = "$queue" />
+        <repeat times = "$count" counter = "id">
+            <basic_content fill = "random"    body_size = "$size" 
+                           message_id = "$id" reply_to = "$queue" />
+            <basic_publish routing_key = "echo server" mandatory = "1" />
+            <wait />
+            <basic_arrived>
+                <echo>Response $message_id ($size bytes) arrived...</echo>
+            </basic_arrived>
+            <basic_bounced>
+                <echo>No response, echo server not listening</echo>
+            </basic_bounced>
+            <if name = "delay" test = "gt" value = "0">
+                <wait timeout = "$delay" />
+            </if>
+        </repeat>
+    </session>
+</pal>
+
