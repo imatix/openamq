@@ -1,0 +1,8 @@
+#!/bin/bash
+
+for i in `seq 1 10000`; do
+    `SMT_ACTION_LIMIT=$i $1`
+    if [ $? != 137 ]; then
+        break;
+    fi
+done
