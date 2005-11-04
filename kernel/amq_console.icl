@@ -451,6 +451,7 @@ s_reply_xml (amq_content_jms_t *request, ipr_xml_t *xml_item)
     ipr_bucket_fill (bucket, xml_text, strlen (xml_text));
     icl_mem_free (xml_text);
     s_reply_bucket (request, bucket);
+    ipr_bucket_destroy (&bucket);
 }
 
 
