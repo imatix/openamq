@@ -105,7 +105,7 @@
     <build>
         <execute>
         if [ -x "`which ant`" -a -x "`which javac`" -a -x "`which jar`" ]; then
-            ant -q -DIBASE=$IBASE jar || croak
+            ant -q -DIBASE=$IBASE dist || croak
         else
             echo "Warning: Cannot find the JDK/Ant, not building JMS/AMQ."
             #  Fake some JAR files so that "boom install" at product level does not fail.

@@ -94,6 +94,12 @@
         <jar basedir="${client.classes}" jarfile="${dist}/openamqj-jms.jar"/>
         <jar basedir="${client.testclasses}" jarfile="${dist}/openamqj-tests.jar"/>
     </target>
+    
+    <target name="dist" depends="compile">
+        <mkdir dir="${dist}"/>
+        <jar basedir="${common.classes}" jarfile="${dist}/openamqj-common.jar"/>
+        <jar basedir="${client.classes}" jarfile="${dist}/openamqj-jms.jar"/>
+    </target>
 
 
     <target name="javadoc" depends="compile, compiletests">
