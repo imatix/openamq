@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.openamq.org/schema/cml" xmlns="http://www.openamq.org/schema/cml">
+    <xs:element name="cml">
+        <xs:annotation>
+            <xs:documentation>Defines a CML document as a schema or a...</xs:documentation>
+        </xs:annotation>        
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="schema" minOccurs="1" maxOccurs="1"/>
+            </xs:sequence>
+            <xs:attribute name="version" type="xs:string" use="required"/>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="schema">
+        <xs:annotation>
+            <xs:documentation>Defines the CML schema as list of classes</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="class" minOccurs="1" maxOccurs="unbounded"/>
+            </xs:sequence>
+            <xs:attribute name="name" type="xs:string" use="required"/>
+            <xs:attribute name="version" type="xs:string" use="required"/>
+            <xs:attribute name="status">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:enumeration value="ok"/>
+                        <xs:enumeration value="not ok"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:attribute>            
+        </xs:complexType>        
+        <xs:key name="classid">
+            <xs:selector xpath="class"/>
+            <xs:field xpath="@name"/>
+        </xs:key>
+    </xs:element>
+    <xs:element name="class">
+        <xs:annotation>
+            <xs:documentation>Defines a class which is a managable object</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="field" minOccurs="1" maxOccurs="unbounded"/>
+            </xs:sequence>
+            <xs:attribute name="name" type="xs:string" use="required"/>
+        </xs:complexType>
+        <xs:unique name="uniqueFieldName">
+            <xs:selector xpath="field"/>
+            <xs:field xpath="@name"/>
+        </xs:unique>        
+    </xs:element>
+    <xs:element name="field">
+        <xs:annotation>
+            <xs:documentation>Defines a field within a class</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:attribute name="name" type="xs:string" use="required"/>            
+            <xs:attribute name="type" use="required">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:enumeration value="bool"/>
+                        <xs:enumeration value="int"/>
+                        <xs:enumeration value="objref"/>
+                    </xs:restriction>
+                    </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="label" type="xs:string" use="optional"/>
+            <xs:attribute name="repeat" type="xs:nonNegativeInteger" use="optional"/>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>
