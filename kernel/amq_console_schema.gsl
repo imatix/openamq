@@ -59,7 +59,11 @@ function process_class (name, margin)
 endfunction
 
 output "amq_console_schema.cml"
-><cml version = "1.0">
+><?xml version="1.0"?>
+><cml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+> xsi:schemaLocation="http://www.openamq.org/schema/cml cml.xsd"
+> xmlns="http://www.openamq.org/schema/cml"
+> version="1.0">
 ><schema name = "$(schema_name)" version = "$(schema_version)" status = "ok">
 process_class ("broker", indent)
 ></schema>
