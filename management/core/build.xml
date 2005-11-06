@@ -1,0 +1,171 @@
+<?xml version="1.0"?>
+
+<!-- OpenAMQ Management Core Java build file -->
+
+<project name="management-core" default="jar" basedir=".">
+    <property name="lib" value="${basedir}/lib"/>
+    <property name="src" value="${basedir}/src"/>
+    <property name="generated.src" value="${basedir}/generated/src"/>
+    <property name="tests" value="${basedir}/test"/>
+    <property name="etc" value="${basedir}/etc"/>
+    <property name="classes" value="${basedir}/classes"/>
+    <property name="testclasses" value="${basedir}/testclasses"/>
+    <property name="dist" value="${basedir}/dist"/>
+    <property name="openamq.root" value="${basedir}/../../clients_java"/>
+    <property name="openamq.dist" value="${openamq.root}/dist"/>
+    <property name="openamq.lib" value="${openamq.root}/lib"/>
+
+    <taskdef name="xmlbean" classname="org.apache.xmlbeans.impl.tool.XMLBean" classpath="${lib}/xmlbeans/xbean.jar"/>
+
+    <!-- Setup details -->
+    <target name="init">
+        <tstamp>
+            <format property="release" pattern="-dMMMyy" locale="en" timezone="GMT"/>
+        </tstamp>
+
+        <mkdir dir="${generated.src}"/>
+        <mkdir dir="${classes}"/>
+        <mkdir dir="${testclasses}"/>
+        <mkdir dir="${dist}"/>
+    </target>
+
+    <path id="core.classpath">
+        <fileset dir="${lib}">
+            <include name="**/*.jar"/>
+        </fileset>
+        <pathelement path="${classes}"/>
+        <pathelement path="${testclasses}/"/>
+        <fileset dir="${openamq.dist}">
+            <include name="**/*.jar"/>
+        </fileset>
+        <fileset dir="${openamq.lib}">
+            <include name="**/*.jar"/>
+        </fileset>
+    </path>
+
+    <!-- Remove all built files -->
+    <target name="clean" depends="init">
+        <delete dir="${generated.src}"/>
+        <delete dir="${classes}"/>
+        <delete dir="${dist}"/>
+        <delete dir="${testclasses}"/>
+    </target>
+
+    <!-- Generate code from the XML schema -->
+    <target name="xmlbeans" depends="init">
+        <xmlbean classgendir="${classes}" classpathref="core.classpath"
+                 failonerror="true" srcgendir="${generated.src}">
+            <fileset dir="${etc}" includes="**/*.xsd"/>
+        </xmlbean>
+    </target>
+
+    <!-- Compile Java -->
+    <target name="compile" depends="xmlbeans">
+        <javac destdir="${classes}" target="1.5" source="1.5" debug="on">
+            <classpath refid="core.classpath"/>
+            <src path="${src}"/>
+            <src path="${generated.src}"/>
+        </javac>
+
+        <copy todir="${classes}">
+            <!-- copy any non java src files into the build tree, e.g. log4j.properties -->
+            <fileset dir="${src}">
+                <exclude name="**/*.java"/>
+                <exclude name="**/package.html"/>
+            </fileset>
+        </copy>
+    </target>
+
+
+    <target name="compiletests" depends="compile">
+        <javac destdir="${testclasses}" target="1.5" source="1.5" classpathref="core.classpath"
+               debug="on">
+            <src path="${tests}"/>
+        </javac>
+
+        <copy todir="${testclasses}">
+            <!-- copy any non java src files into the build tree, e.g. log4j.properties -->
+            <fileset dir="${tests}">
+                <exclude name="**/*.java"/>
+                <exclude name="**/package.html"/>
+            </fileset>
+        </copy>
+    </target>
+
+    <!-- Build jar archive -->
+    <target name="jar" depends="compiletests">
+        <mkdir dir="${dist}"/>
+        <jar basedir="${classes}" jarfile="${dist}/openamq-management-common.jar"/>
+        <jar basedir="${testclasses}" jarfile="${dist}/openamq-management-tests.jar"/>
+    </target>
+
+
+    <target name="javadoc" depends="compile, compiletests">
+        <mkdir dir="${dist}/docs/api"/>
+        <javadoc sourcepath="${src}" destdir="${dist}/docs/api"
+                 packagenames="org.openamq.*" classpathref="openamq.classpath" author="true"
+                 version="true" windowTitle="OpenAMQ Client API" doctitle="OpenAMQ Client API"
+                 footer="See &lt;a href=&quot;http://www.openamq.org&quot;&gt;www.openamq.org&lt;/a&gt; for more information."
+                 use="true" verbose="false"/>
+    </target>
+    
+    <target name="ServiceProvidingClient" depends="compiletests">
+        <java fork="yes" classname="org.openamq.requestreply1.ServiceProvidingClient">
+              <classpath refid="openamq.classpath"/>
+              <jvmarg value="-server"/>
+              <jvmarg value="-Damqj.logging.level=INFO"/>
+              <arg value="localhost"/>
+              <arg value="7654"/>
+              <arg value="guest"/>
+              <arg value="guest"/>
+              <arg value="/vpath"/>
+              <arg value="serviceQ1"/>              
+        </java>
+    </target>
+    
+     <target name="ServiceRequestingClient" depends="compiletests">
+        <java fork="yes" classname="org.openamq.requestreply1.ServiceRequestingClient">
+              <classpath refid="openamq.classpath"/>
+              <jvmarg value="-server"/>
+              <jvmarg value="-Damqj.logging.level=INFO"/>
+              <arg value="localhost"/>
+              <arg value="7654"/>
+              <arg value="guest"/>
+              <arg value="guest"/>
+              <arg value="/vpath"/>
+              <arg value="serviceQ1"/>
+              <arg value="5000"/>
+        </java>
+    </target>
+    
+    <target name="profile" depends="compile" description="Profile Project">
+        <fail unless="netbeans.home">This target can only run inside the NetBeans IDE.</fail>
+        <nbprofiledirect>            
+          <classpath refid="openamq.classpath"/>
+        </nbprofiledirect>
+        <java fork="true" classname="org.openamq.requestreply1.ServiceRequestingClient"
+              dir="${profiler.session.working.dir}"
+              jvm="${profiler.info.jvm}">
+          <jvmarg value="${profiler.info.jvmargs.agent}"/>
+          <jvmarg line="${profiler.info.jvmargs}"/>
+          <env key="Path" path="${profiler.info.agentpath}:${env.Path}"/>
+          <classpath refid="openamq.classpath"/>
+          <jvmarg value="-server"/>
+          <jvmarg value="-Damqj.logging.level=INFO"/>
+          <arg value="localhost"/>
+          <arg value="7654"/>
+          <arg value="guest"/>
+          <arg value="guest"/>
+          <arg value="/vpath"/>
+          <arg value="serviceQ1"/>
+          <arg value="5000"/>
+        </java>
+    </target>
+
+    <target name="profile-single" depends="compile" description="Profile File">
+        <fail unless="netbeans.home">This target can only run inside the NetBeans IDE.</fail>
+        <nbprofile classname="${profile.class}">
+            <classpath refid="openamq.classpath"/>
+        </nbprofile>
+    </target>
+</project>

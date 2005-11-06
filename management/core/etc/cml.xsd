@@ -30,7 +30,7 @@
                 </xs:simpleType>
             </xs:attribute>            
         </xs:complexType>        
-        <xs:key name="classid">
+        <xs:key name="classkey">
             <xs:selector xpath="class"/>
             <xs:field xpath="@name"/>
         </xs:key>
