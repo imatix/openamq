@@ -5,16 +5,18 @@
             <xs:documentation>Defines a CML document as a schema or a...</xs:documentation>
         </xs:annotation>
         <xs:complexType>
-            <xs:sequence>
-                <xs:element ref="schema" minOccurs="0" maxOccurs="1"/>
-                <xs:element ref="inspect" minOccurs="0" maxOccurs="1"/>
-            </xs:sequence>
+            <xs:choice>
+                <xs:element name="schema-request" minOccurs="0" maxOccurs="1"/>
+                <xs:element ref="schema-reply" minOccurs="0" maxOccurs="1"/>
+                <xs:element ref="inspect-request" minOccurs="0" maxOccurs="1"/>
+                <xs:element ref="inspect-reply" minOccurs="0" maxOccurs="1"/>
+            </xs:choice>                                      
             <xs:attribute name="version" type="xs:string" use="required"/>
         </xs:complexType>
     </xs:element>
-    <xs:element name="schema">
+    <xs:element name="schema-reply">
         <xs:annotation>
-            <xs:documentation>Defines the CML schema as list of classes</xs:documentation>
+            <xs:documentation>Client request for a schema</xs:documentation>
         </xs:annotation>
         <xs:complexType>
             <xs:sequence>
@@ -72,16 +74,23 @@
             <xs:attribute name="modify" type="xs:boolean" use="optional" default="false"/>
         </xs:complexType>
     </xs:element>
-    <xs:element name="inspect">
+    <xs:element name="inspect-request">
         <xs:annotation>
-            <xs:documentation>A request to view the properties of an instance</xs:documentation>
+            <xs:documentation>A request to get the property values of an instance</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:attribute name="object" type="xs:int" use="required"/>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="inspect-reply">
+        <xs:annotation>
+            <xs:documentation>A response containing the properties of an instance</xs:documentation>
         </xs:annotation>
         <xs:complexType>
             <xs:sequence>
                 <xs:element ref="field" minOccurs="0" maxOccurs="unbounded"/>
                 <xs:element ref="object" minOccurs="0" maxOccurs="unbounded"/>
-            </xs:sequence>
-            <xs:attribute name="object" type="xs:int" use="optional"/>
+            </xs:sequence>            
             <xs:attribute name="class" type="xs:string" use="optional"/>
             <xs:attribute name="status" use="optional">
                 <xs:simpleType>
@@ -93,7 +102,7 @@
                     </xs:restriction>
                 </xs:simpleType>
             </xs:attribute>
-
+            <xs:attribute name="object-id" use="required"/>
         </xs:complexType>
     </xs:element>
     <xs:element name="object">
