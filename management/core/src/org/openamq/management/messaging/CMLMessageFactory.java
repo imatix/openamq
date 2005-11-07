@@ -1,7 +1,7 @@
 package org.openamq.management.messaging;
 
 import org.openamq.schema.cml.CmlDocument;
-import org.openamq.schema.cml.InspectDocument;
+import org.openamq.schema.cml.InspectRequestDocument;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
@@ -13,7 +13,7 @@ public class CMLMessageFactory
         CmlDocument cmlDoc = CmlDocument.Factory.newInstance();
         CmlDocument.Cml cml = cmlDoc.addNewCml();
         cml.setVersion("1.0");
-        cml.addNewSchema();
+        cml.addNewSchemaRequest();
         return cmlDoc.toString();
     }
 
@@ -22,8 +22,8 @@ public class CMLMessageFactory
         CmlDocument cmlDoc = CmlDocument.Factory.newInstance();
         CmlDocument.Cml cml = cmlDoc.addNewCml();
         cml.setVersion("1.0");
-        InspectDocument.Inspect inspect = cml.addNewInspect();
-        inspect.setObject2(objectId);
+        InspectRequestDocument.InspectRequest inspect = cml.addNewInspectRequest();
+        inspect.setObject(objectId);
         return cmlDoc.toString();
     }
 }

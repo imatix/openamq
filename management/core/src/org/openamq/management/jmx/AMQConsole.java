@@ -1,6 +1,7 @@
 package org.openamq.management.jmx;
 
 import org.apache.xmlbeans.XmlException;
+import org.apache.log4j.Logger;
 import org.openamq.AMQException;
 import org.openamq.management.ManagementConnection;
 import org.openamq.management.messaging.CMLMessageFactory;
@@ -18,6 +19,8 @@ import java.lang.management.ManagementFactory;
  */
 public class AMQConsole
 {
+    private static final Logger _log = Logger.getLogger(AMQConsole.class);
+
     private ManagementConnection _connection;
 
     private MBeanInfoRegistry _mbeanInfoRegistry;
@@ -37,13 +40,27 @@ public class AMQConsole
         _connection.connect();
         createMBeanInfo();
         _mbeanServer = ManagementFactory.getPlatformMBeanServer();
-        _mbeanRegistrar = new MBeanRegistrar(_mbeanServer, _connection);
+        _mbeanRegistrar = new MBeanRegistrar(_mbeanServer, _connection, _mbeanInfoRegistry);
     }
 
     private void createMBeanInfo() throws JMSException, AMQException, XmlException
     {
         TextMessage tm = _connection.sendRequest(CMLMessageFactory.createSchemaRequest());
         CmlDocument cmlDoc = CmlDocument.Factory.parse(tm.getText());
-        _mbeanInfoRegistry = new MBeanInfoRegistry(cmlDoc);
+        _mbeanInfoRegistry = new MBeanInfoRegistry(cmlDoc);        
+    }
+
+    public static void main(String[] args)
+    {
+        AMQConsole console = new AMQConsole(args[0], Integer.parseInt(args[1]), args[2], args[3],
+                                            args[4]);
+        try
+        {
+            console.initialise();
+        }
+        catch (Exception e)
+        {
+            _log.error("Console initialisation error: " + e, e);
+        }
     }
 }

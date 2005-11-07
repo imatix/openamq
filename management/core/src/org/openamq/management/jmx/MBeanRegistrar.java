@@ -5,10 +5,8 @@ import org.apache.xmlbeans.XmlException;
 import org.openamq.management.ManagementConnection;
 import org.openamq.management.messaging.CMLMessageFactory;
 import org.openamq.AMQException;
-import org.openamq.schema.cml.CmlDocument;
-import org.openamq.schema.cml.SchemaDocument;
-import org.openamq.schema.cml.ClassDocument;
 import org.openamq.schema.cml.InspectDocument;
+import org.openamq.schema.cml.*;
 
 import javax.management.MBeanServer;
 import javax.jms.JMSException;
@@ -51,8 +49,8 @@ public class MBeanRegistrar
         {
             CmlDocument cmlDoc = CmlDocument.Factory.parse(response.getText());
             CmlDocument.Cml cml = cmlDoc.getCml();
-            InspectDocument.Inspect inspect = cml.getInspect();
-            inspect.getClass1()
+            InspectReplyDocument.InspectReply inspect = cml.getInspectReply();
+            CMLMBean mbean = new CMLMBean(_mbeanInfoRegistry.getOpenMBeanInfo(inspect.getClass1()));
 
         }
         catch (XmlException e)

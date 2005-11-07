@@ -10,6 +10,7 @@ package org.openamq.management.jmx;
 
 import javax.management.*;
 import javax.management.openmbean.OpenMBeanInfoSupport;
+import javax.management.openmbean.OpenMBeanInfo;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)

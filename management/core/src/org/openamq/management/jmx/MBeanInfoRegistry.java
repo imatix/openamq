@@ -8,15 +8,15 @@
  *****************************************************************************/
 package org.openamq.management.jmx;
 
-import org.openamq.schema.cml.CmlDocument;
-import org.openamq.schema.cml.SchemaDocument;
-import org.openamq.schema.cml.FieldDocument;
 import org.openamq.AMQException;
+import org.openamq.schema.cml.CmlDocument;
+import org.openamq.schema.cml.FieldDocument;
+import org.openamq.schema.cml.SchemaReplyDocument;
 
 import javax.management.openmbean.*;
-import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Stores all OpenMBeanInfo instances.
@@ -39,7 +39,7 @@ public class MBeanInfoRegistry
 
     private void initialise(CmlDocument cmlDocument) throws AMQException
     {
-        SchemaDocument.Schema schema = cmlDocument.getCml().getSchema();
+        SchemaReplyDocument.SchemaReply schema = cmlDocument.getCml().getSchemaReply();
         for (org.openamq.schema.cml.ClassDocument.Class c : schema.getClass1List())
         {
             OpenMBeanAttributeInfo[] attributes = createAttributeInfos(c.getFieldList());
@@ -50,7 +50,7 @@ public class MBeanInfoRegistry
         }
     }
 
-    public OpenMBeanInfo getOpenMBeanInfo(String cmlType)
+    public OpenMBeanInfoSupport getOpenMBeanInfo(String cmlType)
     {
         return _cmlClass2OpenMBeanInfoMap.get(cmlType);
     }
