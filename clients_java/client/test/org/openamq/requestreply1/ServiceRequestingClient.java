@@ -70,7 +70,7 @@ public class ServiceRequestingClient
             {
                 if (m.propertyExists("timeSent"))
                 {
-                    long timeSent = m.getLongProperty("timeSent");
+                    long timeSent = Long.parseLong(m.getStringProperty("timeSent"));
                     long now = System.currentTimeMillis();
                     if (_averageLatency == 0)
                     {
@@ -159,7 +159,7 @@ public class ServiceRequestingClient
                 if (i%1000 == 0)
                 {
                     long timeNow = System.currentTimeMillis();
-                    msg.setLongProperty("timeSent", timeNow);
+                    msg.setStringProperty("timeSent", String.valueOf(timeNow));
                 }
                 producer.send(msg);
             }

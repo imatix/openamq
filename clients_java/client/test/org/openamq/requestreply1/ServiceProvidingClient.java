@@ -100,7 +100,7 @@ public class ServiceProvidingClient
                         {
                             _logger.info("timeSent property set on message");
                             _logger.info("timeSent value is: " + tm.getLongProperty("timeSent"));
-                            msg.setLongProperty("timeSent", tm.getLongProperty("timeSent"));
+                            msg.setStringProperty("timeSent", tm.getStringProperty("timeSent"));
                         }
                         _destinationProducer.send(msg);
                         if (_messageCount % 1000 == 0)
