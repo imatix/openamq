@@ -43,11 +43,20 @@ public class AMQConsole
         _mbeanRegistrar = new MBeanRegistrar(_mbeanServer, _connection, _mbeanInfoRegistry);
     }
 
+    public CMLMBean getRootMBean() throws JMSException, AMQException
+    {
+        return _mbeanRegistrar.getRootMBean();
+    }
+
     private void createMBeanInfo() throws JMSException, AMQException, XmlException
     {
         TextMessage tm = _connection.sendRequest(CMLMessageFactory.createSchemaRequest());
+        if (_log.isDebugEnabled())
+        {
+            _log.debug("Response document: \n" + tm.getText());
+        }
         CmlDocument cmlDoc = CmlDocument.Factory.parse(tm.getText());
-        _mbeanInfoRegistry = new MBeanInfoRegistry(cmlDoc);        
+        _mbeanInfoRegistry = new MBeanInfoRegistry(cmlDoc);
     }
 
     public static void main(String[] args)
@@ -57,6 +66,7 @@ public class AMQConsole
         try
         {
             console.initialise();
+            console.getRootMBean();
         }
         catch (Exception e)
         {

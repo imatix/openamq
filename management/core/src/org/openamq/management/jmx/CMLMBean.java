@@ -8,6 +8,8 @@
  *****************************************************************************/
 package org.openamq.management.jmx;
 
+import org.openamq.schema.cml.InspectReplyDocument;
+
 import javax.management.*;
 import javax.management.openmbean.OpenMBeanInfoSupport;
 import javax.management.openmbean.OpenMBeanInfo;
@@ -19,9 +21,12 @@ public class CMLMBean implements DynamicMBean
 {
     private OpenMBeanInfoSupport _mbeanInfo;
 
-    public CMLMBean(OpenMBeanInfoSupport mbeanInfo)
+    private InspectReplyDocument.InspectReply _inspectReply;
+
+    public CMLMBean(OpenMBeanInfoSupport mbeanInfo, InspectReplyDocument.InspectReply inspectReply)
     {
         _mbeanInfo = mbeanInfo;
+        _inspectReply = inspectReply;
     }
 
     public Object getAttribute(String attribute) throws AttributeNotFoundException, MBeanException, ReflectionException
