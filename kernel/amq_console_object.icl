@@ -93,6 +93,7 @@ static amq_console_class_t
 .   if repeat ?= 1
     while (*field_value) {
         asl_field_new_string (fields, "$(field.name)", field_value);
+        strclr (field_value);
 .       for next
     $(string.trim (next.?''))
 .       endfor
