@@ -1,6 +1,6 @@
 <?xml?>
 <pal
-    name = "amq_console_test"
+    name = "amq_test_console"
     script = "amq_pal_gen"
     target = "stdc"
     >
@@ -13,7 +13,7 @@
         <queue_bind queue = "$queue" exchange = "amq.direct" routing_key = "$queue" />
         <jms_consume queue = "$queue" auto_ack = "1" />
         <repeat counter = "count">
-            <jms_content exec = "perl amq_console_test.pl" reply_to = "$queue" />
+            <jms_content exec = "perl amq_test_console.pl" reply_to = "$queue" />
             <if name = "body_size" value = "0">
                 <break/>
             </if>
