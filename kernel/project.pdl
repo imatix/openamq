@@ -141,6 +141,8 @@
 
 <!-- Test programs -->
 <file name = "amq_test_base.pal"     class = "public resource"   >Base test header</file>
+<file name = "amq_test_console.pal"  class = "private resource"  >Console test program</file>
+<file name = "amq_test_console.pl"   class = "private resource"  >Console test driver</file>
 
 <!-- PAL/AMQ code generator -->
 <file name = "amq_pal.xnf"           class = "generated" />
