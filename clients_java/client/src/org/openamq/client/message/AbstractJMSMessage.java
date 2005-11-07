@@ -1,18 +1,19 @@
 package org.openamq.client.message;
 
 import org.apache.commons.collections.map.ReferenceMap;
-import org.openamq.client.AMQQueue;
-import org.openamq.client.AMQSession;
-import org.openamq.client.AMQTopic;
+import org.openamq.AMQException;
 import org.openamq.client.AMQDestination;
+import org.openamq.client.AMQQueue;
+import org.openamq.client.AMQTopic;
 import org.openamq.framing.FieldTable;
 import org.openamq.framing.JmsContentHeaderProperties;
-import org.openamq.framing.ContentHeaderProperties;
-import org.openamq.AMQException;
 
 import javax.jms.Destination;
 import javax.jms.JMSException;
-import java.util.*;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
@@ -224,7 +225,7 @@ public abstract class AbstractJMSMessage extends AMQMessage implements javax.jms
         else
         {
             // TODO: fix this
-            return getJmsContentHeaderProperties().headers.containsKey(LONG_PROPERTY_PREFIX  + propertyName);
+            return getJmsContentHeaderProperties().headers.containsKey(STRING_PROPERTY_PREFIX  + propertyName);
         }
     }
 
@@ -624,7 +625,7 @@ public abstract class AbstractJMSMessage extends AMQMessage implements javax.jms
             }
             return table;
         }
-    }    
+    }
 
     /**
      * Get the AMQ message number assigned to this message

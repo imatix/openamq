@@ -86,6 +86,7 @@ public class MessageFactoryRegistry
     {
         MessageFactoryRegistry mf = new MessageFactoryRegistry();
         mf.registerFactory("text/plain", new JMSTextMessageFactory());
+        mf.registerFactory("text/xml", new JMSTextMessageFactory());
         mf.registerFactory("application/octet-stream", new JMSBytesMessageFactory());
         // TODO: use bytes message for default message factory
         //if (FieldTable.grm)
