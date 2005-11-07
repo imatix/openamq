@@ -18,27 +18,29 @@
 #   Main processor
 #   Out naive model just moves through N steps
 #
-$steps = 3;
-$cfile = "test_console.lst";
+$steps   = 3;
+$confile = "amq_test_console.lst";
+$logfile = "amq_test_console.log";
+
 $stdin .= $_ while (<>);
 
 if ($stdin eq "") {
     #   Start with first test set
-    open (LOGFILE, ">test_console.log");
+    open (LOGFILE, ">$logfile");
     $restart = 1;
     $curstep = 1;
     $context = "";
 }
 else {
     #   Reprise current test set
-    open (LOGFILE, ">>test_console.log");
+    open (LOGFILE, ">>$logfile");
     print LOGFILE "I: received:\n";
     print LOGFILE $stdin . "\n";
-    open (CONTEXT, $cfile);
+    open (CONTEXT, $confile);
     $context = <CONTEXT>;
     $restart = 0;
     close (CONTEXT);
-    unlink ($cfile);
+    unlink ($confile);
 
     #   Get current step from context string
     if ($context =~ /^(\w+) /) {
@@ -63,7 +65,7 @@ while ($curstep <= $steps) {
     $curstep++;
 }
 if ($stdout ne "") {
-    open (CONTEXT, ">$cfile");
+    open (CONTEXT, ">$confile");
     print CONTEXT "$curstep $context";
     close (CONTEXT);
 
@@ -82,6 +84,7 @@ exit (0);
 #   Step 1 - test different invalid requests
 
 sub step_1 {
+    local ($restart) = @_;
     local @invalid_requests = (
         "message-id: msg-invalid-request\n\n<not a valid request>",
         "message-id: msg-missing-command\n\n<cml><!-- missing command --></cml>",
@@ -89,20 +92,15 @@ sub step_1 {
         "message-id: msg-missing-argument\n\n<cml><inspect/><!-- missing argument --></cml>",
         "message-id: msg-no-cml-entity\n\n<nocml><schema/></nocml>"
     );
-    local ($restart) = @_;
     if ($restart) {
         print LOGFILE "I: test invalid xml requests\n";
-        $request_nbr = 0;
+        $context = 0;
     }
-    else {
-        $request_nbr = $context;
+    print LOGFILE "I: sending:\n" . $invalid_requests [$context] . "\n";
+    if (defined ($invalid_requests [$context])) {
+        $stdout = $invalid_requests [$context];
     }
-    print LOGFILE "I: sending:\n" . $invalid_requests [$request_nbr] . "\n";
-    if (defined ($invalid_requests [$request_nbr])) {
-        $stdout = $invalid_requests [$request_nbr];
-    }
-    $request_nbr++;
-    $context = "$request_nbr";
+    $context++;
     return (0);
 }
 
@@ -129,22 +127,17 @@ sub step_2 {
 
 #############################################################################
 #
-#   Step 3 - inspect objects recursively
+#   Step 3 - inspect objects iteratively until we don't get any more
 
 sub step_3 {
     local ($restart) = @_;
     if ($restart) {
-        $context = "0";
+        print LOGFILE "I: get all objects\n";
+        $context = 0;
     }
-    elsif ($stdin =~ /<inspect.*status\s*=\s*"ok"/) {
-        while ($stdin =~ /<object\s+class\s*=\s*"[^"]*"\s+id\s*=\s*"([^"]*)"/) {
-            $context .= " $1";
-            $stdin = $';
-        }
-    }
-    if ($context =~ /^\s*(\w+)\s*/) {
-        $stdout  = "message-id: msg-inspect-object-$1\n\n<cml><inspect object = \"$1\"/></cml>";
-        $context = $';        
+    if ($restart || $stdin =~ /<inspect.*status\s*=\s*"ok"/) {
+        $stdout = "message-id: msg-inspect-object-$context\n\n<cml><inspect object = \"$context\"/></cml>";
+        $context++;
     }
     return (0);                         #   End of step, ok
 }
