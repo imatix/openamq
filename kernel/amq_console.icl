@@ -161,19 +161,19 @@ $(selftype)
         && streq (ipr_xml_name (xml_cml), "cml")) {
             xml_command = ipr_xml_first_child (xml_cml);
             if (xml_command && ipr_xml_name (xml_command)) {
-                if (streq (ipr_xml_name (xml_command), "schema"))
+                if (streq (ipr_xml_name (xml_command), "schema-request"))
                     s_execute_schema (content, xml_command);
                 else 
-                if (streq (ipr_xml_name (xml_command), "inspect"))
+                if (streq (ipr_xml_name (xml_command), "inspect-request"))
                     s_execute_inspect (self, content, xml_command);
                 else 
-                if (streq (ipr_xml_name (xml_command), "modify"))
+                if (streq (ipr_xml_name (xml_command), "modify-request"))
                     s_execute_modify (self, content, xml_command);
                 else 
-                if (streq (ipr_xml_name (xml_command), "monitor"))
+                if (streq (ipr_xml_name (xml_command), "monitor-request"))
                     s_execute_monitor (self, content, xml_command);
                 else 
-                if (streq (ipr_xml_name (xml_command), "method"))
+                if (streq (ipr_xml_name (xml_command), "method-request"))
                     s_execute_method (self, content, xml_command);
                 else 
                     s_invalid_cml (content, bucket, "unknown CML command");
@@ -221,7 +221,7 @@ $(selftype)
     cml_item = ipr_xml_new (NULL, "cml", NULL);
     ipr_xml_attr_set (cml_item, "version", "1.0");
     
-    cur_item = ipr_xml_new (cml_item, "inspect", NULL);
+    cur_item = ipr_xml_new (cml_item, "inspect-reply", NULL);
     ipr_xml_attr_set (cur_item, "class",  self->class_ref [object_id]->name);
     ipr_xml_attr_set (cur_item, "object", icl_shortstr_fmt (strvalue, "%ld", object_id));
     ipr_xml_attr_set (cur_item, "status", "ok");
@@ -262,7 +262,7 @@ $(selftype)
     
     cml_item = ipr_xml_new (NULL, "cml", NULL);
     ipr_xml_attr_set (cml_item, "version", "1.0");
-    cur_item = ipr_xml_new (cml_item, "modify", NULL);
+    cur_item = ipr_xml_new (cml_item, "modify-reply", NULL);
     ipr_xml_attr_set (cur_item, "object", icl_shortstr_fmt (strvalue, "%ld", object_id));
     ipr_xml_attr_set (cur_item, "status", "ok");
     s_reply_xml (request, cml_item);
@@ -313,12 +313,12 @@ s_execute_schema (amq_content_jms_t *request, ipr_xml_t *xml_command)
         }
         else {
             icl_console_print ("E: can't read '%s'", schema_file);
-            s_reply_error (request, "schema", "notfound");
+            s_reply_error (request, "schema-reply", "notfound");
         }
     }
     else {
         icl_console_print ("E: can't find '%s'", schema_file);
-        s_reply_error (request, "schema", "notfound");
+        s_reply_error (request, "schema-reply", "notfound");
     }
 }
 
@@ -341,10 +341,10 @@ s_execute_inspect (
             self->class_ref [object_id]->inspect (self->object_ref [object_id], request);
         }
         else
-            s_reply_error (request, "inspect", "notfound");
+            s_reply_error (request, "inspect-reply", "notfound");
     }        
     else
-        s_reply_error (request, "inspect", "invalid");
+        s_reply_error (request, "inspect-reply", "invalid");
 }
 
 static void
@@ -384,10 +384,10 @@ s_execute_modify (
             asl_field_list_destroy (&fields);
         }
         else
-            s_reply_error (request, "modify", "notfound");
+            s_reply_error (request, "modify-reply", "notfound");
     }        
     else
-        s_reply_error (request, "modify", "invalid");
+        s_reply_error (request, "modify-reply", "invalid");
 }
 
 static void

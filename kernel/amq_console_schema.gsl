@@ -64,7 +64,7 @@ output "amq_console_schema.cml"
 > xsi:schemaLocation="http://www.openamq.org/schema/cml cml.xsd"
 > xmlns="http://www.openamq.org/schema/cml"
 > version="1.0">
-><schema name = "$(schema_name)" version = "$(schema_version)" status = "ok">
+><schema-reply name = "$(schema_name)" version = "$(schema_version)" status = "ok">
 process_class ("broker", indent)
-></schema>
+></schema-reply>
 ></cml>
