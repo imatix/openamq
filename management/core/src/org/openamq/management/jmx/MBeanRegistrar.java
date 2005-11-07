@@ -1,18 +1,22 @@
 package org.openamq.management.jmx;
 
 import org.apache.log4j.Logger;
+import org.apache.xmlbeans.XmlException;
+import org.openamq.management.ManagementConnection;
+import org.openamq.management.messaging.CMLMessageFactory;
+import org.openamq.AMQException;
+import org.openamq.schema.cml.CmlDocument;
+import org.openamq.schema.cml.SchemaDocument;
+import org.openamq.schema.cml.ClassDocument;
+import org.openamq.schema.cml.InspectDocument;
 
-import javax.management.JMException;
 import javax.management.MBeanServer;
-import javax.management.MXBean;
-import javax.management.ObjectName;
+import javax.jms.JMSException;
+import javax.jms.TextMessage;
 
 /**
  * Responsible for registering MBeans. This class will navigate through
  * our hierarchy of MBeans, registering them with the appropriate ObjectNames.
- *
- * Currently only supports MXBeans, our favoured type of MBean, but could be
- * enhanced fairly easily to support other types of MBean.
  *
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
@@ -23,81 +27,37 @@ public class MBeanRegistrar
     /** The MBean server with which all MBeans will be registered. */
     private MBeanServer _targetMBeanServer;
 
+    /** The connection used to communicate with the broker */
+    private ManagementConnection _connection;
+
+    private MBeanInfoRegistry _mbeanInfoRegistry;
+
     /**
      * Create a registrar for the specified MBean server
      * @param targetMBeanServer the MBean server with which all MBeans will be registered
      */
-    public MBeanRegistrar(MBeanServer targetMBeanServer)
+    public MBeanRegistrar(MBeanServer targetMBeanServer, ManagementConnection connection,
+                          MBeanInfoRegistry mbeanInfoRegistry)
     {
         _targetMBeanServer = targetMBeanServer;
+        _connection = connection;
+        _mbeanInfoRegistry = mbeanInfoRegistry;
     }
 
-    /**
-     * Register a hierarchy of MBeans.
-     * @param root the root of the hierarchy. All children will be registered, in the order
-     * that is traversed by the visit() method overridden by the concrete MBeans.
-     * @throws JMException if registration fails.
-     */
-    public void registerMBeanHierarchy(HierarchicalMBean root) throws JMException
+    public CMLMBean getRootMBean() throws AMQException, JMSException
     {
-        _log.info("Registering MBean hierarchy from root " + root);
-
-        if (!isMXBean(root))
+        TextMessage response = _connection.sendRequest(CMLMessageFactory.createInspectRequest(0));
+        try
         {
-            throw new IllegalArgumentException("All MBeans must be MXBeans.");
+            CmlDocument cmlDoc = CmlDocument.Factory.parse(response.getText());
+            CmlDocument.Cml cml = cmlDoc.getCml();
+            InspectDocument.Inspect inspect = cml.getInspect();
+            inspect.getClass1()
+
         }
-
-        // this registers all MBeans in the hierarchy using the common Visitor
-        // design pattern (see GoF if unfamiliar).
-        root.visit(new HierarchicalMBean.Visitor()
+        catch (XmlException e)
         {
-            public void visited(HierarchicalMBean o) throws JMException
-            {
-                registerMBean(o);
-            }
-        });
-        registerMBean(root);
-    }
-
-    /**
-     * Helper method to register MBeans.
-     * @param o the bean to register
-     * @throws JMException if something goes wrong
-     */
-    private void registerMBean(HierarchicalMBean o) throws JMException
-    {
-         _targetMBeanServer.registerMBean(o, new ObjectName("org.banana:name=pies"));
-    }
-
-    /**
-     * Utility method to test whether a given HierarchicalMBean is an MXBean. It is
-     * tested by looking for the MXBean annotation first, then it checks the class name
-     * to determine whether it ends in MXBean. Note that if it has the MXBean(false)
-     * annotation the class name check is <b>skipped</b>.
-     * @param bean the bean to test
-     * @return true if it is an MXBean, false otherwise
-     */
-    private static boolean isMXBean(HierarchicalMBean bean)
-    {
-        final Class<?> beanClass = bean.getClass();
-        if (beanClass.isAnnotationPresent(MXBean.class))
-        {
-            MXBean annotation = beanClass.getAnnotation(MXBean.class);
-            return annotation.value();
-        }
-        else
-        {
-            // getInterfaces() is defined never to return null
-            Class<?>[] interfaces = beanClass.getInterfaces();
-            for (Class<?> ifc : interfaces)
-            {
-                if (ifc.getName().endsWith("MXBean"))
-                {
-                    return true;
-                }
-            }
-            // if we reach here no suitable interface was found
-            return false;
+            throw new AMQException("Error parsing broker response: " + e, e);
         }
     }
 }

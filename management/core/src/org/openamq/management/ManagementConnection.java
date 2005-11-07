@@ -75,7 +75,13 @@ public class ManagementConnection
             }
         });
         _session = (Session)_connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
-        _replyQueue = new AMQQueue("response", true);
+        _replyQueue = new AMQQueue("response", true)
+        {
+            public String getEncodedName()
+            {
+                return getQueueName();
+            }
+        };
         _consumer = _session.createConsumer(_replyQueue, 100, true, true, null);
 
         _producer = (MessageProducer) _session.createProducer(new ManagementDestination());
@@ -90,7 +96,7 @@ public class ManagementConnection
      * @throws JMSException when a JMS error occurs
      */
     public TextMessage sendRequest(String xmlRequest) throws AMQException, JMSException
-    {        
+    {
         TextMessage requestMsg = _session.createTextMessage(xmlRequest);
         requestMsg.setJMSReplyTo(_replyQueue);
         _producer.send(requestMsg);
