@@ -9,18 +9,13 @@
 package org.openamq.management.schema;
 
 import org.apache.log4j.Logger;
-import org.openamq.client.AMQConnection;
-import org.openamq.client.AMQQueue;
-import org.openamq.jms.Session;
-import org.openamq.jms.MessageProducer;
-import org.openamq.management.messaging.ManagementDestination;
 import org.openamq.management.ManagementConnection;
-import org.openamq.schema.cml.SchemaDocument;
+import org.openamq.management.messaging.CMLMessageFactory;
 import org.openamq.schema.cml.ClassDocument;
 import org.openamq.schema.cml.CmlDocument;
+import org.openamq.schema.cml.SchemaDocument;
 
-import javax.jms.*;
-import java.net.InetAddress;
+import javax.jms.TextMessage;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
@@ -53,12 +48,11 @@ public class TestParseSchema
         }
         try
         {
-            InetAddress address = InetAddress.getLocalHost();
             _con = new ManagementConnection(args[0], Integer.parseInt(args[1]), args[2], args[3],
                                             args[4]);
-            String schemaRequestMsg = "<?xml?><cml version = \"1.0\"><schema /></cml>";
 
-            TextMessage tm = _con.sendRequest(schemaRequestMsg);
+            _con.connect();
+            TextMessage tm = _con.sendRequest(CMLMessageFactory.createSchemaRequest());
             parseCMLSchema(tm.getText());
             _logger.info("Closing management connection");
             _con.close();
@@ -78,7 +72,7 @@ public class TestParseSchema
                 {
                     _con.close();
                 }
-                catch (JMSException e)
+                catch (Exception e)
                 {
                     _logger.error("Error closing connection: " + e);
                 }
