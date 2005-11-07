@@ -5,12 +5,14 @@
             <xs:documentation>Defines a CML document as a schema or a...</xs:documentation>
         </xs:annotation>
         <xs:complexType>
-            <xs:choice>
+            <!--<xs:choice>-->
+            <xs:sequence>
                 <xs:element name="schema-request" minOccurs="0" maxOccurs="1"/>
                 <xs:element ref="schema-reply" minOccurs="0" maxOccurs="1"/>
                 <xs:element ref="inspect-request" minOccurs="0" maxOccurs="1"/>
                 <xs:element ref="inspect-reply" minOccurs="0" maxOccurs="1"/>
-            </xs:choice>                                      
+            <!--</xs:choice>-->
+            </xs:sequence>
             <xs:attribute name="version" type="xs:string" use="required"/>
         </xs:complexType>
     </xs:element>
