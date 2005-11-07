@@ -54,7 +54,7 @@
     <!-- Generate code from the XML schema -->
     <target name="xmlbeans" depends="init">
         <xmlbean classgendir="${classes}" classpathref="core.classpath"
-                 failonerror="true" srcgendir="${generated.src}">
+                 failonerror="true" srcgendir="${generated.src}" javasource="1.5" source="1.5">
             <fileset dir="${etc}" includes="**/*.xsd"/>
         </xmlbean>
     </target>
@@ -108,7 +108,7 @@
                  footer="See &lt;a href=&quot;http://www.openamq.org&quot;&gt;www.openamq.org&lt;/a&gt; for more information."
                  use="true" verbose="false"/>
     </target>
-    
+
     <target name="ServiceProvidingClient" depends="compiletests">
         <java fork="yes" classname="org.openamq.requestreply1.ServiceProvidingClient">
               <classpath refid="openamq.classpath"/>
@@ -119,10 +119,10 @@
               <arg value="guest"/>
               <arg value="guest"/>
               <arg value="/vpath"/>
-              <arg value="serviceQ1"/>              
+              <arg value="serviceQ1"/>
         </java>
     </target>
-    
+
      <target name="ServiceRequestingClient" depends="compiletests">
         <java fork="yes" classname="org.openamq.requestreply1.ServiceRequestingClient">
               <classpath refid="openamq.classpath"/>
@@ -137,10 +137,10 @@
               <arg value="5000"/>
         </java>
     </target>
-    
+
     <target name="profile" depends="compile" description="Profile Project">
         <fail unless="netbeans.home">This target can only run inside the NetBeans IDE.</fail>
-        <nbprofiledirect>            
+        <nbprofiledirect>
           <classpath refid="openamq.classpath"/>
         </nbprofiledirect>
         <java fork="true" classname="org.openamq.requestreply1.ServiceRequestingClient"
