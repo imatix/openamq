@@ -201,7 +201,7 @@ maximum number of consumers per channel is set at compile time.
     amq_server_channel_destroy (&channel);
 
     //  Now some random table bashing
-    for (count = 0; count < 50; count++) {
+    for (count = 0; count < 2000; count++) {
         channel_nbr = randomof (0xffff);
         channel = amq_server_channel_new (table, channel_nbr, NULL);
         amq_server_channel_destroy (&channel);

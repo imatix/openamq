@@ -9,7 +9,7 @@
     and remain robust.
     <repeat times = "1000000" counter = "index">
         <session scope="default">
-            <exchange_declare exchange="tmp" class="fanout" />
+            <exchange_declare exchange="tmp" type="fanout" />
             <queue_declare queue="queue_$index" scope="default" />
             <queue_bind queue="queue_$index" scope="default" exchange="tmp" />
         </session>
