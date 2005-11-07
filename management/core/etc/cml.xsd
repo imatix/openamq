@@ -3,10 +3,11 @@
     <xs:element name="cml">
         <xs:annotation>
             <xs:documentation>Defines a CML document as a schema or a...</xs:documentation>
-        </xs:annotation>        
+        </xs:annotation>
         <xs:complexType>
             <xs:sequence>
-                <xs:element ref="schema" minOccurs="1" maxOccurs="1"/>
+                <xs:element ref="schema" minOccurs="0" maxOccurs="1"/>
+                <xs:element ref="inspect" minOccurs="0" maxOccurs="1"/>
             </xs:sequence>
             <xs:attribute name="version" type="xs:string" use="required"/>
         </xs:complexType>
@@ -28,8 +29,8 @@
                         <xs:enumeration value="not ok"/>
                     </xs:restriction>
                 </xs:simpleType>
-            </xs:attribute>            
-        </xs:complexType>        
+            </xs:attribute>
+        </xs:complexType>
         <xs:key name="classkey">
             <xs:selector xpath="class"/>
             <xs:field xpath="@name"/>
@@ -48,14 +49,14 @@
         <xs:unique name="uniqueFieldName">
             <xs:selector xpath="field"/>
             <xs:field xpath="@name"/>
-        </xs:unique>        
+        </xs:unique>
     </xs:element>
     <xs:element name="field">
         <xs:annotation>
             <xs:documentation>Defines a field within a class</xs:documentation>
         </xs:annotation>
         <xs:complexType>
-            <xs:attribute name="name" type="xs:string" use="required"/>            
+            <xs:attribute name="name" type="xs:string" use="required"/>
             <xs:attribute name="type" use="optional" default="string">
                 <xs:simpleType>
                     <xs:restriction base="xs:string">
@@ -69,6 +70,39 @@
             <xs:attribute name="label" type="xs:string" use="optional"/>
             <xs:attribute name="repeat" type="xs:boolean" use="optional" default="false"/>
             <xs:attribute name="modify" type="xs:boolean" use="optional" default="false"/>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="inspect">
+        <xs:annotation>
+            <xs:documentation>A request to view the properties of an instance</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="field" minOccurs="0" maxOccurs="unbounded"/>
+                <xs:element ref="object" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
+            <xs:attribute name="object" type="xs:int" use="optional"/>
+            <xs:attribute name="class" type="xs:string" use="optional"/>
+            <xs:attribute name="status" use="optional">
+                <xs:simpleType>
+                    <xs:restriction base="xs:string">
+                        <xs:enumeration value="ok"/>
+                        <xs:enumeration value="notfound"/>
+                        <xs:enumeration value="noaccess"/>
+                        <xs:enumeration value="invalid"/>
+                    </xs:restriction>
+                </xs:simpleType>
+            </xs:attribute>
+
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="object">
+        <xs:annotation>
+            <xs:documentation>A reference to an object instance</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:attribute name="class" type="xs:string" use="required"/>
+            <xs:attribute name="id" type="xs:int" use="required"/>
         </xs:complexType>
     </xs:element>
 </xs:schema>
