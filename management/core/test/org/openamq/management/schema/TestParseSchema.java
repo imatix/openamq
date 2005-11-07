@@ -14,6 +14,7 @@ import org.openamq.management.messaging.CMLMessageFactory;
 import org.openamq.schema.cml.ClassDocument;
 import org.openamq.schema.cml.CmlDocument;
 import org.openamq.schema.cml.SchemaDocument;
+import org.openamq.schema.cml.SchemaReplyDocument;
 
 import javax.jms.TextMessage;
 
@@ -30,7 +31,7 @@ public class TestParseSchema
     {
         CmlDocument cmlDoc = CmlDocument.Factory.parse(xml);
         CmlDocument.Cml cml = cmlDoc.getCml();
-        SchemaDocument.Schema schema = cml.getSchema();
+        SchemaReplyDocument.SchemaReply schema = cml.getSchemaReply();
         for (ClassDocument.Class classDefn: schema.getClass1List())
         {
             System.out.println("Class: " + classDefn.getName());
