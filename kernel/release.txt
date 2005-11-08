@@ -1,3 +1,37 @@
+0.9c4 - 2005/11/08
+---------------------------------------------------------------------
+Bug fixes:
+
+    AMQ-166   test_console trashes ram and lockups my workstation
+    AMQ-141   AMQ server core dumps while GTW GUI testing
+    AMQ-165   Broker locks up when running request/reply benchmark on Solaris
+    AMQ-162   Server does not shut down cleanly after running test_console
+    AMQ-155   Improve error propagation and cleanup code in JMS client
+    BASE2-92  icl_mem_fat_possess_: Assertion `self->tag == 0xFabbU' failed.
+    BASE2-93  Creating/destroying large numbers of async objects causes
+              problems at exit
+    BASE2-103 Client or Brokers get into 'inactive' state.
+    BASE2-90  client aborts
+    BASE2-97  Compilation error in icl.h
+    BASE2-98  segfault when ST client connects to MT server in
+              smt_method_queue_wait
+
+Changes:
+
+    AMQ-169   Differentiate between console request and response element names
+              to allow stricter message validation
+    AMQ-168   Add xml schema attributes to cml
+    AMQ-164   The last change to AMQSession (for AMQ-160) breaks GRM Java
+              request/reply wiring
+    AMQ-167   Console does not include type details in all field elements in
+              schema definition
+    AMQ-143   Systematic client breakage test
+    AMQ-153   Write test cases to thrash creation/destruction of objects in
+              server
+    AMQ-163   Simplify AMQ Console schema
+    AMQ-156   Rename Browse to Get in the protocol specification  
+    BASE2-81  Allow step limit for SMT threads  
+
 0.9c3 - 2005/10/31
 ---------------------------------------------------------------------
 Bug fixes:
