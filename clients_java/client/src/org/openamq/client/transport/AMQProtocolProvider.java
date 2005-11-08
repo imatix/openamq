@@ -23,10 +23,10 @@ public class AMQProtocolProvider implements ProtocolProvider
     {
         _factory = new DemuxingProtocolCodecFactory();
         _factory.register(AMQDataBlockEncoder.class);
-        
+
         AMQDataBlockDecoder decoder = new AMQDataBlockDecoder();
         _factory.register(decoder);
-        _handler = new AMQProtocolHandler(connection);
+        _handler = new AMQProtocolHandler(connection);        
     }
 
     public ProtocolCodecFactory getCodecFactory()

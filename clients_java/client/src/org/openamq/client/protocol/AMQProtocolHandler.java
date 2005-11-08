@@ -3,8 +3,10 @@ package org.openamq.client.protocol;
 import edu.emory.mathcs.backport.java.util.concurrent.CopyOnWriteArraySet;
 import org.apache.log4j.Logger;
 import org.apache.mina.common.IdleStatus;
+import org.apache.mina.common.SessionConfig;
 import org.apache.mina.protocol.ProtocolHandler;
 import org.apache.mina.protocol.ProtocolSession;
+import org.apache.mina.io.socket.SocketSessionConfig;
 import org.openamq.client.AMQConnection;
 import org.openamq.AMQException;
 import org.openamq.AMQDisconnectedException;
@@ -49,6 +51,13 @@ public class AMQProtocolHandler implements ProtocolHandler
     public void sessionCreated(ProtocolSession session) throws Exception
     {
         _protocolSession = new AMQProtocolSession(session, _connection);
+        SessionConfig cfg = session.getConfig();
+        if( cfg instanceof SocketSessionConfig )
+        {
+            SocketSessionConfig scfg = (SocketSessionConfig) cfg;
+            _logger.info("Setting socket receive buffer size to 8192 bytes");
+            scfg.setSessionReceiveBufferSize(8192);
+        }
     }
 
     public void sessionOpened(ProtocolSession session) throws Exception
@@ -77,8 +86,14 @@ public class AMQProtocolHandler implements ProtocolHandler
         _connection.exceptionReceived(cause);
     }
 
+    private static int _messageReceivedCount;
+
     public void messageReceived(ProtocolSession session, Object message) throws Exception
     {
+        if (_messageReceivedCount++ % 1000 == 0)
+        {
+            _logger.warn("Received " + _messageReceivedCount + " protocol messages");
+        }
         Iterator it = _frameListeners.iterator();
         AMQFrame frame = (AMQFrame) message;
 
@@ -125,8 +140,14 @@ public class AMQProtocolHandler implements ProtocolHandler
         _connection.bytesReceived(_protocolSession.getProtocolSession().getReadBytes());
     }
 
+    private static int _messagesOut;
+
     public void messageSent(ProtocolSession session, Object message) throws Exception
     {
+        if (_messagesOut++ % 1000 == 0)
+        {
+            _logger.warn("Sent " + _messagesOut + " protocol messages");
+        }
         _connection.bytesSent(_protocolSession.getProtocolSession().getWrittenBytes());
         if (_logger.isDebugEnabled())
         {

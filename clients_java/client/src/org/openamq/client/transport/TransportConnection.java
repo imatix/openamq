@@ -39,7 +39,7 @@ public class TransportConnection
     {
         final SocketConnector ioConnector = new SocketConnector();
         final IoProtocolConnector protocolConnector = new IoProtocolConnector(ioConnector);
-
+        
         final InetSocketAddress address = new InetSocketAddress(_connection.getHost(), _connection.getPort());
         _protocolProvider = new AMQProtocolProvider(_connection);
         protocolConnector.connect(address, _protocolProvider);
