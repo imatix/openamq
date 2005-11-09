@@ -13,29 +13,49 @@
         <queue_declare queue = "blaster"/>
         <queue_bind queue = "$queue" routing_key = "$queue" />
         <basic_consume queue = "$queue" />
-        <echo>Sending $count messages of size $size bytes</echo>
-        <repeat times = "$count" counter = "id">
-            <basic_content fill = "random"    body_size = "$size" 
-                           message_id = "$id" reply_to = "$queue" />
-            <basic_publish routing_key = "echo server" mandatory = "1" />
-        </repeat>
-        <invoke macro = "receive"/>        
-    </session>
-    
-    <macro name = "receive">
-        <set name = "messages" value = "0"/>
         
-        <repeat>
-            <wait timeout = "5000"/>
+        <!-- Send messages -->
+        <echo>Sending $count messages of size $size bytes</echo>
+        <basic_content fill = "random" body_size = "$size" 
+                        message_id = "id-xxx" reply_to = "$queue" />
+        <set name = "sent" value = "0"/>
+        <set name = "received" value = "0"/>
+        <set name = "trigger" value = "0"/>
+        <repeat times = "$count">
+            <basic_publish routing_key = "echo server" mandatory = "1" />
+            <inc name = "sent"/>
+            <inc name = "trigger"/>
+            <!-- Check arriving messages -->
             <basic_arrived>
-                <inc name = "messages"/>
+                <inc name = "received"/>
+            </basic_arrived>
+            <!-- Print stats -->
+            <if name = "trigger" value = "1000">
+                <set name = "trigger"    value = "0"/>
+                <echo>I: sent $sent messages</echo>
+                <echo>I: received $received messages</echo>
+            </if>
+        </repeat>
+        
+        <!-- Check remainig messages -->
+        <echo>Checking remaining messages:</echo>
+        <repeat>
+            <wait timeout = "3000"/>
+            <set name = "trigger" value = "0"/>
+            <basic_arrived>
+                <inc name = "received"/>
+                <inc name = "trigger"/>
+                <if name = "trigger" value = "1000">
+                    <set name = "trigger"    value = "0"/>
+                    <echo>I: received $received messages</echo>
+                </if>
             </basic_arrived>
             <empty>
-                <echo>I: No response from echo server (empty)</echo>
+                <echo>I: No more messages from server after timeout pause</echo>
                 <break/>
             </empty>
         </repeat>
-        <echo>I: Messages received count: $messages</echo>
-    </macro>
+        <echo>I: Messages received count: $received</echo>
+    </session>
 </pal>
 
