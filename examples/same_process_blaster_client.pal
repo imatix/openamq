@@ -4,7 +4,12 @@
     script = "amq_pal_gen"
     target = "stdc"
     >
-    This script reads messages from the echo server.
+    This script needs the echo_server to be started first. The script performs a basic request/response dialog as
+      discussed in AMQ-170. The number of received responses per publish batches of regular size (1000 messages) is 
+      printed, along with very limited timing information.
+    This script sends the requested amount of messages ('-C n'), checking at regular intervals for
+      queued responses from the echo_server. After all the requested messages have been published, any remaining 
+      incoming responses are collected. The total number of messages received is finally printed.
 
     <set name = "count"    value = "10"   cmdline = "C" />
     <set name = "size"     value = "1024" cmdline = "S" />
@@ -55,7 +60,7 @@
                 <break/>
             </empty>
         </repeat>
-        <echo>I: Messages received count: $received</echo>
+        <echo>I: Total received count (after remaining messages): $received</echo>
     </session>
 </pal>
 
