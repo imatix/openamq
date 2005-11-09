@@ -1,0 +1,32 @@
+<?xml?>
+<pal
+    name = "target_client"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    This script reads messages from the echo server.
+
+    <session scope = "test" exchange = "amq.direct">
+        <queue_declare queue = "blaster" exclusive = "0"/>
+        <queue_bind queue = "$queue" routing_key = "$queue" />
+        <basic_consume queue = "$queue" />
+        <invoke macro = "receive"/>        
+    </session>
+    
+    <macro name = "receive">
+        <set name = "messages" value = "0"/>
+        
+        <repeat>
+            <wait timeout = "5000"/>
+            <basic_arrived>
+                <inc name = "messages"/>
+            </basic_arrived>
+            <empty>
+                <echo>I: No response from echo server (empty)</echo>
+                <break/>
+            </empty>
+        </repeat>
+        <echo>I: Messages received count: $messages</echo>
+    </macro>
+</pal>
+
