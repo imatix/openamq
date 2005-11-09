@@ -1,3 +1,82 @@
+
+Protocol documentation
+
+1. Functional Requirements
+    functional = what 
+    everything we want to be able to do
+    worked examples
+
+2. Technical Requirements
+    technical = how 
+    performance
+    portability
+    longevity
+    interoperability
+    clarity
+    extensibility
+
+3. Proposed Architecture
+    the functional layer
+    routing exchange and queues
+    the technical layer
+    channels etc.
+
+4. The Technical Layer 
+    technical objects & lifecycle
+    framing layers
+    content encoding
+    limitations
+    how connections work
+    negotiation
+    multichannels
+    tokenisation
+
+5. The Functional Layer
+    functional objects & lifecycle
+    all functional commands
+    regression tests
+    
+
+    
+
+basic protocol rules
+    - any property needed for interop is named & standard
+    - anything else is allowed, extensible x-, X-
+        - server warns but ignores unsupported non-standard properties
+    - we aim to support full configuration & changeable
+        via the protocol
+        every entity and attribute of the vhost
+    - watching the server is console's job
+
+    - how to extend
+        - write own exchange
+        - send arbitrary messages to exchange
+    
+
+
+
+todo
+    - need to review test sets
+    - clarify and legible
+        -> they are not readable at present
+        -> work through with team
+        -> explain how to make them readable
+    - need smaller unit tests
+        -> test number xxx does yyy
+        -> index, well-defined functionality
+        -> 100+ tests
+
+AMQwg
+    - active members
+    - passive members
+    - banks, vendors
+
+Powerpointy stuff
+    - vision of amqp becoming ubiquitous
+    - easy examples in PAL
+    - nice scenarios
+
+
 General rule for handling issues
 
 1. Bug process
@@ -68,9 +147,6 @@ and if they hit the watch limit, sends an alert.
 
 Once watch has provoked an alert, the system exchange will suppress
 successive alerts unless there is significant variance - e.g. 5%.
-
-
-
 
 In the OpenAMQ server, requests are handled by the standard system
 exchange "amq.console". Responses are sent to a temporary reply queue
