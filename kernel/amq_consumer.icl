@@ -23,9 +23,7 @@ for JMS, Basic, and other content classes.
     <option name = "prefix" value = "by_channel" />
 </inherit>
 
-<public name = "include">
-#include "amq_server_classes.h"
-</public>
+<import class = "amq_server_classes" />
 
 <context>
     int

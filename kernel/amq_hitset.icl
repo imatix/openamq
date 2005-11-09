@@ -17,9 +17,8 @@
     <option name = "nullify" value = "0" />
 </inherit>
 
-<public name = "include">
-#include "amq_server_classes.h"
-</public>
+<import class = "amq_server_classes" />
+<import class = "amq_index_hash" />
 
 <context>
     int

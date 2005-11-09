@@ -17,9 +17,7 @@ independent of the queue content type.
     <option name = "alloc" value = "cache" />
 </inherit>
 
-<public name = "include">
-#include "amq_server_classes.h"
-</public>
+<import class = "amq_server_classes" />
 
 <context>
     amq_queue_t

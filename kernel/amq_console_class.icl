@@ -14,9 +14,7 @@ This class defines a class descriptor.
     <option name = "alloc" value = "cache" />
 </inherit>
 
-<public name = "include">
-#include "amq_server_classes.h"
-</public>
+<import class = "amq_server_classes" />
 
 <context>
     char

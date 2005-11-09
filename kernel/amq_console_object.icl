@@ -30,6 +30,8 @@ an object work with the AMQ Console (amq.console system exchange).
 
 <inherit class = "icl_init" />
 
+<import class = "asl_field_list" />
+
 <context>
     qbyte
         object_id;                      //  System-wide object id

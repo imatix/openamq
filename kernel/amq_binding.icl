@@ -21,9 +21,7 @@ class.
     <option name = "rwlock" value = "0" />
 </inherit>
 
-<public name = "include">
-#include "amq_server_classes.h"
-</public>
+<import class = "amq_server_classes" />
 
 <context>
     amq_exchange_t

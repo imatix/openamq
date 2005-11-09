@@ -9,6 +9,7 @@
 
 <include filename = "prelude.pdl" />
 <inherit filename = "icl_classes.pdl" />
+<inherit filename = "smt_classes.pdl" />
 
 <file name = "version.h"             class = "c version"         >Project version file</file>
 <file name = "libamq"                class = "public library"    >Object library</file>
@@ -28,9 +29,11 @@
 <file name = "amq_client.c"          class = "main program"      >Client test program</file>
 <file name = "amq_client_method.icl" class = "icl public class"
                                      generated = "1"             >Client method class</file>
-<file name = "amq_client_agent.smt"  class = "fat module"
+<file name = "amq_client_agent.smt"  class = "smt public module"
                                      generated = "1"             >Client protocol agent</file>
 <file name = "amq_client_classes.h"  class = "public header"     >Client classes</file>
+<file name = "amq_client_classes.hpp"  
+                                     class = "public header"     >Client classes (C++)</file>
 <file name = "amq_client_connection.icl"
                                      class = "icl public class"
                                      generated = "1"             >Client API connection class</file>
@@ -49,9 +52,11 @@
 <file name = "amq_server_config.opf" class = "gsl data"          >Server configuration</file>
 <file name = "amq_server_config.icl" class = "icl private class"
                                      generated = "1"             >Server configuration class</file>
-<file name = "amq_server_agent.smt"  class = "fat module"
+<file name = "amq_server_agent.smt"  class = "smt public module"
                                      generated = "1"             >Server protocol agent</file>
 <file name = "amq_server_classes.h"  class = "private resource"  >Server classes</file>
+<file name = "amq_server_classes.hpp" 
+                                     class = "private resource"  >Server classes (C++)</file>
 <file name = "amq_server_connection.icl"
                                      class = "icl private class" >Server connection class</file>
 <file name = "amq_server_connection_table.icl"
@@ -59,21 +64,21 @@
 <file name = "amq_server_channel.icl"
                                      class = "icl private class" >Server channel class</file>
 <file name = "amq_server_channel_agent.smt"
-                                     class = "fat module"
+                                     class = "smt public module"
                                      generated = "1"             >Server channel agent</file>
 <file name = "amq_server_channel_table.icl"
                                      class = "icl private cont"  >Server channel table</file>
 <file name = "amq_broker.icl"        class = "icl private class" >Server broker class</file>
-<file name = "amq_broker_agent.smt"  class = "fat module"
+<file name = "amq_broker_agent.smt"  class = "smt public module"
                                      generated = "1"             >Server broker agent</file>
 <file name = "amq_console.icl"       class = "icl private class" >Server console class</file>
-<file name = "amq_console_agent.smt" class = "fat module"
+<file name = "amq_console_agent.smt" class = "smt public module"
                                      generated = "1"             >Server console agent</file>
 <file name = "amq_console_object.icl"
                                      class = "private resource"  >Console object abstract class</file>
 <file name = "amq_console_class.icl" class = "icl private class" >Console class definition</file>
 <file name = "amq_vhost.icl"         class = "icl private class" >Server vhost class</file>
-<file name = "amq_vhost_agent.smt"   class = "fat module"
+<file name = "amq_vhost_agent.smt"   class = "smt public module"
                                      generated = "1"             >Server vhost agent</file>
 <file name = "amq_vhost_config.opf"  class = "gsl data"          >Vhost configuration</file>
 <file name = "amq_vhost_config.icl"  class = "icl private class"
@@ -83,7 +88,7 @@
                                      class = "icl private cont"  >Container for server exchange class</file>
 <file name = "amq_exchange_list.icl" class = "icl private cont"  >List of exchanges per vhost</file>
 <file name = "amq_exchange_agent.smt"
-                                     class = "fat module"
+                                     class = "smt public module"
                                      generated = "1"             >Server exchange agent</file>
 <file name = "amq_exchange_base.icl" class = "private resource"  >Server exchange base class</file>
 <file name = "amq_exchange_system.icl"
@@ -105,7 +110,7 @@
 <file name = "amq_queue.icl"         class = "icl private class" >Server queue envelope class</file>
 <file name = "amq_queue_table.icl"   class = "icl private cont"  >Hash of queues per vhost</file>
 <file name = "amq_queue_list.icl"    class = "icl private cont"  >List of queues per vhost</file>
-<file name = "amq_queue_agent.smt"   class = "fat module"
+<file name = "amq_queue_agent.smt"   class = "smt public module"
                                      generated = "1"             >Server queue agent</file>
 <file name = "amq_queue_base.icl"    class = "private resource"  >Server queue base class</file>
 <file name = "amq_queue_basic.icl"   class = "icl private class" >Basic content queue class</file>
@@ -143,6 +148,7 @@
 <file name = "amq_test_base.pal"     class = "public resource"   >Base test header</file>
 <file name = "amq_test_console.pal"  class = "private resource"  >Console test program</file>
 <file name = "amq_test_console.pl"   class = "private resource"  >Console test driver</file>
+<file name = "amq_test_cpp.cpp"      class = "c++ main program"  >C++ test program</file>
 
 <!-- PAL/AMQ code generator -->
 <file name = "amq_pal.xnf"           class = "generated" />

@@ -37,9 +37,8 @@ The console works as follows:
 
 <inherit class = "smt_object" />
 
-<public name = "include">
-#include "amq_server_classes.h"
-</public>
+<import class = "amq_server_classes"/>
+<import class = "asl_field_list" />
 
 <public>
 extern $(selftype)

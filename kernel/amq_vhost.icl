@@ -52,9 +52,7 @@ Defines a virtual host. This is a lock-free asynchronous class.
     </class>
 </data>
 
-<public name = "include">
-#include "amq_server_classes.h"
-</public>
+<import class = "amq_server_classes" />
 
 <public>
 extern $(selftype)
