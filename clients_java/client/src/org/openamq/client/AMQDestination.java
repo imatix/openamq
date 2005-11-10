@@ -111,6 +111,8 @@ public abstract class AMQDestination implements Destination
     }
 
     public abstract String getRoutingKey();
+    
+    public abstract boolean isExclusive();
 
     public String toString()
     {

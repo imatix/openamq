@@ -580,8 +580,8 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
 
                 AMQFrame queueDeclare = QueueDeclareBody.createAMQFrame(_channelId, 0, amqd.getQueueScope(),
                                                                         amqd.getQueueName(),
-                                                                        false, false, amqd.isTemporary(),
-                                                                        amqd.isTemporary());
+                                                                        false, false, amqd.isExclusive(),
+                                                                        amqd.isExclusive() || amqd.isTemporary());
 
                 AMQMethodEvent evt = protocolHandler.writeCommandFrameAndWaitForReply(queueDeclare,
                                              new SpecificMethodFrameListener(_channelId, QueueDeclareOkBody.class));

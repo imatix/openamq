@@ -44,4 +44,9 @@ public class AMQTopic extends AMQDestination implements Topic
     {
         return getDestinationName();
     }
+    
+    public boolean isExclusive()
+    {
+        return isTemporary();
+    }
 }

@@ -48,4 +48,9 @@ public class AMQQueue extends AMQDestination implements Queue
     {
         return getQueueName();
     }
+    
+    public boolean isExclusive()
+    {
+        return isTemporary();
+    }
 }
