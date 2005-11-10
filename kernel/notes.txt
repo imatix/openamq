@@ -1,13 +1,20 @@
 
 Protocol documentation
 
-1. Functional Requirements
-    functional = what 
+1.  Overview
+    goals of document
+    abstract
+    organisation
+    current state
+    conventions
+
+2.  Functional Requirements
+    functional = what
     everything we want to be able to do
     worked examples
 
-2. Technical Requirements
-    technical = how 
+3.  Technical Requirements
+    technical = how
     performance
     portability
     longevity
@@ -15,29 +22,31 @@ Protocol documentation
     clarity
     extensibility
 
-3. Proposed Architecture
+4.  Proposed Architecture
     the functional layer
     routing exchange and queues
     the technical layer
     channels etc.
 
-4. The Technical Layer 
+5.  The Technical Layer
     technical objects & lifecycle
     framing layers
     content encoding
     limitations
     how connections work
+    security
     negotiation
     multichannels
     tokenisation
 
-5. The Functional Layer
+6.  The Functional Layer
     functional objects & lifecycle
     all functional commands
     regression tests
-    
 
-    
+7.  Guidelines to Implementors
+
+
 
 basic protocol rules
     - any property needed for interop is named & standard

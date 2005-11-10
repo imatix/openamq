@@ -162,13 +162,13 @@ $(selftype)
             if (xml_command && ipr_xml_name (xml_command)) {
                 if (streq (ipr_xml_name (xml_command), "schema-request"))
                     s_execute_schema (content, xml_command);
-                else 
+                else
                 if (streq (ipr_xml_name (xml_command), "inspect-request"))
                     s_execute_inspect (self, content, xml_command);
-                else 
+                else
                 if (streq (ipr_xml_name (xml_command), "modify-request"))
                     s_execute_modify (self, content, xml_command);
-                else 
+                else
                 if (streq (ipr_xml_name (xml_command), "monitor-request"))
                     s_execute_monitor (self, content, xml_command);
                 else 
@@ -219,7 +219,8 @@ $(selftype)
     
     cml_item = ipr_xml_new (NULL, "cml", NULL);
     ipr_xml_attr_set (cml_item, "version", "1.0");
-    
+    ipr_xml_attr_set (cml_item, "xmlns", "http://www.openamq.org/schema/cml");
+
     cur_item = ipr_xml_new (cml_item, "inspect-reply", NULL);
     ipr_xml_attr_set (cur_item, "class",  self->class_ref [object_id]->name);
     ipr_xml_attr_set (cur_item, "object", icl_shortstr_fmt (strvalue, "%ld", object_id));
@@ -261,6 +262,8 @@ $(selftype)
     
     cml_item = ipr_xml_new (NULL, "cml", NULL);
     ipr_xml_attr_set (cml_item, "version", "1.0");
+    ipr_xml_attr_set (cml_item, "xmlns", "http://www.openamq.org/schema/cml");
+
     cur_item = ipr_xml_new (cml_item, "modify-reply", NULL);
     ipr_xml_attr_set (cur_item, "object", icl_shortstr_fmt (strvalue, "%ld", object_id));
     ipr_xml_attr_set (cur_item, "status", "ok");
@@ -424,6 +427,8 @@ s_reply_error (amq_content_jms_t *request, char *top, char *status)
 
     cml_item = ipr_xml_new (NULL, "cml", NULL);
     ipr_xml_attr_set (cml_item, "version", "1.0");
+    ipr_xml_attr_set (cml_item, "xmlns", "http://www.openamq.org/schema/cml");
+
     cur_item = ipr_xml_new (cml_item, top, NULL);
     if (status) 
         ipr_xml_attr_set (cur_item, "status", status);
