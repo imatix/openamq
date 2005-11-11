@@ -3,9 +3,9 @@ gdl
     subtitle  = Installation and Use of the OpenAMQ Server
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/05/05
+    date      = 2005/10/31
     copyright = Copyright (c) 2004-2005 JPMorgan and iMatix Corporation
-    version   = 0.8d
+    version   = 0.9c
 end gdl
 
 Introduction
@@ -33,13 +33,28 @@ the project plan. This software is proprietary and confidential.
 Copyrights and Credits
 ======================
 
-OpenAMQ is copyright (c) 2004-2005 JPMorgan and iMatix Corporation.
+OpenAMQ is copyright (c) 2004-2005 JPMorganChase with some parts
+copyright iMatix Corporation.
+
+The concept of a general purpose open source middleware product was
+conceived by John O'Hara, who produced OpenAMQ.  The OpenAMQ team
+was led by Pieter Hintjens, who designed the protocol and wrote the
+kernel server and client layers.  Pieter Hintjens and Jonathan Schultz
+designed and built the Base2 meta-programming environment.  Robert
+Grieg wrote the Java client layers.  Mark Atwell was the key guru
+in all matters technical.  Martin Sustrik and Gustavo Broos helped
+OpenAMQ work in its first application.  Tim Essens, Martin Lucina,
+and Ewen McNeill all played key roles in making OpenAMQ a real
+product.
+
+
 
 The AMQP protocol was designed by Pieter Hintjens and John O'Hara
-with suggestions from Mark Atwell, James Strachan, Stewie Stewart,
-Martin Sustrik and Martin Lucina.
+with suggestions from Mark Atwell, Robert Grieg, Martin Sustrik and
+others.
 
-The OpenAMQ server was designed by Pieter Hintjens and John O'Hara
+The OpenAMQ server was designed by Pieter Hintjens and Jonathan
+Schultz
 and built by Pieter Hintjens and Jonathan Schultz with contributions
 from Martin Lucina, Martin Sustrik, Ewen McNeill, Gustavo Broos,
 Rakan El-Khalil, and others.

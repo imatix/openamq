@@ -1,0 +1,90 @@
+3.  Technical Requirements
+    technical = how
+    performance
+    portability
+    longevity
+    interoperability
+    clarity
+    extensibility
+
+
+Intended Operating Lifespan
+===========================
+
+AMQP/Fast is designed to give a useful lifespan of 50 years or more. Our
+goal is that an AMQP/Fast peer will be able to operate continuously
+with no upgrades or incompatibility for at least this duration, without
+requiring "legacy support". One should be able to build a client or
+broker into physical infrastructure.
+
+While the protocol version may and will change, the protocol mechanics
+(framing, method structures, etc.) must operate unchanged for the full
+intended lifespan of the protocol, allowing full and perfect forwards
+compatability with all future versions of the protocol.
+
+We have applied "Moore's Law" - the theory of exponential growth of
+capacity of technology - to all capacity limits to identify and
+eliminate potential future bottlenecks, specifically for:
+
+1. Message sizes: the largest messages (files) are today around 20GB. We
+   expect this to grow by 50% per year, reaching the limit defined by a
+   64-bit size in 50 years.
+
+2. Frame sizes: IPv4 is limited to 64KB frames, IPv6 to 4GB frames.
+   Ethernet itself is limited to 12000 byte frames due to its CRC
+   algorithm. We expect the maximum networking frame size to grow by
+   50% per year, in large leaps. We will thus reach the limit of
+   64-bit sized packets in 50 years.
+
+3. Protocol classes and methods: the current protocol defines about
+   ten classes and about ten or fewer methods per class.  We assume
+   that backwards compatability will be maintained by defining new
+   classes and methods rather than modifying existing ones that are
+   in use.  The limit of 64k classes and methods per class should be
+   sufficient to last more than 50 years.
+
+4. Channels: the limit of 4G channels allows growth of 50% per year
+   from an estimated usage of 10 channels per connection today.
+
+5. Timestamps: we use 64-bit time-stamp values.
+
+An Extensible Functionality
+===========================
+
+AMQP/Fast is intended to be extensible in several directions, including
+new directions totally outside the scope of the protocol as it is
+designed today.  These are the aspects of AMQP/Fast that have been
+deliberately designed to be extensible (in order of increasing
+generality and power):
+
+1. Adding new types of exchange to broker implementations.
+2. Adding new properties to content domains.
+3. Adding new arguments to methods.
+4. Adding new methods to classes.
+5. Adding new content domains.
+6. Adding new method classes.
+7. Adding new frame types.
+8. Adding new protocols.
+
+All of these should be feasible while maintaining full backwards
+compatability with existing implementations.
+
+Ease of Implementation
+======================
+
+Our goal is to achieve some of the cost-benefit ratio of protocols such
+as SMTP and HTTP, where a simple client can be trivial to build but a
+full client can be very sophisticated. Keeping AMQP/Fast accessible to
+simple clients is possible if we hold to these design rules:
+
+1. The use of all complex functionality (e.g. more sophisticated data
+   types or structures) must be optional.
+
+2. The protocol must be able to operate entirely synchronously, since
+   an asynchronous model - though more efficient and reliable - is a
+   barrier for simple implementations.
+
+3. The protocol must be formally defined so that significant parts of
+   a client or broker protocol interface can be mechanically generated
+   using code generation techniques.
+

@@ -1,0 +1,284 @@
+Overview
+********
+
+Goals of This Document
+======================
+
+This document aims to define a new general-purpose standard for application
+level (OSI level 7) middleware.  Our standard - AMQ - aims to create full
+functional interoperability between conforming clients and brokers. We
+address a technical audience with some experience in the domain, and we aim
+to provide sufficient specifications and guidelines that a suitably skilled
+engineer can construct conforming components in any modern programming
+language.
+
+Copyrights
+==========
+
+This document is copyright (c) 2003-2005 JPMorganChase and iMatix
+Corporation.  The contents of this document are at present confidential
+and may not be copied outside of JPMorganChase or iMatix Corporation
+without express permission.
+
+Summary
+=======
+
+Main Technologies
+-----------------
+
+Our goal is to spark the development and industry-wide use of a new open
+source, standardised middleware technology that will lower the cost of
+enterprise and systems integration to an absolute minimum.
+
+We propose two main technologies:
+
+ 1. A modular framework for building middleware architectures, which we
+    name Advanced Message Queues, or AMQ.  AMQ consists of a set of
+    components that route and store messages within a central broker, plus
+    a set of rules for wiring these components together.
+
+ 2. A wire-level protocol (AMQP/Fast) that lets applications talk to an
+    AMQ broker. AMQP/Fast is a TCP/IP implementation of a generic family
+    of protocols - AMQP.  Other AMQP protocols are being studied.
+
+The AMQ Framework
+-----------------
+
+AMQ specifies an modular set of components and standard rules for
+connecting these.  AMQ defines three main types of component, which are
+connected into processing chains in the broker to create the desired
+middleware functionality:
+
+ - The "exchange" receives messages from publisher applications and routes
+   these to "queues", based on arbitrary criteria, usually message properties
+   or content.
+
+ - The "queue" stores messages until they can be safely processed by a
+   consumer application (or multiple applications).
+
+ - The "binding" defines the relationship between a queue and an exchange and
+   provides the message routing criteria.
+
+We can emulate the classic middleware concepts of "point to point queue" and
+"topic subscriptions" trivially.  We can also expresses less trivial concepts
+such as content-based routing, queue forking, and on-demand queues.
+
+The AMQP/Fast Protocol
+-----------------------
+
+
+The AMQP/Fast protocol, the primary wire-level implementation of AMQP, is
+an efficient binary protocol with modern features: it is multi-channel,
+negotiated, asynchronous, secure, portable, language-independent, and fast.
+
+ 2. AMQP/Fast is an open, standard, wire-level protocol for AMQ applications.
+    It carries the AMQP API across TCP/IP connections.
+ 5. AMQP/Fast is compatible with all modern standards with respect to
+    security, reliability, and performance.
+
+
+AMQP is a high-protocol for manipulating AMQ entities, and sending
+and receiving messages.  AMQP consists of a set of classes and methods.
+For example, the "Queue" class lets us manipulate queues on a broker:
+
+    Queue.Declare ("temp-001")
+    Queue.Consume ("temp-001")
+
+We can cast AMQP as a programming-language API, as a scripting language,
+or as a wire-level protocol.  For example, here is a file server
+application written in a mix of AMQP and pseudo-code:
+
+    Queue.Declare queue = "temp-001"
+    Queue.Bind    queue = "temp-001" routing_key = "file server"
+    Basic.Consume queue = "temp-001"
+    Repeat
+        Wait
+        Basic.Content read = message_id
+        Basic.Publish routing_key = reply_to
+
+
+The AMQP/Fast Wire-level Protocol
+---------------------------------
+
+
+
+ 6. The AMQ, AMQP, and AMQP/Fast specifications, and all related materials
+    are or will be provided under a BSD-style open source license.
+
+Design Methodology
+------------------
+
+Our design methodology is to work with highly skilled engineers who have
+decades of middleware experience, to take the best of the art, build
+software prototypes, and then refactor our designs into generic components
+and abstracted idioms. The current versions of AMQ, AMQP, and AMQP/Fast
+are based on several full cycles.  The current reference implementations
+are the third generation, built from scratch.
+
+Since the ultimate goal is to make software designs that work perfectly,
+we make heavy use of automation in our processes.  We rely on generable
+abstract models - grammars and state machines - in the production of the
+reference implementations. Change is cheap, and we can tune and refactor
+our idioms rapidly.
+
+Organisation of This Document
+=============================
+
+The document is divided into seven chapters:
+
+1. This chapter, which provides an overview of the document.
+
+2. A statement and analysis of the functional requirements we have taken
+   into account.  By "functional", we mean the outward-facing properties
+   of the system, i.e. what it does.
+
+3. A statement and analysis of the technical requirements we have taken
+   into account. By "technical", we mean the internal properties of the
+   system, i.e. how it is constructed.
+
+4. The overall architecture, showing the functional and technical layers
+   that comprise the AMQ standard.
+
+5. The detailed specifications of the functional layer, principally
+   being the AMQP API.
+
+6. The detailed specifications of the technical layer, principally the
+   AMQP/Fast protocol.
+
+7. Details of the AMQ conformance test framework.
+
+Conventions
+===========
+
+Guidelines for Implementors
+---------------------------
+
+- We use the terms MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY as
+  defined by IETF RFC 2119.
+
+- We use the term "the broker" when discussing the specific behaviour
+  required of a conforming AMQ broker.
+
+- We use the term "the client" when discussing the specific behaviour
+  required of a conforming AMQ client.
+
+- We use the term "the peer" to mean "the broker or the client".
+
+- All numeric values are decimal unless otherwise indicated.
+
+- Protocol constants are shown as uppercase names. AMQP/Fast
+  implementations SHOULD use these names when defining and using
+  constants in source code and documentation.
+
+- Property names, method arguments, and frame fields are shown as
+  lowercase names.  AMQP/Fast implementations SHOULD use these names
+  consistently in source code and documentation.
+
+Technical Terminology
+---------------------
+
+These terms have significance within the context of this document:
+
+Connection:
+    A network connection, e.g. a TCP/IP socket connection.
+Channel:
+    A bi-directional stream of communications between two AMQP/Fast
+    peers. Channels are multiplexed so that a single network connection
+    can carry multiple channels.
+Client:
+    The initiator of an AMQP/Fast connection or channel.  AMQP/Fast is
+    not symmetrical.  Clients produce and consume messages while brokers
+    queues and route messages.
+Broker:
+    The server that accepts client connections and implements the AMQ
+    queueing and routing functions.
+Peer:
+    Either party in an AMQP/Fast connection.  An AMQP/Fast connection
+    involves exactly two peers (one is the client, one is the broker).
+Frame:
+    A formally-defined package of connection data.  Frames are
+    always written and read contiguously - as a single unit - on the
+    connection.
+Protocol_Class:
+    A collection of methods that deal with a specific type of
+    functionality.
+Method:
+    A specific type of frame that passes instructions from one peer
+    to the other.
+Content:
+    Application data passed from client to broker and from broker to
+    client.  AMQP/Fast content can be structured into multiple parts.
+Header:
+    A specific type of frame that describes content.
+Body:
+    A specific type of frame that contains raw application data.
+    Body frames are entirely opaque - the broker does not examine
+    or modify these in any way.
+Trace_Frame:
+    A specific type of frame that carries information to a "trace
+    handler", an abstract processing unit that may be embedded in an
+    peer.
+Message:
+    A specific type of content, the application-to-application message.
+Exchange:
+    The entity within the broker which receives messages from producer
+    applications and optionally routes these to queues within the
+    broker.
+Queue:
+    A named entity that holds messages and forwards them to consumer
+    applications.
+Durable:
+    A broker resource that survives a broker restart.
+Transient:
+    A broker resource that is wiped or reset after a broker restart.
+Persistent:
+    A message that the broker holds on reliable disk storage and
+    should not lose after a broker restart.
+Non-persistent:
+    A message that the broker holds in memory and may lose after a
+    broker restart.
+Consumer:
+    A client application that requests messages from a queue.
+Producer:
+    A client application that publishes messages to an exchange.
+Virtual_host:
+    A collection of exchanges, queues, consumers, and associated objects.
+    Virtual hosts are independent broker domains that share a common
+    authentication and encryption environment.  The client application
+    choses a virtual host after logging in to the broker.
+Realm:
+    A set of broker resources (exchanges and queues) covered by a single
+    security policy and access control.  Applications ask for access
+    rights for specific realms, rather than for specific resources.
+Streaming:
+    The process by which the broker will send messages to the client at
+    a pre-arranged rate.
+Staging:
+    The process by which a peer will transfer a large message to a
+    temporary holding area before formally handing it over to the
+    recipient.  This is how AMQP/Fast implements restartable file
+    transfers.
+Out-of-band_transport:
+    The technique by which data is carried outside the network
+    connection.  For example, two peers can carry frames across a
+    TCP/IP connection and then switch to using shared memory if they
+    discover they are on the same system.
+Zero_copy:
+    The technique of transferring data without copying it to or from
+    intermediate buffers.  Zero copy requires that the protocol allow
+    the transfer of data as opaque blocks, which AMQP/Fast does.
+Assertion:
+    A condition that must be true for processing to continue.
+Exception:
+    A failed assertion, handled by closing either the channel or the
+    connection.
+
+These terms have no special significance within the context of AMQP:
+
+Topic:
+    Usually a means of distributing messages; AMQP implements topics
+    using one or more types of exchange.
+Subscription:
+    Usually a request to receive data from topics; AMQP implements
+    subscriptions as queues.
+

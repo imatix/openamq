@@ -1,0 +1,5 @@
+3. Proposed Architecture
+    the functional layer
+    routing exchange and queues
+    the technical layer
+    channels etc.

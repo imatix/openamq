@@ -5,7 +5,7 @@ gdl
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/10/25
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.9c2
+    version   = 0.9c3
 end gdl
 
 Cover
@@ -1191,6 +1191,11 @@ several property flag fields in succession:
     |                                                           | 0 |
     +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 
+Guidelines for implementors:
+
+- A peer MUST check that the content class id matches the method
+  class id and raise a connection exception if this is not the case.
+
 Content Body Frame Wire Format
 ------------------------------
 
@@ -1374,7 +1379,7 @@ refactoring of the AMQ protocol) were:
    technique and a private name space.
 
 2. Matching can be abstracted.  That is, everything from matching on a
-   specific destination name to matching on an SQL-like selector can be
+   specific routing key to matching on an SQL-like selector can be
    abstracted into a single concept.
 
 3. Messages can have multiple instances.  That is, a message can be in
@@ -1396,6 +1401,10 @@ at no significant extra cost.
 
 Overall Architecture
 --------------------
+
+Note: this section is out of date.  Current documentation is at:
+
+http://wiki.openamq.org/cgi-bin/wiki/AmqQueuesAndExchanges
 
 Classic Message-Oriented Middleware
 ...................................
@@ -1525,8 +1534,8 @@ messages that look like this".
 
 AMQ has a formal definition of a message which includes:
 
-- the "destination" for the message.  This is a name that the client
-  application uses.  The destination name may (or may not) map directly
+- the "routing key" for the message.  This is a name that the client
+  application uses.  The routing key may (or may not) map directly
   to a queue name.
 
 - the "properties" for the message.  These are a set of fields with
@@ -1546,113 +1555,40 @@ These are the basic set of exchanges that an AMQP server MAY support:
    server.  For example, fanout exchanges might be used to replicate
    data within a cluster.
 
-2. "destination" routes messages on their destination name using a direct
-   comparison. That is, it passes messages to queues that have
-   registered with "give me all messages whose destination name is equal
-   to this value".  Dest-name exchanges are used to build conventional
-   point-to-point store-and-forward mechanisms.
+2. "direct" routes messages on their routing key using a direct
+   comparison.
 
-3. "wildname" routes messages on their destination name using a
-   wildcard comparison.  That is, it passes messages to queues that have
-   registered with "give me all messages whose destination name matches
-   this pattern".  Dest-wild exchanges are used to build conventional topic
-   publish-and-subscribe mechanisms.
+3. "topic" routes messages on their routing key name using a
+   wildcard comparison.
 
-4. "property" routes messages on the value and presence of properties.
-   That is, it passes messages to queues that have registered with
-   "give me all messages with properties with these names and values".
-   Prop-test exchanges are used to build content-based routing mechanisms.
-
-5. "matcher" routes messages on a set of properties using wild-card
-   comparisons.  That is, it passes messages to queues that have
-   registered with "give me all messages with properties that match
-   these specifications".  Prop-wild exchanges are used to build
-   content-based routing mechanisms.
-
-6. "selector" routes messages using a programmable selector statement.
-   That is, it passes messages to queues that have registered with
-   "give me all messages where this statement is true".  The selector
-   statements are based on SQL WHERE conditions.  Selector exchanges are
-   used to build content-based routing mechanisms.
-
-7. "lossy" routes messages with random failure. That is, it passes
-   messages to all registered queues, but randomly drops messages.
-   Lossy exchanges are used to simulate network or processing failures.
+4. "header" routes messages on the value and presence of content
+   properties.
 
 Guidelines for implementors:
 
-- An AMQP server MUST implement at least the fanout and dest-name
+- An AMQP server MUST implement at least the fanout and direct
   exchanges.  An AMQP server MAY implement the other exchange types.
-
-- An AMQP server MAY implement custom exchange types (not on this list).
-  The name of a custom exchange type must start with "x-".
 
 Multiple Registrations
 ......................
 
 A queue can register with the same exchange several times:
 
-    Register with dest-name: messages for destination X
-    Register with dest-name: messages for destination Y
-    Register with dest-name: messages for destination Z
+    Register with dest-name: messages for routing key X
+    Register with dest-name: messages for routing key Y
+    Register with dest-name: messages for routing key Z
 
 The meaning of this is obvious and does not need much explaining: the
 registrations are acummulated so the queue will get messages for any of
-the three destination names:
+the three routing keys:
 
          +-----------+
          | dest-name |
          +-----------+
-             | | |  "messages for destinations X, Y, Z"
+             | | |  "messages for routing keys X, Y, Z"
            +-------+
            | Queue |
            +-------+
-
-A queue can also register with two different exchanges:
-
-    Register with dest-name: messages for destination X
-    Register with dest-name: messages for destination Y
-    Register with dest-name: messages for destination Z
-    Register with lossy
-
-The meaning of this is as follows:
-
-         +-----------+
-         | dest-name |
-         +-----------+
-             | | |  "messages for destinations X, Y, Z"
-           +-------+
-           | lossy |
-           +-------+
-               |    "all messages"
-           +-------+
-           | Queue |
-           +-------+
-
-In other words, the lossy exchange steps in between the queue and the
-dest-name exchange.  We could imagine several levels:
-
-         +-----------+
-         | dest-name |
-         +-----------+
-             | | |  "messages for destinations X, Y, Z"
-         +-----------+
-         | prop-name |
-         +-----------+
-               |    "messages with property ABC"
-           +-------+
-           | lossy |
-           +-------+
-               |    "all messages"
-           +-------+
-           | Queue |
-           +-------+
-
-Guidelines for implementors:
-
-- An AMQP server SHOULD support multiple registrations but MAY restrict
-  its exchange implementation to a single exchange or single registration
-  per queue.
 
 On-Demand Wiring
 ................
@@ -2221,9 +2157,7 @@ Goals and Principles
 --------------------
 
 The basic operational model is designed to provide the simplest
-possible message store and forward model.  The basic content methods are
-fully synchronous; there is no Consume method, and all message fetching
-is done using the Browse method.  Basic messages are not acknowledged,
+possible message store and forward model.  Basic messages are not acknowledged,
 and cannot be put back onto a queue.
 
 Basic Properties
@@ -2356,7 +2290,7 @@ These are the properties defined for Stream content:
 
 - ContentType (short string)
 - ContentEncoding (short string)
-- Destination (short string)
+- RoutingKey (short string)
 - Headers (field table)
 - Priority (octet)
 - Timestamp (short string)

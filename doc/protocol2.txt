@@ -1,0 +1,202 @@
+2.  Functional Requirements
+    functional = what
+    everything we want to be able to do
+    worked examples
+
+Why not JMS?
+- significant deficiencies
+- language dependence
+- complexity
+
+
+Purpose and Goals of AMQP/Fast
+==============================
+
+AMQP/Fast is designed to be the high-performance member of the AMQP
+family of standardised general-purpose message-oriented middleware
+wire-level protocols.
+
+A "wire-level protocol" can be a simple as a "this is how we define
+packets on the wire". AMQP/Fast is more ambitious than that. It tries to
+provide formal answers to a series of questions that we must answer in
+order to implement useful messaging between protocols.
+
+We want to be able to:
+
+- Construct logical "messages" out of data of any type and size, and
+  move these message efficiently across a network of clients and
+  brokers.
+
+- Provide queueing and routing semantics for messages so that the
+  behaviour of the broker is unambiguously defined by the protocol.
+
+- Define explicit operational semantics for common messaging models,
+  including JMS, file transfer, and streaming, at the protocol level.
+
+- Define quality-of-service levels semantics so client applications can
+  explicitly choose appropriate tradeoffs between speed and reliability.
+
+- Create a fully-asynchronous network so that messages can be queued
+  when clients are disconnected, and forwarded when they are connected.
+
+- Allow interoperation and bridging with other middleware systems.
+
+- Allow implementation in any language, on any kind of hardware.
+
+- Avoid license and patent concerns that might hinder adoption of the
+  protocol as a standard.
+
+- Allow the marshalling layers of protocol implementations to be easily
+  generated using code generation technology.
+
+- Allow the creation of an abstract network where services, and their
+  data, can move around the network opaquely to the clients.
+
+
+
+Defining the Problem
+*********************
+
+Overview
+========
+
+To understand what AMQ is, and why we built it, we must look at the
+kinds of problems that we wanted to solve.
+
+Overall, messaging middleware is a critical layer in any system that
+runs over more than a single broker.  Even the simplest distributed
+applications need reliable and fast message exchange between brokers.
+
+Traditionally there are three ways of doing this:
+
+1. Write an ad-hoc messaging layer using TCP/IP, FTP, HTTP, SOAP, or
+   one of the many other existing communication standards.
+
+2. Use an open source message transfer layer.
+
+3. Use a commercial product.
+
+Each of these options has advantages: custom software is pliable and
+can be tuned to specific needs; open source is cheap to use and cheap
+to fix; commercial products are (hopefully) high-quality and come with
+teams of skilled engineers.
+
+But each of these options is also frustrating for their own reasons.
+None of the existing standards are sufficiently high-level to handle
+the real work, so any ad-hoc solution eventually breaks, or becomes a
+significant project in itself.
+
+Open source messaging products are generally low-quality and slow.
+There are several reasons for this, probably the most important is
+the lack of middleware engineering skill in the open source community.
+
+Finally, commercial products are generally expensive, complex to use,
+and closed.  They can be very reliable, so are found in many larger
+projects.  But there is a fundamental frustration with closed-source
+products: even the smallest bug fix means getting formal support, which
+can take a long time.
+
+The Ideal Solution
+==================
+
+The ideal solution, conceived by top engineers from JPMC's Investment
+Banking division, was for an open source middleware standard that was
+fast, reliable, portable, high-level, easy to use, well documented,
+stable, good looking, and cheap to make.
+
+In other words, something that combines all the advantages, with none
+of the disadvantages, of the three main approaches to middleware.
+
+We believe that we've accomplished much of this, and are on the way
+to accomplishing it all.
+
+General Concepts
+================
+
+We will step back and look at the kinds of problems we need to solve
+when designing a general purpose middleware system.
+
+The Three Functional Areas
+--------------------------
+
+Messaging middleware covers three main functional areas:
+
+1. Point-to-point messaging, which we will call "queues"
+   for simplicity.
+
+2. High-volume publish/subscribe, which we will call "topics"
+   for simplicity.
+
+3. File transfer, which we will call "files" for simplicity.
+
+(AMQ uses the term "queue" in a more specific sense to define a
+specific type of component, but the above terms are generally accurate
+when discussing middleware scenarios).
+
+There is some overlap, but in general these three areas have particular
+functional needs and need specific solutions. Point-to-point queuing
+focusses on the ability to move messages from one party to another party.
+Publish-subscribe focusses on distributing messages from one party to many
+other parties. File transfer focusses on sending very large files across
+slow and perhaps unreliable networks.
+
+Reliability vs. Performance
+---------------------------
+
+In each case we can need various degrees of reliability and
+performance.  In general there is a trade-off between reliability
+and speed - the more reliable the system, the slower it will run.
+
+Reliability can be broken into several aspects:
+
+1. Type of memory used: system RAM or disk storage.  If we want
+   messages to survive a system reboot, they must be on disk.
+
+2. Degree of redundancy: none, mirrored.  If we want to survive
+   a system failure (e.g. disk crash) we must have redundancy of
+   some kind.
+
+3. Redundancy distance: if we want a redundant system to survive
+   a physical event (fire, lightning, hurricane), it must be
+   physically separated.
+
+4. Degree of transactionality: none, partial, full.  If we want to
+   be certain that the data was safely written in a coherent manner
+   we must use transactions (of varying complexity).
+
+In each case, there is a well-understood cost for the extra reliability.
+
+Scenario Matrix
+===============
+
+By combining the functional areas with the options for reliability,
+we can plot the actual combinations that make sense and are commonly
+used.  We use a scale from 1 to 5, meaning 'not too important' to
+'critical'.  For each scenario we show the typical range for various
+critria:
+
+                          Queues  Topics  Files
+    Throughput              2-3     4-5     1-2
+    Latency                 3-4     4-5     1
+    Reliability             3-5     1-5     4-5
+
+We can conclude that there is a large overlap in needs, and rather
+than try to define the three domains as separate problems, it seems
+more useful to provide the application architect with control over
+the reliability vs. performance tradeoff independently from the choice
+of what kind of messaging model to use.
+
+Example Scenarios
+=================
+
+We give some specific example scenarios:
+
+ - Departmental inter-system communications: consisting of 1-10
+   highly-reliable queues, with perhaps a thousand messages a day,
+   serving one to five applications and perhaps 100 users.
+
+ - Financial services information streams: consisting of data
+   streams from information providers such as Reuters, being
+   distributed to a thousand or more workstations.  Typical
+   daily volume can be anything up to a billion messages.
+
