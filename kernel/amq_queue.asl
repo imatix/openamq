@@ -153,20 +153,6 @@
     <assert check = "notnull" />
   </field>
 
-  <field name = "exchange" domain = "exchange name">
-    <doc>
-      Reports the name of the last-bound exchange for the queue.
-      In the case of newly-created queues this will be empty.
-    </doc>
-    <doc name = "rule">
-      The server MUST NOT bind newly-created queues with exchanges
-      implicitly or automatically. The decision of what exchanges to use
-      is taken by the client application responsible for administrating
-      the server.  However the server SHOULD store durable bindings so
-      that on a server restart these can be recreated.
-    </doc>
-  </field>
-
   <field name = "message count" type = "long">
     number of messages in queue
     <doc>
