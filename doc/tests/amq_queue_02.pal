@@ -1,0 +1,22 @@
+<?xml?>
+<pal
+    name   = "amq_queue_02"
+    script = "amq_pal_gen"
+    desc   = "Declare a queue which is automatically deleted and test if it gets deleted" 
+    >
+    This test sets up a session where an auto_delete queue is created. Then it
+    opens up a new session (with a new connection) to check if the queue has
+    been deleted. This is done by a passive queue declaration, which returns a
+    reply_code of 504 if the queue is gone.
+    
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <queue_declare queue = "myqueue" auto_delete = "1"/>
+    </session> 
+    <session error_handling = "recover" restart = "1">
+        <queue_declare queue = "myqueue" passive = "1" />
+        <assert name = "reply_code" value = "504" />
+    </session>
+</pal>
+
+
