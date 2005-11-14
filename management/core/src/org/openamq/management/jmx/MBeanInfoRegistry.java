@@ -9,9 +9,7 @@
 package org.openamq.management.jmx;
 
 import org.openamq.AMQException;
-import org.openamq.schema.cml.CmlDocument;
-import org.openamq.schema.cml.FieldDocument;
-import org.openamq.schema.cml.SchemaReplyDocument;
+import org.openamq.schema.cml.*;
 
 import javax.management.openmbean.*;
 import java.util.HashMap;
@@ -39,13 +37,14 @@ public class MBeanInfoRegistry
 
     private void initialise(CmlDocument cmlDocument) throws AMQException
     {
-        SchemaReplyDocument.SchemaReply schema = cmlDocument.getCml().getSchemaReply();
-        for (org.openamq.schema.cml.ClassDocument.Class c : schema.getClass1List())
+        CmlDocument.Cml cml = cmlDocument.getCml();
+        SchemaReplyType schema = cml.getSchemaReply();
+        for (org.openamq.schema.cml.ClassType c : schema.getClass1Array())
         {
-            OpenMBeanAttributeInfo[] attributes = createAttributeInfos(c.getFieldList());
+            OpenMBeanAttributeInfo[] attributes = createAttributeInfos(c.getFieldArray());
             String className = c.getName();
             OpenMBeanInfoSupport support = new OpenMBeanInfoSupport(className, null, attributes,
-                                                                    null, null, null, null);
+                                                                    null, null, null);
             _cmlClass2OpenMBeanInfoMap.put(className, support);
         }
     }
@@ -55,16 +54,17 @@ public class MBeanInfoRegistry
         return _cmlClass2OpenMBeanInfoMap.get(cmlType);
     }
 
-    private OpenMBeanAttributeInfo[] createAttributeInfos(List<FieldDocument.Field> fields)
+    private OpenMBeanAttributeInfo[] createAttributeInfos(FieldType[] fields)
             throws AMQException
     {
-        OpenMBeanAttributeInfo[] attributes = new OpenMBeanAttributeInfo[fields.size()];
+        OpenMBeanAttributeInfo[] attributes = new OpenMBeanAttributeInfo[fields.length];
         for (int i = 0; i < attributes.length; i++)
         {
-            FieldDocument.Field field = fields.get(i);
+            FieldType field = fields[i];
             OpenType openType = getOpenType(field.getType(), field.getModify());
+            String description = field.getLabel();
             attributes[i] = new OpenMBeanAttributeInfoSupport(field.getName(),
-                                                              field.getLabel(),
+                                                              description != null ? description:"No description",
                                                               openType,
                                                               true,
                                                               field.getModify(),
@@ -73,7 +73,7 @@ public class MBeanInfoRegistry
         return attributes;
     }
 
-    private static OpenType getOpenType(FieldDocument.Field.Type.Enum type, boolean isArray)
+    private static OpenType getOpenType(FieldType.Type.Enum type, boolean isArray)
             throws UnsupportedCMLTypeException, AMQException
     {
         SimpleType simpleType;
@@ -106,7 +106,8 @@ public class MBeanInfoRegistry
         {
             try
             {
-                return new ArrayType(simpleType, primitive);
+                //return new ArrayType(simpleType, primitive);
+                return new ArrayType(1, simpleType);
             }
             catch (OpenDataException e)
             {

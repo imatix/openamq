@@ -7,7 +7,7 @@ import org.openamq.management.messaging.CMLMessageFactory;
 import org.openamq.AMQException;
 import org.openamq.schema.cml.*;
 
-import javax.management.MBeanServer;
+import javax.management.*;
 import javax.jms.JMSException;
 import javax.jms.TextMessage;
 
@@ -48,12 +48,18 @@ public class MBeanRegistrar
         {
             CmlDocument cmlDoc = CmlDocument.Factory.parse(response.getText());
             CmlDocument.Cml cml = cmlDoc.getCml();
-            InspectReplyDocument.InspectReply inspect = cml.getInspectReply();
-            return new CMLMBean(_mbeanInfoRegistry.getOpenMBeanInfo(inspect.getClass1()), inspect);            
+            InspectReplyType inspect = cml.getInspectReply();
+            CMLMBean mbean = new CMLMBean(_mbeanInfoRegistry.getOpenMBeanInfo(inspect.getClass1()), inspect);
+            _targetMBeanServer.registerMBean(mbean, new ObjectName("org.openamq", "objectid", "0"));
+            return mbean;
         }
         catch (XmlException e)
         {
-            throw new AMQException("Error parsing broker response: " + e, e);
+            throw new AMQException(_log, "Error parsing broker response: " + e, e);
         }
+        catch (Exception e)
+        {
+            throw new AMQException(_log, "Error registering MBean: " + e, e);
+        }        
     }
 }

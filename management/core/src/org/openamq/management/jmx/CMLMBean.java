@@ -8,7 +8,7 @@
  *****************************************************************************/
 package org.openamq.management.jmx;
 
-import org.openamq.schema.cml.InspectReplyDocument;
+import org.openamq.schema.cml.InspectReplyType;
 
 import javax.management.*;
 import javax.management.openmbean.OpenMBeanInfoSupport;
@@ -21,9 +21,9 @@ public class CMLMBean implements DynamicMBean
 {
     private OpenMBeanInfoSupport _mbeanInfo;
 
-    private InspectReplyDocument.InspectReply _inspectReply;
+    private InspectReplyType _inspectReply;
 
-    public CMLMBean(OpenMBeanInfoSupport mbeanInfo, InspectReplyDocument.InspectReply inspectReply)
+    public CMLMBean(OpenMBeanInfoSupport mbeanInfo, InspectReplyType inspectReply)
     {
         _mbeanInfo = mbeanInfo;
         _inspectReply = inspectReply;

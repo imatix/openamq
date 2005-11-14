@@ -29,4 +29,10 @@ public class ManagementDestination extends AMQDestination
     {
         return getDestinationName();
     }
+
+    // TODO: remove
+    public boolean isExclusive()
+    {
+        return false;
+    }
 }

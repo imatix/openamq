@@ -6,11 +6,16 @@ import org.openamq.AMQException;
 import org.openamq.management.ManagementConnection;
 import org.openamq.management.messaging.CMLMessageFactory;
 import org.openamq.schema.cml.CmlDocument;
+import org.openamq.schema.cml.SchemaReplyType;
+import org.openamq.schema.cml.ClassType;
 
 import javax.jms.JMSException;
 import javax.jms.TextMessage;
 import javax.management.MBeanServer;
 import java.lang.management.ManagementFactory;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.InputStreamReader;
 
 /**
  * Main entry point for AMQ console implementation.
