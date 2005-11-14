@@ -132,7 +132,6 @@
                 connection->thread,
                 (dbyte) channel->key,
                 queue->name,
-                NULL,
                 amq_queue_message_count (queue),
                 amq_queue_consumer_count (queue));
         }
