@@ -78,6 +78,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
             {
                 while (!_stopped.get() && (message = (UnprocessedMessage)_queue.take()) != null)
                 {
+                    //_queue.size()
                     dispatchMessage(message);
                 }
             }
@@ -578,10 +579,10 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                 protocolHandler.writeCommandFrameAndWaitForReply(exchangeDeclare,
                                             new SpecificMethodFrameListener(_channelId, ExchangeDeclareOkBody.class));
 
-                AMQFrame queueDeclare = QueueDeclareBody.createAMQFrame(_channelId, 0, amqd.getQueueScope(),
+                AMQFrame queueDeclare = QueueDeclareBody.createAMQFrame(_channelId, 0,
                                                                         amqd.getQueueName(),
                                                                         false, false, amqd.isExclusive(),
-                                                                        amqd.isExclusive() || amqd.isTemporary());
+                                                                        amqd.isAutoDelete());
 
                 AMQMethodEvent evt = protocolHandler.writeCommandFrameAndWaitForReply(queueDeclare,
                                              new SpecificMethodFrameListener(_channelId, QueueDeclareOkBody.class));
@@ -595,7 +596,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                 //    ft.put("headers", rawSelector.getDataAsBytes());
                 if (rawSelector != null)
                     ft.putAll(rawSelector);
-                AMQFrame queueBind = QueueBindBody.createAMQFrame(_channelId, 0, amqd.getQueueScope(),
+                AMQFrame queueBind = QueueBindBody.createAMQFrame(_channelId, 0,
                                                                   amqd.getQueueName(), amqd.getExchangeName(),
                                                                   amqd.getRoutingKey(), ft);
 
@@ -603,7 +604,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
                                               new SpecificMethodFrameListener(_channelId, QueueBindOkBody.class));
 
                 // Consume from queue
-                AMQFrame jmsConsume = contentTypeFactory.createConsumeFrame(_channelId, 0, amqd.getQueueScope(),
+                AMQFrame jmsConsume = contentTypeFactory.createConsumeFrame(_channelId, 0,
                                                                             qdb.queue, 0,
                                                                             prefetch, noLocal, true, exclusive);
 

@@ -17,13 +17,13 @@ public interface SessionContentTypeFactory
                                            MessageFactoryRegistry messageFactoryRegistry, AMQSession session,
                                            AMQProtocolHandler protocolHandler);
 
-    AMQFrame createConsumeFrame(int channelId, int ticket, String queueScope, String queueName, int prefetchSize,
+    AMQFrame createConsumeFrame(int channelId, int ticket, String queueName, int prefetchSize,
                                 int prefetchCount, boolean noLocal, boolean autoAck, boolean exclusive);
 
     Class getConsumeOkClass();
 
     int getConsumerTag(AMQMethodEvent consumeOkEvent);
-    
+
     AbstractMessageProducer createProducer(AMQDestination amqd, boolean transacted, int channelId,
                                            AMQSession session, AMQProtocolHandler protocolHandler,
                                            long producerId) throws AMQException;

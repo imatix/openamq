@@ -24,19 +24,30 @@ public class AMQQueue extends AMQDestination implements Queue
     }
 
     /**
-     * Create a reference to a queue. Note this does not actually imply the queue exists.
-     * @param name the queue name
-     * @param temporary true if the queue is temporary, false otherwise
+     * Create a queue with a specified name.
+     *
+     * @param name the destination name (used in the routing key)
+     * @param temporary if true the broker will generate a queue name, also if true then the queue is autodeleted
+     * and exclusive
      */
     public AMQQueue(String name, boolean temporary)
     {
-        this(name, DEFAULT_SCOPE, temporary);
+        // queue name is set to null indicating that the broker assigns a name in the case of temporary queues
+        // temporary queues are typically used as response queues
+        this(name, temporary?null:name, temporary, temporary);
     }
 
-    public AMQQueue(String name, String scope, boolean temporary)
+    /**
+     * Create a reference to a queue. Note this does not actually imply the queue exists.
+     * @param destinationName the queue name
+     * @param queueName the queue name
+     * @param exclusive true if the queue should only permit a single consumer
+     * @param autoDelete true if the queue should be deleted automatically when the last consumers detaches
+     */
+    public AMQQueue(String destinationName, String queueName, boolean exclusive, boolean autoDelete)
     {
-        super(AMQDestination.QUEUE_EXCHANGE_NAME, AMQDestination.QUEUE_EXCHANGE_CLASS, name, temporary,
-              temporary?null:name, scope);
+        super(AMQDestination.QUEUE_EXCHANGE_NAME, AMQDestination.QUEUE_EXCHANGE_CLASS, destinationName, exclusive,
+              autoDelete, queueName);
     }
 
     public String getEncodedName()
@@ -47,10 +58,5 @@ public class AMQQueue extends AMQDestination implements Queue
     public String getRoutingKey()
     {
         return getQueueName();
-    }
-    
-    public boolean isExclusive()
-    {
-        return isTemporary();
-    }
+    }    
 }

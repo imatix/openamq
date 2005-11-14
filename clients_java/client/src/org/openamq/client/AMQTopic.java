@@ -22,12 +22,7 @@ public class AMQTopic extends AMQDestination implements Topic
 
     public AMQTopic(String name, boolean temporary)
     {
-        this(name, DEFAULT_SCOPE, temporary);
-    }
-
-    public AMQTopic(String name, String scope, boolean temporary)
-    {
-        super(AMQDestination.TOPIC_EXCHANGE_NAME, AMQDestination.TOPIC_EXCHANGE_CLASS, name, temporary, null, scope);
+        super(AMQDestination.TOPIC_EXCHANGE_NAME, AMQDestination.TOPIC_EXCHANGE_CLASS, name, temporary, temporary, null);
     }
 
     public String getTopicName() throws JMSException
@@ -43,10 +38,5 @@ public class AMQTopic extends AMQDestination implements Topic
      public String getRoutingKey()
     {
         return getDestinationName();
-    }
-    
-    public boolean isExclusive()
-    {
-        return isTemporary();
     }
 }

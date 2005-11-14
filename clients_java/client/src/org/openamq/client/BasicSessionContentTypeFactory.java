@@ -18,9 +18,9 @@ public class BasicSessionContentTypeFactory implements SessionContentTypeFactory
         return new BasicMessageConsumer(channelId, amqd, noLocal, messageFactoryRegistry, session, protocolHandler);
     }
 
-    public AMQFrame createConsumeFrame(int channelId, int ticket, String queueScope, String queueName, int prefetchSize, int prefetchCount, boolean noLocal, boolean autoAck, boolean exclusive)
+    public AMQFrame createConsumeFrame(int channelId, int ticket, String queueName, int prefetchSize, int prefetchCount, boolean noLocal, boolean autoAck, boolean exclusive)
     {
-        return BasicConsumeBody.createAMQFrame(channelId, ticket, queueScope, queueName, noLocal, exclusive);
+        return BasicConsumeBody.createAMQFrame(channelId, ticket, queueName, noLocal, exclusive);
     }
 
     public Class getConsumeOkClass()

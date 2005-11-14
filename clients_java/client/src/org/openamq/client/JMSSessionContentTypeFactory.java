@@ -20,10 +20,10 @@ public class JMSSessionContentTypeFactory implements SessionContentTypeFactory
         return new JMSMessageConsumer(channelId, amqd, selector, noLocal, messageFactoryRegistry, session, protocolHandler);
     }
 
-    public AMQFrame createConsumeFrame(int channelId, int ticket, String queueScope, String queueName, int prefetchSize,
+    public AMQFrame createConsumeFrame(int channelId, int ticket, String queueName, int prefetchSize,
                                        int prefetchCount, boolean noLocal, boolean autoAck, boolean exclusive)
     {
-        return JmsConsumeBody.createAMQFrame(channelId, ticket, queueScope, queueName, prefetchSize, prefetchCount,
+        return JmsConsumeBody.createAMQFrame(channelId, ticket, queueName, prefetchSize, prefetchCount,
                                              noLocal, autoAck, exclusive);
     }
 

@@ -16,32 +16,25 @@ public abstract class AMQDestination implements Destination
 
     public final static String HEADERS_EXCHANGE_CLASS = "headers";
 
-    protected final static String DEFAULT_SCOPE = "defaultScope";
-
     protected final String _exchangeName;
 
     protected final String _exchangeClass;
 
     protected final String _destinationName;
 
-    protected final boolean _isTemporary;
+    protected final boolean _isExclusive;
+
+    protected final boolean _isAutoDelete;
 
     protected String _queueName;
 
-    protected final String _queueScope;
-
-    protected AMQDestination(String exchangeName, String exchangeClass, String destinationName)
+    protected AMQDestination(String exchangeName, String exchangeClass, String destinationName, String queueName)
     {
-        this(exchangeName, exchangeClass, destinationName, false, null, null);
-    }
-    protected AMQDestination(String exchangeName, String exchangeClass, String destinationName, String queueName,
-            String queueScope)
-    {
-        this(exchangeName, exchangeClass, destinationName, false, queueName, queueScope);
+        this(exchangeName, exchangeClass, destinationName, false, false, queueName);
     }
 
-    protected AMQDestination(String exchangeName, String exchangeClass, String destinationName, boolean isTemporary,
-                             String queueName, String queueScope)
+    protected AMQDestination(String exchangeName, String exchangeClass, String destinationName, boolean isExclusive,
+                             boolean isAutoDelete, String queueName)
     {
         if (destinationName == null)
         {
@@ -58,8 +51,8 @@ public abstract class AMQDestination implements Destination
         _exchangeName = exchangeName;
         _exchangeClass = exchangeClass;
         _destinationName = destinationName;
-        _isTemporary = isTemporary;
-        _queueScope = queueScope;
+        _isExclusive = isExclusive;
+        _isAutoDelete = isAutoDelete;
         _queueName = queueName;
     }
 
@@ -90,16 +83,6 @@ public abstract class AMQDestination implements Destination
         return _destinationName;
     }
 
-    public boolean isTemporary()
-    {
-        return _isTemporary;
-    }
-
-    public String getQueueScope()
-    {
-        return _queueScope;
-    }
-
     public String getQueueName()
     {
         return _queueName;
@@ -111,15 +94,23 @@ public abstract class AMQDestination implements Destination
     }
 
     public abstract String getRoutingKey();
-    
-    public abstract boolean isExclusive();
+
+    public boolean isExclusive()
+    {
+        return _isExclusive;
+    }
+
+    public boolean isAutoDelete()
+    {
+        return _isAutoDelete;
+    }
 
     public String toString()
     {
-        return "Destination: " + _destinationName + ", Queue Scope: " + _queueScope + ", " +
+        return "Destination: " + _destinationName + ", " +
                "Queue Name: " + _queueName + ", Exchange: " + _exchangeName +
-               ", Exchange class: " + _exchangeClass + ", Temporary: " + _isTemporary +
-                ", Routing  Key: " + getRoutingKey();
+               ", Exchange class: " + _exchangeClass + ", Exclusive: " + _isExclusive +
+               ", AutoDelete: " + _isAutoDelete + ", Routing  Key: " + getRoutingKey();
     }
 
     public boolean equals(Object o)
@@ -147,20 +138,19 @@ public abstract class AMQDestination implements Destination
         {
             return false;
         }
-        if (!_queueScope.equals(that._queueScope))
-        {
-            return false;
-        }
         if ((_queueName == null && that._queueName != null) ||
             (_queueName != null && !_queueName.equals(that._queueName)))
         {
             return false;
         }
-        if (_isTemporary != that._isTemporary)
+        if (_isExclusive != that._isExclusive)
         {
             return false;
         }
-
+        if (_isAutoDelete != that._isAutoDelete)
+        {
+            return false;
+        }
         return true;
     }
 
@@ -170,15 +160,12 @@ public abstract class AMQDestination implements Destination
         result = _exchangeName.hashCode();
         result = 29 * result + _exchangeClass.hashCode();
         result = 29 * result + _destinationName.hashCode();
-        if (_queueScope != null)
-        {
-            result = 29 * result + _queueScope.hashCode();
-        }
         if (_queueName != null)
         {
             result = 29 * result + _queueName.hashCode();
         }
-        result = result * (_isTemporary?13:7);
+        result = result * (_isExclusive?13:7);
+        result = result * (_isAutoDelete?13:7);
         return result;
     }
 }
