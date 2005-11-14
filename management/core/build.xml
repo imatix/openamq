@@ -54,7 +54,8 @@
     <!-- Generate code from the XML schema -->
     <target name="xmlbeans" depends="init">
         <xmlbean classgendir="${classes}" classpathref="core.classpath"
-                 failonerror="true" srcgendir="${generated.src}" javasource="1.5" source="1.5">
+                 failonerror="true" srcgendir="${generated.src}"
+                 javasource="1.5" source="1.5">
             <fileset dir="${etc}" includes="**/*.xsd"/>
         </xmlbean>
     </target>
