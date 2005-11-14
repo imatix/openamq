@@ -9,7 +9,7 @@
     "echo server".  See echo_client.pal for an example.
 
     <include filename = "amq_test_base.pal" />
-    <session scope = "test" exchange = "amq.direct">
+    <session exchange = "amq.direct">
         <queue_declare />
         <queue_bind    queue = "$queue" routing_key = "echo server" />
         <basic_consume queue = "$queue" />

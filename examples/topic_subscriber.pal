@@ -7,7 +7,7 @@
     Subscribes to all topics called #.eur and shows the messages
     received on those topics.  To use, start after starting the
     topic_publisher script.
-    <session scope = "subscription" >
+    <session>
       <!-- $queue name is supplied by server -->
       <queue_declare queue = ""/>
       <queue_bind queue = "$queue" exchange = "amq.topic" routing_key = "#.eur" />

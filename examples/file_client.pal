@@ -15,7 +15,7 @@
         <echo>For more instructions, use file_client -h</echo>
         <exit status = "1" />
     </if>
-    <session scope = "test" exchange = "amq.direct">
+    <session exchange = "amq.direct">
         <queue_declare />
         <queue_bind queue = "$queue" routing_key = "$queue" />
         <basic_consume queue = "$queue" />

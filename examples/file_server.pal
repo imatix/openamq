@@ -11,7 +11,7 @@
     key "file server".  See file_client.pal for an example.
 
     <include filename = "amq_test_base.pal" />
-    <session scope = "test" exchange = "amq.direct">
+    <session exchange = "amq.direct">
         <queue_declare />
         <queue_bind    queue = "$queue" routing_key = "file server" />
         <basic_consume queue = "$queue" />
