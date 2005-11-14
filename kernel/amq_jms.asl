@@ -99,8 +99,6 @@
     </doc>
   </field>
 
-  <field name = "scope" domain = "queue scope" />
-
   <field name = "queue" domain = "queue name">
     <doc>
       Specifies the name of the queue to consume from.
@@ -350,8 +348,6 @@
     </doc>
   </field>
 
-  <field name = "scope" domain = "queue scope" />
-    
   <field name = "queue" domain = "queue name">
     <doc>
       Specifies the name of the queue to get from.

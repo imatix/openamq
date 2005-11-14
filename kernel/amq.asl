@@ -44,27 +44,10 @@
     <assert check = "length" value = "127" />
   </domain>
 
-  <domain name = "queue scope" type = "shortstr">
-    queue name scope
-    <doc>
-      The queue scope is a client-selected string that allows a
-      separation of queues by function.  The server may define
-      standard scopes that provide templating functionality -
-      e.g. a default exchange binding for queues declared in a
-      specific scope.  Two scopes can each contain a queue with
-      the same name - these would be two distinct queues.  Scope
-      names may consist of any mixture of digits, letters, and
-      underscores.  Scope names predeclared by the server start
-      with "$", not a valid character in client-declared scopes.
-      Scopes are themselves scoped by the virtual host.
-    </doc>
-    <assert check = "length" value = "127" />
-  </domain>
-
   <domain name = "queue name" type = "shortstr">
     queue name
     <doc>
-    The queue name identifies the queue within the scope.  Queue
+    The queue name identifies the queue within the vhost.  Queue
     names may consist of any mixture of digits, letters, and
     underscores.  Queue names predefined by the server start with
     "$", not a valid character in client-declared queues.

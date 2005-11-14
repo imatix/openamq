@@ -8,7 +8,7 @@
     which drives the actual test scenarios.  Please read the perl
     script for details.
     <include filename = "amq_test_base.pal" />
-    <session scope = "test">
+    <session>
         <queue_declare />
         <queue_bind queue = "$queue" exchange = "amq.direct" routing_key = "$queue" />
         <jms_consume queue = "$queue" auto_ack = "1" />

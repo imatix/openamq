@@ -87,8 +87,6 @@
     </doc>
   </field>
 
-  <field name = "scope" domain = "queue scope" />
-    
   <field name = "queue" domain = "queue name">
     <doc>
       Specifies the name of the queue to consume from.
@@ -342,8 +340,6 @@
     </doc>
     <assert check = "notnull" />
   </field>
-    
-  <field name = "scope" domain = "queue scope" />
     
   <field name = "queue" domain = "queue name">
     <doc>

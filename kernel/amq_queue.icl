@@ -25,9 +25,6 @@ class.  This is a lock-free asynchronous class.
 <!-- Console definitions for this object -->
 <data name = "cml">
     <class name = "queue" parent = "vhost">
-        <field name = "scope">
-          <get>icl_shortstr_cpy (field_value, self->scope);</get>
-        </field>
         <field name = "name">
           <get>icl_shortstr_cpy (field_value, self->name);</get>
         </field>
@@ -59,8 +56,6 @@ class.  This is a lock-free asynchronous class.
     amq_vhost_t
         *vhost;                         //  Parent virtual host
     icl_shortstr_t
-        scope;                          //  Queue scope
-    icl_shortstr_t
         name;                           //  Queue name
     qbyte
         owner_id;                       //  Owner connection
@@ -80,23 +75,15 @@ class.  This is a lock-free asynchronous class.
 </context>
 
 <method name = "new">
-    <argument name = "vhost" type = "amq_vhost_t *">Parent vhost</argument>
-    <argument name = "owner id" type = "qbyte">Owner context id</argument>
-    <argument name = "scope" type = "char *">Queue scope</argument>
-    <argument name = "name" type = "char *">Queue name</argument>
-    <argument name = "durable" type = "Bool">Is queue durable?</argument>
-    <argument name = "exclusive" type = "Bool">Is queue exclusive?</argument>
+    <argument name = "vhost"       type = "amq_vhost_t *">Parent vhost</argument>
+    <argument name = "owner id"    type = "qbyte">Owner context id</argument>
+    <argument name = "name"        type = "char *">Queue name</argument>
+    <argument name = "durable"     type = "Bool">Is queue durable?</argument>
+    <argument name = "exclusive"   type = "Bool">Is queue exclusive?</argument>
     <argument name = "auto delete" type = "Bool">Auto-delete unused queue?</argument>
 
     <dismiss argument = "table" value = "vhost->queue_table" />
-    <dismiss argument = "key" value = "fullname">
-        Hash key is fullname formatted from queue scope plus name
-    </dismiss>
-
-    <local>
-    icl_shortstr_t
-        fullname;
-    </local>
+    <dismiss argument = "key" value = "name" />
     //
     self->vhost       = vhost;
     self->owner_id    = owner_id;
@@ -106,52 +93,21 @@ class.  This is a lock-free asynchronous class.
     self->auto_delete = auto_delete;
     self->queue_jms   = amq_queue_jms_new (self);
     self->queue_basic = amq_queue_basic_new (self);
-
-    icl_shortstr_cpy (self->scope, scope);
-    icl_shortstr_cpy (self->name,  name);
-
-    //  Format fully-scoped queue name
-    self_fullname (scope, name, fullname);
+    icl_shortstr_cpy (self->name, name);
 
     amq_queue_list_queue (self->vhost->queue_list, self);
     if (amq_server_config_trace_queue (amq_server_config))
-        icl_console_print ("Q: create   queue=%s|%s", self->scope, self->name);
+        icl_console_print ("Q: create   queue=%s", self->name);
 </method>
 
 <method name = "destroy">
     <action>
     if (amq_server_config_trace_queue (amq_server_config))
-        icl_console_print ("Q: destroy  queue=%s|%s", self->scope, self->name);
+        icl_console_print ("Q: destroy  queue=%s", self->name);
 
     amq_queue_jms_destroy   (&self->queue_jms);
     amq_queue_basic_destroy (&self->queue_basic);
     </action>
-</method>
-
-<method name = "fullname" return = "fullname">
-    <doc>
-    Formats a full internal queue name based on the supplied scope
-    and queue name.
-    </doc>
-    <argument name = "scope"    type = "char *">Queue scope</argument>
-    <argument name = "name"     type = "char *">Queue name</argument>
-    <argument name = "fullname" type = "char *">Result to format</argument>
-    //
-    icl_shortstr_fmt (fullname, "%s|%s", scope? scope: "", name);
-</method>
-
-<method name = "search" return = "self">
-    <argument name = "table"  type = "$(selfname)_table_t *">Queue table</argument>
-    <argument name = "scope"  type = "char *"               >Queue scope</argument>
-    <argument name = "name"   type = "char *"               >Queue name</argument>
-    <declare  name = "self" type = "$(selftype) *">The found object</declare>
-    <local>
-    icl_shortstr_t
-        fullname;
-    </local>
-    //
-    self_fullname (scope, name, fullname);
-    self = $(selfname)_table_search (table, fullname);
 </method>
 
 <method name = "publish" template = "async function" async = "1">

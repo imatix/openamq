@@ -201,7 +201,7 @@ main (int argc, char *argv [])
         goto finished;
     }
     if (amq_client_session_queue_declare (session,
-        ticket, "global", opt_queue, FALSE, FALSE, FALSE, FALSE))
+        ticket, opt_queue, FALSE, FALSE, FALSE, FALSE))
         goto finished;
 
     //  Set-up a headers pattern binding
@@ -217,7 +217,7 @@ main (int argc, char *argv [])
     arguments = asl_field_list_flatten (field_list);
     asl_field_list_destroy (&field_list);
     rc = amq_client_session_queue_bind (
-        session, ticket, "global", opt_queue, "amq.match", NULL, arguments);
+        session, ticket, opt_queue, "amq.match", NULL, arguments);
     icl_longstr_destroy (&headers);
     icl_longstr_destroy (&arguments);
     if (rc)
@@ -225,7 +225,6 @@ main (int argc, char *argv [])
 
     amq_client_session_jms_consume (session,
         ticket,                         //  Access ticket granted by server
-        "global",                       //  Queue domain
         opt_queue,                      //  Queue name
         0,                              //  Prefetch size
         0,                              //  Prefetch count

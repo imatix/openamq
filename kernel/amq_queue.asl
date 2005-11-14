@@ -50,20 +50,11 @@
     </doc>
   </field>
     
-  <field name = "scope" domain = "queue scope">
-    <assert check = "regexp" value = "^[a-zA-Z0-9-_.]+$" />
-  </field>
-
   <field name = "queue" domain = "queue name">
     <doc name = "rule">
       The queue name MAY be empty, in which case the server MUST create
       a new queue with a unique generated name and return this to the
       client in the Declare-Ok method.
-    </doc>
-    <doc name = "rule">
-      Clients asking the server to provide a queue name SHOULD use a
-      specific scope for such queues to avoid any possible conflict
-      with names that might be used elsewhere by clients.
     </doc>
     <assert check = "regexp" value = "^[a-zA-Z0-9-_.]*$" />
   </field>
@@ -209,8 +200,6 @@
     </doc>
   </field>
 
-  <field name = "scope" domain = "queue scope" />
-
   <field name = "queue" domain = "queue name">
     <doc name = "rule">
       The queue must exist. Attempting to bind a non-existing queue
@@ -289,8 +278,6 @@
     </doc>
   </field>
 
-  <field name = "scope" domain = "queue scope" />
-
   <field name = "queue" domain = "queue name">
     <doc name = "rule">
       The queue must exist. Attempting to purge a non-existing queue
@@ -341,8 +328,6 @@
       access rights to the queue's access realm.
     </doc>
   </field>
-
-  <field name = "scope" domain = "queue scope" />
 
   <field name = "queue" domain = "queue name">
     <doc name = "rule">

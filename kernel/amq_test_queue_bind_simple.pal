@@ -10,9 +10,7 @@
     target = "stdc"
     >
     <echo>TEST: queue_bind_simple</echo>
-    <session
-        scope = "test"
-        >
+    <session>
         <!-- Bind for direct class -->
         <invoke macro = "direct"/>
         <!-- Bind for topic class -->

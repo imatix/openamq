@@ -72,8 +72,6 @@
     </doc>
   </field>
 
-  <field name = "scope" domain = "queue scope" />
-
   <field name = "queue" domain = "queue name">
     <doc>
       Specifies the name of the queue to consume from.
@@ -271,8 +269,6 @@
       access rights to the realm for the queue.
     </doc>
   </field>
-
-  <field name = "scope" domain = "queue scope" />
 
   <field name = "queue" domain = "queue name">
     <doc>

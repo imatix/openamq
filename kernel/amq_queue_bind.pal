@@ -11,15 +11,15 @@
         <!-- ....... "should work" testcases .............................. -->
 
         <!-- default testcase -->
-        <queue_declare scope = "default" queue = "queue-bind_0"/>
-        <queue_bind scope = "default" queue = "queue-bind_0" exchange = "amq.direct">
+        <queue_declare queue = "queue-bind_0"/>
+        <queue_bind queue = "queue-bind_0" exchange = "amq.direct">
             <arguments>
                 <field name = "routing_key" value = "a_dest"/>
             </arguments>      
         </queue_bind>
         
         <!-- ignore duplicate bindings -->
-        <queue_bind scope = "default" queue = "queue-bind_0" exchange = "amq.direct">
+        <queue_bind queue = "queue-bind_0" exchange = "amq.direct">
             <arguments>
                 <field name = "routing_key" value = "a_dest"/>
             </arguments>      
@@ -27,8 +27,8 @@
         
 
         <!-- ticket test -->
-        <queue_declare scope = "default" queue = "queue-bind-ticket_0"/>
-        <queue_bind scope = "default" queue = "queue-bind-ticket_0" ticket="0" exchange = "amq.direct">
+        <queue_declare queue = "queue-bind-ticket_0"/>
+        <queue_bind queue = "queue-bind-ticket_0" ticket="0" exchange = "amq.direct">
             <arguments>
                 <field name = "routing_key" value = "a_dest"/>
             </arguments>
@@ -37,8 +37,8 @@
         <!-- ....... "should fail" testcases .............................. -->
 
         <!-- [0] bind to unknown exchange -->
-        <queue_declare scope = "default" queue = "queue-bind_1"/>
-        <queue_bind scope = "default" queue = "queue-bind_1" exchange = "provoke_fail">
+        <queue_declare queue = "queue-bind_1"/>
+        <queue_bind queue = "queue-bind_1" exchange = "provoke_fail">
             <arguments>
                 <field name = "routing_key" value = "a_dest"/>
             </arguments>      
@@ -46,9 +46,9 @@
         <assert name="reply_code" value="504">E: Failure in '[0] Bind to unknown exchange' reply_code != 504</assert>
         
         <!-- [1] bind durable queue to transient exchange -->
-        <queue_declare scope = "default" durable="1" queue = "queue-bind_2"/>
-        <exchange_declare scope = "default" exchange = "queue-bind-exch" class="direct" />
-        <queue_bind scope = "default" queue = "queue-bind_2" exchange = "queue-bind-exch">
+        <queue_declare durable="1" queue = "queue-bind_2"/>
+        <exchange_declare exchange = "queue-bind-exch" class="direct" />
+        <queue_bind queue = "queue-bind_2" exchange = "queue-bind-exch">
             <arguments>
                 <field name = "routing_key" value = "a_dest"/>
             </arguments>      
@@ -56,7 +56,7 @@
         <assert name="reply_code" value="504">E: Failure in '[1] Binding of durable queue to transient exchange' reply_code != 504.</assert>
         
         <!-- [2] bind unknown queue -->
-        <queue_bind scope = "default" queue = "blah" exchange = "amq.direct">
+        <queue_bind queue = "blah" exchange = "amq.direct">
             <arguments>
                 <field name = "routing_key" value = "a_dest"/>
             </arguments>      
@@ -66,8 +66,8 @@
 
         <!-- ticket test FIXME: not implemented in core yet -->
         <!--
-        <queue_declare scope = "default" queue = "queue-bind-ticket_1"/>
-        <queue_bind scope = "default" queue = "queue-bind-ticket_1" ticket="foo" exchange = "amq.direct">
+        <queue_declare queue = "queue-bind-ticket_1"/>
+        <queue_bind queue = "queue-bind-ticket_1" ticket="foo" exchange = "amq.direct">
             <arguments>
                 <field name = "routing_key" value = "a_dest"/>
             </arguments>      

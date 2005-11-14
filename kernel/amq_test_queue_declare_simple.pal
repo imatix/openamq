@@ -8,9 +8,7 @@
     script = "amq_pal_gen"
     target = "stdc"
     >
-    <session
-        scope = "test"
-        >
+    <session>
         <echo>TEST: queue_declare_simple</echo>
         <!-- Queue name supplied by server -->
         <queue_declare queue = ""/>

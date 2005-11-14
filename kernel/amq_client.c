@@ -256,19 +256,18 @@ main (int argc, char *argv [])
         ticket, opt_exchange, "direct", FALSE, FALSE, FALSE, FALSE))
         goto finished;
     if (amq_client_session_queue_declare (session,
-        ticket, "global", opt_queue, FALSE, FALSE, FALSE, FALSE))
+        ticket, opt_queue, FALSE, FALSE, FALSE, FALSE))
         goto finished;
 
     //  Set-up a simple binding based on queue name
     rc = amq_client_session_queue_bind (
-        session, ticket, "global", opt_queue, opt_exchange, opt_queue, NULL);
+        session, ticket, opt_queue, opt_exchange, opt_queue, NULL);
     if (rc)
         goto finished;                  //  Quit if that failed
 
     if (async_mode) {
         amq_client_session_jms_consume (session,
             ticket,                     //  Access ticket granted by server
-            "global",                   //  Queue domain
             opt_queue,                  //  Queue name
             0,                          //  Prefetch size
             0,                          //  Prefetch count
@@ -316,7 +315,7 @@ main (int argc, char *argv [])
         while (count < messages) {
             //  If we're browsing, do a synchronous get
             if (!async_mode)
-                amq_client_session_jms_get (session, ticket, "global", opt_queue, TRUE);
+                amq_client_session_jms_get (session, ticket, opt_queue, TRUE);
 
             //  Process whatever content has already arrived
             got_messages = FALSE;

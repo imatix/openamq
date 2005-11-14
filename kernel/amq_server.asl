@@ -100,7 +100,7 @@
     else
         icl_shortstr_fmt (queue_name, "tmp_%06d", icl_atomic_inc32 (&queue_index));
 
-    queue = amq_queue_search (amq_vhost->queue_table, method->scope, queue_name);
+    queue = amq_queue_table_search (amq_vhost->queue_table, queue_name);
     if (!queue) {
         if (method->passive)
             amq_server_channel_close (
@@ -109,7 +109,6 @@
             queue = amq_queue_new (
                 amq_vhost,
                 connection->context_id,
-                method->scope,
                 queue_name,
                 method->durable,
                 method->exclusive,
@@ -152,7 +151,7 @@
     </local>
     exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
     if (exchange) {
-        queue = amq_queue_search (amq_vhost->queue_table, method->scope, method->queue);
+        queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
         if (queue) {
             amq_exchange_bind_queue (
                 exchange, channel, queue, method->routing_key, method->arguments);
@@ -171,7 +170,7 @@
     amq_queue_t
         *queue;
     </local>
-    queue = amq_queue_search (amq_vhost->queue_table, method->scope, method->queue);
+    queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
     if (queue) {
         amq_server_agent_queue_delete_ok (
             connection->thread, (dbyte) channel->key, amq_queue_message_count (queue));
@@ -186,7 +185,7 @@
     amq_queue_t
         *queue;
     </local>
-    queue = amq_queue_search (amq_vhost->queue_table, method->scope, method->queue);
+    queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
     if (queue) {
         amq_queue_purge (queue, channel);
         amq_queue_unlink (&queue);
@@ -205,7 +204,6 @@
   <action name = "consume">
     //  The channel is responsible for creating/cancelling consumers
     amq_server_channel_consume (channel,
-        method->scope,
         method->queue,
         self->class_id,
         0,                              //  No prefetch-size limit
@@ -259,7 +257,7 @@
     amq_queue_t
         *queue;
     </local>
-    queue = amq_queue_search (amq_vhost->queue_table, method->scope, method->queue);
+    queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
     if (queue) {
         amq_queue_get (queue, channel, self->class_id);
         amq_queue_unlink (&queue);
@@ -271,7 +269,6 @@
   <action name = "consume">
     //  The channel is responsible for creating/cancelling consumers
     amq_server_channel_consume (channel,
-        method->scope,
         method->queue,
         self->class_id,
         method->prefetch_size,

@@ -19,7 +19,6 @@
 </macro>
 
 <session
-    scope     = "default"
     exchange  = "amq.direct"
     queue     = "$myqueue"
     error_handling = "recover">

@@ -9,7 +9,7 @@
     script = "amq_pal_gen"
     target = "stdc"
     >
-    <session scope = "test">
+    <session>
         <echo>TEST: queue_purge_simple</echo>
         <queue_declare queue = ""/>
         <queue_bind queue = "$queue" exchange = "amq.direct" routing_key = "a_dest"/>

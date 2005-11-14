@@ -9,45 +9,32 @@
     >
     <session error_handling="recover">
        <!-- .......... "should pass" tests .............................-->
-       <queue_declare queue="queue-autodel_1"   auto_delete="1" scope="default" />
-       <queue_declare queue="queue-ticket_1"    ticket="0"      scope="default" />
-       <queue_declare queue="queue-scope_1"                     scope="default" />
-       <queue_declare queue="queue-durable_1"   durable="1"     scope="default" />
-       <queue_declare queue="az09-_"                            scope="default" />
-       <queue_declare queue=""                                  scope="aZ09-_." />
-       <queue_declare queue="queue-passive_0"                   scope="default" />
-       <queue_declare queue="queue-passive_0"   passive="1"     scope="default" />
-       <queue_declare queue="queue-private_1"   private="1"     scope="default" />
+       <queue_declare queue="queue-autodel_1"   auto_delete="1" />
+       <queue_declare queue="queue-ticket_1"    ticket="0"      />
+       <queue_declare queue="queue-durable_1"   durable="1"     />
+       <queue_declare queue="az09-_"                            />
+       <queue_declare queue=""                                  />
+       <queue_declare queue="queue-passive_0"                   />
+       <queue_declare queue="queue-passive_0"   passive="1"     />
+       <queue_declare queue="queue-private_1"   private="1"     />
 
        <!-- .......... "should fail" tests .............................-->
        <!-- [0] Declare queue with illegal name -->
-       <queue_declare queue="@%$^&*()!"                         scope="default" />
+       <queue_declare queue="@%$^&*()!" />
         <assert name = "reply_code" value = "502">
         E: Failure in '[0] Declare queue with illegal name' reply code != 502
         </assert>
 
-       <!-- [1] Declare queue with empty scope -->
-       <queue_declare queue="queue-scope_2"                                     />
-       <assert name = "reply_code" value = "502">
-        E: Failure in '[1] Declare queue with empty scope' reply code != 502
-       </assert>
-
-       <!-- [2] Declare queue with illegal scope -->
-       <queue_declare queue="queue-scope_3"                     scope="&^%{}[]" />
-       <assert name = "reply_code" value = "502">
-        E: Failure in '[2] Declare queue with illegal scope' reply code != 502
-       </assert>
-
-       <!-- 
+       <!--
        FIXME: Testcase for invalid tickets needed
-       <queue_declare queue="queue-ticket_1" ticket="invalid" scope="default" />
+       <queue_declare queue="queue-ticket_1" ticket="invalid" />
        -->
 
        <!--
        FIXME: need a new connection here, while the other is still open
        TODO: catch binding private queue violation (507?)
-       <session scope="default">
-           <queue_bind queue="queue-private_1" exchange="amq.direct" scope="default">
+       <session>
+           <queue_bind queue="queue-private_1" exchange="amq.direct">
               <arguments>
                  <field name="routing_key" value="bogus" />
               </arguments>
@@ -56,8 +43,8 @@
        -->
 
        <!-- FIXME: channel gets closed, I want to be able to catch this
-       <session scope="default" error_handling="recover">
-          <queue_declare queue="queue-passive_1" passive="1" scope="default" />
+       <session error_handling="recover">
+          <queue_declare queue="queue-passive_1" passive="1" />
           <assert name="reply_code" value="404" />
        </session>
        -->

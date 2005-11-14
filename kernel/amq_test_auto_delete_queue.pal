@@ -8,8 +8,8 @@
     target = "stdc"
     >
     <session>
-      <queue_declare scope = "test" queue = "myqueue" auto_delete = "1" />
-      <jms_consume scope = "test" queue = "myqueue" />
+      <queue_declare queue = "myqueue" auto_delete = "1" />
+      <jms_consume queue = "myqueue" />
     </session>
 </pal>
 
