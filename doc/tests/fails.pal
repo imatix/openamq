@@ -1,0 +1,10 @@
+<?xml?>
+<pal
+    name   = "fails"
+    script = "amq_pal_gen"
+    desc   = "minimal failing pal script"
+    >
+    <abort>failing</abort>
+</pal>
+
+

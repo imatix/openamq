@@ -1,0 +1,53 @@
+#!/bin/bash 
+if [ "x$COLOR" == "xno" ]; then
+    unset GREEN RED RESET
+else
+    GREEN=$'\e[32;02m'
+    RED=$'\e[31;02m'
+    RESET=$'\e[37;00m'
+fi
+
+
+function die() { echo $@; exit -1; }
+`which netcat &>/dev/null` || die "install netcat first"
+`netcat -z localhost 7654` && die "server already running? close it first"
+
+if [ -e works.pal ] && [ -e fails.pal ]; then
+    echo "initializing ..."
+    if [ "works.pal" -nt "works" ]; then
+        pal works.pal &>/dev/null
+    fi
+    ./works &>/dev/null || exit -1
+
+    if [ "fails.pal" -nt "fails" ]; then
+        pal fails.pal &>/dev/null
+    fi
+    ./fails &>/dev/null && exit -1
+else
+    echo "no works/fails pal scripts found... continuing w/o initial test"
+fi
+
+
+
+for testcase in `ls *.pal|grep -v amq_test_base.pal|grep -v works.pal|grep -v fails.pal`; do
+    DESC=`cat $testcase|grep desc|sed -e 's/\s*desc\s*=\s*"\([^"]*\)\s*"/\1/'`
+    COMP=" "
+    if [ $testcase -nt ${testcase%%.pal} ]; then
+        pal $testcase &>/dev/null 
+        if [ $? -eq 0 ]; then 
+            COMP=" (compiling OK) "
+        else
+            COMP=" (compile FAILED) "
+        fi
+    fi
+
+    `./${testcase%%.pal} &>/dev/null`
+    if [ $? -eq 0 ]; then
+        STAT="[ $GREEN OK $RESET ]"
+    else
+        STAT="[$RED FAIL $RESET]"
+    fi
+    
+    echo "$STAT $testcase:$COMP$DESC... "
+done
+

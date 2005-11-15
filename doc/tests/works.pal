@@ -1,0 +1,13 @@
+<?xml?>
+<pal
+    name   = "works"
+    script = "amq_pal_gen"
+    desc   = "minimal working pal script"
+    >
+    
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session>
+</pal>
+
+
