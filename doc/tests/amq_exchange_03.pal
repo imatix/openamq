@@ -1,0 +1,22 @@
+<?xml?>
+<pal
+    name   = "amq_exchange_03"
+    script = "amq_pal_gen"
+    desc   = "Declare an exchange which is durable and test if it survives a server restart"
+    >
+    This test sets up a session where a durable exchange is created. The server is
+    then restarted and a check is being done to verify the exchange still exists.
+    
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <exchange_declare exchange = "myexchange" type = "direct" durable = "1" />
+    </session>
+    
+    <server name = "amq_server" />
+    
+    <session>
+        <exchange_declare exchange = "myexchange" type = "direct" passive = "1" />
+    </session>
+</pal>
+
+

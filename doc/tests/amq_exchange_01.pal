@@ -1,0 +1,16 @@
+<?xml?>
+<pal
+    name   = "amq_exchange_01"
+    script = "amq_pal_gen"
+    desc   = "Declare an exchange with default options"
+    >
+    This test sets up a session where a default exchange is created. A default
+    exchange is one declared with no arguments.
+    
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <exchange_declare exchange = "myexchange" type = "direct" />
+    </session>
+</pal>
+
+

@@ -1,14 +1,21 @@
 #!/bin/bash 
+
+function die() { echo $@; exit -1; }
+
+if [ "x$IBASE" == "x" ]; then
+    die "IBASE not set"
+fi
+
 if [ "x$COLOR" == "xno" ]; then
     unset GREEN RED RESET
 else
     GREEN=$'\e[32;02m'
     RED=$'\e[31;02m'
+    YELLOW=$'\e[33;01m'
     RESET=$'\e[37;00m'
 fi
 
 
-function die() { echo $@; exit -1; }
 `which netcat &>/dev/null` || die "install netcat first"
 `netcat -z localhost 7654` && die "server already running? close it first"
 
@@ -17,12 +24,12 @@ if [ -e works.pal ] && [ -e fails.pal ]; then
     if [ "works.pal" -nt "works" ]; then
         pal works.pal &>/dev/null
     fi
-    ./works &>/dev/null || exit -1
+    ./works &>/dev/null || die "the most simple working testcase did not return 0, exitting..."
 
     if [ "fails.pal" -nt "fails" ]; then
         pal fails.pal &>/dev/null
     fi
-    ./fails &>/dev/null && exit -1
+    ./fails &>/dev/null && die "the most simple failing testcase did not return != 0, exitting..."
 else
     echo "no works/fails pal scripts found... continuing w/o initial test"
 fi
@@ -35,9 +42,9 @@ for testcase in `ls *.pal|grep -v amq_test_base.pal|grep -v works.pal|grep -v fa
     if [ $testcase -nt ${testcase%%.pal} ]; then
         pal $testcase &>/dev/null 
         if [ $? -eq 0 ]; then 
-            COMP=" (compiling OK) "
+            COMP=" (${YELLOW}compiling OK$RESET) "
         else
-            COMP=" (compile FAILED) "
+            COMP=" (${RED}compile FAILED$RESET) "
         fi
     fi
 
@@ -49,5 +56,7 @@ for testcase in `ls *.pal|grep -v amq_test_base.pal|grep -v works.pal|grep -v fa
     fi
     
     echo "$STAT $testcase:$COMP$DESC... "
+    # only temporary solution, pal needs to make sure the server is down
+    killall -9 amq_server &>/dev/null
 done
 

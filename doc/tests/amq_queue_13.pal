@@ -1,0 +1,38 @@
+<?xml?>
+<pal
+    name   = "amq_queue_13"
+    script = "amq_pal_gen"
+    desc   = "Bind a durable queue to a durable exchange"
+    >
+    This test sets up a session, declares a (durable) exchange and a durable
+    queue. And tries to bind these. Then the server is restarted.
+    After the restart both queue and exchange are declared passive to check
+    for their existance. Then a message is sent to see if these are still 
+    bound.
+    <include filename = "amq_test_base.pal" />
+    <session error_handling = "recover">
+        <exchange_declare exchange = "myexchange" type = "fanout" durable = "1" />
+        <queue_declare queue = "myqueue" durable = "1" />
+        <queue_bind queue = "myqueue" exchange = "myexchange" />
+    </session>
+    
+    <server name = "amq_server" />
+
+    <session>
+        <exchange_declare exchange = "myexchange" type = "fanout" passive = "1" />
+        <queue_declare queue = "myqueue" passive = "1" />
+        <queue_bind queue = "myqueue" exchange = "myexchange" routing_key = "rk" />
+        <basic_consume queue = "myqueue" />
+        <basic_content />
+        <basic_publish exchange = "myexchange" routing_key = "rk" />
+        <wait timeout = "5000" />
+        <basic_arrived>
+            <echo>Message '$message_id' [$body_size] came back from $exchange to us using rk: '$routing_key'</echo>
+        </basic_arrived>
+        <empty>
+            <abort>Message did not come back, this is bad!</abort>
+        </empty>
+    </session>
+</pal>
+
+

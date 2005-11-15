@@ -4,10 +4,7 @@
     script = "amq_pal_gen"
     desc   = "minimal working pal script"
     >
-    
-    <include filename = "amq_test_base.pal" />
-    <session>
-    </session>
+    <echo>this should work</echo>    
 </pal>
 
 

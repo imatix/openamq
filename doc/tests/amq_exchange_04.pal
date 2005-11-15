@@ -1,0 +1,21 @@
+<?xml?>
+<pal
+    name   = "amq_exchange_04"
+    script = "amq_pal_gen"
+    desc   = "Declare a exchange which is exclusive and test is cannot be used in another connection"
+    >
+    This test sets up a session where an exclusive exchange is created. Then te
+    session is reastablished using a new connection. The exchange created should
+    not be accessible from the new session.
+    
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <exchange_declare exchange = "myexchange" type = "direct" exclusive = "1" />
+    </session>
+    <session restart = "1" error_handling = "recover">
+        <exchange_declare exchange = "myexchange" type = "direct" passive = "1" />
+        <assert name = "reply_code" value = "506" /> 
+    </session>
+</pal>
+
+

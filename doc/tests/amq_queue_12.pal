@@ -4,7 +4,7 @@
     script = "amq_pal_gen"
     desc   = "Bind a durable queue to a transient exchange"
     >
-    This test sets up a session, declares a (ransient) exchange and a durable
+    This test sets up a session, declares a (transient) exchange and a durable
     queue. And tries to bind these. This should fail since durable queues are
     not bindable to transient exchanges.
     
