@@ -22,7 +22,7 @@ public class Stac
     public static void main(String[] args)
     {
         BufferedReader terminal = new BufferedReader(new InputStreamReader(System.in));
-        System.out.println("\nInitializing the Scripting Tools for AMQ Console (STAC) ...");
+        System.out.println("\nInitializing the Scripting Tool for AMQ Console (STAC) ...");
         String var = System.getProperty("python.verbose");
         if (var != null)
         {
@@ -34,7 +34,7 @@ public class Stac
         }
         StacInterpreter interp = new StacInterpreter();
 
-        interp.write(interp.get("myps1").toString());
+        //interp.write(interp.get("myps1").toString());
 
         String line = null;
         try
