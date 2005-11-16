@@ -281,14 +281,22 @@ public abstract class AbstractMessageProducer extends Closeable implements org.o
         contentHeaderProperties.priority = (byte) priority;
 
         ContentBody[] contentBodies = createContentBodies(payload);
-        AMQFrame[] frames = new AMQFrame[2 + contentBodies.length];
-        for (int i = 0; i < contentBodies.length; i++)
+        AMQFrame[] frames = null;
+        if (contentBodies == null)
         {
-            frames[2 + i] = ContentBody.createAMQFrame(_channelId, contentBodies[i]);
+            frames = new AMQFrame[2];
         }
-        if (_logger.isDebugEnabled())
+        else
         {
-            _logger.debug("Sending content body frames to " + destination);
+            frames = new AMQFrame[2 + contentBodies.length];
+            for (int i = 0; i < contentBodies.length; i++)
+            {
+                frames[2 + i] = ContentBody.createAMQFrame(_channelId, contentBodies[i]);
+            }
+            if (_logger.isDebugEnabled())
+            {
+                _logger.debug("Sending content body frames to " + destination);
+            }
         }
 
         // weight argument of zero indicates no child content headers, just bodies
@@ -314,15 +322,17 @@ public abstract class AbstractMessageProducer extends Closeable implements org.o
      */
     private ContentBody[] createContentBodies(byte[] payload)
     {
-        if (payload == null)
+        if (payload == null || payload.length == 0)
         {
             return null;
         }
         // we substract one from the total frame maximum size to account for the end of frame marker in a body frame
         // (0xCE byte).
         final long framePayloadMax = _session.getAMQConnection().getMaximumFrameSize() - 1;
-        int frameCount = (int) (payload.length/framePayloadMax) + 1;
+        int lastFrame = (payload.length % framePayloadMax) > 0 ? 1 : 0;
+        int frameCount = (int) (payload.length/framePayloadMax) + lastFrame;
         final ContentBody[] bodies = new ContentBody[frameCount];
+
         if (frameCount == 1)
         {
             bodies[0] = new ContentBody();
@@ -334,7 +344,7 @@ public abstract class AbstractMessageProducer extends Closeable implements org.o
             for (int i = 0; i < bodies.length; i++)
             {
                 bodies[i] = new ContentBody();
-                byte[] framePayload = new byte[(remaining >= framePayloadMax)?(int)framePayloadMax:(int)remaining];
+                byte[] framePayload = new byte[(remaining >= framePayloadMax) ? (int)framePayloadMax : (int)remaining];
                 System.arraycopy(payload, (int)framePayloadMax * i, framePayload, 0, framePayload.length);
                 bodies[i].payload = framePayload;
                 remaining -= framePayload.length;
