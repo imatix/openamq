@@ -12,6 +12,7 @@ import org.openamq.jms.ChannelLimitReachedException;
 import org.openamq.jms.Connection;
 import org.openamq.jms.ConnectionListener;
 import org.openamq.AMQException;
+import org.openamq.AMQUndeliveredException;
 
 import javax.jms.*;
 import java.io.IOException;
@@ -385,9 +386,10 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
      */
     public void exceptionReceived(Throwable cause)
     {
+        JMSException je = null;
+        
         if (_exceptionListener != null)
         {
-            JMSException je;
             if (cause instanceof JMSException)
             {
                 je = (JMSException) cause;
@@ -409,7 +411,8 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
             }
             _exceptionListener.onException(je);
         }
-        closeAllSessions(cause);
+        if (je == null || !(je.getLinkedException() instanceof AMQUndeliveredException))
+            closeAllSessions(cause);
     }
 
     void registerSession(int channelId, AMQSession session)
