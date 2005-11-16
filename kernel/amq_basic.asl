@@ -152,7 +152,6 @@
       Specifies the name of the exchange to publish to.  If the exchange
       does not exist the server will raise a channel exception.
     </doc>
-    <assert check = "notnull" />
   </field>
 
   <field name = "routing key" type = "shortstr">

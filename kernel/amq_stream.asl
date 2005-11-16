@@ -194,7 +194,7 @@
     and distributed to any active consumers as appropriate.
   </doc>
   <chassis name = "server" implement = "MUST" />
-           
+
   <field name = "ticket" domain = "access ticket">
     <doc name = "rule">
       The client MUST provide a valid access ticket giving "write"
@@ -207,9 +207,8 @@
       Specifies the name of the exchange to publish to.  If the exchange
       does not exist the server will raise a channel exception.
     </doc>
-    <assert check = "notnull" />
   </field>
-    
+
   <field name = "immediate" type = "bit">
     <doc>
       Asserts that the message is delivered to one or more consumers

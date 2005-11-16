@@ -114,6 +114,11 @@
                 method->exclusive,
                 method->auto_delete);
             if (queue) {
+                //  Make default binding, if wanted
+                if (amq_vhost->default_exchange)
+                    amq_exchange_bind_queue (
+                        amq_vhost->default_exchange, NULL, queue, queue_name, NULL);
+
                 //  Add to connection's exclusive queue list
                 if (method->exclusive)
                     amq_server_connection_own_queue (connection, queue);
@@ -224,7 +229,13 @@
     amq_exchange_t
         *exchange;
     </local>
-    exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
+    if (*method->exchange)
+        //  Lookup exchange specified in method
+        exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
+    else
+        //  Get default exchange for virtual host
+        exchange = amq_exchange_link (amq_vhost->default_exchange);
+
     if (exchange) {
         if (!exchange->internal) {
             amq_content_$(class.name)_set_routing_key (

@@ -207,7 +207,7 @@
     is committed.
   </doc>
   <chassis name = "server" implement = "MUST" />
-           
+
   <field name = "ticket" domain = "access ticket">
     <doc name = "rule">
       The client MUST provide a valid access ticket giving "write"
@@ -220,9 +220,8 @@
       Specifies the name of the exchange to publish to.  If the exchange
       does not exist the server will raise a channel exception.
     </doc>
-    <assert check = "notnull" />
   </field>
-    
+
   <field name = "routing key" type = "shortstr">
      message routing key
     <doc>
