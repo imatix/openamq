@@ -79,6 +79,8 @@ $(selftype)
         *queue_table;                   //  Queues for vhost, hash table
     amq_queue_list_t
         *queue_list;                    //  Queues for dispatching
+    amq_exchange_t
+        *default_exchange;              //  Default exchange
 </context>
 
 <method name = "new">
@@ -100,12 +102,12 @@ $(selftype)
     self->queue_list     = amq_queue_list_new ();
 
     //  Automatic wiring schemes
-    s_exchange_declare (self, "amq.direct", AMQ_EXCHANGE_DIRECT);
-    s_exchange_declare (self, "amq.reply",  AMQ_EXCHANGE_DIRECT);
-    s_exchange_declare (self, "amq.topic",  AMQ_EXCHANGE_TOPIC);
-    s_exchange_declare (self, "amq.match",  AMQ_EXCHANGE_HEADERS);
-    s_exchange_declare (self, "amq.system", AMQ_EXCHANGE_SYSTEM);
-    s_exchange_declare (self, "amq.notify", AMQ_EXCHANGE_TOPIC);
+    s_exchange_declare (self, "amq.direct", AMQ_EXCHANGE_DIRECT,  TRUE);
+    s_exchange_declare (self, "amq.reply",  AMQ_EXCHANGE_DIRECT,  FALSE);
+    s_exchange_declare (self, "amq.topic",  AMQ_EXCHANGE_TOPIC,   FALSE);
+    s_exchange_declare (self, "amq.match",  AMQ_EXCHANGE_HEADERS, FALSE);
+    s_exchange_declare (self, "amq.system", AMQ_EXCHANGE_SYSTEM,  FALSE);
+    s_exchange_declare (self, "amq.notify", AMQ_EXCHANGE_TOPIC,   FALSE);
 </method>
 
 <method name = "destroy">
@@ -147,12 +149,12 @@ $(selftype)
 <private name = "header">
 //  Prototypes for local functions
 static void
-    s_exchange_declare (amq_vhost_t *self, char *name, int type);
+    s_exchange_declare (amq_vhost_t *self, char *name, int type, Bool default_exchange);
 </private>
 
 <private name = "footer">
 static void
-s_exchange_declare (amq_vhost_t *self, char *name, int type)
+s_exchange_declare (amq_vhost_t *self, char *name, int type, Bool default_exchange)
 {
     amq_exchange_t
         *exchange;                      //  Predeclared exchanges
@@ -166,6 +168,10 @@ s_exchange_declare (amq_vhost_t *self, char *name, int type)
         FALSE,                          //  Do not auto-delete
         FALSE);                         //  Not internal
     assert (exchange);
+    if (default_exchange) {
+        self->default_exchange = exchange;
+        icl_console_print ("I: default exchange is %s", name);
+    }
     amq_exchange_unlink (&exchange);
 }
 </private>
