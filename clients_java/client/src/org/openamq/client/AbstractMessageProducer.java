@@ -281,22 +281,14 @@ public abstract class AbstractMessageProducer extends Closeable implements org.o
         contentHeaderProperties.priority = (byte) priority;
 
         ContentBody[] contentBodies = createContentBodies(payload);
-        AMQFrame[] frames = null;
-        if (contentBodies == null)
+        AMQFrame[] frames = new AMQFrame[2 + contentBodies.length];
+        for (int i = 0; i < contentBodies.length; i++)
         {
-            frames = new AMQFrame[2];
+            frames[2 + i] = ContentBody.createAMQFrame(_channelId, contentBodies[i]);
         }
-        else
+        if (contentBodies.length > 0 && _logger.isDebugEnabled())
         {
-            frames = new AMQFrame[2 + contentBodies.length];
-            for (int i = 0; i < contentBodies.length; i++)
-            {
-                frames[2 + i] = ContentBody.createAMQFrame(_channelId, contentBodies[i]);
-            }
-            if (_logger.isDebugEnabled())
-            {
-                _logger.debug("Sending content body frames to " + destination);
-            }
+            _logger.debug("Sending content body frames to " + destination);
         }
 
         // weight argument of zero indicates no child content headers, just bodies
@@ -322,9 +314,13 @@ public abstract class AbstractMessageProducer extends Closeable implements org.o
      */
     private ContentBody[] createContentBodies(byte[] payload)
     {
-        if (payload == null || payload.length == 0)
+        if (payload == null)
         {
             return null;
+        }
+        else if (payload.length == 0)
+        {
+            return new ContentBody[0];
         }
         // we substract one from the total frame maximum size to account for the end of frame marker in a body frame
         // (0xCE byte).
