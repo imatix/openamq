@@ -9,6 +9,7 @@
     After the restart both queue and exchange are declared passive to check
     for their existance. Then a message is sent to see if these are still 
     bound.
+
     <include filename = "amq_test_base.pal" />
     <session error_handling = "recover">
         <exchange_declare exchange = "myexchange" type = "fanout" durable = "1" />

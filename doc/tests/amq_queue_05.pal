@@ -11,7 +11,7 @@
     <include filename = "amq_test_base.pal" />
     <session error_handling = "recover">
         <queue_declare queue = "myqueue" passive = "1" />
-        <assert name = "reply_code" value = "504" />        
+        <assert name = "reply_code" value = "404" />        
         <queue_declare queue = "myqueue2" />
         <queue_declare queue = "myqueue2" passive = "1" />
     </session>

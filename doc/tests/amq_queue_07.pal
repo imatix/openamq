@@ -5,14 +5,14 @@
     desc   = "Declare queue with access ticket and test if queue is bindable with faulty ticket"
     >
     This test sets up a session and declares a queue with an access ticket.
-    Binding this queue should the require the access ticket. Here we test if
+    Binding this queue should require the access ticket. Here we test if
     the queue is bindable with a faulty ticket argument, binding should fail.
     
     <include filename = "amq_test_base.pal" />
     <session>
         <queue_declare queue = "myqueue" ticket = "12345" />
         <exchange_declare exchange = "myexchange" type = "fanout" />
-        <queue_bind queue = "myqueue" exchange = "myexchange" ticket = "12354" />
+        <queue_bind queue = "myqueue" exchange = "myexchange" ticket = "00000" />
         <abort>Could not make test fail, no error on bind w/o ticket</abort>
     </session>
 </pal>

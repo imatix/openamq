@@ -15,7 +15,7 @@
     </session> 
     <session error_handling = "recover" restart = "1">
         <queue_declare queue = "myqueue" passive = "1" />
-        <assert name = "reply_code" value = "504" />
+        <assert name = "reply_code" value = "404" />
     </session>
 </pal>
 

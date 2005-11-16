@@ -5,7 +5,7 @@
     desc   = "Declare queue with access ticket and test if queue is bindable with no ticket"
     >
     This test sets up a session and declares a queue with an access ticket.
-    Binding this queue should the require the access ticket. Here we test if
+    Binding this queue should require the access ticket. Here we test if
     the queue is bindable with no ticket argument, binding should fail.
     
     <include filename = "amq_test_base.pal" />

@@ -1,0 +1,24 @@
+<?xml?>
+<pal
+    name   = "amq_default_01"
+    script = "amq_pal_gen"
+    desc   = "Test default JMS queue/exchange declarations using consume"
+    >
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <queue_declare />
+        <jms_content message_id = "id-1" />
+        <jms_consume queue = "$queue" />
+        <jms_publish routing_key = "$queue" />
+        <wait timeout = "1000" />
+        <jms_arrived>
+            <echo>Message '$message_id' [$body_size] came back from $exchange to us using rk: '$routing_key'</echo>
+        </jms_arrived>
+        <empty>
+            <abort>Message did not come back, this is bad!</abort>
+        </empty>
+    </session>
+    
+</pal>
+
+

@@ -11,7 +11,7 @@
     <include filename = "amq_test_base.pal" />
     <session error_handling = "recover">
         <exchange_declare exchange = "myexchange" type = "direct" passive = "1" />
-        <assert name = "reply_code" value = "504" />        
+        <assert name = "reply_code" value = "404" />        
         <exchange_declare exchange = "myexchange2" />
         <exchange_declare exchange = "myexchange2" type = "direct" passive = "1" />
     </session>

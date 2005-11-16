@@ -1,0 +1,17 @@
+<?xml?>
+<pal
+    name   = "amq_queue_21"
+    script = "amq_pal_gen"
+    desc   = "Delete a queue which is non existant"
+    >
+    This test sets up a session, and tries to delete a non existant queue.
+    This should yield a channel error.
+
+    <include filename = "amq_test_base.pal" />
+    <session error_handler = "recover">
+        <queue_delete queue = "nonexistant" />
+        <assert name = "reply_code" value = "504" />
+    </session>
+</pal>
+
+
