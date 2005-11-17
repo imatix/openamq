@@ -16,9 +16,6 @@ else
 fi
 
 
-`which netcat &>/dev/null` || die "install netcat first"
-`netcat -z localhost 7654` && die "server already running? close it first"
-
 if [ -e works.pal ] && [ -e fails.pal ]; then
     echo "initializing ..."
     if [ "works.pal" -nt "works" ]; then
