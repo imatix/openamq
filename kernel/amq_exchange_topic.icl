@@ -146,7 +146,7 @@ static void
 <private>
 /*    Converts a index routing_key name into a regular expression. The index
       name can contain wildcards that index part or all of a index name tree.
-      '*' in the routing_key name means wildcard a single level of indexs.
+      '*' in the routing_key name means wildcard a single level of indexes.
       '#' in the routing_key name means wildcard zero or more levels.
       index levels are separated by '.'.  regexp must be an icl_shortstr_t.
  */

@@ -286,10 +286,10 @@
 
   <field name = "exchange" domain = "exchange name">
     <doc>
-      Specifies the name of the exchange that the message was
-      originally published to.
+      Specifies the name of the exchange that the message was originally
+      published to.  If empty, the message was published to the default
+      exchange.
     </doc>
-    <assert check = "notnull" />
   </field>
 
   <field name = "routing key" type = "shortstr">
@@ -297,7 +297,7 @@
     <doc>
       Specifies the routing key name specified when the message was
       published.
-    </doc>     
+    </doc>
   </field>
 
   <field name = "message count" type = "long" >

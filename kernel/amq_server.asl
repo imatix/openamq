@@ -117,7 +117,7 @@
                 //  Make default binding, if wanted
                 if (amq_vhost->default_exchange)
                     amq_exchange_bind_queue (
-                        amq_vhost->default_exchange, NULL, queue, queue_name, NULL);
+                        amq_vhost->default_exchange, NULL, queue, queue->name, NULL);
 
                 //  Add to connection's exclusive queue list
                 if (method->exclusive)
@@ -229,34 +229,35 @@
     amq_exchange_t
         *exchange;
     </local>
-    if (*method->exchange)
+    if (*method->exchange) {
         //  Lookup exchange specified in method
         exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
+        if (exchange->internal) {
+            amq_server_channel_close (
+                channel, ASL_ACCESS_REFUSED, "Exchange is for internal use only");
+            amq_exchange_unlink (&exchange);
+        }
+    }
     else
         //  Get default exchange for virtual host
         exchange = amq_exchange_link (amq_vhost->default_exchange);
 
     if (exchange) {
-        if (!exchange->internal) {
-            amq_content_$(class.name)_set_routing_key (
-                self->content,
-                method->exchange,
-                method->routing_key,
-                connection->context_id);
+        amq_content_$(class.name)_set_routing_key (
+            self->content,
+            method->exchange,
+            method->routing_key,
+            connection->context_id);
 
-            amq_exchange_publish (
-                exchange,
-                channel,
-                self->class_id,
-                self->content,
-                method->mandatory,
-                method->immediate);
+        amq_exchange_publish (
+            exchange,
+            channel,
+            self->class_id,
+            self->content,
+            method->mandatory,
+            method->immediate);
 
-            amq_exchange_unlink (&exchange);
-        }
-        else
-            amq_server_channel_close (
-                channel, ASL_ACCESS_REFUSED, "Exchange is for internal use only");
+        amq_exchange_unlink (&exchange);
     }
     else
         amq_server_channel_close (channel, ASL_NOT_FOUND, "No such exchange defined");

@@ -102,7 +102,8 @@ $(selftype)
     self->queue_list     = amq_queue_list_new ();
 
     //  Automatic wiring schemes
-    s_exchange_declare (self, "amq.direct", AMQ_EXCHANGE_DIRECT,  TRUE);
+    s_exchange_declare (self, "$default$",  AMQ_EXCHANGE_DIRECT,  TRUE);
+    s_exchange_declare (self, "amq.direct", AMQ_EXCHANGE_DIRECT,  FALSE);
     s_exchange_declare (self, "amq.reply",  AMQ_EXCHANGE_DIRECT,  FALSE);
     s_exchange_declare (self, "amq.topic",  AMQ_EXCHANGE_TOPIC,   FALSE);
     s_exchange_declare (self, "amq.match",  AMQ_EXCHANGE_HEADERS, FALSE);
@@ -166,12 +167,11 @@ s_exchange_declare (amq_vhost_t *self, char *name, int type, Bool default_exchan
         name,                           //  Exchange name
         TRUE,                           //  Durable, allows durable queues
         FALSE,                          //  Do not auto-delete
-        FALSE);                         //  Not internal
+        default_exchange);              //  Internal?
     assert (exchange);
-    if (default_exchange) {
+    if (default_exchange)
         self->default_exchange = exchange;
-        icl_console_print ("I: default exchange is %s", name);
-    }
+
     amq_exchange_unlink (&exchange);
 }
 </private>
