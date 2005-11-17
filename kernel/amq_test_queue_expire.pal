@@ -1,9 +1,5 @@
 <?xml?>
-<pal
-    name   = "amq_test_queue_expire"
-    script = "amq_pal_gen"
-    target = "stdc"
-    >
+<pal script = "amq_pal_gen">
 <!-- This tests that a deleted queue really goes away -->
 
 <!-- Don't use own variables with the same name as standard variables -->

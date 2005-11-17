@@ -1,15 +1,11 @@
 <?xml?>
 <!--
     amq_access_01
-    
+
     Verify that the server accepts the "/data" realm and returns
     a valid non-zero ticket.
   -->
-<pal
-    name   = "amq_access_01"
-    script = "amq_pal_gen"
-    target = "stdc"
-    >
+<pal script = "amq_pal_gen">
     <echo>Validation script: $script</echo>
     <session>
         <access_request realm = "/data" />

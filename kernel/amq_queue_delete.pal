@@ -1,9 +1,5 @@
 <?xml?>
-<pal
-    name   = "amq_queue_delete"
-    script = "amq_pal_gen"
-    target = "stdc"
-    >
+<pal script = "amq_pal_gen">
     <session error_handling="recover">
         <!-- ....... "should work" testcases .............................. --> 
         <queue_declare  queue = "queue-delete_0" />

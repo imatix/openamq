@@ -2,11 +2,7 @@
 <!--
     DOC: Regression testing of the AMQ protocol, specifically the exchange_declare method
 -->
-<pal
-    name   = "amq_exchange_declare"
-    script = "amq_pal_gen"
-    target = "stdc"
-    >
+<pal script = "amq_pal_gen">
     <session error_handling="recover">
         <!-- ....... "should work" tests ....................... -->
         <exchange_declare   exchange="exchange-declare_0" class="direct" />

@@ -1,13 +1,9 @@
 <?xml?>
 <!--
     Simple test for queue declare
-    This test declares a queue and checks that it is available by referencing it from a bind.   
+    This test declares a queue and checks that it is available by referencing it from a bind.
   -->
-<pal
-    name   = "amq_test_queue_declare_simple"
-    script = "amq_pal_gen"
-    target = "stdc"
-    >
+<pal script = "amq_pal_gen">
     <session>
         <echo>TEST: queue_declare_simple</echo>
         <!-- Queue name supplied by server -->

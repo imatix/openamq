@@ -1,14 +1,10 @@
 <?xml?>
 <!--
     Simple test for queue bind
-    This test checks that a message passes through each of the default exchange classes, 
+    This test checks that a message passes through each of the default exchange classes,
         providing a common case for those.
   -->
-<pal
-    name   = "amq_test_queue_bind_simple"
-    script = "amq_pal_gen"
-    target = "stdc"
-    >
+<pal script = "amq_pal_gen">
     <echo>TEST: queue_bind_simple</echo>
     <session>
         <!-- Bind for direct class -->

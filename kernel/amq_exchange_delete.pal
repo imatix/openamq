@@ -2,16 +2,12 @@
 <!--
     DOC: Regression testing of the AMQ protocol, specifically the exchange_delete method
 -->
-<pal
-    name   = "amq_exchange_delete"
-    script = "amq_pal_gen"
-    target = "stdc"
-    >
+<pal script = "amq_pal_gen">
     <session error_handling="recover">
         <!-- ....... "should work" tests ....................... -->
         <exchange_declare   exchange="exchange-delete_0" class="direct" />
         <exchange_delete    exchange="exchange-delete_0" />
-        
+
         <exchange_declare   exchange="exchange-delete_2" class="direct" />
         <exchange_delete    exchange="exchange-delete_2" if_unused="1"/>
 

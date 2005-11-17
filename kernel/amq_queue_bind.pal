@@ -2,11 +2,7 @@
 <!--
     DOC: Regression testing of the AMQ protocol, specifically the queue_bind method
 -->
-<pal
-    name   = "amq_queue_bind"
-    script = "amq_pal_gen"
-    target = "stdc"
-    >
+<pal script = "amq_pal_gen">
     <session error_handling="recover">
         <!-- ....... "should work" testcases .............................. -->
 

@@ -1,9 +1,5 @@
 <?xml?>
-<pal
-    name = "amq_test_console"
-    script = "amq_pal_gen"
-    target = "stdc"
-    >
+<pal script = "amq_pal_gen">
     The test console works in collaboration with test_console.pl,
     which drives the actual test scenarios.  Please read the perl
     script for details.

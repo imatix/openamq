@@ -2,11 +2,7 @@
 <!--
     DOC: Regression testing of the AMQ protocol, specifically the queue_declare method
 -->
-<pal
-    name   = "amq_queue_declare"
-    script = "amq_pal_gen"
-    target = "stdc"
-    >
+<pal script = "amq_pal_gen">
     <session error_handling="recover">
        <!-- .......... "should pass" tests .............................-->
        <queue_declare queue="queue-autodel_1"   auto_delete="1" />

@@ -1,9 +1,5 @@
 <?xml?>
-<pal
-    name = "amq_queue_bind_many"
-    script = "amq_pal_gen"
-    target = "stdc"
-    >
+<pal script = "amq_pal_gen">
     Creates and binds 1M queues, which is more than we expect
     the server to support.  We expect to see the server refuse
     and remain robust.

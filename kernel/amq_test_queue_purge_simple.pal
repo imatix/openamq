@@ -4,11 +4,7 @@
     This test publishes a few messages to a queue, gets those, then the queue is purged.
         Finally, we try to receive messages but we should not receive any.
   -->
-<pal
-    name   = "amq_test_queue_purge_simple"
-    script = "amq_pal_gen"
-    target = "stdc"
-    >
+<pal script = "amq_pal_gen">
     <session>
         <echo>TEST: queue_purge_simple</echo>
         <queue_declare queue = ""/>
