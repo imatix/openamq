@@ -5,11 +5,10 @@
     index   = "6"
   >
   work with basic content
-
 <doc>
-  The Basic class provides methods that support the standard basic content
-  API. Basic messages have a minimal set of properties.  Trivial messages
-  are not subject to transactions.
+  The basic operational model is designed to provide the simplest possible
+  message store and forward model.  Basic messages are not acknowledged,
+  cannot be pushed back onto a queue, and are not covered by transactions.
 </doc>
 
 <doc name = "grammar">
@@ -23,6 +22,37 @@
 
 <chassis name = "server" implement = "MUST" />
 <chassis name = "client" implement = "MAY"  />
+
+<doc name = "rule">
+  The server SHOULD respect the persistent property of basic messages
+  and SHOULD make a best-effort to hold persistent basic messages on a
+  reliable storage mechanism.
+</doc>
+<doc name = "rule">
+  The server MUST NOT discard a persistent basic message in case of a
+  queue overflow. The server MAY use the Channel.Flow method to slow
+  or stop a basic message publisher when necessary.
+</doc>
+<doc name = "rule">
+  The server MAY overflow non-persistent basic messages to persistent
+  storage and MAY discard or dead-letter non-persistent basic messages
+  on a priority basis if the queue size exceeds some configured limit.
+</doc>
+<doc name = "rule">
+  The server MUST implement at least 2 priority levels for basic
+  messages, where priorities 0-4 and 5-9 are treated as two distinct
+  levels. The server MAY implement up to 10 priority levels.
+</doc>
+<doc name = "rule">
+  The server MUST deliver messages of the same priority in order
+  irrespective of their individual persistence. 
+</doc>
+<doc name = "rule">
+  The server MUST implement automatic acknowledgements on all Basic
+  messages.  That is, as soon as a message is delivered to a client
+  via a Deliver or a Get-Ok method, the server must remove it from
+  the queue.
+</doc>
 
 <!--  These are the properties for a Basic content  -->
 
@@ -149,8 +179,24 @@
 
   <field name = "exchange" domain = "exchange name">
     <doc>
-      Specifies the name of the exchange to publish to.  If the exchange
-      does not exist the server will raise a channel exception.
+      Specifies the name of the exchange to publish to.  The exchange
+      name can be empty, meaning the default exchange.  If the exchange
+      name is specified, and that exchange does not exist, the server
+      will raise a channel exception.
+    </doc>
+    <doc name = "rule">
+      The server MUST accept a blank exchange name to mean the default
+      exchange.
+    </doc>
+    <doc name = "rule">
+      If the exchange was declared as an internal exchange, the server
+      MUST respond with a reply code 403 (access refused) and raise a
+      channel exception.
+    </doc>
+    <doc name = "rule">
+      The exchange MAY refuse basic content in which case it MUST
+      respond with a reply code 540 (not implemented) and raise a
+      channel exception.
     </doc>
   </field>
 

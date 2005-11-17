@@ -24,10 +24,14 @@
     amq_exchange_t
         *exchange;
     int
-        exchange_type;
+        exchange_type = 0;
     </local>
     //
-    exchange_type = amq_exchange_type_lookup (method->type);
+    if (ipr_str_prefixed (method->exchange, "amq.") && !method->passive)
+        amq_server_channel_close (channel, ASL_NOT_ALLOWED, "Exchange name not allowed");
+    else
+        exchange_type = amq_exchange_type_lookup (method->type);
+        
     if (exchange_type) {
         //  Find exchange and create if necessary
         exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);

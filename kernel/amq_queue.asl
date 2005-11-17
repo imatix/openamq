@@ -24,6 +24,13 @@
 <chassis name = "server" implement = "MUST" />
 <chassis name = "client" implement = "MUST" />
 
+<doc name = "rule">
+  A server MUST allow any content class to be sent to any queue, in any
+  mix, and queue and delivery these content classes independently. Note
+  that all methods that fetch content off queues are specific to a given
+  content class.
+</doc>
+
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
@@ -33,6 +40,10 @@
     This method creates or checks a queue.  When creating a new queue
     the client can specify various properties that control the durability
     of the queue and its contents, and the level of sharing for the queue.
+  </doc>
+  <doc name = "rule">
+    The server MUST create a default binding for a newly-created queue
+    to the default exchange, which is an exchange of type 'direct'.
   </doc>
   <chassis name = "server" implement = "MUST" />
   <response name = "declare-ok" />
@@ -55,6 +66,12 @@
       The queue name MAY be empty, in which case the server MUST create
       a new queue with a unique generated name and return this to the
       client in the Declare-Ok method.
+    </doc>
+    <doc name = "rule">
+      Queue names starting with "amq." are reserved for predeclared and
+      standardised server queues.  If the queue name starts with "amq."
+      and the passive option is zero, the server MUST respond with a
+      reply code 507 (not allowed) and raise a channel exception.
     </doc>
     <assert check = "regexp" value = "^[a-zA-Z0-9-_.]*$" />
   </field>

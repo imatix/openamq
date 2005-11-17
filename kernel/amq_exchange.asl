@@ -20,6 +20,33 @@
 <chassis name = "server" implement = "MUST" />
 <chassis name = "client" implement = "MUST" />
 
+<doc name = "rule">
+  The server MUST implement the direct and fanout exchange types, and
+  predeclare the corresponding exchanges named amq.direct and amq.fanout
+  in each virtual host. The server MUST also predeclare a direct
+  exchange to act as the default exchange for content Publish methods
+  and for default queue bindings.
+</doc>
+
+<doc name = "rule">
+  The server SHOULD implement the topic exchange type, and predeclare
+  the corresponding exchange named amq.topic in each virtual host.
+</doc>
+
+<doc name = "rule">
+  The server MAY implement the system exchange type, and predeclare the
+  corresponding exchanges named amq.system in each virtual host. If the
+  client attempts to bind a queue to the system exchange, the server
+  MUST reply with an error code 507 (not allowed) and raise a connection
+  exception.
+</doc>
+
+<doc name = "rule">
+  The default exchange MUST be defined as internal, and be inaccessible
+  to the client except by specifying an empty exchange name in a content
+  Publish method. That is, the server MUST NOT let clients make explicit
+  bindings to this exchange.
+</doc>
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
@@ -47,6 +74,12 @@
 
   <field name = "exchange" domain = "exchange name">
     <assert check = "regexp" value = "^[a-zA-Z0-9-_.]+$" />
+    <doc name = "rule">
+      Exchange names starting with "amq." are reserved for predeclared
+      and standardised exchanges.  If the exchange name starts with
+      "amq." and the passive option is zero, the server MUST respond
+      with a reply code 507 (not allowed) and raise a channel exception.
+    </doc>
   </field>
 
   <field name = "type" type = "shortstr">
@@ -59,7 +92,8 @@
     </doc>
     <doc name = "rule">
       If the exchange already exists with a different type, the server
-      MUST raise a channel exception with reply code TBD.
+      MUST respond with a reply code 507 (not allowed) and raise a channel
+      exception.
     </doc>
     <assert check = "regexp" value = "^[a-zA-Z0-9-_.]+$" />
   </field>

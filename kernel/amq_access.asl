@@ -21,24 +21,6 @@
 <chassis name = "server" implement = "MUST" />
 <chassis name = "client" implement = "MUST" />
 
-<testcase name = "amq_access_01">
-    Verify that the server accepts the "/data" realm and returns
-    a valid non-zero ticket.
-</testcase>
-
-<testcase name = "amq_access_02">
-    Verify that the server does not accept the "/illegal" realm,
-    and responds with reply code 403 (access refused) and ends
-    the connection.
-</testcase>
-
-<testcase name = "amq_access_03">
-    Verify that the server does not accept the "/data/unknown"
-    realm, and responds with reply code 402 (invalid path), and
-    ends the channel.
-</testcase>
-
-
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 <method name = "request" synchronous = "1">
@@ -47,9 +29,8 @@
     This method requests an access ticket for an access realm.
     The server responds by granting the access ticket.  If the
     client does not have access rights to the requested realm
-    this causes a connection exception.  Access tickets may be
-    shared across channels within a connection and expire with
-    the connection.
+    this causes a connection exception.  Access tickets are a
+    per-channel resource.
   </doc>
   <doc name = "rule">
     The realm name MUST start with either "/data" (for application

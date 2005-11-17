@@ -24,9 +24,37 @@
                         / C:REJECT
 </doc>
 
-<chassis name = "server" implement = "MUST" />
-<chassis name = "client" implement = "MAY"  />
+<chassis name = "server" implement = "MAY" />
+<chassis name = "client" implement = "MAY" />
 
+<doc name = "rule">
+  The server SHOULD respect the persistent property of JMS messages
+  and SHOULD make a best-effort to hold persistent JMS messages on a
+  reliable storage mechanism.
+</doc>
+<doc name = "rule">
+  The server MUST NOT discard a persistent JMS message in case of a
+  queue overflow. The server MAY use the Channel.Flow method to slow
+  or stop a JMS message publisher when necessary.
+</doc>
+<doc name = "rule">
+  The server MAY overflow non-persistent JMS messages to persistent
+  storage and MAY discard or dead-letter non-persistent JMS messages
+  on a priority basis if the queue size exceeds some configured limit.
+</doc>
+<doc name = "rule">
+  The server MUST implement at least 2 priority levels for JMS
+  messages, where priorities 0-4 and 5-9 are treated as two distinct
+  levels. The server MAY implement up to 10 priority levels.
+</doc>
+<doc name = "rule">
+  The server MUST deliver messages of the same priority in order
+  irrespective of their individual persistence. 
+</doc>
+<doc name = "rule">
+  The server MUST support both automatic and explicit acknowledgements
+  on JMS content.
+</doc>
 
 <!--  These are the properties for a JMS content  -->
 
@@ -217,8 +245,24 @@
 
   <field name = "exchange" domain = "exchange name">
     <doc>
-      Specifies the name of the exchange to publish to.  If the exchange
-      does not exist the server will raise a channel exception.
+      Specifies the name of the exchange to publish to.  The exchange
+      name can be empty, meaning the default exchange.  If the exchange
+      name is specified, and that exchange does not exist, the server
+      will raise a channel exception.
+    </doc>
+    <doc name = "rule">
+      The server MUST accept a blank exchange name to mean the default
+      exchange.
+    </doc>
+    <doc name = "rule">
+      If the exchange was declared as an internal exchange, the server
+      MUST respond with a reply code 403 (access refused) and raise a
+      channel exception.
+    </doc>
+    <doc name = "rule">
+      The exchange MAY refuse JMS content in which case it MUST respond
+      with a reply code 540 (not implemented) and raise a channel
+      exception.
     </doc>
   </field>
 

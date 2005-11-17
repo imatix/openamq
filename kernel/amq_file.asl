@@ -23,12 +23,32 @@
                         / S:OPEN C:OPEN-OK S:STAGE content
                         / C:PUBLISH
                         / S:DELIVER
+                        / S:BOUNCE
                         / C:ACK
                         / C:REJECT
 </doc>
 
 <chassis name = "server" implement = "MAY" />
 <chassis name = "client" implement = "MAY" />
+
+<doc name = "rule">
+  The server MUST make a best-effort to hold file messages on a
+  reliable storage mechanism.
+</doc>
+<doc name = "rule">
+  The server MUST NOT discard a file message in case of a queue
+  overflow. The server MUST use the Channel.Flow method to slow or stop
+  a file message publisher when necessary.
+</doc>
+<doc name = "rule">
+  The server MUST implement at least 2 priority levels for file
+  messages, where priorities 0-4 and 5-9 are treated as two distinct
+  levels. The server MAY implement up to 10 priority levels.
+</doc>
+<doc name = "rule">
+  The server MUST support both automatic and explicit acknowledgements
+  on file content.
+</doc>
 
 <!--  These are the properties for a File content  -->
 
@@ -282,17 +302,55 @@
 
   <field name = "exchange" domain = "exchange name">
     <doc>
-      Specifies the name of the exchange to publish to.  If the exchange
-      does not exist the server will raise a channel exception.
+      Specifies the name of the exchange to publish to.  The exchange
+      name can be empty, meaning the default exchange.  If the exchange
+      name is specified, and that exchange does not exist, the server
+      will raise a channel exception.
+    </doc>
+    <doc name = "rule">
+      The server MUST accept a blank exchange name to mean the default
+      exchange.
+    </doc>
+    <doc name = "rule">
+      If the exchange was declared as an internal exchange, the server
+      MUST respond with a reply code 403 (access refused) and raise a
+      channel exception.
+    </doc>
+    <doc name = "rule">
+      The exchange MAY refuse file content in which case it MUST respond
+      with a reply code 540 (not implemented) and raise a channel
+      exception.
+    </doc>
+  </field>
+
+  <field name = "routing key" type = "shortstr">
+     Message routing key
+    <doc>
+      Specifies the routing key for the message.  The routing key is
+      used for routing messages depending on the exchange configuration.
+    </doc>
+  </field>
+
+  <field name = "mandatory" type = "bit">
+    indicate mandatory routing
+    <doc>
+      This flag tells the server how to react if the message cannot be
+      routed to a queue.  If this flag is set, the server returns the
+      message with a Bounce method.  If this flag is zero, the server
+      silently drops the message. The meaning of this bit is not defined
+      when a message is routed through multiple exchanges.
     </doc>
   </field>
 
   <field name = "immediate" type = "bit">
-    assert immediate delivery
+    request immediate delivery
     <doc>
-      Asserts that the message is delivered to one or more consumers
-      immediately and causes a channel exception if this is not the
-      case.
+      This flag tells the server how to react if the message cannot be
+      routed to a queue consumer immediately.  If this flag is set, the
+      server returns the message with a Bounce method.  If this flag is
+      zero, the server queues the message, but with no guarantee that it
+      will ever be consumed.  The meaning of this bit is not defined
+      when a message is routed through multiple exchanges.
     </doc>
   </field>
 
@@ -304,6 +362,36 @@
       Publish method asynchronously without waiting for staging to 
       finish.
     </doc>
+  </field>
+</method>
+
+<method name = "bounce" content = "1">
+  return a failed message
+  <doc>
+    This method returns an undeliverable message that was published
+    with the "immediate" flag set, or an unroutable message published
+    with the "mandatory" flag set. The reply code and text provide
+    information about the reason that the message was undeliverable.
+  </doc>
+  <chassis name = "client" implement = "MUST" />
+
+  <field name = "reply code" domain = "reply code" />
+  <field name = "reply text" domain = "reply text" />
+
+  <field name = "exchange" domain = "exchange name">
+    <doc>
+      Specifies the name of the exchange that the message was
+      originally published to.
+    </doc>
+    <assert check = "notnull" />
+  </field>
+
+  <field name = "routing key" type = "shortstr">
+     Message routing key
+    <doc>
+      Specifies the routing key name specified when the message was
+      published.
+    </doc>     
   </field>
 </method>
 
