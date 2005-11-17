@@ -1,16 +1,13 @@
 <?xml?>
 <pal
-    name   = "amq_queue_09"
     script = "amq_pal_gen"
     desc   = "Declare a queue with default options, but an illegal name"
     >
     This test sets up a session where a default queue is created with an
     illegal name. This should yield a 502 reply_code.
     
-    <include filename = "amq_test_base.pal" />
     <session error_handling = "recover">
         <queue_declare queue = "myqueue$" />
-        <assert name = "reply_code" value = "502" />
     </session>
 </pal>
 

@@ -1,6 +1,5 @@
 <?xml?>
 <pal
-    name   = "amq_exchange_06"
     script = "amq_pal_gen"
     desc   = "Declare exchange with access ticket and test if exchange is bindable with no ticket"
     >
@@ -8,7 +7,6 @@
     Binding this exchange should require the access ticket. Here we test if
     the exchange is bindable with no ticket argument, binding should fail.
     
-    <include filename = "amq_test_base.pal" />
     <session>
         <queue_declare queue = "myqueue" />
         <exchange_declare exchange = "myexchange" type = "fanout" ticket = "12345" />

@@ -1,6 +1,5 @@
 <?xml?>
 <pal
-    name   = "works"
     script = "amq_pal_gen"
     desc   = "minimal working pal script"
     >

@@ -1,13 +1,11 @@
 <?xml?>
 <pal
-    name   = "amq_queue_01"
     script = "amq_pal_gen"
     desc   = "Declare a queue with default options"
     >
     This test sets up a session where a default queue is created. A default
     queue is one declared with no arguments.
     
-    <include filename = "amq_test_base.pal" />
     <session>
         <queue_declare queue = "myqueue" />
     </session>

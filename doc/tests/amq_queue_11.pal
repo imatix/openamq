@@ -1,13 +1,11 @@
 <?xml?>
 <pal
-    name   = "amq_queue_11"
     script = "amq_pal_gen"
     desc   = "Bind a queue to an exchange"
     >
     This test sets up a session, declares an exchange and a queue, and tries binding the
     queue to the exchange. Also test duplicate bindings are silently accepted but ignored.
     
-    <include filename = "amq_test_base.pal" />
     <session>
         <exchange_declare exchange = "myexchange" type = "fanout" />
         <queue_declare queue = "myqueue" />

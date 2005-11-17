@@ -1,13 +1,11 @@
 <?xml?>
 <pal
-    name   = "amq_queue_23"
     script = "amq_pal_gen"
     desc   = "Delete a queue with a ticket using a faulty ticket"
     >
     This test sets up a session, declares a queue with a ticket 
     and tries to delete it using the ticket.
     
-    <include filename = "amq_test_base.pal" />
     <session error_handling = "recover">
         <queue_declare queue = "myqueue" ticket = "223344" />
         <queue_bind queue = "myqueue" exchange = "amq.direct" routing_key = "key" />
@@ -17,10 +15,8 @@
         <basic_publish exchange = "amq.direct" routing_key = "key" />
         <basic_publish exchange = "amq.direct" routing_key = "key" />
         <basic_get queue = "myqueue" />
-        <assert name = "message_count" value = "3" />
         
         <queue_delete queue = "myqueue" ticket = "0000001" />
-        <assert name = "reply_code" value = "403" />
     </session>
 </pal>
 

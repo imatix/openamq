@@ -1,17 +1,14 @@
 <?xml?>
 <pal
-    name   = "amq_queue_14"
     script = "amq_pal_gen"
     desc   = "Bind to an unknown exchange"
     >
     This test sets up a session, declares a queue and tries to bind it to 
     an unknown exchange.
     
-    <include filename = "amq_test_base.pal" />
     <session error_handling = "recover">
         <queue_declare queue = "myqueue" />
         <queue_bind queue = "myqueue" exchange = "unknown" />
-        <assert name = "reply_code" value = "504" />
     </session>
 </pal>
 

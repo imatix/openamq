@@ -1,6 +1,5 @@
 <?xml?>
 <pal
-    name   = "amq_queue_07"
     script = "amq_pal_gen"
     desc   = "Declare queue with access ticket and test if queue is bindable with faulty ticket"
     >
@@ -8,7 +7,6 @@
     Binding this queue should require the access ticket. Here we test if
     the queue is bindable with a faulty ticket argument, binding should fail.
     
-    <include filename = "amq_test_base.pal" />
     <session>
         <queue_declare queue = "myqueue" ticket = "12345" />
         <exchange_declare exchange = "myexchange" type = "fanout" />
