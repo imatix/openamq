@@ -3,6 +3,7 @@
     script = "amq_pal_gen"
     desc   = "Test default JMS queue/exchange declarations using consume"
     >
+    <include filename = "amq_test_base.pal" />
     <session>
         <queue_declare />
         <jms_content message_id = "id-1" />

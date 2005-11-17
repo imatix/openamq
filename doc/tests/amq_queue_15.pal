@@ -7,6 +7,7 @@
     A message is sent to this queue and then purged. A check is done to see
     if the queue is emptied.
     
+    <include filename = "amq_test_base.pal" />
     <session>
         <queue_declare queue = "myqueue" />
         <queue_bind queue = "myqueue" exchange = "amq.direct" routing_key = "key" />
@@ -17,11 +18,13 @@
         <basic_publish exchange = "amq.direct" routing_key = "key" />
         <basic_publish exchange = "amq.direct" routing_key = "key" />
         <basic_get queue = "myqueue" />
+        <assert name = "message_count" value = "3" />
         <queue_purge queue = "myqueue" />
         
         <basic_publish exchange = "amq.direct" routing_key = "key" />
         <basic_publish exchange = "amq.direct" routing_key = "key" />
         <basic_get queue = "myqueue" />
+        <assert name = "message_count" value = "1" />
     </session>
 </pal>
 

@@ -7,11 +7,13 @@
     session is reastablished using a new connection. The queue created should
     not be accessible from the new session.
     
+    <include filename = "amq_test_base.pal" />
     <session>
         <queue_declare queue = "myqueue" exclusive = "1" />
     </session>
     <session restart = "1" error_handling = "recover">
         <queue_declare queue = "myqueue" passive = "1" />
+        <assert name = "reply_code" value = "404" /> 
     </session>
 </pal>
 

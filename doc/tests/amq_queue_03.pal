@@ -6,10 +6,12 @@
     This test sets up a session where a durable queue is created. The server is
     then restarted and a check is being done to verify the queue still exists.
     
+    <include filename = "amq_test_base.pal" />
     <session>
         <queue_declare queue = "myqueue" durable = "1" />
     </session>
     
+    <server name = "amq_server" />
     
     <session>
         <queue_declare queue = "myqueue" passive = "1" />

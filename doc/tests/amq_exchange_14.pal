@@ -6,9 +6,11 @@
     This test sets up a session, and tries to bind an unknown queue
     to an exchange.
     
+    <include filename = "amq_test_base.pal" />
     <session error_handling = "recover">
         <exchange_declare exchange = "myexchange" type = "fanout" />
         <queue_bind queue = "unknown" exchange = "myexchange" />
+        <assert name = "reply_code" value = "504" />
     </session>
 </pal>
 

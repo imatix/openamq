@@ -7,8 +7,10 @@
     This should yield a channel error.
 
     
+    <include filename = "amq_test_base.pal" />
     <session error_handler = "recover">
         <queue_purge queue = "nonexistant" />
+        <assert name = "reply_code" value = "504" />
     </session>
 </pal>
 
