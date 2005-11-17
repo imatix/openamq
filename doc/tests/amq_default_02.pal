@@ -3,12 +3,15 @@
     script = "amq_pal_gen"
     desc   = "Test default basic queue/exchange declarations using consume"
     >
+    This test represents a minimal JMS client. It tries to do so, by using defaults
+    in declaration and bindings. Using ASync calls.
+    
     <include filename = "amq_test_base.pal" />
     <session>
         <queue_declare />
         <basic_content message_id = "id-1" />
         <basic_consume queue = "$queue" />
-        <basic_publish routing_key = "rkey" />
+        <basic_publish routing_key = "$queue" />
         <wait timeout = "1000" />
         <basic_arrived>
             <echo>Message '$message_id' [$body_size] came back from $exchange to us using rk: '$routing_key'</echo>

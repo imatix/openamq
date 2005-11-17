@@ -3,6 +3,9 @@
     script = "amq_pal_gen"
     desc   = "Test default JMS queue/exchange declarations using consume"
     >
+    This test represents a minimal JMS client. It tries to do so, by using defaults
+    in declaration and bindings. Using ASync calls.
+
     <include filename = "amq_test_base.pal" />
     <session>
         <queue_declare />
