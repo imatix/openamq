@@ -1,9 +1,5 @@
 <?xml?>
-<pal
-    name = "echo_server"
-    script = "amq_pal_gen"
-    target = "stdc"
-    >
+<pal script = "amq_pal_gen">
     This script echoes back arbitrary messages sent to it.  To talk to
     this script, we send a request to amq.direct using the routing key
     "echo server".  See echo_client.pal for an example.

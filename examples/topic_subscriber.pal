@@ -1,9 +1,5 @@
 <?xml?>
-<pal
-    name   = "topic_subscriber"
-    script = "amq_pal_gen"
-    target = "stdc"
-    >
+<pal script = "amq_pal_gen">
     Subscribes to all topics called #.eur and shows the messages
     received on those topics.  To use, start after starting the
     topic_publisher script.

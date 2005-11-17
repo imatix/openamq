@@ -1,9 +1,5 @@
 <?xml?>
-<pal
-    name = "file_server"
-    script = "amq_pal_gen"
-    target = "stdc"
-    >
+<pal script = "amq_pal_gen">
     This script serves up arbitrary files just like a web server.
     We take the file specified in the message-id and we send it to
     the amq.direct exchange using the reply-to field.  To talk to

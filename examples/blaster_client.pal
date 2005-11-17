@@ -1,9 +1,5 @@
 <?xml?>
-<pal
-    name = "blaster_client"
-    script = "amq_pal_gen"
-    target = "stdc"
-    >
+<pal script = "amq_pal_gen">
     This script 'blasts' a number of arbitrarily sized messages to the echo server.
 
     <set name = "count" value = "10"   cmdline = "C" />

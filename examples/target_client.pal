@@ -1,9 +1,5 @@
 <?xml?>
-<pal
-    name = "target_client"
-    script = "amq_pal_gen"
-    target = "stdc"
-    >
+<pal script = "amq_pal_gen">
     This script reads messages from the echo server.
 
     <session exchange = "amq.direct">

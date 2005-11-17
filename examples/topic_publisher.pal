@@ -1,9 +1,5 @@
 <?xml?>
-<pal
-    name   = "topic_publisher"
-    script = "amq_pal_gen"
-    target = "stdc"
-    >
+<pal script = "amq_pal_gen">
     Publishes messages to various topics.  To use, run and then
     start the topic_subscriber script.
     <include filename = "amq_test_base.pal" />

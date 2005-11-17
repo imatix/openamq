@@ -1,9 +1,5 @@
 <?xml?>
-<pal
-    name = "file_client"
-    script = "amq_pal_gen"
-    target = "stdc"
-    >
+<pal script = "amq_pal_gen">
     This script fetches arbitrary files from an openamq service
     network.  See file_server.pal for the other side.  Will
     transfer files of any size but transferring files larger than
