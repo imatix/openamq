@@ -100,11 +100,10 @@
 
   <field name = "passive" type = "bit">
     do not create exchange
-    <doc>
-      If set, the server will report the status of an exchange if it
-      exists and raise a channel assertion if not.  This flag lets
-      clients discover the status of non-existent exchanges without
-      creating them.
+    <doc name = "rule">
+      If set, and the exchange does not already exist, the server MUST
+      respond with a reply code 404 (not found) and raise a channel
+      exception.
     </doc>
   </field>
 

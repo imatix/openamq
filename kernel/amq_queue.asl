@@ -78,11 +78,10 @@
 
   <field name = "passive" type = "bit">
     do not create queue
-    <doc>
-      If set, the server will report the status of a queue if it
-      exists and raise a channel assertion if not.  This flag lets
-      clients discover the status of non-existent queues without
-      creating them.
+    <doc name = "rule">
+      If set, and the queue does not already exist, the server MUST
+      respond with a reply code 404 (not found) and raise a channel
+      exception.
     </doc>
   </field>
 
