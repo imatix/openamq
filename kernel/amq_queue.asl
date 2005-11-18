@@ -54,7 +54,15 @@
       of the ticket used.  All further work done with that queue must be
       done with an access ticket for the same realm.
     </doc>
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_queue_06">
+      The server MUST reject "active" access if no ticket is provided in
+      further work.
+    </doc>
+    <doc name = "rule" test = "amq_queue_07">
+      The server MUST reject "active" access if a wrong ticket is provided
+      in fursther work.
+    </doc>
+    <doc name = "rule" test = "amq_queue_08">
       The client MUST provide a valid access ticket giving "active" access
       to the realm in which the queue exists or will be created, or
       "passive" access if the if-exists flag is set.
@@ -62,7 +70,7 @@
   </field>
     
   <field name = "queue" domain = "queue name">
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_queue_10">
       The queue name MAY be empty, in which case the server MUST create
       a new queue with a unique generated name and return this to the
       client in the Declare-Ok method.
@@ -73,7 +81,7 @@
       and the passive option is zero, the server MUST respond with a
       reply code 507 (not allowed) and raise a channel exception.
     </doc>
-    <assert check = "regexp" value = "^[a-zA-Z0-9-_.]*$" />
+    <assert check = "regexp" value = "^[a-zA-Z0-9-_.]*$" test = "amq_queue_09"/>
   </field>
 
   <field name = "passive" type = "bit">
@@ -82,6 +90,11 @@
       If set, and the queue does not already exist, the server MUST
       respond with a reply code 404 (not found) and raise a channel
       exception.
+    </doc>
+    <doc name = "rule" test = "amq_queue_05">
+      The server MUST raise a 404 reply_code if the queue declared
+      passive didn't exist. And MUST NOT do anything if the queue
+      exists.
     </doc>
   </field>
 
@@ -94,6 +107,9 @@
       server restarts.  Note that durable queues do not necessarily
       hold persistent messages, although it does not make sense to
       send persistent messages to a transient queue.
+    </doc>
+    <doc name = "rule" test = "amq_queue_03">
+      The server MUST recreate the durable queue after a restart.
     </doc>
     <doc name = "rule">
       The server MUST support both durable and transient queues.
@@ -113,7 +129,7 @@
     <doc name = "rule">
       The server MUST support both exclusive and non-exclusive queues.
     </doc>
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_queue_04">
       The server MUST raise a channel exception if 'exclusive' is specified
       and the queue already exists and is owned by a different connection.
     </doc>
@@ -125,7 +141,7 @@
       If set, the queue is deleted when all clients have finished
       using it.
     </doc>
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_queue_02">
       The server SHOULD allow for a reasonable delay between the point
       when it determines that a queue is not being used (or no longer
       used), and the point when it deletes the queue.  At the least it
