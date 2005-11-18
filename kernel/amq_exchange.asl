@@ -74,7 +74,7 @@
 
   <field name = "exchange" domain = "exchange name">
     <assert check = "regexp" value = "^[a-zA-Z0-9-_.]+$" test = "amq_exchange_09" />
-    <doc name = "rule" test = "amq_exchange_15" />
+    <doc name = "rule" test = "amq_exchange_15">
       Exchange names starting with "amq." are reserved for predeclared
       and standardised exchanges.  If the exchange name starts with
       "amq." and the passive option is zero, the server MUST respond
