@@ -1,0 +1,16 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "Delete an exchange with if_unused = 1 and it's not in use (unbound)"
+    >
+    Test which deletes an exchange with if_unused = 1. The exchange is unused
+    (unbound) the call should thus succeed.
+
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <exchange_declare exchange = "myexchange" type = "fanout" />
+        <exchange_delete exchange = "myexchange" if_unused = "1" />
+    </session>
+</pal>
+
+

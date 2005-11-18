@@ -1,15 +1,13 @@
 <?xml?>
 <pal
     script = "amq_pal_gen"
-    desc   = "Purge a queue which is non existant"
+    desc   = "Bind with an unknown queue"
     >
-    This test sets up a session, and tries to purge a non existant queue.
-    This should yield a channel error.
-
+    This test sets up a session and tries to bind to a queue which does not exist
     
     <include filename = "amq_test_base.pal" />
     <session error_handling = "recover">
-        <queue_purge queue = "nonexistant" />
+        <queue_bind queue = "uknown" exchange = "amq.direct" />
         <assert name = "reply_code" value = "404" />
     </session>
 </pal>

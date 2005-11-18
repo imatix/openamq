@@ -7,9 +7,9 @@
     This should yield a channel error.
 
     <include filename = "amq_test_base.pal" />
-    <session error_handler = "recover">
+    <session error_handling = "recover">
         <queue_delete queue = "nonexistant" />
-        <assert name = "reply_code" value = "504" />
+        <assert name = "reply_code" value = "404" />
     </session>
 </pal>
 

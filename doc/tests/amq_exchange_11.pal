@@ -1,0 +1,15 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "Delete an unknown exchange"
+    >
+    Test which deletes an unknown exchange.
+
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <exchange_delete exchange = "unknown" />
+        <assert name = "reply_code" value = "404" />
+    </session>
+</pal>
+
+

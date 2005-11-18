@@ -1,0 +1,19 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "Delete an exchange with if_unused = 1 and it's in use (bound)"
+    >
+    Test which deletes an exchange with if_unused = 1. The exchange is used
+    (bound) the call should thus assert.
+    
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <exchange_declare exchange = "myexchange" type = "fanout" />
+        <queue_declare queue = "myqueue" />
+        <queue_bind exchange = "myexchange" queue = "myqueue" />
+        <exchange_delete exchange = "myexchange" if_unused = "1" />
+        <assert name = "reply_code" value = "504" />
+    </session>
+</pal>
+
+

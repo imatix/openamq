@@ -10,7 +10,7 @@
     <session error_handling = "recover">
         <queue_declare queue = "myqueue" />
         <queue_bind queue = "myqueue" exchange = "unknown" />
-        <assert name = "reply_code" value = "504" />
+        <assert name = "reply_code" value = "404" />
     </session>
 </pal>
 

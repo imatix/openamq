@@ -12,7 +12,7 @@
         <exchange_declare exchange = "myexchange" type = "fanout" />
         <queue_declare queue = "myqueue" durable = "1" />
         <queue_bind queue = "myqueue" exchange = "myexchange" />
-        <assert name = "reply_code" value = "404" />
+        <assert name = "reply_code" value = "504" />
     </session>
 </pal>
 

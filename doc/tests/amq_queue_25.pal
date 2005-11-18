@@ -1,0 +1,17 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "Check duplicates bindings are ignored"
+    >
+    This test sets up a session and a queue. The queue is then bound
+    twice to the same exchange. This should be silently ignored.
+    
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <queue_declare queue = "myqueue" />
+        <queue_bind queue = "myqueue" exchange = "amq.direct" />
+        <queue_bind queue = "myqueue" exchange = "amq.direct" />
+    </session>
+</pal>
+
+
