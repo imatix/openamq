@@ -281,7 +281,7 @@ main (int argc, char *argv [])
         //  Send messages to the test queue
         if (!quiet_mode)
             icl_console_print ("I: [%s] (%d) sending %d messages to server...",
-                opt_queue, repeats, messages);
+                opt_routing, repeats, messages);
         batch_left = batch_size;
         for (count = 0; count < messages; count++) {
             content = amq_content_jms_new ();
