@@ -54,15 +54,7 @@
       of the ticket used.  All further work done with that queue must be
       done with an access ticket for the same realm.
     </doc>
-    <doc name = "rule" test = "amq_queue_06">
-      The server MUST reject "active" access if no ticket is provided in
-      further work.
-    </doc>
-    <doc name = "rule" test = "amq_queue_07">
-      The server MUST reject "active" access if a wrong ticket is provided
-      in fursther work.
-    </doc>
-    <doc name = "rule" test = "amq_queue_08">
+    <doc name = "rule">
       The client MUST provide a valid access ticket giving "active" access
       to the realm in which the queue exists or will be created, or
       "passive" access if the if-exists flag is set.
@@ -86,15 +78,10 @@
 
   <field name = "passive" type = "bit">
     do not create queue
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_queue_05" >
       If set, and the queue does not already exist, the server MUST
       respond with a reply code 404 (not found) and raise a channel
       exception.
-    </doc>
-    <doc name = "rule" test = "amq_queue_05">
-      The server MUST raise a 404 reply_code if the queue declared
-      passive didn't exist. And MUST NOT do anything if the queue
-      exists.
     </doc>
   </field>
 
@@ -152,7 +139,7 @@
       queue without losing messages.  We would recommend a configurable
       timeout, with a suitable default value being one minute.
     </doc>
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_queue_31">
       The server MUST ignore the auto-delete field if the queue already
       exists.
     </doc>
@@ -205,7 +192,7 @@
     model, store-and-forward queues are bound to a dest exchange
     and subscription queues are bound to a dest_wild exchange.
   </doc>
-  <doc name = "rule">
+  <doc name = "rule" test = "amq_queue_25">
     A server MUST allow ignore duplicate bindings - that is, two or
     more bind methods for a specific queue, with identical arguments
     - without treating these as an error.
@@ -213,12 +200,12 @@
   <doc name = "rule">
     If a bind fails, the server MUST raise a connection exception.
   </doc>
-  <doc name = "rule">
+  <doc name = "rule" test = "amq_queue_12">
     The server MUST NOT allow a durable queue to bind to a transient
     exchange. If the client attempts this the server MUST raise a
     channel exception.
   </doc>
-  <doc name = "rule">
+  <doc name = "rule" test = "amq_queue_13">
     Bindings for durable queues are automatically durable and the
     server SHOULD restore such bindings after a server restart.
   </doc>
@@ -233,7 +220,7 @@
   </field>
 
   <field name = "queue" domain = "queue name">
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_queue_26">
       The queue must exist. Attempting to bind a non-existing queue
       causes a channel exception.
     </doc>
@@ -241,7 +228,7 @@
   </field>
 
   <field name = "exchange" domain = "exchange name">
-    <doc>
+    <doc name = "rule" test = "amq_queue_14">
       The name of the exchange to bind to. If the exchange does not
       exist the server will raise a channel exception.
     </doc>
@@ -284,6 +271,9 @@
     consumers.  Purged messages are deleted without any formal "undo"
     mechanism.
   </doc>
+  <doc name = "rule" test = "amq_queue_15">
+    A call to purge MUST result in an empty queue.
+  </doc>
   <doc name = "rule">
     On transacted channels the server MUST not purge messages that have
     already been sent to a client but not yet acknowledged.
@@ -311,7 +301,7 @@
   </field>
 
   <field name = "queue" domain = "queue name">
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_queue_16">
       The queue must exist. Attempting to purge a non-existing queue
       causes a channel exception.
     </doc>
@@ -362,14 +352,14 @@
   </field>
 
   <field name = "queue" domain = "queue name">
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_queue_21">
       The queue must exist. Attempting to delete a non-existing queue
       causes a channel exception.
     </doc>
     <assert check = "notnull" />
   </field>
     
-  <field name = "if unused" type = "bit">
+  <field name = "if unused" type = "bit" test = "amq_queue_29">
     delete only if unused
     <doc>
       If set, the server will only delete the queue if it has no
@@ -378,7 +368,7 @@
     </doc>
   </field>
 
-  <field name = "if empty" type = "bit">
+  <field name = "if empty" type = "bit" test = "amq_queue_27">
     delete only if empty
     <doc>
       If set, the server will only delete the queue if it has no
