@@ -73,8 +73,8 @@
   </field>
 
   <field name = "exchange" domain = "exchange name">
-    <assert check = "regexp" value = "^[a-zA-Z0-9-_.]+$" />
-    <doc name = "rule">
+    <assert check = "regexp" value = "^[a-zA-Z0-9-_.]+$" test = "amq_exchange_09" />
+    <doc name = "rule" test = "amq_exchange_15" />
       Exchange names starting with "amq." are reserved for predeclared
       and standardised exchanges.  If the exchange name starts with
       "amq." and the passive option is zero, the server MUST respond
@@ -90,17 +90,17 @@
       exchange - i.e. how messages are routed through it.  It is not valid
       or meaningful to attempt to change the type of an existing exchange.
     </doc>
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_exchange_16">
       If the exchange already exists with a different type, the server
       MUST respond with a reply code 507 (not allowed) and raise a channel
       exception.
     </doc>
-    <assert check = "regexp" value = "^[a-zA-Z0-9-_.]+$" />
+    <assert check = "regexp" value = "^[a-zA-Z0-9-_.]+$" test = "amq_exchange_17"/>
   </field>
 
   <field name = "passive" type = "bit">
     do not create exchange
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_exchange_05" >
       If set, and the exchange does not already exist, the server MUST
       respond with a reply code 404 (not found) and raise a channel
       exception.
@@ -130,7 +130,7 @@
       If set, the exchange is deleted when all queues have finished
       using it.
     </doc>
-    <doc name = "rule">
+    <doc name = "rule" type = "amq_exchange_02">
       The server SHOULD allow for a reasonable delay between the point
       when it determines that an exchange is not being used (or no longer
       used), and the point when it deletes the exchange.  At the least it
@@ -183,8 +183,8 @@
   </field>
 
   <field name = "exchange" domain = "exchange name">
-    <doc name = "rule">
-      The exchange must exist. Attempting to delete a non-existing exchange
+    <doc name = "rule" test = "amq_exchange_11">
+      The exchange MUST exist. Attempting to delete a non-existing exchange
       causes a channel exception.
     </doc>
     <assert check = "notnull" />
@@ -196,6 +196,14 @@
       If set, the server will only delete the exchange if it has no queue
       bindings. If the exchange has queue bindings the server does not
       delete it but raises a channel exception instead.
+    </doc>
+    <doc name = "rule" test = "amq_exchange_12">
+      If set, the server SHOULD delete the exchange but only if it has
+      no queue bindings.
+    </doc>
+    <doc name = "rule" test = "amq_exchange_13">
+      If set, the server SHOULD raise a channel exception if the exchange is in
+      use.  
     </doc>
   </field>
 </method>
