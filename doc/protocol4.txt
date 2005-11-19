@@ -1,5 +1,752 @@
-3. Proposed Architecture
-    the functional layer
-    routing exchange and queues
-    the technical layer
-    channels etc.
+Technical Specifications
+************************
+
+Standard Port Number
+====================
+
+The standard AMQP port number is under request from IANA. Pending an
+assigned port number, the standard port number is TCP 7654.
+
+AMQP/Fast Wire Format
+=====================
+
+Format Protocol Grammar
+-----------------------
+
+We provide a complete grammar for AMQP/Fast (this is provided for
+reference, and you may find it more interesting to skip through to the
+next sections that detail the different frame types and their formats):
+
+    amqp/fast           = protocol-header *amqp-unit
+
+    protocol-header     = literal-AMQP protocol-id protocol-version
+    literal-AMQP        = %d65.77.81.80             ; "AMQP"
+    protocol-id         = %d1.1                     ; AMQP/Fast
+    protocol-version    = %d9.1                     ; 0.9 revision 1
+
+    amqp-unit           = method | oob-method | trace | heartbeat
+
+    method              = method-frame [ content ]
+    method-frame        = %d1 frame-properties method-payload frame-end
+    frame-properties    = cycle channel frame-size
+    cycle               = OCTET
+    channel             = short-integer             ; Non-zero
+    frame-size          = long-integer              ; Non-zero
+    method-payload      = class-id method-id *amqp-field
+    class-id            = %x00.01-%xFF.FF
+    method-id           = %x00.01-%xFF.FF
+    amqp-field          = BIT / OCTET
+                        / short-integer / long-integer / long-long-integer
+                        / short-string / long-string
+                        / time-stamp
+                        / field-table
+    short-integer       = 2*OCTET
+    long-integer        = 4*OCTET
+    long-long-integer   = 8*OCTET
+    short-string        = OCTET *string-char        ; length + content
+    string-char         = %x01 .. %xFF
+    long-string         = long-integer *OCTET       ; length + content
+    time-stamp          = long-long-integer
+    field-table         = long-integer *field-value-pair
+    field-value-pair    = field-name field-value
+    field-name          = short-string
+    field-value         = 'S' long-string
+                        / 'I' signed-integer
+                        / 'D' decimal-value
+                        / 'T' time-stamp
+                        / 'F' field-table
+    signed-integer      = 4*OCTET
+    decimal-value       = decimals long-integer
+    decimals            = OCTET
+    frame-end           = %xCE
+
+    content             = %d2 content-header child-content *content-body
+    content-header      = frame-properties header-payload frame-end
+    header-payload      = content-class content-weight content-body-size
+                          property-flags property-list
+    content-class       = OCTET
+    content-weight      = OCTET
+    content-body-size   = long-long-integer
+    property-flags      = 15*BIT %b0 / 15*BIT %b1 property-flags
+    property-list       = amqp-field
+    child-content       = content-weight*content
+    content-body        = %d3 frame-properties body-payload frame-end
+    body-payload        = *OCTET
+
+    oob-method          = oob-method-frame [ oob-content ]
+    oob-method-frame    = %d4 frame-properties frame-end
+    oob-content         = %d5 content-header oob-child-content
+                          *oob-content-body
+    oob-child-content   = content-weight*oob-content
+    oob-content-body    = %d6 frame-properties frame-end
+
+    trace               = %d7 cycle %d0 frame-size trace-payload frame-end
+    trace-payload       = *OCTET
+
+    heartbeat           = %d8 cycle %d0 %d1 frame-end
+
+We use the Augmented BNF syntax defined in IETF RFC 2234. In summary,
+
+ - The name of a rule is simply the name itself.
+
+ - Terminals are specified by one or more numeric characters with the
+   base interpretation of those characters indicated as 'd' or 'x'.
+
+ - A rule can define a simple, ordered string of values by listing a
+   sequence of rule names.
+
+ - A range of alternative numeric values can be specified compactly,
+   using dash ("-") to indicate the range of alternative values.
+
+ - Elements enclosed in parentheses are treated as a single element,
+   whose contents are strictly ordered.
+
+ - Elements separated by forward slash ("/") are alternatives.
+
+ - The operator "*" preceding an element indicates repetition. The full
+   form is: "<a>*<b>element", where <a> and <b> are optional decimal
+   values, indicating at least <a> and at most <b> occurrences of
+   element.
+
+ - A rule of the form: "<n>element" is equivalent to <n>*<n>element.
+
+ - Square brackets enclose an optional element sequence.
+
+Protocol Header
+---------------
+
+The client MUST start a new connection by sending a protocol header.
+This is an 8-octet sequence:
+
+    +---+---+---+---+---+---+---+---+
+    |'A'|'M'|'Q'|'P'| 1 | 1 | 9 | 1 |
+    +---+---+---+---+---+---+---+---+
+                8 octets
+
+The protocol header consists of the uppercase letters "AMQP" followed
+by:
+
+ 1. The protocol class, which is 1 (for all AMQP protocols).
+ 
+ 2. The protocol instance, which is 1 (for AMQP/Fast over TCP/IP).
+ 
+ 3. The protocol major version, which is 9 (version 1.0 is 10, highest
+    possible release is 25.5).
+    
+ 4. The protocol minor version, which is currently 1.
+
+The protocol negotiation model is compatible with existing protocols
+such as HTTP that initiate a connection with an constant text string,
+and with firewalls that sniff the start of a protocol in order to decide
+what rules to apply to it.
+
+An AMQP client and server agree on a protocol and version as follows:
+
+ - The client opens a new socket connection to the AMQP server and
+   sends the protocol header.
+
+ - The server either accepts or rejects the protocol header. If it
+   rejects the protocol header writes a valid protocol header to the
+   socket and then closes the socket.
+
+ - Otherwise it leaves the socket open and implements the protocol
+   accordingly.
+
+Examples:
+
+    Client sends:           Server responds:
+    AMQP%d1.1.9.1           Connection.Start method
+    AMQP%d2.0.1.1           AMQP%d1.1.9.1<Close connection>
+    HTTP                    AMQP%d1.1.9.1<Close connection>
+
+Guidelines for implementors:
+
+- An AMQP server MUST accept the AMQP/Fast protocol as defined by
+  class = 1, instance = 1.  Conformance test: amq_wlp_header_01.
+
+- An AMQP server MAY accept non-AMQP protocols such as HTTP.
+  Conformance test: amq_wlp_header_02.
+
+- If the server does not recognise the first 4 octets of data on the
+  socket, or does not support the specific protocol version that the
+  client requests, it MUST write a valid protocol header to the socket,
+  then flush the socket (to ensure the client application will receive
+  the data) and then close the socket connection. The server MAY print
+  a diagnostic message to assist debugging.  Conformance test:
+  amq_wlp_header_03.
+
+- An AMQP client MAY detect the server protocol version by attempting
+  to connect with its highest supported version and reconnecting with
+  a lower version if it receives such information back from the server.
+  Conformance test: amq_wlp_header_04.
+
+General Frame Format
+--------------------
+
+All frames start with an 8-octet header composed of a type field
+(octet), a cycle field (octet), a channel field (short integer) and a
+size field (long integer):
+
+    0      1       2         4             8               size+8
+    +------+-------+---------+----------+  +------------+  +-----------+
+    | type | cycle | channel |   size   |  |  payload   |  | frame-end |
+    +------+-------+---------+----------+  +------------+  +-----------+
+     octet   octet    short      long       size-1 octets      octet
+    |                                   |  |                           |
+    |<--------- frame header ---------->|  |<------ size octets ------>|
+
+AMQP/Fast defines these frame types:
+
+ - Type = 1, "METHOD": method frame.
+ - Type = 2, "HEADER": content header frame.
+ - Type = 3, "BODY": content body frame.
+ - Type = 4, "OOB-METHOD": out-of-band method frame.
+ - Type = 5, "OOB-HEADER": out-of-band band header frame.
+ - Type = 6, "OOB-BODY": out-of-band body frame.
+ - Type = 7, "TRACE": trace frame.
+ - Type = 8, "HEARTBEAT": heartbeat frame.
+
+The channel number is 0 for all frames which are global to the
+connection and 1-65535 for frames that refer to specific channels.
+
+The size field always includes the frame-end field, a single octet.
+While AMQP assumes a reliable connected protocol, we use a frame end to
+allow easy detection of framing errors caused by incorrect client or
+server implementations.
+
+Guidelines for implementors:
+
+- If a peer receives a frame with a type that is not one of these defined
+  types, it MUST treat this as a fatal protocol error and close the
+  connection without sending any further data on it. Conformance test:
+  amq_wlp_frame_01.
+
+- All frames include the frame-end octet. The minimum value for the size
+  field is 1.
+
+- When a peer reads a frame it SHOULD check that the frame-end is valid
+  before attempting to decode the frame.  If the frame-end is not valid
+  it MUST treat this as a fatal protocol error and close the connection
+  without sending any further data on it.  It SHOULD log information
+  about the problem, since this indicates an error in either the server
+  or client framing code implementation.  Conformance test:
+  amq_wlp_frame_02.
+
+- A peer MUST NOT send frames larger than the agreed-upon size.  A peer
+  that receives an oversized frame MUST signal a connection exception
+  with reply code 501 (frame error). Conformance test: amq_wlp_frame_03.
+
+Method Frames
+-------------
+
+Method frame bodies consist of an invariant list of data fields, called
+"arguments".  All method bodies start with identifier numbers for the
+class and method:
+
+    0          2           4
+    +----------+-----------+-------------- - -
+    | class-id | method-id | arguments...
+    +----------+-----------+-------------- - -
+       short      short    ...
+
+Guidelines for implementors:
+
+- The class-id and method-id are constants that are defined in the AMQP
+  class and method specifications.
+
+- The arguments are a set of AMQP fields that specific to each method.
+
+AMQP Data Fields
+----------------
+
+Integers
+........
+
+AMQP defines these integer types:
+
+ - Unsigned octet (8 bits).
+ - Unsigned short integers (16 bits).
+ - Unsigned long integers (32 bits).
+ - Unsigned long long integers (64 bits).
+
+Integers and string lengths are always unsigned and held in network byte
+order. We make no attempt to optimise the case when two low-high systems
+(e.g. two Intel CPUs) talk to each other.
+
+Guidelines for implementors:
+
+- Implementors MUST NOT assume that integers encoded in a frame are
+  aligned on memory word boundaries.
+
+Bits
+....
+
+Bits are accumulated into whole octets. When two or more bits are
+contiguous in a frame these will be packed into one or more octets,
+starting from the low bit in each octet. There is no requirement that
+all the bit values in a frame be contiguous, but this is generally done
+to minimise frame sizes.
+
+Strings
+.......
+
+AMQP strings are variable length and represented by an integer length
+followed by zero or more octets of data. AMQP defines two string
+types:
+
+- Short strings, stored as an 8-bit unsigned integer length followed
+  by zero or more octets of data. Short strings can carry UTF-8 data,
+  but may not contain binary zero octets.
+
+- Long strings, stored as a 32-bit unsigned integer length followed
+  by zero or more octets of data. Long strings can contain any data.
+
+Timestamps
+..........
+
+Time stamps are held in the 64-bit POSIX time_t format with an accuracy
+of one second. By using 64 bits we avoid future wraparound issues
+associated with 31- and 32-bit time_t values.
+
+Field Tables
+............
+
+Field tables are long strings that contain packed name-value pairs. Each
+name-value pair is a structure that provides a field name, a field type,
+and a field value. A field can hold a tiny text string, a long string, a
+long signed integer, a decimal, a date and/or time, or another field
+table.
+
+Guidelines for implementors:
+
+- Field names MUST start with a letter, '$' or '#' and may continue with
+  letters, '$' or '#', digits, or underlines, to a maximum length of 128
+  characters.
+
+- The server SHOULD validate field names and upon receiving an invalid
+  field name, it SHOULD signal a connection exception with reply code 503
+  (syntax error). Conformance test: amq_wlp_table_01.
+
+- Specifically and only in field tables, integer values are signed (31
+  bits plus sign bit).
+
+- Decimal values are not intended to support floating point values, but
+  rather business values such as currency rates and amounts. The
+  'decimals' octet is not signed.
+
+- A peer MUST handle duplicate fields by using only the first instance.
+
+Content Framing
+---------------
+
+Certain specific methods (Publish, Deliver, etc.) carry content. Please
+refer to the chapter "Functional Specifications" for specifications of
+each method, and whether or not the method carries content. Methods that
+carry content do so unconditionally.
+
+Content consists of a list of 1 or more frames as follows:
+
+ 1. Exactly one content header frame that provides properties for the
+    content.
+
+ 2. Optionally, one or more child contents.  A child content follows
+    the exact rules for a content. Contents may thus be structured in
+    a hierarchy to any level.
+
+ 3. Optionally, one or more content body frames.
+
+Content frames on a specific channel form an strict list. That is, they
+may be mixed with frames for different channels, but two contents may
+not be mixed or overlapped on a single channel, nor may content frames
+for a single content be mixed with method frames on the same channel.
+
+Note that any non-content frame explicitly marks the end of the content.
+
+Guidelines for implementors:
+
+- A peer that receives an incomplete content MUST raise a connection
+  exception with reply code 501 (frame error). Conformance test:
+  amq_wlp_content_01.
+
+The Content Header
+..................
+
+A content header payload has this format:
+
+    0          2        4           12               14
+    +----------+--------+-----------+----------------+------------- - -
+    | class-id | weight | body size | property flags | property list...
+    +----------+--------+-----------+----------------+------------- - -
+       short     short    long long       short        remainder...
+
+Guidelines for implementors:
+
+- The content class-id MUST match the method frame class id. The peer
+  MUST respond to an invalid content class-id by raising a connection
+  exception with reply code 501 (frame error). Conformance test:
+  amq_wlp_content_02.
+
+- The weight field specifies the number of child-contents that the
+  content contains.  This is zero for simple contents and non-zero for
+  structured contents (explained below).
+
+- The body size is a 64-bit value that defines the total size of the
+  content body.  It may be zero, indicating that there will be no
+  content body frames.
+
+- The property flags are an array of bits that indicate the presence or
+  absence of each property value in sequence.  The bits are ordered
+  from most high to low - bit 15 indicates the first property.
+
+- The property flags can specify more than 16 properties. If the last
+  bit (0) is set, this indicates that a further property flags field
+  follows. There are many property flags fields as needed.
+
+- The property values are class-specific AMQP data fields.
+
+- Bit properties are indicated ONLY by their respective property flag
+  (1 or 0) and are never present in the property list.
+
+- The channel number in content frames MUST NOT be zero.  A peer that
+  receives a zero channel number in a content frame MUST signal a
+  connection exception with reply code 504 (channel error). Conformance
+  test: amq_wlp_content_03.
+
+The Content Body
+................
+
+The content body payload is an opaque binary block followed by a frame
+end octet:
+
+    +-----------------------+ +-----------+
+    | Opaque binary payload | | frame-end |
+    +-----------------------+ +-----------+
+
+The content body can be split into as many frames as needed. The maximum
+size of each frame (the size of the payload plus frame end) is agreed
+upon by both peers during connection negotiation.
+
+Guidelines for implementors:
+
+- A peer MUST handle a content body that is split into multiple frames
+  by storing these frames as a single set, and either retransmitting
+  them as-is, broken into smaller frames, or concatenated into a single
+  block for delivery to an application.
+
+Structured Content
+..................
+
+A structured content consists of a single top level content and multiple
+child contents, as complex as needed by the application.  Structured
+contents form a hierarchy, a tree with a single root.
+
+At any level of this tree, the weight field in the content header
+indicates whether the content has child contents or not. If the content
+has child contents, these follow immediately after the header and before
+the body of the parent content:
+
+    [parent-header weight = 1]
+        [child-header weight = 0] [child-body]
+    [parent-body]
+
+Guidelines for implementors:
+
+- The peer MAY support structured contents.  If it does not support
+  structured contents it MUST respond to a structured content by raising
+  a connection exception with reply code 540 (not implemented).
+  Conformance test: amq_wlp_content_04.
+
+- The peer MUST correctly detect a mismatch between the content weight
+  and the frames that follow, and report such a mismatch by raising a
+  connection exception with reply code 501 (frame error). Conformance
+  test: amq_wlp_content_05.
+
+Out-Of-Band Frames
+------------------
+
+The formatting of out-of-band frames follows the same specifications as
+for normal frames, with the exception that frame payloads are sent via
+some unspecified transport mechanism. This could be shared memory,
+specialised network protocols, etc.
+
+The actual out-of-band transport used, and its configuration, is
+specified in the Channel.Open method.
+
+Trace Frames
+------------
+
+Trace frames are intended for a "trace handler" embedded in the
+recipient peer. The significance and implementation of the trace handler
+is implementation-defined.
+
+Guidelines for implementors:
+
+- Trace frames MUST have a channel number of zero. A peer that receives
+  an invalid trace frame MUST raise a connection exception with reply
+  code 501 (frame error). Conformance test: amq_wlp_trace_01.
+
+- If the recipient of a trace frame does not have a suitable trace
+  handler, it MUST discard the trace frame without signalling any error
+  or fault.  Conformance test: amq_wlp_trace_02.
+
+Heartbeat Frames
+----------------
+
+Heartbeat frames tell the recipient that the sender is still alive.
+The rate and timing of heartbeat frames is negotiated during connection
+tuning.
+
+Guidelines for implementors:
+
+- Heartbeat frames MUST have a channel number of zero. A peer that
+  receives an invalid trace frame MUST raise a connection exception with
+  reply code 501 (frame error). Conformance test: amq_wlp_heartbeat_01.
+
+- If the peer does not support heartbeating it MUST discard the heartbeat
+  frame without signalling any error or fault. Conformance test:
+  amq_wlp_heartbeat_02.
+
+Channel Multiplexing
+====================
+
+AMQP/Fast permits peers to create multiple independent threads of
+control. Each channel acts as a virtual connection that share a single
+socket:
+
+       frames      frames      frames      frames
+    +-----------+-----------+-----------+-----------+
+    |  channel  |  channel  |  channel  |  channel  |
+    +-----------+-----------+-----------+-----------+
+    |                    socket                     |
+    +-----------------------------------------------+
+
+An AMQP/Fast peer MAY support multiple channels. The maximum number of
+channels is defined at connection negotiation, and a peer MAY negotiate
+this down to 1.
+
+Guidelines for implementors:
+
+- Each peer SHOULD balance the traffic on all open channels in a fair
+  fashion.  This balancing can be done on a per-frame basis, or on
+  the basis of amount of traffic per channel.  A peer SHOULD NOT allow
+  one very busy channel to starve the progress of a less busy channel.
+
+Connection Failover
+===================
+
+AMQP provides a connection failover mechanism that can be used by
+clients to recover a connection and its server-side state in case of
+network errors (e.g. a connection across a fire-wall being reset). We
+call this state a "context". A context consists of channels, consumers,
+and all other connection-related state held on a server.
+
+Connection failover requires explicit support both in client and server.
+The functionality is optional and only takes effect when both peers
+support it.
+
+In the client API layer, connection failover can be seen as a retry
+mechanism, in which the client will attempt to reconnect to a server
+that has gone offline for unknown reasons. The retry may fail, in which
+case the client layer will report the problem to the application layer.
+Connection failover, when successful, is transparent to the application.
+
+Starting a New Context
+----------------------
+
+The client connects to the server and in the Connection.Open method,
+asks for a new context key (it specifies an empty context key).  The
+server starts a new context and returns the new context key to the
+client in the Connection.Open-Ok method.
+
+Handling an Unexpected Disconnection
+------------------------------------
+
+A normal disconnection is hand-shaked by both peer.  That is,
+one peer sends a Connection.Close and the other peer responds with
+a Connection.Close-Ok.  The peers then close their sockets.  The
+server destroys the context for the connection.
+
+An unexpected disconnection is when the other peer appears to close
+its side of the connection without the normal handshake.
+
+The server handles an unexpected disconnection by saving the last method
+frame that it sent to the client, and keeping the connection's context
+alive for a short period.  The server must also track the last method
+received from the client.
+
+The client handles an unexpected disconnection by saving the last method
+frame that it sent to the server, and then attempting to reconnect. It
+may try several times, the assumption being that there has been a
+network failure and that it may take some seconds for the server to
+become accessible again.
+
+Recovering an Existing Context
+------------------------------
+
+When and if the client reconnects to the server successfully, it does
+the standard authentication and negotiation, and then sends a
+Connection.Open method that specifies its existing context key. If the
+server recognises the context key, it attaches the old context to the
+new connection, and confirms this to the client by returning the old
+context key. If it does not recognise the context key (the context was
+destroyed in the meantime, perhaps), it raises a connection exception.
+The client cannot continue if the context was unavailable, since the
+application must restart.
+
+Resynchronising the Peers
+-------------------------
+
+During a network failure, network traffic can be lost. AMQP/Fast
+provides a mechanism for resynchronising. This uses the cycle field
+in each frame.  Note that each peer must have saved the last method
+sent, and the server also saves the last method received.
+
+When the server sends a Connection.Open-Ok confirming that it could
+recover the client's context, the client resends the last method it
+sent prior to the disconnection.  The server responds thus:
+
+ - If the server had already seen this method, it resends the last
+   reply method it saved.
+
+ - If the server had not already seen this method it processes it
+   as a usual method.
+
+Guidelines for Implementors
+---------------------------
+
+ - The peer MAY implement connection failover.  If it does implement
+   connection failover, the following guidelines apply.
+
+ - The peer MUST increment the cycle field in each method it sends.
+   The cycle field wraps around from 255 to 0.
+
+ - The peer MUST implement the recovery process as described above.
+
+ - A peer that does implement connection failover SHOULD set the cycle
+   field to zero on all frames sent.
+
+ - The server SHOULD generate unguessable context keys with at least
+   eight octets of random information.
+
+ - The server SHOULD associate the client's authenticated identity with
+   a context so that contexts will not be made accessible to fraudulent
+   clients.
+
+ - The server MUST NOT use the client's IP address as a substitute for
+   authentication since this address may change during a connection
+   failover due to firewall failure and recover.
+
+ - The server MUST expire a context within a reasonable time, which we
+   recommend to be within 60 seconds.
+
+ - On public networks, connection failover MUST BE disabled unless
+   transport layer security is used.  Note that unsecured connection
+   failover creates significant scope for man-in-the-middle attacks.
+
+Error Handling
+==============
+
+Exceptions
+----------
+
+Using the standard 'exception' programming model, AMQP does not signal
+success, only failure. AMQP defines two exception levels:
+
+1. Channel exceptions.  These close the channel that caused the error.
+   Channel exceptions are usually due to 'soft' errors that do not
+   affect the rest of the application.
+
+2. Connection exceptions.  These close the socket connection and are
+   usually due to 'hard' errors that indicate a programming fault, a
+   bad configuration, or other case that needs intervention.
+
+We document the assertions formally in the definition of each class
+and method.
+
+Reply Codes
+-----------
+
+We use the IETF standard format for reply codes as described in IETF
+RFC 821. A reply code uses three digits, and the first digit provides the
+main feedback as to whether and how an operation completed.  The second
+and third digits provide additional information.  The reply codes can be
+processed by client applications without full knowledge of their meaning.
+
+We use a standard 3-digit reply code. The first digit (the completion
+indicator) reports whether the request succeeded or not:
+
+1:
+    Ready to be performed, pending some confirmation.
+2:
+    Successful.
+3:
+    Ready to be performed, pending more information.
+4:
+    Failed, but may succeed later.
+5:
+    Failed, requires intervention.
+6-9:
+    Reserved for future use.
+
+The second digit (the category indicator) provides more information on
+failures:
+
+0:
+    Error in syntax.
+1:
+    The reply provides general information.
+2:
+    Problem with session or connection.
+3:
+    Problem with security.
+4:
+    Problem with implementation.
+5-9:
+    Reserved for future use.
+
+The third digit (the instance indicator) distinguishes among different
+situations with the same completion/category.
+
+[see ../kernel/amq_replies.txt]
+
+Limitations
+===========
+
+These limitations are formally part of the AMQP/Fast specifications:
+
+- Number of channels per connection: 65535.
+- Size of a short string: 0 to 255 octets.
+- Size of a long string or field table: 0 to 4Gb-1 octets.
+- Size of a frame: 0 to 4Gb-1 octets.
+- Number of protocol classes/content domains: 65535.
+- Number of methods: 65535 per protocol class.
+
+Security
+========
+
+Goals and Principles
+--------------------
+
+We guard against buffer-overflow exploits by using length-specified
+buffers in all places. All externally-provided data can be verified
+against maximum allowed lengths whenever any data is read.
+
+Invalid data can be handled unambiguously, by closing the channel or
+the connection.
+
+Denial of Service Attacks
+-------------------------
+
+AMQP handles errors by returning a reply code and then closing the
+channel or connection. This avoids ambiguous states after errors.
+
+It should be assumed that exceptional conditions during connection
+negotiation stage are due to an hostile attempt to gain access to the
+server. The general response to any exceptional condition in the
+connection negotiation is to pause that connection (presumably a thread)
+for a period of several seconds and then to close the network
+connection. This includes syntax errors, over-sized data, or failed
+attempts to authenticate. The server implementation should log all such
+exceptions and flag or block clients provoking multiple failures.
+
+    

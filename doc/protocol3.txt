@@ -1,90 +1,300 @@
-3.  Technical Requirements
-    technical = how
-    performance
-    portability
-    longevity
-    interoperability
-    clarity
-    extensibility
+Functional Specifications
+*************************
 
+Server Semantics
+================
 
-Intended Operating Lifespan
-===========================
+Messages and Content
+--------------------
 
-AMQP/Fast is designed to give a useful lifespan of 50 years or more. Our
-goal is that an AMQP/Fast peer will be able to operate continuously
-with no upgrades or incompatibility for at least this duration, without
-requiring "legacy support". One should be able to build a client or
-broker into physical infrastructure.
+A message is the atomic unit of processing of the middleware routing and
+queuing system. Messages carry a content, which consists of a content
+header, holding a set of properties, and a content body, holding an
+opaque block of binary data. Contents can themselves contain child
+contents, to any level of complexity.
 
-While the protocol version may and will change, the protocol mechanics
-(framing, method structures, etc.) must operate unchanged for the full
-intended lifespan of the protocol, allowing full and perfect forwards
-compatability with all future versions of the protocol.
+A message can correspond to many different application entities:
 
-We have applied "Moore's Law" - the theory of exponential growth of
-capacity of technology - to all capacity limits to identify and
-eliminate potential future bottlenecks, specifically for:
+ - An application-level message.
+ - A file to transfer.
+ - One frame of a data stream.
+ - etc.
 
-1. Message sizes: the largest messages (files) are today around 20GB. We
-   expect this to grow by 50% per year, reaching the limit defined by a
-   64-bit size in 50 years.
+AMQP defines a set of "content classes", each implementing a specific
+content syntax (the set of content header properties) and semantics (the
+methods that are available to manipulate messages of that content
+class).
 
-2. Frame sizes: IPv4 is limited to 64KB frames, IPv6 to 4GB frames.
-   Ethernet itself is limited to 12000 byte frames due to its CRC
-   algorithm. We expect the maximum networking frame size to grow by
-   50% per year, in large leaps. We will thus reach the limit of
-   64-bit sized packets in 50 years.
+Messages may be persistent, according to the semantics of each class. A
+persistent message is held securely on disk and guaranteed to be
+delivered even if there is a serious network failure, server crash,
+overflow etc.
 
-3. Protocol classes and methods: the current protocol defines about
-   ten classes and about ten or fewer methods per class.  We assume
-   that backwards compatability will be maintained by defining new
-   classes and methods rather than modifying existing ones that are
-   in use.  The limit of 64k classes and methods per class should be
-   sufficient to last more than 50 years.
+Messages may have a priority level, according to the semantics of each
+class. A high priority message is sent ahead of lower priority messages
+waiting in the same queue or subscription. When messages must be
+discarded in order to maintain a specific service quality level the
+server will first discard low-priority messages.
 
-4. Channels: the limit of 4G channels allows growth of 50% per year
-   from an estimated usage of 10 channels per connection today.
+The server MUST NOT modify messages that it receives and passes to
+consumer applications. That is, both content headers and content bodies
+MUST be passed untouched and unchanged to their recipient consumers.
 
-5. Timestamps: we use 64-bit time-stamp values.
+Virtual Hosts
+-------------
 
-An Extensible Functionality
-===========================
+A virtual host is a data partition within the server. A virtual host
+comprises a set of exchanges, queues, and all associated objects. Each
+connection is associated with a single virtual host. The client selects
+the virtual host in the Connection.Open method, after authentication.
+All channels within the connection work with the same virtual host.
 
-AMQP/Fast is intended to be extensible in several directions, including
-new directions totally outside the scope of the protocol as it is
-designed today.  These are the aspects of AMQP/Fast that have been
-deliberately designed to be extensible (in order of increasing
-generality and power):
+The protocol offers no mechanisms for creating or configuring virtual
+hosts - this is done in an undefined manner within the server and is
+entirely implementation-dependent.
 
-1. Adding new types of exchange to broker implementations.
-2. Adding new properties to content domains.
-3. Adding new arguments to methods.
-4. Adding new methods to classes.
-5. Adding new content domains.
-6. Adding new method classes.
-7. Adding new frame types.
-8. Adding new protocols.
+Exchanges
+---------
 
-All of these should be feasible while maintaining full backwards
-compatability with existing implementations.
+An exchange is a message routing agent within a virtual host. An
+exchange accepts messages and routing information - principally a
+routing key - and either passes the messages to server queues, or to
+internal services. Exchanges are named on a per-virtual host basis.
 
-Ease of Implementation
-======================
+Applications can freely create, share, use, and destroy exchange
+instances, within the limits of their authority.
 
-Our goal is to achieve some of the cost-benefit ratio of protocols such
-as SMTP and HTTP, where a simple client can be trivial to build but a
-full client can be very sophisticated. Keeping AMQP/Fast accessible to
-simple clients is possible if we hold to these design rules:
+Exchanges may be durable, temporary, or auto-deleted. Durable exchanges
+last until they are deleted. Temporary exchanges last until the server
+shuts-down. Auto-deleted exchanges last until they are no longer used.
 
-1. The use of all complex functionality (e.g. more sophisticated data
-   types or structures) must be optional.
+The server provides a specific set of exchange types. Each exchange type
+implements a specific matching and algorithm, as defined in the next
+section. AMQP mandates a small number of exchange types, and recommends
+some more. Further, each server implementation may add its own exchange
+types.
 
-2. The protocol must be able to operate entirely synchronously, since
-   an asynchronous model - though more efficient and reliable - is a
-   barrier for simple implementations.
+An exchange can route a single message to many queues in parallel. This
+creates multiple instances of the message that are consumed
+independently.
 
-3. The protocol must be formally defined so that significant parts of
-   a client or broker protocol interface can be mechanically generated
-   using code generation techniques.
+The Direct Exchange Type
+........................
+
+The direct exchange type works as follows:
+
+ 1. A queue binds to the exchange using a routing key, K.
+
+ 2. A publisher sends the exchange a message with the routing key R.
+
+ 3. The message is passed to the queue if K = R.
+
+Note that queues can bind using any valid routing key value, but most
+often queues will bind using their queue name as routing key.  The
+default binding for each queue is made using the queue name.
+
+One suggested design for the direct exchange is a lookup table that
+allows a message routing key to be rapidly mapped to a list of queues.
+This exchange type, and a pre-declared exchange called amq.direct, are
+mandatory.
+
+The server MUST implement the direct exchange type and MUST predeclare
+within each virtual host at least two direct exchanges: one named
+amq.direct, and one with no public name that serves as the default
+exchange for Publish methods.
+
+The Fanout Exchange Type
+........................
+
+The fanout exchange type works as follows:
+
+ 1. A queue binds to the exchange with no arguments.
+
+ 2. A publisher sends the exchange a message.
+
+ 3. The message is passed to the queue unconditionally.
+
+The fanout exchange is trivial to design and implement. This exchange
+type, and a pre-declared exchange called amq.fanout, are mandatory.
+
+The Topic Exchange Type
+.......................
+
+The topic exchange type works as follows:
+
+ 1. A queue binds to the exchange using a routing pattern, P.
+
+ 2. A publisher sends the exchange a message with the routing key R.
+
+ 3. The message is passed to the queue if R matches P.
+
+The routing key used for a topic exchange MUST consist of words
+delimited by dots. Each word may contain the letters A-Z and a-z and
+digits 0-9.
+
+The routing pattern follows the same rules as the routing key with the
+addition that * matches a single word, and # matches zero or more words.
+Thus the routing pattern *.stock.# matches the routing keys usd.stock
+and eur.stock.db but not stock.nasdaq.
+
+One suggested design for the topic exchange is to hold the set of all
+known routing keys, and update this when publishers use new routing
+keys. It is possible to determine all bindings for a given routing key,
+and so to rapidly find the queues for a message.  This exchange type
+is optional.
+
+The server SHOULD implement the topic exchange type and in that case,
+the server MUST predeclare within each virtual host at least one topic
+exchange, named amq.topic.
+
+The System Exchange Type
+........................
+
+The system exchange type works as follows:
+
+ 1. A publisher sends the exchange a message with the routing key S.
+
+ 2. The system exchange passes this to a system service S.
+
+System services starting with "amq." are reserved for AMQP usage. All
+other names may be used freely on by server implementations. This
+exchange type is optional.
+
+Implementation-defined Exchange Types
+.....................................
+
+All implementation-defined exchange types MUST be named starting with
+"x-". Exchange types that do not start with "x-" are reserved for future
+use in the AMQ standard.
+
+Server Queues
+-------------
+
+A server queue is a named FIFO buffer that holds message on behalf of a
+set of consumer applications.  Applications can freely create, share,
+use, and destroy server queues, within the limits of their authority.
+
+Server queues may be durable, temporary, or auto-deleted. Durable queues
+last until they are deleted. Temporary queues last until the server
+shuts-down. Auto-deleted queues last until they are no longer used.
+
+Queues hold their messages in memory, on disk, or some combination of
+these. Queues are named on a per-virtual host basis.
+
+Queues hold messages and distribute them between one or more consumer
+clients. A message routed to a queue is never sent to more than one
+client unless it is is being resent after a failure or rejection.
+
+A single queues can hold different types of content at the same time and
+independently. That is, if Basic and JMS contents are sent to the same
+queue, these will be delivered to consuming applications independently
+as requested.
+
+Bindings
+--------
+
+A binding is a relationship between a server queue and an exchange.
+The binding specifies routing arguments that tell the exchange which
+messages the queue should get.
+
+Applications create and destroy bindings as needed to drive the flow of
+messages into their queues. Bindings have the same lifespan as the
+queues they are defined for - when a queue is destroyed, its bindings
+are also destroyed.
+
+The specific semantics of the Queue.Bind method depends on the exchange
+type.
+
+Consumers
+---------
+
+We use the term "consumer" to mean both the client application and the
+entity that controls how a specific client application receives messages
+off a server queue. When the client "starts a consumer" it creates a
+consumer entity in the server. When the client "cancels a consumer" it
+destroys a consumer entity in the server.
+
+Consumers belong to a single client channel and cause the queue to send
+messages asynchronously to the client. The consumer controls how fast
+messages are sent, using the concept of "prefetch". Prefetch indicates
+the number of messages (or octets in some cases) that the queue will
+send before the client acknowledges a message. The goal of the prefetch
+function is that message data will be sent to clients in advance. This
+reduces message latency.
+
+Acknowledgments
+---------------
+
+An acknowledgement is a formal signal from the client application to
+a server queue that it has successfully processed a message. There are
+two possible acknowledgement models:
+
+1. Automatic, in which the server removes a content from a queue as
+   soon as it delivers it to an application (via the Deliver or Get-Ok
+   methods).
+
+2. Explicit, in which the client application must send an Ack method
+   for each message, or batch of messages, that it has processed.
+
+The client layers can themselves implement explicit acknowledgements in
+different ways, e.g. as soon as a message is received, or when the
+application indicates that it has processed it. These differences do not
+affect AMQP or interoperability.
+
+Flow Control
+------------
+
+Flow control is an emergency procedure used to halt the flow of messages
+from a peer. It works in the same way between client and server and is
+implemented by the Channel.Flow command. Flow control is the only
+mechanism that can stop an over-producing publisher. A consumer can use
+the more elegant mechanism of prefetch windowing.
+
+Naming Conventions
+------------------
+
+These conventions govern the naming of AMQP entities. The server and
+client MUST respect these conventions:
+
+ - User defined exchange types MUST be prefixed by "x-".
+
+ - Standard exchange instances are prefixed by "amq.".
+
+ - Standard system services are prefixed by "amq.".
+
+ - Standard server queues are prefixed by "amq.".
+
+ - All other exchange, system service, and queue names are in
+   application space.
+
+AMQP Classes and Methods
+========================
+
+Explanatory Notes
+-----------------
+
+Methods are numbered locally per class and there is no attempt to keep a
+consistent numbering for similar methods in different classes, nor to
+distinguish client or server methods through special numbering schemes.
+Method numbering has no significance beyond uniquely identifying the
+method.
+
+The grammars use this notation:
+
+- 'S:' indicates data or a method sent from the server to the client.
+- 'C:' indicates data or a method sent from the client to the server.
+- +term or +(...) expression means '1 or more instances'.
+- *term or *(...) expression means 'zero or more instances'.
+
+We define methods as being either:
+
+- a synchronous request ("syn request"). The sending peer SHOULD wait
+  for the specific reply method, but MAY implement this asynchronously.
+
+- a synchronous reply ("syn reply for XYZ").
+
+- an asynchronous request or reply ("async").
+
+[see ../kernel/amq_full.txt]
+
 

@@ -5,7 +5,7 @@ gdl
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/11/03
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 1.1c0
+    version   = 1.1c1
 end gdl
 
 Document Control
@@ -14,6 +14,8 @@ Document Control
 Change History
 ==============
 
+1.1c1:
+    Renamed all commands to distinguish requests from responses.
 1.1c0:
     Removed concept of child class, replaced with repeating fields
     of type "object".
@@ -193,11 +195,16 @@ Commands
 
 The API consists of these commands:
 
- - "schema" - returns the server schema.
- - "inspect" - returns the properties of a specific object.
- - "modify" - modifies the properties of a specific object.
- - "method" - executes a named method on a specific object.
- - "watch" - sets watches on fields of a specific object.
+ - "schema-request" - requests the server schema.
+ - "schema-reply" - returns the server schema.
+ - "inspect-request" - requests the properties of a specific object.
+ - "inspect-reply" - returns the properties of a specific object.
+ - "modify-request" - requests changes to a specific object.
+ - "modify-reply" - confirms changes to a specific object.
+ - "method-request" - executes a method on a specific object.
+ - "method-reply" - returns result of a method-request.
+ - "watch-request" - sets watches on fields of a specific object.
+ - "watch-reply" - returns result of a watch-request.
  - "notify" - (from server to client) send a notification.
 
 Object Identification
@@ -273,7 +280,7 @@ responses.
 Every request generates a response, on the condition that the reply-to
 field correctly refers to a queue.
 
-We can show the client's request-response logic using PAL scripting:
+We can show the client's request-reply logic using PAL scripting:
 
  - The client creates a temporary, private reply queue and binds this
    to the amq.direct exchange:
@@ -353,39 +360,40 @@ minimalistic XML syntax - no stylesheets, namespaces, document types, etc.
 Here are some examples of CML:
 
     <cml version = "1.0">
-        <schema />
+        <schema-request />
     </cml>
 
     <cml version = "1.0">
-        <inspect object = "0" />
+        <inspect-request object = "0" />
     </cml>
 
     <cml version = "1.0">
-        <modify object = "0">
+        <modify-request object = "0">
             <field name = "active">0</field>
-        </modify>
+        </modify-request>
     </cml>
 
 CML has a grammar that covers all possible server schemas. This is the
 overall grammar for CML messages:
 
     cml             = <cml version = "1.0">
-                         c:cml | s:cml
+                         client-message | server-message
                       </cml>
 
 This is the grammar for client messages:
 
-    c:cml           = C:schema | C:inspect | C:modify | C:method | C:watch   
+    cml             = schema-request | inspect-request | modify-request
+                    | method-request | watch-request   
 
-    C:schema        = <schema />
+    schema-request  = <schema-request />
 
-    C:inspect       = <inspect object = "object-id" />
+    inspect-request = <inspect-request object = "object-id" />
 
     object-id       = 0..maxlongint-1
 
-    C:modify        = <modify object = "object-id">
+    modify-request  = <modify-request object = "object-id">
                         [ field-data ] ...
-                      </modify>
+                      </modify-request>
 
     field-data      = <field name = "field-name">field-value</field>
 
@@ -395,15 +403,15 @@ This is the grammar for client messages:
 
     field-value     = string representation of field value
 
-    C:method        = <method object = "object-id" name = "method-name">
+    method-request  = <method-request object = "object-id" name = "method-name">
                         [ field-data ] ...
-                      </method>
+                      </method-request>
 
     method-name     = valid-name
 
-    C:watch         = <watch object = "object-id" [reset = "ask-reset"] >
+    watch-request   = <watch-request object = "object-id" [reset = "ask-reset"] >
                        [ watch-field ]...
-                      </watch>
+                      </watch-request>
 
     ask-reset       = (0) | 1
 
@@ -427,12 +435,13 @@ This is the grammar for client messages:
 
 This is the grammar for server messages:
 
-    cml-command     = S:schema | S:inspect | S:modify | S:method | S:watch | S:invalid
+    cml-command     = schema-reply | inspect-reply | modify-reply
+                    | method-reply | watch-reply | invalid | notify
 
-    S:schema        = <schema name = "schema-name" version = "schema-version"
+    schema-reply    = <schema-reply name = "schema-name" version = "schema-version"
                         status = "reply-status" >
                        [ schema-class ]...
-                      </schema>
+                      </schema-reply>
 
     schema-name     = valid-name
 
@@ -484,28 +493,28 @@ This is the grammar for server messages:
                        [ schema-field ]...
                       </method>
 
-    S:inspect       = <inspect class = "class-name" object = "object-id"
+    inspect-reply   = <inspect-reply class = "class-name" object = "object-id"
                        [ watches  = "watch-count" ]
                          status   = "reply-status">
                         [ field-data ]...
                         [ object-data ]...
-                      </inspect>
+                      </inspect-reply>
 
     watch-count     = 0..maxint - 1
 
     object-data     = <object class = "class-name" id = "object-id" />
 
-    S:modify        = <modify object = "object-id" status = "reply-status" />
+    modify-reply    = <modify-reply object = "object-id" status = "reply-status" />
 
-    S:method        = <method object = "object-id" status = "reply-status" />
+    method-reply    = <method-reply object = "object-id" status = "reply-status" />
 
-    S:watch         = <watch object = "object-id" status = "reply-status">
+    watch-reply     = <watch-reply object = "object-id" status = "reply-status">
                        [ watch-field ]...
-                      </watch>
+                      </watch-reply>
 
-    S:invalid       = <invalid />
+    invalid         = <invalid />
 
-    S:notify        = <notify object = "object-id">
+    notify          = <notify object = "object-id">
                        [ notification ]...
                        [ <field name = "field-name">
                             notification
@@ -558,11 +567,11 @@ with in-built schemas and verify that their servers are compatible.
 An example of the schema command:
 
     C: <cml version = "1.0">
-          <schema />
+          <schema-request />
        </cml>
 
     S: <cml version = "1.0">
-          <schema name = "www.openamq.org/kernel" version = "0.1" status = "ok">
+          <schema-reply name = "www.openamq.org/kernel" version = "0.1" status = "ok">
              <class name = "server">
                 <field name = "ip-address" label = "Server IP address" />
                 <field name = "port"       label = "Port for connections" />
@@ -604,18 +613,18 @@ this object first, in order to navigate the object tree.
 For example:
 
     C: <cml version = "1.0">
-          <inspect object = "0" />
+          <inspect-request object = "0" />
        </cml>
 
     S: <cml version = "1.0">
-          <inspect class = "broker" object = "0" status = "ok">
+          <inspect-reply class = "broker" object = "0" status = "ok">
              <field name = "ip-address">192.168.55.142</field>
              <field name = "port">7654</field>
              <field name = "version">0.9c2</field>
              <field name = "platform">Linux</field>
-             <object class = "exchange" id = "1" />
-             <object class = "exchange" id = "2" />
-          </inspect>
+             <field name = "exchange" id = "1" />
+             <field name = "exchange" id = "2" />
+          </inspect-reply>
        </cml>
 
 The 'Modify' Command
@@ -626,13 +635,13 @@ These must be fields with the "modify" attribute set to 1 in the schema.
 For example:
 
     C: <cml version = "1.0">
-          <modify object = "2">
+          <modify-request object = "2">
              <field name = "enabled">0</field>
-          </modify >
+          </modify-request>
        </cml>
 
     S: <cml version = "1.0">
-          <modify object = "2" status = "ok" />
+          <modify-reply object = "2" status = "ok" />
        </cml>
 
 If the client specifies fields that are not valid (not in the modify
@@ -646,11 +655,11 @@ asks the server to execute that method.  Methods do not return values
 except a status code.  For example:
 
     C: <cml version = "1.0">
-          <method name = "purge" object = "32" />
+          <method-request name = "purge" object = "32" />
        </cml>
 
     S: <cml version = "1.0">
-          <method name = "purge" object = "32" status = "ok" />
+          <method-reply name = "purge" object = "32" status = "ok" />
        </cml>
 
 If the client specifies fields that are not valid (not in the modify
@@ -673,30 +682,30 @@ for any given object.
 For example, to reset all watches:
 
     C: <cml version = "1.0">
-          <watch object = "2" reset = "1" />
+          <watch-request object = "2" reset = "1" />
        </cml>
 
     S: <cml version = "1.0">
-          <watch object = "2" status = "ok" />
+          <watch-reply object = "2" status = "ok" />
        </cml>
 
 To add a watch to the object:
 
     C: <cml version = "1.0">
-          <watch object = "2">
+          <watch-request object = "2">
              <field name = "binding-count" value = "10000">
              Exchange is getting overloaded
              </field>
-          </watch>
+          </watch-request>
        </cml>
 
     S: <cml version = "1.0">
-          <watch object = "2" status = "ok">
+          <watch-request object = "2" status = "ok">
              <field name = "binding-count" test = "gt" value = "10000"
                 route = "amq.exchange.2.binding-count">Exchange is
                 getting overloaded
              </field>
-          </watch>
+          </watch-request>
        </cml>
 
  - The watch tests are: eq, ne, lt, gt, le, ge, which correspond to the
