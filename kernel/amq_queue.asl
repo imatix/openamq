@@ -68,16 +68,22 @@
       client in the Declare-Ok method.
     </doc>
     <doc name = "rule">
+<!-- TODO - changed from channel to connection exception -->
       Queue names starting with "amq." are reserved for predeclared and
       standardised server queues.  If the queue name starts with "amq."
-      and the passive option is zero, the server MUST respond with a
-      reply code 507 (not allowed) and raise a channel exception.
+      and the passive option is zero, the server MUST raise a connection
+      exception with reply code 507 (not allowed).
     </doc>
     <assert check = "regexp" value = "^[a-zA-Z0-9-_.]*$" test = "amq_queue_09"/>
   </field>
 
   <field name = "passive" type = "bit">
     do not create queue
+    <doc>
+    If set, the server will not create the queue.  The client can use
+    this to check whether a queue exists without modifying the server
+    state.
+    </doc>
     <doc name = "rule" test = "amq_queue_05" >
       If set, and the queue does not already exist, the server MUST
       respond with a reply code 404 (not found) and raise a channel

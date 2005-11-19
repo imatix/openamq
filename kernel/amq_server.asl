@@ -28,7 +28,8 @@
     </local>
     //
     if (ipr_str_prefixed (method->exchange, "amq.") && !method->passive)
-        amq_server_channel_close (channel, ASL_NOT_ALLOWED, "Exchange name not allowed");
+        amq_server_connection_exception (connection, ASL_NOT_ALLOWED,
+            "Exchange name not allowed");
     else
         exchange_type = amq_exchange_type_lookup (method->type);
         
@@ -49,8 +50,8 @@
                     method->auto_delete,
                     method->internal);
                 if (!exchange)
-                    amq_server_channel_close (
-                        channel, ASL_RESOURCE_ERROR, "Unable to declare exchange");
+                    amq_server_connection_exception (connection, ASL_RESOURCE_ERROR,
+                        "Unable to declare exchange");
             }
         }
         if (exchange) {
@@ -58,15 +59,15 @@
                 amq_server_agent_exchange_declare_ok (
                     connection->thread, (dbyte) channel->key);
             else
-                amq_server_channel_close (
-                    channel, ASL_NOT_ALLOWED, "Exchange exists with different type");
+                amq_server_connection_exception (connection, ASL_NOT_ALLOWED,
+                    "Exchange exists with different type");
 
             amq_exchange_unlink (&exchange);
         }
     }
     else
-        amq_server_channel_close (
-            channel, ASL_COMMAND_INVALID, "Unknown exchange type");
+        amq_server_connection_exception (connection, ASL_COMMAND_INVALID,
+            "Unknown exchange type");
   </action>
 
   <action name = "delete">
@@ -128,14 +129,14 @@
                     amq_server_connection_own_queue (connection, queue);
             }
             else
-                amq_server_channel_close (
-                    channel, ASL_RESOURCE_ERROR, "Unable to declare queue");
+                amq_server_connection_exception (connection, ASL_RESOURCE_ERROR,
+                    "Unable to declare queue");
         }
     }
     if (queue) {
         if (method->exclusive && queue->owner_id != connection->context_id)
-            amq_server_channel_close (
-                channel, ASL_RESOURCE_ERROR, "Queue cannot be made exclusive to this connection");
+            amq_server_channel_close (connection, ASL_ACCESS_REFUSED,
+                "Queue cannot be made exclusive to this connection");
         else {
             amq_server_agent_queue_declare_ok (
                 connection->thread,

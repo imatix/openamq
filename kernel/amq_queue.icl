@@ -142,7 +142,7 @@ class.  This is a lock-free asynchronous class.
             amq_queue_basic_publish (self->queue_basic, channel, content, immediate);
     }
     else
-        amq_server_channel_close (channel, ASL_NOT_ALLOWED, "Queue is disabled");
+        amq_server_channel_close (channel, ASL_ACCESS_REFUSED, "Queue is disabled");
     </action>
 </method>
 
@@ -197,7 +197,7 @@ class.  This is a lock-free asynchronous class.
         error = "Queue is being used exclusively by another consumer";
 
     if (error) {
-        amq_server_channel_close (consumer->channel, ASL_RESOURCE_ERROR, error);
+        amq_server_channel_close (consumer->channel, ASL_ACCESS_REFUSED, error);
         amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE);
     }
     else {

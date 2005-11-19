@@ -37,8 +37,7 @@
   The server MAY implement the system exchange type, and predeclare the
   corresponding exchanges named amq.system in each virtual host. If the
   client attempts to bind a queue to the system exchange, the server
-  MUST reply with an error code 507 (not allowed) and raise a connection
-  exception.
+  MUST raise a connection exception with reply code 507 (not allowed).
 </doc>
 
 <doc name = "rule">
@@ -75,10 +74,11 @@
   <field name = "exchange" domain = "exchange name">
     <assert check = "regexp" value = "^[a-zA-Z0-9-_.]+$" test = "amq_exchange_09" />
     <doc name = "rule" test = "amq_exchange_15">
+<!-- TODO - changed from channel to connection exception -->
       Exchange names starting with "amq." are reserved for predeclared
-      and standardised exchanges.  If the exchange name starts with
-      "amq." and the passive option is zero, the server MUST respond
-      with a reply code 507 (not allowed) and raise a channel exception.
+      and standardised exchanges.  If the exchange name starts with "amq."
+      and the passive option is zero, the server MUST raise a connection
+      exception with reply code 507 (not allowed).
     </doc>
   </field>
 
@@ -91,19 +91,28 @@
       or meaningful to attempt to change the type of an existing exchange.
     </doc>
     <doc name = "rule" test = "amq_exchange_16">
+<!-- TODO - changed from channel to connection exception -->
       If the exchange already exists with a different type, the server
-      MUST respond with a reply code 507 (not allowed) and raise a channel
-      exception.
+      MUST raise a connection exception with a reply code 507 (not allowed).
+    </doc>
+    <doc name = "rule" test = "[tbd]">
+<!-- TODO - new rule -->
+      If the server does not support the requested exchange type it MUST
+      raise a connection exception with a reply code 503 (command invalid).
     </doc>
     <assert check = "regexp" value = "^[a-zA-Z0-9-_.]+$" test = "amq_exchange_17"/>
   </field>
 
   <field name = "passive" type = "bit">
     do not create exchange
+    <doc>
+    If set, the server will not create the exchange.  The client can use
+    this to check whether an exchange exists without modifying the server
+    state.
+    </doc>
     <doc name = "rule" test = "amq_exchange_05" >
       If set, and the exchange does not already exist, the server MUST
-      respond with a reply code 404 (not found) and raise a channel
-      exception.
+      raise a channel exception with reply code 404 (not found).
     </doc>
   </field>
 

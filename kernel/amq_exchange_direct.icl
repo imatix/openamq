@@ -41,7 +41,8 @@ on the routing_key.
         amq_hash_unlink (&hash);
     else {
         rc = 1;
-        amq_server_channel_close (channel, ASL_COMMAND_INVALID, "Duplicate binding");
+        amq_server_connection_exception (channel->connection, ASL_INTERNAL_ERROR,
+            "Please contact OpenAMQ technical support (DUPBIND)");
     }
 </method>
 

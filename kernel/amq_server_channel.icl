@@ -110,7 +110,8 @@ maximum number of consumers per channel is set at compile time.
             amq_queue_consume (queue, consumer, self->active);
         }
         else {
-            amq_server_channel_close (self, ASL_RESOURCE_ERROR, "Too many consumers for channel");
+            amq_server_connection_exception (self->connection, ASL_RESOURCE_ERROR,
+                "Too many consumers for channel");
             amq_consumer_destroy (&consumer);
         }
         amq_queue_unlink (&queue);

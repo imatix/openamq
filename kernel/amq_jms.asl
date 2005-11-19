@@ -109,13 +109,8 @@
     client cancels them.
   </doc>
   <doc name = "rule">
-    The server MAY restrict the number of consumers per channel to an
-    arbitrary value, which MUST be at least 8, and MUST be specified in
-    the Connection.Tune method.
-  </doc>
-  <doc name = "rule">
-    The client MUST be able to work with the server-defined limits with
-    respect to the maximum number of consumers per channel.
+    The server MUST allow at least 16 consumers per queue, unless the
+    queue was declared as private.
   </doc>
   <chassis name = "server" implement = "MUST" />
   <response name = "consume-ok" />

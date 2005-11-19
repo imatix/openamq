@@ -144,8 +144,8 @@ that is in every content header).
     }
     else {
         rc = 1;
-        amq_server_channel_close (
-            channel, ASL_COMMAND_INVALID, "Invalid binding arguments");
+        amq_server_connection_exception (channel->connection,
+            ASL_COMMAND_INVALID, "Invalid binding arguments");
     }
 </method>
 
