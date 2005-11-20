@@ -1,0 +1,15 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MAY accept non-AMQP protocols" 
+    >
+    <!--
+    - connect to server socket
+    - send HTTP
+    - check whether server closes socket or not
+    -->
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session> 
+</pal>
+

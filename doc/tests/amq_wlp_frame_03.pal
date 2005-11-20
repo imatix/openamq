@@ -1,0 +1,16 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST handle over-sized frames" 
+    >
+    <!--
+    - connect and open a session
+    - format and send an over-sized frame
+    - check that server replies with Connection.Close and reply code
+      501 (frame error).
+    -->
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session> 
+</pal>
+

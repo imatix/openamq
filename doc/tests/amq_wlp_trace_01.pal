@@ -1,0 +1,16 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST detects invalid trace frames" 
+    >
+    <!--
+    - connect and open a session
+    - send a trace frame with channel number GT zero
+    - check that server replies with Connection.Close and reply code
+      501 (frame error).
+    -->
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session> 
+</pal>
+

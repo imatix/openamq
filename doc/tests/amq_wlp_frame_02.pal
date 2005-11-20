@@ -1,0 +1,17 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST handle malformed frames correctly" 
+    >
+    <!--
+    - connect
+    - send valid header
+    - read from socket and discard data
+    - send malformed Connection.Start-Ok frame lacking frame-end
+    - assert that server closes socket
+    -->
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session> 
+</pal>
+

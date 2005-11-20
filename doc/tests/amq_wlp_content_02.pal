@@ -1,0 +1,17 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST validate the content class-id" 
+    >
+    <!--
+    - connect and open a session
+    - format a content with an invalid class-id
+    - send the content
+    - check that server replies with Connection.Close and reply code
+      501 (frame error).
+    -->
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session> 
+</pal>
+

@@ -1,0 +1,17 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST accept valid trace frames" 
+    >
+    <!--
+    - connect and open a session
+    - send a trace frame with channel number zero and arbitrary payload
+    - check that the server does not signal an error
+    - do some other work to check that the server has not crashed.
+    -->
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session> 
+</pal>
+
+

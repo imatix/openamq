@@ -1,0 +1,17 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST reject content frames with channel zero" 
+    >
+    <!--
+    - connect and open a session
+    - start a dialogue to send content
+    - send a content frame with channel number zero
+    - check that server replies with Connection.Close and reply code
+      504 (channel error).
+    -->
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session> 
+</pal>
+

@@ -1,0 +1,15 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST validate the "AMQP" protocol header string" 
+    >
+    <!--
+    - connect to server socket
+    - send XXXX
+    - assert that server closes socket
+    -->
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session> 
+</pal>
+

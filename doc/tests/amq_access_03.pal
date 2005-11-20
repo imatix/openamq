@@ -1,0 +1,20 @@
+<?xml?>
+<!--
+    amq_access_03
+
+    Verify that the server does not accept the "/data/unknown"
+    realm, and responds with reply code 402 (invalid path), and
+    ends the channel.
+  -->
+<pal script = "amq_pal_gen">
+    <echo>Validation script: $script</echo>
+    <session
+        error_handling = "recover"
+        >
+        <access_request realm = "/data/unknown" />
+        <assert name = "reply_code" value = "402" />
+        <assert name = "session"    value = "0" />
+        <assert name = "connection" value = "1" />
+    </session>
+</pal>
+

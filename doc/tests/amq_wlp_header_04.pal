@@ -1,0 +1,17 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST returns a protocol header on connection failure" 
+    >
+    <!--
+    - connect to server socket
+    - send XXXX
+    - read 8 bytes from socket
+    - assert that these are AMQP%d1.1.9.1
+    - assert that server closes socket
+    -->
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session> 
+</pal>
+

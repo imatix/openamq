@@ -1,0 +1,19 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server SHOULD validate table field names" 
+    >
+    <!--
+    - connect
+    - send valid header
+    - read from socket and discard data
+    - format Connection.Start-Ok frame
+        - in client-properties, define a field !INVALID!=abc
+    - check whether server replies with Connection.Close and reply code
+      503 (command invalid).
+    -->
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session> 
+</pal>
+

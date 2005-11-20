@@ -1,0 +1,15 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST accept the AMQP/Fast protocol" 
+    >
+    <!--
+    - connect to server socket
+    - send AMQP%d1.1.9.1
+    - assert that server responds with Connection.Start
+    -->
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session> 
+</pal>
+

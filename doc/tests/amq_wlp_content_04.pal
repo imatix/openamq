@@ -1,0 +1,15 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MAY support structured content" 
+    >
+    <!--
+    - send a complex content
+    - check whether server accepts this, or replies with Connection.Close
+      and reply code 540 (not implemented).
+    -->
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session> 
+</pal>
+

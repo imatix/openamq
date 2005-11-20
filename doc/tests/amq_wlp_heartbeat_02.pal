@@ -1,0 +1,16 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST accept valid heartbeat frames" 
+    >
+    <!--
+    - connect and open a session
+    - send a heartbeat frame with channel number zero
+    - check that the server does not signal an error
+    - do some other work to check that the server has not crashed.
+    -->
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session> 
+</pal>
+
