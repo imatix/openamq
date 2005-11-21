@@ -15,10 +15,10 @@ construct conforming components in any modern programming language.
 Copyrights
 ==========
 
-This document is copyright (c) 2004-2005 JPMorganChase and iMatix
-Corporation. The contents of this document are at present confidential
-and may not be copied outside of JPMorganChase or iMatix Corporation
-without express permission.
+This document is copyright (c) 2004-2005 JPMorganChase. The contents
+of this document are at present confidential and may not be copied
+outside of JPMorganChase or iMatix Corporation without express
+permission.
 
 Summary
 =======
@@ -88,6 +88,16 @@ becomes possible to do interesting things, such as define a rule that
 says, "place a copy of all messages containing such-and-such a header
 into this queue".
 
+The design of AMQ framework was driven by these main requirements:
+
+ - To support the semantics of the market-leading commercial middleware
+   products.
+
+ - To be easily extended for new kinds of message routing and queueing.
+
+ - To permit the server's specific semantics to be programmed by the
+   application, via the protocol.
+
 The AMQP/Fast Wire-level Protocol
 ---------------------------------
 
@@ -129,8 +139,7 @@ protocols.
 The design of AMQP functional layer was driven by these main
 requirements:
 
- - To be clear, where each method does exactly one thing.
- - To be easily extended to handle new and changed needs.
+ - To be clear, so each method does exactly one thing.
  - To be consistent and explicit in naming.
  - To use a class/method/argument notation that maps easily into
    application-level APIs.
@@ -149,6 +158,7 @@ requirements, in no particular order:
  - To carry multiple channels across a single connection.
  - To be long-lived, with no significant in-built limitations.
  - To allow asynchronous command pipelining.
+ - To be easily extended to handle new and changed needs.
  - To be forward compatable with future versions.
  - To be repairable, using a strong assertion model.
  - To be neutral with respect to programming languages.
@@ -299,7 +309,7 @@ Frame:
     A formally-defined package of connection data.  Frames are
     always written and read contiguously - as a single unit - on the
     connection.
-Protocol_Class:
+Protocol Class:
     A collection of methods that deal with a specific type of
     functionality.
 Method:
@@ -309,9 +319,9 @@ Content:
     Application data passed from client to server and from server to
     client.  AMQP/Fast content can be structured into multiple parts.
     The term is synonymous with "message".
-Content_Header:
+Content Header:
     A specific type of frame that describes a content's properties.
-Content_Body:
+Content Body:
     A specific type of frame that contains raw application data.
     Content body frames are entirely opaque - the server does not
     examine or modify these in any way.
@@ -321,11 +331,11 @@ Exchange:
     The entity within the server which receives messages from producer
     applications and optionally routes these to queues within the
     server.
-Exchange_Type:
+Exchange Type:
     The algorithm and implementation of a particular model of exchange.
     In contrast to the "exchange instance", which is the entity that
     receives and routes messages within the server.
-Server_queue:
+Server queue:
     A named entity that holds messages and forwards them to consumer
     applications.
 Binding:
@@ -345,7 +355,7 @@ Consumer:
     A client application that requests messages from a queue.
 Producer:
     A client application that publishes messages to an exchange.
-Virtual_host:
+Virtual host:
     A collection of exchanges, queues and associated objects. Virtual
     hosts are independent server domains that share a common
     authentication and encryption environment.  The client application
@@ -365,12 +375,12 @@ Staging:
     temporary holding area before formally handing it over to the
     recipient.  This is how AMQP/Fast implements restartable file
     transfers.
-Out-of-band_transport:
+Out-of-band transport:
     The technique by which data is carried outside the network
     connection.  For example, two peers can carry frames across a
     TCP/IP connection and then switch to using shared memory if they
     discover they are on the same system.
-Zero_copy:
+Zero copy:
     The technique of transferring data without copying it to or from
     intermediate buffers.  Zero copy requires that the protocol allow
     the transfer of data as opaque blocks, which AMQP/Fast does.
@@ -392,7 +402,8 @@ Subscription:
 Authors
 =======
 
-AMQP was designed by Pieter Hintjens with help from John O'Hara, Mark
-Atwell, and others. This document was written by Pieter Hintjens.
+AMQP was designed by Pieter Hintjens with input and ideas from John
+O'Hara, Mark Atwell, and others. This document was written by Pieter
+Hintjens. The conformance tests were written by Tim Esselens.
 
 

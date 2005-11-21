@@ -273,11 +273,9 @@ AMQP Classes and Methods
 Explanatory Notes
 -----------------
 
-Methods are numbered locally per class and there is no attempt to keep a
-consistent numbering for similar methods in different classes, nor to
-distinguish client or server methods through special numbering schemes.
-Method numbering has no significance beyond uniquely identifying the
-method.
+The AMQP methods may define specific minimal values (such as numbers of
+consumers per queue) for interoperability reasons. These minima are
+defined in the description of each class.
 
 The grammars use this notation:
 
@@ -294,6 +292,8 @@ We define methods as being either:
 - a synchronous reply ("syn reply for XYZ").
 
 - an asynchronous request or reply ("async").
+
+[see ../kernel/amq_ids.txt]
 
 [see ../kernel/amq_full.txt]
 

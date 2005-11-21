@@ -376,7 +376,7 @@ This diagram shows the way temporary queues are created and deleted:
     +-------------+           +-------+
     |  Consumer   | Consume
     | application | -------->
-    +-------------+          \\ Queue  /
+    +-------------+           \ Queue  /
                     Cancel    +\\----/*
                     --------> +--\\//-+  Queue is deleted
                               +--//\\-+
@@ -1390,9 +1390,10 @@ This diagram shows the overall recommended architecture (without layer
          - - - - Network - - - -
                  -------
 
-In this document, when we speak of the "client API", we mean layers 1 to
-3. We will usually speak of "the client API" and "the application" as
-two separate things, where the application uses the client API to talk
-to the middleware server.
+In this document, when we speak of the "client API", we mean all the
+layers below the application (i/o, framing, connection manager, and API
+layers. We will usually speak of "the client API" and "the application"
+as two separate things, where the application uses the client API to
+talk to the middleware server.
 
 

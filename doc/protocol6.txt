@@ -1,12 +1,554 @@
 Scope and Requirements
 **********************
 
- 6. "Scope and Requirements", in which we state and analyse the scope
-    and requirements of the AMQ standard.  This chapter comes last because
-    it is a somewhat tedious but necessary argumentation. If you want to
-    know why we built AMQ as we did, this chapter may enlighten.  Note
-    that chapters 3, 4, and 5 include a statement of key requirements,
-    but without argumentation.
+Introduction
+============
+
+Defining Middleware
+-------------------
+
+Wikipedia defines middleware thus: "In computing, middleware consists of
+software agents acting as an intermediary between different application
+components." (http://en.wikipedia.org/wiki/Middleware).
+
+Wikipedia also comments that, "middleware is now used to describe
+database management systems, web servers, application servers, content
+management systems, and similar tools," and finally the understatement
+that "the term is sometimes considered a buzzword."
+
+This is somewhat like trying to define "the Web". The term means many
+things to different people. However, at the heart of it, it comes down
+to the HTTP protocol, the HTML language, and functional servers that
+bring it to life.
+
+Similarly, "middleware" comes down to protocols, languages, APIs, and
+servers.  All the rest is layered on top.
+
+There are existing solutions by which to measure our definition:
+
+ - Middleware servers, mostly commercial products from large vendors,
+   but also some open source Java products.
+ - Middleware protocols such as CORBA, and SOAP.
+ - Middleware APIs such as JMS.
+
+All these are demonstrably useful and necessary, and all have severe
+weaknesses that limit their applicability. There are no middleware
+languages that we are aware of, prior to AMQ.
+
+Goals of the AMQ Project
+------------------------
+
+AMQ must be the superhero of the middleware world, able to leap over
+skyscrapers and stop trains with a single hand. This is thankfully not a
+formal specification but it conveys the general idea, which is: AMQ must
+do better than the existing middleware solutions.
+
+We can make this general goal by looking at the main deficiencies of
+today's products, and solving these one by one.
+
+Performance
+...........
+
+Middleware is always a bottleneck, and can never be too fast. We want to
+be able to handle at least 10 times, and up to 100 times the volume of
+existing middleware servers. This requirement places constraints on many
+areas of the design. For example, any text-based message parsing is too
+slow and we must exclude it.
+
+The key to making a "fast" protocol (which enables but does not
+guarantee fast software) is to make a protocol that can be read and
+written in large chunks (not character by character), that uses a
+minimum of network capacity (since every octet costs time), and does a
+minimum of chatter (since every round trip costs a serious amount of
+time). 90% of the performance comes from 10% of the protocol, mainly the
+commands that transfer messages between server and client, so these
+commands must be carefully designed and be able to work with the state
+of the art in network technology (such as remote DMA).
+
+Interoperabilty
+...............
+
+Interoperability means that when you plug a server from vendor A into a
+network with a client from vendor B, the two can talk to each other and
+do useful work. Today's products are not interoperable except in the
+most basic sense: they will all speak TCP/IP to each other but not much
+more.
+
+We can do better by standardising at least three distinct layers - the
+wire-level protocol, the semantics of the command set, and the APIs. For
+the APIs we can provide and use several alternatives since different
+applications have different requirements. But for the wire-level
+protocol and command semantics, we need absolute conformity in order to
+create functional interoperability.
+
+Cost
+....
+
+Existing middleware solutions are some of the most costly components in
+the software landscape. License fees are high. Expertise is expensive,
+since many different technologies mean there is no commodity market in
+experts. Middleware systems are often slow and need dedicated servers,
+which raises infrastructure costs. Middleware is often closed-source
+and inflexible, meaning that applications must work around deficiencies,
+which is expensive.
+
+We can do better by making AMQ an open source technology, with reference
+implementations that run cheaply on arbitrary material.
+
+Flexibilty
+..........
+
+Flexible technology adapts to the problem rather than forcing the
+problem to be twisted to adopt the technology. Most existing products
+are designed to solve one problem, and they often do this very well, but
+since they do not interoperate and are closed, there is no scope for
+solving non-standard problems. For example, JMS is a good solution for
+Java applications but does not help architects who must get Java talking
+to dot-Net and to C++.  Similarly, CORBA can solve some types of problem
+but is too complex and slow for heavy-duty messaging.
+
+We can do better by aiming higher and making general-purpose designs
+that solve a wider set of problems, with no dependencies on specific
+operating systems, programming languages, or other transient
+technologies.
+
+Complexity
+..........
+
+This is probably the key problem with most middleware systems (and most
+technology in general). It is a truism that complexity is much easier
+than simplicity. It is easy and cheap to make complex systems. It is
+difficult and expensive to make simple ones that do the same work. There
+is a huge gap between the application's high-level needs (which in the
+middleware domain usually boil down just to "get next message" and
+"write message") and the technical implementation. For any given
+functionality, such as delivering a message to an application, there are
+numerous alternative techniques, each implying different tradeoffs
+between speed and reliability. The cheap but inadequate approach is to
+expose all this complexity to the application programmer, saying, "you
+choose".
+
+We can do better by hiding complexity whenever possible, so that the
+application programmer sees a simpler world in which the best choices
+are already made, and things work as they should, out of the box.
+
+Pervasiveness
+.............
+
+The virtuous circle with technology is that the cheaper and simpler it
+becomes, the more people use it, and the cheaper and simpler it becomes.
+Even when the internal complexity (in terms of number of pieces and the
+problems they solve) of an operating system increases by several orders
+of magnitude over a decade, the external complexity (in terms of skill
+needed to install and use) falls until it reaches near-zero.
+
+Middleware is still stuck at the slow-complex-costly phase and we want
+this to change. We want to make a technology that everyone can use. This
+means the technology must be simple to understand, easy to use, and it
+must work well on arbitrary operating systems, with arbitrary
+programming languages. Our goal is that whenever and wherever a
+programmer reaches for the tool marked "Talk to another application",
+they can use AMQ and get a solution that works rapidly and lasts
+forever.
+
+Design Process
+--------------
+
+Prototyping
+...........
+
+The AMQ project has been an object lesson in designing a new standard.
+The principle architects were not middleware experts, but rather a set
+of very expert technical users on the one hand, and a set of (we hope)
+very expert software designers on the other. The advantage of this lack
+of specific expertise was that when one does not know the limits, one
+can often surpass them.
+
+The design process is basically a long cycle:
+
+ 1. Take requirements, collected from actual applications and from
+    existing middleware solutions (often these come in the form of
+    "should not do what system X does").
+
+ 2. Design general-purpose solutions for these requirements.
+
+ 3. Implement minimal working servers and clients.
+
+ 4. Test and analyse the designs and then start again.
+
+The actual requirements for a fully general-purpose middleware system
+form a large and complex list. We will come to this later. It is a list
+that cannot be digested and answered in a single step.
+
+The technical requirements, equally, are harsh. We spent at least as
+much effort building a robust reference implementation as in making the
+specifications. However, without this reference implementation the
+specifications cannot be verified, and are practically useless.
+
+The current AMQ design is a third generation design. The first design
+was a very simple messaging protocol with trivial functionality. The
+second design expanded this protocol with enough functionality to
+support the JMS API. We then refactored this design into a more general
+framework, being the current specifications.
+
+Zero Cost Change
+................
+
+It is well known that prototyping produces better designs, but the high
+cost of change is often a barrier to applying the lessons learnt from a
+prototype. The AMQ project has succeeded because we deliberately kept
+the cost of change to a minimum. This allows us to improve our reference
+implementations and specifications rapidly, without suffering the usual
+distress that large-scale change applies to software.
+
+To a large extent, the tools and technology used to build the reference
+implementation were a key factor in being able to design a high quality
+wire-level protocol (which we believe AMQP is).
+
+The key technologies is the extreme use of code generation. The
+principle is not new: every compiler since the first FORTRAN has been an
+attempt to raise the semantic level, and people no longer question that
+a compiler can produce better machine code than a human programmer.
+
+Code generation (as we practise it) consists of raising the semantic
+level aggressively. For each new problem domain we define a language and
+we build a code generation engine, equivalent to a traditional compiler.
+We tier these languages so that they themselves can form the building
+blocks of more abstract languages.
+
+To make our languages accurate and useful, we prototype them and use the
+same techniques of code generation to build the languages and the code
+generation engines. These techniques are well-known in compiler design,
+where the best compilers are able to compile themselves, and where
+grammar-driven code generation is standard practice.
+
+Some examples of how we use these techniques to make it cheaper to
+change our minds, add improvements, and force the design process through
+many more cycles than would be possible otherwise:
+
+ - This document is mostly produced through code generation, directly
+   from the AMQP functional specifications (the classes and methods).
+
+ - Large parts of the client and server reference implementation are
+   produced directly from the AMQP functional specifications.  The
+   code and the documentation are literally two outputs of the same
+   high-level compilation process.
+   
+Sometimes the leverage gets complex. For example, the conformance tests
+are written in PAL, typical of the high-level languages we use. But the
+PAL compiler is generated from the AMQP specifications so that when we
+modify a class or method, the PAL language itself follows suit with no
+manual intervention.
+
+The techniques behind our code generation processes took a long time to
+develop; our first code generators date from 1985 and we switched to an
+XML-driven technology in 1997. To use AMQ one does not need to know how
+it was built, but to implement an AMQP client or server, it is probably
+knowledge worth having.
+
+Of course change is not entirely free - at some point, there are layers
+that depend on generated APIs and when those APIs change, we must change
+the applications. But this is significantly easier when the APIs are
+totally consistent, one of the good features of generated code.
+
+Philosophy
+..........
+
+Much of the AMQ design philosophy is similar to that used in building
+the Unix system, for the same reasons - we aim to build a long-lived
+technology, and this is the (best demonstrated) way to do it:
+
+    http://en.wikipedia.org/wiki/Unix_philosophy
+
+Some of the key points:
+
+ - Write simple parts connected by clean interfaces.
+ - Separate policy from mechanism; separate interfaces from engines.
+ - Clarity is better than cleverness.
+ - Design for simplicity; add complexity only where you must.
+ - In interface design, always do the least surprising thing.
+ - When you must fail, fail noisily and as soon as possible.
+ - When a program has nothing surprising to say, it should say nothing.
+ - Avoid hand-hacking; write programs to write programs when you can.
+ - Prototype before polishing. Get it working before you optimize it.
+ - Build a prototype as soon as possible.
+ - Choose portability over efficiency.
+ - Use software leverage to your advantage.
+ - Avoid captive user interfaces.
+ - Make components into filters.
+ - Allow the user to tailor the enviroment.
+ - The sum of the parts is greater than the whole.
+ - Think hierarchically.
+ - Design for the future, because it will be here sooner than you think.
+
+Main Innovations
+----------------
+
+The main innovations of the AMQ design are:
+
+ 1. A general-purpose wire-level protocol (AMQP). In this respect we
+    fall into the territory of protocols such as BEEP (IETF RFC 3080,
+    3081). Many of the arguments for building BEEP apply to AMQP as
+    well, and these two RFCs make a useful read. We did not use BEEP
+    because it imposes XML at the wire-level.
+
+ 2. A general-purpose modular language for the server semantics (the
+    AMQ framework).  The framework is based on the observation that
+    there is are underlying patterns in the different types of work
+    that middleware does, and that we can create standard solutions
+    for these different patterns, and mix these solutions together,
+    rather than build large monolithic answers.
+
+The Wire-Level Protocol
+.......................
+
+- why
+- how
+
+
+The Semantic Framework
+......................
+
+why
+how
+   
+
+Designing the Wire-Level Protocol
+=================================
+
+ - To be compact, using a binary encoding that packs and unpacks rapidly.
+ - To handle messages of any size without significant limit.
+ - To allow zero-copy data transfer (e.g. remote DMA).
+ - To carry multiple channels across a single connection.
+ - To be long-lived, with no significant in-built limitations.
+ - To allow asynchronous command pipelining.
+ - To be domain independent, handling JMS messages, file transfer, data
+   streaming, voice, etc. without prejudice.
+ - To be forward compatable with future versions.
+ - To be repairable, using a strong assertion model.
+ - To be language-neutral.
+ - To have no license or patent restrictions.
+ - To fit a code generation process.
+
+Intended Operating Lifespan
+---------------------------
+
+AMQP/Fast is designed to give a useful lifespan of 50 years or more. Our
+goal is that an AMQP/Fast peer will be able to operate continuously
+with no upgrades or incompatibility for at least this duration, without
+requiring "legacy support". One should be able to build a client or
+server into physical infrastructure.
+
+While the protocol version may and will change, the protocol mechanics
+(framing, method structures, etc.) must operate unchanged for the full
+intended lifespan of the protocol, allowing full and perfect forwards
+compatability with all future versions of the protocol.
+
+We have applied "Moore's Law" - the theory of exponential growth of
+capacity of technology - to all capacity limits to identify and
+eliminate potential future bottlenecks, specifically for:
+
+1. Message sizes: the largest messages (files) are today around 20GB. We
+   expect this to grow by 50% per year, reaching the limit defined by a
+   64-bit size in 50 years.
+
+2. Frame sizes: IPv4 is limited to 64KB frames, IPv6 to 4GB frames.
+   Ethernet itself is limited to 12000 byte frames due to its CRC
+   algorithm. We expect the maximum networking frame size to grow by
+   50% per year, in large leaps. We will thus reach the limit of
+   64-bit sized packets in 50 years.
+
+3. Protocol classes and methods: the current protocol defines about
+   ten classes and about ten or fewer methods per class.  We assume
+   that backwards compatability will be maintained by defining new
+   classes and methods rather than modifying existing ones that are
+   in use.  The limit of 64k classes and methods per class should be
+   sufficient to last more than 50 years.
+
+4. Channels: the limit of 4G channels allows growth of 50% per year
+   from an estimated usage of 10 channels per connection today.
+
+5. Timestamps: we use 64-bit time-stamp values.
+
+An Extensible Functionality
+---------------------------
+
+AMQP/Fast is intended to be extensible in several directions, including
+new directions totally outside the scope of the protocol as it is
+designed today.  These are the aspects of AMQP/Fast that have been
+deliberately designed to be extensible (in order of increasing
+generality and power):
+
+1. Adding new types of exchange to server implementations.
+2. Adding new properties to content domains.
+3. Adding new arguments to methods.
+4. Adding new methods to classes.
+5. Adding new content domains.
+6. Adding new method classes.
+7. Adding new frame types.
+8. Adding new protocols.
+
+All of these should be feasible while maintaining full backwards
+compatability with existing implementations.
+
+Ease of Implementation
+----------------------
+
+Our goal is to achieve some of the cost-benefit ratio of protocols such
+as SMTP and HTTP, where a simple client can be trivial to build but a
+full client can be very sophisticated. Keeping AMQP/Fast accessible to
+simple clients is possible if we hold to these design rules:
+
+1. The use of all complex functionality (e.g. more sophisticated data
+   types or structures) must be optional.
+
+2. The protocol must be able to operate entirely synchronously, since
+   an asynchronous model - though more efficient and reliable - is a
+   barrier for simple implementations.
+
+3. The protocol must be formally defined so that significant parts of
+   a client or server protocol interface can be mechanically generated
+   using code generation techniques.
+
+
+
+
+
+The Reference Implementation
+----------------------------
+
+
+
+ - To be compact, using a binary encoding that packs and unpacks rapidly.
+ - To handle messages of any size without significant limit.
+ - To allow zero-copy data transfer (e.g. remote DMA).
+ - To carry multiple channels across a single connection.
+ - To be long-lived, with no significant in-built limitations.
+ - To allow asynchronous command pipelining.
+ - To be domain independent, handling JMS messages, file transfer, data
+   streaming, voice, etc. without prejudice.
+ - To be forward compatable with future versions.
+ - To be repairable, using a strong assertion model.
+ - To be language-neutral.
+ - To have no license or patent restrictions.
+ - To fit a code generation process.
+
+
+
+Middleware Services
+===================
+
+Introduction
+------------
+
+Messaging middleware covers three main types of service:
+
+1. Point-to-point messaging, the ability to store and forward messages
+   very robustly.
+
+2. High-volume publish/subscribe, the ability to route messages to many
+   parties in parallel.
+
+3. File transfer, the ability to handle very large messages across
+   perhaps unreliable networks.
+
+In typical usage, the first two services are called "queues" and
+"topics" though some standards such as JMS merge these into an ambiguous
+mix of "destinations" (a term that AMQ does not use).
+
+There is some overlap, but in general these services have particular
+functional needs and need specific solutions. For example, some topic
+systems are based on multicast data transfer, which makes no sense for
+queue or file transfer services.
+
+Reliability vs. Performance
+---------------------------
+
+In each case we can need various degrees of reliability and performance.
+In general there is a trade-off between reliability and speed - the more
+reliable the system, the slower it will run.
+
+Reliability can be broken into several aspects:
+
+1. Type of memory used: system RAM or disk storage. If we want messages
+   to survive a system reboot, they must be on disk.
+
+2. Degree of redundancy: none, mirrored.  If we want to survive a system
+   failure (e.g. disk crash) we must have redundancy of some kind.
+
+3. Redundancy distance: if we want a redundant system to survive a
+   physical event (fire, lightning, hurricane), it must be physically
+   separated.
+
+4. Degree of transactionality: none, partial, full. If we want to be
+   sure that the data was safely written in a coherent manner we must
+   use transactions (of varying complexity).
+
+In each case, there is a well-understood cost for the extra reliability.
+
+Scenario Matrix
+---------------
+
+By combining the service types with the options for reliability, we can
+plot the actual combinations that make sense and are commonly used. We
+use a scale from 1 to 5, where 1 means 'not too important' and 5 means
+'critical'. For each scenario we show the typical range for various
+critria:
+
+                          Queues  Topics  Files
+    Throughput              2-3     4-5     1-2
+    Latency                 3-4     4-5     1
+    Reliability             3-5     1-5     4-5
+
+We can conclude that there is a large overlap in needs, and rather than
+try to define the three domains as separate problems, it seems more
+useful to provide the application architect with control over the
+reliability vs. performance tradeoff independently from the choice of
+what kind of messaging model to use.
+
+A Modular Design
+----------------
+
+
+When designing a general purpose middleware engine, we 
+A fundamental choice in a middleware engine is whether to support the
+main service types monolithically or modularly.
+
+   1. Small is beautiful.
+   2. Make each program do one thing well.
+   3. Build a prototype as soon as possible.
+   4. Choose portability over efficiency.
+   5. Store data in flat text files.
+   6. Use software leverage to your advantage.
+   7. Use shell scripts to increase leverage and portability.
+   8. Avoid captive user interfaces.
+   9. Make every program a filter.
+
+The 10 lesser tenets are ones which are not universally agreed upon as part of the Unix philosophy, and in some cases, are hotly debated (Monolithic kernel vs. Microkernels):
+
+   1. Allow the user to tailor the enviroment.
+   2. Make operating system kernels small and lightweight.
+   3. Use lowercase and keep it short.
+   4. Save trees.
+   5. Silence is golden.
+   6. Think parallel.
+   7. The sum of the parts is greater than the whole.
+   8. Look for the 90-percent solution.
+   9. Worse is better.
+  10. Think hierarchically.
+
+
+
+The design of AMQ framework was driven by these main requirements:
+
+
+ - To be easily extended for new kinds of message routing and queueing.
+
+ - To permit the server's specific semantics to be programmed by the
+   application, via the protocol.
+
+Design Objectives
+=================
 
  - To be clear, where each method does exactly one thing.
  - To be easily extended to handle new and changed needs.
@@ -16,7 +558,9 @@ Scope and Requirements
  - To guarantee interoperability between conforming implementations.
  - To provide the application with explicit control over the quality
    of service.
- 
+
+
+
 Restatement of Goals
 ....................
 
@@ -92,49 +636,6 @@ much wider functionality than classic messaging middleware (like JMS)
 at no significant extra cost.
 
 
-Purpose and Goals of AMQP/Fast
-==============================
-
-AMQP/Fast is designed to be the high-performance member of the AMQP
-family of standardised general-purpose message-oriented middleware
-wire-level protocols.
-
-A "wire-level protocol" can be a simple as a "this is how we define
-packets on the wire". AMQP/Fast is more ambitious than that. It tries to
-provide formal answers to a series of questions that we must answer in
-order to implement useful messaging between protocols.
-
-We want to be able to:
-
-- Construct logical "messages" out of data of any type and size, and
-  move these message efficiently across a network of clients and
-  servers.
-
-- Provide queueing and routing semantics for messages so that the
-  behaviour of the server is unambiguously defined by the protocol.
-
-- Define explicit operational semantics for common messaging models,
-  including JMS, file transfer, and streaming, at the protocol level.
-
-- Define quality-of-service levels semantics so client applications can
-  explicitly choose appropriate tradeoffs between speed and reliability.
-
-- Create a fully-asynchronous network so that messages can be queued
-  when clients are disconnected, and forwarded when they are connected.
-
-- Allow interoperation and bridging with other middleware systems.
-
-- Allow implementation in any language, on any kind of hardware.
-
-- Avoid license and patent concerns that might hinder adoption of the
-  protocol as a standard.
-
-- Allow the marshalling layers of protocol implementations to be easily
-  generated using code generation technology.
-
-- Allow the creation of an abstract network where services, and their
-  data, can move around the network opaquely to the clients.
-
 
 
 Defining the Problem
@@ -193,223 +694,6 @@ of the disadvantages, of the three main approaches to middleware.
 We believe that we've accomplished much of this, and are on the way
 to accomplishing it all.
 
-General Concepts
-================
-
-We will step back and look at the kinds of problems we need to solve
-when designing a general purpose middleware system.
-
-The Three Functional Areas
---------------------------
-
-Messaging middleware covers three main functional areas:
-
-1. Point-to-point messaging, which we will call "queues"
-   for simplicity.
-
-2. High-volume publish/subscribe, which we will call "topics"
-   for simplicity.
-
-3. File transfer, which we will call "files" for simplicity.
-
-(AMQ uses the term "queue" in a more specific sense to define a
-specific type of component, but the above terms are generally accurate
-when discussing middleware scenarios).
-
-There is some overlap, but in general these three areas have particular
-functional needs and need specific solutions. Point-to-point queuing
-focusses on the ability to move messages from one party to another party.
-Publish-subscribe focusses on distributing messages from one party to many
-other parties. File transfer focusses on sending very large files across
-slow and perhaps unreliable networks.
-
-Reliability vs. Performance
----------------------------
-
-In each case we can need various degrees of reliability and
-performance.  In general there is a trade-off between reliability
-and speed - the more reliable the system, the slower it will run.
-
-Reliability can be broken into several aspects:
-
-1. Type of memory used: system RAM or disk storage.  If we want
-   messages to survive a system reboot, they must be on disk.
-
-2. Degree of redundancy: none, mirrored.  If we want to survive
-   a system failure (e.g. disk crash) we must have redundancy of
-   some kind.
-
-3. Redundancy distance: if we want a redundant system to survive
-   a physical event (fire, lightning, hurricane), it must be
-   physically separated.
-
-4. Degree of transactionality: none, partial, full.  If we want to
-   be certain that the data was safely written in a coherent manner
-   we must use transactions (of varying complexity).
-
-In each case, there is a well-understood cost for the extra reliability.
-
-Scenario Matrix
-===============
-
-By combining the functional areas with the options for reliability,
-we can plot the actual combinations that make sense and are commonly
-used.  We use a scale from 1 to 5, meaning 'not too important' to
-'critical'.  For each scenario we show the typical range for various
-critria:
-
-                          Queues  Topics  Files
-    Throughput              2-3     4-5     1-2
-    Latency                 3-4     4-5     1
-    Reliability             3-5     1-5     4-5
-
-We can conclude that there is a large overlap in needs, and rather
-than try to define the three domains as separate problems, it seems
-more useful to provide the application architect with control over
-the reliability vs. performance tradeoff independently from the choice
-of what kind of messaging model to use.
-
-Example Scenarios
-=================
-
-We give some specific example scenarios:
-
- - Departmental inter-system communications: consisting of 1-10
-   highly-reliable queues, with perhaps a thousand messages a day,
-   serving one to five applications and perhaps 100 users.
-
- - Financial services information streams: consisting of data
-   streams from information providers such as Reuters, being
-   distributed to a thousand or more workstations.  Typical
-   daily volume can be anything up to a billion messages.
-
-
-Extreme Scenario - Market Data
-------------------------------
-
-Market data is an extreme scenario at the upper-end of what we are
-aiming for with AMQ. We have set the benchmark at 100,000 events passing
-through a server (or server cluster) per second between a set of
-producer applications and a set of consumer applications. The occasional
-dropped message is acceptable, but dropout should be measurable.
-
-To achieve this rate of messaging requires high-specification hardware,
-gigabit networking and significant tuning at all levels. Experience from
-existing projects shows that even OS context-switch time becomes
-significant at this rate of messaging. The topic space for event
-notification should be able to handle 10,000 topics with 50% of traffic
-volume going through 10% of the topics and delivered to 1,000
-subscribers.
-
-
-3. A statement and analysis of the technical requirements we have taken
-   into account. By "technical", we mean the internal properties of the
-   system, i.e. how it is constructed.
-
-
- - To be compact, using a binary encoding that packs and unpacks rapidly.
- - To handle messages of any size without significant limit.
- - To allow zero-copy data transfer (e.g. remote DMA).
- - To carry multiple channels across a single connection.
- - To be long-lived, with no significant in-built limitations.
- - To allow asynchronous command pipelining.
- - To be domain independent, handling JMS messages, file transfer, data
-   streaming, voice, etc. without prejudice.
- - To be forward compatable with future versions.
- - To be repairable, using a strong assertion model.
- - To be language-neutral.
- - To have no license or patent restrictions.
- - To fit a code generation process.
-
-3.  Technical Requirements
-    technical = how
-    performance
-    portability
-    longevity
-    interoperability
-    clarity
-    extensibility
-
-
-Intended Operating Lifespan
-===========================
-
-AMQP/Fast is designed to give a useful lifespan of 50 years or more. Our
-goal is that an AMQP/Fast peer will be able to operate continuously
-with no upgrades or incompatibility for at least this duration, without
-requiring "legacy support". One should be able to build a client or
-server into physical infrastructure.
-
-While the protocol version may and will change, the protocol mechanics
-(framing, method structures, etc.) must operate unchanged for the full
-intended lifespan of the protocol, allowing full and perfect forwards
-compatability with all future versions of the protocol.
-
-We have applied "Moore's Law" - the theory of exponential growth of
-capacity of technology - to all capacity limits to identify and
-eliminate potential future bottlenecks, specifically for:
-
-1. Message sizes: the largest messages (files) are today around 20GB. We
-   expect this to grow by 50% per year, reaching the limit defined by a
-   64-bit size in 50 years.
-
-2. Frame sizes: IPv4 is limited to 64KB frames, IPv6 to 4GB frames.
-   Ethernet itself is limited to 12000 byte frames due to its CRC
-   algorithm. We expect the maximum networking frame size to grow by
-   50% per year, in large leaps. We will thus reach the limit of
-   64-bit sized packets in 50 years.
-
-3. Protocol classes and methods: the current protocol defines about
-   ten classes and about ten or fewer methods per class.  We assume
-   that backwards compatability will be maintained by defining new
-   classes and methods rather than modifying existing ones that are
-   in use.  The limit of 64k classes and methods per class should be
-   sufficient to last more than 50 years.
-
-4. Channels: the limit of 4G channels allows growth of 50% per year
-   from an estimated usage of 10 channels per connection today.
-
-5. Timestamps: we use 64-bit time-stamp values.
-
-An Extensible Functionality
-===========================
-
-AMQP/Fast is intended to be extensible in several directions, including
-new directions totally outside the scope of the protocol as it is
-designed today.  These are the aspects of AMQP/Fast that have been
-deliberately designed to be extensible (in order of increasing
-generality and power):
-
-1. Adding new types of exchange to server implementations.
-2. Adding new properties to content domains.
-3. Adding new arguments to methods.
-4. Adding new methods to classes.
-5. Adding new content domains.
-6. Adding new method classes.
-7. Adding new frame types.
-8. Adding new protocols.
-
-All of these should be feasible while maintaining full backwards
-compatability with existing implementations.
-
-Ease of Implementation
-======================
-
-Our goal is to achieve some of the cost-benefit ratio of protocols such
-as SMTP and HTTP, where a simple client can be trivial to build but a
-full client can be very sophisticated. Keeping AMQP/Fast accessible to
-simple clients is possible if we hold to these design rules:
-
-1. The use of all complex functionality (e.g. more sophisticated data
-   types or structures) must be optional.
-
-2. The protocol must be able to operate entirely synchronously, since
-   an asynchronous model - though more efficient and reliable - is a
-   barrier for simple implementations.
-
-3. The protocol must be formally defined so that significant parts of
-   a client or server protocol interface can be mechanically generated
-   using code generation techniques.
 
 
 

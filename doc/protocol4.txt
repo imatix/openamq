@@ -18,14 +18,14 @@ reference, and you may find it more interesting to skip through to the
 next sections that detail the different frame types and their formats):
 
     amqp/fast           = protocol-header *amqp-unit
-
+    
     protocol-header     = literal-AMQP protocol-id protocol-version
     literal-AMQP        = %d65.77.81.80             ; "AMQP"
     protocol-id         = %d1.1                     ; AMQP/Fast
     protocol-version    = %d9.1                     ; 0.9 revision 1
-
+    
     amqp-unit           = method | oob-method | trace | heartbeat
-
+    
     method              = method-frame [ content ]
     method-frame        = %d1 frame-properties method-payload frame-end
     frame-properties    = cycle channel frame-size
@@ -38,7 +38,7 @@ next sections that detail the different frame types and their formats):
     amqp-field          = BIT / OCTET
                         / short-integer / long-integer / long-long-integer
                         / short-string / long-string
-                        / time-stamp
+                        / timestamp
                         / field-table
     short-integer       = 2*OCTET
     long-integer        = 4*OCTET
@@ -46,20 +46,20 @@ next sections that detail the different frame types and their formats):
     short-string        = OCTET *string-char        ; length + content
     string-char         = %x01 .. %xFF
     long-string         = long-integer *OCTET       ; length + content
-    time-stamp          = long-long-integer
+    timestamp           = long-long-integer
     field-table         = long-integer *field-value-pair
     field-value-pair    = field-name field-value
     field-name          = short-string
     field-value         = 'S' long-string
                         / 'I' signed-integer
                         / 'D' decimal-value
-                        / 'T' time-stamp
+                        / 'T' timestamp
                         / 'F' field-table
     signed-integer      = 4*OCTET
     decimal-value       = decimals long-integer
     decimals            = OCTET
     frame-end           = %xCE
-
+    
     content             = %d2 content-header child-content *content-body
     content-header      = frame-properties header-payload frame-end
     header-payload      = content-class content-weight content-body-size
@@ -72,17 +72,17 @@ next sections that detail the different frame types and their formats):
     child-content       = content-weight*content
     content-body        = %d3 frame-properties body-payload frame-end
     body-payload        = *OCTET
-
+    
     oob-method          = oob-method-frame [ oob-content ]
     oob-method-frame    = %d4 frame-properties frame-end
     oob-content         = %d5 content-header oob-child-content
                           *oob-content-body
     oob-child-content   = content-weight*oob-content
     oob-content-body    = %d6 frame-properties frame-end
-
+    
     trace               = %d7 cycle %d0 frame-size trace-payload frame-end
     trace-payload       = *OCTET
-
+    
     heartbeat           = %d8 cycle %d0 %d1 frame-end
 
 We use the Augmented BNF syntax defined in IETF RFC 2234. In summary,
@@ -712,14 +712,26 @@ situations with the same completion/category.
 Limitations
 ===========
 
-These limitations are formally part of the AMQP/Fast specifications:
+The AMQP/Fast specifications impose these limits on future extensions
+of AMQP or protocols from the same wire-level format:
 
-- Number of channels per connection: 65535.
-- Size of a short string: 0 to 255 octets.
-- Size of a long string or field table: 0 to 4Gb-1 octets.
-- Size of a frame: 0 to 4Gb-1 octets.
-- Number of protocol classes/content domains: 65535.
-- Number of methods: 65535 per protocol class.
+- Number of channels per connection: 16-bit channel number.
+- Number of protocol classes: 16-bit class id.
+- Number of methods per protocol class: 16-bit method id.
+
+The AMQP/Fast specifications impose these limits on data:
+
+- Maximum size of a short string: 255 octets.
+- Maximum size of a long string or field table: 32-bit size.
+- Maximum size of a frame payload: 32-bit size.
+- Maximum size of a content: 64-bit size.
+- Maximum depth of a structured content: unlimited.
+- Maximum weight of a structured content: 16-bit weight.
+
+An AMQP server or client implementation will also impose its own limits
+on resources such as number of simultaneous connections, number of
+consumers per channel, number of queues, etc.  These do not affect
+interoperability and are not specified.
 
 Security
 ========
@@ -745,8 +757,7 @@ negotiation stage are due to an hostile attempt to gain access to the
 server. The general response to any exceptional condition in the
 connection negotiation is to pause that connection (presumably a thread)
 for a period of several seconds and then to close the network
-connection. This includes syntax errors, over-sized data, or failed
-attempts to authenticate. The server implementation should log all such
-exceptions and flag or block clients provoking multiple failures.
+connection. This includes syntax errors, over-sized data, and failed
+attempts to authenticate. The server should log all such exceptions and
+flag or block clients provoking multiple failures.
 
-    
