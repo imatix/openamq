@@ -1,7 +1,7 @@
 <?xml?>
 <pal
     script = "amq_pal_gen"
-    desc   = "Test the exchange passive declaration and response"
+    desc   = "the server MUST handle passive exchange declaration correctly"
     >
     This test sets up a session and checks if the declaration of a passive 
     non existant exchange returns a reply_code of 504. Also check a passive

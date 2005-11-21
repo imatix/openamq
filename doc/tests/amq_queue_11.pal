@@ -1,7 +1,7 @@
 <?xml?>
 <pal
     script = "amq_pal_gen"
-    desc   = "Bind a queue to an exchange"
+    desc   = "the server MUST handle queue to exchange bindings correctly"
     >
     This test sets up a session, declares an exchange and a queue, and tries binding the
     queue to the exchange. Also test duplicate bindings are silently accepted but ignored.

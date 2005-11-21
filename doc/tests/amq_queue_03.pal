@@ -1,7 +1,7 @@
 <?xml?>
 <pal
     script = "amq_pal_gen"
-    desc   = "Declare a queue which is durable and test if it survives a server restart"
+    desc   = "the server MUST respect the durable flag on a queue"
     >
     This test sets up a session where a durable queue is created. The server is
     then restarted and a check is being done to verify the queue still exists.

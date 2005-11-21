@@ -1,12 +1,10 @@
 <?xml?>
-<!--
-    amq_access_01
-
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST accept an existing realm"
+    >
     Verify that the server accepts the "/data" realm and returns
     a valid non-zero ticket.
-  -->
-<pal script = "amq_pal_gen">
-    <echo>Validation script: $script</echo>
     <session>
         <access_request realm = "/data" />
         <assert name = "ticket" />

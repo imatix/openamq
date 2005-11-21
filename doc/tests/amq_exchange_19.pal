@@ -1,0 +1,13 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST implement direct and fanout exchanges"
+    >
+    Test to see if direct and fanout exchanges exist.
+
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <exchange_declare exchange = "amq.direct" type = "direct" passive = "1" />
+        <exchange_declare exchange = "amq.fanout" type = "fanout" passive = "1" />
+    </session>
+</pal>

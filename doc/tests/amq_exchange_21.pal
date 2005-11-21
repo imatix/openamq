@@ -1,0 +1,12 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MAY implement a system exchange"
+    >
+    Test to see if system exchangetype exist, and amq.system exists
+
+    <include filename = "amq_test_base.pal" />
+    <session error_handling = "recover">
+        <exchange_declare exchange = "amq.system" type = "system" passive = "1" />
+    </session>
+</pal>

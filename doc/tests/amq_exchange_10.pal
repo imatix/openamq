@@ -1,7 +1,7 @@
 <?xml?>
 <pal
     script = "amq_pal_gen"
-    desc   = "Delete an exchange"
+    desc   = "the server MUST be able to delete an exchange"
     >
     Test which deletes an exchange.
 

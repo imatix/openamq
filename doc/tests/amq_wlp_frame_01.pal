@@ -1,7 +1,7 @@
 <?xml?>
 <pal
     script = "amq_pal_gen"
-    desc   = "the server MUST handle incorrect frame types correctly" 
+    desc   = "the server MUST handle incorrect frame types correctly"
     >
     <!--
     - connect
@@ -10,6 +10,7 @@
     - send %xFF to socket
     - assert that server closes socket
     -->
+    <abort>not implemented</abort>
     <include filename = "amq_test_base.pal" />
     <session>
     </session> 

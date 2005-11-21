@@ -10,6 +10,7 @@
     - send malformed Connection.Start-Ok frame lacking frame-end
     - assert that server closes socket
     -->
+    <abort>not implemented</abort>
     <include filename = "amq_test_base.pal" />
     <session>
     </session> 

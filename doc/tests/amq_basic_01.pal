@@ -1,0 +1,31 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST allow at least 16 consumers"
+    >
+    This test checks it's possible to assign 16 consumers to a bound queue.
+    The queue is bound by default.
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <queue_declare />
+        <basic_consume queue = "$queue" />
+        <basic_consume queue = "$queue" />
+        <basic_consume queue = "$queue" />
+        <basic_consume queue = "$queue" />
+        <basic_consume queue = "$queue" />
+        <basic_consume queue = "$queue" />
+        <basic_consume queue = "$queue" />
+        <basic_consume queue = "$queue" />
+        <basic_consume queue = "$queue" />
+        <basic_consume queue = "$queue" />
+        <basic_consume queue = "$queue" />
+        <basic_consume queue = "$queue" />
+        <basic_consume queue = "$queue" />
+        <basic_consume queue = "$queue" />
+        <basic_consume queue = "$queue" />
+        <basic_consume queue = "$queue" />
+    </session>
+    
+</pal>
+
+

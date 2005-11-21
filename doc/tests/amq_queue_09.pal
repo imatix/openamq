@@ -1,7 +1,7 @@
 <?xml?>
 <pal
     script = "amq_pal_gen"
-    desc   = "Declare a queue with default options, but an illegal name"
+    desc   = "the server MUST handle an illegal queue name"
     >
     This test sets up a session where a default queue is created with an
     illegal name. This should yield a 502 reply_code.

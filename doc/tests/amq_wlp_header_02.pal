@@ -8,6 +8,7 @@
     - send HTTP
     - check whether server closes socket or not
     -->
+    <abort>not implemented</abort>
     <include filename = "amq_test_base.pal" />
     <session>
     </session> 

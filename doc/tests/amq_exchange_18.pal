@@ -1,0 +1,15 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST handle illegal exchangetype declarations correctly"
+    >
+    Test to see if it's possible to declare an existing exchange with an illegal type
+
+    <include filename = "amq_test_base.pal" />
+    <session error_handling = "recover" >
+        <exchange_declare exchange = "myexchange" type = "illegal" />
+        <assert name = "reply_code" value = "503" />
+    </session>
+</pal>
+
+

@@ -1,0 +1,12 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server SHOULD implement a topic exchange"
+    >
+    Test to see if topic exchange type exists, and amq.topic exists
+
+    <include filename = "amq_test_base.pal" />
+    <session error_handling = "recover">
+        <exchange_declare exchange = "amq.topic" type = "topic" passive = "1" />
+    </session>
+</pal>

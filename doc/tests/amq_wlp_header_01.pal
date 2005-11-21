@@ -8,6 +8,7 @@
     - send AMQP%d1.1.9.1
     - assert that server responds with Connection.Start
     -->
+    <abort>not implemented</abort>
     <include filename = "amq_test_base.pal" />
     <session>
     </session> 

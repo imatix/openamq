@@ -1,7 +1,7 @@
 <?xml?>
 <pal
     script = "amq_pal_gen"
-    desc   = "Check duplicates bindings are ignored"
+    desc   = "the server MUST handle duplicate bindings correctly"
     >
     This test sets up a session and a queue. The queue is then bound
     twice to the same exchange. This should be silently ignored.

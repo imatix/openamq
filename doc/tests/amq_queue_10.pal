@@ -1,7 +1,7 @@
 <?xml?>
 <pal
     script = "amq_pal_gen"
-    desc   = "Declare a queue with no name."
+    desc   = "the server MUST handle empty queue names"
     >
     This test sets up a session where a default queue is created with no name.
     Check if the server assigned a name to the queue.

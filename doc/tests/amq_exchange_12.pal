@@ -1,7 +1,7 @@
 <?xml?>
 <pal
     script = "amq_pal_gen"
-    desc   = "Delete an exchange with if_unused = 1 and it's not in use (unbound)"
+    desc   = "the server MUST respect the if_unused flag when deleting an exchange"
     >
     Test which deletes an exchange with if_unused = 1. The exchange is unused
     (unbound) the call should thus succeed.

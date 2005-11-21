@@ -1,7 +1,7 @@
 <?xml?>
 <pal
     script = "amq_pal_gen"
-    desc   = "Declare an exchange which is durable and test if it survives a server restart"
+    desc   = "the server MUST make sure a durable exchange survives a server restart"
     >
     This test sets up a session where a durable exchange is created. The server is
     then restarted and a check is being done to verify the exchange still exists.

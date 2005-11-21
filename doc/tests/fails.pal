@@ -1,7 +1,7 @@
 <?xml?>
 <pal
     script = "amq_pal_gen"
-    desc   = "minimal failing pal script"
+    desc   = "PAL MUST return a value other then 0 on failure"
     >
     <abort>failing</abort>
 </pal>

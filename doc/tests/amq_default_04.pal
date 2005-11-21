@@ -1,10 +1,10 @@
 <?xml?>
 <pal
     script = "amq_pal_gen"
-    desc   = "Test default jms queue/exchange declarations using get"
+    desc   = "the server MUST provide default arguments (basic get)"
     >
-    This test represents a JMS basic client. It tries to do so, by using defaults
-    in declaration and bindings.
+    This test represents a minimal basic client using defaults in declaration and
+    bindings.
     
     <include filename = "amq_test_base.pal" />
     <session>

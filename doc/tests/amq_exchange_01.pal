@@ -1,7 +1,7 @@
 <?xml?>
 <pal
     script = "amq_pal_gen"
-    desc   = "Declare an exchange with default options"
+    desc   = "the server MUST provide defaults for exchanges"
     >
     This test sets up a session where a default exchange is created. A default
     exchange is one declared with no arguments.

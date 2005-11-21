@@ -12,6 +12,7 @@
     - check whether server replies with Connection.Close and reply code
       503 (command invalid).
     -->
+    <abort>not implemented</abort>
     <include filename = "amq_test_base.pal" />
     <session>
     </session> 

@@ -1,7 +1,7 @@
 <?xml?>
 <pal
     script = "amq_pal_gen"
-    desc   = "Test the queue passive declaration and response"
+    desc   = "the server MUST respect the passive flag on a queue"
     >
     This test sets up a session and checks if the declaration of a passive 
     non existant queue returns a reply_code of 504. Also check a passive

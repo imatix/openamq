@@ -1,0 +1,19 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST handle basic cancel requests"
+    >
+    This test creates a queue (bound by default) attaches a consumer, and then
+    cancels the consume.
+
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <queue_declare />
+        <basic_consume queue = "$queue" />
+        <echo>consumer_tag = $consumer_tag, but not in the cancel method</echo>
+        <basic_cancel queue = "$queue" consumer = "$consumer_tag" />
+    </session>
+    
+</pal>
+
+

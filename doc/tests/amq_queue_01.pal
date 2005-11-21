@@ -1,7 +1,7 @@
 <?xml?>
 <pal
     script = "amq_pal_gen"
-    desc   = "Declare a queue with default options"
+    desc   = "the server MUST be able to declare a queue"
     >
     This test sets up a session where a default queue is created. A default
     queue is one declared with no arguments.

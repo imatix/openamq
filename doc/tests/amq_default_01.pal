@@ -1,10 +1,10 @@
 <?xml?>
 <pal
     script = "amq_pal_gen"
-    desc   = "Test default JMS queue/exchange declarations using consume"
+    desc   = "the server MUST provide default arguments (jms consume)"
     >
-    This test represents a minimal JMS client. It tries to do so, by using defaults
-    in declaration and bindings. Using ASync calls.
+    This test represents a minimal jms client using defaults in declaration and
+    bindings.
 
     <include filename = "amq_test_base.pal" />
     <session>
