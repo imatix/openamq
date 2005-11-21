@@ -83,7 +83,7 @@
     last as long as the channel they were created on, or until the
     client cancels them.
   </doc>
-  <doc name = "rule">
+  <doc name = "rule" test = "amq_basic_01">
     The server MUST allow at least 16 consumers per queue, unless the
     queue was declared as private.
   </doc>
@@ -108,9 +108,9 @@
 
   <field name = "exclusive" type = "bit">
     request exclusive access
-    <doc>
+    <doc name = "rule" test = "amq_basic_02">
       Request exclusive consumer access.  If the server cannot grant
-      this - because there are other consumers active - it raises a
+      this - because there are other consumers active - it MUST raise a
       channel exception.
     </doc>
   </field>
@@ -118,9 +118,9 @@
 
 <method name = "consume-ok" synchronous = "1">
   confirm a new consumer
-  <doc>
-    This method provides the client with a consumer tag which it MUST
-    use in methods that work with the consumer.
+  <doc name = "rule" test = "amq_basic_03">
+    The server MUST provide the client with a consumer tag, which is used by
+    the client for methods called on the consumer at a later stage.
   </doc>
   <chassis name = "client" implement = "MUST" />
 

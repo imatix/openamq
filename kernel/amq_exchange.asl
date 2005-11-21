@@ -20,7 +20,7 @@
 <chassis name = "server" implement = "MUST" />
 <chassis name = "client" implement = "MUST" />
 
-<doc name = "rule">
+<doc name = "rule" test = "amq_exchange_19" >
   The server MUST implement the direct and fanout exchange types, and
   predeclare the corresponding exchanges named amq.direct and amq.fanout
   in each virtual host. The server MUST also predeclare a direct
@@ -28,12 +28,12 @@
   and for default queue bindings.
 </doc>
 
-<doc name = "rule">
+<doc name = "rule" test = "amq_exchange_20">
   The server SHOULD implement the topic exchange type, and predeclare
   the corresponding exchange named amq.topic in each virtual host.
 </doc>
 
-<doc name = "rule">
+<doc name = "rule" test = "amq_exchange_21">
   The server MAY implement the system exchange type, and predeclare the
   corresponding exchanges named amq.system in each virtual host. If the
   client attempts to bind a queue to the system exchange, the server
@@ -95,8 +95,8 @@
       If the exchange already exists with a different type, the server
       MUST raise a connection exception with a reply code 507 (not allowed).
     </doc>
-    <doc name = "rule" test = "[tbd]">
-<!-- TODO - new rule -->
+    <doc name = "rule" test = "amq_exchange_18">
+<!-- TODO - new rule - tim: testcase implemented -->
       If the server does not support the requested exchange type it MUST
       raise a connection exception with a reply code 503 (command invalid).
     </doc>

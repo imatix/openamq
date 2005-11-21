@@ -67,7 +67,7 @@
       a new queue with a unique generated name and return this to the
       client in the Declare-Ok method.
     </doc>
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_queue_32">
 <!-- TODO - changed from channel to connection exception -->
       Queue names starting with "amq." are reserved for predeclared and
       standardised server queues.  If the queue name starts with "amq."
