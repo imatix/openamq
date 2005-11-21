@@ -21,7 +21,6 @@ import java.util.Map;
  */
 public class FieldTable extends LinkedHashMap
 {
-    static public boolean grm = false;
     private long _encodedSize = 0;
 
     public FieldTable()
@@ -51,10 +50,7 @@ public class FieldTable extends LinkedHashMap
             switch (type)
             {
                 case 'S':
-                    if (grm)
-                        value = EncodingUtils.readLongstr(buffer);
-                    else    
-                        value = EncodingUtils.readLongString(buffer);
+                    value = EncodingUtils.readLongString(buffer);
                     break;
                 case 'I':
                     value = new Long(buffer.getUnsignedInt());
@@ -156,11 +152,7 @@ public class FieldTable extends LinkedHashMap
         }
         _encodedSize += EncodingUtils.encodedShortStringLength((String) key);
         // the extra byte if for the type indicator what is written out
-        if (value instanceof byte[])
-        {
-            _encodedSize += 1 + EncodingUtils.encodedLongstrLength((byte[]) value); 
-        }
-        else if (value instanceof String)
+        if (value instanceof String)
         {
             _encodedSize += 1 + EncodingUtils.encodedLongStringLength((String) value);
         }
@@ -186,11 +178,7 @@ public class FieldTable extends LinkedHashMap
         _encodedSize -= EncodingUtils.encodedShortStringLength((String) key);
         if (value != null)
         {
-            if (value instanceof byte[])
-            {
-                _encodedSize -= 1 + EncodingUtils.encodedLongstrLength((byte[]) value);
-            }
-            else if (value instanceof String)
+            if (value instanceof String)
             {
                 _encodedSize -= 1 + EncodingUtils.encodedLongStringLength((String) value);
             }
