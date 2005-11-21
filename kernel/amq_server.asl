@@ -135,7 +135,7 @@
     }
     if (queue) {
         if (method->exclusive && queue->owner_id != connection->context_id)
-            amq_server_channel_close (connection, ASL_ACCESS_REFUSED,
+            amq_server_channel_close (channel, ASL_ACCESS_REFUSED,
                 "Queue cannot be made exclusive to this connection");
         else {
             amq_server_agent_queue_declare_ok (

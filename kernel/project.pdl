@@ -139,6 +139,11 @@
                                      generated = "1"             >Basic content class</file>
 <file name = "amq_content_jms.icl"   class = "icl public cont"
                                      generated = "1"             >JMS content class</file>
+<file name = "amq_content_file.icl"  class = "icl public cont"
+                                     generated = "1"             >Basic content class</file>
+<file name = "amq_content_stream.icl"
+                                     class = "icl public cont"
+                                     generated = "1"             >JMS content class</file>
 <file name = "amq_constants.icl"     class = "icl public data"
                                      generated = "1"             >Constants class</file>
 <file name = "amq_console_schema.cml"

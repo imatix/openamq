@@ -10,4 +10,6 @@
 #include "amq_client_channel.hpp"
 #include "amq_content_jms.hpp"
 #include "amq_content_basic.hpp"
+#include "amq_content_file.hpp"
+#include "amq_content_stream.hpp"
 

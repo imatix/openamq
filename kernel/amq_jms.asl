@@ -85,7 +85,7 @@
 <field name = "message id" type = "shortstr">
     The application message identifier
 </field>
-<field name = "timestamp" type = "long">
+<field name = "timestamp" type = "timestamp">
     The message timestamp
 </field>
 <field name = "type" type = "shortstr">
@@ -109,8 +109,9 @@
     client cancels them.
   </doc>
   <doc name = "rule">
-    The server MUST allow at least 16 consumers per queue, unless the
-    queue was declared as private.
+    The server SHOULD support at least 16 consumers per queue, unless
+    the queue was declared as private, and ideally, impose no limit
+    except as defined by available resources
   </doc>
   <chassis name = "server" implement = "MUST" />
   <response name = "consume-ok" />

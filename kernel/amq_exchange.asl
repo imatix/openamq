@@ -55,6 +55,11 @@
     This method creates an exchange if it does not already exist, and if the
     exchange exists, verifies that it is of the correct and expected class.
   </doc>
+  <doc name = "rule">
+<!-- TODO - new -->
+    The server SHOULD support a minimum of 16 exchanges per virtual host
+    and ideally, impose no limit except as defined by available resources.
+  </doc>
   <chassis name = "server" implement = "MUST" />
   <response name = "declare-ok" />
 

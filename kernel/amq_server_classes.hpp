@@ -14,6 +14,8 @@
 #include "amq_consumer_jms.hpp"
 #include "amq_content_basic.hpp"
 #include "amq_content_jms.hpp"
+#include "amq_content_file.hpp"
+#include "amq_content_stream.hpp"
 #include "amq_exchange.hpp"
 #include "amq_exchange_direct.hpp"
 #include "amq_exchange_topic.hpp"

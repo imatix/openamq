@@ -77,8 +77,9 @@
     client cancels them.
   </doc>
   <doc name = "rule">
-    The server MUST allow at least 16 consumers per queue, unless the
-    queue was declared as private.
+    The server SHOULD support at least 16 consumers per queue, unless
+    the queue was declared as private, and ideally, impose no limit
+    except as defined by available resources.
   </doc>
   <doc name = "rule">
     Streaming applications SHOULD use different channels to select

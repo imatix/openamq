@@ -45,6 +45,11 @@
     The server MUST create a default binding for a newly-created queue
     to the default exchange, which is an exchange of type 'direct'.
   </doc>
+  <doc name = "rule">
+<!-- TODO - new -->
+    The server SHOULD support a minimum of 256 queues per virtual host
+    and ideally, impose no limit except as defined by available resources.
+  </doc>
   <chassis name = "server" implement = "MUST" />
   <response name = "declare-ok" />
 
@@ -215,6 +220,10 @@
     Bindings for durable queues are automatically durable and the
     server SHOULD restore such bindings after a server restart.
   </doc>
+  <doc name = "rule">
+    The server SHOULD support at least 4 bindings per queue, and
+    ideally, impose no limit except as defined by available resources.
+  </doc>
   <chassis name = "server" implement = "MUST" />
   <response name = "bind-ok" />
 
@@ -371,6 +380,9 @@
       If set, the server will only delete the queue if it has no
       consumers. If the queue has consumers the server does does not
       delete it but raises a channel exception instead.
+    </doc>
+    <doc name = "rule" test = "amq_queue_30">
+      The server MUST respect the if-unused flag when deleting a queue.
     </doc>
   </field>
 

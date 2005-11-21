@@ -89,8 +89,9 @@
     client cancels them.
   </doc>
   <doc name = "rule">
-    The server MUST allow at least 16 consumers per queue, unless the
-    queue was declared as private.
+    The server SHOULD support at least 16 consumers per queue, unless
+    the queue was declared as private, and ideally, impose no limit
+    except as defined by available resources.
   </doc>
   <chassis name = "server" implement = "MUST" />
   <response name = "consume-ok" />
@@ -265,7 +266,9 @@
   </field>
 </method>
 
-<method name = "stage" synchronous = "1" content = "1">
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+<method name = "stage" content = "1">
   stage message content
   <doc>
     This method stages the message, sending the message content to the
