@@ -24,7 +24,7 @@
 <chassis name = "server" implement = "MUST" />
 <chassis name = "client" implement = "MUST" />
 
-<doc name = "rule">
+<doc name = "rule" test = "amq_queue_33">
   A server MUST allow any content class to be sent to any queue, in any
   mix, and queue and delivery these content classes independently. Note
   that all methods that fetch content off queues are specific to a given
@@ -41,12 +41,12 @@
     the client can specify various properties that control the durability
     of the queue and its contents, and the level of sharing for the queue.
   </doc>
-  <doc name = "rule">
+  <doc name = "rule" test = "amq_queue_34">
     The server MUST create a default binding for a newly-created queue
     to the default exchange, which is an exchange of type 'direct'.
   </doc>
-  <doc name = "rule">
-<!-- TODO - new -->
+  <doc name = "rule" test = "amq_queue_35">
+<!-- TODO - new - tim: tested in pal -->
     The server SHOULD support a minimum of 256 queues per virtual host
     and ideally, impose no limit except as defined by available resources.
   </doc>
@@ -79,7 +79,7 @@
       and the passive option is zero, the server MUST raise a connection
       exception with reply code 507 (not allowed).
     </doc>
-    <assert check = "regexp" value = "^[a-zA-Z0-9-_.]*$" test = "amq_queue_09"/>
+    <assert check = "regexp" value = "^[a-zA-Z0-9-_.]*$" test = "amq_queue_09" />
   </field>
 
   <field name = "passive" type = "bit">
@@ -109,10 +109,10 @@
     <doc name = "rule" test = "amq_queue_03">
       The server MUST recreate the durable queue after a restart.
     </doc>
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_queue_36">
       The server MUST support both durable and transient queues.
     </doc>
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_queue_37">
       The server MUST ignore the durable field if the queue already
       exists.
     </doc>
@@ -124,7 +124,7 @@
       Exclusive queues may only be consumed from by the current connection.
       Setting the 'exclusive' flag always implies 'auto-delete'.
     </doc>
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_queue_38">
       The server MUST support both exclusive and non-exclusive queues.
     </doc>
     <doc name = "rule" test = "amq_queue_04">
@@ -208,7 +208,7 @@
     more bind methods for a specific queue, with identical arguments
     - without treating these as an error.
   </doc>
-  <doc name = "rule">
+  <doc name = "rule" test = "amq_queue_39">
     If a bind fails, the server MUST raise a connection exception.
   </doc>
   <doc name = "rule" test = "amq_queue_12">
@@ -220,7 +220,7 @@
     Bindings for durable queues are automatically durable and the
     server SHOULD restore such bindings after a server restart.
   </doc>
-  <doc name = "rule">
+  <doc name = "rule" test = "amq_queue_40">
     The server SHOULD support at least 4 bindings per queue, and
     ideally, impose no limit except as defined by available resources.
   </doc>
@@ -289,11 +289,11 @@
   <doc name = "rule" test = "amq_queue_15">
     A call to purge MUST result in an empty queue.
   </doc>
-  <doc name = "rule">
+  <doc name = "rule" test = "amq_queue_41">
     On transacted channels the server MUST not purge messages that have
     already been sent to a client but not yet acknowledged.
   </doc>
-  <doc name = "rule">
+  <doc name = "rule" test = "amq_queue_42">
     The server MAY implement a purge queue or log that allows system
     administrators to recover accidentally-purged messages.  The server
     SHOULD NOT keep purged messages in the same storage spaces as the
@@ -350,7 +350,7 @@
     messages are sent to a dead-letter queue if this is defined in the
     server configuration, and all consumers on the queue are cancelwled.
   </doc>
-  <doc name = "rule">
+  <doc name = "rule" test = "amq_queue_43">
     The server SHOULD use a dead-letter queue to hold messages that
     were pending on a deleted queue, and MAY provide facilities for
     a system administrator to move these messages back to an active

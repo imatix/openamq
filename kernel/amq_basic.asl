@@ -133,7 +133,7 @@
 
 <method name = "cancel" synchronous = "1">
   end a queue consumer
-  <doc>
+  <doc test = "amq_basic_04">
     This method cancels a consumer. This does not affect already
     delivered messages, but it does mean the server will not send any
     more messages for that consumer.  The client may receive an
@@ -159,9 +159,9 @@
 
 <method name = "publish" synchronous = "0" content = "1">
   publish a message
-  <doc>
+  <doc name = "rule" test = "amq_basic_05">
     This method publishes a message to a specific exchange. The message
-    will be routed to queues as defined by the exchange configuration
+    MUST be routed to queues as defined by the exchange configuration
     and distributed to any active consumers as appropriate.
   </doc>
   <chassis name = "server" implement = "MUST" />
@@ -180,7 +180,7 @@
       name is specified, and that exchange does not exist, the server
       will raise a channel exception.
     </doc>
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_basic_06">
       The server MUST accept a blank exchange name to mean the default
       exchange.
     </doc>
@@ -206,9 +206,9 @@
 
   <field name = "mandatory" type = "bit">
     indicate mandatory routing
-    <doc>
+    <doc name = "rule" test = "amq_basic_07">
       This flag tells the server how to react if the message cannot be
-      routed to a queue.  If this flag is set, the server returns the
+      routed to a queue.  If this flag is set, the server MUST return the
       message with a Bounce method.  If this flag is zero, the server
       silently drops the message. The meaning of this bit is not defined
       when a message is routed through multiple exchanges.
