@@ -1,0 +1,17 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST support at least 4 bindings per queue"
+    >
+    This test creates a queue and bind to it 4 times.
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <queue_declare />
+        <repeat times = "4">
+            <queue_bind queue = "$queue" exchange = "amq.direct" />
+        </repeat>
+    </session>
+    
+</pal>
+
+

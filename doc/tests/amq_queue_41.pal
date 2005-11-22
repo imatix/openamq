@@ -1,0 +1,16 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST NOT purge unconfirmed sent messages on a transactional channel"
+    >
+    <!--
+        - ?
+    -->
+    <abort>not implemented</abort>
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session>
+    
+</pal>
+
+

@@ -1,0 +1,16 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server SHOULD implement storage for messages left on deleted/purged queues"
+    >
+    <!--
+        - ?
+    -->
+    <abort>not implemented</abort>
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session>
+    
+</pal>
+
+

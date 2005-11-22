@@ -1,0 +1,15 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST allow at least 256 queues per virtual host"
+    >
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <repeat times = "256">
+            <queue_declare />
+        </repeat>
+    </session>
+    
+</pal>
+
+

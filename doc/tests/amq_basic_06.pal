@@ -1,0 +1,23 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST handle publish command correctly"
+    >
+    This test publishes a message on a queue.
+    
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <queue_declare />
+        <basic_content message_id = "id-1" />
+        <basic_publish routing_key = "$queue" exchange = ""/>
+        <basic_get queue = "$queue" />
+        <wait timeout = "1000" />
+        <basic_arrived>
+            <echo>Message '$message_id' [$body_size] came back from $exchange to us using rk: '$routing_key'</echo>
+        </basic_arrived>
+        <empty>
+            <abort>Message did not come back, this is bad!</abort>
+        </empty>
+    </session>
+    
+</pal>

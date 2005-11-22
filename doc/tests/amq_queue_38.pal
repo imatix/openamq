@@ -1,0 +1,15 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST support exclusive and non-exclusive queues"
+    >
+    Test which creates an exclusive and a non exclusive queue.
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <queue_declare queue = "myqueue1" exclusive = "1" />
+        <queue_declare queue = "myqueue2" exclusive = "0" />
+    </session>
+    
+</pal>
+
+

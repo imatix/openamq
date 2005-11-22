@@ -1,0 +1,17 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST allow any type of content"
+    >
+    <!--
+    - create content of arbitrary types
+    - try to publish that content
+    -->
+    <abort>not implemented</abort>
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session>
+    
+</pal>
+
+

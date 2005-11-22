@@ -1,0 +1,26 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST respect the mandatory flag"
+    >
+    This test publishes a mandatory message with an unknown routing key,
+    and checks if the message bounces.
+    
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <queue_declare />
+        <basic_content message_id = "id-1" />
+        <basic_publish routing_key = "foobar" exchange = "amq.direct" mandatory = "1"/>
+        <basic_get queue = "$queue" />
+        <basic_arrived>
+            <abort>Message '$message_id' [$body_size] came back from $exchange to us using rk: '$routing_key'</abort>
+        </basic_arrived>
+        <basic_bounced>
+            <echo>Bounced</echo>
+        </basic_bounced>
+        <empty>
+            <abort>Message did not come back, this is bad!</abort>
+        </empty>
+    </session>
+    
+</pal>

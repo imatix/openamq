@@ -1,0 +1,16 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST support transient and durable queues"
+    >
+    This test creates a transient and durable queue.
+    
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <queue_declare />
+        <queue_declare durable = "1" />
+    </session>
+    
+</pal>
+
+

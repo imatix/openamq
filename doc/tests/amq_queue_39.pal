@@ -1,0 +1,18 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST raise a connection exception on bind failure"
+    >
+    <!--
+        - declare a queue
+        - bind the queue to an exchange, provoking a failure
+        - assert failure
+    -->
+    <abort>not implemented</abort>
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session>
+    
+</pal>
+
+

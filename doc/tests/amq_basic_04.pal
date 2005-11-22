@@ -10,8 +10,9 @@
     <session>
         <queue_declare />
         <basic_consume queue = "$queue" />
-        <echo>consumer_tag = $consumer_tag, but not in the cancel method</echo>
-        <basic_cancel queue = "$queue" consumer = "$consumer_tag" />
+        <echo>$consumer_tag works in echo, but not as a value it seems</echo>
+        <set name = "ct" value = "$consumer_tag" />
+        <basic_cancel queue = "$queue" consumer = "$ct" />
     </session>
     
 </pal>

@@ -1,0 +1,22 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST ignore the durable field if it queue is already declared"
+    >
+    This test creates a queue, and tries to redeclare it durable.
+    <!--
+        - declare myqueue
+        - declare myqueue durable = 1
+        - check if durable field is ignored
+        - declare myqueue2 durable = 1
+        - declare myqueue2 durable = 0
+        - check if durable field is ignored
+    -->
+    <abort>not implemented</abort>
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session>
+    
+</pal>
+
+
