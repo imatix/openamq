@@ -83,7 +83,7 @@
   </doc>
   <doc name = "rule">
     Streaming applications SHOULD use different channels to select
-    different streaming resolutions. AMQP/Fast makes no provision for
+    different streaming resolutions. AMQP makes no provision for
     filtering and/or transforming streams except on the basis of
     priority-based selective delivery of individual messages.
   </doc>

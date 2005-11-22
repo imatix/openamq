@@ -10,10 +10,10 @@
   Distributed transactions provide so-called "2-phase commit".  This
   is slower and more complex than standard transactions but provides
   more assurance that messages will be delivered exactly once.  The
-  AMQP/Fast distributed transaction model supports the X-Open XA
+  AMQP distributed transaction model supports the X-Open XA
   architecture and other distributed transaction implementations.
   The Dtx class assumes that the server has a private communications
-  channel (not AMQP/Fast) to a distributed transaction coordinator.
+  channel (not AMQP) to a distributed transaction coordinator.
 </doc>
 
 <doc name = "grammar">
@@ -63,7 +63,7 @@ confirm transaction mode
     transaction identifier
     <doc>
       The distributed transaction key. This identifies the transaction
-      so that the AMQP/Fast server can coordinate with the distributed
+      so that the AMQP server can coordinate with the distributed
       transaction coordinator.
     </doc>
     <assert check = "notnull" />

@@ -68,7 +68,7 @@ Changes:
     AMQ-92   Define operable properties per operable object
     AMQ-91   All operable server objects need an external ID
     AMQ-139  Change names that clash with C++ keywords
-    AMQ-135  Update AMQP/Fast protocol documentation on openamq.org
+    AMQ-135  Update AMQP protocol documentation on openamq.org
     AMQ-129  Implement queue.declare-ok queue and consumer counts
     AMQ-128  Clustering: finish draft clustering proposal
     AMQ-90   Move virtual host selection to connection.open, from channel.open

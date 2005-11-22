@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <protocol
     name    = "amq_rfc006"
-    comment = "AMQP/Fast protocol specifications"
+    comment = "AMQP protocol specifications"
     version = "0.9"
     script  = "asl_gen"
     >

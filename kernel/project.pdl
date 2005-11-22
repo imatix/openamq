@@ -23,6 +23,8 @@
 <file name = "amq_jms.asl"           class = "public resource"   >JMS content</file>
 <file name = "amq_file.asl"          class = "public resource"   >File content</file>
 <file name = "amq_stream.asl"        class = "public resource"   >Stream content</file>
+<file name = "amq_tx.asl"            class = "public resource"   >Transactions</file>
+<file name = "amq_dtx.asl"           class = "public resource"   >2-phase transactions</file>
 
 <!-- AMQ client implementation -->
 <file name = "amq_client.asl"        class = "gsl data"          >Client definition</file>
