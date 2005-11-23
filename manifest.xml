@@ -5,18 +5,18 @@
 
   <product name = "base"
            url  = "https://svn.imatix.net/imatix/base/trunk/"
-           rev  = "7920" />
+           rev  = "7925" />
   <product name = "gsl4"
            url  = "https://svn.imatix.net/imatix/gsl4/trunk/"
-           rev  = "7920" />
+           rev  = "7925" />
   <product name = "foreign"
            url  = "https://svn.imatix.net/imatix/foreign/trunk/"
-           rev  = "7920" />
+           rev  = "7925" />
   <product name = "base2"
            url  = "https://svn.imatix.net/imatix/base2/trunk/"
-           rev  = "7920" />
+           rev  = "7925" />
   <product name = "openamq"
            url  = "https://svn.imatix.net/imatix/openamq/trunk/"
-           rev  = "7920" />
+           rev  = "7925" />
 </package>
 
