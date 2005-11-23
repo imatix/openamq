@@ -1,3 +1,33 @@
+0.9c5 - 2005/11/23
+---------------------------------------------------------------------
+Bug fixes:
+
+    AMQ-186  Memory leak in amq_server_connection
+    AMQ-178  amq_client reporting misleading.
+    AMQ-141  AMQ server core dumps while GTW GUI testing
+    AMQ-140  Queue-purge kernel pal test case fails with 'No reply received -
+             timeout'
+    AMQ-181  AMQ server does not handle illegal connection headers correctly
+    AMQ-179  AMQ documentation: inconsistency in queue.declare documentation
+    AMQ-118  Unitialised Memory Reads (UMRs) in amq_client
+    AMQ-134  Broker appears to do nothing when it should have work to do before
+             kicking in after a few seconds
+
+Changes:
+
+    AMQ-41   Virtual host implementation
+    AMQ-173  Create default binding for all queues
+    AMQ-172  Implement default exchange
+    AMQ-171  Remove 'scope' concept from queue methods
+    AMQ-16   Automate build of AMQ and it's dependencies
+    AMQ-168  Add xml schema attributes to cml
+    AMQ-145  Console: implement alpha version
+    AMQ-156  Rename Browse to Get in the protocol specification
+    AMQ-153  Write test cases to thrash creation/destruction of objects in
+             server
+    AMQ-169  Differentiate between console request and response element names
+             to allow stricter message validation
+
 0.9c4 - 2005/11/08
 ---------------------------------------------------------------------
 Bug fixes:
