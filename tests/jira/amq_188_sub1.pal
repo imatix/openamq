@@ -1,0 +1,25 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "Subscribe client 1"
+    >
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <exchange_declare exchange = "myexchange" type = "headers" />
+        <queue_declare queue = "myqueue" />
+        <queue_bind queue = "myqueue" exchange = "myexchange" />
+        <basic_consume queue = "myqueue" />
+        <repeat>
+        <wait />
+            <basic_arrived>
+                <echo>Queue 1 Rcv: [$message_id] with x=$headers-x y=$headers-y z=$headers-z</echo>
+            </basic_arrived>
+            <empty>
+                <echo>Message did not come back, this is bad!</echo>
+            </empty>
+        </repeat>
+    </session>
+    
+</pal>
+
+

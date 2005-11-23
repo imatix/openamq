@@ -1,0 +1,29 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "Subscribe client 2"
+    >
+    <session>
+        <exchange_declare exchange = "myexchange" type = "headers" />
+        <queue_declare queue = "myqueue2" />
+        <queue_bind queue = "myqueue2" exchange = "myexchange">
+            <arguments>
+                <field name = "x" value = "a" />
+            </arguments>
+        </queue_bind>
+        <echo>Bind: x MUST EQUAL 'a'</echo>
+        <basic_consume queue = "myqueue2" />
+        <repeat>
+            <wait />
+            <basic_arrived>
+                <echo>Queue 2 Rcv: [$message_id] with x=$headers-x y=$headers-y z=$headers-z</echo>
+            </basic_arrived>
+            <empty>
+                <echo>Message did not come back, this is bad!</echo>
+            </empty>
+        </repeat>
+    </session>
+    
+</pal>
+
+
