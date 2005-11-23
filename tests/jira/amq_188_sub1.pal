@@ -3,7 +3,6 @@
     script = "amq_pal_gen"
     desc   = "Subscribe client 1"
     >
-    <include filename = "amq_test_base.pal" />
     <session>
         <exchange_declare exchange = "myexchange" type = "headers" />
         <queue_declare queue = "myqueue" />
@@ -19,7 +18,5 @@
             </empty>
         </repeat>
     </session>
-    
 </pal>
-
 
