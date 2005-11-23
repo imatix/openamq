@@ -111,7 +111,7 @@ public class JmsContentHeaderProperties implements ContentHeaderProperties
         {
             // Discard msb from AMQ timestamp
             buffer.getInt();
-            timestamp = buffer.getInt();
+            timestamp = buffer.getUnsignedInt();
         }    
         if ((propertyFlags & (1 << 5)) > 0)
             type = EncodingUtils.readShortString(buffer);
