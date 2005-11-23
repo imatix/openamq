@@ -33,9 +33,8 @@
                                      generated = "1"             >Client method class</file>
 <file name = "amq_client_agent.smt"  class = "smt public module"
                                      generated = "1"             >Client protocol agent</file>
-<file name = "amq_client_classes.h"  class = "public header"     >Client classes</file>
-<file name = "amq_client_classes.hpp"  
-                                     class = "public header"     >Client classes (C++)</file>
+<file name = "amq_client_classes.icl"
+                                     class = "icl public class"  >Client classes</file>
 <file name = "amq_client_connection.icl"
                                      class = "icl public class"
                                      generated = "1"             >Client API connection class</file>
@@ -56,9 +55,8 @@
                                      generated = "1"             >Server configuration class</file>
 <file name = "amq_server_agent.smt"  class = "smt public module"
                                      generated = "1"             >Server protocol agent</file>
-<file name = "amq_server_classes.h"  class = "private resource"  >Server classes</file>
-<file name = "amq_server_classes.hpp" 
-                                     class = "private resource"  >Server classes (C++)</file>
+<file name = "amq_server_classes.icl"  
+                                     class = "icl public class"  >Server classes</file>
 <file name = "amq_server_connection.icl"
                                      class = "icl private class" >Server connection class</file>
 <file name = "amq_server_connection_table.icl"
