@@ -1,0 +1,17 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST ignore auto-delete fields on redeclaration of an exchange"
+    >
+    <!--
+        - declare myexchange auto_delete = 0
+        - declare myexchange auto_delete = 1
+        - check if myexchange is not set to autodelete 
+            (i'd like an inspector instead of checking if the exchange got deleted 
+             in a new session, these could also come in handy in other testcases)
+    -->
+    <abort>not implemented</abort>
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session>
+</pal>

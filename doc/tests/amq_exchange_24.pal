@@ -1,0 +1,13 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST support both durable and transient exchange"
+    >
+    This test declares a dureable and transient exchange
+    
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <exchange_declare exchange = "myexchange" type = "fanout" durable = "1" />
+        <exchange_declare exchange = "myexchange2" type = "fanout" />
+    </session>
+</pal>

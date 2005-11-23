@@ -8,24 +8,10 @@
     <include filename = "amq_test_base.pal" />
     <session>
         <queue_declare />
-        <basic_consume queue = "$queue" />
-        <basic_consume queue = "$queue" />
-        <basic_consume queue = "$queue" />
-        <basic_consume queue = "$queue" />
-        <basic_consume queue = "$queue" />
-        <basic_consume queue = "$queue" />
-        <basic_consume queue = "$queue" />
-        <basic_consume queue = "$queue" />
-        <basic_consume queue = "$queue" />
-        <basic_consume queue = "$queue" />
-        <basic_consume queue = "$queue" />
-        <basic_consume queue = "$queue" />
-        <basic_consume queue = "$queue" />
-        <basic_consume queue = "$queue" />
-        <basic_consume queue = "$queue" />
-        <basic_consume queue = "$queue" />
+        <repeat time = "16">
+            <basic_consume queue = "$queue" />
+        </repeat>
     </session>
-    
 </pal>
 
 

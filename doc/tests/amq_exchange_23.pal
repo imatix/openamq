@@ -1,0 +1,14 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server SHOULD support at least 16 exchanges"
+    >
+    This test declares 16 exchanges.
+    
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <repeat times = "16">
+            <exchange_declare exchange = "myexchange" type = "fanout" />
+        </repeat>
+    </session>
+</pal>
