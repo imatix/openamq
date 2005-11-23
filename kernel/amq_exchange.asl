@@ -40,7 +40,7 @@
   MUST raise a connection exception with reply code 507 (not allowed).
 </doc>
 
-<doc name = "rule">
+<doc name = "rule" test = "amq_exchange_22"> 
   The default exchange MUST be defined as internal, and be inaccessible
   to the client except by specifying an empty exchange name in a content
   Publish method. That is, the server MUST NOT let clients make explicit
@@ -55,8 +55,8 @@
     This method creates an exchange if it does not already exist, and if the
     exchange exists, verifies that it is of the correct and expected class.
   </doc>
-  <doc name = "rule">
-<!-- TODO - new -->
+  <doc name = "rule" test = "amq_exchange_23">
+<!-- TODO - new - tim: implemented in pal -->
     The server SHOULD support a minimum of 16 exchanges per virtual host
     and ideally, impose no limit except as defined by available resources.
   </doc>
@@ -129,7 +129,7 @@
       Non-durable exchanges (transient exchanges) are purged if/when a
       server restarts.
     </doc>
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_exchange_24">
       The server MUST support both durable and transient exchanges.
     </doc>
     <doc name = "rule">
@@ -144,14 +144,14 @@
       If set, the exchange is deleted when all queues have finished
       using it.
     </doc>
-    <doc name = "rule" type = "amq_exchange_02">
+    <doc name = "rule" test = "amq_exchange_02">
       The server SHOULD allow for a reasonable delay between the point
       when it determines that an exchange is not being used (or no longer
       used), and the point when it deletes the exchange.  At the least it
       must allow a client to create an exchange and then bind a queue to
       it, with a small but non-zero delay between these two actions.
     </doc>
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_exchange_25">
       The server MUST ignore the auto-delete field if the exchange already
       exists.
     </doc>
@@ -159,8 +159,8 @@
 
   <field name = "internal" type = "bit">
     create internal exchange
-    <doc>
-      If set, the exchange may not be used directly by publishers, but
+    <doc name = "rule" test = "amq_exchange_26">
+      If set, the exchange MAY NOT be used directly by publishers, but
       only when bound to other exchanges. Internal exchanges are used to
       construct wiring that is not visible to applications.
     </doc>
