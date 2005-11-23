@@ -2,31 +2,54 @@
 ---------------------------------------------------------------------
 Bug fixes:
 
-    AMQ-186  Memory leak in amq_server_connection
-    AMQ-178  amq_client reporting misleading.
-    AMQ-141  AMQ server core dumps while GTW GUI testing
-    AMQ-140  Queue-purge kernel pal test case fails with 'No reply received -
-             timeout'
-    AMQ-181  AMQ server does not handle illegal connection headers correctly
-    AMQ-179  AMQ documentation: inconsistency in queue.declare documentation
-    AMQ-118  Unitialised Memory Reads (UMRs) in amq_client
-    AMQ-134  Broker appears to do nothing when it should have work to do before
-             kicking in after a few seconds
+    AMQ-186   Memory leak in amq_server_connection
+    AMQ-178   amq_client reporting misleading.
+    AMQ-141   AMQ server core dumps while GTW GUI testing
+    AMQ-140   Queue-purge kernel pal test case fails with 'No reply received -
+              timeout'
+    AMQ-181   AMQ server does not handle illegal connection headers correctly
+    AMQ-179   AMQ documentation: inconsistency in queue.declare documentation
+    AMQ-118   Unitialised Memory Reads (UMRs) in amq_client
+    AMQ-134   Broker appears to do nothing when it should have work to do
+              before kicking in after a few seconds
+    BASE2-102 Client hangs on pthread_join  
+    BASE2-112 server restart in pal doesn't work as expected
+    BASE2-113 PAL: server destruction on abort
+    BASE2-109 icl_destroy.h doesn't compile
+    BASE2-108 Apparent bug in win32 MT code (new)
+    BASE2-111 pal generated code does not return correct value ($?)
+    BASE2-105 SMT Regression tests hang when building on win32
+    BASE2-96  XML classes are deadlocking
+    BASE2-92  icl_mem_fat_possess_: Assertion `self->tag == 0xFabbU' failed.
+    FOR-6     APR process control is broken on win32
+    FOR-7     pthread rwlocks hang on write lock
+    BASE-24   Gurudoc PDF process destroys ascii art that uses backslashes
+    BASE-25   Avoid clashing of object files for C and C++ during the build
 
 Changes:
 
-    AMQ-41   Virtual host implementation
-    AMQ-173  Create default binding for all queues
-    AMQ-172  Implement default exchange
-    AMQ-171  Remove 'scope' concept from queue methods
-    AMQ-16   Automate build of AMQ and it's dependencies
-    AMQ-168  Add xml schema attributes to cml
-    AMQ-145  Console: implement alpha version
-    AMQ-156  Rename Browse to Get in the protocol specification
-    AMQ-153  Write test cases to thrash creation/destruction of objects in
-             server
-    AMQ-169  Differentiate between console request and response element names
-             to allow stricter message validation
+    AMQ-41    Virtual host implementation
+    AMQ-173   Create default binding for all queues
+    AMQ-172   Implement default exchange
+    AMQ-171   Remove 'scope' concept from queue methods
+    AMQ-16    Automate build of AMQ and it's dependencies
+    AMQ-168   Add xml schema attributes to cml
+    AMQ-145   Console: implement alpha version
+    AMQ-156   Rename Browse to Get in the protocol specification
+    AMQ-153   Write test cases to thrash creation/destruction of objects in
+              server
+    AMQ-169   Differentiate between console request and response element names
+              to allow stricter message validation
+    BASE2-67  Add const option to arguments       
+    BASE2-114 PAL - allow all protocol constants to be used in script.
+    BASE2-107 Change the way, includes are done in container classes
+    BASE2-101 PAL: Add support for timers
+    BASE2-104 PAL: Progress indicator for loops
+    BASE-27   Make GSL output a more meaningful error message
+    BASE-26   Building individual targets by boom
+    BASE-20   Allow iCL classes to be compiled to C++
+    BASE-13   Support multiple test environments in 'boom test'  
+
 
 0.9c4 - 2005/11/08
 ---------------------------------------------------------------------
