@@ -10,7 +10,7 @@
         <queue_bind queue = "myqueue" exchange = "myexchange" />
         <basic_consume queue = "myqueue" />
         <repeat>
-        <wait />
+            <wait />
             <basic_arrived>
                 <echo>Queue 1 Rcv: [$message_id] with x=$headers-x y=$headers-y z=$headers-z</echo>
             </basic_arrived>
