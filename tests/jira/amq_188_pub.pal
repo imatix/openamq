@@ -4,7 +4,8 @@
     desc   = "Publishing client"
     >
     <session>
-        <repeat times = "10">
+        <set name = "count" value = "4" cmdline = "C" />
+        <repeat times = "$count">
         <basic_content message_id = "id-$random">
             <headers>
                 <field name = "x" value = "a" />

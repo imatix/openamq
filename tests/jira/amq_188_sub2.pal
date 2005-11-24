@@ -16,10 +16,11 @@
         <repeat>
             <wait />
             <basic_arrived>
-                <echo>Queue 2 Rcv: [$message_id] with x=$headers-x y=$headers-y z=$headers-z</echo>
+                <inc name = "messages"/>
+                <echo>In $messages: [$message_id] with x=$headers-x y=$headers-y z=$headers-z</echo>
             </basic_arrived>
             <empty>
-                <echo>Message did not come back, this is bad!</echo>
+                <abort>No message</abort>
             </empty>
         </repeat>
     </session>
