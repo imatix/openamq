@@ -23,31 +23,31 @@
 <chassis name = "server" implement = "MUST" />
 <chassis name = "client" implement = "MAY"  />
 
-<doc name = "rule">
+<doc name = "rule" test = "amq_basic_08">
   The server SHOULD respect the persistent property of basic messages
   and SHOULD make a best-effort to hold persistent basic messages on a
   reliable storage mechanism.
 </doc>
-<doc name = "rule">
+<doc name = "rule" test = "amq_basic_09">
   The server MUST NOT discard a persistent basic message in case of a
   queue overflow. The server MAY use the Channel.Flow method to slow
   or stop a basic message publisher when necessary.
 </doc>
-<doc name = "rule">
+<doc name = "rule" test = "amq_basic_10">
   The server MAY overflow non-persistent basic messages to persistent
   storage and MAY discard or dead-letter non-persistent basic messages
   on a priority basis if the queue size exceeds some configured limit.
 </doc>
-<doc name = "rule">
+<doc name = "rule" test = "amq_basic_11">
   The server MUST implement at least 2 priority levels for basic
   messages, where priorities 0-4 and 5-9 are treated as two distinct
   levels. The server MAY implement up to 10 priority levels.
 </doc>
-<doc name = "rule">
+<doc name = "rule" test = "amq_basic_12">
   The server MUST deliver messages of the same priority in order
   irrespective of their individual persistence. 
 </doc>
-<doc name = "rule">
+<doc name = "rule" test = "amq_basic_13">
   The server MUST implement automatic acknowledgements on all Basic
   messages.  That is, as soon as a message is delivered to a client
   via a Deliver or a Get-Ok method, the server must remove it from
@@ -184,12 +184,12 @@
       The server MUST accept a blank exchange name to mean the default
       exchange.
     </doc>
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_basic_14">
       If the exchange was declared as an internal exchange, the server
       MUST respond with a reply code 403 (access refused) and raise a
       channel exception.
     </doc>
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_basic_15"> 
       The exchange MAY refuse basic content in which case it MUST
       respond with a reply code 540 (not implemented) and raise a
       channel exception.
@@ -217,11 +217,11 @@
 
   <field name = "immediate" type = "bit">
     request immediate delivery
-    <doc>
+    <doc name = "rule" test = "amq_basic_16">
       This flag tells the server how to react if the message cannot be
       routed to a queue consumer immediately.  If this flag is set, the
-      server returns the message with a Bounce method.  If this flag is
-      zero, the server queues the message, but with no guarantee that it
+      server MUST return the message with a Bounce method.  If this flag is
+      zero, the server MUST queue the message, but with no guarantee that it
       will ever be consumed.  The meaning of this bit is not defined
       when a message is routed through multiple exchanges.
     </doc>
