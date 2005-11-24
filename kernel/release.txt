@@ -2,6 +2,11 @@
 ---------------------------------------------------------------------
 Bug fixes:
 
+    AMQ-132   Regression tests fail: amq_server_channel_test hangs       
+    AMQ-189   The JMS layer is reading negative timestamps (and possibly other
+              protocol values) from server  
+    AMQ-188   In some very specific cases, the server will stop delivering
+              messages to some of the registered subscribers     
     AMQ-186   Memory leak in amq_server_connection
     AMQ-178   amq_client reporting misleading.
     AMQ-141   AMQ server core dumps while GTW GUI testing
@@ -12,6 +17,8 @@ Bug fixes:
     AMQ-118   Unitialised Memory Reads (UMRs) in amq_client
     AMQ-134   Broker appears to do nothing when it should have work to do
               before kicking in after a few seconds
+    BASE2-118 SMT method queues are not waiting correctly
+    BASE2-117 Bool should be a native type
     BASE2-102 Client hangs on pthread_join  
     BASE2-112 server restart in pal doesn't work as expected
     BASE2-113 PAL: server destruction on abort
