@@ -50,11 +50,10 @@
                 icl_console_print ("X: route    header=%s binding=%d", index_key, item_nbr);
             if (item_nbr < self->lowest)
                 self->lowest = item_nbr;
-            if (item_nbr > self->highest) {
-                //  We don't nullify this object so initialise new hit_count
-                self->hit_count [item_nbr] = 0;
-                self->highest = item_nbr;
-            }
+            //  We don't nullify this object so initialise new hit counts
+            while (self->highest < item_nbr)
+                self->hit_count [++self->highest] = 0;
+
             self->hit_count [item_nbr]++;
             item_nbr = ipr_bits_next (index->bindset, item_nbr);
         }
