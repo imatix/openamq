@@ -59,8 +59,8 @@ for testcase in `ls *.pal|grep -v amq_test_base.pal|grep -v works.pal|grep -v fa
         STAT="[$RED FAIL $RESET]"
     fi
     
-    echo "$STAT $testcase:$COMP$DESC... "
+    echo -n "$STAT $testcase:$COMP$DESC... "
     # only temporary solution, pal needs to make sure the server is down
-    killall -9 amq_server &>/dev/null
+    killall -9 amq_server &>/dev/null && echo "(${RED}lingering server killed${RESET})" || echo
 done
 

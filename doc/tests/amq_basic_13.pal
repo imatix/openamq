@@ -1,0 +1,17 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST implement automatic acknowledgements on all messages"
+    >
+    <!--
+        - ? 
+        - what about fanout? if an msg got removed on Deliver or Get-ok, how can it be sent twice?
+    -->
+    <abort>not implemented</abort>
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session>
+    
+</pal>
+
+
