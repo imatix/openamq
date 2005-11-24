@@ -144,7 +144,7 @@
       specific limit", although other prefetch limits may still apply.
       The prefetch-size is ignored if the auto-ack option is set.
     </doc>
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_basic_17">
       The server MUST ignore this setting when the client is not
       processing any messages - i.e. the prefetch size does not limit
       the transfer of single messages to a client, only the sending in
@@ -163,7 +163,7 @@
       (and those at the channel and connection level) allow it.
       The prefetch-count is ignored if the auto-ack option is set.
     </doc>
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_basic_18">
       The server MAY send less data in advance than allowed by the
       client's specified prefetch windows but it MUST NOT send more.
     </doc>
@@ -335,7 +335,7 @@
     consumer using the Consume method, then the server responds with
     Deliver methods as and when messages arrive for that consumer.
   </doc>
-  <doc name = "rule">
+  <doc name = "rule" test = "amq_basic_19">
     The server SHOULD track the number of times a message has been
     delivered to clients and when a message is redelivered a certain
     number of times - e.g. 5 times - without being acknowledged, the
@@ -467,7 +467,7 @@
       message.  If the multiple field is 1, and the delivery tag is zero,
       tells the server to acknowledge all outstanding mesages.
     </doc>
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_basic_20">
       The server MUST validate that a non-zero delivery-tag refers to an
       delivered message, and raise a channel exception if this is not the
       case.
@@ -485,7 +485,7 @@
     interrupt and cancel large incoming messages, or return untreatable
     messages to their original queue.
   </doc>
-  <doc name = "rule">
+  <doc name = "rule" test = "amq_basic_21">
     The server SHOULD be capable of accepting and process the Reject
     method while sending message content with a Deliver or Get-Ok
     method.  I.e. the server should read and process incoming methods
@@ -493,7 +493,7 @@
     the server sends a content body frame of size 1 (i.e. with no data
     except the frame-end octet).
   </doc>
-  <doc name = "rule">
+  <doc name = "rule" test = "amq_basic_22">
     The server SHOULD interpret this method as meaning that the client
     is unable to process the message at this time.
   </doc>
@@ -512,7 +512,7 @@
       If this field is zero, the message will be discarded.  If this bit
       is 1, the server will attempt to requeue the message.
     </doc>
-    <doc name = "rule">
+    <doc name = "rule" test = "amq_basic_23">
       The server MUST NOT deliver the message to the same client within
       the context of the current channel.  The recommended strategy is
       to attempt to deliver the message to an alternative consumer, and
