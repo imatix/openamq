@@ -1,0 +1,13 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MAY support tx"
+    >
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <tx_select />
+    </session>
+    
+</pal>
+
+

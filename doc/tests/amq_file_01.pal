@@ -1,0 +1,11 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MAY support file (transfer)"
+    >
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <file_content message_id = "id-1" />
+    </session>
+    <abort>not implemented</abort>
+</pal>

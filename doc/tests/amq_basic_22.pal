@@ -1,0 +1,16 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server SHOULD interpret Reject as the client who is unable to process the message"
+    >
+    <!--
+        - ?
+    -->
+    <abort>not implemented</abort>
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session>
+    
+</pal>
+
+

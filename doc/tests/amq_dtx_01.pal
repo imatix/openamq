@@ -1,0 +1,13 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MAY support dtx"
+    >
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <dtx_select />
+    </session>
+    
+</pal>
+
+

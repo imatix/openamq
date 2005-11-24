@@ -1,0 +1,16 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST respect the multiple field on ack"
+    >
+    <!--
+        - ?
+    -->
+    <abort>not implemented</abort>
+    <include filename = "amq_test_base.pal" />
+    <session>
+    </session>
+    
+</pal>
+
+
