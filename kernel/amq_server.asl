@@ -30,9 +30,12 @@
     if (ipr_str_prefixed (method->exchange, "amq.") && !method->passive)
         amq_server_connection_exception (connection, ASL_NOT_ALLOWED,
             "Exchange name not allowed");
-    else
+    else {
         exchange_type = amq_exchange_type_lookup (method->type);
-        
+        if (!exchange_type)
+            amq_server_connection_exception (connection, ASL_COMMAND_INVALID,
+                "Unknown exchange type");
+    }
     if (exchange_type) {
         //  Find exchange and create if necessary
         exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
@@ -65,9 +68,6 @@
             amq_exchange_unlink (&exchange);
         }
     }
-    else
-        amq_server_connection_exception (connection, ASL_COMMAND_INVALID,
-            "Unknown exchange type");
   </action>
 
   <action name = "delete">
