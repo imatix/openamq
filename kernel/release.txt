@@ -1,3 +1,10 @@
+0.9c6 - 2005/11/25
+---------------------------------------------------------------------
+Bug fixes:
+
+     AMQ-191   Queue.Bind is causing an assertion failure 
+     BASE2-126 Increase ipr_bits limit (currently 8k)  
+
 0.9c5 - 2005/11/23
 ---------------------------------------------------------------------
 Bug fixes:
