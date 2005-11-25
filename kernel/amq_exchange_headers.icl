@@ -100,7 +100,7 @@ that is in every content header).
                         icl_shortstr_ncat (index_key,
                             asl_field_string (field), FIELD_VALUE_MAX);
                     }
-                    s_compile_binding (self, binding, index_key);
+                    rc = s_compile_binding (self, binding, index_key);
                     field = asl_field_list_next (&field);
                 }
                 asl_field_list_destroy (&headers);
@@ -131,7 +131,7 @@ that is in every content header).
                         icl_shortstr_ncat (index_key,
                             asl_field_string (field), FIELD_VALUE_MAX);
                     }
-                    s_compile_binding (self, binding, index_key);
+                    rc = s_compile_binding (self, binding, index_key);
                 }
                 field = asl_field_list_next (&field);
             }
@@ -140,7 +140,12 @@ that is in every content header).
 
         //  If zero fields specified, match on all messages
         if (binding->field_count == 0)
-            s_compile_binding (self, binding, MATCH_ALL_KEY);
+            rc = s_compile_binding (self, binding, MATCH_ALL_KEY);
+
+        if (rc) {
+            amq_server_connection_exception (channel->connection,
+                ASL_COMMAND_INVALID, "Queue binding failed, too many bindings");
+        }
     }
     else {
         rc = 1;
@@ -210,34 +215,43 @@ that is in every content header).
 </method>
 
 <private name = "header">
-static void
+static int
     s_compile_binding ($(selftype) *self, amq_binding_t *binding, char *index_key);
 </private>
 
 <private>
-static void
+static int
 s_compile_binding (
     $(selftype)   *self,
     amq_binding_t *binding,
     char          *index_key)
 {
+    int
+        rc = 0;                         //  Return code
     amq_index_t
         *index;                         //  Index reference from index_hash
 
     if (amq_server_config_trace_route (amq_server_config))
         icl_console_print ("X: index    request=%s binding=%d", index_key, binding->index);
 
-    index = amq_index_hash_search (self->index_hash, index_key);
-    if (index == NULL)
-        index = amq_index_new (self->index_hash, index_key, self->index_array);
+    if (binding->index < IPR_BITS_SIZE_BITS) {
+        index = amq_index_hash_search (self->index_hash, index_key);
+        if (index == NULL)
+            index = amq_index_new (self->index_hash, index_key, self->index_array);
 
-    //  Cross-reference binding and index
-    ipr_bits_set (index->bindset, binding->index);
-    ipr_looseref_queue (binding->index_list, index);
+        //  Cross-reference binding and index
+        ipr_bits_set (index->bindset, binding->index);
+        ipr_looseref_queue (binding->index_list, index);
 
-    //  We count the number of fields to allow AND matching
-    binding->field_count++;
-    amq_index_unlink (&index);
+        //  We count the number of fields to allow AND matching
+        binding->field_count++;
+        amq_index_unlink (&index);
+    }
+    else {
+        icl_console_print ("E: too many bindings, limit is %d", IPR_BITS_SIZE_BITS);
+        rc = 1;
+    }
+    return (rc);
 }
 </private>
 </class>
