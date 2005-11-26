@@ -193,18 +193,21 @@ maximum number of consumers per channel is set at compile time.
     //  Let's try some edge cases
     channel = amq_server_channel_new (table, AMQ_SERVER_CHANNEL_TABLE_MAXSIZE - 1, NULL);
     amq_server_channel_destroy (&channel);
+    smt_os_thread_wait (0);
 
     channel = amq_server_channel_new (table, AMQ_SERVER_CHANNEL_TABLE_MAXSIZE, NULL);
     amq_server_channel_destroy (&channel);
+    smt_os_thread_wait (0);
 
     channel = amq_server_channel_new (table, AMQ_SERVER_CHANNEL_TABLE_MAXSIZE + 1, NULL);
     amq_server_channel_destroy (&channel);
 
     //  Now some random table bashing
-    for (count = 0; count < 100; count++) {
+    for (count = 0; count < 2000; count++) {
         channel_nbr = randomof (0xffff);
         channel = amq_server_channel_new (table, channel_nbr, NULL);
         amq_server_channel_destroy (&channel);
+        smt_os_thread_wait (0);
     }
     amq_server_channel_table_destroy (&table);
 </method>
