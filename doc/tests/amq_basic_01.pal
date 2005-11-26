@@ -8,7 +8,7 @@
     <include filename = "amq_test_base.pal" />
     <session>
         <queue_declare />
-        <repeat time = "16">
+        <repeat times = "16">
             <basic_consume queue = "$queue" />
         </repeat>
     </session>
