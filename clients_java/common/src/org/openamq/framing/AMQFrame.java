@@ -20,7 +20,7 @@ public class AMQFrame extends AMQDataBlock implements EncodableAMQDataBlock
         buffer.put((byte)0);
         // TODO: how does channel get populated
         EncodingUtils.writeUnsignedShort(buffer, channel);
-        EncodingUtils.writeUnsignedInteger(buffer, bodyFrame.getSize() + 1);
+        EncodingUtils.writeUnsignedInteger(buffer, bodyFrame.getSize());
         bodyFrame.writePayload(buffer);
         buffer.put((byte) 0xCE);
     }

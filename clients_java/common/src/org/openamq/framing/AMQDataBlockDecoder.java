@@ -114,8 +114,7 @@ public class AMQDataBlockDecoder implements MessageDecoder
         BodyFactory bodyFactory = (BodyFactory) _supportedBodies.get(new Byte(type));
         AMQFrame frame = new AMQFrame();
 
-        // Note that bodySize here includes the end of frame marker
-        frame.populateFromBuffer(in, channel, bodySize - 1, bodyFactory);
+        frame.populateFromBuffer(in, channel, bodySize, bodyFactory);
 
         byte marker = in.get();
         assert marker == 0xCE;
