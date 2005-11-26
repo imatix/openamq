@@ -27,15 +27,7 @@
         exchange_type = 0;
     </local>
     //
-    if (ipr_str_prefixed (method->exchange, "amq.") && !method->passive)
-        amq_server_connection_exception (connection, ASL_NOT_ALLOWED,
-            "Exchange name not allowed");
-    else {
-        exchange_type = amq_exchange_type_lookup (method->type);
-        if (!exchange_type)
-            amq_server_connection_exception (connection, ASL_COMMAND_INVALID,
-                "Unknown exchange type");
-    }
+    exchange_type = amq_exchange_type_lookup (method->type);
     if (exchange_type) {
         //  Find exchange and create if necessary
         exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
@@ -44,17 +36,22 @@
                 amq_server_channel_close (
                     channel, ASL_NOT_FOUND, "No such exchange defined");
             else {
-                exchange = amq_exchange_new (
-                    amq_vhost->exchange_table,
-                    amq_vhost,
-                    exchange_type,
-                    method->exchange,
-                    method->durable,
-                    method->auto_delete,
-                    method->internal);
-                if (!exchange)
-                    amq_server_connection_exception (connection, ASL_RESOURCE_ERROR,
-                        "Unable to declare exchange");
+                if (ipr_str_prefixed (method->exchange, "amq."))
+                    amq_server_channel_close (channel, ASL_ACCESS_REFUSED,
+                        "Exchange name not allowed");
+                else {
+                    exchange = amq_exchange_new (
+                        amq_vhost->exchange_table,
+                        amq_vhost,
+                        exchange_type,
+                        method->exchange,
+                        method->durable,
+                        method->auto_delete,
+                        method->internal);
+                    if (!exchange)
+                        amq_server_connection_exception (connection, ASL_RESOURCE_ERROR,
+                            "Unable to declare exchange");
+                }
             }
         }
         if (exchange) {
@@ -68,6 +65,9 @@
             amq_exchange_unlink (&exchange);
         }
     }
+    else
+        amq_server_connection_exception (connection, ASL_COMMAND_INVALID,
+            "Unknown exchange type");
   </action>
 
   <action name = "delete">

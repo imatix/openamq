@@ -81,9 +81,9 @@
     <doc name = "rule" test = "amq_exchange_15">
 <!-- TODO - changed from channel to connection exception -->
       Exchange names starting with "amq." are reserved for predeclared
-      and standardised exchanges.  If the exchange name starts with "amq."
-      and the passive option is zero, the server MUST raise a connection
-      exception with reply code 507 (not allowed).
+      and standardised exchanges.  If the client attempts to create an
+      exchange starting with "amq.", the server MUST raise a channel
+      exception with reply code 403 (access refused).
     </doc>
   </field>
 
@@ -159,8 +159,8 @@
 
   <field name = "internal" type = "bit">
     create internal exchange
-    <doc name = "rule" test = "amq_exchange_26">
-      If set, the exchange MAY NOT be used directly by publishers, but
+    <doc>
+      If set, the exchange may not be used directly by publishers, but
       only when bound to other exchanges. Internal exchanges are used to
       construct wiring that is not visible to applications.
     </doc>

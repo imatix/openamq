@@ -220,6 +220,11 @@
     Bindings for durable queues are automatically durable and the
     server SHOULD restore such bindings after a server restart.
   </doc>
+  <doc name = "rule" test = "amq_queue_17">
+    If the client attempts to an exchange that was declared as internal,
+    the server MUST raise a connection exception with reply code 530
+    (not allowed).
+  </doc>
   <doc name = "rule" test = "amq_queue_40">
     The server SHOULD support at least 4 bindings per queue, and
     ideally, impose no limit except as defined by available resources.
