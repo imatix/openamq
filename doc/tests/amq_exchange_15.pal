@@ -1,14 +1,14 @@
 <?xml?>
 <pal
     script = "amq_pal_gen"
-    desc   = "the server MUST handle redeclaration of standardized exchanges correctly"
+    desc   = "the server MUST not let the client create a reserved exchange"
     >
     Test to see if it's possible to declare a standardized exchange.
 
     <include filename = "amq_test_base.pal" />
     <session error_handling = "recover" >
-        <exchange_declare exchange = "amq.direct" type = "direct" passive = "0" />
-        <assert name = "reply_code" value = "507" />
+        <exchange_declare exchange = "amq.testname" type = "direct" />
+        <assert name = "reply_code" value = "403" />
     </session>
 </pal>
 
