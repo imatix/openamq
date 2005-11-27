@@ -32,9 +32,9 @@ overflow etc.
 
 Messages may have a priority level, according to the semantics of each
 class. A high priority message is sent ahead of lower priority messages
-waiting in the same queue or subscription. When messages must be
-discarded in order to maintain a specific service quality level the
-server will first discard low-priority messages.
+waiting in the same message queue. When messages must be discarded in
+order to maintain a specific service quality level the server will first
+discard low-priority messages.
 
 The server MUST NOT modify messages that it receives and passes to
 consumer applications. That is, both content headers and content bodies
@@ -44,10 +44,11 @@ Virtual Hosts
 -------------
 
 A virtual host is a data partition within the server. A virtual host
-comprises a set of exchanges, queues, and all associated objects. Each
-connection is associated with a single virtual host. The client selects
-the virtual host in the Connection.Open method, after authentication.
-All channels within the connection work with the same virtual host.
+comprises a set of exchanges, message queues, and all associated
+objects. Each connection is associated with a single virtual host. The
+client selects the virtual host in the Connection.Open method, after
+authentication. All channels within the connection work with the same
+virtual host.
 
 The protocol offers no mechanisms for creating or configuring virtual
 hosts - this is done in an undefined manner within the server and is
@@ -58,7 +59,7 @@ Exchanges
 
 An exchange is a message routing agent within a virtual host. An
 exchange accepts messages and routing information - principally a
-routing key - and either passes the messages to server queues, or to
+routing key - and either passes the messages to message queues, or to
 internal services. Exchanges are named on a per-virtual host basis.
 
 Applications can freely create, share, use, and destroy exchange
@@ -74,29 +75,30 @@ section. AMQP mandates a small number of exchange types, and recommends
 some more. Further, each server implementation may add its own exchange
 types.
 
-An exchange can route a single message to many queues in parallel. This
-creates multiple instances of the message that are consumed
-independently.
+An exchange can route a single message to many message queues in
+parallel. This creates multiple instances of the message that are
+consumed independently.
 
 The Direct Exchange Type
 ........................
 
 The direct exchange type works as follows:
 
- 1. A queue binds to the exchange using a routing key, K.
+ 1. A message queue binds to the exchange using a routing key, K.
 
  2. A publisher sends the exchange a message with the routing key R.
 
- 3. The message is passed to the queue if K = R.
+ 3. The message is passed to the message queue if K = R.
 
-Note that queues can bind using any valid routing key value, but most
-often queues will bind using their queue name as routing key.  The
-default binding for each queue is made using the queue name.
+Note that message queues can bind using any valid routing key value, but
+most often message queues will bind using their own name as routing key.
+The default binding for each message queue is made like this, using the
+message queue name.
 
 One suggested design for the direct exchange is a lookup table that
-allows a message routing key to be rapidly mapped to a list of queues.
-This exchange type, and a pre-declared exchange called amq.direct, are
-mandatory.
+allows a message routing key to be rapidly mapped to a list of message
+queues. This exchange type, and a pre-declared exchange called
+amq.direct, are mandatory.
 
 The server MUST implement the direct exchange type and MUST predeclare
 within each virtual host at least two direct exchanges: one named
@@ -108,11 +110,11 @@ The Fanout Exchange Type
 
 The fanout exchange type works as follows:
 
- 1. A queue binds to the exchange with no arguments.
+ 1. A message queue binds to the exchange with no arguments.
 
  2. A publisher sends the exchange a message.
 
- 3. The message is passed to the queue unconditionally.
+ 3. The message is passed to the message queue unconditionally.
 
 The fanout exchange is trivial to design and implement. This exchange
 type, and a pre-declared exchange called amq.fanout, are mandatory.
@@ -122,11 +124,11 @@ The Topic Exchange Type
 
 The topic exchange type works as follows:
 
- 1. A queue binds to the exchange using a routing pattern, P.
+ 1. A message queue binds to the exchange using a routing pattern, P.
 
  2. A publisher sends the exchange a message with the routing key R.
 
- 3. The message is passed to the queue if R matches P.
+ 3. The message is passed to the message queue if R matches P.
 
 The routing key used for a topic exchange MUST consist of words
 delimited by dots. Each word may contain the letters A-Z and a-z and
@@ -140,8 +142,8 @@ and eur.stock.db but not stock.nasdaq.
 One suggested design for the topic exchange is to hold the set of all
 known routing keys, and update this when publishers use new routing
 keys. It is possible to determine all bindings for a given routing key,
-and so to rapidly find the queues for a message.  This exchange type
-is optional.
+and so to rapidly find the message queues for a message. This exchange
+type is optional.
 
 The server SHOULD implement the topic exchange type and in that case,
 the server MUST predeclare within each virtual host at least one topic
@@ -167,40 +169,43 @@ All implementation-defined exchange types MUST be named starting with
 "x-". Exchange types that do not start with "x-" are reserved for future
 use in the AMQ standard.
 
-Server Queues
--------------
+Message Queues
+--------------
 
-A server queue is a named FIFO buffer that holds message on behalf of a
+A message queue is a named FIFO buffer that holds message on behalf of a
 set of consumer applications.  Applications can freely create, share,
-use, and destroy server queues, within the limits of their authority.
+use, and destroy message queues, within the limits of their authority.
 
-Server queues may be durable, temporary, or auto-deleted. Durable queues
-last until they are deleted. Temporary queues last until the server
-shuts-down. Auto-deleted queues last until they are no longer used.
+Message queues may be durable, temporary, or auto-deleted. Durable
+message queues last until they are deleted. Temporary message queues
+last until the server shuts-down. Auto-deleted message queues last until
+they are no longer used.
 
-Queues hold their messages in memory, on disk, or some combination of
-these. Queues are named on a per-virtual host basis.
+Message queues hold their messages in memory, on disk, or some
+combination of these. Message queues are named on a per-virtual host
+basis.
 
-Queues hold messages and distribute them between one or more consumer
-clients. A message routed to a queue is never sent to more than one
-client unless it is is being resent after a failure or rejection.
+Message queues hold messages and distribute them between one or more
+consumer clients. A message routed to a message queue is never sent to
+more than one client unless it is is being resent after a failure or
+rejection.
 
-A single queues can hold different types of content at the same time and
-independently. That is, if Basic and JMS contents are sent to the same
-queue, these will be delivered to consuming applications independently
-as requested.
+A single message queue can hold different types of content at the same
+time and independently. That is, if Basic and File contents are sent to
+the same message queue, these will be delivered to consuming
+applications independently as requested.
 
 Bindings
 --------
 
-A binding is a relationship between a server queue and an exchange.
+A binding is a relationship between a message queue and an exchange.
 The binding specifies routing arguments that tell the exchange which
 messages the queue should get.
 
 Applications create and destroy bindings as needed to drive the flow of
-messages into their queues. Bindings have the same lifespan as the
-queues they are defined for - when a queue is destroyed, its bindings
-are also destroyed.
+messages into their message queues. Bindings have the same lifespan as
+the message queues they are defined for - when a message queue is
+destroyed, its bindings are also destroyed.
 
 The specific semantics of the Queue.Bind method depends on the exchange
 type.
@@ -210,28 +215,28 @@ Consumers
 
 We use the term "consumer" to mean both the client application and the
 entity that controls how a specific client application receives messages
-off a server queue. When the client "starts a consumer" it creates a
+off a message queue. When the client "starts a consumer" it creates a
 consumer entity in the server. When the client "cancels a consumer" it
 destroys a consumer entity in the server.
 
-Consumers belong to a single client channel and cause the queue to send
-messages asynchronously to the client. The consumer controls how fast
-messages are sent, using the concept of "prefetch". Prefetch indicates
-the number of messages (or octets in some cases) that the queue will
-send before the client acknowledges a message. The goal of the prefetch
-function is that message data will be sent to clients in advance. This
-reduces message latency.
+Consumers belong to a single client channel and cause the message queue
+to send messages asynchronously to the client. The consumer controls how
+fast messages are sent, using the concept of "prefetch". Prefetch
+indicates the number of messages (or octets in some cases) that the
+message queue will send before the client acknowledges a message. The
+goal of the prefetch function is that message data will be sent to
+clients in advance. This reduces message latency.
 
 Acknowledgments
 ---------------
 
 An acknowledgement is a formal signal from the client application to
-a server queue that it has successfully processed a message. There are
+a message queue that it has successfully processed a message. There are
 two possible acknowledgement models:
 
-1. Automatic, in which the server removes a content from a queue as
-   soon as it delivers it to an application (via the Deliver or Get-Ok
-   methods).
+1. Automatic, in which the server removes a content from a message queue
+   as soon as it delivers it to an application (via the Deliver or
+   Get-Ok methods).
 
 2. Explicit, in which the client application must send an Ack method
    for each message, or batch of messages, that it has processed.
@@ -262,9 +267,9 @@ client MUST respect these conventions:
 
  - Standard system services are prefixed by "amq.".
 
- - Standard server queues are prefixed by "amq.".
+ - Standard message queues are prefixed by "amq.".
 
- - All other exchange, system service, and queue names are in
+ - All other exchange, system service, and message queue names are in
    application space.
 
 AMQP Classes and Methods
@@ -274,8 +279,8 @@ Explanatory Notes
 -----------------
 
 The AMQP methods may define specific minimal values (such as numbers of
-consumers per queue) for interoperability reasons. These minima are
-defined in the description of each class.
+consumers per message queue) for interoperability reasons. These minima
+are defined in the description of each class.
 
 The grammars use this notation:
 

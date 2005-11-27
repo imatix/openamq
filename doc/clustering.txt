@@ -481,11 +481,11 @@ This lets us start the cluster in any order, and lets us switch an
 old primary server back on after a failure (it will assume the role
 of secondary server).
 
-The design has one flaw that we can see: if there are intermittent
-communication problems both between the servers, and between the
-servers, and clients, we may get both servers acting as primary
-server at some stage.  This would cause messages to get lost, with
-producers and consumers unable to communicate.
+- primary and secondary track nr of clients
+- expect >50% to connect to become primary server
+- less <50% means primary -> secondary
+- client api tells application, "wait"
+- client api reconnects and lets application continue
 
 To avoid this risk, the servers should continuously verify that
 they are not usurping the role of primary server, by checking the
@@ -554,6 +554,17 @@ OpenAMQ Server
 
  - Cluster monitoring agent (asynchronous agent that monitors other
    servers).
+
+Level 1 Clustering
+******************
+
+- primary/secondary server for all stateful resources, i.e. shared
+queues.
+- connected network of auxilliary servers for pub/sub.
+- client connects and gets information on which host to connect to.
+- client reconnects to correct sub-cluster.
+- only primary/secondary are fixed in cluster, others are transient.
+
 
 Level N Clustering
 ******************
@@ -697,6 +708,7 @@ Problem:
     a time?
 Method:
     Consumers will attach to a single server, publishers will send
+
     messages to all servers. Relies on high-degree of fanout, with
     same message going to many consumers.
 Pros:

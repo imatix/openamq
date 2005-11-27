@@ -1,7 +1,7 @@
 <?xml?>
 <pal
     script = "amq_pal_gen"
-    desc   = "the server MUST accept the AMQP/Fast protocol" 
+    desc   = "the server MUST accept the AMQP protocol" 
     >
     <!--
     - connect to server socket

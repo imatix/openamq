@@ -1,11 +1,11 @@
 gdl
     title     = AMQP
     subtitle  = A General-Purpose Middleware Standard
-    product   = OpenAMQ
-    author    = Pieter Hintjens <ph@imatix.com>
+    product   = AMQ
+    author    = The AMQ Working Group <group@amqp.org>
     date      = 2005/10/25
-    copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 0.9d0
+    copyright = Copyright (c) 2004-2005 JPMorganChase Inc.
+    version   = 0.9d1
 end gdl
 
 [see protocol1.txt]

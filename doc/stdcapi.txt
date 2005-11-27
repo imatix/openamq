@@ -81,7 +81,7 @@ program does no error handling so you should *not* copy this code:
             *connection = NULL;             //  Current connection
         amq_client_session_t
             *session = NULL;                //  Current session
-        amq_content_jms_t
+        amq_content_basic_t
             *content = NULL;                //  Message content
         icl_longstr_t
             *auth_data;
@@ -97,12 +97,12 @@ program does no error handling so you should *not* copy this code:
         session = amq_client_session_new (connection);
 
         //  Create a content and send it to the "queue" exchange
-        content = amq_content_jms_new ();
-        amq_content_jms_set_body       (content, "0123456789", 10, NULL);
-        amq_content_jms_set_message_id (content, "ID001");
-        amq_client_session_jms_publish (
-            session, content, 0, "queue", "mydest", FALSE, FALSE);
-        amq_content_jms_set_destroy (&content);
+        content = amq_content_basic_new ();
+        amq_content_basic_set_body       (content, "0123456789", 10, NULL);
+        amq_content_basic_set_message_id (content, "ID001");
+        amq_client_session_basic_publish (
+            session, content, 0, "to-address", NULL, FALSE, FALSE);
+        amq_content_basic_set_destroy (&content);
 
         //  Shutdown connection and session
         amq_client_session_destroy    (&session);
@@ -118,8 +118,8 @@ This shows some of the main object classes that compose the client API:
  - amq_client_connection: lets you connect to a server.
  - amq_client_session: lets you create a session and talk to the server
    using this session.
- - amq_content_jms: lets you create JMS content to send to the server,
-   or process JMS content received from the server.
+ - amq_content_basic: lets you create Basic content to send to the
+   server, or process Basic content received from the server.
 
 The iCL Class Syntax
 ====================
@@ -160,11 +160,11 @@ And the correct way to call a method like publish is:
 
     int rc;
     ...
-    content = amq_content_jms_new ();
+    content = amq_content_basic_new ();
     ...
-    rc = amq_client_session_jms_publish (
+    rc = amq_client_session_basic_publish (
         session, content, 0, "queue", "mydest", FALSE, FALSE);
-    amq_content_jms_set_destroy (&content);
+    amq_content_basic_set_destroy (&content);
     if (rc) {
         icl_console_print ("E: could not publish message");
         return (1);
@@ -312,31 +312,31 @@ timeout expired:
 Content Access Methods
 ======================
 
-For each content class (Basic, JMS), the API provides a set of methods
-to access arrived and bounced content:
+For each content class (Basic, File, Stream), the API provides a set of
+methods to access arrived and returned content:
 
-    amq_client_session_<classname>_<arrived|bounced> ()
-    amq_client_session_<classname>_<arrived|bounced>_count ()
+    amq_client_session_<classname>_<arrived|returned> ()
+    amq_client_session_<classname>_<arrived|returned>_count ()
 
 The first method returns the oldest content waiting to be processed,
 the second methods returns the number of contents waiting.  For example:
 
-    amq_content_jms_t
+    amq_content_basic_t
         *content;
 
     amq_client_session_wait (session);
-    if (amq_client_session_jms_arrived_count (session)) {
+    if (amq_client_session_basic_arrived_count (session)) {
         icl_console_print ("I: have messages to process...");
-        content = amq_client_session_jms_arrived (session);
+        content = amq_client_session_basic_arrived (session);
         while (content) {
             //  process content
-            content = amq_client_session_jms_arrived (session);
+            content = amq_client_session_basic_arrived (session);
         }
     }
 
-When processing arrived or bounced content the application must not
+When processing arrived or returned content the application must not
 assume that a single content arrived.  It should assume that zero or
-more contents arrived or bounced, and process each of them, and wait
+more contents arrived or returned, and process each of them, and wait
 again if it needs to.
 
 Protocol methods
@@ -356,13 +356,9 @@ and you should read the AMQP specifications for details:
  - amq_client_session_basic_consume - mapped to Basic.Consume.
  - amq_client_session_basic_cancel - mapped to Basic.Cancel.
  - amq_client_session_basic_publish - mapped to Basic.Publish.
- - amq_client_session_basic_browse - mapped to Basic.Browse.
- - amq_client_session_jms_consume - mapped to Jms.Consume.
- - amq_client_session_jms_cancel - mapped to Jms.Cancel.
- - amq_client_session_jms_publish - mapped to Jms.Publish.
- - amq_client_session_jms_browse - mapped to Jms.Browse.
- - amq_client_session_jms_ack - mapped to Jms.Ack.
- - amq_client_session_jms_reject - mapped to Jms.Reject.
+ - amq_client_session_basic_ack - mapped to Basic.Ack.
+ - amq_client_session_basic_reject - mapped to Basic.Reject.
+ - amq_client_session_basic_get - mapped to Basic.Get.
 
 Session Properties
 ==================
@@ -399,20 +395,19 @@ The Content Classes
 AMQP uses the term "content" to mean an application message (the term
 "message" means different things at the application, protocol, and
 internal technical levels, so is confusing).  The protocol defines
-distinct content classes - basic, JMS, file, stream - for different
+distinct content classes - basic, file, stream - for different
 application domains.
 
-For each content class defined in the protocol (currently basic and JMS)
-the client API provides an iCL class that lets you create and manipulate
-contents.  For example:
+For each content class defined in the protocol the client API provides
+an iCL class that lets you create and manipulate contents. For example:
 
-    amq_content_jms_t
+    amq_content_basic_t
         *content;
 
-    content = amq_content_jms_new ();
-    amq_content_jms_set_body       (content, "0123456789", 10, NULL);
-    amq_content_jms_set_message_id (content, "ID001");
-    amq_content_jms_destroy (&content);
+    content = amq_content_basic_new ();
+    amq_content_basic_set_body       (content, "0123456789", 10, NULL);
+    amq_content_basic_set_message_id (content, "ID001");
+    amq_content_basic_destroy (&content);
 
 To create a new content, use the 'new' method.  To destroy a content,
 use the 'destroy' method.
@@ -438,22 +433,6 @@ Basic content has these specific properties:
  - content_type (string) - MIME content type.
  - content_encoding (string) - MIME content encoding.
  - headers (field table) - message header field table.
- - message_id (string) - the application message identifier.
- - reply_to (string) - the destination to reply to.
-
-To set any of a basic content's properties, do not modify the property
-directly but use the method:
-
-    amq_content_basic_set_<propertyname> (content, newvalue)
-
-Basic Content Properties
-========================
-
-JMS content has these specific properties:
-
- - content_type (string) - MIME content type.
- - content_encoding (string) - MIME content encoding.
- - headers (field table) - message header field table.
  - delivery_mode (integer) - non-persistent or persistent.
  - priority (integer) - message priority, 0 to 9.
  - correlation_id (string) - application correlation identifier
@@ -468,7 +447,7 @@ JMS content has these specific properties:
 To set any of a basic content's properties, do not modify the property
 directly but use the method:
 
-    amq_content_jms_set_<propertyname> (content, newvalue)
+    amq_content_basic_set_<propertyname> (content, newvalue)
 
 Content Body Data
 =================
@@ -647,13 +626,13 @@ expect an immediate reply (synchronous) and those that do not
 (asynchronous).  The standard C client API handles these cases as
 follows:
 
- - When you use a synchronous method (e.g. Jms.Consume), the API
+ - When you use a synchronous method (e.g. Basic.Consume), the API
    waits for the server to respond with a synchronous reply, and
    it processes this reply.  Any asynchronous methods that the server
    sends before the reply are also processed (e.g. incoming content
    will be correctly queued.)
 
- - When you use an asynchronous method (e.g. Jms.Publish), the API
+ - When you use an asynchronous method (e.g. Basic.Publish), the API
    does not wait for any server response.  You can therefore send
    such events rapidly and expect the API to return as fast as it
    can, and process them in the background.

@@ -74,10 +74,8 @@ an overall report of the level of implementation of the server.
 Detailed Specifications
 =======================
 
-amq_default_01.pal: Test default JMS queue/exchange declarations using consume.
-amq_default_02.pal: Test default basic queue/exchange declarations using consume.
+amq_default_01.pal: Test default basic queue/exchange declarations using consume.
 amq_default_03.pal: Test default basic queue/exchange declarations using get.
-amq_default_04.pal: Test default jms queue/exchange declarations using get.
 amq_exchange_01.pal: Declare an exchange with default options.
 amq_exchange_02.pal: Declare an exchange which is automatically deleted, and test deletion..
 amq_exchange_03.pal: Declare an exchange which is durable and test if it survives a server restart.
@@ -124,7 +122,7 @@ amq_wlp_content_05.pal: the server MUST validate the content structure.
 amq_wlp_frame_01.pal: the server MUST handle incorrect frame types correctly.
 amq_wlp_frame_02.pal: the server MUST handle malformed frames correctly.
 amq_wlp_frame_03.pal: the server MUST handle over-sized frames.
-amq_wlp_header_01.pal: the server MUST accept the AMQP/Fast protocol.
+amq_wlp_header_01.pal: the server MUST accept the AMQP protocol.
 amq_wlp_header_02.pal: the server MAY accept non-AMQP protocols.
 amq_wlp_header_03.pal: the server MUST validate the "AMQP" protocol header string.
 amq_wlp_header_04.pal: the server MUST returns a protocol header on connection failure.

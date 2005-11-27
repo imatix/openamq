@@ -21,7 +21,7 @@ This diagram shows the overall AMQ framework:
     |  Publisher  | ----------> |       |     |    |
     | application |   |   |     +---+---+     |    |
     +-------------+   |   |         |         |    |
-                      |   |         |         |    |
+                      |   |      Message      |    |
                       |   |       Queue       |    |
     +-------------+   |   |     +-------+     |    |
     |  Consumer   | <---------- +-------+     |    |
@@ -43,37 +43,37 @@ and robust ways. It starts by dividing these tasks into two distinct
 roles:
 
  - The exchange, which accepts messages from producers and routes them
-   queues.
+   message queues.
 
- - The server queue, which stores messages and forwards them to consumer
-   applications.
+ - The message queue, which stores messages and forwards them to
+   consumer applications.
 
-There is a clear interface between exchange and server queue, called a
+There is a clear interface between exchange and message queue, called a
 "binding", which we will come to later. The usefulness of the AMQ
 framework comes from three main features:
 
- 1. The ability to create arbitrary exchange and server queue types
+ 1. The ability to create arbitrary exchange and message queue types
     (some are defined in the standard, but others can be added as
     server extensions).
 
- 2. The ability to wire exchanges and queues together to create any
-    required message processing system.
+ 2. The ability to wire exchanges and message queues together to create
+    any required message-processing system.
 
  3. The ability to control this completely through the protocol.
 
 What AMQ provides is a server with runtime-programmable semantics.
 
-The Server Queue
-................
+The Message Queue
+.................
 
-A server queue stores messages in memory or on disk, and delivers these
-in sequence to one or more consumer applications. Server queues are
-message storage and distribution entities. Each server queue is entirely
+A message queue stores messages in memory or on disk, and delivers these
+in sequence to one or more consumer applications. Message queues are
+message storage and distribution entities. Each message queue is entirely
 independent and is a reasonably clever object.
 
-A server queue has various properties: private or shared, durable or
+A message queue has various properties: private or shared, durable or
 temporary, client-named or server-named, etc. By selecting the desired
-properties we can use a server queue to implement conventional
+properties we can use a message queue to implement conventional
 middleware entities such as:
 
 - A standard "store and forward" queue, which holds messages and
@@ -91,17 +91,17 @@ middleware entities such as:
   to one consumer.
 
 These categories are not formally defined in AMQ: they are examples of
-how server queues can be used. It is trivial to create new entities such
-as durable, shared subscription queues.
+how message queues can be used. It is trivial to create new entities
+such as durable, shared subscription queues.
 
 The Exchange
 ............
 
 An exchange accepts messages from a producer application and routes
-these to server queues according to pre-arranged criteria. These
+these to message queues according to pre-arranged criteria. These
 criteria are called "bindings". Exchanges are matching and routing
 engines. That is, they inspect messages and using their binding tables,
-decide how to forward these messages to server queues or other
+decide how to forward these messages to message queues or other
 exchanges. Exchanges never store messages.
 
 An exchange exists at two levels. First, there is the code itself. When
@@ -142,7 +142,7 @@ In the majority of simple cases the exchange examines a single key
 field, which we call the "routing key". The routing key is a virtual
 address that the exchange uses to decide how to route the message.
 
-For point-to-point routing, the routing key is the name of a server
+For point-to-point routing, the routing key is the name of a message
 queue. For topic pub-sub routing, the routing key is the topic hierarchy
 value. In more complex cases the routing key may be combined with
 routing on message header fields and/or its content.
@@ -154,7 +154,7 @@ If we make an analogy with an email system we see that the AMQ concepts
 are not radical:
 
  - an AMQ message is analogous to an email message.
- - a server queue is like a mailbox.
+ - a message queue is like a mailbox.
  - a consumer is like a mail client that fetches and deletes email.
  - a exchange is like a MTA (mail transfer agent) that inspects email
    and decides, on the basis of routing keys and tables, how to send the
@@ -195,6 +195,7 @@ This diagram shows the flow of messages through the AMQ server:
                                            |
                               +------------+------------+
                               |            |            |
+                           Message      Message      Message
                             Queue        Queue        Queue
     +-------------+       +-------+    +-------+    +-------+
     |  Consumer   |       +-------+    +-------+    +-------+
@@ -207,28 +208,30 @@ Message Lifecycle
 An AMQ message consists of a set of properties plus a content. A new
 message is created by a producer application. The producer sends the
 message to an exchange. The exchange (usually) routes the message to a
-set of server queues. If the message is unroutable, the exchange may
-drop it or bounce it back to the producer. The producer chooses how
+set of message queues. If the message is unroutable, the exchange may
+drop it or return it to the producer. The producer chooses how
 unroutable messages are treated.
 
-A single message can exist on many queues. The server can handle this in
-different ways, by copying the message, by using reference counting,
-etc. This does not affect interoperability. However, when a message is
-routed to multiple queues, it is identical on each queue. There is no
-unique identifier that distinguishes the various copies.
+A single message can exist on many message queues. The server can handle
+this in different ways, by copying the message, by using reference
+counting, etc. This does not affect interoperability. However, when a
+message is routed to multiple message queues, it is identical on each
+message queue. There is no unique identifier that distinguishes the
+various copies.
 
-When a message arrives in a server queue, the queue tries immediately to
-pass it to a consumer application. If this is not possible, the queue
-stores the message (in memory or on disk as requested by the producer)
-and waits for a consumer to be ready. If there are no consumers, the
-queue may bounce the message back to the producer (again, if the
-producer asked for this).
+When a message arrives in a message queue, the message queue tries
+immediately to pass it to a consumer application. If this is not
+possible, the message queue stores the message (in memory or on disk as
+requested by the producer) and waits for a consumer to be ready. If
+there are no consumers, the message queue may return the message to the
+producer (again, if the producer asked for this).
 
-When the queue can deliver the message to a consumer, it removes the
-message from its internal buffers. This can happen immediately, or after
-the consumer has acknowledged that it has successfully processed the
-message. The consumer chooses how and when messages are acknowledged.
-The consumer can also reject a message (a negative acknowledgement).
+When the message queue can deliver the message to a consumer, it removes
+the message from its internal buffers. This can happen immediately, or
+after the consumer has acknowledged that it has successfully processed
+the message. The consumer chooses how and when messages are
+acknowledged. The consumer can also reject a message (a negative
+acknowledgement).
 
 Producer messages and consumer acknowledgements are grouped into
 transactions. When an application plays both roles, which is often, it
@@ -240,7 +243,7 @@ What The Producer Sees
 ......................
 
 By analogy with the email system, we can see that a producer does not
-send messages directly to an server queue. Allowing this would break the
+send messages directly to an message queue. Allowing this would break the
 abstraction in the model. It would be like allowing email to bypass the
 MTA's routing tables and arrive directly in a mailbox. This would make
 it impossible to insert intermediate filtering and processing, spam
@@ -258,13 +261,13 @@ Our analogy with email starts to lose focus when we look at consumers.
 Email clients are passive - they can read their mailboxes, but they do
 not have any influence on how these mailboxes are filled. A consumer can
 also be passive, just like email clients. That is, we can write an
-application that expects a particular server queue to be ready and
-bound, and which will simply process messages off that queue.
+application that expects a particular message queue to be ready and
+bound, and which will simply process messages off that message queue.
 
 However, we also allow AMQ client applications to:
 
- - create or destroy server queues
- - define the way these queues are filled, by making bindings
+ - create or destroy message queues.
+ - define the way these message queues are filled, by making bindings.
 
 This is like having an email system where one can, via the protocol:
 
@@ -285,14 +288,14 @@ mode.  AMQ provides this through the use of two simplifying concepts:
 
  1. A default exchange for message producers.
 
- 2. A default binding for server queues that selects messages based on
-    a match between routing key and queue name.
+ 2. A default binding for message queues that selects messages based on
+    a match between routing key and message queue name.
 
 In effect, the default binding lets a producer send messages directly to
-a queue, given suitable authority. The default binding does not prevent
-the queue from being used in more sophisticated ways. It does, however,
-let one use AMQ without needing to understand how exchanges and bindings
-work.
+a message queue, given suitable authority. The default binding does not
+prevent the message queue from being used in more sophisticated ways. It
+does, however, let one use AMQ without needing to understand how
+exchanges and bindings work.
 
 Exchanges
 ---------
@@ -332,53 +335,57 @@ In our examples in this chapter we will assume that the exchanges are
 all created by the server at startup. We will not show the application
 declaring its exchanges.
 
-Server Queues
--------------
+Message Queues
+--------------
 
-Queue Properties
-................
+Message Queue Properties
+........................
 
-When a client application creates a queue, it can select some important
-properties:
+When a client application creates a message queue, it can select some
+important properties:
 
- - name - if left unspecified, the server choses a name and provides this
-   to the client. Generally, when applications share a queue they agree
-   on a queue name beforehand, and when an application needs a queue for
-   its own purposes, it lets the server provide a name.
+ - name - if left unspecified, the server choses a name and provides
+   this to the client. Generally, when applications share a message
+   queue they agree on a message queue name beforehand, and when an
+   application needs a message queue for its own purposes, it lets the
+   server provide a name.
 
- - durable - if specified, the queue remains active when the server
-   restarts.
+ - durable - if specified, the message queue remains active when the
+   server restarts.
 
- - auto-delete - If specified, the queue is deleted when all clients have
-   finished using it.
+ - auto-delete - If specified, the message queue is deleted when all
+   clients have finished using it.
 
 Queue Lifecycles
 ................
 
-There are two main queue lifecycles:
+There are two main message queue lifecycles:
 
- - Durable queues that are shared by many consumers and have an indendent
-   existence. I.e. they will continue to exist and collect messages whether
-   or not there are consumers to receive them.
+ - Durable message queues that are shared by many consumers and have an
+   indendent existence. I.e. they will continue to exist and collect
+   messages whether or not there are consumers to receive them.
 
- - Temporary queues that are private to one consumer and are tied to that
-   consumer. When the consumer disconnects, the queue is deleted.
+ - Temporary message queues that are private to one consumer and are
+   tied to that consumer. When the consumer disconnects, the message
+   queue is deleted.
 
-There are some variations on these, such as shared queues that are
-deleted when the last of many consumers disconnects.
+There are some variations on these, such as shared message queues that
+are deleted when the last of many consumers disconnects.
 
-This diagram shows the way temporary queues are created and deleted:
+This diagram shows the way temporary message queues are created and
+deleted:
 
+                               Message
                                 Queue
                               +-------+
-                    Declare   +-------+  Queue is created
+                    Declare   +-------+  Message queue is created
                     --------> +-------+
     +-------------+           +-------+
     |  Consumer   | Consume
     | application | -------->
-    +-------------+           \ Queue  /
+    +-------------+           \       /
                     Cancel    +\\----/*
-                    --------> +--\\//-+  Queue is deleted
+                    --------> +--\\//-+  Message queue is deleted
                               +--//\\-+
                               +//----\*
                               /        \
@@ -386,39 +393,39 @@ This diagram shows the way temporary queues are created and deleted:
 Bindings
 --------
 
-A binding is the relationship between an exchange and a server queue
+A binding is the relationship between an exchange and a message queue
 that tells the exchange how to route messages. Bindings are constructed
 from commands from the client application (the one owning and using the
-queue) to an exchange. We can express a binding command in pseudo-code
-as follows:
+message queue) to an exchange. We can express a binding command in
+pseudo-code as follows:
 
     Queue.Bind <queue> TO <exchange> WHERE <condition>
 
-Let's look at three typical use cases: named queues, private reply
+Let's look at three typical use cases: shared queues, private reply
 queues, and pub-sub subscriptions.
 
-Constructing a Named Queue
-..........................
+Constructing a Shared Queue
+...........................
 
-Named queues are the classic middleware "point to point queue". In AMQ
+Shared queues are the classic middleware "point to point queue". In AMQ
 we can use the default exchange and default binding. Let's assume our
-queue is called "app.svc01". Here is the pseudo-code for creating the
-queue:
+message queue is called "app.svc01". Here is the pseudo-code for
+creating the shared queue:
 
     Queue.Create
         queue=app.svc01
         private=FALSE
 
-We may have many consumers on this queue. To consume from the queue,
-each consumer does this:
+We may have many consumers on this shared queue. To consume from the
+shared queue, each consumer does this:
 
-    Jms.Consume
+    Basic.Consume
         queue=app.svc01
 
-To publish to the queue, each producer sends a message to the default
-exchange:
+To publish to the shared queue, each producer sends a message to the
+default exchange:
 
-    Jms.Publish
+    Basic.Publish
         routing_key=my.svc01
 
 Constructing a Reply Queue
@@ -442,7 +449,7 @@ server reply:
 To publish to the reply queue, a producer sends a message to the default
 exchange:
 
-    Jms.Publish
+    Basic.Publish
         routing_key=tmp.1
 
 One of the standard message properties is Reply-To, which is designed
@@ -454,7 +461,7 @@ Constructing a Pub-Sub Subscription Queue
 In classic middleware the term "subscription" is vague and refers to at
 least two different concepts: the set of criteria that match messages
 and the temporary queue that holds matched messages. AMQ separates the
-work into into bindings and server queues. There is no AMQ entity called
+work into into bindings and message queues. There is no AMQ entity called
 "subscription".
 
 Let us agree that a pub-sub subscription:
@@ -489,25 +496,25 @@ the pseudo-code for creating and binding the pub-sub subscription queue:
         TO exchange=amq.topic
         WHERE routing_key=STOCK.USD.*
 
-To consume from the queue, the consumer does this:
+To consume from the subscription queue, the consumer does this:
 
-    Jms.Consume
+    Basic.Consume
         queue=tmp.2
 
 When publishing a message, the producer does something like this:
 
-    Jms.Publish
+    Basic.Publish
         exchange=amq.topic
         routing_key=STOCK.USD.IBM
 
 The topic exchange processes the incoming routing key ("STOCK.USD.IBM")
 with its binding table, and finds one match, for tmp.2. It then routes
-the message to that queue.
+the message to that subscription queue.
 
 Chained Bindings
 ................
 
-The basic structures explained above are enough to implement standard
+The basic structures explained above are enough to implement shared
 queues and standard pub-sub topics. However, some applications need more
 than this: they need to be able to combine matching algorithms so that
 messages are matched several times before they reach a client
@@ -519,7 +526,8 @@ We want to provide the following semantic:
                    AND TO <exchange2> WHERE <condition>
 
 Note that the "OR" semantic is trivial, we simply make two separate
-bindings for the same queue. It is the "AND" semantic that is delicate.
+bindings for the same message queue. It is the "AND" semantic that is
+delicate.
 
 For performance reasons, AMQP does not provide an actual language in
 which to express such semantics. Rather we will construct the combined
@@ -540,7 +548,7 @@ which have a PDF file in their content (one of the abilities of the
 imaginary filter exchange is to filter according to the content types of
 messages).
 
-We create a temporary queue and bind it as follows:
+We create a temporary message queue and bind it as follows:
 
     Queue.Create
         queue=<empty>
@@ -559,7 +567,7 @@ We create a temporary queue and bind it as follows:
 
 To publish a message, we send to the amq.topic as before:
 
-    Jms.Publish
+    Basic.Publish
         exchange=amq.topic
         routing_key=STOCK.USD.IBM
         content-type=application/x-pdf
@@ -596,20 +604,20 @@ binding semantics.
 Late Bindings
 .............
 
-Applications need to be able to select messages from queues, at the same
-time as consuming them. While this is not efficient (it usually means
-scanning messages sequentially), it is a common requirement because it
-is conceptually simple and similar in some ways to the SQL SELECT
-statement.  AMQ must therefore support this.
+Applications need to be able to select messages from message queues, at
+the same time as consuming them. While this is not efficient (it usually
+means scanning messages sequentially), it is a common requirement
+because it is conceptually simple and similar in some ways to the SQL
+SELECT statement. AMQ must therefore support this.
 
 We call this a "late binding". We can compare this to a normal binding:
 
-- A normal binding routes messages into a server queue after which they
+- A normal binding routes messages into a message queue after which they
   are dispatched to N consumers on a round-robin basis. For example,
-  we may route print jobs to different queues based on where the printed
-  documents must go.
+  we may route print jobs to different message queues based on where the
+  printed documents must go.
 
-- The select-on-consume semantic works on a single server queue for N
+- The select-on-consume semantic works on a single message queue for N
   consumers, but where each consumer may have an independent set of
   criteria for the messages it wants to process. For example, one of a
   group of printers servicing a single print queue might ask to receive
@@ -626,7 +634,7 @@ message will be matched multiple times rather than just once.
 
 We can express a late binding command in pseudo-code as follows:
 
-    Jms.Consume FROM <queue> WHERE <condition>
+    Basic.Consume FROM <queue> WHERE <condition>
 
 Note that the current protocol specifications do not implement late
 binding semantics.
@@ -721,7 +729,7 @@ The pseudo-code logic for mapping a synchronous method is:
     repeat
         wait for response from server
         if response is an asynchronous method
-            process method (usually, delivered or bounced content)
+            process method (usually, delivered or returned content)
         else
             assert that method is a valid response for request
             exit repeat
@@ -752,9 +760,9 @@ they use transactions.
 The Connection Class
 --------------------
 
-AMQP/Fast is a connected protocol.  The connection is designed to be
-long-lasting, and can carry multiple channels.  The connection
-life-cycle is this:
+AMQP is a connected protocol. The connection is designed to be
+long-lasting, and can carry multiple channels. The connection life-cycle
+is this:
 
  - The client opens a TCP/IP connection to the server and sends a
    protocol header.  This is the only data the client sends that is
@@ -811,9 +819,9 @@ The Access Class
 ----------------
 
 AMQP's access control model is based on "realms". A realm covers some
-group of server resources (exchanges and queues) managed under a single
-security policy and access control. Applications ask for access to
-specific realms, rather than to specific resources. The server grants
+group of server resources (exchanges and message queues) managed under a
+single security policy and access control. Applications ask for access
+to specific realms, rather than to specific resources. The server grants
 access in the form of "tickets", which the client application then uses
 accordingly. Tickets expire when the channel is closed, or if the
 server's access controls change.
@@ -846,43 +854,44 @@ configuration interface).  The exchange life-cycle is:
 The Queue Class
 ---------------
 
-The queue class lets an application manage queues on the server. This is
-a basic step in almost all applications that consume messages, at least
-to verify that an expect queue is actually present.
+The queue class lets an application manage message queues on the server.
+This is a basic step in almost all applications that consume messages,
+at least to verify that an expect message queue is actually present.
 
-The life-cycle for a durable queue is fairly simple:
+The life-cycle for a durable message queue is fairly simple:
 
- - The client asserts that the queue exists (Declare, with the "passive"
-   argument).
+ - The client asserts that the message queue exists (Declare, with the
+   "passive" argument).
 
- - The server confirms that the queue exists (Declare-Ok).
+ - The server confirms that the message queue exists (Declare-Ok).
 
- - The client reads messages off the queue.
+ - The client reads messages off the message queue.
 
-The life-cycle for a temporary queue is more interesting:
+The life-cycle for a temporary message queue is more interesting:
 
- - The client creates the queue (Declare, often with no queue name so
-   the server will assign a name).  The server confirms (Declare-Ok).
+ - The client creates the message queue (Declare, often with no message
+   queue name so the server will assign a name).  The server confirms
+   (Declare-Ok).
 
- - The client starts a consumer on the queue. See the content classes.
+ - The client starts a consumer on the message queue. The precise
+   fuctionality of a consumer depends on the content class.
 
  - The client cancels the consumer, either explicitly or by closing the
    channel and/or connection.
 
- - When the last consumer disappears from the queue, and after a polite
-   timeout, the server deletes the queue.
+ - When the last consumer disappears from the message queue, and after
+   a polite timeout, the server deletes the message queue.
 
-Topic subscriptions are also queues. That is, AMQ implements topic
-subscriptions as server queues. The life-cycle for a subscription
-involves an extra bind stage:
+AMQ implements topic subscriptions as message queues. The life-cycle for
+a subscription involves an extra bind stage:
 
- - The client creates the queue (Declare), and the server confirms
-   (Declare-Ok).
+ - The client creates the message queue (Declare), and the server
+   confirms (Declare-Ok).
 
- - The client binds the queue to a topic exchange (Bind) and the server
-   confirms (Bind-Ok).
+ - The client binds the message queue to a topic exchange (Bind) and the
+   server confirms (Bind-Ok).
 
- - The client uses the queue as in the previous examples.
+ - The client uses the message queue as in the previous examples.
 
 The Content Classes
 -------------------
@@ -890,52 +899,26 @@ The Content Classes
 Following the principle of placing functional domains into distinct
 protocol classes that the server may or may not implement, AMQP also
 separates content processing into separate classes. The logic is that
-different types of content have different semantics. For example, JMS
-messages and file transfer are quite different problems.  We give
-each content type a class, and a set of methods that work with it.
+different types of content have different semantics. For example, basic
+messages and file transfer are quite different problems. We give each
+content type a class, and a set of methods that work with it.
 
-AMQP currently defines four content classes:
+AMQP currently defines three content classes:
 
- 1. JMS contents, which support the JMS semantics.
+ 1. Basic contents, which implement standard messaging semantics.
 
- 2. Basic contents, which have the simplest possible semantics for
-    a message-oriented usable middleware system.
+ 2. File contents, which support file-transfer semantics.
 
- 3. File contents, which support file-transfer semantics.
-
- 4. Stream contents, which support data streaming semantics.
-
-The JMS Content Class
-.....................
-
-The JMS content class is designed to map cleanly to the JMS API.  It
-has the same properties as a JMS message (priority, expiration, etc.)
-and supports the JMS API.
-
-The JMS content methods support these main semantics:
-
- - Sending messages from client to server, which happens asynchronously
-   (Publish).
-
- - Starting and stopping consumers (Consume, Cancel).
-
- - Sending messages from server to client, which happens asynchronously
-   (Deliver, Bounce).
-
- - Acknowledging messages (Ack, Reject).
-
- - Taking messages off the queue synchronously (Get).
+ 3. Stream contents, which support data streaming semantics.
 
 The Basic Content Class
 .......................
 
-The basic content class is designed to provide minimalistic usable
-messaging semantics. This permits the development of simple AMQ servers
-for cases when full JMS semantics (the conventional need) are not
-necessary. We also use the basic content class to access system services
-(like the AMQ Console, which is documented elsewhere).
+The Basic content class is designed to map cleanly to industry-standard
+messaging semantics.  It explicitly supports the message properties and
+functionality required by the JMS API.
 
-The basic content methods support these main semantics:
+The Basic content methods support these main semantics:
 
  - Sending messages from client to server, which happens asynchronously
    (Publish).
@@ -943,18 +926,11 @@ The basic content methods support these main semantics:
  - Starting and stopping consumers (Consume, Cancel).
 
  - Sending messages from server to client, which happens asynchronously
-   (Deliver, Bounce).
+   (Deliver, Return).
 
- - Taking messages off the queue synchronously (Get).
+ - Acknowledging messages (Ack, Reject).
 
-Compared to JMS, the basic content class has these simplifications:
-
- - Messages are not acknowledged - as soon as they are delivered to
-   a consumer, they are removed from the queue.
-
- - Basic contents are not subject to transactions.
-
- - Basic contents have a more limited set of properties.
+ - Taking messages off the message queue synchronously (Get).
 
 The File Content Class
 ......................
@@ -980,7 +956,7 @@ The file content methods support these main semantics:
  - Starting and stopping consumers (Consume, Cancel).
 
  - Sending messages from server to client, which happens asynchronously
-   (Deliver, Bounce).
+   (Deliver, Return).
 
  - Acknowledging messages (Ack, Reject).
 
@@ -996,7 +972,7 @@ video, etc.)  It has these main semantics:
  - Starting and stopping consumers (Consume, Cancel).
 
  - Sending messages from server to client, which happens asynchronously
-   (Deliver, Bounce).
+   (Deliver, Return).
 
 The power of the stream content class lies in the consumer
 specification, which is much more focussed on the quality of service
@@ -1049,15 +1025,16 @@ The semantics of this class are as follows:
 AMQP Transport Layer
 ====================
 
-This section explains how the wire-level protocol (AMQP/Fast) works.
+This section explains how the wire-level protocol works.
 
 General Description
 -------------------
 
-AMQP/Fast is a binary protocol. Information is organised into "frames",
-of various types. Frames carry protocol methods, structured contents,
-and other information. All frames have the same general format: header
-plus payload. The frame payload format depends on the frame type.
+AMQP is a binary protocol. Information is organised into "frames", of
+various types. Frames carry protocol methods, structured contents, and
+other information. All frames have the same general format: frame
+header, payload, and frame end. The frame payload format depends on the
+frame type.
 
 We assume a reliable stream-oriented network transport layer (TCP/IP or
 equivalent).
@@ -1082,7 +1059,7 @@ will support this.
 Data Types
 ----------
 
-The AMQP/Fast data types are:
+The AMQP data types are:
 
  - Integers (from 1 to 8 octets), used to represent sizes, quantities,
    limits, etc. Integers are always unsigned and may be unaligned within
@@ -1102,16 +1079,16 @@ The AMQP/Fast data types are:
 Protocol Negotiation
 --------------------
 
-The AMQP/Fast client and server negotiate the protocol. This means that
-when the client connects, the server proposes certain options that the
-client can accept, or modify. When both peers agree on the outcome, the
+The AMQP client and server negotiate the protocol. This means that when
+the client connects, the server proposes certain options that the client
+can accept, or modify. When both peers agree on the outcome, the
 connection goes ahead. Negotiation is a useful technique because it lets
 us assert assumptions and preconditions.
 
-In AMQP/Fast, we negotiate a number of specific aspects of the protocol:
+In AMQP, we negotiate a number of specific aspects of the protocol:
 
- 1. The actual protocol and version. An AMQP/Fast server can host
-    multiple protocols on the same port.
+ 1. The actual protocol and version. An AMQP server can host multiple
+    protocols on the same port.
 
  2. Encryption arguments and the authentication of both parties. This is
     part of the functional layer, explained previously.
@@ -1154,7 +1131,7 @@ a 'frame-end' octet that detects malformed frames:
     +------+-------+---------+----------+  +------------+  +-----------+
     | type | cycle | channel |   size   |  |  payload   |  | frame-end |
     +------+-------+---------+----------+  +------------+  +-----------+
-     octet   octet    short      long       size-1 octets      octet
+     octet   octet    short      long       size octets       octet
 
 To read a frame, we:
 
@@ -1216,10 +1193,10 @@ we might see something like this:
     [method]
     ...
 
-Certain methods (such as Jms.Publish, Jms.Deliver, etc.) are formally
-defined as carrying content. When a peer sends such a method frame, it
-always follows it with a content header and zero or more content body
-frames.
+Certain methods (such as Basic.Publish, Basic.Deliver, etc.) are
+formally defined as carrying content. When a peer sends such a method
+frame, it always follows it with a content header and zero or more
+content body frames.
 
 A content header frame has this format:
 
@@ -1230,7 +1207,7 @@ A content header frame has this format:
        short     short    long long       short        remainder...
 
 We place content body in distinct frames (rather than including it in
-the method) so that AMQP/Fast supports "zero copy" techniques in which
+the method) so that AMQP supports "zero copy" techniques in which
 content is never marshalled or encoded, and can be sent via out-of-band
 transport such as shared memory or remote DMA.
 
@@ -1298,8 +1275,8 @@ Error Handling
 
 AMQP uses exceptions to handle errors.  That is:
 
- - Any operational error, e.g. queue not found, insufficient access
-   rights, etc. results in a channel exception.
+ - Any operational error, e.g. message queue not found, insufficient
+   access rights, etc. results in a channel exception.
 
  - Any structural error, e.g. invalid argument, bad sequence of methods,
    etc. results in a connection exception.
@@ -1329,7 +1306,7 @@ It is possible to read and write AMQP frames directly from an
 application but this would be bad design. Even the simplest AMQP
 dialogue is rather more complex than e.g. HTTP, and application
 developers should not need to understand such things as binary framing
-formats in order to send a message to a queue.
+formats in order to send a message to a message queue.
 
 The recommended AMQP client architecture consists of several layers
 of abstraction:
@@ -1350,12 +1327,12 @@ of abstraction:
    send content" can be produced mechanically.
 
 3. An API layer. This layer exposes a specific API for applications to
-   work with. The API layer may imitate some existing standard, such as
-   JMS, or may expose the high-level AMQP methods, making a mapping as
-   described earlier in this section.  The AMQP methods are designed to
-   make this mapping both simple and useful.  The API layer may itself
-   be composed of several layers, e.g. a higher-level API constructed
-   on top of the AMQP method API.
+   work with. The API layer may imitate some existing standard, or may
+   expose the high-level AMQP methods, making a mapping as described
+   earlier in this section.  The AMQP methods are designed to make this
+   mapping both simple and useful.  The API layer may itself be composed
+   of several layers, e.g. a higher-level API constructed on top of the
+   AMQP method API.
 
 4. A transaction processing layer.  This layer drives the application
    by delivering it transactions to process, where the transactions
