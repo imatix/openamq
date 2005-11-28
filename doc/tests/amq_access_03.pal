@@ -8,6 +8,9 @@
     ends the channel.
     <session error_handling = "recover">
         <access_request realm = "/data/unknown" />
+        <if name = "reply_code" test = "ne" value = "402">
+            <echo>$reply_code: $reply_text</echo>
+        </if>
         <assert name = "reply_code" value = "402" />
         <assert name = "session"    value = "0" />
         <assert name = "connection" value = "1" />

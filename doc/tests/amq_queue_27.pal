@@ -13,6 +13,9 @@
         <basic_content size = "64000" message_id = "id1"/>
         <basic_publish exchange = "amq.direct" routing_key = "key" />
         <queue_delete queue = "myqueue" if_empty = "1"/>
+        <if name = "reply_code" test = "ne" value = "504">
+            <echo>$reply_code: $reply_text</echo>
+        </if>
         <assert name = "reply_code" value = "504" />
     </session>
 </pal>

@@ -8,6 +8,9 @@
     <include filename = "amq_test_base.pal" />
     <session error_handling = "recover">
         <queue_bind queue = "uknown" exchange = "amq.direct" />
+        <if name = "reply_code" test = "ne" value = "404">
+            <echo>$reply_code: $reply_text</echo>
+        </if>
         <assert name = "reply_code" value = "404" />
     </session>
 </pal>

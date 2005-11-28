@@ -13,6 +13,9 @@
         <queue_declare />
         <basic_consume queue = "$queue" />
         <basic_consume queue = "$queue" exclusive = "1" />
+        <if name = "reply_code" test = "ne" value = "403">
+            <echo>$reply_code: $reply_text</echo>
+        </if>
         <assert name = "reply_code" value = "403" />
     </session>
     

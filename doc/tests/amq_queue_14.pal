@@ -10,6 +10,9 @@
     <session error_handling = "recover">
         <queue_declare queue = "myqueue" />
         <queue_bind queue = "myqueue" exchange = "unknown" />
+        <if name = "reply_code" test = "ne" value = "404">
+            <echo>$reply_code: $reply_text</echo>
+        </if>
         <assert name = "reply_code" value = "404" />
     </session>
 </pal>

@@ -12,6 +12,9 @@
         <queue_declare queue = "myqueue" />
         <queue_bind exchange = "myexchange" queue = "myqueue" />
         <exchange_delete exchange = "myexchange" if_unused = "1" />
+        <if name = "reply_code" test = "ne" value = "504">
+            <echo>$reply_code: $reply_text</echo>
+        </if>
         <assert name = "reply_code" value = "504" />
     </session>
 </pal>

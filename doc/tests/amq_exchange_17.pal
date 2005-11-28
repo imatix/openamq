@@ -8,6 +8,9 @@
     <include filename = "amq_test_base.pal" />
     <session error_handling = "recover" >
         <exchange_declare exchange = "myexchange" type = "$#@$" />
+        <if name = "reply_code" test = "ne" value = "502">
+            <echo>$reply_code: $reply_text</echo>
+        </if>
         <assert name = "reply_code" value = "502" />
     </session>
 </pal>

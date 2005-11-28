@@ -9,6 +9,9 @@
     <session error_handling = "recover" >
         <exchange_declare exchange = "myexchange" type = "direct" />
         <exchange_declare exchange = "myexchange" type = "fanout" />
+        <if name = "reply_code" test = "ne" value = "507">
+            <echo>$reply_code: $reply_text</echo>
+        </if>
         <assert name = "reply_code" value = "507" />
     </session>
 </pal>

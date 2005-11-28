@@ -10,6 +10,9 @@
     <include filename = "amq_test_base.pal" />
     <session error_handling = "recover">
         <exchange_declare exchange = "myexchange" type = "direct" passive = "1" />
+        <if name = "reply_code" test = "ne" value = "404">
+            <echo>$reply_code: $reply_text</echo>
+        </if>
         <assert name = "reply_code" value = "404" />        
         <exchange_declare exchange = "myexchange2" />
         <exchange_declare exchange = "myexchange2" type = "direct" passive = "1" />

@@ -13,6 +13,9 @@
     </session>
     <session restart = "1" error_handling = "recover">
         <exchange_declare exchange = "myexchange" type = "direct" passive = "1" />
+        <if name = "reply_code" test = "ne" value = "404">
+            <echo>$reply_code: $reply_text</echo>
+        </if>
         <assert name = "reply_code" value = "404" /> 
     </session>
 </pal>

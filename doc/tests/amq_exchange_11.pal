@@ -8,6 +8,9 @@
     <include filename = "amq_test_base.pal" />
     <session>
         <exchange_delete exchange = "unknown" />
+        <if name = "reply_code" test = "ne" value = "404">
+            <echo>$reply_code: $reply_text</echo>
+        </if>
         <assert name = "reply_code" value = "404" />
     </session>
 </pal>

@@ -10,6 +10,9 @@
     <include filename = "amq_test_base.pal" />
     <session error_handling = "recover">
         <queue_declare queue = "myqueue" passive = "1" />
+        <if name = "reply_code" test = "ne" value = "404">
+            <echo>$reply_code: $reply_text</echo>
+        </if>
         <assert name = "reply_code" value = "404" />        
         <queue_declare queue = "myqueue2" />
         <queue_declare queue = "myqueue2" passive = "1" />

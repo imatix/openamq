@@ -8,6 +8,9 @@
     the connection.
     <session error_handling = "recover">
         <access_request realm = "/illegal" />
+        <if name = "reply_code" test = "ne" value = "403">
+            <echo>$reply_code: $reply_text</echo>
+        </if>
         <assert name = "reply_code" value = "403" />
         <assert name = "connection" value = "0" />
     </session>

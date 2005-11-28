@@ -14,6 +14,9 @@
     </session> 
     <session error_handling = "recover" restart = "1">
         <queue_declare queue = "myqueue" passive = "1" />
+        <if name = "reply_code" test = "ne" value = "404">
+            <echo>$reply_code: $reply_text</echo>
+        </if>
         <assert name = "reply_code" value = "404" />
     </session>
 </pal>
