@@ -64,6 +64,7 @@ public class ServiceProvidingClient
                         Destination responseDest = tm.getJMSReplyTo();
                         if (!responseDest.equals(_responseDest))
                         {
+System.out.println("before producer");
                             _responseDest = responseDest;
 
                             try
@@ -79,6 +80,7 @@ public class ServiceProvidingClient
                                 // TODO Auto-generated catch block
                                 e.printStackTrace();
                             }
+System.out.println("after producer");
                         }
                     }
                     catch (JMSException e)
@@ -91,7 +93,7 @@ public class ServiceProvidingClient
                         _logger.info("Received message total: " + _messageCount);
                         _logger.info("Sending response to '" + _responseDest + "'");
                     }
-
+                    
                     try
                     {
                         String payload = "This is a response: sing together: 'Mahnah mahnah...'" + tm.getText();
