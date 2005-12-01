@@ -148,10 +148,10 @@ class OpenAMQAdministrator implements Administrator {
 
         try {
             if (queue) {
-                destination = new AMQQueue(name, true);
+                destination = new AMQQueue(name);
                 createConsumer(destination);
             } else {
-                destination = new AMQTopic(name, true);
+                destination = new AMQTopic(name);
                 createConsumer(destination);
             }    
             
