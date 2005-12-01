@@ -1,0 +1,15 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "AMQ-215"
+    >
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <queue_declare queue = "q1" auto_delete = "1" />
+        <jms_content />
+        <jms_publish exchange = "undeclared" routing_key = "q1" />
+    </session>
+    
+</pal>
+
+
