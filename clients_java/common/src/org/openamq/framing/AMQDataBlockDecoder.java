@@ -112,6 +112,10 @@ public class AMQDataBlockDecoder implements MessageDecoder
         final long bodySize = in.getUnsignedInt();
 
         BodyFactory bodyFactory = (BodyFactory) _supportedBodies.get(new Byte(type));
+        if (bodyFactory == null)
+        {
+            throw new AMQFrameDecodingException("Unsupported body type: " + type);
+        }
         AMQFrame frame = new AMQFrame();
 
         frame.populateFromBuffer(in, channel, bodySize, bodyFactory);
