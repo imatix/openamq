@@ -10,6 +10,7 @@
     <file name = "README" class = "readme">Read Me file</file>
 
     <distrib name = "OpenAMQ source" type = "source">
+        <project directory = "doc"           />
         <project directory = "kernel"        />
         <project directory = "tests"         />
         <project directory = "clients_java"  />
