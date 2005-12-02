@@ -18,7 +18,7 @@ object holding server-wide values.
 <data name = "cml">
     <class name = "broker">
         <field name = "started" label = "Date, time broker started">
-          <get>apr_rfc822_date (field_value, self->started);</get>
+          <get>ipr_time_iso8601 (self->started, ipr_date_format_minute, 0, 0, field_value);</get>
         </field>
         <field name = "vhost" type = "objref" repeat = "1">
           <get>
