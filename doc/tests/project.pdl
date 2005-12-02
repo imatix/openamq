@@ -1,0 +1,120 @@
+<?xml?>
+<pdl
+    name      = "OpenAMQ Regression tests"
+    version   = "0.9c6"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
+    workflow  = "standard.pwl"
+    >
+
+<include filename = "prelude.pdl" />
+
+<file name = "amq_access_01.pal"         class = "fat test">the server MUST accept an existing realm</file>
+<file name = "amq_access_02.pal"         class = "fat test">the server MUST handle an illegal realm request</file>
+<file name = "amq_access_03.pal"         class = "fat test">the server MUST handle an unknown realm request</file>
+<file name = "amq_basic_01.pal"          class = "fat test">the server MUST allow at least 16 consumers</file>
+<file name = "amq_basic_02.pal"          class = "fat test">the server MUST respect the exclusive flag on a basic_consume</file>
+<file name = "amq_basic_03.pal"          class = "fat test">the server MUST provide the client with a consumer tag</file>
+<file name = "amq_basic_04.pal"          class = "fat test">the server MUST handle basic cancel requests</file>
+<file name = "amq_basic_05.pal"          class = "fat test">the server MUST handle publish command correctly</file>
+<file name = "amq_basic_06.pal"          class = "fat test">the server MUST handle publish command correctly</file>
+<file name = "amq_basic_07.pal"          class = "fat test">the server MUST respect the mandatory flag</file>
+<file name = "amq_basic_08.pal"          class = "fat test">the server SHOULD respect the persistent property of messages</file>
+<file name = "amq_basic_09.pal"          class = "fat test">the server MUST NOT discard a persistent message in case of queue overflow</file>
+<file name = "amq_basic_10.pal"          class = "fat test">The server MAY overflow non-persistent basic messages to persistent storage</file>
+<file name = "amq_basic_11.pal"          class = "fat test">the server MUST implement at least 2 priority levels</file>
+<file name = "amq_basic_12.pal"          class = "fat test">the server MUST deliver messages of the same priority in order</file>
+<file name = "amq_basic_13.pal"          class = "fat test">the server MUST implement automatic acknowledgements on all messages</file>
+<file name = "amq_basic_14.pal"          class = "fat test">the server MUST respect the internal flag on exchanges</file>
+<file name = "amq_basic_15.pal"          class = "fat test">the exchange MAY refuse basic content</file>
+<file name = "amq_basic_16.pal"          class = "fat test">the server MUST respect the immediate flag when publishing messages</file>
+<file name = "amq_basic_17.pal"          class = "fat test">the server MUST respect the prefetch_size on consume</file>
+<file name = "amq_basic_18.pal"          class = "fat test">the server MUST respect the prefetch_count on consume</file>
+<file name = "amq_basic_19.pal"          class = "fat test">the server SHOULD count the number of deliveries of a message and act accordingly</file>
+<file name = "amq_basic_20.pal"          class = "fat test">the server MUST respect the multiple field on ack</file>
+<file name = "amq_basic_21.pal"          class = "fat test">The server SHOULD be able to Reject while sending messages</file>
+<file name = "amq_basic_22.pal"          class = "fat test">the server SHOULD interpret Reject as the client who is unable to process the message</file>
+<file name = "amq_basic_23.pal"          class = "fat test">The server MUST respect the requeue field on Reject</file>
+<file name = "amq_breakage_01.pal"       class = "fat test">the server MUST handle up to 64k bindings</file>
+<file name = "amq_default_01.pal"        class = "fat test">the server MUST provide default arguments (jms consume)</file>
+<file name = "amq_default_02.pal"        class = "fat test">the server MUST provide default arguments (basic consume)</file>
+<file name = "amq_default_03.pal"        class = "fat test">the server MUST provide default arguments (jms get)</file>
+<file name = "amq_default_04.pal"        class = "fat test">the server MUST provide default arguments (basic get)</file>
+<file name = "amq_dtx_01.pal"            class = "fat test">the server MAY support dtx</file>
+<file name = "amq_exchange_01.pal"       class = "fat test">the server MUST provide defaults for exchanges</file>
+<file name = "amq_exchange_02.pal"       class = "fat test">the server MUST respect the auto_delete flag on exchanges</file>
+<file name = "amq_exchange_03.pal"       class = "fat test">the server MUST make sure a durable exchange survives a server restart</file>
+<file name = "amq_exchange_04.pal"       class = "fat test">the server MUST respect the exclusive flag on exchanges</file>
+<file name = "amq_exchange_05.pal"       class = "fat test">the server MUST handle passive exchange declaration correctly</file>
+<file name = "amq_exchange_09.pal"       class = "fat test">the server MUST handle illegal exchange declarations correctly</file>
+<file name = "amq_exchange_10.pal"       class = "fat test">the server MUST be able to delete an exchange</file>
+<file name = "amq_exchange_11.pal"       class = "fat test">the server MUST handle unknown exchange deletions correctly</file>
+<file name = "amq_exchange_12.pal"       class = "fat test">the server MUST respect the if_unused flag when deleting an exchange</file>
+<file name = "amq_exchange_13.pal"       class = "fat test">the server MUST respect the if_unused flag when deleting an exchange</file>
+<file name = "amq_exchange_15.pal"       class = "fat test">the server MUST not let the client create a reserved exchange</file>
+<file name = "amq_exchange_16.pal"       class = "fat test">the server MUST handle exchange redeclarations correctly</file>
+<file name = "amq_exchange_17.pal"       class = "fat test">the server MUST handle illegal exchange types correctly</file>
+<file name = "amq_exchange_18.pal"       class = "fat test">the server MUST handle illegal exchangetype declarations correctly</file>
+<file name = "amq_exchange_19.pal"       class = "fat test">the server MUST implement direct and fanout exchanges</file>
+<file name = "amq_exchange_20.pal"       class = "fat test">the server SHOULD implement a topic exchange</file>
+<file name = "amq_exchange_21.pal"       class = "fat test">the server MAY implement a system exchange</file>
+<file name = "amq_exchange_22.pal"       class = "fat test">the server MUST define the default exchange as internal</file>
+<file name = "amq_exchange_23.pal"       class = "fat test">the server SHOULD support at least 16 exchanges</file>
+<file name = "amq_exchange_24.pal"       class = "fat test">the server MUST support both durable and transient exchange</file>
+<file name = "amq_exchange_25.pal"       class = "fat test">the server MUST ignore auto-delete fields on redeclaration of an exchange</file>
+<file name = "amq_file_01.pal"           class = "fat test">the server MAY support file (transfer)</file>
+<file name = "amq_queue_01.pal"          class = "fat test">the server MUST be able to declare a queue</file>
+<file name = "amq_queue_02.pal"          class = "fat test">the server MUST respect the auto_delete flag on a queue</file>
+<file name = "amq_queue_03.pal"          class = "fat test">the server MUST respect the durable flag on a queue</file>
+<file name = "amq_queue_04.pal"          class = "fat test">the server MUST respect the exclusive flag on a queue</file>
+<file name = "amq_queue_05.pal"          class = "fat test">the server MUST respect the passive flag on a queue</file>
+<file name = "amq_queue_09.pal"          class = "fat test">the server MUST handle an illegal queue name</file>
+<file name = "amq_queue_10.pal"          class = "fat test">the server MUST handle empty queue names</file>
+<file name = "amq_queue_11.pal"          class = "fat test">the server MUST handle queue to exchange bindings correctly</file>
+<file name = "amq_queue_12.pal"          class = "fat test">the server MUST not bind durable queues to transient exchanges</file>
+<file name = "amq_queue_13.pal"          class = "fat test">the server MUST be able to bind a durable queue to a durable exchange</file>
+<file name = "amq_queue_14.pal"          class = "fat test">the server MUST handle binding to an unknown exchange correctly</file>
+<file name = "amq_queue_15.pal"          class = "fat test">the server MUST handle queue purges correctly</file>
+<file name = "amq_queue_16.pal"          class = "fat test">the server MUST handle queue purge request to unknown queues correctly</file>
+<file name = "amq_queue_17.pal"          class = "fat test">the server MUST reject an attempt to bind to an internal exchange</file>
+<file name = "amq_queue_20.pal"          class = "fat test">the server MUST handle queue deletes correctly</file>
+<file name = "amq_queue_21.pal"          class = "fat test">the server MUST handle deletion of nonexistant queues correctly</file>
+<file name = "amq_queue_25.pal"          class = "fat test">the server MUST handle duplicate bindings correctly</file>
+<file name = "amq_queue_26.pal"          class = "fat test">the server MUST handle a bind to an unknown queue correctly</file>
+<file name = "amq_queue_27.pal"          class = "fat test">the server MUST respect the if_empty flag on queue deletions</file>
+<file name = "amq_queue_28.pal"          class = "fat test">the server MUST respect the if_empty flag on queue deletions</file>
+<file name = "amq_queue_29.pal"          class = "fat test">the server MUST honor the if_unused flag on queue deletion</file>
+<file name = "amq_queue_30.pal"          class = "fat test">the server MUST respect the if-unused flag when deleting a queue</file>
+<file name = "amq_queue_31.pal"          class = "fat test">the server MUST ignore auto-delete flag if queue already exists</file>
+<file name = "amq_queue_32.pal"          class = "fat test">the server MUST handle redeclaration of standardized queues correctly</file>
+<file name = "amq_queue_33.pal"          class = "fat test">the server MUST allow any type of content</file>
+<file name = "amq_queue_34.pal"          class = "fat test">the server MUST create a default binding for newly created queues</file>
+<file name = "amq_queue_35.pal"          class = "fat test">the server MUST allow at least 256 queues per virtual host</file>
+<file name = "amq_queue_36.pal"          class = "fat test">the server MUST support transient and durable queues</file>
+<file name = "amq_queue_37.pal"          class = "fat test">the server MUST ignore the durable field if it queue is already declared</file>
+<file name = "amq_queue_38.pal"          class = "fat test">the server MUST support exclusive and non-exclusive queues</file>
+<file name = "amq_queue_39.pal"          class = "fat test">the server MUST raise a connection exception on bind failure</file>
+<file name = "amq_queue_40.pal"          class = "fat test">the server MUST support at least 4 bindings per queue</file>
+<file name = "amq_queue_41.pal"          class = "fat test">the server MUST NOT purge unconfirmed sent messages on a transactional channel</file>
+<file name = "amq_queue_42.pal"          class = "fat test">the server MAY implement a failsafe for delete/purge</file>
+<file name = "amq_queue_43.pal"          class = "fat test">the server SHOULD implement storage for messages left on deleted/purged queues</file>
+<file name = "amq_stream_01.pal"         class = "fat test">the server MAY support stream</file>
+<file name = "amq_tx_01.pal"             class = "fat test">the server MAY support tx</file>
+<file name = "amq_wlp_content_01.pal"    class = "fat test">the server MUST handle incomplete contents</file>
+<file name = "amq_wlp_content_02.pal"    class = "fat test">the server MUST validate the content class-id</file>
+<file name = "amq_wlp_content_03.pal"    class = "fat test">the server MUST reject content frames with channel zero</file>
+<file name = "amq_wlp_content_04.pal"    class = "fat test">the server MAY support structured content</file>
+<file name = "amq_wlp_content_05.pal"    class = "fat test">the server MUST validate the content structure</file>
+<file name = "amq_wlp_frame_01.pal"      class = "fat test">the server MUST handle incorrect frame types correctly</file>
+<file name = "amq_wlp_frame_02.pal"      class = "fat test">the server MUST handle malformed frames correctly</file>
+<file name = "amq_wlp_frame_03.pal"      class = "fat test">the server MUST handle over-sized frames</file>
+<file name = "amq_wlp_header_01.pal"     class = "fat test">the server MUST accept the AMQP protocol</file>
+<file name = "amq_wlp_header_02.pal"     class = "fat test">the server MAY accept non-AMQP protocols</file>
+<file name = "amq_wlp_header_03.pal"     class = "fat test">the server MUST validate the 'AMQP' protocol header string</file>
+<file name = "amq_wlp_header_04.pal"     class = "fat test">the server MUST returns a protocol header on connection failure</file>
+<file name = "amq_wlp_heartbeat_01.pal"  class = "fat test">the server MUST detect invalid heartbeat frame</file>
+<file name = "amq_wlp_heartbeat_02.pal"  class = "fat test">the server MUST accept valid heartbeat frames</file>
+<file name = "amq_wlp_table_01.pal"      class = "fat test">the server SHOULD validate table field names</file>
+<file name = "amq_wlp_trace_01.pal"      class = "fat test">the server MUST detects invalid trace frames</file>
+<file name = "amq_wlp_trace_02.pal"      class = "fat test">the server MUST accept valid trace frames</file>
+
+</pdl>
