@@ -49,7 +49,8 @@ public class AMQDataBlockDecoder implements MessageDecoder
         {
             return MessageDecoderResult.NOT_OK;
         }
-        if (in.remaining() < (1 + 2 + 4))
+        // zero, channel, body size and end byte
+        if (in.remaining() < (1 + 2 + 4 + 1))
         {
             return MessageDecoderResult.NEED_DATA;
         }
@@ -59,13 +60,13 @@ public class AMQDataBlockDecoder implements MessageDecoder
         final int channel = in.getUnsignedShort();
         final long bodySize = in.getUnsignedInt();
 
-        // bodySize is always at least one since command end is included in body size
-        if (type <= 0 || channel < 0 || bodySize <= 0)
+        // bodySize can be zero
+        if (type <= 0 || channel < 0 || bodySize < 0)
         {
             return MessageDecoderResult.NOT_OK;
         }
 
-        if (in.remaining() < bodySize)
+        if (in.remaining() < (bodySize + 1))
         {
             return MessageDecoderResult.NEED_DATA;
         }
@@ -74,10 +75,10 @@ public class AMQDataBlockDecoder implements MessageDecoder
         {
             if (_logger.isDebugEnabled())
             {
-                // we have read 8 bytes so far, so output 8 + bodysize to get complete data block size
+                // we have read 8 bytes so far, so output 8 + bodysize + 1 (for end byte) to get complete data block size
                 // this logging statement is useful when looking at exactly what size of data is coming in/out
                 // the broker
-                _logger.debug("Able to decode data block of size " + (bodySize + 8));
+                _logger.debug("Able to decode data block of size " + (bodySize + 9));
             }
             return MessageDecoderResult.OK;
         }
