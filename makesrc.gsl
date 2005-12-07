@@ -113,7 +113,8 @@ EOF
 .  for product
 cat <<EOF >>$PKGROOT/build.sh
 cd \$$(name:c)_version
-if ! sh ./boomake build test install; then
+\./boomake build test install; 
+if [ $? != 0 ]; then
     echo "E: Build of $(name) failed" 1>&2
     exit 1
 fi
