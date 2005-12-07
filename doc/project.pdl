@@ -1,7 +1,7 @@
 <?xml?>
 <pdl
     name      = "OpenAMQ Documentation"
-    version   = "0.9c6"
+    version   = "0.9c7"
     copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     workflow  = "standard.pwl"
     >
@@ -9,7 +9,6 @@
 <include filename = "prelude.pdl" />
 
 <file name = "asl.xnf"               class = "gsl data"    >ASL grammar</file>
-<file name = "amq_rfc006.asl"        class = "gsl data"    >AMQP specifications</file> 
 
 <file name = "concepts.txt"          class = "gurudoc text">OpenAMQ concepts</file>
 <file name = "server.txt"            class = "gurudoc text">OpenAMQ servers user guide</file>
