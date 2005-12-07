@@ -1,3 +1,28 @@
+0.9c7 - 2005/11/25
+---------------------------------------------------------------------
+Bug Fixes:
+    
+     AMQ-213   too many bindings on one of the default queues.      
+     AMQ-190   Build Process fails in Regression tests for Solaris
+     AMQ-199   Rename the "bounce" method to "return".    
+     AMQ-215   Server will dump core when trying to use a non-existent system
+               exchange (e.g. amq.undeclared)      
+     BASE2-131 ipr_time doesn't build under Windows 
+     BASE2-113 PAL: server destruction on abort
+     BASE2-99  Redesign APR pool usage to be thread safe       
+     BASE2-128 Detecting race conditions on async object creation     
+     
+Changes:
+    
+     AMQ-214   the server should wait a little longer before accepting
+               connections  
+     AMQ-210   AMQConsole: use ISO8601 format to represent date    
+     AMQ-200   Add an "arguments" field table to the queue.declare and
+               exchange.declare methods     
+     AMQ-56    Starting to test JMS/AMQ using the jms cts test harness       
+     FOR-9     Migrate foreign project to use vendor branches    
+     BASE2-127 icl_longstr comparison should allow null references  
+
 0.9c6 - 2005/11/25
 ---------------------------------------------------------------------
 Bug fixes:
