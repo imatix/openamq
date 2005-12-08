@@ -1,0 +1,26 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "amq-136"
+    >
+    <session>
+        <exchange_declare exchange = "pubsub" type = "headers" />
+        <queue_declare queue = "myqueue" />
+        <queue_bind queue = "myqueue" exchange = "pubsub" routing_key = "pubsub" />
+        <basic_content message_id = "id-1" />
+        <basic_consume queue = "myqueue" />
+        <basic_publish exchange = "pubsub" routing_key = "pubsub" />
+        <repeat times = "2">
+            <wait />
+            <basic_arrived>
+                <echo>Message '$message_id' [$body_size] came back from $exchange to us using rk: '$routing_key'</echo>
+            </basic_arrived>
+        </repeat>
+        <empty>
+            <echo>Message did not come back, this is bad!</echo>
+        </empty>
+    </session>
+    
+</pal>
+
+
