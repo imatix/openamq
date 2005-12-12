@@ -1,0 +1,26 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "Publishing client"
+    >
+    <session>
+        <exchange_declare exchange = "recv" type = "direct"/>
+        <queue_declare queue = "rqueue" />
+        <queue_bind queue = "rqueue" exchange = "recv" />
+        <set name = "count" value = "100" cmdline = "C" />
+        <set name = "counter" value = "0" />
+        <basic_consume queue = "rqueue" />
+        <repeat times = "$count">
+            <inc name = "counter" />
+            <basic_content message_id = "$counter" />
+            <basic_publish exchange = "myexchange" />
+            <wait/>
+            <basic_arrived>
+                <echo>$message_id</echo>
+            </basic_arrived>
+        </repeat>
+    </session>
+    
+</pal>
+
+
