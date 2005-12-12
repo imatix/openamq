@@ -170,9 +170,6 @@ that is in every content header).
         binding_nbr;                    //  Binding number, 1..n from bindset
     </local>
     //
-    if (class_id == AMQ_SERVER_JMS)
-        headers = asl_field_list_new (((amq_content_jms_t *) content)->headers);
-    else
     if (class_id == AMQ_SERVER_BASIC)
         headers = asl_field_list_new (((amq_content_basic_t *) content)->headers);
 

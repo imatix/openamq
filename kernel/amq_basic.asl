@@ -6,18 +6,19 @@
   >
   work with basic content
 <doc>
-  The basic operational model is designed to provide the simplest possible
-  message store and forward model.  Basic messages are not acknowledged,
-  cannot be pushed back onto a queue, and are not covered by transactions.
+  The Basic class provides methods that support an industry-standard
+  messaging model.
 </doc>
 
 <doc name = "grammar">
     basic               = C:CONSUME S:CONSUME-OK
                         / C:CANCEL S:CANCEL-OK
                         / C:PUBLISH content
-                        / S:BOUNCE content
+                        / S:RETURN content
                         / S:DELIVER content
                         / C:GET ( S:GET-OK content / S:GET-EMPTY )
+                        / C:ACK
+                        / C:REJECT
 </doc>
 
 <chassis name = "server" implement = "MUST" />
@@ -45,13 +46,11 @@
 </doc>
 <doc name = "rule" test = "amq_basic_12">
   The server MUST deliver messages of the same priority in order
-  irrespective of their individual persistence. 
+  irrespective of their individual persistence.
 </doc>
 <doc name = "rule" test = "amq_basic_13">
-  The server MUST implement automatic acknowledgements on all Basic
-  messages.  That is, as soon as a message is delivered to a client
-  via a Deliver or a Get-Ok method, the server must remove it from
-  the queue.
+  The server MUST support both automatic and explicit acknowledgements
+  on Basic content.
 </doc>
 
 <!--  These are the properties for a Basic content  -->
@@ -65,11 +64,35 @@
 <field name = "headers" type = "table">
     Message header field table
 </field>
-<field name = "message id" type = "shortstr">
-    The application message identifier
+<field name = "delivery mode" type = "octet">
+    Non-persistent (1) or persistent (2)
+</field>
+<field name = "priority" type = "octet">
+    The message priority, 0 to 9
+</field>
+<field name = "correlation id" type = "shortstr">
+    The application correlation identifier
 </field>
 <field name = "reply to" type = "shortstr">
     The destination to reply to
+</field>
+<field name = "expiration" type = "shortstr">
+    Message expiration specification
+</field>
+<field name = "message id" type = "shortstr">
+    The application message identifier
+</field>
+<field name = "timestamp" type = "timestamp">
+    The message timestamp
+</field>
+<field name = "type" type = "shortstr">
+    The message type name
+</field>
+<field name = "user id" type = "shortstr">
+    The creating user id
+</field>
+<field name = "app id" type = "shortstr">
+    The creating application id
 </field>
 
 
@@ -105,23 +128,67 @@
     <assert check = "notnull" />
   </field>
 
+  <field name = "prefetch size" type = "long">
+    prefetch window in octets
+    <doc>
+      The client can request that messages be sent in advance so that
+      when the client finishes processing a message, the following
+      message is already held locally, rather than needing to be sent
+      down the channel.  Prefetching gives a performance improvement.
+      This field specifies the prefetch window size in octets.  The
+      server will send a message in advance if it is equal to or
+      smaller in size than the available prefetch size (and also falls
+      into other prefetch limits). May be set to zero, meaning "no
+      specific limit", although other prefetch limits may still apply.
+      The prefetch-size is ignored if the auto-ack option is set.
+    </doc>
+    <doc name = "rule" test = "amq_basic_17">
+      The server MUST ignore this setting when the client is not
+      processing any messages - i.e. the prefetch size does not limit
+      the transfer of single messages to a client, only the sending in
+      advance of more messages while the client still has one or more
+      unacknowledged messages.
+   </doc>
+  </field>
+
+  <field name = "prefetch count" type = "short">
+    prefetch window in messages
+    <doc>
+      Specifies a prefetch window in terms of whole messages.  This
+      field may be used in combination with the prefetch-size field;
+      a message will only be sent in advance if both prefetch windows
+      (and those at the channel and connection level) allow it.
+      The prefetch-count is ignored if the auto-ack option is set.
+    </doc>
+    <doc name = "rule" test = "amq_basic_18">
+      The server MAY send less data in advance than allowed by the
+      client's specified prefetch windows but it MUST NOT send more.
+    </doc>
+  </field>
+
   <field name = "no local" domain = "no local" />
+
+  <field name = "auto ack" domain = "auto ack" />
 
   <field name = "exclusive" type = "bit">
     request exclusive access
+    <doc>
+      Request exclusive consumer access, meaning only this consumer can
+      access the queue.
+    </doc>
     <doc name = "rule" test = "amq_basic_02">
-      Request exclusive consumer access.  If the server cannot grant
-      this - because there are other consumers active - it MUST raise a
-      channel exception.
+      If the server cannot grant exclusive access to the queue when asked,
+      - because there are other consumers active - it MUST raise a channel
+      exception with return code 405 (resource locked).
     </doc>
   </field>
 </method>
 
 <method name = "consume-ok" synchronous = "1">
   confirm a new consumer
-  <doc name = "rule" test = "amq_basic_03">
-    The server MUST provide the client with a consumer tag, which is used by
-    the client for methods called on the consumer at a later stage.
+  <doc>
+    The server provides the client with a consumer tag, which is used
+    by the client for methods called on the consumer at a later stage.
   </doc>
   <chassis name = "client" implement = "MUST" />
 
@@ -149,7 +216,7 @@
 <method name = "cancel-ok" synchronous = "1">
   confirm a cancelled consumer
   <doc>
-    This method confirms that the cancellation was completed.    
+    This method confirms that the cancellation was completed.
   </doc>
   <chassis name = "client" implement = "MUST" />
 </method>
@@ -159,10 +226,11 @@
 
 <method name = "publish" synchronous = "0" content = "1">
   publish a message
-  <doc name = "rule" test = "amq_basic_05">
+  <doc>
     This method publishes a message to a specific exchange. The message
-    MUST be routed to queues as defined by the exchange configuration
-    and distributed to any active consumers as appropriate.
+    will be routed to queues as defined by the exchange configuration
+    and distributed to any active consumers when the transaction, if any,
+    is committed.
   </doc>
   <chassis name = "server" implement = "MUST" />
 
@@ -186,13 +254,12 @@
     </doc>
     <doc name = "rule" test = "amq_basic_14">
       If the exchange was declared as an internal exchange, the server
-      MUST respond with a reply code 403 (access refused) and raise a
-      channel exception.
+      MUST raise a channel exception with a reply code 403 (access
+      refused).
     </doc>
-    <doc name = "rule" test = "amq_basic_15"> 
-      The exchange MAY refuse basic content in which case it MUST
-      respond with a reply code 540 (not implemented) and raise a
-      channel exception.
+    <doc name = "rule" test = "amq_basic_15">
+      The exchange MAY refuse basic content in which case it MUST raise
+      a channel exception with reply code 540 (not implemented).
     </doc>
   </field>
 
@@ -206,29 +273,33 @@
 
   <field name = "mandatory" type = "bit">
     indicate mandatory routing
-    <doc name = "rule" test = "amq_basic_07">
+    <doc>
       This flag tells the server how to react if the message cannot be
-      routed to a queue.  If this flag is set, the server MUST return the
-      message with a Bounce method.  If this flag is zero, the server
-      silently drops the message. The meaning of this bit is not defined
-      when a message is routed through multiple exchanges.
+      routed to a queue.  If this flag is set, the server will return an
+      unroutable message with a Return method.  If this flag is zero, the
+      server silently drops the message.
+    </doc>
+    <doc name = "rule" test = "amq_basic_07">
+      The server SHOULD implement the mandatory flag.
     </doc>
   </field>
 
   <field name = "immediate" type = "bit">
     request immediate delivery
-    <doc name = "rule" test = "amq_basic_16">
+    <doc>
       This flag tells the server how to react if the message cannot be
       routed to a queue consumer immediately.  If this flag is set, the
-      server MUST return the message with a Bounce method.  If this flag is
-      zero, the server MUST queue the message, but with no guarantee that it
-      will ever be consumed.  The meaning of this bit is not defined
-      when a message is routed through multiple exchanges.
+      server will return an undeliverable message with a Return method.
+      If this flag is zero, the server will queue the message, but with
+      no guarantee that it will ever be consumed.
+    </doc>
+    <doc name = "rule" test = "amq_basic_16">
+      The server SHOULD implement the immediate flag.
     </doc>
   </field>
 </method>
 
-<method name = "bounce" content = "1">
+<method name = "return" content = "1">
   return a failed message
   <doc>
     This method returns an undeliverable message that was published
@@ -254,7 +325,7 @@
     <doc>
       Specifies the routing key name specified when the message was
       published.
-    </doc>     
+    </doc>
   </field>
 </method>
 
@@ -269,9 +340,21 @@
     consumer using the Consume method, then the server responds with
     Deliver methods as and when messages arrive for that consumer.
   </doc>
+  <doc name = "rule" test = "amq_basic_19">
+    The server SHOULD track the number of times a message has been
+    delivered to clients and when a message is redelivered a certain
+    number of times - e.g. 5 times - without being acknowledged, the
+    server SHOULD consider the message to be unprocessable (possibly
+    causing client applications to abort), and move the message to a
+    dead letter queue.
+  </doc>
   <chassis name = "client" implement = "MUST" />
 
   <field name = "consumer tag" domain = "consumer tag" />
+
+  <field name = "delivery tag" domain = "delivery tag" />
+
+  <field name = "redelivered" domain = "redelivered" />
 
   <field name = "exchange" domain = "exchange name">
     <doc>
@@ -280,13 +363,13 @@
     </doc>
     <assert check = "notnull" />
   </field>
-    
+
   <field name = "routing key" type = "shortstr">
      Message routing key
     <doc>
       Specifies the routing key name specified when the message was
       published.
-    </doc>     
+    </doc>
   </field>
 </method>
 
@@ -316,15 +399,22 @@
       Specifies the name of the queue to get from.
     </doc>
   </field>
+
+  <field name = "auto ack" domain = "auto ack" />
 </method>
 
 <method name = "get-ok" synchronous = "1" content = "1">
   provide client with a message
   <doc>
     This method delivers a message to the client following a get
-    method.
+    method.  A message delivered by 'get-ok' must be acknowledged
+    unless the auto-ack option was set in the get method.
   </doc>
   <chassis name = "client" implement = "MAY" />
+
+  <field name = "delivery tag" domain = "delivery tag" />
+
+  <field name = "redelivered"  domain = "redelivered"  />
 
   <field name = "exchange" domain = "exchange name">
     <doc>
@@ -363,5 +453,83 @@
   <chassis name = "client" implement = "MAY" />
 </method>
 
-</class>
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
+<method name = "ack">
+  acknowledge one or more messages
+  <doc>
+    This method acknowledges one or more messages delivered via the
+    Deliver or Get-Ok methods.  The client can ask to confirm a
+    single message or a set of messages up to and including a specific
+    message.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <field name = "delivery tag" domain = "delivery tag" />
+
+  <field name = "multiple" type = "bit">
+    acknowledge multiple messages
+    <doc>
+      If set to 1, the delivery tag is treated as "up to and including",
+      so that the client can acknowledge multiple messages with a single
+      method.  If set to zero, the delivery tag refers to a single
+      message.  If the multiple field is 1, and the delivery tag is zero,
+      tells the server to acknowledge all outstanding mesages.
+    </doc>
+    <doc name = "rule" test = "amq_basic_20">
+      The server MUST validate that a non-zero delivery-tag refers to an
+      delivered message, and raise a channel exception if this is not the
+      case.
+    </doc>
+  </field>
+</method>
+
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+<method name = "reject">
+  reject an incoming message
+  <doc>
+    This method allows a client to reject a message.  It can be used to
+    interrupt and cancel large incoming messages, or return untreatable
+    messages to their original queue.
+  </doc>
+  <doc name = "rule" test = "amq_basic_21">
+    The server SHOULD be capable of accepting and process the Reject
+    method while sending message content with a Deliver or Get-Ok
+    method.  I.e. the server should read and process incoming methods
+    while sending output frames.  To cancel a partially-send content,
+    the server sends a content body frame of size 1 (i.e. with no data
+    except the frame-end octet).
+  </doc>
+  <doc name = "rule" test = "amq_basic_22">
+    The server SHOULD interpret this method as meaning that the client
+    is unable to process the message at this time.
+  </doc>
+  <doc name = "rule">
+    A client MUST NOT use this method as a means of selecting messages
+    to process.  A rejected message MAY be discarded or dead-lettered,
+    not necessarily passed to another client.
+  </doc>      
+  <chassis name = "server" implement = "MUST" />
+    
+  <field name = "delivery tag" domain = "delivery tag" />
+
+  <field name = "requeue" type = "bit">
+    requeue the message
+    <doc>
+      If this field is zero, the message will be discarded.  If this bit
+      is 1, the server will attempt to requeue the message.
+    </doc>
+    <doc name = "rule" test = "amq_basic_23">
+      The server MUST NOT deliver the message to the same client within
+      the context of the current channel.  The recommended strategy is
+      to attempt to deliver the message to an alternative consumer, and
+      if that is not possible, to move the message to a dead-letter
+      queue.  The server MAY use more sophisticated tracking to hold
+      the message on the queue and redeliver it to the same client at
+      a later stage.
+    </doc>
+  </field>
+</method>
+
+</class>

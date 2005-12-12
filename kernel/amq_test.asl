@@ -3,7 +3,7 @@
 <class
     name    = "test"
     handler = "channel"
-    index   = "12"
+    index   = "11"
   >
   test functional primitives of the implementation
 

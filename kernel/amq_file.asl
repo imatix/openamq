@@ -2,7 +2,7 @@
 <class
     name    = "file"
     handler = "channel"
-    index   = "8"
+    index   = "7"
   >
   work with file content
 
@@ -23,7 +23,7 @@
                         / S:OPEN C:OPEN-OK S:STAGE content
                         / C:PUBLISH
                         / S:DELIVER
-                        / S:BOUNCE
+                        / S:RETURN
                         / C:ACK
                         / C:REJECT
 </doc>
@@ -146,13 +146,13 @@
   <field name = "exclusive" type = "bit">
     request exclusive access
     <doc>
-      Request exclusive consumer access.  If the server cannot grant
-      this - because there are other consumers active - it raises a
-      channel exception.
+      Request exclusive consumer access, meaning only this consumer can
+      access the queue.
     </doc>
-    <doc name = "rule">
-      The server MUST grant clients exclusive access to a queue
-      if they ask for it.
+    <doc name = "rule" test = "amq_file_00">
+      If the server cannot grant exclusive access to the queue when asked,
+      - because there are other consumers active - it MUST raise a channel
+      exception with return code 405 (resource locked).
     </doc>
   </field>
 </method>
@@ -333,10 +333,12 @@
     indicate mandatory routing
     <doc>
       This flag tells the server how to react if the message cannot be
-      routed to a queue.  If this flag is set, the server returns the
-      message with a Bounce method.  If this flag is zero, the server
-      silently drops the message. The meaning of this bit is not defined
-      when a message is routed through multiple exchanges.
+      routed to a queue.  If this flag is set, the server will return an
+      unroutable message with a Return method.  If this flag is zero, the
+      server silently drops the message.
+    </doc>
+    <doc name = "rule" test = "amq_file_00">
+      The server SHOULD implement the mandatory flag.
     </doc>
   </field>
 
@@ -345,10 +347,12 @@
     <doc>
       This flag tells the server how to react if the message cannot be
       routed to a queue consumer immediately.  If this flag is set, the
-      server returns the message with a Bounce method.  If this flag is
-      zero, the server queues the message, but with no guarantee that it
-      will ever be consumed.  The meaning of this bit is not defined
-      when a message is routed through multiple exchanges.
+      server will return an undeliverable message with a Return method.
+      If this flag is zero, the server will queue the message, but with
+      no guarantee that it will ever be consumed.
+    </doc>
+    <doc name = "rule" test = "amq_file_00">
+      The server SHOULD implement the immediate flag.
     </doc>
   </field>
 
@@ -357,13 +361,13 @@
     <doc>
       This is the staging identifier of the message to publish.  The
       message must have been staged.  Note that a client can send the
-      Publish method asynchronously without waiting for staging to 
+      Publish method asynchronously without waiting for staging to
       finish.
     </doc>
   </field>
 </method>
 
-<method name = "bounce" content = "1">
+<method name = "return" content = "1">
   return a failed message
   <doc>
     This method returns an undeliverable message that was published
@@ -415,7 +419,10 @@
   </doc>
   <chassis name = "client" implement = "MUST" />
 
+  <field name = "consumer tag" domain = "consumer tag" />
+
   <field name = "delivery tag" domain = "delivery tag" />
+
   <field name = "redelivered" domain = "redelivered" />
 
   <field name = "exchange" domain = "exchange name">
@@ -425,14 +432,13 @@
     </doc>
     <assert check = "notnull" />
   </field>
-    
-  <field name = "queue" domain = "queue name">
+
+  <field name = "routing key" type = "shortstr">
+     Message routing key
     <doc>
-      Specifies the name of the queue that the message came from. Note
-      that a single channel can start many consumers on different
-      queues.
+      Specifies the routing key name specified when the message was
+      published.
     </doc>
-    <assert check = "notnull" />
   </field>
 
   <field name = "identifier" type = "shortstr">

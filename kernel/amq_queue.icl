@@ -68,8 +68,6 @@ class.  This is a lock-free asynchronous class.
         dirty;                          //  Queue has to be dispatched?
     int
         consumers;                      //  Number of consumers
-    amq_queue_jms_t
-        *queue_jms;                     //  JMS content queue
     amq_queue_basic_t
         *queue_basic;                   //  Basic content queue
 </context>
@@ -91,7 +89,6 @@ class.  This is a lock-free asynchronous class.
     self->durable     = durable;
     self->exclusive   = exclusive;
     self->auto_delete = auto_delete;
-    self->queue_jms   = amq_queue_jms_new (self);
     self->queue_basic = amq_queue_basic_new (self);
     icl_shortstr_cpy (self->name, name);
 
@@ -105,7 +102,6 @@ class.  This is a lock-free asynchronous class.
     if (amq_server_config_trace_queue (amq_server_config))
         icl_console_print ("Q: destroy  queue=%s", self->name);
 
-    amq_queue_jms_destroy   (&self->queue_jms);
     amq_queue_basic_destroy (&self->queue_basic);
     </action>
 </method>
@@ -120,24 +116,15 @@ class.  This is a lock-free asynchronous class.
     <argument name = "immediate" type = "Bool">Warn if no consumers?</argument>
     //
     <possess>
-    if (class_id == AMQ_SERVER_JMS)
-        amq_content_jms_possess (content);
-    else
     if (class_id == AMQ_SERVER_BASIC)
         amq_content_basic_possess (content);
     </possess>
     <release>
-    if (class_id == AMQ_SERVER_JMS)
-        amq_content_jms_destroy ((amq_content_jms_t **) &content);
-    else
     if (class_id == AMQ_SERVER_BASIC)
         amq_content_basic_destroy ((amq_content_basic_t **) &content);
     </release>
     <action>
     if (self->enabled) {
-        if (class_id == AMQ_SERVER_JMS)
-            amq_queue_jms_publish (self->queue_jms, channel, content, immediate);
-        else
         if (class_id == AMQ_SERVER_BASIC)
             amq_queue_basic_publish (self->queue_basic, channel, content, immediate);
     }
@@ -154,9 +141,6 @@ class.  This is a lock-free asynchronous class.
     <argument name = "class id" type = "int" >The content class</argument>
     //
     <action>
-    if (class_id == AMQ_SERVER_JMS)
-        amq_queue_jms_get (self->queue_jms, channel);
-    else
     if (class_id == AMQ_SERVER_BASIC)
         amq_queue_basic_get (self->queue_basic, channel);
     else
@@ -201,15 +185,6 @@ class.  This is a lock-free asynchronous class.
         amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE);
     }
     else {
-        if (consumer->class_id == AMQ_SERVER_JMS) {
-            amq_queue_jms_consume (self->queue_jms, consumer, active);
-            if (amq_server_channel_alive (consumer->channel))
-                amq_server_agent_jms_consume_ok (
-                    consumer->channel->connection->thread,
-                    (dbyte) consumer->channel->key,
-                    consumer->tag);
-        }
-        else
         if (consumer->class_id == AMQ_SERVER_BASIC) {
             amq_queue_basic_consume (self->queue_basic, consumer, active);
             if (amq_server_channel_alive (consumer->channel))
@@ -234,14 +209,6 @@ class.  This is a lock-free asynchronous class.
     <argument name = "notify" type = "Bool">Notify client application?</argument>
     //
     <action>
-    if (consumer->class_id == AMQ_SERVER_JMS) {
-        if (notify && amq_server_channel_alive (consumer->channel))
-            amq_server_agent_jms_cancel_ok (
-                consumer->channel->connection->thread,
-                (dbyte) consumer->channel->key);
-        amq_queue_jms_cancel (self->queue_jms, consumer);
-    }
-    else
     if (consumer->class_id == AMQ_SERVER_BASIC) {
         if (notify && amq_server_channel_alive (consumer->channel))
             amq_server_agent_basic_cancel_ok (
@@ -282,8 +249,7 @@ class.  This is a lock-free asynchronous class.
     <action>
     long
         messages = 0;
-        
-    messages += amq_queue_jms_purge   (self->queue_jms);
+
     messages += amq_queue_basic_purge (self->queue_basic);
     amq_server_agent_queue_purge_ok (
         channel->connection->thread,
@@ -306,9 +272,6 @@ class.  This is a lock-free asynchronous class.
     amq_consumer_unlink (&consumer);
     </release>
     <action>
-    if (consumer->class_id == AMQ_SERVER_JMS)
-        amq_queue_jms_flow (self->queue_jms, consumer, active);
-    else
     if (consumer->class_id == AMQ_SERVER_BASIC)
         amq_queue_basic_flow (self->queue_basic, consumer, active);
     </action>
@@ -320,7 +283,6 @@ class.  This is a lock-free asynchronous class.
     </doc>
     //
     <action>
-    amq_queue_jms_dispatch   (self->queue_jms);
     amq_queue_basic_dispatch (self->queue_basic);
     self->dirty = FALSE;                //  Queue has been dispatched
     </action>
@@ -331,8 +293,7 @@ class.  This is a lock-free asynchronous class.
     Return number of messages on queue.
     </doc>
     //
-    rc = amq_queue_jms_message_count   (self->queue_jms)
-       + amq_queue_basic_message_count (self->queue_basic);
+    rc = amq_queue_basic_message_count (self->queue_basic);
 </method>
 
 <method name = "consumer count" template = "function">

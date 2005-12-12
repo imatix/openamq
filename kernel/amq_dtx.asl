@@ -2,7 +2,7 @@
 <class
     name    = "dtx"
     handler = "channel"
-    index   = "11"
+    index   = "10"
   >
   work with distributed transactions
 

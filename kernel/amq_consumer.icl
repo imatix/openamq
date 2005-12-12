@@ -9,7 +9,7 @@
 <doc>
 This class implements a polymorphic consumer.  This is an object that
 ties the channel to the queue, and envelopes class-specific consumers
-for JMS, Basic, and other content classes.
+for Basic, File, and Stream content classes.
 </doc>
 
 <inherit class = "icl_object">
@@ -34,8 +34,6 @@ for JMS, Basic, and other content classes.
         *queue;                         //  Parent queue
     dbyte
         tag;                            //  Client reference for queue
-    amq_consumer_jms_t
-        *consumer_jms;                  //  JMS consumer
     amq_consumer_basic_t
         *consumer_basic;                //  Basic consumer
     qbyte
@@ -67,17 +65,11 @@ for JMS, Basic, and other content classes.
     self->auto_ack       = auto_ack;
     self->exclusive      = exclusive;
 
-    if (self->class_id == AMQ_SERVER_JMS)
-        self->consumer_jms = amq_consumer_jms_new (self);
-    else
     if (self->class_id == AMQ_SERVER_BASIC)
         self->consumer_basic = amq_consumer_basic_new (self);
 </method>
 
 <method name = "destroy">
-    if (self->class_id == AMQ_SERVER_JMS)
-        amq_consumer_jms_destroy (&self->consumer_jms);
-    else
     if (self->class_id == AMQ_SERVER_BASIC)
         amq_consumer_basic_destroy (&self->consumer_basic);
 </method>

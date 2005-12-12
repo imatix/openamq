@@ -3,7 +3,7 @@
 <class
     name    = "tx"
     handler = "channel"
-    index   = "10"
+    index   = "9"
   >
   work with standard transactions
 

@@ -65,16 +65,11 @@ This is an abstract base class for all exchange implementations.
         *message_id = NULL;
     Bool
         delivered = FALSE,              //  Set to TRUE if message processed
-        bounced = FALSE;
+        returned = FALSE;
     </local>
     //
     <header>
     assert (self);
-    if (class_id == AMQ_SERVER_JMS) {
-        routing_key = ((amq_content_jms_t *) content)->routing_key;
-        message_id  = ((amq_content_jms_t *) content)->message_id;
-    }
-    else
     if (class_id == AMQ_SERVER_BASIC) {
         routing_key = ((amq_content_basic_t *) content)->routing_key;
         message_id  = ((amq_content_basic_t *) content)->message_id;
@@ -84,26 +79,10 @@ This is an abstract base class for all exchange implementations.
     </header>
     <footer>
     if (delivered == FALSE && mandatory) {
-        if (class_id == AMQ_SERVER_JMS) {
-            if (amq_server_channel_alive (channel)
-            && !((amq_content_jms_t *) content)->bounced) {
-                amq_server_agent_jms_bounce (
-                    channel->connection->thread,
-                    (dbyte) channel->key,
-                    content,
-                    ASL_NOT_DELIVERED,
-                    "Message cannot be processed - no route is defined",
-                    ((amq_content_jms_t *) content)->exchange,
-                    ((amq_content_jms_t *) content)->routing_key);
-                ((amq_content_jms_t *) content)->bounced = TRUE;
-                bounced = TRUE;
-            }
-        }
-        else
         if (class_id == AMQ_SERVER_BASIC) {
             if (amq_server_channel_alive (channel)
-            && !((amq_content_basic_t *) content)->bounced) {
-                amq_server_agent_basic_bounce (
+            && !((amq_content_basic_t *) content)->returned) {
+                amq_server_agent_basic_return (
                     channel->connection->thread,
                     (dbyte) channel->key,
                     content,
@@ -111,14 +90,14 @@ This is an abstract base class for all exchange implementations.
                     "Message cannot be processed - no route is defined",
                     ((amq_content_basic_t *) content)->exchange,
                     ((amq_content_basic_t *) content)->routing_key);
-                ((amq_content_basic_t *) content)->bounced = TRUE;
-                bounced = TRUE;
+                ((amq_content_basic_t *) content)->returned = TRUE;
+                returned = TRUE;
             }
         }
     }
     if (amq_server_config_trace_route (amq_server_config)) {
-        if (bounced)
-            icl_console_print ("X: bounce   message=%s reason=unroutable_mandatory",
+        if (returned)
+            icl_console_print ("X: return   message=%s reason=unroutable_mandatory",
                 message_id);
         else
         if (!delivered)

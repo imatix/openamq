@@ -7,17 +7,17 @@
     <session>
         <queue_declare />
         <queue_bind queue = "$queue" exchange = "amq.direct" routing_key = "$queue" />
-        <jms_consume queue = "$queue" auto_ack = "1" />
+        <basic_consume queue = "$queue" auto_ack = "1" />
         <repeat counter = "count">
-            <jms_content exec = "perl amq_test_console.pl" reply_to = "$queue" />
+            <basic_content exec = "perl amq_test_console.pl" reply_to = "$queue" />
             <if name = "body_size" value = "0">
                 <break/>
             </if>
-            <jms_publish exchange = "amq.system" routing_key = "amq.console" />
+            <basic_publish exchange = "amq.system" routing_key = "amq.console" />
             <wait/>
-            <jms_arrived>
+            <basic_arrived>
                 <echo>Got response from console - $message_id</echo>
-            </jms_arrived>
+            </basic_arrived>
             <empty>
                 <echo>No response arrived from console, aborting</echo>
                 <break/>

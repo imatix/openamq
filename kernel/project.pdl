@@ -20,7 +20,6 @@
 <file name = "amq_exchange.asl"      class = "public resource"   >Exchange management</file>
 <file name = "amq_queue.asl"         class = "public resource"   >Queue management</file>
 <file name = "amq_basic.asl"         class = "public resource"   >Basic content</file>
-<file name = "amq_jms.asl"           class = "public resource"   >JMS content</file>
 <file name = "amq_file.asl"          class = "public resource"   >File content</file>
 <file name = "amq_stream.asl"        class = "public resource"   >Stream content</file>
 <file name = "amq_tx.asl"            class = "public resource"   >Transactions</file>
@@ -112,9 +111,7 @@
 <file name = "amq_queue_list.icl"    class = "icl private cont"  >List of queues per vhost</file>
 <file name = "amq_queue_agent.smt"   class = "smt public module"
                                      generated = "1"             >Server queue agent</file>
-<file name = "amq_queue_base.icl"    class = "private resource"  >Server queue base class</file>
 <file name = "amq_queue_basic.icl"   class = "icl private class" >Basic content queue class</file>
-<file name = "amq_queue_jms.icl"     class = "icl private class" >JMS content queue class</file>
 <file name = "amq_consumer.icl"      class = "icl private class" >Consumer class</file>
 <file name = "amq_consumer_by_queue.icl"
                                      class = "icl private cont"  >Consumers per queue</file>
@@ -122,7 +119,6 @@
                                      class = "icl private cont"  >Consumers per channel</file>
 <file name = "amq_consumer_basic.icl"
                                      class = "icl private class" >Basic consumer class</file>
-<file name = "amq_consumer_jms.icl"  class = "icl private class" >JMS consumer class</file>
 <file name = "amq_server_method.icl" class = "icl private class"
                                      generated = "1"             >Server method class</file>
 
@@ -137,13 +133,11 @@
 <file name = "amq_hash_table.icl"    class = "icl private cont"  >Loose hash table</file>
 <file name = "amq_content_basic.icl" class = "icl public cont"
                                      generated = "1"             >Basic content class</file>
-<file name = "amq_content_jms.icl"   class = "icl public cont"
-                                     generated = "1"             >JMS content class</file>
 <file name = "amq_content_file.icl"  class = "icl public cont"
-                                     generated = "1"             >Basic content class</file>
+                                     generated = "1"             >File content class</file>
 <file name = "amq_content_stream.icl"
                                      class = "icl public cont"
-                                     generated = "1"             >JMS content class</file>
+                                     generated = "1"             >Stream content class</file>
 <file name = "amq_constants.icl"     class = "icl public data"
                                      generated = "1"             >Constants class</file>
 <file name = "amq_console_schema.cml"

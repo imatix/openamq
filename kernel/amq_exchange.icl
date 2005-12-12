@@ -314,16 +314,10 @@ for each type of exchange. This is a lock-free asynchronous class.
     <argument name = "immediate" type = "Bool">Warn if no consumers</argument>
     //
     <possess>
-    if (class_id == AMQ_SERVER_JMS)
-        amq_content_jms_possess (content);
-    else
     if (class_id == AMQ_SERVER_BASIC)
         amq_content_basic_possess (content);
     </possess>
     <release>
-    if (class_id == AMQ_SERVER_JMS)
-        amq_content_jms_destroy ((amq_content_jms_t **) &content);
-    else
     if (class_id == AMQ_SERVER_BASIC)
         amq_content_basic_destroy ((amq_content_basic_t **) &content);
     </release>

@@ -47,7 +47,7 @@ main (int argc, char *argv [])
         *connection = NULL;             //  Current connection
     amq_client_session_t
         *session = NULL;                //  Current session
-    amq_content_jms_t
+    amq_content_basic_t
         *content = NULL;                //  Message content
     dbyte
         ticket = 0;                     //  Access ticket
@@ -154,30 +154,30 @@ main (int argc, char *argv [])
         icl_console_print ("E: could not open session to server");
         goto finished;
     }
-    content = amq_content_jms_new ();
+    content = amq_content_basic_new ();
     headers = asl_field_list_build ("currency", "eur", "stock", "ibm", NULL);
-    amq_content_jms_set_body       (content, test_data, msgsize, NULL);
-    amq_content_jms_set_message_id (content, "ID-1");
-    amq_content_jms_set_headers    (content, headers);
-    amq_client_session_jms_publish (session,
+    amq_content_basic_set_body       (content, test_data, msgsize, NULL);
+    amq_content_basic_set_message_id (content, "ID-1");
+    amq_content_basic_set_headers    (content, headers);
+    amq_client_session_basic_publish (session,
         content, ticket, "amq.match", "stocks", FALSE, FALSE);
     icl_longstr_destroy (&headers);
 
-    content = amq_content_jms_new ();
+    content = amq_content_basic_new ();
     headers = asl_field_list_build ("currency", "usd", "stock", "ibm", NULL);
-    amq_content_jms_set_body       (content, test_data, msgsize, NULL);
-    amq_content_jms_set_message_id (content, "ID-2");
-    amq_content_jms_set_headers    (content, headers);
-    amq_client_session_jms_publish (session,
+    amq_content_basic_set_body       (content, test_data, msgsize, NULL);
+    amq_content_basic_set_message_id (content, "ID-2");
+    amq_content_basic_set_headers    (content, headers);
+    amq_client_session_basic_publish (session,
         content, ticket, "match", "stocks", FALSE, FALSE);
     icl_longstr_destroy (&headers);
 
-    content = amq_content_jms_new ();
+    content = amq_content_basic_new ();
     headers = asl_field_list_build ("currency", "eur", "stock", "ibm", "realtime", "yes", NULL);
-    amq_content_jms_set_body       (content, test_data, msgsize, NULL);
-    amq_content_jms_set_message_id (content, "ID-3");
-    amq_content_jms_set_headers    (content, headers);
-    amq_client_session_jms_publish (session,
+    amq_content_basic_set_body       (content, test_data, msgsize, NULL);
+    amq_content_basic_set_message_id (content, "ID-3");
+    amq_content_basic_set_headers    (content, headers);
+    amq_client_session_basic_publish (session,
         content, ticket, "match", "stocks", FALSE, FALSE);
     icl_longstr_destroy (&headers);
 

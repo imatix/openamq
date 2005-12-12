@@ -65,7 +65,7 @@
       "passive" access if the if-exists flag is set.
     </doc>
   </field>
-    
+
   <field name = "queue" domain = "queue name">
     <doc name = "rule" test = "amq_queue_10">
       The queue name MAY be empty, in which case the server MUST create
@@ -77,7 +77,7 @@
       Queue names starting with "amq." are reserved for predeclared and
       standardised server queues.  If the queue name starts with "amq."
       and the passive option is zero, the server MUST raise a connection
-      exception with reply code 507 (not allowed).
+      exception with reply code 403 (access refused).
     </doc>
     <assert check = "regexp" value = "^[a-zA-Z0-9-_.]*$" test = "amq_queue_09" />
   </field>
@@ -153,6 +153,15 @@
     <doc name = "rule" test = "amq_queue_31">
       The server MUST ignore the auto-delete field if the queue already
       exists.
+    </doc>
+  </field>
+
+  <field name = "arguments" type = "table">
+    arguments for declaration
+    <doc>
+      A set of arguments for the declaration. The syntax and semantics
+      of these arguments depends on the server implementation.  This
+      field is ignored if passive is 1.
     </doc>
   </field>
 </method>
@@ -378,7 +387,7 @@
     </doc>
     <assert check = "notnull" />
   </field>
-    
+
   <field name = "if unused" type = "bit" test = "amq_queue_29">
     delete only if unused
     <doc>

@@ -5,13 +5,13 @@
 <!-- Don't use own variables with the same name as standard variables -->
 <set name = "myqueue" value = "my.test" />
 <macro name = "check queue">
-    <jms_get />
-    <jms_arrived>
+    <basic_get />
+    <basic_arrived>
         <echo>Arrived: $message_id</echo>
-    </jms_arrived>
-    <jms_bounced>
+    </basic_arrived>
+    <basic_bounced>
         <echo>Bounced: $message_id</echo>
-    </jms_bounced>
+    </basic_bounced>
 </macro>
 
 <session
@@ -19,8 +19,8 @@
     queue     = "$myqueue"
     error_handling = "recover">
 
-    <jms_content message_id = "should-bounce-before" />
-    <jms_publish routing_key = "$myqueue" mandatory = "1" />
+    <basic_content message_id = "should-bounce-before" />
+    <basic_publish routing_key = "$myqueue" mandatory = "1" />
     <invoke macro = "check queue" />
 
     <queue_declare />
@@ -29,13 +29,13 @@
             <field name = "routing_key" value = "$myqueue" />
         </arguments>
     </queue_bind>
-    <jms_content message_id = "should-arrive" />
-    <jms_publish routing_key = "$myqueue" mandatory = "1" />
+    <basic_content message_id = "should-arrive" />
+    <basic_publish routing_key = "$myqueue" mandatory = "1" />
     <invoke macro = "check queue" />
 
     <queue_delete />
-    <jms_content message_id = "should-bounce-after" />
-    <jms_publish routing_key = "$myqueue" mandatory = "1" />
+    <basic_content message_id = "should-bounce-after" />
+    <basic_publish routing_key = "$myqueue" mandatory = "1" />
     <invoke macro = "check queue" />
 </session>
 

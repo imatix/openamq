@@ -2,7 +2,7 @@
 <class
     name    = "stream"
     handler = "channel"
-    index   = "9"
+    index   = "8"
   >
   work with streaming content
 
@@ -19,7 +19,7 @@
     stream              = C:CONSUME S:CONSUME-OK
                         / C:CANCEL S:CANCEL-OK
                         / C:PUBLISH content
-                        / S:BOUNCE
+                        / S:RETURN
                         / S:DELIVER content
 </doc>
 
@@ -148,13 +148,13 @@
   <field name = "exclusive" type = "bit">
     request exclusive access
     <doc>
-      Request exclusive consumer access.  If the server cannot grant
-      this - because there are other consumers active - it raises a
-      channel exception.
+      Request exclusive consumer access, meaning only this consumer can
+      access the queue.
     </doc>
-    <doc name = "rule">
-      The server MUST grant clients exclusive access to a queue
-      or subscription if they ask for it.
+    <doc name = "rule" test = "amq_file_00">
+      If the server cannot grant exclusive access to the queue when asked,
+      - because there are other consumers active - it MUST raise a channel
+      exception with return code 405 (resource locked).
     </doc>
   </field>
 </method>
@@ -249,10 +249,12 @@
     indicate mandatory routing
     <doc>
       This flag tells the server how to react if the message cannot be
-      routed to a queue.  If this flag is set, the server returns the
-      message with a Bounce method.  If this flag is zero, the server
-      silently drops the message. The meaning of this bit is not defined
-      when a message is routed through multiple exchanges.
+      routed to a queue.  If this flag is set, the server will return an
+      unroutable message with a Return method.  If this flag is zero, the
+      server silently drops the message.
+    </doc>
+    <doc name = "rule" test = "amq_stream_00">
+      The server SHOULD implement the mandatory flag.
     </doc>
   </field>
 
@@ -261,15 +263,17 @@
     <doc>
       This flag tells the server how to react if the message cannot be
       routed to a queue consumer immediately.  If this flag is set, the
-      server returns the message with a Bounce method.  If this flag is
-      zero, the server queues the message, but with no guarantee that it
-      will ever be consumed.  The meaning of this bit is not defined
-      when a message is routed through multiple exchanges.
+      server will return an undeliverable message with a Return method.
+      If this flag is zero, the server will queue the message, but with
+      no guarantee that it will ever be consumed.
+    </doc>
+    <doc name = "rule" test = "amq_stream_00">
+      The server SHOULD implement the immediate flag.
     </doc>
   </field>
 </method>
 
-<method name = "bounce" content = "1">
+<method name = "return" content = "1">
   return a failed message
   <doc>
     This method returns an undeliverable message that was published

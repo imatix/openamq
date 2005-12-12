@@ -61,7 +61,7 @@ static amq_console_class_t
 
 <method name = "inspect" async = "1" return = "rc">
     <argument name = "self_v"  type = "void *">Object cast as a void *</argument>
-    <argument name = "request" type = "amq_content_jms_t *">The original request</argument>
+    <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
     <declare name = "rc" type = "int" default = "0" />
     <local>
     $(selftype)
@@ -71,10 +71,10 @@ static amq_console_class_t
     assert (self);
     </header>
     <possess>
-    amq_content_jms_possess (request);
+    amq_content_basic_possess (request);
     </possess>
     <release>
-    amq_content_jms_destroy (&request);
+    amq_content_basic_destroy (&request);
     </release>
     <action>
     asl_field_list_t
@@ -111,7 +111,7 @@ static amq_console_class_t
 
 <method name = "modify" async = "1" return = "rc">
     <argument name = "self_v"  type = "void *">Object cast as a void *</argument>
-    <argument name = "request" type = "amq_content_jms_t *">The original request</argument>
+    <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
     <argument name = "fields"  type = "asl_field_list_t *">Fields to modify</argument>
     <declare name = "rc" type = "int" default = "0" />
     <local>
@@ -122,11 +122,11 @@ static amq_console_class_t
     assert (self);
     </header>
     <possess>
-    amq_content_jms_possess (request);
+    amq_content_basic_possess (request);
     asl_field_list_possess (fields);
     </possess>
     <release>
-    amq_content_jms_destroy (&request);
+    amq_content_basic_destroy (&request);
     asl_field_list_destroy (&fields);
     </release>
     <action>

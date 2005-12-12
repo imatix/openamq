@@ -72,7 +72,7 @@ main (int argc, char *argv [])
         *connection = NULL;             //  Current connection
     amq_client_session_t
         *session = NULL;                //  Current session
-    amq_content_jms_t
+    amq_content_basic_t
         *content = NULL;                //  Message content
     dbyte
         ticket = 0;                     //  Access ticket
@@ -253,10 +253,10 @@ main (int argc, char *argv [])
     }
     //  Declare exchange and queue
     if (amq_client_session_exchange_declare (session,
-        ticket, opt_exchange, "direct", FALSE, FALSE, FALSE, FALSE))
+        ticket, opt_exchange, "direct", FALSE, FALSE, FALSE, FALSE, NULL))
         goto finished;
     if (amq_client_session_queue_declare (session,
-        ticket, opt_queue, FALSE, FALSE, FALSE, FALSE))
+        ticket, opt_queue, FALSE, FALSE, FALSE, FALSE, NULL))
         goto finished;
 
     //  Set-up a simple binding based on queue name
@@ -266,7 +266,7 @@ main (int argc, char *argv [])
         goto finished;                  //  Quit if that failed
 
     if (async_mode) {
-        amq_client_session_jms_consume (session,
+        amq_client_session_basic_consume (session,
             ticket,                     //  Access ticket granted by server
             opt_queue,                  //  Queue name
             0,                          //  Prefetch size
@@ -284,15 +284,15 @@ main (int argc, char *argv [])
                 opt_routing, repeats, messages);
         batch_left = batch_size;
         for (count = 0; count < messages; count++) {
-            content = amq_content_jms_new ();
+            content = amq_content_basic_new ();
             icl_shortstr_fmt (message_id, "ID%d", count);
-            amq_content_jms_set_body       (content, test_data, msgsize, NULL);
-            amq_content_jms_set_message_id (content, message_id);
+            amq_content_basic_set_body       (content, test_data, msgsize, NULL);
+            amq_content_basic_set_message_id (content, message_id);
 
-            rc = amq_client_session_jms_publish (
+            rc = amq_client_session_basic_publish (
                     session, content, ticket, opt_exchange,
                     opt_routing, mandatory, immediate);
-            amq_content_jms_destroy (&content);
+            amq_content_basic_destroy (&content);
             if (rc) {
                 icl_console_print ("E: [%s] could not send message to server - %s",
                     opt_queue, session->error_text);
@@ -315,11 +315,11 @@ main (int argc, char *argv [])
         while (count < messages) {
             //  If we're browsing, do a synchronous get
             if (!async_mode)
-                amq_client_session_jms_get (session, ticket, opt_queue, TRUE);
+                amq_client_session_basic_get (session, ticket, opt_queue, TRUE);
 
             //  Process whatever content has already arrived
             got_messages = FALSE;
-            while ((content = amq_client_session_jms_arrived (session)) != NULL) {
+            while ((content = amq_client_session_basic_arrived (session)) != NULL) {
                 got_messages = TRUE;
                 count++;
                 if ((delay_mode || messages < 100) && !quiet_mode)
@@ -330,7 +330,7 @@ main (int argc, char *argv [])
                         icl_console_print ("I: [%s] acknowledge batch %d...",
                             opt_queue, count / batch_size);
                 }
-                amq_content_jms_destroy (&content);
+                amq_content_basic_destroy (&content);
                 if (delay_mode)
                     sleep (1);
 
@@ -339,13 +339,13 @@ main (int argc, char *argv [])
                     goto finished;
                 }
             }
-            //  Process bounced messages, if any
-            while ((content = amq_client_session_jms_bounced (session)) != NULL) {
+            //  Process returned messages, if any
+            while ((content = amq_client_session_basic_returned (session)) != NULL) {
                 got_messages = TRUE;
                 count++;
-                icl_console_print ("I: [%s] message number %s was bounced",
+                icl_console_print ("I: [%s] message number %s was returned",
                     opt_queue, content->message_id);
-                amq_content_jms_destroy (&content);
+                amq_content_basic_destroy (&content);
             }
             if (async_mode) {
                 //  If we expect more, wait for something to happen
@@ -364,7 +364,7 @@ main (int argc, char *argv [])
             repeats--;
     }
     if (async_mode)
-        amq_client_session_jms_cancel (session, session->consumer_tag);
+        amq_client_session_basic_cancel (session, session->consumer_tag);
 
     finished:
 

@@ -32,7 +32,7 @@ runs lock-free as a child of the asynchronous queue class.
 <method name = "publish" template = "function">
     <doc>
     Publish message content onto queue.  If the message was marked
-    as "immediate" and could not be dispatched, bounces it back to
+    as "immediate" and could not be dispatched, returns it back to
     the producer.
     </doc>
     <argument name = "channel"   type = "amq_server_channel_t *">Channel for reply</argument>
@@ -58,8 +58,8 @@ runs lock-free as a child of the asynchronous queue class.
         if (immediate) {
             ipr_looseref_pop (self->content_list);
             if (amq_server_channel_alive (channel)
-            && !content->bounced) {
-                amq_server_agent_basic_bounce (
+            && !content->returned) {
+                amq_server_agent_basic_return (
                     channel->connection->thread,
                     (dbyte) channel->key,
                     content,
@@ -67,10 +67,10 @@ runs lock-free as a child of the asynchronous queue class.
                     "No immediate consumers for Basic message",
                     content->exchange,
                     content->routing_key);
-                content->bounced = TRUE;
+                content->returned = TRUE;
 
                 if (amq_server_config_trace_queue (amq_server_config))
-                    icl_console_print ("Q: bounce   queue=%s message=%s",
+                    icl_console_print ("Q: return   queue=%s message=%s",
                         self->queue->key,
                         content->message_id);
             }
@@ -121,7 +121,9 @@ runs lock-free as a child of the asynchronous queue class.
             consumer->channel->connection->thread,
             (dbyte) consumer->channel->key,
             content,
-            consumer->tag,             
+            consumer->tag,
+            0,                          //  Delivery tag
+            FALSE,                      //  Redelivered
             content->exchange,
             content->routing_key) == 0) {
 
@@ -147,7 +149,7 @@ runs lock-free as a child of the asynchronous queue class.
     <doc>
     Returns next message off queue, if any.
     </doc>
-    <argument name = "channel" type = "amq_server_channel_t *"/>
+    <argument name = "channel" type = "amq_server_channel_t *" />
     <local>
     amq_content_basic_t
         *content;                       //  Content object reference
@@ -161,6 +163,8 @@ runs lock-free as a child of the asynchronous queue class.
                 channel->connection->thread,
                 (dbyte) channel->key,
                 content,
+                0,                      //  Delivery tag
+                FALSE,                  //  Redelivered
                 content->exchange,
                 content->routing_key,
                 ipr_looseref_list_count (self->content_list));

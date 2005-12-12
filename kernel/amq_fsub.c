@@ -62,7 +62,7 @@ main (int argc, char *argv [])
         *connection = NULL;             //  Current connection
     amq_client_session_t
         *session = NULL;                //  Current session
-    amq_content_jms_t
+    amq_content_basic_t
         *content = NULL;                //  Message content
     dbyte
         ticket = 0;                     //  Access ticket
@@ -223,7 +223,7 @@ main (int argc, char *argv [])
     if (rc)
         goto finished;                  //  Quit if that failed
 
-    amq_client_session_jms_consume (session,
+    amq_client_session_basic_consume (session,
         ticket,                         //  Access ticket granted by server
         opt_queue,                      //  Queue name
         0,                              //  Prefetch size
@@ -237,13 +237,13 @@ main (int argc, char *argv [])
             icl_console_print ("E: error receiving messages - ending test");
             goto finished;              //  Quit if there was a problem
         }
-        while ((content = amq_client_session_jms_arrived (session)) != NULL) {
+        while ((content = amq_client_session_basic_arrived (session)) != NULL) {
             if ((delay_mode || messages < 100) && !quiet_mode)
                 icl_console_print ("I: message number %s arrived from %s",
                     content->message_id,
                     content->routing_key);
 
-            amq_content_jms_destroy (&content);
+            amq_content_basic_destroy (&content);
             if (delay_mode)
                 sleep (1);
         }

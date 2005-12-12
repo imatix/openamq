@@ -26,7 +26,7 @@ key):
     //  lookup is hard-coded, but in future we may use the compile
     //  method to allow arbitrary system services to register.
     //    
-    if (class_id == AMQ_SERVER_JMS) {
+    if (class_id == AMQ_SERVER_BASIC) {
         if (streq (routing_key, "amq.console")) {
             amq_console_publish (amq_console, content);
             delivered = TRUE;
@@ -35,7 +35,7 @@ key):
             icl_console_print ("E: unknown system routing key '%s' rejected", routing_key);
     }
     else
-        icl_console_print ("E: system exchange only accepts JMS contents");
+        icl_console_print ("E: system exchange only accepts Basic contents");
 </method>
 
 </class>

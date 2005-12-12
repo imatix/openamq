@@ -11,7 +11,6 @@
 <include filename = "amq_exchange.asl" />
 <include filename = "amq_queue.asl" />
 <include filename = "amq_basic.asl" />
-<include filename = "amq_jms.asl" />
 <include filename = "amq_file.asl" />
 <include filename = "amq_stream.asl" />
 <include filename = "amq_tx.asl" />

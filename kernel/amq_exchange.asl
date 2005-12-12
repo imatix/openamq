@@ -165,6 +165,15 @@
       construct wiring that is not visible to applications.
     </doc>
   </field>
+
+  <field name = "arguments" type = "table">
+    arguments for declaration
+    <doc>
+      A set of arguments for the declaration. The syntax and semantics
+      of these arguments depends on the server implementation.  This
+      field is ignored if passive is 1.
+    </doc>
+  </field>
 </method>
 
 
