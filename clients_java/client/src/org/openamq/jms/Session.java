@@ -25,17 +25,6 @@ public interface Session extends javax.jms.Session
                                    String selector) throws JMSException;
 
     /**
-     * Creates a "basic" consumer to work with the basic content class.
-     * @param destination
-     * @return a message consumer
-     */
-    MessageConsumer createBasicConsumer(Destination destination,
-                                        boolean noLocal,
-                                        boolean exclusive) throws JMSException;
-
-    MessageProducer createBasicProducer(Destination destination) throws JMSException;
-
-    /**
      * @return the prefetch value used by default for consumers created on this session.
      */
     int getDefaultPrefetch();

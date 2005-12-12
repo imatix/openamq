@@ -1,15 +1,14 @@
 package org.openamq.framing;
 
+import org.apache.log4j.Logger;
 import org.apache.mina.common.ByteBuffer;
 import org.apache.mina.protocol.ProtocolEncoderOutput;
 import org.apache.mina.protocol.ProtocolSession;
 import org.apache.mina.protocol.ProtocolViolationException;
 import org.apache.mina.protocol.codec.MessageEncoder;
 
-import java.util.Set;
 import java.util.HashSet;
-
-import org.apache.log4j.*;
+import java.util.Set;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
@@ -33,12 +32,12 @@ public class AMQDataBlockEncoder implements MessageEncoder
         final ByteBuffer buffer = ByteBuffer.allocate(frameSize);
         //buffer.setAutoExpand(true);
         frame.writePayload(buffer);
-       
+
         if (_logger.isDebugEnabled())
         {
         	_logger.debug("Encoded frame byte-buffer is '" + EncodingUtils.convertToHexString(buffer) + "'");
         }
-        
+
         buffer.flip();
         out.write(buffer);
     }

@@ -33,6 +33,11 @@ public abstract class AMQDestination implements Destination
         this(exchangeName, exchangeClass, destinationName, false, false, queueName);
     }
 
+    protected AMQDestination(String exchangeName, String exchangeClass, String destinationName)
+    {
+        this(exchangeName, exchangeClass, destinationName, false, false, null);
+    }
+
     protected AMQDestination(String exchangeName, String exchangeClass, String destinationName, boolean isExclusive,
                              boolean isAutoDelete, String queueName)
     {

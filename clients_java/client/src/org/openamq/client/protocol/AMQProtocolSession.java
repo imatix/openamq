@@ -121,7 +121,7 @@ public class AMQProtocolSession
     }
 
     /**
-     * Callback invoked from the JmsDeliverMethodHandler when a message has been received.
+     * Callback invoked from the BasicDeliverMethodHandler when a message has been received.
      * This is invoked on the MINA dispatcher thread.
      * @param message
      * @throws AMQException if this was not expected

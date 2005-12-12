@@ -72,9 +72,7 @@ public class AMQStateManager implements AMQMethodListener
         frame2handlerMap.put(ChannelCloseBody.class, ChannelCloseMethodHandler.getInstance());
         frame2handlerMap.put(ConnectionCloseBody.class, ConnectionCloseMethodHandler.getInstance());
         frame2handlerMap.put(BasicDeliverBody.class, BasicDeliverMethodHandler.getInstance());
-        frame2handlerMap.put(BasicBounceBody.class, BasicBounceMethodHandler.getInstance());
-        frame2handlerMap.put(JmsDeliverBody.class, JmsDeliverMethodHandler.getInstance());
-        frame2handlerMap.put(JmsBounceBody.class, JmsBounceMethodHandler.getInstance());
+        frame2handlerMap.put(BasicReturnBody.class, BasicReturnMethodHandler.getInstance());
         _state2HandlersMap.put(AMQState.CONNECTION_OPEN, frame2handlerMap);
     }
 

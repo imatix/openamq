@@ -46,13 +46,15 @@ public class ConnectionTuneMethodHandler implements StateAwareMethodListener
         params.setFrameMax(65535);
         //params.setChannelMax(frame.channelMax);
         params.setHearbeat(frame.heartbeat);
-        session.setConnectionTuneParameters(params);                
+        session.setConnectionTuneParameters(params);
 
         stateManager.changeState(AMQState.CONNECTION_NOT_OPENED);
 //        session.writeFrame(ConnectionTuneOkBody.createAMQFrame(evt.getChannelId(), frame.channelMax, frame.frameMax,
 //                                                               frame.heartbeat));
         session.writeFrame(ConnectionTuneOkBody.createAMQFrame(evt.getChannelId(), frame.channelMax, 65535,
                                                                frame.heartbeat));
-        session.writeFrame(ConnectionOpenBody.createAMQFrame(evt.getChannelId(), session.getAMQConnection().getVirtualPath(), null));
+        session.writeFrame(ConnectionOpenBody.createAMQFrame(evt.getChannelId(),
+                                                             session.getAMQConnection().getVirtualPath(), null, null,
+                                                             true));
     }
 }

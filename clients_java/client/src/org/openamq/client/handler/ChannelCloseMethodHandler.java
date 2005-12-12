@@ -1,24 +1,22 @@
 /**
  * Date Created: 20-Jun-2005
  *************************************************************************
- * (c) Copyright JP Morgan Chase Ltd 2005. All rights reserved. No part of 
- * this program may be photocopied reproduced or translated to another 
+ * (c) Copyright JP Morgan Chase Ltd 2005. All rights reserved. No part of
+ * this program may be photocopied reproduced or translated to another
  * program language without prior written consent of JP Morgan Chase Ltd
  *************************************************************************/
 package org.openamq.client.handler;
 
-import javax.jms.JMSException;
-
 import org.apache.log4j.Logger;
-import org.openamq.AMQException;
 import org.openamq.AMQChannelClosedException;
+import org.openamq.AMQException;
+import org.openamq.client.protocol.AMQConstant;
+import org.openamq.client.protocol.AMQMethodEvent;
+import org.openamq.client.state.AMQStateManager;
+import org.openamq.client.state.StateAwareMethodListener;
 import org.openamq.framing.AMQFrame;
 import org.openamq.framing.ChannelCloseBody;
 import org.openamq.framing.ChannelCloseOkBody;
-import org.openamq.client.state.AMQStateManager;
-import org.openamq.client.state.StateAwareMethodListener;
-import org.openamq.client.protocol.AMQMethodEvent;
-import org.openamq.client.protocol.AMQConstant;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)

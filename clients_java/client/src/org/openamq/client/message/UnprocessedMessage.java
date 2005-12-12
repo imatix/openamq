@@ -19,8 +19,8 @@ public class UnprocessedMessage
 {
     private long _bytesReceived = 0;
 
-    public JmsDeliverBody deliverBody;
-    public JmsBounceBody bounceBody; // TODO: check change (gustavo)
+    public BasicDeliverBody deliverBody;
+    public BasicReturnBody bounceBody; // TODO: check change (gustavo)
     public int channelId;
     public ContentHeaderBody contentHeader;
 

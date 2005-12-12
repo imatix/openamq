@@ -6,18 +6,18 @@ import org.openamq.client.message.UnprocessedMessage;
 import org.openamq.client.protocol.AMQMethodEvent;
 import org.openamq.client.state.AMQStateManager;
 import org.openamq.client.state.StateAwareMethodListener;
-import org.openamq.framing.JmsBounceBody;
+import org.openamq.framing.BasicReturnBody;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
-public class JmsBounceMethodHandler implements StateAwareMethodListener
+public class BasicReturnMethodHandler implements StateAwareMethodListener
 {
-    private static final Logger _logger = Logger.getLogger(JmsBounceMethodHandler.class);
+    private static final Logger _logger = Logger.getLogger(BasicReturnMethodHandler.class);
 
-    private static final JmsBounceMethodHandler _instance = new JmsBounceMethodHandler();
+    private static final BasicReturnMethodHandler _instance = new BasicReturnMethodHandler();
 
-    public static JmsBounceMethodHandler getInstance()
+    public static BasicReturnMethodHandler getInstance()
     {
         return _instance;
     }
@@ -27,7 +27,7 @@ public class JmsBounceMethodHandler implements StateAwareMethodListener
         _logger.debug("New JmsBounce method received");
         final UnprocessedMessage msg = new UnprocessedMessage();
         msg.deliverBody = null;
-        msg.bounceBody = (JmsBounceBody) evt.getMethod();
+        msg.bounceBody = (BasicReturnBody) evt.getMethod();
         msg.channelId = evt.getChannelId();
 
         evt.getProtocolSession().unprocessedMessageReceived(msg);
