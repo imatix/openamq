@@ -207,28 +207,19 @@
 <!-- BASIC -->
 
 <class name = "basic">
-  <action name = "publish" sameas = "jms" />
-  <action name = "get"     sameas = "jms" />
-
   <action name = "consume">
     //  The channel is responsible for creating/cancelling consumers
     amq_server_channel_consume (channel,
         method->queue,
         self->class_id,
-        0,                              //  No prefetch-size limit
-        0,                              //  No prefetch-count limit
+        method->prefetch_size,
+        method->prefetch_count,
         method->no_local,
-        TRUE,                           //  auto-ack own messages
+        method->auto_ack,
         method->exclusive
         );
   </action>
 
-  <action name = "cancel"  sameas = "jms" />
-</class>
-
-<!-- JMS -->
-
-<class name = "jms">
   <action name = "publish">
     <local>
     amq_exchange_t
@@ -240,7 +231,7 @@
     else
         //  Get default exchange for virtual host
         exchange = amq_exchange_link (amq_vhost->default_exchange);
-        
+
     if (exchange) {
         if (!exchange->internal) {
             amq_content_$(class.name)_set_routing_key (
@@ -260,7 +251,7 @@
         else
             amq_server_channel_close (
                 channel, ASL_ACCESS_REFUSED, "Exchange is for internal use only");
-       
+
         amq_exchange_unlink (&exchange);
     }
     else
@@ -281,22 +272,16 @@
         amq_server_channel_close (channel, ASL_NOT_FOUND, "No such queue defined");
   </action>
 
-  <action name = "consume">
-    //  The channel is responsible for creating/cancelling consumers
-    amq_server_channel_consume (channel,
-        method->queue,
-        self->class_id,
-        method->prefetch_size,
-        method->prefetch_count,
-        method->no_local,
-        method->auto_ack,
-        method->exclusive
-        );
-  </action>
-
   <action name = "cancel">
     amq_server_channel_cancel (channel, method->consumer_tag, TRUE);
   </action>
+</class>
+
+<!-- File -->
+<class name = "file">
+  <action name = "consume" sameas = "basic" />
+  <action name = "publish" sameas = "basic" />
+  <action name = "cancel"  sameas = "basic" />
 </class>
 
 </protocol>
