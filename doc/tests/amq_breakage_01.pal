@@ -1,0 +1,14 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "the server MUST handle up to 64k bindings"
+    >
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <queue_declare queue = "myqueue" />
+        <repeat times = "65537" counter = "bindings">
+            <queue_bind queue = "myqueue" exchange = "amq.direct" routing_key = "$random" />
+            <echo>got $bindings</echo>
+        </repeat>
+    </session>
+</pal>
