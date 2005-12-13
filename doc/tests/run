@@ -24,8 +24,22 @@ else
     RESET=$'\e[37;00m'
 fi
 
+if [ "x$1" = "x" ]; then
+    LOG="lastrun.log"
+else
+    LOG=$1
+fi
+echo -n > $LOG
+
 if [ -e works.pal ] && [ -e fails.pal ]; then
-    echo "initializing ..."
+    if [ -e "compare.log" ]; then
+        echo "initializing ..."
+        echo "[ CUR  ] [ PREV ] description of test"
+    else
+        echo "initializing ... (cp lastrun.log compare.log for comparison)"
+        echo "[ CUR  ] description of test"
+    fi
+
     if [ "works.pal" -nt "works" ]; then
         pal works.pal &>/dev/null
     fi
@@ -40,9 +54,10 @@ else
 fi
 
 
-for testcase in `ls *.pal|grep -v amq_test_base.pal|grep -v works.pal|grep -v fails.pal`; do
+for testcase in `ls *.pal|grep -v amq_test_base.pal|grep -v works.pal|grep -v fails.pal|grep -v breakage`; do
     DESC=`cat $testcase|grep desc|perl -ne 's/^\s*desc\s*=\s"(.*?)"\s*/$1/; print $_'`
     COMP=" "
+    MD5=`md5sum $testcase`
     if [ $testcase -nt ${testcase%%.pal} ]; then
         pal $testcase &>/dev/null 
         if [ $? -eq 0 ]; then 
@@ -55,11 +70,25 @@ for testcase in `ls *.pal|grep -v amq_test_base.pal|grep -v works.pal|grep -v fa
     `./${testcase%%.pal} &>/dev/null`
     if [ $? -eq 0 ]; then
         STAT="[ $GREEN OK $RESET ]"
+        LSTAT="OK   "
     else
         STAT="[$RED FAIL $RESET]"
+        LSTAT="FAIL "
     fi
-    
-    echo -n "$STAT $testcase:$COMP$DESC... "
+    echo "$LSTAT $MD5" >> $LOG
+    if [ -e "compare.log" ]; then
+        PSTAT=`cat compare.log | grep "$MD5" | cut -d\  -f1`
+        if [ "x$PSTAT" = "xOK" ]; then
+            PSSTAT="[ $GREEN OK $RESET ]"
+        elif [ "x$PSTAT" = "xFAIL" ]; then
+            PSSTAT="[$RED FAIL $RESET]"
+        else
+            PSSTAT="[   ?  ]"
+        fi    
+        echo -n "$STAT $PSSTAT $testcase:$COMP$DESC... "
+    else
+        echo -n "$STAT $testcase:$COMP$DESC... "
+    fi
     # only temporary solution, pal needs to make sure the server is down
     killall -9 amq_server &>/dev/null && echo "(${RED}lingering server killed${RESET})" || echo
 done
