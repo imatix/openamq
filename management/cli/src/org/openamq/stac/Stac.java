@@ -8,11 +8,10 @@
  *****************************************************************************/
 package org.openamq.stac;
 
-import org.python.core.PyException;
-
 import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.InputStream;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
@@ -33,38 +32,47 @@ public class Stac
             System.setProperty("python.verbose", "warning");
         }
         StacInterpreter interp = new StacInterpreter();
-
-        //interp.write(interp.get("myps1").toString());
-
-        String line = null;
-        try
+        InputStream is = Stac.class.getResourceAsStream("/python/stac.py");
+        if (is == null)
         {
-            line = terminal.readLine();
-            if (line != null)
+            System.err.println("Unable to load STAC Python library. Terminating.");
+            System.exit(1);
+        }
+        interp.execfile(is);
+
+        while (true)
+        {
+            interp.write(interp.get("commandPrompt").toString());
+
+            String line = null;
+            try
             {
-                while (interp.runsource(line))
+                line = terminal.readLine();
+                if (line != null)
                 {
-                    interp.write("...");
-                    try
+                    while (interp.runsource(line))
                     {
-                        String s = terminal.readLine();
-                        line = line + "\n" + s;
-                    }
-                    catch(IOException e)
-                    {
-                        e.printStackTrace();
+                        interp.write("...");
+                        try
+                        {
+                            String s = terminal.readLine();
+                            line = line + "\n" + s;
+                        }
+                        catch (IOException e)
+                        {
+                            e.printStackTrace();
+                        }
                     }
                 }
+                else
+                {
+                }
             }
-            else
+            catch (IOException ie)
             {
+                System.err.println("An error occurred: " + ie);
+                ie.printStackTrace(System.err);
             }
         }
-        catch(IOException ie)
-        {
-            System.err.println("An error occurred: " + ie);
-            ie.printStackTrace(System.err);
-        }
-
     }
 }
