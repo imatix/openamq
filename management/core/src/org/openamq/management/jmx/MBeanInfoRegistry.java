@@ -9,12 +9,14 @@
 package org.openamq.management.jmx;
 
 import org.openamq.AMQException;
-import org.openamq.schema.cml.*;
+import org.openamq.schema.cml.CmlDocument;
+import org.openamq.schema.cml.FieldType;
+import org.openamq.schema.cml.SchemaReplyType;
 
 import javax.management.openmbean.*;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.List;
 
 /**
  * Stores all OpenMBeanInfo instances.
@@ -30,6 +32,8 @@ public class MBeanInfoRegistry
 {
     private Map<String, OpenMBeanInfoSupport> _cmlClass2OpenMBeanInfoMap = new HashMap<String, OpenMBeanInfoSupport>();
 
+    private Map<String, AMQMBeanInfo> _cmlClass2AMQMBeanInfoMap = new HashMap<String, AMQMBeanInfo>();
+
     public MBeanInfoRegistry(CmlDocument cmlDocument) throws AMQException
     {
         initialise(cmlDocument);
@@ -39,13 +43,19 @@ public class MBeanInfoRegistry
     {
         CmlDocument.Cml cml = cmlDocument.getCml();
         SchemaReplyType schema = cml.getSchemaReply();
-        for (org.openamq.schema.cml.ClassType c : schema.getClass1Array())
+        for (org.openamq.schema.cml.ClassType c : schema.getClass1List())
         {
-            OpenMBeanAttributeInfo[] attributes = createAttributeInfos(c.getFieldArray());
+            OpenMBeanAttributeInfo[] attributes = createAttributeInfos(c.getFieldList());
             String className = c.getName();
             OpenMBeanInfoSupport support = new OpenMBeanInfoSupport(className, null, attributes,
                                                                     null, null, null);
+            // we need to store the extra information separately since we cannot subclass
+            // OpenMBeanInfoSupport. Doing so means we need to have an AMQMBeanInfo class on each client
+            // which defeats the point of OpenMBeans. The extra info is only used by the CMLBean implementation
+            // to assist with runtime value lookups.
+            AMQMBeanInfo extra = new AMQMBeanInfo(attributes);
             _cmlClass2OpenMBeanInfoMap.put(className, support);
+            _cmlClass2AMQMBeanInfoMap.put(className, extra);
         }
     }
 
@@ -54,13 +64,18 @@ public class MBeanInfoRegistry
         return _cmlClass2OpenMBeanInfoMap.get(cmlType);
     }
 
-    private OpenMBeanAttributeInfo[] createAttributeInfos(FieldType[] fields)
+    public AMQMBeanInfo getAMQMBeanInfo(String cmlType)
+    {
+        return _cmlClass2AMQMBeanInfoMap.get(cmlType);
+    }
+
+    private OpenMBeanAttributeInfo[] createAttributeInfos(List<FieldType> fields)
             throws AMQException
     {
-        OpenMBeanAttributeInfo[] attributes = new OpenMBeanAttributeInfo[fields.length];
+        OpenMBeanAttributeInfo[] attributes = new OpenMBeanAttributeInfo[fields.size()];
         for (int i = 0; i < attributes.length; i++)
         {
-            FieldType field = fields[i];
+            FieldType field = fields.get(i);
             OpenType openType = getOpenType(field.getType(), field.getModify());
             String description = field.getLabel();
             attributes[i] = new OpenMBeanAttributeInfoSupport(field.getName(),

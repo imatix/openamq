@@ -1,21 +1,16 @@
 package org.openamq.management.jmx;
 
-import org.apache.xmlbeans.XmlException;
 import org.apache.log4j.Logger;
+import org.apache.xmlbeans.XmlException;
 import org.openamq.AMQException;
 import org.openamq.management.ManagementConnection;
 import org.openamq.management.messaging.CMLMessageFactory;
 import org.openamq.schema.cml.CmlDocument;
-import org.openamq.schema.cml.SchemaReplyType;
-import org.openamq.schema.cml.ClassType;
 
 import javax.jms.JMSException;
 import javax.jms.TextMessage;
 import javax.management.MBeanServer;
 import java.lang.management.ManagementFactory;
-import java.io.IOException;
-import java.io.Reader;
-import java.io.InputStreamReader;
 
 /**
  * Main entry point for AMQ console implementation.
@@ -48,9 +43,9 @@ public class AMQConsole
         _mbeanRegistrar = new MBeanRegistrar(_mbeanServer, _connection, _mbeanInfoRegistry);
     }
 
-    public CMLMBean getRootMBean() throws JMSException, AMQException
+    public void registerAllMBeans() throws JMSException, AMQException
     {
-        return _mbeanRegistrar.getRootMBean();
+        _mbeanRegistrar.registerAllMBeans();
     }
 
     private void createMBeanInfo() throws JMSException, AMQException, XmlException
@@ -71,7 +66,9 @@ public class AMQConsole
         try
         {
             console.initialise();
-            console.getRootMBean();
+            _log.info("Registering all MBeans...");
+            console.registerAllMBeans();
+            _log.info("MBean registration completed successfully");             
         }
         catch (Exception e)
         {
