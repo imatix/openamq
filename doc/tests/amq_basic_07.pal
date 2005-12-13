@@ -15,9 +15,9 @@
         <basic_arrived>
             <abort>Message '$message_id' [$body_size] came back from $exchange to us using rk: '$routing_key'</abort>
         </basic_arrived>
-        <basic_bounced>
-            <echo>Bounced</echo>
-        </basic_bounced>
+        <basic_returned>
+            <echo>returned</echo>
+        </basic_returned>
         <empty>
             <abort>Message did not come back, this is bad!</abort>
         </empty>

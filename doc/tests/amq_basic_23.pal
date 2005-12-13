@@ -1,7 +1,7 @@
 <?xml?>
 <pal
     script = "amq_pal_gen"
-    desc   = "The server MUST respect the requeue field on Reject"
+    desc   = "the server MUST respect the requeue field on Reject"
     >
     <!--
         - ?
