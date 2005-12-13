@@ -233,7 +233,7 @@
         exchange = amq_exchange_link (amq_vhost->default_exchange);
 
     if (exchange) {
-        if (!exchange->internal) {
+        if (!exchange->internal || strnull (method->exchange)) {
             amq_content_$(class.name)_set_routing_key (
                 self->content,
                 method->exchange,
