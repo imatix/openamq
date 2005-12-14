@@ -326,6 +326,9 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         {
             _closed.set(true);
 
+            // we pass null since this is not an error case
+            closeProducersAndConsumers(null);            
+
             try
             {
                 _connection.getProtocolHandler().closeSession(this);
@@ -337,8 +340,6 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
             finally
             {
                 _connection.deregisterSession(_channelId);
-                // we pass null since this is not an error case
-                closeProducersAndConsumers(null);
             }
         }
     }
