@@ -17,6 +17,7 @@ public class BasicMessageProducer extends Closeable implements org.openamq.jms.M
 {
     protected final Logger _logger = Logger.getLogger(getClass());
 
+    private static final int BASIC_CONTENT_TYPE = 6;
     /**
      * If true, messages will not get a timestamp.
      */
@@ -246,7 +247,7 @@ public class BasicMessageProducer extends Closeable implements org.openamq.jms.M
         {
             throw new JMSException("Unable to declare destination " + destination + ": " + e);
         }
-    }    
+    }
 
     protected void sendImpl(AMQDestination destination, AbstractJMSMessage message, int deliveryMode, int priority,
                           long timeToLive, boolean mandatory, boolean immediate) throws JMSException
@@ -261,7 +262,7 @@ public class BasicMessageProducer extends Closeable implements org.openamq.jms.M
             message.setJMSTimestamp(currentTime);
         }
         byte[] payload = message.getData();
-        JmsContentHeaderProperties contentHeaderProperties = message.getJmsContentHeaderProperties();
+        BasicContentHeaderProperties contentHeaderProperties = message.getJmsContentHeaderProperties();
 
         if (timeToLive > 0)
         {
@@ -289,8 +290,7 @@ public class BasicMessageProducer extends Closeable implements org.openamq.jms.M
         }
 
         // weight argument of zero indicates no child content headers, just bodies
-        // TODO: remove hardcoded 7 as class id of JMS
-        AMQFrame contentHeaderFrame = ContentHeaderBody.createAMQFrame(_channelId, 7, 0, contentHeaderProperties,
+        AMQFrame contentHeaderFrame = ContentHeaderBody.createAMQFrame(_channelId, BASIC_CONTENT_TYPE, 0, contentHeaderProperties,
                                                                        payload.length);
         if (_logger.isDebugEnabled())
         {

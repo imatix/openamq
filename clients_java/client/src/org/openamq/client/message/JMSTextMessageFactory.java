@@ -1,6 +1,6 @@
 package org.openamq.client.message;
 
-import org.openamq.framing.JmsContentHeaderProperties;
+import org.openamq.framing.BasicContentHeaderProperties;
 import org.openamq.framing.ContentBody;
 import org.openamq.framing.ContentHeaderBody;
 import org.openamq.AMQException;
@@ -38,7 +38,7 @@ public class JMSTextMessageFactory extends AbstractJMSMessageFactory
             }
         }
 
-        return new JMSTextMessage(messageNbr, data, (JmsContentHeaderProperties)contentHeader.properties);
+        return new JMSTextMessage(messageNbr, data, (BasicContentHeaderProperties)contentHeader.properties);
     }
 
     public AbstractJMSMessage createMessage() throws JMSException

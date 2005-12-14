@@ -6,7 +6,7 @@ import org.openamq.client.AMQDestination;
 import org.openamq.client.AMQQueue;
 import org.openamq.client.AMQTopic;
 import org.openamq.framing.FieldTable;
-import org.openamq.framing.JmsContentHeaderProperties;
+import org.openamq.framing.BasicContentHeaderProperties;
 
 import javax.jms.Destination;
 import javax.jms.JMSException;
@@ -39,16 +39,16 @@ public abstract class AbstractJMSMessage extends AMQMessage implements javax.jms
 
     protected AbstractJMSMessage()
     {
-        super(new JmsContentHeaderProperties());
+        super(new BasicContentHeaderProperties());
     }
 
-    protected AbstractJMSMessage(long messageNbr, JmsContentHeaderProperties contentHeader) throws AMQException
+    protected AbstractJMSMessage(long messageNbr, BasicContentHeaderProperties contentHeader) throws AMQException
     {
         this(contentHeader);
         _messageNbr = messageNbr;
     }
 
-    protected AbstractJMSMessage(JmsContentHeaderProperties contentHeader) throws AMQException
+    protected AbstractJMSMessage(BasicContentHeaderProperties contentHeader) throws AMQException
     {
         super(contentHeader);
     }
@@ -641,8 +641,8 @@ public abstract class AbstractJMSMessage extends AMQMessage implements javax.jms
         _messageNbr = messageNbr;
     }
 
-    public JmsContentHeaderProperties getJmsContentHeaderProperties()
+    public BasicContentHeaderProperties getJmsContentHeaderProperties()
     {
-        return (JmsContentHeaderProperties) _contentHeaderProperties;
+        return (BasicContentHeaderProperties) _contentHeaderProperties;
     }
 }

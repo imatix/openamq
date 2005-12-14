@@ -1,7 +1,7 @@
 package org.openamq.client.message;
 
 import org.openamq.AMQException;
-import org.openamq.framing.JmsContentHeaderProperties;
+import org.openamq.framing.BasicContentHeaderProperties;
 import org.openamq.framing.ContentHeaderBody;
 
 import javax.jms.JMSException;
@@ -49,7 +49,7 @@ public class MessageFactoryRegistry
                                             ContentHeaderBody contentHeader,
                                             List bodies) throws AMQException, JMSException
     {
-        JmsContentHeaderProperties properties =  (JmsContentHeaderProperties) contentHeader.properties;
+        BasicContentHeaderProperties properties =  (BasicContentHeaderProperties) contentHeader.properties;
         MessageFactory mf = (MessageFactory) _mimeToFactoryMap.get(properties.contentType);
         if (mf == null)
         {

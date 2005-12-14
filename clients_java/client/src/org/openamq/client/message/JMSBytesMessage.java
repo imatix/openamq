@@ -1,6 +1,6 @@
 package org.openamq.client.message;
 
-import org.openamq.framing.JmsContentHeaderProperties;
+import org.openamq.framing.BasicContentHeaderProperties;
 import org.openamq.framing.ContentHeaderBody;
 import org.openamq.AMQException;
 
@@ -60,7 +60,7 @@ public class JMSBytesMessage extends AbstractJMSMessage implements javax.jms.Byt
             throws AMQException
     {
         // TODO: this casting is ugly. Need to review whole ContentHeaderBody idea
-        super(messageNbr, (JmsContentHeaderProperties) contentHeader.properties);
+        super(messageNbr, (BasicContentHeaderProperties) contentHeader.properties);
         getJmsContentHeaderProperties().contentType = MIME_TYPE;
         _dis = new DataInputStream(new ByteArrayInputStream(data));
         _bodyLength = data.length;

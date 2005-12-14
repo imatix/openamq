@@ -1,6 +1,6 @@
 package org.openamq.client.message;
 
-import org.openamq.framing.JmsContentHeaderProperties;
+import org.openamq.framing.BasicContentHeaderProperties;
 import org.openamq.AMQException;
 
 import javax.jms.JMSException;
@@ -12,7 +12,7 @@ import java.io.UnsupportedEncodingException;
 public class JMSTextMessage extends AbstractJMSMessage implements javax.jms.TextMessage
 {
     private static final String MIME_TYPE = "text/plain";
-    
+
     private byte[] _data;
 
     private String _decodedValue;
@@ -30,7 +30,7 @@ public class JMSTextMessage extends AbstractJMSMessage implements javax.jms.Text
         getJmsContentHeaderProperties().encoding = encoding;
     }
 
-    JMSTextMessage(long messageNbr, byte[] data, JmsContentHeaderProperties contentHeader)
+    JMSTextMessage(long messageNbr, byte[] data, BasicContentHeaderProperties contentHeader)
             throws AMQException
     {
         super(messageNbr, contentHeader);
@@ -40,7 +40,7 @@ public class JMSTextMessage extends AbstractJMSMessage implements javax.jms.Text
 
     JMSTextMessage(byte[] data) throws JMSException
     {
-        this(data, null);        
+        this(data, null);
     }
 
     JMSTextMessage(String text) throws JMSException
@@ -63,7 +63,7 @@ public class JMSTextMessage extends AbstractJMSMessage implements javax.jms.Text
     {
         _data = data;
     }
-    
+
     public byte[] getData() throws JMSException
     {
         return _data;

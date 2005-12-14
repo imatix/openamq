@@ -1,6 +1,5 @@
 package org.openamq.client.message;
 
-import org.openamq.framing.JmsContentHeaderProperties;
 import org.openamq.framing.ContentBody;
 import org.openamq.framing.ContentHeaderBody;
 import org.openamq.AMQException;
