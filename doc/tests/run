@@ -36,7 +36,7 @@ if [ -e works.pal ] && [ -e fails.pal ]; then
         echo "initializing ..."
         echo "[ CUR  ] [ PREV ] description of test"
     else
-        echo "initializing ... (cp lastrun.log compare.log for comparison)"
+        echo "initializing ... (to compare: ln -s log/results_to_compare.log compare.log)"
         echo "[ CUR  ] description of test"
     fi
 
