@@ -79,6 +79,12 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
 
     private ConnectionListener _connectionListener;
 
+    /**
+     * Whether this connection is started, i.e. whether messages are flowing to consumers. It has no meaning for
+     * message publication.
+     */
+    private boolean _started;
+
     public AMQConnection(String host, int port, String username, String password,
                          String clientName, String virtualPath) throws AMQException
     {
@@ -190,16 +196,24 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
         _exceptionListener = listener;
     }
 
+    /**
+     * Start the connection, i.e. start flowing messages. Note that this method must be called only from a single thread
+     * and is not thread safe (which is legal according to the JMS specification).
+     * @throws JMSException
+     */
     public void start() throws JMSException
     {
         checkNotClosed();
-        final Iterator it = _sessions.entrySet().iterator();
-        while (it.hasNext())
+        if (!_started)
         {
-            final AMQSession s = (AMQSession)((Map.Entry) it.next()).getValue();
-            s.start();
+            final Iterator it = _sessions.entrySet().iterator();
+            while (it.hasNext())
+            {
+                final AMQSession s = (AMQSession)((Map.Entry) it.next()).getValue();
+                s.start();
+            }
+            _started = true;
         }
-
     }
 
     public void stop() throws JMSException
@@ -387,7 +401,7 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
     public void exceptionReceived(Throwable cause)
     {
         JMSException je = null;
-        
+
         if (_exceptionListener != null)
         {
             if (cause instanceof JMSException)
