@@ -33,11 +33,8 @@ public class ContentHeaderPropertiesFactory
         ContentHeaderProperties properties;
         switch (classId)
         {
-            case 1:
+            case 6:
                 properties = new BasicContentHeaderProperties();
-                break;
-            case 7:
-                properties = new JmsContentHeaderProperties();
                 break;
             default:
                 throw new AMQFrameDecodingException("Unsupport content header class id: " + classId);

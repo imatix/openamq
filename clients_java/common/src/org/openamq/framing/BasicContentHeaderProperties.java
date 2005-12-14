@@ -16,9 +16,25 @@ public class BasicContentHeaderProperties implements ContentHeaderProperties
 
     public FieldTable headers;
 
-    public String messageId;
+    public byte deliveryMode;
+
+    public byte priority;
+
+    public String correlationId;
+
+    public long expiration;
 
     public String replyTo;
+
+    public String messageId;
+
+    public long timestamp;
+
+    public String type;
+
+    public String userId;
+
+    public String appId;
 
     public BasicContentHeaderProperties()
     {
@@ -29,8 +45,15 @@ public class BasicContentHeaderProperties implements ContentHeaderProperties
         return EncodingUtils.encodedShortStringLength(contentType) +
                EncodingUtils.encodedShortStringLength(encoding) +
                EncodingUtils.encodedFieldTableLength(headers) +
+               1 + 1 +
+               EncodingUtils.encodedShortStringLength(correlationId) +
+               EncodingUtils.encodedShortStringLength(replyTo) +
+               EncodingUtils.encodedShortStringLength(String.valueOf(expiration)) +
                EncodingUtils.encodedShortStringLength(messageId) +
-               EncodingUtils.encodedShortStringLength(replyTo);
+               8 +
+               EncodingUtils.encodedShortStringLength(type) +
+               EncodingUtils.encodedShortStringLength(userId) +
+               EncodingUtils.encodedShortStringLength(appId);
     }
 
     public int getPropertyFlags()
@@ -38,7 +61,7 @@ public class BasicContentHeaderProperties implements ContentHeaderProperties
         int value = 0;
 
         // for now we just blast in all properties
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 14; i++)
         {
             value += (1 << (15-i));
         }
@@ -50,8 +73,17 @@ public class BasicContentHeaderProperties implements ContentHeaderProperties
         EncodingUtils.writeShortStringBytes(buffer, contentType);
         EncodingUtils.writeShortStringBytes(buffer, encoding);
         EncodingUtils.writeFieldTableBytes(buffer, headers);
-        EncodingUtils.writeShortStringBytes(buffer, messageId);
+        buffer.put(deliveryMode);
+        buffer.put(priority);
+        EncodingUtils.writeShortStringBytes(buffer, correlationId);
         EncodingUtils.writeShortStringBytes(buffer, replyTo);
+        EncodingUtils.writeShortStringBytes(buffer, String.valueOf(expiration));
+        EncodingUtils.writeShortStringBytes(buffer, messageId);
+        EncodingUtils.writeUnsignedInteger(buffer, 0/*timestamp msb*/);
+        EncodingUtils.writeUnsignedInteger(buffer, timestamp);
+        EncodingUtils.writeShortStringBytes(buffer, type);
+        EncodingUtils.writeShortStringBytes(buffer, userId);
+        EncodingUtils.writeShortStringBytes(buffer, appId);
     }
 
     public void populatePropertiesFromBuffer(ByteBuffer buffer, int propertyFlags) throws AMQFrameDecodingException
@@ -64,8 +96,28 @@ public class BasicContentHeaderProperties implements ContentHeaderProperties
         if ((propertyFlags & (1 << 13)) > 0)
             headers = EncodingUtils.readFieldTable(buffer);
         if ((propertyFlags & (1 << 12)) > 0)
-            messageId = EncodingUtils.readShortString(buffer);
+            deliveryMode = buffer.get();
         if ((propertyFlags & (1 << 11)) > 0)
+            priority = buffer.get();
+        if ((propertyFlags & (1 << 10)) > 0)
+            correlationId = EncodingUtils.readShortString(buffer);
+        if ((propertyFlags & (1 << 9)) > 0)
             replyTo = EncodingUtils.readShortString(buffer);
+        if ((propertyFlags & (1 << 8)) > 0)
+            expiration = Long.valueOf(EncodingUtils.readShortString(buffer)).longValue();
+        if ((propertyFlags & (1 << 7)) > 0)
+            messageId = EncodingUtils.readShortString(buffer);
+        if ((propertyFlags & (1 << 6)) > 0)
+        {
+            // Discard msb from AMQ timestamp
+            buffer.getUnsignedInt();
+            timestamp = buffer.getUnsignedInt();
+        }
+        if ((propertyFlags & (1 << 5)) > 0)
+            type = EncodingUtils.readShortString(buffer);
+        if ((propertyFlags & (1 << 4)) > 0)
+            userId = EncodingUtils.readShortString(buffer);
+        if ((propertyFlags & (1 << 3)) > 0)
+            appId = EncodingUtils.readShortString(buffer);
     }
 }

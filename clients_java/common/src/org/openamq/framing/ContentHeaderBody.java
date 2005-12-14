@@ -65,7 +65,7 @@ public class ContentHeaderBody extends AMQBody
         properties.writePropertyListPayload(buffer);
     }
 
-    public static AMQFrame createAMQFrame(int channelId, int classId, int weight, JmsContentHeaderProperties properties,
+    public static AMQFrame createAMQFrame(int channelId, int classId, int weight, BasicContentHeaderProperties properties,
                                           long bodySize)
     {
         final AMQFrame frame = new AMQFrame();
