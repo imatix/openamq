@@ -23,6 +23,7 @@ Bug Fixes:
     BASE2-110  Does SMT balance reads and writes?      
 
 Changes:
+
     AMQ-187    Protocol changes for 0.9d       
     AMQ-201    Add an "insist" option to the connection.open method    
     AMQ-202    Add a Connection.Redirect method.     
