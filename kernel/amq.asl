@@ -20,8 +20,8 @@
 <option name = "protocol_port"     value = "7654" />
 <option name = "protocol_class"    value = "1" />
 <option name = "protocol_instance" value = "1" />
-<option name = "protocol_major"    value = "9" />
-<option name = "protocol_minor"    value = "1" />
+<option name = "protocol_major"    value = "10" />
+<option name = "protocol_minor"    value = "0" />
 
 <!-- Standard field domains -->
   <domain name = "access ticket" type = "short">
