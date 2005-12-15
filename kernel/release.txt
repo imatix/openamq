@@ -1,3 +1,33 @@
+0.9d0 - 2005/12/15
+---------------------------------------------------------------------
+Bug Fixes:
+
+    AMQ-234    GRMJ is no longer working with the current server/JMS
+    AMQ-228    Server hangs on startup on win32    
+    AMQ-229    the server MUST accept a blank exchange name to mean the
+               default exchange.       
+    AMQ-230    Multiple problems in makesrc.gsl     
+    AMQ-221    Harden AMQ Server (and possibly client?) to broken clients and
+               peers i.e. protocol errors.      
+    AMQ-226    Server crashes when client compiled with old version is run
+               against it     
+    AMQ-216    exchange creation contains a possible race condition     
+    AMQ-170    Broker does not appear to deal with concurrent request fairly
+               leading to starvation       
+    BASE2-130  Regression tests hang when building on win32    
+    BASE2-137  smt_os_thread loops endlessly at while (last_interrupt == 0);     
+    BASE2-135  SMT code generation breaks when BASE_WATCH is used       
+    BASE2-133  ipr_time_test fails on Win32      
+    BASE2-134  Change kernel messages. Reading => Read   
+    BASE2-131  ipr_time doesn't build under Windows   
+    BASE2-110  Does SMT balance reads and writes?      
+
+Changes:
+    AMQ-187    Protocol changes for 0.9d       
+    AMQ-201    Add an "insist" option to the connection.open method    
+    AMQ-202    Add a Connection.Redirect method.     
+    AMQ-204    Add a "capabilities" field to the Connection.Open method.     
+
 0.9c7 - 2005/11/25
 ---------------------------------------------------------------------
 Bug Fixes:
