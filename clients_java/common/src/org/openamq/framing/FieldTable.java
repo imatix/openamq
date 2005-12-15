@@ -174,28 +174,36 @@ public class FieldTable extends LinkedHashMap
 
     public Object remove(Object key)
     {
-        final Object value = super.remove(key);
-        _encodedSize -= EncodingUtils.encodedShortStringLength((String) key);
-        if (value != null)
+        if (super.containsKey(key))
         {
-            if (value instanceof String)
+            final Object value = super.remove(key);
+            _encodedSize -= EncodingUtils.encodedShortStringLength((String) key);
+            if (value != null)
             {
-                _encodedSize -= 1 + EncodingUtils.encodedLongStringLength((String) value);
+                if (value instanceof String)
+                {
+                    _encodedSize -= 1 + EncodingUtils.encodedLongStringLength((String) value);
+                }
+                else if (value instanceof Integer)
+                {
+                    _encodedSize -= 5;
+                }
+                else if (value instanceof Long)
+                {
+                    _encodedSize -= 5;
+                }
+                else {
+                    // Should never get here 
+                    assert false; 
+                }
             }
-            else if (value instanceof Integer)
-            {
-                _encodedSize -= 5;
-            }
-            else if (value instanceof Long)
-            {
-                _encodedSize -= 5;
-            }
-            else {
-                // Should never get here 
-                assert false; 
-            }
+
+            return value;
+        } 
+        else
+        {
+          return null;
         }
-        return value;
     }
 
     /**
