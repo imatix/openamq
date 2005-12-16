@@ -86,7 +86,7 @@ static amq_console_class_t
     $(string.trim (local.?''))
 .   endfor
 .endfor
-        
+
     fields = asl_field_list_new (NULL);
 .for global.top->data->class.field
 .   for get
@@ -104,7 +104,7 @@ static amq_console_class_t
     asl_field_new_string (fields, "$(field.name)", field_value);
 .   endif
 .endfor
-    amq_console_inspect_ok (amq_console, request, self->object_id, fields);
+    amq_console_reply_ok (amq_console, "inspect-reply", request, self->object_id, fields);
     asl_field_list_destroy (&fields);
     </action>
 </method>
@@ -146,7 +146,48 @@ static amq_console_class_t
     }
 .   endfor
 .endfor
-    amq_console_modify_ok (amq_console, request, self->object_id);
+    amq_console_reply_ok (amq_console, "modify-reply", request, self->object_id, NULL);
+    </action>
+</method>
+
+<method name = "method" async = "1" return = "rc">
+    <argument name = "self_v"  type = "void *">Object cast as a void *</argument>
+    <argument name = "method name"  type = "char *">Argument fields</argument>
+    <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
+    <argument name = "fields"  type = "asl_field_list_t *">Argument fields</argument>
+    <declare name = "rc" type = "int" default = "0" />
+    <local>
+    $(selftype)
+        *self = self_v;
+    </local>
+    <header>
+    assert (self);
+    </header>
+    <possess>
+    method_name = icl_mem_strdup (method_name);
+    amq_content_basic_possess (request);
+    asl_field_list_possess (fields);
+    </possess>
+    <release>
+    icl_mem_free (method_name);
+    amq_content_basic_destroy (&request);
+    asl_field_list_destroy (&fields);
+    </release>
+    <action>
+    int
+        rc = -1;
+.for global.top->data->class.method
+    if (streq (method_name, "$(method.name)")) {
+.   for exec
+        $(string.trim (.))
+.   endfor
+        rc = 0;
+    }
+.endfor
+    if (rc == 0)
+        amq_console_reply_ok (amq_console, "method-reply", request, self->object_id, NULL);
+    else
+        amq_console_reply_error (amq_console, "method-reply", "invalid", request, self->object_id);
     </action>
 </method>
 
@@ -155,6 +196,7 @@ static amq_console_class_t
     s_class->name    = "$(console_class)";
     s_class->inspect = $(selfname)_inspect;
     s_class->modify  = $(selfname)_modify;
+    s_class->method  = $(selfname)_method;
 </method>
 
 <method name = "terminate">

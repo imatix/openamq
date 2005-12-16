@@ -76,9 +76,13 @@ This class implements the connection class for the AMQ server.
 </method>
 
 <method name = "open">
-    //  For now, link to single global vhost object
-    self->vhost = amq_vhost_link (amq_vhost);
-    assert (self->vhost);
+    if (!amq_broker->locked) {
+        //  For now, link to single global vhost object
+        self->vhost = amq_vhost_link (amq_vhost);
+        assert (self->vhost);
+    }
+    else
+        self_exception (self, ASL_ACCESS_REFUSED, "Broker not accepting new connections");
 </method>
 
 </class>

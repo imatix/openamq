@@ -24,7 +24,7 @@ for each type of exchange. This is a lock-free asynchronous class.
 
 <!-- Console definitions for this object -->
 <data name = "cml">
-    <class name = "exchange" parent = "vhost">
+    <class name = "exchange" parent = "vhost" label = "Exchanges">
         <field name = "name">
           <get>icl_shortstr_cpy (field_value, self->name);</get>
         </field>

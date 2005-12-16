@@ -18,7 +18,7 @@ The console works as follows:
  - All operable objects register with the console class, using a
    console class object as a holder for the methods the object
    class implements.
- 
+
  - The amq.system exchange sends it messages using the publish
    method. For now, it is hard-coded in amq.system that any
    messages with the "amq.console" will get sent to amq_console.
@@ -30,7 +30,7 @@ The console works as follows:
  - The operable objects implement a register, cancel, inspect,
    and modify methods, and return their replies to amq_console
    asynchrously via inspect_ok, modify_ok.
-   
+
  - All interfaces between amq_console and operable classes is
    done using asl_field lists.
 </doc>
@@ -171,10 +171,10 @@ $(selftype)
                 else
                 if (streq (ipr_xml_name (xml_command), "monitor-request"))
                     s_execute_monitor (self, content, xml_command);
-                else 
+                else
                 if (streq (ipr_xml_name (xml_command), "method-request"))
                     s_execute_method (self, content, xml_command);
-                else 
+                else
                     s_invalid_cml (content, bucket, "unknown CML command");
             }
             else
@@ -190,21 +190,24 @@ $(selftype)
     </action>
 </method>
 
-<method name = "inspect ok" template = "async function" async = "1">
+<method name = "reply ok" template = "async function" async = "1">
     <doc>
-    Accepts an inspect response from an object, in the form of a field
-    list which the console can then reformat as a CML response.
+    Generic reply to a request.  If the fields argument is not
+    null, the fields are returned to the client.
     </doc>
+    <argument name = "name"      type = "char *">Reply name</argument>
     <argument name = "request"   type = "amq_content_basic_t *">Original request</argument>
     <argument name = "object id" type = "qbyte">Object id</argument>
     <argument name = "fields"    type = "asl_field_list_t *">Object fields</argument>
     <possess>
     amq_content_basic_possess (request);
-    asl_field_list_possess (fields);
+    if (fields)
+        asl_field_list_possess (fields);
     </possess>
     <release>
     amq_content_basic_destroy (&request);
-    asl_field_list_destroy (&fields);
+    if (fields)
+        asl_field_list_destroy (&fields);
     </release>
     <action>
     asl_field_t
@@ -216,24 +219,26 @@ $(selftype)
         *val_item;                      //  Value of field
     icl_shortstr_t
         strvalue;                       //  Stringified numeric value
-    
+
     cml_item = ipr_xml_new (NULL, "cml", NULL);
     ipr_xml_attr_set (cml_item, "version", "1.0");
     ipr_xml_attr_set (cml_item, "xmlns", "http://www.openamq.org/schema/cml");
 
-    cur_item = ipr_xml_new (cml_item, "inspect-reply", NULL);
+    cur_item = ipr_xml_new (cml_item, name, NULL);
     ipr_xml_attr_set (cur_item, "class",  self->class_ref [object_id]->name);
     ipr_xml_attr_set (cur_item, "object", icl_shortstr_fmt (strvalue, "%ld", object_id));
     ipr_xml_attr_set (cur_item, "status", "ok");
 
-    field = asl_field_list_first (fields);
-    while (field) {
-        sub_item = ipr_xml_new (cur_item, "field", NULL);
-        ipr_xml_attr_set (sub_item, "name", field->name);
-        val_item = ipr_xml_new (sub_item, NULL, asl_field_string (field));
-        ipr_xml_unlink (&val_item);
-        ipr_xml_unlink (&sub_item);
-        field = asl_field_list_next (&field);
+    if (fields) {
+        field = asl_field_list_first (fields);
+        while (field) {
+            sub_item = ipr_xml_new (cur_item, "field", NULL);
+            ipr_xml_attr_set (sub_item, "name", field->name);
+            val_item = ipr_xml_new (sub_item, NULL, asl_field_string (field));
+            ipr_xml_unlink (&val_item);
+            ipr_xml_unlink (&sub_item);
+            field = asl_field_list_next (&field);
+        }
     }
     s_reply_xml (request, cml_item);
     ipr_xml_unlink  (&cur_item);
@@ -241,10 +246,12 @@ $(selftype)
     </action>
 </method>
 
-<method name = "modify ok" template = "async function" async = "1">
+<method name = "reply error" template = "async function" async = "1">
     <doc>
-    Accepts a modify response from an object.
+    Generic error reply to a request.
     </doc>
+    <argument name = "name"      type = "char *">Reply name</argument>
+    <argument name = "status"    type = "char *">Object id</argument>
     <argument name = "request"   type = "amq_content_basic_t *">Original request</argument>
     <argument name = "object id" type = "qbyte">Object id</argument>
     <possess>
@@ -259,14 +266,16 @@ $(selftype)
         *cur_item;                      //  Top level object
     icl_shortstr_t
         strvalue;                       //  Stringified numeric value
-    
+
     cml_item = ipr_xml_new (NULL, "cml", NULL);
     ipr_xml_attr_set (cml_item, "version", "1.0");
     ipr_xml_attr_set (cml_item, "xmlns", "http://www.openamq.org/schema/cml");
 
-    cur_item = ipr_xml_new (cml_item, "modify-reply", NULL);
+    cur_item = ipr_xml_new (cml_item, name, NULL);
+    ipr_xml_attr_set (cur_item, "class",  self->class_ref [object_id]->name);
     ipr_xml_attr_set (cur_item, "object", icl_shortstr_fmt (strvalue, "%ld", object_id));
-    ipr_xml_attr_set (cur_item, "status", "ok");
+    ipr_xml_attr_set (cur_item, "status", status);
+
     s_reply_xml (request, cml_item);
     ipr_xml_unlink  (&cur_item);
     ipr_xml_destroy (&cml_item);
@@ -283,6 +292,8 @@ static void
     s_execute_inspect (amq_console_t *self, amq_content_basic_t *request, ipr_xml_t *xml_command);
 static void
     s_execute_modify  (amq_console_t *self, amq_content_basic_t *request, ipr_xml_t *xml_command);
+static asl_field_list_t *
+    s_get_field_list  (ipr_xml_t *xml_command);
 static void
     s_execute_monitor (amq_console_t *self, amq_content_basic_t *request, ipr_xml_t *xml_command);
 static void
@@ -344,7 +355,7 @@ s_execute_inspect (
         }
         else
             s_reply_error (request, "inspect-reply", "notfound");
-    }        
+    }
     else
         s_reply_error (request, "inspect-reply", "invalid");
 }
@@ -356,45 +367,60 @@ s_execute_modify (
     ipr_xml_t *xml_command)
 {
     char
-        *object_str,
-        *field_value;
+        *object_str;
     qbyte
         object_id;
     asl_field_list_t
         *fields;                        //  Properties to set
-    ipr_xml_t
-        *xml_field;
 
     object_str = ipr_xml_attr_get (xml_command, "object", "");
     if (*object_str) {
         object_id = atol (object_str);
         if (object_id < self->max_objects
         && self->object_ref [object_id]) {
-            fields = asl_field_list_new (NULL);
-            xml_field = ipr_xml_first_child (xml_command);
-            while (xml_field) {
-                field_value = ipr_xml_child_value (xml_field);
-                asl_field_new_string (
-                    fields,
-                    ipr_xml_attr_get (xml_field, "name", "unnamed"),
-                    field_value);
-                icl_mem_free (field_value);
-                xml_field = ipr_xml_next_sibling (&xml_field);
-            }
+            fields = s_get_field_list (xml_command);
             self->class_ref [object_id]->modify (
                 self->object_ref [object_id], request, fields);
             asl_field_list_destroy (&fields);
         }
         else
             s_reply_error (request, "modify-reply", "notfound");
-    }        
+    }
     else
         s_reply_error (request, "modify-reply", "invalid");
 }
 
+
+//  Builds field list from body of XML command
+//  Caller must destroy field list when finished
+
+static asl_field_list_t *
+s_get_field_list (ipr_xml_t *xml_command)
+{
+    asl_field_list_t
+        *fields;
+    ipr_xml_t
+        *xml_field;
+    char
+        *field_value;
+
+    fields = asl_field_list_new (NULL);
+    xml_field = ipr_xml_first_child (xml_command);
+    while (xml_field) {
+        field_value = ipr_xml_child_value (xml_field);
+        asl_field_new_string (
+            fields,
+            ipr_xml_attr_get (xml_field, "name", "unnamed"),
+            field_value);
+        icl_mem_free (field_value);
+        xml_field = ipr_xml_next_sibling (&xml_field);
+    }
+    return (fields);
+}
+
 static void
 s_execute_monitor (
-    amq_console_t *self, 
+    amq_console_t *self,
     amq_content_basic_t *request,
     ipr_xml_t *xml_command)
 {
@@ -407,7 +433,30 @@ s_execute_method (
     amq_content_basic_t *request,
     ipr_xml_t *xml_command)
 {
-    icl_console_print ("amq_console: method");
+    char
+        *object_str,
+        *method_name;                   //  Method to invoke
+    qbyte
+        object_id;
+    asl_field_list_t
+        *fields;                        //  Properties to pass
+
+    object_str  = ipr_xml_attr_get (xml_command, "object", "");
+    method_name = ipr_xml_attr_get (xml_command, "name", "");
+    if (*object_str && *method_name) {
+        object_id = atol (object_str);
+        if (object_id < self->max_objects
+        && self->object_ref [object_id]) {
+            fields = s_get_field_list (xml_command);
+            self->class_ref [object_id]->method (
+                self->object_ref [object_id], method_name, request, fields);
+            asl_field_list_destroy (&fields);
+        }
+        else
+            s_reply_error (request, "method-reply", "notfound");
+    }
+    else
+        s_reply_error (request, "method-reply", "invalid");
 }
 
 static void
@@ -430,7 +479,7 @@ s_reply_error (amq_content_basic_t *request, char *top, char *status)
     ipr_xml_attr_set (cml_item, "xmlns", "http://www.openamq.org/schema/cml");
 
     cur_item = ipr_xml_new (cml_item, top, NULL);
-    if (status) 
+    if (status)
         ipr_xml_attr_set (cur_item, "status", status);
 
     s_reply_xml (request, cml_item);
@@ -449,7 +498,7 @@ s_reply_xml (amq_content_basic_t *request, ipr_xml_t *xml_item)
         *xml_text;                      //  Serialised XML text
     ipr_bucket_t
         *bucket;
-        
+
     xml_text = ipr_xml_save_string (xml_item);
     bucket = ipr_bucket_new (strlen (xml_text));
     ipr_bucket_fill (bucket, xml_text, strlen (xml_text));

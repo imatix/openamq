@@ -15,7 +15,7 @@ Defines a virtual host. This is a lock-free asynchronous class.
 <inherit class = "amq_console_object" />
 
 <data name = "cml">
-    <class name = "vhost" parent = "broker">
+    <class name = "vhost" parent = "broker" label = "Virtual Hosts" >
         <field name = "name" label = "Virtual host path">
           <get>icl_shortstr_cpy (field_value, self->name);</get>
         </field>

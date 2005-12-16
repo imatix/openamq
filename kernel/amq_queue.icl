@@ -24,7 +24,7 @@ class.  This is a lock-free asynchronous class.
 
 <!-- Console definitions for this object -->
 <data name = "cml">
-    <class name = "queue" parent = "vhost">
+    <class name = "queue" parent = "vhost" label = "Queues" >
         <field name = "name">
           <get>icl_shortstr_cpy (field_value, self->name);</get>
         </field>
@@ -47,6 +47,9 @@ class.  This is a lock-free asynchronous class.
         <field name = "messages"    label = "Number of messages" type = "int">
           <get>icl_shortstr_fmt (field_value, "%d", amq_queue_message_count (self));</get>
         </field>
+        <method name = "purge" label = "Purge all queue messages">
+          <exec>amq_queue_basic_purge (self->queue_basic);</exec>
+        </method>
     </class>
 </data>
 

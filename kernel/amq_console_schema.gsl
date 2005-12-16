@@ -33,14 +33,21 @@ function process_field (field, margin)
 endfunction
 
 function process_method (method, margin)
-    echo "Methods are not supported yet"
+    >$(my.margin)<method name = "$(name)" label = "$(label?name)">
+    for field
+        process_field (field, my.margin + indent)
+    endfor
+    >$(my.margin)</method>
 endfunction
 
 function process_class (name, margin)
     xml from "amq_$(my.name).icl"
     for ->class.data where name = "cml"
         for class
-            >$(my.margin)<class name = "$(name)">
+            >$(my.margin)<class name = "$(name)" label = "$(label?name)">
+            if count (field, name = "name") = 0
+                echo "E: no 'name' defined for $(class.name)"
+            endif
             for field
                 process_field (field, my.margin + indent)
             endfor

@@ -33,7 +33,16 @@ This class defines a class descriptor.
         asl_field_list_t
             *fields                     //  Fields to modify
     );
-    //  method method
+    int (*method) (
+        void
+            *self,                      //  Object reference
+        char
+            *method_name,               //  Method to invoke
+        amq_content_basic_t
+            *request,                   //  Original request
+        asl_field_list_t
+            *fields                     //  Arguments to method
+    );
 </context>
 
 <method name = "selftest" />

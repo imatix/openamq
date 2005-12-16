@@ -16,15 +16,30 @@ object holding server-wide values.
 
 <!-- Console definitions for this object -->
 <data name = "cml">
-    <class name = "broker">
+    <class name = "broker" label = "Brokers" >
+        <field name = "name" label = "Broker name">
+          <get>icl_shortstr_fmt (field_value, "OpenAMQ:%d", amq_server_config_port (amq_server_config));</get>
+        </field>
         <field name = "started" label = "Date, time broker started">
           <get>ipr_time_iso8601 (self->started, ipr_date_format_minute, 0, 0, field_value);</get>
+        </field>
+        <field name = "start_time" type = "time" label = "Date, time broker started, time_t">
+          <get>icl_shortstr_fmt (field_value, "%ld", (time_t) self->started);</get>
+        </field>
+        <field name = "locked" type = "bool" label = "Broker locked?">
+          <get>icl_shortstr_fmt (field_value, "%d", self->locked);</get>
         </field>
         <field name = "vhost" type = "objref" repeat = "1">
           <get>
             icl_shortstr_fmt (field_value, "%ld", amq_vhost->object_id);
           </get>
         </field>
+        <method name = "lock" label = "Prevent new connections">
+          <exec>self->locked = TRUE;</exec>
+        </method>
+        <method name = "unlock" label = "Allow new connections">
+          <exec>self->locked = FALSE;</exec>
+        </method>
     </class>
 </data>
 
@@ -32,7 +47,7 @@ object holding server-wide values.
 
 <public>
 extern $(selftype)
-    *amq_broker;                        //  Single broker 
+    *amq_broker;                        //  Single broker
 extern qbyte
     amq_broker_messages;                //  Current server throughput
 </public>
@@ -47,6 +62,8 @@ qbyte
 <context>
     apr_time_t
         started;                        //  Time started
+    Bool
+        locked;                         //  Is broker locked?
 </context>
 
 <method name = "new">
