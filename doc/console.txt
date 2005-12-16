@@ -3,9 +3,9 @@ gdl
     subtitle  = Operator Control for AMQ Servers
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/11/03
+    date      = 2005/12/16
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 1.1c1
+    version   = 1.1d0
 end gdl
 
 Document Control
@@ -13,6 +13,8 @@ Document Control
 
 Change History
 ==============
+
+1.1d0:
 
 1.1c1:
     Renamed all commands to distinguish requests from responses.
@@ -309,10 +311,10 @@ We can show the client's request-reply logic using PAL scripting:
 
     <repeat>
         <basic_browse queue = "$queue" />
-        <basic_bounced>
-            <echo>Message was bounced: $message_id</echo>
+        <basic_returned>
+            <echo>Message was returned: $message_id</echo>
             <break/>
-        </basic_bounced>
+        </basic_returned>
         <basic_arrived>
             <echo>Response arrived from console</echo>
             <break/>
@@ -458,12 +460,12 @@ This is the grammar for server messages:
 
     schema-field    = group-field | simple-field
 
-    group-field     = <field name = "field-name"
+    group-field     = <group name = "field-name"
                        [ inspect = "inspect-flag" ] [ modify = "modify-flag" ]
                        [ label = "field-label" ] >
                        [ field-text ]
                        [ schema-field ]...
-                      </field>
+                      </group>
 
     inspect-flag    = 0 | (1)
 
@@ -497,12 +499,9 @@ This is the grammar for server messages:
                        [ watches  = "watch-count" ]
                          status   = "reply-status">
                         [ field-data ]...
-                        [ object-data ]...
                       </inspect-reply>
 
     watch-count     = 0..maxint - 1
-
-    object-data     = <object class = "class-name" id = "object-id" />
 
     modify-reply    = <modify-reply object = "object-id" status = "reply-status" />
 
