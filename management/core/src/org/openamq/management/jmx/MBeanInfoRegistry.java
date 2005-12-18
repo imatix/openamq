@@ -11,12 +11,14 @@ package org.openamq.management.jmx;
 import org.openamq.AMQException;
 import org.openamq.schema.cml.CmlDocument;
 import org.openamq.schema.cml.FieldType;
+import org.openamq.schema.cml.MethodType;
 import org.openamq.schema.cml.SchemaReplyType;
 
+import javax.management.modelmbean.DescriptorSupport;
 import javax.management.openmbean.*;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Stores all OpenMBeanInfo instances.
@@ -46,9 +48,10 @@ public class MBeanInfoRegistry
         for (org.openamq.schema.cml.ClassType c : schema.getClass1List())
         {
             OpenMBeanAttributeInfo[] attributes = createAttributeInfos(c.getFieldList());
+            OpenMBeanOperationInfo[] operations = createOperationInfos(c.getMethodList());
             String className = c.getName();
             OpenMBeanInfoSupport support = new OpenMBeanInfoSupport(className, null, attributes,
-                                                                    null, null, null);
+                                                                    null, operations, null);
             // we need to store the extra information separately since we cannot subclass
             // OpenMBeanInfoSupport. Doing so means we need to have an AMQMBeanInfo class on each client
             // which defeats the point of OpenMBeans. The extra info is only used by the CMLBean implementation
@@ -72,8 +75,24 @@ public class MBeanInfoRegistry
     private OpenMBeanAttributeInfo[] createAttributeInfos(List<FieldType> fields)
             throws AMQException
     {
-        OpenMBeanAttributeInfo[] attributes = new OpenMBeanAttributeInfo[fields.size()];
-        for (int i = 0; i < attributes.length; i++)
+        OpenMBeanAttributeInfo[] attributes = new OpenMBeanAttributeInfo[fields.size() + 1];
+
+        // we up the parent attribute which is always present
+        try
+        {
+            DescriptorSupport descriptor = new DescriptorSupport(new String[]{"hidden=true"});
+            attributes[attributes.length - 1] = new OpenMBeanAttributeInfoSupport(CMLMBean.PARENT_ATTRIBUTE,
+                                                                                  "Parent", SimpleType.OBJECTNAME,
+                                                                                  true, false, false,
+                                                                                  descriptor);
+        }
+        catch (Exception e)
+        {
+            // should never happen
+            throw new AMQException("Unable to create Parent attribute", e);
+        }
+        // add all the type-specific attributes
+        for (int i = 0; i < attributes.length - 1; i++)
         {
             FieldType field = fields.get(i);
             OpenType openType = getOpenType(field.getType(), field.getModify());
@@ -85,6 +104,7 @@ public class MBeanInfoRegistry
                                                               field.getModify(),
                                                               openType == SimpleType.BOOLEAN);
         }
+
         return attributes;
     }
 
@@ -114,6 +134,10 @@ public class MBeanInfoRegistry
                 simpleType = SimpleType.OBJECTNAME;
                 primitive = false;
                 break;
+            case 5:
+                simpleType = SimpleType.DATE;
+                primitive = false;
+                break;
             default:
                 throw new UnsupportedCMLTypeException(type.toString());
         }
@@ -133,6 +157,37 @@ public class MBeanInfoRegistry
         {
             return simpleType;
         }
+    }
+
+    private OpenMBeanOperationInfo[] createOperationInfos(List<MethodType> methods)
+            throws AMQException
+    {
+        OpenMBeanOperationInfo[] methodInfos = new OpenMBeanOperationInfo[methods.size()];
+        for (int i = 0; i < methodInfos.length; i++)
+        {
+            MethodType methodType = methods.get(i);
+            OpenMBeanParameterInfo[] parameters = createParameterInfos(methodType.getFieldList());
+            methodInfos[i] = new OpenMBeanOperationInfoSupport(methodType.getName(), "No description",
+                                                               parameters, SimpleType.VOID,
+                                                               OpenMBeanOperationInfoSupport.UNKNOWN);
+        }
+        return methodInfos;
+    }
+
+    private OpenMBeanParameterInfo[] createParameterInfos(List<FieldType> parameters)
+            throws AMQException
+    {
+        OpenMBeanParameterInfo[] paramInfos = new OpenMBeanParameterInfo[parameters.size()];
+        for (int i = 0; i < paramInfos.length; i++)
+        {
+            FieldType field = parameters.get(i);
+            String description = field.getLabel();
+            OpenType openType = getOpenType(field.getType(), field.getModify());
+            paramInfos[i] = new OpenMBeanParameterInfoSupport(field.getName(),
+                                                              description==null?"No description":description,
+                                                              openType);
+        }
+        return paramInfos;
     }
 }
 

@@ -42,14 +42,20 @@
         <xs:annotation>
             <xs:documentation>Defines a class which is a managable object</xs:documentation>
         </xs:annotation>
-        <xs:sequence>
-            <xs:element name="field" type="field-type" minOccurs="1" maxOccurs="unbounded">
+        <xs:choice>
+            <xs:element name="field" type="field-type" minOccurs="0" maxOccurs="unbounded">
                 <xs:unique name="uniqueFieldName">
                     <xs:selector xpath="field"/>
                     <xs:field xpath="@name"/>
                 </xs:unique>
             </xs:element>
-        </xs:sequence>
+            <xs:element name="method" type="method-type" minOccurs="0" maxOccurs="unbounded">
+                <xs:unique name="uniqueMethodName">
+                    <xs:selector xpath="method"/>
+                    <xs:field xpath="@name"/>
+                </xs:unique>
+            </xs:element>
+        </xs:choice>
         <xs:attribute name="name" type="xs:string" use="required"/>
     </xs:complexType>
     <xs:complexType name="field-type">
@@ -64,8 +70,9 @@
                         <xs:restriction base="xs:string">
                             <xs:enumeration value="bool"/>
                             <xs:enumeration value="string"/>
-                            <xs:enumeration value="int"/>
+                            <xs:enumeration value="int"/>                            
                             <xs:enumeration value="objref"/>
+                            <xs:enumeration value="time"/>
                         </xs:restriction>
                     </xs:simpleType>
                 </xs:attribute>
@@ -74,6 +81,20 @@
                 <xs:attribute name="modify" type="xs:boolean" use="optional" default="false"/>
             </xs:extension>
         </xs:simpleContent>
+    </xs:complexType>
+    <xs:complexType name="method-type">
+        <xs:annotation>
+            <xs:documentation>Defines a method within a class</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="field" type="field-type" minOccurs="0" maxOccurs="unbounded">
+                <xs:unique name="uniqueArgumentName">
+                    <xs:selector xpath="field"/>
+                    <xs:field xpath="@name"/>
+                </xs:unique>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="name" type="xs:string" use="required"/>
     </xs:complexType>
     <xs:complexType name="inspect-request-type">
         <xs:annotation>

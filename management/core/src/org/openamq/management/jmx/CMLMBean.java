@@ -26,6 +26,11 @@ public class CMLMBean implements DynamicMBean
 {
     private static final Logger _log = Logger.getLogger(CMLMBean.class);
 
+    /**
+     * Name of the attribute for the parent MBean
+     */
+    public static final String PARENT_ATTRIBUTE = "__parent";
+
     private OpenMBeanInfoSupport _mbeanInfo;
 
     private AMQMBeanInfo _extraMbeanInfo;
@@ -33,6 +38,8 @@ public class CMLMBean implements DynamicMBean
     private InspectReplyType _inspectReply;
 
     private CMLMBean _parent;
+
+    private ObjectName _objectName;
 
     public CMLMBean(CMLMBean parent, OpenMBeanInfoSupport mbeanInfo, AMQMBeanInfo extraMbeanInfo,
                     InspectReplyType inspectReply)
@@ -82,9 +89,30 @@ public class CMLMBean implements DynamicMBean
         return _parent;
     }
 
+    public ObjectName getObjectName()
+    {
+        return _objectName;
+    }
+
+    public void setObjectName(ObjectName objectName)
+    {
+        _objectName = objectName;
+    }
+
     public Object getAttribute(String attribute)
             throws AttributeNotFoundException, MBeanException, ReflectionException
     {
+        if (PARENT_ATTRIBUTE.equals(attribute))
+        {
+            if (_parent == null)
+            {
+                return null;
+            }
+            else
+            {
+                return _parent.getObjectName();
+            }
+        }
         String nsDecl = "declare namespace cml='http://www.openamq.org/schema/cml';";
         FieldType[] fields = (FieldType[]) _inspectReply.selectPath(nsDecl + "$this/cml:field[@name='" +
                                                                     attribute + "']");

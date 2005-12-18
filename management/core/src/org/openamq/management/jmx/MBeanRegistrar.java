@@ -81,14 +81,22 @@ public class MBeanRegistrar
             props.put("objectid", Integer.toString(objectId));
             props.put("type", mbean.getType());
             CMLMBean.populateAllTypeInfo(props, mbean);
-            _targetMBeanServer.registerMBean(mbean, new ObjectName("org.openamq", props));
+            ObjectName mbeanObjectName = new ObjectName("org.openamq", props);
+            mbean.setObjectName(mbeanObjectName);
+            _targetMBeanServer.registerMBean(mbean, mbeanObjectName);
+
             // recursively register all beans
             String nsDecl = "declare namespace cml='http://www.openamq.org/schema/cml';";
             for (MBeanAttributeInfo attributeInfo: mbeanInfo.getAttributes())
             {
                 OpenMBeanAttributeInfo openAttributeInfo = (OpenMBeanAttributeInfo) attributeInfo;
-                if (openAttributeInfo.getOpenType().equals(SimpleType.OBJECTNAME))
+                if (openAttributeInfo.getOpenType().equals(SimpleType.OBJECTNAME) &&
+                    !"__parent".equals(openAttributeInfo.getName()))
                 {
+                    if (_log.isDebugEnabled())
+                    {
+                        _log.debug("Searching for fields with name: " + openAttributeInfo.getName());
+                    }
                     FieldType[] fields = (FieldType[]) inspect.selectPath(nsDecl + "$this/cml:field[@name='" +
                                                                           openAttributeInfo.getName() + "']");
                     if (fields == null || fields.length == 0)
@@ -110,6 +118,7 @@ public class MBeanRegistrar
         }
         catch (Exception e)
         {
+            e.printStackTrace();
             throw new AMQException(_log, "Error registering MBean: " + e, e);
         }
     }
