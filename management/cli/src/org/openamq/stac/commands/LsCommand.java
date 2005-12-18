@@ -3,6 +3,7 @@ package org.openamq.stac.commands;
 import org.openamq.AMQException;
 import org.openamq.stac.jmx.CurrentMBean;
 import org.openamq.stac.jmx.MBeanServerConnectionContext;
+import org.openamq.stac.jmx.MBeanUtils;
 
 import javax.management.MBeanAttributeInfo;
 import java.util.SortedSet;
@@ -21,8 +22,11 @@ public class LsCommand
         System.out.println();
         for (MBeanAttributeInfo ai : directories)
         {
-            outputAccess(ai);
-            System.out.println(" " + ai.getName());
+            if (!MBeanUtils.isHidden(ai))
+            {
+                outputAccess(ai);
+                System.out.println(" " + ai.getName());
+            }
         }
         System.out.println();
 
@@ -74,4 +78,6 @@ public class LsCommand
             return javaType;
         }
     }
+
+
 }

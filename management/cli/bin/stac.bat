@@ -21,4 +21,5 @@ set CP=%CP%;%AMQROOT%\lib\util-concurrent\backport-util-concurrent.jar
 set CP=%CP%;%AMQROOT%\lib\jakarta-commons\commons-collections-3.1.jar
 
 
+@rem %JAVA_HOME%\bin\java -Damqj.logging.level="ERROR" -Xdebug -Xnoagent -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005 -cp %CP% org.openamq.stac.Stac
 %JAVA_HOME%\bin\java -Damqj.logging.level="ERROR" -cp %CP% org.openamq.stac.Stac

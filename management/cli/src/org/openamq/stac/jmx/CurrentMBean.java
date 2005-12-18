@@ -19,6 +19,8 @@ public class CurrentMBean
 {
     private MBeanServerConnection _mbeanServerConnection;
 
+    public static final String PARENT_ATTRIBUTE = "__parent";
+
     /**
      * Maps names to ObjectNames. Used for efficiency to avoid iterating through all names when doing a CD command.
      */
@@ -50,7 +52,6 @@ public class CurrentMBean
     {
         return _mbeanObjectName;
     }
-
 
     public MBeanInfo getMBeanInfo()
     {

@@ -29,6 +29,7 @@ def connect(url="", username="", password=""):
       return
     parsedURL = parseURL(url)
     amqConsole = AMQConsole(parsedURL['host'], parsedURL['port'], username, password, parsedURL['context'])
+
     amqConsole.initialise()
     amqConsole.registerAllMBeans()
     connectionContext = MBeanServerConnectionContext()
@@ -36,8 +37,13 @@ def connect(url="", username="", password=""):
     connected = 1
   except Exception, e:
     updateGlobals()
-    msg = "Error: " + e.getMessage()
-    print msg
+    #msg = "Error: " + e.getMessage()
+    #print msg
+    print e
+    e.printStackTrace()
+    cause = e.getCause()
+    if cause != None:
+        cause.printStackTrace()
   else:
     updateGlobals();
 
@@ -69,12 +75,41 @@ def cd(beanName):
         print msg
     else:
         updateGlobals();
-    
+
+class URLFormatError(Exception):
+    """Exception raised for errors in format of the URL
+
+    Attributes:
+        expression -- input expression in which the error occurred
+        message -- explanation of the error
+    """
+
+    def __init__(self, url, message):
+        self.url = url
+        self.message = message
+
 def parseURL(url):
     """
     Parses an AMQ URL into host, port and context components returning them in a dictionary
     """
-    return {'host':'localhost','port':7654,'context':'test'}
+    idx = url.find("amq://")
+    errorMsg = "Invalid URL - must be format amq://hostname:port/vhost"
+    if idx != 0:
+        raise URLFormatError(url, errorMsg)
+
+    hostEndIdx = url.find(":", 6)
+    if hostEndIdx == -1:
+        raise URLFormatError(url, errorMsg)
+
+    hostname = url[6:hostEndIdx]
+
+    portIdx = url.find("/", hostEndIdx + 1)
+    port = url[hostEndIdx + 1:portIdx]
+    vhost = url[portIdx + 1:]
+    if portIdx == -1:
+        raise URLFormatError(url, errorMsg)
+
+    return {'host':hostname,'port':int(port),'context':vhost}
 
 def updateGlobals():
     global commandPrompt

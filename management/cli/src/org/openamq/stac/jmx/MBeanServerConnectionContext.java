@@ -97,20 +97,32 @@ public class MBeanServerConnectionContext
     public void changeBean(String name) throws AMQException
     {
         checkConnection();
-        ObjectName objName = _currentMBean.getObjectNameByName(name);
-        if (objName == null)
+        if (name.equals("/"))
         {
-            // could be stale cache, so refresh
-            _currentMBean.refreshNameToObjectNameMap();
-            objName = _currentMBean.getObjectNameByName(name);
-        }
-        if (objName == null)
-        {
-            throw new AMQException("Unknown managed object with name: " + name);
+            changeBean(getRootObjectName());
         }
         else
         {
-            changeBean(objName);
+            ObjectName objName = _currentMBean.getObjectNameByName(name);
+            if (CurrentMBean.PARENT_ATTRIBUTE.equals(name) && objName == null)
+            {
+                // we have tried to change up a level from the root, so just ignore
+                return;
+            }
+            if (objName == null)
+            {
+                // could be stale cache, so refresh
+                _currentMBean.refreshNameToObjectNameMap();
+                objName = _currentMBean.getObjectNameByName(name);
+            }
+            if (objName == null)
+            {
+                throw new AMQException("Unknown managed object with name: " + name);
+            }
+            else
+            {
+                changeBean(objName);
+            }
         }
     }
 

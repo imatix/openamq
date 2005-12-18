@@ -40,7 +40,9 @@ public class Stac
         }
         interp.execfile(is);
 
-        while (true)
+        boolean running = true;
+
+        while (running)
         {
             interp.write(interp.get("commandPrompt").toString());
 
@@ -66,6 +68,8 @@ public class Stac
                 }
                 else
                 {
+                    System.out.println();
+                    running = false;
                 }
             }
             catch (IOException ie)
