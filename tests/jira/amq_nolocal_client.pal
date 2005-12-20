@@ -1,0 +1,16 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "AMQ-nolocal client"
+    >
+    No local flag issue (client).
+    
+    <session>
+        <basic_content>
+            <headers>
+                <field name = "Text4" value = "Hello" />    
+            </headers>
+        </basic_content>
+        <basic_publish exchange = "amq.match" routing_key = "q1" />
+    </session>
+</pal>

@@ -1,0 +1,33 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "AMQ-nolocal (failing server)"
+    >
+    No local flag issue, failing server.
+    
+    <session>
+        <queue_declare queue = "q1" auto_delete = "1" />
+        <queue_bind exchange = "amq.match" queue = "q1" >
+            <arguments>
+                <field name = "Text4" value = "Hello" />
+            </arguments>
+        </queue_bind>
+        <basic_consume queue = "q1" no_local = "1" />
+        <basic_content>
+            <headers>
+                <field name = "Text4" value = "Hello" />    
+            </headers>
+        </basic_content>
+        <basic_publish exchange = "amq.match" routing_key = "q1" />
+        <repeat>
+            <echo>waiting...</echo>
+            <wait/>
+            <basic_arrived>
+                <echo>OK, message arrived</echo>
+            </basic_arrived>
+            <empty>
+                <echo>NOT ok, no message arrived</echo>
+            </empty>
+        </repeat>
+    </session>
+</pal>
