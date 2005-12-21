@@ -155,7 +155,7 @@ s_parse_args (int argc, char *argv [])
             printf (NOWARRANTY);
         }
         icl_system_initialise (argc, argv);
-        smt_os_thread_initialise ();    //  Initialise SMT engine
+        smt_initialise ();              //  Initialise SMT engine
         ipr_uid_set_real_user ();
 
         //  Move into the background if so desired
@@ -205,10 +205,10 @@ s_run_server (void)
     //  Main processing
     amq_console = amq_console_new ();
     amq_broker  = amq_broker_new  ();
-    smt_os_thread_wait (0);             //  Execute the server
+    smt_wait (0);                       //  Execute the server
     amq_broker_destroy  (&amq_broker);
     amq_console_destroy (&amq_console);
-    smt_os_thread_wait (0);             //  Shutdown SMT kernel
+    smt_wait (0);                       //  Shutdown SMT kernel
 
     //  Synchronous shutdown
     amq_server_config_destroy (&amq_server_config);

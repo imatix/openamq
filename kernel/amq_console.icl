@@ -536,7 +536,7 @@ s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
 </private>
 
 <method name = "selftest">
-    smt_os_thread_initialise ();
+    smt_initialise ();
     amq_console = amq_console_new ();
     amq_console_destroy (&amq_console);
 </method>

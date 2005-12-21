@@ -187,17 +187,17 @@ maximum number of consumers per channel is set at compile time.
         channel_nbr;
     </local>
 
-    smt_os_thread_initialise ();
+    smt_initialise ();
     table = amq_server_channel_table_new ();
 
     //  Let's try some edge cases
     channel = amq_server_channel_new (table, AMQ_SERVER_CHANNEL_TABLE_MAXSIZE - 1, NULL);
     amq_server_channel_destroy (&channel);
-    smt_os_thread_wait (0);
+    smt_wait (0);
 
     channel = amq_server_channel_new (table, AMQ_SERVER_CHANNEL_TABLE_MAXSIZE, NULL);
     amq_server_channel_destroy (&channel);
-    smt_os_thread_wait (0);
+    smt_wait (0);
 
     channel = amq_server_channel_new (table, AMQ_SERVER_CHANNEL_TABLE_MAXSIZE + 1, NULL);
     amq_server_channel_destroy (&channel);
@@ -207,7 +207,7 @@ maximum number of consumers per channel is set at compile time.
         channel_nbr = randomof (0xffff);
         channel = amq_server_channel_new (table, channel_nbr, NULL);
         amq_server_channel_destroy (&channel);
-        smt_os_thread_wait (0);
+        smt_wait (0);
     }
     amq_server_channel_table_destroy (&table);
 </method>
