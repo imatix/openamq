@@ -5,12 +5,10 @@
     version_minor = "0"
     description = "OpenAMQ Client Components">
 
-    <include name = "icl.h"         local = "yes" location = "cpp" />
-    <include name = "sfl.h"         local = "yes" location = "cpp" />
-    <include name = "amq_bucket.h"  local = "yes" location = "cpp" />
-    <include name = "amq_message.h" local = "yes" location = "cpp" />
-    <include name = "amq_sclient.h" local = "yes" location = "cpp" />
-  
+    <include name = "base.h"                  local = "yes" location = "cpp" />
+    <include name = "amq_client_connection.h" local = "yes" location = "cpp" />
+    <include name = "amq_client_session.h"    local = "yes" location = "cpp" />
+
     <interface
         name = "IAMQConnection"
         dual = "yes"
@@ -19,10 +17,10 @@
     
         <method name="Connect">
             <argument type = "BSTR" name = "server"/>
-            <argument type = "BSTR" name = "path"/>
+            <argument type = "BSTR" name = "vhost"/>
             <argument type = "BSTR" name = "login"/>
             <argument type = "BSTR" name = "password"/>
-            <argument type = "BSTR" name = "identifier"/>
+            <argument type = "long" name = "timeout"/>
         </method>
 
         <method name = "CreateProducer" type = "IDispatch*">
@@ -121,48 +119,54 @@
             <include name = "AMQDestination.h" local = "yes" location = "cpp" />
 
             <context>
-                <field name = "amq_client"  type = "amq_sclient_t*" />
-                <field name = "log_file_name" type = "char*" />
+                <field name = "connection"  type = "amq_client_connection_t*" />
+                <field name = "session"  type = "amq_client_session_t*" />
             </context>
     
             <constructor>
-    m_amq_client = NULL;
-    m_log_file_name = NULL;
+    m_connection = NULL;
+    m_session = NULL;
             </constructor>
 
             <destructor>
-    if (m_amq_client) amq_sclient_destroy (&m_amq_client);
-    if (m_log_file_name) free (m_log_file_name);
+    if (m_session)
+        amq_client_session_destroy (&m_session);
+    if (m_connection)
+        amq_client_connection_destroy (&m_connection);
             </destructor>
     
             <implements interface = "IAMQConnection" errorinfo = "yes">
 
                 <method name = "Connect">
     char *my_server;
-    char *my_path;
+    char *my_vhost;
     char *my_login;
     char *my_password;
-    char *my_identifier;
+    long result;
+    icl_longstr_t *auth_data;
+    
     USES_CONVERSION;
         
     my_server = OLE2A(server);
-    my_path = OLE2A (path);
+    my_vhost = OLE2A (vhost);
     my_login = OLE2A (login);
     my_password = OLE2A (password);
-    my_identifier = OLE2A (identifier);
 
-    m_log_file_name = strdupl (file_where ('s', "TEMP", "amq_complus_client", "log"));
-    console_capture (m_log_file_name, 'a');
-    coprintf ("Connecting to %s using identity '%s'...", my_server, my_identifier);
-    if (m_amq_client) amq_sclient_destroy (&m_amq_client);
-    amq_sclient_trace (3);
-    m_amq_client = amq_sclient_new (my_identifier, my_login, my_password);
-    long result = amq_sclient_connect (m_amq_client, my_server, my_path);
-    if (result == 0) REPORT_AMQ_ERROR (m_amq_client, AMQConnection, IAMQConnection);
+    if (m_session)
+        amq_client_session_destroy (&m_session);
+    if (m_connection)
+        amq_client_connection_destroy (&m_connection);
+    
+    auth_data = amq_client_connection_auth_plain (my_login, my_password);
+    m_connection = amq_client_connection_new (my_server, my_vhost, auth_data, 0, timeout);
+    icl_longstr_destroy (&auth_data);
+    m_session = amq_client_session_new (m_connection);
+    
     return S_OK;
                 </method>
 
                 <method name = "CreateProducer">
+                /*
     USES_CONVERSION;
     char *my_destination;
     unsigned short handle;
@@ -187,11 +191,12 @@
 
     if(pVal) *pVal = p;
     else p->Release();
-        
+        */
     return S_OK;
                 </method>
 
                 <method name = "CreateConsumer">
+                /*
     USES_CONVERSION;
     char *my_destination;
     unsigned short handle;
@@ -224,13 +229,15 @@
 
     if(pVal) *pVal = p;
     else p->Release();
-        
+        */
     return S_OK;
                 </method>
 
                 <method name = "MsgAcknowledge">
+                /*
     long result = amq_sclient_msg_ack (m_amq_client);
     if (result == 0) REPORT_AMQ_ERROR (m_amq_client, AMQConnection, IAMQConnection);
+    */
     return S_OK;
                 </method>
 
@@ -256,7 +263,6 @@ static void s_mem_free (void *p)
             </custom>
 
         <destructor>
-    amq_sclient_close (m_connection->m_amq_client, m_handle);
     if (m_connection) m_connection->Release();
         </destructor>
 
@@ -270,6 +276,7 @@ static void s_mem_free (void *p)
         <implements interface = "IAMQDestination" errorinfo = "yes">
 
             <method name = "MsgSend">
+            /*
     USES_CONVERSION;
     char *my_destination;
 
@@ -291,11 +298,12 @@ static void s_mem_free (void *p)
         
     if (amq_sclient_msg_send (m_connection->m_amq_client, m_handle, msg, my_destination, FALSE) != 0)
         REPORT_AMQ_ERROR(m_connection->m_amq_client, AMQDestination, IAMQDestination);
-
+*/
     return S_OK;
             </method>
 
             <method name = "MsgRead">
+            /*
     while(true) {
         amq_message_t *msg;
         msg = amq_sclient_msg_read (m_connection->m_amq_client, timeout);
@@ -314,6 +322,7 @@ static void s_mem_free (void *p)
             m_connection->m_amq_client->msg_redelivered);
         amq_message_destroy (&msg);
     }
+    */
     return S_OK;
             </method>
 
@@ -413,6 +422,7 @@ static void s_mem_free (void *p)
     
 </class>
 
+<library target = "libasl.lib" debugtarget = "libasl.lib" />
 <library target = "libamq.lib" debugtarget = "libamq.lib" />
 <library target = "libsmt.lib" debugtarget = "libsmt.lib" />
 <library target = "libipr.lib" debugtarget = "libipr.lib" />

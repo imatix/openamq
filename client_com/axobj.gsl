@@ -655,6 +655,7 @@ function generate_object
 
 >// $(object.name:).cpp : Implementation of C$(object.name:)
 >
+>#include "stdafx.h"
         for class.include where location = "cpp"
             if "$(include.local:)" = "yes"
 >#include "$(include.name:)"
@@ -662,9 +663,7 @@ function generate_object
 >#include <$(include.name:)>
             endif
         endfor
->#include "stdafx.h"
 >#include "$(class.name:).h"
->#include <comdef.h>
 >#include "$(object.name:).h"
         for object.include where location = "cpp"
             if "$(local:)" = "yes"
@@ -818,6 +817,7 @@ function generate_main_obj
     output ("$(class.name:).cpp")
 >// $(class.name:).cpp : Implementation of DLL Exports.
 >
+>#include "stdafx.h"
 >#include "common.h"
     for class.include where location = "cpp"
         if "$(include.local:)" = "yes"
@@ -826,7 +826,6 @@ function generate_main_obj
 >#include <$(include.name:)>
         endif
     endfor
->#include "stdafx.h"
 >#include "resource.h"
 >#include <initguid.h>
 >#include "$(class.name:).h"
@@ -1011,39 +1010,36 @@ function generate_stdafx
 
     output "stdafx.h"
     echo "Create file stdafx.h"
->
->#if !defined(AFX_STDAFX_H_$(CLASS.NAME)_INCLUDED_)
->#define AFX_STDAFX_H_$(CLASS.NAME)_INCLUDED_
->
->#if _MSC_VER > 1000
 >#pragma once
->#endif
->
 >#ifndef STRICT
 >#define STRICT
 >#endif
+>#ifndef WINVER
+>#define WINVER 0x0400
+>#endif
 >#ifndef _WIN32_WINNT
 >#define _WIN32_WINNT 0x0400
+>#endif						
+>#ifndef _WIN32_WINDOWS
+>#define _WIN32_WINDOWS 0x0410
+>#endif
+>#ifndef _WIN32_IE
+>#define _WIN32_IE 0x0400
 >#endif
 >#define _ATL_APARTMENT_THREADED
->
+>#define _ATL_NO_AUTOMATIC_NAMESPACE
+>#define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS
+>#define _ATL_ALL_WARNINGS
 >#include <atlbase.h>
->
->extern CComModule _Module;
 >#include <atlcom.h>
->
->#endif
+>#include <atlwin.h>
+>#include <atltypes.h>
+>#include <atlctl.h>
+>#include <atlhost.h>
+>using namespace ATL;
     output "stdafx.cpp"
     echo "Create file stdafx.cpp"
->
 >#include "stdafx.h"
->
->#ifdef _ATL_STATIC_REGISTRY
->#include <statreg.h>
->#include <statreg.cpp>
->#endif
->
->#include <atlimpl.cpp>
 endfunction
 
 ------------------------------------------------------------------------
@@ -1156,10 +1152,10 @@ function generate_def
 >LIBRARY      "$(class.name:).DLL"
 >
 >EXPORTS
->    DllCanUnloadNow         @1 PRIVATE
->    DllGetClassObject       @2 PRIVATE
->    DllRegisterServer       @3 PRIVATE
->    DllUnregisterServer     @4 PRIVATE
+>    DllCanUnloadNow         PRIVATE
+>    DllGetClassObject       PRIVATE
+>    DllRegisterServer       PRIVATE
+>    DllUnregisterServer     PRIVATE
 
     output "$(class.name:)ps.def"
     echo "Create file $(class.name:)ps.def"
@@ -1241,7 +1237,7 @@ LINK32=link.exe
 .for root.library
 $(debugtarget:) \
 .endfor
-/libpath:"$\(IBASE)\\lib" \
+/libpath:"\$(IBASE)\\lib" \
 /nologo /subsystem:windows /dll /debug /machine:I386 /out:"$(class.name:).dll" /pdbtype:sept
 # Begin Custom Build - Performing registration
 OutDir=.\\Debug
@@ -1287,7 +1283,7 @@ LINK32=link.exe
 .for root.library
 $(target:) \
 .endfor
-/libpath:"$\(IBASE)\\lib" \
+/libpath:"\$(IBASE)\\lib" \
 /nologo /subsystem:windows /dll /machine:I386 /out:"$(class.name:).dll"
 # Begin Custom Build - Performing registration
 OutDir=.\\Release
