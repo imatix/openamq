@@ -1,0 +1,1405 @@
+------------------------------------------------------------------------
+-
+-   axobj - COM dll implementation
+-
+-   Written: 2000/01/18
+-   Revised: 2004/12/09  Pieter Hintjens <pieter@imatix.com>
+-   Revised: 2005/01/24  Martin Sustrik <sustrik@imatix.com>
+-   Revised: 2005/02/16  Pieter Hintjens - fixed use of INCDIR/LIBDIR
+-
+-   This module processes COM dll implementation
+-
+-   Schema:
+-
+-   <class - root level tag, represents COM library (dll)
+-       name = DLL name
+-       libid = library GUID 
+-       version_major = major version 
+-       version_minor = minor version
+-       description = description of library (will be used in type library)
+-    >
+-        <include - includes files that will be shared by all objects in the library
+-            name = file name
+-            location = h/cpp (defines whether include should arrive in h or cpp file)
+-            local = yes/no (yes means #include "...", no means #include <...>)
+-        >
+-        </include>
+-
+-        <custom - any custom code you want to add to the library
+-                  added either to "<classname>.cpp" or "common.h"
+-            location = h/cpp (whether to add it to header or implementation file)
+-        >
+-
+-        <interface
+-            name = interface name 
+-            dual = yes/no (when yes, interface is dual, otherwise it has vtable only)
+-                   ignored for source interfaces as these are always dispinterfaces
+-            source = yes/no (source interface = event dispinterface)
+-            iid = interface GUID
+-        >
+-
+-            <property - defines property prototype within the interface
+-                name = property name
+-                type = property type
+-                get = yes/no (whether get function should be accessible)
+-                put = yes/no (whether put function should be accessible)
+-            >
+-
+-                <argument - defines property argument
+-                    name = argument name
+-                    type = argument type
+-                    default = optional - when defined, argument becomes optional
+-                              and has specified default value
+-                >
+-                </argument>
+-
+-            </property>
+- 
+-            <method - defines method prototype within the interface
+-                name = method name
+-                type = return type (optional)
+-            >
+- 
+-                <argument - defines method argument
+-                    name = argument name
+-                    type = argument type
+-                    default = optional - when defined, argument becomes optional
+-                              and has specified default value
+-                >
+-                </argument>
+-
+-            </method>
+-
+-        </interface>
+-
+-        <object
+-             name = name of the object
+-             clsid = object GUID
+-             control = yes/no (when yes all aditional functionality needed to insert object into graphical interface is added)
+-             creatable = yes/no (when yes object can be directly instantiated by client)
+-             threading_model = threading model that will be registerd with the object
+-             version = version of the object
+-        >
+-
+-            <include - defines includes for individual object
+-                name = file name
+-                location = h/cpp (defines whether include should arrive in h or cpp file)
+-                local = yes/no (yes means #include "...", no means #include <...>)
+-            >
+-            </include>
+-
+-            <custom - any custom code you want to add to the object
+-                      code will be placed immediately after the includes
+-                location = h/cpp (whether to add it to header or implementation file)
+-            >
+-
+-            <constructor
+-            >
+-                constructor code
+-            </constructor>
+-
+-            <destructor
+-            >
+-                destructor code
+-            </destructor>
+-
+-            <implements - contains implementation for specific interface
+-                          be aware! there can be only single dual interface implemented on each object
+-                interface = interface name
+-                errorinfo = yes/no (if yes, client is responsible for setting up error object in case of error)
+-            >
+-
+-                <property - contains implementation for specific property
+-                    name = property name
+-                >
+-
+-                    <get - implementation for property get function (optional)
+-                    >
+-                        code of get function 
+-                    </get>
+-
+-                    <put - implementation for property put function (optional)
+-                    >
+-                        code of put function 
+-                    </put>
+-
+-                </property>
+-
+-                <method - implementation of method
+-                    name = method name
+-                >
+-                    code of method
+-                </method>
+-
+-            </implements>
+-     
+-            <fires - defines that object will be able to fire events from specific interface
+-                     functions to fire events will be named Fire_<event name>
+-                interface = interface name
+-            >
+-            </fires>
+-
+-            <sink - defines event sink
+-                    to advise event source to this sink use C<object name>Sink<sink id>::DispEventAdvise function
+-                    to unadvise event source to this sink use C<object name>Sink<sink id>::DispEventUnadvise function
+-                id = sink id (a number)
+-                interface = name of interface to sink
+-            >
+-                <event
+-                    name = name of the event
+-                >
+-                    event handler implementation code
+-                </event>
+-
+-            </sink>
+-
+-            <handler - define handler for windows message (use only when object is a control)
+-                message = windows message
+-            >
+-                message handler code
+-            </handler>
+-
+-            <context - member variables of the object
+-            >
+-
+-                <field
+-                    name = variable name (m_ prefix will be added) 
+-                    type = variable type
+-                    reference = yes/no (yes means it will be pointer type)
+-                >
+-                </field>
+-
+-            </context>
+-
+-        </object>
+-
+-        <library - library to link with
+-            target = library name for release build
+-            debugtarget = library name for debug build
+-        >
+-        </library>
+-
+-    </class>
+-
+------------------------------------------------------------------------
+
+
+
+------------------------------------------------------------------------
+function cpp_param ()
+    nb = count (argument)
+    param = ""
+    for argument
+        param += "$(type:) $(name:)"
+        if index (argument) < nb
+           param += ", "
+        endif
+    endfor
+endfunction
+
+------------------------------------------------------------------------
+function get_c_type (type, pointer)
+    if my.type = "string"
+        c_type = "char"
+    elsif my.type = "bool"
+        c_type = "BOOL"
+    else
+        c_type = my.type
+    endif
+    if my.pointer ?= "yes"
+        c_type += " *"
+    endif
+endfunction
+
+------------------------------------------------------------------------
+function idl_method
+    param = ""
+    for argument
+        if defined (default)
+            param += "[in, optional, defaultvalue ($(default:)) ] "
+        else
+            param += "[in] "
+        endif
+        param += "$(type:) $(name:)"
+        if index (argument) < count (method.argument)
+           param += ", "
+        endif
+    endfor
+    if defined(method.type)
+        param += ", [out, retval] $(method.type:) *pVal"
+    endif
+>        [id($(method_id))] HRESULT $(name:) ($(param:));
+    method.dispid = method_id
+    method_id = method_id + 1
+
+endfunction
+
+------------------------------------------------------------------------
+function idl_property
+- there may be several methods for a property
+- so we shouldn't increase dispid while the name is the same
+    if last_name = ""
+        last_name = name
+    elsif name <> last_name
+        last_name  = name
+        method_id += 1
+    endif
+    param = ""
+    for argument
+        if defined (default)
+            param += "[in, optional, defaultvalue ($(default:)) ] "
+        else
+            param += "[in] "
+        endif
+        param += "$(type:) $(name:), "
+    endfor
+           
+    if "$(get)" = "yes"
+>        [propget, id($(method_id))] HRESULT $(name:)($(param:)[out, retval]$(property.type:) *pVal);
+    endif
+    if "$(put)" = "yes"
+>        [propput, id($(method_id))] HRESULT $(name:)($(param:)[in]$(property.type:) newVal);
+    endif
+    property.dispid = method_id
+
+endfunction
+
+------------------------------------------------------------------------
+function generate_idl
+    echo "Create IDL file $(class.name:).idl..."
+    output "$(class.name:).idl"
+>// $(class.name:).idl : IDL source for $(class.name:).dll
+>
+>import "oaidl.idl";
+>import "ocidl.idl";
+>
+    for interface where source = "no"
+        method_id = 1
+        echo "  Add interface $(interface.name:)..."
+>[
+>    object,
+>    uuid($(iid:)),
+    if "$(dual:)" = "yes"
+>    dual,
+    endif
+>    pointer_default(unique)
+>]
+>interface $(interface.name:) : \
+    if "$(dual:)" = "yes"
+>IDispatch
+    else
+>IUnknown
+    endif 
+>{
+        method_id = 1
+        for method
+            idl_method ()
+        endfor
+        last_name = ""
+        for property
+            idl_property ()
+        endfor
+>};
+>
+    endfor
+>
+>[
+>    uuid($(class.libid:)),
+>    version($(class.version_major:).$(class.version_minor:)),
+>    helpstring("$(class.description:)")
+>]
+>library $(class.name:)Lib
+>{
+>    importlib("stdole32.tlb");
+>    importlib("stdole2.tlb");
+>
+    for interface where source = "yes"
+>    [
+>        uuid($(iid:)),
+>    ]
+>    dispinterface $(interface.name:)
+>    {
+>    properties:
+>    methods:
+    method_id = 1
+    for method
+        idl_method ()
+    endfor
+>    };
+>
+    endfor
+
+    for object
+>    [
+>        uuid($(clsid:)),
+>    ]
+>    coclass $(object.name:)
+>    {
+    for implements
+>        interface $(interface:);
+    endfor
+    for fires
+>        [source] dispinterface $(interface:);
+    endfor
+>    };
+>
+    endfor
+>};
+    close
+
+endfunction
+
+------------------------------------------------------------------------
+function generate_cp
+
+    for interface where source = "yes"
+        echo ("Generating $(interface.name:)CP.h...")
+        output "$(interface.name:)CP.h"
+>#ifndef _$(INTERFACE.NAME)CP_H_
+>#define _$(INTERFACE.NAME)CP_H_
+>
+>template <class T>
+>class CProxy$(interface.name:) : public IConnectionPointImpl <T, &DIID_$(interface.name:), CComDynamicUnkArray>
+>{
+>public:
+        counter = 1
+        for method
+>    VOID Fire_$(name:) (\
+            argnum = 0
+            for argument
+>$(type:) $(name:)$(!last()??", "?)\
+                argnum = argnum + 1
+            endfor
+>)
+>    {
+>        T* pT = static_cast <T*> (this);
+>        int nConnectionIndex;
+>        CComVariant *pvars = new CComVariant [$(argnum)];
+>        int nConnections = m_vec.GetSize();
+>		
+>        for (nConnectionIndex = 0; nConnectionIndex < nConnections; nConnectionIndex++) {
+>            pT->Lock ();
+>            CComPtr<IUnknown> sp = m_vec.GetAt (nConnectionIndex);
+>            pT->Unlock ();
+>            IDispatch *pDispatch = reinterpret_cast <IDispatch*> (sp.p);
+>            if (pDispatch != NULL) {
+            counter2 = count(argument) - 1
+            for argument
+>                pvars [$(counter2)] = $(name);
+                counter2 = counter2 - 1
+            endfor
+>                DISPPARAMS disp = {pvars, NULL, $(argnum), 0};
+>                pDispatch->Invoke ($(counter), IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &disp, NULL, NULL, NULL);
+>            }
+>       }
+>       delete [] pvars;
+>    }
+            counter = counter + 1
+        endfor
+>};
+>
+>#endif
+    endfor
+
+endfunction
+
+------------------------------------------------------------------------
+function generate_object
+    for object
+        echo "Create file $(object.name:).h"
+        output "$(object.name:).h"
+>// $(object.name:).h : Declaration of the C$(object.name:)
+>
+>#ifndef __$(OBJECT.NAME)_H_
+>#define __$(OBJECT.NAME)_H_
+>
+>#include "resource.h"
+>#include "common.h"
+>#include <atlctl.h>
+        for fires
+>#include "$(fires.interface:)CP.h"
+        endfor
+        for object.include where location = "h"
+            if "$(local:)" = "yes"
+>#include "$(include.name:)"
+            else
+>#include <$(include.name:)>
+            endif
+        endfor
+        for custom where location = "h"
+>$(custom.:)
+>
+        endfor
+>
+        for sink
+>typedef IDispEventImpl <$(id:), class C$(object.name:), &__uuidof($(interface:)), &LIBID_$(class.name:)Lib, $(class.version_major), $(class.version_minor)> C$(object.name:)Sink$(id:);
+        endfor
+>
+>class ATL_NO_VTABLE C$(object.name:) :
+        if "$(object.control)" = "yes"
+>    public CComControl <C$(object.name:)>,
+>    public IPersistStreamInitImpl <C$(object.name:)>,
+>    public IOleControlImpl <C$(object.name:)>,
+>    public IOleObjectImpl <C$(object.name:)>,
+>    public IOleInPlaceActiveObjectImpl <C$(object.name:)>,
+>    public IViewObjectExImpl <C$(object.name:)>,
+>    public IOleInPlaceObjectWindowlessImpl <C$(object.name:)>,
+>    public IPersistStorageImpl <C$(object.name:)>,
+>    public ISpecifyPropertyPagesImpl <C$(object.name:)>,
+>    public IQuickActivateImpl <C$(object.name:)>,
+>    public IDataObjectImpl <C$(object.name:)>,
+>    public IPropertyNotifySinkCP <C$(object.name:)>,
+            for fires
+>    public IProvideClassInfo2Impl <&CLSID_$(object.name:), &DIID_$(interface:), &LIBID_$(class.name:)Lib>,
+            endfor
+        endif
+        for fires
+>    public CProxy$(interface:) < C$(object.name:) >,
+        endfor
+        for sink
+>    public C$(object.name:)Sink$(id:),
+        endfor
+        if count(object.fires) > 0
+>    public IConnectionPointContainerImpl <C$(object.name:)>,
+        endif
+>    public CComObjectRootEx <CComSingleThreadModel>,
+>    public CComCoClass <C$(object.name:), &CLSID_$(object.name:)>,
+        dispatch_count = 0
+        for implements
+            for class.interface where "$(interface.name:)" = "$(implements.interface:)"
+                if "$(interface.dual:)" = "yes"
+>    public IDispatchImpl <$(interface.name:), &IID_$(interface.name:), &LIBID_$(class.name:)Lib>,
+                    if dispatch_count = 0
+                        dispatch_count = 1
+                    else
+                        echo "There can be only one dual interface in object $(object.name:) !"
+                        abort -1
+                    endif
+                else
+>    public $(interface.name:),
+                endif
+            endfor
+        endfor
+>    public ISupportErrorInfo
+>{
+>public:
+>    C$(object.name:) ();
+>    ~C$(object.name:) ();
+>
+        if creatable = "yes"
+>    DECLARE_REGISTRY_RESOURCEID (IDR_$(OBJECT.NAME))
+>
+        endif
+>    DECLARE_PROTECT_FINAL_CONSTRUCT ()
+>
+>    BEGIN_COM_MAP (C$(object.name:))
+        if dispatch_count = 1
+>        COM_INTERFACE_ENTRY (IDispatch)
+        endif
+        for implements
+>        COM_INTERFACE_ENTRY ($(interface:))
+        endfor
+        if count(object.fires) > 0
+>        COM_INTERFACE_ENTRY (IConnectionPointContainer)
+>        COM_INTERFACE_ENTRY_IMPL (IConnectionPointContainer)
+        endif
+        if "$(object.control)" = "yes"
+>        COM_INTERFACE_ENTRY (IViewObjectEx)
+>        COM_INTERFACE_ENTRY (IViewObject2)
+>        COM_INTERFACE_ENTRY (IViewObject)
+>        COM_INTERFACE_ENTRY (IOleInPlaceObjectWindowless)
+>        COM_INTERFACE_ENTRY (IOleInPlaceObject)
+>        COM_INTERFACE_ENTRY2 (IOleWindow, IOleInPlaceObjectWindowless)
+>        COM_INTERFACE_ENTRY (IOleInPlaceActiveObject)
+>        COM_INTERFACE_ENTRY (IOleControl)
+>        COM_INTERFACE_ENTRY (IOleObject)
+>        COM_INTERFACE_ENTRY (IPersistStreamInit)
+>        COM_INTERFACE_ENTRY2 (IPersist, IPersistStreamInit)
+>        COM_INTERFACE_ENTRY (ISpecifyPropertyPages)
+>        COM_INTERFACE_ENTRY (IQuickActivate)
+>        COM_INTERFACE_ENTRY (IPersistStorage)
+>        COM_INTERFACE_ENTRY (IDataObject)
+>        COM_INTERFACE_ENTRY (IProvideClassInfo)
+>        COM_INTERFACE_ENTRY (IProvideClassInfo2)
+        endif
+>    END_COM_MAP ()
+>
+        if "$(object.control)" = "yes"
+>    BEGIN_PROP_MAP (C$(object.name:))
+>    END_PROP_MAP ()
+>
+        endif
+        if count(object.fires) > 0
+>    BEGIN_CONNECTION_POINT_MAP (C$(object.name:))
+            if "$(object.control)" = "yes"
+>        CONNECTION_POINT_ENTRY (IID_IPropertyNotifySink)
+            endif
+            for fires
+>        CONNECTION_POINT_ENTRY (DIID_$(fires.interface:))
+            endfor
+>    END_CONNECTION_POINT_MAP ()
+>
+        endif
+        if "$(object.control)" = "yes"
+>    BEGIN_MSG_MAP (C$(object.name:))
+>        CHAIN_MSG_MAP (CComControl <C$(object.name:)>)
+>        DEFAULT_REFLECTION_HANDLER ()
+            for handler
+>        MESSAGE_HANDLER ($(message:), On$(message:))
+            endfor
+>    END_MSG_MAP ()
+>
+        endif 
+        if count(object.sink) > 0
+>    BEGIN_SINK_MAP (C$(object.name:))
+            for sink
+                for event
+                    for class.interface where "$(name:)" = "$(sink.interface:)"
+                        for method where "$(name:)" = "$(event.name:)"
+                            event_id = "$(dispid:)"
+                        endfor
+                    endfor
+>        SINK_ENTRY_EX ($(sink.id:), __uuidof($(sink.interface:)), $(event_id:), On$(event.name:)_$(sink.id:))
+                endfor
+            endfor
+>    END_SINK_MAP ()
+>
+        endif
+        if "$(object.control)" = "yes"
+>    DECLARE_VIEW_STATUS (VIEWSTATUS_SOLIDBKGND | VIEWSTATUS_OPAQUE)
+>
+        endif
+>    STDMETHOD(InterfaceSupportsErrorInfo)(REFIID riid)
+>    {
+>        static const IID* arr[] = {
+        for implements where "$(errorinfo:)" = "yes"
+>            &IID_$(interface:)$(!last()??","?)
+        endfor
+>        };
+>        for (int i=0; i<sizeof(arr)/sizeof(arr[0]); i++) {
+>            if (InlineIsEqualGUID(*arr[i], riid) ) return S_OK;
+>        }
+>        return S_FALSE;
+>    }
+        for implements
+            for class.interface where "$(interface.name)" = "$(implements.interface)"
+                for method
+                    cpp_param ()
+                    if defined (type)
+                        if "$(param)" <> ""
+                            param += ", "
+                        endif
+                        param += "$(type:) *pVal"
+                    endif
+>    STDMETHOD ($(name:)) ($(param:));
+                endfor
+                for property
+                    cpp_param ()
+                    if "$(param)" <> ""
+                        param += ", "
+                    endif
+                    if "$(get)" = "yes"
+>    STDMETHOD (get_$(name:)) ($(param:)$(type:) *pVal);
+                    endif
+                    if "$(put)" = "yes"
+>    STDMETHOD (put_$(name:)) ($(param:)$(type:) newVal);
+                    endif
+                endfor
+            endfor
+        endfor
+>
+        for sink
+            for event
+                for class.interface where "$(interface.name:)" = "$(sink.interface:)"
+                    for method where "$(method.name:)" = "$(event.name:)"
+                        cpp_param ()
+                        if defined(type)
+                            if "$(param)" <> ""
+                                param += ", "
+                            endif
+                            param += "$(type:) *pVal"
+                        endif
+>    STDMETHOD (On$(event.name:)_$(sink.id:)) ($(param:));
+                    endfor
+                endfor
+            endfor
+        endfor
+>
+        if "$(object.control)" = "yes"
+            for handler
+>    LRESULT On$(message:) (UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
+            endfor
+        endif
+>
+        for function
+>    $(type:) $(name:) (\
+            for argument
+>$(type:) $(name:)$(!last()??","?)\
+            endfor
+>);
+        endfor
+>
+        for context
+            for field
+                get_c_type (type, reference)
+>    $(c_type:) m_$(name:);
+            endfor
+        endfor
+>};
+>
+>#endif
+        close
+
+        echo "Create file $(object.name:).cpp"
+        output "$(object.name:).cpp"
+
+>// $(object.name:).cpp : Implementation of C$(object.name:)
+>
+        for class.include where location = "cpp"
+            if "$(include.local:)" = "yes"
+>#include "$(include.name:)"
+            else
+>#include <$(include.name:)>
+            endif
+        endfor
+>#include "stdafx.h"
+>#include "$(class.name:).h"
+>#include <comdef.h>
+>#include "$(object.name:).h"
+        for object.include where location = "cpp"
+            if "$(local:)" = "yes"
+>#include "$(include.name:)"
+            else
+>#include <$(include.name:)>
+            endif
+        endfor
+        for custom where location = "cpp"
+>$(custom.:)
+>
+        endfor
+>
+>/*---------------------------------------------------------------------------
+>  Constructor
+>  ---------------------------------------------------------------------------*/
+>C$(object.name:)::C$(object.name:) ()
+>{
+        for constructor
+>$(constructor.:)
+        endfor
+>}
+>
+>/*---------------------------------------------------------------------------
+>  Destructor
+>  ---------------------------------------------------------------------------*/
+>C$(object.name:)::~C$(object.name:) ()
+>{
+        for destructor
+>$(destructor.:)
+        endfor
+>}
+>
+        for implements
+            for method
+                method_name = "$(name)"
+                method_body = "$(method.:)"
+                for class.interface where "$(interface.name)" = "$(implements.interface)"
+                    for method where "$(name)" = "$(method_name)"
+                        cpp_param ()
+                        if defined(type)
+                            if "$(param)" <> ""
+                                param += ", "
+                            endif
+                            param += "$(type:) *pVal"
+                        endif
+>/*---------------------------------------------------------------------------
+>  Method: $(name:)
+>  Interface: $(implements.interface:)
+>  ---------------------------------------------------------------------------*/
+>STDMETHODIMP C$(object.name:)::$(name:) ($(param:))
+>{
+>$(method_body:)
+>}
+>
+                    endfor
+                endfor
+            endfor
+            for property
+                property_name = "$(name:)"
+                for class.interface where "$(interface.name)" = "$(implements.interface)"
+                    for property where "$(name)" = "$(property_name)"
+                        cpp_param ()
+                        if "$(param)" <> ""
+                            param += ", "
+                        endif
+                        property_type = "$(type:)"
+>/*---------------------------------------------------------------------------
+>  Property: $(name:)
+>  Interface: $(implements.interface:)
+>  ---------------------------------------------------------------------------*/
+                    endfor
+                endfor
+                for property.get
+>STDMETHODIMP C$(object.name:)::get_$(property_name:) ($(param:)$(property_type:) *pVal)
+>{
+>$(get.:)
+>}
+>
+                endfor
+                for property.put
+>STDMETHODIMP C$(object.name:)::put_$(property_name:) ($(param:)$(property_type:) newVal)
+>{
+>$(put.:)
+>}
+>
+                endfor
+            endfor
+        endfor
+
+        for sink
+            for event
+                for class.interface where "$(interface.name:)" = "$(sink.interface:)"
+                    for method where "$(event.name:)" = "$(method.name:)"
+                        cpp_param ()
+                        if defined(type)
+                            if "$(param)" <> ""
+                                param += ", "
+                            endif
+                            param += "$(type:) *pVal"
+                        endif
+>/*---------------------------------------------------------------------------
+>  Sink for $(event.name:) event of $(sink.interface:) interface (id=$(id:))
+>  ---------------------------------------------------------------------------*/
+>STDMETHODIMP C$(object.name:)::On$(event.name:)_$(sink.id:) ($(param:))
+>{
+>$(event:)
+>}
+>
+                    endfor
+                endfor
+            endfor
+        endfor
+
+        if "$(object.control)" = "yes"
+            for handler
+>/*---------------------------------------------------------------------------
+>  Windows message handler, handles $(message:) message
+>  ---------------------------------------------------------------------------*/
+>LRESULT C$(object.name:)::On$(message:) (UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
+>{
+>$(handler.:)
+>}
+>
+            endfor
+        endif
+
+        for function
+>/*---------------------------------------------------------------------------
+>  Function: $(name:)
+>  ---------------------------------------------------------------------------*/
+>$(type:) C$(object.name:)::$(name:) (\
+            for argument
+>$(type:) $(name:)$(!last()??","?)\
+            endfor
+>)
+>{
+>$(function.:)
+>}
+>
+        endfor
+        close
+    endfor
+
+endfunction
+
+------------------------------------------------------------------------
+function generate_main_obj
+
+    echo ("Generating $(class.name:).cpp...")
+    output ("$(class.name:).cpp")
+>// $(class.name:).cpp : Implementation of DLL Exports.
+>
+>#include "common.h"
+    for class.include where location = "cpp"
+        if "$(include.local:)" = "yes"
+>#include "$(include.name:)"
+        else
+>#include <$(include.name:)>
+        endif
+    endfor
+>#include "stdafx.h"
+>#include "resource.h"
+>#include <initguid.h>
+>#include "$(class.name:).h"
+>#include "dlldatax.h"
+>
+>#include "$(class.name:)_i.c"
+    for object
+>#include "$(object.name:).h"
+    endfor
+>
+    for class.custom where location = "cpp"
+>$(custom.:)
+>
+    endfor
+>#ifdef _MERGE_PROXYSTUB
+>extern "C" HINSTANCE hProxyDll;
+>#endif
+>
+>CComModule _Module;
+>
+>BEGIN_OBJECT_MAP(ObjectMap)
+for object where creatable = "yes"
+>    OBJECT_ENTRY(CLSID_$(object.name:), C$(object.name:))
+endfor
+>END_OBJECT_MAP()
+>
+>// DLL Entry Point
+>
+>extern "C"
+>BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
+>{
+>    lpReserved;
+>#ifdef _MERGE_PROXYSTUB
+>    if (!PrxDllMain(hInstance, dwReason, lpReserved))
+>        return FALSE;
+>#endif
+>    if (dwReason == DLL_PROCESS_ATTACH)
+>    {
+>        _Module.Init(ObjectMap, hInstance, &LIBID_$(NAME)Lib);
+>        DisableThreadLibraryCalls(hInstance);
+>    }
+>    else if (dwReason == DLL_PROCESS_DETACH)
+>        _Module.Term();
+>    return TRUE;
+>}
+>
+>// Used to determine whether the DLL can be unloaded by OLE
+>
+>STDAPI DllCanUnloadNow(void)
+>{
+>#ifdef _MERGE_PROXYSTUB
+>    if (PrxDllCanUnloadNow() != S_OK)
+>        return S_FALSE;
+>#endif
+>    return (_Module.GetLockCount()==0) ? S_OK : S_FALSE;
+>}
+>
+>// Returns a class factory to create an object of the requested type
+>
+>STDAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv)
+>{
+>#ifdef _MERGE_PROXYSTUB
+>    if (PrxDllGetClassObject(rclsid, riid, ppv) == S_OK)
+>        return S_OK;
+>#endif
+>    return _Module.GetClassObject(rclsid, riid, ppv);
+>}
+>
+>// DllRegisterServer - Adds entries to the system registry
+>
+>STDAPI DllRegisterServer(void)
+>{
+>#ifdef _MERGE_PROXYSTUB
+>    HRESULT hRes = PrxDllRegisterServer();
+>    if (FAILED(hRes))
+>        return hRes;
+>#endif
+>    // registers object, typelib and all interfaces in typelib
+>    return _Module.RegisterServer(TRUE);
+>}
+>
+>// DllUnregisterServer - Removes entries from the system registry
+>
+>STDAPI DllUnregisterServer(void)
+>{
+>#ifdef _MERGE_PROXYSTUB
+>    PrxDllUnregisterServer();
+>#endif
+>    return _Module.UnregisterServer(TRUE);
+>}
+>
+    close
+    echo ("Generating resource.h...")
+    output ("resource.h")
+>
+>#define IDS_PROJNAME 100
+    resnum = 101
+    for object where creatable = "yes"
+>#define IDR_$(OBJECT.NAME) $(resnum)
+        resnum = resnum + 1
+    endfor
+    index = 101
+>
+>#ifdef APSTUDIO_INVOKED
+>#ifndef APSTUDIO_READONLY_SYMBOLS
+>#define _APS_NEXT_RESOURCE_VALUE        203
+>#define _APS_NEXT_COMMAND_VALUE         32768
+>#define _APS_NEXT_CONTROL_VALUE         201
+>#define _APS_NEXT_SYMED_VALUE           $(index + 1)
+>#endif
+>#endif
+>
+    close
+    echo ("Generating $(class.name:).rc...")
+    output ("$(class.name:).rc")
+>
+>#include "resource.h"
+>
+>#define APSTUDIO_READONLY_SYMBOLS
+>#include "winres.h"
+>#undef APSTUDIO_READONLY_SYMBOLS
+>
+>#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_FRA)
+>#ifdef _WIN32
+>LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+>#pragma code_page(1252)
+>#endif //_WIN32
+>
+    for object where creatable = "yes"
+>IDR_$(OBJECT.NAME) REGISTRY DISCARDABLE "$(object.name:).rgs"
+    endfor
+>1 TYPELIB "AMQ.tlb"
+>
+>#endif
+    close
+
+    for object where creatable = "yes"
+        echo ("Generating $(object.name:).rgs...")
+        output ("$(object.name:).rgs")
+>HKCR
+>{
+>    $(class.name:).$(object.name:).$(object.version:) = s '$(object.name:) Class'
+>    {
+>        CLSID = s '{$(clsid:)}'
+>    }
+>    $(class.name:).$(object.name:) = s '$(object.name:) Class'
+>    {
+>        CLSID = s '{$(clsid:)}'
+>        CurVer = s '$(class.name:).$(object.name:).$(object.version:)'
+>    }
+>    NoRemove CLSID
+>    {
+>        ForceRemove {$(clsid:)} = s '$(object.name:) Class'
+>        {
+>            ProgID = s '$(class.name:).$(object.name:).$(object.version:)'
+>            VersionIndependentProgID = s '$(class.name:).$(object.name:)'
+>            ForceRemove 'Programmable'
+>            InprocServer32 = s '%MODULE%'
+>            {
+>                val ThreadingModel = s '$(object.threading_model:)'
+>            }
+>
+    if "$(object.control)" = "yes"
+>            ForceRemove 'Control'
+>            ForceRemove 'Insertable'
+>            'MiscStatus' = s '0'
+>            {
+>                '1' = s '131473'
+>            }
+    endif
+>            'TypeLib' = s '{$(class.libid:)}'
+>            'Version' = s '$(class.version_major:).$(class.version_minor:)'
+>        }
+>    }
+>}
+    close
+    endfor
+endfunction
+
+------------------------------------------------------------------------
+function generate_stdafx
+
+    output "stdafx.h"
+    echo "Create file stdafx.h"
+>
+>#if !defined(AFX_STDAFX_H_$(CLASS.NAME)_INCLUDED_)
+>#define AFX_STDAFX_H_$(CLASS.NAME)_INCLUDED_
+>
+>#if _MSC_VER > 1000
+>#pragma once
+>#endif
+>
+>#ifndef STRICT
+>#define STRICT
+>#endif
+>#ifndef _WIN32_WINNT
+>#define _WIN32_WINNT 0x0400
+>#endif
+>#define _ATL_APARTMENT_THREADED
+>
+>#include <atlbase.h>
+>
+>extern CComModule _Module;
+>#include <atlcom.h>
+>
+>#endif
+    output "stdafx.cpp"
+    echo "Create file stdafx.cpp"
+>
+>#include "stdafx.h"
+>
+>#ifdef _ATL_STATIC_REGISTRY
+>#include <statreg.h>
+>#include <statreg.cpp>
+>#endif
+>
+>#include <atlimpl.cpp>
+endfunction
+
+------------------------------------------------------------------------
+function generate_dlldatax
+
+    output "dlldatax.h"
+    echo "Create file dlldatax.h"
+>#if !defined(AFX_DLLDATAX_H_$(CLASS.NAME)_INCLUDED_)
+>#define AFX_DLLDATAX_H_$(CLASS.NAME)_INCLUDED_
+>
+>#if _MSC_VER > 1000
+>#pragma once
+>#endif
+>
+>#ifdef _MERGE_PROXYSTUB
+>
+>extern "C"
+>{
+>    BOOL WINAPI PrxDllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved);
+>    STDAPI PrxDllCanUnloadNow(void);
+>    STDAPI PrxDllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv);
+>    STDAPI PrxDllRegisterServer(void);
+>    STDAPI PrxDllUnregisterServer(void);
+>}
+>
+>#endif
+>
+>#endif
+
+    output "dlldatax.c"
+    echo "Create file dlldatax.c"
+
+>// wrapper for dlldata.c
+>
+>#ifdef _MERGE_PROXYSTUB // merge proxy stub DLL
+>
+>#define REGISTER_PROXY_DLL //DllRegisterServer, etc.
+>
+>#define _WIN32_WINNT 0x0400	//for WinNT 4.0 or Win95 with DCOM
+>#define USE_STUBLESS_PROXY	//defined only with MIDL switch /Oicf
+>
+>#pragma comment(lib, "rpcndr.lib")
+>#pragma comment(lib, "rpcns4.lib")
+>#pragma comment(lib, "rpcrt4.lib")
+>
+>#define DllMain				PrxDllMain
+>#define DllRegisterServer	PrxDllRegisterServer
+>#define DllUnregisterServer PrxDllUnregisterServer
+>#define DllGetClassObject   PrxDllGetClassObject
+>#define DllCanUnloadNow     PrxDllCanUnloadNow
+>
+>#include "dlldata.c"
+>#include "$(class.name:)_p.c"
+>
+>#ifdef _NOPROXY //no midl generated dlldata.c
+>
+>#define STRICT 1
+>#include <ole2.h>
+>
+>BOOL WINAPI PrxDllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
+>{return TRUE;}
+>
+>STDAPI PrxDllCanUnloadNow(void){return S_OK;}
+>
+>STDAPI PrxDllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv)
+>{return CLASS_E_CLASSNOTAVAILABLE;}
+>
+>STDAPI PrxDllRegisterServer(void){return S_OK;}
+>
+>STDAPI PrxDllUnregisterServer(void){return S_OK;}
+>
+>#endif
+>
+>#endif
+
+endfunction
+
+------------------------------------------------------------------------
+function generate_common
+
+    output "common.h"
+    echo "Create file common.h"
+
+>#ifndef __COMMON_H__
+>#define __COMMON_H__
+>
+    for class.include where location = "h"
+        if "$(include.local:)" = "yes"
+>#include "$(include.name:)"
+        else
+>#include <$(include.name:)>
+        endif
+    endfor
+>
+for class.custom where location = "h"
+>$(custom.:)
+>
+endfor
+>#endif
+
+endfunction
+
+------------------------------------------------------------------------
+function generate_def
+
+    output "$(class.name:).def"
+    echo "Create file $(class.name:).def"
+>; $(class.name:).def : Declares the module parameters.
+>
+>LIBRARY      "$(class.name:).DLL"
+>
+>EXPORTS
+>    DllCanUnloadNow         @1 PRIVATE
+>    DllGetClassObject       @2 PRIVATE
+>    DllRegisterServer       @3 PRIVATE
+>    DllUnregisterServer     @4 PRIVATE
+
+    output "$(class.name:)ps.def"
+    echo "Create file $(class.name:)ps.def"
+
+>LIBRARY      "$(class.name:)PS"
+>
+>DESCRIPTION  'Proxy/Stub DLL'
+>
+>EXPORTS
+>    DllGetClassObject       @1  PRIVATE
+>    DllCanUnloadNow         @2  PRIVATE
+>    GetProxyDllInfo         @3  PRIVATE
+>    DllRegisterServer       @4  PRIVATE
+>    DllUnregisterServer     @5  PRIVATE
+endfunction
+
+.-----------------------------------------------------------------------
+.macro generate_ax_dsp
+.-
+.   echo "Create Microsoft Developer Studio Project file for COM dll $(class.name:)"
+.   echo ("Generating $(class.name:).dsp...")
+.   output "$(class.name:).dsp"
+.
+# Microsoft Developer Studio Project File - Name="$(class.name:)" - Package Owner=<4>
+# Microsoft Developer Studio Generated Build File, Format Version 6.00
+# ** DO NOT EDIT **
+
+# TARGTYPE "Win32 (x86) Dynamic-Link Library" 0x0102
+
+CFG=$(class.name:) - Win32 Debug
+!MESSAGE This is not a valid makefile. To build this project using NMAKE,
+!MESSAGE use the Export Makefile command and run
+!MESSAGE
+!MESSAGE NMAKE /f "$(class.name:).mak".
+!MESSAGE
+!MESSAGE You can specify a configuration when running NMAKE
+!MESSAGE by defining the macro CFG on the command line. For example:
+!MESSAGE
+!MESSAGE NMAKE /f "$(class.name:).mak" CFG="$(class.name:) - Win32 Debug"
+!MESSAGE
+!MESSAGE Possible choices for configuration are:
+!MESSAGE
+!MESSAGE "$(class.name:) - Win32 Debug" (based on "Win32 (x86) Dynamic-Link Library")
+!MESSAGE "$(class.name:) - Win32 Release" (based on "Win32 (x86) Dynamic-Link Library")
+!MESSAGE
+
+# Begin Project
+# PROP AllowPerConfigDependencies 0
+# PROP Scc_ProjName ""
+# PROP Scc_LocalPath ""
+CPP=cl.exe
+MTL=midl.exe
+RSC=rc.exe
+
+!IF  "\$(CFG)" == "$(class.name:) - Win32 Debug"
+
+# PROP BASE Use_MFC 0
+# PROP BASE Use_Debug_Libraries 1
+# PROP BASE Output_Dir "Debug"
+# PROP BASE Intermediate_Dir "Debug"
+# PROP BASE Target_Dir ""
+# PROP Use_MFC 0
+# PROP Use_Debug_Libraries 1
+# PROP Output_Dir "Debug"
+# PROP Intermediate_Dir "Debug"
+# PROP Ignore_Export_Lib 0
+# PROP Target_Dir ""
+# ADD BASE CPP /nologo /MTd /W3 /Gm /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /Yu"stdafx.h" /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /Gm /ZI /Od /I $\(IBASE)\\include /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /FD /GZ /c
+# SUBTRACT CPP /YX /Yc /Yu
+# ADD BASE RSC /l 0x409 /d "_DEBUG"
+# ADD RSC /l 0x409 /d "_DEBUG"
+BSC32=bscmake.exe
+# ADD BASE BSC32 /nologo
+# ADD BSC32 /nologo
+LINK32=link.exe
+# ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /pdbtype:sept
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib delayimp.lib winmm.lib \
+.for root.library
+$(debugtarget:) \
+.endfor
+/libpath:"$\(IBASE)\\lib" \
+/nologo /subsystem:windows /dll /debug /machine:I386 /out:"$(class.name:).dll" /pdbtype:sept
+# Begin Custom Build - Performing registration
+OutDir=.\\Debug
+TargetPath=.\\$(class.name:).dll
+InputPath=.\\$(class.name:).dll
+SOURCE="\$(InputPath)"
+
+"\$(OutDir)\\regsvr32.trg" : \$(SOURCE) "\$(INTDIR)" "\$(OUTDIR)"
+    regsvr32 /s /c "\$(TargetPath)"
+    echo regsvr32 exec. time > "\$(OutDir)\\regsvr32.trg"
+
+# End Custom Build
+# Begin Special Build Tool
+SOURCE="\$(InputPath)"
+.-PreLink_Cmds=net STOP "World Wide Web Publishing Service"
+.-PostBuild_Cmds=net START "World Wide Web Publishing Service"
+# End Special Build Tool
+
+!ELSEIF  "\$(CFG)" == "$(class.name:) - Win32 Release"
+
+# PROP BASE Use_MFC 0
+# PROP BASE Use_Debug_Libraries 0
+# PROP BASE Output_Dir "Release"
+# PROP BASE Intermediate_Dir "Release"
+# PROP BASE Target_Dir ""
+# PROP Use_MFC 0
+# PROP Use_Debug_Libraries 0
+# PROP Output_Dir "Release"
+# PROP Intermediate_Dir "Release"
+# PROP Ignore_Export_Lib 0
+# PROP Target_Dir ""
+# ADD BASE CPP /nologo /MT /W3 /O1 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "_ATL_DLL" /Yu"stdafx.h" /FD /c
+# ADD CPP /nologo /MT /W3 /O1 /I $\(IBASE)\\include /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "_ATL_DLL" /FD /c
+# SUBTRACT CPP /YX /Yc /Yu
+# ADD BASE RSC /l 0x409 /d "NDEBUG"
+# ADD RSC /l 0x409 /d "NDEBUG"
+BSC32=bscmake.exe
+# ADD BASE BSC32 /nologo
+# ADD BSC32 /nologo
+LINK32=link.exe
+# ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386
+# ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib delayimp.lib winmm.lib \
+.for root.library
+$(target:) \
+.endfor
+/libpath:"$\(IBASE)\\lib" \
+/nologo /subsystem:windows /dll /machine:I386 /out:"$(class.name:).dll"
+# Begin Custom Build - Performing registration
+OutDir=.\\Release
+TargetPath=.\\$(class.name:).dll
+InputPath=.\\$(class.name:).dll
+SOURCE="\$(InputPath)"
+
+"\$(OutDir)\\regsvr32.trg" : \$(SOURCE) "\$(INTDIR)" "\$(OUTDIR)"
+    regsvr32 /s /c "\$(TargetPath)"
+    echo regsvr32 exec. time > "\$(OutDir)\\regsvr32.trg"
+
+# End Custom Build
+
+# Begin Special Build Tool
+SOURCE="\$(InputPath)"
+.-PreLink_Cmds=net STOP "World Wide Web Publishing Service"
+.-PostBuild_Cmds=net START "World Wide Web Publishing Service"
+# End Special Build Tool
+
+!ENDIF
+
+# Begin Target
+
+# Name "$(class.name:) - Win32 Debug"
+# Name "$(class.name:) - Win32 Release"
+# Begin Group "Source Files"
+
+# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
+
+# Begin Source File
+SOURCE=.\\dlldatax.c
+# PROP Exclude_From_Scan -1
+# PROP BASE Exclude_From_Build 1
+# PROP Exclude_From_Build 1
+# End Source File
+
+# Begin Source File
+SOURCE=.\\$(class.name:).cpp
+# End Source File
+
+# Begin Source File
+SOURCE=.\\$(class.name:).def
+# End Source File
+
+# Begin Source File
+SOURCE=.\\$(class.name:).idl
+# ADD MTL /tlb ".\\$(class.name:).tlb" /h "$(class.name:).h" /iid "$(class.name:)_i.c" /Oicf
+# End Source File
+
+# Begin Source File
+SOURCE=.\\$(class.name:).rc
+# End Source File
+
+# Begin Source File
+SOURCE=.\\StdAfx.cpp
+# ADD CPP /Yc"stdafx.h"
+# End Source File
+
+.for object
+# Begin Source File
+SOURCE=.\\$(object.name:).cpp
+# End Source File
+.endfor
+
+# End Group
+# Begin Group "Header Files"
+
+# PROP Default_Filter "h;hpp;hxx;hm;inl"
+# Begin Source File
+
+SOURCE=.\\dlldatax.h
+# PROP Exclude_From_Scan -1
+# PROP BASE Exclude_From_Build 1
+# PROP Exclude_From_Build 1
+# End Source File
+# Begin Source File
+
+SOURCE=.\\Resource.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\\StdAfx.h
+# End Source File
+
+.for object
+# Begin Source File
+SOURCE=.\\$(object.name:).h
+# End Source File
+.endfor
+
+.for interface where source = "yes"
+# Begin Source File
+SOURCE=.\\$(interface.name:)CP.h
+# End Source File
+.endfor
+
+# Begin Source File
+SOURCE=.\\common.h
+# End Source File
+
+# End Group
+# Begin Group "Resource Files"
+
+.for object where creatable = "yes"
+# Begin Source File
+SOURCE=.\\$(object.name:).rgs
+# End Source File
+.endfor
+
+# PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
+# End Group
+# End Target
+# End Project
+.endmacro
+

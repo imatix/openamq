@@ -1,0 +1,14 @@
+Todo for COM client
+
+- code in XML file is unreadable - needs big cleanup
+    - indentation of code vs. XML tags
+    - spacing and alignment
+    - naming style not conformant with AMQ RFC002
+    
+- generated files must be defined in project
+    - allow correct packaging and cleaning
+    - e.g. "boom clean" leaves lots of junk in project
+    
+- filenames are NotStandard
+
+--PH 2005/06/05
