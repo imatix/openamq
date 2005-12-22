@@ -16,6 +16,8 @@
                 </xs:element>
                 <xs:element name="inspect-request" type="inspect-request-type" minOccurs="0"/>
                 <xs:element name="inspect-reply" type="inspect-reply-type" minOccurs="0" />
+                <xs:element name="method-request" type="method-request-type" minOccurs="0"/>
+                <xs:element name="method-reply" type="method-reply-type" minOccurs="0" />
              </xs:choice>
             <xs:attribute name="version" type="xs:string" use="required"/>
         </xs:complexType>
@@ -70,7 +72,7 @@
                         <xs:restriction base="xs:string">
                             <xs:enumeration value="bool"/>
                             <xs:enumeration value="string"/>
-                            <xs:enumeration value="int"/>                            
+                            <xs:enumeration value="int"/>
                             <xs:enumeration value="objref"/>
                             <xs:enumeration value="time"/>
                         </xs:restriction>
@@ -129,5 +131,28 @@
         </xs:annotation>
         <xs:attribute name="class" type="xs:string" use="required"/>
         <xs:attribute name="id" type="xs:int" use="required"/>
+    </xs:complexType>
+    <xs:complexType name="method-request-type">
+        <xs:annotation>
+            <xs:documentation>A request to invoke a method</xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="object" type="xs:int" use="required"/>
+        <xs:attribute name="name" type="xs:string" use="required"/>
+    </xs:complexType>
+    <xs:complexType name="method-reply-type">
+        <xs:annotation>
+            <xs:documentation>A reply to a method invocation request</xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="object" type="xs:int" use="required"/>
+        <xs:attribute name="status" use="required">
+            <xs:simpleType>
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="ok"/>
+                    <xs:enumeration value="notfound"/>
+                    <xs:enumeration value="noaccess"/>
+                    <xs:enumeration value="invalid"/>
+                </xs:restriction>
+            </xs:simpleType>
+        </xs:attribute>
     </xs:complexType>
 </xs:schema>

@@ -83,8 +83,8 @@ public class MBeanInfoRegistry
             DescriptorSupport descriptor = new DescriptorSupport(new String[]{"hidden=true"});
             attributes[attributes.length - 1] = new OpenMBeanAttributeInfoSupport(CMLMBean.PARENT_ATTRIBUTE,
                                                                                   "Parent", SimpleType.OBJECTNAME,
-                                                                                  true, false, false,
-                                                                                  descriptor);
+                                                                                  true, false, false);
+                                                                                  //descriptor); JDK 1.6 only
         }
         catch (Exception e)
         {
@@ -169,7 +169,7 @@ public class MBeanInfoRegistry
             OpenMBeanParameterInfo[] parameters = createParameterInfos(methodType.getFieldList());
             methodInfos[i] = new OpenMBeanOperationInfoSupport(methodType.getName(), "No description",
                                                                parameters, SimpleType.VOID,
-                                                               OpenMBeanOperationInfoSupport.UNKNOWN);
+                                                               OpenMBeanOperationInfoSupport.ACTION);
         }
         return methodInfos;
     }

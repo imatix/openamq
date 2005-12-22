@@ -76,7 +76,7 @@ public class MBeanRegistrar
             }
             OpenMBeanInfoSupport mbeanInfo = _mbeanInfoRegistry.getOpenMBeanInfo(inspect.getClass1());
             AMQMBeanInfo extraMbeanInfo = _mbeanInfoRegistry.getAMQMBeanInfo(inspect.getClass1());
-            CMLMBean mbean = new CMLMBean(parent, mbeanInfo, extraMbeanInfo, inspect);
+            CMLMBean mbean = new CMLMBean(parent, mbeanInfo, extraMbeanInfo, inspect, _connection, objectId);
             Hashtable<String, String> props = new Hashtable<String, String>();
             props.put("objectid", Integer.toString(objectId));
             props.put("type", mbean.getType());

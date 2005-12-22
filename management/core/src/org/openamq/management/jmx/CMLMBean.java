@@ -9,14 +9,21 @@
 package org.openamq.management.jmx;
 
 import org.apache.log4j.Logger;
+import org.openamq.AMQException;
+import org.openamq.management.ManagementConnection;
+import org.openamq.management.messaging.CMLMessageFactory;
+import org.openamq.schema.cml.CmlDocument;
 import org.openamq.schema.cml.FieldType;
 import org.openamq.schema.cml.InspectReplyType;
+import org.openamq.schema.cml.MethodReplyType;
 
+import javax.jms.JMSException;
+import javax.jms.TextMessage;
 import javax.management.*;
 import javax.management.openmbean.OpenMBeanAttributeInfo;
+import javax.management.openmbean.OpenMBeanInfoSupport;
 import javax.management.openmbean.OpenType;
 import javax.management.openmbean.SimpleType;
-import javax.management.openmbean.OpenMBeanInfoSupport;
 import java.util.Hashtable;
 
 /**
@@ -27,6 +34,13 @@ public class CMLMBean implements DynamicMBean
     private static final Logger _log = Logger.getLogger(CMLMBean.class);
 
     /**
+     * The number of milliseconds after which data values are considered "stale" and will be
+     * refreshed by querying the broker. This is a way of ensure that reading attributes
+     * repeatedly does not hit the broker heavily.
+     */
+    private static final long REFRESH_IN_MILLIS = 2000;
+
+    /**
      * Name of the attribute for the parent MBean
      */
     public static final String PARENT_ATTRIBUTE = "__parent";
@@ -35,19 +49,31 @@ public class CMLMBean implements DynamicMBean
 
     private AMQMBeanInfo _extraMbeanInfo;
 
+    /**
+     * The cached inspect reply. This is used to read attribute values and is refreshed automatically
+     * if a request for an attribute is made after the time interval specified in REFRESH_IN_MILLIS
+     */
     private InspectReplyType _inspectReply;
 
     private CMLMBean _parent;
 
     private ObjectName _objectName;
 
+    private ManagementConnection _connection;
+
+    private int _objectId;
+
+    private long _lastRefreshTime = System.currentTimeMillis();
+
     public CMLMBean(CMLMBean parent, OpenMBeanInfoSupport mbeanInfo, AMQMBeanInfo extraMbeanInfo,
-                    InspectReplyType inspectReply)
+                    InspectReplyType inspectReply, ManagementConnection connection, int objectId)
     {
         _mbeanInfo = mbeanInfo;
         _extraMbeanInfo = extraMbeanInfo;
         _inspectReply = inspectReply;
         _parent = parent;
+        _connection = connection;
+        _objectId = objectId;
     }
 
     /**
@@ -113,6 +139,10 @@ public class CMLMBean implements DynamicMBean
                 return _parent.getObjectName();
             }
         }
+        if (needRefresh())
+        {            
+            refreshValues();
+        }
         String nsDecl = "declare namespace cml='http://www.openamq.org/schema/cml';";
         FieldType[] fields = (FieldType[]) _inspectReply.selectPath(nsDecl + "$this/cml:field[@name='" +
                                                                     attribute + "']");
@@ -133,6 +163,28 @@ public class CMLMBean implements DynamicMBean
             {
                 throw new MBeanException(e);
             }
+        }
+    }
+
+    private boolean needRefresh()
+    {
+        return ((System.currentTimeMillis() - _lastRefreshTime) > REFRESH_IN_MILLIS);
+    }
+
+    private void refreshValues() throws MBeanException
+    {
+        _log.debug("Refreshing values...");
+        try
+        {
+            TextMessage response = _connection.sendRequest(CMLMessageFactory.createInspectRequest(_objectId));
+
+            CmlDocument cmlDoc = CmlDocument.Factory.parse(response.getText());
+            _inspectReply = cmlDoc.getCml().getInspectReply();
+            _lastRefreshTime = System.currentTimeMillis();
+        }
+        catch (Exception e)
+        {
+            throw new MBeanException(e);
         }
     }
 
@@ -206,7 +258,31 @@ public class CMLMBean implements DynamicMBean
     public Object invoke(String actionName, Object params[], String signature[]) throws MBeanException,
                                                                                         ReflectionException
     {
-        return null;
+        _log.debug("Invoke called on action " + actionName);
+        try
+        {
+            TextMessage response = _connection.sendRequest(CMLMessageFactory.createMethodRequest(_objectId, actionName));
+            CmlDocument cmlDoc = CmlDocument.Factory.parse(response.getText());
+            CmlDocument.Cml cml = cmlDoc.getCml();
+            MethodReplyType methodReply = cml.getMethodReply();
+            if (methodReply.getStatus() != MethodReplyType.Status.OK)
+            {
+                throw new MBeanException(new Exception("Response code from method: " + methodReply.getStatus()));
+            }
+            return null;
+        }
+        catch (AMQException e)
+        {
+            throw new MBeanException(e);
+        }
+        catch (JMSException e)
+        {
+            throw new MBeanException(e);
+        }
+        catch (org.apache.xmlbeans.XmlException e)
+        {
+            throw new MBeanException(e);
+        }
     }
 
     public MBeanInfo getMBeanInfo()
