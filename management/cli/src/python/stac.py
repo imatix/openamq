@@ -37,8 +37,6 @@ def connect(url="", username="", password=""):
     connected = 1
   except Exception, e:
     updateGlobals()
-    #msg = "Error: " + e.getMessage()
-    #print msg
     print e
     e.printStackTrace()
     cause = e.getCause()
@@ -46,6 +44,25 @@ def connect(url="", username="", password=""):
         cause.printStackTrace()
   else:
     updateGlobals();
+
+def disconnect():
+    """
+    Disconnects from the broker
+    """
+    global connected
+    global connectionContext
+    
+    if connected==0:
+      print "Not connected!"
+      return
+    try:
+        connectionContext.disconnect()
+        connected = 0
+    except Exception, e:
+        updateGlobals()
+        print e
+    else:
+        updateGlobals()
 
 def ls():
     """
@@ -63,6 +80,7 @@ def cd(beanName):
     Changes the current mbean
     """
     global connected
+    global connectionContext
     if connected == 0:
         print "Not connected!"
         return
@@ -81,6 +99,8 @@ def invoke(methodName):
     Invokes an operation of the current mbean
     """
     global connected
+    global connectionContext
+
     if connected == 0:
         print "Not connected!"
         return

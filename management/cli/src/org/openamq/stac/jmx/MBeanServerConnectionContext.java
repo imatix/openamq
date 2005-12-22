@@ -4,21 +4,26 @@ import org.openamq.AMQException;
 import org.openamq.management.jmx.JmxConstants;
 import org.openamq.stac.commands.CdCommand;
 import org.openamq.stac.commands.LsCommand;
+import org.apache.log4j.Logger;
 
 import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
+import javax.management.ObjectInstance;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 import java.lang.management.ManagementFactory;
 import java.util.Hashtable;
+import java.util.Set;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
 public class MBeanServerConnectionContext
 {
+    private static final Logger _log = Logger.getLogger(MBeanServerConnectionContext.class);
+
     /**
      * The connection to the MBean server. Can be remote or local, depending on whether we are proxying.
      */
@@ -67,6 +72,27 @@ public class MBeanServerConnectionContext
     public void connect() throws AMQException
     {
         connect(null);
+    }
+
+    public void disconnect() throws AMQException
+    {
+        if (_connection != null)
+        {
+            try
+            {
+                ObjectName queryName = new ObjectName(JmxConstants.JMX_DOMAIN + ":*");
+                Set<ObjectInstance> beans = _connection.queryMBeans(queryName, null);
+                for (ObjectInstance bean : beans)
+                {
+                    _log.debug("Unregistering MBean: " + bean.getObjectName());
+                    _connection.unregisterMBean(bean.getObjectName());
+                }
+            }
+            catch (Exception e)
+            {
+                throw new AMQException("Error unregistering MBeans: " + e, e);
+            }
+        }
     }
 
     public ObjectName getRootObjectName() throws AMQException
