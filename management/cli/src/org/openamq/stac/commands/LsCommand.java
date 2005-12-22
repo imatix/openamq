@@ -6,6 +6,8 @@ import org.openamq.stac.jmx.MBeanServerConnectionContext;
 import org.openamq.stac.jmx.MBeanUtils;
 
 import javax.management.MBeanAttributeInfo;
+import javax.management.MBeanOperationInfo;
+import javax.management.MBeanParameterInfo;
 import java.util.SortedSet;
 
 /**
@@ -34,9 +36,29 @@ public class LsCommand
         for (MBeanAttributeInfo ai : attributes)
         {
             outputAccess(ai);
-            System.out.print(" " + ai.getName());
-            System.out.print("\t\t[" + convertType(ai.getType()) + "]");
-            System.out.println("\t" + currentMBean.getAttributeValue(ai.getName()));
+            System.out.printf(" %1$-15s%2$-15s %3$s\n", ai.getName(), "[" + convertType(ai.getType()) + "]",
+                              currentMBean.getAttributeValue(ai.getName(), ai.getType()));
+        }
+        System.out.println();
+        SortedSet<MBeanOperationInfo> operations = currentMBean.getOrderedOperations();
+
+        for (MBeanOperationInfo oi : operations)
+        {
+            System.out.printf("-r-x %1$-15s", oi.getName());
+            MBeanParameterInfo[] paramInfos = oi.getSignature();
+            System.out.print("[");
+            if (paramInfos.length == 0)
+            {
+                System.out.print("No arguments");
+            }
+
+            for (int i = 0; i < paramInfos.length; i++)
+            {
+                MBeanParameterInfo pi = paramInfos[i];
+                System.out.printf("%1$s:%2$s%3$s", pi.getName(), convertType(pi.getType()),
+                                  (i < paramInfos.length)?",":"");
+            }
+            System.out.println("]");
         }
         System.out.println();
     }
@@ -72,6 +94,10 @@ public class LsCommand
         else if ("java.lang.Double".equals(javaType))
         {
             return "Double";
+        }
+        else if ("java.util.Date".equals(javaType))
+        {
+            return "Date";
         }
         else
         {

@@ -74,7 +74,25 @@ def cd(beanName):
         msg = "Error: " + e.getMessage()
         print msg
     else:
-        updateGlobals();
+        updateGlobals()
+
+def invoke(methodName):
+    """
+    Invokes an operation of the current mbean
+    """
+    global connected
+    if connected == 0:
+        print "Not connected!"
+        return
+
+    try:
+        connectionContext.invoke(methodName, None)
+    except Exception, e:
+        updateGlobals()
+        msg = "Error: " + e.getMessage()
+        print msg
+    else:
+        updateGlobals()
 
 class URLFormatError(Exception):
     """Exception raised for errors in format of the URL
@@ -115,7 +133,7 @@ def updateGlobals():
     global commandPrompt
     global connectionContext
     if connected == 1:
-        commandPrompt = "AMQ:connected#" + connectionContext.getCurrentMBean().getMBeanInfo().getClassName() + "> "
+        commandPrompt = "AMQ:connected#" + connectionContext.getCurrentMBean().getAttributeValue("name", "java.lang.String") + "> "
     else:
         commandPrompt = "AMQ:disconnected> "
 # Classes

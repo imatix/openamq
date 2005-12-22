@@ -137,6 +137,11 @@ public class MBeanServerConnectionContext
         CdCommand.execute(this, destination);
     }
 
+    public void invoke(String methodName, Object... args) throws AMQException
+    {
+        _currentMBean.invoke(methodName, args);
+    }
+
     public CurrentMBean getCurrentMBean()
     {
         return _currentMBean;

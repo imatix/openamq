@@ -3,10 +3,8 @@ package org.openamq.stac.jmx;
 import org.openamq.AMQException;
 
 import javax.management.*;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
  * Stores information about the "current" MBean. This data is used when navigating the hierarchy.
@@ -21,6 +19,7 @@ public class CurrentMBean
 
     public static final String PARENT_ATTRIBUTE = "__parent";
 
+    private static final SimpleDateFormat _dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     /**
      * Maps names to ObjectNames. Used for efficiency to avoid iterating through all names when doing a CD command.
      */
@@ -58,11 +57,22 @@ public class CurrentMBean
         return _mbeanInfo;
     }
 
-    public Object getAttributeValue(String name) throws AMQException
+    public Object getAttributeValue(String name, String type) throws AMQException
     {
+        // TODO: The type argument is a temporary workaround for a bug (somewhere!) in which
+        // a date is returned as a String
         try
         {
-            return _mbeanServerConnection.getAttribute(_mbeanObjectName, name);
+            Object o = _mbeanServerConnection.getAttribute(_mbeanObjectName, name);
+            if ("java.util.Date".equals(type))
+            {
+
+                return _dateFormat.format(new Date(Long.parseLong((String)o)));
+            }
+            else
+            {
+                return o;
+            }
         }
         catch (Exception e)
         {
@@ -85,7 +95,7 @@ public class CurrentMBean
 
             if ("javax.management.ObjectName".equals(type))
             {
-                _name2ObjectNameMap.put(ai.getName(), (ObjectName)getAttributeValue(ai.getName()));
+                _name2ObjectNameMap.put(ai.getName(), (ObjectName)getAttributeValue(ai.getName(), type));
                 attributes.add(ai);
             }
         }
@@ -101,7 +111,7 @@ public class CurrentMBean
 
             if ("javax.management.ObjectName".equals(type))
             {
-                _name2ObjectNameMap.put(ai.getName(), (ObjectName)getAttributeValue(ai.getName()));
+                _name2ObjectNameMap.put(ai.getName(), (ObjectName)getAttributeValue(ai.getName(), type));
             }
         }
     }
@@ -128,5 +138,27 @@ public class CurrentMBean
             }
         }
         return attributes;
+    }
+
+    public SortedSet<MBeanOperationInfo> getOrderedOperations()
+    {
+        TreeSet<MBeanOperationInfo> operations = new TreeSet<MBeanOperationInfo>(new MBeanOperationInfoComparator());
+        for (MBeanOperationInfo oi : _mbeanInfo.getOperations())
+        {
+            operations.add(oi);
+        }
+        return operations;
+    }
+
+    public void invoke(String methodName, Object... args) throws AMQException
+    {
+        try
+        {
+            _mbeanServerConnection.invoke(_mbeanObjectName, methodName, null, null);
+        }
+        catch (Exception e)
+        {
+            throw new AMQException("Error invoking method " + methodName + ": " + e, e);
+        }
     }
 }
