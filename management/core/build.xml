@@ -15,7 +15,7 @@
     <property name="openamq.dist" value="${openamq.root}/dist"/>
     <property name="openamq.lib" value="${openamq.root}/lib"/>
 
-    <taskdef name="xmlbean" classname="org.apache.xmlbeans.impl.tool.XMLBean" classpath="${lib}/xmlbeans/xbean.jar"/>
+    <taskdef name="xmlbean" classname="org.apache.xmlbeans.impl.tool.XMLBean" classpathref="core.classpath"/>
 
     <!-- Setup details -->
     <target name="init">
