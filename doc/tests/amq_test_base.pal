@@ -8,7 +8,7 @@
     <session>
         <echo>Connected to $server_product/$server_version - $server_platform</echo>
         <echo>Running $script...</echo>
-        <assert name = "version_major" value = "9" />
+        <assert name = "version_major" value = "10" />
     </session>
 </if>
 
