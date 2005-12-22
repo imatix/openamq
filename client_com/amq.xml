@@ -22,80 +22,58 @@
             <argument type = "BSTR" name = "password"/>
             <argument type = "long" name = "timeout"/>
         </method>
-
-        <method name = "CreateProducer" type = "IDispatch*">
-            <argument type = "BSTR" name = "destination"/>
+      
+        <method name = "Publish">
+            <argument type = "BSTR" name = "content"/>
+            <argument type = "BSTR" name = "exchange"/>
+            <argument type = "BSTR" name = "routing_key"/>
+            <argument type = "long" name = "mandatory"/>
+            <argument type = "long" name = "immediate"/>
         </method>
 
-        <method name = "CreateConsumer" type = "IDispatch*">
-            <argument type = "BSTR" name = "destination"/>
-            <argument type = "long" name = "prefetch"/>
-            <argument type = "long" name = "noack"/>
-            <argument type = "long" name = "nolocal"/>
-            <argument type = "long" name = "dynamic"/>
+        <method name = "Consume" type = "long">
+            <argument type = "BSTR" name = "queue"/>
+            <argument type = "long" name = "prefetch_size"/>
+            <argument type = "long" name = "prefetch_count"/>
+            <argument type = "long" name = "no_local"/>
+            <argument type = "long" name = "auto_ack"/>
             <argument type = "long" name = "exclusive"/>
         </method>
+        
+        <method name = "Cancel">
+            <argument type = "long" name = "consumer_tag"/>
+        </method>
+        
+        <method name = "FireEvents">
+        </method>
 
-        <method name = "MsgAcknowledge">
+    </interface>
+    
+    <interface
+        name = "_IAMQConnectionEvents"
+        source = "yes"
+        iid = "4C8A1B9F-43C6-4bfb-8327-14C57DDAB22A">
+
+        <method name = "MessageArrived">
+        </method>
+        
+        <method name = "MessageReturned">
         </method>
 
     </interface>
 
     <interface
-        name = "IAMQDestination"
+        name = "IAMQControl"
         dual = "yes"
         source = "no"
-        iid = "10EB17E0-165E-4770-983B-32455B0C3D52">
+        iid = "FBF315E4-DE69-4569-8F69-7DCB291BE20E">
 
-        <method name = "MsgSend">
-            <argument type = "BSTR" name = "destination"/>
-            <argument type = "BSTR" name = "content"/>
-            <argument type = "long" name = "persistent"/>
-            <argument type = "long" name = "priority"/>
-            <argument type = "long" name = "expiration"/>
-            <argument type = "BSTR" name = "mime_type"/>
-            <argument type = "BSTR" name = "encoding"/>
-            <argument type = "BSTR" name = "identifier"/>
-        </method>
+        <property name = "Period" type = "long" get = "yes" put = "yes" />
+        <property name = "Source" type = "IDispatch*" get = "yes" put = "yes" />
 
-        <method name = "MsgRead">
-            <argument type = "long" name = "timeout"/>
-        </method>
+    </interface>
 
-        </interface>
-
-        <interface
-            name = "_IAMQDestinationEvents"
-            source = "yes"
-            iid = "4C8A1B9F-43C6-4bfb-8327-14C57DDAB22A">
-
-            <method name = "MessageArrived">
-                <argument type = "long" name = "msgnum" />
-                <argument type = "BSTR" name = "sender" />
-                <argument type = "BSTR" name = "content" />
-                <argument type = "long" name = "persistent" />
-                <argument type = "long" name = "priority" />
-                <argument type = "long" name = "expiration" />
-                <argument type = "BSTR" name = "mime_type" />
-                <argument type = "BSTR" name = "encoding" />
-                <argument type = "BSTR" name = "identifier" />
-                <argument type = "long" name = "delivered" />
-                <argument type = "long" name = "redelivered" />
-            </method>
-
-        </interface>
-
-        <interface
-            name = "IAMQControl"
-            dual = "yes"
-            source = "no"
-            iid = "FBF315E4-DE69-4569-8F69-7DCB291BE20E">
-
-            <property name = "Period" type = "long" get = "yes" put = "yes" />
-            <property name = "Source" type = "IDispatch*" get = "yes" put = "yes" />
-
-        </interface>
-
+<!--
         <custom location = "h">
 #define REPORT_AMQ_ERROR(client, class_name, interface_name)\
     {\
@@ -107,43 +85,45 @@
         return AtlReportError (__uuidof (class_name), errmsg, __uuidof (interface_name), E_FAIL);\
     }
         </custom>
+-->        
 
-        <object
-            name = "AMQConnection"
-            clsid = "876FAFB1-AEF8-F2DF-AFBA-49AC41AEF001"
-            control = "no"
-            creatable = "yes"
-            threading_model = "Apartment"
-            version = "1">
+    <object
+        name = "AMQConnection"
+        clsid = "876FAFB1-AEF8-F2DF-AFBA-49AC41AEF001"
+        control = "no"
+        creatable = "yes"
+        threading_model = "Apartment"
+        version = "1">
+        
+        <fires interface = "_IAMQConnectionEvents" />
 
-            <include name = "AMQDestination.h" local = "yes" location = "cpp" />
+        <context>
+            <field name = "connection"  type = "amq_client_connection_t*" />
+            <field name = "session"  type = "amq_client_session_t*" />
+        </context>
 
-            <context>
-                <field name = "connection"  type = "amq_client_connection_t*" />
-                <field name = "session"  type = "amq_client_session_t*" />
-            </context>
-    
-            <constructor>
+        <constructor>
     m_connection = NULL;
     m_session = NULL;
-            </constructor>
+        </constructor>
 
-            <destructor>
+        <destructor>
     if (m_session)
         amq_client_session_destroy (&m_session);
     if (m_connection)
         amq_client_connection_destroy (&m_connection);
-            </destructor>
+        </destructor>
     
-            <implements interface = "IAMQConnection" errorinfo = "yes">
+        <implements interface = "IAMQConnection" errorinfo = "yes">
 
-                <method name = "Connect">
-    char *my_server;
-    char *my_vhost;
-    char *my_login;
-    char *my_password;
-    long result;
-    icl_longstr_t *auth_data;
+            <method name = "Connect">
+    char
+        *my_server,
+        *my_vhost,
+        *my_login,
+        *my_password;
+    icl_longstr_t
+        *auth_data;
     
     USES_CONVERSION;
         
@@ -158,174 +138,102 @@
         amq_client_connection_destroy (&m_connection);
     
     auth_data = amq_client_connection_auth_plain (my_login, my_password);
-    m_connection = amq_client_connection_new (my_server, my_vhost, auth_data, 0, timeout);
+    assert (auth_data);
+    m_connection = amq_client_connection_new (my_server, my_vhost, auth_data,
+        0, timeout);
+    assert (m_connection);
     icl_longstr_destroy (&auth_data);
     m_session = amq_client_session_new (m_connection);
+    assert (m_session);
     
     return S_OK;
-                </method>
-
-                <method name = "CreateProducer">
-                /*
+            </method>
+                
+            <method name = "Publish">
+    char
+        *my_exchange,
+        *my_routing_key;
+    int
+        result;
+    amq_content_basic_t
+        *msg;
+    
     USES_CONVERSION;
-    char *my_destination;
-    unsigned short handle;
-    HRESULT hr;
 
-    my_destination = OLE2A (destination);
-    handle = amq_sclient_producer (m_amq_client, AMQP_SERVICE_QUEUE);
-    if (handle == 0) REPORT_AMQ_ERROR (m_amq_client, AMQConnection, IAMQConnection);
-        
-    CComObject &lt;CAMQDestination> *p;
-    hr = CComObject &lt;CAMQDestination>::CreateInstance (&p);
-    if (!SUCCEEDED(hr) ) return AtlReportError (
-        __uuidof(AMQConnection),
-        L"Cannot open AMQDestination object",
-        __uuidof(IAMQConnection),
-        E_FAIL);
-    p->AddRef();
+    my_exchange = OLE2A (exchange);
+    my_routing_key = OLE2A (routing_key);
 
-    p->m_connection = this;
-    AddRef();
-    p->m_handle = handle;
+    msg = amq_content_basic_new ();
+    assert (msg);
+    result = amq_content_basic_set_body (msg, (void*) content,
+        ::SysStringByteLen (content), icl_mem_free);
+    if (result)
+        assert (0);
+    
+    result = amq_client_session_basic_publish (m_session,
+        msg, 0, my_exchange, my_routing_key, (Bool) mandatory,
+        (Bool) immediate);
+    if (result)
+        assert (0);
+    amq_content_basic_destroy (&msg);
 
-    if(pVal) *pVal = p;
-    else p->Release();
-        */
-    return S_OK;
-                </method>
-
-                <method name = "CreateConsumer">
-                /*
-    USES_CONVERSION;
-    char *my_destination;
-    unsigned short handle;
-    HRESULT hr;
-
-    my_destination = OLE2A (destination);
-    handle = amq_sclient_consumer (
-        m_amq_client,
-        AMQP_SERVICE_QUEUE,
-        my_destination,
-        prefetch,
-        (Bool) noack,
-        (Bool) nolocal,
-        (Bool) dynamic,
-        (Bool) exclusive);
-    if (handle == 0) REPORT_AMQ_ERROR (m_amq_client, AMQConnection, IAMQConnection);
-        
-    CComObject &lt;CAMQDestination> *p;
-    hr = CComObject &lt;CAMQDestination>::CreateInstance (&p);
-        if (!SUCCEEDED(hr) ) return AtlReportError (
-        __uuidof(AMQConnection),
-        L"Cannot open AMQDestination object",
-        __uuidof(IAMQConnection),
-        E_FAIL);
-    p->AddRef();
-
-    p->m_connection = this;
-    AddRef();
-    p->m_handle = handle;
-
-    if(pVal) *pVal = p;
-    else p->Release();
-        */
-    return S_OK;
-                </method>
-
-                <method name = "MsgAcknowledge">
-                /*
-    long result = amq_sclient_msg_ack (m_amq_client);
-    if (result == 0) REPORT_AMQ_ERROR (m_amq_client, AMQConnection, IAMQConnection);
-    */
-    return S_OK;
-                </method>
-
-            </implements>
-
-        </object>
-
-    <object
-        name = "AMQDestination"
-        clsid = "E511636A-9B33-4ce7-8548-40F656452C13"
-        control = "no"
-        creatable = "no"
-        threading_model = "Apartment"
-        version = "1">
-
-        <include name = "AMQConnection.h" local = "yes" location ="h" />
-
-            <custom location = "cpp">
-static void s_mem_free (void *p)
-{
-    icl_mem_free (p);
-}
-            </custom>
-
-        <destructor>
-    if (m_connection) m_connection->Release();
-        </destructor>
-
-        <context>
-            <field name = "connection"  type = "CAMQConnection"  reference = "yes" />
-            <field name = "handle" type = "unsigned short" reference = "no" />
-        </context>
-
-        <fires interface = "_IAMQDestinationEvents" />
-
-        <implements interface = "IAMQDestination" errorinfo = "yes">
-
-            <method name = "MsgSend">
-            /*
-    USES_CONVERSION;
-    char *my_destination;
-
-    my_destination = OLE2A (destination);
-
-    amq_message_t *msg = amq_message_new ();
-
-    amq_message_set_persistent (msg, (Bool) persistent);
-    amq_message_set_priority (msg, (byte) priority);
-    amq_message_set_expiration (msg, (time_t) expiration);
-    amq_message_set_mime_type (msg, OLE2A (mime_type) );
-    amq_message_set_encoding (msg, OLE2A (encoding) );
-    amq_message_set_identifier (msg, OLE2A (identifier) );
-
-    int my_size = SysStringByteLen (content);
-    byte *my_content = (byte *) icl_mem_alloc (my_size);        
-    memcpy (my_content, content, my_size);
-    amq_message_set_content (msg, my_content, my_size, s_mem_free);
-        
-    if (amq_sclient_msg_send (m_connection->m_amq_client, m_handle, msg, my_destination, FALSE) != 0)
-        REPORT_AMQ_ERROR(m_connection->m_amq_client, AMQDestination, IAMQDestination);
-*/
     return S_OK;
             </method>
 
-            <method name = "MsgRead">
-            /*
-    while(true) {
-        amq_message_t *msg;
-        msg = amq_sclient_msg_read (m_connection->m_amq_client, timeout);
-        if (!msg) break;
-        Fire_MessageArrived(
-            m_connection->m_amq_client->msg_number,
-            CComBSTR (m_connection->m_amq_client->msg_sender),
-            msg->content ? CComBSTR (msg->content->cur_size, (char*) msg->content->data) : CComBSTR(L""),
-            msg->persistent,
-            msg->priority,
-            msg->expiration,
-            CComBSTR(msg->mime_type),
-            CComBSTR(msg->encoding),
-            CComBSTR(msg->identifier),
-            m_connection->m_amq_client->msg_delivered,
-            m_connection->m_amq_client->msg_redelivered);
-        amq_message_destroy (&msg);
+            <method name = "Consume">    
+    char
+        *my_queue;
+    int
+        result;
+    
+    USES_CONVERSION;
+
+    my_queue = OLE2A (queue);
+    result = amq_client_session_basic_consume (m_session, 0, my_queue,
+        (dbyte) prefetch_size, (dbyte) prefetch_count,  no_local, auto_ack,
+        exclusive);
+    if (result)
+        assert (0);
+        
+    if(pVal)
+        *pVal = m_session->consumer_tag;
+        
+    return S_OK;
+            </method>
+                
+            <method name = "Cancel">
+    int
+        result;
+        
+    result = amq_client_session_basic_cancel (m_session, (dbyte) consumer_tag);
+    if (result)
+        assert (0);
+        
+    return S_OK;
+            </method>
+                
+            <method name = "FireEvents">
+    amq_content_basic_t
+        *msg;
+
+    while (true) {
+        msg = amq_client_session_basic_returned (m_session);
+        if (!msg)
+            break;
+        Fire_MessageReturned ();
+        amq_content_basic_destroy (&msg);
     }
-    */
+    while (true) {
+        msg = amq_client_session_basic_arrived (m_session);
+        if (!msg)
+            break;
+        Fire_MessageArrived ();
+        amq_content_basic_destroy (&msg);
+    }
+    
     return S_OK;
             </method>
-
+            
         </implements>
 
     </object>
@@ -338,11 +246,11 @@ static void s_mem_free (void *p)
         threading_model = "Apartment"
         version = "1">
 
-        <fires interface = "_IAMQDestinationEvents" />
+        <fires interface = "_IAMQConnectionEvents" />
 
         <context>
             <field name = "period" type = "long" />
-            <field name = "source" type = "CComPtr<IAMQDestination>" noinit = "" />
+            <field name = "source" type = "CComPtr<IAMQConnection>" noinit = "" />
             <field name = "cookie" type = "DWORD" />
         </context>
 
@@ -378,7 +286,7 @@ static void s_mem_free (void *p)
         m_source.Release();
     }
     if (newVal) {
-        hr = newVal->QueryInterface(__uuidof(IAMQDestination), (void**)&m_source);
+        hr = newVal->QueryInterface(__uuidof(IAMQConnection), (void**)&m_source);
         if (!SUCCEEDED (hr) ) return hr;
         return CAMQControlSink1::DispEventAdvise(m_source);
     }
@@ -392,13 +300,18 @@ static void s_mem_free (void *p)
         </implements>
 
         <handler message = "WM_TIMER">
-    if(m_source) m_source->MsgRead(100);        
+    if(m_source)
+        m_source->FireEvents ();        
     return 0;
         </handler>  
 
-        <sink id = "1" interface = "_IAMQDestinationEvents">
+        <sink id = "1" interface = "_IAMQConnectionEvents">
             <event name="MessageArrived">
-    Fire_MessageArrived (msgnum, sender, content, persistent, priority, expiration, mime_type, encoding, identifier, delivered, redelivered);
+    Fire_MessageArrived ();
+    return S_OK;
+            </event>
+            <event name="MessageReturned">
+    Fire_MessageReturned ();
     return S_OK;
             </event>
         </sink>  
@@ -429,4 +342,6 @@ static void s_mem_free (void *p)
 <library target = "libicl.lib" debugtarget = "libicl.lib" />
 <library target = "libsfl.lib" debugtarget = "libsfl.lib" />
 <library target = "libapr.lib" debugtarget = "libapr.lib" />
+<library target = "libpcre.lib" debugtarget = "libpcre.lib" />
 <library target = "ws2_32.lib" debugtarget = "ws2_32.lib" />
+<library target = "mswsock.lib" debugtarget = "mswsock.lib" />

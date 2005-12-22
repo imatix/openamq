@@ -27,7 +27,7 @@
     <clean>
       <execute>
             call boomvs --where=. --using=amq --target=amq clean
-        del *.c *.h *.cpp *.ds* *.rgs *.def *.rc *.plg *.idl
+        del *.c *.h *.cpp *.ds* *.rgs *.def *.rc *.plg *.idl *.sln *.vcproj
       </execute>
     </clean>
 </actions>
