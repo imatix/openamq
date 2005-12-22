@@ -52,6 +52,11 @@ public class Stac
                 line = terminal.readLine();
                 if (line != null)
                 {
+                    if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit"))
+                    {
+                        running = false;
+                        line = "quit()";
+                    }
                     while (interp.runsource(line))
                     {
                         interp.write("...");
@@ -78,5 +83,6 @@ public class Stac
                 ie.printStackTrace(System.err);
             }
         }
+        System.exit(0);
     }
 }

@@ -27,7 +27,13 @@ def connect(url="", username="", password=""):
     if connected==1:
       print "Already Connected!"
       return
-    parsedURL = parseURL(url)
+
+    try:
+       parsedURL = parseURL(url)
+    except URLFormatError, ufe:
+       print "Invalid URL: " + ufe.msg
+       return
+
     amqConsole = AMQConsole(parsedURL['host'], parsedURL['port'], username, password, parsedURL['context'])
 
     amqConsole.initialise()
@@ -51,7 +57,7 @@ def disconnect():
     """
     global connected
     global connectionContext
-    
+
     if connected==0:
       print "Not connected!"
       return
@@ -63,6 +69,11 @@ def disconnect():
         print e
     else:
         updateGlobals()
+
+def quit():
+    global connected
+    if connected != 0:
+        disconnect()    
 
 def ls():
     """
@@ -124,7 +135,7 @@ class URLFormatError(Exception):
 
     def __init__(self, url, message):
         self.url = url
-        self.message = message
+        self.msg = message
 
 def parseURL(url):
     """
