@@ -5,7 +5,6 @@
     version_minor = "0"
     description = "OpenAMQ Client Components">
 
-    <include name = "base.h"                  local = "yes" location = "cpp" />
     <include name = "amq_client_connection.h" local = "yes" location = "cpp" />
     <include name = "amq_client_session.h"    local = "yes" location = "cpp" />
 

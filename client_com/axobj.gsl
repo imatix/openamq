@@ -1030,6 +1030,7 @@ function generate_stdafx
 >#define _ATL_NO_AUTOMATIC_NAMESPACE
 >#define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS
 >#define _ATL_ALL_WARNINGS
+>#include "base.h"
 >#include <atlbase.h>
 >#include <atlcom.h>
 >#include <atlwin.h>
