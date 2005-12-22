@@ -20,4 +20,4 @@ CP=$CP:$AMQROOT/lib/jms/jms.jar
 CP=$CP:$AMQROOT/lib/util-concurrent/backport-util-concurrent.jar
 CP=$CP:$AMQROOT/lib/jakarta-commons/commons-collections-3.1.jar
 
-$JAVA_HOME/bin/java -Damqj.logging.level="ERROR" -cp %CP% org.openamq.stac.Stac
+$JAVA_HOME/bin/java -Damqj.logging.level="ERROR" -cp $CP org.openamq.stac.Stac
