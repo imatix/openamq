@@ -7,7 +7,7 @@
 
     <include name = "amq_client_connection.h" local = "yes" location = "cpp" />
     <include name = "amq_client_session.h"    local = "yes" location = "cpp" />
-
+    
     <interface
         name = "IAMQConnection"
         dual = "yes"
@@ -21,10 +21,13 @@
             <argument type = "BSTR" name = "password"/>
             <argument type = "long" name = "timeout"/>
         </method>
+        
+        <method name = "CreateQueue">
+            <argument type = "BSTR" name = "name"/>
+        </method>
       
         <method name = "Publish">
             <argument type = "BSTR" name = "content"/>
-            <argument type = "BSTR" name = "exchange"/>
             <argument type = "BSTR" name = "routing_key"/>
             <argument type = "long" name = "mandatory"/>
             <argument type = "long" name = "immediate"/>
@@ -54,9 +57,11 @@
         iid = "4C8A1B9F-43C6-4bfb-8327-14C57DDAB22A">
 
         <method name = "MessageArrived">
+            <argument type = "BSTR" name = "content"/>
         </method>
         
         <method name = "MessageReturned">
+            <argument type = "BSTR" name = "content"/>
         </method>
 
     </interface>
@@ -70,21 +75,7 @@
         <property name = "Period" type = "long" get = "yes" put = "yes" />
         <property name = "Source" type = "IDispatch*" get = "yes" put = "yes" />
 
-    </interface>
-
-<!--
-        <custom location = "h">
-#define REPORT_AMQ_ERROR(client, class_name, interface_name)\
-    {\
-        USES_CONVERSION;\
-        wchar_t buffer[32];\
-        CComBSTR errmsg (_itow (client->reply_code, buffer, 10) );\
-        errmsg += L" : ";\
-        errmsg += A2OLE (client->reply_text);\
-        return AtlReportError (__uuidof (class_name), errmsg, __uuidof (interface_name), E_FAIL);\
-    }
-        </custom>
--->        
+    </interface>        
 
     <object
         name = "AMQConnection"
@@ -101,9 +92,39 @@
             <field name = "session"  type = "amq_client_session_t*" />
         </context>
 
+        <custom location = "cpp">
+    BSTR read_content (amq_content_basic_t *content)
+    {
+        asl_reader_t
+            reader;
+        ipr_bucket_t
+            *buf;
+        byte
+            *body = NULL;
+        size_t
+            cur_size = 0;
+        BSTR
+            result;
+            
+        amq_content_basic_set_reader (content, &reader, 4096);
+        while ((buf = amq_content_basic_replay_body (content, &reader))) {
+            body = (byte*) icl_mem_realloc (body, cur_size + buf->cur_size);
+            assert (body);
+            memcpy (body + cur_size, buf->data, buf->cur_size);
+            cur_size += buf->cur_size;
+        }   
+        ipr_bucket_destroy (&buf);
+        result = ::SysAllocStringByteLen ((LPCSTR) body, cur_size);
+        assert (result);
+        icl_mem_free (body);
+        return result;
+    }
+        </custom>
+
         <constructor>
     m_connection = NULL;
     m_session = NULL;
+    icl_system_initialise (0, NULL);
         </constructor>
 
         <destructor>
@@ -111,6 +132,7 @@
         amq_client_session_destroy (&m_session);
     if (m_connection)
         amq_client_connection_destroy (&m_connection);
+    // icl_system_terminate ();
         </destructor>
     
         <implements interface = "IAMQConnection" errorinfo = "yes">
@@ -147,30 +169,52 @@
     
     return S_OK;
             </method>
-                
+            
+            <method name = "CreateQueue">
+    int
+        result;
+    char
+        *my_name;
+        
+    USES_CONVERSION;
+    
+    my_name = OLE2A (name);
+        
+    result = amq_client_session_queue_declare (m_session, 0, my_name, 0, 1, 0, 0, NULL);
+    if (result)
+        assert (0);
+    result = amq_client_session_queue_bind (m_session, 0, my_name, "amq.direct", my_name, NULL);
+    if (result)
+        assert (0);
+         
+    return S_OK;
+            </method>    
+            
             <method name = "Publish">
     char
-        *my_exchange,
         *my_routing_key;
     int
         result;
     amq_content_basic_t
         *msg;
+    void
+        *body;
     
     USES_CONVERSION;
 
-    my_exchange = OLE2A (exchange);
     my_routing_key = OLE2A (routing_key);
 
     msg = amq_content_basic_new ();
     assert (msg);
-    result = amq_content_basic_set_body (msg, (void*) content,
+    body = icl_mem_alloc (::SysStringByteLen (content));
+    assert (body);
+    result = amq_content_basic_set_body (msg, body,
         ::SysStringByteLen (content), icl_mem_free);
     if (result)
         assert (0);
     
     result = amq_client_session_basic_publish (m_session,
-        msg, 0, my_exchange, my_routing_key, (Bool) mandatory,
+        msg, 0, "amq.direct", my_routing_key, (Bool) mandatory,
         (Bool) immediate);
     if (result)
         assert (0);
@@ -214,19 +258,25 @@
             <method name = "FireEvents">
     amq_content_basic_t
         *msg;
+    int
+        result;
 
+    result = amq_client_session_wait (m_session, 100);
+    if (result)
+        assert (0);
+        
     while (true) {
         msg = amq_client_session_basic_returned (m_session);
         if (!msg)
             break;
-        Fire_MessageReturned ();
+        Fire_MessageReturned (read_content (msg));
         amq_content_basic_destroy (&msg);
     }
     while (true) {
         msg = amq_client_session_basic_arrived (m_session);
         if (!msg)
             break;
-        Fire_MessageArrived ();
+        Fire_MessageArrived (read_content (msg));
         amq_content_basic_destroy (&msg);
     }
     
@@ -306,11 +356,11 @@
 
         <sink id = "1" interface = "_IAMQConnectionEvents">
             <event name="MessageArrived">
-    Fire_MessageArrived ();
+    Fire_MessageArrived (content);
     return S_OK;
             </event>
             <event name="MessageReturned">
-    Fire_MessageReturned ();
+    Fire_MessageReturned (content);
     return S_OK;
             </event>
         </sink>  
