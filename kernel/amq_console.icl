@@ -118,7 +118,7 @@ $(selftype)
     </action>
 </method>
 
-<method name = "publish" template = "async function" async = "1">
+<method name = "accept" template = "async function" async = "1">
     <doc>
     Accepts an AMQ Console message, which must be formatted in CML according
     to the AMQ Console specifications.
@@ -133,7 +133,7 @@ $(selftype)
     <action>
     //
     DESCR
-        descr;
+        descr;                          //  XML string as descriptor
     ipr_bucket_t
         *bucket = NULL;                 //  Message comes here
     ipr_xml_t
@@ -514,24 +514,34 @@ s_reply_xml (amq_content_basic_t *request, ipr_xml_t *xml_item)
 static void
 s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
 {
+    amq_client_method_t
+        *method;                        //  Basic.Publish method
     amq_content_basic_t
-        *reply;                         //  Reply content
+        *content;                       //  Reply content
     amq_exchange_t
-        *exchange;                      //  Reply to amq.direct
+        *exchange;                      //  We send the reply to amq.direct
 
     icl_console_print ("I: replying to %s", request->reply_to);
     exchange = amq_exchange_search (amq_vhost->exchange_table, "amq.direct");
     assert (exchange);
 
-    reply = amq_content_basic_new ();
-    amq_content_basic_set_message_id   (reply, request->message_id);
-    amq_content_basic_set_content_type (reply, "text/xml");
-    amq_content_basic_record_body      (reply, bucket);
-    amq_content_basic_set_routing_key  (reply, "amq.direct", request->reply_to, 0);
+    //  Create a content with our desired reply data
+    content = amq_content_basic_new ();
+    amq_content_basic_set_message_id   (content, request->message_id);
+    amq_content_basic_set_content_type (content, "text/xml");
+    amq_content_basic_record_body      (content, bucket);
+    amq_content_basic_set_routing_key  (content, "amq.direct", request->reply_to, 0);
 
-    amq_exchange_publish (exchange, NULL, AMQ_SERVER_BASIC, reply, FALSE, FALSE);
+    //  Create a Basic.Publish method to carry the content
+    method = amq_client_method_new_basic_publish (
+        0, "amq.direct", request->reply_to, FALSE, FALSE);
+    method->content = amq_content_basic_possess (content);
+
+    //  Publish the message
+    amq_exchange_publish (exchange, NULL, method);
+    amq_client_method_destroy (&method);
+
     amq_exchange_unlink (&exchange);
-    amq_content_basic_destroy (&reply);
 }
 </private>
 
