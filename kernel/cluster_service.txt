@@ -103,52 +103,22 @@ publish message
     - publish to exchange/binding as normal
     - binding will publish to queues and to remote peers
 
-    publish to queue:
-        - if queue is private or !cluster
-            - accept message onto queue
+    binding to queue:
+        - if queue shared & cluster enabled & node is not root
+            - if message came from application
+                - push message to root node
+            - else
+                - discard message
         - else
-            - if we're root
-                - accept message onto queue
-            - 
+            - accept message
 
-        - if queue is shared
-            - if cluster enabled
-            - if we're not root
+    binding to peer:
+        - if message came from application
+            - push message to all bound peers
+        - if message came from secondary peer & node is root
+            - push message to all bound secondary peers
+            - except where peer->spid == connection->client_spid
 
-                - push message to root peer
-        
-
-    publish to binding:
-
-    
-    if (amq_cluster->enabled && !self->exclusive && !amq_cluster->root) {
-        //  Pass message to shared queue on root server unless message
-        //  already came to us from another cluster peer.
-        if (channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
-            amq_cluster_publish (amq_cluster, amq_cluster->root_peer, amq_vhost, method);
-
-    if node is root:
-        - publish to local private queues
-        - publish to local shared queues
-        - if direct from application
-            - publish to all peers on binding list
-            - will reach entire cluster immediately
-        - if from secondary cluster node
-            - resend to all secondary nodes except originator
-            
-    if node is backup:
-        - publish to local private queues
-        - publish to shared queues via root server
-        - if direct from application
-            - publish to all peers on binding list
-            - will reach entire cluster immediately
-
-    if node is secondary:
-        - publish to local private queues
-        - publish to shared queues via root server
-        - if direct from application
-            - publish to all peers on binding list
-            - will reach primary segment (incl. root)
 
 
 consumers
