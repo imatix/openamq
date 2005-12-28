@@ -656,13 +656,6 @@ function generate_object
 >// $(object.name:).cpp : Implementation of C$(object.name:)
 >
 >#include "stdafx.h"
-        for class.include where location = "cpp"
-            if "$(include.local:)" = "yes"
->#include "$(include.name:)"
-            else
->#include <$(include.name:)>
-            endif
-        endfor
 >#include "$(class.name:).h"
 >#include "$(object.name:).h"
         for object.include where location = "cpp"
@@ -1010,37 +1003,54 @@ function generate_stdafx
 
     output "stdafx.h"
     echo "Create file stdafx.h"
+>
+>#if !defined(AFX_STDAFX_H_$(CLASS.NAME)_INCLUDED_)
+>#define AFX_STDAFX_H_$(CLASS.NAME)_INCLUDED_
+>
+>#if _MSC_VER > 1000
 >#pragma once
+>#endif
+>
 >#ifndef STRICT
 >#define STRICT
 >#endif
->#ifndef WINVER
->#define WINVER 0x0400
->#endif
 >#ifndef _WIN32_WINNT
 >#define _WIN32_WINNT 0x0400
->#endif						
->#ifndef _WIN32_WINDOWS
->#define _WIN32_WINDOWS 0x0410
->#endif
->#ifndef _WIN32_IE
->#define _WIN32_IE 0x0400
 >#endif
 >#define _ATL_APARTMENT_THREADED
->#define _ATL_NO_AUTOMATIC_NAMESPACE
->#define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS
->#define _ATL_ALL_WARNINGS
->#include "base.h"
+>
+    for class.include where location = "h"
+        if "$(include.local:)" = "yes"
+>#include "$(include.name:)"
+        else
+>#include <$(include.name:)>
+        endif
+    endfor
+>
 >#include <atlbase.h>
+>
+>extern CComModule _Module;
 >#include <atlcom.h>
->#include <atlwin.h>
->#include <atltypes.h>
->#include <atlctl.h>
->#include <atlhost.h>
->using namespace ATL;
+>
+>#endif
     output "stdafx.cpp"
     echo "Create file stdafx.cpp"
+>
 >#include "stdafx.h"
+    for class.include where location = "cpp"
+        if "$(include.local:)" = "yes"
+>#include "$(include.name:)"
+        else
+>#include <$(include.name:)>
+        endif
+    endfor
+>
+>#ifdef _ATL_STATIC_REGISTRY
+>#include <statreg.h>
+>#include <statreg.cpp>
+>#endif
+>
+>#include <atlimpl.cpp>
 endfunction
 
 ------------------------------------------------------------------------
@@ -1126,14 +1136,6 @@ function generate_common
 
 >#ifndef __COMMON_H__
 >#define __COMMON_H__
->
-    for class.include where location = "h"
-        if "$(include.local:)" = "yes"
->#include "$(include.name:)"
-        else
->#include <$(include.name:)>
-        endif
-    endfor
 >
 for class.custom where location = "h"
 >$(custom.:)
