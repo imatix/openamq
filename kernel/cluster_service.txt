@@ -1,0 +1,266 @@
+primary partition
+    - fully interconnected
+    - each server is client of each other server
+    - servers can be elected to root
+    - servers share primary config data
+    OK
+
+secondary partition
+    - fully connected to primary partition
+    - each server is client of each primary server
+    - servers cannot be elected to root
+    - servers share primary config data
+    OK
+
+root server is most senior primary server
+    - takes over when has unanimous vote of active primary servers
+    - and active voters are >50% of known primary servers
+    - secondary servers do not vote (may change)
+    OK
+
+voting procedure
+    - each server does its own election
+    - based on own SPID and SPIDs of all known peers
+        - we expect same election results across all cluster
+    OK
+    
+for best results
+    - use 3 or more primary servers
+    - all servers have identical cluster configuration
+    OK
+
+inbound cluster connection
+    - clients logged in as cluster/cluster
+    - provide callback and spid at connection time
+        - amq_cluster then adds to peer list if not already known
+    - may create multiple peer links back to same server
+        - duplicates are removed when peer becomes active
+        - no active duplicates in peer list
+    OK
+
+each cluster controller knows which peer is root
+    - when server decides to become root it announces the fact
+    - Cluster.Root method to all peers 
+    - new peer gets root information via state replication
+    OK
+
+method wrapping
+    - server method is wrapped as binary bucket
+    - placed into cluster-class content
+    - primary-> all
+    - secondard-> root, (root becomes originator), root-> all
+    OK
+    
+state replication
+    - key AMQP methods are replicated to all servers
+        - from secondary to root, thence to all nodes
+        - from primary to all nodes
+    - all such methods are "stable"
+    - all primary servers hold list of state-changing methods
+    - when new server connects to root
+        - receives Cluster.Root message
+        - receives full state
+        - excluding application messages
+    OK
+
+exchange management
+    - exchanges are held globally
+        - exchange.declare, exchange.delete replicated cluster-wide
+        - stateful, replayed onto new servers
+    - no guarantee of consistency if application is inconsistent
+    OK
+    
+queue management
+    - each server holds all global queues plus own private queues
+    - shared queues (exclusive = 0) are held globally
+        - queue.declare, queue.delete replicated cluster-wide
+        - stateful, replayed onto new servers
+    - no guarantee of consistency if application is inconsistent
+        - i.e. queue declared differently on different servers
+    - queue.purges are replicated iff queue is shared
+        - not stateful
+    - shared queues are owned by user 0
+        - cannot be accessed through exclusive consumer
+            -> consider removing exclusive consumer function
+    OK
+
+queue bindings
+    - queue.binds are replicated if queue is shared
+        - stateful, replayed onto new servers
+        - shared queues are bound to all exchanges on all nodes
+        OK
+    - queue.binds are meta-replicated if queue is private
+        - cluster.bind 
+        - exchange name is same on both machines
+        - stateful, replayed onto new servers
+    OK
+
+publish message
+    - set Cluster-Id property to incoming message
+        - [R/B/S]/spid/connection-id/channel_nbr
+        - for returning messages to original producer
+        - for pushing messages through cluster
+    - publish to exchange/binding as normal
+    - binding will publish to queues and to remote peers
+
+    publish to queue:
+        - if queue is private or !cluster
+            - accept message onto queue
+        - else
+            - if we're root
+                - accept message onto queue
+            - 
+
+        - if queue is shared
+            - if cluster enabled
+            - if we're not root
+
+                - push message to root peer
+        
+
+    publish to binding:
+
+    
+    if (amq_cluster->enabled && !self->exclusive && !amq_cluster->root) {
+        //  Pass message to shared queue on root server unless message
+        //  already came to us from another cluster peer.
+        if (channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
+            amq_cluster_publish (amq_cluster, amq_cluster->root_peer, amq_vhost, method);
+
+    if node is root:
+        - publish to local private queues
+        - publish to local shared queues
+        - if direct from application
+            - publish to all peers on binding list
+            - will reach entire cluster immediately
+        - if from secondary cluster node
+            - resend to all secondary nodes except originator
+            
+    if node is backup:
+        - publish to local private queues
+        - publish to shared queues via root server
+        - if direct from application
+            - publish to all peers on binding list
+            - will reach entire cluster immediately
+
+    if node is secondary:
+        - publish to local private queues
+        - publish to shared queues via root server
+        - if direct from application
+            - publish to all peers on binding list
+            - will reach primary segment (incl. root)
+
+
+consumers
+    - create local consumer on queue
+        - reply to client with consume-ok
+        - if queue shared and we're not root,
+            - 
+    - consumers on private queues are not affected
+    - consumers on shared queues are proxied to root
+        - unless current server is root...
+        - not part of cluster state, just per connection...
+        
+    - when consumer is created on shared queue
+        - send same consume method to all primary servers
+        - expect messages in along proxy connection
+        - incoming consumer tag(s) -> outgoing consumer tag...
+            - per peer...
+
+
+
+    - if returned,
+        - if origin-spid is known
+            - return to peer
+        - else
+            - return to root
+    - on delivery to consumer
+        - remove origin-spid header
+        
+
+    
+    ... pass messages down across remote binds
+    ... register remote consumers
+    ... pass messages across consumers
+    ... fix clients to connect to one of random server
+
+    ... how to return messages if no immediate consumers?
+        - need to add original connection & channel number to message
+        - need to process incoming returns
+
+client connection
+    - if cluster enabled but not ready, wait
+        - not ready = no root server defined yet
+        - hold onto client connection...
+    - if cluster disabled
+        - pause client activity
+        - client application can timeout if bored
+    OK
+    - cluster needs to balance clients over all servers...
+        - reconnect to (random) server
+    - if cluster goes down, all connections should be forced
+    - need to add heartbeating to proxy link to double-check
+        --- sometimes when root goes down, we don't see it...
+
+
+cluster key
+    - some application-specified text
+    - specified by application at connection open time
+    - verified by cluster connection manager
+    - must also match for intra-cluster connections
+
+console issues
+    - replicate configuration across cluster
+    - enable/disable root on specific server
+
+
+Figures
+
+We can measure 'Internal Switching Rate' (ISR) from a faucet into sinks
+(queues that have no consumers, so discard their messages).
+
+With a single broker we can switch into Q queues, giving a ratio of Q,
+and a tentative capacity of Q.10KM/s. When Q is 16 this gives us a
+tentative ISR of 160KM/s, or 4.61TM/wd (per working day of 8 hours).
+
+Per broker, the value of Q can reasonably go up to 256 or higher. The
+XSR will depend on the network capacity of a broker but will always be
+limited to the ISR. AMQ is designed for values of Q as high as 10,000.
+
+With multiple brokers B fanning out from a root broker, we calculate the
+ISR ratio as B.Q. With B = 6, and Q = 16, we have a tentative ISR of
+960KM/s, or 27.65TM/wd.
+
+With larger values for Q, we get extremely high ISRs and the cluster
+efficiency approaches 100%. However these ISR measurements do not
+translate into effective XSRs due to impossibiity of shifting that
+amount of data across broker network links.
+
+Maximum practical value for Q is 12, after which the XSR cannot keep up
+with ISR, and this assumes 1.0Gb of bandwidth per broker.
+
+Higher values of Q are feasible if message selectors are used to prune
+messages arriving in sinks.
+
+Assuming a maximum Q of 12, we get higher XSRs by increasing B and the
+number of cluster peers. The cluster size will be 1 + B, and the limit
+of B is identical to the limit of Q, namely 12. The maximum XSR in this
+case (B = 12, Q = 12) is 1.44 MM/s and requires a cluster of 13 nodes.
+
+Assuming a less efficient network between brokers and external clients,
+with 30% of GB capacity, the maximum value for Q decreases to 4 and the
+XSR correspondingly (480 KM/s). If the internal cluster network is also
+less efficient, we arrive at B = Q = 4.
+
+A reasonable configuration for testing cluster ISR is:
+
+ - B = 7, Q = 12, cluster size = 8 plus one external faucet.
+
+A reasonable configuration for testing cluster XSR is:
+
+ - B = 3, Q = 4, cluster size = 4 plus one external faucet and
+   12 external clients.
+
+Note that the XSR/ISR estimates are based on a message size of 1000 bytes
+and a broker capacity of 10 KM/s.  More realistic figures would be
+message size of 250 bytes and capacity of 25 KM/s.
