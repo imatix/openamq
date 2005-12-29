@@ -28,7 +28,7 @@ key):
     //    
     if (class_id == AMQ_SERVER_BASIC) {
         if (streq (routing_key, "amq.console")) {
-            amq_console_publish (amq_console, content);
+            amq_console_accept (amq_console, content);
             delivered = TRUE;
         }
         else
