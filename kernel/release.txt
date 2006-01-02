@@ -10,6 +10,8 @@ Bug Fixes:
     AMQ-211    Need investigation into assertion: ipr_index.c:283 assert
                (index > 0 && index < IPR_INDEX_MAX);  
     BASE2-115  smt_method_queue_wait is returning too early  
+    BASE-32    The trace in 'c' is missing several $'s
+    BASE-29    AMQ COM object doesn't build with MSVC 7.0  
 
 Changes:
 
