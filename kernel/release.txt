@@ -1,6 +1,7 @@
 0.9d1 - 2006/01/02
 ---------------------------------------------------------------------
 Bug Fixes:
+
     AMQ-222    Record server-side disconnects such as time-outs with their
                reason/cause. Configurable time-outs.
     AMQ-244    PAL script leaves allocations after exception handling
