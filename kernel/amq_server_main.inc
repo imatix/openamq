@@ -66,6 +66,7 @@ s_parse_args (int argc, char *argv [])
     s_opt_workdir  = NULL;
     s_opt_trace    = NULL;
     s_opt_monitor  = NULL;
+    icl_console_mode (ICL_CONSOLE_DATE, TRUE);
 
     myname  = argv [0];
     argparm = NULL;                     //  Argument parameter to pick-up
