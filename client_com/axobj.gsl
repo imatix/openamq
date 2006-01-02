@@ -950,7 +950,7 @@ endfor
     for object where creatable = "yes"
 >IDR_$(OBJECT.NAME) REGISTRY DISCARDABLE "$(object.name:).rgs"
     endfor
->1 TYPELIB "AMQ.tlb"
+>1 TYPELIB "$(class.name:).tlb"
 >
 >#endif
     close
@@ -1155,10 +1155,10 @@ function generate_def
 >LIBRARY      "$(class.name:).DLL"
 >
 >EXPORTS
->    DllCanUnloadNow         PRIVATE
->    DllGetClassObject       PRIVATE
->    DllRegisterServer       PRIVATE
->    DllUnregisterServer     PRIVATE
+>	DllCanUnloadNow         @1  PRIVATE
+>	DllGetClassObject       @2  PRIVATE
+>	DllRegisterServer       @3  PRIVATE
+>	DllUnregisterServer     @4  PRIVATE
 
     output "$(class.name:)ps.def"
     echo "Create file $(class.name:)ps.def"
@@ -1168,11 +1168,11 @@ function generate_def
 >DESCRIPTION  'Proxy/Stub DLL'
 >
 >EXPORTS
->    DllGetClassObject       @1  PRIVATE
->    DllCanUnloadNow         @2  PRIVATE
->    GetProxyDllInfo         @3  PRIVATE
->    DllRegisterServer       @4  PRIVATE
->    DllUnregisterServer     @5  PRIVATE
+>	DllGetClassObject       @1  PRIVATE
+>	DllCanUnloadNow         @2  PRIVATE
+>	GetProxyDllInfo         @3  PRIVATE
+>	DllRegisterServer       @4  PRIVATE
+>	DllUnregisterServer     @5  PRIVATE
 endfunction
 
 .-----------------------------------------------------------------------

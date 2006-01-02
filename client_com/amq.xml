@@ -53,9 +53,9 @@
     </interface>
     
     <interface
-        name = "_IAMQConnectionEvents"
+        name = "_IAMQEvents"
         source = "yes"
-        iid = "4C8A1B9F-43C6-4bfb-8327-14C57DDAB22A">
+        iid = "EFD60ECE-5B91-477e-A29B-639B65A29FC7">
 
         <method name = "MessageArrived">
             <argument type = "BSTR" name = "content"/>
@@ -86,7 +86,7 @@
         threading_model = "Apartment"
         version = "1">
         
-        <fires interface = "_IAMQConnectionEvents" />
+        <fires interface = "_IAMQEvents" />
 
         <context>
             <field name = "connection"  type = "amq_client_connection_t*" />
@@ -94,6 +94,36 @@
         </context>
 
         <custom location = "cpp">
+	HRESULT create_error (const wchar_t *description)
+	{
+	    HRESULT
+		    hr;
+		CComPtr &lt;ICreateErrorInfo>
+		    info;
+		CComPtr &lt;IErrorInfo>
+		    error_info;
+	    
+		hr = ::CreateErrorInfo (&info);
+		if (!SUCCEEDED (hr))
+		    return hr;
+		hr = info->SetGUID (__uuidof (IAMQConnection));
+		if (!SUCCEEDED (hr))
+		    return hr;
+		hr = info->SetSource (L"AMQ");
+		if (!SUCCEEDED (hr))
+		    return hr;
+		hr = info->SetDescription ((wchar_t*) description);
+		if (!SUCCEEDED (hr))
+		    return hr;
+        hr = info->QueryInterface (__uuidof (IErrorInfo), (void**) &error_info);
+		if (!SUCCEEDED (hr))
+		    return hr;		
+		hr = ::SetErrorInfo (0, error_info);
+		if (!SUCCEEDED (hr))
+		    return hr;
+		return E_FAIL;
+	}
+
     BSTR read_content (amq_content_basic_t *content)
     {
         asl_reader_t
@@ -110,13 +140,15 @@
         amq_content_basic_set_reader (content, &reader, 4096);
         while ((buf = amq_content_basic_replay_body (content, &reader))) {
             body = (byte*) icl_mem_realloc (body, cur_size + buf->cur_size);
-            assert (body);
+			if (!body)
+                return NULL;
             memcpy (body + cur_size, buf->data, buf->cur_size);
             cur_size += buf->cur_size;
         }   
         ipr_bucket_destroy (&buf);
         result = ::SysAllocStringByteLen ((LPCSTR) body, cur_size);
-        assert (result);
+        if (!result)
+		    return NULL;
         icl_mem_free (body);
         return result;
     }
@@ -160,13 +192,16 @@
         amq_client_connection_destroy (&m_connection);
     
     auth_data = amq_client_connection_auth_plain (my_login, my_password);
-    assert (auth_data);
+    if (!auth_data)
+	    return create_error (L"Cannot create authentication data");
     m_connection = amq_client_connection_new (my_server, my_vhost, auth_data,
         0, timeout);
-    assert (m_connection);
+    if (!m_connection)
+		return create_error (L"Cannot open connection to AMQ server");
     icl_longstr_destroy (&auth_data);
     m_session = amq_client_session_new (m_connection);
-    assert (m_session);
+    if (!m_session)
+		return create_error (L"Cannot open AMQ session");
     
     return S_OK;
             </method>
@@ -183,10 +218,10 @@
         
     result = amq_client_session_queue_declare (m_session, 0, my_name, 0, 1, 0, 0, NULL);
     if (result)
-        assert (0);
+        return create_error (L"Cannot decllare the queue");
     result = amq_client_session_queue_bind (m_session, 0, my_name, "amq.direct", my_name, NULL);
     if (result)
-        assert (0);
+        return create_error (L"Cannot bind the queue to the amq.direct exchange");
          
     return S_OK;
             </method>    
@@ -206,19 +241,22 @@
     my_routing_key = OLE2A (routing_key);
 
     msg = amq_content_basic_new ();
-    assert (msg);
+    if (!msg)
+		return create_error (L"Cannot create content object");
     body = icl_mem_alloc (::SysStringByteLen (content));
-    assert (body);
+	if (!body)
+        return create_error (L"Not enough memory for the content");
+	memcpy (body, (byte*) content, ::SysStringByteLen (content));
     result = amq_content_basic_set_body (msg, body,
         ::SysStringByteLen (content), icl_mem_free);
-    if (result)
-        assert (0);
+	if (result)
+        return create_error (L"Setting body of the content failed");
     
     result = amq_client_session_basic_publish (m_session,
         msg, 0, "amq.direct", my_routing_key, (Bool) mandatory,
         (Bool) immediate);
     if (result)
-        assert (0);
+        return create_error (L"Cannot publish message");
     amq_content_basic_destroy (&msg);
 
     return S_OK;
@@ -237,7 +275,7 @@
         (dbyte) prefetch_size, (dbyte) prefetch_count,  no_local, auto_ack,
         exclusive);
     if (result)
-        assert (0);
+        return create_error (L"Cannot consume from the queue");
         
     if(pVal)
         *pVal = m_session->consumer_tag;
@@ -251,7 +289,7 @@
         
     result = amq_client_session_basic_cancel (m_session, (dbyte) consumer_tag);
     if (result)
-        assert (0);
+        return create_error (L"Cannot cancel consuming from the queue");
         
     return S_OK;
             </method>
@@ -264,7 +302,7 @@
 
     result = amq_client_session_wait (m_session, 100);
     if (result)
-        assert (0);
+        return create_error (L"Waiting for message failed");
         
     while (true) {
         msg = amq_client_session_basic_returned (m_session);
@@ -290,13 +328,13 @@
 
     <object
         name = "AMQControl"
-        clsid = "10BB5D68-4877-41cc-BC7B-289788AB4228"
+        clsid = "44CC0A42-58E2-4ba8-8DC5-9488E911911C"
         control = "yes"
         creatable = "yes"
         threading_model = "Apartment"
         version = "1">
 
-        <fires interface = "_IAMQConnectionEvents" />
+        <fires interface = "_IAMQEvents" />
 
         <context>
             <field name = "period" type = "long" />
@@ -355,7 +393,7 @@
     return 0;
         </handler>  
 
-        <sink id = "1" interface = "_IAMQConnectionEvents">
+        <sink id = "1" interface = "_IAMQEvents">
             <event name="MessageArrived">
     Fire_MessageArrived (content);
     return S_OK;
