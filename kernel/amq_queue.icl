@@ -60,14 +60,14 @@ class.  This is a lock-free asynchronous class.
         *vhost;                         //  Parent virtual host
     icl_shortstr_t
         name;                           //  Queue name
-    qbyte
+    icl_shortstr_t
         owner_id;                       //  Owner connection
     Bool
         enabled,                        //  Queue is enabled?
         durable,                        //  Is queue durable?
         exclusive,                      //  Is queue exclusive?
         auto_delete,                    //  Auto-delete unused queue?
-        locked,                         //  Queue for exclusive consumer
+        locked,                         //  Queue for exclusive consumer?
         dirty;                          //  Queue has to be dispatched?
     int
         consumers;                      //  Number of consumers
@@ -77,7 +77,7 @@ class.  This is a lock-free asynchronous class.
 
 <method name = "new">
     <argument name = "vhost"       type = "amq_vhost_t *">Parent vhost</argument>
-    <argument name = "owner id"    type = "qbyte">Owner context id</argument>
+    <argument name = "owner id"    type = "char *">Owner context id</argument>
     <argument name = "name"        type = "char *">Queue name</argument>
     <argument name = "durable"     type = "Bool">Is queue durable?</argument>
     <argument name = "exclusive"   type = "Bool">Is queue exclusive?</argument>
@@ -87,13 +87,13 @@ class.  This is a lock-free asynchronous class.
     <dismiss argument = "key" value = "name" />
     //
     self->vhost       = vhost;
-    self->owner_id    = owner_id;
     self->enabled     = TRUE;
     self->durable     = durable;
     self->exclusive   = exclusive;
     self->auto_delete = auto_delete;
     self->queue_basic = amq_queue_basic_new (self);
     icl_shortstr_cpy (self->name, name);
+    icl_shortstr_cpy (self->owner_id, owner_id);
 
     amq_queue_list_queue (self->vhost->queue_list, self);
     if (amq_server_config_trace_queue (amq_server_config))
@@ -111,28 +111,44 @@ class.  This is a lock-free asynchronous class.
 
 <method name = "publish" template = "async function" async = "1">
     <doc>
-    Publish message content onto queue.
+    Publish message content onto queue. Handles cluster distribution
+    of messages to shared queues: if cluster is enabled and queue is
+    shared (!exclusive), message is queued only at root server. If
+    we are not a root server, we forward the message to the root.
     </doc>
-    <argument name = "channel"   type = "amq_server_channel_t *">Channel for reply</argument>
-    <argument name = "class id"  type = "int">The content class</argument>
-    <argument name = "content"   type = "void *">Message content</argument>
-    <argument name = "immediate" type = "Bool">Warn if no consumers?</argument>
+    <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
+    <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
     //
     <possess>
-    if (class_id == AMQ_SERVER_BASIC)
-        amq_content_basic_possess (content);
+    amq_server_method_possess (method);
     </possess>
     <release>
-    if (class_id == AMQ_SERVER_BASIC)
-        amq_content_basic_destroy ((amq_content_basic_t **) &content);
+    amq_server_method_destroy (&method);
     </release>
+    //
     <action>
-    if (self->enabled) {
-        if (class_id == AMQ_SERVER_BASIC)
-            amq_queue_basic_publish (self->queue_basic, channel, content, immediate);
+    if (amq_cluster->enabled && !self->exclusive && !amq_cluster->root) {
+        //  Pass message to shared queue on root server unless message
+        //  already came to us from another cluster peer.
+        if (channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
+            amq_cluster_peer_push (
+                amq_cluster,
+                amq_cluster->root_peer,
+                amq_vhost,
+                method,
+                AMQ_CLUSTER_PUSH_ALL);
     }
     else
-        amq_server_channel_close (channel, ASL_ACCESS_REFUSED, "Queue is disabled");
+    if (self->enabled) {
+        if (method->class_id == AMQ_SERVER_BASIC)
+            amq_queue_basic_publish (
+                self->queue_basic,
+                channel,
+                method->content,
+                method->payload.basic_publish.immediate);
+    }
+    else
+        amq_server_channel_error (channel, ASL_ACCESS_REFUSED, "Queue is disabled");
     </action>
 </method>
 
@@ -157,24 +173,32 @@ class.  This is a lock-free asynchronous class.
     </doc>
     <argument name = "consumer" type = "amq_consumer_t *">Consumer reference</argument>
     <argument name = "active"   type = "Bool">Create active consumer?</argument>
+    <argument name = "method"   type = "amq_server_method_t *">Consume method</argument>
     //
     <possess>
     amq_consumer_link (consumer);
+    amq_server_method_possess (method);
     </possess>
     <release>
     amq_consumer_unlink (&consumer);
+    amq_server_method_destroy (&method);
     </release>
     <action>
     //
     char
         *error = NULL;                  //  If not null, consumer is invalid
+    amq_server_basic_consume_t
+        *basic_consume;
+    Bool
+        clustered_queue = amq_cluster->enabled && !self->exclusive;
 
     //  Validate consumer
-    if (self->exclusive && self->owner_id != consumer->channel->connection->context_id)
+    if (self->exclusive
+    &&  strneq (self->owner_id, consumer->channel->connection->identifier))
         error = "Queue is exclusive to another connection";
     else
     if (consumer->exclusive) {
-        if (self->consumers == 0)
+        if (self->consumers == 0 && !clustered_queue)
             self->locked = TRUE;        //  Grant exclusive access
         else
             error = "Exclusive access to queue not possible";
@@ -184,7 +208,7 @@ class.  This is a lock-free asynchronous class.
         error = "Queue is being used exclusively by another consumer";
 
     if (error) {
-        amq_server_channel_close (consumer->channel, ASL_ACCESS_REFUSED, error);
+        amq_server_channel_error  (consumer->channel, ASL_ACCESS_REFUSED, error);
         amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE);
     }
     else {
@@ -194,7 +218,17 @@ class.  This is a lock-free asynchronous class.
                 amq_server_agent_basic_consume_ok (
                     consumer->channel->connection->thread,
                     (dbyte) consumer->channel->key,
-                    consumer->tag);
+                    consumer->tag,
+                    consumer->client_key);
+
+            //  Broadcast consumer to cluster
+            if (clustered_queue
+            &&  consumer->channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER) {
+                //  Set client_key to tag so we can route delivered messages
+                basic_consume = &method->payload.basic_consume;
+                icl_shortstr_fmt (basic_consume->client_key, "%ld", consumer->tag);
+                amq_cluster_forward (amq_cluster, amq_vhost, method, TRUE, FALSE);
+            }
         }
         self->consumers++;
     }
@@ -216,7 +250,9 @@ class.  This is a lock-free asynchronous class.
         if (notify && amq_server_channel_alive (consumer->channel))
             amq_server_agent_basic_cancel_ok (
                 consumer->channel->connection->thread,
-                (dbyte) consumer->channel->key);
+                (dbyte) consumer->channel->key,
+                consumer->tag,
+                consumer->client_key);
         amq_queue_basic_cancel (self->queue_basic, consumer);
     }
     self->locked = FALSE;

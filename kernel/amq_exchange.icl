@@ -68,10 +68,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         (*publish) (
             void                 *self,
             amq_server_channel_t *channel,
-            int                   type_id,
-            void                 *content,
-            Bool                  mandatory,
-            Bool                  immediate);
+            amq_server_method_t  *method);
     int
         (*compile) (
             void                 *self,
@@ -253,13 +250,97 @@ for each type of exchange. This is a lock-free asynchronous class.
     </release>
     //
     <action>
-    amq_binding_t
-        *binding;                       //  We examine each binding
-    ipr_looseref_t
-        *looseref;                      //  We check the queues per binding
-
     if (amq_server_config_trace_route (amq_server_config))
         icl_console_print ("X: bind     queue=%s onto=%s", queue->key, self->name);
+
+    s_bind_object (self, channel, queue, NULL, routing_key, arguments);
+    </action>
+</method>
+
+<method name = "bind peer" template = "async function" async = "1">
+    <doc>
+    Bind a cluster peer to the exchange.  Works identically as for
+    bind queue.
+    </doc>
+    <argument name = "peer"        type = "amq_peer_t *">The peer to bind</argument>
+    <argument name = "routing key" type = "char *">Bind to routing key</argument>
+    <argument name = "arguments"   type = "icl_longstr_t *">Bind arguments</argument>
+    //
+    <possess>
+    peer = amq_peer_link (peer);
+    arguments = icl_longstr_dup (arguments);
+    </possess>
+    <release>
+    amq_peer_unlink (&peer);
+    icl_longstr_destroy (&arguments);
+    </release>
+    //
+    <action>
+    if (amq_server_config_trace_route (amq_server_config))
+        icl_console_print ("X: bind     peer=%s onto=%s", peer->spid, self->name);
+
+    s_bind_object (self, NULL, NULL, peer, routing_key, arguments);
+    </action>
+</method>
+
+<method name = "publish" template = "async function" async = "1">
+    <doc>
+    Publishes the message to the exchange.  The actual routing mechanism
+    is defined in the exchange implementations.
+    </doc>
+    <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
+    <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
+    //
+    <possess>
+    amq_server_method_possess (method);
+    </possess>
+    <release>
+    amq_server_method_destroy (&method);
+    </release>
+    //
+    <action>
+    self->publish (self->object, channel, method);
+    ipr_meter_count (amq_broker->xmeter);
+    ipr_meter_count (amq_broker->imeter);
+    </action>
+</method>
+
+<private name = "async header">
+//  Cluster ready or not
+static void
+    s_bind_object (
+        amq_exchange_t *self,
+        amq_server_channel_t *channel,
+        amq_queue_t     *queue,
+        amq_peer_t      *peer,
+        char            *routing_key,
+        icl_longstr_t   *arguments);
+</private>
+
+<private name = "async footer">
+/*
+    Bind a queue or peer to the exchange.
+    The logic is the same for all exchange types - we compare all
+    existing bindings and if we find one that matches our arguments
+    (has identical arguments) we attach the queue to the binding.
+    Otherwise we create a new binding and compile it into the exchange,
+    this operation being exchange type-specific.
+ */
+static void
+s_bind_object (
+    amq_exchange_t *self,
+    amq_server_channel_t *channel,
+    amq_queue_t     *queue,
+    amq_peer_t      *peer,
+    char            *routing_key,
+    icl_longstr_t   *arguments)
+{
+    amq_binding_t
+        *binding;                       //  We examine each binding
+
+    //  Treat empty arguments as null to simplify comparisons
+    if (arguments && arguments->cur_size == 0)
+        arguments = NULL;
 
     //  Check existing bindings to see if we have one that matches
     binding = amq_binding_list_first (self->binding_list);
@@ -280,52 +361,20 @@ for each type of exchange. This is a lock-free asynchronous class.
                 amq_binding_destroy (&binding);
         }
         else
-            amq_server_channel_close (
+            amq_server_channel_error (
                 channel, ASL_RESOURCE_ERROR, "Cannot make new binding");
     }
     if (binding) {
-        //  Add queue to binding if it's not already there
-        looseref = ipr_looseref_list_first (binding->queue_list);
-        while (looseref && looseref->object != queue)
-            looseref = ipr_looseref_list_next (&looseref);
-
-        if (looseref)                   //  Ignore duplicates
-            ipr_looseref_unlink (&looseref);
-        else
+        if (queue)
             amq_binding_bind_queue (binding, queue);
+        else
+        if (peer)
+            amq_binding_bind_peer (binding, peer);
 
         amq_binding_unlink (&binding);
-        if (amq_server_channel_alive (channel))
-            amq_server_agent_queue_bind_ok (
-                channel->connection->thread, (dbyte) channel->key);
     }
-    </action>
-</method>
-
-<method name = "publish" template = "async function" async = "1">
-    <doc>
-    Publishes the message to the exchange.  The actual routing mechanism
-    is defined in the exchange implementations.
-    </doc>
-    <argument name = "channel"   type = "amq_server_channel_t *">Channel for reply</argument>
-    <argument name = "class id"  type = "int">The content class</argument>
-    <argument name = "content"   type = "void *">The message content</argument>
-    <argument name = "mandatory" type = "Bool">Warn if unroutable</argument>
-    <argument name = "immediate" type = "Bool">Warn if no consumers</argument>
-    //
-    <possess>
-    if (class_id == AMQ_SERVER_BASIC)
-        amq_content_basic_possess (content);
-    </possess>
-    <release>
-    if (class_id == AMQ_SERVER_BASIC)
-        amq_content_basic_destroy ((amq_content_basic_t **) &content);
-    </release>
-    <action>
-    self->publish (self->object, channel, class_id, content, mandatory, immediate);
-    amq_broker_messages++;
-    </action>
-</method>
+}
+</private>
 
 <method name = "selftest" />
 

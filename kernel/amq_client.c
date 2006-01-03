@@ -233,7 +233,7 @@ main (int argc, char *argv [])
     }
     auth_data  = amq_client_connection_auth_plain ("guest", "guest");
     connection = amq_client_connection_new (
-        opt_server, "/", auth_data, atoi (opt_trace), 30000);
+        opt_server, NULL, "/", auth_data, atoi (opt_trace), 30000);
     icl_longstr_destroy (&auth_data);
 
     if (connection)
@@ -269,6 +269,7 @@ main (int argc, char *argv [])
         amq_client_session_basic_consume (session,
             ticket,                     //  Access ticket granted by server
             opt_queue,                  //  Queue name
+            NULL,                       //  Client key
             0,                          //  Prefetch size
             0,                          //  Prefetch count
             FALSE,                      //  No local messages

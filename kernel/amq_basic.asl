@@ -94,6 +94,9 @@
 <field name = "app id" type = "shortstr">
     The creating application id
 </field>
+<field name = "cluster id" type = "shortstr">
+    Intra-cluster routing identifier
+</field>
 
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -126,6 +129,16 @@
       Specifies the name of the queue to consume from.
     </doc>
     <assert check = "notnull" />
+  </field>
+
+  <field name = "client key" type = "shortstr">
+    client consumer key
+    <doc>
+    This string, which can be empty, holds an arbitrary client key for
+    the consumer. This key string is returned with all methods that
+    refer to the consumer.  This can be used by clients that handle many
+    consumers on a single channel.
+    </doc>
   </field>
 
   <field name = "prefetch size" type = "long">
@@ -179,7 +192,7 @@
     <doc name = "rule" test = "amq_basic_02">
       If the server cannot grant exclusive access to the queue when asked,
       - because there are other consumers active - it MUST raise a channel
-      exception with return code 405 (resource locked).
+      exception with return code 403 (access refused).
     </doc>
   </field>
 </method>
@@ -193,6 +206,13 @@
   <chassis name = "client" implement = "MUST" />
 
   <field name = "consumer tag" domain = "consumer tag" />
+
+  <field name = "client key" type = "shortstr">
+    client consumer key
+    <doc>
+    Holds the value of the client key used in the Consume method.
+    </doc>
+  </field>
 </method>
 
 
@@ -219,12 +239,21 @@
     This method confirms that the cancellation was completed.
   </doc>
   <chassis name = "client" implement = "MUST" />
+
+  <field name = "consumer tag" domain = "consumer tag" />
+
+  <field name = "client key" type = "shortstr">
+    client consumer key
+    <doc>
+    Holds the value of the client key used in the Consume method.
+    </doc>
+  </field>
 </method>
 
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "publish" synchronous = "0" content = "1">
+<method name = "publish" content = "1">
   publish a message
   <doc>
     This method publishes a message to a specific exchange. The message
@@ -351,6 +380,13 @@
   <chassis name = "client" implement = "MUST" />
 
   <field name = "consumer tag" domain = "consumer tag" />
+
+  <field name = "client key" type = "shortstr">
+    client consumer key
+    <doc>
+    Holds the value of the client key used in the Consume method.
+    </doc>
+  </field>
 
   <field name = "delivery tag" domain = "delivery tag" />
 

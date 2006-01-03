@@ -127,7 +127,7 @@ specification.
         binding = self->exchange->binding_index->data [binding_nbr];
         if (amq_server_config_trace_route (amq_server_config))
             icl_console_print ("X: hit      wildcard=%s", binding->routing_key);
-        if (amq_binding_publish (binding, channel, class_id, content, mandatory, immediate))
+        if (amq_binding_publish (binding, channel, method))
             delivered = TRUE;
         binding_nbr = ipr_bits_next (index->bindset, binding_nbr);
     }

@@ -41,7 +41,9 @@ on the routing_key.
         amq_hash_unlink (&hash);
     else {
         rc = 1;
-        amq_server_connection_exception (channel->connection, ASL_INTERNAL_ERROR,
+        amq_server_connection_error (
+            channel? channel->connection: NULL,
+            ASL_INTERNAL_ERROR,
             "Please contact OpenAMQ technical support (DUPBIND)");
     }
 </method>
@@ -60,7 +62,7 @@ on the routing_key.
     hash = amq_hash_table_search (self->binding_hash, routing_key);
     if (hash) {
         binding = hash->data;
-        if (amq_binding_publish (binding, channel, class_id, content, mandatory, immediate))
+        if (amq_binding_publish (binding, channel, method))
             delivered = TRUE;
         amq_hash_unlink (&hash);
     }

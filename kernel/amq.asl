@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <protocol
     name     = "amq"
-    comment  = "AMQ protocol 0.9 alpha"
+    comment  = "AMQ protocol 0.9d0"
     script   = "asl_gen"
     target   = "stdc"
     >
@@ -18,10 +18,10 @@
 
 <option name = "protocol_name"     value = "AMQP" />
 <option name = "protocol_port"     value = "7654" />
-<option name = "protocol_class"    value = "1" />
-<option name = "protocol_instance" value = "1" />
+<option name = "protocol_class"    value = "1"  />
+<option name = "protocol_instance" value = "1"  />
 <option name = "protocol_major"    value = "10" />
-<option name = "protocol_minor"    value = "0" />
+<option name = "protocol_minor"    value = "1"  />
 
 <!-- Standard field domains -->
   <domain name = "access ticket" type = "short">

@@ -76,6 +76,9 @@
 <field name = "timestamp" type = "timestamp">
     The message timestamp
 </field>
+<field name = "cluster id" type = "shortstr">
+    Intra-cluster routing identifier
+</field>
 
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -110,6 +113,16 @@
     <assert check = "notnull" />
   </field>
 
+  <field name = "client key" type = "shortstr">
+    client consumer key
+    <doc>
+    This string, which can be empty, holds an arbitrary client key for
+    the consumer. This key string is returned with all methods that
+    refer to the consumer.  This can be used by clients that handle many
+    consumers on a single channel.
+    </doc>
+  </field>
+
   <field name = "prefetch size" type = "long">
     prefetch window in octets
     <doc>
@@ -141,6 +154,7 @@
   </field>
 
   <field name = "no local" domain = "no local" />
+
   <field name = "auto ack" domain = "auto ack" />
 
   <field name = "exclusive" type = "bit">
@@ -167,6 +181,13 @@
   <chassis name = "client" implement = "MUST" />
 
   <field name = "consumer tag" domain = "consumer tag" />
+
+  <field name = "client key" type = "shortstr">
+    client consumer key
+    <doc>
+    Holds the value of the client key used in the Consume method.
+    </doc>
+  </field>
 </method>
 
 
@@ -191,6 +212,15 @@
     This method confirms that the cancellation was completed.
   </doc>
   <chassis name = "client" implement = "MUST" />
+
+  <field name = "consumer tag" domain = "consumer tag" />
+
+  <field name = "client key" type = "shortstr">
+    client consumer key
+    <doc>
+    Holds the value of the client key used in the Consume method.
+    </doc>
+  </field>
 </method>
 
 
@@ -404,7 +434,7 @@
   notify the client of a consumer message
   <doc>
     This method delivers a staged file message to the client, via a
-    consumer.  In the asynchronous message delivery model, the client
+    consumer. In the asynchronous message delivery model, the client
     starts a consumer using the Consume method, then the server
     responds with Deliver methods as and when messages arrive for
     that consumer.
@@ -420,6 +450,13 @@
   <chassis name = "client" implement = "MUST" />
 
   <field name = "consumer tag" domain = "consumer tag" />
+
+  <field name = "client key" type = "shortstr">
+    client consumer key
+    <doc>
+    Holds the value of the client key used in the Consume method.
+    </doc>
+  </field>
 
   <field name = "delivery tag" domain = "delivery tag" />
 

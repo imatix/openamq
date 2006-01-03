@@ -50,47 +50,51 @@ This is an abstract base class for all exchange implementations.
     <doc>
     Routes one message through the exchange.
     </doc>
-    <argument name = "self_v"    type = "void *">The exchange cast as a void *</argument>
-    <argument name = "channel"   type = "amq_server_channel_t *">Channel for reply</argument>
-    <argument name = "class id"  type = "int">The content class</argument>
-    <argument name = "content"   type = "void *">The message content</argument>
-    <argument name = "mandatory" type = "Bool">Warn if unroutable</argument>
-    <argument name = "immediate" type = "Bool">Warn if no consumers</argument>
+    <argument name = "self_v"  type = "void *">The exchange cast as a void *</argument>
+    <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
+    <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
     <declare name = "rc" type = "int" default = "0">Return code</declare>
     <local>
     $(selftype)
         *self = self_v;
+    amq_server_basic_publish_t
+        *basic_method;
+    amq_content_basic_t
+        *basic_content;
     char
         *routing_key = "",
         *message_id = NULL;
     Bool
+        mandatory,                      //  Mandatory option from method
         delivered = FALSE,              //  Set to TRUE if message processed
         returned = FALSE;
     </local>
     //
     <header>
     assert (self);
-    if (class_id == AMQ_SERVER_BASIC) {
-        routing_key = ((amq_content_basic_t *) content)->routing_key;
-        message_id  = ((amq_content_basic_t *) content)->message_id;
+    if (method->class_id == AMQ_SERVER_BASIC) {
+        basic_method  = &method->payload.basic_publish;
+        basic_content = (amq_content_basic_t *) (method->content);
+        mandatory     = basic_method->mandatory;
+        routing_key   = basic_method->routing_key;
+        message_id    = basic_content->message_id;
     }
     else
-        icl_console_print ("E: $(selfname) - bad class_id");
+        icl_console_print ("E: $(selfname) - bad class_id - %d", method->class_id);
     </header>
     <footer>
     if (delivered == FALSE && mandatory) {
-        if (class_id == AMQ_SERVER_BASIC) {
-            if (amq_server_channel_alive (channel)
-            && !((amq_content_basic_t *) content)->returned) {
+        if (method->class_id == AMQ_SERVER_BASIC) {
+            if (amq_server_channel_alive (channel) && !basic_content->returned) {
                 amq_server_agent_basic_return (
                     channel->connection->thread,
                     (dbyte) channel->key,
-                    content,
+                    basic_content,
                     ASL_NOT_DELIVERED,
                     "Message cannot be processed - no route is defined",
-                    ((amq_content_basic_t *) content)->exchange,
-                    ((amq_content_basic_t *) content)->routing_key);
-                ((amq_content_basic_t *) content)->returned = TRUE;
+                    basic_method->exchange,
+                    routing_key);
+                basic_content->returned = TRUE;
                 returned = TRUE;
             }
         }

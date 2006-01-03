@@ -8,13 +8,16 @@
 
 <import class = "amq_binding" />
 <import class = "amq_broker" />
+<import class = "amq_client_method" />
 <import class = "amq_console" />
 <import class = "amq_console_class" />
 <import class = "amq_consumer" />
 <import class = "amq_consumer_basic" />
 <import class = "amq_content_basic" />
+<import class = "amq_content_cluster" />
 <import class = "amq_content_file" />
 <import class = "amq_content_stream" />
+<import class = "amq_cluster" />
 <import class = "amq_exchange" />
 <import class = "amq_exchange_direct" />
 <import class = "amq_exchange_topic" />
@@ -23,6 +26,8 @@
 <import class = "amq_exchange_system" />
 <import class = "amq_hitset" />
 <import class = "amq_index" />
+<import class = "amq_peer" />
+<import class = "amq_proxy_agent" />
 <import class = "amq_queue" />
 <import class = "amq_queue_basic" />
 <import class = "amq_server_channel" />

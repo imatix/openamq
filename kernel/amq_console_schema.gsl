@@ -2,7 +2,7 @@
 #   the amq class definitions, starting with amq_broker.
 
 schema_name    = "openamq.org/kernel"
-schema_version = "0.1"
+schema_version = "0.2"
 
 #   Formatting
 shuffle = 0

@@ -34,6 +34,8 @@ for Basic, File, and Stream content classes.
         *queue;                         //  Parent queue
     dbyte
         tag;                            //  Client reference for queue
+    icl_shortstr_t
+        client_key;                     //  Client key for consumer
     amq_consumer_basic_t
         *consumer_basic;                //  Basic consumer
     qbyte
@@ -47,26 +49,29 @@ for Basic, File, and Stream content classes.
 </context>
 
 <method name = "new">
-    <argument name = "channel"        type = "amq_server_channel_t *">Channel for reply</argument>
-    <argument name = "queue"          type = "amq_queue_t *">Parent queue</argument>
-    <argument name = "class id"       type = "int"   >The content class</argument>
-    <argument name = "prefetch size"  type = "qbyte" >Prefetch size</argument>
-    <argument name = "prefetch count" type = "dbyte" >Prefetch count</argument>
-    <argument name = "no local"       type = "Bool"  >Don't want own messages</argument>
-    <argument name = "auto ack"       type = "Bool"  >Auto acknowledge messages</argument>
-    <argument name = "exclusive"      type = "Bool"  >Exclusive access?</argument>
+    <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
+    <argument name = "queue"   type = "amq_queue_t *">Parent queue</argument>
+    <argument name = "method"  type = "amq_server_method_t *">Consume method</argument>
     //
-    self->channel        = channel;
-    self->queue          = queue;
-    self->class_id       = class_id;
-    self->prefetch_size  = prefetch_size;
-    self->prefetch_count = prefetch_count;
-    self->no_local       = no_local;
-    self->auto_ack       = auto_ack;
-    self->exclusive      = exclusive;
+    <local>
+    amq_server_basic_consume_t
+        *basic_consume;
+    </local>
+    self->channel  = channel;
+    self->queue    = queue;
+    self->class_id = method->class_id;
 
-    if (self->class_id == AMQ_SERVER_BASIC)
+    //  Class-dependent properties
+    if (method->class_id == AMQ_SERVER_BASIC) {
+        basic_consume = &method->payload.basic_consume;
+        self->prefetch_size  = basic_consume->prefetch_size;
+        self->prefetch_count = basic_consume->prefetch_count;
+        self->no_local       = basic_consume->no_local;
+        self->auto_ack       = basic_consume->auto_ack;
+        self->exclusive      = basic_consume->exclusive;
+        icl_shortstr_cpy (self->client_key, basic_consume->client_key);
         self->consumer_basic = amq_consumer_basic_new (self);
+    }
 </method>
 
 <method name = "destroy">

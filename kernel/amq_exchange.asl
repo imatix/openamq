@@ -56,7 +56,6 @@
     exchange exists, verifies that it is of the correct and expected class.
   </doc>
   <doc name = "rule" test = "amq_exchange_23">
-<!-- TODO - new - tim: implemented in pal -->
     The server SHOULD support a minimum of 16 exchanges per virtual host
     and ideally, impose no limit except as defined by available resources.
   </doc>
@@ -77,9 +76,8 @@
   </field>
 
   <field name = "exchange" domain = "exchange name">
-    <assert check = "regexp" value = "^[a-zA-Z0-9-_.]+$" test = "amq_exchange_09" />
+    <assert check = "regexp" value = "^[a-zA-Z0-9-_.]+$" />
     <doc name = "rule" test = "amq_exchange_15">
-<!-- TODO - changed from channel to connection exception -->
       Exchange names starting with "amq." are reserved for predeclared
       and standardised exchanges.  If the client attempts to create an
       exchange starting with "amq.", the server MUST raise a channel
@@ -96,16 +94,14 @@
       or meaningful to attempt to change the type of an existing exchange.
     </doc>
     <doc name = "rule" test = "amq_exchange_16">
-<!-- TODO - changed from channel to connection exception -->
       If the exchange already exists with a different type, the server
       MUST raise a connection exception with a reply code 507 (not allowed).
     </doc>
     <doc name = "rule" test = "amq_exchange_18">
-<!-- TODO - new rule - tim: testcase implemented -->
       If the server does not support the requested exchange type it MUST
       raise a connection exception with a reply code 503 (command invalid).
     </doc>
-    <assert check = "regexp" value = "^[a-zA-Z0-9-_.]+$" test = "amq_exchange_17"/>
+    <assert check = "regexp" value = "^[a-zA-Z0-9-_.]+$" />
   </field>
 
   <field name = "passive" type = "bit">

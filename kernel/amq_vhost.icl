@@ -81,6 +81,8 @@ $(selftype)
         *queue_list;                    //  Queues for dispatching
     amq_exchange_t
         *default_exchange;              //  Default exchange
+    ipr_symbol_table_t
+        *shared_queues;                 //  Cluster shared queues
 </context>
 
 <method name = "new">
@@ -100,9 +102,11 @@ $(selftype)
     self->exchange_list  = amq_exchange_list_new ();
     self->queue_table    = amq_queue_table_new ();
     self->queue_list     = amq_queue_list_new ();
+    self->shared_queues  = ipr_symbol_table_new ();
 
     //  Automatic wiring schemes
     s_exchange_declare (self, "$default$",  AMQ_EXCHANGE_DIRECT,  TRUE);
+    s_exchange_declare (self, "amq.fanout", AMQ_EXCHANGE_FANOUT,  FALSE);
     s_exchange_declare (self, "amq.direct", AMQ_EXCHANGE_DIRECT,  FALSE);
     s_exchange_declare (self, "amq.reply",  AMQ_EXCHANGE_DIRECT,  FALSE);
     s_exchange_declare (self, "amq.topic",  AMQ_EXCHANGE_TOPIC,   FALSE);
@@ -119,6 +123,7 @@ $(selftype)
     amq_exchange_list_destroy  (&self->exchange_list);
     amq_queue_table_destroy    (&self->queue_table);
     amq_queue_list_destroy     (&self->queue_list);
+    ipr_symbol_table_destroy   (&self->shared_queues);
     </action>
 </method>
 

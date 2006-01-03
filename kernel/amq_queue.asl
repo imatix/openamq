@@ -16,7 +16,6 @@
 <doc name = "grammar">
     queue               = C:DECLARE  S:DECLARE-OK
                         / C:BIND     S:BIND-OK
-                        / C:CANCEL   S:CANCEL-OK
                         / C:PURGE    S:PURGE-OK
                         / C:DELETE   S:DELETE-OK
 </doc>
@@ -46,7 +45,6 @@
     to the default exchange, which is an exchange of type 'direct'.
   </doc>
   <doc name = "rule" test = "amq_queue_35">
-<!-- TODO - new - tim: tested in pal -->
     The server SHOULD support a minimum of 256 queues per virtual host
     and ideally, impose no limit except as defined by available resources.
   </doc>
@@ -59,8 +57,8 @@
       of the ticket used.  All further work done with that queue must be
       done with an access ticket for the same realm.
     </doc>
-    <doc name = "rule">
-      The client MUST provide a valid access ticket giving "active" access
+    <doc>
+      The client provides a valid access ticket giving "active" access
       to the realm in which the queue exists or will be created, or
       "passive" access if the if-exists flag is set.
     </doc>
@@ -73,13 +71,12 @@
       client in the Declare-Ok method.
     </doc>
     <doc name = "rule" test = "amq_queue_32">
-<!-- TODO - changed from channel to connection exception -->
       Queue names starting with "amq." are reserved for predeclared and
       standardised server queues.  If the queue name starts with "amq."
       and the passive option is zero, the server MUST raise a connection
       exception with reply code 403 (access refused).
     </doc>
-    <assert check = "regexp" value = "^[a-zA-Z0-9-_.]*$" test = "amq_queue_09" />
+    <assert check = "regexp" value = "^[a-zA-Z0-9-_.]*$" />
   </field>
 
   <field name = "passive" type = "bit">
@@ -125,7 +122,8 @@
       Setting the 'exclusive' flag always implies 'auto-delete'.
     </doc>
     <doc name = "rule" test = "amq_queue_38">
-      The server MUST support both exclusive and non-exclusive queues.
+      The server MUST support both exclusive (private) and non-exclusive
+      (shared) queues.
     </doc>
     <doc name = "rule" test = "amq_queue_04">
       The server MUST raise a channel exception if 'exclusive' is specified
@@ -242,24 +240,27 @@
   <response name = "bind-ok" />
 
   <field name = "ticket" domain = "access ticket">
-    <doc name = "rule">
-      The client MUST provide a valid access ticket giving "active"
+    <doc>
+      The client provides a valid access ticket giving "active"
       access rights to the queue's access realm.
     </doc>
   </field>
 
   <field name = "queue" domain = "queue name">
     <doc name = "rule" test = "amq_queue_26">
-      The queue must exist. Attempting to bind a non-existing queue
-      causes a channel exception.
+      If the queue does not exist the server MUST raise a channel
+      exception with reply code 404 (not found).
     </doc>
     <assert check = "notnull" />
   </field>
 
   <field name = "exchange" domain = "exchange name">
+    <doc name = "rule">
+      The name of the exchange to bind to.
+    </doc>
     <doc name = "rule" test = "amq_queue_14">
-      The name of the exchange to bind to. If the exchange does not
-      exist the server will raise a channel exception.
+      If the exchange does not exist the server MUST raise a channel
+      exception with reply code 404 (not found).
     </doc>
   </field>
 
@@ -268,8 +269,8 @@
     <doc>
       Specifies the routing key for the binding.  The routing key is
       used for routing messages depending on the exchange configuration.
-      Not all exchanges use a routing key - refer to the specific exchange
-      documentation.
+      Not all exchanges use a routing key - refer to the specific
+      exchange documentation.
     </doc>
   </field>
 
@@ -362,7 +363,7 @@
   <doc>
     This method deletes a queue.  When a queue is deleted any pending
     messages are sent to a dead-letter queue if this is defined in the
-    server configuration, and all consumers on the queue are cancelwled.
+    server configuration, and all consumers on the queue are cancelled.
   </doc>
   <doc name = "rule" test = "amq_queue_43">
     The server SHOULD use a dead-letter queue to hold messages that
@@ -374,8 +375,8 @@
   <response name = "delete-ok" />
 
   <field name = "ticket" domain = "access ticket">
-    <doc name = "rule">
-      The client MUST provide a valid access ticket giving "active"
+    <doc>
+      The client provides a valid access ticket giving "active"
       access rights to the queue's access realm.
     </doc>
   </field>

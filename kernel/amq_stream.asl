@@ -41,11 +41,6 @@
   via a Deliver method, the server must remove it from the queue.
 </doc>
 
-<todo owner = "ph@imatix.com">
-  It may be useful to allow per-class tuning, e.g. for max. number of
-  consumers per channel.
-</todo>
-
 
 <!--  These are the properties for a Stream content  -->
 
@@ -102,6 +97,16 @@
       Specifies the name of the queue to consume from.
     </doc>
     <assert check = "notnull" />
+  </field>
+
+  <field name = "client key" type = "shortstr">
+    client consumer key
+    <doc>
+    This string, which can be empty, holds an arbitrary client key for
+    the consumer. This key string is returned with all methods that
+    refer to the consumer.  This can be used by clients that handle many
+    consumers on a single channel.
+    </doc>
   </field>
 
   <field name = "prefetch size" type = "long">
@@ -169,6 +174,13 @@
   <chassis name = "client" implement = "MUST" />
 
   <field name = "consumer tag" domain = "consumer tag" />
+
+  <field name = "client key" type = "shortstr">
+    client consumer key
+    <doc>
+    Holds the value of the client key used in the Consume method.
+    </doc>
+  </field>
 </method>
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
@@ -178,7 +190,7 @@
   <doc>
     This method cancels a consumer.  Since message delivery is
     asynchronous the client may continue to receive messages for
-    a short while after cancelling a consumer.  It may process or
+    a short while after canceling a consumer.  It may process or
     discard these as appropriate.
   </doc>
   <chassis name = "server" implement = "MUST" />
@@ -315,6 +327,15 @@
     Deliver methods as and when messages arrive for that consumer.
   </doc>
   <chassis name = "client" implement = "MUST" />
+
+  <field name = "consumer tag" domain = "consumer tag" />
+
+  <field name = "client key" type = "shortstr">
+    client consumer key
+    <doc>
+    Holds the value of the client key used in the Consume method.
+    </doc>
+  </field>
 
   <field name = "delivery tag" domain = "delivery tag" />
 

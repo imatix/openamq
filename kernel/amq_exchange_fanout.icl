@@ -27,7 +27,7 @@ routed to all bound queues and exchanges.
     //
     binding = amq_binding_list_first (self->exchange->binding_list);
     if (binding) {
-        if (amq_binding_publish (binding, channel, class_id, content, mandatory, immediate))
+        if (amq_binding_publish (binding, channel, method))
             delivered = TRUE;
         amq_binding_unlink (&binding);
     }

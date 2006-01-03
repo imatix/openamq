@@ -1,0 +1,20 @@
+<?xml?>
+<pal script = "amq_pal_gen">
+    <set name = "myqueue" value = "my.queue" cmdline = "Q" />
+    <set name = "private" value = "0" cmdline = "P" />
+    <session cluster_key = "my.cluster">
+        <queue_declare queue = "$myqueue" exclusive = "$private" />
+        <queue_bind    queue = "$myqueue" exchange = "amq.direct" routing_key = "test" />
+        <basic_consume queue = "$myqueue" />
+        <repeat>
+            <wait/>
+            <basic_arrived>
+                <echo>I: Message $message_id arrived</echo>
+            </basic_arrived>
+            <empty>
+                <abort>E: Message did not arrive</abort>
+            </empty>
+        </repeat>
+    </session>
+</pal>
+

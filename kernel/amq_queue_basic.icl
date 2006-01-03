@@ -31,9 +31,9 @@ runs lock-free as a child of the asynchronous queue class.
 
 <method name = "publish" template = "function">
     <doc>
-    Publish message content onto queue.  If the message was marked
-    as "immediate" and could not be dispatched, returns it back to
-    the producer.
+    Publish message content onto queue.  If the message was marked as
+    "immediate" and could not be dispatched, returns it back to the
+    producer.
     </doc>
     <argument name = "channel"   type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "content"   type = "amq_content_basic_t *">Message content</argument>
@@ -50,34 +50,55 @@ runs lock-free as a child of the asynchronous queue class.
             self->queue->key,
             content->message_id);
 
-    amq_content_basic_possess (content);
-    ipr_looseref_queue (self->content_list, content);
-
-    //  Dispatch and handle case where no message was sent
-    if (self_dispatch (self) == 0) {
-        if (immediate) {
-            ipr_looseref_pop (self->content_list);
-            if (amq_server_channel_alive (channel)
-            && !content->returned) {
-                amq_server_agent_basic_return (
-                    channel->connection->thread,
-                    (dbyte) channel->key,
-                    content,
-                    ASL_NOT_DELIVERED,
-                    "No immediate consumers for Basic message",
-                    content->exchange,
-                    content->routing_key);
-                content->returned = TRUE;
-
-                if (amq_server_config_trace_queue (amq_server_config))
-                    icl_console_print ("Q: return   queue=%s message=%s",
-                        self->queue->key,
-                        content->message_id);
-            }
-            amq_content_basic_destroy (&content);
+    //  If queue is full, drop something...
+    //  For exclusive queues, drop oldest messages
+    //  For shared queues, drop this message
+    if (ipr_looseref_list_count (self->content_list)
+    ==  amq_server_config_queue_limit (amq_server_config)) {
+        if (self->queue->exclusive) {
+            amq_content_basic_t
+                *oldest; 
+            oldest = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
+            amq_content_basic_destroy (&oldest);
         }
         else
-            amq_queue_pre_dispatch (self->queue);
+            //  We should really warn someone...
+            //  TODO: return message if immediate
+            //  Log message to console, once per X messages
+            content = NULL;             //  Forget about it...
+    }
+    ipr_meter_count (amq_broker->imeter);
+
+    if (content) {
+        amq_content_basic_possess (content);
+        ipr_looseref_queue (self->content_list, content);
+
+        //  Dispatch and handle case where no message was sent
+        if (self_dispatch (self) == 0) {
+            if (immediate) {
+                ipr_looseref_pop (self->content_list);
+                if (amq_server_channel_alive (channel)
+                && !content->returned) {
+                    amq_server_agent_basic_return (
+                        channel->connection->thread,
+                        (dbyte) channel->key,
+                        content,
+                        ASL_NOT_DELIVERED,
+                        "No immediate consumers for Basic message",
+                        content->exchange,
+                        content->routing_key);
+                    content->returned = TRUE;
+
+                    if (amq_server_config_trace_queue (amq_server_config))
+                        icl_console_print ("Q: return   queue=%s message=%s",
+                            self->queue->key,
+                            content->message_id);
+                }
+                amq_content_basic_destroy (&content);
+            }
+            else
+                amq_queue_pre_dispatch (self->queue);
+        }
     }
 </method>
 
@@ -122,6 +143,7 @@ runs lock-free as a child of the asynchronous queue class.
             (dbyte) consumer->channel->key,
             content,
             consumer->tag,
+            consumer->client_key,
             0,                          //  Delivery tag
             FALSE,                      //  Redelivered
             content->exchange,
@@ -136,7 +158,7 @@ runs lock-free as a child of the asynchronous queue class.
             amq_consumer_by_queue_queue (self->active_consumers, consumer);
             amq_consumer_unlink (&consumer);
             amq_content_basic_destroy (&content);
-            amq_broker_messages++;
+            ipr_meter_count (amq_broker->xmeter);
             rc++;
         }
         else
@@ -169,7 +191,7 @@ runs lock-free as a child of the asynchronous queue class.
                 content->routing_key,
                 ipr_looseref_list_count (self->content_list));
             amq_content_basic_destroy (&content);
-            amq_broker_messages++;
+            ipr_meter_count (amq_broker->xmeter);
         }
         else
             amq_server_agent_basic_get_empty (

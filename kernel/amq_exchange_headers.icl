@@ -56,8 +56,7 @@ that is in every content header).
     </doc>
     <local>
     asl_field_list_t
-        *fields,                        //  Decoded arguments
-        *headers;                       //  Decoded header fields
+        *fields;                        //  Decoded arguments
     asl_field_t
         *field;                         //  Field on which to match
     icl_shortstr_t
@@ -71,70 +70,32 @@ that is in every content header).
     fields = asl_field_list_new (binding->arguments);
     if (fields) {
         binding->match_all = TRUE;      //  By default, want full match
-
-        field = asl_field_list_search (fields, "headers");
-        if (field) {
-            //  0.9b style
-            icl_console_print ("X: warning -- deprecated headers arguments - see AMQ-116");
-            headers = asl_field_list_new (field->string);
-            asl_field_unlink (&field);
-
-            field = asl_field_list_search (fields, "match");
-            if (field) {
-                if (streq (asl_field_string (field), "any")) {
-                    if (amq_server_config_trace_route (amq_server_config))
-                        icl_console_print ("X: select   match=any", index_key);
-                    binding->match_all = FALSE;
-                }
-                asl_field_unlink (&field);
-            }
-            if (headers) {
-                field = asl_field_list_first (headers);
-                while (field) {
-                    //  Index key is field name, or field name and value
-                    //  We truncate name and value to sensible limits
-
-                    icl_shortstr_ncpy (index_key, field->name, FIELD_NAME_MAX);
-                    if (*asl_field_string (field)) {
-                        icl_shortstr_cat  (index_key, "=");
-                        icl_shortstr_ncat (index_key,
-                            asl_field_string (field), FIELD_VALUE_MAX);
+        field = asl_field_list_first (fields);
+        while (field) {
+            if (field->name [0] == 'X' && field->name [1] == '-') {
+                if (streq (field->name, "X-match")) {
+                    if (streq (asl_field_string (field), "any")) {
+                        if (amq_server_config_trace_route (amq_server_config))
+                            icl_console_print ("X: select   match=any", index_key);
+                        binding->match_all = FALSE;
                     }
-                    rc = s_compile_binding (self, binding, index_key);
-                    field = asl_field_list_next (&field);
                 }
-                asl_field_list_destroy (&headers);
+                else
+                    icl_console_print ("W: unknown field '%s' in bind arguments", field->name);
             }
-        }
-        else {
-            //  0.9c style
-            field = asl_field_list_first (fields);
-            while (field) {
-                if (field->name [0] == 'X' && field->name [1] == '-') {
-                    if (streq (field->name, "X-match")) {
-                        if (streq (asl_field_string (field), "any")) {
-                            if (amq_server_config_trace_route (amq_server_config))
-                                icl_console_print ("X: select   match=any", index_key);
-                            binding->match_all = FALSE;
-                        }
-                    }
-                    else
-                        icl_console_print ("W: unknown field '%s' in bind arguments", field->name);
-                }
-                else {
-                    //  Index key is field name, or field name and value
-                    //  We truncate name and value to sensible limits
+            else {
+                //  Index key is field name, or field name and value
+                //  We truncate name and value to sensible limits
 
-                    icl_shortstr_ncpy (index_key, field->name, FIELD_NAME_MAX);
-                    if (*asl_field_string (field)) {
-                        icl_shortstr_cat  (index_key, "=");
-                        icl_shortstr_ncat (index_key,
-                            asl_field_string (field), FIELD_VALUE_MAX);
-                    }
-                    rc = s_compile_binding (self, binding, index_key);
+                icl_shortstr_ncpy (index_key, field->name, FIELD_NAME_MAX);
+                if (*asl_field_string (field)) {
+                    icl_shortstr_cat  (index_key, "=");
+                    icl_shortstr_ncat (index_key,
+                        asl_field_string (field), FIELD_VALUE_MAX);
                 }
-                field = asl_field_list_next (&field);
+                rc = s_compile_binding (self, binding, index_key);
             }
+            field = asl_field_list_next (&field);
         }
         asl_field_list_destroy (&fields);
 
@@ -142,22 +103,25 @@ that is in every content header).
         if (binding->field_count == 0)
             rc = s_compile_binding (self, binding, MATCH_ALL_KEY);
 
-        if (rc) {
-            amq_server_connection_exception (channel->connection,
-                ASL_COMMAND_INVALID, "Queue binding failed, too many bindings");
-        }
+        if (rc)
+            amq_server_connection_error (
+                channel? channel->connection: NULL,
+                ASL_COMMAND_INVALID,
+                "Queue binding failed, too many bindings");
     }
     else {
         rc = 1;
-        amq_server_connection_exception (channel->connection,
-            ASL_COMMAND_INVALID, "Invalid binding arguments");
+        amq_server_connection_error (
+            channel? channel->connection: NULL,
+            ASL_COMMAND_INVALID,
+            "Invalid binding arguments");
     }
 </method>
 
 <method name = "publish">
     <local>
     asl_field_list_t
-        *headers;                       //  Decoded header fields
+        *headers = NULL;                //  Decoded header fields
     icl_shortstr_t
         index_key;                      //  Index key to match on
     amq_hitset_t
@@ -170,8 +134,8 @@ that is in every content header).
         binding_nbr;                    //  Binding number, 1..n from bindset
     </local>
     //
-    if (class_id == AMQ_SERVER_BASIC)
-        headers = asl_field_list_new (((amq_content_basic_t *) content)->headers);
+    if (method->class_id == AMQ_SERVER_BASIC)
+        headers = asl_field_list_new (basic_content->headers);
 
     if (headers) {
         hitset = amq_hitset_new ();
@@ -198,7 +162,7 @@ that is in every content header).
             if (binding) {
                 if ((binding->match_all && hitset->hit_count [binding_nbr] == binding->field_count)
                 || (!binding->match_all && hitset->hit_count [binding_nbr] > 0)) {
-                    if (amq_binding_publish (binding, channel, class_id, content, mandatory, immediate))
+                    if (amq_binding_publish (binding, channel, method))
                         delivered = TRUE;
                     if (amq_server_config_trace_route (amq_server_config))
                         icl_console_print ("X: have_hit match=%s hits=%d binding=%d",

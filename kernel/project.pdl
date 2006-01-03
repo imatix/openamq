@@ -70,6 +70,16 @@
 <file name = "amq_broker.icl"        class = "icl private class" >Server broker class</file>
 <file name = "amq_broker_agent.smt"  class = "smt public module"
                                      generated = "1"             >Server broker agent</file>
+<file name = "amq_cluster.icl"       class = "icl private class" >Server cluster class</file>
+<file name = "amq_cluster_agent.smt" class = "smt public module"
+                                     generated = "1"             >Server cluster agent</file>
+<file name = "amq_peer.icl"          class = "icl private class" >Cluster peer class</file>
+<file name = "amq_peer_list.icl"     class = "icl private cont"  >Cluster peers per server</file>
+<file name = "amq_proxy.asl"         class = "gsl data"          >Cluster proxy definition</file>
+<file name = "amq_proxy_agent.smt"   class = "smt public module"
+                                     generated = "1"             >Cluster proxy agent</file>
+<file name = "amq_proxy_method.icl"  class = "icl public class"
+                                     generated = "1"             >Cluster proxy methods</file>
 <file name = "amq_console.icl"       class = "icl private class" >Server console class</file>
 <file name = "amq_console_agent.smt" class = "smt public module"
                                      generated = "1"             >Server console agent</file>
@@ -132,6 +142,8 @@
 <file name = "amq_hash.icl"          class = "icl private class" >Loose hash item</file>
 <file name = "amq_hash_table.icl"    class = "icl private cont"  >Loose hash table</file>
 <file name = "amq_content_basic.icl" class = "icl public cont"
+                                     generated = "1"             >Basic content class</file>
+<file name = "amq_content_cluster.icl" class = "icl public cont"
                                      generated = "1"             >Basic content class</file>
 <file name = "amq_content_file.icl"  class = "icl public cont"
                                      generated = "1"             >File content class</file>

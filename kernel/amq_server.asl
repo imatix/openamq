@@ -4,8 +4,10 @@
     script  = "asl_gen"
     chassis = "server"
     >
-<inherit name = "amq" />
+<inherit name = "amq_cluster" />
 <inherit name = "asl_server" />
+<inherit name = "amq" />
+
 <option name = "product_name" value = "OpenAMQ Server" />
 
 <!-- CHANNEL -->
@@ -33,12 +35,11 @@
         exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
         if (!exchange) {
             if (method->passive)
-                amq_server_channel_close (
-                    channel, ASL_NOT_FOUND, "No such exchange defined");
+                amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined");
             else {
                 if (ipr_str_prefixed (method->exchange, "amq."))
-                    amq_server_channel_close (channel, ASL_ACCESS_REFUSED,
-                        "Exchange name not allowed");
+                    amq_server_channel_error (channel,
+                        ASL_ACCESS_REFUSED, "Exchange name not allowed");
                 else {
                     exchange = amq_exchange_new (
                         amq_vhost->exchange_table,
@@ -48,9 +49,16 @@
                         method->durable,
                         method->auto_delete,
                         method->internal);
-                    if (!exchange)
-                        amq_server_connection_exception (connection, ASL_RESOURCE_ERROR,
-                            "Unable to declare exchange");
+
+                    if (exchange) {
+                        //  Tell cluster that exchange is being created
+                        if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+                        &&  amq_cluster->enabled)
+                            amq_cluster_forward (amq_cluster, amq_vhost, self, TRUE, FALSE);
+                    }
+                    else
+                        amq_server_connection_error (connection,
+                            ASL_RESOURCE_ERROR, "Unable to declare exchange");
                 }
             }
         }
@@ -59,15 +67,14 @@
                 amq_server_agent_exchange_declare_ok (
                     connection->thread, (dbyte) channel->key);
             else
-                amq_server_connection_exception (connection, ASL_NOT_ALLOWED,
-                    "Exchange exists with different type");
+                amq_server_connection_error (connection,
+                    ASL_NOT_ALLOWED, "Exchange exists with different type");
 
             amq_exchange_unlink (&exchange);
         }
     }
     else
-        amq_server_connection_exception (connection, ASL_COMMAND_INVALID,
-            "Unknown exchange type");
+        amq_server_connection_error (connection, ASL_COMMAND_INVALID, "Unknown exchange type");
   </action>
 
   <action name = "delete">
@@ -77,12 +84,19 @@
     </local>
     exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
     if (exchange) {
+        //  Tell client delete was successful
         amq_server_agent_exchange_delete_ok (
             connection->thread, (dbyte) channel->key);
+
+        //  Tell cluster to delete exchange
+        if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+        &&  amq_cluster->enabled)
+            amq_cluster_forward (amq_cluster, amq_vhost, self, TRUE, FALSE);
+
         amq_exchange_destroy (&exchange);
     }
     else
-        amq_server_channel_close (channel, ASL_NOT_FOUND, "No such exchange defined");
+        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined");
   </action>
 </class>
 
@@ -108,12 +122,11 @@
     queue = amq_queue_table_search (amq_vhost->queue_table, queue_name);
     if (!queue) {
         if (method->passive)
-            amq_server_channel_close (
-                channel, ASL_NOT_FOUND, "No such queue defined");
+            amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
         else {
             queue = amq_queue_new (
                 amq_vhost,
-                connection->context_id,
+                connection? connection->identifier: "",
                 queue_name,
                 method->durable,
                 method->exclusive,
@@ -127,28 +140,44 @@
                 //  Add to connection's exclusive queue list
                 if (method->exclusive)
                     amq_server_connection_own_queue (connection, queue);
+
+                //  Tell cluster that a new shared queue is starting
+                if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+                &&  amq_cluster->enabled) {
+                    if (method->exclusive)
+                        //  Forward private queue default binding to all nodes
+                        amq_cluster_forward_bind (amq_cluster, amq_vhost,
+                            NULL, queue->name, NULL);
+                    else
+                        //  Forward shared queue creation to all nodes
+                        amq_cluster_forward (amq_cluster, amq_vhost, self, TRUE, FALSE);
+                }
             }
             else
-                amq_server_connection_exception (connection, ASL_RESOURCE_ERROR,
-                    "Unable to declare queue");
+                amq_server_connection_error (connection,
+                    ASL_RESOURCE_ERROR, "Unable to declare queue");
         }
     }
     if (queue) {
-        if (method->exclusive && queue->owner_id != connection->context_id)
-            amq_server_channel_close (channel, ASL_ACCESS_REFUSED,
+        //TODO: verify this in cluster context
+        if (method->exclusive
+        &&  strneq (queue->owner_id, connection->identifier))
+            amq_server_channel_error (
+                channel, 
+                ASL_ACCESS_REFUSED,
                 "Queue cannot be made exclusive to this connection");
-        else {
+        else
             amq_server_agent_queue_declare_ok (
                 connection->thread,
                 (dbyte) channel->key,
                 queue->name,
                 amq_queue_message_count (queue),
                 amq_queue_consumer_count (queue));
-        }
+
         amq_queue_unlink (&queue);
     }
     else
-        amq_server_channel_close (channel, ASL_NOT_FOUND, "No such queue defined");
+        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
   </action>
 
   <action name = "bind">
@@ -164,14 +193,30 @@
         if (queue) {
             amq_exchange_bind_queue (
                 exchange, channel, queue, method->routing_key, method->arguments);
+            amq_server_agent_queue_bind_ok (
+                connection->thread, (dbyte) channel->key);
+
+            //  Tell cluster about new queue binding
+            if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+            &&  amq_cluster->enabled) {
+                if (queue->exclusive)
+                    //  Private queue bindings are replicated using the
+                    //  Cluster.Bind method so that each primary server 
+                    //  knows to send messages back to this server
+                    amq_cluster_forward_bind (amq_cluster, amq_vhost,
+                        method->exchange, method->routing_key, method->arguments);
+                else
+                    //  Shared queue bindings are replicated as-is
+                    amq_cluster_forward (amq_cluster, amq_vhost, self, TRUE, FALSE);
+            }
             amq_queue_unlink (&queue);
         }
         else
-            amq_server_channel_close (channel, ASL_NOT_FOUND, "No such queue defined");
+            amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
         amq_exchange_unlink (&exchange);
     }
     else
-        amq_server_channel_close (channel, ASL_NOT_FOUND, "No such exchange defined");
+        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined");
   </action>
 
   <action name = "delete">
@@ -181,12 +226,20 @@
     </local>
     queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
     if (queue) {
+        //  Tell client we deleted the queue ok
         amq_server_agent_queue_delete_ok (
             connection->thread, (dbyte) channel->key, amq_queue_message_count (queue));
+                
+        //  Tell cluster that queue is being deleted
+        if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+        &&  amq_cluster->enabled)
+            if (!queue->exclusive)
+                amq_cluster_forward (amq_cluster, amq_vhost, self, TRUE, FALSE);
+
         amq_queue_destroy (&queue);
     }
     else
-        amq_server_channel_close (channel, ASL_NOT_FOUND, "No such queue defined");
+        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
   </action>
 
   <action name = "purge">
@@ -197,31 +250,42 @@
     queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
     if (queue) {
         amq_queue_purge (queue, channel);
+
+        //  Tell cluster to also purge shared queue (not stateful)
+        if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+        &&  amq_cluster->enabled)
+            if (!queue->exclusive)
+                amq_cluster_forward (amq_cluster, amq_vhost, self, FALSE, FALSE);
+
         amq_queue_unlink (&queue);
     }
     else
-        amq_server_channel_close (channel, ASL_NOT_FOUND, "No such queue defined");
+        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
   </action>
 </class>
 
-<!-- BASIC -->
+<!-- Basic -->
 
 <class name = "basic">
   <action name = "consume">
-    //  The channel is responsible for creating/cancelling consumers
-    amq_server_channel_consume (channel,
-        method->queue,
-        self->class_id,
-        method->prefetch_size,
-        method->prefetch_count,
-        method->no_local,
-        method->auto_ack,
-        method->exclusive
-        );
+    <local>
+    amq_queue_t
+        *queue;
+    </local>
+    queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
+    if (queue) {
+        //  The channel is responsible for creating/cancelling consumers
+        amq_server_channel_consume (channel, queue, self);
+        amq_queue_unlink (&queue);
+    }
+    else
+        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
   </action>
 
   <action name = "publish">
     <local>
+    static qbyte
+        sequence = 0;                   //  For intra-cluster broadcasting
     amq_exchange_t
         *exchange;
     </local>
@@ -234,28 +298,41 @@
 
     if (exchange) {
         if (!exchange->internal || strnull (method->exchange)) {
+            //  This method may only come from an external application
+            assert (connection);
+            self->sequence = ++sequence;
             amq_content_$(class.name)_set_routing_key (
                 self->content,
                 method->exchange,
                 method->routing_key,
-                connection->context_id);
+                connection->identifier);
 
-            amq_exchange_publish (
-                exchange,
-                channel,
-                self->class_id,
-                self->content,
-                method->mandatory,
-                method->immediate);
+            /*  Cluster ID is our ident, SPID, connection id, and channel number
+                delimited by "/".  We encoded this as a message property to
+                let us route returned messages back to the producing application.
+                We only set this on content coming from applications, not other
+                cluster peers.
+              */
+            if (amq_cluster->enabled
+            &&  connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
+                amq_content_$(class.name)_set_cluster_id (
+                    self->content,
+                    "%c/%s/%s/%d",
+                    amq_cluster_ident (amq_cluster),
+                    amq_broker->spid,
+                    connection->identifier,
+                    channel->key);
+
+            amq_exchange_publish (exchange, channel, self);
         }
         else
-            amq_server_channel_close (
-                channel, ASL_ACCESS_REFUSED, "Exchange is for internal use only");
+            amq_server_channel_error (channel,
+                ASL_ACCESS_REFUSED, "Exchange is for internal use only");
 
         amq_exchange_unlink (&exchange);
     }
     else
-        amq_server_channel_close (channel, ASL_NOT_FOUND, "No such exchange defined");
+        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined");
   </action>
 
   <action name = "get">
@@ -269,7 +346,7 @@
         amq_queue_unlink (&queue);
     }
     else
-        amq_server_channel_close (channel, ASL_NOT_FOUND, "No such queue defined");
+        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
   </action>
 
   <action name = "cancel">
@@ -282,6 +359,17 @@
   <action name = "consume" sameas = "basic" />
   <action name = "publish" sameas = "basic" />
   <action name = "cancel"  sameas = "basic" />
+</class>
+
+<!-- Cluster -->
+
+<class name = "cluster">
+  <action name = "publish">
+    if (connection->type == AMQ_CONNECTION_TYPE_CLUSTER)
+        amq_cluster_accept (amq_cluster, self->content, channel);
+    else
+        amq_server_connection_error (connection, ASL_NOT_ALLOWED, "Method not allowed");
+  </action>
 </class>
 
 </protocol>

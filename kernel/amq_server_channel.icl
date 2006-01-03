@@ -79,45 +79,39 @@ maximum number of consumers per channel is set at compile time.
     table. It then attaches to own consumer list and sends to queue
     so that queue can add consumer to its consumer list.
     </doc>
-    <argument name = "queue name"     type = "char *">Queue name</argument>
-    <argument name = "class id"       type = "int"   >Consumer content class</argument>
-    <argument name = "prefetch size"  type = "qbyte" >Prefetch size</argument>
-    <argument name = "prefetch count" type = "dbyte" >Prefetch count</argument>
-    <argument name = "no local"       type = "Bool"  >Don't want own messages</argument>
-    <argument name = "auto ack"       type = "Bool"  >Auto acknowledge messages</argument>
-    <argument name = "exclusive"      type = "Bool"  >Exclusive access?</argument>
+    <argument name = "queue"  type = "amq_queue_t *">Queue to consume from</argument>
+    <argument name = "method" type = "amq_server_method_t *">Consume method</argument>
+    //
+    <possess>
+    amq_queue_link (queue);
+    amq_server_method_possess (method);
+    </possess>
+    <release>
+    amq_queue_unlink (&queue);
+    amq_server_method_destroy (&method);
+    </release>
     //
     <action>
-    amq_queue_t
-        *queue;
     amq_consumer_t
-        *consumer;
+        *consumer = NULL;
     int
         tag;                            //  New consumer tag
 
-    //  Look for queue as specified, if it exists, create consumer
-    queue = amq_queue_table_search (amq_vhost->queue_table, queue_name);
-    if (queue) {
-        //  Create and configure the consumer object
-        consumer = amq_consumer_new (
-            self, queue, class_id,
-            prefetch_size, prefetch_count, no_local, auto_ack, exclusive);
+    //  Create and configure the consumer object
+    consumer = amq_consumer_new (self, queue, method);
+    assert (consumer);
 
-        tag = ipr_index_insert (self->consumer_table, consumer);
-        if (tag) {
-            consumer->tag = (dbyte) tag;
-            amq_consumer_by_channel_queue (self->consumer_list, consumer);
-            amq_queue_consume (queue, consumer, self->active);
-        }
-        else {
-            amq_server_connection_exception (self->connection, ASL_RESOURCE_ERROR,
-                "Too many consumers for channel");
-            amq_consumer_destroy (&consumer);
-        }
-        amq_queue_unlink (&queue);
+    tag = ipr_index_insert (self->consumer_table, consumer);
+    if (tag) {
+        consumer->tag = (dbyte) tag;
+        amq_consumer_by_channel_queue (self->consumer_list, consumer);
+        amq_queue_consume (queue, consumer, self->active, method);
     }
-    else
-        amq_server_channel_close (self, ASL_NOT_FOUND, "No such queue defined");
+    else {
+        amq_server_connection_error (self->connection, ASL_RESOURCE_ERROR,
+            "Too many consumers for channel");
+        amq_consumer_destroy (&consumer);
+    }
     </action>
 </method>
 
@@ -154,23 +148,36 @@ maximum number of consumers per channel is set at compile time.
     }
     else
     if (sync)
-        amq_server_channel_close (self, ASL_NOT_FOUND, "Not a valid consumer tag");
+        amq_server_channel_error (self, ASL_NOT_FOUND, "Not a valid consumer tag");
     </action>
 </method>
 
-<method name = "alive" return = "rc">
+<method name = "error">
+    <doc>
+    If the channel is alive, closes the channel with the specified
+    reply code/text, otherwise prints it to the console.
+    </doc>
     <argument name = "self" type = "amq_server_channel_t *">Reference to channel</argument>
-    <declare name = "rc" type = "int" default = "0">Return code</declare>
+    <argument name = "reply code" type = "dbyte" >Error code</argument>
+    <argument name = "reply text" type = "char *">Error text</argument>
+    if (amq_server_channel_alive (self))
+        amq_server_channel_close (self, reply_code, reply_text);
+    else
+        icl_console_print ("E: channel exception: (%d) %s", reply_code, reply_text);
+</method>
+
+<method name = "alive" return = "rc">
     <doc>
     Returns TRUE if the channel appears to be alive.  Accepts
     a null channel reference (which is considered as 'not alive').
     </doc>
+    <argument name = "self" type = "amq_server_channel_t *">Reference to channel</argument>
+    <declare name = "rc" type = "int" default = "0">Return code</declare>
     //
     if (self
     &&  self->zombie == FALSE
     &&  self->connection
-    &&  self->connection->thread
-    &&  self->connection->suspended == FALSE)
+    &&  self->connection->thread)
         rc = TRUE;
     else
         rc = FALSE;

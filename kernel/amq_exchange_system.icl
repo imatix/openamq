@@ -11,6 +11,7 @@ This class implements these system services (specified by the routing
 key):
 
   - amq.console - AMQ Console service
+  - amq.cluster - AMQ Cluster service
 </doc>
 
 <inherit class = "amq_exchange_base" />
@@ -26,9 +27,9 @@ key):
     //  lookup is hard-coded, but in future we may use the compile
     //  method to allow arbitrary system services to register.
     //    
-    if (class_id == AMQ_SERVER_BASIC) {
+    if (method->class_id == AMQ_SERVER_BASIC) {
         if (streq (routing_key, "amq.console")) {
-            amq_console_accept (amq_console, content);
+            amq_console_accept (amq_console, basic_content);
             delivered = TRUE;
         }
         else

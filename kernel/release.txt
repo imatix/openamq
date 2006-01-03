@@ -3,7 +3,7 @@
 Bug Fixes:
 
     AMQ-222    Record server-side disconnects such as time-outs with their
-               reason/cause. Configurable time-outs.
+               reason/cause
     AMQ-244    PAL script leaves allocations after exception handling
     AMQ-242    Server log does not show the date
     AMQ-243    Server not accepting new connections after run under heavy load     
@@ -14,11 +14,9 @@ Bug Fixes:
     AMQ-211    Need investigation into assertion: ipr_index.c:283 assert
                (index > 0 && index < IPR_INDEX_MAX);  
     BASE2-115  smt_method_queue_wait is returning too early  
-    BASE-31    boom/boomake picks up output from .cshrc as invalid targets to
-               bui.d
     BASE-32    The trace in 'c' is missing several $'s
     BASE-29    AMQ COM object doesn't build with MSVC 7.0  
-    BASE2-139  icl_mem cannot be used with c++
+    BASE2-139  icl_mem cannot be used with C++
     
 Changes:
 
@@ -26,7 +24,6 @@ Changes:
     AMQ-197    Remove the JMS class and expand the Basic class semantics       
     AMQ-239    Broker should accept connections by management console when
                locked      
-
 
 0.9d0 - 2005/12/15
 ---------------------------------------------------------------------

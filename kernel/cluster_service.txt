@@ -52,14 +52,15 @@ method wrapping
     OK
     
 state replication
-    - key AMQP methods are replicated to all servers
-        - from secondary to root, thence to all nodes
+    - certain AMQP methods are replicated to all servers
         - from primary to all nodes
-    - all such methods are "stable"
-    - all primary servers hold list of state-changing methods
+        - from secondary to all primaries
+            - to all nodes except originator via root
+    - all such methods form the "cluster state"
+    - all primary servers hold list of cluster state methods
     - when new server connects to root
         - receives Cluster.Root message
-        - receives full state
+        - receives full cluster state
         - excluding application messages
     OK
 
@@ -102,41 +103,106 @@ publish message
         - for pushing messages through cluster
     - publish to exchange/binding as normal
     - binding will publish to queues and to remote peers
-
     binding to queue:
-        - if queue shared & cluster enabled & node is not root
+        - if queue shared & cluster enabled & we are not root
             - if message came from application
                 - push message to root node
-            - else
-                - discard message
         - else
             - accept message
-
     binding to peer:
         - if message came from application
             - push message to all bound peers
-        - if message came from secondary peer & node is root
+        - if message came from secondary node & we are root
             - push message to all bound secondary peers
             - except where peer->spid == connection->client_spid
+    OK
+
+cluster key
+    - string specified in server config and by application
+    - specified by application at connection open time
+        - Connection.Open.cluster_key (string)
+    - verified by cluster connection manager
+    - must also match for intra-cluster connections
+    OK
+
+class.consume
+    0. create consumer as usual
+    1. client provides user tag in all consume methods
+    2. user tag returned with consume-ok and deliver methods
+    3. if shared queue, broadcast cluster.consume
+        - insert outbound consumer-tag into secondary consume
 
 
 
-consumers
-    - create local consumer on queue
-        - reply to client with consume-ok
-        - if queue shared and we're not root,
-            - 
-    - consumers on private queues are not affected
-    - consumers on shared queues are proxied to root
-        - unless current server is root...
-        - not part of cluster state, just per connection...
+    - no-local?
+
+    
+
+    - if private queue or we're root:
+        - create local consumer on queue
+            - reply to client with consume-ok
+      else      
+    - if shared queue and we're not root
+        - replicate cluster.consume to all primaries
+        - part of cluster state...
+        - wait for consume-ok from root
+        - return that to client
+        - what if we get different consume tags from primaries?
+            ...?
+        - root dies, backup takes over
+            - starts sending us content too
+            - we need to be able to redirect to correct channel
+            - we need to provide a consumer tag...
+
+    a. must replicate consume to all primaries
+    b. must create local consumer to get tag
+    c. must provide remote servers with our tag...
+    d. want user tag back on each message...
+    e. we get back content how..? basic.deliver?
         
-    - when consumer is created on shared queue
-        - send same consume method to all primary servers
-        - expect messages in along proxy connection
-        - incoming consumer tag(s) -> outgoing consumer tag...
-            - per peer...
+        - push consume method to root
+            - save queue name, channel reference
+        - on consume-ok:
+            - get queue name from method and find channel reference
+            - create local consumer on queue
+            - save consumer-tag and consumer reference
+                - table per peer, hashed by consumer-tag
+            - consume-ok goes back to client
 
+    - what if root dies?
+        - consumer has to be created on backup node as well...
+        - bleh...
+
+    - must be part of server state...
+        - special consume command, content-neutral
+        - 
+
+    ### 1 create remote consumer
+        - push method as-is to root node
+    ### 2 create local consumer
+    ### 3 lookup remote consumer tag -> local consumer
+        - per peer
+    ### 4 lookup local consumer tag -> remote consumer    
+        - property of local consumer
+        
+
+    - when content arrives on proxy connection
+        - garbage collect consumer if zombied
+        - otherwise send to consumer as today
+
+
+                    
+        
+
+Clarify in doc:
+    - client can send synchronous methods without waiting for responses
+    - responses MAY come out of order...
+    - do we add a response token to all synchronous methods?
+        - carried in replies?
+    - ...? could be useful for knowing what consume-ok matches what consume...
+    - ...? client may get consume ok's in wrong order today
+    - ...? server could wait to process new input until output is sent
+    
 
 
     - if returned,
@@ -166,18 +232,14 @@ client connection
         - pause client activity
         - client application can timeout if bored
     OK
+
+    - add force option to C API
     - cluster needs to balance clients over all servers...
         - reconnect to (random) server
-    - if cluster goes down, all connections should be forced
+    - if cluster goes down, all connections should be closed
     - need to add heartbeating to proxy link to double-check
         --- sometimes when root goes down, we don't see it...
 
-
-cluster key
-    - some application-specified text
-    - specified by application at connection open time
-    - verified by cluster connection manager
-    - must also match for intra-cluster connections
 
 console issues
     - replicate configuration across cluster
@@ -234,3 +296,36 @@ A reasonable configuration for testing cluster XSR is:
 Note that the XSR/ISR estimates are based on a message size of 1000 bytes
 and a broker capacity of 10 KM/s.  More realistic figures would be
 message size of 250 bytes and capacity of 25 KM/s.
+
+
+Test scenarios
+
+ - test that exchanges are replicated
+ - create exchange on one node, bind queue to exchange on other
+    - root to root
+    - root to backup
+    - root to self
+    - backup to root
+    - backup to backup
+    - backup to self
+    - backup to other backup
+    - secondary to root
+    - secondary to backup
+    - secondary to self
+    - secondary to other secondary
+
+ - same test on shared queue
+    - create shared queue on one node, consume from queue on other
+
+ - test clustered private queues
+    - create private queue on each node
+    - publish to each node
+    - check messages arrive in each queue
+
+ - test clustered shared queues
+    - create shared queue
+    - consume from shared queue once on each node
+    - publish to shared queue
+    - check messages distributed equally
+
+

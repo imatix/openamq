@@ -1,18 +1,14 @@
 <?xml?>
 <class
     name      = "amq_broker"
-    comment   = "AMQ broker class"
+    comment   = "AMQ server broker class"
     version   = "1.0"
     script    = "smt_object_gen"
     target    = "smt"
     >
-<doc>
-This implements the broker object, which is the top-level
-object holding server-wide values.
-</doc>
-
-<inherit class = "smt_object" />
+<inherit class = "asl_broker" />
 <inherit class = "amq_console_object" />
+<option name = "basename" value = "amq_server" />
 
 <!-- Console definitions for this object -->
 <data name = "cml">
@@ -34,6 +30,13 @@ object holding server-wide values.
             icl_shortstr_fmt (field_value, "%ld", amq_vhost->object_id);
           </get>
         </field>
+        <!-- TODO
+        <field name = "cluster" type = "objref">
+          <get>
+            icl_shortstr_fmt (field_value, "%ld", amq_cluster->object_id);
+          </get>
+        </field>
+        -->
         <method name = "lock" label = "Prevent new connections">
           <exec>self->locked = TRUE;</exec>
         </method>
@@ -43,91 +46,54 @@ object holding server-wide values.
     </class>
 </data>
 
-<import class = "amq_server_classes" />
-
 <public>
 extern $(selftype)
     *amq_broker;                        //  Single broker
-extern qbyte
-    amq_broker_messages;                //  Current server throughput
 </public>
 
-<private>
-$(selftype)
-    *amq_broker = NULL;
-qbyte
-    amq_broker_messages = 0;
-</private>
-
 <context>
-    apr_time_t
-        started;                        //  Time started
     Bool
         locked;                         //  Is broker locked?
+    ipr_meter_t
+        *xmeter,                        //  External switch meter
+        *imeter;                        //  Internal switch meter
 </context>
 
 <method name = "new">
     //  We use a single global vhost for now
     //  TODO: load list of vhosts from config file
-    self->started = apr_time_now ();
-    amq_server_agent_init ();
     amq_vhost = amq_vhost_new (self, "/");
-    amq_server_callback_monitor (amq_broker_report);
+    self->xmeter = ipr_meter_new ();
+    self->imeter = ipr_meter_new ();
+
+    //  Set callback from config file, otherwise it'll be set to
+    //  our first IP address and port
+    icl_shortstr_cpy (self->callback,
+        amq_server_config_cluster_callback (amq_server_config));
 </method>
 
 <method name = "destroy">
     <action>
     amq_vhost_destroy (&amq_vhost);
-    amq_server_agent_term ();
+    ipr_meter_destroy (&self->xmeter);
+    ipr_meter_destroy (&self->imeter);
     </action>
 </method>
 
 <method name = "report">
-    <argument name = "interval" type = "int">Interval, in seconds</argument>
-    <local>
-#   define SAMPLE_SIZE 10
-    static qbyte
-        sample_table [SAMPLE_SIZE];
-    static Bool
-        first_time = TRUE;
-    static qbyte
-        last_sample = 0,
-        top_sample = 0;
-    static uint
-        sample_index = 0;
-    uint
-        cur_index,
-        sample_size;
-    qbyte
-        cur_sample,
-        total_sample;
-    </local>
-    if (first_time) {
-        memset (&sample_table, sizeof (sample_table), 0);
-        first_time = FALSE;
-    }
-    //  Unsigned arithmetic will always give us correct difference
-    cur_sample = (amq_broker_messages - last_sample) / interval;
+    <action>
+    if (ipr_meter_mark (self->xmeter, interval))
+        icl_console_print ("I: external message rate=%d average=%d peak=%d",
+            self->xmeter->current,
+            self->xmeter->average,
+            self->xmeter->maximum);
 
-    last_sample = amq_broker_messages;
-    if (cur_sample) {
-        sample_table [sample_index++] = cur_sample;
-        sample_index = sample_index % SAMPLE_SIZE;
-
-        //  Calculate rolling average
-        total_sample = 0;
-        sample_size  = 0;
-        if (top_sample < cur_sample)
-            top_sample = cur_sample;
-        for (cur_index = 0; cur_index < SAMPLE_SIZE; cur_index++) {
-            if (sample_table [cur_index]) {
-                total_sample += sample_table [cur_index];
-                sample_size++;
-            }
-        }
-        icl_console_print ("I: messages/sec current=%d average=%d peak=%d",
-            cur_sample, total_sample / sample_size, top_sample);
-    }
+    if (ipr_meter_mark (self->imeter, interval))
+        icl_console_print ("I: internal message rate=%d average=%d peak=%d",
+            self->imeter->current,
+            self->imeter->average,
+            self->imeter->maximum);
+    </action>
 </method>
 
 <method name = "selftest" />
