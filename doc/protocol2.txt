@@ -36,8 +36,8 @@ different consumers depending on arbitrary criteria, and it buffers them
 in memory or on disk when consumers are not able to accept them fast
 enough.
 
-In a pre-AMQ server these tasks are done by large monolithic engines
-that implement specific types of routing and buffering. AMQ takes the
+In a pre-AMQ server these tasks are done by monolithic engines that
+implement specific types of routing and buffering. AMQ takes the
 approach of smaller, modular pieces that can be combined in more diverse
 and robust ways. It starts by dividing these tasks into two distinct
 roles:
@@ -50,7 +50,7 @@ roles:
 
 There is a clear interface between exchange and message queue, called a
 "binding", which we will come to later. The usefulness of the AMQ
-framework comes from three main features:
+logical framework comes from three main features:
 
  1. The ability to create arbitrary exchange and message queue types
     (some are defined in the standard, but others can be added as
@@ -61,7 +61,7 @@ framework comes from three main features:
 
  3. The ability to control this completely through the protocol.
 
-What AMQ provides is a server with runtime-programmable semantics.
+In fact, AMQ provides runtime-programmable semantics.
 
 The Message Queue
 .................
@@ -104,10 +104,10 @@ engines. That is, they inspect messages and using their binding tables,
 decide how to forward these messages to message queues or other
 exchanges. Exchanges never store messages.
 
-An exchange exists at two levels. First, there is the code itself. When
-we discuss what an exchange can or cannot do, we speak of the code.
-Second, there is the running instance. When we send a message to an
-exchange, we send it to a running instance.
+An exchange exists at two levels. First, there is the algorithm itself,
+expressed as executable code. When we discuss what an exchange can or
+cannot do, we speak of this code. Second, there is the running instance.
+When we send a message to an exchange, we send it to a running instance.
 
 In some contexts this separation between the code and the instance is
 obvious - for instance, the term "AMQ server" means both the static code
@@ -140,7 +140,7 @@ from other sources, decides how to route the message.
 
 In the majority of simple cases the exchange examines a single key
 field, which we call the "routing key". The routing key is a virtual
-address that the exchange uses to decide how to route the message.
+address that the exchange may use to decide how to route the message.
 
 For point-to-point routing, the routing key is the name of a message
 queue. For topic pub-sub routing, the routing key is the topic hierarchy
@@ -159,8 +159,9 @@ are not radical:
  - a exchange is like a MTA (mail transfer agent) that inspects email
    and decides, on the basis of routing keys and tables, how to send the
    email to one or more mailboxes.
- - a routing key corresponds to an email To: address, without the
-   server information (routing is entirely internal to an AMQ server).
+ - a routing key corresponds to an email To: or Cc: or Bcc: address,
+   without the server information (routing is entirely internal to an
+   AMQ server).
  - each exchange instance is like a separate MTA process, handling some
    email subdomain, or particular type of email traffic.
  - a binding is like an entry in a MTA routing table.
@@ -172,11 +173,11 @@ from "to" address to mailbox name.
 
 We should not take the email-AMQP analogy too far: there are fundamental
 differences. The challenge in AMQP is to route and store messages within
-a server. The challenge in email is to route messages between servers.
-The addressing models are thus fundamentally different. Routing within a
-server and between servers are distinct problems and have distinct
-solutions, if only for banal reasons such as maintaining transparent
-performance.
+a server. By contrast, the challenge in email is to route messages
+between servers. The addressing models are thus fundamentally different.
+Routing within a server and between servers are distinct problems and
+have distinct solutions, if only for banal reasons such as maintaining
+transparent performance.
 
 Message Flow
 ------------
@@ -249,10 +250,11 @@ MTA's routing tables and arrive directly in a mailbox. This would make
 it impossible to insert intermediate filtering and processing, spam
 detection, for instance.
 
-The AMQ framework uses the same principle as an email system: all messages
-are sent to a single point, the exchange or MTA, which inspects the
-messages based on rules and information that are hidden from the sender,
-and routes them to drop-off points that are also hidden from the sender.
+The AMQ logical framework uses the same principle as an email system:
+all messages are sent to a single point, the exchange or MTA, which
+inspects the messages based on rules and information that are hidden
+from the sender, and routes them to drop-off points that are also hidden
+from the sender.
 
 What The Consumer Sees
 ......................
@@ -315,8 +317,8 @@ Note that:
 
  1. The default exchange is a direct exchange.
 
- 2. The server will create a named direct and topic exchange
-    automatically, in each vhost.
+ 2. The server will create a named direct and topic exchange in each
+    vhost, at startup.  Client applications may depend on this.
 
 Exchange Lifecycle
 ..................
@@ -350,11 +352,12 @@ important properties:
    application needs a message queue for its own purposes, it lets the
    server provide a name.
 
- - durable - if specified, the message queue remains active when the
+ - durable - if specified, the message queue remains present and active
+   when the server restarts.  It may lose non-persisent messages if the
    server restarts.
 
- - auto-delete - If specified, the message queue is deleted when all
-   clients have finished using it.
+ - auto-delete - If specified, the server will delete the message queue
+   when all clients have finished using it, or shortly thereafter.
 
 Queue Lifecycles
 ................
@@ -426,7 +429,7 @@ To publish to the shared queue, each producer sends a message to the
 default exchange:
 
     Basic.Publish
-        routing_key=my.svc01
+        routing_key=app.svc01
 
 Constructing a Reply Queue
 ..........................
@@ -572,37 +575,8 @@ To publish a message, we send to the amq.topic as before:
         routing_key=STOCK.USD.IBM
         content-type=application/x-pdf
 
-Significance of Wiring Order
-............................
-
-When we make chained bindings, we get an ordered graph of exchanges
-starting with the "root" exchange to which the producer sends the
-messages.
-
-Functionally, these two sets of statements are equivalent:
-
-    Queue.Bind <queue> TO <exchange1> WHERE <condition>
-    Queue.Bind <queue> TO <exchange2> VIA <exchange1> WHERE <condition>
-
-and:
-
-    Queue.Bind <queue> TO <exchange2> WHERE <condition>
-    Queue.Bind <queue> TO <exchange1> VIA <exchange2> WHERE <condition>
-
-That is, chained bindings are like the Boolean AND operator, where order
-has no effect on the output result. However, order does have an effect
-on the internal processing flow and thus the performance. In general
-messages should pass through the most selective exchanges first.
-
-In most pub-sub scenarios it would make sense to use a topic exchange as
-the main exchange, and then use topics as a primary selection mechanism
-for messages.
-
-Note that the current protocol specifications do not implement chained
-binding semantics.
-
-Late Bindings
-.............
+Message Selectors
+.................
 
 Applications need to be able to select messages from message queues, at
 the same time as consuming them. While this is not efficient (it usually
@@ -610,7 +584,8 @@ means scanning messages sequentially), it is a common requirement
 because it is conceptually simple and similar in some ways to the SQL
 SELECT statement. AMQ must therefore support this.
 
-We call this a "late binding". We can compare this to a normal binding:
+We call this a "message selector". We can compare this to a normal
+binding:
 
 - A normal binding routes messages into a message queue after which they
   are dispatched to N consumers on a round-robin basis. For example,
@@ -624,20 +599,20 @@ We call this a "late binding". We can compare this to a normal binding:
   all oversized documents, by preference.
 
 The main difference is that (a) the round-robin nature of message
-delivery remains in force, so if multiple consumers have the same late
-binding criteria, they will share the messages, and (b) the delivery of
+delivery remains in force, so if multiple consumers have the same 
+selector criteria, they will share the messages, and (b) the delivery of
 messages remains ordered. Using normal bindings, this is not possible.
 
-So late bindings apply when the server searches for a consumer for the
-next message. They are inherently slower than normal bindings, because a
-message will be matched multiple times rather than just once.
+So message selectors apply when the server searches for a consumer for
+the next message. They are inherently slower than normal bindings,
+because a message will be matched multiple times rather than just once.
 
-We can express a late binding command in pseudo-code as follows:
+We can express a message selector command in pseudo-code as follows:
 
     Basic.Consume FROM <queue> WHERE <condition>
 
-Note that the current protocol specifications do not implement late
-binding semantics.
+Note that the current protocol specifications do not implement message
+selector semantics.
 
 AMQP Functional Design
 ======================
@@ -651,19 +626,21 @@ Middleware is complex, and our challenge in designing the protocol
 structure was to tame that complexity. Our approach has been to model a
 traditional API based on classes and methods, and to define methods to
 do exactly one thing, and do it well. This results in a large command
-set but one that is easy to understand.
+set but one that is relatively easy to understand.
 
 The AMQP commands are grouped into classes. Each class covers a specific
 functional domain. Some classes are optional - each peer implements the
 classes it needs to support.
 
-There are two distinct types of method:
+There are two distinct method dialogues:
 
- - Synchronous methods, in which one peer sends a request and the other
-   peer sends a reply.  Synchronous methods are used in most cases.
+ - Synchronous request-response, in which one peer sends a request and
+   the other peer sends a reply.  Synchronous request and response
+   methods are used for functionality that is not performance critical.
 
- - Asynchronous methods, in which one peer sends a command but expects
-   no reply. Asynchronous methods where performance is critical.
+ - Asynchronous notification, in which one peer sends a method but
+   expects no reply. Asynchronous methods are used where where
+   performance is critical.
 
 To make method processing simple, we define distinct replies for each
 synchronous request. That is, no method is used as the reply for two
@@ -746,8 +723,8 @@ No Confirmations
 A chatty protocol is slow. We use asynchronicity heavily in those cases
 where performance is an issue. This is generally where we send content
 from one peer to another. We send off methods as fast as possible,
-without waiting for confirmations. Where necessary, we can implement
-windowing and throttling at a higher level.
+without waiting for confirmations. Where necessary, we implement
+windowing and throttling at a higher level, e.g. at the consumer level.
 
 We can dispense with confirmations because we adopt an assertion model
 for all actions. Either they succeed, or we have an exception that
@@ -755,7 +732,7 @@ closes the channel or connection.
 
 There are no confirmations in AMQP. Success is silent, and failure is
 noisy. When applications need explicit tracking of success and failure,
-they use transactions.
+they should use transactions.
 
 The Connection Class
 --------------------
@@ -791,7 +768,7 @@ is this:
 
  - The server confirms that the virtual host is a valid choice (Open-Ok).
 
- - The client now sends uses the connection as desired.
+ - The client now uses the connection as desired.
 
  - One peer (client or server) ends the connection (Close).
 
@@ -856,7 +833,7 @@ The Queue Class
 
 The queue class lets an application manage message queues on the server.
 This is a basic step in almost all applications that consume messages,
-at least to verify that an expect message queue is actually present.
+at least to verify that an expected message queue is actually present.
 
 The life-cycle for a durable message queue is fairly simple:
 
@@ -916,7 +893,7 @@ The Basic Content Class
 
 The Basic content class is designed to map cleanly to industry-standard
 messaging semantics.  It explicitly supports the message properties and
-functionality required by the JMS API.
+functionality required by the JMS API, and more.
 
 The Basic content methods support these main semantics:
 
@@ -1019,6 +996,8 @@ The semantics of this class are as follows:
    it wants these transactions (Select).
 
  - The application does work (Publish, Ack).
+
+ - AMQ arranges to propagate the global transaction ID.
 
  - Magic happens.
 
@@ -1239,37 +1218,6 @@ reasons (e.g. it is looping). Since heartbeating can be done at a low
 level, we implement this as a special type of frame that peers exchange
 at the transport level, rather than as a class method.
 
-Connection Failover
--------------------
-
-We provide a mechanism that lets a client reconnect to a server if there
-is some temporary network failure, e.g. a connection across a fire-wall
-being reset. Connection failover is fairly complex and is optional -
-clients do not need to implement it.
-
-This works as follows. When the client has connected and authenticated
-itself, the server issues it with a "context key". A client that starts
-a new connection requests a new context key from the server, and then
-proceeds to open and use channels and create other server-side state.
-
-After a connection failure, the server holds open the connection and its
-server-side state for a period of time - e.g. one minute. During that
-time, the client may reconnect and estabish a new connection. When the
-client has established the connection, rather than requesting a new
-context key, it provides the server with the old key. The server
-verifies that this refers to a suspended connection and if so, transfers
-the state from that old connection to the new connection.
-
-The client holds its state in memory during this process, so that it can
-equally transfer its open channels, etc. to the new connection.
-
-Since network errors can cause methods to be lost, the two peers
-exchange some information to allow them to get their state back to where
-it was before the problem.
-
-Assuming this is handled in some client API layer, the entire process is
-invisible to applications.
-
 Error Handling
 --------------
 
@@ -1314,8 +1262,8 @@ of abstraction:
 1. A framing layer.  This layer takes AMQP protocol methods, in some
    language-specific format (structures, classes, etc.) and serialises
    them as wire-level frames.  The framing layer can be mechanically
-   generated from the AMQP specifications (which are defined in an XML
-   language, ASL, specifically designed for this).
+   generated from the AMQP specifications (which are defined in a
+   protocol modeling language, ASL, specifically designed for AMQP).
 
 2. A connection manager layer. This layer reads and writes AMQP frames
    and manages the overall connection and session logic. In this layer

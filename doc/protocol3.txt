@@ -36,9 +36,9 @@ waiting in the same message queue. When messages must be discarded in
 order to maintain a specific service quality level the server will first
 discard low-priority messages.
 
-The server MUST NOT modify messages that it receives and passes to
-consumer applications. That is, both content headers and content bodies
-MUST be passed untouched and unchanged to their recipient consumers.
+The server MUST NOT modify message content bodies that it receives and
+passes to consumer applications. The server MAY add information to
+content headers but it MUST NOT remove or modify existing information.
 
 Virtual Hosts
 -------------

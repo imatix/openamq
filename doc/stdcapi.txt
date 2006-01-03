@@ -5,7 +5,7 @@ gdl
     author    = iMatix Corporation <amq@imatix.com>
     date      = 2005/10/28
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 1.2b0
+    version   = 1.3b0
 end gdl
 
 Introduction
@@ -14,16 +14,21 @@ Introduction
 Version
 =======
 
-This describes OpenAMQ kernel release 0.9c3.
+This describes OpenAMQ server and client release 0.9d0.
+
+How AMQ Works
+=============
+
+The reader should refer to the document "AMQ - A General-Purpose
+Middleware Standard" for a detailed discussion of the AMQ protocol and
+architecture.
 
 Goals and Principles
 ====================
 
 The standard C client API is built using the same technology as the
-OpenAMQ server, and provides a simple object-oriented interface to the
-AMQ protocol from the client side.
-
-It is designed to:
+OpenAMQ server, and provides a component-based interface to the AMQ
+protocol from the client side.  It is designed to:
 
  - Support multiple channels over a single connection.
  - Provide full asynchronous background operations.
@@ -33,7 +38,7 @@ It is designed to:
  - Provide full access to all AMQP method properties.
  - Act as the basis for other language APIs based on the C layers.
  - Be 100% portable to common platforms.
- - Work with any AMQ server (obviously).
+ - Work with any AMQ server implementation.
 
 Technicalities
 ==============
@@ -92,7 +97,7 @@ program does no error handling so you should *not* copy this code:
         //  Open session to local server
         auth_data  = amq_client_connection_auth_plain ("guest", "guest");
         connection = amq_client_connection_new (
-            "localhost", "/", auth_data, 0, 30000);
+            "localhost", NULL, "/", auth_data, 0, 30000);
         icl_longstr_destroy (&auth_data);
         session = amq_client_session_new (connection);
 
@@ -144,7 +149,7 @@ this:
 
     auth_data  = amq_client_connection_auth_plain ("guest", "guest");
     connection = amq_client_connection_new (
-        "localhost", "/", auth_data, 0, 30000);
+        "localhost", NULL, "/", auth_data, 0, 30000);
     icl_longstr_destroy (&auth_data);
     if (!connection) {
         icl_console_print ("E: could not open connection");
@@ -193,7 +198,9 @@ Creates a new connection to the server.
         *auth_data;                     //  Authentication data
 
     auth_data  = amq_client_connection_auth_plain ("guest", "guest");
-    connection = amq_client_connection_new ("localhost", authdata, 0, 30000);
+    connection = amq_client_connection_new (
+        "localhost", NULL, "/", auth_data, 0, 30000);
+
     icl_longstr_destroy (&auth_data);
     if (connection)
         icl_console_print ("I: connected to %s/%s - %s - %s",
@@ -209,6 +216,9 @@ Creates a new connection to the server.
  - The host_name argument specifies a server name or IP address, optionally
    ending in ':' plus a port number.
 
+ - The null argument is the cluster key, which is not needed in stand-alone
+   configurations.
+   
  - The virtual_host name specifies the virtual host to which the connection
    will connect.  The default virtual host is "/".
 

@@ -28,25 +28,25 @@ What is AMQ?
 
 Our goal is to spark the development and industry-wide use of a new open
 source, standardised middleware technology that will lower the cost of
-enterprise and systems integration to an absolute minimum.
+enterprise and systems integration.
 
-We propose two main inventions:
+We propose two main standards:
 
- 1. A modular framework (called "Advanced Message Queues", or AMQ) for
+ 1. A logical framework (called "Advanced Message Queues", or AMQ) for
     defining the semantics of a middleware server.  The AMQ framework
     consists of a set of components that route and store messages within
     a central server, plus a set of rules for wiring these components
     together.
 
- 2. A wire-level protocol (AMQP) that lets applications talk to an
-    AMQ server.
+ 2. A physical wire-level protocol (AMQP) that lets applications talk
+    to an AMQ server.
 
 One can derive the semantics of the AMQ server from the AMQP protocol
 specifications but we believe that an explicit description of these
 semantics help the understanding of the protocol.
 
-The AMQ Framework
------------------
+The AMQ Logical Framework
+-------------------------
 
 We define the server's semantics explicitly, since interoperability
 demands that these be the same in any given server implementation.
@@ -103,7 +103,7 @@ The AMQP Wire-level Protocol
 
 The AMQP protocol is a binary protocol with modern features: it is
 multi-channel, negotiated, asynchronous, secure, portable, neutral, and
-fast.
+efficient.
 
 AMQP is usefully split into as two layers:
 
@@ -117,9 +117,9 @@ AMQP is usefully split into as two layers:
 
     +------------------Transport Layer-----------------+
     |                                                  |
-    | Framing  Content  Heartbeat  Data representation |
+    |      Framing  Content  Data representation       |
     |                                                  |
-    |   Error handling  Connection failover  Channels  |
+    |      Error handling  Heatbeating   Channels      |
     |                                                  |
     +--------------------------------------------------+
 
@@ -138,16 +138,16 @@ protocols.
 The design of AMQP functional layer was driven by these main
 requirements:
 
- - To be clear, so each method does exactly one thing.
- - To be consistent and explicit in naming.
- - To use a class/method/argument notation that maps easily into
-   application-level APIs.
- - To allow complete configuration of server wiring via the protocol.
  - To guarantee interoperability between conforming implementations.
  - To provide explicit control over the quality of service.
- - To be compatible with existing messaging API standards (Sun JMS).
  - To support any middleware domain: messaging, file transfer,
    streaming, etc.
+ - To be compatible with existing messaging API standards (Sun JMS).
+ - To be consistent and explicit in naming.
+ - To allow complete configuration of server wiring via the protocol.
+ - To use a class/method/argument notation that maps easily into
+   application-level APIs.
+ - To be clear, so each method does exactly one thing.
 
 The design of AMQP transport layer was driven by these main
 requirements, in no particular order:
@@ -218,14 +218,20 @@ Licensing
 These specifications are or will be provided under a BSD-style open
 source license.
 
+Patents
+-------
+
+AMQ and AMQP are based on concepts taken from existing unencumbered
+standards, and all aspects of AMQ are obvious to anyone skilled in
+the art.
+
 Organisation of This Document
 =============================
 
 The document is divided into six chapters, most of which are designed
 to be read independently according to your level of interest:
 
- 1. "Overview" (this chapter). Read this chapter for an introduction
-    to AMQ and AMQP.
+ 1. "Overview" (this chapter). Read this chapter for an introduction.
 
  2. "General Architecture", in which we describe the architecture and
     overall design of AMQ and AMQP. This chapter is intended to help
@@ -343,15 +349,18 @@ Message queue:
 Binding:
     An entity that creates a relationship between a message queue and an
     exchange.
+Routing key:
+    A virtual address that an exchange may use to decide how to route a
+    specific message. 
 Durable:
     A server resource that survives a server restart.
 Transient:
     A server resource that is wiped or reset after a server restart.
 Persistent:
     A message that the server holds on reliable disk storage and
-    should not lose after a server restart.
+    MUST NOT lose after a server restart.
 Non-persistent:
-    A message that the server holds in memory and may lose after a
+    A message that the server holds in memory and MAY lose after a
     server restart.
 Consumer:
     A client application that requests messages from a message queue.
@@ -384,7 +393,7 @@ Out-of-band transport:
 Zero copy:
     The technique of transferring data without copying it to or from
     intermediate buffers. Zero copy requires that the protocol allows
-    the transfer of data as opaque blocks, as AMQP does.
+    the out-of-band transfer of data as opaque blocks, as AMQP does.
 Assertion:
     A condition that must be true for processing to continue.
 Exception:
@@ -398,6 +407,16 @@ Topic:
     using one or more types of exchange.
 Subscription:
     Usually a request to receive data from topics; AMQ implements
-    subscriptions as message queues.
+    subscriptions as message queues and bindings.
+Service:
+    Usually synonymous with server. The AMQ standard uses "server"
+    to conform with IETF standard nomenclature and to clarify the
+    roles of each party in the protocol (both sides may be AMQP
+    services).
+Router:
+    Sometimes used to describe the actions of an exchange. To some
+    extent the whole AMQP server can be considered a message router
+    but this term is misleading to network administrators and we do
+    not use it.
 
 

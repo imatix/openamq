@@ -125,7 +125,6 @@ amq_wlp_frame_03.pal: the server MUST handle over-sized frames.
 amq_wlp_header_01.pal: the server MUST accept the AMQP protocol.
 amq_wlp_header_02.pal: the server MAY accept non-AMQP protocols.
 amq_wlp_header_03.pal: the server MUST validate the "AMQP" protocol header string.
-amq_wlp_header_04.pal: the server MUST returns a protocol header on connection failure.
 amq_wlp_heartbeat_01.pal: the server MUST detect invalid heartbeat frame.
 amq_wlp_heartbeat_02.pal: the server MUST accept valid heartbeat frames.
 amq_wlp_table_01.pal: the server SHOULD validate table field names.
