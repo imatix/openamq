@@ -1,0 +1,137 @@
+﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectType>Local</ProjectType>
+    <ProductVersion>8.0.50727</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{E6EED856-9650-439F-BB81-F35A2C0F8AB8}</ProjectGuid>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ApplicationIcon>
+    </ApplicationIcon>
+    <AssemblyKeyContainerName>
+    </AssemblyKeyContainerName>
+    <AssemblyName>minadotnet</AssemblyName>
+    <AssemblyOriginatorKeyFile>
+    </AssemblyOriginatorKeyFile>
+    <DefaultClientScript>JScript</DefaultClientScript>
+    <DefaultHTMLPageLayout>Grid</DefaultHTMLPageLayout>
+    <DefaultTargetSchema>IE50</DefaultTargetSchema>
+    <DelaySign>false</DelaySign>
+    <OutputType>Library</OutputType>
+    <RootNamespace>minadotnet</RootNamespace>
+    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
+    <StartupObject>
+    </StartupObject>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <UpgradeBackupLocation>
+    </UpgradeBackupLocation>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <OutputPath>bin\Debug\</OutputPath>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <BaseAddress>285212672</BaseAddress>
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+    <ConfigurationOverrideFile>
+    </ConfigurationOverrideFile>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DocumentationFile>
+    </DocumentationFile>
+    <DebugSymbols>true</DebugSymbols>
+    <FileAlignment>4096</FileAlignment>
+    <NoStdLib>false</NoStdLib>
+    <NoWarn>
+    </NoWarn>
+    <Optimize>false</Optimize>
+    <RegisterForComInterop>false</RegisterForComInterop>
+    <RemoveIntegerChecks>false</RemoveIntegerChecks>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningLevel>4</WarningLevel>
+    <DebugType>full</DebugType>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>bin\Release\</OutputPath>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <BaseAddress>285212672</BaseAddress>
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+    <ConfigurationOverrideFile>
+    </ConfigurationOverrideFile>
+    <DefineConstants>TRACE</DefineConstants>
+    <DocumentationFile>
+    </DocumentationFile>
+    <DebugSymbols>false</DebugSymbols>
+    <FileAlignment>4096</FileAlignment>
+    <NoStdLib>false</NoStdLib>
+    <NoWarn>
+    </NoWarn>
+    <Optimize>true</Optimize>
+    <RegisterForComInterop>false</RegisterForComInterop>
+    <RemoveIntegerChecks>false</RemoveIntegerChecks>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningLevel>4</WarningLevel>
+    <DebugType>none</DebugType>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System">
+      <Name>System</Name>
+    </Reference>
+    <Reference Include="System.Data">
+      <Name>System.Data</Name>
+    </Reference>
+    <Reference Include="System.XML">
+      <Name>System.XML</Name>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="jpmorgan\mina\Class1.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="jpmorgan\mina\common\ByteBuffer.cs" />
+    <Compile Include="jpmorgan\mina\common\CloseFuture.cs" />
+    <Compile Include="jpmorgan\mina\common\ConnectFuture.cs" />
+    <Compile Include="jpmorgan\mina\common\DefaultIoFilterChainBuilder.cs" />
+    <Compile Include="jpmorgan\mina\common\IdleStatus.cs" />
+    <Compile Include="jpmorgan\mina\common\IAcceptor.cs" />
+    <Compile Include="jpmorgan\mina\common\IConnector.cs" />
+    <Compile Include="jpmorgan\mina\common\IFilter.cs" />
+    <Compile Include="jpmorgan\mina\common\IFilterChain.cs" />
+    <Compile Include="jpmorgan\mina\common\IFilterChainBuilder.cs" />
+    <Compile Include="jpmorgan\mina\common\IoFuture.cs" />
+    <Compile Include="jpmorgan\mina\common\IHandler.cs" />
+    <Compile Include="jpmorgan\mina\common\ISession.cs" />
+    <Compile Include="jpmorgan\mina\common\ISessionManager.cs" />
+    <Compile Include="jpmorgan\mina\common\NOOPIoFilterChainBuilder.cs" />
+    <Compile Include="jpmorgan\mina\common\support\DefaultFilterChain.cs" />
+    <Compile Include="jpmorgan\mina\common\support\LinkedHashtable.cs" />
+    <Compile Include="jpmorgan\mina\common\TrafficMask.cs" />
+    <Compile Include="jpmorgan\mina\common\TransportType.cs" />
+    <Compile Include="jpmorgan\mina\common\WriteFuture.cs" />
+    <Compile Include="jpmorgan\mina\common\WriteRequest.cs" />
+    <Compile Include="jpmorgan\mina\registry\Service.cs" />
+    <Compile Include="jpmorgan\mina\registry\IServiceRegistry.cs" />
+    <Compile Include="jpmorgan\mina\transport\socket\networkstream\SocketAcceptor.cs" />
+    <Compile Include="jpmorgan\mina\transport\socket\networkstream\SocketConnector.cs" />
+    <Compile Include="jpmorgan\mina\transport\socket\networkstream\SocketSession.cs" />
+    <Compile Include="jpmorgan\mina\transport\socket\networkstream\ISocketSessionManager.cs" />
+    <Compile Include="jpmorgan\mina\transport\socket\networkstream\support\SocketIoProcessor.cs" />
+    <Compile Include="jpmorgan\mina\transport\socket\networkstream\support\SocketSessionImpl.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\iesi\Iesi.Collections.csproj">
+      <Project>{CEF80E5F-E838-4F27-9435-2E3630D5F9E0}</Project>
+      <Name>Iesi.Collections</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PreBuildEvent>
+    </PreBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
+</Project>

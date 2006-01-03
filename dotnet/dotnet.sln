@@ -1,0 +1,52 @@
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual Studio 2005
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "minadotnet", "minadotnet\minadotnet.csproj", "{E6EED856-9650-439F-BB81-F35A2C0F8AB8}"
+	ProjectSection(ProjectDependencies) = postProject
+		{CEF80E5F-E838-4F27-9435-2E3630D5F9E0} = {CEF80E5F-E838-4F27-9435-2E3630D5F9E0}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "minatests", "minatests\minatests.csproj", "{BB3F6DD7-E5F4-45B0-9F5A-7D641FB1D192}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E6EED856-9650-439F-BB81-F35A2C0F8AB8} = {E6EED856-9650-439F-BB81-F35A2C0F8AB8}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iesi.Collections", "iesi\Iesi.Collections.csproj", "{CEF80E5F-E838-4F27-9435-2E3630D5F9E0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "xmscommon", "xmscommon\xmscommon.csproj", "{77064C42-24D2-4CEB-9EA2-0EF481A43205}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "xmsclient", "xmsclient\xmsclient.csproj", "{68987C05-3768-452C-A6FC-6BA1D372852F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{77064C42-24D2-4CEB-9EA2-0EF481A43205} = {77064C42-24D2-4CEB-9EA2-0EF481A43205}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E6EED856-9650-439F-BB81-F35A2C0F8AB8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E6EED856-9650-439F-BB81-F35A2C0F8AB8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E6EED856-9650-439F-BB81-F35A2C0F8AB8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E6EED856-9650-439F-BB81-F35A2C0F8AB8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB3F6DD7-E5F4-45B0-9F5A-7D641FB1D192}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB3F6DD7-E5F4-45B0-9F5A-7D641FB1D192}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB3F6DD7-E5F4-45B0-9F5A-7D641FB1D192}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB3F6DD7-E5F4-45B0-9F5A-7D641FB1D192}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CEF80E5F-E838-4F27-9435-2E3630D5F9E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CEF80E5F-E838-4F27-9435-2E3630D5F9E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CEF80E5F-E838-4F27-9435-2E3630D5F9E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CEF80E5F-E838-4F27-9435-2E3630D5F9E0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{77064C42-24D2-4CEB-9EA2-0EF481A43205}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{77064C42-24D2-4CEB-9EA2-0EF481A43205}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{77064C42-24D2-4CEB-9EA2-0EF481A43205}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{77064C42-24D2-4CEB-9EA2-0EF481A43205}.Release|Any CPU.Build.0 = Release|Any CPU
+		{68987C05-3768-452C-A6FC-6BA1D372852F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{68987C05-3768-452C-A6FC-6BA1D372852F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{68987C05-3768-452C-A6FC-6BA1D372852F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{68987C05-3768-452C-A6FC-6BA1D372852F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
