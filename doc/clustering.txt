@@ -1,10 +1,10 @@
 gdl
-    title     = AMQ Clustering
+    title     = OpenAMQ Clustering
     subtitle  = Providing Reliability and Scalability
     product   = OpenAMQ
-    author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/10/21
-    copyright = Copyright (c) 2004-2005 JPMorgan
+    author    = iMatix Corporation <openamq@imatix.com>
+    date      = 2006/01/04
+    copyright = Copyright (c) 2004-2006 JPMorgan
     version   = 1.2a1
 end gdl
 
@@ -14,14 +14,14 @@ General Discussion
 What is "Clustering"?
 =====================
 
-We use the term "cluster" to mean a set of servers that are tied
-together in such a way as to create a single virtual server:
+We use the term "cluster" to mean a set of brokers that are tied
+together in such a way as to create a single virtual broker:
 
            +------------------+------------------+
            |                  |                  |
     +------+-----+     +------+-----+     +------+-----+
     |            |     |            |     |            |
-    |   Server   |     |   Server   |     |   Server   |
+    |   Broker   |     |   Broker   |     |   Broker   |
     |            |     |            |     |            |
     +------+-----+     +------+-----+     +------+-----+
            |                  |                  |
@@ -36,8 +36,8 @@ together in such a way as to create a single virtual server:
                        |             |
                        +-------------+
 
-Note that the servers may be physically distant.  We do not use the
-term to describe sets of interconnected servers that serve different
+Note that the brokers may be physically distant.  We do not use the
+term to describe sets of interconnected brokers that serve different
 sets of applications, e.g.:
 
         +---+                      +---+
@@ -63,11 +63,11 @@ Why Cluster?
 
 The main reasons for clustering are:
 
-1. Reliability: using redundant servers so that if one fails, another
+1. Reliability: using redundant brokers so that if one fails, another
    can take its place.  Reliability is principally for point-to-point
    messages, the classic "queue service" scenario.
 
-2. Scalability: using multiple servers so that work can be distributed
+2. Scalability: using multiple brokers so that work can be distributed
    over more boxes and/or networks.  Scalability is principally for
    transient publish/subscribe messages, the classic "topic service"
    scenario.
@@ -98,8 +98,8 @@ Terminology
 ===========
 
 We use the term "persistent" to mean data that is saved on disk, and
-survives server restarts. This is contrasted with "transient", which
-means data held only in memory, and lost if the server restarts. We use
+survives broker restarts. This is contrasted with "transient", which
+means data held only in memory, and lost if the broker restarts. We use
 the term "reliable" to mean persistent data that is mirrored in some way
 to make it robust against disk failures.
 
@@ -126,7 +126,7 @@ Transactions vs. Messages
 
 Although AMQ is a message-oriented middleware system, it is useful to
 consider reliability in terms of "transactions". A transaction consists
-of a set of actions that imply change to the server state, and
+of a set of actions that imply change to the broker state, and
 specifically, the set of messages held by a queue:
 
  - The simplest transactional model wraps every method in a transaction.
@@ -135,7 +135,7 @@ specifically, the set of messages held by a queue:
  - The classic transaction model wraps a set of methods in a transaction.
 
  - The distributed transaction model coordinates transactions across a
-   set of servers using a distributed transaction coordinator.  This is
+   set of brokers using a distributed transaction coordinator.  This is
    more complex than we want to implement at present.
 
 Transactions can cover any mix of persistent, or transient messages, and
@@ -149,17 +149,17 @@ General Solution for Reliability
 ================================
 
 We consider the problem of storing persistent transactions in such a
-way that a server or disk system failure does not cause loss of data.
+way that a broker or disk system failure does not cause loss of data.
 This is the classic "reliable point-to-point messaging" scenario.
 
-The cluster consists of two servers, one acting as "primary" and one as
-secondary. In normal operation, all clients connect to the primary
-server, as shown by this diagram:
+The cluster consists of two brokers, one acting as "root" and one as
+backup. In normal operation, all clients connect to the root broker,
+as shown by this diagram:
 
         +-----------+        +-----------+
         |           |        |           |
-        |  Primary  +--------+  Backup   |
-        |  Server   +--------+  Server   |
+        |   Root    +--------+  Backup   |
+        |  Broker   +--------+  Broker   |
         |           |        |           |
         +----/+\----+        +-----------+
            // | \\
@@ -173,8 +173,8 @@ server, as shown by this diagram:
 
       Client Applications
 
-Each server maintains its own storage, and the primary server replicates
-transactions to the secondary server as follows:
+Each broker maintains its own storage, and the root broker replicates
+transactions to the backup broker as follows:
 
         -----                -----
       //     \\            //     \\
@@ -185,8 +185,8 @@ transactions to the secondary server as follows:
           |  B                 |  D
     +-----+-----+        +-----+-----+
     |           |  C     |           |
-    |  Primary  +-||||||-+  Backup   |
-    |  Server   +--------+  Server   |
+    |   Root    +-||||||-+  Backup   |
+    |  Broker   +--------+  Broker   |
     |           |     E  |           |
     +-----+-----+        +-----------+
           | ||||||
@@ -199,27 +199,27 @@ transactions to the secondary server as follows:
         Client
 
  - (A) The client prepares a transaction (publishes messages and
-   acknowledges received messages) on the primary server.  The
+   acknowledges received messages) on the root broker.  The
    client then does a COMMIT.
 
- - (B) The primary server writes this transaction to disk.  It may
+ - (B) The root broker writes this transaction to disk.  It may
    or may not flush the disk, this is a matter of optimisation.
 
- - (C) The primary server passes the transaction to the backup
-   server.
+ - (C) The root broker passes the transaction to the backup
+   broker.
 
- - (D) The backup server writes this transaction to disk.  Again,
+ - (D) The backup broker writes this transaction to disk.  Again,
    it may or may not flush the disk depending on the degree of
    reliability wanted.
 
- - (E) The backup server confirms that the transaction has been
+ - (E) The backup broker confirms that the transaction has been
    recorded safely.
 
- - (F) The primary server confirms to the client application that
+ - (F) The root broker confirms to the client application that
    the transacton has been completed.
 
-If the primary server fails, the client can detect this and switch
-to the backup server:
+If the root broker fails, the client can detect this and switch
+to the backup broker:
 
            -----                -----
          //     \\            //     \\
@@ -230,8 +230,8 @@ to the backup server:
           ---+---                 |
       / //-------\\ \       +-----+-----+
      | |           | |      |           |
-    |  |  Primary  |  |     |  Backup   |
-    |  |  Server   |  |     |  Server   |
+    |  |   Root    |  |     |  Backup   |
+    |  |  Broker   |  |     |  Broker   |
      | |           | |      |           |
       \ \\\-----/// /       +-----------+
            -----            ----
@@ -243,25 +243,6 @@ to the backup server:
            |    |
             \--/
            Client
-
-There are some non-trivial details to solve, such as:
-
- - How does the secondary server know the primary server has
-   crashed?  How can it differentiate this from - e.g. - a
-   network failure?
-
- - How does the client know which server is the primary and
-   which is the secondary?
-
- - What happens if the secondary server crashes?  Does this
-   need special attention?
-
- - How does the primary server come back on-line?
-
- - Can we extend this solution to N servers, and does that help
-   to provide a more general (and simpler) solution?
-
-We will work through these in the detailed design section.
 
 General Solution for Scalabilty
 ===============================
@@ -294,7 +275,7 @@ set publisher and several sets of subscribers:
           |                |                 |
     +-----+-----+    +-----+-----+     +-----+-----+
     |           |    |           |     |           |
-    |  Server   +----+  Server   +-----+  Server   |
+    |  Broker   +----+  Broker   +-----+  Broker   |
     |           |    |           |     |           |
     +-----+-----+    +-----+-----+     +-----+-----+
           |                |                 |
@@ -305,482 +286,339 @@ set publisher and several sets of subscribers:
         \---/            \---/             \---/
      Subscribers      Subscribers       Subscribers
 
- 1. Subscribers are distributed across the servers, so that each
-    server has a segment of the subscriber population.
+ 1. Subscribers are distributed across the brokers, so that each
+    broker has a segment of the subscriber population.
 
  2. Subscriptions (AMQ bindings and subscription queues) are held
-    separately for each subscriber on 'their' server.
+    separately for each subscriber on 'their' broker.
 
- 3. Every publisher sends every message to every server.
+ 3. Every publisher sends every message to every broker.
 
 It is clear that this model only works where we can exploit a strong
 fan-out from publisher to subscriber.  If every published message goes
 only to a few subscribers, this model will not provide any advantage.
 
-Failover is relatively easy: all subscribers from the failing server
-reconnect to another server, resubscribe, and start to collect their
+Failover is relatively easy: all subscribers from the failing broker
+reconnect to another broker, resubscribe, and start to collect their
 messages.
 
-In addition to the questions raised for the reliability design, we must
-answer these questions for the scalability design:
+OpenAMQ Cluster Design
+**********************
 
- - How do subscribers decide which server to connect to?
+Cluster Organisation
+====================
 
- - Where does the 'fan-out publish' intelligence sit?
+Defining an OpenAMQ Cluster
+---------------------------
 
- - Where does the 'recreate subscriptions' intelligence sit?
+An OpenAMQ cluster consists of 1 or more broker processes (also called
+"brokers"), running on one or more machines, interconnected by a LAN or
+high-reliability WAN links:
 
- - How do we support (more or less) reliable durable subscriptions with
-   persistent messages?
+- All brokers in a cluster share the same "cluster key", a configured
+  string that identifies the cluster.
 
-We will work through these questions in the detailed design section.
+- All applications that work with the cluster must connect using the
+  same cluster key value.  This prevents, for example, an application
+  connecting to a production cluster by mistake.
 
-Design Methodology
+- There is no mechanism for combining two or more separate clusters
+  except through external bridging.  Each cluster is a closed set of
+  brokers.
+
+The Primary Partition
+---------------------
+
+The "primary partition" consists of one or more brokers that are present
+at all times except during emergency breakdowns:
+
+- The primary brokers are fully-interconnected using a high-speed and
+  high-reliability network.
+
+- The primary brokers should share identical configuration data.
+
+- Brokers are interconnected by exactly one network path: each broker
+  creates a single network connection to every other broker using an
+  IP address and port specified in the configuration data.
+
+- It is not legal to create multiple independent network paths in the
+  cluster, e.g. three independent network paths between three brokers
+  A-->B, B-->C, and C-->A, which could lead to different views of the
+  network topology if one path breaks.
+
+The Secondary Partition
+-----------------------
+
+The "secondary partition" consists of zero or more brokers that may be
+activated and de-activated dynamically, without changing the cluster
+configuration:
+
+- Each secondary broker is connected to all primary brokers but not to
+  other secondary brokers.
+
+- The secondary brokers can usefully share identical configuration data
+  with each other, and with the primary brokers.
+
+The Root Broker
+---------------
+
+The root broker is elected from the set of primary brokers:
+
+- The root broker is specifically responsible for handling shared queues,
+  i.e. queues that can be consumed by multiple applications at the same
+  time.
+
+- The root broker is always the most senior primary broker, i.e. the
+  broker with the oldest timestamp.
+
+Election Process
+----------------
+
+The election of the root broker is a continuous process that happens in
+parallel on all primary brokers:
+
+- Each primary broker manages its own election process by monitoring the
+  state and seniority of the primary brokers it is connected to.
+
+- A primary broker elects itself as "root" when it receives a unanimous
+  vote of all active primary brokers and the electorate constitutes more
+  than 50% of the defined primary brokers.
+
+- If any primary broker is still starting (at cluster start time) this
+  counts as a "no" vote, and no root will be elected.
+
+- If a primary broker has broken (gone offline), this counts as an
+  abstention, and does not affect the election process so long as the
+  active primaries form a quorum.
+
+- Secondary brokers do not vote because in a fragmented network this can
+  create split-brain scenarios in which more than one broker will elect
+  itself as root.
+
+- If the active root broker finds that the electorate constitutes strictly
+  less than 50% of the primary brokers, it resigns as root broker.
+
+Failover and Recovery
+---------------------
+
+The cluster will, in most cases, manage its state automatically and
+safely:
+
+- Election of root is automatic when the cluster starts.
+
+- Failover of root to a backup broker is automatic so long as the cluster
+  state is unambiguous.
+
+- When the old root is restarted, it rejoins the primary cluster as a
+  backup broker.
+
+- For best results, the primary segment should have three or more brokers
+  running in it.
+
+- All primary brokers should be equally capable in terms of resources
+  (i.e. running on similarly-specified machines, with similar memory
+  and CPU limitations).
+
+The cluster will require manual intervention in some specific cases:
+
+- When the failure of the root leaves the cluster with exactly 50%
+  active primary brokers.  I.e., if the primary segment has two
+  defined brokers.
+
+- When more than half of the primary brokers crash, and this includes
+  the root broker.
+
+The current "intervention" strategy in such cases is manual restarts
+of the affected processes.
+
+In the worst case, it may be necessary to remove brokers from the
+primary segment (modifying the configuration data) and then restarting
+all the cluster processes.
+
+Cluster Management
 ==================
 
-Our design methodology is the conventional one: start with the simplest
-plausible model, and build up from there.  We will define a series of
-"levels", each more complex.  Each level is fully implementable, and
-will implement and test each level before attempting the next.
+Application Connection to Cluster
+---------------------------------
 
-Level 0 Clustering
-******************
+An application is connected to a single cluster broker:
 
-Functional Goals
-================
+- Initially, the application will connect to one of the primary brokers.
 
-Level 0 clustering is our ground floor. This provides system failover
-without any data reliability or state replication. 
+- The primary broker can redirect the application to a different broker.
 
-We do not attempt to safeguard persistent messages, transactions,
-durable resources, or connection state. All messages are "fully
-transient" (i.e. held in a single memory only), and all queues and
-bindings are temporary and created on-demand.
+- Eventually, applications should be fairly distributed across all
+  primary and secondary brokers in the cluster.
 
-The main functionality of level 0 clustering is to redirect clients to
-the "right" server and to allow graceful failover to a backup server.
+- High-volume publishers and criticial consumers may explicitly ask to
+  be connected to the current root broker.
 
-We expect that some of the design decisions in the Level 0 clustering
-proposal will be "wrong", but we feel it is more important to implement
-a minimal working solution and learn from that than to attempt to design
-the complete and perfect solution without intermediate stages.
+Intra-Cluster Connections
+-------------------------
 
-Level 0 clustering is a problem is worth solving because:
+The cluster brokers are interconnected using AMQP connections (the
+wire-level protocol for AMQ):
 
- 1. It is a real problem that we must solve for our first target
-    applications.
+- Each broker acts as a client for the brokers it is connected to.
 
- 2. It is significantly simpler than the full clustering problem.
+- This relationship is bi-directional, so every broker manages a
+  set of inbound client connections from other brokers, and a set
+  of outbound proxy connections to other brokers.
 
-General Implementation
-======================
+- The broker-to-broker connections use a specific login (user type
+  = "cluster") that are distinct from normal application logins and
+  from console logins.
 
-Level 0 clustering has this general organisation:
+State Replication
+-----------------
 
- - The cluster consists of two servers: one is the "primary" server
-   and the others is the "secondary" server.
+The cluster has state, consisting of resources that are created on
+brokers at different times, by applications:
 
- - All clients connect the primary server.
+- The state is replicated to all brokers in the cluster, each time
+  an application makes a change on one broker.
 
- - All queues are created and held on the primary server.
+- When a new broker joins the cluster it receives the state from the
+  root broker.
 
- - All clients publish messages to the primary server.
+- The state is held on each primary broker, so that if the root broker
+  dies, the backup which becomes root already has the full state.
 
- - The primary and secondary servers are connected and monitor each
-   other for failure.
+- The cluster state has a certain maximum size, defined in the broker
+  configuration.
 
-If the primary server crashes, the fail-over process is as follows:
+Exchange Management
+-------------------
 
- - The secondary server takes over the role of primary server.
+Exchanges are the broker objects to which applications publish messages.
+Note that applications may create exchanges dynamically:
 
- - The clients of the old primary server reconnect to the new primary
-   server.
+- When an application creates an exchange on its broker, that broker
+  replicates the "Exchange.Declare" method to all other brokers.
 
- - The clients recreate all state (queues, consumers, etc.) on the new
-   primary server.
+- Exchanges form part of the cluster state.
 
- - Clients can start publishing again.
+- There is no guarantee of consistent behaviour if the application
+  (for example) creates the same exchange on two brokers at the same
+  time, using different properties.
 
-The recovery process is as follows:
+Queue Management
+----------------
 
- - The old primary server is restarted and checked, and now assumes the
-   role of secondary server.
+Queues are the broker objects that hold messages before they are
+sent to consumers.  Note that applications create queues dynamically
+(the current OpenAMQ implementation does not support durable queues):
 
-Server-side Functionality
-=========================
+- We have distinct management processes for private queues (used to
+  store subscription-type messages) and shared queues (used for
+  workload distribution).
 
-The cluster looks like this:
+- A private queue is defined as a queue that is marked as exclusive
+  and is automatically deleted when the owning application leaves the
+  cluster.
 
-    +-----------+        +-----------+
-    |           |        |           |
-    |  Primary  +--------+ Secondary |
-    |           |        |           |
-    +-----+-----+        +-----------+
-          |
-          |
-        /-+-\
-       /     \
-      |Client |
-       \     /
-        \---/
+- A private queue is always present on the same broker as the consuming
+  application.
 
-We build a cluster failover model that:
+- A shared queue is present on every cluster broker but is only active
+  on the current root broker.
 
- 1. Does not require any external administration or manual control.
+- When an application creates a private queue on its broker, the queue
+  is not replicated.
 
- 2. Does not require any external tokens or shared resources.
+- When an application creates a shared queue on its broker, the queue
+  is replicated to all brokers and forms part of the cluster state.
 
- 3. Is invisible to the client applications.
-
-The servers are interconnected, so if the primary server crashes or
-freezes, the secondary server can unambiguously detect this. However,
-if the network connection between the two servers dies, this may give
-a similar symptom, while in fact the primary server is still running.
-
-The main difference between the two scenarios is this: if the primary
-server really crashes, the cluster clients will start to reconnect at
-the secondary server. Until this happens, even if the primary server
-goes offline, the secondary server does not need to change its role.
-
-The secondary server must rely on the clients to confirm that the
-primary server has really gone away.  So, failover works as follows:
-
- 1. The secondary server monitors the primary server, and if that
-    server stops responding or disappers, the secondary server
-    puts itself into "alert" mode.
-
- 2. When a client connects to the secondary server, in alert mode,
-    the secondary server redirects the client to the primary server.
-
- 3. The client can force the connection, using the "insist" option
-    on the new connection.  In this case, when in alert mode, the
-    secondary server now knows that at least one client confirms
-    that the primary server has gone.  It switches to the role of
-    primary server and accepts the client connection.
-
-We can solve the question of how to nominate a primary server at startup
-using the same technique.
-
- - First, the cluster has a static configuration that is shared by
-   all servers. By convention, when all servers start at the same time,
-   the first server that is defined will take the role of primary server.
-
- - If the primary server has failed, and the cluster is restarted, the
-   procedure will work following the above scenario for failover; the
-   secondary server will take on the role of primary server when it gets
-   a client that insists on connecting to it.
-
- - Lastly, so that the superceded primary server does not nominate
-   itself as current primary, when that role has already been taken, we
-   use some simple inter-server communcation: the primary server will
-   open a port, and before taking on the role of primary server, a
-   newly-starting server will first probe the other server(s) to
-   see if there is already a primary server.
-
-This lets us start the cluster in any order, and lets us switch an
-old primary server back on after a failure (it will assume the role
-of secondary server).
-
-- primary and secondary track nr of clients
-- expect >50% to connect to become primary server
-- less <50% means primary -> secondary
-- client api tells application, "wait"
-- client api reconnects and lets application continue
-
-To avoid this risk, the servers should continuously verify that
-they are not usurping the role of primary server, by checking the
-other server.  The "junior" server, detecting such a conflict, will
-disconnect its clients, and become a secondary server.
-
-Client-side Functionality
-=========================
-
-To work with this cluster design, the client application must be able
-to:
-
- 1. Reconnect to the cluster if it is disconnected for any reason.
-
- 2. Recreate all transient resources (temporary queues, consumers, etc.)
-
- 3. Resume work.
-
-The client API (StdC or Java) must be able to:
-
- 1. Connect to an arbitrary cluster server, by trying them all at random
-    until one accepts the connection.
-
- 2. Disconnect and reconnect to a different server, if the first choice
-    of server requests this.  (We call this a "redirection").
-
- 3. Reconnect to the first choice if the redirection fails, using the
-    "insist" option.
-
- 4. Detect a server failure and report this to the application (this is
-    already a standard part of the API).
-
-Implementation Details
-======================
-
-AMQ Protocol
-------------
-
- - Addition of S:Connection.Redirect method.
-
- - Addition of insist option to S:Connection.Start method.
- 
-Client APIs
------------
-
- - Accept multiple server names in connection string.
-
- - Connect to random server.
-
- - Handle S:Connection.Redirect method as defined above.
-
-Applications
-------------
-
- - Handle server disconnection by restarting connection logic from
-   scratch.
-
-OpenAMQ Server
+Queue Bindings
 --------------
 
- - Configuration file for cluster definition.
- 
- - Server "active" / "passive" mode.
+Queue bindings are the broker objects that link exchanges to queues and
+tell the exchanges how to route incoming messages.  Applications create
+bindings dynamically (the current OpenAMQ implementation does not
+support durable queues):
 
- - Implement Connection.Redirect for passive mode.
+- We have distinct management processes for bindings on private queues
+  and bindings on shared queues.
 
- - Cluster monitoring agent (asynchronous agent that monitors other
-   servers).
+- When an application creates a binding on a private queue, the broker
+  makes a "meta binding" between its instance of the exchange and the
+  eponyous exchange on all primary brokers.  The effect of this is to
+  route messages from exchange to exchange between brokers.
 
-Level 1 Clustering
-******************
+- When an application creates a binding on a shared queue, the broker
+  replicates the binding command to all brokers.  The effect of this
+  is to create a local exchange-to-queue binding on all brokers.  Note
+  that the shared queue is (assumed to be) present on all brokers.
 
-- primary/secondary server for all stateful resources, i.e. shared
-queues.
-- connected network of auxilliary servers for pub/sub.
-- client connects and gets information on which host to connect to.
-- client reconnects to correct sub-cluster.
-- only primary/secondary are fixed in cluster, others are transient.
+Queue Consumers
+---------------
 
+Queue consumers are the broker objects that link queues to consuming
+applications.  Applications always create consumers dynamically, and
+there is no concept of "durable consumer" in AMQ:
 
-Level N Clustering
-******************
+- We have distinct management processes for consumers on private
+  queues and consumers on shared queues.
 
-Extensions to Level 0. These are different issues that we want to
-discuss and get authoratitive answers to whether we tackle them, and if
-so, how. This list is not meant to be exhaustive.
+- A consumer on a private queue works exactly the same way in a
+  clustered configuration as in a non-clustered configuration.
 
-Cluster Console
-===============
+- A consumer on a shared queue is proxied to all brokers in the
+  cluster.  That is, the original broker becomes a consumer of the
+  shared queue on the rest of the cluster.  Note that the shared
+  queue is only active on the root broker, but note also that the
+  current "root" may move around arbitrarily.
 
-Question:
-    Can we provide a single view for operators of a cluster?
-Answer:
-    For general administration this is not a good idea. Each cluster
-    server has its own set of queues and needs to be manageable by
-    itself. For configuration this is a good idea.
-Method:
-    To create a single configuration file, we can either use shared
-    storage (NFS) or pass configuration data between servers.
-Pros:
-    A single configuration for the cluster is highly desirable. E.g.
-    security controls are set once, and apply everywhere.
-Gotchas:
-    Shared storage is simple but creates a dependency on some other
-    server. Passing configuration data between servers is more complex,
-    needing server-side intelligence, or a cluster-aware console.
+Cluster Message Workflow
+========================
 
-Connection State Replication
-============================
+Publisher-to-Queue Workflow
+---------------------------
 
-Problem:
-    Can we make the cluster smart enough to hold all connection
-    state so that a client application can failover without
-    restarting?
-Answer:
-    Yes, so long as the cluster itself is reliable. If there is
-    a problem between the cluster servers, connection state can't be
-    replicated reliably.
-Method:
-    Primary server acts as client of secondary server, and passes
-    all connection commands through. Secondary server thus holds same
-    set of queues, consumers, channels as primary server, for given
-    client connection. Both servers use same 'connection key'.  If primary
-    server goes away, client reconnects to secondary server using
-    connection key, and gets back its resources.
-Gotchas:
-    If primary and secondary server cannot communicate reliable,
-    connection state will be wrong or out of date.  We could try to
-    detect this and force a client disconnection if that happens.
-    Then the application must be able to restart (Level 0 behaviour).
-Pros:
-    Much faster failover, handled at client API level, rather than
-    application. Reconnection (and connection state recovery) is already
-    defined in AMQP and supported by the StdC client.
-Cons:
-    Reconnection protocol may be complex to implement in non-StdC
-    client APIs.
+An application publishes its messages to a named exchange on its
+current broker:
 
-Transactional Memory
-====================
+- The exchange will publish the message to queues and to eponynous
+  exchanges on other cluster brokers, as defined by its bindings.
 
-Problem:
-    How to treat memory and disk through a single transactional
-    API that happens to have different implementations?
-Answer:
-    Not really a clustering problem but possibly a key solution.
-Method:
-    Define transaction-based API for writing messages to queues,
-    and removing messages from queue.  Implement API using pure
-    memory, for transient messages, and using arbitrary storage
-    layers, for persistent messages.  Note that single transaction
-    can cover multiple queues, so transactions should be set at
-    virtual host level.
-Pros:
-    Abstracting persistence makes queue and cluster implementation
-    much simpler.
-Cons:
-    May add unwanted overhead for non-transacted messages. If used
-    systematically, memory implementation must be as rapid as current
-    queue implementation (based on ordered memory lists).
+- When a message arrives in a shared queue and the current broker is
+  not the root broker, the message is pushed to the same exchange on
+  the root node instead of being held in the queue.  The root node
+  will route the message into the shared queue.
 
-Reliable Transient Messages
-===========================
+- When a message arrives in a shared queue, on the root, it is held
+  and then dispatched to consumers as appropriate.
 
-Problem:
-    Can we copy messages to the backup server so that if the
-    primary server fails, a reconnecting client will find queues
-    that are populated with the messages?
-Answer:
-    Yes, as an extension of state replication.
-Method:
-    Primary server would manage the secondary queues by proxy,
-    consuming messages and sending acknowledgements to the secondary
-    server according to the client's work. Probably simplest
-    implementation is as transaction replication (where transaction
-    happens to use memory rather than disk as storage).
-Reliability:
-    If primary server fails, transient messages will not be lost.
-Gotchas:
-    Assumes reliable communications between servers. 
+- Inter-exchange messages (based on meta-bindings) are routed in
+  different ways depending on whether the message came from an
+  application or from a secondary brokers.
 
-Reliable Persistent Messages
-============================
+- Messages from applications are routed to all meta-bound exchanges.
 
-Problem:
-    To copy persistent messages across to backup server.
-Method:
-    As extension of reliable transient messages, using transactions,
-    and using persistence to hold messages.
-Pros:
-    Enterprise-level clustering, this is what people really want for
-    their business-critical data.
-Gotchas:
-    Needs message persistence, and transaction replication, but
-    these are both solvable as independent problems, it seems.
+- Messages from secondary brokers are routed, by the root broker,
+  to all secondary brokers except the originating broker.
 
-Multiple Secondaries
-====================
+The above mechanisms prevent messages from bouncing around the cluster
+ad-nauseam:
 
-Problem:
-    How do we support N servers rather than just two?
-Method:
-    Servers share common configuration file and agree on order of
-    succession. Each server tracks current primary and applies Level
-    0 algorithm in deciding to take over.  All servers monitor for
-    possible conflicts, and junior server (defined as server with
-    fewest clients?) steps back.
-Pros:
-    More servers = more reliability (if done correctly).
-Cons:
-    Servers need to be visible to client application, creating
-    administration difficulties.
+- A message is never sent back to a broker that originated it.
 
-Topic Fanout
-============
+- Messages are never sent twice to the same broker, even if there are
+  multiple bindings for the same message.
 
-Problem:
-    How can we segment clients across multiple servers so that we
-    can use whole cluster actively, rather than just one server at
-    a time?
-Method:
-    Consumers will attach to a single server, publishers will send
+Queue-to-Consumer Workflow
+--------------------------
 
-    messages to all servers. Relies on high-degree of fanout, with
-    same message going to many consumers.
-Pros:
-    Scalable to high-volume pub-sub scenarios. Could be layered on
-    level 0 with small changes.
-Gotchas:
-    How do we mix this with reliable messaging? Maybe, using virtual
-    host as key. I.e. a virtual host implements a specific clustering
-    model, and connections are to virtual hosts within the cluster.
+A shared queue forwards messages to applications based on the consumers
+that it has registered on it:
 
-Clustering Agent
-================
+- Shared queues are always distributed from the root broker, either to
+  consumers on that broker, or other brokers.
 
-Problem:
-    Can we let trivial clients to work usefully with a cluster?
-Answer:
-    Yes, but it needs some assistance at the client side.
-Method:
-    Proxy "cluster agent" layer, run as process on client system,
-    stopped and started by client API as needed. Cluster agent
-    de-virtualises server address, using configured knowledge of
-    cluster: turns single server address into cluster lookup. Cluster
-    agent implements re-connection, redirection, etc.
-Pros:
-    Can be implemented cheaply using existing technology. Can work
-    with any client technology. Hides cluster totally from client.
-    Allows full virtualization, i.e. cluster address and structure can
-    be completely hidden and updated dynamically. Creates a single point
-    for adding extra client-side intelligence. Lets us build very large
-    clusters with dumb clients.
-Cons:
-    Extra process on client server. Starts to look like p2p, may be
-    confusing for some people.
-Gotchas:
-    None. This seems an elegant way to help unsophisticated applications
-    get onto an AMQ cluster.  
+- Consumers can be local applications, on the current broker.
 
-Proposed Evolution
-******************
+- Consumers can be remote applications, on a different broker.
 
-We propose the following plan for implementing the different aspects
-of clustering:
-
- - Level 1: topic fanout, cluster console, multiple secondaries.
-   This addresses GTW needs.
-
- - Level 1b: transactional memory, connection state replication.
-
- - Level 2: reliable transient messages, reliable persistent messages,
-   clustering agent.
-
-Level 1 Clustering
-==================
-
-We do not add any message reliability, but we add scalability for
-large-scale transient pub/sub, and ensure the cluster can be managed
-using the AMQ Console. We generalise the cluster from two to N servers,
-consisting of a primary and a secondary for shared queues, and a
-set of segmented servers for topic pub/sub.
-
-Level 1b Clustering
-===================
-
-We move the queues onto a transactional memory model, with both
-transient (memory) and persistent (disk) implementations. We do not
-attempt to replicate transactions, but we do replicate the basic
-connection state to allow faster failover for scenarios where response
-time is critical.
-
-Level 2 Clustering
-==================
-
-We implement transaction replication, for transient and persistent
-messages, and on temporary and durable queues.
+- When a non-root broker gets a message from the root server, it passes
+  this to its own matching consumer.
 

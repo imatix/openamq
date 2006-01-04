@@ -15,7 +15,9 @@ Change History
 ==============
 
 1.1d0:
-
+    Added time field type (time_t format).
+    'name' field mandatory in all objects.
+    Added label to class definition.
 1.1c1:
     Renamed all commands to distinguish requests from responses.
 1.1c0:
@@ -286,7 +288,7 @@ We can show the client's request-reply logic using PAL scripting:
 
  - The client creates a temporary, private reply queue and binds this
    to the amq.direct exchange:
-   
+
     <queue_declare queue = "" />
     <queue_bind
         queue = "$queue"
@@ -451,12 +453,14 @@ This is the grammar for server messages:
 
     reply-status    = ok | notfound | noaccess | invalid
 
-    schema-class    = <class name = "class-name">
+    schema-class    = <class name = "class-name" label = "class-label">
                        [ schema-field ]...
                        [ schema-method ]...
                       </class>
 
     class-name      = valid-name
+
+    class-label     = valid-text
 
     schema-field    = group-field | simple-field
 
@@ -483,7 +487,7 @@ This is the grammar for server messages:
                        [ enum-value ] ...
                      </field>
 
-    field-type      = string | int | bool | objref
+    field-type      = string | int | bool | time | objref
 
     repeat-flag     = (0) | 1
 
@@ -491,9 +495,11 @@ This is the grammar for server messages:
 
     value-name      = valid-text
 
-    schema-method   = <method name = "method-name">
+    schema-method   = <method name = "method-name" label = "method-label">
                        [ schema-field ]...
                       </method>
+
+    method-label    = valid-text
 
     inspect-reply   = <inspect-reply class = "class-name" object = "object-id"
                        [ watches  = "watch-count" ]
@@ -503,11 +509,20 @@ This is the grammar for server messages:
 
     watch-count     = 0..maxint - 1
 
-    modify-reply    = <modify-reply object = "object-id" status = "reply-status" />
+    modify-reply    = <modify-reply
+                        class = "class-name"
+                        object = "object-id"
+                        status = "reply-status" />
 
-    method-reply    = <method-reply object = "object-id" status = "reply-status" />
+    method-reply    = <method-reply
+                        class = "class-name"
+                        object = "object-id"
+                        status = "reply-status" />
 
-    watch-reply     = <watch-reply object = "object-id" status = "reply-status">
+    watch-reply     = <watch-reply
+                        class = "class-name"
+                        object = "object-id"
+                        status = "reply-status">
                        [ watch-field ]...
                       </watch-reply>
 
@@ -536,6 +551,7 @@ interface forms without too much work.  We allow these types of field:
    This is the default type.
  - int: defines an integer. Integers are unsigned 32 bits.
  - bool: defines a boolean value, which can be shown as a check box.
+ - time: defines a date/time, held as a time_t format.
  - object: defines a relationship to another object.
 
 String and integer fields can be enumerated, with one or more values.
@@ -551,6 +567,12 @@ boxes (for 5 or more options), e.g.:
 This is a minimalistic typing model that we will most likely refine over
 time, e.g. defining visible and internal size limits for strings and
 integers, and allowing multiline text fields.
+
+Object Names
+============
+
+All objects must have a field called "name" that specifies a unique name
+for the object within the current set of objects of a particular type.
 
 Command Implementations
 =======================
