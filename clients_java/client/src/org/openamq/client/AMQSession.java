@@ -590,7 +590,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
 
                 // Consume from queue
                 AMQFrame jmsConsume = BasicConsumeBody.createAMQFrame(_channelId, 0,
-                                                                      qdb.queue, 0,
+                                                                      qdb.queue, null, 0,
                                                                       prefetch, noLocal, true, exclusive);
 
                 AMQMethodEvent consumeOkEvent = protocolHandler.writeCommandFrameAndWaitForReply(jmsConsume,

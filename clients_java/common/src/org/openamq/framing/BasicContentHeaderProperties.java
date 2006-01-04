@@ -35,7 +35,9 @@ public class BasicContentHeaderProperties implements ContentHeaderProperties
     public String userId;
 
     public String appId;
-
+    
+    public String clusterId;
+    
     public BasicContentHeaderProperties()
     {
     }
@@ -53,7 +55,8 @@ public class BasicContentHeaderProperties implements ContentHeaderProperties
                8 +
                EncodingUtils.encodedShortStringLength(type) +
                EncodingUtils.encodedShortStringLength(userId) +
-               EncodingUtils.encodedShortStringLength(appId);
+               EncodingUtils.encodedShortStringLength(appId) +
+               EncodingUtils.encodedShortStringLength(clusterId);
     }
 
     public int getPropertyFlags()
@@ -84,6 +87,7 @@ public class BasicContentHeaderProperties implements ContentHeaderProperties
         EncodingUtils.writeShortStringBytes(buffer, type);
         EncodingUtils.writeShortStringBytes(buffer, userId);
         EncodingUtils.writeShortStringBytes(buffer, appId);
+        EncodingUtils.writeShortStringBytes(buffer, clusterId);
     }
 
     public void populatePropertiesFromBuffer(ByteBuffer buffer, int propertyFlags) throws AMQFrameDecodingException
@@ -119,5 +123,7 @@ public class BasicContentHeaderProperties implements ContentHeaderProperties
             userId = EncodingUtils.readShortString(buffer);
         if ((propertyFlags & (1 << 3)) > 0)
             appId = EncodingUtils.readShortString(buffer);
+        if ((propertyFlags & (1 << 2)) > 0)
+            clusterId = EncodingUtils.readShortString(buffer);
     }
 }

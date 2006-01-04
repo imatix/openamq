@@ -54,7 +54,7 @@ public class ConnectionTuneMethodHandler implements StateAwareMethodListener
         session.writeFrame(ConnectionTuneOkBody.createAMQFrame(evt.getChannelId(), frame.channelMax, 65535,
                                                                frame.heartbeat));
         session.writeFrame(ConnectionOpenBody.createAMQFrame(evt.getChannelId(),
-                                                             session.getAMQConnection().getVirtualPath(), null, null,
+                                                             null, session.getAMQConnection().getVirtualPath(), null,
                                                              true));
     }
 }

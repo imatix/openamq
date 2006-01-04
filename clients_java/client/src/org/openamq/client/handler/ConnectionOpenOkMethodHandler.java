@@ -31,14 +31,14 @@ public class ConnectionOpenOkMethodHandler implements StateAwareMethodListener
     {
         AMQProtocolSession session = evt.getProtocolSession();
         ConnectionOpenOkBody method = (ConnectionOpenOkBody) evt.getMethod();
-        try
+        /*try
         {
             session.setClientID(method.contextKey);
         }
         catch (JMSException e)
         {
             // never occurs
-        }
+        }*/
         stateManager.changeState(AMQState.CONNECTION_OPEN);
     }
 
