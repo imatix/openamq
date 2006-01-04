@@ -109,7 +109,7 @@ amq_cluster_t
     //  events to the cluster agent
     if (amq_server_config_cluster_enabled (amq_server_config)) {
         self->enabled = TRUE;
-        amq_cluster_start (self);
+        self_start (self);
     }
 </method>
 
@@ -121,7 +121,7 @@ amq_cluster_t
     while ((content = (amq_content_cluster_t *) ipr_looseref_pop (self->state_list)))
         amq_content_cluster_destroy (&content);
     ipr_looseref_list_destroy (&self->state_list);
-    
+
     self->enabled = FALSE;
     amq_peer_list_destroy (&self->peer_list);
     </action>
