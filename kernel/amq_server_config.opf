@@ -27,72 +27,154 @@ $\(selftype)
 <path name = "/config/server">
     <property name = "port" type = "char *" default = "7654">
     Server port for client connections
+    <doc>
+    Specifies the port on which the server should open its connections.
+    Note that this value can be overridden on the command line using the
+    -p option.
+    </doc>
     </property>
 
     <property name = "background" type = "Bool" default = "0">
     Run as background process?
+    <doc>
+    Used on Unix/Linux only. If set, the server will automatically
+    detatch itself from the console and move into the background when
+    started from a console.  This is useful if you have to run the
+    server manually.
+    </doc>
     </property>
 
     <property name = "queue timeout" type = "int" default = "30">
     Timeout for auto-deleted queues
+    <doc>
+    Specifies the delay, in seconds, after which auto-deleted queues
+    are effectively deleted, following disconnection of their last
+    consumer.  If zero, queues are deleted immediately.
+    </doc>
     </property>
 </path>
 
 <path name = "/config/resources">
     <property name = "trace" type = "int">
     Desired trace level
+    <doc>
+    Specifies the trace level, which can be 0 (no tracing), 1 (show
+    information and protocol methods), 2 (show protocol animation),
+    3 (show wire-level data).  You should not use any tracing on
+    production servers except in low-volume scenarios.
+    </doc>
     </property>
 
-    <property name = "monitor" type = "Bool">
-    Monitor message rates
+    <property name = "monitor" type = "int" default = "0">
+    Monitor interval, seconds
+    <doc>
+    Specifies the interval in seconds at which the server will
+    report its message rates.  If zero, no monitoring is shown.
+    The recommended value is 1, if monitoring is desired.
+    </doc>
     </property>
 
     <property name = "max memory" type = "size_t">
     Maximum allowed memory
+    <doc>
+    Specifies the maximum memory allowed for the server, in octets.
+    When the server reaches this limit, it will attempt to free
+    resources and refuse new connections until memory has been
+    made available.  If zero, no limit is used.
+    </doc>
     </property>
 
     <property name = "queue limit" type = "size_t">
     Default queue max messages
+    <doc>
+    Specifies the limit for queues, in messages. When a queue reaches
+    this limit, messages are discarded, using a suitable heuristic.
+    If zero, no limit is applied to queues.
+    </doc>
     </property>
 </path>
 
 <path name = "/config/verbosity">
     <property name = "trace login" type = "Bool">
     Trace user logins
+    <doc>
+    Specifies whether login attempts are traced or not.  The
+    recommended setting is 1 for all servers.
+    </doc>
     </property>
 
     <property name = "trace route" type = "Bool">
     Trace exchange message routing
+    <doc>
+    Specifies whether exchange routing is traced or not.  The
+    recommended setting is 1 for development servers and zero
+    otherwise.
+    </doc>
     </property>
 
     <property name = "trace queue" type = "Bool">
     Trace queue message dispatching
+    <doc>
+    Specifies whether queue dispatching is traced or not.  The
+    recommended setting is 1 for development servers and zero
+    otherwise.
+    </doc>
     </property>
 
     <property name = "trace cluster" type = "Bool">
     Trace cluster synchronisation
+    <doc>
+    Specifies whether cluster activity is traced or not.  The
+    recommended setting is 1 when you are testing a cluster
+    configuration and zero for production use.
+    </doc>
     </property>
 </path>
 
 <path name = "/config/cluster" prefix = "cluster">
     <property name = "enabled" type = "Bool" default = "0">
     Server will join cluster or not?
+    <doc>
+    Specifies whether or not this server process takes part in
+    a cluster.  Must be 1 for cluster work.
+    </doc>
     </property>
 
     <property name = "key" type = "char *" default = "">
     Verifies all access to cluster
+    <doc>
+    Specifies the cluster key, which must be identical for all
+    servers in a cluster.  Any string, up to 255 chars long, can
+    be used.  Note that applications must use the same key when
+    connecting to the cluster.
+    </doc>
     </property>
 
     <property name = "primary" type = "char *">
-    One or more primary servers, delimited by spaces
+    List of primary servers
+    <doc>
+    Specifies all the primary servers in the cluster, as a list of
+    name:port or ipaddress:port words delimited by spaces.  All
+    servers in a cluster MUST have an IDENTICAL list of primary
+    servers.
+    </doc>
     </property>
 
     <property name = "callback" type = "char *">
     IP address and port to use for incoming connections
+    <doc>
+    Specifies the ipaddress:port to use for incoming cluster connections
+    if the server runs on multiple IP addresses.  If not specified, the
+    cluster will connect to this server on its first IP address.
+    </doc>
     </property>
 
     <property name = "state mb" type = "size_t" default = "250" >
     Maximum allowed state size, Mbytes
+    <doc>
+    Specifies the maximum amount of memory reserved for the cluster
+    state.  Note that this state will grow as the cluster is used.
+    </doc>
     </property>
 </path>
 
