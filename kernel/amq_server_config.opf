@@ -33,10 +33,6 @@ $\(selftype)
     Run as background process?
     </property>
 
-    <property name = "context timeout" type = "int" default = "60">
-    Connection context timeout, seconds
-    </property>
-
     <property name = "queue timeout" type = "int" default = "30">
     Timeout for auto-deleted queues
     </property>
@@ -48,7 +44,7 @@ $\(selftype)
     </property>
 
     <property name = "monitor" type = "Bool">
-    Monitor internal
+    Monitor message rates
     </property>
 
     <property name = "max memory" type = "size_t">
