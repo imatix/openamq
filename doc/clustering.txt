@@ -5,7 +5,7 @@ gdl
     author    = iMatix Corporation <openamq@imatix.com>
     date      = 2006/01/04
     copyright = Copyright (c) 2004-2006 JPMorgan
-    version   = 1.2a1
+    version   = 1.0
 end gdl
 
 General Discussion
@@ -619,6 +619,245 @@ that it has registered on it:
 
 - Consumers can be remote applications, on a different broker.
 
-- When a non-root broker gets a message from the root server, it passes
+- When a non-root broker gets a message from the root broker, it passes
   this to its own matching consumer.
+
+Tutorial
+********
+
+In this section we configure a sample cluster and we run tests on it.
+For this you will need the OpenAMQ/1.0a0 software, or later.
+
+All commands are run on the same physical server.
+
+Overview
+========
+
+The cluster will consist of:
+
+1. A primary segment of 3 brokers, one of which will be the root.
+2. A secondary segment of 2 brokers.
+3. An application that reads from a private queue on each broker,
+   and from a shared queue (on the root broker).
+4. An application that publishes messages to different brokers on
+   the cluster.
+
+The exercise will consist of:
+
+1. Starting the cluster and verifying that the root broker is
+   correctly elected.
+2. Stopping and restarting the root broker and verifying that a
+   backup broker correctly takes over the root role.
+3. Publishing to each of the cluster brokers in turn and
+   verifying that messages reach all applications as expected.
+4. Stopping and restarting parts of the cluster and checking that
+   the cluster state is correctly re-established on new cluster
+   brokers.
+
+Cluster Configuration
+=====================
+
+All brokers will run from the same directory.  Note that the current
+OpenAMQ implementation does not use any disk resources except to read
+the configuration file at startup.
+
+* The primary brokers will run on these ports: 5001, 5002. 5003.
+* The secondary brokers will run on these ports: 6001, 6002.
+
+Edit custom.cfg to define the cluster:
+
+    <?xml?>
+    <config>
+        <cluster
+            enabled = "1"
+            key = "my.cluster"
+            primary = "localhost:5001 localhost:5002 localhost:5003"
+            />
+    </config>
+
+Starting the Cluster
+====================
+
+We start the cluster by starting five (5) broker processes, which we can
+do from the command line or from a script.  For testing, it is simplest
+to open five windows and start one broker in each window:
+
+    amq_broker -p 5001
+    amq_broker -p 5002
+    amq_broker -p 5003
+    amq_broker -p 6001
+    amq_broker -p 6002
+
+The first primary broker that you start will report this message:
+
+    I: cluster - start as root (3/3/3 votes)
+
+Each broker should after a second or two, report this message:
+
+    **** CLUSTER 'my.cluster' READY FOR CONNECTIONS ****
+
+Testing Failover
+================
+
+We will now stop the root broker.  The second broker will now report this
+message:
+
+    I: **** CLUSTER 'my.cluster' STOPPING NEW CONNECTIONS ****
+    I: cluster - start as root (2/2/3 votes)
+    I: **** CLUSTER 'my.cluster' READY FOR CONNECTIONS ****
+
+Which indicates the votes, active primary brokers (2), and total primary
+brokers (3).  The other brokers will report this:
+
+    I: **** CLUSTER 'my.cluster' STOPPING NEW CONNECTIONS ****
+    I: **** CLUSTER 'my.cluster' READY FOR CONNECTIONS ****
+
+During the failover period, messages may get lost.
+
+We will now start the root broker again.  Note that it rejoins the cluster
+as a primary backup broker.
+
+Testing Message Throughput
+==========================
+
+The Consumer Application
+------------------------
+
+For our tests, we use the amq.direct exchange and the routing key "test".
+We will use PAL to write our test cases.
+
+This is the consumer application (reader.pal):
+
+    <?xml?>
+    <pal script = "amq_pal_gen">
+        <set name = "myqueue" value = "my.queue" cmdline = "Q" />
+        <set name = "private" value = "0"        cmdline = "P" />
+        <session cluster_key = "my.cluster">
+            <queue_declare queue = "$myqueue" exclusive = "$private" />
+            <queue_bind    queue = "$myqueue" exchange = "amq.direct"
+                routing_key = "test" />
+            <basic_consume queue = "$myqueue" />
+            <repeat>
+                <wait/>
+                <basic_arrived>
+                    <echo>I: Message $message_id arrived</echo>
+                </basic_arrived>
+                <empty>
+                    <abort>E: Message did not arrive</abort>
+                </empty>
+            </repeat>
+        </session>
+    </pal>
+
+To build this, use the command 'pal reader'.
+
+The Publisher Application
+-------------------------
+
+This application (writer.pal) writes a number of messages to the
+amq.direct exchange and using the routing key "test":
+
+    <?xml?>
+    <pal script = "amq_pal_gen">
+        <set name = "messages" value = "1" cmdline = "M" />
+        <session cluster_key = "my.cluster">
+            <repeat counter = "id" times = "$messages" >
+                <basic_content size = "1000" message_id = "id-$random" />
+                <basic_publish exchange = "amq.direct" routing_key = "test" />
+                <basic_returned>
+                    <echo>W: Message $message_id returned</echo>
+                </basic_returned>
+            </repeat>
+        </session>
+    </pal>
+
+To build this, use the command 'pal writer'.
+
+Testing Private Queues
+----------------------
+
+We will run five instances of the reader, one connected to each broker,
+reading messages from a private queue on each broker.
+
+This corresponds to a topic fanout scenario in which many subscribers
+read the same messages (here represented by the same routing key).
+
+Run these commands, each one in its own window:
+
+    reader -s localhost:5001 -P 1
+    reader -s localhost:5002 -P 1
+    reader -s localhost:5003 -P 1
+    reader -s localhost:6001 -P 1
+    reader -s localhost:6002 -P 1
+
+The '-P' option specifies 'private queue' or not.  Now run the publisher
+five times, sending two messages to each broker in the cluster:
+
+    writer -s localhost:5001 -M 2
+    writer -s localhost:5002 -M 2
+    writer -s localhost:5003 -M 2
+    writer -s localhost:6001 -M 2
+    writer -s localhost:6002 -M 2
+
+You can run these commands one after the other, in the same window.
+You should observe that each reader receives a copy of each message.
+Since each private queue is bound with the same routing key, the
+messages are fanned-out.
+
+Testing Shared Queues
+---------------------
+
+We will run the same five instances of the reader, but this time each
+reader will take messages from a shared queue, which the cluster holds
+on the root server.
+
+You should Ctrl-C the reader processes and restart them as follows:
+
+    reader -s localhost:5001 -P 0
+    reader -s localhost:5002 -P 0
+    reader -s localhost:5003 -P 0
+    reader -s localhost:6001 -P 0
+    reader -s localhost:6002 -P 0
+
+Now you can run the writer again, sending two messages to each broker in
+the cluster:
+
+    writer -s localhost:5001 -M 2
+    writer -s localhost:5002 -M 2
+    writer -s localhost:5003 -M 2
+    writer -s localhost:6001 -M 2
+    writer -s localhost:6002 -M 2
+
+You can run these commands one after the other, in the same window.
+You should observe that the messages are distributed across the
+readers, so that each reader receives exactly two messages.  Since
+the readers are sharing the same single queue, there is no message
+fanout.
+
+Comments
+========
+
+Known Bugs
+----------
+
+The 1.0a0 version has these known bugs, under investigation:
+
+1. When using private queues, messages sent to a secondary server are
+   not correctly forwarded to other secondary servers.
+
+2. The broker has been seen to segfault on one occasion while doing a
+   message publishing test.  Sadly no core dump was taken.
+
+Unimplemented Functionality
+---------------------------
+
+1. Intra-cluster consumers are not cancelled correctly when a reader
+   goes away, so stopping and restarting readers on shared queues will
+   cause message loss.
+
+2. The mechanism for redirecting applications across the cluster is not
+   yet implemented, so each application must connect to the specific
+   broker it wants to work with.
+
+3. The Get method will not yet work on shared queues across the cluster.
 
