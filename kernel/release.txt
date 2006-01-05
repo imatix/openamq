@@ -1,3 +1,26 @@
+1.0a0 - 2006/01/05
+---------------------------------------------------------------------
+Remarks:
+    This is an alpha release of OpenAMQ-1.0
+
+Bug Fixes:
+    
+    AMQ-246    amq_client_session_arrived returns one message a time       
+
+Changes:
+
+    AMQ-253    Update JMS layer for 1.0 protocol changes       
+    AMQ-251    Improved handling for queue overflow    
+    AMQ-252    Server shows internal message rate    
+    AMQ-239    Broker should accept connections by management console when
+               locked      
+    AMQ-250    Plain authentication is now configurable    
+    AMQ-249    Improvements to stdc client and broker tracing     
+    AMQ-248    Add clustering support to Stdc API      
+    AMQ-247    Protocol changes for 1.0 - clustering       
+    AMQ-236    Update COM component to work with latest server version
+               Configurable time-outs.     
+
 0.9d1 - 2006/01/02
 ---------------------------------------------------------------------
 Bug Fixes:
