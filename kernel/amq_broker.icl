@@ -60,16 +60,20 @@ extern $(selftype)
 </context>
 
 <method name = "new">
+    <header>
+    //  Set callback from config file, otherwise it'll be set to
+    //  our first IP address and port. We have to do this before
+    //  the broker starts the protocol agent, which may also set
+    //  the callback.
+    icl_shortstr_cpy (self->callback,
+        amq_server_config_cluster_callback (amq_server_config));
+    </header>
+
     //  We use a single global vhost for now
     //  TODO: load list of vhosts from config file
     amq_vhost = amq_vhost_new (self, "/");
     self->xmeter = ipr_meter_new ();
     self->imeter = ipr_meter_new ();
-
-    //  Set callback from config file, otherwise it'll be set to
-    //  our first IP address and port
-    icl_shortstr_cpy (self->callback,
-        amq_server_config_cluster_callback (amq_server_config));
 </method>
 
 <method name = "destroy">

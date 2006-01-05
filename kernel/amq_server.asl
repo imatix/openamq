@@ -365,6 +365,7 @@
 
 <class name = "cluster">
   <action name = "publish">
+    method = NULL;    //  Prevent compiler warning on unused method variable  
     if (connection->type == AMQ_CONNECTION_TYPE_CLUSTER)
         amq_cluster_accept (amq_cluster, self->content, channel);
     else
