@@ -497,7 +497,7 @@ amq_cluster_t
     //  We handle the cluster class here, since we already have
     //  the originating peer and it's easier than going via the
     //  method execute code.
-    /
+    
     if (peer == NULL)
         ;   //  Peer is no longer in the cluster
     else
