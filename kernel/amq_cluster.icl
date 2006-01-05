@@ -213,7 +213,7 @@ amq_cluster_t
         self->votes = votes;
     }
     if (votes == cur_voters && cur_voters * 2 > all_voters) {
-        //  Take over as cluster root if we have a unanimous vote and the 
+        //  Take over as cluster root if we have a unanimous vote and the
         //  electorate constitutes more than 50% of the primary servers.
         //  Secondary servers can't vote because in a fragmented network
         //  they could create split-brain scenarios.
@@ -489,8 +489,6 @@ amq_cluster_t
             break;
         peer = amq_peer_list_next (&peer);
     }
-    assert (peer);
-
     if (amq_server_config_trace_cluster (amq_server_config)) {
         icl_console_print ("C: accept   message=%s from=%s",
             content->message_id, content->sender_spid);
@@ -499,7 +497,10 @@ amq_cluster_t
     //  We handle the cluster class here, since we already have
     //  the originating peer and it's easier than going via the
     //  method execute code.
-    //
+    /
+    if (peer == NULL)
+        ;   //  Peer is no longer in the cluster
+    else
     if (method->class_id == AMQ_SERVER_CLUSTER) {
         //
         //  Execute Cluster.Root method
