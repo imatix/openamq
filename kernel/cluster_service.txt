@@ -125,66 +125,29 @@ cluster key
     - must also match for intra-cluster connections
     OK
 
-class.consume
+class.consume, deliver
     0. create consumer as usual
+        OK
     1. client provides user tag in all consume methods
+        OK
     2. user tag returned with consume-ok and deliver methods
+        OK
     3. if shared queue, broadcast cluster.consume
         - insert outbound consumer-tag into secondary consume
+        OK
 
-
-
+    4. when deliver method arrives
+        -> client key-> consumer
+            - connection->identifier,
+            - channel->key,
+            - consumer->tag
     - no-local?
 
+    - need to cancel remote consumer if local consumer goes away
+
+
+class.get, get-ok
     
-
-    - if private queue or we're root:
-        - create local consumer on queue
-            - reply to client with consume-ok
-      else      
-    - if shared queue and we're not root
-        - replicate cluster.consume to all primaries
-        - part of cluster state...
-        - wait for consume-ok from root
-        - return that to client
-        - what if we get different consume tags from primaries?
-            ...?
-        - root dies, backup takes over
-            - starts sending us content too
-            - we need to be able to redirect to correct channel
-            - we need to provide a consumer tag...
-
-    a. must replicate consume to all primaries
-    b. must create local consumer to get tag
-    c. must provide remote servers with our tag...
-    d. want user tag back on each message...
-    e. we get back content how..? basic.deliver?
-        
-        - push consume method to root
-            - save queue name, channel reference
-        - on consume-ok:
-            - get queue name from method and find channel reference
-            - create local consumer on queue
-            - save consumer-tag and consumer reference
-                - table per peer, hashed by consumer-tag
-            - consume-ok goes back to client
-
-    - what if root dies?
-        - consumer has to be created on backup node as well...
-        - bleh...
-
-    - must be part of server state...
-        - special consume command, content-neutral
-        - 
-
-    ### 1 create remote consumer
-        - push method as-is to root node
-    ### 2 create local consumer
-    ### 3 lookup remote consumer tag -> local consumer
-        - per peer
-    ### 4 lookup local consumer tag -> remote consumer    
-        - property of local consumer
-        
 
     - when content arrives on proxy connection
         - garbage collect consumer if zombied

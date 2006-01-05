@@ -131,7 +131,7 @@ s_get_next_consumer ($(selftype) *self, char *producer_id)
         if (amq_server_channel_alive (consumer->channel)
         &&  consumer->channel->active
         && (consumer->no_local == FALSE
-        ||  streq (consumer->channel->connection->identifier, producer_id)))
+        ||  streq (consumer->channel->connection->id, producer_id)))
             break;                      //  We have our consumer
         else
             consumer = amq_consumer_by_queue_next (&consumer);

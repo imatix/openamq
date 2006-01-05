@@ -245,7 +245,8 @@ cluster class.
                 (amq_proxy_method_t *) method);
         }
         else
-            icl_console_print ("#### DROP method=%s peer=%s", method->name, self->spid);
+            icl_console_print ("#### DROP method=%s peer=%s seq=%ld",
+                method->name, self->spid, method->sequence);
 
         self->last_sequence = method->sequence;
     }

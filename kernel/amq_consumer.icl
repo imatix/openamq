@@ -33,7 +33,7 @@ for Basic, File, and Stream content classes.
     amq_queue_t
         *queue;                         //  Parent queue
     dbyte
-        tag;                            //  Client reference for queue
+        tag;                            //  External id for consumer
     icl_shortstr_t
         client_key;                     //  Client key for consumer
     amq_consumer_basic_t

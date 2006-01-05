@@ -19,6 +19,8 @@ maximum number of consumers per channel is set at compile time.
         *consumer_list;                 //  List of consumers for channel
     ipr_index_t
         *consumer_table;                //  Fuzzy table of consumers
+    int
+        table_limit;                    //  Highest consumer used
 </context>
 
 <method name = "new">
@@ -34,7 +36,7 @@ maximum number of consumers per channel is set at compile time.
         consumer_nbr;
 
     //  Index table has a link on each consumer, so unlink these
-    for (consumer_nbr = 1; consumer_nbr < IPR_INDEX_MAX; consumer_nbr++) {
+    for (consumer_nbr = 1; consumer_nbr <= self->table_limit; consumer_nbr++) {
         consumer = self->consumer_table->data [consumer_nbr];
         if (consumer)
             amq_consumer_unlink (&consumer);
@@ -103,6 +105,9 @@ maximum number of consumers per channel is set at compile time.
 
     tag = ipr_index_insert (self->consumer_table, consumer);
     if (tag) {
+        if (self->table_limit < tag)
+            self->table_limit = tag;
+            
         consumer->tag = (dbyte) tag;
         amq_consumer_by_channel_queue (self->consumer_list, consumer);
         amq_queue_consume (queue, consumer, self->active, method);
@@ -130,7 +135,7 @@ maximum number of consumers per channel is set at compile time.
     amq_consumer_t
         *consumer = NULL;               //  Consumer reference
 
-    if (tag > 0 && tag <= IPR_INDEX_MAX)
+    if (tag > 0 && tag <= self->table_limit)
         consumer = self->consumer_table->data [tag];
 
     if (consumer) {
@@ -150,6 +155,24 @@ maximum number of consumers per channel is set at compile time.
     if (sync)
         amq_server_channel_error (self, ASL_NOT_FOUND, "Not a valid consumer tag");
     </action>
+</method>
+
+<method name = "consumer search" return = "consumer">
+    <doc>
+    Searches for a consumer specified by tag, returns the consumer if
+    found.
+    </doc>
+    <argument name = "self" type = "$(selftype) *" >Channel reference</argument>
+    <argument name = "tag" type = "int" >Consumer tag</argument>
+    <declare name = "consumer" type = "amq_consumer_t *">Consumer reference</declare>
+    //
+    if (tag > 0 && tag <= self->table_limit) {
+        consumer = self->consumer_table->data [tag];
+        if (consumer)
+            consumer = amq_consumer_link (consumer);
+    }
+    else
+        consumer = NULL;
 </method>
 
 <method name = "error">

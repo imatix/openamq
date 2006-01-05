@@ -126,7 +126,7 @@
         else {
             queue = amq_queue_new (
                 amq_vhost,
-                connection? connection->identifier: "",
+                connection? connection->id: "",
                 queue_name,
                 method->durable,
                 method->exclusive,
@@ -161,7 +161,7 @@
     if (queue) {
         //TODO: verify this in cluster context
         if (method->exclusive
-        &&  strneq (queue->owner_id, connection->identifier))
+        &&  strneq (queue->owner_id, connection->id))
             amq_server_channel_error (
                 channel, 
                 ASL_ACCESS_REFUSED,
@@ -305,7 +305,7 @@
                 self->content,
                 method->exchange,
                 method->routing_key,
-                connection->identifier);
+                connection->id);
 
             /*  Cluster ID is our ident, SPID, connection id, and channel number
                 delimited by "/".  We encoded this as a message property to
@@ -320,7 +320,7 @@
                     "%c/%s/%s/%d",
                     amq_cluster_ident (amq_cluster),
                     amq_broker->spid,
-                    connection->identifier,
+                    connection->id,
                     channel->key);
 
             amq_exchange_publish (exchange, channel, self);

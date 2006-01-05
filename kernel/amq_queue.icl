@@ -194,7 +194,7 @@ class.  This is a lock-free asynchronous class.
 
     //  Validate consumer
     if (self->exclusive
-    &&  strneq (self->owner_id, consumer->channel->connection->identifier))
+    &&  strneq (self->owner_id, consumer->channel->connection->id))
         error = "Queue is exclusive to another connection";
     else
     if (consumer->exclusive) {
@@ -224,9 +224,13 @@ class.  This is a lock-free asynchronous class.
             //  Broadcast consumer to cluster
             if (clustered_queue
             &&  consumer->channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER) {
-                //  Set client_key to tag so we can route delivered messages
+                //  Set client_key so we can route delivered messages
                 basic_consume = &method->payload.basic_consume;
-                icl_shortstr_fmt (basic_consume->client_key, "%ld", consumer->tag);
+                icl_shortstr_fmt (basic_consume->client_key,
+                    "%s %d %d",
+                    consumer->channel->connection->id,
+                    consumer->channel->key,
+                    consumer->tag);
                 amq_cluster_forward (amq_cluster, amq_vhost, method, TRUE, FALSE);
             }
         }
