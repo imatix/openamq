@@ -3,273 +3,470 @@ gdl
     subtitle  = Installation and Use of the OpenAMQ Server
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/10/31
-    copyright = Copyright (c) 2004-2005 JPMorgan and iMatix Corporation
-    version   = 0.9c
+    date      = 2006/01/05
+    copyright = Copyright (c) 2004-2006 JPMorganChase
+    version   = 1.0a0
 end gdl
 
+Overview
+********
+
 Introduction
-************
+============
 
-Purpose
-=======
+OpenAMQ is the reference implementation of the AMQ middleware protocol
+standard (AMQP). It aims to provide a reliable, fast, portable (along with
+clients for various languages), easy to use, well documented, low on TCO
+(total cost of ownership) and industry-standards-compatible (e.g. JMS) open
+source platform for service-oriented networks.
 
-OpenAMQ is a reference implementation of the AMQ middleware protocol
-(AMQP). It provides a high-speed message provider along with clients for
-various platforms and languages.  This document provides a guide to
-installing and using the OpenAMQ server.
+AMQ ("Advanced Message Queues") is commodity middleware for use in large-scale
+business and financial applications. It consists of:
 
-Disclaimer
-==========
+ 1. An industry-standard wire-level protocol (AMQP) that lets application
+    clients talk to an AMQ server.
 
-This version of OpenAMQ is not considered to be a final, stable release.
-It may be subject to arbitrary changes and is certainly not sufficiently
-tested to be used for critical data. It is provided AS-IS for the
-purposes of demonstration.
+ 2. A modular framework (called "Advanced Message Queues", or AMQ).  The AMQ
+    framework consists of a set of components that route and store messages
+    within a central server, plus a set of rules for wiring these components
+    together (all of which defines the semantics of the middleware server).
 
-Note that OpenAMQ has not been released as open source, though this is
-the project plan. This software is proprietary and confidential.
+For more information on AMQ, please visit the openamq.org Open Source community.
+This document provides a guide to installing and using the OpenAMQ server.
 
-Copyrights and Credits
+Functional Description
 ======================
 
-OpenAMQ is copyright (c) 2004-2005 JPMorganChase with some parts
-copyright iMatix Corporation.
+The current version of OpenAMQ is capable of:
 
-The concept of a general purpose open source middleware product was
-conceived by John O'Hara, who produced OpenAMQ.  The OpenAMQ team
-was led by Pieter Hintjens, who designed the protocol and wrote the
-kernel server and client layers.  Pieter Hintjens and Jonathan Schultz
-designed and built the Base2 meta-programming environment.  Robert
-Grieg wrote the Java client layers.  Mark Atwell was the key guru
-in all matters technical.  Martin Sustrik and Gustavo Broos helped
-OpenAMQ work in its first application.  Tim Essens, Martin Lucina,
-and Ewen McNeill all played key roles in making OpenAMQ a real
-product.
+Industry standard messaging models such as topics and queues:
+    OpenAMQ implements a high-level protocol which is fully capable of, but not
+    limited to, the Java Message Service. A JMS wrapper is provided as part of 
+    the server package. The JMS wrapper allows for Java applications to join the
+    service network easily (and no native libraries are required).  
 
+Flexible and extensible high-performance message delivery:
+    The exchange is a concept unique to OpenAMQ, it is a kind of plug-in mechanism
+    that allows for different message distribution schemes, such as publish-subscribe 
+    and point-to-point. Different types of exchanges can be created to solve diferent 
+    needs with high efficiency (For example Broadcast (Fan-out), SQLXX, Load-balancing).
 
+Out-of-band message delivery*:
+    Messages can be sent using out-of-band transport. The specific out-of-band 
+    transport used, and its configuration, is defined when a channel is opened.
+ 
+High performance transactions:
+    OpenAMQ supports distributed* and non-distributed transactions, this gives flexibility
+    for different application needs. From the client's point of view there's no difference 
+    between the non-transacted, transacted, and distributed transactions model. Compatibility 
+    of AMQ transactions with XA distributed transactions is yet to be implemented.
 
-The AMQP protocol was designed by Pieter Hintjens and John O'Hara
-with suggestions from Mark Atwell, Robert Grieg, Martin Sustrik and
-others.
+Clustering and scalability*:
+    AMQ clustering must have this qualities:
+    1. Simple to configure, administrater, and use in applications.
+    2. Simplicity of implementation, except where the system becomes more
+       complex to use.
+    3. Ability to scale to any size.
+    4. Ability to use arbitrary storage systems (SAN, RAID, IDE).
+    5. A single solution that provides both scalability and reliability,
+       albeit targetted towards specific application scenarios.
 
-The OpenAMQ server was designed by Pieter Hintjens and Jonathan
-Schultz
-and built by Pieter Hintjens and Jonathan Schultz with contributions
-from Martin Lucina, Martin Sustrik, Ewen McNeill, Gustavo Broos,
-Rakan El-Khalil, and others.
+Persistent and non-persistent messages:
+    The server makes a best-effort to hold persistent messages on a reliable 
+    storage mechanism.
+    
+Message prioritisation:
+    OpenAMQ implements 10 priority levels per queue.
 
-OpenAMQ uses the iMatix Base platform, including the iMatix Class
-Language (iCL), iMatix Portability Runtime (iPR), and iMatix Simple
-Multithreading kernel (SMT).
+Restartable message transfer for large messages*:
+    This helps on low-quality connections.
 
-Additionally, OpenAMQ uses Berkely Database from Sleepycat software
-and the Apache Runtime (APR) from the Apache Foundation.
+Connection heartbeats*:
+    The heartbeat function allows peers to detect network failure rapidly, otherwise it  
+    can be slow to detect that a peer process has gone "offline". 
 
-Features
-========
+Message payload capacity from 1 octet to 1.6 teraoctets:
+    In practice, the limit is stablished by the current resources, OS and network 
+    layers.
 
-The current version of OpenAMQ implements:
+Virtual hosts:
+    OpenAMQ allows for configuration flexibility and resources optimization by alowing
+    virtual host definitions over a single piece of hardware.
 
-- configured message queues
-- named and unnamed temporary queues
-- message sizes from 1 octet to 4 gigaoctets
-- persistent and non-persistent messages
-- batched operation with commit/rollback per batch
-- multiple readers per queue with round-robin dispatching
-- configurable queue limits (messages, readers)
-- a rapid single-process server architecture
-- virtual hosts
-- restartable message transfer for large messages
-- browsable queues
-- simple authorisation via login and password
-- message prioritisation (up to 10 levels per queue)
-- multiplexed AMQP protocol with up to 255 channels per socket
-- XML-based configuration files
-- tuning options for queue physical storage
-- topics and subscriptions
+Multiplexed AMQP protocol with up to 64k channels per socket (connection):
+    The channels per socket limit depends in practice on the hardware resources 
+    available. 
 
-These aspects of the AMQP specifications are not implemented:
+Large numbers of readers per queue with configurable dispatching models:
+    Dispatching type can be configured using exchanges and bindings (for topics, 
+    round-robin, fan-out, etc.). Bindings are the parameters the exchange receives 
+    for message subscription (such as in topics).
 
-- message selectors
-- connection heartbeats
-- message expiration
+Extensible security and authentication mechanism*:
+    OpenAMQ can use a basic user/password authentication mechanism, or other
+    more secure industry-standard authentication mechanisms.
+    In progress: Jira AMQ-238.
 
-These additional functionalities are planned for future versions
-of OpenAMQ:
+XML-based configuration files:
+    The server configuration file controls authentication, connection defaults, 
+    virtual host setup, resource limits and logging.  
 
-- remote administration tools (web or Java)
+Remote administration tools:
+    The AMQ console is designed to allow remote configuration, control and 
+    management of an AMQ server.
+    In progress (doc to be posted soon in the wiki).
+    
+(* = planned)    
 
-Concepts
-========
+Technical Description
+=====================
 
-Virtual Hosts
-.............
+AMQP classes and methods:
+-------------------------
 
-An OpenAMQ virtual host packages a set of queues.  In the AMQ protocol
-the virtual host is a "path" that the application chooses to work with
-after authentication.  We can draw parallels between an OpenAMQ virtual
-host and an SQL "database", which packages a set of database tables.
+The AMQP methods (the protocol frames) are grouped in classes. There are 
+classes that cover basic functionality, such as: connection, channel, basic
+(basic message handling), queue. There are also clases for more specialized 
+functionality, for example: Access, Transaction. This architecture makes
+AMQP open to enhancements/specialization through the addition of new 
+functionality classes. 
 
-OpenAMQ makes virtual hosts easy to manage.  Each virtual host exists
-as a directory (with its own structure and contents).  You can copy and
-move virtual hosts by copying and/or moving their directories.
+The included JMS wrapper sends and receives methods from all of the mentioned 
+classes and others (through Apache MINA), but JMS does not cover all of the 
+features of existing messaging systems, that would be too complicated. If full 
+interoperability with some complex legacy system is required, then coding a set 
+of specialized classes for that purpose is the straight-forward solution possible 
+with AMQP. 
+    
+AMQ queues and exchanges:
+-------------------------
 
-Authorisation is not handled on a per-virtual host basis, but access
-controls (which are not yet implemented in OpenAMQ) would be.  I.e. an
-OpenAMQ server defines a single unified set of users but each virtual
-host (and each queue) controls which users can perform different kinds
-of work.
+An AMQ "exchange" accepts messages from a client application - the publisher - 
+and routes these to queues according to pre-arranged criteria. These criteria
+are called "bindings". AMQ exchanges are matching and routing entities. That is,
+they inspect messages and using their binding tables, decide how to forward these
+messages to AMQ queues or other exchanges. AMQ exchanges never store messages.
 
-OpenAMQ currently allows up to 255 virtual hosts per server.
+For new specialized functionality needs, it will probably suffice to code 
+a new exchange class. Exchanges allow for an extensible framework which makes
+it possible to add new functionality, in a useful place and in a simple way.
 
-Queues
-......
+Zero-copy and out-of-band techniques:
+-------------------------------------
 
-A queue is a named destination for messages.  Queues accept messages from
-one or more producers and distribute these to one or more consumers.  A
-message is never distributed to more than one consumer.  An OpenAMQ queue
-is mapped onto a physical file so that persistent messages can be safely
-held.  This backing storage is also used when the queue "overflows", i.e.
-it reaches a preset limit for the number of non-persistent messages it
-can hold.
+The message payload (content body) is always placed in separated frames (as 
+compared to including the header and body in the protocol method). We want to 
+support "zero copy" techniques in which content is never marshalled or encoded, 
+and can be sent via out-of-band transport such as shared memory or remote DMA.
 
-OpenAMQ provides full configurability for queues so that you can make the
-best choices between performance and reliability.
+Reliability:
+------------
 
-Topics
-......
+OpenAMQ provides a rich set of features and options for scalability and 
+reliability. Cluster reliability can be:
 
-A topic is a named destination for messages.  Topics accept messages from
-one or more producers and distribute these to one or consumers.  A message
-can be distributed to as many consumers who have asked for it.
+- Fully transient: the message is held only in one memory and is lost if that memory 
+  is reset.
+- Reliable transient: the message is replicated to a second memory and is lost only 
+  if both memories are reset.
+- Persistent: the message is saved to a single disk system and is lost if that disk 
+  system is damaged.
+- Reliable persistent: the message is saved to two distinct disk systems and is lost 
+  only if both disk systems are damaged.
 
-OpenAMQ Configuration Files
-...........................
+Reliable distinguishes two types of servers, one acting as "primary" and one as 
+secondary. In normal operation, all clients connect to the primary server. Each 
+server maintains its own storage, and the primary server replicates transactions 
+to the secondary server. If the primary server fails, the client detects this and 
+switches to the backup server.  
 
-The OpenAMQ server needs a valid configuration file in order to run.
-Basically there is one configuration file for the main server, and one per
-virtual host, in the virtual host directory. The standard package includes
-these files.
+Persistent messages are held on a reliable storage mechanism. Non-persistent messages 
+are lost between server starts and when space for persistent/priority messages is 
+needed. AMQP allows 10 priority levels per queue. At least 2 priority levels must be 
+supported on any AMQ implemenetation.
 
-OpenAMQ configuration files use a simple XML format, explained in more
-detail in the next section.  You can edit the configuration files using
-any text editor.
+The client applications can choose between distributed (XA) and not distributed 
+transaction models. Non-distributed transactions have higher performace, but do
+not meet every application's needs.
 
-Installation and Operation
-**************************
+Although TCP/IP guarantees that data is not dropped or corrupted it can be slow to
+detect that a peer process has gone "offline". The heart beat is a frame that is
+sent periodicaly between server and client. Abscence of the signal (timeout) alerts
+that at the other side of the connection the process has stopped responding.
 
-Operating Environments
-======================
+Scalability:
+------------
 
-OpenAMQ runs on Linux and win32 (Windows 95/98/XP/2000/2003).  The server
-uses about 10-20MB of memory depending on whether it is built with debug
-information or not.
+The technical description for cluster scalability is beyond the reach of this
+document. Please refer to [7], in the references list at the end of this 
+document.
 
-A Solaris version of OpenAMQ will be available in the near future.  The
-Unix source package should build, but has not been qualified, on other Unix
-systems.
+Hardware load scalability. Virtual hosts allow to make optimal use of one piece of 
+hardware. Virtual hosts are independent server domains that share a common authentication 
+and encryption environment. The client chooses a virtual host as the last stage in 
+negotiating the connection.
 
-For operation on Linux you should build the server from source.  Of course
-you can copy pre-built binaries between systems but to avoid C runtime
-compatibility issues, you should not mix pre-built binaries between
-different Linux distributions and versions.
+AMQP/Fast is designed to give a useful lifespan of 50 years or more. Our goal is 
+that an AMQP/Fast peer will be able to operate continuously with no upgrades or
+incompatibility for at least this duration, without requiring "legacy support".
 
-For operation on win32 you can either build from source (you then need
+Configuration and administration:
+---------------------------------
+    
+The server uses XML-based configuration files.    
+In progress: Jira AMQ-238.
+Remote administration tools: In progress (doc to be posted soon in the wiki).
+
+Operational Requirements
+========================
+
+Basic requirements
+------------------
+
+OpenAMQ runs on Solaris, Linux and win32 (Windows 95/98/XP/2000/2003).  The 
+server uses about 10-20MB of memory depending on whether it is built with debug
+information or not. For production you should provide sufficient memory 
+depending on the total estimated number of messages to be held in memory (we 
+recommend to start with at least 256MB).
+
+For operation on Solaris/Linux you should build the server from source.  The 
+Unix source package should build, but has not been qualified, on other Unix 
+systems. For operation on win32 you can either build from source (you then need
 MSVC 6 or 7) or use the pre-built binaries.
 
-OpenAMQ does not need any further software.  For its operation you should
-provide sufficient memory (we recommend at least 256MB) depending on the
-total estimated number of messages to be held in memory.
+The OpenAMQ source packages are self-contained. External software is only
+needed for optional modules (see below: Optional Software).
 
-Required Files
-==============
+Compatability
+-------------
 
-To run the OpenAMQ server you need:
+The OpenAMQ server is compiled from ANSI C. Most of the code is generated from iCL, 
+which uses a simple XML language that is self-descriptive and easy to read and write. 
+iCL (the iMatix Class Library) aims to provide portable, fast and operationally stable 
+ANSI C applications. iCL is loosely based on object-oriented concepts (desirable for 
+very large and very high-quality applications). 
 
- - the openamqd server executable
- - the amq_server.cfg configuration file
- - a configuration directory and file per virtual host
+iCL applications make calls to the Apache Runtime library (APR), for certain 
+functions. OpenAMQ can be ported easily to any platform where ANSI C is supported
+and in which APR runs. However, performance may vary from one platform to another,
+depending on the availability of APR assembler optimizations for a given platform.
+Compatability, with little or no modifications, over a wide range of systems is not 
+only guaranteed by ANSI C and APR, but by iCL's code generation advantages.
 
-The OpenAMQ server must be started in the directory which contains the
-amq_server.cfg file.  We call this the "main directory".  Each virtual
-host is configured as a child directory of this main directory.
+Optional Software
+-----------------
 
-We provide a default server configuration in the openamq/servers directory.
+OpenAMQ's JMS layer requires the following software for building from source packages:
 
-Starting and Stopping the Server
-================================
+- <http://java.sun.com/j2se/1.5.0/download.jsp: J2SE JDK 1.5>
+- <http://ant.apache.org/bindownload.cgi: Apache ANT>
 
-To run the server in a console window start in the main directory and run
-the command 'openamqd'.  To end the server, type Ctrl-C.
+If the JDK or ANT are missing, the JMS layer will not be built or installed.
 
-The openamqd command accepts several options.  Run 'openamqd -h' to see
-a page of help:
+OpenAMQ's COM objects:
 
-    Syntax: amqpsrv [options...]
-    Options:
-    -w directory     Working directory for server
-    -q               Quiet mode: no messages
-    -s               Server mode: run as background job
-    -c               Console mode: run as foreground job
-    -t level         Set trace level
-                     0=none, 1=low, 2=medium, 3=high
-    -v               Show version information
-    -h               Show summary of command-line options
+In progress.
 
-    The order of arguments is not important. Switches and filenames
-    are case sensitive. See documentation for detailed information.
+Installing OpenAMQ
+******************
 
-Under Unix you can run the server in the background as follows:
+Binary Distributions
+====================
 
-    openamqd -s
+Not yet available.
+
+Source Packages
+===============
+
+Getting started
+---------------
+
+The first step is to download the OpenAMQ package. By downloading the software 
+you confirm that you understand and accept the terms described on the License
+agreement.
+
+- <http://www.openamq.org/license.html: License agreement>
+- <http://www.openamq.org/download.html: OpenAMQ platform download>
+
+There are packages suitable for both Unix and Windows deployment. The packages contain:
+
+- The OpenAMQ server source code
+- The JMS layer source code
+- The management console source code
+- The client examples source code
+- The platform documentation
+- Regression and coverage tests
+
+Building and installing
+-----------------------
+
+The next step is to setup the environment, then building and installing. It is recommended to 
+set up permanently the environment variables (according to the correct procedure for the OS and
+shell in use).
+
+    unix:
+    export IBASE=<install directory>                # Set the iMatix deployment location
+    export PATH=$PATH:$IBASE/bin                    # Set the path to the executables
+    
+    tar -zxf OpenAMQ-<version>.tar.gz               # Unpack
+    cd OpenAMQ-<version> 
+    sh build.sh                                     # Build, install and perform auto-testing
+    
+    windows:
+    set IBASE=<install directory>                   # Set the iMatix deployment location
+    set PATH=%PATH%;%IBASE%/bin                     # Set the path to the executables
+    
+    # Unzip OpenAMQ-<version>.zip
+    cd OpenAMQ-<version> 
+    build                                           # Build, install and perform auto-testing
+
+Examples and tests
+------------------
+
+The last step is to begin using the server. The easiest way by far is to
+experiment with the pal example test cases. Pal scripts are easy to read 
+(XML specification) and generally simple. Before running test cases, they 
+must be compiled:
+
+    pal <script name>.pal                           # It's that easy :)
+
+Plenty of interesting scripts can be found on the following locations:
+
+    cd OpenAMQ-<version>/examples                   # Simple use-cases scripts
+    cd OpenAMQ-<version>/doc/tests                  # Coverage tests
+
+To run a full covrage test, do the following:
+
+    unix:
+    cd OpenAMQ-<version>/doc/tests
+    sh run
+    
+    windows (not yet available):
+    cd OpenAMQ-<version>/doc/tests
+    run
+
+Public Subversion Access
+=========================
+
+Not yet available.
+
+The Messaging Server
+********************
 
 Main Server Configuration
 =========================
 
-Configuration Options
-.....................
+The OpenAMQ server is installed along with a default server configuration 
+file. The configuration file is read at startup time, if a configuration change 
+needs to be done, the server needs to be restarted before changes will apply. 
+The server will not accept connections if it is started outside of the directory 
+which contains the server.cfg file.
 
-The amq_server.cfg file provides the server with its overall configuration.
+Configuration Options
+---------------------
+
+The server.cfg file provides the server with its overall configuration.
 
     <server
         port = "7654"
         background = "0"
+        queue_timeout = "5"
         />
 
 server:port:
-    You can run the OpenAMQ server on arbitrary ports (7654 is the default).
+    Server port for client connections.
+    Specifies the port on which the server should open its connections
+    (7654 is the default). Note that this value can be overridden on the
+    command line using the -p option.
+
     If you want to run multiple OpenAMQ servers on the same system you can
-    assign each one its own port.  (Note that client applications must use
-    the correct port.)
+    assign each one its own port.
+
 server:background:
-    If this is set to 1 the server will run in the background (Unix only).
-    The command-line '-s' option will override the configuration file
-    setting.
+    Run as background process?
+    Used on Unix/Linux only. If set, the server will automatically
+    detatch itself from the console and move into the background when
+    started from a console.  This is useful if you have to run the
+    server manually.
+
+server:queue_timeout:
+    Timeout for auto-deleted queues.
+    Specifies the delay, in seconds, after which auto-deleted queues
+    are effectively deleted, following disconnection of their last
+    consumer.  If zero, queues are deleted immediately.
 
     <resources
-        max-memory = "0"
-        txn-limit = "0"
+        max_memory = "800000000"
+        queue_limit = "10000"
+        monitor = "0"
+        trace = "0"
+        />
+        
+resources:max-memory:
+    Maximum allowed memory.
+    Specifies the maximum memory allowed for the server, in octets.
+    When the server reaches this limit, it will attempt to free
+    resources and refuse new connections until memory has been
+    made available.  If zero, no limit is used.
+
+resources:queue_limit:
+    Default maximum messages per queue.
+    Specifies the limit for queues, in messages. When a queue reaches
+    this limit, messages are discarded, using a suitable heuristic.
+    If zero, no limit is applied to queues.
+
+resources:monitor:
+    Monitor interval, seconds.
+    Specifies the interval in seconds at which the server will
+    report its message rates (e.g. number of messages queued per second, number 
+    of messages dispatched per second, etc.).  If zero, no monitoring is shown. 
+    The recommended value is 1, if monitoring is desired.
+    
+resources:trace:
+    Desired trace level.
+    Specifies the trace level, which can be 0 (no tracing), 1 (show
+    information and protocol methods), 2 (show protocol animation),
+    3 (show wire-level data).  You should not use any tracing on
+    production servers except in low-volume scenarios.
+
+    <verbosity
+        trace_login = "0"
+        trace_route = "0"
+        trace_queue = "0"
+        trace_cluster = "0"
         />
 
-resources:max-memory:
-    Specifies the memory ceiling for the server in bytes.  When the server
-    uses this amount of memory it will refuse new connections and new messages.
-    If zero, there is no ceiling.
-resources:txn-limit:
-    Specifies the most messages per transaction that the server will accept.
-    Since transactions are held in memory, very large transactions can be a
-    cause for excessive memory use.  Setting this to (e.g.) 500 is a good way
-    to protect the server from "denial of service" issues caused by
-    badly-written client applications.
+verbosity:trace_login:
+    Trace user logins.
+    Specifies whether login attempts are traced or not.  The
+    recommended setting is 1 for all servers.
+
+verbosity:trace_route:
+    Trace exchange message routing.
+    Specifies whether exchange routing is traced or not.  The
+    recommended setting is 1 for development servers and zero
+    otherwise.
+
+verbosity:trace_queue:
+    Trace queue message dispatching.
+    Specifies whether queue dispatching is traced or not.  The
+    recommended setting is 1 for development servers and zero
+    otherwise.
+
+verbosity:trace_cluster:
+    Trace cluster synchronisation.
+    Specifies whether cluster activity is traced or not.  The
+    recommended setting is 1 when you are testing a cluster
+    configuration and zero for production use.
 
     <logging
         directory = "logs"
-        console = "amq_console.log"
+        console = "console.log"
         />
 
 logging:directory:
     Specifies the location for server log files.
+
 logging:console:
     Specifies the name of the server console log.
 
@@ -280,237 +477,199 @@ logging:console:
 
 vhosts/vhost:
     Specifies each virtual host.  The server must have at least one virtual
-    host, otherwise it will not accept client connections.  Note that the
-    name of the virtual host is specified within its own configuration, as
-    defined below.
+    host, otherwise it will not accept client connections.
+
 vhosts/vhost:directory:
-    Specifies the virtual host directory.
+    Specifies the virtual host directory. This is the address of the virtual
+    host, as seen by the clients.
 
-    <security
-        mechanism = "PLAIN" />
+    <cluster
+        enabled = "0"
+        key = "default"
+        primary = ""
+        callback = ""
+        state_mb = "0"
+        />
 
-security:mechanism:
+cluster:enabled:
+    Server will join cluster or not?
+    Specifies whether or not this server process takes part in
+    a cluster.  Must be 1 for cluster work.
+
+cluster:key:
+    Specifies the cluster key.
+    The cluster key must be identical for all servers in a cluster.  Any string, 
+    up to 255 chars long, can be used.  Note that applications must use the same key
+    when connecting to the cluster.
+
+cluster:primary:
+    List of primary servers.
+    Specifies all the primary servers in the cluster, as a list of
+    name:port or ipaddress:port words delimited by spaces.  All
+    servers in a cluster MUST have an IDENTICAL list of primary
+    servers.
+
+cluster:callback:
+    IP address and port to use for incoming connections.
+    Specifies the ipaddress and port to use for incoming cluster connections.
+    Used if the server runs on multiple IP addresses.  If not specified, the
+    cluster will connect to this server on its first IP address.
+
+cluster:state_mb:
+    Maximum allowed state size, Mbytes.
+    Specifies the maximum amount of memory reserved for the cluster
+    state.  Note that the memory used for the cluster's state will grow 
+    as the cluster is used.
+
+    <security name = "plain">
+        <user name = "guest"   password = "guest"   type = "normal" />
+        <user name = "cluster" password = "cluster" type = "cluster" />
+        <user name = "console" password = "console" type = "console" />
+    </security>
+
+security:name:
     Currently "PLAIN" is available (plain login and password).
 
-    <users>
-        <user name = "test-login" password = "test-password" />
-    </users>
-
-users/user:
+security/user:
     Specifies each authorised user.
-users/user:name:
+    
+security/user:name:
     Specifies the authorised user name.
-users/user:password:
+    
+security/user:password:
     Specifies the authorised user password.
 
+security/user:type:
+    The broker supports three user 'types', for normal, console, and cluster 
+    usage.  For each user type we can define one or more logins.  
+
 Layered Configuration Files
-...........................
+---------------------------
 
 To avoid loss of modified configurations, you should not edit the provided
-amq_server.cfg file.  Since each release of the server comes with new and
+server.cfg file.  Since each release of the server comes with new and
 expanded versions of this file, editing it would mean that you had to merge
 your changes into each new release of the file.
 
 OpenAMQ uses a technique called "layered configuration files" to avoid this
-problem.  Create a new file called "amq_custom.cfg" and place your custom
+problem.  Create a new file called "custom.cfg" and place your custom
 settings in that file.
 
 For example:
 
     <config>
-        <resources txn-limit = "250" />
-        <security mechanism = "PLAIN" />
-        <users>
-            <user name = "group1" password = "SYx625sA" />
-            <user name = "group2" password = "USYhdh11" />
-        </users>
+        <resources queue_limit = "10000" />
+        <security name = "PLAIN">
+            <user name = "group1"  password = "SYx625sA" type = "normal" />
+            <user name = "group2"  password = "USYhdh11" type = "cluster" />
+            <user name = "console" password = "console"  type = "console" />
+        </security>
     </config>
 
-OpenAMQ loads its pre-supplied configuration from amq_server.cfg, which
+OpenAMQ loads its pre-supplied configuration from server.cfg, which
 provides default values for all settings, and then loads whatever it finds
-in amq_custom.cfg.  Since amq_custom.cfg is not part of the installation,
+in custom.cfg.  Since custom.cfg is not part of the installation,
 you can safely update your OpenAMQ versions without losing your custom
 settings.
 
-Virtual Host Configuration
-==========================
+Starting and Stopping the Server
+================================
 
-Configuration Options
-.....................
+To run the server in a console window, start in the directory containing
+the server.cfg file (usually $IBASE/bin) and run the command 'amq_server'. 
+To end the server, type Ctrl-C.
 
-The amq_vhost.cfg file provides each virtual host with its configuration.
-This file must be located in the virtual host directory.
+The amq_server command accepts several options.  Run 'openamqd -h' to see
+a page of help:
 
-    <vhost
-        name = "/test"
-        />
+    Syntax: amq_server [options...]
+    Options:
+    -p port          Server port
+    -w directory     Working directory for server (current)
+    -q               Quiet mode: no messages (no)
+    -b               Run as background server process (no)
+    -f               Run as foreground console process (yes)
+    -t level         Set trace level 0-3 (0)
+    -v               Show version information
+    -h               Show summary of command-line options
+    -m n             Monitor server status every N seconds (1)
 
-vhost:name:
-    Specifies the 'virtual path' for the virtual host.  This is the name
-    used by client applications when opening a connection to a specific
-    virtual host.
+    The order of arguments is not important. Switches and filenames
+    are case sensitive. See documentation for detailed information.
 
-    <directories
-        data  = "data"
-        spool = "spool"
-        store = "store"
-        />
-
-directories:data:
-    Specifies the subdirectory used to hold persistent storage files.
-    You do not normally need to change this setting.
-directories:spool:
-    Specifies the subdirectory used to hold spool files, i.e. incoming
-    message data that needs to be held on disk.
-    You do not normally need to change this setting.
-directories:store:
-    Specifies the subdirectory used to hold stored messages that are too
-    large to be held in memory. You do not normally need to change this
-    setting.
-
-    <queues>
-        <queue
-            name = "test"
-            template = "default"
-            auto-purge = "0"
-            memory-queue-max = "1000"
-            min-consumers = "0"
-            max-consumers = "10"
-            protected = "0"
-            persistent = "0"
-            max-messages = "100000"
-            max-message-size = "1073741824"
-            priority-levels = "2"
-            page-size = "4096"
-            block-size = "1000"
-            extent-size = "25000"
-        />
-    </queues>
-
-queues/queue:name:
-    Specifies the name of the queue.  Each queue in a virtual host must
-    have a unique name.
-queues/queue:template:
-    Specifies the name of the template to use.  The template provides
-    default values for all the queue properties.  The "default" template
-    is used if no other is specified.
-queues/queue:auto-purge:
-    If set to 1, the queue will be emptied of persistent messages when
-    the server starts.  (Note that non-persistent messages still held by
-    the server are always discarded if the server stops.)  Defaults to
-    zero.
-queues/queue:memory-queue-max:
-    Specifies the maximum number of non-persistent messages that the queue
-    will accept before spooling further messages to disk.  Note that once
-    spooled to disk, messages act as if they were persistent.  If you want
-    a pure non-persistent queue model that can overflow to disk, use the
-    auto-purge option.  Zero means "no limit".  Defaults to zero.
-queues/queue:min-consumers:
-    Specifies the minimum number of consumers allowed for the queue. When
-    fewer than this number of consumers are present for a queue, new
-    messages are rejected.  You can use this to prevent messages being sent
-    to a queue where there are not at least some consumers.  Zero means
-    "no minimum".  Defaults to zero.
-queues/queue:max-consumers:
-    Specifies the maximum number of consumers allowed for the queue.  When
-    this number is reached new consumers are rejected.  Zero means "no
-    limit".  Defaults to zero.
-queues/queue:protected:
-    If 0, the queue can be browsed (AMQP HANDLE QUERY/BROWSE commands). If
-    1, the queue cannot be browsed.  Defaults to 0 (not protected).
-queues/queue:persistent:
-    If 1, all messages sent to the queue are treated as persistent, whether
-    or not the client application asks for it.  Defaults to zero.
-queues/queue:max-messages:
-    Specifies the maximum number of messsages allowed on the queue.  When
-    this limit is reached, new messages are rejected.  Zero means "no
-    limit".  Defaults to zero.
-queues/queue:max-message-size:
-    Specifies the maximum allowed size of messages on the queue.  If a
-    client application attempts to send a message larger than this, it will
-    be rejected.  Zero means "no limit".  Defaults to zero.
-queues/queue:priority-levels:
-    Specifies the number of priority levels for the queue.  AMQP allows
-    messages to be prioritized, effectively creating sub-queues (higher
-    priority messages will be dispatched first).  With two priority levels
-    you can separate messages into "normal" and "high" priorities.  With
-    three, "low", "normal", and "high", and so on.  Refer to the AMQP
-    specifications and in particular the 'priority' setting for messages.
-    Defaults to zero (no priority management).
-queues/queue:page-size:
-    Specifies the physical page size for the queue's backing store.  The
-    default value is 4096 bytes.  If you modify this setting you should
-    measure the performance of persistent queues before and after to be
-    sure you are improving performance.
-queues/queue:block-size:
-    Specifies the physical block size for the queue's backing store.  The
-    default value is 1000 bytes.  The block size must be a tidy fraction
-    of the page size with at least 32 bytes left over for control data.
-    I.E. block-size * N + 32 approx.= page-size.  You can tune this setting
-    based on the expected or known message size - e.g. if a queue holds
-    messages of no more than 100 bytes, a block size of 100 is appropriate.
-    Do not make this larger than (page-size - 32).
-queues/queue:extent-size:
-    Specifies the size of backing store extents, in pages.  An extent is a
-    secondary file used to hold messages.  Raising this value means that
-    fewer, larger files will be created.  Lowering it may reduce the amount
-    of disk space assigned but not actively used.  Defaults to 25,000.
-template/queue:
-    Templating lets you configure queues using a minimum of effort.
-    By default all queues are based on the "default" template.  The template
-    provides default values for all queue properties (except "template").
-    These can be then explicitly specified in the queue definition.
-    Temporary queues are configured using the template called "temporary".
-
-Layered Configuration Files
-...........................
-
-You can layer the configuration of virtual hosts in the same way as for
-the server, using a file 'amq_custom.cfg' per virtual host directory.
-
-Administration Guide
+The C Client API - C
 ********************
 
-Common Tasks
-============
+The standard C client API is built using the same technology as the
+OpenAMQ server, and provides a component-based interface to the AMQ
+protocol from the client side.
 
-Deleting Unused Queues
-......................
+Unlike other messaging systems where JMS is fully supported, OpenAMQ's C API 
+is NOT meant as a secondary API, used for special cases such as legacy support.
+The C API is OpenAMQ's main API, it is very fast, simple and provides some additional 
+functionality that is not present in JMS. Please refer to [5] for the C client API 
+full documentation.
 
-OpenAMQ automatically deletes old, unused queues when it restarts.
+The C++ Client API
+******************
 
-Deleting All Queued Data
-........................
+In progess.
 
-To wipe all stored messages for a virtual host, run these commands from
-the main directory:
+The JMS Client API
+******************
 
-    cd virtual-host-name
-    rm -rf ddata data spool store
-    cd ..
+The JMS client API is still under development, the aim is to have a complete,
+fully JMS-compatible implementation. See [4] for details on the official JMS API
+and documentation.
 
-To wipe all stored messages for a specific queue, delete the queue file
-in the data subdirectory of the virtual host.  You can easily determine
-the queue file - it uses the queue name.
+Protocol Automation Language (PAL)
+**********************************
 
-Important: do not delete queued data while the server is running.
+PAL is a scripting system for AMQP clients. Mainly, we built PAL to make it 
+simple to write test cases for OpenAMQ. Cheap large-scale testing is the problem 
+that PAL solves. Please refer to [6] for the PAL documentation. 
 
-Managing the OpenAMQ logs
-.........................
+Troubleshooting
+***************
 
-Currently the log files held in the logs subdirectory are not cycled or
-otherwise maintained by the server.  You should ensure that there is
-sufficient space here for logs (especially if you use the tracing options
-when running the server).  You can delete these log files at any time,
-including when the server is running.
+Client application behaves erratically
+======================================
 
-Limitations
-***********
+Please make sure that you have compiled both the server and the client with the 
+same build-time options. E.g. a threading model mismatch between client and server
+can lead to the client behaving erratically or crashing.
+ 
+You can check the build-time options with the '-v' switch, e.g.:
 
-Names
-=====
+    amq_server -v
 
-Destination Names
-.................
+Can't build from svn
+====================
 
-The maximum size of a destination name is 127 characters.
+Please get the latest bootstrap packages from:
+
+- <http://www.imatix.net/pub/: iMatix Technology Packages>
+
+Then build each one of the bootstrap packages (base, foreign, gsl). Finally, try 
+again to rebuild the OpenAMQ directories in the following order (using boom all):
+
+base, gsl4, foreign, base2, openamq
+
+Command not found
+=================
+
+Please set the IBASE and PATH variables to point to the directory that was used 
+for deployment. See the section:
+
+Installing OpenAMQ/Building and installing.
+
+Reference Information
+*********************
+
+ 1. <http://www.openamq.org: OpenAMQ Open Source community>
+ 2. <http://www.openamq.org/library.html: OpenAMQ Documentation>
+ 3. <http://wiki.openamq.org/cgi-bin/wiki: OpenAMQ Wiki>
+ 4. <http://java.sun.com/products/jms/docs.html: JMS Documentation>
+ 5. <http://wiki.openamq.org/cgi-bin/wiki/StdCapi: Standard C API Documentation>
+ 6. <http://wiki.openamq.org/cgi-bin/wiki/PalGuide: PAL documentation>
+ 7. <http://wiki.openamq.org/cgi-bin/wiki/AmqClustering: AMQ Clustering documentation>
