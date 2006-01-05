@@ -58,9 +58,9 @@ This is an abstract base class for all exchange implementations.
     $(selftype)
         *self = self_v;
     amq_server_basic_publish_t
-        *basic_method;
+        *basic_method = NULL;
     amq_content_basic_t
-        *basic_content;
+        *basic_content = NULL;
     char
         *routing_key = "",
         *message_id = NULL;
