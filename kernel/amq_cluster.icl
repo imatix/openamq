@@ -20,6 +20,7 @@ server as cluster peers.
 
 <public name = "header">
 //  Different ways of pushing a message to cluster peers
+
 #define AMQ_CLUSTER_PUSH_NONE       0
 #define AMQ_CLUSTER_PUSH_ALL        1
 #define AMQ_CLUSTER_PUSH_SECONDARY  2
@@ -377,7 +378,7 @@ amq_cluster_t
     - If we're a primary server we send the method to all peers.
     - If we're a secondary server we send the method to all primary
       peers, and we also ask the root server to forward the method
-      by setting the 'fanout' option.
+      to other secondaries by setting the 'fanout' option.
     </doc>
     <argument name = "vhost" type = "amq_vhost_t *">virtual host</argument>
     <argument name = "method" type = "amq_server_method_t *">method to send</argument>
@@ -452,7 +453,7 @@ amq_cluster_t
     - execute the method
     - record the method if we're a primary peer
     - if fanout set, and we're root
-        - broadcast the method again
+        - broadcast the method to all secondaries except originator
     </doc>
     <argument name = "content" type = "amq_content_cluster_t *">The message content</argument>
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
@@ -473,6 +474,8 @@ amq_cluster_t
         *peer;                          //  Cluster peer for sender
     icl_shortstr_t
         strerror;                       //  Text for method errors
+    icl_shortstr_t
+        sender_spid;                    //  Original sender, if any
 
     //  Get content body into a bucket
     bucket = ipr_bucket_new (IPR_BUCKET_MAX_SIZE);
@@ -497,7 +500,7 @@ amq_cluster_t
     //  We handle the cluster class here, since we already have
     //  the originating peer and it's easier than going via the
     //  method execute code.
-    
+
     if (peer == NULL)
         ;   //  Peer is no longer in the cluster
     else
@@ -544,17 +547,25 @@ amq_cluster_t
     else
         amq_server_method_execute (method, channel->connection, channel);
 
+    amq_peer_unlink (&peer);
+
     //  If message is part of the cluster state, record it
     if (self->primary
     &&  content->stateful
     &&  strneq (content->sender_spid, amq_broker->spid))
         s_append_to_state (self, content);
 
-    //  If required, re-broadcast message
-    if (self->root && content->fanout)
-        s_broadcast_message (self, content, NULL, FALSE);
-
-    amq_peer_unlink (&peer);
+    //  If required, re-broadcast message to all secondaries
+    if (self->root && content->fanout) {
+        icl_shortstr_cpy (sender_spid, content->sender_spid);
+        amq_content_cluster_set_sender_spid (content, amq_broker->spid);
+        peer = amq_peer_list_first (self->peer_list);
+        while (peer) {
+            if (!peer->primary && strneq (peer->spid, sender_spid))
+                amq_peer_forward (peer, content);
+            peer = amq_peer_list_next (&peer);
+        }
+    }
     amq_server_method_destroy (&method);
     ipr_bucket_destroy (&bucket);
     </action>
@@ -562,8 +573,10 @@ amq_cluster_t
 
 <method name = "peer push" template = "async function" async = "1">
     <doc>
-    Publishes a message out to on a specific peer, depending on the
-    push_out mode.  Pushed messages are not recorded in state.
+    Publishes a message out the specified peer, depending on the specified
+    push mode (ALL means unconditionally to the peer, SECONDARY means only
+    if the peer is a secondary server). Pushed messages are not recorded in
+    the cluster state.
     </doc>
     <argument name = "peer"   type = "amq_peer_t *">Proxy session</argument>
     <argument name = "vhost"  type = "amq_vhost_t *">virtual host</argument>
@@ -580,7 +593,8 @@ amq_cluster_t
     </release>
     //
     <action>
-    if (mode == AMQ_CLUSTER_PUSH_ALL || !self->primary)
+    if (mode == AMQ_CLUSTER_PUSH_ALL
+    || (mode == AMQ_CLUSTER_PUSH_SECONDARY && !peer->primary))
         amq_peer_push (peer, method);
     </action>
 </method>
@@ -634,7 +648,7 @@ s_cluster_broken (amq_cluster_t *self, char *reason)
       - if we're a secondary server, set the fanout option
       - send to all primary peers
       - if we're a primary server & method is stateful:
-        - append to state
+          - append to state
  */
 
 static void
@@ -668,7 +682,7 @@ s_broadcast_message (
         amq_content_cluster_set_fanout (content, FALSE);
     }
     else
-        //  Ask root (eventually) to fanout the method
+        //  Ask root to fanout the method to other secondaries
         amq_content_cluster_set_fanout (content, TRUE);
 
     peer = amq_peer_list_first (self->peer_list);

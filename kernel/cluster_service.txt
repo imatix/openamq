@@ -112,9 +112,11 @@ publish message
     binding to peer:
         - if message came from application
             - push message to all bound peers
+            - PUSH_ALL
         - if message came from secondary node & we are root
             - push message to all bound secondary peers
             - except where peer->spid == connection->client_spid
+            - PUSH_SECONDARY
     OK
 
 cluster key

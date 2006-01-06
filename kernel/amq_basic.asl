@@ -346,7 +346,6 @@
       Specifies the name of the exchange that the message was
       originally published to.
     </doc>
-    <assert check = "notnull" />
   </field>
 
   <field name = "routing key" type = "shortstr">
@@ -397,7 +396,6 @@
       Specifies the name of the exchange that the message was
       originally published to.
     </doc>
-    <assert check = "notnull" />
   </field>
 
   <field name = "routing key" type = "shortstr">

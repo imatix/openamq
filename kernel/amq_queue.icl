@@ -278,6 +278,8 @@ class.  This is a lock-free asynchronous class.
 
     //  If we're still at zero consumers, self-destruct
     if (self->consumers == 0) {
+        if (amq_server_config_trace_queue (amq_server_config))
+            icl_console_print ("Q: auto-del queue=%s", self->key);
         queue_ref = amq_queue_link (self);
         amq_queue_destroy (&queue_ref);
     }
