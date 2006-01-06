@@ -1,0 +1,23 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "Subscribe client 1"
+    >
+    <session>
+        <exchange_declare exchange = "myexchange" type = "headers" />
+        <queue_declare queue = "myqueue" auto_delete = "1" />
+        <queue_bind queue = "myqueue" exchange = "myexchange" />
+        <basic_consume queue = "myqueue" />
+        <repeat>
+            <wait/>
+            <basic_arrived>
+                <inc name = "messages" />
+                <echo>In $messages: [$message_id]</echo>
+            </basic_arrived>
+            <empty>
+                <abort>No message arrived</abort>
+            </empty>
+        </repeat>
+    </session>
+</pal>
+
