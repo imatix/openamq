@@ -85,6 +85,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="jpmorgan\mina\common\BufferOverflowException.cs" />
+    <Compile Include="jpmorgan\mina\common\BufferUnderflowException.cs" />
+    <Compile Include="jpmorgan\mina\filter\codec\demux\IMessageDecoder.cs" />
+    <Compile Include="jpmorgan\mina\filter\codec\demux\MessageDecoderResult.cs" />
+    <Compile Include="jpmorgan\mina\filter\codec\IProtocolDecoderOutput.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
