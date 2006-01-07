@@ -13,6 +13,9 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iesi.Collections", "iesi\Iesi.Collections.csproj", "{CEF80E5F-E838-4F27-9435-2E3630D5F9E0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "xmscommon", "xmscommon\xmscommon.csproj", "{77064C42-24D2-4CEB-9EA2-0EF481A43205}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E6EED856-9650-439F-BB81-F35A2C0F8AB8} = {E6EED856-9650-439F-BB81-F35A2C0F8AB8}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "xmsclient", "xmsclient\xmsclient.csproj", "{68987C05-3768-452C-A6FC-6BA1D372852F}"
 	ProjectSection(ProjectDependencies) = postProject
