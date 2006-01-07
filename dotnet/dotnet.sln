@@ -22,6 +22,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "xmsclient", "xmsclient\xmsc
 		{77064C42-24D2-4CEB-9EA2-0EF481A43205} = {77064C42-24D2-4CEB-9EA2-0EF481A43205}
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "xmsclienttests", "xmsclienttests\xmsclienttests.csproj", "{BA1B0032-4CE6-40DD-A2DC-119F0FFA0A1D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -48,6 +50,10 @@ Global
 		{68987C05-3768-452C-A6FC-6BA1D372852F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{68987C05-3768-452C-A6FC-6BA1D372852F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{68987C05-3768-452C-A6FC-6BA1D372852F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BA1B0032-4CE6-40DD-A2DC-119F0FFA0A1D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA1B0032-4CE6-40DD-A2DC-119F0FFA0A1D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA1B0032-4CE6-40DD-A2DC-119F0FFA0A1D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA1B0032-4CE6-40DD-A2DC-119F0FFA0A1D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -32,12 +32,15 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\xmsapi\lib\IBM.XMS.dll</HintPath>
     </Reference>
+    <Reference Include="log4net, Version=1.2.9.0, Culture=neutral, PublicKeyToken=b32731d11ce58905" />
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Class1.cs" />
+    <Compile Include="Client\AMQConnection.cs" />
+    <Compile Include="Client\Closeable.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -49,6 +52,10 @@
       <Project>{77064C42-24D2-4CEB-9EA2-0EF481A43205}</Project>
       <Name>xmscommon</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Client\Handler\" />
+    <Folder Include="XMS\" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

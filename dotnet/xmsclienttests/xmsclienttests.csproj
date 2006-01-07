@@ -4,7 +4,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>8.0.50727</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>7ebdea21-1352-4673-b66e-fdc0beff461f</ProjectGuid>
+    <ProjectGuid>{BA1B0032-4CE6-40DD-A2DC-119F0FFA0A1D}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>xmsclienttests</RootNamespace>
