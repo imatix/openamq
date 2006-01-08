@@ -265,6 +265,7 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
             }
         }
     }
+
     public ConnectionConsumer createConnectionConsumer(Destination destination, String messageSelector,
                                                        ServerSessionPool sessionPool, int maxMessages) throws JMSException
     {
@@ -337,12 +338,7 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
     public Map getSessions()
     {
         return _sessions;
-    }
-
-    public String getClientName()
-    {
-        return _clientName;
-    }
+    }    
 
     public String getHost()
     {
