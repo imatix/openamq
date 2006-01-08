@@ -14,12 +14,19 @@ namespace OpenAMQ.XMS.Client
 
         /// <summary>
         /// All access to this field should be using the Inerlocked class, to make it atomic.
+        /// Hence it is an int since you cannot use a bool with the Interlocked class.
         /// </summary>
-        protected volatile Boolean _closed = false;
+        protected volatile int _closed = NOT_CLOSED;
 
+        protected const int CLOSED = 1;
+        protected const int NOT_CLOSED = 2;
+
+        /// <summary>
+        /// Checks the not closed.
+        /// </summary>
         protected void CheckNotClosed()
         {
-            if (_closed)
+            if (_closed == CLOSED)
             {
                 throw new InvalidOperationException("Object " + ToString() + " has been closed");
             }
