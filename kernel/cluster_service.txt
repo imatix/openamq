@@ -128,12 +128,22 @@ cluster key
     OK
 
 class.consume, deliver
+    - create local consumer as usual
+        - do not return consume-ok if shared queue
+    - if shared queue, broadcast consume method
+        - insert connection/channel/consumer-tag as client_key
+    OK
+    - delivered messages on proxy connection
+        - lookup connection/channel/consumer-tag from client_key
+        - deliver onwards to local consumer
+    OK
+    - cancelling local consumer
+        - want to cancel on the basis of consumer tag
+            ... but we don't know this...
+    
     0. create consumer as usual
-        OK
     1. client provides user tag in all consume methods
-        OK
     2. user tag returned with consume-ok and deliver methods
-        OK
     3. if shared queue, broadcast cluster.consume
         - insert outbound consumer-tag into secondary consume
         OK
@@ -143,22 +153,17 @@ class.consume, deliver
             - connection->identifier,
             - channel->key,
             - consumer->tag
+
     - no-local?
-
     - need to cancel remote consumer if local consumer goes away
-
-
-class.get, get-ok
-    
 
     - when content arrives on proxy connection
         - garbage collect consumer if zombied
         - otherwise send to consumer as today
 
 
-                    
-        
-
+class.get, get-ok
+    
 Clarify in doc:
     - client can send synchronous methods without waiting for responses
     - responses MAY come out of order...
@@ -261,36 +266,5 @@ A reasonable configuration for testing cluster XSR is:
 Note that the XSR/ISR estimates are based on a message size of 1000 bytes
 and a broker capacity of 10 KM/s.  More realistic figures would be
 message size of 250 bytes and capacity of 25 KM/s.
-
-
-Test scenarios
-
- - test that exchanges are replicated
- - create exchange on one node, bind queue to exchange on other
-    - root to root
-    - root to backup
-    - root to self
-    - backup to root
-    - backup to backup
-    - backup to self
-    - backup to other backup
-    - secondary to root
-    - secondary to backup
-    - secondary to self
-    - secondary to other secondary
-
- - same test on shared queue
-    - create shared queue on one node, consume from queue on other
-
- - test clustered private queues
-    - create private queue on each node
-    - publish to each node
-    - check messages arrive in each queue
-
- - test clustered shared queues
-    - create shared queue
-    - consume from shared queue once on each node
-    - publish to shared queue
-    - check messages distributed equally
 
 

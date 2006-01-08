@@ -17,37 +17,23 @@ maximum number of consumers per channel is set at compile time.
 <context>
     amq_consumer_by_channel_t
         *consumer_list;                 //  List of consumers for channel
-    ipr_index_t
-        *consumer_table;                //  Fuzzy table of consumers
-    int
-        table_limit;                    //  Highest consumer used
 </context>
 
 <method name = "new">
-    self->consumer_table = ipr_index_new ();
-    self->consumer_list  = amq_consumer_by_channel_new ();
+    self->consumer_list = amq_consumer_by_channel_new ();
 </method>
 
 <method name = "destroy">
     <action>
     amq_consumer_t
         *consumer;                      //  Consumer in index table
-    int
-        consumer_nbr;
 
-    //  Index table has a link on each consumer, so unlink these
-    for (consumer_nbr = 1; consumer_nbr <= self->table_limit; consumer_nbr++) {
-        consumer = self->consumer_table->data [consumer_nbr];
-        if (consumer)
-            amq_consumer_unlink (&consumer);
-    }
     //  We destroy consumers by asking the respective queues
     while ((consumer = amq_consumer_by_channel_pop (self->consumer_list))) {
         if (amq_queue_cancel (consumer->queue, &consumer, FALSE))
             amq_consumer_destroy (&consumer);
     }
     //  Now destroy containers
-    ipr_index_destroy (&self->consumer_table);
     amq_consumer_by_channel_destroy (&self->consumer_list);
     </action>
 </method>
@@ -77,9 +63,9 @@ maximum number of consumers per channel is set at compile time.
 <method name = "consume" template = "async function" async = "1">
     <doc>
     Creates a new channel consumer as specified.  Mechanism is as
-    follows: server_channel creates consumer and inserts into index
-    table. It then attaches to own consumer list and sends to queue
-    so that queue can add consumer to its consumer list.
+    follows: server_channel creates consumer, then attaches it to
+    own consumer list and sends to queue so that queue can add
+    consumer to its consumer list.
     </doc>
     <argument name = "queue"  type = "amq_queue_t *">Queue to consume from</argument>
     <argument name = "method" type = "amq_server_method_t *">Consume method</argument>
@@ -96,27 +82,12 @@ maximum number of consumers per channel is set at compile time.
     <action>
     amq_consumer_t
         *consumer = NULL;
-    int
-        tag;                            //  New consumer tag
 
     //  Create and configure the consumer object
     consumer = amq_consumer_new (self, queue, method);
-    assert (consumer);
-
-    tag = ipr_index_insert (self->consumer_table, consumer);
-    if (tag) {
-        if (self->table_limit < tag)
-            self->table_limit = tag;
-            
-        consumer->tag = (dbyte) tag;
-        amq_consumer_by_channel_queue (self->consumer_list, consumer);
-        amq_queue_consume (queue, consumer, self->active, method);
-    }
-    else {
-        amq_server_connection_error (self->connection, ASL_RESOURCE_ERROR,
-            "Too many consumers for channel");
-        amq_consumer_destroy (&consumer);
-    }
+    amq_consumer_by_channel_queue (self->consumer_list, consumer);
+    amq_queue_consume (queue, consumer, self->active, method);
+    amq_consumer_unlink (&consumer);
     </action>
 </method>
 
@@ -128,18 +99,15 @@ maximum number of consumers per channel is set at compile time.
     own consumer list.  If sync, then sends to queue so that queue can
     remove from own consumer list.  If not sync, destroys consumer.
     </doc>
-    <argument name = "tag"  type = "int" >Consumer tag</argument>
+    <argument name = "tag"  type = "char *">Consumer tag</argument>
     <argument name = "sync" type = "Bool">Are we talking to a client?</argument>
     //
     <action>
     amq_consumer_t
         *consumer = NULL;               //  Consumer reference
 
-    if (tag > 0 && tag <= self->table_limit)
-        consumer = self->consumer_table->data [tag];
-
+    consumer = amq_consumer_table_search (self->connection->consumer_table, tag);
     if (consumer) {
-        ipr_index_delete (self->consumer_table, tag);
         amq_consumer_by_channel_remove (consumer);
         if (sync) {
             //  Pass to queue to do the final honours
@@ -155,24 +123,6 @@ maximum number of consumers per channel is set at compile time.
     if (sync)
         amq_server_channel_error (self, ASL_NOT_FOUND, "Not a valid consumer tag");
     </action>
-</method>
-
-<method name = "consumer search" return = "consumer">
-    <doc>
-    Searches for a consumer specified by tag, returns the consumer if
-    found.
-    </doc>
-    <argument name = "self" type = "$(selftype) *" >Channel reference</argument>
-    <argument name = "tag" type = "int" >Consumer tag</argument>
-    <declare name = "consumer" type = "amq_consumer_t *">Consumer reference</declare>
-    //
-    if (tag > 0 && tag <= self->table_limit) {
-        consumer = self->consumer_table->data [tag];
-        if (consumer)
-            consumer = amq_consumer_link (consumer);
-    }
-    else
-        consumer = NULL;
 </method>
 
 <method name = "error">
@@ -213,7 +163,8 @@ maximum number of consumers per channel is set at compile time.
     amq_server_channel_t
         *channel;
     int
-        count,
+        count;
+    dbyte
         channel_nbr;
     </local>
 
@@ -221,21 +172,21 @@ maximum number of consumers per channel is set at compile time.
     table = amq_server_channel_table_new ();
 
     //  Let's try some edge cases
-    channel = amq_server_channel_new (table, AMQ_SERVER_CHANNEL_TABLE_MAXSIZE - 1, NULL);
+    channel = amq_server_channel_new (table, NULL, AMQ_SERVER_CHANNEL_TABLE_MAXSIZE - 1);
     amq_server_channel_destroy (&channel);
     smt_wait (0);
 
-    channel = amq_server_channel_new (table, AMQ_SERVER_CHANNEL_TABLE_MAXSIZE, NULL);
+    channel = amq_server_channel_new (table, NULL, AMQ_SERVER_CHANNEL_TABLE_MAXSIZE);
     amq_server_channel_destroy (&channel);
     smt_wait (0);
 
-    channel = amq_server_channel_new (table, AMQ_SERVER_CHANNEL_TABLE_MAXSIZE + 1, NULL);
+    channel = amq_server_channel_new (table, NULL, AMQ_SERVER_CHANNEL_TABLE_MAXSIZE + 1);
     amq_server_channel_destroy (&channel);
 
     //  Now some random table bashing
     for (count = 0; count < 2000; count++) {
         channel_nbr = randomof (0xffff);
-        channel = amq_server_channel_new (table, channel_nbr, NULL);
+        channel = amq_server_channel_new (table, NULL, channel_nbr);
         amq_server_channel_destroy (&channel);
         smt_wait (0);
     }

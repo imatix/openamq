@@ -65,7 +65,7 @@
         if (exchange) {
             if (exchange->type == exchange_type)
                 amq_server_agent_exchange_declare_ok (
-                    connection->thread, (dbyte) channel->key);
+                    connection->thread, channel->number);
             else
                 amq_server_connection_error (connection,
                     ASL_NOT_ALLOWED, "Exchange exists with different type");
@@ -85,8 +85,7 @@
     exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
     if (exchange) {
         //  Tell client delete was successful
-        amq_server_agent_exchange_delete_ok (
-            connection->thread, (dbyte) channel->key);
+        amq_server_agent_exchange_delete_ok (connection->thread, channel->number);
 
         //  Tell cluster to delete exchange
         if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
@@ -169,7 +168,7 @@
         else
             amq_server_agent_queue_declare_ok (
                 connection->thread,
-                (dbyte) channel->key,
+                channel->number,
                 queue->name,
                 amq_queue_message_count (queue),
                 amq_queue_consumer_count (queue));
@@ -194,7 +193,7 @@
             amq_exchange_bind_queue (
                 exchange, channel, queue, method->routing_key, method->arguments);
             amq_server_agent_queue_bind_ok (
-                connection->thread, (dbyte) channel->key);
+                connection->thread, channel->number);
 
             //  Tell cluster about new queue binding
             if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
@@ -228,7 +227,7 @@
     if (queue) {
         //  Tell client we deleted the queue ok
         amq_server_agent_queue_delete_ok (
-            connection->thread, (dbyte) channel->key, amq_queue_message_count (queue));
+            connection->thread, channel->number, amq_queue_message_count (queue));
                 
         //  Tell cluster that queue is being deleted
         if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
@@ -272,14 +271,20 @@
     amq_queue_t
         *queue;
     </local>
-    queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
-    if (queue) {
-        //  The channel is responsible for creating/cancelling consumers
-        amq_server_channel_consume (channel, queue, self);
-        amq_queue_unlink (&queue);
+    if (strlen (method->consumer_tag) > 127
+    &&  connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
+        amq_server_connection_error (connection,
+            ASL_SYNTAX_ERROR, "Consumer tag exceeds limit of 127 chars");
+    else {
+        queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
+        if (queue) {
+            //  The channel is responsible for creating/cancelling consumers
+            amq_server_channel_consume (channel, queue, self);
+            amq_queue_unlink (&queue);
+        }
+        else
+            amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
     }
-    else
-        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
   </action>
 
   <action name = "publish">
@@ -321,7 +326,7 @@
                     amq_cluster_ident (amq_cluster),
                     amq_broker->spid,
                     connection->id,
-                    channel->key);
+                    channel->number);
 
             amq_exchange_publish (exchange, channel, self);
         }

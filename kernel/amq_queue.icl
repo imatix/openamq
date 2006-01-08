@@ -176,10 +176,12 @@ class.  This is a lock-free asynchronous class.
     <argument name = "method"   type = "amq_server_method_t *">Consume method</argument>
     //
     <possess>
+    icl_console_print ("QUEUE CONSUME POSSESS");
     amq_consumer_link (consumer);
     amq_server_method_possess (method);
     </possess>
     <release>
+    icl_console_print ("QUEUE CONSUME RELEASE");
     amq_consumer_unlink (&consumer);
     amq_server_method_destroy (&method);
     </release>
@@ -187,8 +189,6 @@ class.  This is a lock-free asynchronous class.
     //
     char
         *error = NULL;                  //  If not null, consumer is invalid
-    amq_server_basic_consume_t
-        *basic_consume;
     Bool
         clustered_queue = amq_cluster->enabled && !self->exclusive;
 
@@ -217,20 +217,16 @@ class.  This is a lock-free asynchronous class.
             if (amq_server_channel_alive (consumer->channel))
                 amq_server_agent_basic_consume_ok (
                     consumer->channel->connection->thread,
-                    (dbyte) consumer->channel->key,
-                    consumer->tag,
-                    consumer->client_key);
+                    consumer->channel->number,
+                    consumer->tag);
 
             //  Broadcast consumer to cluster
             if (clustered_queue
             &&  consumer->channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER) {
-                //  Set client_key so we can route delivered messages
-                basic_consume = &method->payload.basic_consume;
-                icl_shortstr_fmt (basic_consume->client_key,
-                    "%s %d %d",
-                    consumer->channel->connection->id,
-                    consumer->channel->key,
-                    consumer->tag);
+                //  Set consumer cluster tag so we can route deliveries
+                icl_shortstr_cpy (
+                    method->payload.basic_consume.consumer_tag,
+                    consumer->cluster_tag);
                 amq_cluster_forward (amq_cluster, amq_vhost, method, TRUE, FALSE);
             }
         }
@@ -254,9 +250,8 @@ class.  This is a lock-free asynchronous class.
         if (notify && amq_server_channel_alive (consumer->channel))
             amq_server_agent_basic_cancel_ok (
                 consumer->channel->connection->thread,
-                (dbyte) consumer->channel->key,
-                consumer->tag,
-                consumer->client_key);
+                consumer->channel->number,
+                consumer->tag);
         amq_queue_basic_cancel (self->queue_basic, consumer);
     }
     self->locked = FALSE;
@@ -297,9 +292,7 @@ class.  This is a lock-free asynchronous class.
 
     messages += amq_queue_basic_purge (self->queue_basic);
     amq_server_agent_queue_purge_ok (
-        channel->connection->thread,
-        (dbyte) channel->key,
-        messages);
+        channel->connection->thread, channel->number, messages);
     </action>
 </method>
 

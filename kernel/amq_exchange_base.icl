@@ -88,7 +88,7 @@ This is an abstract base class for all exchange implementations.
             if (amq_server_channel_alive (channel) && !basic_content->returned) {
                 amq_server_agent_basic_return (
                     channel->connection->thread,
-                    (dbyte) channel->key,
+                    channel->number,
                     basic_content,
                     ASL_NOT_DELIVERED,
                     "Message cannot be processed - no route is defined",

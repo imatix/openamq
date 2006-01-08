@@ -81,7 +81,7 @@ runs lock-free as a child of the asynchronous queue class.
                 && !content->returned) {
                     amq_server_agent_basic_return (
                         channel->connection->thread,
-                        (dbyte) channel->key,
+                        channel->number,
                         content,
                         ASL_NOT_DELIVERED,
                         "No immediate consumers for Basic message",
@@ -140,10 +140,9 @@ runs lock-free as a child of the asynchronous queue class.
         if (amq_server_channel_alive (consumer->channel)
         &&  amq_server_agent_basic_deliver (
             consumer->channel->connection->thread,
-            (dbyte) consumer->channel->key,
+            consumer->channel->number,
             content,
             consumer->tag,
-            consumer->client_key,
             0,                          //  Delivery tag
             FALSE,                      //  Redelivered
             content->exchange,
@@ -183,7 +182,7 @@ runs lock-free as a child of the asynchronous queue class.
         if (content) {
             amq_server_agent_basic_get_ok (
                 channel->connection->thread,
-                (dbyte) channel->key,
+                channel->number,
                 content,
                 0,                      //  Delivery tag
                 FALSE,                  //  Redelivered
@@ -195,8 +194,7 @@ runs lock-free as a child of the asynchronous queue class.
         }
         else
             amq_server_agent_basic_get_empty (
-                channel->connection->thread,
-                (dbyte) channel->key);
+                channel->connection->thread, channel->number);
     }
 </method>
 

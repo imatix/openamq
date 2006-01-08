@@ -123,6 +123,8 @@
                                      generated = "1"             >Server queue agent</file>
 <file name = "amq_queue_basic.icl"   class = "icl private class" >Basic content queue class</file>
 <file name = "amq_consumer.icl"      class = "icl private class" >Consumer class</file>
+<file name = "amq_consumer_table.icl"
+                                     class = "icl private cont"  >Container for consumers</file>
 <file name = "amq_consumer_by_queue.icl"
                                      class = "icl private cont"  >Consumers per queue</file>
 <file name = "amq_consumer_by_channel.icl"

@@ -21,7 +21,7 @@
 <option name = "protocol_class"    value = "1"  />
 <option name = "protocol_instance" value = "1"  />
 <option name = "protocol_major"    value = "10" />
-<option name = "protocol_minor"    value = "1"  />
+<option name = "protocol_minor"    value = "2"  />
 
 <!-- Standard field domains -->
   <domain name = "access ticket" type = "short">
@@ -78,17 +78,16 @@
     </doc>
   </domain>
 
-  <domain name = "consumer tag" type = "short">
-    server-assigned consumer tag
+  <domain name = "consumer tag" type = "shortstr">
+    consumer tag
     <doc>
-      The server-assigned and channel-specific consumer tag
+      Identifier for the consumer, valid within the current connection.
     </doc>
     <doc name = "rule">
       The consumer tag is valid only within the channel from which the
       consumer was created. I.e. a client may not create a consumer in
-      one channel and then cancel it in another.
+      one channel and then use it in another.
     </doc>
-    <assert check = "ne" value = "0" />
   </domain>
 
   <domain name = "delivery tag" type = "longlong">

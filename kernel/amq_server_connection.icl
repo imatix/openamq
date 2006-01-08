@@ -24,12 +24,17 @@ This class implements the connection class for the AMQ server.
         *vhost;                         //  Parent virtual host
     ipr_looseref_list_t
         *own_queue_list;                //  List of exclusive queues
+    amq_consumer_table_t
+        *consumer_table;                //  Consumers for connection
+    qbyte
+        consumer_tag;                   //  Last consumer tag
     int
         type;                           //  User connection type
 </context>
 
 <method name = "new">
     self->own_queue_list = ipr_looseref_list_new ();
+    self->consumer_table = amq_consumer_table_new ();
 </method>
 
 <method name = "destroy">
@@ -48,6 +53,7 @@ This class implements the connection class for the AMQ server.
 
     amq_vhost_unlink (&self->vhost);
     ipr_looseref_list_destroy (&self->own_queue_list);
+    amq_consumer_table_destroy (&self->consumer_table);
 </method>
 
 <method name = "own queue" template = "function">

@@ -5,7 +5,7 @@
     <session cluster_key = "my.cluster">
         <queue_declare queue = "$myqueue" exclusive = "$private" />
         <queue_bind    queue = "$myqueue" exchange = "amq.direct" routing_key = "test" />
-        <basic_consume queue = "$myqueue" />
+        <basic_consume queue = "$myqueue" no_local = "1" />
         <repeat>
             <wait/>
             <basic_arrived>

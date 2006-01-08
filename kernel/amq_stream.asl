@@ -99,13 +99,18 @@
     <assert check = "notnull" />
   </field>
 
-  <field name = "client key" type = "shortstr">
-    client consumer key
+  <field name = "consumer tag" domain = "consumer tag">
     <doc>
-    This string, which can be empty, holds an arbitrary client key for
-    the consumer. This key string is returned with all methods that
-    refer to the consumer.  This can be used by clients that handle many
-    consumers on a single channel.
+      Specifies the identifier for the consumer. The consumer tag is
+      local to a connection, so two clients can use the same consumer
+      tags. If this field is empty the server will generate a unique
+      tag.
+    </doc>
+    <doc name = "rule" test = "todo">
+      The tag MUST NOT refer to an existing consumer. If the client
+      attempts to create two consumers with the same non-empty tag
+      the server MUST raise a connection exception with reply code
+      530 (not allowed).
     </doc>
   </field>
 
@@ -173,12 +178,10 @@
   </doc>
   <chassis name = "client" implement = "MUST" />
 
-  <field name = "consumer tag" domain = "consumer tag" />
-
-  <field name = "client key" type = "shortstr">
-    client consumer key
+  <field name = "consumer tag" domain = "consumer tag">
     <doc>
-    Holds the value of the client key used in the Consume method.
+      Holds the consumer tag specified by the client or provided by
+      the server.
     </doc>
   </field>
 </method>
@@ -205,6 +208,8 @@
     This method confirms that the cancellation was completed.
   </doc>
   <chassis name = "client" implement = "MUST" />
+
+  <field name = "consumer tag" domain = "consumer tag" />
 </method>
 
 
@@ -328,13 +333,6 @@
   <chassis name = "client" implement = "MUST" />
 
   <field name = "consumer tag" domain = "consumer tag" />
-
-  <field name = "client key" type = "shortstr">
-    client consumer key
-    <doc>
-    Holds the value of the client key used in the Consume method.
-    </doc>
-  </field>
 
   <field name = "delivery tag" domain = "delivery tag" />
 
