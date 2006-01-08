@@ -192,6 +192,7 @@ class.  This is a lock-free asynchronous class.
     Bool
         clustered_queue = amq_cluster->enabled && !self->exclusive;
 
+    icl_console_print ("QUEUE CONSUME METHOD");
     //  Validate consumer
     if (self->exclusive
     &&  strneq (self->owner_id, consumer->channel->connection->id))

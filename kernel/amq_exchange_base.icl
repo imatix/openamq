@@ -65,7 +65,7 @@ This is an abstract base class for all exchange implementations.
         *routing_key = "",
         *message_id = NULL;
     Bool
-        mandatory,                      //  Mandatory option from method
+        mandatory = FALSE,              //  Mandatory option from method
         delivered = FALSE,              //  Set to TRUE if message processed
         returned = FALSE;
     </local>
