@@ -176,12 +176,10 @@ class.  This is a lock-free asynchronous class.
     <argument name = "method"   type = "amq_server_method_t *">Consume method</argument>
     //
     <possess>
-    icl_console_print ("QUEUE CONSUME POSSESS");
     amq_consumer_link (consumer);
     amq_server_method_possess (method);
     </possess>
     <release>
-    icl_console_print ("QUEUE CONSUME RELEASE");
     amq_consumer_unlink (&consumer);
     amq_server_method_destroy (&method);
     </release>
@@ -192,7 +190,6 @@ class.  This is a lock-free asynchronous class.
     Bool
         clustered_queue = amq_cluster->enabled && !self->exclusive;
 
-    icl_console_print ("QUEUE CONSUME METHOD");
     //  Validate consumer
     if (self->exclusive
     &&  strneq (self->owner_id, consumer->channel->connection->id))
