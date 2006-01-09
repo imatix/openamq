@@ -38,7 +38,7 @@ public class BasicMessageConsumer extends Closeable implements MessageConsumer
      * The consumer tag allows us to close the consumer by sending a jmsCancel method to the
      * broker
      */
-    private int _consumerTag;
+    private String _consumerTag;
 
     /**
      * We need to know the channel id when constructing frames
@@ -321,12 +321,12 @@ public class BasicMessageConsumer extends Closeable implements MessageConsumer
         _session.deregisterConsumer(_consumerTag);
     }
 
-    public int getConsumerTag()
+    public String getConsumerTag()
     {
         return _consumerTag;
     }
 
-    public void setConsumerTag(int consumerTag)
+    public void setConsumerTag(String consumerTag)
     {
         _consumerTag = consumerTag;
     }
