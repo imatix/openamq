@@ -141,7 +141,7 @@ s_get_next_consumer ($(selftype) *self, char *producer_id, char *cluster_id)
                 char
                     *slash;
                 size_t
-                    id_size;            //  Size of spid/connectionid string
+                    id_size = 0;        //  Size of spid/connectionid string
                 Bool
                     ids_match;          //  Do the two IDs match?
 
