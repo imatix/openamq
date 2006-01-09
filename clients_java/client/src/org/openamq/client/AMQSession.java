@@ -94,7 +94,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         {
             if (message.deliverBody != null)
             {
-                final BasicMessageConsumer consumer = (BasicMessageConsumer) _consumers.get(new Integer(message.deliverBody.consumerTag));
+                final BasicMessageConsumer consumer = (BasicMessageConsumer) _consumers.get(message.deliverBody.consumerTag);
 
                 if (consumer == null)
                 {
@@ -327,7 +327,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
             _closed.set(true);
 
             // we pass null since this is not an error case
-            closeProducersAndConsumers(null);            
+            closeProducersAndConsumers(null);
 
             try
             {
@@ -553,7 +553,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
             BasicMessageConsumer consumer = new BasicMessageConsumer(_channelId, amqd, selector, noLocal,
                                                                      _messageFactoryRegistry, this, protocolHandler);
 
-            int consumerTag = -1;
+            String consumerTag = null;
             try
             {
                 // Declare exchange
@@ -603,7 +603,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
               }
               catch (AMQException e)
               {
-                  if (consumerTag >= 0)
+                  if (consumerTag != null)
                   {
                     deregisterConsumer(consumerTag);
                   }
@@ -769,9 +769,9 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         _dispatcher.start();
     }
 
-    void registerConsumer(int consumerTag, MessageConsumer consumer)
+    void registerConsumer(String consumerTag, MessageConsumer consumer)
     {
-        _consumers.put(new Integer(consumerTag), consumer);
+        _consumers.put(consumerTag, consumer);
     }
 
     /**
@@ -779,9 +779,9 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
      * map from consumerTag to consumer instance.
      * @param consumerTag the consumer tag, that was broker-generated
      */
-    void deregisterConsumer(int consumerTag)
+    void deregisterConsumer(String consumerTag)
     {
-        _consumers.remove(new Integer(consumerTag));
+        _consumers.remove(consumerTag);
     }
 
     void registerProducer(long producerId, MessageProducer producer)
