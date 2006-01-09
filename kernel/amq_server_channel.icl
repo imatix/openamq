@@ -24,9 +24,9 @@ maximum number of consumers per channel is set at compile time.
 <method name = "new">
     self->consumer_list = amq_consumer_by_channel_new ();
     icl_shortstr_fmt (self->cluster_id,
-        "%s/%s/%d", 
-        amq_broker? amq_broker->spid: "-", 
-        connection? connection->id: "-", 
+        "%s/%s/%d",
+        amq_broker? amq_broker->spid: "-",
+        connection? connection->id: "-",
         self->number);
 </method>
 

@@ -438,26 +438,29 @@ amq_cluster_t
     </doc>
     <argument name = "method" type = "amq_server_method_t *">Publish method</argument>
     <local>
-    amq_content_basic_t
-        *basic_content;
     amq_peer_t
         *peer;                          //  Cluster peer
     icl_shortstr_t
         spid;                           //  Peer's SPID
+    char
+        *slash;
     </local>
     //
     assert (method->content);
-    if (method->class_id == AMQ_SERVER_BASIC) {
-        basic_content = method->content;
-        icl_shortstr_cpy (spid, basic_content->cluster_id);
-    }
-    *strchr (spid, '/') = 0;            //  First segment of cluster_id 
+    if (method->class_id == AMQ_SERVER_BASIC)
+        icl_shortstr_cpy (spid, ((amq_content_basic_t *) (method->content))->cluster_id);
+    else
+        icl_console_print ("E: unknown content class in amq_cluster_from_secondary");
+
+    //  First segment of cluster_id
+    slash = strchr (spid, '/');
+    assert (slash);
+    *slash = 0;
 
     //  Check if peer is a known secondary server
     peer = amq_peer_list_first (self->peer_list);
     rc = FALSE;
     while (peer) {
-        icl_console_print ("### COMPARE: %s == %s", peer->spid, spid);
         if (streq (peer->spid, spid) && !peer->primary)
             rc = TRUE;
         peer = amq_peer_list_next (&peer);

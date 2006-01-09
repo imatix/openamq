@@ -177,7 +177,7 @@ class.
         if (channel->connection->type == AMQ_CONNECTION_TYPE_CLUSTER) {
             //  If we're root, and sender was a secondary peer, we push the
             //  content to all secondary peers except the sender...
-            if (amq_cluster_from_secondary (amq_cluster, method->content)
+            if (amq_cluster_from_secondary (amq_cluster, method)
             &&  amq_cluster->root)
                 push_out = AMQ_CLUSTER_PUSH_SECONDARY;
         }

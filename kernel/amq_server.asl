@@ -198,15 +198,15 @@
             //  Tell cluster about new queue binding
             if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER) {
                 if (queue->clustered)
+                    //  Shared queue bindings are replicated as-is
+                    amq_cluster_forward (amq_cluster, amq_vhost, self, TRUE, FALSE);
+                else
+                if (amq_cluster->enabled)
                     //  Private queue bindings are replicated using the
-                    //  Cluster.Bind method so that each primary server 
+                    //  Cluster.Bind method so that each primary server
                     //  knows to send messages back to this server
                     amq_cluster_forward_bind (amq_cluster, amq_vhost,
                         method->exchange, method->routing_key, method->arguments);
-                else
-                if (amq_cluster->enabled)
-                    //  Shared queue bindings are replicated as-is
-                    amq_cluster_forward (amq_cluster, amq_vhost, self, TRUE, FALSE);
             }
             amq_queue_unlink (&queue);
         }
@@ -228,7 +228,7 @@
         //  Tell client we deleted the queue ok
         amq_server_agent_queue_delete_ok (
             connection->thread, channel->number, amq_queue_message_count (queue));
-                
+
         //  Tell cluster that queue is being deleted
         if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
         &&  queue->clustered)

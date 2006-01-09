@@ -81,8 +81,8 @@ for Basic, File, and Stream content classes.
             icl_shortstr_fmt (self->tag, "%ld", ++(channel->connection->consumer_tag));
 
         //  Broadcast consume method to cluster using our cluster_id
-        if (channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER
-        && queue->clustered) {
+        if (self->channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+        &&  self->queue->clustered) {
             icl_shortstr_fmt (self->cluster_id,
                 "%s/%s", channel->connection->cluster_id, self->tag);
             icl_shortstr_cpy (
@@ -99,8 +99,10 @@ for Basic, File, and Stream content classes.
     </local>
     if (self->class_id == AMQ_SERVER_BASIC) {
         amq_consumer_basic_destroy (&self->consumer_basic);
+
         //  Broadcast cancel method to cluster using our cluster_id
-        if (amq_cluster) {
+        if (self->channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+        &&  self->queue->clustered) {
             method = amq_proxy_method_new_basic_cancel (self->cluster_id);
             amq_cluster_forward (
                 amq_cluster, amq_vhost, (amq_server_method_t *) method, TRUE, FALSE);
@@ -131,12 +133,14 @@ for Basic, File, and Stream content classes.
     icl_shortstr_cpy (string, cluster_tag);
 
     //  String must start with our own spid
-    connection_id = ipr_str_defix (string, amq_broker->spid);
+    connection_id = strchr (string, '/');
     assert (connection_id);
+    connection_id++;
+
     consumer_tag = strchr (connection_id, '/');
     assert (consumer_tag);
     *consumer_tag++ = 0;
-        
+
     //  Lookup connection, channel, and consumer if necessary
     connection = amq_server_connection_table_search (
         amq_broker->connections, connection_id);
