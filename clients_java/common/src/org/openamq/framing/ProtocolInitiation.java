@@ -14,7 +14,7 @@ public class ProtocolInitiation extends AMQDataBlock implements EncodableAMQData
     public byte protocolClass = 1;
     public byte protocolInstance = 1;
     public byte protocolMajor = 10;
-    public byte protocolMinor = 1;
+    public byte protocolMinor = 2;
 
     public long getSize()
     {
