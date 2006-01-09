@@ -17,10 +17,14 @@ maximum number of consumers per channel is set at compile time.
 <context>
     amq_consumer_by_channel_t
         *consumer_list;                 //  List of consumers for channel
+    icl_shortstr_t
+        cluster_id;                     //  Cluster id for channel
 </context>
 
 <method name = "new">
     self->consumer_list = amq_consumer_by_channel_new ();
+    icl_shortstr_fmt (self->cluster_id,
+        "%s/%s/%d", amq_broker->spid, connection->id, self->number);
 </method>
 
 <method name = "destroy">
@@ -86,7 +90,7 @@ maximum number of consumers per channel is set at compile time.
     //  Create and configure the consumer object
     consumer = amq_consumer_new (self, queue, method);
     amq_consumer_by_channel_queue (self->consumer_list, consumer);
-    amq_queue_consume (queue, consumer, self->active, method);
+    amq_queue_consume (queue, consumer, self->active);
     amq_consumer_unlink (&consumer);
     </action>
 </method>

@@ -110,17 +110,18 @@ independent of the queue content type.
 
 <private name = "header">
 static amq_consumer_t *
-    s_get_next_consumer ($(selftype) *self, char *producer_id);
+    s_get_next_consumer ($(selftype) *self, char *producer_id, char *cluster_id);
 static void
     s_free_consumer_queue (amq_consumer_by_queue_t **queue);
 </private>
 
 <private name = "footer">
-//  Return next consumer for queue, NULL if there are none,
-//  given publisher_id of current content to dispatch
+//  Return next consumer for queue, NULL if there are none.
+//  - producer_id is used for local consumers,
+//  - cluster_id across the cluster
 
 static amq_consumer_t *
-s_get_next_consumer ($(selftype) *self, char *producer_id)
+s_get_next_consumer ($(selftype) *self, char *producer_id, char *cluster_id)
 {
     amq_consumer_t
         *consumer;
@@ -128,9 +129,43 @@ s_get_next_consumer ($(selftype) *self, char *producer_id)
     //  We expect to process the first consumer on the active list
     consumer = amq_consumer_by_queue_first (self->active_consumers);
     while (consumer) {
-        if (amq_server_channel_alive (consumer->channel) && consumer->channel->active
-        && (consumer->no_local == FALSE || strneq (consumer->channel->connection->id, producer_id)))
-            break;                      //  We have our consumer
+        if (amq_server_channel_alive (consumer->channel) && consumer->channel->active) {
+            if (consumer->no_local == FALSE)
+                break;                  //  We have our consumer
+            else
+            if (consumer->channel->connection->type == AMQ_CONNECTION_TYPE_CLUSTER) {
+                //  If the consumer is a cluster peer then the consumer tag is
+                //  spid/connectionid/xxx where xxx is the original consumer
+                //  tag.  We can compare this with the content cluster_id, which
+                //  is spid/connectionid/channelnbr.
+                char
+                    *slash;
+                size_t
+                    id_size;            //  Size of spid/connectionid string
+                Bool
+                    ids_match;          //  Do the two IDs match?
+
+                //  Compare the leading part of both id strings...
+                slash = strchr (cluster_id, '/');
+                if (slash)
+                    slash = strchr (slash + 1, '/');
+                if (slash)
+                    id_size = slash - cluster_id;
+                if (strlen (consumer->tag) > id_size
+                &&  memcmp (cluster_id, consumer->tag, id_size) == 0)
+                    ids_match = TRUE;
+                else
+                    ids_match = FALSE;
+
+                if (!ids_match)
+                    break;              //  We have our consumer
+            }
+            else
+            if (strneq (consumer->channel->connection->id, producer_id))
+                //  If the consumer is an application then we can compare the
+                //  content producer_id with the connection id of the consumer.
+                break;                  //  We have our consumer
+        }
         else
             consumer = amq_consumer_by_queue_next (&consumer);
     }

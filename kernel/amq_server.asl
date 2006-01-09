@@ -196,15 +196,15 @@
                 connection->thread, channel->number);
 
             //  Tell cluster about new queue binding
-            if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
-            &&  amq_cluster->enabled) {
-                if (queue->exclusive)
+            if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER) {
+                if (queue->clustered)
                     //  Private queue bindings are replicated using the
                     //  Cluster.Bind method so that each primary server 
                     //  knows to send messages back to this server
                     amq_cluster_forward_bind (amq_cluster, amq_vhost,
                         method->exchange, method->routing_key, method->arguments);
                 else
+                if (amq_cluster->enabled)
                     //  Shared queue bindings are replicated as-is
                     amq_cluster_forward (amq_cluster, amq_vhost, self, TRUE, FALSE);
             }
@@ -231,9 +231,8 @@
                 
         //  Tell cluster that queue is being deleted
         if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
-        &&  amq_cluster->enabled)
-            if (!queue->exclusive)
-                amq_cluster_forward (amq_cluster, amq_vhost, self, TRUE, FALSE);
+        &&  queue->clustered)
+            amq_cluster_forward (amq_cluster, amq_vhost, self, TRUE, FALSE);
 
         amq_queue_destroy (&queue);
     }
@@ -252,9 +251,8 @@
 
         //  Tell cluster to also purge shared queue (not stateful)
         if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
-        &&  amq_cluster->enabled)
-            if (!queue->exclusive)
-                amq_cluster_forward (amq_cluster, amq_vhost, self, FALSE, FALSE);
+        &&  queue->clustered)
+            amq_cluster_forward (amq_cluster, amq_vhost, self, FALSE, FALSE);
 
         amq_queue_unlink (&queue);
     }
@@ -312,21 +310,9 @@
                 method->routing_key,
                 connection->id);
 
-            /*  Cluster ID is our ident, SPID, connection id, and channel number
-                delimited by "/".  We encoded this as a message property to
-                let us route returned messages back to the producing application.
-                We only set this on content coming from applications, not other
-                cluster peers.
-              */
-            if (amq_cluster->enabled
-            &&  connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
-                amq_content_$(class.name)_set_cluster_id (
-                    self->content,
-                    "%c/%s/%s/%d",
-                    amq_cluster_ident (amq_cluster),
-                    amq_broker->spid,
-                    connection->id,
-                    channel->number);
+            //  Set cluster-id on fresh content coming from applications
+            if (amq_cluster->enabled && connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
+                amq_content_$(class.name)_set_cluster_id (self->content, channel->cluster_id);
 
             amq_exchange_publish (exchange, channel, self);
         }

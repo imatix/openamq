@@ -432,19 +432,36 @@ amq_cluster_t
     amq_server_method_destroy (&method);
 </method>
 
-<method name = "ident" template = "function">
+<method name = "from secondary" template = "function">
     <doc>
-    Returns the current node ident, which is R, B, or S depending
-    on whether we are the root, a backup primary, or a secondary
-    server.
+    Returns TRUE if the method content came from a secondary peer.
     </doc>
-    if (self->root)
-        rc = 'R';
-    else
-    if (self->primary)
-        rc = 'B';
-    else
-        rc = 'S';
+    <argument name = "method" type = "amq_server_method_t *">Publish method</argument>
+    <local>
+    amq_content_basic_t
+        *basic_content;
+    amq_peer_t
+        *peer;                          //  Cluster peer
+    icl_shortstr_t
+        spid;                           //  Peer's SPID
+    </local>
+    //
+    assert (method->content);
+    if (method->class_id == AMQ_SERVER_BASIC) {
+        basic_content = method->content;
+        icl_shortstr_cpy (spid, basic_content->cluster_id);
+    }
+    *strchr (spid, '/') = 0;            //  First segment of cluster_id 
+
+    //  Check if peer is a known secondary server
+    peer = amq_peer_list_first (self->peer_list);
+    rc = FALSE;
+    while (peer) {
+        icl_console_print ("### COMPARE: %s == %s", peer->spid, spid);
+        if (streq (peer->spid, spid) && !peer->primary)
+            rc = TRUE;
+        peer = amq_peer_list_next (&peer);
+    }
 </method>
 
 <method name = "accept" template = "async function" async = "1">

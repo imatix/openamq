@@ -174,12 +174,11 @@ class.
     //  Calculate whether message needs to be pushed to peers or not
     push_out = AMQ_CLUSTER_PUSH_NONE;
     if (amq_cluster->enabled) {
-icl_console_print ("### CLUSTER ID: %s", ((amq_content_basic_t *) method->content)->cluster_id);
         if (channel->connection->type == AMQ_CONNECTION_TYPE_CLUSTER) {
             //  If we're root, and sender was a secondary peer, we push the
             //  content to all secondary peers except the sender...
-            if (*(((amq_content_basic_t *) method->content)->cluster_id) == 'S'
-            && amq_cluster->root)
+            if (amq_cluster_from_secondary (amq_cluster, method->content)
+            &&  amq_cluster->root)
                 push_out = AMQ_CLUSTER_PUSH_SECONDARY;
         }
         else

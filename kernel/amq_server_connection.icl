@@ -26,6 +26,8 @@ This class implements the connection class for the AMQ server.
         *own_queue_list;                //  List of exclusive queues
     amq_consumer_table_t
         *consumer_table;                //  Consumers for connection
+    icl_shortstr_t
+        cluster_id;                     //  Cluster id for connection
     qbyte
         consumer_tag;                   //  Last consumer tag
     int
@@ -35,6 +37,7 @@ This class implements the connection class for the AMQ server.
 <method name = "new">
     self->own_queue_list = ipr_looseref_list_new ();
     self->consumer_table = amq_consumer_table_new ();
+    icl_shortstr_fmt (self->cluster_id, "%s/%s", amq_broker->spid, self->id);
 </method>
 
 <method name = "destroy">

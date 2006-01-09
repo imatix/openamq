@@ -127,35 +127,34 @@ cluster key
     - must also match for intra-cluster connections
     OK
 
+Intra-cluster routing
+    "Cluster ID" = spid/connectionid/channelnbr
+    - connection->cluster_id = spid/connectionid
+    - channel->cluster_id    = spid/connectionid/channelnr
+    - content->cluster_id    = spid/connectionid/channelnr
+    - consumer->cluster_id   = spid/connectionid/tag
+    OK
+    
 class.consume, deliver
     - create local consumer as usual
-        - do not return consume-ok if shared queue
     - if shared queue, broadcast consume method
-        - insert connection/channel/consumer-tag as client_key
-    OK
+        - use consumer_tag = connection->cluster_id / consumer_tag
     - delivered messages on proxy connection
-        - lookup connection/channel/consumer-tag from client_key
+        - lookup consumer from method consumer tag
         - deliver onwards to local consumer
     OK
-    - cancelling local consumer
-        - want to cancel on the basis of consumer tag
-            ... but we don't know this...
-    
-    0. create consumer as usual
-    1. client provides user tag in all consume methods
-    2. user tag returned with consume-ok and deliver methods
-    3. if shared queue, broadcast cluster.consume
-        - insert outbound consumer-tag into secondary consume
-        OK
+    - no-local filtering
+        -> content->cluster_id == spid/connectionid/channelnr
+        -> consumer->tag == <arbitrary> (direct)
+        or consumer->tag == spid/connectionid/<arbitrary> (proxied)
 
-    4. when deliver method arrives
-        -> client key-> consumer
-            - connection->identifier,
-            - channel->key,
-            - consumer->tag
+class.cancel
+    - cancel local consumer as usual
+    - if shared queue, broadcast consume method
+        - use cluster_tag as consumer_tag
+    OK
+        
 
-    - no-local?
-    - need to cancel remote consumer if local consumer goes away
 
     - when content arrives on proxy connection
         - garbage collect consumer if zombied

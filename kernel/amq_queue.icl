@@ -68,7 +68,8 @@ class.  This is a lock-free asynchronous class.
         exclusive,                      //  Is queue exclusive?
         auto_delete,                    //  Auto-delete unused queue?
         locked,                         //  Queue for exclusive consumer?
-        dirty;                          //  Queue has to be dispatched?
+        dirty,                          //  Queue has to be dispatched?
+        clustered;                      //  Queue is clustered (shared)?
     int
         consumers;                      //  Number of consumers
     amq_queue_basic_t
@@ -90,6 +91,7 @@ class.  This is a lock-free asynchronous class.
     self->enabled     = TRUE;
     self->durable     = durable;
     self->exclusive   = exclusive;
+    self->clustered   = amq_cluster->enabled && !self->exclusive;
     self->auto_delete = auto_delete;
     self->queue_basic = amq_queue_basic_new (self);
     icl_shortstr_cpy (self->name, name);
@@ -173,22 +175,17 @@ class.  This is a lock-free asynchronous class.
     </doc>
     <argument name = "consumer" type = "amq_consumer_t *">Consumer reference</argument>
     <argument name = "active"   type = "Bool">Create active consumer?</argument>
-    <argument name = "method"   type = "amq_server_method_t *">Consume method</argument>
     //
     <possess>
     amq_consumer_link (consumer);
-    amq_server_method_possess (method);
     </possess>
     <release>
     amq_consumer_unlink (&consumer);
-    amq_server_method_destroy (&method);
     </release>
     <action>
     //
     char
         *error = NULL;                  //  If not null, consumer is invalid
-    Bool
-        clustered_queue = amq_cluster->enabled && !self->exclusive;
 
     //  Validate consumer
     if (self->exclusive
@@ -196,7 +193,7 @@ class.  This is a lock-free asynchronous class.
         error = "Queue is exclusive to another connection";
     else
     if (consumer->exclusive) {
-        if (self->consumers == 0 && !clustered_queue)
+        if (self->consumers == 0 && !self->clustered)
             self->locked = TRUE;        //  Grant exclusive access
         else
             error = "Exclusive access to queue not possible";
@@ -217,16 +214,6 @@ class.  This is a lock-free asynchronous class.
                     consumer->channel->connection->thread,
                     consumer->channel->number,
                     consumer->tag);
-
-            //  Broadcast consumer to cluster
-            if (clustered_queue
-            &&  consumer->channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER) {
-                //  Set consumer cluster tag so we can route deliveries
-                icl_shortstr_cpy (
-                    method->payload.basic_consume.consumer_tag,
-                    consumer->cluster_tag);
-                amq_cluster_forward (amq_cluster, amq_vhost, method, TRUE, FALSE);
-            }
         }
         self->consumers++;
     }

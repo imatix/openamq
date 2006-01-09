@@ -127,7 +127,7 @@ runs lock-free as a child of the asynchronous queue class.
     && amq_consumer_by_queue_count (self->active_consumers)) {
         content = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
         assert (content);
-        consumer = s_get_next_consumer (self, content->producer_id);
+        consumer = s_get_next_consumer (self, content->producer_id, content->cluster_id);
         if (!consumer) {
             if (amq_server_config_trace_queue (amq_server_config))
                 icl_console_print ("Q: finish  queue=%s reason=no_consumers",
