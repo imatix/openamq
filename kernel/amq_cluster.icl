@@ -339,7 +339,7 @@ amq_cluster_t
 
 <method name = "cancel" template = "async function" async = "1">
     <doc>
-    Cancel an inbound cluster connection.  If the connection came from
+    Cancel an inbound cluster connection. If the connection came from
     a secondary server, we remove this from our peer list.
     </doc>
     <argument name = "spid" type = "char *">Peer's spid</argument>

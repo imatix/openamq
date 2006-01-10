@@ -134,7 +134,7 @@ Intra-cluster routing
     - content->cluster_id    = spid/connectionid/channelnr
     - consumer->cluster_id   = spid/connectionid/tag
     OK
-    
+
 class.consume, deliver
     - create local consumer as usual
     - if shared queue, broadcast consume method
@@ -142,36 +142,62 @@ class.consume, deliver
     - delivered messages on proxy connection
         - lookup consumer from method consumer tag
         - deliver onwards to local consumer
-    OK
     - no-local filtering
         -> content->cluster_id == spid/connectionid/channelnr
         -> consumer->tag == <arbitrary> (direct)
         or consumer->tag == spid/connectionid/<arbitrary> (proxied)
-
+    OK
+    
 class.cancel
     - cancel local consumer as usual
     - if shared queue, broadcast consume method
         - use cluster_tag as consumer_tag
     OK
         
-
-
-    - when content arrives on proxy connection
-        - garbage collect consumer if zombied
-        - otherwise send to consumer as today
-
-
 class.get, get-ok
-    
+    - send get to shared queue
+    - send get-ok back to connection
+        - need some token in the get-ok: cluster-tag
+    OK            
+
+
 Clarify in doc:
     - client can send synchronous methods without waiting for responses
     - responses MAY come out of order...
+        - e.g. queue.purge, basic.get, etc.
     - do we add a response token to all synchronous methods?
         - carried in replies?
-    - ...? could be useful for knowing what consume-ok matches what consume...
-    - ...? client may get consume ok's in wrong order today
-    - ...? server could wait to process new input until output is sent
+    - shortstr, allows arbitrary encodings
     
+Change requests
+    - remove cluster key from protocol, use vhost as identifier
+    - support a single vhost name per configuration
+    - if we have multiple vhosts
+        - create a proxy connection per vhost
+    - general technique for proxying AMQP methods
+        - proxy method with/without content?
+            - requires hierarchical content support
+        - document in AMQP specifications
+    - implement heartbeating between brokers
+        - information, per broker:
+            - number of connections & channels
+            - number of messages
+            - size of current message store
+            - number of exchanges, queues, bindings
+            - number of peers and state of each peer
+        - same as dump-state
+    - use async opens for initial connections
+    - let spid be configured
+    - override any config option from cmdline
+
+
+OpenAMQ change requests (to Jira)
+    - sigusr1 -> dump state to console
+    - sigusr2 -> dump 1line state to console
+    - amq-254: do not use mandatory/immediate on pubsub
+    - implement limit on returned messages per connection
+    - option to dump state every N seconds (60)
+    - build command-line console in kernel (generated)
 
 
     - if returned,
@@ -184,10 +210,6 @@ Clarify in doc:
         
 
     
-    ... pass messages down across remote binds
-    ... register remote consumers
-    ... pass messages across consumers
-    ... fix clients to connect to one of random server
 
     ... how to return messages if no immediate consumers?
         - need to add original connection & channel number to message
@@ -201,13 +223,10 @@ client connection
         - pause client activity
         - client application can timeout if bored
     OK
-
     - add force option to C API
     - cluster needs to balance clients over all servers...
-        - reconnect to (random) server
-    - if cluster goes down, all connections should be closed
-    - need to add heartbeating to proxy link to double-check
-        --- sometimes when root goes down, we don't see it...
+        - reconnect to server with lowest usage
+
 
 
 console issues

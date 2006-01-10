@@ -59,8 +59,46 @@
             content->routing_key);
         amq_consumer_unlink (&consumer);
     }
+  </action>
+
+  <action name = "get-ok">
+    amq_server_channel_t
+        *channel;                       //  Channel to send message to
+    amq_content_$(class.name)_t
+        *content;                       //  Current content
+
+    channel = amq_server_channel_cluster_search (method->cluster_id);
+    if (channel) {
+        content = (amq_content_$(class.name)_t *) self->content;
+        amq_server_agent_$(class.name)_get_ok (
+            channel->connection->thread,
+            channel->number,
+            content,
+            NULL,                       //  Cluster_id is null
+            method->delivery_tag,
+            method->redelivered,
+            method->exchange,
+            method->routing_key,
+            method->message_count);
+        amq_server_channel_unlink (&channel);
+        ipr_meter_count (amq_broker->xmeter);
+    }
     else
-        icl_console_print ("E: no consumer for proxied message, discarding");
+        icl_console_print ("E: no channel for proxied message, discarding");
+  </action>
+
+  <action name = "get-empty">
+    amq_server_channel_t
+        *channel;                       //  Channel to send message to
+
+    channel = amq_server_channel_cluster_search (method->cluster_id);
+    if (channel) {
+        amq_server_agent_$(class.name)_get_empty (
+            channel->connection->thread,
+            channel->number,
+            NULL);                      //  Cluster_id is null
+        amq_server_channel_unlink (&channel);
+    }
   </action>
 </class>
 

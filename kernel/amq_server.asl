@@ -333,7 +333,20 @@
     </local>
     queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
     if (queue) {
-        amq_queue_get (queue, channel, self->class_id);
+        //  Pass request to cluster root peer
+        if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+        &&  queue->clustered) {
+            icl_shortstr_cpy (method->cluster_id, channel->cluster_id);
+            amq_cluster_peer_push (
+                amq_cluster,
+                amq_cluster->root_peer,
+                amq_vhost,
+                self,
+                AMQ_CLUSTER_PUSH_ALL);
+        }
+        else
+            amq_queue_get (queue, channel, self->class_id);
+            
         amq_queue_unlink (&queue);
     }
     else

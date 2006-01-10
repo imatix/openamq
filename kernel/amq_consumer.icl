@@ -48,7 +48,8 @@ for Basic, File, and Stream content classes.
     Bool
         no_local,                       //  Don't want own messages
         auto_ack,                       //  Auto acknowledge messages
-        exclusive;                      //  Exclusive access?
+        exclusive,                      //  Exclusive access?
+        clustered;                      //  Is consumer clustered?
 </context>
 
 <method name = "new">
@@ -88,6 +89,7 @@ for Basic, File, and Stream content classes.
             icl_shortstr_cpy (
                 method->payload.basic_consume.consumer_tag, self->cluster_id);
             amq_cluster_forward (amq_cluster, amq_vhost, method, TRUE, FALSE);
+            self->clustered = TRUE;
         }
     }
 </method>
@@ -101,8 +103,7 @@ for Basic, File, and Stream content classes.
         amq_consumer_basic_destroy (&self->consumer_basic);
 
         //  Broadcast cancel method to cluster using our cluster_id
-        if (self->channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER
-        &&  self->queue->clustered) {
+        if (self->clustered) {
             method = amq_proxy_method_new_basic_cancel (self->cluster_id);
             amq_cluster_forward (
                 amq_cluster, amq_vhost, (amq_server_method_t *) method, TRUE, FALSE);
@@ -118,7 +119,7 @@ for Basic, File, and Stream content classes.
     when finished with it.  The cluster consumer tag is formatted thus:
     spid/connectionid/tag.
     </doc>
-    <argument name = "cluster tag" type = "char *">Cluster consumer tag</argument>
+    <argument name = "cluster id" type = "char *">Cluster consumer tag</argument>
     <declare name = "consumer" type = "amq_consumer_t *">Consumer to return</declare>
     <local>
     icl_shortstr_t
@@ -127,10 +128,10 @@ for Basic, File, and Stream content classes.
         *connection_id,                 //  Connection id value
         *consumer_tag;                  //  Consumer tag value
     amq_server_connection_t
-        *connection;                    //  Connection to send message to
+        *connection;                    //  Connection
     </local>
     //
-    icl_shortstr_cpy (string, cluster_tag);
+    icl_shortstr_cpy (string, cluster_id);
 
     //  String must start with our own spid
     connection_id = strchr (string, '/');
@@ -147,7 +148,7 @@ for Basic, File, and Stream content classes.
     if (connection) {
         consumer = amq_consumer_table_search (connection->consumer_table, consumer_tag);
         amq_server_connection_unlink (&connection);
-        assert (streq (consumer->cluster_id, cluster_tag));
+        assert (streq (consumer->cluster_id, cluster_id));
     }
     else
         consumer = NULL;

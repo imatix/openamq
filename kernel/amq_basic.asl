@@ -404,7 +404,8 @@
   <doc>
     This method provides a direct access to the messages in a queue
     using a synchronous dialogue that is designed for specific types of
-    application where functionality is more important than performance.
+    application where synchronous functionality is more important than
+    performance.
   </doc>
   <response name = "get-ok" />
   <response name = "get-empty" />
@@ -423,6 +424,15 @@
     </doc>
   </field>
 
+  <!-- This is ugly, we need a better way of wrapping methods -->
+  <field name = "cluster id" type = "shortstr">
+     Cluster id
+    <doc>
+      For use by cluster applications, should not be used by
+      client applications.
+    </doc>
+  </field>
+
   <field name = "auto ack" domain = "auto ack" />
 </method>
 
@@ -434,6 +444,15 @@
     unless the auto-ack option was set in the get method.
   </doc>
   <chassis name = "client" implement = "MAY" />
+
+  <!-- This is ugly, we need a better way of wrapping methods -->
+  <field name = "cluster id" type = "shortstr">
+     Cluster id
+    <doc>
+      For use by cluster applications, should not be used by
+      client applications.
+    </doc>
+  </field>
 
   <field name = "delivery tag" domain = "delivery tag" />
 
@@ -474,6 +493,14 @@
     available for the client.
   </doc>
   <chassis name = "client" implement = "MAY" />
+
+  <field name = "cluster id" type = "shortstr">
+     Cluster id
+    <doc>
+      For use by cluster applications, should not be used by
+      client applications.
+    </doc>
+  </field>
 </method>
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->

@@ -58,7 +58,9 @@ cluster class.
     <argument name = "primary"  type = "Bool">Primary node?</argument>
     self->cluster = cluster;
     self->primary = primary;
+    
     self->channel_nbr = 1;              //  Single channel per connection
+
     icl_shortstr_cpy (self->hostname, hostname);
 </method>
 
@@ -222,8 +224,8 @@ cluster class.
 
 <method name = "push" template = "function">
     <doc>
-    Pass already-formatted method to the specified peer.  If the same message
-    is pushed consecutively, it's ignored.
+    Pass already-formatted method to the specified peer.  Detects and
+    eliminates duplicates of same message sent to same peer.
     </doc>
     <argument name = "method" type = "amq_server_method_t *">Publish method</argument>
     //

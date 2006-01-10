@@ -21,7 +21,7 @@
 <option name = "protocol_class"    value = "1"  />
 <option name = "protocol_instance" value = "1"  />
 <option name = "protocol_major"    value = "10" />
-<option name = "protocol_minor"    value = "2"  />
+<option name = "protocol_minor"    value = "3"  />
 
 <!-- Standard field domains -->
   <domain name = "access ticket" type = "short">

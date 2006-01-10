@@ -184,6 +184,7 @@ runs lock-free as a child of the asynchronous queue class.
                 channel->connection->thread,
                 channel->number,
                 content,
+                NULL,                   //  Cluster-tag is null
                 0,                      //  Delivery tag
                 FALSE,                  //  Redelivered
                 content->exchange,
@@ -194,7 +195,7 @@ runs lock-free as a child of the asynchronous queue class.
         }
         else
             amq_server_agent_basic_get_empty (
-                channel->connection->thread, channel->number);
+                channel->connection->thread, channel->number, NULL);
     }
 </method>
 

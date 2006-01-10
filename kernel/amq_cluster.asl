@@ -18,9 +18,9 @@
 </doc>
 
 <doc name = "grammar">
-    cluster             = C:ROOT 
+    cluster             = C:PUBLISH
+                        / C:ROOT 
                         / C:BIND
-                        / C:FORWARD
 </doc>
 
 <chassis name = "server" implement = "MAY" />
