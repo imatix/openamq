@@ -1,3 +1,30 @@
+1.0a1 - 2006/01/10
+---------------------------------------------------------------------
+
+Bug Fixes:
+
+    AMQ-260    No-local consumers do not work      
+    AMQ-257    Clustering: not routing messages correctly betweens secondary nodes     
+    AMQ-256    Regression Tests fail for Windows build with 9d1    
+    AMQ-246    amq_client_session_arrived returns one message a time 
+    AMQ-244    PAL script leaves allocations after exception handling      
+    BASE2-143  icl_console.c uses invalid data format string according to visual studio 2005       
+
+Changes:
+
+    AMQ-262    Clustering: implement consumers across cluster      
+    AMQ-259    Change consumer tag assignment      
+    AMQ-205    Clustering: build prototype implementation
+    AMQ-131    Server user guide (basic)       
+    AMQ-222    Record server-side disconnects such as time-outs with their reason/cause. Configurable time-outs.       
+    AMQ-242    Server log does not show the date       
+    AMQ-197    Remove the JMS class and expand the Basic class semantics       
+
+Other issues:
+
+    AMQ-261    Can 1.0a0 be used in a non-cluster mode?    
+    
+
 1.0a0 - 2006/01/05
 ---------------------------------------------------------------------
 Remarks:
