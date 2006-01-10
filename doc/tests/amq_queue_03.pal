@@ -10,13 +10,15 @@
     <session>
         <queue_declare queue = "myqueue" durable = "1" />
     </session>
-   
     <wait timeout = "2000" />
     <server name = "amq_server" />
+    <echo>we are here</echo>
+<!--   
     
     <session restart = "1">
         <queue_declare queue = "myqueue" passive = "1" />
     </session>
+-->
 </pal>
 
 
