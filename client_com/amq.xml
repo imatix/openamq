@@ -34,7 +34,7 @@
             <argument type = "long" name = "immediate"/>
         </method>
 
-        <method name = "Consume" type = "long">
+        <method name = "Consume" type = "BSTR">
             <argument type = "BSTR" name = "queue"/>
             <argument type = "long" name = "prefetch_size"/>
             <argument type = "long" name = "prefetch_count"/>
@@ -44,7 +44,7 @@
         </method>
         
         <method name = "Cancel">
-            <argument type = "long" name = "consumer_tag"/>
+            <argument type = "BSTR" name = "consumer_tag"/>
         </method>
         
         <method name = "FireEvents">
@@ -194,7 +194,7 @@
     auth_data = amq_client_connection_auth_plain (my_login, my_password);
     if (!auth_data)
 	    return create_error (L"Cannot create authentication data");
-    m_connection = amq_client_connection_new (my_server, my_vhost, auth_data,
+    m_connection = amq_client_connection_new (my_server, NULL, my_vhost, auth_data,
         0, timeout);
     if (!m_connection)
 		return create_error (L"Cannot open connection to AMQ server");
@@ -271,14 +271,14 @@
     USES_CONVERSION;
 
     my_queue = OLE2A (queue);
-    result = amq_client_session_basic_consume (m_session, 0, my_queue,
+    result = amq_client_session_basic_consume (m_session, 0, my_queue, NULL,
         (dbyte) prefetch_size, (dbyte) prefetch_count,  no_local, auto_ack,
         exclusive);
     if (result)
         return create_error (L"Cannot consume from the queue");
         
     if(pVal)
-        *pVal = m_session->consumer_tag;
+        *pVal = ::SysAllocString (A2W (m_session->consumer_tag));
         
     return S_OK;
             </method>
@@ -286,8 +286,10 @@
             <method name = "Cancel">
     int
         result;
+
+    USES_CONVERSION;
         
-    result = amq_client_session_basic_cancel (m_session, (dbyte) consumer_tag);
+    result = amq_client_session_basic_cancel (m_session, W2A (consumer_tag));
     if (result)
         return create_error (L"Cannot cancel consuming from the queue");
         
