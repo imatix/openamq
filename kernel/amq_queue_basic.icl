@@ -38,6 +38,10 @@ runs lock-free as a child of the asynchronous queue class.
     <argument name = "channel"   type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "content"   type = "amq_content_basic_t *">Message content</argument>
     <argument name = "immediate" type = "Bool">Warn if no consumers?</argument>
+    <local>
+    size_t
+        queue_limit = amq_server_config_queue_limit (amq_server_config);
+    </local>
     //
     /*  Limitations of current design:
         - no acknowledgements
@@ -53,19 +57,18 @@ runs lock-free as a child of the asynchronous queue class.
     //  If queue is full, drop something...
     //  For exclusive queues, drop oldest messages
     //  For shared queues, drop this message
-    if (ipr_looseref_list_count (self->content_list)
-    ==  amq_server_config_queue_limit (amq_server_config)) {
+    if (queue_limit && ipr_looseref_list_count (self->content_list) == queue_limit) {
         if (self->queue->exclusive) {
             amq_content_basic_t
-                *oldest; 
+                *oldest;
             oldest = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
             amq_content_basic_destroy (&oldest);
+            icl_console_print ("W: queue is full (%d messages) - discarding newest", queue_limit);
         }
-        else
-            //  We should really warn someone...
-            //  TODO: return message if immediate
-            //  Log message to console, once per X messages
+        else {
             content = NULL;             //  Forget about it...
+            icl_console_print ("W: queue is full (%d messages) - discarding oldest", queue_limit);
+        }
     }
     ipr_meter_count (amq_broker->imeter);
 

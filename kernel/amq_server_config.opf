@@ -84,7 +84,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "queue limit" type = "size_t">
+    <property name = "queue limit" type = "size_t" default = "0">
     Default queue max messages
     <doc>
     Specifies the limit for queues, in messages. When a queue reaches
