@@ -242,11 +242,13 @@ for each type of exchange. This is a lock-free asynchronous class.
     channel = amq_server_channel_link (channel);
     queue = amq_queue_link (queue);
     arguments = icl_longstr_dup (arguments);
+    routing_key = icl_mem_strdup (routing_key);
     </possess>
     <release>
     amq_server_channel_unlink (&channel);
     amq_queue_unlink (&queue);
     icl_longstr_destroy (&arguments);
+    icl_mem_free (routing_key);
     </release>
     //
     <action>
@@ -269,10 +271,12 @@ for each type of exchange. This is a lock-free asynchronous class.
     <possess>
     peer = amq_peer_link (peer);
     arguments = icl_longstr_dup (arguments);
+    routing_key = icl_mem_strdup (routing_key);
     </possess>
     <release>
     amq_peer_unlink (&peer);
     icl_longstr_destroy (&arguments);
+    icl_mem_free (routing_key);
     </release>
     //
     <action>
