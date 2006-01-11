@@ -17,6 +17,7 @@
 <!-- AMQ protocol specification -->
 <file name = "amq.asl"               class = "public resource"   >AMQ protocol definition</file>
 <file name = "amq_access.asl"        class = "public resource"   >Access control</file>
+<file name = "amq_cluster.asl"       class = "public resource"   >Cluster management</file>
 <file name = "amq_exchange.asl"      class = "public resource"   >Exchange management</file>
 <file name = "amq_queue.asl"         class = "public resource"   >Queue management</file>
 <file name = "amq_basic.asl"         class = "public resource"   >Basic content</file>
@@ -121,6 +122,7 @@
 <file name = "amq_queue_list.icl"    class = "icl private cont"  >List of queues per vhost</file>
 <file name = "amq_queue_agent.smt"   class = "smt public module"
                                      generated = "1"             >Server queue agent</file>
+<file name = "amq_queue_base.icl"    class = "private resource"  >Queue base class</file>
 <file name = "amq_queue_basic.icl"   class = "icl private class" >Basic content queue class</file>
 <file name = "amq_consumer.icl"      class = "icl private class" >Consumer class</file>
 <file name = "amq_consumer_table.icl"
@@ -154,6 +156,8 @@
                                      generated = "1"             >Stream content class</file>
 <file name = "amq_constants.icl"     class = "icl public data"
                                      generated = "1"             >Constants class</file>
+<file name = "amq_console_schema.gsl"
+                                     class = "private resource"  >Console generator</file>
 <file name = "amq_console_schema.cml"
                                      class = "generated resource">Console schema</file>
 
