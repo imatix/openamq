@@ -184,7 +184,6 @@ runs lock-free as a child of the asynchronous queue class.
                 channel->connection->thread,
                 channel->number,
                 content,
-                NULL,                   //  Cluster-tag is null
                 0,                      //  Delivery tag
                 FALSE,                  //  Redelivered
                 content->exchange,
