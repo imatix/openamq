@@ -162,7 +162,7 @@
         if (method->exclusive
         &&  strneq (queue->owner_id, connection->id))
             amq_server_channel_error (
-                channel, 
+                channel,
                 ASL_ACCESS_REFUSED,
                 "Queue cannot be made exclusive to this connection");
         else
@@ -175,8 +175,6 @@
 
         amq_queue_unlink (&queue);
     }
-    else
-        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
   </action>
 
   <action name = "bind">
