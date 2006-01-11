@@ -424,15 +424,6 @@
     </doc>
   </field>
 
-  <!-- This is ugly, we need a better way of wrapping methods -->
-  <field name = "cluster id" type = "shortstr">
-     Cluster id
-    <doc>
-      For use by cluster applications, should not be used by
-      client applications.
-    </doc>
-  </field>
-
   <field name = "auto ack" domain = "auto ack" />
 </method>
 
@@ -444,15 +435,6 @@
     unless the auto-ack option was set in the get method.
   </doc>
   <chassis name = "client" implement = "MAY" />
-
-  <!-- This is ugly, we need a better way of wrapping methods -->
-  <field name = "cluster id" type = "shortstr">
-     Cluster id
-    <doc>
-      For use by cluster applications, should not be used by
-      client applications.
-    </doc>
-  </field>
 
   <field name = "delivery tag" domain = "delivery tag" />
 

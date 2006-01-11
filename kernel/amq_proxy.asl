@@ -62,6 +62,7 @@
   </action>
 
   <action name = "get-ok">
+#if 0
     amq_server_channel_t
         *channel;                       //  Channel to send message to
     amq_content_$(class.name)_t
@@ -85,9 +86,11 @@
     }
     else
         icl_console_print ("E: no channel for proxied message, discarding");
+#endif
   </action>
 
   <action name = "get-empty">
+#if 0
     amq_server_channel_t
         *channel;                       //  Channel to send message to
 
@@ -99,6 +102,7 @@
             NULL);                      //  Cluster_id is null
         amq_server_channel_unlink (&channel);
     }
+#endif
   </action>
 </class>
 

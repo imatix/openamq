@@ -336,6 +336,7 @@
         //  Pass request to cluster root peer
         if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
         &&  queue->clustered) {
+            /*
             icl_shortstr_cpy (method->cluster_id, channel->cluster_id);
             amq_cluster_peer_push (
                 amq_cluster,
@@ -343,6 +344,8 @@
                 amq_vhost,
                 self,
                 AMQ_CLUSTER_PUSH_ALL);
+            */
+            icl_console_print ("W: Get on clustered queues not yet implemented");
         }
         else
             amq_queue_get (queue, channel, self->class_id);

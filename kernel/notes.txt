@@ -1,38 +1,10 @@
 ********************************************************************
 
-changes to protocol
-    - remove jms class
-    - fix framing size
-    - arguments to queue declare
-    - arguments to exchange declare
-    - bounce -> undeliver
-    - mandatory failure -> channel exception or tx failure
-    - add "insist" to connection.open
-    - add capabilities to connection.open
-    - add connection.redirect method, with timeout
-
- - Currently the wire-level frame size includes the frame end octet.
-   This means the minimum frame size is 1, which is not tidy since
-   there is a confusion over whether the frame-end is part of the
-   frame payload or not.  I'd like to change the frame size field to
-   be the real size of the payload, zero or upwards.
-
- - Rename "bounce" to "undeliver".
-
- - Undeliver only on queues with no consumers ('immediate'). On mandatory
-   failures, raise a channel exception.
-
- - Change Jms->Basic and remove Basic.
-
- - Remark that mandatory failure will cause a Tx failure when Tx's done.
-
-
-    
-
 Planning for 1.0 release
 
- Date: 31 January 2005
+Date: 31 January 2005
     This is very brutal.
+    And we will get there.
 
 Functionality:
 
@@ -81,7 +53,6 @@ Who what:
     -> also in C
     -> ascii conversion? ipr_write...?
 
-
 - finish pal tests
 - swig yes
 - .net maybe
@@ -103,8 +74,7 @@ Who what:
 
 ********************************************************************
 
-    
-basic protocol rules
+    basic protocol rules
     - any property needed for interop is named & standard
     - anything else is allowed, extensible x-, X-
         - server warns but ignores unsupported non-standard properties
@@ -163,28 +133,6 @@ General rule for handling issues
         - in vitro
         - in veritas
     
-
-Console Schema
-
-    console                 -
-        broker              *
-            vhost           *
-                exchange    *
-                queue       *
-            connection      -
-                consumer    -
-        config
-        
-amq console
-    broker
-       \
-        connection (ipaddress)
-            \
-           consumer (->queue)
-
-1. rename existing amq_server_connection
-    - make it an async object?
-
 
 The 'Watch' Method
 ------------------
@@ -346,3 +294,18 @@ Format:
         -> very version dependent...
 
 
+Console
+    - command line
+        - inspect object
+        - modify object
+        - execute method
+        - api is interpreted from schema
+    - mato?
+    - jonathan
+        - logging agents
+    - tim
+        - swig clients
+    - martin
+        - persistence
+    - guso
+        - documentation

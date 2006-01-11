@@ -316,7 +316,7 @@ main (int argc, char *argv [])
         while (count < messages) {
             //  If we're browsing, do a synchronous get
             if (!async_mode)
-                amq_client_session_basic_get (session, ticket, opt_queue, NULL, TRUE);
+                amq_client_session_basic_get (session, ticket, opt_queue, TRUE);
 
             //  Process whatever content has already arrived
             got_messages = FALSE;
