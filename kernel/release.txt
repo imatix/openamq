@@ -1,3 +1,16 @@
+1.0a2 - 2006/01/12
+---------------------------------------------------------------------
+
+Bug Fixes:
+
+    AMQ-267   Does not implement queue limits correctly       
+    AMQ-268   Server sends incorrect close sequence if queue declare failed       
+    AMQ-266   compile of routing key failes sometimes     
+    BASE2-145 Content of <public> block in iCL being enclosed in extern "C" {}
+              causes MSVC to fail sometimes     
+    AMQ-263   Server dumps when processing channel.close      
+
+
 1.0a1 - 2006/01/10
 ---------------------------------------------------------------------
 
