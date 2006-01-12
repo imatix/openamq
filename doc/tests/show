@@ -1,0 +1,5 @@
+#!/bin/bash
+for i in `ls *.pal|grep -v amq_test_base`; do 
+    printf "%25s" "$i"; 
+    cat $i | grep desc | sed -e 's/desc\s*=\s*//'; 
+done
