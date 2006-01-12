@@ -33,7 +33,7 @@ echo -n > $LOG
 
 if [ -e works.pal ] && [ -e fails.pal ]; then
     if [ -e "compare.log" ]; then
-        echo "initializing ..."
+        echo "initializing using compare.log ..."
         echo "[ CUR  ] [ PREV ] description of test"
     else
         echo "initializing ... (to compare: ln -s log/results_to_compare.log compare.log)"
