@@ -1,22 +1,22 @@
 <?xml version="1.0"?>
 <package name    = "OpenAMQ"
-         release = "1.0a1"
+         release = "1.0a2"
          script  = "makesrc.gsl">
 
   <product name = "base"
            url  = "https://svn.imatix.net/imatix/base/trunk/"
-           rev  = "8282" />
+           rev  = "8301" />
   <product name = "gsl4"
            url  = "https://svn.imatix.net/imatix/gsl4/trunk/"
-           rev  = "8282" />
+           rev  = "8301" />
   <product name = "foreign"
            url  = "https://svn.imatix.net/imatix/foreign/trunk/"
-           rev  = "8282" />
+           rev  = "8301" />
   <product name = "base2"
            url  = "https://svn.imatix.net/imatix/base2/trunk/"
-           rev  = "8282" />
+           rev  = "8301" />
   <product name = "openamq"
            url  = "https://svn.imatix.net/imatix/openamq/trunk/"
-           rev  = "8282" />
+           rev  = "8301" />
 </package>
 
