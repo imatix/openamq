@@ -3,22 +3,27 @@
     DOC: Testing multiple sessions, testcase needs SMT_STEP
 -->
 <pal script = "amq_pal_gen">
-    <session error_handling="recover">
+    <include filename = "amq_test_base.pal" />
+    <!-- Session should start normally -->
+    <session>
+        <queue_declare />
     </session>
-    <session error_handling="recover">
+
+    <!-- Session should stop and then restart -->
+    <session restart = "1">
+        <queue_declare />
     </session>
-    <session error_handling="recover">
+
+    <!-- Session should recover from an error -->
+    <session error_handling = "recover" restart = "1">
+        <queue_declare name = "nosuch" passive = "1"/>
+        <queue_declare />
     </session>
-    <session error_handling="recover">
+
+    <!-- Session should continue without a restart -->
+    <session>
+        <queue_declare />
     </session>
-    <session error_handling="recover">
-    </session>
-    <session error_handling="recover">
-    </session>
-    <session error_handling="recover">
-    </session>
-    <session error_handling="recover">
-    </session>
-    <session error_handling="recover">
-    </session>
+
+    <!-- Session should shut-down normally -->
 </pal>
