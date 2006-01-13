@@ -7,6 +7,7 @@ import edu.emory.mathcs.backport.java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.log4j.Logger;
 import org.openamq.AMQException;
 import org.openamq.AMQUndeliveredException;
+import org.openamq.AMQDisconnectedException;
 import org.openamq.client.message.AbstractJMSMessage;
 import org.openamq.client.message.MessageFactoryRegistry;
 import org.openamq.client.message.UnprocessedMessage;
@@ -88,6 +89,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
             }
 
             _logger.info("Dispatcher thread terminating for channel " + _channelId);
+            _connection.exceptionReceived(new AMQDisconnectedException("Dispatcher thread terminating"));
         }
 
         private void dispatchMessage(UnprocessedMessage message)
