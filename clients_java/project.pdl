@@ -27,8 +27,11 @@
 <directory name = "lib/jms"  class = "public binary">
     <file name = "jms.jar"                           >Compiled JMS interfaces</file>
 </directory>
+<directory name = "lib/slf4j" class = "public binary">
+    <file name = "slf4j-simple.jar"                   />
+</directory>
 <directory name = "lib/mina" class = "public binary">
-    <file name = "mina-0.7.3.jar"                   />
+    <file name = "mina-0.8.2.jar"                   />
 </directory>
 <directory name = "lib/logging-log4j" class = "public binary">
     <file name = "log4j-1.2.9.jar"                  />
