@@ -62,7 +62,7 @@ s_parse_args (int argc, char *argv [])
     s_opt_silent   = FALSE;
     s_opt_bkground = FALSE;
     s_opt_showinfo = FALSE;
-    s_opt_port     = NULL;              
+    s_opt_port     = NULL;
     s_opt_workdir  = NULL;
     s_opt_trace    = NULL;
     s_opt_monitor  = NULL;
@@ -106,10 +106,10 @@ s_parse_args (int argc, char *argv [])
                 case 'q':
                     s_opt_silent = TRUE;
                     break;
-                case 's':
+                case 'b':
                     s_opt_bkground = TRUE;
                     break;
-                case 'c':
+                case 'f':
                     s_opt_bkground = FALSE;
                     break;
                 case 'v':
@@ -156,20 +156,36 @@ s_parse_args (int argc, char *argv [])
             printf (NOWARRANTY);
         }
         icl_system_initialise (argc, argv);
-        smt_initialise ();    
-        ipr_uid_set_real_user ();
 
         //  Move into the background if so desired
         if (s_opt_bkground) {
             char
-               *background_args [] = { "-s", NULL };
+               *background_args [] = { "-b", NULL };
 
             icl_console_print ("I: moving into the background...");
-            if (ipr_process_server (NULL, NULL, argc, argv, background_args) != 0) {
+            if (ipr_process_server (NULL, NULL, argc, argv, background_args) == 0) {
+                FILE
+                    *logfile;
+                icl_shortstr_t
+                    logfile_name;
+
+                if (s_opt_port)
+                    icl_shortstr_fmt (logfile_name, "amq_server_%s.log", s_opt_port);
+                else
+                    icl_shortstr_cpy (logfile_name, "amq_server.log");
+
+                logfile = fopen (logfile_name, "a");
+                icl_console_redirect (logfile);
+                icl_console_print ("I: ************************   SERVER START   ************************");
+                icl_console_print ("I: " SERVER_NAME "/" VERSION " - revision " SVN_REVISION);
+            }
+            else {
                 icl_console_print ("E: backgrounding failed - server is halting");
                 rc = 1;
             }
         }
+        smt_initialise ();
+        ipr_uid_set_real_user ();
     }
     return (rc);
 }
