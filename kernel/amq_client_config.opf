@@ -1,0 +1,39 @@
+<?xml?>
+<!--
+    The Object Property Framework
+    Yet Another Production from The iMatix Industrial Bit Factory
+
+    OPF generates classes that provide a management framework for
+    object properties. A typical use is for configuration data.
+
+  -->
+
+<opf
+    name    = "amq_client_config"
+    comment = "client configuration properties"
+    script  = "opf_gen"
+    >
+
+<public>
+extern $\(selftype)
+    *amq_client_config;                 //  Global properties object
+</public>
+
+<private>
+$\(selftype)
+    *amq_client_config = NULL;          //  Global properties
+</private>
+
+<path name = "/config/tuning">
+    <property name = "packio" type = "int" default = "1">
+    Pack network data before writing
+    <doc>
+    If set, data is packed into larger buffers before writing. This
+    can improve performance significantly on some systems.  If you
+    disable this setting, you should test the performance using a
+    standard bulk message transfer test.
+    </doc>
+    </property>
+</path>
+
+</opf>

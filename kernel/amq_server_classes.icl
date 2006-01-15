@@ -28,6 +28,7 @@
 <import class = "amq_index" />
 <import class = "amq_peer" />
 <import class = "amq_proxy_agent" />
+<import class = "amq_proxy_config" />
 <import class = "amq_queue" />
 <import class = "amq_queue_basic" />
 <import class = "amq_server_channel" />

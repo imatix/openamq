@@ -18,7 +18,7 @@
 #define USAGE                                                               \
     "Syntax: program [options...]\n"                                        \
     "Options:\n"                                                            \
-    "  -s server[:port] Name or address, port of server (localhost:7654)\n" \
+    "  -s server[:port] Name or address, port of server (localhost)\n"      \
     "  -n number        Number of messages to send/receive (1)\n"           \
     "  -b batch         Size of each batch (100)\n"                         \
     "  -x size          Size of each message (default = 1024)\n"            \
@@ -233,7 +233,7 @@ main (int argc, char *argv [])
     }
     auth_data  = amq_client_connection_auth_plain ("guest", "guest");
     connection = amq_client_connection_new (
-        opt_server, NULL, "/", auth_data, atoi (opt_trace), 30000);
+        opt_server, "/", auth_data, atoi (opt_trace), 30000);
     icl_longstr_destroy (&auth_data);
 
     if (connection)

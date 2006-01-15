@@ -88,7 +88,7 @@ for Basic, File, and Stream content classes.
                 "%s/%s", channel->connection->cluster_id, self->tag);
             icl_shortstr_cpy (
                 method->payload.basic_consume.consumer_tag, self->cluster_id);
-            amq_cluster_forward (amq_cluster, amq_vhost, method, TRUE, FALSE);
+            amq_cluster_replicate (amq_cluster, method);
             self->clustered = TRUE;
         }
     }
@@ -105,8 +105,7 @@ for Basic, File, and Stream content classes.
         //  Broadcast cancel method to cluster using our cluster_id
         if (self->clustered) {
             method = amq_proxy_method_new_basic_cancel (self->cluster_id);
-            amq_cluster_forward (
-                amq_cluster, amq_vhost, (amq_server_method_t *) method, TRUE, FALSE);
+            amq_cluster_replicate (amq_cluster, (amq_server_method_t *) method);
             amq_proxy_method_destroy (&method);
         }
     }

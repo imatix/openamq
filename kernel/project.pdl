@@ -33,6 +33,9 @@
                                      generated = "1"             >Client method class</file>
 <file name = "amq_client_agent.smt"  class = "smt public module"
                                      generated = "1"             >Client protocol agent</file>
+<file name = "amq_client_config.opf" class = "gsl data"          >Client configuration</file>
+<file name = "amq_client_config.icl" class = "icl private class"
+                                     generated = "1"             >Client configuration class</file>
 <file name = "amq_client_classes.icl"
                                      class = "icl public class"  >Client classes</file>
 <file name = "amq_client_connection.icl"
@@ -79,6 +82,9 @@
 <file name = "amq_proxy.asl"         class = "gsl data"          >Cluster proxy definition</file>
 <file name = "amq_proxy_agent.smt"   class = "smt public module"
                                      generated = "1"             >Cluster proxy agent</file>
+<file name = "amq_proxy_config.opf"  class = "gsl data"          >Cluster proxy configuration</file>
+<file name = "amq_proxy_config.icl"  class = "icl private class"
+                                     generated = "1"             >Cluster proxy configuration class</file>
 <file name = "amq_proxy_method.icl"  class = "icl public class"
                                      generated = "1"             >Cluster proxy methods</file>
 <file name = "amq_console.icl"       class = "icl private class" >Server console class</file>

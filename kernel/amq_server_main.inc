@@ -202,7 +202,9 @@ s_load_config (char *config_file, char *overlay)
     }
     //  Load configuration data, if any, into the config_table
     amq_server_config = amq_server_config_new (
-        config_file, overlay, s_opt_trace? atoi (s_opt_trace): 0);
+        config_file, overlay, TRUE, s_opt_trace? atoi (s_opt_trace): 0);
+    amq_proxy_config = amq_proxy_config_new (
+        config_file, overlay, FALSE, FALSE);
 }
 
 
@@ -234,6 +236,7 @@ s_run_server (void)
 
     //  Synchronous shutdown
     amq_server_config_destroy (&amq_server_config);
+    amq_proxy_config_destroy  (&amq_proxy_config);
     if (s_opt_showinfo)
         icl_stats_dump ();
     icl_console_print ("I: shutdown is complete");

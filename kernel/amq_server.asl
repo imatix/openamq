@@ -51,10 +51,9 @@
                         method->internal);
 
                     if (exchange) {
-                        //  Tell cluster that exchange is being created
-                        if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
-                        &&  amq_cluster->enabled)
-                            amq_cluster_forward (amq_cluster, amq_vhost, self, TRUE, FALSE);
+                        //  Create exchange on all cluster peers
+                        if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
+                            amq_cluster_replicate (amq_cluster, self);
                     }
                     else
                         amq_server_connection_error (connection,
@@ -84,14 +83,14 @@
     </local>
     exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
     if (exchange) {
+        //  Delete exchange on all cluster peers
+        if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
+            amq_cluster_replicate (amq_cluster, self);
+
         //  Tell client delete was successful
         amq_server_agent_exchange_delete_ok (connection->thread, channel->number);
 
-        //  Tell cluster to delete exchange
-        if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
-        &&  amq_cluster->enabled)
-            amq_cluster_forward (amq_cluster, amq_vhost, self, TRUE, FALSE);
-
+        //  Destroy the exchange on this peer
         amq_exchange_destroy (&exchange);
     }
     else
@@ -140,16 +139,13 @@
                 if (method->exclusive)
                     amq_server_connection_own_queue (connection, queue);
 
-                //  Tell cluster that a new shared queue is starting
-                if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
-                &&  amq_cluster->enabled) {
+                if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER) {
                     if (method->exclusive)
                         //  Forward private queue default binding to all nodes
-                        amq_cluster_forward_bind (amq_cluster, amq_vhost,
-                            NULL, queue->name, NULL);
+                        amq_cluster_bind (amq_cluster, NULL, queue->name, NULL);
                     else
-                        //  Forward shared queue creation to all nodes
-                        amq_cluster_forward (amq_cluster, amq_vhost, self, TRUE, FALSE);
+                        //  Make default binding on all cluster peers
+                        amq_cluster_replicate (amq_cluster, self);
                 }
             }
             else
@@ -196,14 +192,11 @@
             //  Tell cluster about new queue binding
             if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER) {
                 if (queue->clustered)
-                    //  Shared queue bindings are replicated as-is
-                    amq_cluster_forward (amq_cluster, amq_vhost, self, TRUE, FALSE);
+                    //  Make same binding on all cluster peers
+                    amq_cluster_replicate (amq_cluster, self);
                 else
-                if (amq_cluster->enabled)
-                    //  Private queue bindings are replicated using the
-                    //  Cluster.Bind method so that each primary server
-                    //  knows to send messages back to this server
-                    amq_cluster_forward_bind (amq_cluster, amq_vhost,
+                    //  Make exchange-to-exchange binding on all cluster peers
+                    amq_cluster_bind (amq_cluster,
                         method->exchange, method->routing_key, method->arguments);
             }
             amq_queue_unlink (&queue);
@@ -223,15 +216,16 @@
     </local>
     queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
     if (queue) {
+        //  Delete the queue on all cluster peers
+        if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+        &&  queue->clustered)
+            amq_cluster_replicate (amq_cluster, self);
+
         //  Tell client we deleted the queue ok
         amq_server_agent_queue_delete_ok (
             connection->thread, channel->number, amq_queue_message_count (queue));
 
-        //  Tell cluster that queue is being deleted
-        if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
-        &&  queue->clustered)
-            amq_cluster_forward (amq_cluster, amq_vhost, self, TRUE, FALSE);
-
+        //  Destroy the queue on this peer
         amq_queue_destroy (&queue);
     }
     else
@@ -245,13 +239,12 @@
     </local>
     queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
     if (queue) {
-        amq_queue_purge (queue, channel);
-
-        //  Tell cluster to also purge shared queue (not stateful)
+        //  Purge queue on all cluster peers, using
         if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
         &&  queue->clustered)
-            amq_cluster_forward (amq_cluster, amq_vhost, self, FALSE, FALSE);
+            amq_cluster_broadcast (amq_cluster, self);
 
+        amq_queue_purge (queue, channel);
         amq_queue_unlink (&queue);
     }
     else
@@ -333,21 +326,12 @@
     if (queue) {
         //  Pass request to cluster root peer
         if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
-        &&  queue->clustered) {
-            /*
-            icl_shortstr_cpy (method->cluster_id, channel->cluster_id);
-            amq_cluster_peer_push (
-                amq_cluster,
-                amq_cluster->root_peer,
-                amq_vhost,
-                self,
-                AMQ_CLUSTER_PUSH_ALL);
-            */
-            icl_console_print ("W: Get on clustered queues not yet implemented");
-        }
+        &&  queue->clustered
+        && !amq_cluster->root)
+            amq_cluster_proxy (amq_cluster, self, channel);
         else
             amq_queue_get (queue, channel, self->class_id);
-            
+
         amq_queue_unlink (&queue);
     }
     else
@@ -369,8 +353,8 @@
 <!-- Cluster -->
 
 <class name = "cluster">
-  <action name = "publish">
-    method = NULL;    //  Prevent compiler warning on unused method variable  
+  <action name = "proxy">
+    method = NULL;    //  Prevent compiler warning on unused method variable
     if (connection->type == AMQ_CONNECTION_TYPE_CLUSTER)
         amq_cluster_accept (amq_cluster, self->content, channel);
     else

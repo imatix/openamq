@@ -9,6 +9,7 @@
 <import class = "amq_client_connection" />
 <import class = "amq_client_session" />
 <import class = "amq_client_channel" />
+<import class = "amq_client_config" />
 <import class = "amq_content_basic" />
 <import class = "amq_content_file" />
 <import class = "amq_content_stream" />

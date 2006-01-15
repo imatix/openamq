@@ -19,7 +19,7 @@
 
 <doc name = "grammar">
     cluster             = C:PUBLISH
-                        / C:ROOT 
+                        / C:ROOT
                         / C:BIND
 </doc>
 
@@ -27,38 +27,54 @@
 <chassis name = "client" implement = "MAY" />
 
 <!--
-    These are the properties for a Cluster content,
-    which is a normal AMQP method wrapped in meta
-    data that lets the cluster route it.
+    These are the properties for a proxied method, which is wrapped as
+    a content and sent using the Cluster.Proxy method.
  -->
-    
-<field name = "message id" type = "shortstr">
-    The application message identifier
+
+<field name = "origin spid" type = "shortstr">
+    Spid of originating peer
 </field>
-<field name = "sender spid" type = "shortstr">
-    The sender server process identifier
-</field>
-<field name = "vhost name" type = "shortstr">
-    The virtual host used for the method
+<field name = "method name" type = "shortstr">
+    Proxied method name, for tracing and debugging
 </field>
 <field name = "stateful" type = "octet">
     Does method form part of cluster state?
 </field>
 <field name = "fanout" type = "octet">
-    Must method be resent to entire cluster?
+    Re-distribute method to secondary peers?
 </field>
+
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "publish" content = "1">
-  publish a cluster method
+<method name = "proxy" content = "1">
+  proxies a cluster method
   <doc>
-    This method publishes a cluster method, which is an AMQP method
+    This method proxies a cluster method, which is an AMQP method
     wrapped in cluster metadata.  Cluster methods are always handled
     by the cluster service, bypassing the normal exchange mechanism.
+    In some exchanges, a proxy request can be answered by a proxy
+    response.
   </doc>
   <chassis name = "server" implement = "MUST" />
+
+  <field name = "client connection" type = "shortstr">
+    original client connection
+    <doc>
+    The original client connection for the method, encoded by the
+    sending peer.
+    </doc>
+  </field>
+
+  <field name = "client channel" type = "short">
+    original client channel
+    <doc>
+    The original client channel for the method, as defined by the
+    sending peer.
+    </doc>
+  </field>
 </method>
+
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
@@ -85,26 +101,17 @@ enable or disable server as root
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
 <method name = "bind">
-  bind local queue to remote exchange
+  bind local exchange to remote exchange
   <doc>
-    This method binds a queue on one server to an exchange on another
-    server.  Always binds to the server that the method was received
-    from.
+    This method binds an exchange on one server to an exchange on
+    another server.
   </doc>
   <chassis name = "server" implement = "MUST" />
   <chassis name = "client" implement = "MUST" />
 
-  <field name = "virtual host" domain = "path">
-    virtual host name
-    <doc>
-      The binding is scoped per virtual host, and cluster connections
-      are opened once per peer-pair, not per virtual host.
-    </doc>
-  </field>
-  
   <field name = "exchange" domain = "exchange name">
     <doc>
-      The name of the remote exchange to bind to.  The exchange must
+      The name of the remote exchange to bind to. The exchange must
       exist both on the originating server, and the target server.
       The same exchange name is used when publishing messages back
       to the originating server.
@@ -136,4 +143,3 @@ enable or disable server as root
 
 </class>
 </protocol>
-

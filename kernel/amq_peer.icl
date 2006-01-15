@@ -79,8 +79,8 @@ cluster class.
             self_disconnect (self);
     }
     else
-        if (ipr_net_ping (self->hostname))
-            self_connect (self);                
+    if (ipr_net_ping (self->hostname))
+        self_connect (self);
 
     if (!self->primary)
         rc = AMQ_PEER_SECONDARY;
@@ -108,8 +108,7 @@ cluster class.
     self->thread = amq_proxy_agent_connection_thread_new (
         self,                           //  Callback for incoming methods
         self->hostname,
-        amq_server_config_cluster_key (amq_server_config),
-        "/",                            //  Virtual host
+        amq_server_config_cluster_vhost (amq_server_config),
         auth_data,
         amq_server_config_trace (amq_server_config));
 
@@ -198,27 +197,31 @@ cluster class.
         while (looseref) {
             content = (amq_content_cluster_t *) (looseref->object);
             if (amq_server_config_trace_cluster (amq_server_config))
-                icl_console_print ("C: replay   message=%s", content->message_id);
-            amq_peer_forward (self, content);
+                icl_console_print ("C: replay   method=%s", content->method_name);
+            amq_peer_proxy (self, content, NULL, 0);
             looseref = ipr_looseref_list_next (&looseref);
         }
     }
 </method>
 
-<method name = "forward" template = "function">
+<method name = "proxy" template = "function">
     <doc>
     Sends a message to the cluster service of the specified peer.
     </doc>
-    <argument name = "content" type = "amq_content_cluster_t *">Message to send</argument>
+    <argument name = "content" type = "amq_content_cluster_t *">Method to send</argument>
+    <argument name = "client connection" type = "char *" >Client connection</argument>
+    <argument name = "client channel" type = "int" >Client channel</argument>
     //
     if (self->connected) {
         if (amq_server_config_trace_cluster (amq_server_config))
-            icl_console_print ("C: forward  message=%s peer=%s",
-                content->message_id, self->spid);
-        amq_proxy_agent_cluster_publish (
+            icl_console_print ("C: proxy    method=%s peer=%s", content->method_name, self->spid);
+
+        amq_proxy_agent_cluster_proxy (
             self->thread,
             self->channel_nbr,
-            content);
+            content,
+            client_connection,
+            client_channel);
     }
 </method>
 
@@ -229,13 +232,6 @@ cluster class.
     </doc>
     <argument name = "method" type = "amq_server_method_t *">Publish method</argument>
     //
-    /*  todo: amq_vhost
-        Needs refinement for multiple virtual hosts
-        - there is no place to tell the server which virtual host to use.
-        - can't wrap this method because it carries content
-        - should check vh used on the proxy link
-        - tell server to switch vhost if client is switching...
-     */
     if (self->connected) {
         if (self->last_sequence != method->sequence) {
             if (amq_server_config_trace_cluster (amq_server_config))

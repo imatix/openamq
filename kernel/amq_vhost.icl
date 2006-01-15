@@ -96,7 +96,7 @@ $(selftype)
 
     self->broker = broker;
     self->config = amq_vhost_config_new (
-        NULL, NULL, amq_server_config_trace (amq_server_config));
+        NULL, NULL, FALSE, amq_server_config_trace (amq_server_config));
 
     self->exchange_table = amq_exchange_table_new ();
     self->exchange_list  = amq_exchange_list_new ();

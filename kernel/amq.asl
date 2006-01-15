@@ -17,11 +17,11 @@
 <include filename = "amq_dtx.asl" />
 
 <option name = "protocol_name"     value = "AMQP" />
-<option name = "protocol_port"     value = "7654" />
+<option name = "protocol_port"     value = "5672" />
 <option name = "protocol_class"    value = "1"  />
 <option name = "protocol_instance" value = "1"  />
 <option name = "protocol_major"    value = "10" />
-<option name = "protocol_minor"    value = "2"  />
+<option name = "protocol_minor"    value = "3"  />
 
 <!-- Standard field domains -->
   <domain name = "access ticket" type = "short">

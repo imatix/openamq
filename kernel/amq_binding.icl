@@ -197,7 +197,7 @@ class.
                     icl_console_print ("X: publish  peer=%s", peer->spid);
 
                 amq_cluster_peer_push (
-                    amq_cluster, peer, amq_vhost, method, push_out);
+                    amq_cluster, peer, method, push_out);
                 rc++;                   //  Count recepients
             }
             looseref = ipr_looseref_list_next (&looseref);

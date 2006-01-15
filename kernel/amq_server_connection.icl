@@ -126,10 +126,10 @@ This class implements the connection class for the AMQ server.
         self_exception (self, ASL_ACCESS_REFUSED, "Connections not allowed at present");
     else
     if (amq_cluster->enabled
-    &&  strneq (method->cluster_key, amq_server_config_cluster_key (amq_server_config))) {
-        icl_console_print ("E: client at %s tried to connect to invalid cluster '%s'",
-            self->client_address, method->cluster_key);
-        self_exception (self, ASL_INVALID_PATH, "Cluster key is not correct");
+    &&  strneq (method->virtual_host, amq_server_config_cluster_vhost (amq_server_config))) {
+        icl_console_print ("E: client at %s tried to connect to invalid vhost '%s'",
+            self->client_address, method->virtual_host);
+        self_exception (self, ASL_INVALID_PATH, "Cluster vhost is not correct");
     }
 </method>
 

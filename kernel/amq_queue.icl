@@ -134,11 +134,7 @@ class.  This is a lock-free asynchronous class.
         //  already came to us from another cluster peer.
         if (channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
             amq_cluster_peer_push (
-                amq_cluster,
-                amq_cluster->root_peer,
-                amq_vhost,
-                method,
-                AMQ_CLUSTER_PUSH_ALL);
+                amq_cluster, amq_cluster->root_peer, method, AMQ_CLUSTER_PUSH_ALL);
     }
     else
     if (self->enabled) {
