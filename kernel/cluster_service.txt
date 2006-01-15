@@ -158,8 +158,7 @@ class.get, get-ok
     - send get to shared queue
     - send get-ok back to connection
         - need some token in the get-ok: cluster-tag
-    OK            
-
+    OK
 
 Clarify in doc:
     - client can send synchronous methods without waiting for responses
@@ -168,7 +167,7 @@ Clarify in doc:
     - do we add a response token to all synchronous methods?
         - carried in replies?
     - shortstr, allows arbitrary encodings
-    
+
 Change requests
     - remove cluster key from protocol, use vhost as identifier
     DONE
@@ -176,12 +175,12 @@ Change requests
     DONE
     - if we have multiple vhosts
         - create a proxy connection per vhost
-    1.1
+    POSTPONED
     - general technique for proxying AMQP methods
         - proxy method with/without content?
             - requires hierarchical content support
         - document in AMQP specifications
-    IN PROGGRESS
+    IN PROGRESS
     - implement heartbeating between brokers
         - information, per broker:
             - number of connections & channels
@@ -192,9 +191,9 @@ Change requests
         - same as dump-state
 
     - use async opens for initial connections
-    - let spid be configured
+
+    - let spid be configured config/cmndline
     DONE
-    - override any config option from cmdline
 
 
 OpenAMQ change requests (to Jira)
@@ -213,9 +212,9 @@ OpenAMQ change requests (to Jira)
             - return to root
     - on delivery to consumer
         - remove origin-spid header
-        
 
-    
+
+
 
     ... how to return messages if no immediate consumers?
         - need to add original connection & channel number to message

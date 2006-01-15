@@ -25,6 +25,10 @@
         <field name = "locked" type = "bool" label = "Broker locked?">
           <get>icl_shortstr_fmt (field_value, "%d", self->locked);</get>
         </field>
+        <field name = "spid" label = "Broker server process id (spid)">
+          <get>icl_shortstr_cpy (field_value, self->spid);</get>
+          <put>icl_shortstr_cpy (self->spid, field_value);</get>
+        </field>
         <field name = "vhost" type = "objref" repeat = "1">
           <get>
             icl_shortstr_fmt (field_value, "%ld", amq_vhost->object_id);
