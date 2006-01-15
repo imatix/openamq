@@ -52,6 +52,17 @@ $\(selftype)
     consumer.  If zero, queues are deleted immediately.
     </doc>
     </property>
+
+    <property name = "spid" type = "char *">
+    Server process id
+    <doc>
+    Specifies the server process id, which identifies the server process
+    instance to clients and peers in a cluster.  If not set, the server
+    will generate its own spid automatically, based on the date/time it
+    is started.  Note that this field lets you force the root server in
+    a cluster.
+    </doc>
+    </property>
 </path>
 
 <path name = "/config/resources">

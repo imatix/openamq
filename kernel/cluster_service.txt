@@ -171,13 +171,17 @@ Clarify in doc:
     
 Change requests
     - remove cluster key from protocol, use vhost as identifier
+    DONE
     - support a single vhost name per configuration
+    DONE
     - if we have multiple vhosts
         - create a proxy connection per vhost
+    1.1
     - general technique for proxying AMQP methods
         - proxy method with/without content?
             - requires hierarchical content support
         - document in AMQP specifications
+    IN PROGGRESS
     - implement heartbeating between brokers
         - information, per broker:
             - number of connections & channels
@@ -186,6 +190,7 @@ Change requests
             - number of exchanges, queues, bindings
             - number of peers and state of each peer
         - same as dump-state
+
     - use async opens for initial connections
     - let spid be configured
     - override any config option from cmdline
