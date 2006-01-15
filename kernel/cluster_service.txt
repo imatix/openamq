@@ -193,6 +193,7 @@ Change requests
 
     - use async opens for initial connections
     - let spid be configured
+    DONE
     - override any config option from cmdline
 
 

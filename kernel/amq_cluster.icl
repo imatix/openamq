@@ -87,7 +87,7 @@ amq_cluster_t
         memcpy (hostname, from_ptr, namesize);
         hostname [namesize] = 0;
         from_ptr = primary + 1;
-            
+
         if (*hostname) {
             //  Check hostname is not a duplicate
             peer = amq_peer_list_first (self->peer_list);
@@ -135,6 +135,7 @@ amq_cluster_t
     </doc>
     <action>
     amq_proxy_agent_init ();
+    icl_console_print ("I: cluster - spid is '%s'", amq_broker->spid);
     if (amq_peer_list_count (self->peer_list))
         smt_timer_request_delay (self->thread, 100 * 1000, monitor_event);
     else

@@ -16,14 +16,15 @@
 #include "amq_server_classes.h"
 
 static Bool
-    s_opt_silent,                       //  -q means suppress messages
-    s_opt_bkground,                     //  -s means run in background
-    s_opt_showinfo;                     //  -i means show information
+    s_opt_silent = FALSE,               //  -q means suppress messages
+    s_opt_bkground = FALSE,             //  -s means run in background
+    s_opt_showinfo = FALSE;             //  -i means show information
 static char
-    *s_opt_port,                        //  -p specifies server port
-    *s_opt_workdir,                     //  -w specifies working directory
-    *s_opt_trace,                       //  -t defines trace level
-    *s_opt_monitor;                     //  -m means monitor server
+    *s_opt_port = NULL,                 //  -p specifies server port
+    *s_opt_workdir = NULL,              //  -w specifies working directory
+    *s_opt_spid = NULL,                 //  -s specifies spid
+    *s_opt_trace = NULL,                //  -t defines trace level
+    *s_opt_monitor = NULL;              //  -m means monitor server
 
 #define NOWARRANTY \
 "This is free software; see the source for copying conditions.  There is NO\n" \
@@ -34,10 +35,12 @@ static char
     "Options:\n"                                                             \
     "  -p port          Server port\n"                                       \
     "  -w directory     Working directory for server (current)\n"            \
+    "  -s spid          Set server process ID (empty)\n"                     \
     "  -q               Quiet mode: no messages (no)\n"                      \
     "  -b               Run as background server process (no)\n"             \
     "  -f               Run as foreground console process (yes)\n"           \
     "  -t level         Set trace level 0-3 (0)\n"                           \
+    "  -i               Show program statistics when ending (no)\n"          \
     "  -v               Show version information\n"                          \
     "  -h               Show summary of command-line options\n"              \
     "  -m n             Monitor server status every N seconds (1)\n"         \
@@ -58,16 +61,7 @@ s_parse_args (int argc, char *argv [])
         *myname,                        //  Executable's name                
         **argparm;                      //  Argument parameter to pick-up
 
-    //  These are the arguments we may get on the command line
-    s_opt_silent   = FALSE;
-    s_opt_bkground = FALSE;
-    s_opt_showinfo = FALSE;
-    s_opt_port     = NULL;
-    s_opt_workdir  = NULL;
-    s_opt_trace    = NULL;
-    s_opt_monitor  = NULL;
     icl_console_mode (ICL_CONSOLE_DATE, TRUE);
-
     myname  = argv [0];
     argparm = NULL;                     //  Argument parameter to pick-up
     for (argn = 1; argn < argc; argn++) {
@@ -92,6 +86,9 @@ s_parse_args (int argc, char *argv [])
                 case 'w':
                     argparm = &s_opt_workdir;
                     break;
+                case 's':
+                    argparm = &s_opt_spid;
+                    break;
                 case 't':
                     argparm = &s_opt_trace;
                     break;
@@ -99,7 +96,7 @@ s_parse_args (int argc, char *argv [])
                     argparm = &s_opt_monitor;
                     break;
 
-                //  These switches have an immediate effect                  
+                //  These switches have an immediate effect
                 case 'i':
                     s_opt_showinfo = TRUE;
                     break;
@@ -220,6 +217,8 @@ s_run_server (void)
         amq_server_config_set_monitor (amq_server_config, (Bool) atoi (s_opt_monitor));
     if (s_opt_port)
         amq_server_config_set_port    (amq_server_config, s_opt_port);
+    if (s_opt_spid)
+        amq_server_config_set_spid    (amq_server_config, s_opt_spid);
 
     //  Create main objects and do the work
     amq_console = amq_console_new ();
