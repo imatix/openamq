@@ -31,7 +31,7 @@
     <file name = "slf4j-simple.jar"                   />
 </directory>
 <directory name = "lib/mina" class = "public binary">
-    <file name = "mina-0.8.2.jar"                   />
+    <file name = "mina-0.9.0.jar"                   />
 </directory>
 <directory name = "lib/logging-log4j" class = "public binary">
     <file name = "log4j-1.2.9.jar"                  />
