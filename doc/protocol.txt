@@ -3,9 +3,9 @@ gdl
     subtitle  = A General-Purpose Middleware Standard
     product   = AMQ
     author    = The AMQ Working Group <group@amqp.org>
-    date      = 2005/11/27
+    date      = 2006/01/04
     copyright = Copyright (c) 2004-2005 JPMorganChase Inc. ** CONFIDENTIAL **
-    version   = 0.9d2
+    version   = 1.0a0
 end gdl
 
 [see protocol1.txt]

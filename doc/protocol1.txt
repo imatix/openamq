@@ -16,7 +16,7 @@ Copyrights
 ==========
 
 This document was written by the AMQ Working Group (amqp.org) and is
-copyright (c) 2004-2005 JPMorganChase Inc. The contents of this document
+copyright (c) 2004-2006 JPMorganChase Inc. The contents of this document
 are at present confidential and may not be copied outside of
 JPMorganChase Inc. without express permission.
 
