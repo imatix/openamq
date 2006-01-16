@@ -18,10 +18,6 @@ public class MessageFactoryRegistry
 
     public void registerFactory(String mimeType, MessageFactory mf)
     {
-//        if (!FieldTable.grm && mimeType == null)
-//        {
-//            throw new IllegalArgumentException("Mime time must not be null");
-//        }
         if (mf == null)
         {
             throw new IllegalArgumentException("Message factory must not be null");

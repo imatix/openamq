@@ -1,11 +1,10 @@
 package org.openamq.framing;
 
 import org.apache.mina.common.ByteBuffer;
-import org.apache.mina.protocol.codec.MessageDecoder;
-import org.apache.mina.protocol.codec.MessageDecoderResult;
-import org.apache.mina.protocol.ProtocolSession;
-import org.apache.mina.protocol.ProtocolDecoderOutput;
-import org.apache.mina.protocol.ProtocolViolationException;
+import org.apache.mina.common.IoSession;
+import org.apache.mina.filter.codec.demux.MessageDecoderResult;
+import org.apache.mina.filter.codec.demux.MessageDecoder;
+import org.apache.mina.filter.codec.ProtocolDecoderOutput;
 import org.openamq.AMQException;
 
 public class ProtocolInitiation extends AMQDataBlock implements EncodableAMQDataBlock
@@ -42,7 +41,7 @@ public class ProtocolInitiation extends AMQDataBlock implements EncodableAMQData
     {
         private boolean _disabled = false;
 
-        public MessageDecoderResult decodable(ProtocolSession session, ByteBuffer in)
+        public MessageDecoderResult decodable(IoSession session, ByteBuffer in)
         {
             if (_disabled)
             {
@@ -66,8 +65,8 @@ public class ProtocolInitiation extends AMQDataBlock implements EncodableAMQData
             }
         }
 
-        public MessageDecoderResult decode(ProtocolSession session, ByteBuffer in, ProtocolDecoderOutput out)
-            throws ProtocolViolationException
+        public MessageDecoderResult decode(IoSession session, ByteBuffer in, ProtocolDecoderOutput out)
+            throws Exception
         {
             byte[] header = new byte[4];
             in.get(header);

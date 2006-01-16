@@ -15,11 +15,9 @@ import org.openamq.AMQException;
 import org.openamq.AMQUndeliveredException;
 
 import javax.jms.*;
+import javax.jms.Queue;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 
 public class AMQConnection extends Closeable implements Connection, QueueConnection, TopicConnection
@@ -242,9 +240,11 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
      * Close all the sessions, either due to normal connection closure or due to an error occurring.
      * @param cause if not null, the error that is causing this shutdown
      */
-    private void closeAllSessions(Throwable cause)
+    private void closeAllSessions(Throwable cause) throws JMSException
     {
-        final Iterator it = _sessions.values().iterator();
+        final LinkedList sessionCopy = new LinkedList(_sessions.values());
+        final Iterator it = sessionCopy.iterator();
+        JMSException sessionException = null;
         while (it.hasNext())
         {
             final AMQSession session = (AMQSession) it.next();
@@ -261,8 +261,13 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
                 catch (JMSException e)
                 {
                     _logger.error("Error closing session: " + e);
+                    sessionException = e;
                 }
             }
+        }
+        if (sessionException != null)
+        {
+            throw sessionException;
         }
     }
 
@@ -338,7 +343,7 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
     public Map getSessions()
     {
         return _sessions;
-    }    
+    }
 
     public String getHost()
     {
@@ -421,8 +426,18 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
             }
             _exceptionListener.onException(je);
         }
+        // TODO: this is nasty. Review this (GB change)
         if (je == null || !(je.getLinkedException() instanceof AMQUndeliveredException))
-            closeAllSessions(cause);
+        {
+            try
+            {
+                closeAllSessions(cause);
+            }
+            catch (JMSException e)
+            {
+                _logger.error("Error closing all sessions: " + e, e);
+            }
+        }
     }
 
     void registerSession(int channelId, AMQSession session)

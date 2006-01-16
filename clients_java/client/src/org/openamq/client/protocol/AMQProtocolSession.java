@@ -3,7 +3,7 @@ package org.openamq.client.protocol;
 import edu.emory.mathcs.backport.java.util.concurrent.ConcurrentHashMap;
 import edu.emory.mathcs.backport.java.util.concurrent.ConcurrentMap;
 import org.apache.log4j.Logger;
-import org.apache.mina.protocol.ProtocolSession;
+import org.apache.mina.common.IoSession;
 import org.openamq.AMQException;
 import org.openamq.client.AMQConnection;
 import org.openamq.client.AMQSession;
@@ -32,7 +32,7 @@ public class AMQProtocolSession
 
     private static final String AMQ_CONNECTION = "AMQConnection";
 
-    private final ProtocolSession _minaProtocolSession;
+    private final IoSession _minaProtocolSession;
 
     /**
      * Maps from the channel id to the AMQSession that it represents.
@@ -47,7 +47,7 @@ public class AMQProtocolSession
      */
     private ConcurrentMap _channelId2UnprocessedMsgMap = new ConcurrentHashMap();
 
-    public AMQProtocolSession(ProtocolSession protocolSession, AMQConnection connection)
+    public AMQProtocolSession(IoSession protocolSession, AMQConnection connection)
     {
         _minaProtocolSession = protocolSession;
         // properties of the connection are made available to the event handlers
@@ -92,7 +92,7 @@ public class AMQProtocolSession
         return getAMQConnection().getPassword();
     }
 
-    public ProtocolSession getProtocolSession()
+    public IoSession getIoSession()
     {
         return _minaProtocolSession;
     }

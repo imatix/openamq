@@ -1,11 +1,11 @@
 package org.openamq.framing;
 
+import org.apache.log4j.Logger;
 import org.apache.mina.common.ByteBuffer;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
-import org.apache.log4j.Logger;
 
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
@@ -17,7 +17,7 @@ import org.apache.log4j.Logger;
 public class EncodingUtils
 {
 	private static final Logger _logger = Logger.getLogger(EncodingUtils.class);
-	
+
     private static final String STRING_ENCODING = "iso8859-15";
 
     private static final Charset _charset = Charset.forName("iso8859-15");
@@ -48,8 +48,8 @@ public class EncodingUtils
             return 4 + s.length();
         }
     }
-    
-    public static int encodedLongstrLength(byte[] bytes) 
+
+    public static int encodedLongstrLength(byte[] bytes)
     {
         if (bytes == null)
         {
@@ -76,12 +76,12 @@ public class EncodingUtils
     }
 
     public static void writeShortStringBytes(ByteBuffer buffer, String s)
-    {        
+    {
         if (s != null)
         {
             //try
             //{
-                //final byte[] encodedString = s.getBytes(STRING_ENCODING);            
+                //final byte[] encodedString = s.getBytes(STRING_ENCODING);
                 final byte[] encodedString = s.getBytes();
             // TODO: check length fits in an unsigned byte
                 writeUnsignedByte(buffer, (short)encodedString.length);
@@ -120,7 +120,7 @@ public class EncodingUtils
             writeUnsignedInteger(buffer, 0);
         }
     }
-    
+
     public static void writeLongStringBytes(ByteBuffer buffer, byte[] bytes)
     {
         assert bytes == null || bytes.length <= 0xFFFE;
@@ -166,7 +166,7 @@ public class EncodingUtils
     	else
     	{
 	        int iv = (int) l;
-	        
+
 	        // FIXME: This *may* go faster if we build this into a local 4-byte array and then
 	        // put the array in a single call.
 	        buffer.put((byte) (0xFF & (iv >> 24)));
@@ -217,9 +217,9 @@ public class EncodingUtils
         else
         {
             writeUnsignedInteger(buffer, 0);
-        }        
+        }
     }
-    
+
     public static boolean[] readBooleans(ByteBuffer buffer)
     {
         byte packedValue = buffer.get();
@@ -288,7 +288,7 @@ public class EncodingUtils
             }
         }
     }
-    
+
     public static byte[] readLongstr(ByteBuffer buffer) throws AMQFrameDecodingException
     {
         long length = buffer.getUnsignedInt();
@@ -303,7 +303,7 @@ public class EncodingUtils
             return result;
         }
     }
-    
+
     // Will barf with a NPE on a null input. Not sure whether it should return null or
     // an empty field-table (which would be slower - perhaps unnecessarily).
     //
@@ -321,24 +321,24 @@ public class EncodingUtils
 	//    {a=four, b=five}
 	//    Parsing <a=bad>...
 	//    java.lang.IllegalArgumentException: a: Invalid integer in <bad> from <a=bad>.
-    //    
+    //
     public static final FieldTable createFieldTableFromMessageSelector(String selector)
     {
     	boolean debug = _logger.isDebugEnabled();
-    	
+
 		// TODO: Doesn't support embedded quotes properly.
     	String[] expressions = selector.split(" +");
-    	
+
     	FieldTable result = new FieldTable();
-    	
+
     	for(int i = 0; i < expressions.length; i++)
     	{
     		String expr = expressions[i];
-    		
+
     		if (debug) _logger.debug("Expression = <" + expr + ">");
-    		
+
     		int equals = expr.indexOf('=');
-    		
+
     		if (equals < 0)
     		{
     			// Existence check
@@ -348,9 +348,9 @@ public class EncodingUtils
     		{
     			String key = expr.substring(0,equals).trim();
     			String value = expr.substring(equals + 1).trim();
-    			
+
     			if (debug) _logger.debug("Key = <" + key + ">, Value = <" + value + ">");
-    			
+
     			if (value.charAt(0) == '\'')
     			{
     				if (value.charAt(value.length()- 1) != '\'')
@@ -360,7 +360,7 @@ public class EncodingUtils
     				else
     				{
     					value = value.substring(1,value.length() - 1);
-    					
+
     					result.put("S" + key,value);
     				}
     			}
@@ -369,24 +369,24 @@ public class EncodingUtils
     				try
     				{
     					int intValue = Integer.parseInt(value);
-    					
+
     					result.put("i" + key,value);
     				}
     				catch(NumberFormatException e)
     				{
     					throw new IllegalArgumentException(key + ": Invalid integer in <" + value + "> from <" + selector + ">.");
-    					
+
     				}
     			}
-    		}	
-    	}    
-    	
+    		}
+    	}
+
 		if (debug) _logger.debug("Field-table created from <" + selector + "> is <" + result + ">");
 
     	return(result);
-    	
+
     }
-    
+
 	static byte[] hexToByteArray(String id)
 	{
 		// Should check param for null, long enough for this check, upper-case and trailing char
@@ -442,25 +442,25 @@ public class EncodingUtils
 	public static String convertToHexString(ByteBuffer bb)
 	{
 		int size = bb.limit();
-		
+
 		byte[] from = new byte[size];
-		
+
 		for(int i = 0; i < size; i++)
 		{
 			from[i] = bb.get(i);
 		}
-		
+
 		return(new String(convertToHexCharArray(from)));
 	}
-	
+
 	public static void main(String[] args)
 	{
 		for(int i = 0; i < args.length; i++)
 		{
 			String selector = args[i];
-			
+
 			System.err.println("Parsing <" + selector + ">...");
-			
+
 			try
 			{
 				System.err.println(createFieldTableFromMessageSelector(selector));

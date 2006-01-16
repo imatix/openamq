@@ -3,14 +3,15 @@ package org.openamq.client.protocol;
 import edu.emory.mathcs.backport.java.util.concurrent.CopyOnWriteArraySet;
 import org.apache.log4j.Logger;
 import org.apache.mina.common.IdleStatus;
-import org.apache.mina.common.SessionConfig;
-import org.apache.mina.protocol.ProtocolHandler;
-import org.apache.mina.protocol.ProtocolSession;
-import org.apache.mina.io.socket.SocketSessionConfig;
+import org.apache.mina.common.IoHandlerAdapter;
+import org.apache.mina.common.IoSession;
+import org.apache.mina.transport.socket.nio.SocketSession;
+import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.openamq.client.AMQConnection;
 import org.openamq.AMQException;
 import org.openamq.AMQDisconnectedException;
 import org.openamq.client.AMQSession;
+import org.openamq.client.transport.AMQProtocolProvider;
 import org.openamq.framing.*;
 import org.openamq.client.state.AMQState;
 import org.openamq.client.state.AMQStateManager;
@@ -22,7 +23,7 @@ import java.util.Iterator;
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
-public class AMQProtocolHandler implements ProtocolHandler
+public class AMQProtocolHandler extends IoHandlerAdapter
 {
     private static final Logger _logger = Logger.getLogger(AMQProtocolHandler.class);
 
@@ -48,23 +49,26 @@ public class AMQProtocolHandler implements ProtocolHandler
         _frameListeners.add(_stateManager);
     }
 
-    public void sessionCreated(ProtocolSession session) throws Exception
+    public void sessionCreated(IoSession session) throws Exception
+    {
+        if (session instanceof SocketSession)
+        {
+            SocketSession socketSession = (SocketSession) session;
+            _logger.info("Setting socket receive buffer size to 8192 bytes");
+            socketSession.setReceiveBufferSize(8192);
+        }
+
+        AMQProtocolProvider provider = new AMQProtocolProvider();
+        session.getFilterChain().addLast("protocolFilter",
+                                         new ProtocolCodecFilter(provider.getCodecFactory()));
+    }
+
+    public void sessionOpened(IoSession session) throws Exception
     {
         _protocolSession = new AMQProtocolSession(session, _connection);
-        SessionConfig cfg = session.getConfig();
-        if( cfg instanceof SocketSessionConfig )
-        {
-            SocketSessionConfig scfg = (SocketSessionConfig) cfg;
-            _logger.info("Setting socket receive buffer size to 8192 bytes");
-            scfg.setSessionReceiveBufferSize(8192);
-        }
     }
 
-    public void sessionOpened(ProtocolSession session) throws Exception
-    {
-    }
-
-    public void sessionClosed(ProtocolSession session) throws Exception
+    public void sessionClosed(IoSession session) throws Exception
     {
         // we only raise an exception if the close was not initiated by the client
         if (!_connection.isClosed())
@@ -75,12 +79,12 @@ public class AMQProtocolHandler implements ProtocolHandler
         _logger.info("Protocol Session closed");
     }
 
-    public void sessionIdle(ProtocolSession session, IdleStatus status) throws Exception
+    public void sessionIdle(IoSession session, IdleStatus status) throws Exception
     {
         _logger.info("Protocol Session idle");
     }
 
-    public void exceptionCaught(ProtocolSession session, Throwable cause) throws Exception
+    public void exceptionCaught(IoSession session, Throwable cause) throws Exception
     {
         _logger.error("Exception caught by protocol handler: " + cause, cause);
         _connection.exceptionReceived(cause);
@@ -88,7 +92,7 @@ public class AMQProtocolHandler implements ProtocolHandler
 
     private static int _messageReceivedCount;
 
-    public void messageReceived(ProtocolSession session, Object message) throws Exception
+    public void messageReceived(IoSession session, Object message) throws Exception
     {
         if (_messageReceivedCount++ % 1000 == 0)
         {
@@ -137,18 +141,18 @@ public class AMQProtocolHandler implements ProtocolHandler
             _protocolSession.messageContentBodyReceived(frame.channel,
                                                         (ContentBody) frame.bodyFrame);
         }
-        _connection.bytesReceived(_protocolSession.getProtocolSession().getReadBytes());
+        _connection.bytesReceived(_protocolSession.getIoSession().getReadBytes());
     }
 
     private static int _messagesOut;
 
-    public void messageSent(ProtocolSession session, Object message) throws Exception
+    public void messageSent(IoSession session, Object message) throws Exception
     {
         if (_messagesOut++ % 1000 == 0)
         {
             _logger.warn("Sent " + _messagesOut + " protocol messages");
         }
-        _connection.bytesSent(_protocolSession.getProtocolSession().getWrittenBytes());
+        _connection.bytesSent(_protocolSession.getIoSession().getWrittenBytes());
         if (_logger.isDebugEnabled())
         {
             _logger.debug("Sent frame " + message);
@@ -254,7 +258,7 @@ public class AMQProtocolHandler implements ProtocolHandler
      */
     public long getReadBytes()
     {
-        return _protocolSession.getProtocolSession().getReadBytes();
+        return _protocolSession.getIoSession().getReadBytes();
     }
 
     /**
@@ -262,6 +266,6 @@ public class AMQProtocolHandler implements ProtocolHandler
      */
     public long getWrittenBytes()
     {
-        return _protocolSession.getProtocolSession().getWrittenBytes();
+        return _protocolSession.getIoSession().getWrittenBytes();
     }
 }

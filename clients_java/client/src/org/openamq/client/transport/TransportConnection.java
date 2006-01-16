@@ -1,9 +1,9 @@
 package org.openamq.client.transport;
 
-import org.apache.mina.io.socket.SocketConnector;
-import org.apache.mina.protocol.io.IoProtocolConnector;
 import org.openamq.client.AMQConnection;
 import org.openamq.client.protocol.AMQProtocolHandler;
+import org.apache.mina.transport.socket.nio.SocketConnector;
+import org.apache.mina.common.ConnectFuture;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -25,7 +25,6 @@ public class TransportConnection
     private AMQConnection _connection;
 
     public TransportConnection(AMQConnection connection)
-            throws IOException
     {
         if (connection == null)
         {
@@ -37,14 +36,14 @@ public class TransportConnection
     public AMQProtocolHandler connect()
             throws IOException
     {
-        final SocketConnector ioConnector = new SocketConnector();
-        final IoProtocolConnector protocolConnector = new IoProtocolConnector(ioConnector);
-        
+        final SocketConnector ioConnector = new SocketConnector();        
+
         final InetSocketAddress address = new InetSocketAddress(_connection.getHost(), _connection.getPort());
-        _protocolProvider = new AMQProtocolProvider(_connection);
-        protocolConnector.connect(address, _protocolProvider);
-        // TODO: how do we disconnect?
-        return (AMQProtocolHandler) _protocolProvider.getHandler();
+        final AMQProtocolHandler protocolHandler = new AMQProtocolHandler(_connection);
+        ConnectFuture future = ioConnector.connect(address, protocolHandler);
+        // wait for connection to complete
+        future.join();
+        return protocolHandler;
     }
 
     /**

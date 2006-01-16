@@ -2,11 +2,10 @@ package org.openamq.framing;
 
 import org.apache.log4j.Logger;
 import org.apache.mina.common.ByteBuffer;
-import org.apache.mina.protocol.ProtocolDecoderOutput;
-import org.apache.mina.protocol.ProtocolSession;
-import org.apache.mina.protocol.ProtocolViolationException;
-import org.apache.mina.protocol.codec.MessageDecoder;
-import org.apache.mina.protocol.codec.MessageDecoderResult;
+import org.apache.mina.common.IoSession;
+import org.apache.mina.filter.codec.demux.MessageDecoder;
+import org.apache.mina.filter.codec.demux.MessageDecoderResult;
+import org.apache.mina.filter.codec.ProtocolDecoderOutput;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -29,7 +28,7 @@ public class AMQDataBlockDecoder implements MessageDecoder
         _supportedBodies.put(new Byte(ContentBody.TYPE), ContentBodyFactory.getInstance());
     }
 
-    public MessageDecoderResult decodable(ProtocolSession session, ByteBuffer in)
+    public MessageDecoderResult decodable(IoSession session, ByteBuffer in)
     {
         if (_disabled)
         {
@@ -126,17 +125,12 @@ public class AMQDataBlockDecoder implements MessageDecoder
         return frame;
     }
 
-    public MessageDecoderResult decode(ProtocolSession session, ByteBuffer in, ProtocolDecoderOutput out)
-        throws ProtocolViolationException
+    public MessageDecoderResult decode(IoSession session, ByteBuffer in, ProtocolDecoderOutput out)
+        throws Exception
     {
-        try
-        {
-            out.write(createAndPopulateFrame(in));
-        }
-        catch (AMQFrameDecodingException e)
-        {
-            throw new ProtocolViolationException(e);
-        }
+
+        out.write(createAndPopulateFrame(in));
+
         return MessageDecoderResult.OK;
     }
 

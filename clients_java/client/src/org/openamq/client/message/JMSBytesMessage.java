@@ -71,6 +71,7 @@ public class JMSBytesMessage extends AbstractJMSMessage implements javax.jms.Byt
         _dis = null;
         _baos = new ByteArrayOutputStream();
         _dos = new DataOutputStream(_baos);
+        _bodyLength = 0;
     }
 
     public String toBodyString() throws JMSException

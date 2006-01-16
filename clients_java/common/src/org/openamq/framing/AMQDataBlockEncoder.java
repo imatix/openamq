@@ -2,10 +2,9 @@ package org.openamq.framing;
 
 import org.apache.log4j.Logger;
 import org.apache.mina.common.ByteBuffer;
-import org.apache.mina.protocol.ProtocolEncoderOutput;
-import org.apache.mina.protocol.ProtocolSession;
-import org.apache.mina.protocol.ProtocolViolationException;
-import org.apache.mina.protocol.codec.MessageEncoder;
+import org.apache.mina.common.IoSession;
+import org.apache.mina.filter.codec.demux.MessageEncoder;
+import org.apache.mina.filter.codec.ProtocolEncoderOutput;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -25,7 +24,7 @@ public class AMQDataBlockEncoder implements MessageEncoder
         _messageTypes.add(EncodableAMQDataBlock.class);
     }
 
-    public void encode(ProtocolSession session, Object message, ProtocolEncoderOutput out) throws ProtocolViolationException
+    public void encode(IoSession session, Object message, ProtocolEncoderOutput out) throws Exception
     {
         final AMQDataBlock frame = (AMQDataBlock) message;
         int frameSize = (int)frame.getSize();
