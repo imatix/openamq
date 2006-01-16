@@ -27,7 +27,7 @@
         </field>
         <field name = "spid" label = "Broker server process id (spid)">
           <get>icl_shortstr_cpy (field_value, self->spid);</get>
-          <put>icl_shortstr_cpy (self->spid, field_value);</get>
+          <put>icl_shortstr_cpy (self->spid, field_value);</put>
         </field>
         <field name = "vhost" type = "objref" repeat = "1">
           <get>
