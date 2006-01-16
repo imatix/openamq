@@ -58,7 +58,7 @@ cluster class.
     <argument name = "primary"  type = "Bool">Primary node?</argument>
     self->cluster = cluster;
     self->primary = primary;
-    
+
     self->channel_nbr = 1;              //  Single channel per connection
 
     icl_shortstr_cpy (self->hostname, hostname);
@@ -79,7 +79,7 @@ cluster class.
             self_disconnect (self);
     }
     else
-    if (ipr_net_ping (self->hostname))
+    if (ipr_net_ping (self->hostname, NULL))
         self_connect (self);
 
     if (!self->primary)

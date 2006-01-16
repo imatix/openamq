@@ -160,6 +160,7 @@ class.get, get-ok
         - need some token in the get-ok: cluster-tag
     OK
 
+
 Clarify in doc:
     - client can send synchronous methods without waiting for responses
     - responses MAY come out of order...
@@ -175,7 +176,7 @@ Change requests
     DONE
     - if we have multiple vhosts
         - create a proxy connection per vhost
-    POSTPONED
+    POSTPONE
     - general technique for proxying AMQP methods
         - proxy method with/without content?
             - requires hierarchical content support
