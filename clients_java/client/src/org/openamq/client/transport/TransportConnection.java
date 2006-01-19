@@ -36,13 +36,15 @@ public class TransportConnection
     public AMQProtocolHandler connect()
             throws IOException
     {
-        final SocketConnector ioConnector = new SocketConnector();        
+        final SocketConnector ioConnector = new SocketConnector();
 
         final InetSocketAddress address = new InetSocketAddress(_connection.getHost(), _connection.getPort());
         final AMQProtocolHandler protocolHandler = new AMQProtocolHandler(_connection);
         ConnectFuture future = ioConnector.connect(address, protocolHandler);
         // wait for connection to complete
         future.join();
+        // we call getSession which throws an IOException if there has been an error connecting
+        future.getSession();
         return protocolHandler;
     }
 

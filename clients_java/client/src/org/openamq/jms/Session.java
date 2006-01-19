@@ -2,6 +2,7 @@ package org.openamq.jms;
 
 import javax.jms.*;
 import javax.jms.MessageConsumer;
+import javax.jms.MessageProducer;
 
 
 public interface Session extends javax.jms.Session
@@ -33,4 +34,25 @@ public interface Session extends javax.jms.Session
      * @param defaultPrefetch the prefetch value used by default for consumers created on this session.
      */
     void setDefaultPrefetch(int defaultPrefetch);
+
+    /**
+     * Create a producer
+     * @param destination
+     * @param mandatory the value of the mandatory flag used by default on the producer
+     * @param immediate the value of the immediate flag used by default on the producer
+     * @return
+     * @throws JMSException
+     */
+    MessageProducer createProducer(Destination destination, boolean mandatory, boolean immediate)
+            throws JMSException;
+
+    /**
+     * Create a producer
+     * @param destination     
+     * @param immediate the value of the immediate flag used by default on the producer
+     * @return
+     * @throws JMSException
+     */
+    MessageProducer createProducer(Destination destination, boolean immediate)
+            throws JMSException;
 }

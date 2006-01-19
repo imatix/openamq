@@ -97,7 +97,8 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
         {
             _transportConnection = new TransportConnection(this);
             _protocolHandler = _transportConnection.connect();
-            // this blocks until the connection has been set up
+            // this blocks until the connection has been set up or when an error has prevented the connection being
+            // set up
             _protocolHandler.attainState(AMQState.CONNECTION_OPEN);
         }
         catch (IOException e)
@@ -438,6 +439,7 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
                 _logger.error("Error closing all sessions: " + e, e);
             }
         }
+
     }
 
     void registerSession(int channelId, AMQSession session)

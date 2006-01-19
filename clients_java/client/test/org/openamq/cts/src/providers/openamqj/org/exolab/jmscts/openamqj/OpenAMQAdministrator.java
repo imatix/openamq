@@ -43,41 +43,44 @@
  */
 package org.exolab.jmscts.openamqj;
 
-import java.util.*;
-import java.net.*;
-
-import javax.jms.*;
-import javax.naming.*;
-
-import org.openamq.client.*;
 import org.exolab.jmscts.provider.Administrator;
+import org.openamq.client.*;
+
+import javax.jms.Destination;
+import javax.jms.JMSException;
+import javax.jms.MessageConsumer;
+import javax.jms.Session;
+import javax.naming.NameNotFoundException;
+import javax.naming.NamingException;
+import java.net.InetAddress;
+import java.util.HashMap;
 
 /**
- * This class provides methods for obtaining and manipulating administered 
+ * This class provides methods for obtaining and manipulating administered
  * objects managed by the Sonicmq implementation of JMS
  *
  */
 class OpenAMQAdministrator implements Administrator {
     // AMQ Connection configuration
-    private int port = 7654;
+    private int port = 5672;
     private String host = "localhost";
     private String user = "guest";
     private String pass = "guest";
     private String vhost = "/test";
-    
+
     // The cached broker connection & session
     private AMQConnection _connection = null;
     private Session _session = null;
-    
+
     // Factory request names
     private static final String QUEUE_CONNECTION_FACTORY = "QueueConnectionFactory";
     private static final String TOPIC_CONNECTION_FACTORY = "TopicConnectionFactory";
-    
+
     /**
      * The cache of known administered objects
      */
     private HashMap _directory = new HashMap();
-    
+
     /**
      * Returns the name of the QueueConnectionFactory bound in JNDI
      *
@@ -113,7 +116,7 @@ class OpenAMQAdministrator implements Administrator {
     public String getXATopicConnectionFactory() {
         return null;
     }
-    
+
     /**
      * Look up the named administered object
      *
@@ -123,15 +126,15 @@ class OpenAMQAdministrator implements Administrator {
      */
     public Object lookup(String name) throws NamingException {
         Object result = _directory.get(name);
-        if (result == null) { 
+        if (result == null) {
             if (name.equals(QUEUE_CONNECTION_FACTORY)) {
                 _directory.put(QUEUE_CONNECTION_FACTORY, new AMQConnectionFactory(host, port, user, pass, vhost));
             } else if (name.equals(TOPIC_CONNECTION_FACTORY)) {
                 _directory.put(TOPIC_CONNECTION_FACTORY, new AMQConnectionFactory(host, port, user, pass, vhost));
             } else {
                 throw new NameNotFoundException("Name not found: " + name);
-            }    
-        }    
+            }
+        }
         return result;
     }
 
@@ -153,8 +156,8 @@ class OpenAMQAdministrator implements Administrator {
             } else {
                 destination = new AMQTopic(name);
                 createConsumer(destination);
-            }    
-            
+            }
+
             _directory.put(name, destination);
         } catch (Exception exception) {
             JMSException error = new JMSException(exception.getMessage());
@@ -162,7 +165,7 @@ class OpenAMQAdministrator implements Administrator {
             throw error;
         }
     }
-    
+
     /**
      * Destroy an administered destination
      *
@@ -220,7 +223,7 @@ class OpenAMQAdministrator implements Administrator {
             throw error;
         }
     }
-    
+
     public synchronized void cleanup() {
         try {
             _connection.close();
@@ -231,7 +234,7 @@ class OpenAMQAdministrator implements Administrator {
         _session = null;
         _directory.clear();
     }
-    
+
     MessageConsumer createConsumer(AMQDestination destination) throws JMSException
     {
         return ((AMQSession)_session).createConsumer(destination, /*pre-fetch*/0, false, /*exclusive*/false, null);

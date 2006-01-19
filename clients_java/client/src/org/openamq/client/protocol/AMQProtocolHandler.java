@@ -88,6 +88,7 @@ public class AMQProtocolHandler extends IoHandlerAdapter
     {
         _logger.error("Exception caught by protocol handler: " + cause, cause);
         _connection.exceptionReceived(cause);
+        _stateManager.error(new AMQException("Protocol handler error: " + cause, cause));
     }
 
     private static int _messageReceivedCount;

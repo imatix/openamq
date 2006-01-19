@@ -75,19 +75,13 @@ public class BasicMessageProducer extends Closeable implements org.openamq.jms.M
      */
     private AMQSession _session;
 
-    /**
-     * Default value for immediate flag is false, i.e. a consumer does not need to be attached to a queue
-     */
-    protected static final boolean DEFAULT_IMMEDIATE = false;
+    private final boolean _immediate;
 
-    /**
-     * Default value for mandatory flag is true, i.e. server will not silently drop messages where no queue is
-     * connected to the exchange for the message
-     */
-    protected static final boolean DEFAULT_MANDATORY = true;
+    private final boolean _mandatory;    
 
     protected BasicMessageProducer(AMQDestination destination, boolean transacted, int channelId,
-                                   AMQSession session, AMQProtocolHandler protocolHandler, long producerId)
+                                   AMQSession session, AMQProtocolHandler protocolHandler, long producerId,
+                                   boolean immediate, boolean mandatory)
             throws AMQException
     {
         _destination = destination;
@@ -100,7 +94,8 @@ public class BasicMessageProducer extends Closeable implements org.openamq.jms.M
         {
             declareDestination(destination);
         }
-
+        _immediate = immediate;
+        _mandatory = mandatory;
     }
 
     private void declareDestination(AMQDestination destination) throws AMQException
@@ -204,14 +199,14 @@ public class BasicMessageProducer extends Closeable implements org.openamq.jms.M
     public void send(Message message) throws JMSException
     {
         sendImpl(_destination, (AbstractJMSMessage) message, _deliveryMode, _messagePriority, _timeToLive,
-                 DEFAULT_MANDATORY, DEFAULT_IMMEDIATE);
+                 _mandatory, _immediate);
     }
 
     public void send(Message message, int deliveryMode, int priority,
                      long timeToLive) throws JMSException
     {
-        sendImpl(_destination, (AbstractJMSMessage)message, deliveryMode, priority, timeToLive, DEFAULT_MANDATORY,
-                 DEFAULT_IMMEDIATE);
+        sendImpl(_destination, (AbstractJMSMessage)message, deliveryMode, priority, timeToLive, _mandatory,
+                 _immediate);
     }
 
     public void send(Destination destination, Message message) throws JMSException
@@ -219,7 +214,7 @@ public class BasicMessageProducer extends Closeable implements org.openamq.jms.M
         checkNotClosed();
         validateDestination(destination);
         sendImpl((AMQDestination) destination, (AbstractJMSMessage) message, _deliveryMode, _messagePriority, _timeToLive,
-                 DEFAULT_MANDATORY, DEFAULT_IMMEDIATE);
+                 _mandatory, _immediate);
     }
 
     public void send(Destination destination, Message message, int deliveryMode,
@@ -229,7 +224,27 @@ public class BasicMessageProducer extends Closeable implements org.openamq.jms.M
         checkNotClosed();
         validateDestination(destination);
         sendImpl((AMQDestination) destination, (AbstractJMSMessage) message, deliveryMode, priority, timeToLive,
-                 DEFAULT_MANDATORY, DEFAULT_IMMEDIATE);
+                 _mandatory, _immediate);
+    }
+
+    public void send(Destination destination, Message message, int deliveryMode,
+                     int priority, long timeToLive, boolean mandatory)
+            throws JMSException
+    {
+        checkNotClosed();
+        validateDestination(destination);
+        sendImpl((AMQDestination) destination, (AbstractJMSMessage) message, deliveryMode, priority, timeToLive,
+                 mandatory, _immediate);
+    }
+
+    public void send(Destination destination, Message message, int deliveryMode,
+                     int priority, long timeToLive, boolean mandatory, boolean immediate)
+            throws JMSException
+    {
+        checkNotClosed();
+        validateDestination(destination);
+        sendImpl((AMQDestination) destination, (AbstractJMSMessage) message, deliveryMode, priority, timeToLive,
+                 mandatory, immediate);
     }
 
     private void validateDestination(Destination destination) throws JMSException

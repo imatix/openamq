@@ -1,5 +1,8 @@
 package org.openamq.jms;
 
+import javax.jms.Destination;
+import javax.jms.JMSException;
+import javax.jms.Message;
 import java.io.UnsupportedEncodingException;
 
 /**
@@ -18,7 +21,12 @@ public interface MessageProducer extends javax.jms.MessageProducer
      * @throws UnsupportedEncodingException if the encoding is not understood
      */
     void setEncoding(String encoding) throws UnsupportedEncodingException;
+    
+    void send(Destination destination, Message message, int deliveryMode,
+                     int priority, long timeToLive, boolean immediate)
+            throws JMSException;
 
-    
-    
+    void send(Destination destination, Message message, int deliveryMode,
+                     int priority, long timeToLive, boolean mandatory, boolean immediate)
+            throws JMSException;
 }

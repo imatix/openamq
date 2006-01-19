@@ -93,7 +93,7 @@ System.out.println("after producer");
                         _logger.info("Received message total: " + _messageCount);
                         _logger.info("Sending response to '" + _responseDest + "'");
                     }
-                    
+
                     try
                     {
                         String payload = "This is a response: sing together: 'Mahnah mahnah...'" + tm.getText();
@@ -117,15 +117,13 @@ System.out.println("after producer");
                 }
             });
             con.start();
+            System.out.println("Waiting...");
         }
         catch (Throwable t)
         {
             System.err.println("Fatal error: " + t);
             t.printStackTrace();
         }
-
-
-        System.out.println("Waiting...");
     }
 
 }
