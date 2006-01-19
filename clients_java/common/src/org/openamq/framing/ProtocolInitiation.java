@@ -10,10 +10,11 @@ import org.openamq.AMQException;
 public class ProtocolInitiation extends AMQDataBlock implements EncodableAMQDataBlock
 {
     public char[] header = new char[]{'A','M','Q','P'};
+    // TODO: generate these constants automatically from the xml protocol spec file
     public byte protocolClass = 1;
     public byte protocolInstance = 1;
     public byte protocolMajor = 10;
-    public byte protocolMinor = 2;
+    public byte protocolMinor = 3;
 
     public long getSize()
     {
@@ -72,10 +73,34 @@ public class ProtocolInitiation extends AMQDataBlock implements EncodableAMQData
             in.get(header);
             ProtocolInitiation pi = new ProtocolInitiation();
             pi.header = new char[]{'A','M','Q','P'};
+            byte temp = pi.protocolClass;
             pi.protocolClass = in.get();
+            if (pi.protocolClass != temp)
+            {
+                throw new AMQProtocolVersionException("Protocol class " + temp + " was expected; received " +
+                                                      pi.protocolClass);
+            }
+            temp = pi.protocolInstance;
             pi.protocolInstance = in.get();
+            if (pi.protocolInstance != temp)
+            {
+                throw new AMQProtocolVersionException("Protocol instance " + temp + " was expected; received " +
+                                                      pi.protocolInstance);
+            }
+            temp = pi.protocolMajor;
             pi.protocolMajor = in.get();
+            if (pi.protocolMajor != temp)
+            {
+                throw new AMQProtocolVersionException("Protocol major version " + temp + " was expected; received " +
+                                                      pi.protocolMajor);
+            }
+            temp = pi.protocolMinor;
             pi.protocolMinor = in.get();
+            if (pi.protocolMinor != temp)
+            {
+                throw new AMQProtocolVersionException("Protocol minor version " + temp + " was expected; received " +
+                                                      pi.protocolMinor);
+            }
             out.write(pi);
             return MessageDecoderResult.OK;
         }
