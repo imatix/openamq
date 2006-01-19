@@ -54,15 +54,18 @@ public class AMQStateManager implements AMQMethodListener
 
         frame2handlerMap = new HashMap();
         frame2handlerMap.put(ConnectionStartBody.class, ConnectionStartMethodHandler.getInstance());
+        frame2handlerMap.put(ConnectionCloseBody.class, ConnectionCloseMethodHandler.getInstance());
         _state2HandlersMap.put(AMQState.CONNECTION_NOT_STARTED, frame2handlerMap);
 
         frame2handlerMap = new HashMap();
         frame2handlerMap.put(ConnectionTuneBody.class, ConnectionTuneMethodHandler.getInstance());
         frame2handlerMap.put(ConnectionSecureBody.class, ConnectionSecureMethodHandler.getInstance());
+        frame2handlerMap.put(ConnectionCloseBody.class, ConnectionCloseMethodHandler.getInstance());
         _state2HandlersMap.put(AMQState.CONNECTION_NOT_TUNED, frame2handlerMap);
 
         frame2handlerMap = new HashMap();
         frame2handlerMap.put(ConnectionOpenOkBody.class, ConnectionOpenOkMethodHandler.getInstance());
+        frame2handlerMap.put(ConnectionCloseBody.class, ConnectionCloseMethodHandler.getInstance());
         _state2HandlersMap.put(AMQState.CONNECTION_NOT_OPENED, frame2handlerMap);
 
         //

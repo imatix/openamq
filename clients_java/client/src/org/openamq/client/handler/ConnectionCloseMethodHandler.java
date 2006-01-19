@@ -1,12 +1,12 @@
 package org.openamq.client.handler;
 
 import org.apache.log4j.Logger;
-import org.openamq.AMQConnectionClosedException;
 import org.openamq.AMQException;
+import org.openamq.AMQConnectionClosedException;
 import org.openamq.client.protocol.AMQMethodEvent;
+import org.openamq.client.state.AMQState;
 import org.openamq.client.state.AMQStateManager;
 import org.openamq.client.state.StateAwareMethodListener;
-import org.openamq.client.state.AMQState;
 import org.openamq.framing.ConnectionCloseBody;
 import org.openamq.framing.ConnectionCloseOkBody;
 
@@ -41,11 +41,11 @@ public class ConnectionCloseMethodHandler implements StateAwareMethodListener
         stateManager.changeState(AMQState.CONNECTION_CLOSED);
         if (errorCode != 200)
         {
-            _logger.debug("Connection close received with errorCode " + errorCode + ", throwing exception");
-            evt.getProtocolSession().getAMQConnection().exceptionReceived(new AMQConnectionClosedException(errorCode, "Error: " + reason));
+            _logger.debug("Connection close received with error code " + errorCode);
+            throw new AMQConnectionClosedException(errorCode, "Error: " + reason);
         }
 
-        // this actually closes the connection
+        // this actually closes the connection in the case where it is not an error.
         evt.getProtocolSession().closeProtocolSession();
     }
 }

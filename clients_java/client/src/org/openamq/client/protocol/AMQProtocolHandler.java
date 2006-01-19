@@ -130,6 +130,7 @@ public class AMQProtocolHandler extends IoHandlerAdapter
                     final AMQMethodListener listener = (AMQMethodListener) it.next();
                     listener.error(e);
                 }
+                exceptionCaught(session, e);
             }
         }
         else if (frame.bodyFrame instanceof ContentHeaderBody)
