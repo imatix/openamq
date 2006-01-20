@@ -17,7 +17,6 @@
 <!-- AMQ protocol specification -->
 <file name = "amq.asl"               class = "public resource"   >AMQ protocol definition</file>
 <file name = "amq_access.asl"        class = "public resource"   >Access control</file>
-<file name = "amq_cluster.asl"       class = "public resource"   >Cluster management</file>
 <file name = "amq_exchange.asl"      class = "public resource"   >Exchange management</file>
 <file name = "amq_queue.asl"         class = "public resource"   >Queue management</file>
 <file name = "amq_basic.asl"         class = "public resource"   >Basic content</file>
@@ -25,6 +24,8 @@
 <file name = "amq_stream.asl"        class = "public resource"   >Stream content</file>
 <file name = "amq_tx.asl"            class = "public resource"   >Transactions</file>
 <file name = "amq_dtx.asl"           class = "public resource"   >2-phase transactions</file>
+<file name = "amq_tunnel.asl"        class = "public resource"   >Method tunneling</file>
+<file name = "amq_cluster.asl"       class = "public resource"   >Cluster management</file>
 
 <!-- AMQ client implementation -->
 <file name = "amq_client.asl"        class = "gsl data"          >Client definition</file>
@@ -153,13 +154,12 @@
 <file name = "amq_hash_table.icl"    class = "icl private cont"  >Loose hash table</file>
 <file name = "amq_content_basic.icl" class = "icl public cont"
                                      generated = "1"             >Basic content class</file>
-<file name = "amq_content_cluster.icl" class = "icl public cont"
-                                     generated = "1"             >Basic content class</file>
 <file name = "amq_content_file.icl"  class = "icl public cont"
                                      generated = "1"             >File content class</file>
-<file name = "amq_content_stream.icl"
-                                     class = "icl public cont"
+<file name = "amq_content_stream.icl" class = "icl public cont"
                                      generated = "1"             >Stream content class</file>
+<file name = "amq_content_tunnel.icl" class = "icl public cont"
+                                     generated = "1"             >Tunnel content class</file>
 <file name = "amq_constants.icl"     class = "icl public data"
                                      generated = "1"             >Constants class</file>
 <file name = "amq_console_schema.gsl"

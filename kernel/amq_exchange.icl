@@ -21,6 +21,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     <option name = "prefix" value = "list" />
 </inherit>
 <inherit class = "amq_console_object" />
+<inherit class = "icl_tracker" />
 
 <!-- Console definitions for this object -->
 <data name = "cml">

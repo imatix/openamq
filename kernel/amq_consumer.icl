@@ -26,6 +26,7 @@ for Basic, File, and Stream content classes.
 <inherit class = "icl_list_item" >
     <option name = "prefix" value = "by_channel" />
 </inherit>
+<inherit class = "icl_tracker" />
 
 <import class = "amq_server_classes" />
 

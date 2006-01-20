@@ -125,12 +125,23 @@ This class implements the connection class for the AMQ server.
     &&  self->type == AMQ_CONNECTION_TYPE_NORMAL)
         self_exception (self, ASL_ACCESS_REFUSED, "Connections not allowed at present");
     else
-    if (amq_cluster->enabled
-    &&  strneq (method->virtual_host, amq_server_config_cluster_vhost (amq_server_config))) {
-        icl_console_print ("E: client at %s tried to connect to invalid vhost '%s'",
-            self->client_address, method->virtual_host);
-        self_exception (self, ASL_INVALID_PATH, "Cluster vhost is not correct");
+    if (amq_cluster->enabled) {
+        if (streq (method->virtual_host, amq_server_config_cluster_vhost (amq_server_config))) {
+            //  Don't redirect cluster/console clients
+            if (method->insist || self->type != AMQ_CONNECTION_TYPE_NORMAL)
+                amq_server_agent_connection_open_ok (self->thread,
+                    amq_server_config_cluster_primary (amq_server_config));
+            else
+                amq_cluster_redirect (amq_cluster, self);
+        }
+        else {
+            icl_console_print ("E: client at %s tried to connect to invalid vhost '%s'",
+                self->client_address, method->virtual_host);
+            self_exception (self, ASL_INVALID_PATH, "Cluster vhost is not correct");
+        }
     }
+    else
+        amq_server_agent_connection_open_ok (self->thread, NULL);
 </method>
 
 <private name = "header">

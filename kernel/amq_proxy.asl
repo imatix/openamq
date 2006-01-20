@@ -55,8 +55,8 @@
             consumer->tag,
             0,                          //  Delivery tag
             FALSE,                      //  Redelivered
-            content->exchange,
-            content->routing_key);
+            method->exchange,
+            method->routing_key);
         amq_consumer_unlink (&consumer);
     }
   </action>

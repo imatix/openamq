@@ -58,6 +58,9 @@ extern $(selftype)
 <context>
     Bool
         locked;                         //  Is broker locked?
+    int
+        monitor_timer,                  //  Monitor timer
+        dump_state_timer;               //  Dump state timer
     ipr_meter_t
         *xmeter,                        //  External switch meter
         *imeter;                        //  Internal switch meter
@@ -78,6 +81,8 @@ extern $(selftype)
     amq_vhost = amq_vhost_new (self, "/");
     self->xmeter = ipr_meter_new ();
     self->imeter = ipr_meter_new ();
+    self->monitor_timer = $(basename)_config_monitor ($(basename)_config);
+    self->dump_state_timer = $(basename)_config_dump_state ($(basename)_config);
 </method>
 
 <method name = "destroy">
@@ -88,21 +93,70 @@ extern $(selftype)
     </action>
 </method>
 
-<method name = "report">
+<event name = "monitor">
     <action>
-    if (ipr_meter_mark (self->xmeter, interval))
-        icl_console_print ("I: external message rate=%d average=%d peak=%d",
-            self->xmeter->current,
-            self->xmeter->average,
-            self->xmeter->maximum);
+    if (self->monitor_timer) {
+        self->monitor_timer--;
+        if (self->monitor_timer == 0) {
+            self->monitor_timer = $(basename)_config_monitor ($(basename)_config);
 
-    if (ipr_meter_mark (self->imeter, interval))
-        icl_console_print ("I: internal message rate=%d average=%d peak=%d",
-            self->imeter->current,
-            self->imeter->average,
-            self->imeter->maximum);
+            if (ipr_meter_mark (self->xmeter, 1))
+                icl_console_print ("I: external message rate=%d average=%d peak=%d",
+                    self->xmeter->current,
+                    self->xmeter->average,
+                    self->xmeter->maximum);
+
+            if (ipr_meter_mark (self->imeter, 1))
+                icl_console_print ("I: internal message rate=%d average=%d peak=%d",
+                    self->imeter->current,
+                    self->imeter->average,
+                    self->imeter->maximum);
+        }
+    }
+    if (self->dump_state_timer) {
+        self->dump_state_timer--;
+        if (self->dump_state_timer == 0) {
+            static qbyte
+                connections = 0,
+                messages = 0,
+                memorymb = 0,
+                exchanges = 0,
+                queues = 0,
+                consumers = 0,
+                bindings = 0;
+        
+            self->dump_state_timer = $(basename)_config_dump_state ($(basename)_config);
+
+            //  Only print the state if it's changed
+            if (connections != amq_server_connection_count ()
+            ||  messages    != amq_content_basic_count ()
+            ||  memorymb    != icl_mem_used () / (1024 * 1024)
+            ||  exchanges   != amq_exchange_count ()
+            ||  queues      != amq_queue_count ()
+            ||  consumers   != amq_consumer_count ()
+            ||  bindings    != amq_binding_count ()) {
+
+                connections = amq_server_connection_count ();
+                messages    = amq_content_basic_count ();
+                memorymb    = icl_mem_used () / (1024 * 1024);
+                exchanges   = amq_exchange_count ();
+                queues      = amq_queue_count ();
+                consumers   = amq_consumer_count ();
+                bindings    = amq_binding_count ();
+
+                icl_console_print ("I: cnn=%ld msg=%ld mem=%ldMB exc=%ld que=%ld csm=%ld bnd=%ld",
+                    connections,
+                    messages,
+                    memorymb,
+                    exchanges,
+                    queues,
+                    consumers,
+                    bindings);
+            }
+        }
+    }
     </action>
-</method>
+</event>
 
 <method name = "selftest" />
 

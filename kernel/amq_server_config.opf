@@ -79,16 +79,25 @@ $\(selftype)
     <property name = "monitor" type = "int" default = "0">
     Monitor interval, seconds
     <doc>
-    Specifies the interval in seconds at which the server will
-    report its message rates.  If zero, no monitoring is shown.
-    The recommended value is 1, if monitoring is desired.
+    Specifies the interval in seconds at which the server will report
+    its message rates.  If zero, no monitoring is shown. The recommended
+    value is 1, if monitoring is desired.
     </doc>
     </property>
 
-    <property name = "max memory" type = "size_t">
-    Maximum allowed memory
+    <property name = "dump state" type = "int" default = "60">
+    Dump state interval, seconds
     <doc>
-    Specifies the maximum memory allowed for the server, in octets.
+    If greater than zero, specifies the interval at which the server
+    will report its state to the console.  The recommended value is
+    60.
+    </doc>
+    </property>
+    
+    <property name = "max memory mb" type = "size_t">
+    Maximum allowed memory, MBytes
+    <doc>
+    Specifies the maximum memory allowed for the server, in MB.
     When the server reaches this limit, it will attempt to free
     resources and refuse new connections until memory has been
     made available.  If zero, no limit is used.
@@ -181,10 +190,21 @@ $\(selftype)
     </property>
 
     <property name = "state mb" type = "size_t" default = "250" >
-    Maximum allowed state size, Mbytes
+    Maximum allowed state size, MB.
     <doc>
-    Specifies the maximum amount of memory reserved for the cluster
-    state.  Note that this state will grow as the cluster is used.
+    Specifies the maximum amount of memory in MB reserved for the
+    cluster state.  Note that this state will grow as the cluster is
+    used.
+    </doc>
+    </property>
+
+    <property name = "heartbeat" type = "int" default = "5" min = "1" max = "60">
+    Cluster heartbeat interval, seconds
+    <doc>
+    Specifies the heartbeat interval in seconds.  Use higher heartbeat
+    times only when working across a WAN where rapid heartbeats have a
+    visible cost.  Faster heartbeating is generally better if the network
+    can handle the traffic.
     </doc>
     </property>
 </path>
@@ -194,9 +214,10 @@ $\(selftype)
     Pack network data before writing
     <doc>
     If set, data is packed into larger buffers before writing. This
-    can improve performance significantly on some systems.  If you
-    disable this setting, you should test the performance using a
-    standard bulk message transfer test.
+    can improve performance significantly on some systems, especially
+    Windows and Linux with 2.4 kernels. If you disable this setting,
+    you should test the performance using a bulk message transfer
+    test.
     </doc>
     </property>
 </path>

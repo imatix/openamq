@@ -328,7 +328,7 @@
         if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
         &&  queue->clustered
         && !amq_cluster->root)
-            amq_cluster_proxy (amq_cluster, self, channel);
+            amq_cluster_proxy_root (amq_cluster, self, channel);
         else
             amq_queue_get (queue, channel, self->class_id);
 
@@ -350,10 +350,8 @@
   <action name = "cancel"  sameas = "basic" />
 </class>
 
-<!-- Cluster -->
-
-<class name = "cluster">
-  <action name = "proxy">
+<class name = "tunnel">
+  <action name = "request">
     method = NULL;    //  Prevent compiler warning on unused method variable
     if (connection->type == AMQ_CONNECTION_TYPE_CLUSTER)
         amq_cluster_accept (amq_cluster, self->content, channel);

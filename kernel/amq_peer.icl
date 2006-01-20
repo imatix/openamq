@@ -19,6 +19,7 @@ cluster class.
     <option name = "prefix" value = "list" />
     <option name = "rwlock" value = "0" />
 </inherit>
+<inherit class = "icl_tracker" />
 
 <import class = "amq_server_classes" />
 
@@ -27,6 +28,8 @@ cluster class.
 #define AMQ_PEER_PRIMARY    1           //  Primary node is alive and online
 #define AMQ_PEER_OFFLINE    2           //  Cluster node has gone offline
 #define AMQ_PEER_SECONDARY  3           //  Secondary node, can't vote
+
+#define AMQ_HEARTBEAT_TTL   3           //  3 heartbeats lost, we're dead
 </public>
 
 <context>
@@ -37,15 +40,21 @@ cluster class.
     dbyte
         channel_nbr;                    //  Active channel number
     icl_shortstr_t
-        hostname;                       //  Hostname to connect to
+        host;                           //  Host to connect to
     Bool
         connected;                      //  Connected to cluster node
+    int
+        heartbeat,                      //  Heartbeat in seconds
+        heartbeat_timer,                //  Count-down timer for heartbeat
+        heartbeat_ttl;                  //  TTL in heartbeats, zero = dead
     icl_shortstr_t
         spid;                           //  Remote node's server process id
     Bool
         primary,                        //  Are we in the primary partition?
         loopback,                       //  Are we looping back to ourselves?
         offlined;                       //  Has node gone offline?
+    int
+        load;                           //  Peer load, connections
     Bool
         duplicate;                      //  Mark peer for destruction
     qbyte
@@ -54,34 +63,88 @@ cluster class.
 
 <method name = "new">
     <argument name = "cluster"  type = "amq_cluster_t *">Parent cluster controller</argument>
-    <argument name = "hostname" type = "char *">Server to connect to</argument>
+    <argument name = "host"     type = "char *">Server to connect to</argument>
     <argument name = "primary"  type = "Bool">Primary node?</argument>
     self->cluster = cluster;
     self->primary = primary;
-
     self->channel_nbr = 1;              //  Single channel per connection
-
-    icl_shortstr_cpy (self->hostname, hostname);
+    icl_shortstr_cpy (self->host, host);
 </method>
 
 <method name = "destroy">
     self_disconnect (self);
 </method>
 
-<method name = "status" template = "function">
+<method name = "update" template = "function">
     <doc>
-    Reports the node status, automatically connecting or disconnecting as
-    nodes come and go from the cluster.
+    Update the peer node status. If the node was offline and has come
+    online, connect to it, and if the node appears to be active, send
+    it a status message.
+
+    The heartbeating model works thus:
+    - the internal hearbeat of the cluster monitor is 1 second.
+    - each second, the cluster monitor will check the status of each
+      cluster peer (this method).
+    - at a calculated interval, the monitor will send a status command
+      to each peer.
+    - if, after some calculated interval, the monitor has not received
+      a status command from a peer, it will disconnect and attempt to
+      reconnect to that peer.
+
+    Each peer has a configured 'heartbeat interval', which it broadcasts
+    to all other peers except itself. The actual heartbeat used between
+    any two peers, in both directions, is the mean of the two peers'
+    heartbeat intervals.  This model allows heartbeating to be tuned in
+    a cluster that has both LAN and WAN components.
     </doc>
+    <local>
+    amq_server_method_t
+        *method;
+    </local>
     //
     if (self->thread) {
         if (self->thread->zombie)
             self_disconnect (self);
+        else
+        if (!self->loopback) {
+            self->heartbeat_timer--;
+            if (self->heartbeat_timer == 0) {
+                self->heartbeat_timer = self->heartbeat;
+                //  Send our status to the peer, so it knows we're alive
+                method = amq_server_method_new_cluster_status (
+                    amq_server_config_cluster_heartbeat (amq_server_config),
+                    amq_server_connection_count (),
+                    amq_content_basic_count (),
+                    icl_mem_used () / (1024 * 1024),
+                    amq_exchange_count (),
+                    amq_queue_count (),
+                    amq_consumer_count (),
+                    amq_binding_count (),
+                    amq_peer_count (),
+                    self->cluster->primary_nodes,
+                    self->primary,
+                    self->cluster->root);
+
+                amq_cluster_proxy_peer (amq_cluster, self, method);
+                amq_server_method_destroy (&method);
+
+                //  If no reply received within X heartbeats, disconnect
+                self->heartbeat_ttl--;
+                if (self->heartbeat_ttl == 0)
+                    self_disconnect (self);
+            }
+        }
     }
     else
-    if (ipr_net_ping (self->hostname, NULL))
+    if (ipr_net_ping (self->host, NULL))
         self_connect (self);
+</method>
 
+<method name = "status" template = "function">
+    <doc>
+    Reports the last-known node status.
+    </doc>
+    //
     if (!self->primary)
         rc = AMQ_PEER_SECONDARY;
     else
@@ -107,7 +170,7 @@ cluster class.
     auth_data = self_auth_plain ("cluster", "cluster");
     self->thread = amq_proxy_agent_connection_thread_new (
         self,                           //  Callback for incoming methods
-        self->hostname,
+        self->host,
         amq_server_config_cluster_vhost (amq_server_config),
         auth_data,
         amq_server_config_trace (amq_server_config));
@@ -178,56 +241,64 @@ cluster class.
     <local>
     ipr_looseref_t
         *looseref;                      //  State object
-    amq_content_cluster_t
+    amq_content_tunnel_t
         *content;                       //  Server state message
     </local>
     //
     self->connected = TRUE;
-    self->offlined = FALSE;
+    self->offlined  = FALSE;
+    self->heartbeat = amq_server_config_cluster_heartbeat (amq_server_config);
+    self->heartbeat_timer = self->heartbeat;
+
     icl_shortstr_cpy (self->spid, spid);
     if (streq (self->spid, amq_broker->spid))
         self->loopback = TRUE;
 
     icl_console_print ("I: cluster - now talking to %s%s",
-        self->hostname, self->loopback? " (loopback)": "");
+        self->host, self->loopback? " (loopback)": "");
 
     if (self->cluster->root) {
         //  Now synchronise new peer with our state
         looseref = ipr_looseref_list_first (self->cluster->state_list);
         while (looseref) {
-            content = (amq_content_cluster_t *) (looseref->object);
+            content = (amq_content_tunnel_t *) (looseref->object);
             if (amq_server_config_trace_cluster (amq_server_config))
-                icl_console_print ("C: replay   method=%s", content->method_name);
-            amq_peer_proxy (self, content, NULL, 0);
+                icl_console_print ("C: replay   method=%s", content->data_name);
+            amq_peer_tunnel (self, content);
             looseref = ipr_looseref_list_next (&looseref);
         }
     }
 </method>
 
-<method name = "proxy" template = "function">
+<method name = "heartbeat" template = "function">
+    <doc>
+    We have received a Cluster.Status method from a specific peer.
+    </doc>
+    <argument name = "method" type = "amq_server_cluster_status_t *">Method</argument>
+    //
+    //  Heartbeat in both directions will average out to be the same
+    self->heartbeat = (amq_server_config_cluster_heartbeat (amq_server_config)
+                     + method->heartbeat) / 2;
+    self->heartbeat_ttl = AMQ_HEARTBEAT_TTL;
+    self->load = method->connections;
+</method>
+
+<method name = "tunnel" template = "function">
     <doc>
     Sends a message to the cluster service of the specified peer.
     </doc>
-    <argument name = "content" type = "amq_content_cluster_t *">Method to send</argument>
-    <argument name = "client connection" type = "char *" >Client connection</argument>
-    <argument name = "client channel" type = "int" >Client channel</argument>
+    <argument name = "content" type = "amq_content_tunnel_t *">Data to send</argument>
     //
     if (self->connected) {
         if (amq_server_config_trace_cluster (amq_server_config))
-            icl_console_print ("C: proxy    method=%s peer=%s", content->method_name, self->spid);
-
-        amq_proxy_agent_cluster_proxy (
-            self->thread,
-            self->channel_nbr,
-            content,
-            client_connection,
-            client_channel);
+            icl_console_print ("C: proxy    method=%s peer=%s", content->data_name, self->spid);
+        amq_proxy_agent_tunnel_request (self->thread, self->channel_nbr, content, NULL);
     }
 </method>
 
 <method name = "push" template = "function">
     <doc>
-    Pass already-formatted method to the specified peer.  Detects and
+    Pass already-formatted method to the specified peer. Detects and
     eliminates duplicates of same message sent to same peer.
     </doc>
     <argument name = "method" type = "amq_server_method_t *">Publish method</argument>

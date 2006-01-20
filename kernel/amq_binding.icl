@@ -19,6 +19,7 @@ class.
     <option name = "prefix" value = "list" />
     <option name = "rwlock" value = "0" />
 </inherit>
+<inherit class = "icl_tracker" />
 
 <import class = "amq_server_classes" />
 

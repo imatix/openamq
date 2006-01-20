@@ -63,7 +63,7 @@ amq_cluster_t
     int
         namesize;
     icl_shortstr_t
-        hostname;                       //  Current hostname
+        host;                           //  Current host
     amq_peer_t
         *peer;                          //  Cluster peer 
     </local>
@@ -74,32 +74,32 @@ amq_cluster_t
 
     while (*primary) {
         //    
-        //TODO: more general way to split string into individual hostnames
+        //TODO: more general way to split string into individual hosts
         //
         while (*primary == ' ' || *primary == ',')
             *primary++;                 //  Skip spaces and commas
         from_ptr = primary;
         while (*primary && *primary != ' ' && *primary != ',')
-            primary++;                  //  Find end of hostname
+            primary++;                  //  Find end of host
         namesize = primary - from_ptr;
         if (namesize > ICL_SHORTSTR_MAX)
             namesize = ICL_SHORTSTR_MAX;
-        memcpy (hostname, from_ptr, namesize);
-        hostname [namesize] = 0;
+        memcpy (host, from_ptr, namesize);
+        host [namesize] = 0;
         from_ptr = primary + 1;
 
-        if (*hostname) {
-            //  Check hostname is not a duplicate
+        if (*host) {
+            //  Check host is not a duplicate
             peer = amq_peer_list_first (self->peer_list);
             while (peer) {
-                if (ipr_str_lexeq (peer->hostname, hostname)) {
-                    icl_console_print ("E: cluster - duplicate primary server %s", hostname);
+                if (ipr_str_lexeq (peer->host, host)) {
+                    icl_console_print ("E: cluster - duplicate primary server %s", host);
                     break;
                 }
                 peer = amq_peer_list_next (&peer);
             }
             if (!peer) {
-                peer = amq_peer_new (self, hostname, TRUE);
+                peer = amq_peer_new (self, host, TRUE);
                 amq_peer_list_queue (self->peer_list, peer);
                 self->primary_nodes++;
             }
@@ -116,11 +116,11 @@ amq_cluster_t
 
 <method name = "destroy">
     <action>
-    amq_content_cluster_t
+    amq_content_tunnel_t
         *content;                       //  Server state message
     //
-    while ((content = (amq_content_cluster_t *) ipr_looseref_pop (self->state_list)))
-        amq_content_cluster_destroy (&content);
+    while ((content = (amq_content_tunnel_t *) ipr_looseref_pop (self->state_list)))
+        amq_content_tunnel_destroy (&content);
     ipr_looseref_list_destroy (&self->state_list);
 
     self->enabled = FALSE;
@@ -171,12 +171,13 @@ amq_cluster_t
     //  Pending = no, active = maybe, offline = abstain, secondary = can't vote
     peer = amq_peer_list_first (self->peer_list);
     while (peer) {
+        amq_peer_update (peer);
         switch (amq_peer_status (peer)) {
             case AMQ_PEER_PENDING:
             pending++;
                 if (amq_server_config_trace_cluster (amq_server_config)
                 && !self->ready)
-                    icl_console_print ("C: pending  hostname=%s", peer->hostname);
+                    icl_console_print ("C: pending  host=%s", peer->host);
                 //  Any pending peers means election is pending
                 all_voters++;
                 cur_voters++;
@@ -241,9 +242,10 @@ amq_cluster_t
         //  Set new root state and then tell all nodes about it
         self->root = new_root;
         method = amq_server_method_new_cluster_root (self->root);
-        amq_cluster_fanout_method (self, method, TRUE, TRUE);
+        amq_cluster_proxy_all (self, method, TRUE, TRUE);
         amq_server_method_destroy (&method);
     }
+    //  Cluster monitor runs once per second
     smt_timer_request_delay (self->thread, 1000 * 1000, monitor_event);
     </action>
 </event>
@@ -305,16 +307,16 @@ amq_cluster_t
     peers and then connect back to it.  We may get duplicates, these are
     removed when the peer connects.
     </doc>
-    <argument name = "spid"     type = "char *">Peer's spid</argument>
-    <argument name = "hostname" type = "char *">Peer's hostname</argument>
+    <argument name = "spid" type = "char *">Peer's spid</argument>
+    <argument name = "host" type = "char *">Peer's host</argument>
     //
     <possess>
     spid = icl_mem_strdup (spid);
-    hostname = icl_mem_strdup (hostname);
+    host = icl_mem_strdup (host);
     </possess>
     <release>
     icl_mem_free (spid);
-    icl_mem_free (hostname);
+    icl_mem_free (host);
     </release>
     //
     <action>
@@ -330,8 +332,8 @@ amq_cluster_t
     }
     if (!peer) {
         //  Create new peer as secondary connection
-        icl_console_print ("I: cluster - %s is talking to us", hostname);
-        peer = amq_peer_new (self, hostname, FALSE);
+        icl_console_print ("I: cluster - %s is talking to us", host);
+        peer = amq_peer_new (self, host, FALSE);
         amq_peer_list_queue (self->peer_list, peer);
     }
     amq_peer_unlink (&peer);
@@ -364,58 +366,91 @@ amq_cluster_t
         peer = amq_peer_list_next (&peer);
     }
     if (peer) {
-        icl_console_print ("I: cluster - %s stopped talking us", peer->hostname);
+        icl_console_print ("I: cluster - %s stopped talking us", peer->host);
         amq_peer_destroy (&peer);
     }
     </action>
 </method>
 
-<method name = "fanout method" template = "async function" async = "1">
+<method name = "redirect" template = "async function" async = "1">
+    <doc>
+    Redirect client application to one of the cluster peers.
+    Selects the cluster peer with the fewest clients.
+    </doc>
+    <argument name = "connection" type = "amq_server_connection_t *">client connection</argument>
+    //
+    <possess>
+    amq_server_connection_link (connection);
+    </possess>
+    <release>
+    amq_server_connection_unlink (&connection);
+    </release>
+    //
+    <action>
+    amq_peer_t
+        *peer,
+        *best_peer = NULL;
+    int
+        lowest_load = amq_server_connection_count ();
+
+    peer = amq_peer_list_first (self->peer_list);
+    while (peer) {
+        if (!peer->loopback && peer->load < lowest_load)
+            best_peer = amq_peer_link (peer);
+        peer = amq_peer_list_next (&peer);
+    }
+    if (best_peer) {
+        best_peer->load++;              //  At least until we get new figures
+        amq_server_agent_connection_redirect (connection->thread,
+            best_peer->host,
+            amq_server_config_cluster_primary (amq_server_config));
+        amq_peer_unlink (&best_peer);
+    }
+    else
+        amq_server_agent_connection_open_ok (connection->thread,
+            amq_server_config_cluster_primary (amq_server_config));
+    </action>
+</method>
+
+<method name = "proxy all" template = "async function" async = "1">
     <doc>
     Forward method to cluster.  The mechanism works by wrapping the
     method as a content and then sending that via a Cluster.Proxy
     method to each target peer.
     </doc>
     <argument name = "method" type = "amq_server_method_t *">method to send</argument>
-    <argument name = "stateful" type = "Bool">part of cluster state?</argument>
+    <argument name = "durable" type = "Bool">part of cluster state?</argument>
     <argument name = "toself" type = "Bool">send to self as well?</argument>
     //
-    <possess>
-    amq_server_method_possess (method);
-    </possess>
-    <release>
-    amq_server_method_destroy (&method);
-    </release>
-    //
     <action>
-    amq_content_cluster_t
+    amq_content_tunnel_t
         *content;                       //  Message content
     amq_peer_t
         *peer;                          //  Cluster peer
 
     //  Send to all peers, and self if requested
-    content = s_proxy_content (method, stateful, !self->primary);
+    content = s_proxy_content (method, durable, !self->primary);
     peer = amq_peer_list_first (self->peer_list);
     while (peer) {
         if (toself || !peer->loopback)
-            amq_peer_proxy (peer, content, NULL, 0);
+            amq_peer_tunnel (peer, content);
         peer = amq_peer_list_next (&peer);
     }
     //  Record in state if needed
-    if (self->primary && stateful)
+    if (self->primary && durable)
         s_append_to_state (self, content);
 
-    amq_content_cluster_destroy (&content);
+    amq_content_tunnel_destroy (&content);
     </action>
 </method>
 
 <method name = "replicate" template = "function">
     <doc>
-    Replicates a stateful method to the entire network.
+    Replicates a durable method to the entire network.
     </doc>
     <argument name = "method" type = "amq_server_method_t *">method to send</argument>
     if (amq_cluster->enabled)
-        amq_cluster_fanout_method (self, method, TRUE, FALSE);
+        amq_cluster_proxy_all (self, method, TRUE, FALSE);
 </method>
 
 <method name = "broadcast" template = "function">
@@ -424,13 +459,13 @@ amq_cluster_t
     </doc>
     <argument name = "method" type = "amq_server_method_t *">method to send</argument>
     if (amq_cluster->enabled)
-        amq_cluster_fanout_method (self, method, FALSE, FALSE);
+        amq_cluster_proxy_all (self, method, FALSE, FALSE);
 </method>
 
-<method name = "proxy" template = "async function" async = "1">
+<method name = "proxy root" template = "async function" async = "1">
     <doc>
-    Sends a method request to the cluster root server, so that replies
-    can come back to this peer and be returned to the application.
+    Sends a method request to the cluster root, so that replies
+    can come back to this peer and be processed accordingly.
     </doc>
     <argument name = "method" type = "amq_server_method_t *">method to send</argument>
     <argument name = "channel" type = "amq_server_channel_t *">channel for reply</argument>
@@ -445,12 +480,41 @@ amq_cluster_t
     </release>
     //
     <action>
-    amq_content_cluster_t
+    amq_content_tunnel_t
         *content;                       //  Message content
 
     content = s_proxy_content (method, FALSE, FALSE);
-    amq_peer_proxy (self->root_peer, content, channel->connection->id, channel->number);
-    amq_content_cluster_destroy (&content);
+    amq_content_tunnel_set_headers_field (
+        content, "connection", channel->connection->id);
+    amq_content_tunnel_set_headers_field (
+        content, "channel", "%d", channel->number);
+    amq_peer_tunnel (self->root_peer, content);
+    amq_content_tunnel_destroy (&content);
+    </action>
+</method>
+
+<method name = "proxy peer" template = "async function" async = "1">
+    <doc>
+    Sends a method request to the cluster root, so that replies
+    can come back to this peer and be processed accordingly.
+    </doc>
+    <argument name = "peer" type = "amq_peer_t *">peer to send method to</argument>
+    <argument name = "method" type = "amq_server_method_t *">method to send</argument>
+    //
+    <possess>
+    amq_server_method_possess (method);
+    </possess>
+    <release>
+    amq_server_method_destroy (&method);
+    </release>
+    //
+    <action>
+    amq_content_tunnel_t
+        *content;                       //  Message content
+
+    content = s_proxy_content (method, FALSE, FALSE);
+    amq_peer_tunnel (peer, content);
+    amq_content_tunnel_destroy (&content);
     </action>
 </method>
 
@@ -519,15 +583,15 @@ amq_cluster_t
     - if fanout set, and we're root
         - broadcast the method to all secondaries except originator
     </doc>
-    <argument name = "content" type = "amq_content_cluster_t *">the message content</argument>
+    <argument name = "content" type = "amq_content_tunnel_t *">the message content</argument>
     <argument name = "channel" type = "amq_server_channel_t *">channel for reply</argument>
     //
     <possess>
-    amq_content_cluster_possess (content);
+    amq_content_tunnel_possess (content);
     amq_server_channel_link (channel);
     </possess>
     <release>
-    amq_content_cluster_destroy (&content);
+    amq_content_tunnel_destroy (&content);
     amq_server_channel_unlink (&channel);
     </release>
     //
@@ -541,24 +605,24 @@ amq_cluster_t
     icl_shortstr_t
         strerror;                       //  Text for method errors
     icl_shortstr_t
-        origin_spid;                    //  Original sender, if any
+        proxy_id;                       //  Original sender, if any
 
     //  Decode proxied method from content body
     bucket = ipr_bucket_new (IPR_BUCKET_MAX_SIZE);
-    bucket->cur_size = amq_content_cluster_get_body (
+    bucket->cur_size = amq_content_tunnel_get_body (
         content, bucket->data, bucket->max_size);
     method = amq_server_method_decode (bucket, strerror);
     assert (method);
 
     if (amq_server_config_trace_cluster (amq_server_config)) {
         icl_console_print ("C: accept   method=%s from=%s",
-            content->method_name, content->origin_spid);
+            content->data_name, content->proxy_id);
         amq_server_method_dump (method, "C: ");
     }
     //  Find out what peer sent this method to us
     peer = amq_peer_list_first (self->peer_list);
     while (peer) {
-        if (streq (peer->spid, content->origin_spid)) {
+        if (streq (peer->spid, content->proxy_id)) {
             if (method->class_id == AMQ_SERVER_CLUSTER)
                 s_execute_method (self, method, peer);
             else
@@ -571,18 +635,18 @@ amq_cluster_t
     amq_peer_unlink (&peer);
 
     //  If message is part of the cluster state, record it
-    if (self->primary && content->stateful
-    &&  strneq (content->origin_spid, amq_broker->spid))
+    if (self->primary && content->durable
+    &&  strneq (content->proxy_id, amq_broker->spid))
         s_append_to_state (self, content);
 
     //  If required, re-broadcast message to all secondaries except sender
-    if (content->fanout && self->root) {
-        icl_shortstr_cpy (origin_spid, content->origin_spid);
-        amq_content_cluster_set_origin_spid (content, amq_broker->spid);
+    if (content->broadcast && self->root) {
+        icl_shortstr_cpy (proxy_id, content->proxy_id);
+        amq_content_tunnel_set_proxy_id (content, amq_broker->spid);
         peer = amq_peer_list_first (self->peer_list);
         while (peer) {
-            if (!peer->primary && strneq (peer->spid, origin_spid))
-                amq_peer_proxy (peer, content, NULL, 0);
+            if (!peer->primary && strneq (peer->spid, proxy_id))
+                amq_peer_tunnel (peer, content);
             peer = amq_peer_list_next (&peer);
         }
     }
@@ -617,34 +681,33 @@ amq_cluster_t
 </method>
 
 <private name = "async header">
-static amq_content_cluster_t *
-    s_proxy_content (amq_server_method_t *method, Bool stateful, Bool fanout);
+static amq_content_tunnel_t *
+    s_proxy_content (amq_server_method_t *method, Bool durable, Bool broadcast);
 static void
     s_cluster_ready (amq_cluster_t *self, amq_peer_t *peer);
 static void
     s_cluster_broken (amq_cluster_t *self, char *reason);
 static void
-    s_append_to_state (amq_cluster_t *self, amq_content_cluster_t *content);
+    s_append_to_state (amq_cluster_t *self, amq_content_tunnel_t *content);
 static void
     s_execute_method (amq_cluster_t *self, amq_server_method_t *method, amq_peer_t *peer);
 </private>
 
 <private name = "async footer">
-static amq_content_cluster_t *
-s_proxy_content (amq_server_method_t *method, Bool stateful, Bool fanout)
+static amq_content_tunnel_t *
+s_proxy_content (amq_server_method_t *method, Bool durable, Bool broadcast)
 {
     ipr_bucket_t
         *bucket;
-    amq_content_cluster_t
+    amq_content_tunnel_t
         *content;                       //  Message content
 
-    content = amq_content_cluster_new ();
+    content = amq_content_tunnel_new ();
     bucket = amq_server_method_encode (method);
-    amq_content_cluster_record_body     (content, bucket);
-    amq_content_cluster_set_origin_spid (content, amq_broker->spid);
-    amq_content_cluster_set_method_name (content, method->name);
-    amq_content_cluster_set_stateful    (content, stateful);
-    amq_content_cluster_set_fanout      (content, fanout);
+    amq_content_tunnel_record_body   (content, bucket);
+    amq_content_tunnel_set_proxy_id  (content, amq_broker->spid);
+    amq_content_tunnel_set_data_name (content, method->name);
+    amq_content_tunnel_set_durable   (content, durable);
     ipr_bucket_destroy (&bucket);
     return (content);
 }
@@ -668,7 +731,7 @@ static void
 s_cluster_broken (amq_cluster_t *self, char *reason)
 {
     if (self->ready && self->root_peer) {
-        icl_console_print ("I: cluster - %s %s", self->root_peer->hostname, reason);
+        icl_console_print ("I: cluster - %s %s", self->root_peer->host, reason);
         icl_console_print ("I: **** CLUSTER VHOST '%s' STOPPING NEW CONNECTIONS ****",
             amq_server_config_cluster_vhost (amq_server_config));
         self->root_peer = NULL;
@@ -677,18 +740,18 @@ s_cluster_broken (amq_cluster_t *self, char *reason)
 }
 
 static void
-s_append_to_state (amq_cluster_t *self, amq_content_cluster_t *content)
+s_append_to_state (amq_cluster_t *self, amq_content_tunnel_t *content)
 {
     if (amq_server_config_trace_cluster (amq_server_config))
-        icl_console_print ("C: record   method=%s", content->method_name);
+        icl_console_print ("C: record   method=%s", content->data_name);
 
-    amq_content_cluster_possess (content);
+    amq_content_tunnel_possess (content);
     ipr_looseref_queue (self->state_list, content);
     self->state_size += content->body_size + sizeof (content);
 
     if (self->state_size
-    > amq_server_config_cluster_state_mb (amq_server_config)
-    * 1024 * 1024 && !self->state_alert) {
+    > amq_server_config_cluster_state_mb (amq_server_config) * 1024 * 1024
+    && !self->state_alert) {
         icl_console_print ("E: WARNING: cluster state exceeds %dMb",
             amq_server_config_cluster_state_mb (amq_server_config));
         self->state_alert = TRUE;
@@ -701,7 +764,7 @@ s_append_to_state (amq_cluster_t *self, amq_content_cluster_t *content)
 static void
 s_execute_method (amq_cluster_t *self, amq_server_method_t *method, amq_peer_t *peer)
 {
-    //  Execute Cluster.Root method
+    //  Cluster.Root method
     if (method->method_id == AMQ_SERVER_CLUSTER_ROOT) {
         if (method->payload.cluster_root.active)
             s_cluster_ready (self, peer);
@@ -710,7 +773,7 @@ s_execute_method (amq_cluster_t *self, amq_server_method_t *method, amq_peer_t *
     }
     else
     //
-    //  Execute Cluster.Bind method
+    //  Cluster.Bind method
     if (method->method_id == AMQ_SERVER_CLUSTER_BIND) {
         amq_exchange_t
             *exchange;              //  Exchange to bind to
@@ -732,6 +795,12 @@ s_execute_method (amq_cluster_t *self, amq_server_method_t *method, amq_peer_t *
         else
             icl_console_print ("E: no such exchange defined: '%s'",
                 method->payload.cluster_bind.exchange);
+    }
+    else
+    //
+    //  Cluster.Status method
+    if (method->method_id == AMQ_SERVER_CLUSTER_STATUS) {
+        amq_peer_heartbeat (peer, &method->payload.cluster_status);
     }
 }
 </private>

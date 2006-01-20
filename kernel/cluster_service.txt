@@ -161,6 +161,29 @@ class.get, get-ok
     OK
 
 
+client connection
+    - if cluster enabled but not ready, wait
+        - not ready = no root server defined yet
+        - hold onto client connection...
+    - if cluster disabled
+        - pause client activity
+        - client application can timeout if bored
+    - use list of server:port names from application
+        - try each host in sequence, drop any that don't reply
+        - connect to first host that responds
+    - if we get Connection.Redirect
+        - connect to hostname and then known-hosts in order
+    OK
+    
+    
+    
+    - add force option to C API
+    - cluster needs to balance clients over all servers...
+        - reconnect to server with lowest usage
+
+
+
+
 Clarify in doc:
     - client can send synchronous methods without waiting for responses
     - responses MAY come out of order...
@@ -170,10 +193,6 @@ Clarify in doc:
     - shortstr, allows arbitrary encodings
 
 Change requests
-    - remove cluster key from protocol, use vhost as identifier
-    DONE
-    - support a single vhost name per configuration
-    DONE
     - if we have multiple vhosts
         - create a proxy connection per vhost
     POSTPONE
@@ -182,19 +201,13 @@ Change requests
             - requires hierarchical content support
         - document in AMQP specifications
     IN PROGRESS
+
     - implement heartbeating between brokers
         - information, per broker:
-            - number of connections & channels
-            - number of messages
-            - size of current message store
-            - number of exchanges, queues, bindings
-            - number of peers and state of each peer
-        - same as dump-state
+            - connections, messages, allocation
+            - exchanges, queues, bindings, peers
+            - primary, root
 
-    - use async opens for initial connections
-
-    - let spid be configured config/cmndline
-    DONE
 
 
 OpenAMQ change requests (to Jira)
@@ -220,18 +233,6 @@ OpenAMQ change requests (to Jira)
     ... how to return messages if no immediate consumers?
         - need to add original connection & channel number to message
         - need to process incoming returns
-
-client connection
-    - if cluster enabled but not ready, wait
-        - not ready = no root server defined yet
-        - hold onto client connection...
-    - if cluster disabled
-        - pause client activity
-        - client application can timeout if bored
-    OK
-    - add force option to C API
-    - cluster needs to balance clients over all servers...
-        - reconnect to server with lowest usage
 
 
 

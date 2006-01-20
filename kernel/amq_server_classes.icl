@@ -17,9 +17,9 @@
 <import class = "amq_consumer" />
 <import class = "amq_consumer_basic" />
 <import class = "amq_content_basic" />
-<import class = "amq_content_cluster" />
 <import class = "amq_content_file" />
 <import class = "amq_content_stream" />
+<import class = "amq_content_tunnel" />
 <import class = "amq_cluster" />
 <import class = "amq_exchange" />
 <import class = "amq_exchange_direct" />

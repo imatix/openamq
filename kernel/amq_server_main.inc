@@ -35,7 +35,7 @@ static char
     "Options:\n"                                                             \
     "  -p port          Server port\n"                                       \
     "  -w directory     Working directory for server (current)\n"            \
-    "  -s spid          Set server process ID (empty)\n"                     \
+    "  -s spid          Set server process ID (auto)\n"                      \
     "  -q               Quiet mode: no messages (no)\n"                      \
     "  -b               Run as background server process (no)\n"             \
     "  -f               Run as foreground console process (yes)\n"           \
@@ -210,11 +210,14 @@ s_load_config (char *config_file, char *overlay)
 static int
 s_run_server (void)
 {
+    amq_broker_t
+        *broker_handle;                 //  Hold onto broker
+        
     //  Synchronous start-up
     if (s_opt_trace)
         amq_server_config_set_trace   (amq_server_config, atoi (s_opt_trace));
     if (s_opt_monitor)
-        amq_server_config_set_monitor (amq_server_config, (Bool) atoi (s_opt_monitor));
+        amq_server_config_set_monitor (amq_server_config, atoi (s_opt_monitor));
     if (s_opt_port)
         amq_server_config_set_port    (amq_server_config, s_opt_port);
     if (s_opt_spid)
@@ -226,6 +229,7 @@ s_run_server (void)
     amq_cluster = amq_cluster_new ();
     smt_wait (0);                       //  Execute the server
 
+    broker_handle = amq_broker_link (amq_broker);
     amq_cluster_destroy (&amq_cluster);
     smt_wait (0);
     amq_broker_destroy  (&amq_broker);
@@ -236,6 +240,8 @@ s_run_server (void)
     //  Synchronous shutdown
     amq_server_config_destroy (&amq_server_config);
     amq_proxy_config_destroy  (&amq_proxy_config);
+    amq_broker_unlink         (&broker_handle);
+
     if (s_opt_showinfo)
         icl_stats_dump ();
     icl_console_print ("I: shutdown is complete");
