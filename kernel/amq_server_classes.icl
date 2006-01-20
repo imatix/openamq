@@ -4,7 +4,10 @@
     comment   = "Generates include files"
     version   = "1.0"
     script    = "icl_gen"
+    import    = "1"
     >
+
+<option name = "selftest" value = "0" />
 
 <import class = "amq_binding" />
 <import class = "amq_broker" />
@@ -36,7 +39,5 @@
 <import class = "amq_server_connection" />
 <import class = "amq_vhost" />
 <import class = "amq_vhost_config" />
-
-<method name = "selftest" />
 
 </class>

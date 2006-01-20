@@ -37,7 +37,7 @@
 <file name = "amq_client_config.icl" class = "icl private class"
                                      generated = "1"             >Client configuration class</file>
 <file name = "amq_client_classes.icl"
-                                     class = "icl public class"  >Client classes</file>
+                                     class = "icl public data"   >Client classes</file>
 <file name = "amq_client_connection.icl"
                                      class = "icl public class"
                                      generated = "1"             >Client API connection class</file>
@@ -59,7 +59,7 @@
 <file name = "amq_server_agent.smt"  class = "smt public module"
                                      generated = "1"             >Server protocol agent</file>
 <file name = "amq_server_classes.icl"  
-                                     class = "icl public class"  >Server classes</file>
+                                     class = "icl public data"   >Server classes</file>
 <file name = "amq_server_connection.icl"
                                      class = "icl private class" >Server connection class</file>
 <file name = "amq_server_connection_table.icl"
@@ -171,9 +171,7 @@
 <file name = "amq_test_base.pal"     class = "public resource"   >Base test header</file>
 <file name = "amq_test_console.pal"  class = "private resource"  >Console test program</file>
 <file name = "amq_test_console.pl"   class = "private resource"  >Console test driver</file>
-<!-- Temporarily disabled on trunk, breaks the build
 <file name = "amq_test_cpp.cpp"      class = "c++ main program"  >C++ test program</file>
--->
 
 <!-- PAL/AMQ code generator -->
 <file name = "amq_pal.xnf"           class = "generated" />
