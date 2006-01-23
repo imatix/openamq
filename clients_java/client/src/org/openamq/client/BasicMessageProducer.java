@@ -77,7 +77,7 @@ public class BasicMessageProducer extends Closeable implements org.openamq.jms.M
 
     private final boolean _immediate;
 
-    private final boolean _mandatory;    
+    private final boolean _mandatory;
 
     protected BasicMessageProducer(AMQDestination destination, boolean transacted, int channelId,
                                    AMQSession session, AMQProtocolHandler protocolHandler, long producerId,
@@ -96,6 +96,14 @@ public class BasicMessageProducer extends Closeable implements org.openamq.jms.M
         }
         _immediate = immediate;
         _mandatory = mandatory;
+    }
+
+    void resubscribe() throws AMQException
+    {
+         if (_destination != null)
+         {
+             declareDestination(_destination);
+         }
     }
 
     private void declareDestination(AMQDestination destination) throws AMQException

@@ -1,9 +1,11 @@
 package org.openamq.client;
 
 import org.apache.log4j.Logger;
+import org.openamq.AMQException;
+import org.openamq.AMQUndeliveredException;
 import org.openamq.client.protocol.AMQProtocolHandler;
-import org.openamq.client.state.AMQState;
 import org.openamq.client.state.listener.SpecificMethodFrameListener;
+import org.openamq.client.state.AMQState;
 import org.openamq.client.transport.TransportConnection;
 import org.openamq.framing.AMQFrame;
 import org.openamq.framing.ChannelOpenBody;
@@ -11,8 +13,6 @@ import org.openamq.framing.ChannelOpenOkBody;
 import org.openamq.jms.ChannelLimitReachedException;
 import org.openamq.jms.Connection;
 import org.openamq.jms.ConnectionListener;
-import org.openamq.AMQException;
-import org.openamq.AMQUndeliveredException;
 
 import javax.jms.*;
 import javax.jms.Queue;
@@ -26,7 +26,26 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
 
     private final IdFactory _idFactory = new IdFactory();
 
-    private TransportConnection _transportConnection;
+    /**
+     * Details of a broker that we can connect to. For failover we can know about a number of brokers each of which
+     * we can attempt to use. These brokers must be a member of the cluster.
+     */
+    public static class BrokerDetail
+    {
+        public BrokerDetail(String host, int port)
+        {
+            this.host = host;
+            this.port = port;
+        }
+
+        public String host;
+        public int port;
+
+        public String toString()
+        {
+            return host + ":" + port;
+        }
+    }
 
     /**
      * A channel is roughly analogous to a session. The server can negotiate the maximum number of channels
@@ -39,24 +58,26 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
      */
     private long _maximumFrameSize;
 
+    /**
+     * The protocol handler dispatches protocol events for this connection. For example, when the connection is dropped
+     * the handler deals with this. It also deals with the initial dispatch of any protocol frames to their appropriate
+     * handler.
+     */
     private AMQProtocolHandler _protocolHandler;
 
     /**
      * Maps from session id (Integer) to AMQSession instance
      */
-    private final HashMap _sessions = new LinkedHashMap();
+    private final Map _sessions = Collections.synchronizedMap(new LinkedHashMap());
 
     private String _clientName;
 
-    /**
-     * The host to which the connection is connected
-     */
-    private String _host;
+    private BrokerDetail[] _brokerDetails;
 
     /**
-     * The port on which the connection is made
+     * The index into the hostDetails array of the broker to which we are connected
      */
-    private int _port;
+    private int _activeBrokerIndex = -1;
 
     /**
      * The user name to use for authentication
@@ -86,25 +107,109 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
     public AMQConnection(String host, int port, String username, String password,
                          String clientName, String virtualPath) throws AMQException
     {
+        this(new BrokerDetail(host, port), username, password, clientName, virtualPath);
+    }
+
+     public AMQConnection(String brokerDetails, String username, String password,
+                         String clientName, String virtualPath) throws AMQException
+    {
+        this(parseBrokerDetails(brokerDetails), username, password, clientName, virtualPath);
+    }
+
+    public AMQConnection(BrokerDetail brokerDetail, String username, String password,
+                         String clientName, String virtualPath) throws AMQException
+    {
+        this(new BrokerDetail[]{brokerDetail}, username, password, clientName, virtualPath);
+    }
+
+    public AMQConnection(BrokerDetail[] brokerDetails, String username, String password,
+                         String clientName, String virtualPath) throws AMQException
+    {
+        if (brokerDetails == null || brokerDetails.length == 0)
+        {
+            throw new IllegalArgumentException("Broker details must specify at least one broker");
+        }
+        _brokerDetails = brokerDetails;
         _clientName = clientName;
-        _host = host;
-        _port = port;
         _username = username;
         _password = password;
         _virtualPath = virtualPath;
 
-        try
+        _protocolHandler = new AMQProtocolHandler(this);
+        for (int i = 0; i < brokerDetails.length; i++)
         {
-            _transportConnection = new TransportConnection(this);
-            _protocolHandler = _transportConnection.connect();
-            // this blocks until the connection has been set up or when an error has prevented the connection being
-            // set up
-            _protocolHandler.attainState(AMQState.CONNECTION_OPEN);
+            try
+            {
+                makeBrokerConnection(brokerDetails[i]);
+                _activeBrokerIndex = i;
+                // has succeeded so break out the loop now
+                break;
+            }
+            catch (Exception e)
+            {
+                _logger.info("Unable to connect to broker at " + brokerDetails[i]);
+            }
         }
-        catch (IOException e)
+    }
+
+    private static BrokerDetail[] parseBrokerDetails(String brokerDetails)
+    {
+        if (brokerDetails == null)
         {
-            throw new AMQException("Error creating transport connection: " + e, e);
+            throw new IllegalArgumentException("Broker string cannot be null");
         }
+        LinkedList ll = new LinkedList();
+        StringTokenizer tokenizer = new StringTokenizer(brokerDetails, ";");
+        while (tokenizer.hasMoreTokens())
+        {
+            String token = tokenizer.nextToken();
+            int index = token.indexOf(":");
+            if (index == -1)
+            {
+                throw new IllegalArgumentException("Invalid broker string: " + token + ". Must be in format host:port");
+            }
+            else
+            {
+                int port = Integer.parseInt(token.substring(index + 1));
+                BrokerDetail bd = new BrokerDetail(token.substring(0, index), port);
+                ll.add(bd);
+            }
+        }
+        BrokerDetail[] bd = new BrokerDetail[ll.size()];
+        return (BrokerDetail[]) ll.toArray(bd);
+    }
+
+    private void makeBrokerConnection(BrokerDetail brokerDetail) throws IOException, AMQException
+    {
+        TransportConnection.connect(_protocolHandler, brokerDetail);
+        // this blocks until the connection has been set up or when an error has prevented the connection being
+        // set up
+        _protocolHandler.attainState(AMQState.CONNECTION_OPEN);
+    }
+
+    public boolean attemptReconnection()
+    {
+        boolean succeeded = false;
+        for (int i = 0; i < _brokerDetails.length; i++)
+        {
+            if (i == _activeBrokerIndex)
+            {
+                continue;
+            }
+            try
+            {
+                makeBrokerConnection(_brokerDetails[i]);
+                _activeBrokerIndex = i;
+                succeeded = true;
+                // has succeeded so break out the loop now
+                break;
+            }
+            catch (Exception e)
+            {
+                _logger.info("Unable to connect to broker at " + _brokerDetails[i]);
+            }
+        }
+        return succeeded;
     }
 
     public Session createSession(boolean transacted, int acknowledgeMode) throws JMSException
@@ -117,7 +222,7 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
         else
         {
             // TODO: check thread safety
-            short channelId = _idFactory.getChannelId();
+            int channelId = _idFactory.getChannelId();
             AMQFrame frame = ChannelOpenBody.createAMQFrame(channelId, 100,
                                                             null);
 
@@ -266,6 +371,7 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
                 }
             }
         }
+        _sessions.clear();
         if (sessionException != null)
         {
             throw sessionException;
@@ -346,16 +452,6 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
         return _sessions;
     }
 
-    public String getHost()
-    {
-        return _host;
-    }
-
-    public int getPort()
-    {
-        return _port;
-    }
-
     public String getUsername()
     {
         return _username;
@@ -389,6 +485,56 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
         if (_connectionListener != null)
         {
             _connectionListener.bytesReceived(receivedBytes);
+        }
+    }
+
+    /**
+     * Fire the preFailover event to the registered connection listener (if any)
+     * @return true if no listener or listener does not veto change
+     */
+    public boolean firePreFailover()
+    {
+        if (_connectionListener != null)
+        {
+            return _connectionListener.preFailover();
+        }
+        else
+        {
+            return true;
+        }
+    }
+
+    /**
+     * Fire the preResubscribe event to the registered connection listener (if any). If the listener
+     * vetoes resubscription then all the sessions are closed.
+     * @return true if no listener or listener does not veto resubscription.
+     * @throws JMSException
+     */
+    public boolean firePreResubscribe() throws JMSException
+    {
+        if (_connectionListener != null)
+        {
+            boolean resubscribe = _connectionListener.preResubscribe();
+            if (!resubscribe)
+            {
+                closeAllSessions(null);
+            }
+            return resubscribe;
+        }
+        else
+        {
+            return true;
+        }
+    }
+
+    /**
+     * Fires a failover complete event to the registered connection listener (if any).
+     */
+    public void fireFailoverComplete()
+    {
+        if (_connectionListener != null)
+        {
+            _connectionListener.failoverComplete();
         }
     }
 
@@ -452,11 +598,52 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
         _sessions.remove(new Integer(channelId));
     }
 
+    /**
+     * For all sessions, and for all consumers in those sessions, resubscribe. This is called during failover handling.
+     */
+    public void resubscribeSessions() throws AMQException
+    {
+        ArrayList sessions = new ArrayList(_sessions.values());
+        for (Iterator it = sessions.iterator(); it.hasNext(); )
+        {
+            AMQSession s = (AMQSession) it.next();
+            reopenChannel(s.getChannelId());
+            s.resubscribe();
+        }
+    }
+
+    private void reopenChannel(int channelId) throws AMQException
+    {
+        AMQFrame frame = ChannelOpenBody.createAMQFrame(channelId, 100,
+                                                        null);
+
+        try
+        {
+            _protocolHandler.writeCommandFrameAndWaitForReply(frame,
+                                                              new SpecificMethodFrameListener(channelId,
+                                                                                              ChannelOpenOkBody.class));
+        }
+        catch (AMQException e)
+        {
+            _protocolHandler.removeSessionByChannel(channelId);
+            deregisterSession(channelId);
+            throw new AMQException("Error reopening channel " + channelId + " after failover: " + e);
+        }
+
+    }
+
     public String toString()
     {
         StringBuffer buf = new StringBuffer("AMQConnection:\n");
-        buf.append("Host: ").append(String.valueOf(_host));
-        buf.append("\nPort: ").append(_port);
+        if (_activeBrokerIndex == -1)
+        {
+            buf.append("No active broker connection");
+        }
+        else
+        {
+            buf.append("Host: ").append(String.valueOf(_brokerDetails[_activeBrokerIndex].host));
+            buf.append("\nPort: ").append(String.valueOf(_brokerDetails[_activeBrokerIndex].port));
+        }
         buf.append("\nVirtual Path: ").append(String.valueOf(_virtualPath));
         buf.append("\nClient ID: ").append(String.valueOf(_clientName));
         buf.append("\nActive session count: ").append(_sessions == null ? 0 : _sessions.size());

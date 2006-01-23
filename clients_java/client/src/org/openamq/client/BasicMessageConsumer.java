@@ -12,6 +12,7 @@ import org.openamq.client.state.listener.SpecificMethodFrameListener;
 import org.openamq.framing.AMQFrame;
 import org.openamq.framing.BasicCancelBody;
 import org.openamq.framing.BasicCancelOkBody;
+import org.openamq.framing.FieldTable;
 import org.openamq.jms.MessageConsumer;
 import org.openamq.jms.Session;
 
@@ -68,8 +69,24 @@ public class BasicMessageConsumer extends Closeable implements MessageConsumer
 
     private AMQProtocolHandler _protocolHandler;
 
+    /**
+     * We need to store the "raw" field table so that we can resubscribe in the event of failover being required
+     */
+    private FieldTable _rawSelectorFieldTable;
+
+    /**
+     * We store the prefetch field in order to be able to reuse it when resubscribing in the event of failover
+     */
+    private int _prefetch;
+
+    /**
+     * We store the exclusive field in order to be able to reuse it when resubscribing in the event of failover
+     */
+    private boolean _exclusive;
+
     BasicMessageConsumer(int channelId, AMQDestination destination, String messageSelector, boolean noLocal,
-                         MessageFactoryRegistry messageFactory, AMQSession session, AMQProtocolHandler protocolHandler)
+                         MessageFactoryRegistry messageFactory, AMQSession session, AMQProtocolHandler protocolHandler,
+                         FieldTable rawSelectorFieldTable, int prefetch, boolean exclusive)
     {
         _channelId = channelId;
         _messageSelector = messageSelector;
@@ -78,6 +95,14 @@ public class BasicMessageConsumer extends Closeable implements MessageConsumer
         _messageFactory = messageFactory;
         _session = session;
         _protocolHandler = protocolHandler;
+        _rawSelectorFieldTable =rawSelectorFieldTable;
+        _prefetch = prefetch;
+        _exclusive = exclusive;
+    }
+
+    public AMQDestination getDestination()
+    {
+        return _destination;
     }
 
     public String getMessageSelector() throws JMSException
@@ -111,6 +136,26 @@ public class BasicMessageConsumer extends Closeable implements MessageConsumer
                 _logger.debug("Message listener set for destination " + _destination);
             }
         }
+    }
+
+    public FieldTable getRawSelectorFieldTable()
+    {
+        return _rawSelectorFieldTable;
+    }
+
+    public int getPrefetch()
+    {
+        return _prefetch;
+    }
+
+    public boolean isNoLocal()
+    {
+        return _noLocal;
+    }
+
+    public boolean isExclusive()
+    {
+        return _exclusive;
     }
 
     public Message receive() throws JMSException

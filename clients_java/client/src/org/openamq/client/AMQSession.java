@@ -51,7 +51,7 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
     private Map _producers = new ConcurrentHashMap();
 
     /**
-     * Maps from consumer tag to JMSMessageConsumer instance
+     * Maps from consumer tag (String) to JMSMessageConsumer instance
      */
     private Map _consumers = new ConcurrentHashMap();
 
@@ -577,68 +577,91 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
             AMQDestination amqd = (AMQDestination)destination;
 
             final AMQProtocolHandler protocolHandler = _connection.getProtocolHandler();
+            // TODO: construct the rawSelector from the selector string if rawSelector == null
+            final FieldTable ft = new FieldTable();
+            //if (rawSelector != null)
+            //    ft.put("headers", rawSelector.getDataAsBytes());
+            if (rawSelector != null)
+            {
+                ft.putAll(rawSelector);
+            }
             BasicMessageConsumer consumer = new BasicMessageConsumer(_channelId, amqd, selector, noLocal,
-                                                                     _messageFactoryRegistry, this, protocolHandler);
+                                                                     _messageFactoryRegistry, this, protocolHandler,
+                                                                     ft, prefetch, exclusive);
 
-            String consumerTag = null;
             try
             {
-                // Declare exchange
-                AMQFrame exchangeDeclare = ExchangeDeclareBody.createAMQFrame(_channelId, 0, amqd.getExchangeName(),
-                                                                              amqd.getExchangeClass(), false, false,
-                                                                              false, false, null);
-
-                protocolHandler.writeCommandFrameAndWaitForReply(exchangeDeclare,
-                                            new SpecificMethodFrameListener(_channelId, ExchangeDeclareOkBody.class));
-
-                AMQFrame queueDeclare = QueueDeclareBody.createAMQFrame(_channelId, 0,
-                                                                        amqd.getQueueName(),
-                                                                        false, false, amqd.isExclusive(),
-                                                                        amqd.isAutoDelete(), null);
-
-                AMQMethodEvent evt = protocolHandler.writeCommandFrameAndWaitForReply(queueDeclare,
-                                             new SpecificMethodFrameListener(_channelId, QueueDeclareOkBody.class));
-                QueueDeclareOkBody qdb = (QueueDeclareOkBody) evt.getMethod();
-                amqd.setQueueName(qdb.queue);
-
-                // Bind exchange to queue
-                // TODO: construct the rawSelector from the selector string if rawSelector == null
-                final FieldTable ft = new FieldTable();
-                //if (rawSelector != null)
-                //    ft.put("headers", rawSelector.getDataAsBytes());
-                if (rawSelector != null)
-                    ft.putAll(rawSelector);
-                AMQFrame queueBind = QueueBindBody.createAMQFrame(_channelId, 0,
-                                                                  amqd.getQueueName(), amqd.getExchangeName(),
-                                                                  amqd.getRoutingKey(), ft);
-
-                protocolHandler.writeCommandFrameAndWaitForReply(queueBind,
-                                              new SpecificMethodFrameListener(_channelId, QueueBindOkBody.class));
-
-                // Consume from queue
-                AMQFrame jmsConsume = BasicConsumeBody.createAMQFrame(_channelId, 0,
-                                                                      qdb.queue, null, 0,
-                                                                      prefetch, noLocal, true, exclusive);
-
-                AMQMethodEvent consumeOkEvent = protocolHandler.writeCommandFrameAndWaitForReply(jmsConsume,
-                                                 new SpecificMethodFrameListener(_channelId,
-                                                                                 BasicConsumeOkBody.class));
-
-                consumerTag = ((BasicConsumeOkBody) consumeOkEvent.getMethod()).consumerTag;
-                consumer.setConsumerTag(consumerTag);
-                registerConsumer(consumerTag, consumer);
-              }
-              catch (AMQException e)
-              {
-                  if (consumerTag != null)
-                  {
-                    deregisterConsumer(consumerTag);
-                  }
-                  throw new JMSException("Error creating consumer: " + e);
-              }
+                registerConsumer(consumer);
+            }
+            catch (AMQException e)
+            {
+                JMSException ex = new JMSException("Error registering consumer: " + e);
+                ex.setLinkedException(e);
+                throw ex;
+            }
 
             return consumer;
         }
+    }
+
+    private void declareExchange(AMQDestination amqd, AMQProtocolHandler protocolHandler) throws AMQException
+    {
+        AMQFrame exchangeDeclare = ExchangeDeclareBody.createAMQFrame(_channelId, 0, amqd.getExchangeName(),
+                                                                      amqd.getExchangeClass(), false, false,
+                                                                      false, false, null);
+
+        protocolHandler.writeCommandFrameAndWaitForReply(exchangeDeclare,
+                                    new SpecificMethodFrameListener(_channelId, ExchangeDeclareOkBody.class));
+    }
+
+    /**
+     * Declare the queue.
+     * @param amqd
+     * @param protocolHandler
+     * @return the queue name. This is useful where the broker is generating a queue name on behalf of the client.
+     * @throws AMQException
+     */
+    private String declareQueue(AMQDestination amqd, AMQProtocolHandler protocolHandler) throws AMQException
+    {
+        AMQFrame queueDeclare = QueueDeclareBody.createAMQFrame(_channelId, 0,
+                                                                amqd.getQueueName(),
+                                                                false, false, amqd.isExclusive(),
+                                                                amqd.isAutoDelete(), null);
+
+        AMQMethodEvent evt = protocolHandler.writeCommandFrameAndWaitForReply(queueDeclare,
+                                     new SpecificMethodFrameListener(_channelId, QueueDeclareOkBody.class));
+        QueueDeclareOkBody qdb = (QueueDeclareOkBody) evt.getMethod();
+        amqd.setQueueName(qdb.queue);
+        return qdb.queue;
+    }
+
+    private void bindQueue(AMQDestination amqd, AMQProtocolHandler protocolHandler, FieldTable ft) throws AMQException
+    {
+        AMQFrame queueBind = QueueBindBody.createAMQFrame(_channelId, 0,
+                                                          amqd.getQueueName(), amqd.getExchangeName(),
+                                                          amqd.getRoutingKey(), ft);
+
+        protocolHandler.writeCommandFrameAndWaitForReply(queueBind,
+                                      new SpecificMethodFrameListener(_channelId, QueueBindOkBody.class));
+    }
+
+    /**
+     * Register to consume from the queue.
+     * @param queueName
+     * @return the consumer tag generated by the broker
+     */
+    private String consumeFromQueue(String queueName, AMQProtocolHandler protocolHandler, int prefetch,
+                                    boolean noLocal, boolean exclusive) throws AMQException
+    {
+        AMQFrame jmsConsume = BasicConsumeBody.createAMQFrame(_channelId, 0,
+                                                              queueName, null, 0,
+                                                              prefetch, noLocal, true, exclusive);
+
+        AMQMethodEvent consumeOkEvent = protocolHandler.writeCommandFrameAndWaitForReply(jmsConsume,
+                                         new SpecificMethodFrameListener(_channelId,
+                                                                         BasicConsumeOkBody.class));
+
+        return ((BasicConsumeOkBody) consumeOkEvent.getMethod()).consumerTag;
     }
 
     public Queue createQueue(String queueName) throws JMSException
@@ -796,8 +819,22 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
         _dispatcher.start();
     }
 
-    void registerConsumer(String consumerTag, MessageConsumer consumer)
+    void registerConsumer(BasicMessageConsumer consumer) throws AMQException
     {
+        String consumerTag = null;
+        AMQDestination amqd = consumer.getDestination();
+        AMQProtocolHandler protocolHandler = _connection.getProtocolHandler();
+
+        declareExchange(amqd, protocolHandler);
+
+        String queueName = declareQueue(amqd, protocolHandler);
+
+        bindQueue(amqd, protocolHandler, consumer.getRawSelectorFieldTable());
+
+        consumerTag = consumeFromQueue(queueName, protocolHandler, consumer.getPrefetch(), consumer.isNoLocal(),
+                                       consumer.isExclusive());
+
+        consumer.setConsumerTag(consumerTag);
         _consumers.put(consumerTag, consumer);
     }
 
@@ -824,5 +861,37 @@ public class AMQSession extends Closeable implements Session, QueueSession, Topi
     private long getNextProducerId()
     {
         return ++_nextProducerId;
+    }
+
+    /**
+     * Resubscribes all producers and consumers. This is called when performing failover.
+     * @throws AMQException
+     */
+    void resubscribe() throws AMQException
+    {
+        resubscribeProducers();
+        resubscribeConsumers();
+    }
+
+    private void resubscribeProducers() throws AMQException
+    {
+        ArrayList producers = new ArrayList(_producers.values());
+        for (Iterator it = producers.iterator(); it.hasNext();)
+        {
+            BasicMessageProducer producer = (BasicMessageProducer) it.next();
+            producer.resubscribe();
+        }
+    }
+
+    private void resubscribeConsumers() throws AMQException
+    {
+        ArrayList consumers = new ArrayList(_consumers.values());
+        _consumers.clear();
+        
+        for (Iterator it = consumers.iterator(); it.hasNext();)
+        {
+            BasicMessageConsumer consumer = (BasicMessageConsumer) it.next();
+            registerConsumer(consumer);
+        }
     }
 }

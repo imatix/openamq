@@ -5,18 +5,18 @@ import org.apache.log4j.Logger;
 import org.apache.mina.common.IdleStatus;
 import org.apache.mina.common.IoHandlerAdapter;
 import org.apache.mina.common.IoSession;
-import org.apache.mina.transport.socket.nio.SocketSession;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
-import org.openamq.client.AMQConnection;
+import org.apache.mina.transport.socket.nio.SocketSession;
 import org.openamq.AMQException;
 import org.openamq.AMQDisconnectedException;
+import org.openamq.client.AMQConnection;
 import org.openamq.client.AMQSession;
-import org.openamq.client.transport.AMQProtocolProvider;
-import org.openamq.framing.*;
 import org.openamq.client.state.AMQState;
 import org.openamq.client.state.AMQStateManager;
 import org.openamq.client.state.listener.ConnectionCloseOkListener;
 import org.openamq.client.state.listener.SpecificMethodFrameListener;
+import org.openamq.client.transport.AMQProtocolProvider;
+import org.openamq.framing.*;
 
 import java.util.Iterator;
 
@@ -39,14 +39,86 @@ public class AMQProtocolHandler extends IoHandlerAdapter
      */
     private AMQProtocolSession _protocolSession;
 
-    private final AMQStateManager _stateManager = new AMQStateManager();
+    private AMQStateManager _stateManager = new AMQStateManager();
 
     private final CopyOnWriteArraySet _frameListeners = new CopyOnWriteArraySet();
+
+    /**
+     * When failover is required, we need a separate thread to handle the establishment of the new connection and
+     * the transfer of subscriptions.
+     *
+     * The reason this needs to be a separate thread is because you cannot do this work inside the MINA IO processor
+     * thread. One significant task is the connection setup which involves a protocol exchange until a particular state
+     * is achieved. However if you do this in the MINA thread, you have to block until the state is achieved which means
+     * the IO processor is not able to do anything at all.
+     */
+    private class FailoverHandler implements Runnable
+    {
+        private final IoSession _session;
+
+        public FailoverHandler(IoSession session)
+        {
+            _session = session;
+        }
+
+        public void run()
+        {
+            // we switch in a new state manager temporarily so that the interaction to get to the "connection open"
+            // state works, without us having to terminate any existing "state waiters". We could theoretically
+            // have a state waiter waiting until the connection is closed for some reason. Or in future we may have
+            // a slightly more complex state model therefore I felt it was worthwhile doing this
+            AMQStateManager existingStateManager = _stateManager;
+            _stateManager = new AMQStateManager();
+            if (_connection.firePreFailover() && !_connection.attemptReconnection())
+            {
+                _stateManager = existingStateManager;
+                _connection.exceptionReceived(new AMQDisconnectedException("Server closed connection and no failover " +
+                                                                           "was successful"));
+            }
+            else
+            {
+                _stateManager = existingStateManager;
+                try
+                {
+                    if (_connection.firePreResubscribe())
+                    {
+                        _connection.resubscribeSessions();
+                    }
+                    _connection.fireFailoverComplete();
+                    _logger.info("Connection failover completed successfully");
+                }
+                catch (Exception e)
+                {
+                    try
+                    {
+                        exceptionCaught(_session, e);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.error("Error notifying protocol session of error: " + ex, ex);
+                    }
+                }
+            }
+        }
+    }
 
     public AMQProtocolHandler(AMQConnection con)
     {
         _connection = con;
-        _frameListeners.add(_stateManager);
+        // we add a proxy for the state manager so that we can substitute the state manager easily in this class.
+        // We substitute the state manager when performing failover
+        _frameListeners.add(new AMQMethodListener()
+        {
+            public boolean methodReceived(AMQMethodEvent evt) throws AMQException
+            {
+                return _stateManager.methodReceived(evt);
+            }
+
+            public void error(AMQException e)
+            {
+                _stateManager.error(e);
+            }
+        });
     }
 
     public void sessionCreated(IoSession session) throws Exception
@@ -73,22 +145,44 @@ public class AMQProtocolHandler extends IoHandlerAdapter
         // we only raise an exception if the close was not initiated by the client
         if (!_connection.isClosed())
         {
-            _connection.exceptionReceived(new AMQDisconnectedException("Server closed connection"));
+            // see javadoc for FailoverHandler to see rationale for separate thread
+            new Thread(new FailoverHandler(session)).start();
         }
 
-        _logger.info("Protocol Session closed");
+        _logger.info("Protocol Session [" + this + "] closed");
     }
 
     public void sessionIdle(IoSession session, IdleStatus status) throws Exception
     {
-        _logger.info("Protocol Session idle");
+        _logger.info("Protocol Session [" + this + "] idle");
     }
 
     public void exceptionCaught(IoSession session, Throwable cause) throws Exception
     {
         _logger.error("Exception caught by protocol handler: " + cause, cause);
         _connection.exceptionReceived(cause);
-        _stateManager.error(new AMQException("Protocol handler error: " + cause, cause));
+        // we notify the state manager of the error in case we have any clients waiting on a state
+        // change. Those "waiters" will be interrupted and can handle the exception
+        AMQException amqe = new AMQException("Protocol handler error: " + cause, cause);
+        propagateExceptionToWaiters(amqe);
+    }
+
+    /**
+     * There are two cases where we have other threads potentially blocking for events to be handled by this
+     * class. These are for the state manager (waiting for a state change) or a frame listener (waiting for a
+     * particular type of frame to arrive). When an error occurs we need to notify these waiters so that they can
+     * react appropriately.
+     * @param e the exception to propagate
+     */
+    private void propagateExceptionToWaiters(AMQException e)
+    {
+        _stateManager.error(e);
+        final Iterator it = _frameListeners.iterator();
+        while (it.hasNext())
+        {
+            final AMQMethodListener ml = (AMQMethodListener) it.next();
+            ml.error(e);
+        }
     }
 
     private static int _messageReceivedCount;

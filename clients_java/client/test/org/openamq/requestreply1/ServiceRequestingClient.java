@@ -129,13 +129,13 @@ public class ServiceRequestingClient
         }
     }
 
-    public ServiceRequestingClient(String host, int port, String clientID, String username, String password,
+    public ServiceRequestingClient(String brokerHosts, String clientID, String username, String password,
                                    String vpath, String commandQueueName,
                                    final int messageCount) throws AMQException
     {
         try
         {
-            createConnection(host, port, clientID, username, password, vpath);
+            createConnection(brokerHosts, clientID, username, password, vpath);
             _session = (Session) _connection.createSession(false, Session.NO_ACKNOWLEDGE);
             AMQQueue destination = new AMQQueue(commandQueueName);
             MessageProducer producer = (MessageProducer) _session.createProducer(destination);
@@ -171,10 +171,10 @@ public class ServiceRequestingClient
         }
     }
 
-    private void createConnection(String host, int port, String clientID, String username, String password,
+    private void createConnection(String brokerHosts, String clientID, String username, String password,
                                   String vpath) throws AMQException
     {
-        _connection = new AMQConnection(host, port, username, password,
+        _connection = new AMQConnection(brokerHosts, username, password,
                                         clientID, vpath);
     }
 
@@ -185,16 +185,16 @@ public class ServiceRequestingClient
      */
     public static void main(String[] args)
     {
-        if (args.length < 7)
+        if (args.length < 6)
         {
-            System.err.println("Usage: ServiceRequestingClient <host> <port> <username> <password> <vpath> <command queue name> <number of messages>");
+            System.err.println("Usage: ServiceRequestingClient <brokerDetails - semicolon separated host:port list> <username> <password> <vpath> <command queue name> <number of messages>");
         }
         try
         {
-            int port = Integer.parseInt(args[1]);
             InetAddress address = InetAddress.getLocalHost();
             String clientID = address.getHostName() + System.currentTimeMillis();
-            ServiceRequestingClient client = new ServiceRequestingClient(args[0], port, clientID, args[2], args[3], args[4], args[5], Integer.parseInt(args[6]));
+            ServiceRequestingClient client = new ServiceRequestingClient(args[0],clientID, args[1], args[2], args[3],
+                                                                         args[4], Integer.parseInt(args[5]));
         }
         catch (UnknownHostException e)
         {
@@ -205,7 +205,5 @@ public class ServiceRequestingClient
             System.err.println("Error in client: " + e);
             e.printStackTrace();
         }
-
-        //System.exit(0);
     }
 }

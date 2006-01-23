@@ -23,26 +23,26 @@ public class ServiceProvidingClient
     {
         _logger.info("Starting...");
 
-        if (args.length < 6)
+        if (args.length < 5)
         {
-            System.out.println("Usage: host port username password virtual-path serviceQueue [selector]");
+            System.out.println("Usage: brokerDetails username password virtual-path serviceQueue [selector]");
             System.exit(1);
         }
         try
         {
             InetAddress address = InetAddress.getLocalHost();
-            AMQConnection con = new AMQConnection(args[0], Integer.parseInt(args[1]), args[2], args[3],
-                                                  address.getHostName(), args[4]);
+            AMQConnection con = new AMQConnection(args[0], args[1], args[2],
+                                                  address.getHostName(), args[3]);
             final org.openamq.jms.Session session = (org.openamq.jms.Session) con.createSession(false,
                                                                                                 Session.NO_ACKNOWLEDGE);
 
-            String serviceName = args[5];
+            String serviceName = args[4];
 
             _logger.info("Service (queue) name is '" + serviceName + "'...");
 
             AMQQueue destination = new AMQQueue(serviceName);
 
-            String selector = (args.length >= 7 && args[6].length() > 1) ? args[6] : null;
+            String selector = (args.length >= 6 && args[5].length() > 1) ? args[5] : null;
 
             _logger.info("Message selector is <" + selector + ">...");
 
