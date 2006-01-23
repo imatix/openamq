@@ -44,6 +44,13 @@ public class AMQProtocolHandler extends IoHandlerAdapter
     private final CopyOnWriteArraySet _frameListeners = new CopyOnWriteArraySet();
 
     /**
+     * We create the failover handler when the session is created since it needs a reference to the IoSession in order
+     * to be able to send errors during failover back to the client application. The session won't be available in the
+     * case where we failing over due to a Connection.Redirect message from the broker.
+     */
+    private FailoverHandler _failoverHandler;
+
+    /**
      * When failover is required, we need a separate thread to handle the establishment of the new connection and
      * the transfer of subscriptions.
      *
@@ -55,6 +62,16 @@ public class AMQProtocolHandler extends IoHandlerAdapter
     private class FailoverHandler implements Runnable
     {
         private final IoSession _session;
+
+        /**
+         * Used where forcing the failover host
+         */
+        private String _host;
+
+        /**
+         * Used where forcing the failover port
+         */
+        private int _port;
 
         public FailoverHandler(IoSession session)
         {
@@ -69,7 +86,31 @@ public class AMQProtocolHandler extends IoHandlerAdapter
             // a slightly more complex state model therefore I felt it was worthwhile doing this
             AMQStateManager existingStateManager = _stateManager;
             _stateManager = new AMQStateManager();
-            if (_connection.firePreFailover() && !_connection.attemptReconnection())
+            if (!_connection.firePreFailover(_host != null))
+            {
+                _stateManager = existingStateManager;
+                if (_host != null)
+                {
+                    _connection.exceptionReceived(new AMQDisconnectedException("Redirect was vetoed by client"));
+                }
+                else
+                {
+                    _connection.exceptionReceived(new AMQDisconnectedException("Failover was vetoed by client"));
+                }
+                return;
+            }
+            boolean failoverSucceeded;
+            // when host is non null we have a specified failover host otherwise we all the client to cycle through
+            // all specified hosts
+            if (_host != null)
+            {
+                failoverSucceeded = _connection.attemptReconnection(_host, _port);
+            }
+            else
+            {
+                failoverSucceeded = _connection.attemptReconnection();
+            }
+            if (!failoverSucceeded)
             {
                 _stateManager = existingStateManager;
                 _connection.exceptionReceived(new AMQDisconnectedException("Server closed connection and no failover " +
@@ -130,6 +171,7 @@ public class AMQProtocolHandler extends IoHandlerAdapter
             socketSession.setReceiveBufferSize(8192);
         }
 
+        _failoverHandler = new FailoverHandler(session);
         AMQProtocolProvider provider = new AMQProtocolProvider();
         session.getFilterChain().addLast("protocolFilter",
                                          new ProtocolCodecFilter(provider.getCodecFactory()));
@@ -137,7 +179,7 @@ public class AMQProtocolHandler extends IoHandlerAdapter
 
     public void sessionOpened(IoSession session) throws Exception
     {
-        _protocolSession = new AMQProtocolSession(session, _connection);
+        _protocolSession = new AMQProtocolSession(this, session, _connection);
     }
 
     public void sessionClosed(IoSession session) throws Exception
@@ -146,7 +188,7 @@ public class AMQProtocolHandler extends IoHandlerAdapter
         if (!_connection.isClosed())
         {
             // see javadoc for FailoverHandler to see rationale for separate thread
-            new Thread(new FailoverHandler(session)).start();
+            new Thread(_failoverHandler).start();
         }
 
         _logger.info("Protocol Session [" + this + "] closed");
@@ -363,5 +405,13 @@ public class AMQProtocolHandler extends IoHandlerAdapter
     public long getWrittenBytes()
     {
         return _protocolSession.getIoSession().getWrittenBytes();
+    }
+
+    public void failover(String host, int port)
+    {
+        _failoverHandler._host = host;
+        _failoverHandler._port = port;
+        // see javadoc for FailoverHandler to see rationale for separate thread
+        new Thread(_failoverHandler).start();
     }
 }

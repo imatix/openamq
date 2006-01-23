@@ -35,6 +35,12 @@ public class AMQProtocolSession
     private final IoSession _minaProtocolSession;
 
     /**
+     * The handler from which this session was created and which is used to handle protocol events.
+     * We send failover events to the handler.
+     */
+    private final AMQProtocolHandler _protocolHandler;
+
+    /**
      * Maps from the channel id to the AMQSession that it represents.
      */
     private ConcurrentMap _channelId2SessionMap = new ConcurrentHashMap();
@@ -47,8 +53,9 @@ public class AMQProtocolSession
      */
     private ConcurrentMap _channelId2UnprocessedMsgMap = new ConcurrentHashMap();
 
-    public AMQProtocolSession(IoSession protocolSession, AMQConnection connection)
+    public AMQProtocolSession(AMQProtocolHandler protocolHandler, IoSession protocolSession, AMQConnection connection)
     {
+        _protocolHandler = protocolHandler;
         _minaProtocolSession = protocolSession;
         // properties of the connection are made available to the event handlers
         _minaProtocolSession.setAttribute(AMQ_CONNECTION, connection);
@@ -282,5 +289,10 @@ public class AMQProtocolSession
     {
         _logger.debug("Closing protocol session");
         _minaProtocolSession.close();
+    }
+
+    public void failover(String host, int port)
+    {
+        _protocolHandler.failover(host, port);
     }
 }

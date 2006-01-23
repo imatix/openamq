@@ -19,9 +19,10 @@ public interface ConnectionListener
 
     /**
      * Called after the infrastructure has detected that failover is required but before attempting failover.
+     * @param redirect true if the broker requested redirect. false if failover is occurring due to a connection error.
      * @return true to continue failing over, false to veto failover and raise a connection exception
      */
-    boolean preFailover();
+    boolean preFailover(boolean redirect);
 
     /**
      * Called after connection has been made to another broker after failover has been started but before

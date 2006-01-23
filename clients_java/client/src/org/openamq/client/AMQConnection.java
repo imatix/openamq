@@ -32,18 +32,28 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
      */
     public static class BrokerDetail
     {
+        public String host;
+        public int port;
+
         public BrokerDetail(String host, int port)
         {
             this.host = host;
             this.port = port;
         }
 
-        public String host;
-        public int port;
-
         public String toString()
         {
             return host + ":" + port;
+        }
+
+        public boolean equals(Object o)
+        {
+            if (!(o instanceof BrokerDetail))
+            {
+                return false;
+            }
+            BrokerDetail bd = (BrokerDetail) o;
+            return host.equals(bd.host) && (port == bd.port);
         }
     }
 
@@ -185,6 +195,41 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
         // this blocks until the connection has been set up or when an error has prevented the connection being
         // set up
         _protocolHandler.attainState(AMQState.CONNECTION_OPEN);
+    }
+
+    public boolean attemptReconnection(String host, int port)
+    {
+        // first we find the host port combo in the broker details array
+        int index = -1;
+        BrokerDetail bd = new BrokerDetail(host, port);
+        for (int i = 0; i < _brokerDetails.length; i++)
+        {
+            if (_brokerDetails[i].equals(bd))
+            {
+                index = i;
+                break;
+            }
+        }
+
+        if (index == -1)
+        {
+            int len = _brokerDetails.length + 1;
+            BrokerDetail[] newDetails = new BrokerDetail[len];
+            System.arraycopy(_brokerDetails, 0, newDetails, 0, _brokerDetails.length);
+            index = len -1;
+            newDetails[index] = bd;
+        }
+        try
+        {
+            makeBrokerConnection(bd);
+            _activeBrokerIndex = index;
+            return true;
+        }
+        catch (Exception e)
+        {
+            _logger.info("Unable to connect to broker at " + bd);
+        }
+        return false;
     }
 
     public boolean attemptReconnection()
@@ -490,13 +535,14 @@ public class AMQConnection extends Closeable implements Connection, QueueConnect
 
     /**
      * Fire the preFailover event to the registered connection listener (if any)
+     * @param redirect true if this is the result of a redirect request rather than a connection error
      * @return true if no listener or listener does not veto change
      */
-    public boolean firePreFailover()
+    public boolean firePreFailover(boolean redirect)
     {
         if (_connectionListener != null)
         {
-            return _connectionListener.preFailover();
+            return _connectionListener.preFailover(redirect);
         }
         else
         {
