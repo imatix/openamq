@@ -141,6 +141,9 @@ This class implements the connection class for the AMQ server.
         }
     }
     else
+    if (streq (method->virtual_host, "/redirect"))
+        amq_server_agent_connection_redirect (self->thread, amq_broker->callback, NULL);
+    else
         amq_server_agent_connection_open_ok (self->thread, NULL);
 </method>
 

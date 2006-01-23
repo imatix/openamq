@@ -463,7 +463,7 @@ static void
 s_invalid_cml (amq_content_basic_t *request, ipr_bucket_t *bucket, char *error)
 {
     icl_console_print ("W: amq.console: content body is not valid CML: %s", error);
-    ipr_bucket_dump ("I: ", bucket);
+    ipr_bucket_dump (bucket, "I: ");
     s_reply_error (request, "invalid", NULL);
 }
 
