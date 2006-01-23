@@ -1,3 +1,10 @@
+-> work out primary interconnections
+    server 1
+    server 2
+        -> 
+
+
+
 primary partition
     - fully interconnected
     - each server is client of each other server
@@ -119,10 +126,10 @@ publish message
             - PUSH_SECONDARY
     OK
 
-cluster key
+cluster vhost
     - string specified in server config and by application
     - specified by application at connection open time
-        - Connection.Open.cluster_key (string)
+        - Connection.Open.vhost (string)
     - verified by cluster connection manager
     - must also match for intra-cluster connections
     OK

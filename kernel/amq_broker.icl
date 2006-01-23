@@ -60,7 +60,8 @@ extern $(selftype)
         locked;                         //  Is broker locked?
     int
         monitor_timer,                  //  Monitor timer
-        dump_state_timer;               //  Dump state timer
+        dump_state_timer,               //  Dump state timer
+        recycler_timer;                 //  Memory recycle timer
     ipr_meter_t
         *xmeter,                        //  External switch meter
         *imeter;                        //  Internal switch meter
@@ -83,6 +84,7 @@ extern $(selftype)
     self->imeter = ipr_meter_new ();
     self->monitor_timer = $(basename)_config_monitor ($(basename)_config);
     self->dump_state_timer = $(basename)_config_dump_state ($(basename)_config);
+    self->recycler_timer = $(basename)_config_recycler ($(basename)_config);
 </method>
 
 <method name = "destroy">
@@ -124,7 +126,7 @@ extern $(selftype)
                 queues = 0,
                 consumers = 0,
                 bindings = 0;
-        
+
             self->dump_state_timer = $(basename)_config_dump_state ($(basename)_config);
 
             //  Only print the state if it's changed
@@ -153,6 +155,13 @@ extern $(selftype)
                     consumers,
                     bindings);
             }
+        }
+    }
+    if (self->recycler_timer) {
+        self->recycler_timer--;
+        if (self->recycler_timer == 0) {
+            self->recycler_timer = $(basename)_config_recycler ($(basename)_config);
+            icl_system_purge ();
         }
     }
     </action>

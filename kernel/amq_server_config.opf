@@ -93,7 +93,7 @@ $\(selftype)
     60.
     </doc>
     </property>
-    
+
     <property name = "max memory mb" type = "size_t">
     Maximum allowed memory, MBytes
     <doc>
@@ -101,6 +101,17 @@ $\(selftype)
     When the server reaches this limit, it will attempt to free
     resources and refuse new connections until memory has been
     made available.  If zero, no limit is used.
+    </doc>
+    </property>
+
+    <property name = "recycler" type = "int" default = "10">
+    Memory recycler interval, seconds
+    <doc>
+    If greater than zero, specifies the interval at which the server
+    will recycle deallocated and cached memory.  Not all cached memory
+    will be freed immediately, this happens progressively.  The
+    recommended interval is 10. You can lower this value in scenarios
+    where memory is very limited.
     </doc>
     </property>
 
