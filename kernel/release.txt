@@ -1,3 +1,48 @@
+1.0a3 - 2006/01/24
+---------------------------------------------------------------------
+Bug Fixes:
+
+    AMQ-237   A  no-local consume will not get non-local publishes if a
+              previous local publish was sent       
+    AMQ-276   Server background option does not work
+    AMQ-288   Connection refused no longer received on JMS/MINA 0.9
+    AMQ-289   Build fails despite correcting faulty  jars       
+    AMQ-294   JMS/MINA will not reconnect to a different host      
+    AMQ-301   ConnectionRedirectMethodHandler expects a no-longer-existent
+              port variable on ConnectionRedirectBody      
+    BASE-34   Builds on windows take a very long time (e.g. 2.5 hours)
+    BASE-35   EOL conversion in 'boom distsrc' breaks binary files in source kits     
+    BASE2-146 when pal starts a server, it doesn't wait for it to be ready       
+    BASE2-147 when pal could not  connect to server, it tries to kill it, but
+              is unsuccessfull       
+    BASE2-149 SMT test programs lock-up.     
+    BASE2-150 SMT assertion failure
+    BASE2-154 icl_console.c - date format char array overrun      
+    BASE2-155 Async objects don't handle timer events on shutdown     
+
+Changes:
+
+    AMQ-103   Build C++ client API    
+    AMQ-270   Implement IANA assigned port number for AMQP    
+    AMQ-273   JMS must provide a way to configure the immediate and mandatory
+              flags for created producers       
+    AMQ-275   Clustering: allow manual configuration of  topology       
+    AMQ-279   Remove cluster-key concept and replace by virtual host      
+    AMQ-281   Clustering: implement connection redirection in server
+    AMQ-282   Clustering: implement connection redirection in StdC client  
+    AMQ-285   Clustering: implement informational heartbeats between peers
+    AMQ-286   Clustering: inform client of all known servers      
+    AMQ-291   Protocol changes for 1.0 - clustering       
+    AMQ-293   Add option to dump server status at regular intervals       
+    AMQ-297   Implement configurable memory reallocation function       
+    BASE-22   Extend boom to handle multiple product profiles     
+    BASE2-148 Look for configuration data on the path
+    BASE2-153 Implement  object tracker class       
+    
+Tests:
+
+    AMQ-278   Profile 1.0 stdc client over 0.9 client     
+    
 1.0a2 - 2006/01/12
 ---------------------------------------------------------------------
 
