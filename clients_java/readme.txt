@@ -1,1 +1,0 @@
-OpenAMQ JMS API
