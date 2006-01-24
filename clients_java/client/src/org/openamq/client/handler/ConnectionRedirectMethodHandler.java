@@ -31,11 +31,11 @@ public class ConnectionRedirectMethodHandler implements StateAwareMethodListener
     {
         _logger.info("ConnectionRedirect frame received");
         ConnectionRedirectBody method = (ConnectionRedirectBody) evt.getMethod();
-        if (method.port == null)
+        /*if (method.port == null)
         {
             // we set the default port
             method.port = DEFAULT_REDIRECT_PORT;
-        }
-        evt.getProtocolSession().failover(method.hostname, Integer.parseInt(method.port));
+        }*/
+        evt.getProtocolSession().failover(method.host, Integer.parseInt(DEFAULT_REDIRECT_PORT/*method.port*/));
     }
 }
