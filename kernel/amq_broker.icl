@@ -82,9 +82,9 @@ extern $(selftype)
     amq_vhost = amq_vhost_new (self, "/");
     self->xmeter = ipr_meter_new ();
     self->imeter = ipr_meter_new ();
-    self->monitor_timer = $(basename)_config_monitor ($(basename)_config);
-    self->dump_state_timer = $(basename)_config_dump_state ($(basename)_config);
-    self->recycler_timer = $(basename)_config_recycler ($(basename)_config);
+    self->monitor_timer    = amq_server_config_monitor    (amq_server_config);
+    self->dump_state_timer = amq_server_config_dump_state (amq_server_config);
+    self->recycler_timer   = amq_server_config_recycler   (amq_server_config);
 </method>
 
 <method name = "destroy">
@@ -100,15 +100,15 @@ extern $(selftype)
     if (self->monitor_timer) {
         self->monitor_timer--;
         if (self->monitor_timer == 0) {
-            self->monitor_timer = $(basename)_config_monitor ($(basename)_config);
+            self->monitor_timer = amq_server_config_monitor (amq_server_config);
 
-            if (ipr_meter_mark (self->xmeter, 1))
+            if (ipr_meter_mark (self->xmeter, amq_server_config_monitor (amq_server_config)))
                 icl_console_print ("I: external message rate=%d average=%d peak=%d",
                     self->xmeter->current,
                     self->xmeter->average,
                     self->xmeter->maximum);
 
-            if (ipr_meter_mark (self->imeter, 1))
+            if (ipr_meter_mark (self->imeter, amq_server_config_monitor (amq_server_config)))
                 icl_console_print ("I: internal message rate=%d average=%d peak=%d",
                     self->imeter->current,
                     self->imeter->average,
@@ -127,7 +127,7 @@ extern $(selftype)
                 consumers = 0,
                 bindings = 0;
 
-            self->dump_state_timer = $(basename)_config_dump_state ($(basename)_config);
+            self->dump_state_timer = amq_server_config_dump_state (amq_server_config);
 
             //  Only print the state if it's changed
             if (connections != amq_server_connection_count ()
@@ -160,7 +160,7 @@ extern $(selftype)
     if (self->recycler_timer) {
         self->recycler_timer--;
         if (self->recycler_timer == 0) {
-            self->recycler_timer = $(basename)_config_recycler ($(basename)_config);
+            self->recycler_timer = amq_server_config_recycler (amq_server_config);
             icl_system_purge ();
         }
     }

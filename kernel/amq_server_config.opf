@@ -231,6 +231,25 @@ $\(selftype)
     test.
     </doc>
     </property>
+
+    <property name = "read timeout" type = "int" default = "30">
+    Timeout on network reads, seconds
+    <doc>
+    Defines the timeout for network reads.  If a peer does not respond
+    within this time, it is considered "dead".  If you get unexpected
+    "timeout" errors in the logs, you may want to increase this value.
+    </doc>
+    </property>
+
+    <property name = "write timeout" type = "int" default = "30">
+    Timeout on network writes, seconds
+    <doc>
+    Defines the timeout for network writes.  If a peer does not accept
+    data within this time, it is considered "dead".  If you get
+    unexpected "timeout" errors in the logs, you may want to increase
+    this value.
+    </doc>
+    </property>
 </path>
 
 </opf>
