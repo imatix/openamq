@@ -116,7 +116,7 @@
               <jvmarg value="-server"/>
               <jvmarg value="-Damqj.logging.level=INFO"/>
               <arg value="localhost"/>
-              <arg value="7654"/>
+              <arg value="5672"/>
               <arg value="guest"/>
               <arg value="guest"/>
               <arg value="/vpath"/>
@@ -130,7 +130,7 @@
               <jvmarg value="-server"/>
               <jvmarg value="-Damqj.logging.level=INFO"/>
               <arg value="localhost"/>
-              <arg value="7654"/>
+              <arg value="5672"/>
               <arg value="guest"/>
               <arg value="guest"/>
               <arg value="/vpath"/>
@@ -154,7 +154,7 @@
           <jvmarg value="-server"/>
           <jvmarg value="-Damqj.logging.level=INFO"/>
           <arg value="localhost"/>
-          <arg value="7654"/>
+          <arg value="5672"/>
           <arg value="guest"/>
           <arg value="guest"/>
           <arg value="/vpath"/>
