@@ -1,0 +1,34 @@
+<?xml?>
+<pal script = "amq_pal_gen">
+    Consume messages as fast as we can, from the "consume server" queue.
+
+    <!-- How often to log sent/received messages -->
+    <set name = "log_interval"   value = "1000" cmdline = "L" />
+
+    <!-- If set to 1, call <wait /> during consume loop -->
+    <set name = "wait_in_loop"   value = "1"    cmdline = "W" />
+
+    <set name = "received"       value = "0"                  />
+    <set name = "total_received" value = "0"                  />
+
+    <include filename = "amq_test_base.pal" />
+    <session exchange = "amq.direct">
+        <queue_declare />
+        <queue_bind    queue = "$queue" routing_key = "consume server" />
+        <basic_consume queue = "$queue" auto_ack    = "1" />
+        <repeat>
+            <if name = "wait_in_loop" value = "1">
+                <wait timeout = "1" />
+            </if>
+            <basic_arrived>
+                <inc name = "received" />
+                <inc name = "total_received" />
+                <if name = "received" value = "log_interval" >
+                    <echo>I: received $total_received messages</echo>
+                    <set name = "received" value = "0" />
+                </if>
+            </basic_arrived>
+        </repeat>
+    </session>
+</pal>
+

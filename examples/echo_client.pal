@@ -29,7 +29,7 @@
         <repeat times = "$count" counter = "id">
             <basic_publish routing_key = "echo server" mandatory = "1" />
             <if name = "wait_in_loop" value = "1" >
-                <wait />
+                <wait timeout = "1" />
             </if>
             <basic_returned>
                 <echo>No response, echo server not listening</echo>
