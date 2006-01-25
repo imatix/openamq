@@ -1,3 +1,50 @@
+- boom configure is *very slow*
+
+
+    
+amq bridging
+    - create server-to-server bridge
+    - or cluster-to-cluster bridge
+    - explicit in the protocol...
+    - new Bridge method class
+    - a bridge is an asynchronous link
+    - bridges can auto-connect across WANs
+
+    Mechanism:
+        C: Bridge.Create host, exchange, routing_key, arguments
+        S: Bridge.Create-Ok        
+
+    Server looks for host, and opens proxy connection to host:
+        - creates queue on host or uses named bridge queue
+        - binds queue to exchange using specified arguments
+        - creates consumer on that queue
+        - expects and processes delivered messages
+        - each incoming delivery is passed to own exchange with same name
+
+    Alternative:
+        - acts as proxy consumer on remote shared queue
+        - not passed to own exchange but directly to application
+
+    Details
+        - a bridge is a logical layer, and many bridges can be opened
+          at once, each for a specific subscription request.
+        
+    Optional functionality
+        - durable bridges (recreated when servers restart)
+        - configured bridges (idem)
+        - async pull bridges (recreated when host comes online)
+        
+    Ideal for SA:
+        - cluster in SA
+        - bridged to cluster in London
+
+    ... very close to clustering.
+    ... but under application control.
+    ... can we imagine cluster being constructed by applications?
+    ... ? no.
+
+
+
 ********************************************************************
 
 Planning for 1.0 release
@@ -23,11 +70,12 @@ Functionality:
         - stdc api guide
     - clients
         - swig
+    - logging
+    - console
     - other
         - service-oriented API
         - service queue
         - topic pub/sub
-        - period.
 
 Who what:
 
@@ -55,7 +103,7 @@ Who what:
 
 - finish pal tests
 - swig yes
-- .net maybe
+- .net no
 - server doc yes
 - website yes
 - sample apps yes (file transfer, work distribution)

@@ -29,8 +29,6 @@ $\(selftype)
     Server port for client connections
     <doc>
     Specifies the port on which the server should open its connections.
-    Note that this value can be overridden on the command line using the
-    -p option.
     </doc>
     </property>
 

@@ -25,34 +25,46 @@ static char
     *s_opt_spid = NULL,                 //  -s specifies spid
     *s_opt_trace = NULL,                //  -t defines trace level
     *s_opt_monitor = NULL;              //  -m means monitor server
+static int
+    s_argc;
+static char
+    **s_argv;
 
 #define NOWARRANTY \
 "This is free software; see the source for copying conditions.  There is NO\n" \
 "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n" \
     "\n"
-#define USAGE                                                                \
+
+#define USAGE1                                                               \
     "Syntax: %s [options...]\n"                                              \
-    "Options:\n"                                                             \
-    "  -p port          Server port\n"                                       \
+    "\n"                                                                     \
+    "General options:\n"                                                     \
     "  -w directory     Working directory for server (current)\n"            \
-    "  -s spid          Set server process ID (auto)\n"                      \
     "  -q               Quiet mode: no messages (no)\n"                      \
     "  -b               Run as background server process (no)\n"             \
     "  -f               Run as foreground console process (yes)\n"           \
-    "  -t level         Set trace level 0-3 (0)\n"                           \
     "  -i               Show program statistics when ending (no)\n"          \
     "  -v               Show version information\n"                          \
     "  -h               Show summary of command-line options\n"              \
+    "  --help           Show detailed configuration help\n"                  \
+    "\n"                                                                     
+
+#define USAGE2                                                               \
+    "\n"                                                                     \
+    "Deprecated options:\n"                                                  \
+    "  -p port          Server port\n"                                       \
+    "  -s spid          Set server process ID (auto)\n"                      \
+    "  -t level         Set trace level 0-3 (0)\n"                           \
     "  -m n             Monitor server status every N seconds (1)\n"         \
-    "\nThe order of arguments is not important. Switches and filenames\n"    \
+    "\n"                                                                     \
+    "The order of arguments is not important. Switches and filenames\n"      \
     "are case sensitive. See documentation for detailed information.\n"      \
     "\n"
-
 
 //  Parse arguments, return 0 if OK, 1 if error
 
 static int
-s_parse_args (int argc, char *argv [])
+s_start (int argc, char *argv [], char *config_file, char *overlay)
 {
     int
         rc = 0,
@@ -61,6 +73,10 @@ s_parse_args (int argc, char *argv [])
         *myname,                        //  Executable's name                
         **argparm;                      //  Argument parameter to pick-up
 
+    //  Save argument line for later use
+    s_argc = argc;
+    s_argv = argv;
+    
     icl_console_mode (ICL_CONSOLE_DATE, TRUE);
     myname  = argv [0];
     argparm = NULL;                     //  Argument parameter to pick-up
@@ -76,6 +92,9 @@ s_parse_args (int argc, char *argv [])
                 break;
             }
         }
+        else
+        if (ipr_str_prefixed (argv [argn], "--"))
+            argn++;                     //  Extended argument + value
         else
         if (*argv [argn] == '-') {
             switch (argv [argn][1]) {
@@ -122,7 +141,9 @@ s_parse_args (int argc, char *argv [])
                     printf (SERVER_TEXT "\n\n");
                     printf (COPYRIGHT "\n");
                     printf (NOWARRANTY);
-                    printf (USAGE, SERVER_NAME);
+                    printf (USAGE1, SERVER_NAME);
+                    amq_server_config_cmdline_help ();
+                    printf (USAGE2);
                     exit (EXIT_SUCCESS);
 
                 //  Anything else is an error
@@ -135,63 +156,26 @@ s_parse_args (int argc, char *argv [])
             break;
         }
     }
-    //  Check that the arguments were valid
-    if (rc)
+    if (rc) {
         icl_console_print ("E: invalid arguments - type '%s -h' for help", myname);
+        exit (EXIT_FAILURE);
+    }
     else
     if (argparm) {
         icl_console_print ("E: argument missing - type '%s -h' for help", myname);
-        rc = 1;
+        exit (EXIT_FAILURE);
     }
+
+    if (s_opt_silent)
+        icl_console_mode (ICL_CONSOLE_QUIET, TRUE);
     else {
-        if (s_opt_silent)
-            icl_console_mode (ICL_CONSOLE_QUIET, TRUE);
-        else {
-            printf (SERVER_NAME "/" VERSION "\n");
-            printf (SERVER_TEXT "\n\n");
-            printf (COPYRIGHT "\n");
-            printf (NOWARRANTY);
-        }
-        icl_system_initialise (argc, argv);
-
-        //  Move into the background if so desired
-        if (s_opt_bkground) {
-            char
-               *background_args [] = { "-b", NULL };
-
-            icl_console_print ("I: moving into the background...");
-            if (ipr_process_server (NULL, NULL, argc, argv, background_args) == 0) {
-                FILE
-                    *logfile;
-                icl_shortstr_t
-                    logfile_name;
-
-                if (s_opt_port)
-                    icl_shortstr_fmt (logfile_name, "amq_server_%s.log", s_opt_port);
-                else
-                    icl_shortstr_cpy (logfile_name, "amq_server.log");
-
-                logfile = fopen (logfile_name, "a");
-                icl_console_redirect (logfile);
-                icl_console_print ("I: ************************   SERVER START   ************************");
-                icl_console_print ("I: " SERVER_NAME "/" VERSION " - revision " SVN_REVISION);
-            }
-            else {
-                icl_console_print ("E: backgrounding failed - server is halting");
-                rc = 1;
-            }
-        }
-        smt_initialise ();
-        ipr_uid_set_real_user ();
+        printf (SERVER_NAME "/" VERSION "\n");
+        printf (SERVER_TEXT "\n\n");
+        printf (COPYRIGHT "\n");
+        printf (NOWARRANTY);
     }
-    return (rc);
-}
+    icl_system_initialise (argc, argv);
 
-//  Load server configuration files
-
-static void
-s_load_config (char *config_file, char *overlay)
-{
     //  Set server working directory if necessary
     if (s_opt_workdir && apr_filepath_set (s_opt_workdir, icl_global_pool) != APR_SUCCESS) {
         icl_console_print ("E: can't work in '%s' - %s", s_opt_workdir, strerror (errno));
@@ -202,8 +186,38 @@ s_load_config (char *config_file, char *overlay)
         config_file, overlay, TRUE, s_opt_trace? atoi (s_opt_trace): 0);
     amq_proxy_config = amq_proxy_config_new (
         config_file, overlay, FALSE, FALSE);
-}
 
+    amq_server_config_cmdline_parse (amq_server_config, SERVER_NAME, s_argc, s_argv);
+
+    //  Move into the background if so desired
+    if (s_opt_bkground) {
+        char
+           *background_args [] = { "-b", NULL };
+
+        icl_console_print ("I: moving into the background...");
+        if (ipr_process_server (NULL, NULL, argc, argv, background_args) == 0) {
+            FILE
+                *logfile;
+            icl_shortstr_t
+                logfile_name;
+
+            icl_shortstr_fmt (logfile_name, "amq_server_%s.log",
+                amq_server_config_port (amq_server_config));
+
+            logfile = fopen (logfile_name, "a");
+            icl_console_redirect (logfile);
+            icl_console_print ("I: ************************   SERVER START   ************************");
+            icl_console_print ("I: " SERVER_NAME "/" VERSION " - revision " SVN_REVISION);
+        }
+        else {
+            icl_console_print ("E: backgrounding failed - server is halting");
+            exit (EXIT_FAILURE);
+        }
+    }
+    smt_initialise ();
+    ipr_uid_set_real_user ();
+    return (rc);
+}
 
 //  Initialise server
 

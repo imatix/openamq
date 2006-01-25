@@ -1,9 +1,13 @@
--> work out primary interconnections
-    server 1
-    server 2
-        -> 
 
+    "peer" -> "proxy"
 
+    1. create proxy for each primary server in list
+    2. proxy will connect asynchronously to target server
+        - using proxy connection
+        - at certain moment, proxy is 'ready'
+        - the target server may not yet have a proxy back to us
+    3. proxy SPID is set when proxy gets start command from server
+    4. until that point, SPID is empty
 
 primary partition
     - fully interconnected
@@ -214,17 +218,14 @@ Change requests
             - connections, messages, allocation
             - exchanges, queues, bindings, peers
             - primary, root
-
+    DONE
 
 
 OpenAMQ change requests (to Jira)
     - sigusr1 -> dump state to console
     - sigusr2 -> dump 1line state to console
-    - amq-254: do not use mandatory/immediate on pubsub
     - implement limit on returned messages per connection
-    - option to dump state every N seconds (60)
     - build command-line console in kernel (generated)
-
 
     - if returned,
         - if origin-spid is known
@@ -240,8 +241,6 @@ OpenAMQ change requests (to Jira)
     ... how to return messages if no immediate consumers?
         - need to add original connection & channel number to message
         - need to process incoming returns
-
-
 
 console issues
     - replicate configuration across cluster
