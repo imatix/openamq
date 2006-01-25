@@ -182,11 +182,8 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
         exit (EXIT_FAILURE);
     }
     //  Load configuration data, if any, into the config_table
-    amq_server_config = amq_server_config_new (
-        config_file, overlay, TRUE, s_opt_trace? atoi (s_opt_trace): 0);
-    amq_proxy_config = amq_proxy_config_new (
-        config_file, overlay, FALSE, FALSE);
-
+    amq_server_config = amq_server_config_new (config_file, overlay, TRUE);
+    amq_proxy_config  = amq_proxy_config_new  (config_file, overlay, FALSE);
     amq_server_config_cmdline_parse (amq_server_config, SERVER_NAME, s_argc, s_argv);
 
     //  Move into the background if so desired

@@ -234,8 +234,8 @@ $\(selftype)
     Timeout on network reads, seconds
     <doc>
     Defines the timeout for network reads.  If a peer does not respond
-    within this time, it is considered "dead".  If you get unexpected
-    "timeout" errors in the logs, you may want to increase this value.
+    within this time, it is considered dead.  If you get unexpected
+    timeout errors in the logs, you may want to increase this value.
     </doc>
     </property>
 
@@ -243,8 +243,8 @@ $\(selftype)
     Timeout on network writes, seconds
     <doc>
     Defines the timeout for network writes.  If a peer does not accept
-    data within this time, it is considered "dead".  If you get
-    unexpected "timeout" errors in the logs, you may want to increase
+    data within this time, it is considered dead.  If you get
+    unexpected timeout errors in the logs, you may want to increase
     this value.
     </doc>
     </property>
