@@ -4,15 +4,31 @@
     this script, we send a request to amq.direct using the routing key
     "echo server".  See echo_client.pal for an example.
 
+    <!-- How often to log sent/received messages -->
+    <set name = "log_interval"   value = "1000" cmdline = "L" />
+
+    <!-- If set to 1, call <wait /> during consume loop -->
+    <set name = "wait_in_loop"   value = "1"    cmdline = "W" />
+
+    <set name = "received"       value = "0"                  />
+    <set name = "total_received" value = "0"                  />
+
     <include filename = "amq_test_base.pal" />
     <session exchange = "amq.direct">
         <queue_declare />
         <queue_bind    queue = "$queue" routing_key = "echo server" />
-        <basic_consume queue = "$queue" />
+        <basic_consume queue = "$queue" auto_ack    = "1" />
         <repeat>
-            <wait />
+            <if name = "wait_in_loop" value = "1">
+                <wait />
+            </if>
             <basic_arrived>
-                <echo>Got $body_size byte request $message_id from $reply_to...</echo>
+                <inc name = "received" />
+                <inc name = "total_received" />
+                <if name = "received" value = "log_interval" >
+                    <echo>I: received $total_received messages</echo>
+                    <set name = "received" value = "0" />
+                </if>
                 <basic_publish routing_key = "$reply_to" />
             </basic_arrived>
         </repeat>
