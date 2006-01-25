@@ -1,31 +1,39 @@
 <?xml?>
 <pal script = "amq_pal_gen">
-    Consume messages as fast as we can, from the "consume server" queue.
+    This script consume messages as fast as it can, from the 
+    "consume server" queue.
 
     <!-- How often to log sent/received messages -->
     <set name = "log_interval"   value = "1000" cmdline = "L" />
 
-    <!-- If set to 1, call <wait /> during consume loop -->
-    <set name = "wait_in_loop"   value = "1"    cmdline = "W" />
+    <!-- Quit after having received this number of messages,
+         0=disable -->
+    <set name = "count"          value = "0"    cmdline = "M" />
 
     <set name = "received"       value = "0"                  />
     <set name = "total_received" value = "0"                  />
 
-    <include filename = "amq_test_base.pal" />
+    <if name = "count" test = "ne" value = "0" >
+        <echo>I: Waiting for $count messages ...</echo>
+    </if>
     <session exchange = "amq.direct">
         <queue_declare />
         <queue_bind    queue = "$queue" routing_key = "consume server" />
         <basic_consume queue = "$queue" auto_ack    = "1" />
         <repeat>
-            <if name = "wait_in_loop" value = "1">
-                <wait timeout = "1" />
-            </if>
+            <wait timeout = "1" />
             <basic_arrived>
                 <inc name = "received" />
                 <inc name = "total_received" />
-                <if name = "received" value = "log_interval" >
+                <if  name = "received" value = "log_interval" >
                     <echo>I: received $total_received messages</echo>
                     <set name = "received" value = "0" />
+                </if>
+                <if  name = "count" test = "ne" value = "0" >
+                    <if name = "total_received" value = "count" >
+                        <echo>I: Received all messages</echo>
+                        <exit />
+                    </if>
                 </if>
             </basic_arrived>
         </repeat>

@@ -6,30 +6,29 @@
     <set name = "count"          value = "10"   cmdline = "C" />
 
     <!-- Size of each message body -->
-    <set name = "size"           value = "1024" cmdline = "S" />
+    <set name = "size"           value = "128"  cmdline = "S" />
 
     <!-- How often to log sent/received messages -->
     <set name = "log_interval"   value = "1000" cmdline = "L" />
 
-    <!-- If set to 1, call <wait /> during publish loop -->
-    <set name = "wait_in_loop"   value = "0"    cmdline = "W" />
-
     <set name = "sent"           value = "0"                  />
     <set name = "total_sent"     value = "0"                  />
 
+    <echo>I: Sending $count messages of $size bytes</echo>
     <session exchange = "amq.direct">
         <basic_content fill       = "random" size     = "$size" 
                        message_id = "xxx"    reply_to = "$queue" />
-
+        <!-- Doesn't seem to work
+        <basic_publish routing_key = "consume server" mandatory = "1" />
+        <basic_returned>
+            <abort>No response, consume server not listening</abort>
+        </basic_returned>
+        <dec name = "count"      />
+        <inc name = "sent"       />
+        <inc name = "total_sent" />
+        -->
         <repeat times = "$count" counter = "id">
             <basic_publish routing_key = "consume server" mandatory = "1" />
-            <if name = "wait_in_loop" value = "1" >
-                <wait timeout = "1" />
-            </if>
-            <basic_returned>
-                <echo>No response, echo server not listening</echo>
-                <exit />
-            </basic_returned>
             <inc name = "sent" />
             <inc name = "total_sent" />
             <if  name = "sent" value = "log_interval" >
@@ -37,7 +36,7 @@
                 <set name = "sent" value = "0" />
             </if>
         </repeat>
-        <echo>I: Sent all messages</echo>
     </session>
+    <echo>I: All messages sent</echo>
 </pal>
 
