@@ -17,7 +17,7 @@
         <echo>I: Waiting for $count messages ...</echo>
     </if>
     <session exchange = "amq.direct">
-        <queue_declare />
+        <queue_declare auto_delete = "1" />
         <queue_bind    queue = "$queue" routing_key = "consume server" />
         <basic_consume queue = "$queue" auto_ack    = "1" />
         <repeat>
