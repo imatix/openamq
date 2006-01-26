@@ -95,8 +95,7 @@ $(selftype)
     icl_console_print ("I: starting virtual host '%s'", self->name);
 
     self->broker = broker;
-    self->config = amq_vhost_config_new (
-        NULL, NULL, FALSE, amq_server_config_trace (amq_server_config));
+    self->config = amq_vhost_config_new (NULL, NULL, FALSE);
 
     self->exchange_table = amq_exchange_table_new ();
     self->exchange_list  = amq_exchange_list_new ();
