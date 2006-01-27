@@ -1,35 +1,45 @@
 <?xml?>
 <pal script = "amq_pal_gen">
-    This script echoes back arbitrary messages sent to it.  To talk to
-    this script, we send a request to amq.direct using the routing key
-    "echo server".  See echo_client.pal for an example.
+    This script echoes back arbitrary messages sent to the "echo server"
+    routing key.  See echo_client.pal for usage.
 
-    <!-- How often to log sent/received messages -->
-    <set name = "log_interval"   value = "1000" cmdline = "L" />
+    <!-- Quit after having received this number of messages,
+         0=disable -->
+    <set name = "count"          value = "10000" cmdline = "C" />
 
-    <!-- If set to 1, call <wait /> during consume loop -->
-    <set name = "wait_in_loop"   value = "1"    cmdline = "W" />
+    <!-- Log number of messages sent/received every N messages,
+         0=disable -->
+    <set name = "log_interval"   value = "0"     cmdline = "L" />
 
-    <set name = "received"       value = "0"                  />
-    <set name = "total_received" value = "0"                  />
+    <set name = "received"       value = "0" />
+    <set name = "total_received" value = "0" />
 
-    <include filename = "amq_test_base.pal" />
+    <if name = "count" test = "ne" value = "0" >
+        <echo>I: Waiting for $count messages ...</echo>
+    </if>
     <session exchange = "amq.direct">
-        <queue_declare />
+        <queue_declare auto_delete = "1" />
         <queue_bind    queue = "$queue" routing_key = "echo server" />
         <basic_consume queue = "$queue" auto_ack    = "1" />
         <repeat>
-            <if name = "wait_in_loop" value = "1">
-                <wait />
-            </if>
+            <wait />
             <basic_arrived>
-                <inc name = "received" />
+                <if  name  = "total_received" value = "0" >
+                    <timer />
+                </if>
                 <inc name = "total_received" />
-                <if name = "received" value = "log_interval" >
-                    <echo>I: received $total_received messages</echo>
-                    <set name = "received" value = "0" />
+                <if  name = "log_interval" test = "ne" value = "0" >
+                    <inc name = "received"       />
+                    <if name = "received" value = "log_interval" >
+                        <echo>I: Received $total_received messages</echo>
+                        <set name = "received" value = "0" />
+                    </if>
                 </if>
                 <basic_publish routing_key = "$reply_to" />
+                <if name = "total_received" value = "count" >
+                    <echo>I: Received all messages</echo>
+                    <exit />
+                </if>
             </basic_arrived>
         </repeat>
     </session>

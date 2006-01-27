@@ -1,24 +1,25 @@
 <?xml?>
 <pal script = "amq_pal_gen">
-    This script consume messages as fast as it can, from the 
-    "consume server" queue.
-
-    <!-- How often to log sent/received messages -->
-    <set name = "log_interval"   value = "1000" cmdline = "L" />
+    This script consumes messages as fast as it can, binding to the "blaster
+    server" routing key.  See blaster_client.pal for usage.
 
     <!-- Quit after having received this number of messages,
          0=disable -->
-    <set name = "count"          value = "0"    cmdline = "M" />
+    <set name = "count"          value = "10000" cmdline = "C" />
 
-    <set name = "received"       value = "0"                  />
-    <set name = "total_received" value = "0"                  />
+    <!-- Log number of messages sent/received every N messages,
+         0=disable -->
+    <set name = "log_interval"   value = "0"     cmdline = "L" />
+
+    <set name = "received"       value = "0"                   />
+    <set name = "total_received" value = "0"                   />
 
     <if name = "count" test = "ne" value = "0" >
         <echo>I: Waiting for $count messages ...</echo>
     </if>
     <session exchange = "amq.direct">
         <queue_declare auto_delete = "1" />
-        <queue_bind    queue = "$queue" routing_key = "consume server" />
+        <queue_bind    queue = "$queue" routing_key = "blaster server" />
         <basic_consume queue = "$queue" auto_ack    = "1" />
         <repeat>
             <wait timeout = "1" />
@@ -26,11 +27,13 @@
                 <if  name  = "total_received" value = "0" >
                     <timer />
                 </if>
-                <inc name = "received" />
                 <inc name = "total_received" />
-                <if  name = "received" value = "log_interval" >
-                    <echo>I: received $total_received messages</echo>
-                    <set name = "received" value = "0" />
+                <if  name = "log_interval" test = "ne" value = "0" >
+                    <inc name = "received" />
+                    <if  name = "received" value = "log_interval" >
+                        <echo>I: Received $total_received messages</echo>
+                        <set name = "received" value = "0" />
+                    </if>
                 </if>
                 <if  name = "count" test = "ne" value = "0" >
                     <if name = "total_received" value = "count" >
