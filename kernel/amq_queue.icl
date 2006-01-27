@@ -12,7 +12,9 @@ that acts as a envelope for the separate queue managers for each
 class.  This is a lock-free asynchronous class.
 </doc>
 
-<inherit class = "smt_object" />
+<inherit class = "smt_object">
+    <option name = "possess" value = "1" />
+</inherit>
 <inherit class = "icl_hash_item">
     <option name = "hash_type" value = "str" />
     <option name = "hash_size" value = "65535" />
@@ -21,7 +23,7 @@ class.  This is a lock-free asynchronous class.
     <option name = "prefix" value = "list" />
 </inherit>
 <inherit class = "amq_console_object" />
-<inherit class = "icl_tracker" />
+<inherit class = "smt_object_tracker" />
 
 <!-- Console definitions for this object -->
 <data name = "cml">
@@ -109,6 +111,20 @@ class.  This is a lock-free asynchronous class.
         icl_console_print ("Q: destroy  queue=%s", self->name);
 
     amq_queue_basic_destroy (&self->queue_basic);
+    </action>
+</method>
+
+<method name = "unbind" template = "async function" async = "1">
+    <action>
+    amq_exchange_t
+        *exchange;
+
+    //  Go through all exchanges & bindings, remove link to queue
+    exchange = amq_exchange_list_first (amq_vhost->exchange_list);
+    while (exchange) {
+        amq_exchange_unbind_queue (exchange, self);
+        exchange = amq_exchange_list_next (&exchange);
+    }
     </action>
 </method>
 
@@ -258,6 +274,7 @@ class.  This is a lock-free asynchronous class.
         if (amq_server_config_trace_queue (amq_server_config))
             icl_console_print ("Q: auto-del queue=%s", self->name);
         queue_ref = amq_queue_link (self);
+        amq_queue_unbind  (queue_ref);
         amq_queue_destroy (&queue_ref);
     }
     </action>

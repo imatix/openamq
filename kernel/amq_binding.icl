@@ -82,7 +82,7 @@ class.
     //
     //  Drop all references to queues and peers for the binding
     while ((queue = (amq_queue_t *) ipr_looseref_pop (self->queue_list)))
-        amq_queue_unlink (&queue);
+        amq_queue_destroy (&queue);
     while ((peer = (amq_peer_t *) ipr_looseref_pop (self->peer_list)))
         amq_peer_unlink (&peer);
 
@@ -110,7 +110,7 @@ class.
     if (looseref)                       //  Ignore duplicates
         ipr_looseref_unlink (&looseref);
     else
-        ipr_looseref_queue (self->queue_list, amq_queue_link (queue));
+        ipr_looseref_queue (self->queue_list, amq_queue_possess (queue));
 </method>
 
 <method name = "bind peer" template = "function">
@@ -131,6 +131,28 @@ class.
         ipr_looseref_unlink (&looseref);
     else
         ipr_looseref_queue (self->peer_list, amq_peer_link (peer));
+</method>
+
+<method name = "unbind queue" template = "function">
+    <doc>
+    Remove queue from current binding it is there.
+    </doc>
+    <argument name = "queue" type = "amq_queue_t *">Queue to bind</argument>
+    <local>
+    ipr_looseref_t
+        *looseref;                      //  We check the queues per binding
+    </local>
+    //
+    looseref = ipr_looseref_list_first (self->queue_list);
+    while (looseref) {
+        if (looseref->object == queue) {
+            queue = (amq_queue_t *) (looseref->object);
+            amq_queue_destroy (&queue);
+            ipr_looseref_destroy (&looseref);
+            break;
+        }
+        looseref = ipr_looseref_list_next (&looseref);
+    }
 </method>
 
 <method name = "publish" template = "function">
@@ -168,7 +190,7 @@ class.
             oldref   = ipr_looseref_link      (looseref);
             looseref = ipr_looseref_list_next (&looseref);
             ipr_looseref_destroy (&oldref);
-            amq_queue_unlink (&queue);
+            amq_queue_destroy (&queue);
         }
     }
     //

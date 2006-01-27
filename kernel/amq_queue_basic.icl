@@ -51,8 +51,7 @@ runs lock-free as a child of the asynchronous queue class.
     //  needed to find a consumer for the message...
     if (amq_server_config_trace_queue (amq_server_config))
         icl_console_print ("Q: publish  queue=%s message=%s",
-            self->queue->key,
-            content->message_id);
+            self->queue->name, content->message_id);
 
     //  If queue is full, drop something...
     //  For exclusive queues, drop oldest messages
@@ -94,8 +93,7 @@ runs lock-free as a child of the asynchronous queue class.
 
                     if (amq_server_config_trace_queue (amq_server_config))
                         icl_console_print ("Q: return   queue=%s message=%s",
-                            self->queue->key,
-                            content->message_id);
+                            self->queue->name, content->message_id);
                 }
                 amq_content_basic_destroy (&content);
             }
@@ -122,7 +120,7 @@ runs lock-free as a child of the asynchronous queue class.
     //
     if (amq_server_config_trace_queue (amq_server_config))
         icl_console_print ("Q: dispatch queue=%s nbr_messages=%d nbr_consumers=%d",
-            self->queue->key,
+            self->queue->name,
             ipr_looseref_list_count (self->content_list),
             amq_consumer_by_queue_count (self->active_consumers));
 
@@ -134,7 +132,7 @@ runs lock-free as a child of the asynchronous queue class.
         if (!consumer) {
             if (amq_server_config_trace_queue (amq_server_config))
                 icl_console_print ("Q: finish  queue=%s reason=no_consumers",
-                    self->queue->key);
+                    self->queue->name);
 
             //  If no consumer for content, push back to front of queue
             ipr_looseref_push (self->content_list, content);
@@ -153,8 +151,7 @@ runs lock-free as a child of the asynchronous queue class.
 
             if (amq_server_config_trace_queue (amq_server_config))
                 icl_console_print ("Q: deliver  queue=%s message=%s",
-                    self->queue->key,
-                    content->message_id);
+                    self->queue->name, content->message_id);
 
             //  Move consumer to end of queue to implement a round-robin
             amq_consumer_by_queue_queue (self->active_consumers, consumer);

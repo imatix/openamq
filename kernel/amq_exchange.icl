@@ -21,7 +21,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     <option name = "prefix" value = "list" />
 </inherit>
 <inherit class = "amq_console_object" />
-<inherit class = "icl_tracker" />
+<inherit class = "smt_object_tracker" />
 
 <!-- Console definitions for this object -->
 <data name = "cml">
@@ -254,7 +254,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     //
     <action>
     if (amq_server_config_trace_route (amq_server_config))
-        icl_console_print ("X: bind     queue=%s onto=%s", queue->key, self->name);
+        icl_console_print ("X: bind     queue=%s onto=%s", queue->name, self->name);
 
     s_bind_object (self, channel, queue, NULL, routing_key, arguments);
     </action>
@@ -288,6 +288,31 @@ for each type of exchange. This is a lock-free asynchronous class.
     </action>
 </method>
 
+<method name = "unbind queue" template = "async function" async = "1">
+    <doc>
+    Unbind a queue from the exchange.
+    </doc>
+    <argument name = "queue" type = "amq_queue_t *">The queue to unbind</argument>
+    //
+    <possess>
+    queue = amq_queue_link (queue);
+    </possess>
+    <release>
+    amq_queue_unlink (&queue);
+    </release>
+    //
+    <action>
+    amq_binding_t
+        *binding;                       //  We examine each binding
+
+    binding = amq_binding_list_first (self->binding_list);
+    while (binding) {
+        amq_binding_unbind_queue (binding, queue);
+        binding = amq_binding_list_next (&binding);
+    }
+    </action>
+</method>
+
 <method name = "publish" template = "async function" async = "1">
     <doc>
     Publishes the message to the exchange.  The actual routing mechanism
@@ -311,15 +336,15 @@ for each type of exchange. This is a lock-free asynchronous class.
 </method>
 
 <private name = "async header">
-//  Cluster ready or not
+//  Bind an object
 static void
     s_bind_object (
         amq_exchange_t *self,
         amq_server_channel_t *channel,
-        amq_queue_t     *queue,
-        amq_peer_t      *peer,
-        char            *routing_key,
-        icl_longstr_t   *arguments);
+        amq_queue_t    *queue,
+        amq_peer_t     *peer,
+        char           *routing_key,
+        icl_longstr_t  *arguments);
 </private>
 
 <private name = "async footer">

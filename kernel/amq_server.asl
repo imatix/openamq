@@ -226,6 +226,7 @@
             connection->thread, channel->number, amq_queue_message_count (queue));
 
         //  Destroy the queue on this peer
+        amq_queue_unbind  (queue);
         amq_queue_destroy (&queue);
     }
     else
