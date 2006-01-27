@@ -97,7 +97,7 @@ program does no error handling so you should *not* copy this code:
         //  Open session to local server
         auth_data  = amq_client_connection_auth_plain ("guest", "guest");
         connection = amq_client_connection_new (
-            "localhost", NULL, "/", auth_data, 0, 30000);
+            "localhost", "/", auth_data, 0, 30000);
         icl_longstr_destroy (&auth_data);
         session = amq_client_session_new (connection);
 
@@ -149,7 +149,7 @@ this:
 
     auth_data  = amq_client_connection_auth_plain ("guest", "guest");
     connection = amq_client_connection_new (
-        "localhost", NULL, "/", auth_data, 0, 30000);
+        "localhost", "/", auth_data, 0, 30000);
     icl_longstr_destroy (&auth_data);
     if (!connection) {
         icl_console_print ("E: could not open connection");
@@ -199,7 +199,7 @@ Creates a new connection to the server.
 
     auth_data  = amq_client_connection_auth_plain ("guest", "guest");
     connection = amq_client_connection_new (
-        "localhost", NULL, "/", auth_data, 0, 30000);
+        "localhost", "/", auth_data, 0, 30000);
 
     icl_longstr_destroy (&auth_data);
     if (connection)
@@ -216,9 +216,6 @@ Creates a new connection to the server.
  - The host_name argument specifies a server name or IP address, optionally
    ending in ':' plus a port number.
 
- - The null argument is the cluster key, which is not needed in stand-alone
-   configurations.
-   
  - The virtual_host name specifies the virtual host to which the connection
    will connect.  The default virtual host is "/".
 

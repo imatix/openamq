@@ -4,8 +4,8 @@ Technical Specifications
 Standard Port Number
 ====================
 
-The standard AMQP port number is under request from IANA. Pending an
-assigned port number, the standard port number is TCP 7654.
+The standard AMQP port number is 5672/tcp.  See the list of IANA
+assigned ports at: http://www.iana.org/assignments/port-numbers.
 
 AMQP Wire-Level Format
 ======================

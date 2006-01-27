@@ -640,7 +640,7 @@ For example:
     S: <cml version = "1.0">
           <inspect-reply class = "broker" object = "0" status = "ok">
              <field name = "ip-address">192.168.55.142</field>
-             <field name = "port">7654</field>
+             <field name = "port">5672</field>
              <field name = "version">0.9c2</field>
              <field name = "platform">Linux</field>
              <field name = "exchange" id = "1" />

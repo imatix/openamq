@@ -15,10 +15,11 @@ any modern programming language.
 Copyrights
 ==========
 
-This document was written by the AMQ Working Group (amqp.org) and is
-copyright (c) 2004-2006 JPMorganChase Inc. The contents of this document
-are at present confidential and may not be copied outside of
-JPMorganChase Inc. without express permission.
+This document was written by John O'Hara, Pieter Hintjens, and Mark
+Atwell, on behalf of the AMQP Working Group (amqp.org) and is copyright
+(c) 2004-2006 JPMorganChase Inc. The contents of this document are at
+present confidential and may not be copied outside of JPMorganChase Inc.
+without express permission.
 
 Summary
 =======

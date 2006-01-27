@@ -569,6 +569,15 @@ there is no concept of "durable consumer" in AMQ:
   queue is only active on the root broker, but note also that the
   current "root" may move around arbitrarily.
 
+Cluster State Workflow
+======================
+
+- root to all brokers
+- primary to all brokers
+- secondary to all primary brokers
+    - root to all other secondaries
+
+
 Cluster Message Workflow
 ========================
 
@@ -760,9 +769,10 @@ amq.direct exchange and using the routing key "test":
     <?xml?>
     <pal script = "amq_pal_gen">
         <set name = "messages" value = "1" cmdline = "M" />
+        <set name = "message_id" value = "$random" cmdline = "I" />
         <session cluster_key = "my.cluster">
             <repeat counter = "id" times = "$messages" >
-                <basic_content size = "1000" message_id = "id-$random" />
+                <basic_content size = "1000" message_id = "id-$message_id" />
                 <basic_publish exchange = "amq.direct" routing_key = "test" />
                 <basic_returned>
                     <echo>W: Message $message_id returned</echo>
@@ -834,6 +844,38 @@ readers, so that each reader receives exactly two messages.  Since
 the readers are sharing the same single queue, there is no message
 fanout.
 
+Scripts
+=======
+
+Starting The Cluster
+--------------------
+
+The 'start' script:
+
+    #!/bin/sh
+    #
+    #   Script to start example OpenAMQ Cluster
+    #
+    nohup amq_server -p 5001 >1.lst 2>&1 &
+    nohup amq_server -p 5002 >2.lst 2>&1 &
+    nohup amq_server -p 5003 >3.lst 2>&1 &
+    nohup amq_server -p 6001 >4.lst 2>&1 &
+    nohup amq_server -p 6002 >5.lst 2>&1 &
+
+Stopping The Cluster
+--------------------
+
+The 'stop' script:
+
+    #!/bin/sh
+    #
+    #   Script to stop example OpenAMQ Cluster
+    #   May need fixing for different 'ps' command versions
+    #
+    for pid in `ps -ef | egrep amq_server | egrep -v grep | cut -c10-14`; do
+        kill $pid
+    done
+
 Comments
 ========
 
@@ -843,7 +885,7 @@ Known Bugs
 The 1.0a0 version has these known bugs, under investigation:
 
 1. When using private queues, messages sent to a secondary server are
-   not correctly forwarded to other secondary servers.
+   not correctly forwarded to other secondary servers.  [Fixed in 1.0a1].
 
 2. The broker has been seen to segfault on one occasion while doing a
    message publishing test.  Sadly no core dump was taken.

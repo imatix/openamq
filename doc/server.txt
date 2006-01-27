@@ -368,7 +368,7 @@ Configuration Options
 The server.cfg file provides the server with its overall configuration.
 
     <server
-        port = "7654"
+        port = "5672"
         background = "0"
         queue_timeout = "5"
         />
@@ -376,7 +376,7 @@ The server.cfg file provides the server with its overall configuration.
 server:port:
     Server port for client connections.
     Specifies the port on which the server should open its connections
-    (7654 is the default). Note that this value can be overridden on the
+    (5672 is the default). Note that this value can be overridden on the
     command line using the -p option.
 
     If you want to run multiple OpenAMQ servers on the same system you can

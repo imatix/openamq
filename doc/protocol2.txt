@@ -1001,6 +1001,17 @@ The semantics of this class are as follows:
 
  - Magic happens.
 
+The Tunnel Class
+----------------
+
+The tunnel class is used to tunnel AMQP methods across AMQP.  To tunnel
+a method, we encode it as a binary frame and we send that frame to an
+AMQP peer using an Tunnel.Request method.
+
+To tunnel methods that hold content, we create multi-level contents,
+where the first content is the binary encoded method and its child
+content is the original method's content.
+
 AMQP Transport Layer
 ====================
 
