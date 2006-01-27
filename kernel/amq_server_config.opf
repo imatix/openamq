@@ -250,4 +250,23 @@ $\(selftype)
     </property>
 </path>
 
+<path name = "/config/internal">
+    <property name = "auto crash" type = "int" default = "0">
+    Auto-crash server at irregular intervals
+    <doc>
+    If set, the server will crash at irregular intervals, being some random
+    point within the number of seconds specified.  This is used specifically
+    to test applications for failover and robustness.
+    </doc>
+    </property>
+    <property name = "auto block" type = "int" default = "0">
+    Auto-block server at irregular intervals
+    <doc>
+    If set, the server will block at irregular intervals, being some random
+    point within the number of seconds specified.  This is used specifically
+    to test applications for failover and robustness.
+    </doc>
+    </property>
+</path>
+
 </opf>

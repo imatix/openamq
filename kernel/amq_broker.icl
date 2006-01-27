@@ -61,7 +61,9 @@ extern $(selftype)
     int
         monitor_timer,                  //  Monitor timer
         dump_state_timer,               //  Dump state timer
-        recycler_timer;                 //  Memory recycle timer
+        recycler_timer,                 //  Memory recycle timer
+        auto_crash_timer,               //  Automatic failure
+        auto_block_timer;               //  Automatic blockage
     ipr_meter_t
         *xmeter,                        //  External switch meter
         *imeter;                        //  Internal switch meter
@@ -85,6 +87,13 @@ extern $(selftype)
     self->monitor_timer    = amq_server_config_monitor    (amq_server_config);
     self->dump_state_timer = amq_server_config_dump_state (amq_server_config);
     self->recycler_timer   = amq_server_config_recycler   (amq_server_config);
+    self->auto_crash_timer = amq_server_config_auto_crash (amq_server_config);
+    self->auto_block_timer = amq_server_config_auto_block (amq_server_config);
+
+    if (self->auto_crash_timer)
+        self->auto_crash_timer = randomof (self->auto_crash_timer) + 1;
+    if (self->auto_block_timer)
+        self->auto_block_timer = randomof (self->auto_block_timer) + 1;
 </method>
 
 <method name = "destroy">
@@ -162,6 +171,20 @@ extern $(selftype)
         if (self->recycler_timer == 0) {
             self->recycler_timer = amq_server_config_recycler (amq_server_config);
             icl_system_purge ();
+        }
+    }
+    if (self->auto_crash_timer) {
+        if (--self->auto_crash_timer == 0) {
+            icl_console_print ("W: #########################  AUTO-CRASH  ########################");
+            icl_console_print ("W: server is now emulating a system crash, and will exit brutally.");
+            exit (0);
+        }
+    }
+    if (self->auto_block_timer) {
+        if (--self->auto_block_timer == 0) {
+            icl_console_print ("W: #########################  AUTO-BLOCK  ########################");
+            icl_console_print ("W: server is now emulating a blockage, and will freeze for 5 minutes.");
+            sleep (300);
         }
     }
     </action>
