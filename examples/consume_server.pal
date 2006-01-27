@@ -23,6 +23,9 @@
         <repeat>
             <wait timeout = "1" />
             <basic_arrived>
+                <if  name  = "total_received" value = "0" >
+                    <timer />
+                </if>
                 <inc name = "received" />
                 <inc name = "total_received" />
                 <if  name = "received" value = "log_interval" >
