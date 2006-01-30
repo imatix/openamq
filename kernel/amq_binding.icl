@@ -137,7 +137,7 @@ class.
     <doc>
     Remove queue from current binding it is there.
     </doc>
-    <argument name = "queue" type = "amq_queue_t *">Queue to bind</argument>
+    <argument name = "queue" type = "amq_queue_t *">Queue to unbind</argument>
     <local>
     ipr_looseref_t
         *looseref;                      //  We check the queues per binding
@@ -155,6 +155,28 @@ class.
     }
 </method>
 
+<method name = "unbind peer" template = "function">
+    <doc>
+    Remove peer from current binding it is there.
+    </doc>
+    <argument name = "peer" type = "amq_peer_t *">Peer to unbind</argument>
+    <local>
+    ipr_looseref_t
+        *looseref;                      //  We check the peers per binding
+    </local>
+    //
+    looseref = ipr_looseref_list_first (self->peer_list);
+    while (looseref) {
+        if (looseref->object == peer) {
+            peer = (amq_peer_t *) (looseref->object);
+            amq_peer_unlink (&peer);
+            ipr_looseref_destroy (&looseref);
+            break;
+        }
+        looseref = ipr_looseref_list_next (&looseref);
+    }
+</method>
+
 <method name = "publish" template = "function">
     <doc>
     Publish message to all queues and peers defined for the binding.
@@ -164,73 +186,34 @@ class.
     <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
     <local>
     ipr_looseref_t
-        *looseref,                      //  Bound object
-        *oldref;                        //  Backcopy for garbage collection
+        *looseref;                      //  Bound object
     amq_queue_t
         *queue;                         //  Queue we publish to
     amq_peer_t
         *peer;                          //  Peer we publish to
-    int
-        push_out;                       //  Do we push message to peers?
     </local>
     //
     //  Publish to all queues, sending method to async queue class
     looseref = ipr_looseref_list_first (self->queue_list);
     while (looseref) {
         queue = (amq_queue_t *) (looseref->object);
-        if (!queue->zombie) {
-            if (amq_server_config_trace_route (amq_server_config))
-                icl_console_print ("X: publish  queue=%s", queue->key);
-            amq_queue_publish (queue, channel, method);
-            rc++;                       //  Count recepients
-            looseref = ipr_looseref_list_next (&looseref);
-        }
-        else {
-            //  Garbage-collect zombied queue
-            oldref   = ipr_looseref_link      (looseref);
-            looseref = ipr_looseref_list_next (&looseref);
-            ipr_looseref_destroy (&oldref);
-            amq_queue_destroy (&queue);
-        }
-    }
-    //
-    //  Calculate whether message needs to be pushed to peers or not
-    push_out = AMQ_CLUSTER_PUSH_NONE;
-    if (amq_cluster->enabled) {
-        if (channel->connection->type == AMQ_CONNECTION_TYPE_CLUSTER) {
-            //  If we're root, and sender was a secondary peer, we push the
-            //  content to all secondary peers except the sender...
-            if (amq_cluster_from_secondary (amq_cluster, method)
-            &&  amq_cluster->root)
-                push_out = AMQ_CLUSTER_PUSH_SECONDARY;
-        }
-        else
-            //  Message came from application and must be pushed to all
-            push_out = AMQ_CLUSTER_PUSH_ALL;
+        if (amq_server_config_trace_route (amq_server_config))
+            icl_console_print ("X: publish  queue=%s", queue->key);
+        amq_queue_publish (queue, channel, method);
+        rc++;                           //  Count recepients
+        looseref = ipr_looseref_list_next (&looseref);
     }
     //  Publish to peers, sending method to async cluster class
-    looseref = push_out? ipr_looseref_list_first (self->peer_list): NULL;
+    looseref = ipr_looseref_list_first (self->peer_list);
     while (looseref) {
         peer = (amq_peer_t *) (looseref->object);
-        if (peer->connected) {
-            if (push_out == AMQ_CLUSTER_PUSH_ALL
-            || (push_out == AMQ_CLUSTER_PUSH_SECONDARY
-            &&  strneq (channel->connection->client_spid, peer->spid))) {
-                if (amq_server_config_trace_route (amq_server_config))
-                    icl_console_print ("X: publish  peer=%s", peer->spid);
-
-                amq_cluster_peer_push (
-                    amq_cluster, peer, method, push_out);
-                rc++;                   //  Count recepients
-            }
-            looseref = ipr_looseref_list_next (&looseref);
-        }
-        else {
-            //  Garbage-collect disconnected peer
-            oldref   = ipr_looseref_link      (looseref);
-            looseref = ipr_looseref_list_next (&looseref);
-            ipr_looseref_destroy (&oldref);
-            amq_peer_unlink (&peer);
+        if (amq_cluster
+        &&  channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+        &&  strneq (channel->connection->client_proxy_name, peer->name)) {
+            if (amq_server_config_trace_route (amq_server_config))
+                icl_console_print ("X: publish  peer=%s", peer->name);
+            amq_cluster_peer_push (amq_cluster, peer, method);
+            rc++;                       //  Count recepients
         }
     }
 </method>

@@ -282,7 +282,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     //
     <action>
     if (amq_server_config_trace_route (amq_server_config))
-        icl_console_print ("X: bind     peer=%s onto=%s", peer->spid, self->name);
+        icl_console_print ("X: bind     peer=%s onto=%s", peer->name, self->name);
 
     s_bind_object (self, NULL, NULL, peer, routing_key, arguments);
     </action>
@@ -308,6 +308,31 @@ for each type of exchange. This is a lock-free asynchronous class.
     binding = amq_binding_list_first (self->binding_list);
     while (binding) {
         amq_binding_unbind_queue (binding, queue);
+        binding = amq_binding_list_next (&binding);
+    }
+    </action>
+</method>
+
+<method name = "unbind peer" template = "async function" async = "1">
+    <doc>
+    Unbind a cluster peer from the exchange.
+    </doc>
+    <argument name = "peer" type = "amq_peer_t *">The peer to unbind</argument>
+    //
+    <possess>
+    peer = amq_peer_link (peer);
+    </possess>
+    <release>
+    amq_peer_unlink (&peer);
+    </release>
+    //
+    <action>
+    amq_binding_t
+        *binding;                       //  We examine each binding
+
+    binding = amq_binding_list_first (self->binding_list);
+    while (binding) {
+        amq_binding_unbind_peer (binding, peer);
         binding = amq_binding_list_next (&binding);
     }
     </action>

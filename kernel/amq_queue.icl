@@ -59,6 +59,8 @@ class.  This is a lock-free asynchronous class.
 <import class = "amq_server_classes" />
 
 <context>
+    amq_cluster_t
+        *cluster;                       //  Held cluster object KILL THIS BEFORE BB
     amq_vhost_t
         *vhost;                         //  Parent virtual host
     icl_shortstr_t
@@ -94,15 +96,19 @@ class.  This is a lock-free asynchronous class.
     self->enabled     = TRUE;
     self->durable     = durable;
     self->exclusive   = exclusive;
-    self->clustered   = amq_cluster->enabled && !self->exclusive;
+    self->clustered   = amq_cluster && !self->exclusive;
     self->auto_delete = auto_delete;
     self->queue_basic = amq_queue_basic_new (self);
     icl_shortstr_cpy (self->name, name);
     icl_shortstr_cpy (self->owner_id, owner_id);
-
     amq_queue_list_queue (self->vhost->queue_list, self);
     if (amq_server_config_trace_queue (amq_server_config))
         icl_console_print ("Q: create   queue=%s", self->name);
+
+    //WORKAROUND FOR ICL BUG - BASE2-166
+    //One too many links, one too few destroys
+    self->links--;
+    self->possess_count++;
 </method>
 
 <method name = "destroy">
@@ -132,8 +138,8 @@ class.  This is a lock-free asynchronous class.
     <doc>
     Publish message content onto queue. Handles cluster distribution
     of messages to shared queues: if cluster is enabled and queue is
-    shared (!exclusive), message is queued only at root server. If
-    we are not a root server, we forward the message to the root.
+    shared (!exclusive), message is queued only at primary server. If
+    we are not a primary server, we forward the message to the primary.
     </doc>
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
@@ -146,12 +152,11 @@ class.  This is a lock-free asynchronous class.
     </release>
     //
     <action>
-    if (amq_cluster->enabled && !self->exclusive && !amq_cluster->root) {
-        //  Pass message to shared queue on root server unless message
-        //  already came to us from another cluster peer.
+    if (amq_cluster && self->clustered && !amq_cluster->primary) {
+        //  Pass message to shared queue on primary server unless
+        //  message already came to us from another cluster peer.
         if (channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
-            amq_cluster_peer_push (
-                amq_cluster, amq_cluster->root_peer, method, AMQ_CLUSTER_PUSH_ALL);
+            amq_cluster_peer_push (amq_cluster, amq_cluster->primary_peer, method);
     }
     else
     if (self->enabled) {

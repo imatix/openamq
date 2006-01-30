@@ -18,78 +18,12 @@
 </doc>
 
 <doc name = "grammar">
-    cluster             = C:ROOT
+    cluster             = C:STATUS
                         / C:BIND
-                        / C:STATUS
 </doc>
 
 <chassis name = "server" implement = "MAY" />
 <chassis name = "client" implement = "MAY" />
-
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-
-<method name = "root">
-enable or disable server as root
-  <doc>
-    This method tells the cluster whether the specified server is
-    taking or dropping the 'root' role.  For a full explanation of
-    the AMQ cluster design please refer to the AMQ Cluster design
-    documentation and specifications.
-  </doc>
-  <chassis name = "server" implement = "MUST" />
-  <chassis name = "client" implement = "MUST" />
-
-  <field name = "active" type = "bit">
-     activate or disactivate root
-    <doc>
-      Specifies whether the originating server is taking or dropping
-      the root role.
-    </doc>
-  </field>
-</method>
-
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-
-<method name = "bind">
-  bind local exchange to remote exchange
-  <doc>
-    This method binds an exchange on one server to an exchange on
-    another server.
-  </doc>
-  <chassis name = "server" implement = "MUST" />
-  <chassis name = "client" implement = "MUST" />
-
-  <field name = "exchange" domain = "exchange name">
-    <doc>
-      The name of the remote exchange to bind to. The exchange must
-      exist both on the originating server, and the target server.
-      The same exchange name is used when publishing messages back
-      to the originating server.
-    </doc>
-    <doc name = "rule">
-      If the exchange does not exist the server MUST raise a channel
-      exception with reply code 404 (not found).
-    </doc>
-  </field>
-
-  <field name = "routing key" type = "shortstr">
-     message routing key
-    <doc>
-      Specifies the routing key for the binding.  The routing key is
-      used for routing messages depending on the exchange configuration.
-      Not all exchanges use a routing key - refer to the specific exchange
-      documentation.
-    </doc>
-  </field>
-
-  <field name = "arguments" type = "table">
-    arguments for binding
-    <doc>
-      A set of arguments for the binding.  The syntax and semantics of
-      these arguments depends on the exchange class.
-    </doc>
-  </field>
-</method>
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
@@ -101,6 +35,15 @@ enable or disable server as root
   </doc>
   <chassis name = "server" implement = "MUST" />
   <chassis name = "client" implement = "MUST" />
+
+  <field name = "signature" type = "long">
+    configuration signature
+    <doc>
+      The signature (checksum) of the cluster configuration; this must
+      be identical across all servers; a server must reject peers that
+      do not provide a valid signature.
+    </doc>
+  </field>
 
   <field name = "heartbeat" type = "short">
     peer heartbeat interval
@@ -170,30 +113,55 @@ enable or disable server as root
     </doc>
   </field>
 
-  <field name = "primaries" type = "long">
-    number of primary peers
-    <doc>
-      Specifies the number of primary peers that the peer can see,
-      including itself if it is a primary peer.  This is used to
-      detect split networks.
-    </doc>
-  </field>
-
   <field name = "primary" type = "bit">
-     primnary or secondary peer?
+     primary cluster peer?
     <doc>
-      Specifies whether the sender is a primary or secondary peer.
-      Note that this information should be known by the recipient;
-      we restate it for sanity checking.
-    </doc>
-  </field>
-
-  <field name = "root" type = "bit">
-     primary root peer?
-    <doc>
-      Specifies whether the sender is the primary root peer. Note
+      Specifies whether the sender is the primary peer. Note
       that this information should be known by the recipient; we
       restate it for sanity checking.
+    </doc>
+  </field>
+</method>
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+<method name = "bind">
+  bind local exchange to remote exchange
+  <doc>
+    This method binds an exchange on one server to an exchange on
+    another server.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <chassis name = "client" implement = "MUST" />
+
+  <field name = "exchange" domain = "exchange name">
+    <doc>
+      The name of the remote exchange to bind to. The exchange must
+      exist both on the originating server, and the target server.
+      The same exchange name is used when publishing messages back
+      to the originating server.
+    </doc>
+    <doc name = "rule">
+      If the exchange does not exist the server MUST raise a channel
+      exception with reply code 404 (not found).
+    </doc>
+  </field>
+
+  <field name = "routing key" type = "shortstr">
+     message routing key
+    <doc>
+      Specifies the routing key for the binding.  The routing key is
+      used for routing messages depending on the exchange configuration.
+      Not all exchanges use a routing key - refer to the specific exchange
+      documentation.
+    </doc>
+  </field>
+
+  <field name = "arguments" type = "table">
+    arguments for binding
+    <doc>
+      A set of arguments for the binding.  The syntax and semantics of
+      these arguments depends on the exchange class.
     </doc>
   </field>
 </method>

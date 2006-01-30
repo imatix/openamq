@@ -52,7 +52,7 @@
 
                     if (exchange) {
                         //  Create exchange on all cluster peers
-                        if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
+                        if (amq_cluster && connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
                             amq_cluster_replicate (amq_cluster, self);
                     }
                     else
@@ -84,7 +84,7 @@
     exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
     if (exchange) {
         //  Delete exchange on all cluster peers
-        if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
+        if (amq_cluster && connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
             amq_cluster_replicate (amq_cluster, self);
 
         //  Tell client delete was successful
@@ -139,7 +139,7 @@
                 if (method->exclusive)
                     amq_server_connection_own_queue (connection, queue);
 
-                if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER) {
+                if (amq_cluster && connection->type != AMQ_CONNECTION_TYPE_CLUSTER) {
                     if (method->exclusive)
                         //  Forward private queue default binding to all nodes
                         amq_cluster_bind (amq_cluster, NULL, queue->name, NULL);
@@ -190,7 +190,7 @@
                 connection->thread, channel->number);
 
             //  Tell cluster about new queue binding
-            if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER) {
+            if (amq_cluster && connection->type != AMQ_CONNECTION_TYPE_CLUSTER) {
                 if (queue->clustered)
                     //  Make same binding on all cluster peers
                     amq_cluster_replicate (amq_cluster, self);
@@ -217,7 +217,7 @@
     queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
     if (queue) {
         //  Delete the queue on all cluster peers
-        if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+        if (amq_cluster && connection->type != AMQ_CONNECTION_TYPE_CLUSTER
         &&  queue->clustered)
             amq_cluster_replicate (amq_cluster, self);
 
@@ -241,7 +241,7 @@
     queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
     if (queue) {
         //  Purge queue on all cluster peers, using
-        if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+        if (amq_cluster && connection->type != AMQ_CONNECTION_TYPE_CLUSTER
         &&  queue->clustered)
             amq_cluster_broadcast (amq_cluster, self);
 
@@ -303,7 +303,7 @@
                 connection->id);
 
             //  Set cluster-id on fresh content coming from applications
-            if (amq_cluster->enabled && connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
+            if (amq_cluster && connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
                 amq_content_$(class.name)_set_cluster_id (self->content, channel->cluster_id);
 
             amq_exchange_publish (exchange, channel, self);
@@ -325,11 +325,10 @@
     </local>
     queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
     if (queue) {
-        //  Pass request to cluster root peer
-        if (connection->type != AMQ_CONNECTION_TYPE_CLUSTER
-        &&  queue->clustered
-        && !amq_cluster->root)
-            amq_cluster_proxy_root (amq_cluster, self, channel);
+        //  Pass request to cluster primary peer
+        if (amq_cluster && connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+        &&  queue->clustered && !amq_cluster->primary)
+            amq_cluster_tunnel_primary (amq_cluster, self, channel);
         else
             amq_queue_get (queue, channel, self->class_id);
 
@@ -354,7 +353,7 @@
 <class name = "tunnel">
   <action name = "request">
     method = NULL;    //  Prevent compiler warning on unused method variable
-    if (connection->type == AMQ_CONNECTION_TYPE_CLUSTER)
+    if (amq_cluster && connection->type == AMQ_CONNECTION_TYPE_CLUSTER)
         amq_cluster_accept (amq_cluster, self->content, channel);
     else
         amq_server_connection_error (connection, ASL_NOT_ALLOWED, "Method not allowed");

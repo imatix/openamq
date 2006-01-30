@@ -135,13 +135,13 @@ s_get_next_consumer ($(selftype) *self, char *producer_id, char *cluster_id)
             else
             if (consumer->channel->connection->type == AMQ_CONNECTION_TYPE_CLUSTER) {
                 //  If the consumer is a cluster peer then the consumer tag is
-                //  spid/connectionid/xxx where xxx is the original consumer
+                //  serverid/connectionid/xxx where xxx is the original consumer
                 //  tag.  We can compare this with the content cluster_id, which
-                //  is spid/connectionid/channelnbr.
+                //  is serverid/connectionid/channelnbr.
                 char
                     *slash;
                 size_t
-                    id_size = 0;        //  Size of spid/connectionid string
+                    id_size = 0;        //  Size of serverid/connectionid string
                 Bool
                     ids_match;          //  Do the two IDs match?
 

@@ -22,7 +22,7 @@ static Bool
 static char
     *s_opt_port = NULL,                 //  -p specifies server port
     *s_opt_workdir = NULL,              //  -w specifies working directory
-    *s_opt_spid = NULL,                 //  -s specifies spid
+    *s_opt_cluster = NULL,              //  -c specifies broker cluster name
     *s_opt_trace = NULL,                //  -t defines trace level
     *s_opt_monitor = NULL;              //  -m means monitor server
 static int
@@ -40,6 +40,7 @@ static char
     "\n"                                                                     \
     "General options:\n"                                                     \
     "  -w directory     Working directory for server (current)\n"            \
+    "  -c name          Set server cluster name (none)\n"                    \
     "  -q               Quiet mode: no messages (no)\n"                      \
     "  -b               Run as background server process (no)\n"             \
     "  -f               Run as foreground console process (yes)\n"           \
@@ -53,7 +54,6 @@ static char
     "\n"                                                                     \
     "Deprecated options:\n"                                                  \
     "  -p port          Server port\n"                                       \
-    "  -s spid          Set server process ID (auto)\n"                      \
     "  -t level         Set trace level 0-3 (0)\n"                           \
     "  -m n             Monitor server status every N seconds (1)\n"         \
     "\n"                                                                     \
@@ -100,18 +100,21 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
             switch (argv [argn][1]) {
                 //  These switches take a parameter
                 case 'p':
+                    icl_console_print ("W: deprecated argument, suggest you use '--port'");
                     argparm = &s_opt_port;
                     break;
                 case 'w':
                     argparm = &s_opt_workdir;
                     break;
-                case 's':
-                    argparm = &s_opt_spid;
+                case 'c':
+                    argparm = &s_opt_cluster;
                     break;
                 case 't':
+                    icl_console_print ("W: deprecated argument, suggest you use '--trace'");
                     argparm = &s_opt_trace;
                     break;
                 case 'm':
+                    icl_console_print ("W: deprecated argument, suggest you use '--monitor'");
                     argparm = &s_opt_monitor;
                     break;
 
@@ -231,18 +234,23 @@ s_run_server (void)
         amq_server_config_set_monitor (amq_server_config, atoi (s_opt_monitor));
     if (s_opt_port)
         amq_server_config_set_port    (amq_server_config, s_opt_port);
-    if (s_opt_spid)
-        amq_server_config_set_spid    (amq_server_config, s_opt_spid);
 
     //  Create main objects and do the work
     amq_console = amq_console_new ();
     amq_broker  = amq_broker_new  ();
-    amq_cluster = amq_cluster_new ();
+
+    //  Join cluster only if -c option is specified
+    if (s_opt_cluster) {
+        icl_shortstr_cpy (amq_broker->name, s_opt_cluster);
+        amq_cluster = amq_cluster_new ();
+    }
     smt_wait (0);                       //  Execute the server
 
     broker_handle = amq_broker_link (amq_broker);
-    amq_cluster_destroy (&amq_cluster);
-    smt_wait (0);
+    if (s_opt_cluster) {
+        amq_cluster_destroy (&amq_cluster);
+        smt_wait (0);
+    }
     amq_broker_destroy  (&amq_broker);
     smt_wait (0);
     amq_console_destroy (&amq_console);

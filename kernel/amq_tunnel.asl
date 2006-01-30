@@ -23,7 +23,7 @@
 <field name = "headers" type = "table">
     Message header field table
 </field>
-<field name = "proxy id" type = "shortstr">
+<field name = "proxy name" type = "shortstr">
     The identity of the tunnelling proxy
 </field>
 <field name = "data name" type = "shortstr">

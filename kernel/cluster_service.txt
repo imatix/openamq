@@ -1,13 +1,125 @@
+changes
+    - all servers specified in config file
+        - servers share same config file
+    - spid specified on command line
+        - -c not specified -> not cluster
+        - amq_cluster exists or does not
+        
+    - first server is primary
+        - when starting, connect to all servers
+        - we know if we're root...
+        
+- proxy list is totally static
+    - when connected, verify spid, abort if wrong
 
-    "peer" -> "proxy"
+    - calculate checksum of list
+        - include in heartbeat
+        - abort if not same as other server
+    
+- remove manual spid option
+- new connection strategy
+    - all fully interconnected, period.
+    - use bridging for WAN deployment
+    
+- configuration:
+    - server type: primary, backup, fanout
+    - known_hosts list
+        - at least one server...
+        - comma-delimited 
+        
+- proxy management
+    - outgoing proxies to all known hosts
+    - incoming proxies from all known hosts
+    - these two lists are built asynchronously
+        - incoming cluster connection -> incoming proxy
+    - we can review the lists to match them up
+    - each outgoing proxy should match an incoming one
 
-    1. create proxy for each primary server in list
-    2. proxy will connect asynchronously to target server
-        - using proxy connection
-        - at certain moment, proxy is 'ready'
-        - the target server may not yet have a proxy back to us
-    3. proxy SPID is set when proxy gets start command from server
-    4. until that point, SPID is empty
+    - outgoing proxy properties:
+        - host name (unresolved)
+        - peer spid, empty until connection made
+        - self, yes/no?
+    - incoming cluster connection properties:
+        - peer spid
+        - host address (resolved)
+        - known hosts, in status message
+
+host name management:
+    - large hash table (64k)
+    - all known names, aliases, and paths
+    - resolve to proxy if known
+    
+
+Start cluster:
+    - parse known hosts list
+        - for each name:
+            - create a proxy and open it
+            - store name->proxy in hosts hash table
+            
+Outgoing proxy ready (Connection.Start in amq_proxy.asl):
+    - we have peer spid
+    - update proxy with spid data
+    - if we find an existing proxy with same spid, kill one of them
+
+    ... I'd like to never kill proxies
+   
+
+Cluster client ready (Connection.Start-Ok in amq_server_connection.icl):
+    - we have peer spid and host address
+    - look at all proxies and compare spids
+        a. spid matches an already connected proxy
+            - we do not need to do anything special
+        b. spid is of an unknown server that is talking to us
+            - we create a new proxy and connect back to physical address
+
+    ... can we tell if client is one of our known proxies?
+    ... it can pass us something, immediately
+        ->
+            
+        
+    - create proxy to each known host
+        - use async connection, no pinging
+        - eventually, connection is made and spid is received
+        - remove duplicate proxies, based on spid
+
+    - send status immediately as connected
+        - including list of known hosts
+        
+    - when proxy makes successful connection
+        - update spid in 
+    - when proxy connects to us
+        - use spid to
+
+        
+Incoming Cluster.Status
+    - parse known hosts list
+    - known_host -> peer, via hash table?
+        - any new known_hosts, tell cluster controller
+
+- servers know own resolved address
+- server can have multiple addresses
+
+
+
+
+problems
+    - multiple host names for same server
+    - multiple servers configured as root
+    -> obvious errors when using configuration data
+    -> we can avoid by using only command-line for this
+    -> we must also detect...
+
+principles
+    - auto-discovery -> auto spid
+    - no configurable catastrophes -> no manual override
+    - minimal latency -> interconnected
+    - expandable -> host discovery mechanism
+    - scalable -> WAN bridging protocol
+    - autofailover -> primary negotiation
+    - simple to use -> no cluster controller
+    
+    
+--------------------------------------------------------------------------
 
 primary partition
     - fully interconnected

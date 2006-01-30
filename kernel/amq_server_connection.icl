@@ -37,7 +37,7 @@ This class implements the connection class for the AMQ server.
 <method name = "new">
     self->own_queue_list = ipr_looseref_list_new ();
     self->consumer_table = amq_consumer_table_new ();
-    icl_shortstr_fmt (self->cluster_id, "%s/%s", amq_broker->spid, self->id);
+    icl_shortstr_fmt (self->cluster_id, "%s/%s", amq_broker->name, self->id);
 </method>
 
 <method name = "destroy">
@@ -45,11 +45,7 @@ This class implements the connection class for the AMQ server.
     amq_queue_t
         *queue;                         //  Content object reference
     </local>
-
-    //  If connection is from a cluster server, warn cluster controller...
-    if (self->type == AMQ_CONNECTION_TYPE_CLUSTER && amq_cluster)
-        amq_cluster_cancel (amq_cluster, self->client_spid);
-
+    ///
     //  Delete connection's exclusive queues
     while ((queue = (amq_queue_t *) ipr_looseref_pop (self->own_queue_list)))
         amq_queue_destroy (&queue);
@@ -66,9 +62,8 @@ This class implements the connection class for the AMQ server.
 </method>
 
 <method name = "ready" template = "function">
-    //  If cluster is booting, only let cluster or console connections
-    //  through.
-    if (amq_cluster->enabled && !amq_cluster->ready)
+    //  If cluster is booting, let through only cluster or console connections
+    if (amq_cluster && !amq_cluster->ready)
         rc = self->type != AMQ_CONNECTION_TYPE_NORMAL;
     else
         rc = TRUE;
@@ -108,7 +103,6 @@ This class implements the connection class for the AMQ server.
         case AMQ_CONNECTION_TYPE_CLUSTER:
             self->authorised = TRUE;
             self->nowarning  = TRUE;    //  No disconnect warnings for cluster proxy
-            amq_cluster_register (amq_cluster, self->client_spid, self->client_callback);
             break;
         default:
             self_exception (self, ASL_ACCESS_REFUSED, "Invalid authentication data");
@@ -125,7 +119,7 @@ This class implements the connection class for the AMQ server.
     &&  self->type == AMQ_CONNECTION_TYPE_NORMAL)
         self_exception (self, ASL_ACCESS_REFUSED, "Connections not allowed at present");
     else
-    if (amq_cluster->enabled) {
+    if (amq_cluster) {
         if (streq (method->virtual_host, amq_server_config_cluster_vhost (amq_server_config))) {
             //  Don't redirect cluster/console clients
             if (method->insist || self->type != AMQ_CONNECTION_TYPE_NORMAL)
@@ -142,7 +136,7 @@ This class implements the connection class for the AMQ server.
     }
     else
     if (streq (method->virtual_host, "/redirect"))
-        amq_server_agent_connection_redirect (self->thread, amq_broker->callback, NULL);
+        amq_server_agent_connection_redirect (self->thread, amq_broker->host, NULL);
     else
         amq_server_agent_connection_open_ok (self->thread, NULL);
 </method>
@@ -180,7 +174,7 @@ static int s_auth_plain (
         asl_field_list_destroy (&fields);
         return (0);
     }
-    config = amq_server_config->config;
+    config = ipr_config_dup (amq_server_config->config);
     ipr_config_locate (config, "/config/security", "plain");
     if (!config->located) {
         icl_console_print ("E: no 'plain' security defined in server config");
@@ -213,6 +207,7 @@ static int s_auth_plain (
         }
         ipr_config_next (config);
     }
+    ipr_config_destroy (&config);
     asl_field_list_destroy (&fields);
     return (self->type);
 }

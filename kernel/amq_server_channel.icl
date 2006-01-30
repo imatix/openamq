@@ -25,7 +25,7 @@ maximum number of consumers per channel is set at compile time.
     self->consumer_list = amq_consumer_by_channel_new ();
     icl_shortstr_fmt (self->cluster_id,
         "%s/%s/%d",
-        amq_broker? amq_broker->spid: "-",
+        amq_broker? amq_broker->name: "-",
         connection? connection->id: "-",
         self->number);
 </method>
@@ -168,7 +168,7 @@ maximum number of consumers per channel is set at compile time.
     Lookups up a cluster channel tag, returns the channel reference if
     found, else null. The caller must unlink the returned reference
     when finished with it.  The cluster channel tag is formatted thus:
-    spid/connectionid/channelnbr.
+    serverid/connectionid/channelnbr.
     </doc>
     <argument name = "cluster id" type = "char *">Cluster consumer tag</argument>
     <declare name = "channel" type = "amq_server_channel_t *">channel to return</declare>
@@ -184,7 +184,7 @@ maximum number of consumers per channel is set at compile time.
     //
     icl_shortstr_cpy (string, cluster_id);
 
-    //  String must start with our own spid
+    //  String must start with our own id
     connection_id = strchr (string, '/');
     assert (connection_id);
     connection_id++;

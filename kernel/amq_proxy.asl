@@ -22,19 +22,18 @@
     asl_field_list_t
         *fields;                        //  Decoded responses
     icl_shortstr_t
-        spid;
+        name;
     </local>
     //
-    strclr (spid);
     fields = asl_field_list_new (method->server_properties);
     assert (fields);
-    asl_field_list_cpy (fields, spid, "spid");
+    asl_field_list_cpy (fields, name, "name");
     asl_field_list_destroy (&fields);
-    assert (*spid);
+    assert (*name);
+    assert (amq_cluster);
 
-    //  Tell the cluster that the node we're talking to is now alive
-    if (amq_cluster)
-        amq_cluster_joined (amq_cluster, session, spid);
+    //  Tell the cluster that the peer we're talking to is now alive
+    amq_cluster_peer_ready (amq_cluster, session, name);
   </action>
 </class>
 

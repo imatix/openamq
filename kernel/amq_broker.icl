@@ -25,9 +25,9 @@
         <field name = "locked" type = "bool" label = "Broker locked?">
           <get>icl_shortstr_fmt (field_value, "%d", self->locked);</get>
         </field>
-        <field name = "spid" label = "Broker server process id (spid)">
-          <get>icl_shortstr_cpy (field_value, self->spid);</get>
-          <put>icl_shortstr_cpy (self->spid, field_value);</put>
+        <field name = "name" label = "Broker cluster name">
+          <get>icl_shortstr_cpy (field_value, self->name);</get>
+          <put>icl_shortstr_cpy (self->name, field_value);</put>
         </field>
         <field name = "vhost" type = "objref" repeat = "1">
           <get>
@@ -50,11 +50,6 @@
     </class>
 </data>
 
-<public>
-extern $(selftype)
-    *amq_broker;                        //  Single broker
-</public>
-
 <context>
     Bool
         locked;                         //  Is broker locked?
@@ -71,12 +66,11 @@ extern $(selftype)
 
 <method name = "new">
     <header>
-    //  Set callback from config file, otherwise it'll be set to
+    //  Set host address from config file, otherwise it'll be set to
     //  our first IP address and port. We have to do this before
     //  the broker starts the protocol agent, which may also set
-    //  the callback.
-    icl_shortstr_cpy (self->callback,
-        amq_server_config_cluster_callback (amq_server_config));
+    //  the host value.
+    icl_shortstr_cpy (self->host, amq_server_config_cluster_host (amq_server_config));
     </header>
 
     //  We use a single global vhost for now
@@ -90,6 +84,7 @@ extern $(selftype)
     self->auto_crash_timer = amq_server_config_auto_crash (amq_server_config);
     self->auto_block_timer = amq_server_config_auto_block (amq_server_config);
 
+    randomize ();
     if (self->auto_crash_timer)
         self->auto_crash_timer = randomof (self->auto_crash_timer) + 1;
     if (self->auto_block_timer)

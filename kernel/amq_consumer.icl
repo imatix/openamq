@@ -67,7 +67,7 @@ for Basic, File, and Stream content classes.
     self->channel  = channel;
     self->queue    = queue;
     self->class_id = method->class_id;
-
+    
     //  Class-dependent properties
     if (method->class_id == AMQ_SERVER_BASIC) {
         basic_consume = &method->payload.basic_consume;
@@ -100,11 +100,12 @@ for Basic, File, and Stream content classes.
     amq_proxy_method_t
         *method;
     </local>
+    //
     if (self->class_id == AMQ_SERVER_BASIC) {
         amq_consumer_basic_destroy (&self->consumer_basic);
 
         //  Broadcast cancel method to cluster using our cluster_id
-        if (self->clustered) {
+        if (self->clustered && amq_cluster) {
             method = amq_proxy_method_new_basic_cancel (self->cluster_id);
             amq_cluster_replicate (amq_cluster, (amq_server_method_t *) method);
             amq_proxy_method_destroy (&method);
@@ -117,7 +118,7 @@ for Basic, File, and Stream content classes.
     Lookups up a cluster consumer tag, returns the consumer reference
     if found, else null. The caller must unlink the returned reference
     when finished with it.  The cluster consumer tag is formatted thus:
-    spid/connectionid/tag.
+    serverid/connectionid/tag.
     </doc>
     <argument name = "cluster id" type = "char *">Cluster consumer tag</argument>
     <declare name = "consumer" type = "amq_consumer_t *">Consumer to return</declare>
@@ -133,7 +134,7 @@ for Basic, File, and Stream content classes.
     //
     icl_shortstr_cpy (string, cluster_id);
 
-    //  String must start with our own spid
+    //  String must start with our own server id
     connection_id = strchr (string, '/');
     assert (connection_id);
     connection_id++;
