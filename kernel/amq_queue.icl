@@ -96,7 +96,7 @@ class.  This is a lock-free asynchronous class.
     self->enabled     = TRUE;
     self->durable     = durable;
     self->exclusive   = exclusive;
-    self->clustered   = amq_cluster && !self->exclusive;
+    self->clustered   = amq_cluster->enabled && !self->exclusive;
     self->auto_delete = auto_delete;
     self->queue_basic = amq_queue_basic_new (self);
     icl_shortstr_cpy (self->name, name);
@@ -138,8 +138,8 @@ class.  This is a lock-free asynchronous class.
     <doc>
     Publish message content onto queue. Handles cluster distribution
     of messages to shared queues: if cluster is enabled and queue is
-    shared (!exclusive), message is queued only at primary server. If
-    we are not a primary server, we forward the message to the primary.
+    shared (!exclusive), message is queued only at master server. If
+    we are not a master server, we forward the message to the master.
     </doc>
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
@@ -152,11 +152,11 @@ class.  This is a lock-free asynchronous class.
     </release>
     //
     <action>
-    if (amq_cluster && self->clustered && !amq_cluster->primary) {
-        //  Pass message to shared queue on primary server unless
+    if (self->clustered && !amq_broker->master) {
+        //  Pass message to shared queue on master server unless
         //  message already came to us from another cluster peer.
         if (channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
-            amq_cluster_peer_push (amq_cluster, amq_cluster->primary_peer, method);
+            amq_cluster_peer_push (amq_cluster, amq_cluster->master_peer, method);
     }
     else
     if (self->enabled) {

@@ -45,6 +45,15 @@
     </doc>
   </field>
 
+  <field name = "master" type = "bit">
+     cluster master peer?
+    <doc>
+      Specifies whether the sender considers itself the master peer.
+      This should only be possible if the sender is the primary or
+      the backup server.
+    </doc>
+  </field>
+
   <field name = "heartbeat" type = "short">
     peer heartbeat interval
     <doc>
@@ -110,15 +119,6 @@
     <doc>
       Specifies the total number of cluster peers that the peer
       can see, including itself.
-    </doc>
-  </field>
-
-  <field name = "primary" type = "bit">
-     primary cluster peer?
-    <doc>
-      Specifies whether the sender is the primary peer. Note
-      that this information should be known by the recipient; we
-      restate it for sanity checking.
     </doc>
   </field>
 </method>

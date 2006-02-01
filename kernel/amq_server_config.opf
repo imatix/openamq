@@ -150,11 +150,12 @@ $\(selftype)
 </path>
 
 <path name = "/config/cluster" prefix = "cluster">
-    <property name = "enabled" type = "Bool" default = "0">
-    Server will join cluster or not?
+    <property name = "host" type = "char *">
+    IP address and port to use for incoming connections
     <doc>
-    Specifies whether or not this server process takes part in
-    a cluster.  Must be 1 for cluster work.
+    Specifies the ipaddress:port to use for incoming cluster connections
+    if the server runs on multiple IP addresses.  If not specified, the
+    cluster will connect to this server on its first IP address.
     </doc>
     </property>
 
@@ -165,25 +166,6 @@ $\(selftype)
     all servers in a cluster.  Any string, up to 255 chars long,
     can be used.  Note that applications must use the same virtual
     host name when connecting to the cluster.
-    </doc>
-    </property>
-
-    <property name = "primary" type = "char *">
-    List of primary servers
-    <doc>
-    Specifies all the primary servers in the cluster, as a list of
-    name:port or ipaddress:port words delimited by spaces.  All
-    servers in a cluster MUST have an IDENTICAL list of primary
-    servers.
-    </doc>
-    </property>
-
-    <property name = "host" type = "char *">
-    IP address and port to use for incoming connections
-    <doc>
-    Specifies the ipaddress:port to use for incoming cluster connections
-    if the server runs on multiple IP addresses.  If not specified, the
-    cluster will connect to this server on its first IP address.
     </doc>
     </property>
 

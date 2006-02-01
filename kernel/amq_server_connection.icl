@@ -63,7 +63,7 @@ This class implements the connection class for the AMQ server.
 
 <method name = "ready" template = "function">
     //  If cluster is booting, let through only cluster or console connections
-    if (amq_cluster && !amq_cluster->ready)
+    if (amq_cluster->enabled && !amq_cluster->ready)
         rc = self->type != AMQ_CONNECTION_TYPE_NORMAL;
     else
         rc = TRUE;
@@ -119,14 +119,13 @@ This class implements the connection class for the AMQ server.
     &&  self->type == AMQ_CONNECTION_TYPE_NORMAL)
         self_exception (self, ASL_ACCESS_REFUSED, "Connections not allowed at present");
     else
-    if (amq_cluster) {
+    if (amq_cluster->enabled) {
         if (streq (method->virtual_host, amq_server_config_cluster_vhost (amq_server_config))) {
-            //  Don't redirect cluster/console clients
+            //  Don't redirect insisting or cluster/console clients
             if (method->insist || self->type != AMQ_CONNECTION_TYPE_NORMAL)
-                amq_server_agent_connection_open_ok (self->thread,
-                    amq_server_config_cluster_primary (amq_server_config));
+                amq_server_agent_connection_open_ok (self->thread, amq_cluster->known_hosts);
             else
-                amq_cluster_redirect (amq_cluster, self);
+                amq_cluster_balance_client (amq_cluster, self);
         }
         else {
             icl_console_print ("E: client at %s tried to connect to invalid vhost '%s'",
@@ -135,6 +134,7 @@ This class implements the connection class for the AMQ server.
         }
     }
     else
+    //  TODO: document or remove this debugging feature
     if (streq (method->virtual_host, "/redirect"))
         amq_server_agent_connection_redirect (self->thread, amq_broker->host, NULL);
     else

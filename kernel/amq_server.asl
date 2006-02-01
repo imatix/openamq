@@ -52,8 +52,14 @@
 
                     if (exchange) {
                         //  Create exchange on all cluster peers
-                        if (amq_cluster && connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
-                            amq_cluster_replicate (amq_cluster, self);
+                        if (amq_cluster->enabled
+                        &&  connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
+                            amq_cluster_tunnel_out (
+                                amq_cluster,
+                                AMQ_CLUSTER_ALL,
+                                self,
+                                AMQ_CLUSTER_DURABLE,
+                                channel);
                     }
                     else
                         amq_server_connection_error (connection,
@@ -84,8 +90,14 @@
     exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
     if (exchange) {
         //  Delete exchange on all cluster peers
-        if (amq_cluster && connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
-            amq_cluster_replicate (amq_cluster, self);
+        if (amq_cluster->enabled
+        &&  connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
+            amq_cluster_tunnel_out (
+                amq_cluster,
+                AMQ_CLUSTER_ALL,
+                self,
+                AMQ_CLUSTER_DURABLE,
+                channel);
 
         //  Tell client delete was successful
         amq_server_agent_exchange_delete_ok (connection->thread, channel->number);
@@ -139,13 +151,19 @@
                 if (method->exclusive)
                     amq_server_connection_own_queue (connection, queue);
 
-                if (amq_cluster && connection->type != AMQ_CONNECTION_TYPE_CLUSTER) {
+                if (amq_cluster->enabled
+                &&  connection->type != AMQ_CONNECTION_TYPE_CLUSTER) {
                     if (method->exclusive)
                         //  Forward private queue default binding to all nodes
-                        amq_cluster_bind (amq_cluster, NULL, queue->name, NULL);
+                        amq_cluster_bind_exchange (amq_cluster, NULL, queue->name, NULL);
                     else
                         //  Make default binding on all cluster peers
-                        amq_cluster_replicate (amq_cluster, self);
+                        amq_cluster_tunnel_out (
+                            amq_cluster,
+                            AMQ_CLUSTER_ALL,
+                            self,
+                            AMQ_CLUSTER_DURABLE,
+                            channel);
                 }
             }
             else
@@ -190,13 +208,19 @@
                 connection->thread, channel->number);
 
             //  Tell cluster about new queue binding
-            if (amq_cluster && connection->type != AMQ_CONNECTION_TYPE_CLUSTER) {
+            if (amq_cluster->enabled
+            &&  connection->type != AMQ_CONNECTION_TYPE_CLUSTER) {
                 if (queue->clustered)
                     //  Make same binding on all cluster peers
-                    amq_cluster_replicate (amq_cluster, self);
+                    amq_cluster_tunnel_out (
+                        amq_cluster,
+                        AMQ_CLUSTER_ALL,
+                        self,
+                        AMQ_CLUSTER_DURABLE,
+                        channel);
                 else
                     //  Make exchange-to-exchange binding on all cluster peers
-                    amq_cluster_bind (amq_cluster,
+                    amq_cluster_bind_exchange (amq_cluster,
                         method->exchange, method->routing_key, method->arguments);
             }
             amq_queue_unlink (&queue);
@@ -217,9 +241,15 @@
     queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
     if (queue) {
         //  Delete the queue on all cluster peers
-        if (amq_cluster && connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+        if (amq_cluster->enabled
+        &&  connection->type != AMQ_CONNECTION_TYPE_CLUSTER
         &&  queue->clustered)
-            amq_cluster_replicate (amq_cluster, self);
+            amq_cluster_tunnel_out (
+                amq_cluster,
+                AMQ_CLUSTER_ALL,
+                self,
+                AMQ_CLUSTER_DURABLE,
+                channel);
 
         //  Tell client we deleted the queue ok
         amq_server_agent_queue_delete_ok (
@@ -241,9 +271,15 @@
     queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
     if (queue) {
         //  Purge queue on all cluster peers, using
-        if (amq_cluster && connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+        if (amq_cluster->enabled
+        &&  connection->type != AMQ_CONNECTION_TYPE_CLUSTER
         &&  queue->clustered)
-            amq_cluster_broadcast (amq_cluster, self);
+            amq_cluster_tunnel_out (
+                amq_cluster,
+                AMQ_CLUSTER_ALL,
+                self,
+                AMQ_CLUSTER_TRANSIENT,
+                channel);
 
         amq_queue_purge (queue, channel);
         amq_queue_unlink (&queue);
@@ -303,7 +339,8 @@
                 connection->id);
 
             //  Set cluster-id on fresh content coming from applications
-            if (amq_cluster && connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
+            if (amq_cluster->enabled
+            &&  connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
                 amq_content_$(class.name)_set_cluster_id (self->content, channel->cluster_id);
 
             amq_exchange_publish (exchange, channel, self);
@@ -325,10 +362,16 @@
     </local>
     queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
     if (queue) {
-        //  Pass request to cluster primary peer
-        if (amq_cluster && connection->type != AMQ_CONNECTION_TYPE_CLUSTER
-        &&  queue->clustered && !amq_cluster->primary)
-            amq_cluster_tunnel_primary (amq_cluster, self, channel);
+        //  Pass request to cluster master if we are not he
+        if (amq_cluster->enabled
+        &&  connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+        &&  queue->clustered && !amq_broker->master)
+            amq_cluster_tunnel_out (
+                amq_cluster,
+                AMQ_CLUSTER_PRIMARY,
+                self,
+                AMQ_CLUSTER_TRANSIENT,
+                channel);
         else
             amq_queue_get (queue, channel, self->class_id);
 
@@ -353,8 +396,9 @@
 <class name = "tunnel">
   <action name = "request">
     method = NULL;    //  Prevent compiler warning on unused method variable
-    if (amq_cluster && connection->type == AMQ_CONNECTION_TYPE_CLUSTER)
-        amq_cluster_accept (amq_cluster, self->content, channel);
+    if (amq_cluster->enabled
+    &&  connection->type == AMQ_CONNECTION_TYPE_CLUSTER)
+        amq_cluster_tunnel_in (amq_cluster, self->content, channel);
     else
         amq_server_connection_error (connection, ASL_NOT_ALLOWED, "Method not allowed");
   </action>

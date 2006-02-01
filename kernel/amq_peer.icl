@@ -38,9 +38,11 @@ cluster class.
         name,                           //  Peer server name
         host;                           //  Peer host name
     Bool
+        ready,                          //  Peer is connected & ready?
+        offline,                        //  Peer has gone offline
         primary,                        //  Peer is the primary node?
         backup,                         //  Peer is the backup node
-        ready;                          //  Peer is connected & ready?
+        master;                         //  Peer is master node
     int
         heartbeat,                      //  Heartbeat in seconds
         heartbeat_timer,                //  Count-down timer for heartbeat
@@ -57,10 +59,10 @@ cluster class.
     <argument name = "primary" type = "Bool">Peer is primary?</argument>
     <argument name = "backup" type = "Bool">Peer is backup?</argument>
     //
-    self->cluster = cluster;
     self->channel_nbr = 1;              //  Single channel per connection
+    self->cluster = cluster;
     self->primary = primary;
-    self->backup = backup;
+    self->backup  = backup;
     icl_shortstr_cpy (self->name, name);
     icl_shortstr_cpy (self->host, host);
 </method>
@@ -69,9 +71,9 @@ cluster class.
     self_disconnect (self);
 </method>
 
-<method name = "update" template = "function">
+<method name = "monitor" template = "function">
     <doc>
-    Update the peer node status. If the node was offline and has come
+    Monitor the peer node status. If the node was offline and has come
     online, connect to it, and if the node appears to be active, send
     it a status message.
 
@@ -156,6 +158,7 @@ cluster class.
             exchange = amq_exchange_list_next (&exchange);
         }
         self->ready = FALSE;
+        self->offline = TRUE;
     }
 </method>
 
@@ -173,6 +176,7 @@ cluster class.
     </local>
     //
     self->ready = TRUE;
+    self->offline = FALSE;
     icl_console_print ("I: cluster - connected to %s", self->host);
 
     self->heartbeat = amq_server_config_cluster_heartbeat (amq_server_config);
@@ -181,8 +185,8 @@ cluster class.
     //  Send a status message immediately to check our configuration
     self_send_status (self);
 
-    //  If we are the root server, synchronise our state to the new peer
-    if (self->cluster->primary) {
+    //  If we are the master server, synchronise our state to the new peer
+    if (amq_broker->master) {
         looseref = ipr_looseref_list_first (self->cluster->state_list);
         while (looseref) {
             content = (amq_content_tunnel_t *) (looseref->object);
@@ -205,6 +209,7 @@ cluster class.
     //
     method = amq_server_method_new_cluster_status (
         self->cluster->crc->value,
+        amq_broker->master,
         amq_server_config_cluster_heartbeat (amq_server_config),
         amq_server_connection_count (),
         amq_content_basic_count (),
@@ -213,17 +218,15 @@ cluster class.
         amq_queue_count (),
         amq_consumer_count (),
         amq_binding_count (),
-        amq_peer_count (),
-        self->cluster->primary);
+        amq_peer_count ());
 
-    amq_cluster_tunnel (self->cluster, self, method);
+    amq_cluster_tunnel_out (self->cluster, self, method, FALSE, NULL);
     amq_server_method_destroy (&method);
 </method>
 
 <method name = "recv status" template = "function">
     <doc>
-    We have received a Cluster.Status method from a specific peer.  We
-    average the heartbeat time between peers.
+    We have received a Cluster.Status method from a specific peer.
     </doc>
     <argument name = "method" type = "amq_server_cluster_status_t *">Method</argument>
     //
@@ -233,17 +236,13 @@ cluster class.
             method->signature, self->cluster->crc->value);
         self_disconnect (self);
     }
-    else
-    if (method->primary != self->primary) {
-        icl_console_print ("E: cluster - primary assignment error, %d != %d",
-            method->primary, self->primary);
-        self_disconnect (self);
-    }
     else {
+        //  Normalise heartbeat between peers
         self->heartbeat = (amq_server_config_cluster_heartbeat (amq_server_config)
                         +  method->heartbeat) / 2;
         self->heartbeat_ttl = AMQ_HEARTBEAT_TTL;
-        self->load = method->connections;
+        self->load   = method->connections;
+        self->master = method->master;
     }
 </method>
 

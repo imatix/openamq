@@ -207,7 +207,7 @@ class.
     looseref = ipr_looseref_list_first (self->peer_list);
     while (looseref) {
         peer = (amq_peer_t *) (looseref->object);
-        if (amq_cluster
+        if (amq_cluster->enabled
         &&  channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER
         &&  strneq (channel->connection->client_proxy_name, peer->name)) {
             if (amq_server_config_trace_route (amq_server_config))

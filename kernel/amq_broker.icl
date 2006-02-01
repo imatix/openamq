@@ -52,7 +52,8 @@
 
 <context>
     Bool
-        locked;                         //  Is broker locked?
+        locked,                         //  Is broker locked?
+        master;                         //  Acting as cluster master server?
     int
         monitor_timer,                  //  Monitor timer
         dump_state_timer,               //  Dump state timer

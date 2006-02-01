@@ -1,5 +1,3 @@
-- boom configure is *very slow*
-
 
     
 amq bridging
@@ -43,6 +41,34 @@ amq bridging
     ... can we imagine cluster being constructed by applications?
     ... ? no.
 
+
+amq-313
+    - rg says, waiting for gb to remove code
+    - gb says, waiting for rg to change api
+    - rg says, api changed, week ago
+    - gb says, code removed, week ago
+    - gb says, waiting for rg to fix api
+    - rg says, no api changes pending
+    - gb says, error in exception handling
+    - rg says, potential issue, not concrete
+    - gb says, tests and fails, already logged
+    -> ownership of problem is unknown
+    -> rg is the bottleneck, as warned previously
+    -> stress and difficulty for whole team
+    -> is .net needed for GTW?
+    - numerous issues pending on rg side
+
+conclusions:
+    - rg, ma not helping process
+    - rg not responding to issues in jms layer
+        - prefers to criticise iMatix team
+    - ma raising trivial but very hard to track issues and then
+      complaining about 'slow response from team'
+
+    - was grm/j code review needed?
+    - significant number of problems in code?
+    - see mina issue, amq 313: rg each time
+    
 
 
 ********************************************************************
