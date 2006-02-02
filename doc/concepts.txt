@@ -3376,8 +3376,6 @@ We define methods as being either:
 A full explanation of classes and methods is provided in the Reference
 section of this document.
 
-[see amq_rfc006_quick.txt]
-
 Explanatory Notes
 -----------------
 
