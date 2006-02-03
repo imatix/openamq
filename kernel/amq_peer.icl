@@ -38,8 +38,8 @@ cluster class.
         name,                           //  Peer server name
         host;                           //  Peer host name
     Bool
-        ready,                          //  Peer is connected & ready?
-        offline,                        //  Peer has gone offline
+        connected,                      //  Peer is connected & ready?
+        offlined,                       //  Peer has gone offline
         primary,                        //  Peer is the primary node?
         backup,                         //  Peer is the backup node
         master;                         //  Peer is master node
@@ -97,7 +97,8 @@ cluster class.
     if (self->thread) {
         if (self->thread->zombie)
             self_disconnect (self);
-        else {
+        else
+        if (self->connected) {
             self->heartbeat_timer--;
             if (self->heartbeat_timer == 0) {
                 self_send_status (self);
@@ -150,15 +151,16 @@ cluster class.
             amq_proxy_agent_connection_close (self->thread);
         smt_thread_unlink (&self->thread);
     }
-    if (self->ready) {
+    if (self->connected) {
         //  Go through all exchanges & bindings, remove link to peer
         exchange = amq_exchange_list_first (amq_vhost->exchange_list);
         while (exchange) {
             amq_exchange_unbind_peer (exchange, self);
             exchange = amq_exchange_list_next (&exchange);
         }
-        self->ready = FALSE;
-        self->offline = TRUE;
+        self->connected = FALSE;
+        self->offlined = TRUE;
+        icl_console_print ("I: cluster - disconnected from %s", self->host);
     }
 </method>
 
@@ -175,8 +177,9 @@ cluster class.
         *content;                       //  Server state message
     </local>
     //
-    self->ready = TRUE;
-    self->offline = FALSE;
+    self->connected = TRUE;
+    self->offlined = FALSE;
+    self->master = FALSE;               //  Until we get a new status
     icl_console_print ("I: cluster - connected to %s", self->host);
 
     self->heartbeat = amq_server_config_cluster_heartbeat (amq_server_config);
@@ -187,6 +190,9 @@ cluster class.
 
     //  If we are the master server, synchronise our state to the new peer
     if (amq_broker->master) {
+        if (amq_server_config_trace_cluster (amq_server_config))
+            icl_console_print ("I: cluster - synchronising with new peer");
+            
         looseref = ipr_looseref_list_first (self->cluster->state_list);
         while (looseref) {
             content = (amq_content_tunnel_t *) (looseref->object);
@@ -252,7 +258,7 @@ cluster class.
     </doc>
     <argument name = "content" type = "amq_content_tunnel_t *">Data to send</argument>
     //
-    if (self->ready) {
+    if (self->connected) {
         if (amq_server_config_trace_cluster (amq_server_config))
             icl_console_print ("C: proxy    method=%s peer=%s", content->data_name, self->name);
         amq_proxy_agent_tunnel_request (self->thread, self->channel_nbr, content, NULL);
@@ -266,7 +272,7 @@ cluster class.
     </doc>
     <argument name = "method" type = "amq_server_method_t *">Publish method</argument>
     //
-    if (self->ready) {
+    if (self->connected) {
         if (self->last_sequence != method->sequence) {
             if (amq_server_config_trace_cluster (amq_server_config))
                 icl_console_print ("C: passthru method=%s peer=%s",

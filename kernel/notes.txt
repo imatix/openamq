@@ -1,5 +1,30 @@
-
+AMQP USPs
+    Wire level protocol
+    Carries opaque binary packages
+    Any size from 0 to 2e64 bytes
+    Rapid binary protocol
+    Powerful routing architecture
+    Widely-backed standard
+    Vendor, system neutral
     
+    
+OpenAMQ USPs
+    WireAPIs in C, C++, Java, Perl, Python
+    JMS, COM APIs
+    Fast, robust server
+    Excellent performance and scaling
+    Portable to all platforms
+    Zero-configuration server
+
+Missing
+    Secure authentication and transport
+    Persistent messages
+    
+    
+
+
+
+
 amq bridging
     - create server-to-server bridge
     - or cluster-to-cluster bridge
@@ -42,33 +67,6 @@ amq bridging
     ... ? no.
 
 
-amq-313
-    - rg says, waiting for gb to remove code
-    - gb says, waiting for rg to change api
-    - rg says, api changed, week ago
-    - gb says, code removed, week ago
-    - gb says, waiting for rg to fix api
-    - rg says, no api changes pending
-    - gb says, error in exception handling
-    - rg says, potential issue, not concrete
-    - gb says, tests and fails, already logged
-    -> ownership of problem is unknown
-    -> rg is the bottleneck, as warned previously
-    -> stress and difficulty for whole team
-    -> is .net needed for GTW?
-    - numerous issues pending on rg side
-
-conclusions:
-    - rg, ma not helping process
-    - rg not responding to issues in jms layer
-        - prefers to criticise iMatix team
-    - ma raising trivial but very hard to track issues and then
-      complaining about 'slow response from team'
-
-    - was grm/j code review needed?
-    - significant number of problems in code?
-    - see mina issue, amq 313: rg each time
-    
 
 
 ********************************************************************
@@ -77,7 +75,6 @@ Planning for 1.0 release
 
 Date: 31 January 2005
     This is very brutal.
-    And we will get there.
 
 Functionality:
 

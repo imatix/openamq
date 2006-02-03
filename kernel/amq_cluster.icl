@@ -42,7 +42,7 @@ warn the primary server to cede its role as master.
 <import class = "amq_server_classes" />
 
 <public name = "header">
-#define AMQ_CLUSTER_PRIMARY     (void *) 1
+#define AMQ_CLUSTER_MASTER      (void *) 1
 #define AMQ_CLUSTER_ALL         0
 #define AMQ_CLUSTER_TRANSIENT   0       //  Method durability
 #define AMQ_CLUSTER_DURABLE     1
@@ -239,38 +239,16 @@ amq_cluster_t
     <action>
     amq_peer_t
         *peer;                          //  Cluster peer
-    Bool
-        cluster_alive = TRUE;           //  Cluster is working?
     int
         masters = 0;                    //  How many masters
+    Bool
+        cluster_alive = TRUE;           //  Is cluster alive?
 
     //  Update all peers' status
     peer = amq_peer_list_first (self->peer_list);
     while (peer) {
         amq_peer_monitor (peer);
-        if (peer->offline) {
-            //  Handle a peer that goes/is offline
-            if (self->primary) {
-                //  If we're primary and backup goes offline, we become master
-                if (peer->backup)
-                    self->master = TRUE;
-            }
-            else
-            if (self->backup) {
-                //  If we're backup and primary goes offline, we become master
-                //      So long as we have at least one connected client
-                if (peer->primary)
-                    self->master = (amq_server_connection_count () > 0);
-            }
-            else {
-                //  If we're support, and master goes offline, we suspend cluster
-                if (peer == self->master_peer)
-                    cluster_alive = FALSE;
-            }
-        }
-        else
-        if (peer->ready) {
-            //  Handle a peer that comes back/is online
+        if (peer->connected) {
             if (self->primary) {
                 //  If we're primary, and backup is master, we stop being master
                 if (peer->backup && peer->master) {
@@ -280,47 +258,77 @@ amq_cluster_t
             }
             else
             if (self->backup) {
-                //  If we're backup, and primary is master, we remain master
-                if (peer->primary && peer->master) {
-                    ;   //  Do nothing, primary peer should stop being master
-                }
+                //  If we're backup, and primary is master, leave things alone
+                if (peer->primary && peer->master)
+                    ;   //  Primary peer should itself stop being master
             }
             else {
                 //  If we're support, complain if we detect multiple masters
                 if (peer->master)
                     masters++;
-                if (masters > 0) {
+                if (masters == 1) {
                     icl_console_print ("E: cluster - multiple masters detected");
-                    cluster_alive = FALSE;
+                    self->master_peer = NULL;
                 }
-            }            
+            }
+        }
+        else
+        if (peer->offlined) {
+            if (self->primary) {
+                //  If we're primary and backup goes offline, we become master
+                if (peer->backup && peer->master)
+                    self->master = TRUE;
+            }
+            else
+            if (self->backup) {
+                //  If we're backup and primary goes offline, we become 
+                //  master if we have at least one connected client.
+                if (peer->primary && peer->master) {
+                    if (amq_server_connection_count ())
+                        self->master = TRUE;
+                    else {
+                        icl_console_print ("I: cluster - unable to become master");
+                        self->master_peer = NULL;
+                    }
+                }
+            }
+            else {
+                //  If we're support, and master goes offline, we suspend cluster
+                if (peer->master) {
+                    icl_console_print ("I: cluster - no master server");
+                    self->master_peer = NULL;
+                }
+            }
+            peer->master = FALSE;       //  In any case
         }
         else
             cluster_alive = FALSE;      //  Waiting for cluster to start fully
-            
+
         peer = amq_peer_list_next (&peer);
     }
     //  Set new calculated master state
     if (self->master) {
         if (!amq_broker->master)
-            icl_console_print ("I: ******************* MASTER ON ********************");
+            icl_console_print ("I: ********************  MASTER ON  *********************");
         amq_broker->master = TRUE;
         self->master_peer = NULL;
     }
     else {
         if (amq_broker->master)
-            icl_console_print ("I: ******************* MASTER OFF *******************");
+            icl_console_print ("I: ********************  MASTER OFF  ********************");
         amq_broker->master = FALSE;
+        if (!self->master_peer)
+            cluster_alive = FALSE;      //  No master means cluster is inoperable
     }
     if (cluster_alive && !self->ready) {
         self->ready = TRUE;         //  Cluster is now ready for use
-        icl_console_print ("I: **** CLUSTER VHOST '%s' READY FOR CONNECTIONS ****",
+        icl_console_print ("I: *****  CLUSTER VHOST '%s' READY FOR CONNECTIONS  *****",
             amq_server_config_cluster_vhost (amq_server_config));
     }
     else
     if (!cluster_alive && self->ready) {
         self->ready = FALSE;
-        icl_console_print ("I: **** CLUSTER VHOST '%s' STOPPING NEW CONNECTIONS ****",
+        icl_console_print ("I: *****  CLUSTER VHOST '%s' STOPPING NEW CONNECTIONS  *****",
             amq_server_config_cluster_vhost (amq_server_config));
     }
     //  Cluster monitor runs once per second
@@ -370,8 +378,10 @@ amq_cluster_t
     peer = amq_peer_list_first (self->peer_list);
     while (peer) {
         //  Weight our peer to avoid needless redirections
-        if (peer->load + 1 < lowest_load)
+        if (peer->load + 1 < lowest_load) {
+            icl_console_print ("### peer load=%d, our load=%d", peer->load, lowest_load);
             best_peer = amq_peer_link (peer);
+        }
         peer = amq_peer_list_next (&peer);
     }
     if (best_peer) {
@@ -442,11 +452,11 @@ amq_cluster_t
         s_append_to_state (self, content);
 
     //  The peer argument can be a constant, or a real peer reference
-    if (peer == AMQ_CLUSTER_PRIMARY) {
-        if (self->primary_peer)
-            amq_peer_tunnel (self->primary_peer, content);
+    if (peer == AMQ_CLUSTER_MASTER) {
+        if (self->master_peer)
+            amq_peer_tunnel (self->master_peer, content);
         else
-            icl_console_print ("E: cluster - attempted to tunnel to self");       
+            icl_console_print ("E: cluster - unable to tunnel to master");
     }
     else
     if (peer == AMQ_CLUSTER_ALL) {

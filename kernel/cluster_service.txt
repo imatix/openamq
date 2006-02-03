@@ -18,7 +18,7 @@ failover mechanism:
     - primary, backup, one is "head"
     - we're primary & active
         * at startup we're head
-        - backup dies, we always become head
+        - backup dies, we become head in any case
         - if backup comes back as head, we secede
         - if backup disappears, we take over as head
     - we're backup:

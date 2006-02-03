@@ -122,8 +122,11 @@ This class implements the connection class for the AMQ server.
     if (amq_cluster->enabled) {
         if (streq (method->virtual_host, amq_server_config_cluster_vhost (amq_server_config))) {
             //  Don't redirect insisting or cluster/console clients
-            if (method->insist || self->type != AMQ_CONNECTION_TYPE_NORMAL)
+            if (method->insist)
                 amq_server_agent_connection_open_ok (self->thread, amq_cluster->known_hosts);
+            else
+            if (self->type != AMQ_CONNECTION_TYPE_NORMAL)
+                amq_server_agent_connection_open_ok (self->thread, NULL);
             else
                 amq_cluster_balance_client (amq_cluster, self);
         }
