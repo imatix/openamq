@@ -14,11 +14,12 @@
 
 <file name = "gdstyle.css"           class = "web resource">Gurudoc style sheet</file>
 <file name = "mainlogo.jpg"          class = "web resource">AMQ logo</file>
-<file name = "amq_server_agent.dot"  class = "digraph"     >OpenAMQ server FSM</file>
-<file name = "amq_sclient_agent.dot" class = "digraph"     >OpenAMQ client FSM</file>
-<file name = "amq_aclient_agent.dot" class = "digraph"     >OpenAMQ client FSM</file>
-<file name = "server_classes.dot"    class = "digraph"     >OpenAMQ server classes</file>
-<file name = "openamq_tools.dot"     class = "digraph"     >OpenAMQ tool chain</file>
+
+<!-- file name = "amq_server_agent.dot"  class = "digraph"     >OpenAMQ server FSM</file -->
+<!-- file name = "amq_sclient_agent.dot" class = "digraph"     >OpenAMQ client FSM</file -->
+<!-- file name = "amq_aclient_agent.dot" class = "digraph"     >OpenAMQ client FSM</file -->
+<!-- file name = "server_classes.dot"    class = "digraph"     >OpenAMQ server classes</file -->
+<!-- file name = "openamq_tools.dot"     class = "digraph"     >OpenAMQ tool chain</file -->
 
 <class name = "digraph" inherit = "private resource">
     <derive extension = ".png"  class = "generated" />
