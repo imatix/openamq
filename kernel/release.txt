@@ -1,3 +1,47 @@
+1.0a4 - 2006/02/03
+---------------------------------------------------------------------
+Bug Fixes:
+
+    AMQ-176   JMS layer is closing the consumer after receiving a message bounce.     
+    AMQ-296   Clustering: root synchronisation failures
+    AMQ-303   "monitor server status" option gives wildly different results with different monitor intervals  
+    AMQ-310   When server is started on invalid port, the process does not exit correctly    
+    AMQ-312   base2/asl does not build due to function signature difference      
+    AMQ-315   amq_server goes into an infinite when you pass it command-line options.
+    AMQ-316   auto_delete queues do not appear to get deleted     
+    AMQ-317   Queue deletion does not show queue name     
+    AMQ-319   Consumers not correctly destroyed when client disconnects      
+    AMQ-322   Client sends a bind request before receiving response for Queue.Declare     
+    BASE-37   Boom makefile generation is slightly broken      
+    BASE2-157 char escaping in <doc> sections in opf files       
+    BASE2-165 icl doesn't build ST  
+    BASE2-167 ipr_log.icl is missing      
+
+Changes:
+
+    AMQ-113   Build protocol kernel test suite      
+    AMQ-238   Additional OpenAMQ feature required to satisfy JPMC Permit To Build
+    AMQ-271   Implement configurable queue limits
+    AMQ-280   Clustering: specify protocol proxying standard     
+    AMQ-283   Clustering: implement connection redirection in JMS client
+    AMQ-290   Create separate repository for OpenAMQ JMS Client       
+    AMQ-304   Implement configurable timeouts on reads/writes    
+    AMQ-306   Improve StdC synchronisation    
+    AMQ-309   PAL: Provide a way to start the clock at a specific point in the script   
+    AMQ-311   Improve server command-line interface and help      
+    AMQ-318   Implement auto-crash, auto-block function in server      
+    BASE-38   smttime.c: Remove use of cast expressions as lvalues   
+    BASE2-140 Allow vector write to sockets in SMT    
+    BASE2-142 SMT should not handle signals when it is used to implement a library      
+    BASE2-144 Add support for user-defined signals    
+    BASE2-161 Automatic method destructor for async objects      
+    BASE2-163 Improved error reporting in iCL containers      
+
+Known bugs:
+
+    - Queue deletion is not working correctly, due to a link/possess issue.
+    - Queue browsing across clustered servers not yet implemented.
+    
 1.0a3 - 2006/01/24
 ---------------------------------------------------------------------
 Bug Fixes:

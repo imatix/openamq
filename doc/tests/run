@@ -68,7 +68,7 @@ for testcase in `ls *.pal|grep -v amq_test_base.pal|grep -v works.pal|grep -v fa
     fi
 
     killall -9 amq_server &>/dev/null && echo -n "(${RED}lingering server killed${RESET})" || echo -n
-    `./${testcase%%.pal} &>/dev/null`
+    ./${testcase%%.pal} &>/dev/null
     if [ $? -eq 0 ]; then
         STAT="[ $GREEN OK $RESET ]"
         LSTAT="OK   "
