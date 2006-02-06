@@ -1,0 +1,26 @@
+<?xml?>
+<pdl
+    name      = "OpenAMQ performance tests"
+    version   = "1.0"
+    copyright = "Copyright (c) 2004-2006 JPMorgan and iMatix Corporation"
+    workflow  = "standard.pwl"
+    >
+
+<include filename = "prelude.pdl" />
+
+<file name = "blaster_client.pal"  class = "pal script" />
+<file name = "blaster_server.pal"  class = "pal script" />
+<file name = "echo_client.pal"     class = "pal script" />
+<file name = "echo_server.pal"     class = "pal script" />
+
+<file name = "blaster_client"      class = "public command" />
+<file name = "blaster_server"      class = "public command" />
+<file name = "echo_client"         class = "public command" />
+<file name = "echo_server"         class = "public command" />
+
+<class name = "pal script" inherit = "gsl data">
+PAL script
+    <derive extension = ".c" class = "generated main" />
+</class>
+
+</pdl>
