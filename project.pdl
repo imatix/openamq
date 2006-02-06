@@ -12,12 +12,14 @@
     <distrib name = "OpenAMQ source" type = "source">
         <project directory = "kernel"        />
         <project directory = "tests"         />
+        <project directory = "tests_perf"    />
         <project directory = "doc"           />
     </distrib>
 
     <distrib name = "OpenAMQ install" type = "install">
         <project directory = "kernel"        />
         <project directory = "tests"         />
+        <project directory = "tests_perf"    />
         <project directory = "doc"           />
     </distrib>
 </pdl>
