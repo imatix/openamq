@@ -133,7 +133,7 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
                     break;
                 case 'v':
                     printf (SERVER_NAME "/" VERSION " - revision " SVN_REVISION "\n");
-                    printf (SERVER_TEXT "\n\n");
+                    printf (BUILDMODEL "\n\n");
                     printf (COPYRIGHT "\n");
                     printf (NOWARRANTY);
                     printf (BUILDMODEL "\n");
@@ -141,7 +141,7 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
                     exit (EXIT_SUCCESS);
                 case 'h':
                     printf (SERVER_NAME "/" VERSION "\n");
-                    printf (SERVER_TEXT "\n\n");
+                    printf (BUILDMODEL "\n\n");
                     printf (COPYRIGHT "\n");
                     printf (NOWARRANTY);
                     printf (USAGE1, SERVER_NAME);
@@ -173,7 +173,7 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
         icl_console_mode (ICL_CONSOLE_QUIET, TRUE);
     else {
         printf (SERVER_NAME "/" VERSION "\n");
-        printf (SERVER_TEXT "\n\n");
+        printf (BUILDMODEL "\n\n");
         printf (COPYRIGHT "\n");
         printf (NOWARRANTY);
     }

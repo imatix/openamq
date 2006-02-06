@@ -8,7 +8,6 @@
 //  Name and description of server for public consumption
 
 #define SERVER_NAME     "OpenAMQ"
-#define SERVER_TEXT     "*** Test server - for internal use only ***"
 
 #include "amq_server_main.inc"
 
