@@ -9,14 +9,14 @@
 <doc>
 This implements the cluster controller, which is responsible for all
 cluster transport and management issues. The cluster controller is an
-asynchronous object. It manages a list of cluster peers.  
+asynchronous object. It manages a list of cluster peers.
 
 The cluster consists of one primary server, zero or one backup server,
 and zero or more support servers. At any moment either the primary or
 the backup server is the "head server".  The head server holds all
 shared queues.
 
-Failover from primary to backup is automatic, recovery to primary 
+Failover from primary to backup is automatic, recovery to primary
 happens manually, through stopping the backup server after the primary
 server has been restarted.
 
@@ -120,8 +120,8 @@ amq_cluster_t
     config = ipr_config_dup (amq_server_config->config);
     ipr_config_locate (config, "/config/cluster", NULL);
     if (config->located) {
-	    ipr_config_locate (config, "server", NULL);
-	    while (config->located) {
+        ipr_config_locate (config, "server", NULL);
+        while (config->located) {
             name = ipr_config_get (config, "name", "");
             host = ipr_config_get (config, "host", "");
             
