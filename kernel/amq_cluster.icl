@@ -378,9 +378,9 @@ amq_cluster_t
     peer = amq_peer_list_first (self->peer_list);
     while (peer) {
         //  Weight our peer to avoid needless redirections
-        if (peer->load + 1 < lowest_load) {
-            icl_console_print ("### peer load=%d, our load=%d", peer->load, lowest_load);
+        if (peer->load + 5 < lowest_load) {
             best_peer = amq_peer_link (peer);
+            lowest_load = peer->load;
         }
         peer = amq_peer_list_next (&peer);
     }
@@ -401,7 +401,7 @@ amq_cluster_t
 
 <method name = "bind exchange" template = "function">
     <doc>
-    Replicate cluster bind method to all peers.  This sets up an
+    Replicate cluster bind method to all peers. This sets up an
     exchange-to-exchange binding so that messages will get bounced
     down to the peer that holds the local queue. We send this method
     packaged as a forwarded method.
@@ -446,9 +446,27 @@ amq_cluster_t
     <action>
     amq_content_tunnel_t
         *content;                       //  Message content
+    ipr_bucket_t
+        *bucket;
 
-    content = s_tunnel_content (method, durable, channel);
-    if (durable)                        //  Record in state if wanted
+    //  Wrap outgoing method as a content that we can tunnel to the
+    //  other peer or peers
+    content = amq_content_tunnel_new  ();
+    bucket = amq_server_method_encode (method);
+    amq_content_tunnel_record_body    (content, bucket);
+    amq_content_tunnel_set_proxy_name (content, amq_broker->name);
+    amq_content_tunnel_set_data_name  (content, method->name);
+    amq_content_tunnel_set_durable    (content, durable);
+    if (channel) {
+        amq_content_tunnel_set_headers_field (content,
+            "connection", channel->connection->id);
+        amq_content_tunnel_set_headers_field (content,
+            "channel", "%d", channel->number);
+    }
+    ipr_bucket_destroy (&bucket);
+
+    //  Record wrapped method in state if wanted
+    if (durable)                        
         s_append_to_state (self, content);
 
     //  The peer argument can be a constant, or a real peer reference
@@ -521,6 +539,10 @@ amq_cluster_t
             if (method->class_id == AMQ_SERVER_CLUSTER)
                 s_execute_method (self, method, peer);
             else
+            if (method->class_id  == AMQ_SERVER_BASIC
+            &&  method->method_id == AMQ_SERVER_BASIC_GET)
+                s_execute_basic_get (self, method, peer, channel, content);
+            else
                 amq_server_method_execute (method, channel->connection, channel);
         }
         peer = amq_peer_list_next (&peer);
@@ -557,41 +579,20 @@ amq_cluster_t
 </method>
 
 <private name = "async header">
-static amq_content_tunnel_t *
-    s_tunnel_content (amq_server_method_t *method, Bool durable, amq_server_channel_t *channel);
 static void
     s_append_to_state (amq_cluster_t *self, amq_content_tunnel_t *content);
+static void
+    s_execute_basic_get (amq_cluster_t *self, amq_server_method_t *method, amq_peer_t *peer,
+        amq_server_channel_t *channel, amq_content_tunnel_t *content);
 static void
     s_execute_method (amq_cluster_t *self, amq_server_method_t *method, amq_peer_t *peer);
 </private>
 
 <private name = "async footer">
-static amq_content_tunnel_t *
-s_tunnel_content (amq_server_method_t *method, Bool durable, amq_server_channel_t *channel)
-{
-    ipr_bucket_t
-        *bucket;
-    amq_content_tunnel_t
-        *content;                       //  Message content
-
-    content = amq_content_tunnel_new  ();
-    bucket = amq_server_method_encode (method);
-    amq_content_tunnel_record_body    (content, bucket);
-    amq_content_tunnel_set_proxy_name (content, amq_broker->name);
-    amq_content_tunnel_set_data_name  (content, method->name);
-    amq_content_tunnel_set_durable    (content, durable);
-    if (channel) {
-        amq_content_tunnel_set_headers_field (content,
-            "connection", channel->connection->id);
-        amq_content_tunnel_set_headers_field (content,
-            "channel", "%d", channel->number);
-    }
-    ipr_bucket_destroy (&bucket);
-    return (content);
-}
-
 static void
-s_append_to_state (amq_cluster_t *self, amq_content_tunnel_t *content)
+s_append_to_state (
+    amq_cluster_t        *self,
+    amq_content_tunnel_t *content)
 {
     if (amq_server_config_trace_cluster (amq_server_config))
         icl_console_print ("C: record   method=%s", content->data_name);
@@ -609,11 +610,55 @@ s_append_to_state (amq_cluster_t *self, amq_content_tunnel_t *content)
     }
 }
 
+//  We handle the queue GET method here since we need to return it
+//  using the channel/connection information from the tunneled content
+
+static void
+s_execute_basic_get (
+    amq_cluster_t        *self,
+    amq_server_method_t  *method,
+    amq_peer_t           *peer,
+    amq_server_channel_t *channel,
+    amq_content_tunnel_t *content)
+{
+    asl_field_list_t
+        *headers;
+    char
+        *connection_id,
+        *channel_nbr;
+    amq_queue_t
+        *queue;
+    //  We format a cluster-id that is stamped into the content before
+    //  it is sent back to the requesting node, so that this node can
+    //  route the content out to the correct client application.
+    icl_shortstr_t
+        cluster_id;         
+        
+    headers = asl_field_list_new (content->headers);
+    connection_id = asl_field_list_string (headers, "connection");
+    channel_nbr   = asl_field_list_string (headers, "channel");
+    icl_shortstr_fmt (cluster_id, "%s/%s/%s", peer->name, connection_id, channel_nbr);
+    asl_field_list_destroy (&headers);
+
+    queue = amq_queue_table_search (amq_vhost->queue_table, method->payload.basic_get.queue);
+    if (queue) {
+        amq_queue_get (queue, channel, method->class_id, cluster_id);
+        amq_queue_unlink (&queue);
+    }
+    else {
+        icl_console_print ("E: cluster queue '%s' not defined", method->payload.basic_get.queue);
+        amq_server_agent_basic_get_empty (channel->connection->thread, channel->number, cluster_id);
+    }
+}
+
 //  We handle the cluster class here, since we already have the sending
 //  peer and it's easier than going via the method execute code.
 //
 static void
-s_execute_method (amq_cluster_t *self, amq_server_method_t *method, amq_peer_t *peer)
+s_execute_method (
+    amq_cluster_t       *self,
+    amq_server_method_t *method,
+    amq_peer_t          *peer)
 {
     //  Cluster.Status method
     if (method->method_id == AMQ_SERVER_CLUSTER_STATUS) {

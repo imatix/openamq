@@ -215,6 +215,7 @@ class.
             amq_cluster_peer_push (amq_cluster, peer, method);
             rc++;                       //  Count recepients
         }
+        looseref = ipr_looseref_list_next (&looseref);
     }
 </method>
 

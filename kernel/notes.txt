@@ -1,3 +1,9 @@
+Console API
+    amq_mgt_object_name - method
+        
+
+
+
 AMQP USPs
     Wire level protocol
     Carries opaque binary packages

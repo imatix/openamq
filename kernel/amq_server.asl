@@ -365,9 +365,11 @@
         //  Pass request to cluster master if we are not he
         if (amq_cluster->enabled
         &&  connection->type != AMQ_CONNECTION_TYPE_CLUSTER
-        &&  queue->clustered && !amq_broker->master) {
-            amq_server_channel_error (channel, ASL_NOT_FOUND, "Queue browsing not yet supported across cluster");
+        &&  queue->clustered
+        && !amq_broker->master) {
             /*
+            amq_server_channel_error (channel, ASL_NOT_FOUND, "Queue browsing not yet supported across cluster");
+            */
             icl_console_print ("#### TUNNEL QUEUE GET ");
             amq_cluster_tunnel_out (
                 amq_cluster,
@@ -375,10 +377,9 @@
                 self,
                 AMQ_CLUSTER_TRANSIENT,
                 channel);
-            */
         }
         else
-            amq_queue_get (queue, channel, self->class_id);
+            amq_queue_get (queue, channel, self->class_id, NULL);
 
         amq_queue_unlink (&queue);
     }

@@ -106,8 +106,11 @@ cluster class.
                 //  If no reply received within X heartbeats, disconnect
                 self->heartbeat_timer = self->heartbeat;
                 self->heartbeat_ttl--;
-                if (self->heartbeat_ttl == 0)
+                if (self->heartbeat_ttl == 0) {
+                    icl_console_print ("E: cluster - peer '%s' not responding, assuming failed",
+                        self->name);
                     self_disconnect (self);
+                }
             }
         }
     }

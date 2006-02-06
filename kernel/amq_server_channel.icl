@@ -194,8 +194,7 @@ maximum number of consumers per channel is set at compile time.
     *channel_nbr++ = 0;
 
     //  Lookup connection, channel, and channel if necessary
-    connection = amq_server_connection_table_search (
-        amq_broker->connections, connection_id);
+    connection = amq_server_connection_table_search (amq_broker->connections, connection_id);
     if (connection) {
         channel = amq_server_channel_table_search (connection->channels, atoi (channel_nbr));
         amq_server_connection_unlink (&connection);

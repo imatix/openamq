@@ -61,20 +61,19 @@
   </action>
 
   <action name = "get-ok">
-#if 0
-    amq_server_channel_t
-        *channel;                       //  Channel to send message to
     amq_content_$(class.name)_t
         *content;                       //  Current content
+    amq_server_channel_t
+        *channel;                       //  Channel to send message on to
 
-    channel = amq_server_channel_cluster_search (method->cluster_id);
+    //  We use content's cluster_id to know where to forward content
+    content = (amq_content_$(class.name)_t *) self->content;
+    channel = amq_server_channel_cluster_search (content->cluster_id);
     if (channel) {
-        content = (amq_content_$(class.name)_t *) self->content;
         amq_server_agent_$(class.name)_get_ok (
             channel->connection->thread,
             channel->number,
             content,
-            NULL,                       //  Cluster_id is null
             method->delivery_tag,
             method->redelivered,
             method->exchange,
@@ -85,14 +84,13 @@
     }
     else
         icl_console_print ("E: no channel for proxied message, discarding");
-#endif
   </action>
 
   <action name = "get-empty">
-#if 0
     amq_server_channel_t
         *channel;                       //  Channel to send message to
 
+    //  The method actually has the cluster id in it, still
     channel = amq_server_channel_cluster_search (method->cluster_id);
     if (channel) {
         amq_server_agent_$(class.name)_get_empty (
@@ -101,7 +99,6 @@
             NULL);                      //  Cluster_id is null
         amq_server_channel_unlink (&channel);
     }
-#endif
   </action>
 </class>
 

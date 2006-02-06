@@ -1,6 +1,3 @@
-test
-    - sleep 1 in queue.declare
-    
 
 new topology
     - all servers specified in config file
@@ -32,10 +29,6 @@ failover mechanism:
         - if head disconnects, remove it
         - if more than one server is head, complain
             - optionally, tell one to secede
-
-    
-
-
         
 --------------------------------------------------------------------------
 
@@ -196,6 +189,21 @@ class.cancel
     OK
         
 class.get, get-ok
+    - tunnel get to shared queue
+        - set metacontent header "channel", "connection"
+        
+    - reply with normal get-ok, but need to tell where to send it...
+    - 
+    - reply with tunneled get-ok, need to unpack
+        - will be structured content...
+
+    - if queue empty or missing
+        - need to return a queue-empty
+        - can we tunnel this?
+            s1: basic.get
+            s1: basic.get-empty... using cluster id
+                -> which should be moved to tunneled content
+    
     - send get to shared queue
     - send get-ok back to connection
         - need some token in the get-ok: cluster-tag

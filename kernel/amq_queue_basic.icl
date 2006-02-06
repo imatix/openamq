@@ -171,6 +171,7 @@ runs lock-free as a child of the asynchronous queue class.
     Returns next message off queue, if any.
     </doc>
     <argument name = "channel" type = "amq_server_channel_t *" />
+    <argument name = "cluster id" type = "char *">Stamp content with cluster id</argument>
     <local>
     amq_content_basic_t
         *content;                       //  Content object reference
@@ -180,6 +181,8 @@ runs lock-free as a child of the asynchronous queue class.
     if (amq_server_channel_alive (channel)) {
         content = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
         if (content) {
+            if (cluster_id)
+                amq_content_basic_set_cluster_id (content, cluster_id);
             amq_server_agent_basic_get_ok (
                 channel->connection->thread,
                 channel->number,

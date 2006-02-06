@@ -110,7 +110,7 @@ for Basic, File, and Stream content classes.
         amq_consumer_basic_destroy (&self->consumer_basic);
 
         //  Broadcast cancel method to cluster using our cluster_id
-        if (amq_cluster->enabled && self->clustered) {
+        if (amq_cluster && amq_cluster->enabled && self->clustered) {
             method = amq_proxy_method_new_basic_cancel (self->cluster_id);
             amq_cluster_tunnel_out (
                 amq_cluster,

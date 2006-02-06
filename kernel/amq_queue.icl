@@ -178,10 +178,17 @@ class.  This is a lock-free asynchronous class.
     </doc>
     <argument name = "channel"  type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "class id" type = "int" >The content class</argument>
+    <argument name = "cluster id" type = "char *">Stamp content with cluster id</argument>
     //
+    <possess>
+    cluster_id = icl_mem_strdup (cluster_id);
+    </possess>
+    <release>
+    icl_mem_free (cluster_id);
+    </release>
     <action>
     if (class_id == AMQ_SERVER_BASIC)
-        amq_queue_basic_get (self->queue_basic, channel);
+        amq_queue_basic_get (self->queue_basic, channel, cluster_id);
     else
         icl_console_print ("E: illegal content class (%d)", class_id);
     </action>
