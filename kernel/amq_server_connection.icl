@@ -48,7 +48,7 @@ This class implements the connection class for the AMQ server.
     ///
     //  Delete connection's exclusive queues
     while ((queue = (amq_queue_t *) ipr_looseref_pop (self->own_queue_list)))
-        amq_queue_destroy (&queue);
+        amq_queue_unlink (&queue);
 
     amq_vhost_unlink (&self->vhost);
     ipr_looseref_list_destroy (&self->own_queue_list);
@@ -174,7 +174,7 @@ static int s_auth_plain (
     password = asl_field_list_string (fields, "password");
     if (!login || !password) {
         self_exception (self, ASL_SYNTAX_ERROR, "Missing authentication data");
-        asl_field_list_destroy (&fields);
+        asl_field_list_unlink (&fields);
         return (0);
     }
     config = ipr_config_dup (amq_server_config->config);
@@ -182,7 +182,7 @@ static int s_auth_plain (
     if (!config->located) {
         icl_console_print ("E: no 'plain' security defined in server config");
         self_exception (self, ASL_INTERNAL_ERROR, "Bad server configuration");
-        asl_field_list_destroy (&fields);
+        asl_field_list_unlink (&fields);
         return (0);
     }
     //  Now check user login and password and set type if found
@@ -211,7 +211,7 @@ static int s_auth_plain (
         ipr_config_next (config);
     }
     ipr_config_destroy (&config);
-    asl_field_list_destroy (&fields);
+    asl_field_list_unlink (&fields);
     return (self->type);
 }
 </private>

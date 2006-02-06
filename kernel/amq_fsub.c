@@ -215,7 +215,7 @@ main (int argc, char *argv [])
     asl_field_new_longstr (field_list, "headers", headers);
     asl_field_new_string  (field_list, "match",  "all");
     arguments = asl_field_list_flatten (field_list);
-    asl_field_list_destroy (&field_list);
+    asl_field_list_unlink (&field_list);
     rc = amq_client_session_queue_bind (
         session, ticket, opt_queue, "amq.match", NULL, arguments);
     icl_longstr_destroy (&headers);
@@ -243,7 +243,7 @@ main (int argc, char *argv [])
                     content->message_id,
                     content->routing_key);
 
-            amq_content_basic_destroy (&content);
+            amq_content_basic_unlink (&content);
             if (delay_mode)
                 sleep (1);
         }

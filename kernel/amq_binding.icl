@@ -82,7 +82,7 @@ class.
     //
     //  Drop all references to queues and peers for the binding
     while ((queue = (amq_queue_t *) ipr_looseref_pop (self->queue_list)))
-        amq_queue_destroy (&queue);
+        amq_queue_unlink (&queue);
     while ((peer = (amq_peer_t *) ipr_looseref_pop (self->peer_list)))
         amq_peer_unlink (&peer);
 
@@ -110,7 +110,7 @@ class.
     if (looseref)                       //  Ignore duplicates
         ipr_looseref_unlink (&looseref);
     else
-        ipr_looseref_queue (self->queue_list, amq_queue_possess (queue));
+        ipr_looseref_queue (self->queue_list, amq_queue_link (queue));
 </method>
 
 <method name = "bind peer" template = "function">
@@ -147,7 +147,7 @@ class.
     while (looseref) {
         if (looseref->object == queue) {
             queue = (amq_queue_t *) (looseref->object);
-            amq_queue_destroy (&queue);
+            amq_queue_unlink (&queue);
             ipr_looseref_destroy (&looseref);
             break;
         }

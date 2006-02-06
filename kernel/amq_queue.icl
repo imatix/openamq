@@ -107,8 +107,8 @@ class.  This is a lock-free asynchronous class.
 
     //WORKAROUND FOR ICL BUG - BASE2-166
     //One too many links, one too few destroys
-    self->links--;
-    self->possess_count++;
+//    self->links--;
+//    self->possess_count++;
 </method>
 
 <method name = "destroy">
@@ -145,10 +145,10 @@ class.  This is a lock-free asynchronous class.
     <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
     //
     <possess>
-    amq_server_method_possess (method);
+    amq_server_method_link (method);
     </possess>
     <release>
-    amq_server_method_destroy (&method);
+    amq_server_method_unlink (&method);
     </release>
     //
     <action>
@@ -280,7 +280,7 @@ class.  This is a lock-free asynchronous class.
             icl_console_print ("Q: auto-del queue=%s", self->name);
         queue_ref = amq_queue_link (self);
         amq_queue_unbind  (queue_ref);
-        amq_queue_destroy (&queue_ref);
+        amq_queue_unlink (&queue_ref);
     }
     </action>
 </event>

@@ -257,7 +257,7 @@
 
         //  Destroy the queue on this peer
         amq_queue_unbind  (queue);
-        amq_queue_destroy (&queue);
+        amq_queue_unlink (&queue);
     }
     else
         amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");

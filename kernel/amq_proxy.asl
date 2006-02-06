@@ -28,7 +28,7 @@
     fields = asl_field_list_new (method->server_properties);
     assert (fields);
     asl_field_list_cpy (fields, name, "name");
-    asl_field_list_destroy (&fields);
+    asl_field_list_unlink (&fields);
     assert (*name);
     assert (amq_cluster);
 

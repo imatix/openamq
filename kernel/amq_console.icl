@@ -125,10 +125,10 @@ $(selftype)
     </doc>
     <argument name = "content" type = "amq_content_basic_t *">The message content</argument>
     <possess>
-    amq_content_basic_possess (content);
+    amq_content_basic_link (content);
     </possess>
     <release>
-    amq_content_basic_destroy (&content);
+    amq_content_basic_unlink (&content);
     </release>
     <action>
     //
@@ -200,14 +200,14 @@ $(selftype)
     <argument name = "object id" type = "qbyte">Object id</argument>
     <argument name = "fields"    type = "asl_field_list_t *">Object fields</argument>
     <possess>
-    amq_content_basic_possess (request);
+    amq_content_basic_link (request);
     if (fields)
-        asl_field_list_possess (fields);
+        asl_field_list_link (fields);
     </possess>
     <release>
-    amq_content_basic_destroy (&request);
+    amq_content_basic_unlink (&request);
     if (fields)
-        asl_field_list_destroy (&fields);
+        asl_field_list_unlink (&fields);
     </release>
     <action>
     asl_field_t
@@ -255,10 +255,10 @@ $(selftype)
     <argument name = "request"   type = "amq_content_basic_t *">Original request</argument>
     <argument name = "object id" type = "qbyte">Object id</argument>
     <possess>
-    amq_content_basic_possess (request);
+    amq_content_basic_link (request);
     </possess>
     <release>
-    amq_content_basic_destroy (&request);
+    amq_content_basic_unlink (&request);
     </release>
     <action>
     ipr_xml_t
@@ -381,7 +381,7 @@ s_execute_modify (
             fields = s_get_field_list (xml_command);
             self->class_ref [object_id]->modify (
                 self->object_ref [object_id], request, fields);
-            asl_field_list_destroy (&fields);
+            asl_field_list_unlink (&fields);
         }
         else
             s_reply_error (request, "modify-reply", "notfound");
@@ -450,7 +450,7 @@ s_execute_method (
             fields = s_get_field_list (xml_command);
             self->class_ref [object_id]->method (
                 self->object_ref [object_id], method_name, request, fields);
-            asl_field_list_destroy (&fields);
+            asl_field_list_unlink (&fields);
         }
         else
             s_reply_error (request, "method-reply", "notfound");
@@ -535,7 +535,7 @@ s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
     //  Create a Basic.Publish method to carry the content
     method = amq_client_method_new_basic_publish (
         0, "amq.direct", request->reply_to, FALSE, FALSE);
-    method->content = amq_content_basic_possess (content);
+    method->content = amq_content_basic_link (content);
 
     //  Publish the message
     amq_exchange_publish (exchange, NULL, (amq_server_method_t *) method);

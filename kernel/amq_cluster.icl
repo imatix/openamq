@@ -206,7 +206,7 @@ amq_cluster_t
     self->ready = FALSE;
 
     while ((content = (amq_content_tunnel_t *) ipr_looseref_pop (self->state_list)))
-        amq_content_tunnel_destroy (&content);
+        amq_content_tunnel_unlink (&content);
 
     ipr_crc_destroy           (&self->crc);
     ipr_looseref_list_destroy (&self->state_list);
@@ -416,7 +416,7 @@ amq_cluster_t
     //
     method = amq_server_method_new_cluster_bind (exchange, routing_key, arguments);
     amq_cluster_tunnel_out (self, AMQ_CLUSTER_ALL, method, AMQ_CLUSTER_DURABLE, NULL);
-    amq_server_method_destroy (&method);
+    amq_server_method_unlink (&method);
 </method>
 
 <method name = "tunnel out" template = "async function" async = "1">
@@ -433,12 +433,12 @@ amq_cluster_t
     <argument name = "channel" type = "amq_server_channel_t *">channel for reply</argument>
     //
     <possess>
-    amq_server_method_possess (method);
+    amq_server_method_link (method);
     if (channel)
         amq_server_channel_link (channel);
     </possess>
     <release>
-    amq_server_method_destroy (&method);
+    amq_server_method_unlink (&method);
     if (channel)
         amq_server_channel_unlink (&channel);
     </release>
@@ -470,7 +470,7 @@ amq_cluster_t
     else
         amq_peer_tunnel (peer, content);
 
-    amq_content_tunnel_destroy (&content);
+    amq_content_tunnel_unlink (&content);
     </action>
 </method>
 
@@ -484,11 +484,11 @@ amq_cluster_t
     <argument name = "channel" type = "amq_server_channel_t *">channel for reply</argument>
     //
     <possess>
-    amq_content_tunnel_possess (content);
+    amq_content_tunnel_link (content);
     amq_server_channel_link (channel);
     </possess>
     <release>
-    amq_content_tunnel_destroy (&content);
+    amq_content_tunnel_unlink (&content);
     amq_server_channel_unlink (&channel);
     </release>
     //
@@ -525,7 +525,7 @@ amq_cluster_t
         }
         peer = amq_peer_list_next (&peer);
     }
-    amq_server_method_destroy (&method);
+    amq_server_method_unlink (&method);
     ipr_bucket_destroy (&bucket);
     amq_peer_unlink (&peer);
 
@@ -544,10 +544,10 @@ amq_cluster_t
     <argument name = "method" type = "amq_server_method_t *">Publish method</argument>
     //
     <possess>
-    amq_server_method_possess (method);
+    amq_server_method_link (method);
     </possess>
     <release>
-    amq_server_method_destroy (&method);
+    amq_server_method_unlink (&method);
     </release>
     //
     <action>
@@ -596,7 +596,7 @@ s_append_to_state (amq_cluster_t *self, amq_content_tunnel_t *content)
     if (amq_server_config_trace_cluster (amq_server_config))
         icl_console_print ("C: record   method=%s", content->data_name);
 
-    amq_content_tunnel_possess (content);
+    amq_content_tunnel_link (content);
     ipr_looseref_queue (self->state_list, content);
     self->state_size += content->body_size + sizeof (content);
 

@@ -97,7 +97,7 @@ that is in every content header).
             }
             field = asl_field_list_next (&field);
         }
-        asl_field_list_destroy (&fields);
+        asl_field_list_unlink (&fields);
 
         //  If zero fields specified, match on all messages
         if (binding->field_count == 0)
@@ -171,7 +171,7 @@ that is in every content header).
             }
         }
         amq_hitset_destroy (&hitset);
-        asl_field_list_destroy (&headers);
+        asl_field_list_unlink (&headers);
     }
 </method>
 

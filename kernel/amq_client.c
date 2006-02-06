@@ -293,7 +293,7 @@ main (int argc, char *argv [])
             rc = amq_client_session_basic_publish (
                     session, content, ticket, opt_exchange,
                     opt_routing, mandatory, immediate);
-            amq_content_basic_destroy (&content);
+            amq_content_basic_unlink (&content);
             if (rc) {
                 icl_console_print ("E: [%s] could not send message to server - %s",
                     opt_queue, session->error_text);
@@ -331,7 +331,7 @@ main (int argc, char *argv [])
                         icl_console_print ("I: [%s] acknowledge batch %d...",
                             opt_queue, count / batch_size);
                 }
-                amq_content_basic_destroy (&content);
+                amq_content_basic_unlink (&content);
                 if (delay_mode)
                     sleep (1);
 
@@ -346,7 +346,7 @@ main (int argc, char *argv [])
                 count++;
                 icl_console_print ("I: [%s] message number %s was returned",
                     opt_queue, content->message_id);
-                amq_content_basic_destroy (&content);
+                amq_content_basic_unlink (&content);
             }
             if (async_mode) {
                 //  If we expect more, wait for something to happen

@@ -79,11 +79,11 @@ maximum number of consumers per channel is set at compile time.
     //
     <possess>
     amq_queue_link (queue);
-    amq_server_method_possess (method);
+    amq_server_method_link (method);
     </possess>
     <release>
     amq_queue_unlink (&queue);
-    amq_server_method_destroy (&method);
+    amq_server_method_unlink (&method);
     </release>
     //
     <action>

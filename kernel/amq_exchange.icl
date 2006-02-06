@@ -347,10 +347,10 @@ for each type of exchange. This is a lock-free asynchronous class.
     <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
     //
     <possess>
-    amq_server_method_possess (method);
+    amq_server_method_link (method);
     </possess>
     <release>
-    amq_server_method_destroy (&method);
+    amq_server_method_unlink (&method);
     </release>
     //
     <action>

@@ -26,7 +26,7 @@ runs lock-free as a child of the asynchronous queue class.
     </local>
     //
     while ((content = (amq_content_basic_t *) ipr_looseref_pop (self->content_list)))
-        amq_content_basic_destroy (&content);
+        amq_content_basic_unlink (&content);
 </method>
 
 <method name = "publish" template = "function">
@@ -61,7 +61,7 @@ runs lock-free as a child of the asynchronous queue class.
             amq_content_basic_t
                 *oldest;
             oldest = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
-            amq_content_basic_destroy (&oldest);
+            amq_content_basic_unlink (&oldest);
             icl_console_print ("W: queue is full (%d messages) - discarding newest", queue_limit);
         }
         else {
@@ -72,7 +72,7 @@ runs lock-free as a child of the asynchronous queue class.
     ipr_meter_count (amq_broker->imeter);
 
     if (content) {
-        amq_content_basic_possess (content);
+        amq_content_basic_link (content);
         ipr_looseref_queue (self->content_list, content);
 
         //  Dispatch and handle case where no message was sent
@@ -95,7 +95,7 @@ runs lock-free as a child of the asynchronous queue class.
                         icl_console_print ("Q: return   queue=%s message=%s",
                             self->queue->name, content->message_id);
                 }
-                amq_content_basic_destroy (&content);
+                amq_content_basic_unlink (&content);
             }
             else
                 amq_queue_pre_dispatch (self->queue);
@@ -156,7 +156,7 @@ runs lock-free as a child of the asynchronous queue class.
             //  Move consumer to end of queue to implement a round-robin
             amq_consumer_by_queue_queue (self->active_consumers, consumer);
             amq_consumer_unlink (&consumer);
-            amq_content_basic_destroy (&content);
+            amq_content_basic_unlink (&content);
             ipr_meter_count (amq_broker->xmeter);
             rc++;
         }
@@ -189,7 +189,7 @@ runs lock-free as a child of the asynchronous queue class.
                 content->exchange,
                 content->routing_key,
                 ipr_looseref_list_count (self->content_list));
-            amq_content_basic_destroy (&content);
+            amq_content_basic_unlink (&content);
             ipr_meter_count (amq_broker->xmeter);
         }
         else
@@ -208,7 +208,7 @@ runs lock-free as a child of the asynchronous queue class.
     </local>
     //
     while ((content = (amq_content_basic_t *) ipr_looseref_pop (self->content_list))) {
-        amq_content_basic_destroy (&content);
+        amq_content_basic_unlink (&content);
         rc++;
     }
 </method>

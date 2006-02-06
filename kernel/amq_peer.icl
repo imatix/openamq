@@ -227,7 +227,7 @@ cluster class.
         amq_peer_count ());
 
     amq_cluster_tunnel_out (self->cluster, self, method, FALSE, NULL);
-    amq_server_method_destroy (&method);
+    amq_server_method_unlink (&method);
 </method>
 
 <method name = "recv status" template = "function">
