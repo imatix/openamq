@@ -20,6 +20,8 @@ CLIENT_HOST=${CLIENT_HOST:-}
 SERVER_HOST=${SERVER_HOST:-}
 #  Host that amq_server is running on
 AMQ_HOST=${AMQ_HOST:-localhost}
+#  Prefix to use for running tests
+RUN_PREFIX=${RUN_PREFIX:-}
 
 
 #  Run the server (service provider) end of the test
@@ -29,9 +31,9 @@ run_server ()
     if [ -n "${SERVER_HOST}" ]; then
         SERVER_COMMAND="ssh -n ${SERVER_HOST} "
     fi
-    SERVER_COMMAND="${SERVER_COMMAND} \
-        blaster_server -c       \
-	    -s ${AMQ_HOST}      \
+    SERVER_COMMAND="${SERVER_COMMAND}  \
+        ${RUN_PREFIX}blaster_server -c \
+	    -s ${AMQ_HOST}             \
 	    -C ${MESSAGE_COUNT}"
     ${SERVER_COMMAND} > ${SERVER_RESULT} 2>&1 &
     sleep 2
@@ -45,10 +47,10 @@ run_client ()
     if [ -n "${CLIENT_HOST}" ]; then
         CLIENT_COMMAND="ssh -n ${CLIENT_HOST} "
     fi
-    CLIENT_COMMAND="${CLIENT_COMMAND} \
-        blaster_client -c       \
-            -s ${AMQ_HOST}      \
-            -C ${MESSAGE_COUNT} \
+    CLIENT_COMMAND="${CLIENT_COMMAND}  \
+        ${RUN_PREFIX}blaster_client -c \
+            -s ${AMQ_HOST}             \
+            -C ${MESSAGE_COUNT}        \
             -S ${MESSAGE_SIZE}"
     ${CLIENT_COMMAND} > ${CLIENT_RESULT} 2>&1
 }

@@ -20,6 +20,8 @@ CLIENT_HOST=${CLIENT_HOST:-}
 SERVER_HOST=${SERVER_HOST:-}
 #  Host that amq_server is running on
 AMQ_HOST=${AMQ_HOST:-localhost}
+#  Prefix to use for running tests
+RUN_PREFIX=${RUN_PREFIX:-}
 
 
 #  Run the server (service provider) end of the test
@@ -30,7 +32,7 @@ run_server ()
         SERVER_COMMAND="ssh -n ${SERVER_HOST} "
     fi
     SERVER_COMMAND="${SERVER_COMMAND} \
-	echo_server -q                \
+	${RUN_PREFIX}echo_server -q   \
 	-s ${AMQ_HOST}                \
 	-C ${MESSAGE_COUNT}"
     ${SERVER_COMMAND} &
@@ -46,9 +48,9 @@ run_client ()
         CLIENT_COMMAND="ssh -n ${CLIENT_HOST} "
     fi
     CLIENT_COMMAND="${CLIENT_COMMAND} \
-	echo_client -c          \
-	    -s ${AMQ_HOST}      \
-	    -C ${MESSAGE_COUNT} \
+	${RUN_PREFIX}echo_client -c   \
+	    -s ${AMQ_HOST}            \
+	    -C ${MESSAGE_COUNT}       \
 	    -S ${MESSAGE_SIZE}"
     ${CLIENT_COMMAND} > ${CLIENT_RESULT} 2>&1
 }
