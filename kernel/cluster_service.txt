@@ -1,4 +1,3 @@
-
 new topology
     - all servers specified in config file
         - servers share same config file
