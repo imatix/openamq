@@ -184,26 +184,32 @@ cluster class.
     self->offlined = FALSE;
     self->master = FALSE;               //  Until we get a new status
     icl_console_print ("I: cluster - connected to %s", self->host);
+    if (streq (name, self->name)) {
+        self->heartbeat = amq_server_config_cluster_heartbeat (amq_server_config);
+        self->heartbeat_timer = self->heartbeat;
 
-    self->heartbeat = amq_server_config_cluster_heartbeat (amq_server_config);
-    self->heartbeat_timer = self->heartbeat;
+        //  Send a status message immediately to check our configuration
+        self_send_status (self);
 
-    //  Send a status message immediately to check our configuration
-    self_send_status (self);
-
-    //  If we are the master server, synchronise our state to the new peer
-    if (amq_broker->master) {
-        if (amq_server_config_trace_cluster (amq_server_config))
-            icl_console_print ("I: cluster - synchronising with new peer");
-            
-        looseref = ipr_looseref_list_first (self->cluster->state_list);
-        while (looseref) {
-            content = (amq_content_tunnel_t *) (looseref->object);
+        //  If we are the master server, synchronise our state to the new peer
+        if (amq_broker->master) {
             if (amq_server_config_trace_cluster (amq_server_config))
-                icl_console_print ("C: replay   method=%s", content->data_name);
-            amq_peer_tunnel (self, content);
-            looseref = ipr_looseref_list_next (&looseref);
+                icl_console_print ("I: cluster - synchronising with new peer");
+            
+            looseref = ipr_looseref_list_first (self->cluster->state_list);
+            while (looseref) {
+                content = (amq_content_tunnel_t *) (looseref->object);
+                if (amq_server_config_trace_cluster (amq_server_config))
+                    icl_console_print ("C: replay   method=%s", content->data_name);
+                amq_peer_tunnel (self, content);
+                looseref = ipr_looseref_list_next (&looseref);
+            }
         }
+    }
+    else {
+        icl_console_print ("E: cluster - server using wrong cluster name (%s, expected %s)",
+            name, self->name);
+        smt_shut_down ();
     }
 </method>
 
