@@ -111,21 +111,17 @@
         *queue;
     static qbyte
         queue_index = 0;
-    icl_shortstr_t
-        queue_name;
     </local>
     //
     //  Find queue and create if necessary
-    if (*method->queue)
-        icl_shortstr_cpy (queue_name, method->queue);
-    else {
+    if (strnull (method->queue)) {
         if (amq_cluster->enabled)
-            icl_shortstr_fmt (queue_name, "%s:tmp_%06d",
+            icl_shortstr_fmt (method->queue, "%s:tmp_%06d",
                 amq_broker->name, icl_atomic_inc32 (&queue_index));
         else
-            icl_shortstr_fmt (queue_name, "tmp_%06d", icl_atomic_inc32 (&queue_index));
+            icl_shortstr_fmt (method->queue, "tmp_%06d", icl_atomic_inc32 (&queue_index));
     }
-    queue = amq_queue_table_search (amq_vhost->queue_table, queue_name);
+    queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
     if (!queue) {
         if (method->passive)
             amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
@@ -133,7 +129,7 @@
             queue = amq_queue_new (
                 amq_vhost,
                 connection? connection->id: "",
-                queue_name,
+                method->queue,
                 method->durable,
                 method->exclusive,
                 method->auto_delete);
@@ -153,10 +149,10 @@
                         //  Forward private queue default binding to all nodes
                         amq_cluster_bind_exchange (amq_cluster, NULL, queue->name, NULL);
                     else
-                        //  Make default binding on all cluster peers
+                        //  Forward queue.declare to all nodes
                         amq_cluster_tunnel_out (amq_cluster,
                             AMQ_CLUSTER_ALL, self, AMQ_CLUSTER_DURABLE, channel);
-                    }
+                }
             }
             else
                 amq_server_connection_error (connection,
