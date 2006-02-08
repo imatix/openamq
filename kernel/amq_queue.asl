@@ -76,7 +76,7 @@
       and the passive option is zero, the server MUST raise a connection
       exception with reply code 403 (access refused).
     </doc>
-    <assert check = "regexp" value = "^[a-zA-Z0-9-_.:]*$" />
+    <assert check = "regexp" value = "^[a-zA-Z0-9-_.]*$" />
   </field>
 
   <field name = "passive" type = "bit">
@@ -135,8 +135,9 @@
     auto-delete queue when unused
     <doc>
       If set, the queue is deleted when all consumers have finished
-      using it. If there was no consumer ever on the queue, it won't be
-      deleted.
+      using it. Last consumer can be cancelled either explicitly or because
+      its channel is closed. If there was no consumer ever on the queue, it
+      won't be deleted.
     </doc>
     <doc name = "rule" test = "amq_queue_02">
       The server SHOULD allow for a reasonable delay between the point
