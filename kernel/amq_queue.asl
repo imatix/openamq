@@ -76,7 +76,7 @@
       and the passive option is zero, the server MUST raise a connection
       exception with reply code 403 (access refused).
     </doc>
-    <assert check = "regexp" value = "^[a-zA-Z0-9-_.]*$" />
+    <assert check = "regexp" value = "^[a-zA-Z0-9-_.:]*$" />
   </field>
 
   <field name = "passive" type = "bit">
