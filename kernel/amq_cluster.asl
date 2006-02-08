@@ -18,7 +18,8 @@
 </doc>
 
 <doc name = "grammar">
-    cluster             = C:STATUS
+    cluster             = C:HELLO
+                        / C:STATUS
                         / C:BIND
 </doc>
 
@@ -27,14 +28,38 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "status">
-  provide peer status data
+<method name = "hello">
+  greet cluster peer
   <doc>
-    This method provides a cluster peer with status information.  We
-    use this method for cluster heartbeating and synchronisation.
+    This method tells the cluster peer our name and cluster protocol
+    version.
   </doc>
   <chassis name = "server" implement = "MUST" />
   <chassis name = "client" implement = "MUST" />
+
+  <field name = "version" type = "short">
+     cluster protocol version
+    <doc>
+      This is the cluster protocol version.  The recipient should
+      verify that this matches its own version number.
+    </doc>
+  </field>
+
+  <field name = "name" type = "shortstr">
+    own cluster name
+    <doc>
+      This is the cluster name of the sender.  The recipient should
+      verify that this is the expected name.
+    </doc>
+  </field>
+
+  <field name = "vhost" type = "shortstr">
+    virtual host name
+    <doc>
+      This is the virtual host name of the sender. The recipient
+      should verify that this matches its own virtual host name.
+    </doc>
+  </field>
 
   <field name = "signature" type = "long">
     configuration signature
@@ -44,6 +69,16 @@
       do not provide a valid signature.
     </doc>
   </field>
+</method>
+
+<method name = "status">
+  provide peer status data
+  <doc>
+    This method provides a cluster peer with status information.  We
+    use this method for cluster heartbeating and synchronisation.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <chassis name = "client" implement = "MUST" />
 
   <field name = "master" type = "bit">
      cluster master peer?

@@ -184,32 +184,76 @@ cluster class.
     self->offlined = FALSE;
     self->master = FALSE;               //  Until we get a new status
     icl_console_print ("I: cluster - connected to %s", self->host);
-    if (streq (name, self->name)) {
-        self->heartbeat = amq_server_config_cluster_heartbeat (amq_server_config);
-        self->heartbeat_timer = self->heartbeat;
 
-        //  Send a status message immediately to check our configuration
-        self_send_status (self);
+    self->heartbeat = amq_server_config_cluster_heartbeat (amq_server_config);
+    self->heartbeat_timer = self->heartbeat;
 
-        //  If we are the master server, synchronise our state to the new peer
-        if (amq_broker->master) {
+    //  Send a status message immediately to check our configuration
+    self_send_hello (self);
+
+    //  If we are the master server, synchronise our state to the new peer
+    if (amq_broker->master) {
+        if (amq_server_config_trace_cluster (amq_server_config))
+            icl_console_print ("I: cluster - synchronising with new peer");
+        
+        looseref = ipr_looseref_list_first (self->cluster->state_list);
+        while (looseref) {
+            content = (amq_content_tunnel_t *) (looseref->object);
             if (amq_server_config_trace_cluster (amq_server_config))
-                icl_console_print ("I: cluster - synchronising with new peer");
-            
-            looseref = ipr_looseref_list_first (self->cluster->state_list);
-            while (looseref) {
-                content = (amq_content_tunnel_t *) (looseref->object);
-                if (amq_server_config_trace_cluster (amq_server_config))
-                    icl_console_print ("C: replay   method=%s", content->data_name);
-                amq_peer_tunnel (self, content);
-                looseref = ipr_looseref_list_next (&looseref);
-            }
+                icl_console_print ("C: replay   method=%s", content->data_name);
+            amq_peer_tunnel (self, content);
+            looseref = ipr_looseref_list_next (&looseref);
         }
     }
-    else {
-        icl_console_print ("E: cluster - server using wrong cluster name (%s, expected %s)",
-            name, self->name);
-        smt_shut_down ();
+</method>
+
+<method name = "send hello" template = "function">
+    <doc>
+    Send a Cluster.Hello method to the peer.
+    </doc>
+    <local>
+    amq_server_method_t
+        *method;
+    </local>
+    //
+    method = amq_server_method_new_cluster_hello (
+        AMQ_CLUSTER_VERSION,
+        amq_broker->name,
+        amq_server_config_cluster_vhost (amq_server_config),
+        self->cluster->crc->value);
+    amq_cluster_tunnel_out (self->cluster, self, method, FALSE, NULL);
+    amq_server_method_unlink (&method);
+</method>
+
+<method name = "recv hello" template = "function">
+    <doc>
+    We have received a Cluster.Hello method from a specific peer.
+    </doc>
+    <argument name = "method" type = "amq_server_cluster_hello_t *">Method</argument>
+    //
+    //  Double-check that we agree with peer on cluster settings
+    if (method->version != AMQ_CLUSTER_VERSION) {
+        icl_console_print ("E: cluster - peer has wrong version %04x (expect %04x)",
+            method->version, AMQ_CLUSTER_VERSION);
+        self_disconnect (self);
+    }
+    else
+    if (strneq (method->name, self->name)) {
+        icl_console_print ("E: cluster - peer using wrong name %s (expect %s)",
+            method->name, self->name);
+        self_disconnect (self);
+    }
+    else
+    if (method->signature != self->cluster->crc->value) {
+        icl_console_print ("E: cluster - peer has wrong signature %04x (expect %04x)",
+            method->signature, self->cluster->crc->value);
+        self_disconnect (self);
+    }
+    else
+    if (strneq (method->vhost, amq_server_config_cluster_vhost (amq_server_config))) {
+        icl_console_print ("E: cluster - peer using wrong vhost %s (expect %s)",
+            method->vhost, amq_server_config_cluster_vhost (amq_server_config));
+        self_disconnect (self);
     }
 </method>
 
@@ -223,7 +267,6 @@ cluster class.
     </local>
     //
     method = amq_server_method_new_cluster_status (
-        self->cluster->crc->value,
         amq_broker->master,
         amq_server_config_cluster_heartbeat (amq_server_config),
         amq_server_connection_count (),
@@ -245,20 +288,12 @@ cluster class.
     </doc>
     <argument name = "method" type = "amq_server_cluster_status_t *">Method</argument>
     //
-    //  Double-check that we agree with peer on cluster configuration
-    if (method->signature != self->cluster->crc->value) {
-        icl_console_print ("E: cluster - peer has wrong signature %04x != %04x",
-            method->signature, self->cluster->crc->value);
-        self_disconnect (self);
-    }
-    else {
-        //  Normalise heartbeat between peers
-        self->heartbeat = (amq_server_config_cluster_heartbeat (amq_server_config)
-                        +  method->heartbeat) / 2;
-        self->heartbeat_ttl = AMQ_HEARTBEAT_TTL;
-        self->load   = method->connections;
-        self->master = method->master;
-    }
+    //  Normalise heartbeat between peers
+    self->heartbeat = (amq_server_config_cluster_heartbeat (amq_server_config)
+                    +  method->heartbeat) / 2;
+    self->heartbeat_ttl = AMQ_HEARTBEAT_TTL;
+    self->load   = method->connections;
+    self->master = method->master;
 </method>
 
 <method name = "tunnel" template = "function">

@@ -42,6 +42,7 @@ warn the primary server to cede its role as master.
 <import class = "amq_server_classes" />
 
 <public name = "header">
+#define AMQ_CLUSTER_VERSION     0x100   //  1.0a
 #define AMQ_CLUSTER_MASTER      (void *) 1
 #define AMQ_CLUSTER_ALL         0
 #define AMQ_CLUSTER_TRANSIENT   0       //  Method durability
@@ -664,12 +665,12 @@ s_execute_method (
     amq_server_method_t *method,
     amq_peer_t          *peer)
 {
-    //  Cluster.Status method
-    if (method->method_id == AMQ_SERVER_CLUSTER_STATUS) {
-        amq_peer_recv_status (peer, &method->payload.cluster_status);
-    }
+    if (method->method_id == AMQ_SERVER_CLUSTER_HELLO)
+        amq_peer_recv_hello (peer, &method->payload.cluster_hello);
     else
-    //  Cluster.Bind method
+    if (method->method_id == AMQ_SERVER_CLUSTER_STATUS)
+        amq_peer_recv_status (peer, &method->payload.cluster_status);
+    else
     if (method->method_id == AMQ_SERVER_CLUSTER_BIND) {
         amq_exchange_t
             *exchange;              //  Exchange to bind to
