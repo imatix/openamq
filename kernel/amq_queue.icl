@@ -272,7 +272,9 @@ class.  This is a lock-free asynchronous class.
         if (amq_server_config_trace_queue (amq_server_config))
             icl_console_print ("Q: auto-del queue=%s", self->name);
         queue_ref = amq_queue_link (self);
-        amq_vhost_unbind_queue  (self->vhost, self);
+        amq_vhost_unbind_queue  (self->vhost, queue_ref);
+        if (self->exclusive)
+            amq_broker_unbind_queue (amq_broker, queue_ref);
         amq_queue_unlink (&queue_ref);
     }
     </action>

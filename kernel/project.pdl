@@ -65,6 +65,8 @@
                                      class = "icl private class" >Server connection class</file>
 <file name = "amq_server_connection_table.icl"
                                      class = "icl private cont"  >Server connection table</file>
+<file name = "amq_server_connection_list.icl"
+                                     class = "icl private cont"  >Server connection table</file>
 <file name = "amq_server_channel.icl"
                                      class = "icl private class" >Server channel class</file>
 <file name = "amq_server_channel_agent.smt"

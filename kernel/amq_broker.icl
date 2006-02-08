@@ -100,6 +100,32 @@
     </action>
 </method>
 
+<method name = "unbind queue" template = "async function" async = "1">
+    <doc>
+    Unbind a queue from the broker.
+    </doc>
+    <argument name = "queue" type = "amq_queue_t *">The queue to unbind</argument>
+    //
+    <possess>
+    queue = amq_queue_link (queue);
+    </possess>
+    <release>
+    amq_queue_unlink (&queue);
+    </release>
+    //
+    <action>
+    amq_server_connection_t
+        *connection;
+
+    //  Go through all connections
+    connection = amq_server_connection_list_first (self->connection_list);
+    while (connection) {
+        amq_server_connection_unbind_queue (connection, queue);
+        connection = amq_server_connection_list_next (&connection);
+    }
+    </action>
+</method>
+
 <event name = "monitor">
     <action>
     if (self->monitor_timer) {

@@ -61,6 +61,25 @@ This class implements the connection class for the AMQ server.
     ipr_looseref_queue (self->own_queue_list, amq_queue_link (queue));
 </method>
 
+<method name = "unbind queue" template = "function">
+    <doc>
+    Unbind a queue from the connection.
+    </doc>
+    <argument name = "queue" type = "amq_queue_t *">The queue to unbind</argument>
+    ipr_looseref_t
+        *looseref;
+
+    //  Remove the queue from the list of exclusive connections
+    looseref = ipr_looseref_list_first (self->own_queue_list);
+    while (looseref) {
+        if (looseref->object == (void*) queue) {
+            ipr_looseref_list_remove (looseref);
+            amq_queue_unlink ((amq_queue_t**) &(looseref->object));
+        }
+        looseref = ipr_looseref_list_next (&looseref);
+    }
+</method>
+
 <method name = "ready" template = "function">
     //  If cluster is booting, let through only cluster or console connections
     if (amq_cluster->enabled && !amq_cluster->ready)
