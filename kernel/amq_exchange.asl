@@ -76,13 +76,13 @@
   </field>
 
   <field name = "exchange" domain = "exchange name">
-    <assert check = "regexp" value = "^[a-zA-Z0-9-_.]+$" />
     <doc name = "rule" test = "amq_exchange_15">
       Exchange names starting with "amq." are reserved for predeclared
       and standardised exchanges.  If the client attempts to create an
       exchange starting with "amq.", the server MUST raise a channel
       exception with reply code 403 (access refused).
     </doc>
+    <assert check = "regexp" value = "^[a-zA-Z0-9-_.:]+$" />
   </field>
 
   <field name = "type" type = "shortstr">
@@ -101,7 +101,7 @@
       If the server does not support the requested exchange type it MUST
       raise a connection exception with a reply code 503 (command invalid).
     </doc>
-    <assert check = "regexp" value = "^[a-zA-Z0-9-_.]+$" />
+    <assert check = "regexp" value = "^[a-zA-Z0-9-_.:]+$" />
   </field>
 
   <field name = "passive" type = "bit">
