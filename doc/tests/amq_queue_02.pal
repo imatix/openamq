@@ -11,8 +11,10 @@
     <include filename = "amq_test_base.pal" />
     <session>
         <queue_declare queue = "myqueue" auto_delete = "1"/>
+        <basic_consume queue = "myqueue" />
     </session> 
     <session error_handling = "recover" restart = "1">
+        <wait timeout = "5000" />
         <queue_declare queue = "myqueue" passive = "1" />
         <if name = "reply_code" test = "ne" value = "404">
             <echo>$reply_code: $reply_text</echo>
