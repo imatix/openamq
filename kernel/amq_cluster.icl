@@ -147,7 +147,9 @@ amq_cluster_t
                     name_valid = TRUE;
                 }
                 else {
-                    icl_console_print ("I: cluster - server name=%s host=%s", name, host);
+                    if (amq_server_config_trace_cluster (amq_server_config))
+                        icl_console_print ("C: server name=%s host=%s", name, host);
+
                     if (*self->known_hosts)
                         icl_shortstr_cat (self->known_hosts, " ");
                     icl_shortstr_cat (self->known_hosts, host);
@@ -164,7 +166,7 @@ amq_cluster_t
                 }
             }
             else
-                icl_console_print ("W: server definition needs 'name' and 'host', skipped");
+                icl_console_print ("W: cluster - server needs 'name' and 'host', skipped");
                 
             ipr_config_next (config);
         }
@@ -180,19 +182,19 @@ amq_cluster_t
 
     if (self->enabled) {
         if (primaries != 1) {
-            icl_console_print ("E: cluster must have exactly one primary");
+            icl_console_print ("E: cluster - exactly primary must be defined");
             smt_shut_down ();
         }
         else
         if (backups > 1) {
-            icl_console_print ("E: cluster cannot have multiple backups");
+            icl_console_print ("E: cluster - multiple backup servers not allowed");
             smt_shut_down ();
         }
         else
         if (name_valid)
             self_start (self);
         else {
-            icl_console_print ("E: '%s' is not a valid server name - see config", amq_broker->name);
+            icl_console_print ("E: cluster - '%s' not configured server name", amq_broker->name);
             smt_shut_down ();
         }
     }
@@ -525,6 +527,8 @@ amq_cluster_t
     bucket->cur_size = amq_content_tunnel_get_body (
         content, bucket->data, bucket->max_size);
     method = amq_server_method_decode (bucket, strerror);
+    if (!method)
+        icl_console_print ("E: %s", strerror);
     assert (method);
 
     if (amq_server_config_trace_cluster (amq_server_config)) {
