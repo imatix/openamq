@@ -151,6 +151,36 @@ $(selftype)
     </action>
 </method>
 
+<method name = "unbind queue" template = "async function" async = "1">
+    <doc>
+    Unbind a queue from the vhost.
+    </doc>
+    <argument name = "queue" type = "amq_queue_t *">The queue to unbind</argument>
+    //
+    <possess>
+    queue = amq_queue_link (queue);
+    </possess>
+    <release>
+    amq_queue_unlink (&queue);
+    </release>
+    //
+    <action>
+    amq_exchange_t
+        *exchange;
+
+    //  Go through all exchanges & bindings, remove link to queue
+    exchange = amq_exchange_list_first (self->exchange_list);
+    while (exchange) {
+        amq_exchange_unbind_queue (exchange, queue);
+        exchange = amq_exchange_list_next (&exchange);
+    }
+
+    //  Remove the queue from queue_list and queue_table
+    amq_queue_list_remove (queue);
+    amq_queue_table_remove (queue);
+    </action>
+</method>
+
 <private name = "header">
 //  Prototypes for local functions
 static void

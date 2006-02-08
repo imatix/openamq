@@ -134,8 +134,9 @@
   <field name = "auto delete" type = "bit">
     auto-delete queue when unused
     <doc>
-      If set, the queue is deleted when all clients have finished
-      using it.
+      If set, the queue is deleted when all consumers have finished
+      using it. If there was no consumer ever on the queue, it won't be
+      deleted.
     </doc>
     <doc name = "rule" test = "amq_queue_02">
       The server SHOULD allow for a reasonable delay between the point

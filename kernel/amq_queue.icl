@@ -120,20 +120,6 @@ class.  This is a lock-free asynchronous class.
     </action>
 </method>
 
-<method name = "unbind" template = "async function" async = "1">
-    <action>
-    amq_exchange_t
-        *exchange;
-
-    //  Go through all exchanges & bindings, remove link to queue
-    exchange = amq_exchange_list_first (amq_vhost->exchange_list);
-    while (exchange) {
-        amq_exchange_unbind_queue (exchange, self);
-        exchange = amq_exchange_list_next (&exchange);
-    }
-    </action>
-</method>
-
 <method name = "publish" template = "async function" async = "1">
     <doc>
     Publish message content onto queue. Handles cluster distribution
@@ -286,7 +272,7 @@ class.  This is a lock-free asynchronous class.
         if (amq_server_config_trace_queue (amq_server_config))
             icl_console_print ("Q: auto-del queue=%s", self->name);
         queue_ref = amq_queue_link (self);
-        amq_queue_unbind  (queue_ref);
+        amq_vhost_unbind_queue  (self->vhost, self);
         amq_queue_unlink (&queue_ref);
     }
     </action>
