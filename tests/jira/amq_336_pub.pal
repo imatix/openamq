@@ -1,0 +1,14 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = ""
+    >
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <basic_content message_id = "id-1" reply_to = "dest"/>
+        <basic_publish exchange = "dexchange" />
+    </session>
+    
+</pal>
+
+
