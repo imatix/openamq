@@ -276,7 +276,7 @@ main (int argc, char *argv [])
             TRUE,                       //  Auto-acknowledge
             FALSE);                     //  Exclusive access to queue
         if (simul_mode)
-            amq_client_session_flow (session, FALSE);
+            amq_client_session_channel_flow (session, FALSE);
     }
     while (repeats) {
         //  Send messages to the test queue
@@ -310,7 +310,7 @@ main (int argc, char *argv [])
         if (!quiet_mode)
             icl_console_print ("I: [%s] (%d) - reading back messages...", opt_queue, repeats);
         if (async_mode && simul_mode)
-            amq_client_session_flow (session, TRUE);
+            amq_client_session_channel_flow (session, TRUE);
 
         count = 0;
         while (count < messages) {
