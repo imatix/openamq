@@ -12,13 +12,15 @@
         <queue_bind queue = "source" exchange = "dexchange" />
         <queue_bind queue = "dest" exchange = "dexchange" />
         <basic_consume queue = "dest" />
-        <wait />
-        <basic_arrived>
-            <echo>Message '$message_id' arrived, setting channel_flow to false</echo>
-            <channel_flow active = "0" />
-            <echo>Trying to bind a queue</echo>
-            <queue_bind queue = "test" exchange = "dexchange" />
-        </basic_arrived>
+        <repeat>
+            <wait />
+            <basic_arrived>
+                <echo>Message '$message_id' arrived, setting channel_flow to false</echo>
+                <channel_flow active = "0" />
+                <echo>Trying to bind a queue</echo>
+                <queue_bind queue = "test" exchange = "dexchange" />
+            </basic_arrived>
+        </repeat>
     </session>
     
 </pal>
