@@ -230,6 +230,11 @@
     abitrary number of messages in between sending the cancel method
     and receiving the cancel-ok reply.
   </doc>
+  <doc name = "rule" test = "todo">
+    If the queue no longer exists when the client sends a cancel command,
+    or the consumer has been cancelled for other reasons, this command
+    has no effect.
+  </doc>
   <chassis name = "server" implement = "MUST" />
   <response name = "cancel-ok" />
 

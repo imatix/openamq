@@ -174,8 +174,8 @@
 <file name = "amq_mgt_vhost.icl"     class = "icl public cont"   >Management vhost class</file>
 <file name = "amq_mgt_exchange.icl"  class = "icl public cont"   >Management exchange class</file>
 <file name = "amq_mgt_queue.icl"     class = "icl public cont"   >Management queue class</file>
-<file name = "amq_mgt_cluster.icl"   class = "icl public class"  >Management cluster class</file>
-<file name = "amq_mgt_config.icl"    class = "icl public class"  >Management config class</file>
+<file name = "amq_mgt_cluster.icl"   class = "icl public cont"   >Management cluster class</file>
+<file name = "amq_mgt_config.icl"    class = "icl public cont"   >Management config class</file>
 
 <!-- OpenAMQ deliverables -->
 <file name = "amq_server"            class = "public command"    >Server</file>
