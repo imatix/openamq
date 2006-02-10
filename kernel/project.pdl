@@ -128,7 +128,7 @@
 <file name = "amq_index_array.icl"   class = "icl private cont"  >Message matching index array</file>
 <file name = "amq_queue.icl"         class = "icl private class" >Server queue envelope class</file>
 <file name = "amq_queue_table.icl"   class = "icl private cont"  >Hash of queues per vhost</file>
-<file name = "amq_queue_list.icl"    class = "icl private cont"  >List of queues per vhost</file>
+<file name = "amq_queue_list.icl"    class = "icl private class" >List of queues</file>
 <file name = "amq_queue_agent.smt"   class = "smt public module"
                                      generated = "1"             >Server queue agent</file>
 <file name = "amq_queue_base.icl"    class = "private resource"  >Queue base class</file>
@@ -144,6 +144,10 @@
                                      class = "icl private class" >Basic consumer class</file>
 <file name = "amq_server_method.icl" class = "icl private class"
                                      generated = "1"             >Server method class</file>
+<file name = "amq_content_stream_list.icl"    class = "icl private class" >List of queues</file>
+<file name = "amq_content_tunnel_list.icl"    class = "icl private class" >List of queues</file>
+<file name = "amq_content_basic_list.icl"     class = "icl private class" >List of queues</file>
+<file name = "amq_content_file_list.icl"      class = "icl private class" >List of queues</file>
 
 <file name = "server.cfg"            class = "public resource"   >Server config file</file>
 

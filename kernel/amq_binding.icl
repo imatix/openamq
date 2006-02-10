@@ -26,7 +26,7 @@ class.
 <context>
     amq_exchange_t
         *exchange;                      //  Parent exchange
-    ipr_looseref_list_t
+    amq_queue_list_t
         *queue_list;                    //  List of queues for binding
     ipr_looseref_list_t
         *peer_list;                     //  List of cluster peers for binding
@@ -55,7 +55,7 @@ class.
     <argument name = "routing key" type = "char *">Bind to routing key</argument>
     <argument name = "arguments"   type = "icl_longstr_t *" >Additional arguments</argument>
     self->exchange   = exchange;
-    self->queue_list = ipr_looseref_list_new ();
+    self->queue_list = amq_queue_list_new ();
     self->peer_list  = ipr_looseref_list_new ();
     self->index_list = ipr_looseref_list_new ();
     icl_shortstr_cpy (self->routing_key, routing_key);
@@ -74,20 +74,16 @@ class.
 
 <method name = "destroy">
     <local>
-    amq_queue_t
-        *queue;                         //  Queue object reference
     amq_peer_t
         *peer;                          //  Peer object reference
     </local>
     //
-    //  Drop all references to queues and peers for the binding
-    while ((queue = (amq_queue_t *) ipr_looseref_pop (self->queue_list)))
-        amq_queue_unlink (&queue);
+    //  Drop all references to peers for the binding
     while ((peer = (amq_peer_t *) ipr_looseref_pop (self->peer_list)))
         amq_peer_unlink (&peer);
 
     ipr_index_delete (self->exchange->binding_index, self->index);
-    ipr_looseref_list_destroy (&self->queue_list);
+    amq_queue_list_destroy (&self->queue_list);
     ipr_looseref_list_destroy (&self->peer_list);
     ipr_looseref_list_destroy (&self->index_list);
     icl_longstr_destroy       (&self->arguments);
@@ -98,19 +94,11 @@ class.
     Attach queue to current binding if it is not already there.
     </doc>
     <argument name = "queue" type = "amq_queue_t *">Queue to bind</argument>
-    <local>
-    ipr_looseref_t
-        *looseref;                      //  We check the queues per binding
-    </local>
-    //
-    looseref = ipr_looseref_list_first (self->queue_list);
-    while (looseref && looseref->object != queue)
-        looseref = ipr_looseref_list_next (&looseref);
 
-    if (looseref)                       //  Ignore duplicates
-        ipr_looseref_unlink (&looseref);
-    else
-        ipr_looseref_queue (self->queue_list, amq_queue_link (queue));
+    if (amq_queue_list_find (amq_queue_list_begin (self->queue_list),
+          amq_queue_list_end (self->queue_list), queue) == 
+          amq_queue_list_end (self->queue_list))
+        amq_queue_list_push_back (self->queue_list, queue);
 </method>
 
 <method name = "bind peer" template = "function">
@@ -139,20 +127,13 @@ class.
     </doc>
     <argument name = "queue" type = "amq_queue_t *">Queue to unbind</argument>
     <local>
-    ipr_looseref_t
-        *looseref;                      //  We check the queues per binding
+    amq_queue_list_iterator_t
+        it;
     </local>
-    //
-    looseref = ipr_looseref_list_first (self->queue_list);
-    while (looseref) {
-        if (looseref->object == queue) {
-            queue = (amq_queue_t *) (looseref->object);
-            amq_queue_unlink (&queue);
-            ipr_looseref_destroy (&looseref);
-            break;
-        }
-        looseref = ipr_looseref_list_next (&looseref);
-    }
+    it = amq_queue_list_find (amq_queue_list_begin (self->queue_list),
+        amq_queue_list_end (self->queue_list), queue);
+    if (it != amq_queue_list_end (self->queue_list))
+        amq_queue_list_erase (self->queue_list, it);
 </method>
 
 <method name = "unbind peer" template = "function">
@@ -185,24 +166,25 @@ class.
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
     <local>
+    amq_queue_list_iterator_t
+        it;
     ipr_looseref_t
         *looseref;                      //  Bound object
-    amq_queue_t
-        *queue;                         //  Queue we publish to
     amq_peer_t
         *peer;                          //  Peer we publish to
     </local>
     //
     //  Publish to all queues, sending method to async queue class
-    looseref = ipr_looseref_list_first (self->queue_list);
-    while (looseref) {
-        queue = (amq_queue_t *) (looseref->object);
+    for (it = amq_queue_list_begin (self->queue_list);
+          it != amq_queue_list_end (self->queue_list);
+          it = amq_queue_list_next (it)) {
+
         if (amq_server_config_trace_route (amq_server_config))
-            icl_console_print ("X: publish  queue=%s", queue->key);
-        amq_queue_publish (queue, channel, method);
-        rc++;                           //  Count recepients
-        looseref = ipr_looseref_list_next (&looseref);
+            icl_console_print ("X: publish  queue=%s", (*it)->key);
+        amq_queue_publish (*it, channel, method);
+        rc++;  //  Count recepients
     }
+
     //  Publish to peers, sending method to async cluster class
     looseref = ipr_looseref_list_first (self->peer_list);
     while (looseref) {

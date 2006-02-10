@@ -11,24 +11,21 @@
 
 <class name = "basic">
   <action name = "get-ok">
-    amq_content_$(class.name)_link (self->content);
     amq_content_$(class.name)_set_routing_key (
         self->content, method->exchange, method->routing_key, 0);
-    ipr_looseref_queue (session->arrived_$(class.name)_list, self->content);
+    amq_content_$(class.name)_list_push_back (session->arrived_$(class.name)_list, self->content);
   </action>
 
   <action name = "deliver">
-    amq_content_$(class.name)_link (self->content);
     amq_content_$(class.name)_set_routing_key (
         self->content, method->exchange, method->routing_key, 0);
-    ipr_looseref_queue (session->arrived_$(class.name)_list, self->content);
+    amq_content_$(class.name)_list_push_back (session->arrived_$(class.name)_list, self->content);
   </action>
 
   <action name = "return">
-    amq_content_$(class.name)_link (self->content);
     amq_content_$(class.name)_set_routing_key (
         self->content, method->exchange, method->routing_key, 0);
-    ipr_looseref_queue (session->returned_$(class.name)_list, self->content);
+    amq_content_$(class.name)_list_push_back (session->returned_$(class.name)_list, self->content);
     ((amq_content_$(class.name)_t *) self->content)->returned = TRUE;
 
     if (!session->silent)

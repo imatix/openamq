@@ -36,15 +36,25 @@ Defines a virtual host. This is a lock-free asynchronous class.
         </field>
         <field name = "queue" type = "objref" repeat = "1">
           <local>
+            amq_queue_list_iterator_t
+                it;
             amq_queue_t
-                *queue;
+                *queue = NULL;
           </local>
           <get>
-            queue = amq_queue_list_first (self->queue_list);
-            icl_shortstr_fmt (field_value, "%ld", queue->object_id);
+            if (!amq_queue_list_empty (self->queue_list)) {
+                it = amq_queue_list_begin (self->queue_list);
+                queue = *it;
+            }
+            if (queue)
+                icl_shortstr_fmt (field_value, "%ld", queue->object_id);
           </get>
           <next>
-            queue = amq_queue_list_next (&queue);
+            it = amq_queue_list_next (it);
+            if (it != amq_queue_list_end (self->queue_list))
+                queue = *it;
+            else
+                queue = NULL;
             if (queue)
                 icl_shortstr_fmt (field_value, "%ld", queue->object_id);
           </next>
@@ -53,6 +63,7 @@ Defines a virtual host. This is a lock-free asynchronous class.
 </data>
 
 <import class = "amq_server_classes" />
+<import class = "amq_queue_list" />
 
 <public>
 extern $(selftype)
@@ -133,20 +144,18 @@ $(selftype)
     vhost queue list.
     </doc>
     <action>
-    amq_queue_t
-        *queue;
+    amq_queue_list_iterator_t
+        it;
 
     //  Dispatch all dirty message queues, which come at start of list
-    queue = amq_queue_list_first (self->queue_list);
-    while (queue) {
-        if (queue->dirty) {
-            amq_queue_dispatch (queue);
-            queue = amq_queue_list_next (&queue);
+    it = amq_queue_list_begin (self->queue_list);
+    while (it != amq_queue_list_end (self->queue_list)) {
+        if ((*it)->dirty) {
+            amq_queue_dispatch (*it);
+            it = amq_queue_list_next (it);
         }
-        else {
-            amq_queue_unlink (&queue);
+        else
             break;
-        }
     }
     </action>
 </method>
@@ -176,7 +185,9 @@ $(selftype)
     }
 
     //  Remove the queue from queue_list and queue_table
-    amq_queue_list_remove (queue);
+    amq_queue_list_erase (self->queue_list,
+        amq_queue_list_find (amq_queue_list_begin (self->queue_list),
+        amq_queue_list_end (self->queue_list), queue));
     amq_queue_table_remove (queue);
     </action>
 </method>
