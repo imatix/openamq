@@ -3,7 +3,6 @@
     name      = "amq_exchange_topic"
     comment   = "topic exchange class"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 iMatix Corporation"
     script    = "icl_gen"
     >
 <doc>

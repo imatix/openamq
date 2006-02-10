@@ -39,6 +39,35 @@ warn the primary server to cede its role as master.
 </doc>
 
 <inherit class = "smt_object" />
+<inherit class = "amq_console_object" />
+
+<data name = "cml">
+    <class name = "cluster" parent = "broker" label = "Cluster Controller" >
+        <field name = "name" label = "Cluster name">
+          <get>icl_shortstr_cpy (field_value, amq_broker->name);</get>
+        </field>
+        <field name = "hosts" label = "Known hosts">
+          <get>icl_shortstr_cpy (field_value, self->known_hosts);</get>
+        </field>
+        <field name = "enabled" type = "bool" label = "Cluster is enabled">
+          <get>icl_shortstr_fmt (field_value, "%d", self->enabled);</get>
+        </field>
+        <field name = "ready" type = "bool" label = "Cluster is ready">
+          <get>icl_shortstr_fmt (field_value, "%d", self->ready);</get>
+        </field>
+        <field name = "master" type = "bool" label = "Broker is cluster master?">
+          <get>icl_shortstr_fmt (field_value, "%d", self->master);</get>
+        </field>
+        <field name = "primary" label = "Broker type">
+          <get>icl_shortstr_cpy (field_value,
+            self->primary? "primary": self->backup? "backup": "fanout");</get>
+        </field>
+        <field name = "state_mb" type = "int" label = "Cluster state size, MB">
+          <get>icl_shortstr_fmt (field_value, "%d", self->state_size / (1024 * 1024));</get>
+        </field>
+    </class>
+</data>
+
 <import class = "amq_server_classes" />
 
 <public name = "header">
@@ -87,6 +116,7 @@ amq_cluster_t
 </context>
 
 <method name = "new">
+    <argument name = "broker" type = "amq_broker_t *">Parent broker</argument>
     <argument name = "cluster name" type = "char *">Cluster name</argument>
     <local>
     ipr_config_t
@@ -109,9 +139,12 @@ amq_cluster_t
         icl_shortstr_cpy (amq_broker->name, cluster_name);
         self->enabled = TRUE;
     }
+    else
+        icl_shortstr_cpy (amq_broker->name, "Standalone");
+        
     //  We prepare everything so that the cluster could be enabled
     //  later, via the console
-    self->broker     = amq_broker_link (amq_broker);
+    self->broker     = amq_broker_link (broker);
     self->vhost      = amq_vhost_link  (amq_vhost);
     self->peer_list  = amq_peer_list_new ();
     self->state_list = ipr_looseref_list_new ();
@@ -203,14 +236,17 @@ amq_cluster_t
 
 <method name = "destroy">
     <action>
-    amq_content_tunnel_t
-        *content;                       //  Server state message
     //
     self->ready = FALSE;
-
+    {
+    //TODO: SMT needs local action blocks
+    //  When we merge code from amq_console_object, it interferes with
+    //  the definitions here, on strict C compilers (msvc).
+    amq_content_tunnel_t
+        *content;                       //  Server state message
     while ((content = (amq_content_tunnel_t *) ipr_looseref_pop (self->state_list)))
         amq_content_tunnel_unlink (&content);
-
+    }
     ipr_crc_destroy           (&self->crc);
     ipr_looseref_list_destroy (&self->state_list);
     amq_peer_list_destroy     (&self->peer_list);

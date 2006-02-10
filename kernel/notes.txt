@@ -1,7 +1,43 @@
-Console API
-    amq_mgt_object_name - method
-        
+- invalid xml -> memory leak in amq_console on asl_field_list
+- select item by name, 'vhost /' -> first matching prefix
+- methods show as commands
+- method help, generated
+- method arguments?
+- xml print format, optional
 
+amq_shell could become sysman
+    - start cluster brokers
+    - stop cluster brokers
+    - connect to them
+    - wizard for cluster configuration
+    - etc.
+    - using virtual cmdline objects...
+
+
+logging
+    access
+    error
+    console
+    discard
+    log level
+    log fields?
+
+
+
+icl_set_allocator
+smt_set_max_os_thread
+smt_set_action_allocator
+
+amq_shell
+    configurable
+        - name/pass
+
+
+
+
+Fixes
+    - Error in console caused server to abort (reference to destroyed object).
+    - Console was not checking that client used reply-to - fixed.
 
 
 AMQP USPs
@@ -86,25 +122,31 @@ Functionality:
 
     - Persistence
         - using abstract storage system
+        - MS in progress
     - Transactions
         - on single primary server
+        - MS in progress
     - Clustering
         - for failover
         - for pub/sub
         - NOT for persistence/transactions
+        - PH done RTT
     - openamq.org
         - ready for 1.0
+        - PH in progress
     - documentation
         - openamq server guide
+        - GS done RTT
         - stdc api guide
+        - PH done
     - clients
         - swig
+        - TE in progress
     - logging
+        - PH in progress
     - console
-    - other
-        - service-oriented API
-        - service queue
-        - topic pub/sub
+        - PH in progress
+
 
 Who what:
 
@@ -151,7 +193,7 @@ Who what:
 
 ********************************************************************
 
-    basic protocol rules
+basic protocol rules
     - any property needed for interop is named & standard
     - anything else is allowed, extensible x-, X-
         - server warns but ignores unsupported non-standard properties
@@ -162,11 +204,6 @@ Who what:
     - how to extend
         - write own exchange
         - send arbitrary messages to exchange
-    
-AMQwg
-    - active members
-    - passive members
-    - banks, vendors
 
 Powerpointy stuff
     - vision of amqp becoming ubiquitous
@@ -377,9 +414,6 @@ Console
         - modify object
         - execute method
         - api is interpreted from schema
-    - mato?
-    - jonathan
-        - logging agents
     - tim
         - swig clients
     - martin

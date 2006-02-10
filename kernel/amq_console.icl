@@ -320,7 +320,6 @@ s_execute_schema (amq_content_basic_t *request, ipr_xml_t *xml_command)
     if (ipr_file_where (AMQ_CONSOLE_SCHEMA, "PATH", schema_file) == 0) {
         bucket = ipr_file_slurp (schema_file);
         if (bucket) {
-            icl_console_print ("I: send schema - %s", schema_file);
             s_reply_bucket (request, bucket);
             ipr_bucket_destroy (&bucket);
         }
@@ -516,32 +515,32 @@ s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
 {
     amq_client_method_t
         *method;                        //  Basic.Publish method
-    amq_content_basic_t
-        *content;                       //  Reply content
     amq_exchange_t
         *exchange;                      //  We send the reply to amq.direct
 
-    icl_console_print ("I: replying to %s", request->reply_to);
-    exchange = amq_exchange_search (amq_vhost->exchange_table, "amq.direct");
-    assert (exchange);
+    if (*request->reply_to) {
+        exchange = amq_exchange_search (amq_vhost->exchange_table, "amq.direct");
+        assert (exchange);
 
-    //  Create a content with our desired reply data
-    content = amq_content_basic_new ();
-    amq_content_basic_set_message_id   (content, request->message_id);
-    amq_content_basic_set_content_type (content, "text/xml");
-    amq_content_basic_record_body      (content, bucket);
-    amq_content_basic_set_routing_key  (content, "amq.direct", request->reply_to, 0);
+        //  Create a Basic.Publish method to carry the content
+        method = amq_client_method_new_basic_publish (
+            0, "amq.direct", request->reply_to, FALSE, FALSE);
 
-    //  Create a Basic.Publish method to carry the content
-    method = amq_client_method_new_basic_publish (
-        0, "amq.direct", request->reply_to, FALSE, FALSE);
-    method->content = amq_content_basic_link (content);
+        //  Create a content with our desired reply data
+        method->content = amq_content_basic_new ();
+        amq_content_basic_set_message_id   (method->content, request->message_id);
+        amq_content_basic_set_content_type (method->content, "text/xml");
+        amq_content_basic_record_body      (method->content, bucket);
+        amq_content_basic_set_routing_key  (method->content, "amq.direct", request->reply_to, 0);
 
-    //  Publish the message
-    amq_exchange_publish (exchange, NULL, (amq_server_method_t *) method);
-    amq_client_method_destroy (&method);
+        //  Publish the message
+        amq_exchange_publish (exchange, NULL, (amq_server_method_t *) method);
+        amq_client_method_unlink (&method);
 
-    amq_exchange_unlink (&exchange);
+        amq_exchange_unlink (&exchange);
+    }
+    else
+        icl_console_print ("E: amq.console: client did not specify Reply-To queue");
 }
 </private>
 

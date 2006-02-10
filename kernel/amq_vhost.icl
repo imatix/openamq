@@ -19,7 +19,8 @@ Defines a virtual host. This is a lock-free asynchronous class.
         <field name = "name" label = "Virtual host path">
           <get>icl_shortstr_cpy (field_value, self->name);</get>
         </field>
-        <field name = "exchange" type = "objref" repeat = "1">
+
+        <class name = "exchange" label = "Message exchange" repeat = "1">
           <local>
             amq_exchange_t
                 *exchange;
@@ -33,8 +34,9 @@ Defines a virtual host. This is a lock-free asynchronous class.
             if (exchange)
                 icl_shortstr_fmt (field_value, "%ld", exchange->object_id);
           </next>
-        </field>
-        <field name = "queue" type = "objref" repeat = "1">
+        </class>
+
+        <class name = "queue" label = "Message queue" repeat = "1">
           <local>
             amq_queue_list_iterator_t
                 it;
@@ -58,7 +60,7 @@ Defines a virtual host. This is a lock-free asynchronous class.
             if (queue)
                 icl_shortstr_fmt (field_value, "%ld", queue->object_id);
           </next>
-        </field>
+        </class>
     </class>
 </data>
 

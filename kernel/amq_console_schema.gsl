@@ -1,8 +1,25 @@
-#   This script extracts the console schema by walking
-#   the amq class definitions, starting with amq_broker.
+#   This script extracts the console schema by walking the OpenAMQ
+#   class definitions, starting with amq_broker.
+#
+#   <data>
+#     <class name = "" label = "">
+#       <field name = "" label = "" type = "string | int | bool | time">
+#         <get>copy into field_value</get>
+#         <put>copy from field_value</put>
+#       </field>
+#       <class name = "" label = "" [source = ""] [repeat = "1"]>
+#         <local></local>
+#         <get>copy id into field_value</get>
+#         <next>get next id into field_value</next>
+#       </class>
+#       <method>
+#         <exec>...</exec>
+#       </method>
+#     </class>
+#  </data>
 
-schema_name    = "openamq.org/kernel"
-schema_version = "0.2"
+schema_name = "openamq.org/kernel"
+schema_version = "0.3"
 
 #   Formatting
 shuffle = 0
@@ -11,19 +28,20 @@ ignorecase = 0
 
 function process_field (field, margin)
     >$(my.margin)<field name = "$(name)"\
-    if defined (field.label)
+    if defined (my.field.label)
         > label = "$(label)"\
     endif
-    if defined (field.type)
+    if defined (my.field.type)
         > type = "$(type)"\
     endif
-    if defined (field.repeat)
+    if defined (my.field.repeat)
         > repeat = "$(repeat)"\
     endif
-    if count (field.get) = 0
+    if count (my.field.get) = 0
+        echo "W: write-only field $(name) - not recommended usage"
         > inspect = "0"\
     endif
-    if count (field.put)
+    if count (my.field.put)
         > modify = "1"\
     endif
     > />
@@ -40,29 +58,35 @@ function process_method (method, margin)
     >$(my.margin)</method>
 endfunction
 
-function process_class (name, margin)
-    xml from "amq_$(my.name).icl"
+function process_class (class_name, margin)
+    xml from "$(my.class_name).icl"
     for ->class.data where name = "cml"
         for class
+            copy class to root
             >$(my.margin)<class name = "$(name)" label = "$(label?name)">
             if count (field, name = "name") = 0
-                echo "E: no 'name' defined for $(class.name)"
+                echo "E: please define a 'name' field in the $(class.name) class"
             endif
             for field
                 process_field (field, my.margin + indent)
+            endfor
+            for class
+                class.type = "objref"
+                process_field (class, my.margin + indent)
             endfor
             for method
                 process_method (method, my.margin + indent)
             endfor
             >$(my.margin)</class>
-            for field where field.type ?= "objref"
-                if count (root.class, name = field.name) = 0
-                    copy field to root as class
-                    process_class (name, my.margin)
+            for class
+                class.source ?= "amq_" + name
+                if count (root.class, count.name = class.name, count) = 0
+                    process_class (source, my.margin)
                 endif
             endfor
         endfor
     endfor
+    delete ->class
 endfunction
 
 output "amq_console_schema.cml"
@@ -72,6 +96,15 @@ output "amq_console_schema.cml"
 > xmlns="http://www.openamq.org/schema/cml"
 > version="1.0">
 ><schema-reply name = "$(schema_name)" version = "$(schema_version)" status = "ok">
-process_class ("broker", indent)
+process_class ("amq_broker", indent)
 ></schema-reply>
 ></cml>
+
+shuffle = 2
+
+#   Generate management API
+.template
+.for class
+.   include "amq_console_mgt_api.gsl"
+.endfor
+.endtemplate

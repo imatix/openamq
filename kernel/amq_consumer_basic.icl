@@ -1,10 +1,9 @@
 <?xml?>
 <class
-    name      = "amq_consumer_basic"
-    comment   = "Basic consumer"
-    version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 iMatix Corporation"
-    script    = "icl_gen"
+    name    = "amq_consumer_basic"
+    comment = "Basic consumer"
+    version = "1.0"
+    script  = "icl_gen"
     >
 <doc>
 This class implements a Basic consumer.  For now, an empty object.

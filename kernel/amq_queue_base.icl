@@ -3,7 +3,6 @@
     name      = "amq_queue_base"
     comment   = "Queue manager base class"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 iMatix Corporation"
     script    = "icl_gen"
     abstract  = "1"
     >

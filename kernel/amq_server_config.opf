@@ -1,32 +1,34 @@
 <?xml?>
 <!--
     The Object Property Framework
-    Yet Another Production from The iMatix Industrial Bit Factory
+    Yet Another Production from iMatix Software Engineering.
 
     OPF generates classes that provide a management framework for
     object properties. A typical use is for configuration data.
 
   -->
-
 <opf
     name    = "amq_server_config"
     comment = "Server configuration properties"
     script  = "opf_gen"
     >
 
+<!-- Generate the OpenAMQ Console configuration interface -->
+<plugin name = "amq_console_config" />
+
 <public>
 extern $\(selftype)
-    *amq_server_config;                 /*  Global properties object         */
+    *amq_server_config;                 //  Global properties object
 </public>
 
 <private>
 $\(selftype)
-    *amq_server_config = NULL;          /*  Global properties                */
+    *amq_server_config = NULL;          //  Global properties
 </private>
 
 <path name = "/config/server">
     <property name = "port" type = "char *" default = "5672">
-    Server port for client connections
+    Server port for clients
     <doc>
     Specifies the port on which the server should open its connections.
     </doc>
@@ -42,7 +44,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "queue timeout" type = "int" default = "30">
+    <property name = "queue timeout" type = "int" default = "30" dynamic = "1">
     Timeout for auto-deleted queues
     <doc>
     Specifies the delay, in seconds, after which auto-deleted queues
@@ -53,7 +55,7 @@ $\(selftype)
 </path>
 
 <path name = "/config/resources">
-    <property name = "trace" type = "int">
+    <property name = "trace" type = "int" dynamic = "1">
     Desired trace level
     <doc>
     Specifies the trace level, which can be 0 (no tracing), 1 (show
@@ -63,7 +65,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "monitor" type = "int" default = "0">
+    <property name = "monitor" type = "int" default = "0" dynamic = "1">
     Monitor interval, seconds
     <doc>
     Specifies the interval in seconds at which the server will report
@@ -72,7 +74,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "dump state" type = "int" default = "60">
+    <property name = "dump state" type = "int" default = "60" dynamic = "1">
     Dump state interval, seconds
     <doc>
     If greater than zero, specifies the interval at which the server
@@ -81,7 +83,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "max memory mb" type = "size_t">
+    <property name = "max memory mb" type = "size_t" dynamic = "1">
     Maximum allowed memory, MBytes
     <doc>
     Specifies the maximum memory allowed for the server, in MB.
@@ -91,18 +93,17 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "recycler" type = "int" default = "10">
+    <property name = "recycler" type = "int" default = "60" dynamic = "1">
     Memory recycler interval, seconds
     <doc>
     If greater than zero, specifies the interval at which the server
     will recycle deallocated and cached memory.  Not all cached memory
-    will be freed immediately, this happens progressively.  The
-    recommended interval is 10. You can lower this value in scenarios
-    where memory is very limited.
+    will be freed immediately, this happens progressively.  You can
+    lower this value in scenarios where memory is very limited.
     </doc>
     </property>
 
-    <property name = "queue limit" type = "size_t" default = "0">
+    <property name = "queue limit" type = "size_t" default = "0" dynamic = "1">
     Default queue max messages
     <doc>
     Specifies the limit for queues, in messages. When a queue reaches
@@ -113,16 +114,16 @@ $\(selftype)
 </path>
 
 <path name = "/config/verbosity">
-    <property name = "trace login" type = "Bool">
-    Trace user logins
+    <property name = "trace login" type = "Bool" dynamic = "1">
+    Trace user logins?
     <doc>
     Specifies whether login attempts are traced or not.  The
     recommended setting is 1 for all servers.
     </doc>
     </property>
 
-    <property name = "trace route" type = "Bool">
-    Trace exchange message routing
+    <property name = "trace route" type = "Bool" dynamic = "1">
+    Trace message routing?
     <doc>
     Specifies whether exchange routing is traced or not.  The
     recommended setting is 1 for development servers and zero
@@ -130,8 +131,8 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "trace queue" type = "Bool">
-    Trace queue message dispatching
+    <property name = "trace queue" type = "Bool" dynamic = "1">
+    Trace queue activity?
     <doc>
     Specifies whether queue dispatching is traced or not.  The
     recommended setting is 1 for development servers and zero
@@ -139,8 +140,8 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "trace cluster" type = "Bool">
-    Trace cluster synchronisation
+    <property name = "trace cluster" type = "Bool" dynamic = "1">
+    Trace cluster messages?
     <doc>
     Specifies whether cluster activity is traced or not.  The
     recommended setting is 1 when you are testing a cluster
@@ -151,7 +152,7 @@ $\(selftype)
 
 <path name = "/config/cluster" prefix = "cluster">
     <property name = "host" type = "char *">
-    IP address and port to use for incoming connections
+    Server IP address and port
     <doc>
     Specifies the ipaddress:port to use for incoming cluster connections
     if the server runs on multiple IP addresses.  If not specified, the
@@ -160,7 +161,7 @@ $\(selftype)
     </property>
 
     <property name = "vhost" type = "char *" default = "">
-    Verifies all access to cluster
+    Cluster virtual host
     <doc>
     Specifies the cluster vhost name, which must be identical for
     all servers in a cluster.  Any string, up to 255 chars long,
@@ -169,8 +170,8 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "state mb" type = "size_t" default = "250" >
-    Maximum allowed state size, MB.
+    <property name = "state mb" type = "size_t" default = "250" dynamic = "1">
+    Maximum cluster state, MB.
     <doc>
     Specifies the maximum amount of memory in MB reserved for the
     cluster state.  Note that this state will grow as the cluster is
@@ -178,8 +179,8 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "heartbeat" type = "int" default = "5" min = "1" max = "60">
-    Cluster heartbeat interval, seconds
+    <property name = "heartbeat" type = "int" default = "5" min = "1" max = "60" dynamic = "1">
+    Cluster heartbeat, seconds
     <doc>
     Specifies the heartbeat interval in seconds.  Use higher heartbeat
     times only when working across a WAN where rapid heartbeats have a
@@ -190,8 +191,8 @@ $\(selftype)
 </path>
 
 <path name = "/config/tuning">
-    <property name = "packio" type = "int" default = "1">
-    Pack network data before writing
+    <property name = "packio" type = "Bool" default = "0" dynamic = "1">
+    Pack network writes?
     <doc>
     If set, data is packed into larger buffers before writing. This
     can improve performance significantly on some systems, especially
@@ -201,8 +202,8 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "read timeout" type = "int" default = "30">
-    Timeout on network reads, seconds
+    <property name = "read timeout" type = "int" default = "30" dynamic = "1">
+    Network read timeout, seconds
     <doc>
     Defines the timeout for network reads.  If a peer does not respond
     within this time, it is considered dead.  If you get unexpected
@@ -210,8 +211,8 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "write timeout" type = "int" default = "30">
-    Timeout on network writes, seconds
+    <property name = "write timeout" type = "int" default = "30" dynamic = "1">
+    Network write timeout, seconds
     <doc>
     Defines the timeout for network writes.  If a peer does not accept
     data within this time, it is considered dead.  If you get
@@ -223,7 +224,7 @@ $\(selftype)
 
 <path name = "/config/internal">
     <property name = "auto crash" type = "int" default = "0">
-    Auto-crash server at irregular intervals
+    Auto-crash test timer, seconds
     <doc>
     If set, the server will crash at irregular intervals, being some random
     point within the number of seconds specified.  This is used specifically
@@ -231,7 +232,7 @@ $\(selftype)
     </doc>
     </property>
     <property name = "auto block" type = "int" default = "0">
-    Auto-block server at irregular intervals
+    Auto-freeze test timer, seconds
     <doc>
     If set, the server will block at irregular intervals, being some random
     point within the number of seconds specified.  This is used specifically

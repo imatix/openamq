@@ -1,10 +1,9 @@
 <?xml?>
 <class
-    name      = "amq_console_class"
-    comment   = "AMQ Console class descriptor"
-    version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 iMatix Corporation"
-    script    = "icl_gen"
+    name    = "amq_console_class"
+    comment = "AMQ Console class descriptor"
+    version = "1.0"
+    script  = "icl_gen"
     >
 <doc>
 This class defines a class descriptor.

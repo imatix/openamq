@@ -1,10 +1,9 @@
 <?xml?>
 <class
-    name      = "amq_exchange_direct"
-    comment   = "Direct routing exchange class"
-    version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 iMatix Corporation"
-    script    = "icl_gen"
+    name    = "amq_exchange_direct"
+    comment = "Direct routing exchange class"
+    version = "1.0"
+    script  = "icl_gen"
     >
 <doc>
 This class implements the dest exchange, which routes messages based

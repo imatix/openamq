@@ -12,35 +12,54 @@
 
 <!-- Console definitions for this object -->
 <data name = "cml">
-    <class name = "broker" label = "Brokers" >
+    <class name = "broker" label = "Broker">
         <field name = "name" label = "Broker name">
-          <get>icl_shortstr_fmt (field_value, "OpenAMQ:%d", amq_server_config_port (amq_server_config));</get>
+          <get>icl_shortstr_fmt (field_value, "OpenAMQ %s", VERSION);</get>
         </field>
         <field name = "started" label = "Date, time broker started">
           <get>ipr_time_iso8601 (self->started, ipr_date_format_minute, 0, 0, field_value);</get>
         </field>
-        <field name = "start_time" type = "time" label = "Date, time broker started, time_t">
-          <get>icl_shortstr_fmt (field_value, "%ld", (time_t) self->started);</get>
-        </field>
-        <field name = "locked" type = "bool" label = "Broker locked?">
+        <field name = "locked" type = "bool" label = "Broker is locked?">
           <get>icl_shortstr_fmt (field_value, "%d", self->locked);</get>
         </field>
-        <field name = "name" label = "Broker cluster name">
-          <get>icl_shortstr_cpy (field_value, self->name);</get>
-          <put>icl_shortstr_cpy (self->name, field_value);</put>
+        <field name = "memorymb" type = "int" label = "Memory consumption, MB">
+          <get>icl_shortstr_fmt (field_value, "%d", icl_mem_used () / (1024 * 1024));</get>
         </field>
-        <field name = "vhost" type = "objref" repeat = "1">
+        <field name = "connections" type = "int" label = "Number of active connections">
+          <get>icl_shortstr_fmt (field_value, "%d", amq_server_connection_count ());</get>
+        </field>
+        <field name = "messages" type = "int" label = "Number of held messages">
+          <get>icl_shortstr_fmt (field_value, "%d", amq_content_basic_count ());</get>
+        </field>
+        <field name = "exchanges" type = "int" label = "Number of message exchanges">
+          <get>icl_shortstr_fmt (field_value, "%d", amq_exchange_count ());</get>
+        </field>
+        <field name = "queues" type = "int" label = "Number of message queues">
+          <get>icl_shortstr_fmt (field_value, "%d", amq_queue_count ());</get>
+        </field>
+        <field name = "consumers" type = "int" label = "Number of queue consumers">
+          <get>icl_shortstr_fmt (field_value, "%d", amq_consumer_count ());</get>
+        </field>
+        <field name = "bindings" type = "int" label = "Number of queue bindings">
+          <get>icl_shortstr_fmt (field_value, "%d", amq_binding_count ());</get>
+        </field>
+        
+        <class name = "vhost" label = "Virtual hosts" repeat = "1">
           <get>
             icl_shortstr_fmt (field_value, "%ld", amq_vhost->object_id);
           </get>
-        </field>
-        <!-- TODO
-        <field name = "cluster" type = "objref">
+        </class>
+        <class name = "cluster" label = "Cluster">
           <get>
             icl_shortstr_fmt (field_value, "%ld", amq_cluster->object_id);
           </get>
-        </field>
-        -->
+        </class>
+        <class name = "config" label = "Configuration" source = "amq_console_config">
+          <get>
+            icl_shortstr_fmt (field_value, "%ld", amq_console_config->object_id);
+          </get>
+        </class>
+        
         <method name = "lock" label = "Prevent new connections">
           <exec>self->locked = TRUE;</exec>
         </method>
@@ -49,6 +68,10 @@
         </method>
     </class>
 </data>
+
+<private name = "async header">
+#include "version.h"
+</private>
 
 <context>
     Bool
@@ -77,6 +100,7 @@
     //  We use a single global vhost for now
     //  TODO: load list of vhosts from config file
     amq_vhost = amq_vhost_new (self, "/");
+    amq_console_config = amq_console_config_new (self);
     self->xmeter = ipr_meter_new ();
     self->imeter = ipr_meter_new ();
     self->monitor_timer    = amq_server_config_monitor    (amq_server_config);
@@ -95,6 +119,7 @@
 <method name = "destroy">
     <action>
     amq_vhost_destroy (&amq_vhost);
+    amq_console_config_destroy (&amq_console_config);
     ipr_meter_destroy (&self->xmeter);
     ipr_meter_destroy (&self->imeter);
     </action>

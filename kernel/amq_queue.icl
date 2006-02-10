@@ -24,7 +24,7 @@ class.  This is a lock-free asynchronous class.
 
 <!-- Console definitions for this object -->
 <data name = "cml">
-    <class name = "queue" parent = "vhost" label = "Queues" >
+    <class name = "queue" parent = "vhost" label = "Message Queue" >
         <field name = "name">
           <get>icl_shortstr_cpy (field_value, self->name);</get>
         </field>

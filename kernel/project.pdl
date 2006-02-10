@@ -2,7 +2,7 @@
 <pdl
     name      = "OpenAMQ Kernel"
     version   = "1.0a4-svn"
-    copyright = "Copyright (c) 2004-2006 iMatix & JPMorganChase"
+    copyright = "Copyright (c) 2004-2006 iMatix Corporation"
     workflow  = "standard.pwl"
     library   = "libamq"
     >
@@ -27,36 +27,31 @@
 <file name = "amq_tunnel.asl"        class = "public resource"   >Method tunneling</file>
 <file name = "amq_cluster.asl"       class = "public resource"   >Cluster management</file>
 
-<!-- AMQ client implementation -->
+<!-- OpenAMQ WireAPI/C implementation -->
 <file name = "amq_client.asl"        class = "gsl data"          >Client definition</file>
 <file name = "amq_client.c"          class = "main program"      >Client test program</file>
-<file name = "amq_client_method.icl" class = "icl public class"
-                                     generated = "1"             >Client method class</file>
+<file name = "amq_client_method.icl" class = "icl public cont"   >Client method class</file>
 <file name = "amq_client_agent.smt"  class = "smt public module"
                                      generated = "1"             >Client protocol agent</file>
 <file name = "amq_client_config.opf" class = "gsl data"          >Client configuration</file>
-<file name = "amq_client_config.icl" class = "icl private class"
-                                     generated = "1"             >Client configuration class</file>
+<file name = "amq_client_config.icl" class = "icl private cont"  >Client configuration class</file>
 <file name = "amq_client_classes.icl"
                                      class = "icl public data"   >Client classes</file>
 <file name = "amq_client_connection.icl"
-                                     class = "icl public class"
-                                     generated = "1"             >Client API connection class</file>
+                                     class = "icl public cont"   >Client API connection class</file>
 <file name = "amq_client_session.icl"
-                                     class = "icl public class"
-                                     generated = "1"             >Client API session class</file>
+                                     class = "icl public cont"   >Client API session class</file>
 <file name = "amq_client_channel.icl"
                                      class = "icl public class"  >Client channel class</file>
 <file name = "amq_client_channel_table.icl"
                                      class = "icl public cont"  >Client channel table</file>
 
-<!-- AMQ server implementation -->
+<!-- OpenAMQ server implementation -->
 <file name = "amq_server.asl"        class = "gsl data"          >Server definition</file>
 <file name = "amq_server.c"          class = "main program"      >Server main</file>
 <file name = "amq_server_main.inc"   class = "private resource"  >Server main core</file>
 <file name = "amq_server_config.opf" class = "gsl data"          >Server configuration</file>
-<file name = "amq_server_config.icl" class = "icl private class"
-                                     generated = "1"             >Server configuration class</file>
+<file name = "amq_server_config.icl" class = "icl private cont"  >Server configuration class</file>
 <file name = "amq_server_agent.smt"  class = "smt public module"
                                      generated = "1"             >Server protocol agent</file>
 <file name = "amq_server_classes.icl"  
@@ -86,22 +81,13 @@
 <file name = "amq_proxy_agent.smt"   class = "smt public module"
                                      generated = "1"             >Cluster proxy agent</file>
 <file name = "amq_proxy_config.opf"  class = "gsl data"          >Cluster proxy configuration</file>
-<file name = "amq_proxy_config.icl"  class = "icl private class"
-                                     generated = "1"             >Cluster proxy configuration class</file>
-<file name = "amq_proxy_method.icl"  class = "icl public class"
-                                     generated = "1"             >Cluster proxy methods</file>
-<file name = "amq_console.icl"       class = "icl private class" >Server console class</file>
-<file name = "amq_console_agent.smt" class = "smt public module"
-                                     generated = "1"             >Server console agent</file>
-<file name = "amq_console_object.icl"
-                                     class = "private resource"  >Console object abstract class</file>
-<file name = "amq_console_class.icl" class = "icl private class" >Console class definition</file>
+<file name = "amq_proxy_config.icl"  class = "icl private cont"  >Cluster proxy configuration class</file>
+<file name = "amq_proxy_method.icl"  class = "icl public cont"   >Cluster proxy methods</file>
 <file name = "amq_vhost.icl"         class = "icl private class" >Server vhost class</file>
 <file name = "amq_vhost_agent.smt"   class = "smt public module"
                                      generated = "1"             >Server vhost agent</file>
 <file name = "amq_vhost_config.opf"  class = "gsl data"          >Vhost configuration</file>
-<file name = "amq_vhost_config.icl"  class = "icl private class"
-                                     generated = "1"             >Vhost configuration class</file>
+<file name = "amq_vhost_config.icl"  class = "icl private cont"  >Vhost configuration class</file>
 <file name = "amq_exchange.icl"      class = "icl private class" >Server exchange class</file>
 <file name = "amq_exchange_table.icl"
                                      class = "icl private cont"  >Container for server exchange class</file>
@@ -142,8 +128,7 @@
                                      class = "icl private cont"  >Consumers per channel</file>
 <file name = "amq_consumer_basic.icl"
                                      class = "icl private class" >Basic consumer class</file>
-<file name = "amq_server_method.icl" class = "icl private class"
-                                     generated = "1"             >Server method class</file>
+<file name = "amq_server_method.icl" class = "icl private cont"  >Server method class</file>
 <file name = "amq_content_stream_list.icl"    class = "icl private class" >List of queues</file>
 <file name = "amq_content_tunnel_list.icl"    class = "icl private class" >List of queues</file>
 <file name = "amq_content_basic_list.icl"     class = "icl private class" >List of queues</file>
@@ -151,27 +136,51 @@
 
 <file name = "server.cfg"            class = "public resource"   >Server config file</file>
 
-<!-- Deliverables -->
-<file name = "amq_server"            class = "public command"    >Server</file>
-<file name = "amq_client"            class = "public command"    >Client</file>
-
 <!-- Shared classes & resources -->
 <file name = "amq_hash.icl"          class = "icl private class" >Loose hash item</file>
 <file name = "amq_hash_table.icl"    class = "icl private cont"  >Loose hash table</file>
-<file name = "amq_content_basic.icl" class = "icl public cont"
-                                     generated = "1"             >Basic content class</file>
-<file name = "amq_content_file.icl"  class = "icl public cont"
-                                     generated = "1"             >File content class</file>
-<file name = "amq_content_stream.icl" class = "icl public cont"
-                                     generated = "1"             >Stream content class</file>
-<file name = "amq_content_tunnel.icl" class = "icl public cont"
-                                     generated = "1"             >Tunnel content class</file>
+<file name = "amq_content_basic.icl" class = "icl public cont"   >Basic content class</file>
+<file name = "amq_content_file.icl"  class = "icl public cont"   >File content class</file>
+<file name = "amq_content_stream.icl"
+                                     class = "icl public cont"   >Stream content class</file>
+<file name = "amq_content_tunnel.icl"
+                                     class = "icl public cont"   >Tunnel content class</file>
 <file name = "amq_constants.icl"     class = "icl public data"
                                      generated = "1"             >Constants class</file>
+
+<!-- OpenAMQ Management Console back-end -->
+<file name = "amq_console.icl"       class = "icl private class" >Server console class</file>
+<file name = "amq_console_agent.smt" class = "smt public module"
+                                     generated = "1"             >Server console agent</file>
+<file name = "amq_console_object.icl"
+                                     class = "private resource"  >Console object abstract class</file>
+<file name = "amq_console_class.icl" class = "icl private class" >Console class definition</file>
 <file name = "amq_console_schema.gsl"
                                      class = "private resource"  >Console generator</file>
 <file name = "amq_console_schema.cml"
                                      class = "generated resource">Console schema</file>
+<file name = "amq_console_config.gsl"
+                                     class = "private resource"  >OPF plugin for console</file>
+<file name = "amq_console_config.icl"
+                                     class = "icl private class"
+                                     generated = "1"             >Config wrapper class</file>
+<file name = "amq_console_config_agent.smt" class = "smt public module"
+                                     generated = "1"             >Config wrapper agent</file>
+
+<!-- OpenAMQ Management Console front-end -->
+<file name = "amq_shell.c"           class = "main program"      >Management console</file>
+<file name = "amq_mgt_console.icl"   class = "icl public class"  >Management console class</file>
+<file name = "amq_mgt_broker.icl"    class = "icl public cont"   >Management broker class</file>
+<file name = "amq_mgt_vhost.icl"     class = "icl public cont"   >Management vhost class</file>
+<file name = "amq_mgt_exchange.icl"  class = "icl public cont"   >Management exchange class</file>
+<file name = "amq_mgt_queue.icl"     class = "icl public cont"   >Management queue class</file>
+<file name = "amq_mgt_cluster.icl"   class = "icl public class"  >Management cluster class</file>
+<file name = "amq_mgt_config.icl"    class = "icl public class"  >Management config class</file>
+
+<!-- OpenAMQ deliverables -->
+<file name = "amq_server"            class = "public command"    >Server</file>
+<file name = "amq_client"            class = "public command"    >Client</file>
+<file name = "amq_shell"             class = "public command"    >Console shell</file>
 
 <!-- Test programs -->
 <file name = "amq_test_base.pal"     class = "public resource"   >Base test header</file>

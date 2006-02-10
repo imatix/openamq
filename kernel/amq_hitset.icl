@@ -3,7 +3,6 @@
     name      = "amq_hitset"
     comment   = "Holds a match hitset"
     version   = "1.1"
-    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     script    = "icl_gen"
     >
 <doc>

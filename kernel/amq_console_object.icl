@@ -1,11 +1,11 @@
 <?xml?>
 <class
-    name      = "amq_console_object"
-    comment   = "AMQ Console object base class"
-    version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 iMatix Corporation"
-    script    = "icl_gen"
-    abstract  = "1"
+    name     = "amq_console_object"
+    comment  = "AMQ Console object base class"
+    version  = "1.0"
+    script   = "smt_object_gen"
+    target   = "smt"
+    abstract = "1"
     >
 <doc>
 This class turns an icl-CML definition into the methods needed to make
@@ -81,7 +81,7 @@ static amq_console_class_t
         *fields;                        //  Properties of object
     icl_shortstr_t
         field_value;
-.for global.top->data->class.field where repeat ?= 1
+.for global.top->data->class.class where repeat ?= 1
 .   for local
     $(string.trim (local.?''))
 .   endfor
@@ -92,16 +92,22 @@ static amq_console_class_t
 .   for get
     $(string.trim (get.?''))
 .   endfor
+    asl_field_new_string (fields, "$(name)", field_value);
+.endfor
+.for global.top->data->class.class
+.   for get
+    $(string.trim (get.?''))
+.   endfor
 .   if repeat ?= 1
     while (*field_value) {
-        asl_field_new_string (fields, "$(field.name)", field_value);
+        asl_field_new_string (fields, "$(name)", field_value);
         strclr (field_value);
 .       for next
     $(string.trim (next.?''))
 .       endfor
     }
 .   else
-    asl_field_new_string (fields, "$(field.name)", field_value);
+    asl_field_new_string (fields, "$(name)", field_value);
 .   endif
 .endfor
     amq_console_reply_ok (amq_console, "inspect-reply", request, self->object_id, fields);
@@ -139,7 +145,7 @@ static amq_console_class_t
 .endfor
 .for global.top->data->class.field
 .   for put
-    field = asl_field_list_search (fields, "$(field.name)");
+    field = asl_field_list_search (fields, "$(name)");
     if (field) {
         icl_shortstr_cpy (field_value, asl_field_string (field));
         $(string.trim (.))

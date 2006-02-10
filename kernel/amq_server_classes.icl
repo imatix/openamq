@@ -14,6 +14,7 @@
 <import class = "amq_client_method" />
 <import class = "amq_console" />
 <import class = "amq_console_class" />
+<import class = "amq_console_config" />
 <import class = "amq_consumer" />
 <import class = "amq_consumer_basic" />
 <import class = "amq_content_basic" />

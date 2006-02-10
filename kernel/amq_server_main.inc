@@ -37,6 +37,7 @@ static char
 
 #define USAGE1                                                               \
     "Syntax: %s [options...]\n"                                              \
+    "   Starts the OpenAMQ server\n"                                         \
     "\n"                                                                     \
     "General options:\n"                                                     \
     "  -w directory     Working directory for server (current)\n"            \
@@ -238,7 +239,7 @@ s_run_server (void)
     //  Create main objects and do the work
     amq_console = amq_console_new ();
     amq_broker  = amq_broker_new  ();
-    amq_cluster = amq_cluster_new (s_opt_cluster);
+    amq_cluster = amq_cluster_new (amq_broker, s_opt_cluster);
 
     smt_wait (0);                       //  Execute the server
 

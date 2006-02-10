@@ -41,8 +41,6 @@
       The exchange name is a client-selected string that identifies
       the exchange for publish methods.  Exchange names may consist
       of any mixture of digits, letters, and underscores.  Exchange
-      names predefined by the server are prefixed by "$", which is
-      not a valid character in client-declared exchanges.  Exchange
       names are scoped by the virtual host.
     </doc>
     <assert check = "length" value = "127" />
@@ -53,8 +51,7 @@
     <doc>
     The queue name identifies the queue within the vhost.  Queue
     names may consist of any mixture of digits, letters, and
-    underscores.  Queue names predefined by the server start with
-    "$", not a valid character in client-declared queues.
+    underscores.
     </doc>
     <assert check = "length" value = "127" />
   </domain>

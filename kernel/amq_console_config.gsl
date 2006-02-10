@@ -1,0 +1,70 @@
+.output "amq_console_config.icl"
+<?xml?>
+<class
+    name    = "amq_console_config"
+    comment = "Wrapper for configuration under Console"
+    version = "1.0"
+    script  = "smt_object_gen"
+    target  = "smt"
+    >
+
+<inherit class = "smt_object" />
+<inherit class = "amq_console_object" />
+
+<!-- Console definitions for this object -->
+<data name = "cml">
+    <class name = "config" parent = "broker" label = "Configuration">
+        <field name = "name" label = "Configuration name">
+          <get>icl_shortstr_cpy (field_value, amq_server_config->filename);</get>
+        </field>
+.for property
+.   if type = "Bool"
+        <field name = "$(name)" type = "bool" label = "$(string.trim (property.?''):left)">
+          <get>icl_shortstr_fmt (field_value, "%d", amq_server_config_$(name) (amq_server_config));</get>
+.       if dynamic ?= 1
+          <put>amq_server_config_set_$(name) (amq_server_config, atoi (field_value));</put>
+.       endif
+.   elsif metat = "string"
+        <field name = "$(name)" type = "string" label = "$(string.trim (property.?''):left)">
+          <get>icl_shortstr_cpy (field_value, amq_server_config_$(name) (amq_server_config));</get>
+.       if dynamic ?= 1
+          <put>amq_server_config_set_$(name) (amq_server_config, field_value);</put>
+.       endif
+.   else
+        <field name = "$(name)" type = "int" label = "$(string.trim (property.?''):left)">
+          <get>icl_shortstr_fmt (field_value, "%ld", amq_server_config_$(name) (amq_server_config));</get>
+.       if dynamic ?= 1
+          <put>amq_server_config_set_$(name) (amq_server_config, atol (field_value));</put>
+.       endif
+.   endif
+        </field>
+.endfor
+        <method name = "commit" label = "Save custom configuration file">
+          <exec>amq_server_config_commit (amq_server_config, NULL);</exec>
+        </method>
+        <method name = "rollback" label = "Restore previous configuration">
+          <exec>amq_server_config_rollback (amq_server_config);</exec>
+        </method>
+    </class>
+</data>
+
+<import class = "amq_server_classes" />
+
+<public>
+extern $\(selftype)
+    *amq_console_config;                 //  Global properties object
+</public>
+
+<private>
+$\(selftype)
+    *amq_console_config = NULL;          //  Global properties
+</private>
+
+<method name = "new">
+    <argument name = "broker" type = "amq_broker_t *">Parent broker</argument>
+</method>
+
+<method name = "selftest" />
+
+</class>
+

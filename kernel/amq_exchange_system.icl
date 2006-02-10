@@ -3,7 +3,6 @@
     name      = "amq_exchange_system"
     comment   = "system exchange class"
     version   = "1.0"
-    copyright = "Copyright (c) 2004-2005 iMatix Corporation"
     script    = "icl_gen"
     >
 <doc>
