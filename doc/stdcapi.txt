@@ -352,7 +352,7 @@ Protocol methods
 The following methods are directly mapped to the AMQP protocol methods
 and you should read the AMQP specifications for details:
 
- - amq_client_session_flow - mapped to Session.Flow.
+ - amq_client_session_channel_flow - mapped to Channel.Flow.
  - amq_client_session_access_request - mapped to Access.Request.
  - amq_client_session_exchange_declare - mapped to Exchange.Declare.
  - amq_client_session_exchange_delete - mapped to Exchange.Delete.

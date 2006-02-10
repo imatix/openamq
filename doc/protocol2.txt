@@ -1119,7 +1119,7 @@ a 'frame-end' octet that detects malformed frames:
 
     0      1       2         4             8               size+8
     +------+-------+---------+----------+  +------------+  +-----------+
-    | type | cycle | channel |   size   |  |  payload   |  | frame-end |
+    | type | empty | channel |   size   |  |  payload   |  | frame-end |
     +------+-------+---------+----------+  +------------+  +-----------+
      octet   octet    short      long       size octets       octet
 

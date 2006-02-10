@@ -1071,12 +1071,11 @@ dangerous half-working, half-broken states. Either an application works,
 or it does not.
 
 Back to mandatory routing. When a message cannot be routed, we return it
-to the application (this is called "bouncing"). We must return the whole
-message since we cannot know what the application needs in order to
-process returns. Returning just a message id assume that the application
-holds onto published data. Returning just message properties assumes
-that the application does not put anything important in the body. So, we
-return the entire message.
+to the application. We must return the whole message since we cannot
+know what the application needs in order to process returns. Returning
+just a message id assume that the application holds onto published data.
+Returning just message properties assumes that the application does not
+put anything important in the body. So, we return the entire message.
 
 The Message Queue Concept
 -------------------------

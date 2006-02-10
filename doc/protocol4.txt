@@ -252,6 +252,12 @@ Guidelines for implementors:
 
 - The arguments are a set of AMQP fields that specific to each method.
 
+- Class id values from %x00.01-%xEF.FF are reserved for AMQP standard
+  classes.
+  
+- Class id values from %xF0.00-%xFF.FF (%d61440-%d65535) may be used by
+  implementations for non-standard extension classes.
+  
 AMQP Data Fields
 ----------------
 
@@ -302,7 +308,7 @@ Timestamps
 
 Time stamps are held in the 64-bit POSIX time_t format with an accuracy
 of one second. By using 64 bits we avoid future wraparound issues
-associated with 31- and 32-bit time_t values.
+associated with 31-bit and 32-bit time_t values.
 
 Field Tables
 ............
@@ -355,8 +361,6 @@ Content frames on a specific channel form an strict list. That is, they
 may be mixed with frames for different channels, but two contents may
 not be mixed or overlapped on a single channel, nor may content frames
 for a single content be mixed with method frames on the same channel.
-
-Note that any non-content frame explicitly marks the end of the content.
 
 Guidelines for implementors:
 

@@ -3,9 +3,9 @@ gdl
     subtitle  = Operator Control for AMQ Servers
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2005/12/16
+    date      = 2006/02/07
     copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 1.1d0
+    version   = 1.0a1
 end gdl
 
 Document Control
@@ -14,26 +14,8 @@ Document Control
 Change History
 ==============
 
-1.1d0:
-    Added time field type (time_t format).
-    'name' field mandatory in all objects.
-    Added label to class definition.
-1.1c1:
-    Renamed all commands to distinguish requests from responses.
-1.1c0:
-    Removed concept of child class, replaced with repeating fields
-    of type "object".
-1.1c0:
-    Added 'repeat' option on fields.
-1.1b1:
-    Removed 'children' attribute of inspect response.
-1.1b1:
-    Added class attribute to inspect response.
-1.1b1:
-    Removed 'detail' option on inspect (details are always returned).
-1.1b0:
-    Changed '<object class = ' in schema to '<class name = ' for
-    consistency with other XML languages we use.
+1.0a1:
+    Set version number to match OpenAMQ version number.
 
 Tasks Pending
 =============
@@ -60,13 +42,13 @@ and management of an AMQ server, including:
 
 We want the console to have these features:
 
- - To be very rapid, even when many people are operating (different
-   parts of) an AMQ server.  The speed of reaction of the console
+ - To be rapid, even when many people are operating (different
+   parts of) an AMQ server. The speed of reaction of the console
    is a very important part of its functionality.
 
  - To be portable to any desired user interface technology, including
-   web, command-line, JMX, etc.  Ideally, end-users should be able to
-   make customised operator interfaces, scripts, etc.  We want the
+   web, command-line, JMX, etc. Ideally, end-users should be able to
+   make customised operator interfaces, scripts, etc. We want the
    console to be user-extensible.
 
  - To be generally compatible with conventional console abstractions,
@@ -133,7 +115,7 @@ applications:
 The Server Schema
 =================
 
-We define that:
+We specify formally that:
 
  - The console works on a set of entity definitions we call "classes",
    and a set of live entities we call "objects".
@@ -159,8 +141,6 @@ This is an example of a schema structure:
      :        `-- consumer
      :
      `-- connection
-
-(This represents the operable core of an OpenAMQ/0.9 server.)
 
 Classes, Fields, and Methods
 ============================
