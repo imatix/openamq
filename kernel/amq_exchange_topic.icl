@@ -83,8 +83,10 @@ specification.
     <local>
     amq_index_t
         *index;                         //  Index object
+    amq_binding_list_iterator_t
+        it;                             //  Iterator through bindings list
     amq_binding_t
-        *binding;                       //  Binding object
+        *binding;                       //  Auxiliary variable
     ipr_regexp_t
         *regexp;                        //  Regular expression object
     int
@@ -99,22 +101,23 @@ specification.
 
         //  Create new index and recompile all bindings for it
         index = amq_index_new (self->index_hash, routing_key, self->index_array);
-        binding = amq_binding_list_first (self->exchange->binding_list);
-        while (binding) {
+        for (it = amq_binding_list_begin (self->exchange->binding_list);
+              it != amq_binding_list_end (self->exchange->binding_list);
+              it = amq_binding_list_next (it)) {
+
             //  TODO: size of regexp object? keep it active per binding
             //  sub-structure for bindings, dependent on exchange class...
-            regexp = ipr_regexp_new (binding->regexp);
+            regexp = ipr_regexp_new ((*it)->regexp);
             if (ipr_regexp_match (regexp, routing_key, NULL)) {
                 if (amq_server_config_trace_route (amq_server_config))
                     icl_console_print ("X: index  routing_key=%s wildcard=%s",
-                        routing_key, binding->routing_key);
+                        routing_key, (*it)->routing_key);
 
                 //  Cross-reference binding and index
-                ipr_bits_set (index->bindset, binding->index);
-                ipr_looseref_queue (binding->index_list, index);
+                ipr_bits_set (index->bindset, (*it)->index);
+                ipr_looseref_queue ((*it)->index_list, index);
             }
             ipr_regexp_destroy (&regexp);
-            binding = amq_binding_list_next (&binding);
         }
     }
     if (amq_server_config_trace_route (amq_server_config))

@@ -22,15 +22,25 @@ Defines a virtual host. This is a lock-free asynchronous class.
 
         <class name = "exchange" label = "Message exchange" repeat = "1">
           <local>
+            amq_exchange_list_iterator_t
+                ite;
             amq_exchange_t
-                *exchange;
+                *exchange = NULL;
           </local>
           <get>
-            exchange = amq_exchange_list_first (self->exchange_list);
-            icl_shortstr_fmt (field_value, "%ld", exchange->object_id);
+            if (!amq_exchange_list_empty (self->exchange_list)) {
+                ite = amq_exchange_list_begin (self->exchange_list);
+                exchange = *ite;
+            }
+            if (exchange)
+                icl_shortstr_fmt (field_value, "%ld", exchange->object_id);
           </get>
           <next>
-            exchange = amq_exchange_list_next (&exchange);
+            ite = amq_exchange_list_next (ite);
+            if (ite != amq_exchange_list_end (self->exchange_list))
+                exchange = *ite;
+            else
+                exchange = NULL;
             if (exchange)
                 icl_shortstr_fmt (field_value, "%ld", exchange->object_id);
           </next>
@@ -39,22 +49,22 @@ Defines a virtual host. This is a lock-free asynchronous class.
         <class name = "queue" label = "Message queue" repeat = "1">
           <local>
             amq_queue_list_iterator_t
-                it;
+                itq;
             amq_queue_t
                 *queue = NULL;
           </local>
           <get>
             if (!amq_queue_list_empty (self->queue_list)) {
-                it = amq_queue_list_begin (self->queue_list);
-                queue = *it;
+                itq = amq_queue_list_begin (self->queue_list);
+                queue = *itq;
             }
             if (queue)
                 icl_shortstr_fmt (field_value, "%ld", queue->object_id);
           </get>
           <next>
-            it = amq_queue_list_next (it);
-            if (it != amq_queue_list_end (self->queue_list))
-                queue = *it;
+            itq = amq_queue_list_next (itq);
+            if (itq != amq_queue_list_end (self->queue_list))
+                queue = *itq;
             else
                 queue = NULL;
             if (queue)
@@ -66,6 +76,7 @@ Defines a virtual host. This is a lock-free asynchronous class.
 
 <import class = "amq_server_classes" />
 <import class = "amq_queue_list" />
+<import class = "amq_exchange_list" />
 
 <public>
 extern $(selftype)
@@ -176,15 +187,14 @@ $(selftype)
     </release>
     //
     <action>
-    amq_exchange_t
-        *exchange;
+    amq_exchange_list_iterator_t
+        it;
 
     //  Go through all exchanges & bindings, remove link to queue
-    exchange = amq_exchange_list_first (self->exchange_list);
-    while (exchange) {
-        amq_exchange_unbind_queue (exchange, queue);
-        exchange = amq_exchange_list_next (&exchange);
-    }
+    for (it = amq_exchange_list_begin (self->exchange_list);
+          it != amq_exchange_list_end (self->exchange_list);
+          it = amq_exchange_list_next (it))
+        amq_exchange_unbind_queue (*it, queue);        
 
     //  Remove the queue from queue_list and queue_table
     amq_queue_list_erase (self->queue_list,

@@ -13,11 +13,8 @@ class.
 </doc>
 
 <inherit class = "icl_object">
+    <option name = "links" value = "1" />
     <option name = "alloc" value = "cache" />
-</inherit>
-<inherit class = "icl_list_item">
-    <option name = "prefix" value = "list" />
-    <option name = "rwlock" value = "0" />
 </inherit>
 <inherit class = "icl_tracker" />
 

@@ -91,7 +91,7 @@
 <file name = "amq_exchange.icl"      class = "icl private class" >Server exchange class</file>
 <file name = "amq_exchange_table.icl"
                                      class = "icl private cont"  >Container for server exchange class</file>
-<file name = "amq_exchange_list.icl" class = "icl private cont"  >List of exchanges per vhost</file>
+<file name = "amq_exchange_list.icl" class = "icl private class" >List of exchanges</file>
 <file name = "amq_exchange_agent.smt"
                                      class = "smt public module"
                                      generated = "1"             >Server exchange agent</file>
@@ -107,7 +107,6 @@
 <file name = "amq_exchange_headers.icl"
                                      class = "icl private class" >Server headers exchange class</file>
 <file name = "amq_binding.icl"       class = "icl private class" >Server exchange bindings class</file>
-<file name = "amq_binding_list.icl"  class = "icl private cont"  >Server exchange bindings list</file>
 <file name = "amq_hitset.icl"        class = "icl private class" >Server exchange hitset class</file>
 <file name = "amq_index.icl"         class = "icl private class" >Message matching index class</file>
 <file name = "amq_index_hash.icl"    class = "icl private cont"  >Message matching index hash</file>
@@ -129,11 +128,16 @@
 <file name = "amq_consumer_basic.icl"
                                      class = "icl private class" >Basic consumer class</file>
 <file name = "amq_server_method.icl" class = "icl private cont"  >Server method class</file>
-<file name = "amq_content_stream_list.icl"    class = "icl private class" >List of queues</file>
-<file name = "amq_content_tunnel_list.icl"    class = "icl private class" >List of queues</file>
-<file name = "amq_content_basic_list.icl"     class = "icl private class" >List of queues</file>
-<file name = "amq_content_file_list.icl"      class = "icl private class" >List of queues</file>
-
+<file name = "amq_content_stream_list.icl"
+                                     class = "icl private class" >List of stream contents</file>
+<file name = "amq_content_tunnel_list.icl"
+                                     class = "icl private class" >List of tunnel contents</file>
+<file name = "amq_content_basic_list.icl"
+                                     class = "icl private class" >List of basic contents</file>
+<file name = "amq_content_file_list.icl"
+                                     class = "icl private class" >List of file contents</file>
+<file name = "amq_binding_list.icl"
+                                     class = "icl private class" >List of file contents</file>
 <file name = "server.cfg"            class = "public resource"   >Server config file</file>
 
 <!-- Shared classes & resources -->
