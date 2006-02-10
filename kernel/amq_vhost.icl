@@ -20,7 +20,7 @@ Defines a virtual host. This is a lock-free asynchronous class.
           <get>icl_shortstr_cpy (field_value, self->name);</get>
         </field>
 
-        <class name = "exchange" label = "Message exchange" repeat = "1">
+        <class name = "exchange" label = "Message exchanges" repeat = "1">
           <local>
             amq_exchange_list_iterator_t
                 ite;
@@ -46,7 +46,7 @@ Defines a virtual host. This is a lock-free asynchronous class.
           </next>
         </class>
 
-        <class name = "queue" label = "Message queue" repeat = "1">
+        <class name = "queue" label = "Message queues" repeat = "1">
           <local>
             amq_queue_list_iterator_t
                 itq;

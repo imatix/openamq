@@ -163,7 +163,7 @@ class.
     //
     if (!self->loaded)
         self_load (self);
-    
+
     icl_console_print (" %d) $(name) = \\\\"%s\\\\" ", self->id, self->name);
 .for field where name <> "name"
 .   if type = "string"
@@ -185,7 +185,7 @@ NULL);
 .endfor
 .for class where repeat ?= 1
     sprintf (field_value, "%d", ipr_looseref_list_count (self->$(name)_list));
-    s_print_property ("$(label)", field_value, NULL);
+    s_print_property ("Number of $(label:lower)", field_value, NULL);
 .endfor
 </method>
 
@@ -347,7 +347,7 @@ NULL);
             }
 .endfor
             if (rc == 1                 //  1 means quit completely
-            ||  rc == 2 && depth)       //  2 means return to top level
+            || (rc == 2 && depth))      //  2 means return to top level
                 break;                  //  Called cmdline asked for exit
             else
             if (!id_found)
@@ -533,7 +533,7 @@ s_print_property (char *label, char *value, char *name)
 {
     icl_shortstr_t
         property;
-        
+
     icl_shortstr_fmt (property, " %s ...", label);
     while (strlen (property) < 40)
         strcat (property, ".");
