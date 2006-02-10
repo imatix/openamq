@@ -162,8 +162,7 @@
 <file name = "amq_console_config.gsl"
                                      class = "private resource"  >OPF plugin for console</file>
 <file name = "amq_console_config.icl"
-                                     class = "icl private class"
-                                     generated = "1"             >Config wrapper class</file>
+                                     class = "icl private cont"  >Config wrapper class</file>
 <file name = "amq_console_config_agent.smt" class = "smt public module"
                                      generated = "1"             >Config wrapper agent</file>
 
@@ -201,6 +200,7 @@
 <actions>
   <generate>
     <execute>
+    gsl -q amq_server_config.opf
     gsl -q amq_console_schema
     </execute>
   </generate>
