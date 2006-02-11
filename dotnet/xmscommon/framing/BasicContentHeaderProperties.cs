@@ -1,6 +1,7 @@
 using System;
 using jpmorgan.mina.common;
 using log4net;
+using IBM.XMS;    
 
 namespace OpenAMQ.Framing
 {
@@ -120,5 +121,16 @@ namespace OpenAMQ.Framing
                 AppId = EncodingUtils.ReadShortString(buffer);
         }
 
+        public void SetDeliveryMode(IBM.XMS.DeliveryMode deliveryMode)
+        {
+            if (deliveryMode == IBM.XMS.DeliveryMode.NonPersistent)
+            {
+                DeliveryMode = 1;
+            }
+            else
+            {
+                DeliveryMode = 2;
+            }
+        }
     }
 }

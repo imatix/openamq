@@ -42,10 +42,63 @@
   <ItemGroup>
     <Compile Include="Class1.cs" />
     <Compile Include="Client\AMQConnection.cs" />
+    <Compile Include="Client\AMQDestination.cs" />
+    <Compile Include="Client\AMQQueue.cs" />
+    <Compile Include="Client\AMQSession.cs" />
+    <Compile Include="Client\AMQTopic.cs" />
+    <Compile Include="Client\BasicMessageConsumer.cs" />
+    <Compile Include="Client\BasicMessageProducer.cs" />
     <Compile Include="Client\Closeable.cs" />
+    <Compile Include="Client\ConnectionTuneParameters.cs" />
+    <Compile Include="Client\Handler\BasicDeliverMethodHandler.cs" />
+    <Compile Include="Client\Handler\BasicReturnMethodHandler.cs" />
+    <Compile Include="Client\Handler\ChannelCloseMethodHandler.cs" />
+    <Compile Include="Client\Handler\ConnectionCloseMethodHandler.cs" />
+    <Compile Include="Client\Handler\ConnectionOpenOkMethodHandler.cs" />
+    <Compile Include="Client\Handler\ConnectionRedirectMethodHandler.cs" />
+    <Compile Include="Client\Handler\ConnectionSecureMethodHandler.cs" />
+    <Compile Include="Client\Handler\ConnectionStartMethodHandler.cs" />
+    <Compile Include="Client\Handler\ConnectionTuneMethodHandler.cs" />
+    <Compile Include="Client\IdFactory.cs" />
+    <Compile Include="Client\Message\AbstractXMSMessage.cs" />
+    <Compile Include="Client\Message\AMQMessage.cs" />
+    <Compile Include="Client\Message\AMQMessageFactory.cs" />
+    <Compile Include="Client\Message\IMessageFactory.cs" />
+    <Compile Include="Client\Message\MessageFactoryRegistry.cs" />
+    <Compile Include="Client\Message\UnexpectedBodyReceivedException.cs" />
+    <Compile Include="Client\Message\UnprocessedMessage.cs" />
+    <Compile Include="Client\Message\XMSBytesMessage.cs" />
+    <Compile Include="Client\Message\XMSBytesMessageFactory.cs" />
+    <Compile Include="Client\Message\XMSTextMessage.cs" />
+    <Compile Include="Client\Message\XMSTextMessageFactory.cs" />
+    <Compile Include="Client\Protocol\AMQMethodEvent.cs" />
+    <Compile Include="Client\Protocol\AMQProtocolHandler.cs" />
+    <Compile Include="Client\Protocol\AMQProtocolSession.cs" />
+    <Compile Include="Client\Protocol\BlockingMethodFrameListener.cs" />
+    <Compile Include="Client\Protocol\IAMQMethodListener.cs" />
+    <Compile Include="Client\State\AMQState.cs" />
+    <Compile Include="Client\State\AMQStateChangedEvent.cs" />
+    <Compile Include="Client\State\AMQStateManager.cs" />
+    <Compile Include="Client\State\IAMQStateListener.cs" />
+    <Compile Include="Client\State\IllegalStateTransitionException.cs" />
+    <Compile Include="Client\State\IStateAwareMethodListener.cs" />
+    <Compile Include="Client\State\IStateListener.cs" />
+    <Compile Include="Client\State\Listener\ConnectionCloseOkListener.cs" />
+    <Compile Include="Client\State\Listener\SpecificMethodFrameListener.cs" />
+    <Compile Include="Client\State\StateWaiter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="XMS\ChannelLimitReachedException.cs" />
+    <Compile Include="XMS\IConnection.cs" />
+    <Compile Include="XMS\IConnectionListener.cs" />
+    <Compile Include="XMS\IMessageConsumer.cs" />
+    <Compile Include="XMS\IMessageProducer.cs" />
+    <Compile Include="XMS\ISession.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\CommonCollections\CommonCollections.csproj">
+      <Project>{CB5CD46B-902F-48DA-915D-1DA0082F25F4}</Project>
+      <Name>CommonCollections</Name>
+    </ProjectReference>
     <ProjectReference Include="..\minadotnet\minadotnet.csproj">
       <Project>{E6EED856-9650-439F-BB81-F35A2C0F8AB8}</Project>
       <Name>minadotnet</Name>
@@ -54,10 +107,6 @@
       <Project>{77064C42-24D2-4CEB-9EA2-0EF481A43205}</Project>
       <Name>xmscommon</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Client\Handler\" />
-    <Folder Include="XMS\" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

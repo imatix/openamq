@@ -1,16 +1,21 @@
 using System;
 using System.Collections;
+using System.IO;
 using System.Threading;
 using jpmorgan.mina.common;
 using jpmorgan.mina.common.support;
 using log4net;
 using IBM.XMS;
+using OpenAMQ.Framing;
+using OpenAMQ.XMS.Client.Protocol;
+using OpenAMQ.XMS.Client.State;
+using OpenAMQ.XMS.Client.State.Listener;
 
 namespace OpenAMQ.XMS.Client
 {
     public class AMQConnection : Closeable, IConnection 
     {
-        private static readonly ILog _logger = LogManaer.GetLogger(typeof(AMQConnection));
+        private static readonly ILog _logger = LogManager.GetLogger(typeof(AMQConnection));
 
         private readonly IdFactory _idFactory = new IdFactory();
 
@@ -20,12 +25,12 @@ namespace OpenAMQ.XMS.Client
         /// A channel is roughly analogous to a session. The server can negotiate the maximum number of channels
         /// per session and we must prevent the client from opening too many. Zero means unlimited.
         /// </summary>
-        private long _maximumChannelCount;
+        private ushort _maximumChannelCount;
 
         /// <summary>
         /// The maximum size of frame supported by the server
         /// </summary>
-        private long _maximumFrameSize;
+        private uint _maximumFrameSize;
 
         private AMQProtocolHandler _protocolHandler;
 
@@ -63,7 +68,7 @@ namespace OpenAMQ.XMS.Client
 
         private ExceptionListener _exceptionListener;
 
-        private ConnectionListener _connectionListener;
+        private IConnectionListener _connectionListener;
 
         /// <summary>
         /// Whether this connection is started, i.e. whether messages are flowing to consumers. It has no meaning for
@@ -99,14 +104,14 @@ namespace OpenAMQ.XMS.Client
             set
             {
                 CheckNotClosed();
-                _clientName = clientID;
+                _clientName = value;
             }
         }
 
-        public void Close()
+        public override void Close()
         {
             // atomically set to closed and check the previous value was NOT CLOSED
-            if (Interlocked.Exchange(_closed, CLOSED) == NOT_CLOSED)            
+            if (Interlocked.Exchange(ref _closed, CLOSED) == NOT_CLOSED)            
             {
                 try
                 {
@@ -130,11 +135,11 @@ namespace OpenAMQ.XMS.Client
             else
             {
                 // TODO: check thread safety
-                short channelId = _idFactory.getChannelId();
+                ushort channelId = _idFactory.ChannelId;
                 AMQFrame frame = ChannelOpenBody.CreateAMQFrame(channelId, 100,
                                                                 null);
 
-                if (_logger.IsDebugEnabled())
+                if (_logger.IsDebugEnabled)
                 {
                     _logger.Debug("Write channel open frame for channel id " + channelId);
                 }
@@ -172,7 +177,7 @@ namespace OpenAMQ.XMS.Client
             set
             {
                 CheckNotClosed();
-                _exceptionListener = listener;
+                _exceptionListener = value;
             }
         }
 
@@ -182,8 +187,7 @@ namespace OpenAMQ.XMS.Client
             {
                 CheckNotClosed();
                 // TODO implement
-                throw new Exception("Not implemented");
-                return null;
+                throw new Exception("Not implemented");                
             }
         }
 
@@ -200,7 +204,7 @@ namespace OpenAMQ.XMS.Client
                 foreach (LinkedHashtable.LinkedDictionaryEntry lde in _sessions)
                 {                   
                     AMQSession s = (AMQSession)lde.value;
-                    s.start();
+                    s.Start();
                 }
                 _started = true;
             }
@@ -361,11 +365,11 @@ namespace OpenAMQ.XMS.Client
         /// Close all the sessions, either due to normal connection closure or due to an error occurring.
         /// @param cause if not null, the error that is causing this shutdown
         /// </summary>
-        private void closeAllSessions(Throwable cause)
+        private void CloseAllSessions(Exception cause)
         {
             foreach (LinkedHashtable.LinkedDictionaryEntry lde in _sessions)
             {
-                AMQSession session = lde.value;
+                AMQSession session = (AMQSession) lde.value;
                 if (cause != null)
                 {
                     session.Closed(cause);
@@ -384,7 +388,7 @@ namespace OpenAMQ.XMS.Client
             }
         }
 
-        IdFactory IdFactory
+        internal IdFactory IdFactory
         {
             get
             {
@@ -392,7 +396,7 @@ namespace OpenAMQ.XMS.Client
             }
         }
 
-        public uint MaximumChannelCount
+        public ushort MaximumChannelCount
         {
             get
             {
@@ -503,14 +507,24 @@ namespace OpenAMQ.XMS.Client
                 // handling sequence
                 if (cause is IOException)
                 {
-                    Interlocked.Exchange(_closed, CLOSED);
+                    Interlocked.Exchange(ref _closed, CLOSED);
                 }
-                _exceptionListener.OnException(xe);
+                _exceptionListener.Invoke(xe);
             }
             if (xe == null || !(cause is AMQUndeliveredException))
             {
                 CloseAllSessions(cause);
             }
+        }
+
+        internal void RegisterSession(int channelId, AMQSession session)
+        {
+            _sessions[channelId] = session;
+        }
+
+        internal void DeregisterSession(int channelId)
+        {
+            _sessions.Remove(channelId);
         }
     }
 }

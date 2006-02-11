@@ -103,6 +103,11 @@ namespace jpmorgan.mina.common.support
             return InnerHashtable.Contains(key);
         }
 
+        public void Remove(object key)
+        {
+            Dictionary.Remove(key);
+        }
+        
         public LinkedDictionaryEntry Head
         {
             get

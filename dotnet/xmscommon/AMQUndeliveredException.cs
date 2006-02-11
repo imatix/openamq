@@ -9,9 +9,12 @@ namespace OpenAMQ
     /// </summary>
     public class AMQUndeliveredException : AMQException
     {
-        public AMQUndeliveredException(int errorCode, string message)
+        private object _bounced;
+        
+        public AMQUndeliveredException(int errorCode, string message, object bounced)
             : base(errorCode, message)
         {
+            _bounced = bounced;
         }
     }
 }

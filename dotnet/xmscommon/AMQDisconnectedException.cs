@@ -10,5 +10,10 @@ namespace OpenAMQ
             : base(errorCode, message)
         {
         }
+        
+        public AMQDisconnectedException(string message)
+            : base(message)
+        {            
+        }
     }
 }

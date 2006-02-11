@@ -12,7 +12,7 @@ namespace OpenAMQ.Framing
         /// 
         /// </summary>
         /// TODO: consider whether this should be a pointer into the ByteBuffer to avoid copying */
-        public byte[] payload;
+        public byte[] Payload;
 
         #region IBody Members
 
@@ -28,15 +28,15 @@ namespace OpenAMQ.Framing
         {
             get
             {
-                return (ushort)(payload == null ? 0 : payload.Length);
+                return (ushort)(Payload == null ? 0 : Payload.Length);
             }
         }
 
         public void WritePayload(ByteBuffer buffer)
         {
-            if (payload != null)
+            if (Payload != null)
             {
-                buffer.Put(payload);
+                buffer.Put(Payload);
             }
         }
 
@@ -44,8 +44,8 @@ namespace OpenAMQ.Framing
         {
             if (size > 0)
             {
-                payload = new byte[size];
-                buffer.Get(payload);
+                Payload = new byte[size];
+                buffer.Get(Payload);
             }
         }
 

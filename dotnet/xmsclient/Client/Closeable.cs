@@ -1,4 +1,5 @@
 using System;
+using IBM.XMS;
 using jpmorgan.mina.common;
 using log4net;
 
@@ -16,7 +17,7 @@ namespace OpenAMQ.XMS.Client
         /// All access to this field should be using the Inerlocked class, to make it atomic.
         /// Hence it is an int since you cannot use a bool with the Interlocked class.
         /// </summary>
-        protected volatile int _closed = NOT_CLOSED;
+        protected int _closed = NOT_CLOSED;
 
         protected const int CLOSED = 1;
         protected const int NOT_CLOSED = 2;
@@ -33,14 +34,14 @@ namespace OpenAMQ.XMS.Client
         }
 
         /// <summary>
-        /// Gets a value indicating whether this <see cref="T:Closeable"/> is closed.
+        /// Gets a value indicating whether this <see cref="Closeable"/> is closed.
         /// </summary>
         /// <value><c>true</c> if closed; otherwise, <c>false</c>.</value>
         public bool Closed
         {
             get
             {
-                return _closed;
+                return _closed == CLOSED;
             }
         }
 

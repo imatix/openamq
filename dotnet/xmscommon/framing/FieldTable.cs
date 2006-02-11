@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using jpmorgan.mina.common;
 using jpmorgan.mina.common.support;
 using log4net;
@@ -21,6 +22,10 @@ namespace OpenAMQ.Framing
     {
         private uint _encodedSize = 0;
 
+        public FieldTable() : base()
+        {            
+        }
+        
         /**
          * Construct a new field table.
          * @param buffer the buffer from which to read data. The length byte must be read already
@@ -119,6 +124,19 @@ namespace OpenAMQ.Framing
             return result;
         }
 
+        /// <summary>
+        /// Adds all the items from one field table in this one. Will overwrite any items in the current table
+        /// with the same key.
+        /// </summary>
+        /// <param name="ft">the source field table</param>
+        public void AddAll(FieldTable ft)
+        {
+            foreach (DictionaryEntry de in ft.InnerHashtable)
+            {
+                this[de.Key] = de.Value;
+            }
+        }
+        
         private void CheckKey(object key)
         {
             if (key == null)
