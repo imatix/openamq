@@ -9,6 +9,8 @@
 This class implements the connection class for the AMQ server.
 </doc>
 
+<import class = "amq_queue_list" />
+
 <inherit class = "asl_server_connection" />
 <option name = "basename" value = "amq_server" />
 
@@ -22,7 +24,7 @@ This class implements the connection class for the AMQ server.
 <context>
     amq_vhost_t
         *vhost;                         //  Parent virtual host
-    ipr_looseref_list_t
+    amq_queue_list_t
         *own_queue_list;                //  List of exclusive queues
     amq_consumer_table_t
         *consumer_table;                //  Consumers for connection
@@ -35,30 +37,21 @@ This class implements the connection class for the AMQ server.
 </context>
 
 <method name = "new">
-    self->own_queue_list = ipr_looseref_list_new ();
+    self->own_queue_list = amq_queue_list_new ();
     self->consumer_table = amq_consumer_table_new ();
     icl_shortstr_fmt (self->cluster_id, "%s/%s", amq_broker->name, self->id);
 </method>
 
 <method name = "destroy">
-    <local>
-    amq_queue_t
-        *queue;                         //  Content object reference
-    </local>
-    ///
-    //  Delete connection's exclusive queues
-    while ((queue = (amq_queue_t *) ipr_looseref_pop (self->own_queue_list)))
-        amq_queue_unlink (&queue);
-
     amq_vhost_unlink (&self->vhost);
-    ipr_looseref_list_destroy (&self->own_queue_list);
+    amq_queue_list_destroy (&self->own_queue_list);
     amq_consumer_table_destroy (&self->consumer_table);
 </method>
 
 <method name = "own queue" template = "function">
     <argument name = "queue" type = "amq_queue_t *">Queue reference</argument>
     assert (queue->exclusive);
-    ipr_looseref_queue (self->own_queue_list, amq_queue_link (queue));
+    amq_queue_list_push_back (self->own_queue_list, queue);
 </method>
 
 <method name = "unbind queue" template = "function">
@@ -66,18 +59,15 @@ This class implements the connection class for the AMQ server.
     Unbind a queue from the connection.
     </doc>
     <argument name = "queue" type = "amq_queue_t *">The queue to unbind</argument>
-    ipr_looseref_t
-        *looseref;
-
+    <local>
+    amq_queue_list_iterator_t
+        iterator;
+    </local>
     //  Remove the queue from the list of exclusive connections
-    looseref = ipr_looseref_list_first (self->own_queue_list);
-    while (looseref) {
-        if (looseref->object == (void*) queue) {
-            ipr_looseref_list_remove (looseref);
-            amq_queue_unlink ((amq_queue_t**) &(looseref->object));
-        }
-        looseref = ipr_looseref_list_next (&looseref);
-    }
+    iterator = amq_queue_list_find (amq_queue_list_begin (self->own_queue_list),
+        amq_queue_list_end (self->own_queue_list), queue);
+    if (iterator != amq_queue_list_end (self->own_queue_list))
+        amq_queue_list_erase (self->own_queue_list, iterator);
 </method>
 
 <method name = "ready" template = "function">
