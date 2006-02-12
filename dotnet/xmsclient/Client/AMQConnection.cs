@@ -10,6 +10,7 @@ using OpenAMQ.Framing;
 using OpenAMQ.XMS.Client.Protocol;
 using OpenAMQ.XMS.Client.State;
 using OpenAMQ.XMS.Client.State.Listener;
+using OpenAMQ.XMS.Client.Transport;
 
 namespace OpenAMQ.XMS.Client
 {
@@ -86,8 +87,9 @@ namespace OpenAMQ.XMS.Client
             _password = password;
             _virtualPath = virtualPath;
             
-            _transportConnection = new TransportConnection(this);
-            _protocolHandler = _transportConnection.Connect();
+            _protocolHandler = new AMQProtocolHandler(this);
+            _transportConnection = new TransportConnection(_protocolHandler);
+            _transportConnection.Connect(host, port);
             // this blocks until the connection has been set up
             _protocolHandler.AttainState(AMQState.CONNECTION_OPEN);
         }
