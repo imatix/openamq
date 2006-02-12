@@ -499,7 +499,6 @@ s_reply_xml (amq_content_basic_t *request, ipr_xml_t *xml_item)
         *bucket;
 
     xml_text = ipr_xml_save_string (xml_item);
-icl_console_print ("## %s", xml_text);
     bucket = ipr_bucket_new (strlen (xml_text));
     ipr_bucket_fill (bucket, xml_text, strlen (xml_text));
     icl_mem_free (xml_text);

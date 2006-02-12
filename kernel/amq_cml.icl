@@ -65,7 +65,6 @@
         }
     }
     xml_text = ipr_xml_save_string (cml_item);
-icl_console_print ("## %s", xml_text);
     bucket = ipr_bucket_new (strlen (xml_text));
     ipr_bucket_fill (bucket, xml_text, strlen (xml_text));
     icl_mem_free (xml_text);
