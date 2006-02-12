@@ -104,6 +104,9 @@ class.
     </local>
     //
     //  Send inspect request to console
+.if name <> "broker"
+    assert (self->id);
+.endif
     xml_root = s_request_response (self, "inspect", self->id, NULL, NULL);
     if (xml_root) {
         s_destroy_children (self);
