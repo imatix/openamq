@@ -24,6 +24,8 @@ This class implements the connection class for the AMQ server.
 <context>
     amq_vhost_t
         *vhost;                         //  Parent virtual host
+    amq_connection_t
+        *mgt_object;                    //  Management object
     amq_queue_list_t
         *own_queue_list;                //  List of exclusive queues
     amq_consumer_table_t
@@ -32,6 +34,8 @@ This class implements the connection class for the AMQ server.
         cluster_id;                     //  Cluster id for connection
     qbyte
         consumer_tag;                   //  Last consumer tag
+    icl_shortstr_t
+        user_name;                      //  User login name
     int
         type;                           //  User connection type
 </context>
@@ -39,10 +43,12 @@ This class implements the connection class for the AMQ server.
 <method name = "new">
     self->own_queue_list = amq_queue_list_new ();
     self->consumer_table = amq_consumer_table_new ();
+    self->mgt_object     = amq_connection_new (amq_broker, self);
     icl_shortstr_fmt (self->cluster_id, "%s/%s", amq_broker->name, self->id);
 </method>
 
 <method name = "destroy">
+    amq_connection_destroy (&self->mgt_object);
     amq_vhost_unlink (&self->vhost);
     amq_queue_list_destroy (&self->own_queue_list);
     amq_consumer_table_destroy (&self->consumer_table);
@@ -63,6 +69,7 @@ This class implements the connection class for the AMQ server.
     amq_queue_list_iterator_t
         iterator;
     </local>
+    //
     //  Remove the queue from the list of exclusive connections
     iterator = amq_queue_list_find (amq_queue_list_begin (self->own_queue_list),
         amq_queue_list_end (self->own_queue_list), queue);
@@ -199,6 +206,7 @@ static int s_auth_plain (
     while (config->located) {
         if (streq (login,    ipr_config_get (config, "name", ""))
         &&  streq (password, ipr_config_get (config, "password", ""))) {
+            icl_shortstr_cpy (self->user_name, login);
             type = ipr_config_get (config, "type", "");
             if (streq (type, "normal"))
                 self->type = AMQ_CONNECTION_TYPE_NORMAL;

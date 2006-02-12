@@ -23,60 +23,46 @@ Defines a virtual host. This is a lock-free asynchronous class.
         <class name = "exchange" label = "Message exchanges" repeat = "1">
           <local>
             amq_exchange_list_iterator_t
-                ite;
-            amq_exchange_t
-                *exchange = NULL;
+                exchange_p;
           </local>
           <get>
             if (!amq_exchange_list_empty (self->exchange_list)) {
-                ite = amq_exchange_list_begin (self->exchange_list);
-                exchange = *ite;
+                exchange_p = amq_exchange_list_begin (self->exchange_list);
+                icl_shortstr_fmt (field_value, "%ld", (*exchange_p)->object_id);
             }
-            if (exchange)
-                icl_shortstr_fmt (field_value, "%ld", exchange->object_id);
           </get>
           <next>
-            ite = amq_exchange_list_next (ite);
-            if (ite != amq_exchange_list_end (self->exchange_list))
-                exchange = *ite;
-            else
-                exchange = NULL;
-            if (exchange)
-                icl_shortstr_fmt (field_value, "%ld", exchange->object_id);
+            if (exchange_p) {
+                exchange_p = amq_exchange_list_next (exchange_p);
+                if (exchange_p != amq_exchange_list_end (self->exchange_list))
+                    icl_shortstr_fmt (field_value, "%ld", (*exchange_p)->object_id);
+            }
           </next>
         </class>
 
         <class name = "queue" label = "Message queues" repeat = "1">
           <local>
             amq_queue_list_iterator_t
-                itq;
-            amq_queue_t
-                *queue = NULL;
+                queue_p;
           </local>
           <get>
             if (!amq_queue_list_empty (self->queue_list)) {
-                itq = amq_queue_list_begin (self->queue_list);
-                queue = *itq;
+                queue_p = amq_queue_list_begin (self->queue_list);
+                icl_shortstr_fmt (field_value, "%ld", (*queue_p)->object_id);
             }
-            if (queue)
-                icl_shortstr_fmt (field_value, "%ld", queue->object_id);
           </get>
           <next>
-            itq = amq_queue_list_next (itq);
-            if (itq != amq_queue_list_end (self->queue_list))
-                queue = *itq;
-            else
-                queue = NULL;
-            if (queue)
-                icl_shortstr_fmt (field_value, "%ld", queue->object_id);
+            if (queue_p) {
+                queue_p = amq_queue_list_next (queue_p);
+                if (queue_p != amq_queue_list_end (self->queue_list))
+                    icl_shortstr_fmt (field_value, "%ld", (*queue_p)->object_id);
+            }
           </next>
         </class>
     </class>
 </data>
 
 <import class = "amq_server_classes" />
-<import class = "amq_queue_list" />
-<import class = "amq_exchange_list" />
 
 <public>
 extern $(selftype)
@@ -158,14 +144,14 @@ $(selftype)
     </doc>
     <action>
     amq_queue_list_iterator_t
-        it;
+        iterator;
 
     //  Dispatch all dirty message queues, which come at start of list
-    it = amq_queue_list_begin (self->queue_list);
-    while (it != amq_queue_list_end (self->queue_list)) {
-        if ((*it)->dirty) {
-            amq_queue_dispatch (*it);
-            it = amq_queue_list_next (it);
+    iterator = amq_queue_list_begin (self->queue_list);
+    while (iterator != amq_queue_list_end (self->queue_list)) {
+        if ((*iterator)->dirty) {
+            amq_queue_dispatch (*iterator);
+            iterator = amq_queue_list_next (iterator);
         }
         else
             break;
@@ -188,13 +174,14 @@ $(selftype)
     //
     <action>
     amq_exchange_list_iterator_t
-        it;
+        iterator;
 
     //  Go through all exchanges & bindings, remove link to queue
-    for (it = amq_exchange_list_begin (self->exchange_list);
-          it != amq_exchange_list_end (self->exchange_list);
-          it = amq_exchange_list_next (it))
-        amq_exchange_unbind_queue (*it, queue);        
+    for (iterator  = amq_exchange_list_begin (self->exchange_list);
+         iterator != amq_exchange_list_end   (self->exchange_list);
+         iterator  = amq_exchange_list_next  (iterator)
+        )
+        amq_exchange_unbind_queue (*iterator, queue);        
 
     //  Remove the queue from queue_list and queue_table
     amq_queue_list_erase (self->queue_list,

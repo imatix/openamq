@@ -2,10 +2,12 @@
 <pdl
     name      = "OpenAMQ Kernel"
     version   = "1.0a4-svn"
-    copyright = "Copyright (c) 2004-2006 iMatix Corporation"
+    copyright = "Copyright (c) 2004-2006 JPMorganChase"
     workflow  = "standard.pwl"
     library   = "libamq"
     >
+
+<!-- TODO: split this into constituent projects -->
 
 <include filename = "prelude.pdl" />
 <inherit filename = "icl_classes.pdl" />
@@ -118,6 +120,10 @@
                                      generated = "1"             >Server queue agent</file>
 <file name = "amq_queue_base.icl"    class = "private resource"  >Queue base class</file>
 <file name = "amq_queue_basic.icl"   class = "icl private class" >Basic content queue class</file>
+<file name = "amq_connection.icl"    class = "icl private class" >Connection mgt class</file>
+<file name = "amq_connection_agent.smt"
+                                     class = "smt public module"
+                                     generated = "1"             >Connection mgt agent</file>
 <file name = "amq_consumer.icl"      class = "icl private class" >Consumer class</file>
 <file name = "amq_consumer_table.icl"
                                      class = "icl private cont"  >Container for consumers</file>
@@ -169,6 +175,7 @@
                                      class = "icl private cont"  >Config wrapper class</file>
 <file name = "amq_console_config_agent.smt" class = "smt public module"
                                      generated = "1"             >Config wrapper agent</file>
+<file name = "amq_cml.icl"           class = "icl public class"  >CML functionality</file>
 
 <!-- OpenAMQ Management Console front-end -->
 <file name = "amq_shell.c"           class = "main program"      >Management console</file>
@@ -179,6 +186,8 @@
 <file name = "amq_mgt_queue.icl"     class = "icl public cont"   >Management queue class</file>
 <file name = "amq_mgt_cluster.icl"   class = "icl public cont"   >Management cluster class</file>
 <file name = "amq_mgt_config.icl"    class = "icl public cont"   >Management config class</file>
+<file name = "amq_mgt_connection.icl"
+                                     class = "icl public cont"   >Management connection class</file>
 
 <!-- OpenAMQ deliverables -->
 <file name = "amq_server"            class = "public command"    >Server</file>

@@ -125,12 +125,15 @@ class.
     <argument name = "queue" type = "amq_queue_t *">Queue to unbind</argument>
     <local>
     amq_queue_list_iterator_t
-        it;
+        iterator;
     </local>
-    it = amq_queue_list_find (amq_queue_list_begin (self->queue_list),
-        amq_queue_list_end (self->queue_list), queue);
-    if (it != amq_queue_list_end (self->queue_list))
-        amq_queue_list_erase (self->queue_list, it);
+    //
+    iterator = amq_queue_list_find (
+        amq_queue_list_begin (self->queue_list),
+        amq_queue_list_end (self->queue_list),
+        queue);
+    if (iterator != amq_queue_list_end (self->queue_list))
+        amq_queue_list_erase (self->queue_list, iterator);
 </method>
 
 <method name = "unbind peer" template = "function">
@@ -164,7 +167,7 @@ class.
     <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
     <local>
     amq_queue_list_iterator_t
-        it;
+        iterator;
     ipr_looseref_t
         *looseref;                      //  Bound object
     amq_peer_t
@@ -172,13 +175,13 @@ class.
     </local>
     //
     //  Publish to all queues, sending method to async queue class
-    for (it = amq_queue_list_begin (self->queue_list);
-          it != amq_queue_list_end (self->queue_list);
-          it = amq_queue_list_next (it)) {
-
+    for (iterator  = amq_queue_list_begin (self->queue_list);
+         iterator != amq_queue_list_end   (self->queue_list);
+         iterator  = amq_queue_list_next  (iterator))
+    {
         if (amq_server_config_trace_route (amq_server_config))
-            icl_console_print ("X: publish  queue=%s", (*it)->key);
-        amq_queue_publish (*it, channel, method);
+            icl_console_print ("X: publish  queue=%s", (*iterator)->key);
+        amq_queue_publish (*iterator, channel, method);
         rc++;  //  Count recepients
     }
 

@@ -149,6 +149,7 @@ static amq_console_class_t
     if (field) {
         icl_shortstr_cpy (field_value, asl_field_string (field));
         $(string.trim (.))
+        asl_field_unlink (&field);
     }
 .   endfor
 .endfor
@@ -184,6 +185,40 @@ static amq_console_class_t
         rc = -1;
 .for global.top->data->class.method
     if (streq (method_name, "$(method.name)")) {
+.   for field
+.       if first ()
+        asl_field_t
+            *field;
+.       endif
+.       if type = "string"
+        icl_shortstr_t
+            $(name);     
+.       elsif type = "int"
+        qbyte
+            $(name) = 0;
+.       elsif type = "bool"
+        Bool
+            $(name) = FALSE;
+.       elsif type = "time"
+        time_t
+            $(name) = 0;
+.       endif
+.   endfor
+.   for field
+        field = asl_field_list_search (fields, "$(name)");
+        if (field) {
+.       if type = "string"
+            icl_shortstr_cpy ($(name), asl_field_string (field));
+.       else
+            $(name) = atoi (asl_field_string (field));
+.       endif
+            asl_field_unlink (&field);
+        }
+.       if type = "string"
+        else
+            strclr ($(name));
+.       endif
+.   endfor
 .   for exec
         $(string.trim (.))
 .   endfor

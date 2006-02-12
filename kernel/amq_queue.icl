@@ -28,25 +28,30 @@ class.  This is a lock-free asynchronous class.
         <field name = "name">
           <get>icl_shortstr_cpy (field_value, self->name);</get>
         </field>
-        <field name = "enabled"     label = "Queue accepts new messages?">
+        <field name = "enabled" label = "Queue accepts new messages?">
           <get>icl_shortstr_fmt (field_value, "%d", self->enabled);</get>
           <put>self->enabled = atoi (field_value);</put>
         </field>
-        <field name = "durable"     label = "Durable queue?" type = "bool">
+        <field name = "durable" label = "Durable queue?" type = "bool">
           <get>icl_shortstr_fmt (field_value, "%d", self->durable);</get>
         </field>
-        <field name = "exclusive"   label = "Exclusive to one connection?" type = "bool">
+        <field name = "exclusive" label = "Exclusive to one connection?" type = "bool">
+          <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", self->exclusive);</get>
         </field>
         <field name = "auto_delete" label = "Auto-deleted?" type = "bool">
+          <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", self->auto_delete);</get>
         </field>
-        <field name = "consumers"   label = "Number of consumers" type = "int">
+        <field name = "consumers" label = "Number of consumers" type = "int">
+          <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", self->consumers);</get>
         </field>
-        <field name = "messages"    label = "Number of messages" type = "int">
+        <field name = "messages" label = "Number of messages" type = "int">
+          <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", amq_queue_message_count (self));</get>
         </field>
+
         <method name = "purge" label = "Purge all queue messages">
           <exec>amq_queue_basic_purge (self->queue_basic);</exec>
         </method>
@@ -101,11 +106,6 @@ class.  This is a lock-free asynchronous class.
     amq_queue_list_push_back (self->vhost->queue_list, self);
     if (amq_server_config_trace_queue (amq_server_config))
         icl_console_print ("Q: create   queue=%s", self->name);
-
-    //WORKAROUND FOR ICL BUG - BASE2-166
-    //One too many links, one too few destroys
-//    self->links--;
-//    self->possess_count++;
 </method>
 
 <method name = "destroy">
@@ -269,8 +269,9 @@ class.  This is a lock-free asynchronous class.
         if (amq_server_config_trace_queue (amq_server_config))
             icl_console_print ("Q: auto-del queue=%s", self->name);
         queue_ref = amq_queue_link (self);
-        amq_vhost_unbind_queue  (self->vhost, queue_ref);
-        if (self->exclusive)
+        amq_vhost_unbind_queue (self->vhost, queue_ref);
+        //  Ask broker to ask connections to drop link to queue
+        if (self->exclusive) 
             amq_broker_unbind_queue (amq_broker, queue_ref);
         amq_queue_unlink (&queue_ref);
     }

@@ -53,12 +53,14 @@ warn the primary server to cede its role as master.
           <get>icl_shortstr_fmt (field_value, "%d", self->enabled);</get>
         </field>
         <field name = "ready" type = "bool" label = "Cluster is ready">
+          <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", self->ready);</get>
         </field>
         <field name = "master" type = "bool" label = "Broker is cluster master?">
+          <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", self->master);</get>
         </field>
-        <field name = "primary" label = "Broker type">
+        <field name = "type" label = "Broker type">
           <get>icl_shortstr_cpy (field_value,
             self->primary? "primary": self->backup? "backup": "fanout");</get>
         </field>

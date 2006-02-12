@@ -89,8 +89,6 @@ class.
     the server.
     </doc>
     <local>
-    icl_shortstr_t
-        request;
     ipr_xml_t
         *xml_root,                      //  Returned response tree
         *xml_cml,                       //  CML item
@@ -106,8 +104,7 @@ class.
     </local>
     //
     //  Send inspect request to console
-    icl_shortstr_fmt (request, "&lt;inspect-request object = \\\\"%d\\\\"/&gt;", self->id);
-    xml_root = s_request_response (self, request, "inspect-reply");
+    xml_root = s_request_response (self, "inspect", self->id, NULL, NULL);
     if (xml_root) {
         s_destroy_children (self);
         xml_cml     = ipr_xml_first_child (xml_root);
@@ -187,37 +184,15 @@ NULL);
     sprintf (field_value, "%d", ipr_looseref_list_count (self->$(name)_list));
     s_print_property ("Number of $(label:lower)", field_value, NULL);
 .endfor
-</method>
-
-<method name = "title row" template = "function">
-    <doc>
-    Prints the $(name)'s field names as a title.
-    </doc>
-    <local>
-    icl_shortstr_t
-        title_line,
-        separators;
-    </local>
-    //
-    strclr (title_line);
-    strclr (separators);
-    
-/*
-    int
-        cut to 5 or size of name
-    bool
-        cut to yes/no 3 or size of name
-    str
-        cut to 20, or size of name
-    objref
-        show count, as int
-*/    
-.for field where name <> "name"
-    icl_shortstr_cat (title_line, " $(name)");
-    icl_shortstr_cat (title_line, " ----------");
+.for method
+.   if first ()
+    icl_console_print ("\
+.   endif
+ [$(name)]\
+.   if last ()
+");
+.   endif
 .endfor
-
-    icl_console_print ("");
 </method>
 
 <method name = "print row" template = "function">
@@ -225,9 +200,40 @@ NULL);
     Prints the $(name) to the console in a single row.
     </doc>
     <local>
+.for field where count (rule, name = "show on summary") & type = "time"
+    icl_shortstr_t
+        $(name)_str;
+.endfor
     </local>
     //
-    icl_console_print (" %d) $(name) = \\\\"%s\\\\" ", self->id, self->name);
+.for field where count (rule, name = "show on summary") & type = "time"
+    ipr_time_iso8601 (self->$(name), ipr_date_format_minute, 0, 0, $(name)_str);
+.endfor
+    icl_console_print (" %d) $(name) = \\\\"%s\\\\"\
+.for field where count (rule, name = "show on summary")
+.   if type = "string"
+ $(name)=\\\\"%s\\\\"\
+.   elsif type = "int"
+ $(name)=%d\
+.   elsif type = "bool"
+ $(name)=%s\
+.   elsif type = "time"
+ $(name)=%s\
+.   endif
+.endfor
+    ", self->id, self->name\
+.for field where count (rule, name = "show on summary")
+.   if type = "string"
+, *self->$(name)? self->$(name): "(empty)"\
+.   elsif type = "int"
+, self->$(name)\
+.   elsif type = "bool"
+, self->$(name)? "Yes": "No"\
+.   elsif type = "time"
+, $(name)_str\
+.   endif
+.endfor
+);
 </method>
 
 .for class where repeat ?= 1
@@ -269,7 +275,7 @@ NULL);
 .endfor
 <method name = "cmdline" template = "function">
     <doc>
-    Implements a command-line ui for the $(name) object.
+    Implements a command-line interface for the $(name) object.
     </doc>
     <argument name = "path"  type = "char *">Current path</argument>
     <argument name = "depth" type = "int">Current depth</argument>
@@ -362,8 +368,6 @@ NULL);
         if (streq (command, "..") || streq (command, "cd ..")) {
             if (depth)
                 break;                  //  Back out
-            else
-                icl_console_print (" Use 'exit' to leave the shell");
         }
         else
         if (streq (command, "/") || streq (command, "cd /")) {
@@ -380,6 +384,11 @@ NULL);
             icl_console_print (" This object has no modifiable properties");
 .endif
         else
+.for method
+        if (ipr_str_prefixed (command, "$(name)"))
+            s_execute_$(name) (self, command);
+        else
+.endfor
         if (streq (command, "exit") || streq (command, "quit")) {
             rc = 1;                     //  Signal exit
             break;
@@ -398,7 +407,8 @@ NULL);
 static void
     s_destroy_children ($\(selftype) *self);
 static ipr_xml_t *
-    s_request_response ($\(selftype) *self, char *request, char *response);
+    s_request_response ($\(selftype) *self, char *request, qbyte object_id,
+        char *method, asl_field_list_t *fields);
 static ipr_xml_t *
     s_parse_content (amq_content_basic_t *content);
 static void
@@ -409,6 +419,10 @@ static void
 .endif
 static void
     s_list_children ($\(selftype) *self);
+.for method
+static void
+    s_execute_$(name) ($\(selftype) *self, char *command);
+.endfor
 static void
     s_show_help (void);
 </private>
@@ -435,10 +449,14 @@ s_destroy_children ($\(selftype) *self)
 .endfor
 }
 
-//  TODO: amq_cml should do the CML handling
 //  Sends a request, returns a response content
 static ipr_xml_t *
-s_request_response ($\(selftype) *self, char *request, char *reply)
+s_request_response (
+    $\(selftype) *self,
+    char *request,
+    qbyte object_id,
+    char *method,
+    asl_field_list_t *fields)
 {
     amq_content_basic_t
         *content;                       //  Last content sent/recieved
@@ -447,7 +465,7 @@ s_request_response ($\(selftype) *self, char *request, char *reply)
     ipr_bucket_t
         *bucket = NULL;                 //  Message comes here
     icl_shortstr_t
-        request_cml;
+        command;                        //  CML request or reply name
     ipr_xml_t
         *xml_root = NULL,               //  Tree of file we've loaded         
         *xml_cml,                       //  Top level cml item
@@ -457,11 +475,9 @@ s_request_response ($\(selftype) *self, char *request, char *reply)
         *reply_status;                  //  Returned status value
     long
         reply_object;                   //  Returned object id
-        
-    icl_shortstr_fmt (request_cml, "&lt;cml&gt;%s&lt;/cml&gt;", request);
 
-    content = amq_content_basic_new ();
-    amq_content_basic_set_body     (content, request_cml, strlen (request_cml), NULL);
+    icl_shortstr_fmt (command, "%s-request", request);
+    content = amq_cml_encode (command, "$(name)", object_id, NULL, method, fields);
     amq_content_basic_set_reply_to (content, self->session->queue);
     amq_client_session_basic_publish (self->session,
         content, 0, "amq.system", "amq.console", FALSE, FALSE);
@@ -473,6 +489,7 @@ s_request_response ($\(selftype) *self, char *request, char *reply)
 
     //  Process response, if any
     if (content) {
+        //  TODO: amq_cml_decode
         //  Get content body into a bucket
         bucket = ipr_bucket_new (IPR_BUCKET_MAX_SIZE);
         bucket->cur_size = amq_content_basic_get_body (
@@ -509,12 +526,16 @@ s_request_response ($\(selftype) *self, char *request, char *reply)
             ;   //  Handle notification and loop for next content
         else {
             //  Check that the response is the reply for our object
-            assert (streq (ipr_xml_name (xml_command), reply));
-            assert (streq (reply_class, "$(name)"));
-            assert (reply_object == self->id);
-
-            //  If object not found, return NULL
-            if (strneq (reply_status, "ok"))
+            icl_shortstr_fmt (command, "%s-reply", request);
+            assert (streq (ipr_xml_name (xml_command), command));
+            if (streq (reply_status, "ok")) {
+                if (strneq (reply_class, "$(name)"))
+                    icl_console_print ("E: received OK for '%s', expected '$(name)'", reply_class);
+                assert (streq (reply_class, "$(name)"));
+                assert (reply_object == self->id);
+            }
+            else
+                //  If command not valid, return NULL
                 ipr_xml_destroy (&xml_root);
         }
         amq_content_basic_destroy (&content);
@@ -560,10 +581,10 @@ s_set_property ($\(selftype) *self, char *command)
     char
         *name  = NULL,
         *value = NULL;
-    icl_shortstr_t
-        request;
     ipr_xml_t
         *xml_root;                      //  Returned response tree
+    asl_field_list_t
+        *fields;                        //  Properties of object
 
     tokens = ipr_token_split (command);
     token = ipr_token_list_first (tokens);
@@ -590,18 +611,16 @@ s_set_property ($\(selftype) *self, char *command)
         icl_console_print (" Not a valid property name, please check");
     else
     if (name && value) {
-        icl_shortstr_fmt (request,
-            "&lt;modify-request object = \\\\"%d\\\\"&gt;"
-            "&lt;field name = \\\\"%s\\\\"&gt;%s&lt;/field&gt;"
-            "&lt;/modify-request&gt;",
-            self->id, name, value);
-        xml_root = s_request_response (self, request, "modify-reply");
+        fields = asl_field_list_new (NULL);
+        asl_field_new_string (fields, name, value);
+        xml_root = s_request_response (self, "modify", self->id, NULL, fields);
         if (xml_root) {
             icl_console_print (" OK");
             ipr_xml_destroy (&xml_root);
             self_load (self);
             self_print_full (self);
         }
+        asl_field_list_destroy (&fields);
     }
     else
         icl_console_print (" Usage: set propertyname newvalue");
@@ -610,7 +629,6 @@ s_set_property ($\(selftype) *self, char *command)
 }
 
 .endif
-
 static void
 s_list_children ($\(selftype) *self)
 {
@@ -637,14 +655,67 @@ s_list_children ($\(selftype) *self)
 .   endif
 .   if last ()
     if (first_time) {
-        icl_console_print (" Type item number to see details");
+        icl_console_print (" Type item number to see details, or [cmd]");
         first_time = FALSE;
     }
 .   endif
 .endfor
 }
 
+.for method
+//  Execute $(name) method
+//
+static void
+s_execute_$(name) ($\(selftype) *self, char *command)
+{
+    ipr_token_list_t
+        *tokens;
+    ipr_token_t
+        *token;
+    ipr_xml_t
+        *xml_root;                      //  Returned response tree
+    asl_field_list_t
+        *fields;                        //  Properties of object
+    Bool
+        is_valid = TRUE;                //  Valid method syntax?
+        
+    tokens = ipr_token_split (command);
+    fields = asl_field_list_new (NULL);
 
+    //  Skip method name, first token in string
+    token  = ipr_token_list_first (tokens);
+    assert (token);
+    
+.   for field
+    //  Collect $(name) value
+    token = ipr_token_list_next (&token);
+    if (token)
+        asl_field_new_string (fields, "$(name)", token->value);
+    else
+        is_valid = FALSE;
+.   endfor
+    if (token)
+        ipr_token_unlink (&token);
+
+    if (is_valid) {
+        xml_root = s_request_response (self, "method", self->id, "$(name)", fields);
+        if (xml_root) {
+            icl_console_print (" OK");
+            ipr_xml_destroy (&xml_root);
+            self_load (self);
+            self_print_full (self);
+        }
+        else
+            icl_console_print (" ERROR");
+    }
+    else
+        icl_console_print (" Usage: $(name) arguments, use 'help $(name)' for details");
+
+    asl_field_list_destroy (&fields);
+    ipr_token_list_destroy (&tokens);
+}
+
+.endfor
 static void
 s_show_help (void)
 {
@@ -659,7 +730,17 @@ s_show_help (void)
     icl_console_print (" set name value     Set object property");
     icl_console_print (" help               Show this text");
     icl_console_print (" exit               Leave the OpenAMQ shell");
+.for method
     icl_console_print ("");
+    icl_console_print (" $(name)\
+.   for field
+ $(label)\
+.   endfor
+");
+.   for doc
+    icl_console_print ("     $(.:justify,block                                         )");
+.   endfor
+.endfor
 }
 </private>
 

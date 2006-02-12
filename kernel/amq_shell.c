@@ -26,6 +26,7 @@
     "  -d               Show date and time in shell output\n"                \
     "  -t               Show time in shell output\n"                         \
     "  -x               Show broker status and then exit immediately\n"      \
+    "  -v               Show version information\n"                          \
     "  -h               Show summary of command-line options\n"              \
     "\n"                                                                     \
     "The order of arguments is not important. Switches and filenames\n"      \

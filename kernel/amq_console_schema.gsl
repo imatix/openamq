@@ -53,7 +53,14 @@ endfunction
 function process_method (method, margin)
     >$(my.margin)<method name = "$(name)" label = "$(label?name)">
     for field
-        process_field (field, my.margin + indent)
+        >$(my.margin)<field name = "$(name)"\
+        if defined (field.label)
+            > label = "$(label)"\
+        endif
+        if defined (field.type)
+            > type = "$(type)"\
+        endif
+        > />
     endfor
     >$(my.margin)</method>
 endfunction

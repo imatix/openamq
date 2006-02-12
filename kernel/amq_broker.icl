@@ -22,13 +22,25 @@
         <field name = "locked" type = "bool" label = "Broker is locked?">
           <get>icl_shortstr_fmt (field_value, "%d", self->locked);</get>
         </field>
-        <field name = "memorymb" type = "int" label = "Memory consumption, MB">
+        <field name = "traffic_in" type = "int" label = "Inbound traffic, MB">
+          <get>icl_shortstr_fmt (field_value, "%d", (int) (self->traffic_in / (1024 * 1024)));</get>
+        </field>
+        <field name = "traffic_out" type = "int" label = "Outbound traffic, MB">
+          <get>icl_shortstr_fmt (field_value, "%d", (int) (self->traffic_out / (1024 * 1024)));</get>
+        </field>
+        <field name = "contents_in" type = "int" label = "Total messages received">
+          <get>icl_shortstr_fmt (field_value, "%d", self->contents_in);</get>
+        </field>
+        <field name = "contents_out" type = "int" label = "Total messages sent">
+          <get>icl_shortstr_fmt (field_value, "%d", self->contents_out);</get>
+        </field>
+        <field name = "memorymb" type = "int" label = "Current memory consumption, MB">
           <get>icl_shortstr_fmt (field_value, "%d", icl_mem_used () / (1024 * 1024));</get>
         </field>
         <field name = "connections" type = "int" label = "Number of active connections">
           <get>icl_shortstr_fmt (field_value, "%d", amq_server_connection_count ());</get>
         </field>
-        <field name = "messages" type = "int" label = "Number of held messages">
+        <field name = "messages" type = "int" label = "Number of queued messages">
           <get>icl_shortstr_fmt (field_value, "%d", amq_content_basic_count ());</get>
         </field>
         <field name = "exchanges" type = "int" label = "Number of message exchanges">
@@ -49,22 +61,68 @@
             icl_shortstr_fmt (field_value, "%ld", amq_vhost->object_id);
           </get>
         </class>
+
+        <class name = "connection" label = "Connections" repeat = "1">
+          <local>
+            amq_server_connection_t
+                *connection;
+          </local>
+          <get>
+            connection = amq_server_connection_list_first (self->connection_list);
+            if (connection)
+                icl_shortstr_fmt (field_value, "%ld", connection->mgt_object->object_id);
+          </get>
+          <next>
+            connection = amq_server_connection_list_next (&connection);
+            if (connection)
+                icl_shortstr_fmt (field_value, "%ld", connection->mgt_object->object_id);
+          </next>
+        </class>
+
         <class name = "cluster" label = "Cluster">
           <get>
             icl_shortstr_fmt (field_value, "%ld", amq_cluster->object_id);
           </get>
         </class>
+
         <class name = "config" label = "Configuration" source = "amq_console_config">
           <get>
             icl_shortstr_fmt (field_value, "%ld", amq_console_config->object_id);
           </get>
         </class>
-        
-        <method name = "lock" label = "Prevent new connections">
-          <exec>self->locked = TRUE;</exec>
+
+        <method name = "shutdown" label = "Shutdown broker">
+          <doc>
+          Shuts-down the broker. All client connections are broken, and the
+          broker process will exit.
+          </doc>
+          <exec>
+            icl_console_print ("W: operator requested shutdown - closing all connections");
+            smt_shut_down ();
+          </exec>
         </method>
-        <method name = "unlock" label = "Allow new connections">
-          <exec>self->locked = FALSE;</exec>
+
+        <!-- not supported by icl/smt
+        <method name = "restart" label = "Restart broker">
+          <doc>
+          Restarts the broker. All client connections are broken, and the
+          broker process will then restart.
+          </doc>
+          <exec>
+            icl_console_print ("W: operator requested restart - closing all connections");
+            self->restart = TRUE;       //  Tell main line to restart
+            smt_shut_down ();
+          </exec>
+        </method>
+         -->
+         
+        <method name = "lock" label = "Prevent new connections">
+          <doc>
+          Locks or unlocks the broker. When the broker is locked it will refuse
+          new client connections, though you can still connect using the shell.
+          </doc>
+          <field name = "setting" type = "bool" label = "1|0"/>
+          <exec>self->locked = setting;</exec>
         </method>
     </class>
 </data>
@@ -76,7 +134,8 @@
 <context>
     Bool
         locked,                         //  Is broker locked?
-        master;                         //  Acting as cluster master server?
+        master,                         //  Acting as cluster master server?
+        restart;                        //  Restart broker after exit?
     int
         monitor_timer,                  //  Monitor timer
         dump_state_timer,               //  Dump state timer
@@ -118,7 +177,7 @@
 
 <method name = "destroy">
     <action>
-    amq_vhost_destroy (&amq_vhost);
+    amq_vhost_destroy          (&amq_vhost);
     amq_console_config_destroy (&amq_console_config);
     ipr_meter_destroy (&self->xmeter);
     ipr_meter_destroy (&self->imeter);

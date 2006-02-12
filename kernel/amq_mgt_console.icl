@@ -15,6 +15,7 @@ manage OpenAMQ servers.
 </inherit>
 
 <import class = "asl" />
+<import class = "amq_cml" />
 <import class = "amq_client_connection" />
 <import class = "amq_client_session" />
 <import class = "amq_mgt_broker" />
@@ -51,7 +52,7 @@ manage OpenAMQ servers.
 
         //  Create a private queue for replies from console
         rc = amq_client_session_queue_declare (self->session,
-            0, NULL, FALSE, FALSE, FALSE, TRUE, NULL);
+            0, NULL, FALSE, FALSE, TRUE, TRUE, NULL);
 
         if (!rc)
             rc = amq_client_session_basic_consume (self->session,

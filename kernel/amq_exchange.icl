@@ -29,20 +29,20 @@ for each type of exchange. This is a lock-free asynchronous class.
         <field name = "type">
           <get>icl_shortstr_cpy (field_value, amq_exchange_type_name (self->type));</get>
         </field>
-        <field name = "durable"     label = "Durable exchange?" type = "bool">
+        <field name = "durable" label = "Durable exchange?" type = "bool">
           <get>icl_shortstr_fmt (field_value, "%d", self->durable);</get>
         </field>
         <field name = "auto_delete" label = "Auto-deleted?" type = "bool">
           <get>icl_shortstr_fmt (field_value, "%d", self->auto_delete);</get>
         </field>
-        <field name = "bindings"    label = "Number of bindings" type = "int">
+        <field name = "bindings" label = "Number of bindings" type = "int">
+          <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%ld", amq_binding_list_size (self->binding_list));</get>
         </field>
     </class>
 </data>
 
 <import class = "amq_server_classes" />
-<import class = "amq_binding_list" />
 
 <context>
     amq_vhost_t
@@ -301,12 +301,13 @@ for each type of exchange. This is a lock-free asynchronous class.
     //
     <action>
     amq_binding_list_iterator_t
-        it;
+        iterator;
 
-    for (it = amq_binding_list_begin (self->binding_list);
-          it != amq_binding_list_end (self->binding_list);
-          it = amq_binding_list_next (it))
-        amq_binding_unbind_queue (*it, queue);
+    for (iterator  = amq_binding_list_begin (self->binding_list);
+         iterator != amq_binding_list_end   (self->binding_list);
+         iterator  = amq_binding_list_next  (iterator)
+        )
+        amq_binding_unbind_queue (*iterator, queue);
     </action>
 </method>
 
@@ -325,12 +326,13 @@ for each type of exchange. This is a lock-free asynchronous class.
     //
     <action>
     amq_binding_list_iterator_t
-        it;
+        iterator;
 
-    for (it = amq_binding_list_begin (self->binding_list);
-          it != amq_binding_list_end (self->binding_list);
-          it = amq_binding_list_next (it))
-        amq_binding_unbind_peer (*it, peer);
+    for (iterator  = amq_binding_list_begin (self->binding_list);
+         iterator != amq_binding_list_end   (self->binding_list);
+         iterator  = amq_binding_list_next  (iterator)
+        )
+        amq_binding_unbind_peer (*iterator, peer);
     </action>
 </method>
 
@@ -387,7 +389,7 @@ s_bind_object (
     icl_longstr_t   *arguments)
 {
     amq_binding_list_iterator_t
-        it;
+        iterator;
     amq_binding_t
         *binding = NULL;
 
@@ -396,23 +398,22 @@ s_bind_object (
         arguments = NULL;
 
     //  Check existing bindings to see if we have one that matches
-    for (it = amq_binding_list_begin (self->binding_list);
-          it != amq_binding_list_end (self->binding_list);
-          it = amq_binding_list_next (it))
-        if (streq ((*it)->routing_key, routing_key)
-              &&  icl_longstr_eq ((*it)->arguments, arguments))
+    for (iterator  = amq_binding_list_begin (self->binding_list);
+         iterator != amq_binding_list_end   (self->binding_list);
+         iterator  = amq_binding_list_next  (iterator))
+        if (streq ((*iterator)->routing_key, routing_key)
+              &&  icl_longstr_eq ((*iterator)->arguments, arguments))
             break;
 
-    if (it != amq_binding_list_end (self->binding_list)) {
-
+    if (iterator != amq_binding_list_end (self->binding_list)) {
         //  If the binding already exist, bind it to the object passed
         if (queue)
-            amq_binding_bind_queue (*it, queue);
-        else if (peer)
-            amq_binding_bind_peer (*it, peer);
+            amq_binding_bind_queue (*iterator, queue);
+        else
+        if (peer)
+            amq_binding_bind_peer (*iterator, peer);
     }
     else {
-
         //  If no binding matched, create a new one
         //  and compile it to the exchange
         binding = amq_binding_new (self, routing_key, arguments);

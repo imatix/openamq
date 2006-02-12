@@ -84,7 +84,7 @@ specification.
     amq_index_t
         *index;                         //  Index object
     amq_binding_list_iterator_t
-        it;                             //  Iterator through bindings list
+        iterator;                       //  Iterator through bindings list
     amq_binding_t
         *binding;                       //  Auxiliary variable
     ipr_regexp_t
@@ -101,21 +101,21 @@ specification.
 
         //  Create new index and recompile all bindings for it
         index = amq_index_new (self->index_hash, routing_key, self->index_array);
-        for (it = amq_binding_list_begin (self->exchange->binding_list);
-              it != amq_binding_list_end (self->exchange->binding_list);
-              it = amq_binding_list_next (it)) {
-
+        for (iterator = amq_binding_list_begin (self->exchange->binding_list);
+              iterator != amq_binding_list_end (self->exchange->binding_list);
+              iterator = amq_binding_list_next (iterator))
+            {
             //  TODO: size of regexp object? keep it active per binding
             //  sub-structure for bindings, dependent on exchange class...
-            regexp = ipr_regexp_new ((*it)->regexp);
+            regexp = ipr_regexp_new ((*iterator)->regexp);
             if (ipr_regexp_match (regexp, routing_key, NULL)) {
                 if (amq_server_config_trace_route (amq_server_config))
                     icl_console_print ("X: index  routing_key=%s wildcard=%s",
-                        routing_key, (*it)->routing_key);
+                        routing_key, (*iterator)->routing_key);
 
                 //  Cross-reference binding and index
-                ipr_bits_set (index->bindset, (*it)->index);
-                ipr_looseref_queue ((*it)->index_list, index);
+                ipr_bits_set (index->bindset, (*iterator)->index);
+                ipr_looseref_queue ((*iterator)->index_list, index);
             }
             ipr_regexp_destroy (&regexp);
         }

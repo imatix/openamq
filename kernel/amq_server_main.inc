@@ -225,6 +225,8 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
 static int
 s_run_server (void)
 {
+    int
+        rc  = 0;                        //  0 = done, 1 = restart
     amq_broker_t
         *broker_handle;                 //  Hold onto broker
         
@@ -242,7 +244,9 @@ s_run_server (void)
     amq_cluster = amq_cluster_new (amq_broker, s_opt_cluster);
 
     smt_wait (0);                       //  Execute the server
-
+    if (amq_broker->restart)
+        rc = 1;                         //  Restart the broker
+        
     broker_handle = amq_broker_link (amq_broker);
     amq_cluster_destroy (&amq_cluster);
     smt_wait (0);
@@ -260,5 +264,5 @@ s_run_server (void)
         icl_stats_dump ();
     icl_console_print ("I: shutdown is complete");
     icl_system_terminate ();
-    return (0);
+    return (rc);
 }

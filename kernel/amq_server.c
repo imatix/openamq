@@ -17,9 +17,7 @@ main (int argc, char *argv [])
     if (s_start (argc, argv, "server.cfg", "custom.cfg"))
         exit (EXIT_FAILURE);
 
-    if (s_run_server ())
-        return (EXIT_FAILURE);
-    else
-        return (EXIT_SUCCESS);
+    while (s_run_server ());
+    return (EXIT_SUCCESS);
 }
 

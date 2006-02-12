@@ -146,7 +146,7 @@ cluster class.
     </doc>
     <local>
     amq_exchange_list_iterator_t
-        it;
+        iterator;
     </local>
     //
     if (self->thread) {
@@ -155,13 +155,13 @@ cluster class.
         smt_thread_unlink (&self->thread);
     }
     if (self->connected) {
-
-        for (it = amq_exchange_list_begin (amq_vhost->exchange_list);
-              it != amq_exchange_list_end (amq_vhost->exchange_list);
-              it = amq_exchange_list_next (it))
-            amq_exchange_unbind_peer (*it, self);           
+        for (iterator = amq_exchange_list_begin (amq_vhost->exchange_list);
+              iterator != amq_exchange_list_end (amq_vhost->exchange_list);
+              iterator = amq_exchange_list_next (iterator)
+            )
+            amq_exchange_unbind_peer (*iterator, self);
         self->connected = FALSE;
-        self->offlined = TRUE;
+        self->offlined  = TRUE;
         icl_console_print ("I: cluster - disconnected from %s", self->host);
     }
 </method>
