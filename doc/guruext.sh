@@ -3,9 +3,8 @@
 # generate PDF for gurudoc file
 
 set FILE=$1
-set FILE=$FILE.txt
 
-call mkgdl $FILE
+call mkgdl $FILE.txt
 call gsl3 -quiet -tpl:latex_simple -gdl:$FILE gurudoc
 
 # twice, so TOC is correctly built
