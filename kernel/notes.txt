@@ -1,9 +1,21 @@
-- add channel object
-    - channel name = connectionid:number
-    - ip address
+amq_shell
 
 - select item by name, 'vhost /' -> first matching prefix
-- xml print format, optional
+- xml print format, optional, to separate file
+- execute from command line
+
+- broker
+    - avg. traffic
+    - dropped messages
+
+    structure properties?
+    general
+    traffic
+    statistics
+
+- complain/warn if console using default name/password
+    
+
 
 amq_shell could become sysman
     - start cluster brokers

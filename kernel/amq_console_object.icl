@@ -96,6 +96,7 @@ static amq_console_class_t
 .endfor
 .for global.top->data->class.class
 .   for get
+    strclr (field_value);
     $(string.trim (get.?''))
 .   endfor
 .   if repeat ?= 1
@@ -182,10 +183,11 @@ static amq_console_class_t
     </release>
     <action>
     int
-        rc = -1;
+        rc = 0;
 .for global.top->data->class.method
     if (streq (method_name, "$(method.name)")) {
 .   for field
+.       field.type ?= "string"
 .       if first ()
         asl_field_t
             *field;
@@ -220,9 +222,8 @@ static amq_console_class_t
 .       endif
 .   endfor
 .   for exec
-        $(string.trim (.))
+        $(string.trim (exec.?''))
 .   endfor
-        rc = 0;
     }
 .endfor
     if (rc == 0)

@@ -67,6 +67,17 @@ warn the primary server to cede its role as master.
         <field name = "state_mb" type = "int" label = "Cluster state size, MB">
           <get>icl_shortstr_fmt (field_value, "%d", self->state_size / (1024 * 1024));</get>
         </field>
+        
+        <method name = "start" label = "Join cluster if not joined">
+          <doc>
+          If this server is not already started as part of the cluster,
+          start it.  You must specify a valid and accurate cluster name.
+          </doc>
+          <field name = "cluster_name" label = "cluster-name" />
+          <exec>
+            amq_cluster_start (self, cluster_name);
+          </exec>
+        </method>
     </class>
 </data>
 
@@ -120,7 +131,43 @@ amq_cluster_t
 <method name = "new">
     <argument name = "broker" type = "amq_broker_t *">Parent broker</argument>
     <argument name = "cluster name" type = "char *">Cluster name</argument>
-    <local>
+    //
+    self->broker     = amq_broker_link (broker);
+    self->vhost      = amq_vhost_link  (amq_vhost);
+    self->peer_list  = amq_peer_list_new ();
+    self->state_list = ipr_looseref_list_new ();
+    self->crc        = ipr_crc_new ();
+
+    if (cluster_name)
+        amq_cluster_start (self, cluster_name);
+    else
+        icl_shortstr_cpy (amq_broker->name, "Standalone");
+</method>
+        
+<method name = "destroy">
+    <action>
+    //
+    s_stop_cluster (self);
+    amq_broker_unlink (&self->broker);
+    amq_vhost_unlink  (&self->vhost);
+    </action>
+</method>
+
+<method name = "start" template = "async function" async = "1">
+    <doc>
+    Start the cluster.  This can be done at any time, if the
+    cluster is not already started.
+    </doc>
+    <argument name = "cluster name" type = "char *">Peer's server name</argument>
+    //
+    <possess>
+    cluster_name = icl_mem_strdup (cluster_name);
+    </possess>
+    <release>
+    icl_mem_free (cluster_name);
+    </release>
+    //
+    <action>
     ipr_config_t
         *config;                        //  Server config tree
     char
@@ -135,23 +182,15 @@ amq_cluster_t
     int
         primaries = 0,                  //  Number of primary servers
         backups = 0;                    //  Number of backup server
-    </local>
-    //
-    if (cluster_name) {
-        icl_shortstr_cpy (amq_broker->name, cluster_name);
-        self->enabled = TRUE;
-    }
-    else
-        icl_shortstr_cpy (amq_broker->name, "Standalone");
         
-    //  We prepare everything so that the cluster could be enabled
-    //  later, via the console
-    self->broker     = amq_broker_link (broker);
-    self->vhost      = amq_vhost_link  (amq_vhost);
+    s_stop_cluster (self);
+    icl_shortstr_cpy (amq_broker->name, cluster_name);
+    self->enabled    = TRUE;
     self->peer_list  = amq_peer_list_new ();
     self->state_list = ipr_looseref_list_new ();
     self->crc        = ipr_crc_new ();
 
+    //  Load and check cluster configuration
     name_valid = FALSE;
     config = ipr_config_dup (amq_server_config->config);
     ipr_config_locate (config, "/config/cluster", NULL);
@@ -216,57 +255,25 @@ amq_cluster_t
     //  We go through an asynchronous method so that it can send timer
     //  events to the cluster agent. A cluster of one is allowed.
 
-    if (self->enabled) {
-        if (primaries != 1) {
-            icl_console_print ("E: cluster - exactly primary must be defined");
-            smt_shut_down ();
-        }
-        else
-        if (backups > 1) {
-            icl_console_print ("E: cluster - multiple backup servers not allowed");
-            smt_shut_down ();
-        }
-        else
-        if (name_valid)
-            self_start (self);
-        else {
-            icl_console_print ("E: cluster - '%s' not configured server name", amq_broker->name);
-            smt_shut_down ();
-        }
+    if (primaries != 1) {
+        icl_console_print ("E: cluster - exactly primary must be defined");
+        smt_shut_down ();
     }
-</method>
-
-<method name = "destroy">
-    <action>
-    //
-    self->ready = FALSE;
-    {
-    //TODO: SMT needs local action blocks
-    //  When we merge code from amq_console_object, it interferes with
-    //  the definitions here, on strict C compilers (msvc).
-    amq_content_tunnel_t
-        *content;                       //  Server state message
-    while ((content = (amq_content_tunnel_t *) ipr_looseref_pop (self->state_list)))
-        amq_content_tunnel_unlink (&content);
+    else
+    if (backups > 1) {
+        icl_console_print ("E: cluster - multiple backup servers not allowed");
+        smt_shut_down ();
     }
-    ipr_crc_destroy           (&self->crc);
-    ipr_looseref_list_destroy (&self->state_list);
-    amq_peer_list_destroy     (&self->peer_list);
-    amq_broker_unlink         (&self->broker);
-    amq_vhost_unlink          (&self->vhost);
-    </action>
-</method>
-
-<method name = "start" template = "async function" async = "1">
-    <doc>
-    Start the cluster controller.  This is done asynchronously after
-    we have configured the cluster.
-    </doc>
-    //
-    <action>
-    amq_proxy_agent_init ();
-    icl_console_print ("I: cluster - own server name is '%s'", amq_broker->name);
-    smt_timer_request_delay (self->thread, 100 * 1000, monitor_event);
+    else
+    if (name_valid) {
+        amq_proxy_agent_init ();
+        icl_console_print ("I: cluster - own server name is '%s'", amq_broker->name);
+        smt_timer_request_delay (self->thread, 100 * 1000, monitor_event);
+    }
+    else {
+        icl_console_print ("E: cluster - '%s' not configured server name", amq_broker->name);
+        smt_shut_down ();
+    }
     </action>
 </method>
 
@@ -275,7 +282,7 @@ amq_cluster_t
     update the cluster status.  It rechecks each peer and counts the
     votes to decide whether this broker should become master or not.
  -->
-
+/
 <event name = "monitor">
     <action>
     amq_peer_t
@@ -475,13 +482,11 @@ amq_cluster_t
     //
     <possess>
     amq_server_method_link (method);
-    if (channel)
-        amq_server_channel_link (channel);
+    amq_server_channel_link (channel);
     </possess>
     <release>
     amq_server_method_unlink (&method);
-    if (channel)
-        amq_server_channel_unlink (&channel);
+    amq_server_channel_unlink (&channel);
     </release>
     //
     <action>
@@ -623,6 +628,8 @@ amq_cluster_t
 
 <private name = "async header">
 static void
+    s_stop_cluster (amq_cluster_t *self);
+static void
     s_append_to_state (amq_cluster_t *self, amq_content_tunnel_t *content);
 static void
     s_execute_basic_get (amq_cluster_t *self, amq_server_method_t *method, amq_peer_t *peer,
@@ -632,6 +639,21 @@ static void
 </private>
 
 <private name = "async footer">
+static void
+s_stop_cluster (amq_cluster_t *self)
+{
+    amq_content_tunnel_t
+        *content;                       //  Server state message
+
+    while ((content = (amq_content_tunnel_t *) ipr_looseref_pop (self->state_list)))
+        amq_content_tunnel_unlink (&content);
+
+    ipr_crc_destroy           (&self->crc);
+    ipr_looseref_list_destroy (&self->state_list);
+    amq_peer_list_destroy     (&self->peer_list);
+    self->ready = FALSE;
+}
+
 static void
 s_append_to_state (
     amq_cluster_t        *self,

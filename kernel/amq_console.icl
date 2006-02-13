@@ -91,10 +91,10 @@ $(selftype)
     <doc>
     Accepts an object registration request.
     </doc>
-    <argument name = "object id"    type = "qbyte">Object id</argument>
-    <argument name = "object ref"   type = "void *">Object reference</argument>
-    <argument name = "class ref"    type = "amq_console_class_t *" />
-    <argument name = "parent id"    type = "qbyte">Parent object id</argument>
+    <argument name = "object id"  type = "qbyte">Object id</argument>
+    <argument name = "object ref" type = "void *">Object reference</argument>
+    <argument name = "class ref"  type = "amq_console_class_t *" />
+    <argument name = "parent id"  type = "qbyte">Parent object id</argument>
     <action>
     if (object_id &lt; self->max_objects) {
         self->object_ref [object_id] = object_ref;
