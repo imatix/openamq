@@ -20,7 +20,6 @@
 <import class = "amq_consumer" />
 <import class = "amq_consumer_basic" />
 <import class = "amq_connection" />
-<import class = "amq_connection_list" />
 <import class = "amq_content_basic" />
 <import class = "amq_content_file" />
 <import class = "amq_content_stream" />
