@@ -156,6 +156,7 @@ class.
     <doc>
     Prints the $(name)'s values to the console in a two-column list.
     </doc>
+    <argument name = "xml_data" type = "FILE *">XML data capture</argument>
     <local>
     icl_shortstr_t
         field_value;
@@ -196,6 +197,25 @@ NULL);
 ");
 .   endif
 .endfor
+    //  Record data in XML form if wanted
+    if (xml_data) {
+        fprintf (xml_data, "&lt;$(name) id = \\\\"%d\\\\"\
+.for field
+.   if type = "string"
+ $(name) = \\\\"%s\\\\"\
+.   elsif type = "int" | type = "bool"
+ $(name) = \\\\"%d\\\\"\
+.   elsif type = "time"
+ $(name) = \\\\"%s\\\\"\
+.   endif
+.endfor
+/&gt;\\\\n",
+            self->id\
+.for field
+, self->$(name)\
+.endfor
+);
+    }
 </method>
 
 <method name = "print row" template = "function">
@@ -280,8 +300,9 @@ NULL);
     <doc>
     Implements a command-line interface for the $(name) object.
     </doc>
-    <argument name = "path"  type = "char *">Current path</argument>
+    <argument name = "path" type = "char *">Current path</argument>
     <argument name = "depth" type = "int">Current depth</argument>
+    <argument name = "xml_data" type = "FILE *">XML data capture</argument>
     <local>
     icl_shortstr_t
         command;
@@ -297,7 +318,7 @@ NULL);
 .endfor
     </local>
     //
-    self_print_full (self);
+    self_print_full (self, xml_data);
     s_list_children (self);
     
     while (TRUE) {
@@ -317,7 +338,7 @@ NULL);
         if (streq (command, "")) {
             //  Enter -> refresh and show all
             self_load (self);
-            self_print_full (self);     //  Reload
+            self_print_full (self, xml_data);
             s_list_children (self);
         }
         else
@@ -331,7 +352,7 @@ NULL);
                 id_found = FALSE;
                 
             if (id == self->id) {
-                self_print_full (self);
+                self_print_full (self, xml_data);
                 id_found = TRUE;
             }
 .for class
@@ -341,7 +362,7 @@ NULL);
                 while ($(name)) {
                     if ($(name)->id == id) {
                         icl_shortstr_fmt (child_path, "%s/$(name)", path);
-                        rc = amq_mgt_$(name)_cmdline ($(name), child_path, depth + 1);
+                        rc = amq_mgt_$(name)_cmdline ($(name), child_path, depth + 1, xml_data);
                         id_found = TRUE;
                     }
                     $(name) = self_$(name)_next (self);
@@ -349,7 +370,7 @@ NULL);
 .   else
                 if (self->$(name)->id == id) {
                     icl_shortstr_fmt (child_path, "%s/$(name)", path);
-                    rc = amq_mgt_$(name)_cmdline (self->$(name), child_path, depth + 1);
+                    rc = amq_mgt_$(name)_cmdline (self->$(name), child_path, depth + 1, xml_data);
                     id_found = TRUE;
                 }
 .   endif
@@ -365,7 +386,7 @@ NULL);
         else
         if (streq (command, ".")) {
             self_load (self);
-            self_print_full (self);     //  Reload
+            self_print_full (self, xml_data);
         }
         else
         if (streq (command, "..") || streq (command, "cd ..")) {
@@ -621,7 +642,7 @@ s_set_property ($\(selftype) *self, char *command)
             icl_console_print (" OK");
             ipr_xml_destroy (&xml_root);
             self_load (self);
-            self_print_full (self);
+            self_print_full (self, NULL);
         }
         asl_field_list_destroy (&fields);
     }
@@ -706,7 +727,7 @@ s_execute_$(name) ($\(selftype) *self, char *command)
             icl_console_print (" OK");
             ipr_xml_destroy (&xml_root);
             self_load (self);
-            self_print_full (self);
+            self_print_full (self, NULL);
         }
         else
             icl_console_print (" ERROR");

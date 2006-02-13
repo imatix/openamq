@@ -1,7 +1,7 @@
 amq_shell
 
+- config save, only items that are not default
 - select item by name, 'vhost /' -> first matching prefix
-- xml print format, optional, to separate file
 - execute from command line
 
 - broker
@@ -12,13 +12,10 @@ amq_shell
     general
     traffic
     statistics
-
-- complain/warn if console using default name/password
     
 
 
 amq_shell could become sysman
-    - start cluster brokers
     - stop cluster brokers
     - connect to them
     - wizard for cluster configuration

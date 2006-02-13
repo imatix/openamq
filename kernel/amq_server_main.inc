@@ -73,6 +73,8 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
     char
         *myname,                        //  Executable's name                
         **argparm;                      //  Argument parameter to pick-up
+    ipr_config_t
+        *config;                        //  Current server config file
 
     //  Save argument line for later use
     s_argc = argc;
@@ -189,6 +191,20 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
     amq_server_config = amq_server_config_new (config_file, overlay, TRUE);
     amq_proxy_config  = amq_proxy_config_new  (config_file, overlay, FALSE);
     amq_server_config_cmdline_parse (amq_server_config, SERVER_NAME, s_argc, s_argv);
+
+    //  Check that server security is reasonably defined
+    config = ipr_config_dup (amq_server_config->config);
+    ipr_config_locate (config, "/config/security", "plain");
+    if (!config->located) {
+        icl_console_print ("E: no 'plain' security defined in server config");
+        exit (EXIT_FAILURE);
+    }
+    //  Now check console login/password
+    ipr_config_locate (config, "user", "console");
+    if (config->located
+    && streq (ipr_config_get (config, "password", ""), "console"))
+        icl_console_print ("W: security warning - console login uses default password");
+    ipr_config_destroy (&config);
 
     //  Move into the background if so desired
     if (s_opt_bkground) {

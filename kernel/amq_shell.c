@@ -23,9 +23,10 @@
     "  -u user          User name for console access (console)\n"            \
     "  -p password      Password for console access (console)\n"             \
     "  -e commands      Run shell commands, delimited by ;\n"                \
+    "  -x filename      Save all status data as XML\n"                       \
     "  -d               Show date and time in shell output\n"                \
     "  -t               Show time in shell output\n"                         \
-    "  -x               Show broker status and then exit immediately\n"      \
+    "  -i               Show instant broker status and then exit\n"          \
     "  -v               Show version information\n"                          \
     "  -h               Show summary of command-line options\n"              \
     "\n"                                                                     \
@@ -39,10 +40,11 @@ int main (int argc, char *argv[])
         argn;                           //  Argument number
     Bool
         args_ok = TRUE,                 //  Were the arguments okay?
-        s_opt_exit = FALSE,             //  -x means show status and exit
+        s_opt_instant = FALSE,          //  -i means show instant status
         s_opt_date = FALSE,             //  -d means show date, time
         s_opt_time = FALSE;             //  -t means show time
     char
+        *s_opt_xml = NULL,              //  -x specifies XML filename
         *s_opt_host = NULL,             //  -s specifies server name
         *s_opt_user = NULL,             //  -u specifies user name
         *s_opt_pass = NULL;             //  -p specifies password
@@ -50,6 +52,8 @@ int main (int argc, char *argv[])
         **argparm;                      //  Argument parameter to pick-up
     amq_mgt_console_t
         *console;
+    FILE
+        *xml_data = NULL;               //  XML capture stream
 
     argparm = NULL;                     //  Argument parameter to pick-up
     for (argn = 1; argn < argc; argn++) {
@@ -76,14 +80,17 @@ int main (int argc, char *argv[])
                 case 'p':
                     argparm = &s_opt_pass;
                     break;
+                case 'x':
+                    argparm = &s_opt_xml;
+                    break;
                 case 'd':
                     s_opt_date = TRUE;
                     break;
                 case 't':
                     s_opt_time = TRUE;
                     break;
-                case 'x':
-                    s_opt_exit = TRUE;
+                case 'i':
+                    s_opt_instant = TRUE;
                     break;
                 case 'v':
                     printf (PRODUCT "\n");
@@ -145,12 +152,21 @@ int main (int argc, char *argv[])
         console->connection->server_version,
         console->connection->server_host);
 
+    if (s_opt_xml) {
+        xml_data = fopen (s_opt_xml, "w");
+        fprintf (xml_data, "<?xml?>\n");
+        fprintf (xml_data, "<console_data>\n");
+    }
     //  Either dump broker state and exit, or do full command line
-    if (s_opt_exit)
-        amq_mgt_broker_print_full (console->broker);
+    if (s_opt_instant)
+        amq_mgt_broker_print_full (console->broker, xml_data);
     else
-        amq_mgt_broker_cmdline (console->broker, console->connection->server_host, 0);
-        
+        amq_mgt_broker_cmdline (console->broker, console->connection->server_host, 0, xml_data);
+
+    if (s_opt_xml) {
+        fprintf (xml_data, "</console_data>\n");
+        fclose (xml_data);
+    }
     amq_mgt_console_destroy (&console);
 
     icl_system_terminate ();            //  Terminate all classes
