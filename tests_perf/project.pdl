@@ -12,11 +12,15 @@
 <file name = "blaster_server.pal"  class = "pal script" />
 <file name = "echo_client.pal"     class = "pal script" />
 <file name = "echo_server.pal"     class = "pal script" />
+<file name = "topic_publish.pal"   class = "pal script" />
+<file name = "topic_subscribe.pal" class = "pal script" />
 
 <file name = "blaster_client"      class = "public command" />
 <file name = "blaster_server"      class = "public command" />
 <file name = "echo_client"         class = "public command" />
 <file name = "echo_server"         class = "public command" />
+<file name = "topic_publish"       class = "public command" />
+<file name = "topic_subscribe"     class = "public command" />
 
 <class name = "pal script" inherit = "gsl data">
 PAL script
