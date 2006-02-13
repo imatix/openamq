@@ -94,20 +94,37 @@ namespace jpmorgan.mina.common
         ///
         void Clear();
 
+        
+        // Actual events that are passed to IFilter instances follow
+        
+        ///
+        /// Filters {@link IoHandler#sessionCreated(IoSession)} event.        
+        void SessionCreated();
+
+        ///
+        /// Filters {@link IoHandler#sessionOpened(IoSession)} event.
+        ///
+        void SessionOpened();
+
+        ///
+        /// Filters {@link IoHandler#sessionClosed(IoSession)} event.
+        ///
+        void SessionClosed();
+        
         ///
         /// Filters {@link IoHandler#messageReceived(IoSession,Object)}
         /// event.        
-        void MessageReceived(ISession session, object message);
+        void MessageReceived(object message);
 
         ///
         /// Filters {@link IoHandler#exceptionCaught(IoSession,Throwable)}
         /// event.
         ///
-        void ExceptionCaught(ISession session, Exception cause);        
+        void ExceptionCaught(Exception cause);        
 
         ///
         /// Filters {@link IoHandler#messageSent(IoSession,Object)}
         /// event.         
-        void MessageSent(ISession session, object message);
+        void MessageSent(object message);
     }
 }

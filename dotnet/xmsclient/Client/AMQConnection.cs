@@ -218,6 +218,13 @@ namespace OpenAMQ.XMS.Client
             throw new Exception("Not implemented");
         }
 
+
+        public IConnectionListener ConnectionListener
+        {
+            get { return _connectionListener; }
+            set { _connectionListener = value; }
+        }
+
         #endregion
 
         #region IPropertyContext Members

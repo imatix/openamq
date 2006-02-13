@@ -90,11 +90,11 @@ namespace jpmorgan.mina.common.support
         ///
         /// Filters {@link IoHandler#messageReceived(IoSession,Object)}
         /// event.        
-        public void MessageReceived(ISession session, object message)
+        public void MessageReceived(object message)
         {
             foreach (IFilter filter in _filters)
             {
-                filter.MessageReceived(session, message, this);
+                filter.MessageReceived(Session, message, this);
             }
         }
 
@@ -102,22 +102,54 @@ namespace jpmorgan.mina.common.support
         /// Filters {@link IoHandler#exceptionCaught(IoSession,Throwable)}
         /// event.
         ///
-        public void ExceptionCaught(ISession session, Exception cause)
+        public void ExceptionCaught(Exception cause)
         {
             foreach (IFilter filter in _filters)
             {
-                filter.ExceptionCaught(session, cause, this);
+                filter.ExceptionCaught(Session, cause, this);
             }
         }
 
         ///
         /// Filters {@link IoHandler#messageSent(IoSession,Object)}
         /// event.         
-        public void MessageSent(ISession session, object message)
+        public void MessageSent(object message)
         {
             foreach (IFilter filter in _filters)
             {
-                filter.MessageSent(session, message, this);
+                filter.MessageSent(Session, message, this);
+            }
+        }
+
+        ///
+        /// Filters {@link IoHandler#sessionCreated(IoSession)} event.        
+        public void SessionCreated()
+        {
+            foreach (IFilter filter in _filters)
+            {
+                filter.SessionCreated(Session, this);
+            }
+        }
+
+        ///
+        /// Filters {@link IoHandler#sessionOpened(IoSession)} event.
+        ///
+        public void SessionOpened()
+        {
+            foreach (IFilter filter in _filters)
+            {
+                filter.SessionOpened(Session, this);
+            }
+        }
+
+        ///
+        /// Filters {@link IoHandler#sessionClosed(IoSession)} event.
+        ///
+        public void SessionClosed()
+        {
+            foreach (IFilter filter in _filters)
+            {
+                filter.SessionClosed(Session, this);
             }
         }
 

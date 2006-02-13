@@ -13,7 +13,7 @@ namespace OpenAMQ.XMS.Client.State.Listener
             _expectedClass = expectedClass;
         }
 
-        public bool processMethod(int channelId, AMQMethodBody frame)
+        public override bool ProcessMethod(ushort channelId, AMQMethodBody frame)
         {
             return _expectedClass.IsInstanceOfType(frame);
         }

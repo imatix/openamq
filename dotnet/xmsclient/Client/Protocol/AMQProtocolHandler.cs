@@ -36,7 +36,7 @@ namespace OpenAMQ.XMS.Client.Protocol
             _frameListeners.Add(_stateManager);
         }
 
-        public override void SessionCreated(ISession session)
+        public override void SessionCreated(jpmorgan.mina.common.ISession session)
         {
             if (session is SocketSession)
             {
@@ -50,12 +50,12 @@ namespace OpenAMQ.XMS.Client.Protocol
                                         new ProtocolCodecFilter(provider.CodecFactory));
         }
 
-        public override void SessionOpened(ISession session)
+        public override void SessionOpened(jpmorgan.mina.common.ISession session)
         {
             _protocolSession = new AMQProtocolSession(session, _connection);
         }
 
-        public void SessionClosed(ISession session)
+        public override void SessionClosed(jpmorgan.mina.common.ISession session)
         {
             // we only raise an exception if the close was not initiated by the client
             if (!_connection.Closed)
@@ -66,26 +66,19 @@ namespace OpenAMQ.XMS.Client.Protocol
             _logger.Info("Protocol Session closed");
         }
 
-        public override void SessionIdle(ISession session, IdleStatus status)
+        public override void SessionIdle(jpmorgan.mina.common.ISession session, IdleStatus status)
         {
             _logger.Info("Protocol Session idle");
         }
 
-        public void ExceptionCaught(ISession session, Exception cause)
+        public override void ExceptionCaught(jpmorgan.mina.common.ISession session, Exception cause)
         {
             _logger.Error("Exception caught by protocol handler: " + cause, cause);
             _connection.ExceptionReceived(cause);
         }
 
-        private static int _messageReceivedCount;
-
-        public override void MessageReceived(ISession session, object message)
-        {
-            if (_messageReceivedCount++ % 1000 == 0)
-            {
-                _logger.Warn("Received " + _messageReceivedCount + " protocol messages");
-            }
-                        
+        public override void MessageReceived(jpmorgan.mina.common.ISession session, object message)
+        {                        
             AMQFrame frame = (AMQFrame) message;
 
             if (frame.BodyFrame is AMQMethodBody)
@@ -130,7 +123,7 @@ namespace OpenAMQ.XMS.Client.Protocol
 
         private static int _messagesOut;
 
-        public override void MessageSent(ISession session, object message)
+        public override void MessageSent(jpmorgan.mina.common.ISession session, object message)
         {
             if (_messagesOut++ % 1000 == 0)
             {

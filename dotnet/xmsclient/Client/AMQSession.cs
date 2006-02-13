@@ -222,8 +222,7 @@ namespace OpenAMQ.XMS.Client
         {
             CheckNotClosed();
             // TODO Auto-generated method stub
-            throw new Exception("Not implemented");
-            return null;
+            throw new Exception("Not implemented");            
         }
 
         public ITextMessage CreateTextMessage()
@@ -291,7 +290,7 @@ namespace OpenAMQ.XMS.Client
     //            throw new JMSException("Error creating session: " + e);
     //        }
             throw new Exception("Not implemented");
-            _logger.Info("Transaction commited on channel " + _channelId);
+            //_logger.Info("Transaction commited on channel " + _channelId);
         }
 
         public void Rollback()
@@ -312,7 +311,7 @@ namespace OpenAMQ.XMS.Client
     //            throw new JMSException("Error rolling back session: " + e);
     //        }
              throw new Exception("Not implemented");
-            _logger.Info("Transaction rolled back on channel " + _channelId);
+            //_logger.Info("Transaction rolled back on channel " + _channelId);
         }
 
         public override void Close()
@@ -372,7 +371,7 @@ namespace OpenAMQ.XMS.Client
         /// </summary>
         /// <param name="e">the exception that caused this session to be closed</param>
         ///         
-        public void Closed(Exception e)
+        public void SessionClosed(Exception e)
         {
             // An AMQException has an error code and message already and will be passed in when closure occurs as a
             // result of a channel close request
@@ -608,38 +607,32 @@ namespace OpenAMQ.XMS.Client
 
         public IBM.XMS.IMessageConsumer CreateDurableSubscriber(IDestination topic, string name)
         {
-            throw new Exception("Not implemented");
-            return null;
+            throw new Exception("Not implemented");            
         }
 
         public IBM.XMS.IMessageConsumer CreateDurableSubscriber(IDestination topic, string name, string messageSelector, bool noLocal)                
         {
-            throw new Exception("Not implemented");
-            return null;
+            throw new Exception("Not implemented");            
         }
 
         public IQueueBrowser CreateBrowser(IDestination queue)
         {
-            throw new Exception("Not implemented");
-            return null;
+            throw new Exception("Not implemented");            
         }
 
         public IQueueBrowser CreateBrowser(IDestination queue, string messageSelector)
         {
-            throw new Exception("Not implemented");
-            return null;
+            throw new Exception("Not implemented");            
         }
 
         public IDestination CreateTemporaryQueue()
         {
-            throw new Exception("Not implemented");
-            return null;
+            throw new Exception("Not implemented");            
         }
 
         public IDestination CreateTemporaryTopic()
         {
-            throw new Exception("Not implemented");
-            return null;
+            throw new Exception("Not implemented");            
         }
 
         public void Unsubscribe(String name)
@@ -752,6 +745,139 @@ namespace OpenAMQ.XMS.Client
         private long GetNextProducerId()
         {
             return ++_nextProducerId;
-        }               
+        }
+        
+        #region PropertyContext
+        
+        public bool GetBooleanProperty(string property_name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public byte GetByteProperty(string property_name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public short GetSignedByteProperty(string property_name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public byte[] GetBytesProperty(string property_name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public char GetCharProperty(string property_name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public double GetDoubleProperty(string property_name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public float GetFloatProperty(string property_name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public int GetIntProperty(string property_name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public long GetLongProperty(string property_name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public object GetObjectProperty(string property_name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public short GetShortProperty(string property_name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public string GetStringProperty(string property_name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetBooleanProperty(string property_name, bool value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetByteProperty(string property_name, byte value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetSignedByteProperty(string property_name, short value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetBytesProperty(string property_name, byte[] value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetCharProperty(string property_name, char value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetDoubleProperty(string property_name, double value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetFloatProperty(string property_name, float value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetIntProperty(string property_name, int value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetLongProperty(string property_name, long value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetObjectProperty(string property_name, object value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetShortProperty(string property_name, short value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetStringProperty(string property_name, string value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool PropertyExists(string propertyName)
+        {
+            throw new NotImplementedException();
+        }
+        #endregion PropertyContext
+        
+        public void Dispose()
+        {
+            Close();
+        }
     }
 }

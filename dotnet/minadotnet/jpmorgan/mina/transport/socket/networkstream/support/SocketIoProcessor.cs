@@ -1,5 +1,4 @@
 using System;
-using System.Net;
 using System.Net.Sockets;
 using jpmorgan.mina.common;
 
@@ -12,7 +11,7 @@ namespace jpmorgan.mina.transport.socket.networkstream.support
             SocketSession session = (SocketSession)result.AsyncState;
             int bytesRead = session.Socket.EndReceive(result);
             session.Buffer.Limit = bytesRead;
-            session.FilterChain.MessageReceived(session, session.Buffer);
+            session.FilterChain.MessageReceived(session.Buffer);
             // register to receive data again and the process repeats
             StartReceive(session);
         }

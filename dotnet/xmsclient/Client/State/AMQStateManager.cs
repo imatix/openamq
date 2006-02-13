@@ -3,6 +3,7 @@ using System.Collections;
 using jpmorgan.mina.common;
 using log4net;
 using OpenAMQ.Framing;
+using OpenAMQ.XMS.Client.Handler;
 using OpenAMQ.XMS.Client.Protocol;
 
 namespace OpenAMQ.XMS.Client.State
@@ -22,7 +23,8 @@ namespace OpenAMQ.XMS.Client.State
         /// </summary>
         private readonly IDictionary _state2HandlersMap = new Hashtable();
 
-        private CopyOnWriteArraySet _stateListeners = new CopyOnWriteArraySet();
+        //private CopyOnWriteArraySet _stateListeners = new CopyOnWriteArraySet();
+        private ArrayList _stateListeners = ArrayList.Synchronized(new ArrayList(5));
         
         public AMQStateManager()
         {
@@ -92,7 +94,7 @@ namespace OpenAMQ.XMS.Client.State
             }
         }
 
-        public void Error(AMQException e)
+        public void Error(Exception e)
         {
             _logger.Debug("State manager receive error notification: " + e);
             foreach (IStateListener l in _stateListeners)

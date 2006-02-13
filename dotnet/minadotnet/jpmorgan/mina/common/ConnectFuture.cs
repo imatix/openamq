@@ -33,8 +33,8 @@ namespace jpmorgan.mina.common
         ///
         public ConnectFuture(Callback callback) : base(callback)
         {            
-        }
-
+        }        
+        
         ///
         /// Returns {@link IoSession} which is the result of connect operation.
         ///

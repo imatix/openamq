@@ -6,10 +6,16 @@ using jpmorgan.mina.transport.socket.networkstream.support;
 
 namespace jpmorgan.mina.transport.socket.networkstream
 {
-    internal class SocketConnector : IConnector, ISocketSessionManager
+    public class SocketConnector : IConnector, ISocketSessionManager
     {
         private int _processors;
 
+        private class AsyncResultState
+        {
+            public SocketSession Session;
+            public ConnectFuture Future;
+            public IFilterChainBuilder FilterChainBuilder;
+        }
         #region ISocketSessionManager Members
 
         public int Processors
@@ -28,33 +34,64 @@ namespace jpmorgan.mina.transport.socket.networkstream
 
         #region IConnector Members
 
-        public ConnectFuture connect(IPEndPoint address, IHandler handler)
+        /// <summary>
+        ///  Connect
+        /// </summary>
+        /// <param name="host"></param>
+        /// <param name="port"></param>
+        /// <param name="handler"></param>
+        /// <returns></returns>
+        /// <exception cref="SocketException">when the host cannot be found in DNS</exception>                
+        public ConnectFuture Connect(string host, int port, IHandler handler)
         {
-            return connect(address, handler, new NOOPIoFilterChainBuilder());
+            IPAddress[] addresses = Dns.GetHostAddresses(host);
+            if (addresses != null && addresses.Length > 0)
+            {
+                IPEndPoint endpoint = new IPEndPoint(addresses[0], port);
+                return Connect(endpoint, handler);
+            }
+            return null; // should never occur since GetHostAddresses throws when it cannot find the host
+        }
+        
+        public ConnectFuture Connect(IPEndPoint address, IHandler handler)
+        {
+            return Connect(address, handler, new NOOPIoFilterChainBuilder());
         }
 
-        public ConnectFuture connect(IPEndPoint address, IHandler handler, IFilterChainBuilder filterChainBuilder)
+        public ConnectFuture Connect(IPEndPoint address, IHandler handler, IFilterChainBuilder filterChainBuilder)
         {
-            return connect(address, null, handler, filterChainBuilder);
+            return Connect(address, null, handler, filterChainBuilder);
         }
 
-        public ConnectFuture connect(IPEndPoint address, IPEndPoint localAddress, IHandler handler)
+        public ConnectFuture Connect(IPEndPoint address, IPEndPoint localAddress, IHandler handler)
         {
-            return connect(address, localAddress, handler, new NOOPIoFilterChainBuilder());
+            return Connect(address, localAddress, handler, new NOOPIoFilterChainBuilder());
         }
 
-        public ConnectFuture connect(IPEndPoint address, IPEndPoint localAddress, IHandler handler, IFilterChainBuilder filterChainBuilder)
+        public ConnectFuture Connect(IPEndPoint address, IPEndPoint localAddress, IHandler handler, IFilterChainBuilder filterChainBuilder)
         {
-            Socket sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            SocketSession session = newSession(sock, handler, filterChainBuilder);
-            sock.BeginConnect(address, new AsyncCallback(ConnectCallback), session);
-            return null; // RG what to do here? Does ConnectFuture make any sense?
+            Socket sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);            
+            ConnectFuture cf = new ConnectFuture();
+            SocketSession session = newSession(sock, handler);
+            AsyncResultState state = new AsyncResultState();
+            state.Future = cf;
+            state.Session = session;
+            state.FilterChainBuilder = filterChainBuilder;
+            sock.BeginConnect(address, new AsyncCallback(ConnectCallback), state);
+            return cf;
         }
 
         private void ConnectCallback(IAsyncResult result)
         {
-            SocketSession session = (SocketSession) result.AsyncState;
+            AsyncResultState state = (AsyncResultState) result.AsyncState;
+            SocketSession session = state.Session;
+            state.FilterChainBuilder.BuildFilterChain(session.FilterChain);
+            // fire the event so listeners can react accordingly and set up any decoders etc.
+            session.FilterChain.SessionCreated();
+            // start the asynchronous listener process
             SocketIoProcessor.StartReceive(session);            
+            // this marks the io future as complete
+            state.Future.Session = session;            
         }
 
         public int ConnectionTimeout
@@ -76,7 +113,7 @@ namespace jpmorgan.mina.transport.socket.networkstream
 
         #endregion
 
-        private SocketSession newSession(Socket socket, IHandler handler, IFilterChainBuilder builder)
+        private SocketSession newSession(Socket socket, IHandler handler)
         {
             return new SocketSessionImpl(socket, handler);
         }

@@ -8,7 +8,7 @@ namespace OpenAMQ.XMS.Client
     public class AMQTopic : AMQDestination
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:AMQTopic"/> class.
+        /// Initializes a new instance of the <see cref="AMQTopic"/> class.
         /// </summary>
         /// <param name="name">The name.</param>
         public AMQTopic(string name)
@@ -17,7 +17,7 @@ namespace OpenAMQ.XMS.Client
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:AMQTopic"/> class.
+        /// Initializes a new instance of the <see cref="AMQTopic"/> class.
         /// </summary>
         /// <param name="name">The name.</param>
         /// <param name="temporary">if set to <c>true</c> [temporary].</param>
@@ -26,19 +26,19 @@ namespace OpenAMQ.XMS.Client
         {            
         }
         
-        public string EncodedName
+        public override string EncodedName
         {
             get
             {
-                return 'T' + DestinationName;
+                return 'T' + Name;
             }
         }
 
-        public string RoutingKey
+        public override string RoutingKey
         {
             get
             {
-                return DestinationName;
+                return Name;
             }
         }
     }

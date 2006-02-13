@@ -10,12 +10,14 @@ namespace OpenAMQ.XMS.Client.Message
     {
         #region IMessageFactory Members
 
-        public AbstractXMSMessage CreateMessage(long messageNbr, bool redelivered, ContentHeaderBody contentHeader, System.Collections.IList bodies)
+        public AbstractXMSMessage CreateMessage(ulong messageNbr, bool redelivered, ContentHeaderBody contentHeader, System.Collections.IList bodies)
         {
             AbstractXMSMessage msg = CreateMessageWithBody(messageNbr, contentHeader, bodies);
-            msg.XMSRedelivered = redelivered;
+            msg.JMSRedelivered = redelivered;
             return msg;
-        }        
+        }
+
+        public abstract AbstractXMSMessage CreateMessage();
 
         #endregion
 
@@ -27,8 +29,8 @@ namespace OpenAMQ.XMS.Client.Message
         /// <param name="bodies"></param>
         /// <returns></returns>
         /// <exception cref="AMQException"></exception>
-        protected abstract AbstractXMSMessage CreateMessageWithBody(long messageNbr,
+        protected abstract AbstractXMSMessage CreateMessageWithBody(ulong messageNbr,
                                                                     ContentHeaderBody contentHeader,
                                                                     IList bodies);               
-    }
+void @__(){}    }
 }

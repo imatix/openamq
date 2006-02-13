@@ -11,7 +11,7 @@ namespace OpenAMQ.XMS.Client.Handler
     {
         private static readonly ConnectionSecureMethodHandler _instance = new ConnectionSecureMethodHandler();
 
-        public static ConnectionSecureMethodHandler getInstance()
+        public static ConnectionSecureMethodHandler GetInstance()
         {
             return _instance;
         }

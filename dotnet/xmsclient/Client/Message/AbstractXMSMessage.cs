@@ -21,7 +21,7 @@ namespace OpenAMQ.XMS.Client.Message
         public const char DOUBLE_PROPERTY_PREFIX = 'd';
         public const char STRING_PROPERTY_PREFIX = 'S';
 
-        protected long _messageNbr;
+        protected ulong _messageNbr;
 
         protected bool _redelivered;
 
@@ -29,7 +29,7 @@ namespace OpenAMQ.XMS.Client.Message
         {           
         }
 
-        protected AbstractXMSMessage(long messageNbr, BasicContentHeaderProperties contentHeader)
+        protected AbstractXMSMessage(ulong messageNbr, BasicContentHeaderProperties contentHeader)
             : this(contentHeader)
         {            
             _messageNbr = messageNbr;
@@ -198,7 +198,7 @@ namespace OpenAMQ.XMS.Client.Message
             }            
             set
             {
-                MimeType = value;
+                //MimeType = value;
             }
         }
         
@@ -524,8 +524,7 @@ namespace OpenAMQ.XMS.Client.Message
 
         public abstract string MimeType
         {
-            get;
-            set;
+            get;           
         }
 
         public override string ToString()
@@ -664,7 +663,7 @@ namespace OpenAMQ.XMS.Client.Message
         /// Get the AMQ message number assigned to this message
         /// </summary>
         /// <returns>the message number</returns>
-        public long MessageNbr
+        public ulong MessageNbr
         {
             get
             {
@@ -682,6 +681,36 @@ namespace OpenAMQ.XMS.Client.Message
             {
                 return (BasicContentHeaderProperties) _contentHeaderProperties;
             }
+        }
+
+        public short GetSignedByteProperty(string property_name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public byte[] GetBytesProperty(string property_name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public char GetCharProperty(string property_name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetSignedByteProperty(string property_name, short value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetBytesProperty(string property_name, byte[] value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetCharProperty(string property_name, char value)
+        {
+            throw new NotImplementedException();
         }
     }
 }

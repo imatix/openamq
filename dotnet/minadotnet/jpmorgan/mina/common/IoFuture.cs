@@ -8,10 +8,10 @@ namespace jpmorgan.mina.common
     ///  
     public class IoFuture
     {
-        private readonly ManualResetEvent _resetEvent;
-        private object _result;
-        private Callback _callback;
-        private bool _ready;
+        protected readonly ManualResetEvent _resetEvent;
+        protected object _result;
+        protected Callback _callback;
+        protected bool _ready;
 
         ///
         /// Something interested in being notified when the result
@@ -38,7 +38,7 @@ namespace jpmorgan.mina.common
             }
             _callback = callback;
         }
-
+        
         ///
         /// Returns the lock object this future acquires.
         ///
@@ -93,13 +93,17 @@ namespace jpmorgan.mina.common
             {                
                 _result = value;
                 _ready = true;
-                _resetEvent.Set();                                
+                _resetEvent.Set();
+                InvokeCallback();
             }
         }
               
         private void InvokeCallback()
         {
-            _callback.Invoke(this, _result);
-        }
+            if (_callback != null)
+            {
+                _callback.Invoke(this, _result);
+            }            
+        }        
     }
 }

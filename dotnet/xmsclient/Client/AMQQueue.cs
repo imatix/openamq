@@ -39,7 +39,7 @@ namespace OpenAMQ.XMS.Client
         {        
         }
 
-        public string EncodedName
+        public override string EncodedName
         {
             get
             {
@@ -47,7 +47,7 @@ namespace OpenAMQ.XMS.Client
             }
         }
 
-        public string RoutingKey
+        public override string RoutingKey
         {
             get
             {

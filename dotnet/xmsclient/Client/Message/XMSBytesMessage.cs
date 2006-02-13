@@ -23,7 +23,7 @@ namespace OpenAMQ.XMS.Client.Message
 
         private BinaryWriter _writer;
 
-        XMSBytesMessage() : this(null)
+        public XMSBytesMessage() : this(null)
         {            
         }
 
@@ -49,7 +49,7 @@ namespace OpenAMQ.XMS.Client.Message
             }
         }
 
-        XMSBytesMessage(long messageNbr, byte[] data, ContentHeaderBody contentHeader)
+        public XMSBytesMessage(ulong messageNbr, byte[] data, ContentHeaderBody contentHeader)
             // TODO: this casting is ugly. Need to review whole ContentHeaderBody idea
             : base(messageNbr, (BasicContentHeaderProperties) contentHeader.Properties)
         {                        
@@ -92,7 +92,7 @@ namespace OpenAMQ.XMS.Client.Message
                 // we cannot just read the underlying buffer since it may be larger than the amount of 
                 // "filled" data. Length is not the same as Capacity.
                 byte[] data = new byte[_dataStream.Length];
-                _dataStream.Read(data, 0, _dataStream.Length);
+                _dataStream.Read(data, 0, (int)_dataStream.Length);
                 return Encoding.UTF8.GetString(data);
             }
             else
@@ -101,19 +101,25 @@ namespace OpenAMQ.XMS.Client.Message
             }
         }
 
-        public byte[] GetData()
+        public override byte[] Data
         {
-            
+            get
+            {
                 if (_dataStream == null)
-                {                    
+                {
                     return null;
                 }
                 else
                 {
                     byte[] data = new byte[_dataStream.Length];
-                    _dataStream.Read(data, 0, (int)_dataStream.Length);
+                    _dataStream.Read(data, 0, (int) _dataStream.Length);
                     return data;
-                }                
+                }
+            }
+            set
+            {
+                throw new NotSupportedException("Cannot set data payload except during construction");
+            }
         }
 
         public override string MimeType
@@ -426,6 +432,81 @@ namespace OpenAMQ.XMS.Client.Message
             }
         }
 
+        public void WriteSignedByte(short value)
+        {
+            CheckWritable();
+            try
+            {
+                _writer.Write(value);
+            }
+            catch (IOException e)
+            {
+                XMSException ex = new XMSException(e.ToString());
+                ex.LinkedException = e;
+                throw ex;
+            }
+        }
+
+        public void WriteDouble(double value)
+        {
+            CheckWritable();
+            try
+            {
+                _writer.Write(value);
+            }
+            catch (IOException e)
+            {
+                XMSException ex = new XMSException(e.ToString());
+                ex.LinkedException = e;
+                throw ex;
+            }
+        }
+
+        public void WriteFloat(float value)
+        {
+            CheckWritable();
+            try
+            {
+                _writer.Write(value);
+            }
+            catch (IOException e)
+            {
+                XMSException ex = new XMSException(e.ToString());
+                ex.LinkedException = e;
+                throw ex;
+            }
+        }
+
+        public void WriteInt(int value)
+        {
+            CheckWritable();
+            try
+            {
+                _writer.Write(value);
+            }
+            catch (IOException e)
+            {
+                XMSException ex = new XMSException(e.ToString());
+                ex.LinkedException = e;
+                throw ex;
+            }
+        }
+
+        public void WriteLong(long value)
+        {
+            CheckWritable();
+            try
+            {
+                _writer.Write(value);
+            }
+            catch (IOException e)
+            {
+                XMSException ex = new XMSException(e.ToString());
+                ex.LinkedException = e;
+                throw ex;
+            }
+        }
+        
         public void Write(int i)
         {
             CheckWritable();
@@ -554,6 +635,6 @@ namespace OpenAMQ.XMS.Client.Message
                 ex.LinkedException = e;
                 throw ex;
             }
-        }
+        }        
     }
 }

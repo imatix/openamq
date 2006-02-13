@@ -8,7 +8,7 @@ namespace OpenAMQ.XMS.Client
     {
         private uint _frameMax;
 
-        private uint _channelMax;
+        private ushort _channelMax;
 
         private uint _hearbeat;
 
@@ -26,7 +26,7 @@ namespace OpenAMQ.XMS.Client
             }
         }
 
-        public uint ChannelMax
+        public ushort ChannelMax
         {
             get
             {

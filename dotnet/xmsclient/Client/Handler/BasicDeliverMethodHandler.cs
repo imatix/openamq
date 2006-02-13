@@ -14,7 +14,7 @@ namespace OpenAMQ.XMS.Client.Handler
 
         private static readonly BasicDeliverMethodHandler _instance = new BasicDeliverMethodHandler();
 
-        public static BasicDeliverMethodHandler getInstance()
+        public static BasicDeliverMethodHandler GetInstance()
         {
             return _instance;
         }

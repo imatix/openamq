@@ -11,7 +11,7 @@ namespace OpenAMQ.XMS.Client.Handler
 
         private static readonly ConnectionTuneMethodHandler _instance = new ConnectionTuneMethodHandler();
 
-        public static ConnectionTuneMethodHandler getInstance()
+        public static ConnectionTuneMethodHandler GetInstance()
         {
             return _instance;
         }

@@ -19,13 +19,15 @@ namespace jpmorgan.mina.common
     /// connection attempts are finished.
     public interface IConnector
     {
+        ConnectFuture Connect(string host, int port, IHandler handler);
+        
         ///
         /// Connects to the specified <code>address</code>.  If communication starts
         /// successfully, events are fired to the specified
         /// <code>handler</code>.
         /// 
         /// @return {@link ConnectFuture} that will tell the result of the connection attempt        
-        ConnectFuture connect(IPEndPoint address, IHandler handler);
+        ConnectFuture Connect(IPEndPoint address, IHandler handler);
 
         ///
         /// Connects to the specified <code>address</code>.  If communication starts
@@ -36,7 +38,7 @@ namespace jpmorgan.mina.common
         ///            an {@link IoFilterChainBuilder} that will modify the
         ///            {@link IoFilterChain} of a newly created {@link IoSession}
         /// @return {@link ConnectFuture} that will tell the result of the connection attempt         
-        ConnectFuture connect(IPEndPoint address, IHandler handler,
+        ConnectFuture Connect(IPEndPoint address, IHandler handler,
                               IFilterChainBuilder filterChainBuilder);
 
         ///
@@ -46,7 +48,7 @@ namespace jpmorgan.mina.common
         /// 
         /// @param localAddress the local address the channel is bound to
         /// @return {@link ConnectFuture} that will tell the result of the connection attempt         
-        ConnectFuture connect(IPEndPoint address, IPEndPoint localAddress,
+        ConnectFuture Connect(IPEndPoint address, IPEndPoint localAddress,
                               IHandler handler);
 
         ///
@@ -58,7 +60,7 @@ namespace jpmorgan.mina.common
         ///            an {@link IoFilterChainBuilder} that will modify the
         ///            {@link IoFilterChain} of a newly created {@link IoSession}
         /// @return {@link ConnectFuture} that will tell the result of the connection attempt         
-        ConnectFuture connect(IPEndPoint address, IPEndPoint localAddress,
+        ConnectFuture Connect(IPEndPoint address, IPEndPoint localAddress,
                               IHandler handler, IFilterChainBuilder filterChainBuilder);
 
         ///

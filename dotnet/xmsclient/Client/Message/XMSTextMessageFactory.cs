@@ -8,7 +8,7 @@ namespace OpenAMQ.XMS.Client.Message
 {
     public class XMSTextMessageFactory : AbstractXMSMessageFactory
     {
-        protected override AbstractXMSMessage CreateMessageWithBody(long messageNbr, ContentHeaderBody contentHeader,
+        protected override AbstractXMSMessage CreateMessageWithBody(ulong messageNbr, ContentHeaderBody contentHeader,
                                                                     IList bodies)
         {
                byte[] data;
@@ -33,7 +33,7 @@ namespace OpenAMQ.XMS.Client.Message
         }
         
      
-        public AbstractXMSMessage CreateMessage()
+        public override AbstractXMSMessage CreateMessage()
         {
             return new XMSTextMessage();
         }      

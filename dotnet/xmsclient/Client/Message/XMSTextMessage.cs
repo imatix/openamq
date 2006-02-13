@@ -28,7 +28,7 @@ namespace OpenAMQ.XMS.Client.Message
             XmsContentHeaderProperties.Encoding = encoding;
         }
 
-        public XMSTextMessage(long messageNbr, byte[] data, BasicContentHeaderProperties contentHeader)
+        public XMSTextMessage(ulong messageNbr, byte[] data, BasicContentHeaderProperties contentHeader)
             : base(messageNbr, contentHeader)
         {            
             contentHeader.ContentType = MIME_TYPE;
@@ -55,7 +55,7 @@ namespace OpenAMQ.XMS.Client.Message
             return Text;
         }
 
-        public byte[] Data
+        public override byte[] Data
         {
             get
             {
@@ -67,7 +67,7 @@ namespace OpenAMQ.XMS.Client.Message
             }
         }
 
-        public string MimeType
+        public override string MimeType
         {
             get
             {

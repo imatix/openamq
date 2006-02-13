@@ -14,7 +14,7 @@ namespace OpenAMQ.XMS.Client.State.Listener
         {
         }
 
-        public bool ProcessMethod(int channelId, AMQMethodBody frame)
+        public override bool ProcessMethod(ushort channelId, AMQMethodBody frame)
         {
             return (frame is ConnectionCloseOkBody);
         }

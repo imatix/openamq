@@ -26,7 +26,7 @@ namespace OpenAMQ.XMS.Client.Handler
 
         public void MethodReceived(AMQStateManager stateManager, AMQMethodEvent evt)
         {
-            _logger.Info("ConnectionRedirect frame received");
+            /*_logger.Info("ConnectionRedirect frame received");
             ConnectionRedirectBody method = (ConnectionRedirectBody) evt.Method;
 
             // the host is in the form hostname:port with the port being optional
@@ -43,7 +43,7 @@ namespace OpenAMQ.XMS.Client.Handler
                 host = method.Host.Substring(0, portIndex);
                 port = Int32.Parse(method.Host.Substring(portIndex + 1));
             }
-            evt.ProtocolSession.Failover(host, port);
+            evt.ProtocolSession.Failover(host, port);*/
         }
     }
 

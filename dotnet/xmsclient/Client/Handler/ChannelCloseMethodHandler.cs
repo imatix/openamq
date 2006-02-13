@@ -13,7 +13,7 @@ namespace OpenAMQ.XMS.Client.Handler
 
         private static ChannelCloseMethodHandler _handler = new ChannelCloseMethodHandler();
 
-        public static ChannelCloseMethodHandler getInstance()
+        public static ChannelCloseMethodHandler GetInstance()
         {
             return _handler;
         }

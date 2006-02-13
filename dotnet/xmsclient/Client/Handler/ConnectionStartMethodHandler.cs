@@ -14,7 +14,7 @@ namespace OpenAMQ.XMS.Client.Handler
         
         private static readonly ConnectionStartMethodHandler _instance = new ConnectionStartMethodHandler();
         
-        public static ConnectionStartMethodHandler getInstance()
+        public static ConnectionStartMethodHandler GetInstance()
         {
             return _instance;
         }

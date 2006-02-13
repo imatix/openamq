@@ -9,9 +9,9 @@ namespace OpenAMQ.XMS.Client.Message
 {
     public class XMSBytesMessageFactory : AbstractXMSMessageFactory
     {
-        protected AbstractJMSMessage createMessageWithBody(long messageNbr,
-                                                           ContentHeaderBody contentHeader,
-                                                           IList bodies)
+        protected override AbstractXMSMessage CreateMessageWithBody(ulong messageNbr,
+                                                                    ContentHeaderBody contentHeader,
+                                                                    IList bodies)
         {
             byte[] data;
 
@@ -27,14 +27,14 @@ namespace OpenAMQ.XMS.Client.Message
                 foreach (ContentBody cb in bodies)
                 {
                     Array.Copy(cb.Payload, 0, data, currentPosition, cb.Payload.Length);
-                    currentPosition += cb.payload.Length;
+                    currentPosition += cb.Payload.Length;
                 }
             }
 
             return new XMSBytesMessage(messageNbr, data, contentHeader);
         }
 
-        public AbstractXMSMessage CreateMessage()
+        public override AbstractXMSMessage CreateMessage()
         {
             return new XMSBytesMessage();
         }

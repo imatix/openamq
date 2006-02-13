@@ -92,9 +92,15 @@
     <Compile Include="jpmorgan\mina\common\BufferOverflowException.cs" />
     <Compile Include="jpmorgan\mina\common\BufferUnderflowException.cs" />
     <Compile Include="jpmorgan\mina\common\HandlerAdapter.cs" />
+    <Compile Include="jpmorgan\mina\common\IoHandlerAdapter.cs" />
+    <Compile Include="jpmorgan\mina\filter\codec\demux\DemuxingProtocolCodecFactory.cs" />
     <Compile Include="jpmorgan\mina\filter\codec\demux\IMessageDecoder.cs" />
     <Compile Include="jpmorgan\mina\filter\codec\demux\MessageDecoderResult.cs" />
+    <Compile Include="jpmorgan\mina\filter\codec\IProtocolCodecFactory.cs" />
     <Compile Include="jpmorgan\mina\filter\codec\IProtocolDecoderOutput.cs" />
+    <Compile Include="jpmorgan\mina\handler\demux\DemuxingIoHandler.cs" />
+    <Compile Include="jpmorgan\mina\handler\demux\IMessageHandler.cs" />
+    <Compile Include="jpmorgan\mina\handler\demux\UnknownMessageTypeException.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>

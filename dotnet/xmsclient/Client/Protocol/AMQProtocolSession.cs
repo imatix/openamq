@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using jpmorgan.mina.common;
 using log4net;
 using OpenAMQ.Framing;
@@ -21,17 +22,20 @@ namespace OpenAMQ.XMS.Client.Protocol
         /// <summary>
         /// Maps from the channel id to the AMQSession that it represents.
         /// </summary>
-        private ConcurrentMap _channelId2SessionMap = new ConcurrentHashMap();
+        //private ConcurrentMap _channelId2SessionMap = new ConcurrentHashMap();
+        private Hashtable _channelId2SessionMap = Hashtable.Synchronized(new Hashtable());
 
-        private ConcurrentMap _closingChannels = new ConcurrentHashMap();
+        //private ConcurrentMap _closingChannels = new ConcurrentHashMap();
+        private Hashtable _closingChannels = Hashtable.Synchronized(new Hashtable());
 
         /// <summary>
         /// Maps from a channel id to an unprocessed message. This is used to tie together the
         /// JmsDeliverBody (which arrives first) with the subsequent content header and content bodies.
         /// </summary>
-        private ConcurrentMap _channelId2UnprocessedMsgMap = new ConcurrentHashMap();
+        //private ConcurrentMap _channelId2UnprocessedMsgMap = new ConcurrentHashMap();
+        private Hashtable _channelId2UnprocessedMsgMap = Hashtable.Synchronized(new Hashtable());
 
-        public AMQProtocolSession(ISession protocolSession, AMQConnection connection)
+        public AMQProtocolSession(jpmorgan.mina.common.ISession protocolSession, AMQConnection connection)
         {
             _minaProtocolSession = protocolSession;
             // properties of the connection are made available to the event handlers
@@ -220,9 +224,9 @@ namespace OpenAMQ.XMS.Client.Protocol
             // we need to know when a channel is closing so that we can respond
             // with a channel.close frame when we receive any other type of frame
             // on that channel
-            _closingChannels.PutIfAbsent(channelId, session);
+            _closingChannels[channelId] = session;
 
-            AMQFrame frame = ChannelCloseBody.CreateAMQFrame(channelId, AMQConstant.REPLY_SUCCESS.Code,
+            AMQFrame frame = ChannelCloseBody.CreateAMQFrame(channelId, 200,
                                                              "JMS client closing channel", 0, 0);
             WriteFrame(frame);
         }
@@ -239,11 +243,12 @@ namespace OpenAMQ.XMS.Client.Protocol
         /// responding to the client's earlier request to close the channel.</returns>         
         public bool ChannelClosed(ushort channelId, int code, string text)
         {            
-            // if this is not a response to an earlier request to close the channel
-            if (_closingChannels.Remove(chId) == null)
+            // if this is not a response to an earlier request to close the channel            
+            if (!_closingChannels.ContainsKey(channelId))
             {
-                AMQSession session = (AMQSession) _channelId2SessionMap[chId];
-                session.Closed(new AMQException(_logger, code, text));
+                _closingChannels.Remove(channelId);
+                AMQSession session = (AMQSession) _channelId2SessionMap[channelId];
+                session.SessionClosed(new AMQException(_logger, code, text));
                 return true;
             }
             else

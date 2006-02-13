@@ -13,7 +13,7 @@ namespace OpenAMQ.XMS.Client.Handler
 
         private static ConnectionCloseMethodHandler _handler = new ConnectionCloseMethodHandler();
 
-        public static ConnectionCloseMethodHandler getInstance()
+        public static ConnectionCloseMethodHandler GetInstance()
         {
             return _handler;
         }
