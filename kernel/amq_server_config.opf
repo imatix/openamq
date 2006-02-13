@@ -220,6 +220,26 @@ $\(selftype)
     this value.
     </doc>
     </property>
+
+    <property name = "os threads" type = "int" default = "4">
+    Max number of OS threads
+    <doc>
+    On multithreaded builds, defines the maximum number of OS threads that
+    the server will use.  This should be at least as high as the number of
+    CPUs and you can experiment with higher values.
+    </doc>
+    </property>
+
+    <property name = "poll frequency" type = "int" default = "0" dynamic = "1">
+    Kernel polling frequency
+    <doc>
+    To experiment with the effect of different socket polling strategies we
+    allow the user to set the frequency of non-essential socket polling.
+    Zero means no non-essential polling, one means maximal non-essential
+    polling, and in general N means do non-essential polling one time in N.
+    The maximum valid value for this setting is 1024.
+    </doc>
+    </property>
 </path>
 
 <path name = "/config/internal">
@@ -228,15 +248,27 @@ $\(selftype)
     <doc>
     If set, the server will crash at irregular intervals, being some random
     point within the number of seconds specified.  This is used specifically
-    to test applications for failover and robustness.
+    to test applications for failover and robustness.  Set to zero for all
+    real usage.
     </doc>
     </property>
+
     <property name = "auto block" type = "int" default = "0">
     Auto-freeze test timer, seconds
     <doc>
     If set, the server will block at irregular intervals, being some random
     point within the number of seconds specified.  This is used specifically
-    to test applications for failover and robustness.
+    to test applications for failover and robustness.  Set to zero for all
+    real usage.
+    </doc>
+    </property>
+
+    <property name = "kernel limit" type = "int" default = "0">
+    SMT kernel limit
+    <doc>
+    Sets an action limit for the SMT kernel: after this many steps it will
+    exit.  Use this to break the server for failure testing.  Set to zero for
+    all real usage.
     </doc>
     </property>
 </path>

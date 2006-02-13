@@ -80,6 +80,7 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
     s_argc = argc;
     s_argv = argv;
     
+    icl_system_initialise (argc, argv);
     icl_console_mode (ICL_CONSOLE_DATE, TRUE);
     myname  = argv [0];
     argparm = NULL;                     //  Argument parameter to pick-up
@@ -139,8 +140,17 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
                     printf (BUILDMODEL "\n\n");
                     printf (COPYRIGHT "\n");
                     printf (NOWARRANTY);
-                    printf (BUILDMODEL "\n");
-                    printf ("Compiled with: " CCOPTS "\n");
+                    printf ("Build model:" BUILDMODEL "\n");
+                    printf ("Memory model: %s\n", 
+                        icl_mem_allocator == ICL_MEM_THIN?   "fat":
+                        icl_mem_allocator == ICL_MEM_FAT?    "thin":
+                        icl_mem_allocator == ICL_MEM_DIRECT? "direct": "unknown");
+#if (defined (BASE_THREADSAFE))
+                    printf ("Threading model: multithreaded\n");
+#else
+                    printf ("Threading model: single threaded\n");
+#endif
+                    printf ("\nCompiler: " CCOPTS "\n");
                     exit (EXIT_SUCCESS);
                 case 'h':
                     printf (SERVER_NAME "/" VERSION "\n");
@@ -180,8 +190,6 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
         printf (COPYRIGHT "\n");
         printf (NOWARRANTY);
     }
-    icl_system_initialise (argc, argv);
-
     //  Set server working directory if necessary
     if (s_opt_workdir && apr_filepath_set (s_opt_workdir, icl_global_pool) != APR_SUCCESS) {
         icl_console_print ("E: can't work in '%s' - %s", s_opt_workdir, strerror (errno));
@@ -205,6 +213,11 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
     && streq (ipr_config_get (config, "password", ""), "console"))
         icl_console_print ("W: security warning - console login uses default password");
     ipr_config_destroy (&config);
+
+    //  Set system options from configuration
+    smt_set_max_os_thread  (amq_server_config_os_threads     (amq_server_config));
+    smt_set_poll_frequency (amq_server_config_poll_frequency (amq_server_config));
+    smt_set_action_limit   (amq_server_config_kernel_limit   (amq_server_config));
 
     //  Move into the background if so desired
     if (s_opt_bkground) {
