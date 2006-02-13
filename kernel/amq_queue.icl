@@ -128,9 +128,11 @@ class.  This is a lock-free asynchronous class.
     <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
     //
     <possess>
+    amq_server_channel_link (channel);
     amq_server_method_link (method);
     </possess>
     <release>
+    amq_server_channel_unlink (&channel);
     amq_server_method_unlink (&method);
     </release>
     //
@@ -164,9 +166,11 @@ class.  This is a lock-free asynchronous class.
     <argument name = "cluster id" type = "char *">Stamp content with cluster id</argument>
     //
     <possess>
+    amq_server_channel_link (channel);
     cluster_id = icl_mem_strdup (cluster_id);
     </possess>
     <release>
+    amq_server_channel_unlink (&channel);
     icl_mem_free (cluster_id);
     </release>
     <action>
@@ -283,6 +287,14 @@ class.  This is a lock-free asynchronous class.
     Purge all content on a queue.
     </doc>
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
+    //
+    <possess>
+    amq_server_channel_link (channel);
+    </possess>
+    <release>
+    amq_server_channel_unlink (&channel);
+    </release>
+    //
     <action>
     long
         messages = 0;
