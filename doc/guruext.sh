@@ -2,15 +2,15 @@
 #
 # generate PDF for gurudoc file
 
-set FILE=$1
+FILE=$1
 
-call mkgdl $FILE.txt
-call gsl3 -quiet -tpl:latex_simple -gdl:$FILE gurudoc
+mkgdl $FILE.txt
+gsl3 -quiet -tpl:latex_simple -gdl:$FILE gurudoc
 
 # twice, so TOC is correctly built
 pdflatex --interaction batchmode $FILE.tex
 pdflatex --interaction batchmode $FILE.tex
 
 # clean-up intermediary files
-del $FILE.aux $FILE.gdl $FILE.log $FILE.tex $FILE.toc
+rm $FILE.aux $FILE.gdl $FILE.log $FILE.tex $FILE.toc
 
