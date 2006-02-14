@@ -228,6 +228,7 @@ class.  This is a lock-free asynchronous class.
                     consumer->tag);
         }
         self->consumers++;
+        amq_queue_dispatch (self);
     }
     </action>
 </method>
