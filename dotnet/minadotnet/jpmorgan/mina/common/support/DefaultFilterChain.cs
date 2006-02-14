@@ -13,11 +13,18 @@ namespace jpmorgan.mina.common.support
         /// </summary>
         private LinkedHashtable _filters = new LinkedHashtable();
 
+        private ISession _session;
+        
         #region IFilterChain Members
 
+        public DefaultFilterChain(ISession session)
+        {
+            _session = session;
+        }
+        
         public ISession Session
         {
-            get { throw new Exception("The method or operation is not implemented."); }
+            get { return _session; }
         }
 
         public IFilter Get(string name)
@@ -153,7 +160,11 @@ namespace jpmorgan.mina.common.support
             }
         }
 
+        public void FilterWrite(WriteRequest writeRequest)
+        {
+            throw new NotImplementedException();
+        }
+        
         #endregion        
-
     }
 }

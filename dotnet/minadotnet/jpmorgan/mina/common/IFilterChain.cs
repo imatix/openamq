@@ -126,5 +126,7 @@ namespace jpmorgan.mina.common
         /// Filters {@link IoHandler#messageSent(IoSession,Object)}
         /// event.         
         void MessageSent(object message);
+
+        void FilterWrite(WriteRequest writeRequest);
     }
 }

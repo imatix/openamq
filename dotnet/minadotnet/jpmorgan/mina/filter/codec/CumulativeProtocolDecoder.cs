@@ -51,7 +51,7 @@ namespace jpmorgan.mina.filter.codec
             if (buf == null)
             {
                 buf = ByteBuffer.Allocate(_initialCapacity);
-                buf.AutoExpand = true;
+                buf.IsAutoExpand = true;
                 session.SetAttribute(BUFFER, buf);
             }
             
@@ -72,7 +72,7 @@ namespace jpmorgan.mina.filter.codec
                                     "doDecode() can't return true when buffer is not consumed." );
                         }
                         
-                        if (!buf.HasRemaining)
+                        if (!buf.HasRemaining())
                         {
                             break;
                         }

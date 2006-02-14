@@ -264,7 +264,7 @@ namespace jpmorgan.mina.filter.codec.demux
                 }
             }
 
-            public void Dispose(ISession session)
+            public override void Dispose(ISession session)
             {
                 base.Dispose(session);
                 

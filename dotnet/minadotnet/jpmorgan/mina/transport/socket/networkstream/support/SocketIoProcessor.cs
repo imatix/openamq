@@ -24,8 +24,8 @@ namespace jpmorgan.mina.transport.socket.networkstream.support
         public static void StartReceive(SocketSession session)
         {
             int bufSize = session.ReceiveBufferSize;
-            session.Buffer = ByteBuffer.allocate(bufSize);
-            byte[] buffer = session.Buffer.Buffer;
+            session.Buffer = ByteBuffer.Allocate(bufSize);
+            byte[] buffer = session.Buffer.ToByteArray();
             session.Socket.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None,
                                         new AsyncCallback(ReceiveCompleted), session);
         }

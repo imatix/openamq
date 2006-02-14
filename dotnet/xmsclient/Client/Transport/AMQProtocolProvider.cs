@@ -1,6 +1,7 @@
 using System;
 using jpmorgan.mina.common;
 using jpmorgan.mina.filter.codec;
+using jpmorgan.mina.filter.codec.demux;
 using jpmorgan.mina.handler.demux;
 using log4net;
 using OpenAMQ.Framing;
@@ -18,7 +19,7 @@ namespace OpenAMQ.XMS.Client.Transport
             _factory.Register(new ProtocolInitiation.Decoder());
         }
         
-        public IProtocolCodecFactory CodeFactory
+        public IProtocolCodecFactory CodecFactory
         {
             get
             {

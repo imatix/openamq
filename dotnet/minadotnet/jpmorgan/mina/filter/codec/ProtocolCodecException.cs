@@ -13,5 +13,9 @@ namespace jpmorgan.mina.filter.codec
         public ProtocolCodecException(string message) : base(message)
         {            
         }
+        
+        public ProtocolCodecException(Exception cause) : base("Codec Exception", cause)
+        {            
+        }
     }
 }

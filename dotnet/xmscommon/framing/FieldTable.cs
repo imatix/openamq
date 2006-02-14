@@ -115,7 +115,7 @@ namespace OpenAMQ.Framing
 
         public byte[] GetDataAsBytes()
         {
-            ByteBuffer buffer = ByteBuffer.allocate(_encodedSize);
+            ByteBuffer buffer = ByteBuffer.Allocate((int)_encodedSize);
             WritePayload(buffer);
             byte[] result = new byte[_encodedSize];
             buffer.Flip();

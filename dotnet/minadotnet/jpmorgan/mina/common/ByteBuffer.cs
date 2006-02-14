@@ -1,5 +1,7 @@
 using System;
+using System.Collections;
 using System.Text;
+using jpmorgan.mina.common.support;
 
 namespace jpmorgan.mina.common
 {
@@ -7,278 +9,421 @@ namespace jpmorgan.mina.common
     /// A buffer that manages an underlying byte oriented stream, and writes and reads to and from it in
     /// BIG ENDIAN order.
     /// </summary>
-    public class ByteBuffer
+    public abstract class ByteBuffer
     {
-        private byte[] _underlyingData;
+        protected const int MINIMUM_CAPACITY = 1;
+        
+        protected static Stack _containerStack = new Stack();
+        
+        protected static Stack[] _heapBufferStacks = new Stack[]
+            {
+                new Stack(), new Stack(), new Stack(), new Stack(), 
+                new Stack(), new Stack(), new Stack(), new Stack(), 
+                new Stack(), new Stack(), new Stack(), new Stack(), 
+                new Stack(), new Stack(), new Stack(), new Stack(), 
+                new Stack(), new Stack(), new Stack(), new Stack(), 
+                new Stack(), new Stack(), new Stack(), new Stack(), 
+                new Stack(), new Stack(), new Stack(), new Stack(), 
+                new Stack(), new Stack(), new Stack(), new Stack()
+            };
+        
+        /*private static Stack[] _directBufferStacks = new Stack[]
+            {
+                new Stack(), new Stack(), new Stack(), new Stack(), 
+                new Stack(), new Stack(), new Stack(), new Stack(), 
+                new Stack(), new Stack(), new Stack(), new Stack(), 
+                new Stack(), new Stack(), new Stack(), new Stack(), 
+                new Stack(), new Stack(), new Stack(), new Stack(), 
+                new Stack(), new Stack(), new Stack(), new Stack(), 
+                new Stack(), new Stack(), new Stack(), new Stack(), 
+                new Stack(), new Stack(), new Stack(), new Stack()
+            };*/
 
         /// <summary>
-        /// The position of the next value to be read or written
+        /// Returns the direct or heap buffer which is capable of the specified size.
+        /// Currently does not support direct buffers but this will be an option in future.
         /// </summary>
-        private int _position;
-
-        /// <summary>
-        /// The index of the first element that should not be read or written
-        /// </summary>
-        private int _limit;
-
-        public ByteBuffer(int size)
+        /// <param name="capacity">The capacity.</param>
+        /// <returns></returns>
+        public static ByteBuffer Allocate(int capacity)
         {
-            _underlyingData = new byte[size];
+            // for now, just allocate a heap buffer but in future could do an optimised "direct" buffer
+            // that is implemented natively
+            return Allocate(capacity, false);
         }
-
-        public static ByteBuffer allocate(int size)
+        
+        public static ByteBuffer Allocate(int capacity, bool direct)
         {
-            // naive implementation for now
-            return new ByteBuffer(size);
+            ByteBuffer buffer = Allocate0(capacity, direct);
+            RefCountingByteBuffer buf = AllocateContainer();
+            buf.Init(buffer);
+            return buf;
         }
-
-        public static ByteBuffer allocate(uint size)
+        
+        private static RefCountingByteBuffer AllocateContainer()
         {
-            // naive implementation for now
-            return new ByteBuffer((int)size);
-        }
-
-        public int Capacity
-        {
-            get
+            RefCountingByteBuffer buf;
+            lock (_containerStack)
             {
-                return _underlyingData.Length;
+                buf = (RefCountingByteBuffer) _containerStack.Pop();
             }
+            
+            if (buf == null)
+            {
+                buf = new RefCountingByteBuffer();                
+            }
+            return buf;
         }
-
-        public int Position
+        
+        protected static ByteBuffer Allocate0(int capacity, bool direct)
         {
-            get
+            if (direct)
             {
-                return _position;
-            }
-            set
+                throw new NotSupportedException("Direct buffers not currently implemented");
+            }            
+            int idx = GetBufferStackIndex(_heapBufferStacks, capacity);
+            Stack stack = _heapBufferStacks[idx];
+            ByteBuffer buf;
+            lock (stack)
             {
-                _position = value;
+                buf = (ByteBuffer) stack.Pop();
             }
+            
+            if (buf == null)
+            {
+                buf = ByteBuffer.Allocate(MINIMUM_CAPACITY << idx);                
+            }
+
+            return buf;
         }
-
-        /// <summary>
-        /// Sets this buffer's limit. If the position is larger than the new limit then it is set to the new limit.
-        /// </summary>
-        /// <value>The new limit value; must be non-negative and no larger than this buffer's capacity</value>
-        public int Limit
+        
+        protected static void Release0(ByteBuffer buf)
         {
-            get
+            Stack stack = _heapBufferStacks[GetBufferStackIndex(_heapBufferStacks, buf.Capacity)];
+            lock (stack)
             {
-                return _limit;
-            }
-            set
+                stack.Push(buf);
+            }            
+        }
+        
+        private static int GetBufferStackIndex(Stack[] bufferStacks, int size)
+        {
+            int targetSize = MINIMUM_CAPACITY;
+            int stackIdx = 0;
+            // each bucket contains buffers that are double the size of the previous bucket
+            while (size > targetSize)
             {
-                if (value < 0)
+                targetSize <<= 1;
+                stackIdx++;
+                if (stackIdx >= bufferStacks.Length)
                 {
-                    throw new ArgumentException("Limit must not be negative");
-                }
-                if (value > Capacity)
-                {
-                    throw new ArgumentException("Limit must not be greater than Capacity");
-                }
-                _limit = value;
-                if (_position > value)
-                {
-                    _position = value;
+                    throw new ArgumentOutOfRangeException("size", "Buffer size is too big: " + size);
                 }
             }
+            return stackIdx;
         }
 
         /// <summary>
-        /// Returns the number of elements between the current position and the limit
+        /// Increases the internal reference count of this buffer to defer automatic release. You have
+        /// to invoke release() as many times as you invoked this method to release this buffer.
         /// </summary>
-        /// <value>The number of elements remaining in this buffer</value>
-        public int Remaining
+        public abstract void Acquire();
+
+        /// <summary>
+        /// Releases the specified buffer to the buffer pool.
+        /// </summary>
+        public abstract void Release();
+
+        public abstract int Capacity
+        {
+            get;
+        }
+
+        public abstract bool IsAutoExpand
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Changes the capacity and limit of this buffer sot his buffer gets the specified
+        /// expectedRemaining room from the current position. This method works even if you didn't set
+        /// autoExpand to true.
+        /// </summary>
+        /// <param name="expectedRemaining">Room you want from the current position</param>        
+        public abstract void Expand(int expectedRemaining);
+
+        /// <summary>
+        /// Changes the capacity and limit of this buffer sot his buffer gets the specified
+        /// expectedRemaining room from the specified position.
+        /// </summary>
+        /// <param name="pos">The pos you want the room to be available from.</param>
+        /// <param name="expectedRemaining">The expected room you want available.</param>        
+        public abstract void Expand(int pos, int expectedRemaining);
+
+        /// <summary>
+        /// Returns true if and only if this buffer is returned back to the buffer pool when released.
+        /// </summary>
+        /// <value><c>true</c> if pooled; otherwise, <c>false</c>.</value>
+        public abstract bool Pooled
+        {
+            get;
+            set;
+        }
+        
+        public abstract int Position
+        {
+            get;
+            set;
+        }
+
+        public abstract int Limit
+        {
+            get;
+            set;
+        }
+
+        //public abstract void Mark();
+
+        //public abstract void Reset();
+
+        public abstract void Clear();
+
+        /// <summary>
+        /// Clears this buffer and fills its content with NULL. The position is set to zero, the limit is set to
+        /// capacity and the mark is discarded.
+        /// </summary>
+        public void Sweep()
+        {
+            Clear();
+            FillAndReset(Remaining);
+        }
+        
+        public void Sweep(byte value)
+        {
+            Clear();
+            FillAndReset(value, Remaining);
+        }
+
+        public abstract void Flip();
+
+        public abstract void Rewind();
+
+        public abstract int Remaining
+        {
+            get;
+        }
+        
+        public bool HasRemaining()
+        {
+            return Remaining > 0;
+        }
+
+        public abstract byte Get();
+
+        public abstract byte Get(int index);
+        
+        public abstract void Get(byte[] destination);
+
+        public abstract ushort GetUnsignedShort();
+
+        public abstract uint GetUnsignedInt();
+
+        public abstract ulong GetUnsignedLong();
+
+        public abstract string GetString(uint length, Encoding encoder);
+
+        public abstract void Put(byte data);
+
+        public abstract void Put(byte[] data);
+
+        public abstract void Put(ushort data);
+
+        public abstract void Put(uint data);
+
+        public abstract void Put(ulong data);
+
+        public abstract void Put(ByteBuffer buf);
+        
+        public abstract void Compact();
+
+        public abstract byte[] ToByteArray();
+        
+        public override string ToString()
+        {
+            StringBuilder buf = new StringBuilder();
+            buf.Append("HeapBuffer");
+            buf.AppendFormat("[pos={0} lim={1} cap={2} : {3}]", Position, Limit, Capacity, HexDump);
+            return buf.ToString();
+        }
+
+        public override int GetHashCode()
+        {
+            int h = 1;
+            int p = Position;
+            for (int i = Limit - 1; i >= p; i--)
+            {
+                h = 31 * h + Get(i);
+            }
+
+            return h;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is ByteBuffer))
+            {
+                return false;
+            }
+            ByteBuffer that = (ByteBuffer) obj;
+            
+            if (Remaining != that.Remaining)
+            {
+                return false;
+            }
+            int p = Position;
+            for (int i = Limit - 1, j = that.Limit - 1; i >= p; i--, j--)
+            {
+                byte v1 = this.Get(i);
+                byte v2 = that.Get(j);
+                if (v1 != v2)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        public string HexDump
         {
             get
             {
-                return (_limit - _position);
+                return ByteBufferHexDumper.GetHexDump(this);
             }
         }
 
-        public void Clear()
+        /// <summary>
+        /// Fills the buffer with the specified specified value. This method moves the buffer position forward.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="size">The size.</param>
+        public void Fill(byte value, int size)
         {
-            _position = 0;
-            _limit = Capacity;
-        }
-
-        public void Flip()
-        {
-            _limit = _position;
-            _position = 0;
-        }
-
-        public void Rewind()
-        {
-            _position = 0;
-        }
-
-        public byte[] Buffer
-        {
-            get
+            AutoExpand(size);
+            int q = size >> 3;
+            int r = size & 7;
+                        
+            if (q > 0)
             {
-                return _underlyingData;
+                int intValue = value | (value << 8) | (value << 16) | (value << 24);
+                long longValue = intValue;
+                longValue <<= 32;
+                longValue |= (ushort)intValue;
+                
+                for (int i = q; i > 0; i--)
+                {
+                    Put((ulong)longValue);
+                }
             }
-        }
 
-        private void CheckSpace(int size)
-        {
-            if (_position + size > _limit)
+            q = r >> 2;
+            r = r & 3;
+            
+            if (q > 0)
             {
-                throw new BufferOverflowException("Attempt to write " + size + " byte(s) to buffer where position is " + _position +
-                                                  " and limit is " + _limit);
+                int intValue = value | (value << 8) | (value << 16) | (value << 24);
+                Put((uint)intValue);
             }
-        }
 
-        private void CheckSpaceForReading(int size)
-        {
-            if (_position + size > _limit)
+            q = r >> 1;
+            r = r & 1;
+            
+            if (q > 0)
             {
-                throw new BufferUnderflowException("Attempt to read " + size + " byte(s) to buffer where position is " + _position +
-                                                   " and limit is " + _limit);
+                short shortValue = (short) (value | (value << 8));
+                Put((ushort) shortValue);
             }
-        }
-
-        /// <summary>
-        /// Writes the given byte into this buffer at the current position, and then increments the position.
-        /// </summary>
-        /// <param name="data">The byte to be written</param>
-        /// <exception cref="BufferOverflowException">If this buffer's current position is not smaller than its limit</exception>
-        public void Put(byte data)
-        {
-            CheckSpace(1);
-            _underlyingData[_position++] = data;
-        }
-
-        /// <summary>
-        /// Writes all the data in the given byte array into this buffer at the current
-        /// position and then increments the position.
-        /// </summary>
-        /// <param name="data">The data to copy.</param>
-        /// <exception cref="BufferOverflowException">If this buffer's current position plus the array length is not smaller than its limit</exception>
-        public void Put(byte[] data)
-        {
-            if (data == null)
+            if (r > 0)
             {
-                throw new ArgumentNullException("data");
+                Put(value);
             }
-            CheckSpace(data.Length);
-            System.Array.Copy(data, 0, _underlyingData, _position, data.Length);
-            _position += data.Length;
         }
-
-        /// <summary>
-        /// Writes the given ushort into this buffer at the current position, and then increments the position.
-        /// </summary>
-        /// <param name="data">The ushort to be written</param>
-        public void Put(ushort data)
+        
+        public void FillAndReset(byte value, int size)
         {
-            CheckSpace(2);
-            _underlyingData[_position++] = (byte) (data >> 8);
-            _underlyingData[_position++] = (byte) data;
-        }
-
-        public void Put(uint data)
-        {
-            CheckSpace(4);
-            _underlyingData[_position++] = (byte) (data >> 24);
-            _underlyingData[_position++] = (byte) (data >> 16);
-            _underlyingData[_position++] = (byte) (data >> 8);
-            _underlyingData[_position++] = (byte) data;
-        }
-
-        public void Put(ulong data)
-        {
-            CheckSpace(8);
-            _underlyingData[_position++] = (byte) (data >> 56);
-            _underlyingData[_position++] = (byte) (data >> 48);
-            _underlyingData[_position++] = (byte) (data >> 40);
-            _underlyingData[_position++] = (byte) (data >> 32);
-            _underlyingData[_position++] = (byte) (data >> 24);
-            _underlyingData[_position++] = (byte) (data >> 16);
-            _underlyingData[_position++] = (byte) (data >> 8);
-            _underlyingData[_position++] = (byte) data;
-        }
-
-        /// <summary>
-        /// Read the byte at the current position and increment the position
-        /// </summary>
-        /// <returns>a byte</returns>
-        /// <exception cref="BufferUnderflowException">if there are no bytes left to read</exception>
-        public byte Get()
-        {
-            CheckSpaceForReading(1);
-            return _underlyingData[_position++];
-        }
-
-        /// <summary>
-        /// Reads bytes from the buffer into the supplied array
-        /// </summary>
-        /// <param name="destination">The destination array. The array must not
-        /// be bigger than the remaining space in the buffer, nor can it be null.</param>
-        public void Get(byte[] destination)
-        {
-            if (destination == null)
+            AutoExpand(size);
+            int pos = Position;
+            try
             {
-                throw new ArgumentNullException("destination");
+                Fill(value, size);
             }
-            int len = destination.Length;
-            CheckSpaceForReading(len);
-            System.Array.Copy(_underlyingData, _position, destination, 0, len);
-            _position += len;
+            finally
+            {
+                Position = pos;
+            }            
         }
-
-        /// <summary>
-        /// Reads and returns an unsigned short (two bytes, big endian) from this buffer
-        /// </summary>
-        /// <returns>an unsigned short</returns>
-        /// <exception cref="BufferUnderflowException">If there are fewer than two bytes remaining in this buffer</exception>
-        public ushort GetUnsignedShort()
+        
+        public void Fill(int size)
         {
-            CheckSpaceForReading(2);
-            byte upper = _underlyingData[_position++];
-            byte lower = _underlyingData[_position++];
-            return (ushort) ((upper << 8) + lower);
-        }
+            AutoExpand(size);
+            int q = size >> 3;
+            int r = size & 7;
 
-        /// <summary>
-        /// Reads and returns an unsigned int (four bytes, big endian) from this buffer
-        /// </summary>
-        /// <returns>an unsigned integer</returns>
-        /// <exception cref="BufferUnderflowException">If there are fewer than four bytes remaining in this buffer</exception>
-        public uint GetUnsignedInt()
-        {
-            CheckSpaceForReading(4);
-            byte b1 = _underlyingData[_position++];
-            byte b2 = _underlyingData[_position++];
-            byte b3 = _underlyingData[_position++];
-            byte b4 = _underlyingData[_position++];
-            return (uint) ((b1 << 24) + (b2 << 16) + (b3 << 8) + b4);
-        }
+            for (int i = q; i > 0; i--)
+            {
+                Put(0L);
+            }
 
-        public ulong GetUnsignedLong()
-        {
-            CheckSpaceForReading(8);
-            byte b1 = _underlyingData[_position++];
-            byte b2 = _underlyingData[_position++];
-            byte b3 = _underlyingData[_position++];
-            byte b4 = _underlyingData[_position++];
-            byte b5 = _underlyingData[_position++];
-            byte b6 = _underlyingData[_position++];
-            byte b7 = _underlyingData[_position++];
-            byte b8 = _underlyingData[_position++];
-            return (ulong)((b1 << 56) + (b2 << 48) + (b3 << 40) + (b4 << 32) + (b5 << 24) +
-                   (b6 << 16) + (b7 << 8) + b8);
-        }
+            q = r >> 2;
+            r = r & 3;
 
-        public string GetString(uint length, Encoding encoder)
-        {
-            CheckSpaceForReading((int)length);
-            string result = encoder.GetString(_underlyingData, _position, (int)length);
-            _position += (int)length;
-            return result;
+            if (q > 0)
+            {
+                Put(0);
+            }
+
+            q = r >> 1;
+            r = r & 1;
+
+            if(q > 0)
+            {
+                Put((ushort) 0);
+            }
+
+            if (r > 0)
+            {
+                Put((byte) 0);
+            }
         }
+        
+        public void FillAndReset(int size)
+        {
+            AutoExpand(size);
+            int pos = Position;
+            try
+            {
+                Fill(size);
+            }
+            finally
+            {
+                Position = pos;
+            }
+        }
+        
+        protected void AutoExpand(int expectedRemaining)
+        {
+            if (IsAutoExpand)
+            {
+                Expand(expectedRemaining);
+            }
+        }
+        
+        protected void AutoExpand(int pos, int expectedRemaining)
+        {
+            if (IsAutoExpand)
+            {
+                Expand(pos, expectedRemaining);
+            }
+        }                
     }
 }

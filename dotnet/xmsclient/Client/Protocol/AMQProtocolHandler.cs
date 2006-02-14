@@ -1,11 +1,13 @@
 using System;
 using System.Collections;
 using jpmorgan.mina.common;
+using jpmorgan.mina.filter.codec;
 using jpmorgan.mina.transport.socket.networkstream;
 using log4net;
 using OpenAMQ.Framing;
 using OpenAMQ.XMS.Client.State;
 using OpenAMQ.XMS.Client.State.Listener;
+using OpenAMQ.XMS.Client.Transport;
 
 namespace OpenAMQ.XMS.Client.Protocol
 {

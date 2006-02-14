@@ -381,7 +381,7 @@ namespace OpenAMQ.XMS.Client
                 AMQSession session = (AMQSession) lde.value;
                 if (cause != null)
                 {
-                    session.Closed(cause);
+                    session.SessionClosed(cause);
                 }
                 else
                 {

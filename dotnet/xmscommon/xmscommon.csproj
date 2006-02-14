@@ -43,6 +43,7 @@
     <Compile Include="AMQDisconnectedException.cs" />
     <Compile Include="AMQException.cs" />
     <Compile Include="AMQUndeliveredException.cs" />
+    <Compile Include="Framing\AMQDataBlockEncoder.cs" />
     <Compile Include="Framing\AMQFrame.cs" />
     <Compile Include="Framing\AMQMethodBody.cs" />
     <Compile Include="Framing\AMQMethodBodyFactory.cs" />
@@ -136,6 +137,7 @@
     <Compile Include="generated\TxSelectBody.cs" />
     <Compile Include="generated\TxSelectOkBody.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\IMessageProducer.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\minadotnet\minadotnet.csproj">

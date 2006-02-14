@@ -153,8 +153,7 @@ namespace jpmorgan.mina.common
         void FilterClose(ISession session, CloseFuture closeFuture, IFilterChain filterChain);
         
         ///
-        /// Filters {@link IoSession#write(Object)} method invocation.       
-        /// ????? RG
+        /// Filters {@link IoSession#write(Object)} method invocation.               
         void FilterWrite(ISession session, WriteRequest writeRequest, IFilterChain filterChain);
     }
 }
