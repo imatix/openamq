@@ -5,7 +5,7 @@ using IBM.XMS;
 
 namespace OpenAMQ.XMS
 {
-    public interface ISession
+    public interface ISession : IBM.XMS.ISession
     {
             /**
          * Indicates that no client acknowledgements are required. Broker assumes that once it has delivered
@@ -19,19 +19,20 @@ namespace OpenAMQ.XMS
          */
         //const int PRE_ACKNOWLEDGE = 258;
 
-        IMessageConsumer createConsumer(IDestination destination,
+        IMessageConsumer CreateConsumer(IDestination destination,
                                         int prefetch,
                                         bool noLocal,
                                         bool exclusive,
                                         string selector);
-
-        
-         /// <returns>the prefetch value used by default for consumers created on this session.</returns> 
-        int getDefaultPrefetch();
+               
         
         /// <param>defaultPrefetch the prefetch value used by default for consumers created on this session.</param>         
-        void setDefaultPrefetch(int defaultPrefetch);
-
+        int DefaultPrefetch
+        {
+            get;
+            set;
+        }
+        
         /// <summary>
         /// Create a producer
         /// </summary>
@@ -39,7 +40,7 @@ namespace OpenAMQ.XMS
         /// <param>mandatory the value of the mandatory flag used by default on the producer</param>
         /// <param>immediate the value of the immediate flag used by default on the producer</param>         
         /// <exception>JMSException</exception>         
-        IMessageProducer createProducer(IDestination destination, bool mandatory, bool immediate);
+        IMessageProducer CreateProducer(IDestination destination, bool mandatory, bool immediate);
 
         /// <summary>
         /// Create a producer
@@ -48,6 +49,6 @@ namespace OpenAMQ.XMS
         /// <param>immediate the value of the immediate flag used by default on the producer</param>
         /// <return>the producer
         /// <exception>JMSException</exception>         
-        IMessageProducer createProducer(IDestination destination, bool immediate);
+        IMessageProducer CreateProducer(IDestination destination, bool immediate);
     }
 }
