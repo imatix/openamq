@@ -3,14 +3,24 @@
     script = "amq_pal_gen"
     desc   = "the server MUST respect the immediate flag when publishing messages"
     >
-    <!--
-        - ?
-    -->
-    <abort>not implemented</abort>
+    This test publishes an immediate message to a queue without consumers. It expects
+    the message to be bounced back.
+
     <include filename = "amq_test_base.pal" />
     <session>
+        <queue_declare queue = "myqueue" />
+        <basic_content />
+        <basic_publish exchange = "amq.direct" routing_key = "myqueue" immediate = "1"/>
+        <wait timeout = "5000" />
+        <basic_arrived>
+            <abort>Message came back, it should have been returned!</abort>
+        </basic_arrived>
+        <basic_returned>
+        </basic_returned>
+        <empty>
+            <abort>Message was not returned, this is bad!</abort>
+        </empty>
     </session>
-    
 </pal>
 
 

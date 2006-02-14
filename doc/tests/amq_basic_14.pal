@@ -3,14 +3,23 @@
     script = "amq_pal_gen"
     desc   = "the server MUST respect the internal flag on exchanges"
     >
-    <!--
-        - ?
-    -->
-    <abort>not implemented</abort>
+    This test declares an internal exchange, then tries to send a message
+    through it. A channel exception with a reply code 403 (access refused)
+    is expected.
+
     <include filename = "amq_test_base.pal" />
     <session>
+        <exchange_declare exchange = "myexchange" type = "direct" internal = "1" />
+        <queue_declare queue = "myqueue" />
+        <queue_bind queue = "myqueue" exchange = "myexchange" routing_key = "myqueue" />
+        <basic_consume queue = "myqueue" />
+        <basic_content />
+        <basic_publish exchange = "myexchange" routing_key = "myqueue" />
+        <if name = "reply_code" test = "ne" value = "403">
+            <echo>$reply_code: $reply_text</echo>
+        </if>
+        <assert name = "reply_code" value = "403" />
     </session>
-    
 </pal>
 
 

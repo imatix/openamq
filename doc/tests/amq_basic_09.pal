@@ -3,14 +3,11 @@
     script = "amq_pal_gen"
     desc   = "the server MUST NOT discard a persistent message in case of queue overflow"
     >
-    <!--
-        - ?
-    -->
-    <abort>not implemented</abort>
-    <include filename = "amq_test_base.pal" />
-    <session>
-    </session>
-    
+    To be able to reliably implement this in PAL, PAL must have administrative capacities,
+    and the queue object should allow to lower its queue_limit from the default configured
+    for the server.
+
+    <abort>cannot yet be implemented</abort>
 </pal>
 
 

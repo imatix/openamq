@@ -3,14 +3,27 @@
     script = "amq_pal_gen"
     desc   = "the server MUST respect the prefetch_count on consume"
     >
-    <!--
-        - ?
-    -->
-    <abort>not implemented</abort>
+    This test consumes, with explicit ack, on a queue with prefetch count X.
+    2X messages are routed to the queue; we acknowledge none of the received messages,
+    therefore we expect half the sent messages still waiting in the queue.
+
     <include filename = "amq_test_base.pal" />
     <session>
+        <queue_declare queue = "myqueue" />
+        <basic_consume queue = "myqueue" prefetch_count = "5" auto_ack = "0" />
+        
+        <basic_content />
+        <repeat times = "10">
+            <basic_publish exchange = "amq.direct" routing_key = "myqueue" />
+        </repeat>
+        <basic_arrived>
+        </basic_arrived>
+        <empty>
+            <abort>Messages did not come back, this is bad!</abort>
+        </empty>
+        <basic_get queue = "myqueue" />
+        <assert name = "message_count" value = "5" />
     </session>
-    
 </pal>
 
 
