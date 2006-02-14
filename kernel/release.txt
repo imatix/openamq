@@ -1,17 +1,70 @@
+1.0b0 - 2006/02/14
+---------------------------------------------------------------------
+Bug Fixes:
+
+
+    AMQ-240   Invoking lock on broker via AMQ console does not update the
+              locked property     
+    AMQ-307   Production server's output claims it's the test release.       
+    AMQ-326   Queues not properly deleted, leading to "server out of memory"
+              errors      
+    AMQ-329   Server reports "smt_method inserted into multiple containers"     
+    AMQ-330   Server does not detect when it talks to itself (on cluster)
+    AMQ-331   Server dumps with "unrecognised event" in cluster mode when
+              grm_c tests are run     
+    AMQ-334   Auto-named queues are not cluster-safe      
+    AMQ-335   Assertion failure in amq_cluster_agent.c
+    AMQ-342   Server core dumped while attempting failover    
+    BASE2-167 ipr_log.icl is missing      
+
+Changes:
+
+
+    AMQ-102   .NET API required over AMQ      
+    AMQ-14    Design and implement server "operational control"       
+    AMQ-22    Rework AMQ requirements documentation      
+    AMQ-274   Implement structured contents      
+    AMQ-284   Clustering: implement queue browsing (Get method)    
+    AMQ-328   Get reference counting on amq_queue to order    
+    AMQ-337   Channel.Flow should be a synchronous method     
+    AMQ-338   Clustering protocol class needs better version protection      
+    AMQ-339   Add technical settings to OpenAMQ configuration     
+    AMQ-98    Thread-safety profiling     
+    BASE-39   perl on RHAS3 can't compile htmlpp.txt inside base      
+    BASE-40   Remove verbose output from Gurudoc postscript generation       
+    BASE2-141 Implement no-copy socket read-ahead in SMT       
+    BASE2-152 links attribute is not inherited    
+    BASE2-158 Implement range of polling strategies in SMT     
+    BASE2-159 Allow SMT socket polling strategy to be configurable       
+    BASE2-160 Allow application control over technical settings
+    BASE2-164 Object animation needs class name       
+    BASE2-166 Possession does not work with containers
+    BASE2-168 unlink method calls $(selfname)_destroy instead of
+              $(base)_destroy       
+    BASE2-173 Make hash function more uniform (performance issue)       
+    BASE2-66  Standardise command-line switches for Base2 applications       
+    FOR-10    Disable sqlite3 when building ST    
+    FOR-10    Disable sqlite3 when building ST    
+
 1.0a4 - 2006/02/03
 ---------------------------------------------------------------------
 Bug Fixes:
 
-    AMQ-176   JMS layer is closing the consumer after receiving a message bounce.     
+    AMQ-176   JMS layer is closing the consumer after receiving a message
+              bounce.     
     AMQ-296   Clustering: root synchronisation failures
-    AMQ-303   "monitor server status" option gives wildly different results with different monitor intervals  
-    AMQ-310   When server is started on invalid port, the process does not exit correctly    
+    AMQ-303   "monitor server status" option gives wildly different results
+              with different monitor intervals  
+    AMQ-310   When server is started on invalid port, the process does not
+              exit correctly    
     AMQ-312   base2/asl does not build due to function signature difference      
-    AMQ-315   amq_server goes into an infinite when you pass it command-line options.
+    AMQ-315   amq_server goes into an infinite when you pass it command-line
+              options.
     AMQ-316   auto_delete queues do not appear to get deleted     
     AMQ-317   Queue deletion does not show queue name     
     AMQ-319   Consumers not correctly destroyed when client disconnects      
-    AMQ-322   Client sends a bind request before receiving response for Queue.Declare     
+    AMQ-322   Client sends a bind request before receiving response for
+              Queue.Declare     
     BASE-37   Boom makefile generation is slightly broken      
     BASE2-157 char escaping in <doc> sections in opf files       
     BASE2-165 icl doesn't build ST  
@@ -20,19 +73,22 @@ Bug Fixes:
 Changes:
 
     AMQ-113   Build protocol kernel test suite      
-    AMQ-238   Additional OpenAMQ feature required to satisfy JPMC Permit To Build
+    AMQ-238   Additional OpenAMQ feature required to satisfy JPMC Permit To
+              Build
     AMQ-271   Implement configurable queue limits
     AMQ-280   Clustering: specify protocol proxying standard     
     AMQ-283   Clustering: implement connection redirection in JMS client
     AMQ-290   Create separate repository for OpenAMQ JMS Client       
     AMQ-304   Implement configurable timeouts on reads/writes    
     AMQ-306   Improve StdC synchronisation    
-    AMQ-309   PAL: Provide a way to start the clock at a specific point in the script   
+    AMQ-309   PAL: Provide a way to start the clock at a specific point in the
+              script   
     AMQ-311   Improve server command-line interface and help      
     AMQ-318   Implement auto-crash, auto-block function in server      
     BASE-38   smttime.c: Remove use of cast expressions as lvalues   
     BASE2-140 Allow vector write to sockets in SMT    
-    BASE2-142 SMT should not handle signals when it is used to implement a library      
+    BASE2-142 SMT should not handle signals when it is used to implement a
+              library      
     BASE2-144 Add support for user-defined signals    
     BASE2-161 Automatic method destructor for async objects      
     BASE2-163 Improved error reporting in iCL containers      
