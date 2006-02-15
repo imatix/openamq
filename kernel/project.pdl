@@ -1,7 +1,7 @@
 <?xml?>
 <pdl
     name      = "OpenAMQ Kernel"
-    version   = "1.0b0"
+    version   = "1.0b0-svn"
     copyright = "Copyright (c) 2004-2006 JPMorganChase"
     workflow  = "standard.pwl"
     library   = "libamq"
