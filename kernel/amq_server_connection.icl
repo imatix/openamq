@@ -160,6 +160,43 @@ This class implements the connection class for the AMQ server.
         amq_server_agent_connection_open_ok (self->thread, NULL);
 </method>
 
+<method name = "wait queue" template = "function">
+    <doc>
+    Attach a queue to our wait list, which means the queue will be
+    signalled when the connection is free to send messages again.
+    </doc>
+    <argument name = "queue" type = "amq_queue_t *">Queue reference</argument>
+    //
+    //  Only store the queue if it's not already on the list
+    if (amq_queue_list_empty (self->wait_queue_list)
+    || *amq_queue_list_begin (self->wait_queue_list) != queue)
+        amq_queue_list_push_back (self->wait_queue_list, queue);
+
+    if (amq_queue_list_size (self->wait_queue_list) > 100) {
+        icl_console_print ("## Not a good sign... please tell Pieter about it");
+        exit (1);
+    }
+</method>
+
+<method name = "finish output" template = "function">
+    <local>
+    amq_queue_t
+        *queue;                         //  Queue to dispatch
+    int
+        list_size;                      //  Number of queues to process
+    </local>
+    //
+    //  Tell all waiting queues to dispatch
+    //
+    list_size = amq_queue_list_size (self->wait_queue_list);
+    while (list_size && !amq_queue_list_empty (self->wait_queue_list)) {
+        queue = *amq_queue_list_begin (self->wait_queue_list);
+        amq_queue_list_pop_front (self->wait_queue_list);
+        amq_queue_dispatch (queue);
+        list_size--;                    //  In case list is being modified
+    }   
+</method>
+
 <private name = "header">
 static int
     s_auth_plain ($(selftype) *self, amq_server_connection_start_ok_t *method);
