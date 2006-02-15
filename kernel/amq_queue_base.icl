@@ -129,6 +129,13 @@ s_get_next_consumer ($(selftype) *self, char *producer_id, char *cluster_id)
     consumer = amq_consumer_by_queue_first (self->active_consumers);
     while (consumer) {
         if (amq_server_channel_alive (consumer->channel) && consumer->channel->active) {
+            if (consumer->channel->connection->output_pending) {
+                //  Connection is still sending output, so tell it to signal
+                //  to queue when it's finished.
+                amq_server_connection_wait_queue (
+                    consumer->channel->connection, self->queue);
+            }
+            else            
             if (consumer->no_local == FALSE)
                 break;                  //  We have our consumer
             else
@@ -165,8 +172,7 @@ s_get_next_consumer ($(selftype) *self, char *producer_id, char *cluster_id)
                 //  content producer_id with the connection id of the consumer.
                 break;                  //  We have our consumer
         }
-        else
-            consumer = amq_consumer_by_queue_next (&consumer);
+        consumer = amq_consumer_by_queue_next (&consumer);
     }
     return (consumer);
 }
