@@ -10,14 +10,16 @@
     <include filename = "amq_test_base.pal" />
     <session>
         <queue_declare queue = "myqueue" />
+        <queue_bind queue = "myqueue" exchange = "amq.direct" routing_key = "myqueue" />
 
         <set name = "returning_id" value = "null" />
         <basic_content message_id = "id1" priority = "0" />
-        <basic_publish exchange = "amq.direct" routing_key = "myqueue" immediate = "0" />
+        <basic_publish exchange = "" routing_key = "myqueue" immediate = "0" mandatory = "1" />
         <basic_content message_id = "id2" priority = "0" />
-        <basic_publish exchange = "amq.direct" routing_key = "myqueue"  immediate = "0" />
+        <basic_publish exchange = "" routing_key = "myqueue"  immediate = "0" mandatory = "1" />
         <wait timeout = "5000" />
         <basic_consume queue = "myqueue" />
+        <wait timeout = "5000" />
         <basic_arrived>
             <if name = "returning_id" test = "eq" value = "null">
                 <set name = "returning_id" value = "$message_id" />
