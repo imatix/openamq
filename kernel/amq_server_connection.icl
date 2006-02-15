@@ -170,14 +170,30 @@ This class implements the connection class for the AMQ server.
     signalled when the connection is free to send messages again.
     </doc>
     <argument name = "queue" type = "amq_queue_t *">Queue reference</argument>
+    <local>
+    amq_queue_list_iterator_t
+        iterator;
+    </local>
     //
     //  Only store the queue if it's not already on the list
-    if (amq_queue_list_empty (self->wait_queue_list)
-    || *amq_queue_list_begin (self->wait_queue_list) != queue)
+    //  This is a very temporary way of limiting the number of
+    //  times a queue gets onto this list... once we're happy
+    //  with the mechanism we'll move it into the vhost.
+    //
+    iterator = amq_queue_list_begin (self->wait_queue_list);
+    while (iterator != amq_queue_list_end (self->wait_queue_list)) {
+        if (queue == *iterator) {
+            queue = NULL;
+            break;
+        }
+        else
+            iterator = amq_queue_list_next (iterator);
+    }
+    if (queue)
         amq_queue_list_push_back (self->wait_queue_list, queue);
 
     if (amq_queue_list_size (self->wait_queue_list) > 100) {
-        icl_console_print ("## Not a good sign... please tell Pieter about it");
+        icl_console_print ("## Queue wakeup overflow, please notify Pieter");
         exit (1);
     }
 </method>
