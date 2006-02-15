@@ -28,6 +28,8 @@ This class implements the connection class for the AMQ server.
         *mgt_object;                    //  Management object
     amq_queue_list_t
         *own_queue_list;                //  List of exclusive queues
+    amq_queue_list_t
+        *wait_queue_list;               //  Queues wanting to write to us
     amq_consumer_table_t
         *consumer_table;                //  Consumers for connection
     icl_shortstr_t
@@ -41,16 +43,18 @@ This class implements the connection class for the AMQ server.
 </context>
 
 <method name = "new">
-    self->own_queue_list = amq_queue_list_new ();
-    self->consumer_table = amq_consumer_table_new ();
-    self->mgt_object     = amq_connection_new (amq_broker, self);
+    self->own_queue_list  = amq_queue_list_new ();
+    self->wait_queue_list = amq_queue_list_new ();
+    self->consumer_table  = amq_consumer_table_new ();
+    self->mgt_object      = amq_connection_new (amq_broker, self);
     icl_shortstr_fmt (self->cluster_id, "%s/%s", amq_broker->name, self->id);
 </method>
 
 <method name = "destroy">
     amq_connection_destroy (&self->mgt_object);
-    amq_vhost_unlink (&self->vhost);
+    amq_vhost_unlink       (&self->vhost);
     amq_queue_list_destroy (&self->own_queue_list);
+    amq_queue_list_destroy (&self->wait_queue_list);
     amq_consumer_table_destroy (&self->consumer_table);
 </method>
 
