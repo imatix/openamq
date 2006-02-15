@@ -305,6 +305,11 @@ namespace jpmorgan.mina.common
         {
             return _buf.ToByteArray();
         }
+
+        public override string ToString()
+        {
+            return "RefCountingByteBuffer: refs= " + _refCount + "buf=" + base.ToString();
+        }
     }
     
     

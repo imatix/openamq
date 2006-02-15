@@ -20,10 +20,17 @@ namespace jpmorgan.mina.transport.socket.networkstream.support
 
         private readonly Hashtable _attributeMap = new Hashtable();
 
+        private SocketFilterChain _filterChain;
+
+        private CloseFuture _closeFuture = new CloseFuture();
+
+        private ByteBuffer _buffer;
+        
         public SocketSessionImpl(Socket socket, IHandler handler)
         {
             _socket = socket;
             _handler = handler;
+            _filterChain = new SocketFilterChain(this);
         }
 
         #region SocketSession Members
@@ -68,17 +75,20 @@ namespace jpmorgan.mina.transport.socket.networkstream.support
 
         public IFilterChain FilterChain
         {
-            get { throw new Exception("The method or operation is not implemented."); }
+            get { return _filterChain; }
         }
 
         public WriteFuture Write(object message)
         {
-            throw new Exception("The method or operation is not implemented.");
+            WriteFuture future = new WriteFuture();            
+            _filterChain.FilterWrite(new WriteRequest(message, future));            
+            return future;
         }
 
         public CloseFuture Close()
-        {
-            throw new Exception("The method or operation is not implemented.");
+        {        
+            _filterChain.FilterClose(_closeFuture);
+            return _closeFuture;
         }
 
         public object Attachment
@@ -146,7 +156,7 @@ namespace jpmorgan.mina.transport.socket.networkstream.support
 
         public jpmorgan.mina.common.CloseFuture CloseFuture
         {
-            get { throw new Exception("The method or operation is not implemented."); }
+            get { return _closeFuture; }
         }
 
         public System.Net.IPEndPoint RemoteEndPoint
@@ -287,11 +297,11 @@ namespace jpmorgan.mina.transport.socket.networkstream.support
         {
             get
             {
-                throw new Exception("The method or operation is not implemented.");
+                return _buffer;
             }
             set
             {
-                throw new Exception("The method or operation is not implemented.");
+                _buffer = value;
             }
         }
 

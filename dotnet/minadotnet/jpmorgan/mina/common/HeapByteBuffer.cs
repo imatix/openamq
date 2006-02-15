@@ -18,7 +18,7 @@ namespace jpmorgan.mina.common
         /// The index of the first element that should not be read or written
         /// </summary>
         private int _limit;
-
+        
         public HeapByteBuffer(int size)
         {
             _underlyingData = new byte[size];
@@ -184,7 +184,7 @@ namespace jpmorgan.mina.common
             _underlyingData[_position++] = (byte) (data >> 8);
             _underlyingData[_position++] = (byte) data;
         }
-
+        
         /// <summary>
         /// Read the byte at the current position and increment the position
         /// </summary>
@@ -275,7 +275,7 @@ namespace jpmorgan.mina.common
         public override bool IsAutoExpand
         {
             get { return false; }
-            set {  }
+            set { }
         }
 
         public override void Expand(int expectedRemaining)
@@ -286,8 +286,8 @@ namespace jpmorgan.mina.common
         public override void Expand(int pos, int expectedRemaining)
         {
             throw new NotImplementedException();
-        }
-
+        }        
+        
         public override bool Pooled
         {
             get { return false; }
@@ -309,10 +309,31 @@ namespace jpmorgan.mina.common
             throw new NotImplementedException();
         }
 
-        public override void Put(ByteBuffer buf)
-        {
-            throw new NotImplementedException();
-        }
+        public override void Put(ByteBuffer src)
+        {            
+	        if (src == this)
+	        {
+	            throw new ArgumentException("Cannot copy self into self!");
+	        }
+
+            HeapByteBuffer sb;
+            if (src is HeapByteBuffer)
+            {
+                sb = (HeapByteBuffer) src;
+            }
+            else
+            {
+                sb = (HeapByteBuffer)((RefCountingByteBuffer) src).Buf; 
+            }
+	        int n = sb.Remaining;
+	        if (n > Remaining)
+	        {
+	            throw new BufferOverflowException("Not enought capacity in this buffer for " + n + " elements - only " + Remaining + " remaining");
+	        }
+	        Array.Copy(sb._underlyingData, _position, _underlyingData, _position, n);
+            sb._position += n;
+	        _position += n;	    	
+	    }        
 
         public override void Compact()
         {

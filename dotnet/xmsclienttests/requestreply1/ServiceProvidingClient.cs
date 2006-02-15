@@ -1,7 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Text;
 using IBM.XMS;
 using log4net;
 using OpenAMQ.XMS.Client;
@@ -81,7 +78,7 @@ namespace JPMorgan.XMS.RequestReply1
             }
             catch (XMSException e)
             {
-                _logger.Error("Error creating destination");
+                _logger.Error("Error creating destination", e);
             }
             _messageCount++;
             if (_messageCount % 1000 == 0)

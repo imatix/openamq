@@ -12,7 +12,7 @@ namespace OpenAMQ.Framing
         public byte ProtocolClass = 1;
         public byte ProtocolInstance = 1;
         public byte ProtocolMajor = 10;
-        public byte ProtocolMinor = 0;
+        public byte ProtocolMinor = 3;
 
         public uint Size
         {

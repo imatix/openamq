@@ -87,9 +87,12 @@ namespace jpmorgan.mina.transport.socket.networkstream
             SocketSession session = state.Session;
             state.FilterChainBuilder.BuildFilterChain(session.FilterChain);
             // fire the event so listeners can react accordingly and set up any decoders etc.
+            // the events are taken directly from the Java version and don't map terribly well to the .NET model
+            // but we will keep them for now
             session.FilterChain.SessionCreated();
             // start the asynchronous listener process
-            SocketIoProcessor.StartReceive(session);            
+            SocketIoProcessor.StartReceive(session);
+            session.FilterChain.SessionOpened();
             // this marks the io future as complete
             state.Future.Session = session;            
         }

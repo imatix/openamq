@@ -38,7 +38,7 @@ namespace jpmorgan.mina.filter.codec
         {
             if (!(message is ByteBuffer))
             {
-                filterChain.MessageReceived(message);
+                filterChain.NextMessageReceived(message);
             }
 
             ByteBuffer input = (ByteBuffer) message;
@@ -74,7 +74,7 @@ namespace jpmorgan.mina.filter.codec
                 {
                     while (queue.Count > 0)
                     {
-                        filterChain.MessageReceived(queue.Dequeue());
+                        filterChain.NextMessageReceived(queue.Dequeue());
                     }
                 }
             }
@@ -84,7 +84,7 @@ namespace jpmorgan.mina.filter.codec
         {
             if (!(message is MessageByteBuffer))
             {
-                filterChain.MessageSent(message);
+                filterChain.NextMessageSent(message);
                 return;
             }
 
@@ -95,7 +95,7 @@ namespace jpmorgan.mina.filter.codec
             }
             finally
             {
-                filterChain.MessageSent(buf.Message);
+                filterChain.NextMessageSent(buf.Message);
             }
         }
 
@@ -104,7 +104,8 @@ namespace jpmorgan.mina.filter.codec
             object message = writeRequest.Message;
             if (message is ByteBuffer)
             {
-                filterChain.FilterWrite(writeRequest);
+                filterChain.NextFilterWrite(writeRequest);
+                return;
             }
 
             IProtocolEncoder encoder = GetEncoder(session);
@@ -139,7 +140,7 @@ namespace jpmorgan.mina.filter.codec
         {
             DisposeEncoder(session);
             DisposeDecoder(session);
-            filterChain.SessionClosed();
+            filterChain.NextSessionClosed();
         }
 
         private IProtocolEncoder GetEncoder(ISession session)

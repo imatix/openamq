@@ -99,8 +99,8 @@ namespace jpmorgan.mina.filter.codec.demux
                 ArrayList encoderFactories = enclosing._encoderFactories;
                 for (int i = encoderFactories.Count - 1; i >= 0; i--)
                 {
-                    IMessageEncoder encoder = ((IMessageEncoderFactory)Activator.CreateInstance((Type)encoderFactories[i])).NewEncoder();
-                    foreach (Type type in encoder.MessageTypes)
+                    IMessageEncoder encoder = ((IMessageEncoderFactory)encoderFactories[i]).NewEncoder();
+                    foreach (Type type in encoder.MessageTypes.Keys)
                     {
                         _encoders[type] = encoder;
                     }
@@ -185,7 +185,7 @@ namespace jpmorgan.mina.filter.codec.demux
                 _decoders = new IMessageDecoder[decoderFactories.Count];
                 for (int i = decoderFactories.Count - 1; i >= 0; i--)
                 {
-                    _decoders[i] = ((IMessageDecoderFactory)Activator.CreateInstance((Type)decoderFactories[i])).NewDecoder();
+                    _decoders[i] = ((IMessageDecoderFactory) decoderFactories[i]).NewDecoder();
                 }
             }
 

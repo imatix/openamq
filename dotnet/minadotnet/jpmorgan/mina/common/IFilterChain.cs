@@ -16,35 +16,39 @@ namespace jpmorgan.mina.common
         ISession Session
         {
             get;
-        }           
+        }
+
+        void PushContext();
+
+        void PopContext();
         
         ///
         /// Returns the {@link IoFilter} with the specified <tt>name</tt> in this chain.
         /// @return <tt>null</tt> if there's no such name in this chain        
-        IFilter Get(string name);
+        //IFilter Get(string name);
         
         ///
         /// Returns the {@link NextFilter} of the {@link IoFilter} with the
         /// specified <tt>name</tt> in this chain.
         /// @return <tt>null</tt> if there's no such name in this chain         
-        IFilter GetNextFilter(string name);
+        //IFilter GetNextFilter(string name);
         
         ///
         /// Returns the list of all {@link Entry}s this chain contains.         
-        ICollection GetAll();
+        //ICollection GetAll();
         
         ///
         /// Returns the reversed list of all {@link Entry}s this chain contains.         
-        IList GetAllReversed();
+        //IList GetAllReversed();
         
         ///
         /// Returns <tt>true</tt> if this chain contains an {@link IoFilter} with the
         /// specified <tt>name</tt>.         
-        bool Contains(string name);
+        //bool Contains(string name);
         
         ///
         /// Returns <tt>true</tt> if this chain contains the specified <tt>filter</tt>.        
-        bool Contains(IFilter filter);
+        //bool Contains(IFilter filter);
         
         ///
         /// Returns <tt>true</tt> if this chain contains an {@link IoFilter} of the
@@ -71,7 +75,7 @@ namespace jpmorgan.mina.common
         /// @throws IoFilterLifeCycleException
         ///             if {@link IoFilter#onPostAdd(IoFilterChain, String, NextFilter)} or
         ///             {@link IoFilter#init()} throws an exception.         
-        void AddBefore(string baseName, string name, IFilter filter);
+        //void AddBefore(string baseName, string name, IFilter filter);
 
         ///
         /// Adds the specified filter with the specified name just after the filter whose name is
@@ -79,20 +83,20 @@ namespace jpmorgan.mina.common
         /// @throws IoFilterLifeCycleException
         ///            if {@link IoFilter#onPostAdd(IoFilterChain, String, NextFilter)} or
         ///             {@link IoFilter#init()} throws an exception.         
-        void AddAfter(string baseName, string name, IFilter filter);
+        //void AddAfter(string baseName, string name, IFilter filter);
 
         ///
         /// Removes the filter with the specified name from this chain.
         /// @throws IoFilterLifeCycleException
         ///             if {@link IoFilter#onPostRemove(IoFilterChain, String, NextFilter)} or
         ///             {@link IoFilter#destroy()} throws an exception.         
-        IFilter Remove(string name);
+        //IFilter Remove(string name);
 
         ///
         /// Removes all filters added to this chain.
         ///@throws Exception if {@link IoFilter#onPostRemove(IoFilterChain, String, NextFilter)} thrown an exception.
         ///
-        void Clear();
+        //void Clear();
 
         
         // Actual events that are passed to IFilter instances follow
@@ -101,32 +105,50 @@ namespace jpmorgan.mina.common
         /// Filters {@link IoHandler#sessionCreated(IoSession)} event.        
         void SessionCreated();
 
+        void NextSessionCreated();
+        
         ///
         /// Filters {@link IoHandler#sessionOpened(IoSession)} event.
         ///
         void SessionOpened();
 
+        void NextSessionOpened();
+        
         ///
         /// Filters {@link IoHandler#sessionClosed(IoSession)} event.
         ///
         void SessionClosed();
+
+        void NextSessionClosed();
         
         ///
         /// Filters {@link IoHandler#messageReceived(IoSession,Object)}
         /// event.        
         void MessageReceived(object message);
 
+        void NextMessageReceived(object message);
+        
         ///
         /// Filters {@link IoHandler#exceptionCaught(IoSession,Throwable)}
         /// event.
         ///
-        void ExceptionCaught(Exception cause);        
+        void ExceptionCaught(Exception cause);
+
+        void NextExceptionCaught(Exception cause);        
 
         ///
         /// Filters {@link IoHandler#messageSent(IoSession,Object)}
         /// event.         
         void MessageSent(object message);
 
+        void NextMessageSent(object message);
+        
         void FilterWrite(WriteRequest writeRequest);
+
+        void NextFilterWrite(WriteRequest writeRequest);
+        
+        void FilterClose(CloseFuture closeFuture);
+
+        void NextFilterClose(CloseFuture closeFuture);
     }
 }

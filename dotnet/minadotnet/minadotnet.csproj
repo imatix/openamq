@@ -97,6 +97,7 @@
     <Compile Include="jpmorgan\mina\common\HandlerAdapter.cs" />
     <Compile Include="jpmorgan\mina\common\IoHandlerAdapter.cs" />
     <Compile Include="jpmorgan\mina\common\RefCountingByteBuffer.cs" />
+    <Compile Include="jpmorgan\mina\common\support\AbstractFilterChain.cs" />
     <Compile Include="jpmorgan\mina\common\support\ByteBufferHexDumper.cs" />
     <Compile Include="jpmorgan\mina\filter\codec\CumulativeProtocolDecoder.cs" />
     <Compile Include="jpmorgan\mina\filter\codec\demux\DemuxingProtocolCodecFactory.cs" />
@@ -120,6 +121,7 @@
     <Compile Include="jpmorgan\mina\handler\demux\DemuxingIoHandler.cs" />
     <Compile Include="jpmorgan\mina\handler\demux\IMessageHandler.cs" />
     <Compile Include="jpmorgan\mina\handler\demux\UnknownMessageTypeException.cs" />
+    <Compile Include="jpmorgan\mina\transport\socket\networkstream\support\SocketFilterChain.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -141,7 +143,6 @@
     <Compile Include="jpmorgan\mina\common\ISession.cs" />
     <Compile Include="jpmorgan\mina\common\ISessionManager.cs" />
     <Compile Include="jpmorgan\mina\common\NOOPIoFilterChainBuilder.cs" />
-    <Compile Include="jpmorgan\mina\common\support\DefaultFilterChain.cs" />
     <Compile Include="jpmorgan\mina\common\support\LinkedHashtable.cs" />
     <Compile Include="jpmorgan\mina\common\TrafficMask.cs" />
     <Compile Include="jpmorgan\mina\common\TransportType.cs" />

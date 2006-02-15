@@ -62,10 +62,13 @@ namespace jpmorgan.mina.common
         
         private static RefCountingByteBuffer AllocateContainer()
         {
-            RefCountingByteBuffer buf;
+            RefCountingByteBuffer buf = null;
             lock (_containerStack)
             {
-                buf = (RefCountingByteBuffer) _containerStack.Pop();
+                if (_containerStack.Count > 0)
+                {
+                    buf = (RefCountingByteBuffer) _containerStack.Pop();
+                }
             }
             
             if (buf == null)
@@ -83,15 +86,19 @@ namespace jpmorgan.mina.common
             }            
             int idx = GetBufferStackIndex(_heapBufferStacks, capacity);
             Stack stack = _heapBufferStacks[idx];
-            ByteBuffer buf;
+            ByteBuffer buf = null;
             lock (stack)
             {
-                buf = (ByteBuffer) stack.Pop();
+                if (stack.Count > 0)
+                {
+                    buf = (ByteBuffer) stack.Pop();
+                }
             }
             
             if (buf == null)
             {
-                buf = ByteBuffer.Allocate(MINIMUM_CAPACITY << idx);                
+                //buf = HeapByteBuffer.Allocate(MINIMUM_CAPACITY << idx);                
+                buf = new HeapByteBuffer(MINIMUM_CAPACITY << idx);
             }
 
             return buf;

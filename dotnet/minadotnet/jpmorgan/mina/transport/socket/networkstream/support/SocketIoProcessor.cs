@@ -11,7 +11,10 @@ namespace jpmorgan.mina.transport.socket.networkstream.support
             SocketSession session = (SocketSession)result.AsyncState;
             int bytesRead = session.Socket.EndReceive(result);
             session.Buffer.Limit = bytesRead;
-            session.FilterChain.MessageReceived(session.Buffer);
+            if (bytesRead > 0)
+            {
+                session.FilterChain.MessageReceived(session.Buffer);
+            }
             // register to receive data again and the process repeats
             StartReceive(session);
         }
