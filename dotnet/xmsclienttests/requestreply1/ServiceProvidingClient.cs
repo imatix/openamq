@@ -1,6 +1,7 @@
 using System;
 using IBM.XMS;
 using log4net;
+using log4net.Config;
 using OpenAMQ.XMS.Client;
 
 namespace JPMorgan.XMS.RequestReply1
@@ -19,9 +20,10 @@ namespace JPMorgan.XMS.RequestReply1
         
         static void Main(string[] args)
         {
+            BasicConfigurator.Configure();
             _logger.Info("Starting...");
 
-            if (args.Length < 5)
+            if (args.Length < 6)
             {
                 Console.Out.WriteLine("Usage: brokerDetails username password virtual-path serviceQueue [selector]");
                 return;

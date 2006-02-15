@@ -36,7 +36,7 @@ namespace OpenAMQ.Framing
             frame.WritePayload(buffer);
             
             if (_logger.IsDebugEnabled)
-            {
+            {                
                 _logger.Debug("Encoded frame byte-buffer is '" + ByteBufferHexDumper.GetHexDump(buffer) + "'");
             }
             buffer.Flip();

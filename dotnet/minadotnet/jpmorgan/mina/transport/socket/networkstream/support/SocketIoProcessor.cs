@@ -1,11 +1,14 @@
 using System;
 using System.Net.Sockets;
 using jpmorgan.mina.common;
+using log4net;
 
 namespace jpmorgan.mina.transport.socket.networkstream.support
 {
     internal class SocketIoProcessor
     {
+        private static readonly ILog _logger = LogManager.GetLogger(typeof(SocketIoProcessor));
+        
         public static void ReceiveCompleted(IAsyncResult result)
         {
             SocketSession session = (SocketSession)result.AsyncState;
@@ -29,8 +32,16 @@ namespace jpmorgan.mina.transport.socket.networkstream.support
             int bufSize = session.ReceiveBufferSize;
             session.Buffer = ByteBuffer.Allocate(bufSize);
             byte[] buffer = session.Buffer.ToByteArray();
-            session.Socket.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None,
-                                        new AsyncCallback(ReceiveCompleted), session);
+            try
+            {
+                session.Socket.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None,
+                                            new AsyncCallback(ReceiveCompleted), session);
+            }
+            catch (SocketException e)
+            {
+                _logger.Error("Socket error " + e, e);
+                // TODO: what to do now?
+            }
         }
     }
 }

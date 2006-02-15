@@ -14,9 +14,11 @@ namespace jpmorgan.mina.transport.socket.networkstream.support
         protected override void DoWrite(WriteRequest writeRequest)
         {
             SocketSessionImpl s = (SocketSessionImpl) _session;
-            byte[] payload = ((ByteBuffer) writeRequest.Message).ToByteArray();
+            ByteBuffer buf = (ByteBuffer) writeRequest.Message;
+            byte[] payload = buf.ToByteArray();
             // start the asynchronous write operation
-            s.Socket.BeginSend(payload, 0, payload.Length, 0, new AsyncCallback(SendCompleted), s);
+            int pos = buf.Position;
+            s.Socket.BeginSend(payload, pos, buf.Limit - pos, 0, new AsyncCallback(SendCompleted), s);
         }
 
         protected override void DoClose(CloseFuture closeFuture)

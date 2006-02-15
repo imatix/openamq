@@ -15,7 +15,8 @@ namespace OpenAMQ.XMS.Client.Transport
         public AMQProtocolProvider()
         {
             _factory = new DemuxingProtocolCodecFactory();
-            _factory.Register(typeof (AMQDataBlockEncoder));
+            _factory.Register(new AMQDataBlockEncoder());
+            _factory.Register(new AMQDataBlockDecoder());
             _factory.Register(new ProtocolInitiation.Decoder());
         }
         

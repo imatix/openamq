@@ -83,9 +83,8 @@ namespace OpenAMQ.XMS.Client.Message
             mf.RegisterFactory("text/plain", new XMSTextMessageFactory());
             mf.RegisterFactory("text/xml", new XMSTextMessageFactory());
             mf.RegisterFactory("application/octet-stream", new XMSBytesMessageFactory());
-            // TODO: use bytes message for default message factory
-            //if (FieldTable.grm)
-            mf.RegisterFactory(null, new XMSBytesMessageFactory());
+            // TODO: use bytes message for default message factory            
+            //mf.RegisterFactory(null, new XMSBytesMessageFactory());
             return mf;
         }
     }

@@ -337,7 +337,12 @@ namespace jpmorgan.mina.common
 
         public override void Compact()
         {
-            throw new NotImplementedException();
+            if (_position > 0)
+            {
+                Array.Copy(_underlyingData, _position, _underlyingData, 0, Remaining);
+                _position = Remaining;
+                _limit = Capacity;
+            }
         }
     }
 }

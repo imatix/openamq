@@ -30,6 +30,7 @@ namespace jpmorgan.mina.common.support
         
         public static string GetHexDump(ByteBuffer input)
         {
+            //input.Flip();
             int size = input.Remaining;
             if (size == 0)
             {

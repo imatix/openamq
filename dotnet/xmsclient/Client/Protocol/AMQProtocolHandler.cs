@@ -93,9 +93,12 @@ namespace OpenAMQ.XMS.Client.Protocol
                 try
                 {
                     bool wasAnyoneInterested = false;
-                    foreach (IAMQMethodListener listener in _frameListeners)
-                    {                    
-                        wasAnyoneInterested = listener.MethodReceived(evt) || wasAnyoneInterested;
+                    lock (_frameListeners.SyncRoot)
+                    {
+                        foreach (IAMQMethodListener listener in _frameListeners)
+                        {
+                            wasAnyoneInterested = listener.MethodReceived(evt) || wasAnyoneInterested;
+                        }
                     }
                     if (!wasAnyoneInterested)
                     {
@@ -145,6 +148,10 @@ namespace OpenAMQ.XMS.Client.Protocol
 
         public void RemoveFrameListener(IAMQMethodListener listener)
         {
+            if (_logger.IsDebugEnabled)
+            {
+                _logger.Debug("Removing frame listener: " + listener.ToString());
+            }
             _frameListeners.Remove(listener);
         }
 

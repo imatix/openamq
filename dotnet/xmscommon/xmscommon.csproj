@@ -43,6 +43,7 @@
     <Compile Include="AMQDisconnectedException.cs" />
     <Compile Include="AMQException.cs" />
     <Compile Include="AMQUndeliveredException.cs" />
+    <Compile Include="Framing\AMQDataBlockDecoder.cs" />
     <Compile Include="Framing\AMQDataBlockEncoder.cs" />
     <Compile Include="Framing\AMQFrame.cs" />
     <Compile Include="Framing\AMQMethodBody.cs" />
@@ -130,6 +131,7 @@
     <Compile Include="generated\StreamDeliverBody.cs" />
     <Compile Include="generated\StreamPublishBody.cs" />
     <Compile Include="generated\StreamReturnBody.cs" />
+    <Compile Include="generated\TunnelRequestBody.cs" />
     <Compile Include="generated\TxCommitBody.cs" />
     <Compile Include="generated\TxCommitOkBody.cs" />
     <Compile Include="generated\TxRollbackBody.cs" />

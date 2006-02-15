@@ -12,7 +12,7 @@ using OpenAMQ.XMS.Client.State.Listener;
 
 namespace OpenAMQ.XMS.Client
 {
-    public class AMQSession : Closeable, IBM.XMS.ISession
+    public class AMQSession : Closeable, OpenAMQ.XMS.ISession
     {
         private static readonly ILog _logger = LogManager.GetLogger(typeof(AMQSession));
 
@@ -452,6 +452,16 @@ namespace OpenAMQ.XMS.Client
             return CreateProducerImpl(destination);
         }
 
+        public IMessageProducer CreateProducer(IDestination destination, bool mandatory, bool immediate)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IMessageProducer CreateProducer(IDestination destination, bool immediate)
+        {
+            throw new NotImplementedException();
+        }
+        
         private IMessageProducer CreateProducerImpl(IDestination destination)                
         {
             lock (_closingLock)
@@ -713,7 +723,8 @@ namespace OpenAMQ.XMS.Client
         {
             _dispatcher = new Dispatcher(this);
             Thread dispatcherThread = new Thread(new ThreadStart(_dispatcher.RunDispatcher));
-            dispatcherThread.IsBackground = true;
+            // TODO: examine whether this should be true or not
+            //dispatcherThread.IsBackground = true;
             dispatcherThread.Start();
         }
 
@@ -878,6 +889,6 @@ namespace OpenAMQ.XMS.Client
         public void Dispose()
         {
             Close();
-        }
+        }        
     }
 }

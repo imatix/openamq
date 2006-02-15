@@ -6,7 +6,7 @@ namespace OpenAMQ.Framing
 {
     public class ContentBody : IBody
     {
-        public static readonly byte TYPE = 3;
+        public const byte TYPE = 3;
 
         /// <summary>
         /// 

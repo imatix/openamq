@@ -74,7 +74,7 @@ namespace OpenAMQ.XMS.Client.Handler
                 byte[] encodedResponse = response.GetDataAsBytes();
                 stateManager.ChangeState(AMQState.CONNECTION_NOT_TUNED);
                 FieldTable clientProperties = new FieldTable();
-                clientProperties["product"] = "OpenAMQ JMS";
+                clientProperties["product"] = "OpenAMQ XMS .NET";
                 clientProperties["version"] = "1.0";
                 clientProperties["platform"] = GetFullSystemInfo();
                 clientProperties["copyright"] = "(C) JP Morgan Chase 2006";

@@ -7,7 +7,7 @@ namespace OpenAMQ.Framing
 {
     public abstract class AMQMethodBody : IBody
     {
-        public const int TYPE = 1;
+        public const byte TYPE = 1;
 
         public uint _synchTag;
 

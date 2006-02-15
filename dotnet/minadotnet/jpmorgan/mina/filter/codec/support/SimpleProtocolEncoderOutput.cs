@@ -48,11 +48,12 @@ namespace jpmorgan.mina.filter.codec.support
             // and merge all
             for (;;)
             {
-                ByteBuffer buf = (ByteBuffer) _bufferQueue.Dequeue();
-                if (buf == null)
+                if (_bufferQueue.Count == 0)
                 {
                     break;
                 }
+                ByteBuffer buf = (ByteBuffer) _bufferQueue.Dequeue();
+                
                 newBuf.Put(buf);
                 buf.Release();
             }
@@ -75,11 +76,11 @@ namespace jpmorgan.mina.filter.codec.support
             {
                 for (;;)
                 {
-                    ByteBuffer buf = (ByteBuffer) _bufferQueue.Dequeue();
-                    if (buf == null)
+                    if (_bufferQueue.Count == 0)
                     {
                         break;
                     }
+                    ByteBuffer buf = (ByteBuffer) _bufferQueue.Dequeue();                    
                     future = DoFlush(buf);
                 }
             }

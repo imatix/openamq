@@ -162,7 +162,10 @@ namespace OpenAMQ.Framing
         {
             CheckKey(key);
             CheckValue(newValue);
-            RemoveKeyValue(key, oldValue);
+            if (InnerHashtable.ContainsKey(key))
+            {
+                RemoveKeyValue(key, oldValue);
+            }
             base.OnSet(key, oldValue, newValue);
         }
 
