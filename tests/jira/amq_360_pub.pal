@@ -1,0 +1,16 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = ""
+    >
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <repeat times="10" counter="index">
+            <basic_content message_id = "id-$index" />
+            <basic_publish queue = "myqueue" exchange = "dexchange" />
+        </repeat>
+    </session>
+    
+</pal>
+
+

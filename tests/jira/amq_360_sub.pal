@@ -1,0 +1,27 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = ""
+    >
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <exchange_declare exchange = "dexchange" type = "direct" />
+        <queue_declare queue = "myqueue" />
+        <queue_bind queue = "myqueue" exchange = "dexchange" />
+        <basic_content message_id ="first" />
+        <basic_publish exchange = "dexchange" />
+        <basic_consume queue = "myqueue" no_local = "1"/>
+        <repeat>
+            <wait />
+            <basic_arrived>
+                <echo>Message '$message_id' arrived</echo>
+            </basic_arrived>
+            <empty>
+                <echo>E: no message arrived</echo>
+            </empty>
+        </repeat>
+    </session>
+    
+</pal>
+
+
