@@ -115,6 +115,8 @@
 <file name = "amq_index_array.icl"   class = "icl private cont"  >Message matching index array</file>
 <file name = "amq_queue.icl"         class = "icl private class" >Server queue envelope class</file>
 <file name = "amq_queue_table.icl"   class = "icl private cont"  >Hash of queues per vhost</file>
+<file name = "amq_queue_by_vhost.icl"
+                                     class = "icl private cont"  >List of queues per vhost</file>
 <file name = "amq_queue_list.icl"    class = "icl private class" >List of queues</file>
 <file name = "amq_queue_agent.smt"   class = "smt public module"
                                      generated = "1"             >Server queue agent</file>

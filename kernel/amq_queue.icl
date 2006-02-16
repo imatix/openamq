@@ -19,6 +19,9 @@ class.  This is a lock-free asynchronous class.
     <option name = "hash_type" value = "str" />
     <option name = "hash_size" value = "65535" />
 </inherit>
+<inherit class = "icl_list_item">
+    <option name = "prefix" value = "by_vhost" />
+</inherit>
 <inherit class = "amq_console_object" />
 <inherit class = "smt_object_tracker" />
 
@@ -103,7 +106,7 @@ class.  This is a lock-free asynchronous class.
     self->queue_basic = amq_queue_basic_new (self);
     icl_shortstr_cpy (self->name, name);
     icl_shortstr_cpy (self->owner_id, owner_id);
-    amq_queue_list_push_back (self->vhost->queue_list, self);
+    amq_queue_by_vhost_queue (self->vhost->queue_list, self);
     if (amq_server_config_trace_queue (amq_server_config))
         icl_console_print ("Q: create   queue=%s", self->name);
 </method>
@@ -359,7 +362,7 @@ class.  This is a lock-free asynchronous class.
     </doc>
     //
     self->dirty = TRUE;
-    amq_queue_list_push_front (self->vhost->queue_list, self);
+    amq_queue_by_vhost_push (self->vhost->queue_list, self);
 </method>
 
 <method name = "selftest" />

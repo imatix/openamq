@@ -42,21 +42,17 @@ Defines a virtual host. This is a lock-free asynchronous class.
 
         <class name = "queue" label = "Message queues" repeat = "1">
           <local>
-            amq_queue_list_iterator_t
-                queue_p;
+            amq_queue_t
+                *queue;
           </local>
           <get>
-            if (!amq_queue_list_empty (self->queue_list)) {
-                queue_p = amq_queue_list_begin (self->queue_list);
-                icl_shortstr_fmt (field_value, "%ld", (*queue_p)->object_id);
-            }
+            queue = amq_queue_by_vhost_first (self->queue_list);
+            icl_shortstr_fmt (field_value, "%ld", queue->object_id);
           </get>
           <next>
-            if (queue_p) {
-                queue_p = amq_queue_list_next (queue_p);
-                if (queue_p != amq_queue_list_end (self->queue_list))
-                    icl_shortstr_fmt (field_value, "%ld", (*queue_p)->object_id);
-            }
+            queue = amq_queue_by_vhost_next (&queue);
+            if (queue)
+                icl_shortstr_fmt (field_value, "%ld", queue->object_id);
           </next>
         </class>
     </class>
@@ -87,7 +83,7 @@ $(selftype)
         *exchange_list;                 //  Queues for dispatching
     amq_queue_table_t
         *queue_table;                   //  Queues for vhost, hash table
-    amq_queue_list_t
+    amq_queue_by_vhost_t
         *queue_list;                    //  Queues for dispatching
     amq_exchange_t
         *default_exchange;              //  Default exchange
@@ -110,7 +106,7 @@ $(selftype)
     self->exchange_table = amq_exchange_table_new ();
     self->exchange_list  = amq_exchange_list_new ();
     self->queue_table    = amq_queue_table_new ();
-    self->queue_list     = amq_queue_list_new ();
+    self->queue_list     = amq_queue_by_vhost_new ();
     self->shared_queues  = ipr_symbol_table_new ();
 
     //  Automatic wiring schemes
@@ -131,7 +127,7 @@ $(selftype)
     amq_exchange_table_destroy (&self->exchange_table);
     amq_exchange_list_destroy  (&self->exchange_list);
     amq_queue_table_destroy    (&self->queue_table);
-    amq_queue_list_destroy     (&self->queue_list);
+    amq_queue_by_vhost_destroy (&self->queue_list);
     ipr_symbol_table_destroy   (&self->shared_queues);
     </action>
 </method>
@@ -143,18 +139,20 @@ $(selftype)
     vhost queue list.
     </doc>
     <action>
-    amq_queue_list_iterator_t
-        iterator;
+    amq_queue_t
+        *queue;
 
     //  Dispatch all dirty message queues, which come at start of list
-    iterator = amq_queue_list_begin (self->queue_list);
-    while (iterator != amq_queue_list_end (self->queue_list)) {
-        if ((*iterator)->dirty) {
-            amq_queue_dispatch (*iterator);
-            iterator = amq_queue_list_next (iterator);
+    queue = amq_queue_by_vhost_first (self->queue_list);
+    while (queue) {
+        if (queue->dirty) {
+            amq_queue_dispatch (queue);
+            queue = amq_queue_by_vhost_next (&queue);
         }
-        else
+        else {
+            amq_queue_unlink (&queue);
             break;
+        }
     }
     </action>
 </method>
@@ -183,10 +181,8 @@ $(selftype)
         )
         amq_exchange_unbind_queue (*iterator, queue);        
 
-    //  Remove the queue from queue_list and queue_table
-    amq_queue_list_erase (self->queue_list,
-        amq_queue_list_find (amq_queue_list_begin (self->queue_list),
-        amq_queue_list_end (self->queue_list), queue));
+    //  Remove the queue from queue list and queue table
+    amq_queue_by_vhost_remove (queue);
     amq_queue_table_remove (queue);
     </action>
 </method>
