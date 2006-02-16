@@ -9,7 +9,7 @@ using OpenAMQ.XMS.Client;
 using IMessageProducer=OpenAMQ.XMS.IMessageProducer;
 
 namespace JPMorgan.XMS.RequestReply1
-{
+{   
     public class BaseMessagingTestFixture
     {
         private static ILog _logger = LogManager.GetLogger(typeof(BaseMessagingTestFixture));
@@ -30,8 +30,7 @@ namespace JPMorgan.XMS.RequestReply1
         
         [SetUp]
         public virtual void Init()
-        {
-            BasicConfigurator.Configure();
+        {            
             try
             {
                 string clientID = String.Format("{0}{1:G}", Dns.GetHostName(), DateTime.Now.Ticks);

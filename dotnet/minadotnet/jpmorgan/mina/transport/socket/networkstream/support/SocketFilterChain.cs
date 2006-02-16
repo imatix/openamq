@@ -23,7 +23,9 @@ namespace jpmorgan.mina.transport.socket.networkstream.support
 
         protected override void DoClose(CloseFuture closeFuture)
         {
-            throw new NotImplementedException();
+            SocketSessionImpl s = (SocketSessionImpl)_session;
+            //s.Socket.Disconnect(true);
+            closeFuture.Event.Set();
         }
         
         private void SendCompleted(IAsyncResult result)

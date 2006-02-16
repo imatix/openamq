@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Text;
 using jpmorgan.mina.common;
+using jpmorgan.mina.common.support;
 using log4net;
 using IBM.XMS;
 using OpenAMQ.Framing;
@@ -546,9 +547,9 @@ namespace OpenAMQ.XMS.Client.Message
                 }
                 else
                 {
-                    foreach (DictionaryEntry entry in XmsContentHeaderProperties.Headers)                    
+                    foreach (LinkedHashtable.LinkedDictionaryEntry entry in XmsContentHeaderProperties.Headers)                    
                     {
-                        string propertyName = (string) entry.Key;
+                        string propertyName = (string) entry.key;
                         if (propertyName == null)
                         {
                             buf.Append("\nInternal error: Property with NULL key defined");
@@ -589,7 +590,7 @@ namespace OpenAMQ.XMS.Client.Message
                                                typeIdentifier + ") ");
                                     break;
                             }
-                            buf.Append(entry.Value);
+                            buf.Append(entry.value);
                         }
                     }
                 }

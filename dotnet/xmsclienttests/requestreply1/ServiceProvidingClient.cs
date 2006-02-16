@@ -90,7 +90,7 @@ namespace JPMorgan.XMS.RequestReply1
                 if (tm.PropertyExists("timeSent"))
                 {
                     _logger.Info("timeSent property set on message");
-                    _logger.Info("timeSent value is: " + tm.GetLongProperty("timeSent"));
+                    _logger.Info("timeSent value is: " + tm.GetStringProperty("timeSent"));
                     msg.SetStringProperty("timeSent", tm.GetStringProperty("timeSent"));
                 }
                 _destinationProducer.Send(msg);

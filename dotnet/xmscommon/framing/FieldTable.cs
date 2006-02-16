@@ -62,7 +62,8 @@ namespace OpenAMQ.Framing
                 sizeRead += (sizeRemaining - buffer.Remaining);
                 // we deliberately want to call put in the parent class since we do
                 // not need to do the size calculations
-                InnerHashtable[key] = value;                    
+                InnerHashtable[key] = value;
+                base.OnSetComplete(key, null, value);
             }
         }
 

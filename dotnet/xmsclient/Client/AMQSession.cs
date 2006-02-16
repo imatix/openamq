@@ -709,10 +709,10 @@ namespace OpenAMQ.XMS.Client
         /// </summary>
         public void SendAcknowledgement(ulong messageNbr)
         {
-            if (_logger.IsDebugEnabled)
+            /*if (_logger.IsDebugEnabled)
             {
                 _logger.Debug("Channel Ack being sent for channel id " + _channelId + " and message number " + messageNbr);
-            }
+            }*/
             /*Channel.Ack frame = new Channel.Ack();
             frame.channelId = _channelId;
             frame.messageNbr = messageNbr;

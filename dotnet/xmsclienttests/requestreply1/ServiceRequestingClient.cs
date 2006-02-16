@@ -1,6 +1,7 @@
 using System;
 using System.Net;
 using System.Text;
+using System.Threading;
 using IBM.XMS;
 using log4net;
 using OpenAMQ;
@@ -47,7 +48,7 @@ namespace JPMorgan.XMS.RequestReply1
         
         private string _commandQueueName = "ServiceQ1";
         
-        private int _messageCount = 1;
+        private int _messageCount = 1000;
 
         private AMQQueue _tempDestination;
 
@@ -97,6 +98,8 @@ namespace JPMorgan.XMS.RequestReply1
                 _producer.Send(msg);
             }
             _log.Info("Finished sending " + _expectedMessageCount + " messages");
+            AutoResetEvent evt = new AutoResetEvent(false);
+            evt.WaitOne();
         }
         
         public void OnMessage(IMessage m)
@@ -120,7 +123,7 @@ namespace JPMorgan.XMS.RequestReply1
                     {
                         _log.Info("Individual latency: " + (now-timeSent));
                         _averageLatency = (_averageLatency + (now - timeSent))/2;
-                        _log.Info("Average latency now: " + _averageLatency);
+                        _log.Info("Average latency now: " + _averageLatency*1.0/TimeSpan.TicksPerMillisecond);
                     }
                 }
             }
@@ -136,10 +139,10 @@ namespace JPMorgan.XMS.RequestReply1
 
             if (_actualMessageCount == _expectedMessageCount)
             {
-                long timeTaken = DateTime.Now.Ticks - _startTime;
+                long timeTaken = (DateTime.Now.Ticks - _startTime)/TimeSpan.TicksPerMillisecond;                
                 _log.Info("Total time taken to receive " + _expectedMessageCount+ " messages was " +
-                                   timeTaken + "ms, equivalent to " +
-                                   (_expectedMessageCount/(timeTaken/1000.0)) + " messages per second");
+                                   timeTaken*1.0/TimeSpan.TicksPerMillisecond + "ms, equivalent to " +
+                                   (_expectedMessageCount*1.0/timeTaken*1000) + " messages per second");
                 try
                 {
                     _connection.Close();
