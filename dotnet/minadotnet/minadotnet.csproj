@@ -125,9 +125,6 @@
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="jpmorgan\mina\Class1.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="jpmorgan\mina\common\ByteBuffer.cs" />
     <Compile Include="jpmorgan\mina\common\CloseFuture.cs" />
     <Compile Include="jpmorgan\mina\common\ConnectFuture.cs" />

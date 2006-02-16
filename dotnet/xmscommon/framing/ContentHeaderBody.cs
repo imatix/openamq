@@ -12,7 +12,7 @@ namespace OpenAMQ.Framing
 
         public ushort Weight;
         
-        public uint BodySize;
+        public ulong BodySize;
 
         /** must never be null */
         public IContentHeaderProperties Properties;
@@ -65,7 +65,7 @@ namespace OpenAMQ.Framing
         {     
             ClassId = buffer.GetUnsignedShort();
             Weight = buffer.GetUnsignedShort();
-            BodySize = buffer.GetUnsignedInt();
+            BodySize = buffer.GetUnsignedLong();
             ushort propertyFlags = buffer.GetUnsignedShort();
             ContentHeaderPropertiesFactory factory = ContentHeaderPropertiesFactory.GetInstance();
             Properties = factory.CreateContentHeaderProperties(ClassId, propertyFlags, buffer);    

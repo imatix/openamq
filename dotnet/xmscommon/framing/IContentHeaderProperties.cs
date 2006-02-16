@@ -21,7 +21,7 @@ namespace OpenAMQ.Framing
         /// <param name="buffer">The buffer to read from.</param>
         /// <param name="propertyFlags">The property flags.</param>
         /// <exception cref="AMQFrameDecodingException">Thrown when the buffer does not contain valid data</exception>
-        void PopulatePropertiesFromBuffer(ByteBuffer buffer, uint propertyFlags);
+        void PopulatePropertiesFromBuffer(ByteBuffer buffer, ushort propertyFlags);
 
         /// <summary>
         /// Gets the size of the encoded property list in bytes.
@@ -38,7 +38,7 @@ namespace OpenAMQ.Framing
         /// content type with which these properties are associated.
         /// </summary>
         /// <value>the flags as an unsigned integer</value>
-        uint PropertyFlags
+        ushort PropertyFlags
         {
             get;
         }

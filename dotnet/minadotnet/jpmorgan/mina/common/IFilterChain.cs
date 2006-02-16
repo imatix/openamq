@@ -16,11 +16,7 @@ namespace jpmorgan.mina.common
         ISession Session
         {
             get;
-        }
-
-        void PushContext();
-
-        void PopContext();
+        }       
         
         ///
         /// Returns the {@link IoFilter} with the specified <tt>name</tt> in this chain.

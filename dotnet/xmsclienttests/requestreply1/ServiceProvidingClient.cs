@@ -1,65 +1,58 @@
 using System;
+using System.Threading;
 using IBM.XMS;
 using log4net;
 using log4net.Config;
+using NUnit.Framework;
 using OpenAMQ.XMS.Client;
 
 namespace JPMorgan.XMS.RequestReply1
 {
-    public class ServiceProvidingClient
+    [TestFixture]
+    public class ServiceProvidingClient : BaseMessagingTestFixture
     {
         private static ILog _logger = LogManager.GetLogger(typeof(ServiceProvidingClient));
 
-        private static int _messageCount;
+        private int _messageCount;
 
-        private static IDestination _responseDest;
+        private IDestination _responseDest;
 
-        private static IMessageProducer _destinationProducer;
-
-        private static OpenAMQ.XMS.ISession _session;
+        private IMessageProducer _destinationProducer;
         
-        static void Main(string[] args)
+        private string _serviceName = "ServiceQ1";
+        
+        private string _selector = null;
+        
+        [SetUp]
+        public override void Init()
         {
+            base.Init();
             BasicConfigurator.Configure();
             _logger.Info("Starting...");
+                    
+            _logger.Info("Service (queue) name is '" + _serviceName + "'...");
 
-            if (args.Length < 6)
-            {
-                Console.Out.WriteLine("Usage: brokerDetails username password virtual-path serviceQueue [selector]");
-                return;
-            }        
-            try
-            {
-                //IPEndPoint address = IPAddress.Loopback.
-                int port = Int32.Parse(args[1]);
-                AMQConnection con = new AMQConnection(args[0], port, args[2], args[3], "laptop", args[4]);                
-                _session = (OpenAMQ.XMS.ISession) con.CreateSession(false, AcknowledgeMode.AutoAcknowledge);
+            AMQQueue destination = new AMQQueue(_serviceName);
+        
+            _logger.Info("Message selector is <" + _selector + ">...");
 
-                String serviceName = args[5];
+            IMessageConsumer consumer = _session.CreateConsumer(destination,
+                                                                100, true, false, _selector);
 
-                _logger.Info("Service (queue) name is '" + serviceName + "'...");
-
-                AMQQueue destination = new AMQQueue(serviceName);
-
-                String selector = (args.Length >= 7 && args[6].Length > 1) ? args[6] : null;
-
-                _logger.Info("Message selector is <" + selector + ">...");
-
-                IMessageConsumer consumer = _session.CreateConsumer(destination,
-                                                                    100, true, false, selector);
-
-                consumer.MessageListener = OnMessage;
-                con.Start();
-                Console.Out.WriteLine("Waiting...");
-            }
-            catch (Exception e)
-            {
-                Console.Error.WriteLine("Fatal error: " + e);
-                Console.Error.WriteLine(e.StackTrace);
-            }
+            consumer.MessageListener = OnMessage;
         }
-
-        public static void OnMessage(IMessage message)
+        
+        [Test]
+        public void Test()
+        {
+            _connection.Start();
+            _logger.Info("Waiting...");
+            AutoResetEvent evt = new AutoResetEvent(false);
+            evt.WaitOne();
+            
+        }
+                    
+        public void OnMessage(IMessage message)
         {
             //_logger.info("Got message '" + message + "'");
 
@@ -81,6 +74,7 @@ namespace JPMorgan.XMS.RequestReply1
             catch (XMSException e)
             {
                 _logger.Error("Error creating destination", e);
+                throw e;
             }
             _messageCount++;
             if (_messageCount % 1000 == 0)
@@ -108,6 +102,7 @@ namespace JPMorgan.XMS.RequestReply1
             catch (XMSException e)
             {
                 _logger.Error("Error sending message: " + e, e);
+                throw e;
             }
         }               
     }       

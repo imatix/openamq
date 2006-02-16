@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using jpmorgan.mina.common;
+using log4net;
 
 namespace jpmorgan.mina.common.support
 {
@@ -13,6 +14,8 @@ namespace jpmorgan.mina.common.support
     /// </summary>
     public abstract class AbstractFilterChain : IFilterChain
     {
+        private static readonly ILog _logger = LogManager.GetLogger(typeof(AbstractFilterChain));
+        
         protected readonly ISession _session;
                 
         private ArrayList _filters = new ArrayList(10);
@@ -39,15 +42,15 @@ namespace jpmorgan.mina.common.support
         }
 
 
-        public void PushContext()
-        {
+        private void PushContext()
+        {            
             _context.Push(_pos);
             _pos = 0;
         }
 
-        public void PopContext()
-        {
-            _pos = (int) _context.Pop();
+        private void PopContext()
+        {                        
+            _pos = (int) _context.Pop();            
         }
 
         public void AddFirst(string name, IFilter filter)
@@ -90,8 +93,7 @@ namespace jpmorgan.mina.common.support
         {
             if (_pos == _filters.Count)
             {
-                _session.Handler.SessionCreated(_session);
-                _pos = 0;                
+                _session.Handler.SessionCreated(_session);                
             }
             else
             {
@@ -125,8 +127,7 @@ namespace jpmorgan.mina.common.support
         {
             if (_pos == _filters.Count)
             {
-                _session.Handler.SessionOpened(_session);
-                _pos = 0;                
+                _session.Handler.SessionOpened(_session);                
             }
             else
             {
@@ -160,8 +161,7 @@ namespace jpmorgan.mina.common.support
         {
             if (_pos == _filters.Count)
             {
-                _session.Handler.SessionClosed(_session);
-                _pos = 0;                
+                _session.Handler.SessionClosed(_session);                
             }
             else
             {
@@ -180,6 +180,10 @@ namespace jpmorgan.mina.common.support
 
         public void MessageReceived(object message)
         {
+            if (_logger.IsDebugEnabled)
+            {
+                _logger.Debug("Message received called with message of type " + message.GetType());
+            }
             PushContext();
             try
             {
@@ -192,17 +196,16 @@ namespace jpmorgan.mina.common.support
         }
         
         public void NextMessageReceived(object message)
-        {
+        {            
             if (_pos == _filters.Count)
-            {
-                _session.Handler.MessageReceived(_session, message);
-                _pos = 0;                
+            {                
+                _session.Handler.MessageReceived(_session, message);                
             }
             else
             {
                 try
-                {
-                    ((IFilter) _filters[_pos++]).MessageReceived(_session, message, this);
+                {                    
+                    ((IFilter) _filters[_pos++]).MessageReceived(_session, message, this);                    
                     _pos--;
                 }
                 catch (Exception e)
@@ -265,8 +268,7 @@ namespace jpmorgan.mina.common.support
         {
             if (_pos == _filters.Count)
             {
-                _session.Handler.MessageSent(_session, message);
-                _pos = 0;                
+                _session.Handler.MessageSent(_session, message);                
             }
             else
             {
@@ -299,8 +301,7 @@ namespace jpmorgan.mina.common.support
         public void NextFilterWrite(WriteRequest writeRequest)
         {
             if (_pos == _filters.Count)
-            {
-                _pos = 0;
+            {                
                 DoWrite(writeRequest);                
             }
             else
@@ -336,8 +337,7 @@ namespace jpmorgan.mina.common.support
         public void NextFilterClose(CloseFuture closeFuture)
         {
             if (_pos == _filters.Count)
-            {
-                _pos = 0;
+            {                
                 DoClose(closeFuture);
             }
             else

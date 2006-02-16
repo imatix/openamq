@@ -30,30 +30,27 @@ namespace jpmorgan.mina.common.support
         
         public static string GetHexDump(ByteBuffer input)
         {
-            //input.Flip();
-            int size = input.Remaining;
+            int size = input.Position;
             if (size == 0)
             {
                 return "empty";
             }
             
-            StringBuilder output = new StringBuilder(input.Remaining * 3 - 1);
-            int mark = input.Position;
+            StringBuilder output = new StringBuilder(size * 3 - 1);
 
-            int byteValue = input.Get() & 0xFF;
+            byte[] data = input.ToByteArray();
+            int byteValue = data[0] & 0xFF;
             output.Append((char) highDigits[byteValue]);
-            output.Append((char) lowDigits[byteValue]);
-            size--;
+            output.Append((char) lowDigits[byteValue]);            
             
-            for ( ; size > 0; size--)
+            for (int i = 1 ; i < size; i++)
             {
                 output.Append(' ');
-                byteValue = input.Get() & 0xFF;
+                byteValue = data[i] & 0xFF;
                 output.Append((char) highDigits[byteValue]);
                 output.Append((char) lowDigits[byteValue]);
             }
-
-            input.Position = mark;
+            
             return output.ToString();
         }
     }

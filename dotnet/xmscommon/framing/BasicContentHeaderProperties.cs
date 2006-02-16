@@ -35,6 +35,8 @@ namespace OpenAMQ.Framing
 
         public string AppId;
 
+        public string ClusterId;
+        
         public BasicContentHeaderProperties()
         {
         }
@@ -49,16 +51,18 @@ namespace OpenAMQ.Framing
                        1 + 1 +
                        EncodingUtils.EncodedShortStringLength(CorrelationId) +
                        EncodingUtils.EncodedShortStringLength(ReplyTo) +
-                       EncodingUtils.EncodedShortStringLength(String.Format("D", Expiration)) +
+                       EncodingUtils.EncodedShortStringLength(String.Format("{0:D}", Expiration)) +
                        EncodingUtils.EncodedShortStringLength(MessageId) +
                        8 +
                        EncodingUtils.EncodedShortStringLength(Type) +
                        EncodingUtils.EncodedShortStringLength(UserId) +
-                       EncodingUtils.EncodedShortStringLength(AppId));
+                       EncodingUtils.EncodedShortStringLength(AppId) +
+                       EncodingUtils.EncodedShortStringLength(ClusterId));
+                
             }
         }
 
-        public uint PropertyFlags
+        public ushort PropertyFlags
         {   
             get
             {
@@ -69,7 +73,7 @@ namespace OpenAMQ.Framing
                 {
                     value += (1 << (15-i));
                 }
-                return (uint) value;
+                return (ushort) value;
             }
         }
 
@@ -82,15 +86,16 @@ namespace OpenAMQ.Framing
             buffer.Put(Priority);
             EncodingUtils.WriteShortStringBytes(buffer, CorrelationId);
             EncodingUtils.WriteShortStringBytes(buffer, ReplyTo);
-            EncodingUtils.WriteShortStringBytes(buffer, String.Format("D", Expiration));
+            EncodingUtils.WriteShortStringBytes(buffer, String.Format("{0:D}", Expiration));
             EncodingUtils.WriteShortStringBytes(buffer, MessageId);            
             buffer.Put(Timestamp);            
             EncodingUtils.WriteShortStringBytes(buffer, Type);
             EncodingUtils.WriteShortStringBytes(buffer, UserId);
             EncodingUtils.WriteShortStringBytes(buffer, AppId);
+            EncodingUtils.WriteShortStringBytes(buffer, ClusterId);
         }
 
-        public void PopulatePropertiesFromBuffer(ByteBuffer buffer, uint propertyFlags) 
+        public void PopulatePropertiesFromBuffer(ByteBuffer buffer, ushort propertyFlags) 
         {
             _log.Debug("Property flags: " + propertyFlags);
             if ((propertyFlags & (1 << 15)) > 0)
@@ -119,6 +124,8 @@ namespace OpenAMQ.Framing
                 UserId = EncodingUtils.ReadShortString(buffer);
             if ((propertyFlags & (1 << 3)) > 0)
                 AppId = EncodingUtils.ReadShortString(buffer);
+            if ((propertyFlags & (1 << 2)) > 0)
+                ClusterId = EncodingUtils.ReadShortString(buffer);
         }
 
         public void SetDeliveryMode(IBM.XMS.DeliveryMode deliveryMode)

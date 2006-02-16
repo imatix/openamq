@@ -3,6 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 9.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "minadotnet", "minadotnet\minadotnet.csproj", "{E6EED856-9650-439F-BB81-F35A2C0F8AB8}"
 	ProjectSection(ProjectDependencies) = postProject
 		{CEF80E5F-E838-4F27-9435-2E3630D5F9E0} = {CEF80E5F-E838-4F27-9435-2E3630D5F9E0}
+		{CB5CD46B-902F-48DA-915D-1DA0082F25F4} = {CB5CD46B-902F-48DA-915D-1DA0082F25F4}
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "minatests", "minatests\minatests.csproj", "{BB3F6DD7-E5F4-45B0-9F5A-7D641FB1D192}"
@@ -23,6 +24,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "xmsclient", "xmsclient\xmsc
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "xmsclienttests", "xmsclienttests\xmsclienttests.csproj", "{BA1B0032-4CE6-40DD-A2DC-119F0FFA0A1D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E6EED856-9650-439F-BB81-F35A2C0F8AB8} = {E6EED856-9650-439F-BB81-F35A2C0F8AB8}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommonCollections", "CommonCollections\CommonCollections.csproj", "{CB5CD46B-902F-48DA-915D-1DA0082F25F4}"
 EndProject

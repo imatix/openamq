@@ -39,6 +39,7 @@ namespace jpmorgan.mina.filter.codec
             if (!(message is ByteBuffer))
             {
                 filterChain.NextMessageReceived(message);
+                return;
             }
 
             ByteBuffer input = (ByteBuffer) message;

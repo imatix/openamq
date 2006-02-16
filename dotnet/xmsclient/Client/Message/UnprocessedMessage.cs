@@ -8,7 +8,7 @@ namespace OpenAMQ.XMS.Client.Message
 {
     public class UnprocessedMessage
     {
-        private long _bytesReceived = 0;
+        private ulong _bytesReceived = 0;
 
         public BasicDeliverBody DeliverBody;
         public BasicReturnBody BounceBody;
@@ -26,7 +26,7 @@ namespace OpenAMQ.XMS.Client.Message
             Bodies.Add(body);
             if (body.Payload != null)
             {
-                _bytesReceived += body.Payload.Length;
+                _bytesReceived += (uint)body.Payload.Length;
             }
         }
 
