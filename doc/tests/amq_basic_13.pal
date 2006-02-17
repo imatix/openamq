@@ -12,7 +12,7 @@
         <queue_declare queue = "myqueue" />
         <basic_consume queue = "myqueue" auto_ack = "1" />
         <basic_content />
-        <basic_publish exchange = "amq.direct" routing_key = "myqueue" />
+        <basic_publish exchange = "" routing_key = "myqueue" />
         <wait timeout = "5000" />
         <basic_arrived>
         </basic_arrived>
@@ -23,7 +23,7 @@
         <queue_declare queue = "otherqueue" />
         <basic_consume queue = "otherqueue" auto_ack = "0" />
         <basic_content />
-        <basic_publish exchange = "amq.direct" routing_key = "otherqueue" immediate = "0" />
+        <basic_publish exchange = "" routing_key = "otherqueue" immediate = "0" />
         <wait timeout = "5000" />
         <basic_arrived>
             <basic_ack delivery_tag = "$delivery_tag" />
@@ -33,4 +33,3 @@
         </empty>
     </session>
 </pal>
-
