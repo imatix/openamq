@@ -303,11 +303,11 @@ for each type of exchange. This is a lock-free asynchronous class.
     amq_binding_list_iterator_t
         iterator;
 
-    for (iterator  = amq_binding_list_begin (self->binding_list);
-         iterator != amq_binding_list_end   (self->binding_list);
-         iterator  = amq_binding_list_next  (iterator)
-        )
+    iterator = amq_binding_list_begin (self->binding_list);
+    while (iterator) {
         amq_binding_unbind_queue (*iterator, queue);
+        iterator = amq_binding_list_next  (iterator);
+    }
     </action>
 </method>
 
@@ -328,11 +328,11 @@ for each type of exchange. This is a lock-free asynchronous class.
     amq_binding_list_iterator_t
         iterator;
 
-    for (iterator  = amq_binding_list_begin (self->binding_list);
-         iterator != amq_binding_list_end   (self->binding_list);
-         iterator  = amq_binding_list_next  (iterator)
-        )
+    iterator  = amq_binding_list_begin (self->binding_list);
+    while (iterator) {
         amq_binding_unbind_peer (*iterator, peer);
+        iterator  = amq_binding_list_next  (iterator);
+    }
     </action>
 </method>
 
@@ -400,14 +400,15 @@ s_bind_object (
         arguments = NULL;
 
     //  Check existing bindings to see if we have one that matches
-    for (iterator  = amq_binding_list_begin (self->binding_list);
-         iterator != amq_binding_list_end   (self->binding_list);
-         iterator  = amq_binding_list_next  (iterator))
+    iterator  = amq_binding_list_begin (self->binding_list);
+    while (iterator) {
         if (streq ((*iterator)->routing_key, routing_key)
               &&  icl_longstr_eq ((*iterator)->arguments, arguments))
             break;
+        iterator  = amq_binding_list_next  (iterator);
+    }
 
-    if (iterator != amq_binding_list_end (self->binding_list)) {
+    if (iterator) {
         //  If the binding already exist, bind it to the object passed
         if (queue)
             amq_binding_bind_queue (*iterator, queue);

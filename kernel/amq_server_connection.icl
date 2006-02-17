@@ -76,8 +76,8 @@ This class implements the connection class for the AMQ server.
     //
     //  Remove the queue from the list of exclusive connections
     iterator = amq_queue_list_find (amq_queue_list_begin (self->own_queue_list),
-        amq_queue_list_end (self->own_queue_list), queue);
-    if (iterator != amq_queue_list_end (self->own_queue_list))
+        NULL, queue);
+    if (iterator)
         amq_queue_list_erase (self->own_queue_list, iterator);
 </method>
 
@@ -181,7 +181,7 @@ This class implements the connection class for the AMQ server.
     //  with the mechanism we'll move it into the vhost.
     //
     iterator = amq_queue_list_begin (self->wait_queue_list);
-    while (iterator != amq_queue_list_end (self->wait_queue_list)) {
+    while (iterator) {
         if (queue == *iterator) {
             queue = NULL;
             break;

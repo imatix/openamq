@@ -92,9 +92,8 @@ class.
     </doc>
     <argument name = "queue" type = "amq_queue_t *">Queue to bind</argument>
 
-    if (amq_queue_list_find (amq_queue_list_begin (self->queue_list),
-          amq_queue_list_end (self->queue_list), queue) == 
-          amq_queue_list_end (self->queue_list))
+    if (!amq_queue_list_find (amq_queue_list_begin (self->queue_list), NULL,
+          queue))
         amq_queue_list_push_back (self->queue_list, queue);
 </method>
 
@@ -129,10 +128,8 @@ class.
     </local>
     //
     iterator = amq_queue_list_find (
-        amq_queue_list_begin (self->queue_list),
-        amq_queue_list_end (self->queue_list),
-        queue);
-    if (iterator != amq_queue_list_end (self->queue_list))
+        amq_queue_list_begin (self->queue_list), NULL, queue);
+    if (!iterator)
         amq_queue_list_erase (self->queue_list, iterator);
 </method>
 
@@ -175,14 +172,14 @@ class.
     </local>
     //
     //  Publish to all queues, sending method to async queue class
-    for (iterator  = amq_queue_list_begin (self->queue_list);
-         iterator != amq_queue_list_end   (self->queue_list);
-         iterator  = amq_queue_list_next  (iterator))
+    iterator  = amq_queue_list_begin (self->queue_list);
+    while (iterator)
     {
         if (amq_server_config_trace_route (amq_server_config))
             icl_console_print ("X: publish  queue=%s", (*iterator)->key);
         amq_queue_publish (*iterator, channel, method);
         rc++;  //  Count recepients
+        iterator  = amq_queue_list_next  (iterator);
     }
 
     //  Publish to peers, sending method to async cluster class

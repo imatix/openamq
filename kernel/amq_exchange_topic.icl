@@ -101,10 +101,9 @@ specification.
 
         //  Create new index and recompile all bindings for it
         index = amq_index_new (self->index_hash, routing_key, self->index_array);
-        for (iterator = amq_binding_list_begin (self->exchange->binding_list);
-              iterator != amq_binding_list_end (self->exchange->binding_list);
-              iterator = amq_binding_list_next (iterator))
-            {
+        iterator = amq_binding_list_begin (self->exchange->binding_list);
+        while (iterator) {
+            
             //  TODO: size of regexp object? keep it active per binding
             //  sub-structure for bindings, dependent on exchange class...
             regexp = ipr_regexp_new ((*iterator)->regexp);
@@ -118,6 +117,7 @@ specification.
                 ipr_looseref_queue ((*iterator)->index_list, index);
             }
             ipr_regexp_destroy (&regexp);
+            iterator = amq_binding_list_next (iterator);
         }
     }
     if (amq_server_config_trace_route (amq_server_config))

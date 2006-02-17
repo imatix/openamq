@@ -34,7 +34,7 @@ Defines a virtual host. This is a lock-free asynchronous class.
           <next>
             if (exchange_p) {
                 exchange_p = amq_exchange_list_next (exchange_p);
-                if (exchange_p != amq_exchange_list_end (self->exchange_list))
+                if (exchange_p)
                     icl_shortstr_fmt (field_value, "%ld", (*exchange_p)->object_id);
             }
           </next>
@@ -175,11 +175,11 @@ $(selftype)
         iterator;
 
     //  Go through all exchanges & bindings, remove link to queue
-    for (iterator  = amq_exchange_list_begin (self->exchange_list);
-         iterator != amq_exchange_list_end   (self->exchange_list);
-         iterator  = amq_exchange_list_next  (iterator)
-        )
-        amq_exchange_unbind_queue (*iterator, queue);        
+    iterator  = amq_exchange_list_begin (self->exchange_list);
+    while (iterator) {
+        amq_exchange_unbind_queue (*iterator, queue);
+        iterator  = amq_exchange_list_next  (iterator);
+    }
 
     //  Remove the queue from queue list and queue table
     amq_queue_by_vhost_remove (queue);
