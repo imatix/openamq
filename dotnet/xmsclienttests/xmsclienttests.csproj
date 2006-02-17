@@ -30,12 +30,18 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="IBM.XMS, Version=1.1.1.1, Culture=neutral, PublicKeyToken=d2666ab12fca862b" />
+    <Reference Include="IBM.XMS, Version=1.1.1.1, Culture=neutral, PublicKeyToken=d2666ab12fca862b">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\xmscommon\lib\xms\IBM.XMS.dll</HintPath>
+    </Reference>
     <Reference Include="log4net, Version=1.2.9.0, Culture=neutral, PublicKeyToken=b32731d11ce58905">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\xmscommon\lib\log4net\log4net.dll</HintPath>
     </Reference>
-    <Reference Include="nunit.framework, Version=2.2.5.0, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77" />
+    <Reference Include="nunit.framework, Version=2.2.6.0, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>lib\nunit\nunit.framework.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
@@ -61,7 +67,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="log4net.config" />
+    <None Include="log4net.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

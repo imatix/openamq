@@ -5,8 +5,8 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("CommonCollections")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("Blaze.Net Common Collections")]
+[assembly: AssemblyDescription("Reusable collection classes")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("JP Morgan Chase")]
 [assembly: AssemblyProduct("CommonCollections")]
@@ -31,5 +31,6 @@ using System.Runtime.InteropServices;
 //
 // You can specify all the values or you can default the Revision and Build Numbers 
 // by using the '*' as shown below:
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("0.5.*")]
+
+

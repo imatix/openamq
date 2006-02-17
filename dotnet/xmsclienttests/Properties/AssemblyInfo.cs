@@ -1,13 +1,12 @@
 ﻿using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 [assembly: log4net.Config.XmlConfigurator(ConfigFile="log4net.config")]
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("xmsclienttests")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("XMSClientTests")]
+[assembly: AssemblyDescription("Test Suite for XMS Clients")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("JP Morgan Chase")]
 [assembly: AssemblyProduct("xmsclienttests")]
@@ -30,5 +29,4 @@ using System.Runtime.InteropServices;
 //      Build Number
 //      Revision
 //
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("0.5.*")]

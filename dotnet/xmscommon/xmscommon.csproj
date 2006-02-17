@@ -9,6 +9,8 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>OpenAMQ</RootNamespace>
     <AssemblyName>xmscommon</AssemblyName>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>blazeKey.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -28,7 +30,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="IBM.XMS, Version=1.1.1.1, Culture=neutral, PublicKeyToken=d2666ab12fca862b" />
+    <Reference Include="IBM.XMS, Version=1.1.1.1, Culture=neutral, PublicKeyToken=d2666ab12fca862b">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>lib\xms\IBM.XMS.dll</HintPath>
+    </Reference>
     <Reference Include="log4net, Version=1.2.9.0, Culture=neutral, PublicKeyToken=b32731d11ce58905">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>lib\log4net\log4net.dll</HintPath>
@@ -145,6 +150,9 @@
       <Project>{E6EED856-9650-439F-BB81-F35A2C0F8AB8}</Project>
       <Name>minadotnet</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="blazeKey.snk" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
