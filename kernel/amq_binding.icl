@@ -129,7 +129,7 @@ class.
     //
     iterator = amq_queue_list_find (
         amq_queue_list_begin (self->queue_list), NULL, queue);
-    if (!iterator)
+    if (iterator)
         amq_queue_list_erase (self->queue_list, iterator);
 </method>
 
