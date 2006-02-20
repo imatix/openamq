@@ -93,6 +93,7 @@ maximum number of consumers per channel is set at compile time.
 
     //  Create and configure the consumer object
     consumer = amq_consumer_new (self, queue, method);
+    assert (consumer);
     amq_consumer_by_channel_queue (self->consumer_list, consumer);
     amq_queue_consume (queue, consumer, self->active);
     amq_consumer_unlink (&consumer);

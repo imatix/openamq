@@ -66,32 +66,33 @@ for Basic, File, and Stream content classes.
     self->channel  = channel;
     self->queue    = queue;
     self->class_id = method->class_id;
-    
+
     //  Class-dependent properties
-    if (method->class_id == AMQ_SERVER_BASIC) {
-        basic_consume = &method->payload.basic_consume;
-        self->prefetch_size  = basic_consume->prefetch_size;
-        self->prefetch_count = basic_consume->prefetch_count;
-        self->no_local       = basic_consume->no_local;
-        self->auto_ack       = basic_consume->auto_ack;
-        self->exclusive      = basic_consume->exclusive;
-        self->consumer_basic = amq_consumer_basic_new (self);
+    assert (method->class_id == AMQ_SERVER_BASIC);
 
-        icl_shortstr_cpy (self->tag, basic_consume->consumer_tag);
-        if (strnull (self->tag))
-            icl_shortstr_fmt (self->tag, "%ld", ++(channel->connection->consumer_tag));
+    basic_consume = &method->payload.basic_consume;
+    self->prefetch_size  = basic_consume->prefetch_size;
+    self->prefetch_count = basic_consume->prefetch_count;
+    self->no_local       = basic_consume->no_local;
+    self->auto_ack       = basic_consume->auto_ack;
+    self->exclusive      = basic_consume->exclusive;
+    self->consumer_basic = amq_consumer_basic_new (self);
 
-        //  Broadcast consume method to cluster using our cluster_id
-        if (self->channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER
-        &&  self->queue->clustered) {
-            icl_shortstr_fmt (self->cluster_id,
-                "%s/%s", channel->connection->cluster_id, self->tag);
-            icl_shortstr_cpy (
-                method->payload.basic_consume.consumer_tag, self->cluster_id);
-            amq_cluster_tunnel_out (amq_cluster,
-                AMQ_CLUSTER_ALL, method, AMQ_CLUSTER_DURABLE, channel);
-            self->clustered = TRUE;
-        }
+    icl_shortstr_cpy (self->tag, basic_consume->consumer_tag);
+    if (strnull (self->tag))
+        icl_shortstr_fmt (self->tag, "%ld",
+            icl_atomic_inc32 ((volatile qbyte *) &(channel->connection->consumer_tag));
+
+    //  Broadcast consume method to cluster using our cluster_id
+    if (self->channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+    &&  self->queue->clustered) {
+        icl_shortstr_fmt (self->cluster_id,
+            "%s/%s", channel->connection->cluster_id, self->tag);
+        icl_shortstr_cpy (
+            method->payload.basic_consume.consumer_tag, self->cluster_id);
+        amq_cluster_tunnel_out (amq_cluster,
+            AMQ_CLUSTER_ALL, method, AMQ_CLUSTER_DURABLE, channel);
+        self->clustered = TRUE;
     }
 </method>
 
