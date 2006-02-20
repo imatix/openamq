@@ -64,7 +64,7 @@
     </doc>
   </domain>
 
-  <domain name = "auto ack" type = "bit">
+  <domain name = "no ack" type = "bit">
     no acknowledgement needed
     <doc>
       If this field is set the server does not expect acknowledgments

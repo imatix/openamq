@@ -158,7 +158,7 @@
       smaller in size than the available prefetch size (and also falls
       into other prefetch limits). May be set to zero, meaning "no
       specific limit", although other prefetch limits may still apply.
-      The prefetch-size is ignored if the auto-ack option is set.
+      The prefetch-size is ignored if the no-ack option is set.
     </doc>
     <doc name = "rule" test = "amq_basic_17">
       The server MUST ignore this setting when the client is not
@@ -176,7 +176,7 @@
       field may be used in combination with the prefetch-size field;
       a message will only be sent in advance if both prefetch windows
       (and those at the channel and connection level) allow it.
-      The prefetch-count is ignored if the auto-ack option is set.
+      The prefetch-count is ignored if the no-ack option is set.
     </doc>
     <doc name = "rule" test = "amq_basic_18">
       The server MAY send less data in advance than allowed by the
@@ -186,7 +186,7 @@
 
   <field name = "no local" domain = "no local" />
 
-  <field name = "auto ack" domain = "auto ack" />
+  <field name = "no ack" domain = "no ack" />
 
   <field name = "exclusive" type = "bit">
     request exclusive access
@@ -429,7 +429,7 @@
     </doc>
   </field>
 
-  <field name = "auto ack" domain = "auto ack" />
+  <field name = "no ack" domain = "no ack" />
 </method>
 
 <method name = "get-ok" synchronous = "1" content = "1">
@@ -437,7 +437,7 @@
   <doc>
     This method delivers a message to the client following a get
     method.  A message delivered by 'get-ok' must be acknowledged
-    unless the auto-ack option was set in the get method.
+    unless the no-ack option was set in the get method.
   </doc>
   <chassis name = "client" implement = "MAY" />
 

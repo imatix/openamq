@@ -138,7 +138,7 @@
       This field specifies the prefetch window size in octets. May be
       set to zero, meaning "no specific limit".  Note that other
       prefetch limits may still apply. The prefetch-size is ignored
-      if the auto-ack option is set.
+      if the no-ack option is set.
     </doc>
   </field>
 
@@ -150,7 +150,7 @@
       may be used in combination with the prefetch-size field; a
       message will only be sent in advance if both prefetch windows
       (and those at the channel and connection level) allow it.
-      The prefetch-count is ignored if the auto-ack option is set.
+      The prefetch-count is ignored if the no-ack option is set.
     </doc>
     <doc name = "rule">
       The server MAY send less data in advance than allowed by the
@@ -160,7 +160,7 @@
 
   <field name = "no local" domain = "no local" />
 
-  <field name = "auto ack" domain = "auto ack" />
+  <field name = "no ack" domain = "no ack" />
 
   <field name = "exclusive" type = "bit">
     request exclusive access
