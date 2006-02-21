@@ -205,7 +205,7 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
     config = ipr_config_dup (amq_server_config->config);
     ipr_config_locate (config, "/config/security", "plain");
     if (!config->located) {
-        asl_log_print (amq_broker->error_log,
+        asl_log_print (amq_broker->alert_log,
             "E: no 'plain' security defined in server config");
         exit (EXIT_FAILURE);
     }
@@ -244,7 +244,7 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
                 "I: " SERVER_NAME "/" VERSION " - revision " SVN_REVISION);
         }
         else {
-            asl_log_print (amq_broker->error_log,
+            asl_log_print (amq_broker->alert_log,
                 "E: backgrounding failed - server is halting");
             exit (EXIT_FAILURE);
         }
