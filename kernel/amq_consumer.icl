@@ -47,7 +47,7 @@ for Basic, File, and Stream content classes.
         prefetch_count;                 //  Prefetch count
     Bool
         no_local,                       //  Don't want own messages
-        auto_ack,                       //  Auto acknowledge messages
+        no_ack,                         //  Auto acknowledge messages
         exclusive,                      //  Exclusive access?
         clustered;                      //  Is consumer clustered?
 </context>
@@ -74,7 +74,7 @@ for Basic, File, and Stream content classes.
     self->prefetch_size  = basic_consume->prefetch_size;
     self->prefetch_count = basic_consume->prefetch_count;
     self->no_local       = basic_consume->no_local;
-    self->auto_ack       = basic_consume->auto_ack;
+    self->no_ack         = basic_consume->no_ack;
     self->exclusive      = basic_consume->exclusive;
     self->consumer_basic = amq_consumer_basic_new (self);
 
