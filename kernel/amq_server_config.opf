@@ -200,10 +200,10 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "error_log" type = "icl_shortstr_t" default = "error.log">
+    <property name = "alert_log" type = "icl_shortstr_t" default = "alert.log">
     Error log file name
     <doc>
-    The name of the error log file, which records all errors and warnings
+    The name of the alert log file, which records all errors and warnings
     issued by the server.  Note that the server port number is always added
     to the name of the log file.
     </doc>
