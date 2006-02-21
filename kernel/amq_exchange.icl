@@ -133,17 +133,18 @@ for each type of exchange. This is a lock-free asynchronous class.
         self->compile = amq_exchange_headers_compile;
     }
     else
-        icl_console_print ("E: invalid type '%d' in exchange_new", self->type);
+        asl_log_print (amq_broker->alert_log,
+            "E: invalid type '%d' in exchange_new", self->type);
 
     amq_exchange_list_push_back (self->vhost->exchange_list, self);
     if (amq_server_config_trace_route (amq_server_config))
-        icl_console_print ("X: create   exchange=%s", self->name);
+        asl_log_print (amq_broker->debug_log, "X: create   exchange=%s", self->name);
 </method>
 
 <method name = "destroy">
     <action>
     if (amq_server_config_trace_route (amq_server_config))
-        icl_console_print ("X: destroy  exchange=%s", self->name);
+        asl_log_print (amq_broker->debug_log, "X: destroy  exchange=%s", self->name);
 
     amq_binding_list_destroy (&self->binding_list);
     ipr_index_destroy (&self->binding_index);
@@ -252,7 +253,8 @@ for each type of exchange. This is a lock-free asynchronous class.
     //
     <action>
     if (amq_server_config_trace_route (amq_server_config))
-        icl_console_print ("X: bind     queue=%s onto=%s", queue->name, self->name);
+        asl_log_print (amq_broker->debug_log,
+            "X: bind     queue=%s onto=%s", queue->name, self->name);
 
     s_bind_object (self, channel, queue, NULL, routing_key, arguments);
     </action>
@@ -280,7 +282,8 @@ for each type of exchange. This is a lock-free asynchronous class.
     //
     <action>
     if (amq_server_config_trace_route (amq_server_config))
-        icl_console_print ("X: bind     peer=%s onto=%s", peer->name, self->name);
+        asl_log_print (amq_broker->debug_log,
+            "X: bind     peer=%s onto=%s", peer->name, self->name);
 
     s_bind_object (self, NULL, NULL, peer, routing_key, arguments);
     </action>

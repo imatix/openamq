@@ -102,8 +102,10 @@ $(selftype)
         self->parent_id  [object_id] = parent_id;
     }
     else {
-        icl_console_print ("W: Console object store is full, please restart server");
-        icl_console_print ("W: Current limitation will be removed in next release");
+        asl_log_print (amq_broker->alert_log,
+            "E: Console object store is full, please restart server");
+        asl_log_print (amq_broker->alert_log,
+            "I: Current limitation will be removed in next release");
     }
     </action>
 </method>
@@ -199,15 +201,16 @@ $(selftype)
     <argument name = "request"   type = "amq_content_basic_t *">Original request</argument>
     <argument name = "object id" type = "qbyte">Object id</argument>
     <argument name = "fields"    type = "asl_field_list_t *">Object fields</argument>
+    <argument name = "notice"    type = "char *">Reply notice, if any</argument>
     <possess>
     amq_content_basic_link (request);
-    if (fields)
-        asl_field_list_link (fields);
+    asl_field_list_link (fields);
+    notice = icl_mem_strdup (notice);
     </possess>
     <release>
     amq_content_basic_unlink (&request);
-    if (fields)
-        asl_field_list_unlink (&fields);
+    asl_field_list_unlink (&fields);
+    icl_mem_free (notice);
     </release>
     <action>
     asl_field_t
@@ -228,6 +231,8 @@ $(selftype)
     ipr_xml_attr_set (cur_item, "class",  self->class_ref [object_id]->name);
     ipr_xml_attr_set (cur_item, "object", icl_shortstr_fmt (strvalue, "%ld", object_id));
     ipr_xml_attr_set (cur_item, "status", "ok");
+    if (notice)
+        ipr_xml_attr_set (cur_item, "notice", notice);
 
     if (fields) {
         field = asl_field_list_first (fields);
@@ -324,12 +329,12 @@ s_execute_schema (amq_content_basic_t *request, ipr_xml_t *xml_command)
             ipr_bucket_destroy (&bucket);
         }
         else {
-            icl_console_print ("E: can't read '%s'", schema_file);
+            asl_log_print (amq_broker->alert_log, "E: can't read '%s'", schema_file);
             s_reply_error (request, "schema-reply", "notfound");
         }
     }
     else {
-        icl_console_print ("E: can't find '%s'", schema_file);
+        asl_log_print (amq_broker->alert_log, "E: can't find '%s'", schema_file);
         s_reply_error (request, "schema-reply", "notfound");
     }
 }
@@ -423,7 +428,7 @@ s_execute_monitor (
     amq_content_basic_t *request,
     ipr_xml_t *xml_command)
 {
-    icl_console_print ("amq_console: monitor");
+    asl_log_print (amq_broker->debug_log, "amq_console: monitor");
 }
 
 static void
@@ -461,7 +466,8 @@ s_execute_method (
 static void
 s_invalid_cml (amq_content_basic_t *request, ipr_bucket_t *bucket, char *error)
 {
-    icl_console_print ("W: amq.console: content body is not valid CML: %s", error);
+    asl_log_print (amq_broker->alert_log,
+        "W: amq.console: content body is not valid CML: %s", error);
     ipr_bucket_dump (bucket, "I: ");
     s_reply_error (request, "invalid", NULL);
 }
@@ -540,7 +546,8 @@ s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
         amq_exchange_unlink (&exchange);
     }
     else
-        icl_console_print ("E: amq.console: client did not specify Reply-To queue");
+        asl_log_print (amq_broker->alert_log,
+            "E: amq.console: client did not specify Reply-To queue");
 }
 </private>
 

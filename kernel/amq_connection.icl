@@ -106,7 +106,8 @@ merge these two classes into one.
           Disconnects the client application.
           </doc>
           <exec>
-            icl_console_print ("W: operator killed connection to %s", self->parent->client_address);
+            asl_log_print (amq_broker->alert_log,
+                "W: operator killed connection to %s", self->parent->client_address);
             amq_server_connection_error (self->parent,
                 ASL_CONNECTION_FORCED, "Operator killed connection explicitly");
           </exec>

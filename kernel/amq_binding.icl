@@ -64,7 +64,8 @@ class.
     //  Get an index for the binding and complain if the index is full
     self->index = ipr_index_insert (self->exchange->binding_index, self);
     if (!self->index) {
-        icl_console_print ("W: too many bindings in %s exchange", exchange->name);
+        asl_log_print (amq_broker->alert_log,
+            "E: too many bindings in %s exchange", exchange->name);
         self_destroy (&self);
     }
 </method>
@@ -176,7 +177,7 @@ class.
     while (iterator)
     {
         if (amq_server_config_trace_route (amq_server_config))
-            icl_console_print ("X: publish  queue=%s", (*iterator)->key);
+            asl_log_print (amq_broker->debug_log, "X: publish  queue=%s", (*iterator)->key);
         amq_queue_publish (*iterator, channel, method);
         rc++;  //  Count recepients
         iterator  = amq_queue_list_next  (iterator);
@@ -190,7 +191,7 @@ class.
         &&  channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER
         &&  strneq (channel->connection->client_proxy_name, peer->name)) {
             if (amq_server_config_trace_route (amq_server_config))
-                icl_console_print ("X: publish  peer=%s", peer->name);
+                asl_log_print (amq_broker->debug_log, "X: publish  peer=%s", peer->name);
             amq_cluster_peer_push (amq_cluster, peer, method);
             rc++;                       //  Count recepients
         }

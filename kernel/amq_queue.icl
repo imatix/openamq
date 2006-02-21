@@ -108,13 +108,13 @@ class.  This is a lock-free asynchronous class.
     icl_shortstr_cpy (self->owner_id, owner_id);
     amq_queue_by_vhost_queue (self->vhost->queue_list, self);
     if (amq_server_config_trace_queue (amq_server_config))
-        icl_console_print ("Q: create   queue=%s", self->name);
+        asl_log_print (amq_broker->debug_log, "Q: create   queue=%s", self->name);
 </method>
 
 <method name = "destroy">
     <action>
     if (amq_server_config_trace_queue (amq_server_config))
-        icl_console_print ("Q: destroy  queue=%s", self->name);
+        asl_log_print (amq_broker->debug_log, "Q: destroy  queue=%s", self->name);
 
     amq_queue_basic_destroy (&self->queue_basic);
     </action>
@@ -180,7 +180,7 @@ class.  This is a lock-free asynchronous class.
     if (class_id == AMQ_SERVER_BASIC)
         amq_queue_basic_get (self->queue_basic, channel, cluster_id);
     else
-        icl_console_print ("E: illegal content class (%d)", class_id);
+        asl_log_print (amq_broker->alert_log, "E: illegal content class (%d)", class_id);
     </action>
 </method>
 
@@ -275,7 +275,8 @@ class.  This is a lock-free asynchronous class.
     //  If we're still at zero consumers, self-destruct
     if (self->consumers == 0) {
         if (amq_server_config_trace_queue (amq_server_config))
-            icl_console_print ("Q: auto-del queue=%s", self->name);
+            asl_log_print (amq_broker->debug_log, "Q: auto-del queue=%s", self->name);
+            
         queue_ref = amq_queue_link (self);
         amq_vhost_unbind_queue (self->vhost, queue_ref);
         //  Ask broker to ask connections to drop link to queue

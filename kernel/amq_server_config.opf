@@ -93,16 +93,6 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "recycler" type = "int" default = "60" dynamic = "1">
-    Memory recycler interval, seconds
-    <doc>
-    If greater than zero, specifies the interval at which the server
-    will recycle deallocated and cached memory.  Not all cached memory
-    will be freed immediately, this happens progressively.  You can
-    lower this value in scenarios where memory is very limited.
-    </doc>
-    </property>
-
     <property name = "queue limit" type = "size_t" default = "0" dynamic = "1">
     Default queue max messages
     <doc>
@@ -114,14 +104,6 @@ $\(selftype)
 </path>
 
 <path name = "/config/verbosity">
-    <property name = "trace login" type = "Bool" dynamic = "1">
-    Trace user logins?
-    <doc>
-    Specifies whether login attempts are traced or not.  The
-    recommended setting is 1 for all servers.
-    </doc>
-    </property>
-
     <property name = "trace route" type = "Bool" dynamic = "1">
     Trace message routing?
     <doc>
@@ -186,6 +168,62 @@ $\(selftype)
     times only when working across a WAN where rapid heartbeats have a
     visible cost.  Faster heartbeating is generally better if the network
     can handle the traffic.
+    </doc>
+    </property>
+</path>
+
+<path name = "/config/logging">
+    <property name = "log_path" type = "char *" default = "logs">
+    Active log file directory
+    <doc>
+    Specifies the directory path into which active log files are
+    placed.
+    </doc>
+    </property>
+
+    <property name = "archive_path" type = "char *" default = "archive">
+    Archive log file directory
+    <doc>
+    Specifies the directory path into which archived log files are
+    placed.  This can be the same as the active path; archived log
+    files are renamed to avoid conflict with active log files.
+    </doc>
+    </property>
+
+    <property name = "archive_cmd" type = "icl_shortstr_t">
+    Archive command
+    <doc>
+    If specified, this command is run on all archived log files. You can
+    use this option to compress archived log files, or clean up old and
+    unwanted files.  When the command is run, the name of the archived
+    log file is provided as an argument to it.
+    </doc>
+    </property>
+
+    <property name = "error_log" type = "icl_shortstr_t" default = "error.log">
+    Error log file name
+    <doc>
+    The name of the error log file, which records all errors and warnings
+    issued by the server.  Note that the server port number is always added
+    to the name of the log file.
+    </doc>
+    </property>
+
+    <property name = "daily_log" type = "icl_shortstr_t" default = "daily.log">
+    Daily log file name
+    <doc>
+    The name of the daily log file, which records all normal activity
+    as well as errors. Note that the server port number is always added
+    to the name of the log file.
+    </doc>
+    </property>
+
+    <property name = "debug_log" type = "icl_shortstr_t" default = "debug.log">
+    Debug log file name
+    <doc>
+    The name of the debug log file, which records all normal activity,
+    errors, and debug trace information. Note that the server port number
+    is always added to the name of the log file.
     </doc>
     </property>
 </path>

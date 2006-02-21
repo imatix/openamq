@@ -55,7 +55,8 @@
             0,                          //  Delivery tag
             FALSE,                      //  Redelivered
             method->exchange,
-            method->routing_key);
+            method->routing_key,
+            NULL);
         amq_consumer_unlink (&consumer);
     }
   </action>
@@ -78,7 +79,8 @@
             method->redelivered,
             method->exchange,
             method->routing_key,
-            method->message_count);
+            method->message_count,
+            NULL);                      //  TODO: busy/unbusy consumer?
         amq_server_channel_unlink (&channel);
         ipr_meter_count (amq_broker->xmeter);
     }

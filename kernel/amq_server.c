@@ -14,10 +14,11 @@
 int
 main (int argc, char *argv [])
 {
-    if (s_start (argc, argv, "server.cfg", "custom.cfg"))
-        exit (EXIT_FAILURE);
-
-    while (s_run_server ());
+    FOREVER {
+        s_start (argc, argv, "server.cfg", "custom.cfg");
+        if (s_run_server () == 0)
+            break;                      //  Rerun server if wanted
+    }
     return (EXIT_SUCCESS);
 }
 

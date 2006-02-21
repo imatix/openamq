@@ -64,11 +64,12 @@ static char
 
 //  Parse arguments, return 0 if OK, 1 if error
 
-static int
+static void
 s_start (int argc, char *argv [], char *config_file, char *overlay)
 {
+    Bool
+        arg_error = FALSE;
     int
-        rc = 0,
         argn;                           //  Argument number                  
     char
         *myname,                        //  Executable's name                
@@ -92,7 +93,7 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
                 argparm = NULL;
             }
             else {
-                rc = 1;
+                arg_error = TRUE;
                 break;
             }
         }
@@ -164,15 +165,15 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
 
                 //  Anything else is an error
                 default:
-                    rc = 1;
+                    arg_error = TRUE;
             }
         }
         else {
-            rc = 1;
+            arg_error = TRUE;
             break;
         }
     }
-    if (rc) {
+    if (arg_error) {
         icl_console_print ("E: invalid arguments - type '%s -h' for help", myname);
         exit (EXIT_FAILURE);
     }
@@ -204,7 +205,8 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
     config = ipr_config_dup (amq_server_config->config);
     ipr_config_locate (config, "/config/security", "plain");
     if (!config->located) {
-        icl_console_print ("E: no 'plain' security defined in server config");
+        asl_log_print (amq_broker->error_log,
+            "E: no 'plain' security defined in server config");
         exit (EXIT_FAILURE);
     }
     //  Now check console login/password
@@ -236,17 +238,19 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
 
             logfile = fopen (logfile_name, "a");
             icl_console_redirect (logfile);
-            icl_console_print ("I: ************************   SERVER START   ************************");
-            icl_console_print ("I: " SERVER_NAME "/" VERSION " - revision " SVN_REVISION);
+            asl_log_print (amq_broker->daily_log,
+                "I: ************************   SERVER START   ************************");
+            asl_log_print (amq_broker->daily_log,
+                "I: " SERVER_NAME "/" VERSION " - revision " SVN_REVISION);
         }
         else {
-            icl_console_print ("E: backgrounding failed - server is halting");
+            asl_log_print (amq_broker->error_log,
+                "E: backgrounding failed - server is halting");
             exit (EXIT_FAILURE);
         }
     }
     smt_initialise ();
     ipr_uid_set_real_user ();
-    return (rc);
 }
 
 //  Initialise server

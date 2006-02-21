@@ -75,12 +75,14 @@ that is in every content header).
                 if (streq (field->name, "X-match")) {
                     if (streq (asl_field_string (field), "any")) {
                         if (amq_server_config_trace_route (amq_server_config))
-                            icl_console_print ("X: select   match=any", index_key);
+                            asl_log_print (amq_broker->debug_log,
+                                "X: select   match=any", index_key);
                         binding->match_all = FALSE;
                     }
                 }
                 else
-                    icl_console_print ("W: unknown field '%s' in bind arguments", field->name);
+                    asl_log_print (amq_broker->alert_log,
+                        "W: unknown field '%s' in bind arguments", field->name);
             }
             else {
                 //  Index key is field name, or field name and value
@@ -164,8 +166,10 @@ that is in every content header).
                     if (amq_binding_publish (binding, channel, method))
                         delivered = TRUE;
                     if (amq_server_config_trace_route (amq_server_config))
-                        icl_console_print ("X: have_hit match=%s hits=%d binding=%d",
-                            binding->match_all? "all": "any", hitset->hit_count [binding_nbr], binding_nbr);
+                        asl_log_print (amq_broker->debug_log,
+                            "X: have_hit match=%s hits=%d binding=%d",
+                            binding->match_all? "all": "any",
+                            hitset->hit_count [binding_nbr], binding_nbr);
                 }
             }
         }
@@ -192,7 +196,8 @@ s_compile_binding (
         *index;                         //  Index reference from index_hash
 
     if (amq_server_config_trace_route (amq_server_config))
-        icl_console_print ("X: index    request=%s binding=%d", index_key, binding->index);
+        asl_log_print (amq_broker->debug_log,
+            "X: index    request=%s binding=%d", index_key, binding->index);
 
     if (binding->index < IPR_BITS_SIZE_BITS) {
         index = amq_index_hash_search (self->index_hash, index_key);
@@ -208,7 +213,8 @@ s_compile_binding (
         amq_index_unlink (&index);
     }
     else {
-        icl_console_print ("E: too many bindings, limit is %d", IPR_BITS_SIZE_BITS);
+        asl_log_print (amq_broker->alert_log,
+            "E: too many bindings, limit is %d", IPR_BITS_SIZE_BITS);
         rc = 1;
     }
     return (rc);

@@ -145,7 +145,8 @@ maximum number of consumers per channel is set at compile time.
     if (amq_server_channel_alive (self))
         amq_server_channel_close (self, reply_code, reply_text);
     else
-        icl_console_print ("E: channel exception: (%d) %s", reply_code, reply_text);
+        asl_log_print (amq_broker->alert_log,
+            "E: channel exception: (%d) %s", reply_code, reply_text);
 </method>
 
 <method name = "alive" return = "rc">

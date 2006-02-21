@@ -111,7 +111,7 @@ static amq_console_class_t
     asl_field_new_string (fields, "$(name)", field_value);
 .   endif
 .endfor
-    amq_console_reply_ok (amq_console, "inspect-reply", request, self->object_id, fields);
+    amq_console_reply_ok (amq_console, "inspect-reply", request, self->object_id, fields, NULL);
     asl_field_list_unlink (&fields);
     </action>
 </method>
@@ -144,6 +144,9 @@ static amq_console_class_t
         field_value;
 .   last
 .endfor
+    char 
+        *notice_text = NULL;            //  Notice to UI, if any
+        
 .for global.top->data->class.field
 .   for put
     field = asl_field_list_search (fields, "$(name)");
@@ -154,7 +157,8 @@ static amq_console_class_t
     }
 .   endfor
 .endfor
-    amq_console_reply_ok (amq_console, "modify-reply", request, self->object_id, NULL);
+    amq_console_reply_ok (
+        amq_console, "modify-reply", request, self->object_id, NULL, notice_text);
     </action>
 </method>
 
@@ -184,6 +188,9 @@ static amq_console_class_t
     <action>
     int
         rc = 0;
+    char 
+        *notice_text = NULL;            //  Notice to UI, if any
+
 .for global.top->data->class.method
     if (streq (method_name, "$(method.name)")) {
 .   for field
@@ -227,9 +234,11 @@ static amq_console_class_t
     }
 .endfor
     if (rc == 0)
-        amq_console_reply_ok (amq_console, "method-reply", request, self->object_id, NULL);
+        amq_console_reply_ok (
+            amq_console, "method-reply", request, self->object_id, NULL, notice_text);
     else
-        amq_console_reply_error (amq_console, "method-reply", "invalid", request, self->object_id);
+        amq_console_reply_error (
+            amq_console, "method-reply", "invalid", request, self->object_id);
     </action>
 </method>
 

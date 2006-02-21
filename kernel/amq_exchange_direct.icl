@@ -34,7 +34,8 @@ on the routing_key.
     </local>
     //
     if (amq_server_config_trace_route (amq_server_config))
-        icl_console_print ("X: compile  routing_key=%s", binding->routing_key);
+        asl_log_print (amq_broker->debug_log,
+            "X: compile  routing_key=%s", binding->routing_key);
     hash = amq_hash_new (self->binding_hash, binding->routing_key, binding);
     if (hash)
         amq_hash_unlink (&hash);
@@ -56,7 +57,8 @@ on the routing_key.
      </local>
     //
     if (amq_server_config_trace_route (amq_server_config))
-        icl_console_print ("X: route    routing_key=%s", routing_key);
+        asl_log_print (amq_broker->debug_log,
+            "X: route    routing_key=%s", routing_key);
 
     hash = amq_hash_table_search (self->binding_hash, routing_key);
     if (hash) {

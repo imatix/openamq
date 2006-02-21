@@ -31,6 +31,8 @@ class.
         id;                             //  Object ID
     Bool
         loaded;                         //  Is object data loaded?
+    icl_shortstr_t
+        notice;                         //  Message from server
 .for field
 .   if count (put)
 .       class.modifiable = 1
@@ -540,6 +542,7 @@ s_request_response (
         reply_class  = ipr_xml_attr_get (xml_command, "class",  "");
         reply_status = ipr_xml_attr_get (xml_command, "status", "");
         reply_object = atol (ipr_xml_attr_get (xml_command, "object", ""));
+        icl_shortstr_cpy (self->notice, ipr_xml_attr_get (xml_command, "notice", ""));
 
         if (streq (ipr_xml_name (xml_command), "invalid")) {
             icl_console_print ("E: invalid request sent to console");
@@ -639,7 +642,7 @@ s_set_property ($\(selftype) *self, char *command)
         asl_field_new_string (fields, name, value);
         xml_root = s_request_response (self, "modify", self->id, NULL, fields);
         if (xml_root) {
-            icl_console_print (" OK");
+            icl_console_print (" OK - %s", *self->notice? self->notice: "done");
             ipr_xml_destroy (&xml_root);
             self_load (self);
             self_print_full (self, NULL);

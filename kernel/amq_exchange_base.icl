@@ -79,7 +79,8 @@ This is an abstract base class for all exchange implementations.
         message_id    = basic_content->message_id;
     }
     else
-        icl_console_print ("E: $(selfname) - bad class_id - %d", method->class_id);
+        asl_log_print (amq_broker->alert_log,
+            "E: $(selfname) - bad class_id - %d", method->class_id);
     </header>
     <footer>
     if (delivered == FALSE && mandatory) {
@@ -92,7 +93,8 @@ This is an abstract base class for all exchange implementations.
                     ASL_NOT_DELIVERED,
                     "Message cannot be processed - no route is defined",
                     basic_method->exchange,
-                    routing_key);
+                    routing_key,
+                    NULL);
                 basic_content->returned = TRUE;
                 returned = TRUE;
             }
@@ -100,11 +102,13 @@ This is an abstract base class for all exchange implementations.
     }
     if (amq_server_config_trace_route (amq_server_config)) {
         if (returned)
-            icl_console_print ("X: return   message=%s reason=unroutable_mandatory",
+            asl_log_print (amq_broker->debug_log,
+                "X: return   message=%s reason=unroutable_mandatory",
                 message_id);
         else
         if (!delivered)
-            icl_console_print ("X: discard  message=%s reason=unroutable_optional",
+            asl_log_print (amq_broker->debug_log,
+                "X: discard  message=%s reason=unroutable_optional",
                 message_id);
     }
     </footer>

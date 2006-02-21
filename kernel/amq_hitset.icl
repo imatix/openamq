@@ -46,7 +46,9 @@
         item_nbr = ipr_bits_first (index->bindset);
         while (item_nbr >= 0) {
             if (amq_server_config_trace_route (amq_server_config))
-                icl_console_print ("X: route    header=%s binding=%d", index_key, item_nbr);
+                asl_log_print (amq_broker->debug_log,
+                    "X: route    header=%s binding=%d",
+                    index_key, item_nbr);
             if (item_nbr < self->lowest)
                 self->lowest = item_nbr;
             //  We don't nullify this object so initialise new hit counts

@@ -1,5 +1,35 @@
-amq_shell
+Todo
+    - server restart still failing
+    - memory leaks on certain accesses
 
+logging
+    - logs:
+        - trace, daily, alert
+        -> trace, alert cc'd to stderr
+        
+    - s/verbosity/tracing/
+        - trace protocol 1,2,3
+        - trace logins
+        - trace cluster
+        - trace queues
+        - trace routing
+        - trace console
+        - trace errors
+        - trace warnings
+        - trace broker
+        - trace overflow
+        - trace limits
+    
+- multilevel config
+    - e.g. user names, groups
+    - we can do this using objects...
+    - amq_user, amq_group
+    
+
+amq_shell
+- show queues by number of messages
+    - general sort by option?
+- show page by page, with more option
 - config save, only items that are not default
 - select item by name, 'vhost /' -> first matching prefix
 - execute from command line
@@ -42,6 +72,66 @@ amq_shell
         - name/pass
 
 
+openamq chip
+    ... snapshot of openamq.org...
+    
+    - presentation
+        - example use cases
+        - functionality
+        - technical design
+        - main features
+            - pub/sub
+            - amq implementation
+            - exchanges
+            - limits
+            - capacity
+            - self-regulation
+            - installation
+            - configuration
+            - remote administration
+            - security
+            - clustering
+            - logging
+            - reporting
+                - log file analysis?
+                - statistics collection
+            - performance
+                - tuning
+            - portability
+            - WireAPI
+        - standards organisation
+        - support organisation
+        - partners & supported products
+        - contact model
+    - screenshots
+        - web gui
+        - server
+        - shell
+        - performance graphs
+        - statistics
+
+    - pdf whitepapers, reports
+        - conformance test results
+        - performance & tuning
+        - technical implementation
+    - binaries 1.0cn
+        - win32, solaris, linux
+        - packages with notes
+    - source code
+        - packages
+        - howto build
+    - sample applications
+        - chat
+        - file transfer
+        - trivial application framework (taf)
+    - documentation, html & pdf
+        - WireAPI specs
+        - PAL user guide
+        - Clustering guide
+        - Console technical specs
+        - Server handbook
+    - technical reference material
+        
 
 
 Fixes

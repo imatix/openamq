@@ -21,21 +21,30 @@
 .   if type = "Bool"
         <field name = "$(name)" type = "bool" label = "$(string.trim (property.?''):left)">
           <get>icl_shortstr_fmt (field_value, "%d", amq_server_config_$(name) (amq_server_config));</get>
-.       if dynamic ?= 1
-          <put>amq_server_config_set_$(name) (amq_server_config, atoi (field_value));</put>
+          <put>
+          amq_server_config_set_$(name) (amq_server_config, atoi (field_value));
+.       if !defined (dynamic)
+          notice_text = "To activate the new $(name) setting, restart the broker";
 .       endif
-.   elsif metat = "string"
+          </put>
+.   elsif metat = "shorts" | metat = "string" 
         <field name = "$(name)" type = "string" label = "$(string.trim (property.?''):left)">
           <get>icl_shortstr_cpy (field_value, amq_server_config_$(name) (amq_server_config));</get>
-.       if dynamic ?= 1
-          <put>amq_server_config_set_$(name) (amq_server_config, field_value);</put>
+          <put>
+          amq_server_config_set_$(name) (amq_server_config, field_value);
+.       if !defined (dynamic)
+          notice_text = "To activate the new $(name) setting, restart the broker";
 .       endif
+          </put>
 .   else
         <field name = "$(name)" type = "int" label = "$(string.trim (property.?''):left)">
           <get>icl_shortstr_fmt (field_value, "%ld", amq_server_config_$(name) (amq_server_config));</get>
-.       if dynamic ?= 1
-          <put>amq_server_config_set_$(name) (amq_server_config, atol (field_value));</put>
+          <put>
+          amq_server_config_set_$(name) (amq_server_config, atol (field_value));
+.       if !defined (dynamic)
+          notice_text = "To activate the new $(name) setting, restart the broker";
 .       endif
+          </put>
 .   endif
         </field>
 .endfor

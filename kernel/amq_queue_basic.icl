@@ -13,6 +13,8 @@ runs lock-free as a child of the asynchronous queue class.
 <inherit class = "amq_queue_base" />
 
 <context>
+    Bool
+        discarded;                      //  Have we already discarded
 </context>
 
 <method name = "new">
@@ -49,7 +51,8 @@ runs lock-free as a child of the asynchronous queue class.
     //  We queue and then call the dispatcher, which has all the logic
     //  needed to find a consumer for the message...
     if (amq_server_config_trace_queue (amq_server_config))
-        icl_console_print ("Q: publish  queue=%s message=%s",
+        asl_log_print (amq_broker->debug_log,
+            "Q: publish  queue=%s message=%s",
             self->queue->name, content->message_id);
 
     //  If queue is full, drop something...
@@ -61,44 +64,49 @@ runs lock-free as a child of the asynchronous queue class.
                 *oldest;
             oldest = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
             amq_content_basic_unlink (&oldest);
-            icl_console_print ("W: queue is full (%d messages) - discarding newest", queue_limit);
         }
-        else {
-            content = NULL;             //  Forget about it...
-            icl_console_print ("W: queue is full (%d messages) - discarding oldest", queue_limit);
+        else
+            content = NULL;             //  Discard current content
+
+        if (!self->discarded) {
+            asl_log_print (amq_broker->alert_log,
+                "W: queue %s exceeded %d messages, dropping data",
+                self->queue->name, queue_limit);
+            self->discarded = TRUE;
         }
     }
-    ipr_meter_count (amq_broker->imeter);
-
     if (content) {
         amq_content_basic_link (content);
         ipr_looseref_queue (self->content_list, content);
+    }
+    ipr_meter_count (amq_broker->imeter);
+    rc = self_dispatch (self);
 
-        //  Dispatch and handle case where no message was sent
-        if (self_dispatch (self) == 0) {
-            if (immediate) {
-                ipr_looseref_pop (self->content_list);
-                if (amq_server_channel_alive (channel)
-                && !content->returned) {
-                    amq_server_agent_basic_return (
-                        channel->connection->thread,
-                        channel->number,
-                        content,
-                        ASL_NOT_DELIVERED,
-                        "No immediate consumers for Basic message",
-                        content->exchange,
-                        content->routing_key);
-                    content->returned = TRUE;
+    if (rc == CONSUMER_NONE) {
+        if (content && immediate) {
+            ipr_looseref_pop (self->content_list);
+            if (amq_server_channel_alive (channel)
+            && !content->returned) {
+                amq_server_agent_basic_return (
+                    channel->connection->thread,
+                    channel->number,
+                    content,
+                    ASL_NOT_DELIVERED,
+                    "No immediate consumers for Basic message",
+                    content->exchange,
+                    content->routing_key,
+                    NULL);
+                content->returned = TRUE;
 
-                    if (amq_server_config_trace_queue (amq_server_config))
-                        icl_console_print ("Q: return   queue=%s message=%s",
-                            self->queue->name, content->message_id);
-                }
-                amq_content_basic_unlink (&content);
+                if (amq_server_config_trace_queue (amq_server_config))
+                    asl_log_print (amq_broker->debug_log,
+                        "Q: return   queue=%s message=%s",
+                        self->queue->name, content->message_id);
             }
-            else
-                amq_queue_pre_dispatch (self->queue);
+            amq_content_basic_unlink (&content);
         }
+        else
+            amq_queue_pre_dispatch (self->queue);
     }
 </method>
 
@@ -118,7 +126,8 @@ runs lock-free as a child of the asynchronous queue class.
     </local>
     //
     if (amq_server_config_trace_queue (amq_server_config))
-        icl_console_print ("Q: dispatch queue=%s nbr_messages=%d nbr_consumers=%d",
+        asl_log_print (amq_broker->debug_log,
+            "Q: dispatch queue=%s nbr_messages=%d nbr_consumers=%d",
             self->queue->name,
             ipr_looseref_list_count (self->content_list),
             amq_consumer_by_queue_count (self->active_consumers));
@@ -127,41 +136,49 @@ runs lock-free as a child of the asynchronous queue class.
     && amq_consumer_by_queue_count (self->active_consumers)) {
         content = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
         assert (content);
-        consumer = s_get_next_consumer (self, content->producer_id, content->cluster_id);
-        if (!consumer) {
+
+        rc = s_get_next_consumer (
+            self, content->producer_id, content->cluster_id, &consumer);
+
+        if (rc == CONSUMER_FOUND) {
+            //TODO: need reference count to ensure channel does not disappear
+            amq_server_agent_basic_deliver (
+                consumer->channel->connection->thread,
+                consumer->channel->number,
+                content,
+                consumer->tag,
+                0,                          //  Delivery tag
+                FALSE,                      //  Redelivered
+                content->exchange,
+                content->routing_key,
+                consumer);
             if (amq_server_config_trace_queue (amq_server_config))
-                icl_console_print ("Q: finish  queue=%s reason=no_consumers",
-                    self->queue->name);
+                asl_log_print (amq_broker->debug_log,
+                    "Q: deliver  queue=%s message=%s",
+                    self->queue->name, content->message_id);
+
+            //  Move consumer to end of queue to implement a round-robin
+            amq_consumer_by_queue_queue (self->active_consumers, consumer);
+            amq_content_basic_unlink (&content);
+            amq_consumer_unlink (&consumer);
+            ipr_meter_count (amq_broker->xmeter);
+            rc++;
+        }
+        else
+        if (rc == CONSUMER_BUSY) {
+            ipr_looseref_push (self->content_list, content);
+            break;                      //  No consumers right now
+        }
+        else
+        if (rc == CONSUMER_NONE) {
+            if (amq_server_config_trace_queue (amq_server_config))
+                asl_log_print (amq_broker->debug_log,
+                    "Q: finish  queue=%s reason=no_consumers", self->queue->name);
 
             //  If no consumer for content, push back to front of queue
             ipr_looseref_push (self->content_list, content);
             break;                      //  No available consumers
         }
-        if (amq_server_channel_alive (consumer->channel)
-        &&  amq_server_agent_basic_deliver (
-            consumer->channel->connection->thread,
-            consumer->channel->number,
-            content,
-            consumer->tag,
-            0,                          //  Delivery tag
-            FALSE,                      //  Redelivered
-            content->exchange,
-            content->routing_key) == 0) {
-
-            if (amq_server_config_trace_queue (amq_server_config))
-                icl_console_print ("Q: deliver  queue=%s message=%s",
-                    self->queue->name, content->message_id);
-
-            //  Move consumer to end of queue to implement a round-robin
-            amq_consumer_by_queue_queue (self->active_consumers, consumer);
-            amq_consumer_unlink (&consumer);
-            amq_content_basic_unlink (&content);
-            ipr_meter_count (amq_broker->xmeter);
-            rc++;
-        }
-        else
-            //  In the rare case this fails, push content back to front of queue
-            ipr_looseref_push (self->content_list, content);
     }
 </method>
 
@@ -190,7 +207,8 @@ runs lock-free as a child of the asynchronous queue class.
                 FALSE,                  //  Redelivered
                 content->exchange,
                 content->routing_key,
-                ipr_looseref_list_count (self->content_list));
+                ipr_looseref_list_count (self->content_list),
+                NULL);
             amq_content_basic_unlink (&content);
             ipr_meter_count (amq_broker->xmeter);
         }

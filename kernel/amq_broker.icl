@@ -34,8 +34,11 @@
         <field name = "contents_out" type = "int" label = "Total messages sent">
           <get>icl_shortstr_fmt (field_value, "%d", self->contents_out);</get>
         </field>
-        <field name = "memorymb" type = "int" label = "Current memory consumption, MB">
-          <get>icl_shortstr_fmt (field_value, "%d", icl_mem_used () / (1024 * 1024));</get>
+        <field name = "activemb" type = "int" label = "Active memory consumption">
+          <get>icl_shortstr_fmt (field_value, "%lu", (qbyte) ipr_bucket_used ());</get>
+        </field>
+        <field name = "cachedmb" type = "int" label = "Cached memory consumption">
+          <get>icl_shortstr_fmt (field_value, "%lu", (qbyte) icl_mem_used ());</get>
         </field>
         <field name = "connections" type = "int" label = "Number of active connections">
           <get>icl_shortstr_fmt (field_value, "%d", amq_server_connection_count ());</get>
@@ -97,25 +100,27 @@
           broker process will exit.
           </doc>
           <exec>
-            icl_console_print ("W: operator requested shutdown - closing all connections");
+            asl_log_print (amq_broker->alert_log,
+                "W: operator requested shutdown - closing all connections");
             smt_shut_down ();
           </exec>
         </method>
-
-        <!-- not supported by icl/smt
+        
+        <!-- Not working yet
         <method name = "restart" label = "Restart broker">
           <doc>
           Restarts the broker. All client connections are broken, and the
           broker process will then restart.
           </doc>
           <exec>
-            icl_console_print ("W: operator requested restart - closing all connections");
+            asl_log_print (amq_broker->alert_log,
+                "W: operator requested restart - closing all connections");
             self->restart = TRUE;       //  Tell main line to restart
             smt_shut_down ();
           </exec>
         </method>
-         -->
-         
+        -->
+        
         <method name = "lock" label = "Prevent new connections">
           <doc>
           Locks or unlocks the broker. When the broker is locked it will refuse
@@ -123,6 +128,17 @@
           </doc>
           <field name = "setting" type = "bool" label = "1|0"/>
           <exec>self->locked = setting;</exec>
+        </method>
+
+        <method name = "shake" label = "Shake broker memory">
+          <doc>
+          Shakes the broker, which forces it to do a garbage collection. The
+          method is not recommended during heavy use since it can cause the
+          broker to stop responding to applications for a second or more.
+          However it can be useful to write a console program to shake the
+          broker at regular intervals.
+          </doc>
+          <exec>icl_system_purge ();</exec>
         </method>
     </class>
 </data>
@@ -139,7 +155,6 @@
     int
         monitor_timer,                  //  Monitor timer
         dump_state_timer,               //  Dump state timer
-        recycler_timer,                 //  Memory recycle timer
         auto_crash_timer,               //  Automatic failure
         auto_block_timer;               //  Automatic blockage
     ipr_meter_t
@@ -155,7 +170,7 @@
     //  the host value.
     icl_shortstr_cpy (self->host, amq_server_config_cluster_host (amq_server_config));
     </header>
-
+    //
     //  We use a single global vhost for now
     //  TODO: load list of vhosts from config file
     amq_vhost = amq_vhost_new (self, "/");
@@ -164,7 +179,6 @@
     self->imeter = ipr_meter_new ();
     self->monitor_timer    = amq_server_config_monitor    (amq_server_config);
     self->dump_state_timer = amq_server_config_dump_state (amq_server_config);
-    self->recycler_timer   = amq_server_config_recycler   (amq_server_config);
     self->auto_crash_timer = amq_server_config_auto_crash (amq_server_config);
     self->auto_block_timer = amq_server_config_auto_block (amq_server_config);
 
@@ -177,7 +191,7 @@
 
 <method name = "destroy">
     <action>
-    amq_vhost_destroy          (&amq_vhost);
+    amq_vhost_destroy (&amq_vhost);
     amq_console_config_destroy (&amq_console_config);
     ipr_meter_destroy (&self->xmeter);
     ipr_meter_destroy (&self->imeter);
@@ -218,13 +232,15 @@
             self->monitor_timer = amq_server_config_monitor (amq_server_config);
 
             if (ipr_meter_mark (self->xmeter, amq_server_config_monitor (amq_server_config)))
-                icl_console_print ("I: external message rate=%d average=%d peak=%d",
+                asl_log_print (amq_broker->debug_log,
+                    "I: external message rate=%d average=%d peak=%d",
                     self->xmeter->current,
                     self->xmeter->average,
                     self->xmeter->maximum);
 
             if (ipr_meter_mark (self->imeter, amq_server_config_monitor (amq_server_config)))
-                icl_console_print ("I: internal message rate=%d average=%d peak=%d",
+                asl_log_print (amq_broker->debug_log,
+                    "I: internal message rate=%d average=%d peak=%d",
                     self->imeter->current,
                     self->imeter->average,
                     self->imeter->maximum);
@@ -233,63 +249,35 @@
     if (self->dump_state_timer) {
         self->dump_state_timer--;
         if (self->dump_state_timer == 0) {
-            static qbyte
-                connections = 0,
-                messages = 0,
-                memorymb = 0,
-                exchanges = 0,
-                queues = 0,
-                consumers = 0,
-                bindings = 0;
-
             self->dump_state_timer = amq_server_config_dump_state (amq_server_config);
 
-            //  Only print the state if it's changed
-            if (connections != amq_server_connection_count ()
-            ||  messages    != amq_content_basic_count ()
-            ||  memorymb    != icl_mem_used () / (1024 * 1024)
-            ||  exchanges   != amq_exchange_count ()
-            ||  queues      != amq_queue_count ()
-            ||  consumers   != amq_consumer_count ()
-            ||  bindings    != amq_binding_count ()) {
-
-                connections = amq_server_connection_count ();
-                messages    = amq_content_basic_count ();
-                memorymb    = icl_mem_used () / (1024 * 1024);
-                exchanges   = amq_exchange_count ();
-                queues      = amq_queue_count ();
-                consumers   = amq_consumer_count ();
-                bindings    = amq_binding_count ();
-
-                icl_console_print ("I: cnn=%ld msg=%ld mem=%ldMB exc=%ld que=%ld csm=%ld bnd=%ld",
-                    connections,
-                    messages,
-                    memorymb,
-                    exchanges,
-                    queues,
-                    consumers,
-                    bindings);
-            }
-        }
-    }
-    if (self->recycler_timer) {
-        self->recycler_timer--;
-        if (self->recycler_timer == 0) {
-            self->recycler_timer = amq_server_config_recycler (amq_server_config);
-            icl_system_purge ();
+        asl_log_print (amq_broker->alert_log,
+            "I: cnn=%ld msg=%ld mem=%luB/%luB exc=%ld que=%ld csm=%ld bnd=%ld",
+            amq_server_connection_count (),
+            amq_content_basic_count (),
+            (qbyte) ipr_bucket_used (),
+            (qbyte) icl_mem_used (),
+            amq_exchange_count (),
+            amq_queue_count (),
+            amq_consumer_count (),
+            amq_binding_count ());
         }
     }
     if (self->auto_crash_timer) {
         if (--self->auto_crash_timer == 0) {
-            icl_console_print ("W: #########################  AUTO-CRASH  ########################");
-            icl_console_print ("W: server is now emulating a system crash, and will exit brutally.");
+            asl_log_print (amq_broker->alert_log,
+                "W: #########################  AUTO-CRASH  ########################");
+            asl_log_print (amq_broker->alert_log,
+                "W: server is now emulating a system crash, and will exit brutally.");
             exit (0);
         }
     }
     if (self->auto_block_timer) {
         if (--self->auto_block_timer == 0) {
-            icl_console_print ("W: #########################  AUTO-BLOCK  ########################");
-            icl_console_print ("W: server is now emulating a blockage, and will freeze for 5 minutes.");
+            asl_log_print (amq_broker->alert_log,
+                "W: #########################  AUTO-BLOCK  ########################");
+            asl_log_print (amq_broker->alert_log,
+                "W: server is now emulating a blockage, and will freeze for 5 minutes.");
             sleep (300);
         }
     }

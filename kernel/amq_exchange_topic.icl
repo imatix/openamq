@@ -58,7 +58,8 @@ specification.
     regexp = ipr_regexp_new (binding->regexp);
 
     if (amq_server_config_trace_route (amq_server_config))
-        icl_console_print ("X: reindex  wildcard=%s", binding->routing_key);
+        asl_log_print (amq_broker->debug_log,
+            "X: reindex  wildcard=%s", binding->routing_key);
 
     //  We scan all indices to see which ones match our regexp
     for (index_nbr = 0; index_nbr < self->index_array->bound; index_nbr++) {
@@ -66,7 +67,8 @@ specification.
         if (index) {
             if (ipr_regexp_match (regexp, index->key, NULL)) {
                 if (amq_server_config_trace_route (amq_server_config))
-                    icl_console_print ("X: index    wildcard=%s routing_key=%s",
+                    asl_log_print (amq_broker->debug_log,
+                        "X: index    wildcard=%s routing_key=%s",
                         binding->routing_key, index->key);
 
                 //  Cross-reference binding and index
@@ -97,7 +99,8 @@ specification.
     index = amq_index_hash_search (self->index_hash, routing_key);
     if (index == NULL) {
         if (amq_server_config_trace_route (amq_server_config))
-            icl_console_print ("X: reindex  routing_key=%s", routing_key);
+            asl_log_print (amq_broker->debug_log,
+                "X: reindex  routing_key=%s", routing_key);
 
         //  Create new index and recompile all bindings for it
         index = amq_index_new (self->index_hash, routing_key, self->index_array);
@@ -109,7 +112,8 @@ specification.
             regexp = ipr_regexp_new ((*iterator)->regexp);
             if (ipr_regexp_match (regexp, routing_key, NULL)) {
                 if (amq_server_config_trace_route (amq_server_config))
-                    icl_console_print ("X: index  routing_key=%s wildcard=%s",
+                    asl_log_print (amq_broker->debug_log,
+                        "X: index  routing_key=%s wildcard=%s",
                         routing_key, (*iterator)->routing_key);
 
                 //  Cross-reference binding and index
@@ -121,14 +125,16 @@ specification.
         }
     }
     if (amq_server_config_trace_route (amq_server_config))
-        icl_console_print ("X: route    routing_key=%s", routing_key);
+        asl_log_print (amq_broker->debug_log,
+            "X: route    routing_key=%s", routing_key);
 
     assert (index);
     binding_nbr = ipr_bits_first (index->bindset);
     while (binding_nbr >= 0) {
         binding = self->exchange->binding_index->data [binding_nbr];
         if (amq_server_config_trace_route (amq_server_config))
-            icl_console_print ("X: hit      wildcard=%s", binding->routing_key);
+            asl_log_print (amq_broker->debug_log,
+                "X: hit      wildcard=%s", binding->routing_key);
         if (amq_binding_publish (binding, channel, method))
             delivered = TRUE;
         binding_nbr = ipr_bits_next (index->bindset, binding_nbr);

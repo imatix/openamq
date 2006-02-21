@@ -23,7 +23,7 @@ Defines a virtual host. This is a lock-free asynchronous class.
         <class name = "exchange" label = "Message exchanges" repeat = "1">
           <local>
             amq_exchange_list_iterator_t
-                exchange_p;
+                exchange_p = NULL;
           </local>
           <get>
             if (!amq_exchange_list_empty (self->exchange_list)) {
@@ -98,7 +98,7 @@ $(selftype)
     //TODO: load config from directory
     //TODO: amq_server object, holding vhost hash table
     icl_shortstr_cpy (self->name, name);
-    icl_console_print ("I: starting virtual host '%s'", self->name);
+    asl_log_print (amq_broker->daily_log, "I: starting virtual host '%s'", self->name);
 
     self->broker = broker;
     self->config = amq_vhost_config_new (NULL, NULL, FALSE);
@@ -113,7 +113,6 @@ $(selftype)
     s_exchange_declare (self, "$default$",  AMQ_EXCHANGE_DIRECT,  TRUE);
     s_exchange_declare (self, "amq.fanout", AMQ_EXCHANGE_FANOUT,  FALSE);
     s_exchange_declare (self, "amq.direct", AMQ_EXCHANGE_DIRECT,  FALSE);
-    s_exchange_declare (self, "amq.reply",  AMQ_EXCHANGE_DIRECT,  FALSE);
     s_exchange_declare (self, "amq.topic",  AMQ_EXCHANGE_TOPIC,   FALSE);
     s_exchange_declare (self, "amq.match",  AMQ_EXCHANGE_HEADERS, FALSE);
     s_exchange_declare (self, "amq.system", AMQ_EXCHANGE_SYSTEM,  FALSE);
@@ -122,7 +121,6 @@ $(selftype)
 
 <method name = "destroy">
     <action>
-    icl_console_print ("I: stopping virtual host '%s'", self->name);
     amq_vhost_config_destroy   (&self->config);
     amq_exchange_table_destroy (&self->exchange_table);
     amq_exchange_list_destroy  (&self->exchange_list);

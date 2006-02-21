@@ -50,6 +50,8 @@ for Basic, File, and Stream content classes.
         no_ack,                         //  Auto acknowledge messages
         exclusive,                      //  Exclusive access?
         clustered;                      //  Is consumer clustered?
+    qbyte
+        busy;                           //  Is consumer sending stuff?
 </context>
 
 <method name = "new">

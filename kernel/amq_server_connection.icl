@@ -28,8 +28,6 @@ This class implements the connection class for the AMQ server.
         *mgt_object;                    //  Management object
     amq_queue_list_t
         *own_queue_list;                //  List of exclusive queues
-    amq_queue_list_t
-        *wait_queue_list;               //  Queues wanting to write to us
     amq_consumer_table_t
         *consumer_table;                //  Consumers for connection
     icl_shortstr_t
@@ -43,10 +41,9 @@ This class implements the connection class for the AMQ server.
 </context>
 
 <method name = "new">
-    self->own_queue_list  = amq_queue_list_new ();
-    self->wait_queue_list = amq_queue_list_new ();
-    self->consumer_table  = amq_consumer_table_new ();
-    self->mgt_object      = amq_connection_new (amq_broker, self);
+    self->own_queue_list = amq_queue_list_new ();
+    self->consumer_table = amq_consumer_table_new ();
+    self->mgt_object     = amq_connection_new (amq_broker, self);
     icl_shortstr_fmt (self->cluster_id, "%s/%s", amq_broker->name, self->id);
 </method>
 
@@ -54,7 +51,6 @@ This class implements the connection class for the AMQ server.
     amq_connection_destroy (&self->mgt_object);
     amq_vhost_unlink       (&self->vhost);
     amq_queue_list_destroy (&self->own_queue_list);
-    amq_queue_list_destroy (&self->wait_queue_list);
     amq_consumer_table_destroy (&self->consumer_table);
 </method>
 
@@ -100,18 +96,17 @@ This class implements the connection class for the AMQ server.
     if (self)
         amq_server_connection_exception (self, reply_code, reply_text);
     else
-        icl_console_print ("E: connection exception: (%d) %s", reply_code, reply_text);
+        asl_log_print (amq_broker->alert_log,
+            "E: connection exception: (%d) %s", reply_code, reply_text);
 </method>
 
 <method name = "start ok" template = "function">
     //
     //  Server only supports plain authentication for now
     //
-    if (amq_server_config_trace_login (amq_server_config))
-        icl_console_print ("L: start-ok from=%s product=%s version=%s",
-            self->client_address,
-            self->client_product,
-            self->client_version);
+    asl_log_print (amq_broker->daily_log,
+        "I: start login from=%s product=%s version=%s",
+        self->client_address, self->client_product, self->client_version);
 
     switch (s_auth_plain (self, method)) {
         case AMQ_CONNECTION_TYPE_NORMAL:
@@ -151,7 +146,8 @@ This class implements the connection class for the AMQ server.
                 amq_cluster_balance_client (amq_cluster, self);
         }
         else {
-            icl_console_print ("E: client at %s tried to connect to invalid vhost '%s'",
+            asl_log_print (amq_broker->alert_log,
+                "E: client at %s tried to connect to invalid vhost '%s'",
                 self->client_address, method->virtual_host);
             self_exception (self, ASL_INVALID_PATH, "Cluster vhost is not correct");
         }
@@ -164,57 +160,38 @@ This class implements the connection class for the AMQ server.
         amq_server_agent_connection_open_ok (self->thread, NULL);
 </method>
 
-<method name = "wait queue" template = "function">
+<method name = "callback link">
     <doc>
-    Attach a queue to our wait list, which means the queue will be
-    signalled when the connection is free to send messages again.
+    Virtualised function that lets the connection create a reference to
+    the callback object used to control output of contents.  The server
+    agent calls this method before sending an output content.
     </doc>
-    <argument name = "queue" type = "amq_queue_t *">Queue reference</argument>
     <local>
-    amq_queue_list_iterator_t
-        iterator;
+    amq_consumer_t
+        *consumer = (amq_consumer_t *) callback;
     </local>
-    //
-    //  Only store the queue if it's not already on the list
-    //  This is a very temporary way of limiting the number of
-    //  times a queue gets onto this list... once we're happy
-    //  with the mechanism we'll move it into the vhost.
-    //
-    iterator = amq_queue_list_begin (self->wait_queue_list);
-    while (iterator) {
-        if (queue == *iterator) {
-            queue = NULL;
-            break;
-        }
-        else
-            iterator = amq_queue_list_next (iterator);
-    }
-    if (queue)
-        amq_queue_list_push_back (self->wait_queue_list, queue);
-
-    if (amq_queue_list_size (self->wait_queue_list) > 100) {
-        icl_console_print ("## Queue wakeup overflow, please notify Pieter");
-        exit (1);
+    if (consumer) {
+        amq_consumer_link (consumer);
+        icl_atomic_inc32 ((volatile qbyte *) &consumer->busy);
     }
 </method>
 
-<method name = "finish output" template = "function">
+<method name = "callback unlink">
+    <doc>
+    Virtualised function that lets the connection destroy a reference to
+    the callback object used to control output of contents.  The server
+    agent calls this method after sending an output content.
+    </doc>
     <local>
-    amq_queue_t
-        *queue;                         //  Queue to dispatch
-    int
-        list_size;                      //  Number of queues to process
+    amq_consumer_t
+        *consumer = *((amq_consumer_t **) callback_p);
     </local>
-    //
-    //  Tell all waiting queues to dispatch
-    //
-    list_size = amq_queue_list_size (self->wait_queue_list);
-    while (list_size && !amq_queue_list_empty (self->wait_queue_list)) {
-        queue = *amq_queue_list_begin (self->wait_queue_list);
-        amq_queue_list_pop_front (self->wait_queue_list);
-        amq_queue_dispatch (queue);
-        list_size--;                    //  In case list is being modified
-    }   
+    if (consumer) {
+        icl_atomic_dec32 ((volatile qbyte *) &consumer->busy);
+        if (!consumer->busy)
+            amq_queue_dispatch (consumer->queue);
+        amq_consumer_unlink (&consumer);
+    }
 </method>
 
 <private name = "header">
@@ -253,7 +230,8 @@ static int s_auth_plain (
     config = ipr_config_dup (amq_server_config->config);
     ipr_config_locate (config, "/config/security", "plain");
     if (!config->located) {
-        icl_console_print ("E: no 'plain' security defined in server config");
+        asl_log_print (amq_broker->alert_log,
+            "E: no 'plain' security defined in server config");
         self_exception (self, ASL_INTERNAL_ERROR, "Bad server configuration");
         asl_field_list_unlink (&fields);
         return (0);
@@ -274,12 +252,12 @@ static int s_auth_plain (
             if (streq (type, "cluster"))
                 self->type = AMQ_CONNECTION_TYPE_CLUSTER;
             else {
-                icl_console_print ("E: invalid user type '%s' in config", type);
+                asl_log_print (amq_broker->alert_log,
+                    "E: invalid user type '%s' in config", type);
                 self_exception (self, ASL_INTERNAL_ERROR, "Bad server configuration");
             }
-            if (amq_server_config_trace_login (amq_server_config))
-                icl_console_print ("L: login    from=%s user=%s type=%s",
-                    self->client_address, login, type);
+            asl_log_print (amq_broker->daily_log,
+                "I: valid login from=%s user=%s type=%s", self->client_address, login, type);
             break;
         }
         ipr_config_next (config);
