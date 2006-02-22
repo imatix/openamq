@@ -4,10 +4,10 @@
     <property name="basename" value="CommonCollections"/>
     <property name="debug" value="true"/>
 
-    <if propertyexists="debug" propertytrue="debug">
+    <if test="${debug}">
         <property name="targetdir" value="bin/${nant.settings.currentframework}/Debug"/>
     </if>
-    <ifnot propertyexists="debug" propertytrue="debug">
+    <ifnot test="${debug}">
         <property name="targetdir" value="bin/${nant.settings.currentframework}/Release"/>
     </ifnot>
 
