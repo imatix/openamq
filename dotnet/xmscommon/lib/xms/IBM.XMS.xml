@@ -1,0 +1,2785 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>IBM.XMS</name>
+    </assembly>
+    <members>
+        <member name="T:IBM.XMS.DeliveryMode">
+            <summary>
+            Persistent and Non-Persistent message delivery flags
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.DeliveryMode.NonPersistent">
+            <summary>Non persistent delivery</summary>
+        </member>
+        <member name="F:IBM.XMS.DeliveryMode.Persistent">
+            <summary>Persistent delivery</summary>
+        </member>
+        <member name="T:IBM.XMS.XMSException">
+            <summary>
+            If an error is detected while processing a call to a XMS
+            method, an XMS exception can be thrown. XMSException
+            is the base class for all XMS specific exceptions.
+            </summary>      
+        </member>
+        <member name="M:IBM.XMS.XMSException.#ctor(System.String)">
+            <summary>
+            Constructs an exception with the specified reason and with the error code
+            defaulting to null.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.XMSException.#ctor(System.String,System.String)">
+            <summary>
+            Constructs an exception with the specified reason and error code.
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.XMSException.ErrorCode">
+            <summary>
+            Gets the vendor-specific error code.
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.XMSException.LinkedException">
+            <summary>
+            Gets the exception linked to this one.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.IllegalStateException">
+            <summary>
+            
+            XMS throws this exception if an application calls a
+            method at an incorrect or inappropriate time, or if XMS
+            is not in an appropriate state for the requested
+            operation.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IllegalStateException.#ctor(System.String,System.String)">
+            <summary>
+            Constructs an exception with the specified reason and error code.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IllegalStateException.#ctor(System.String)">
+            <summary>
+            Constructs an exception with the specified reason and with the error code
+            defaulting to null.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.InvalidClientIDException">
+            <summary>
+            XMS throws this exception if an application attempts to
+            set a client identifier for a connection, but the client
+            identifier is not valid or is already in use.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.InvalidClientIDException.#ctor(System.String,System.String)">
+            <summary>
+            Constructs an exception with the specified reason and error code.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.InvalidClientIDException.#ctor(System.String)">
+            <summary>
+            Constructs an exception with the specified reason and with the error code
+            defaulting to null.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.InvalidDestinationException">
+            <summary>
+            XMS throws this exception if an application specifies a
+            destination that is not valid.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.InvalidDestinationException.#ctor(System.String,System.String)">
+            <summary>
+            Constructs an exception with the specified reason and error code.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.InvalidDestinationException.#ctor(System.String)">
+            <summary>
+            Constructs an exception with the specified reason and with the error code
+            defaulting to null.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.InvalidSelectorException">
+            <summary>
+            XMS throws this exception if an application provides a
+            message selector expression whose syntax is not valid.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.InvalidSelectorException.#ctor(System.String,System.String)">
+            <summary>
+            Constructs an exception with the specified reason and error code.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.InvalidSelectorException.#ctor(System.String)">
+            <summary>
+            Constructs an exception with the specified reason and with the error code
+            defaulting to null.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.SecurityException">
+            <summary>
+            XMS throws this exception if the user identifer and
+            password provided to authenticate an application are
+            rejected. XMS also throws this exception if an authority
+            check fails and prevents a method from completing.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.SecurityException.#ctor(System.String,System.String)">
+            <summary>
+            Constructs an exception with the specified reason and error code.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.SecurityException.#ctor(System.String)">
+            <summary>
+            Constructs an exception with the specified reason and with the error code
+            defaulting to null.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.MessageFormatException">
+            <summary>
+            XMS throws this exception if XMS encounters a
+            message with a format that is not valid.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.MessageFormatException.#ctor(System.String,System.String)">
+            <summary>
+            Constructs an exception with the specified reason and error code.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.MessageFormatException.#ctor(System.String)">
+            <summary>
+            Constructs an exception with the specified reason and with the error code
+            defaulting to null.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.MessageEOFException">
+            <summary>
+            XMS throws this exception if XMS encounters the end
+            of a bytes message stream when an application is
+            reading the body of a bytes message.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.MessageEOFException.#ctor(System.String,System.String)">
+            <summary>
+            Constructs an exception with the specified reason and error code.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.MessageEOFException.#ctor(System.String)">
+            <summary>
+            Constructs an exception with the specified reason and with the error code
+            defaulting to null.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.MessageNotReadableException">
+            <summary>
+            XMS throws this exception if an application attempts to
+            read the body of a message that is write-only.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.MessageNotReadableException.#ctor(System.String,System.String)">
+            <summary>
+            Constructs an exception with the specified reason and error code.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.MessageNotReadableException.#ctor(System.String)">
+            <summary>
+            Constructs an exception with the specified reason and with the error code
+            defaulting to null.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.MessageNotWriteableException">
+            <summary>
+            XMS throws this exception if an application attempts to
+            write the body of a message that is read-only.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.MessageNotWriteableException.#ctor(System.String,System.String)">
+            <summary>
+            Constructs an exception with the specified reason and error code.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.MessageNotWriteableException.#ctor(System.String)">
+            <summary>
+            Constructs an exception with the specified reason and with the error code
+            defaulting to null.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.ResourceAllocationException">
+            <summary>
+            XMS throws this exception if XMS cannot allocate the
+            resources required by a method.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ResourceAllocationException.#ctor(System.String,System.String)">
+            <summary>
+            Constructs an exception with the specified reason and error code.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ResourceAllocationException.#ctor(System.String)">
+            <summary>
+            Constructs an exception with the specified reason and with the error code
+            defaulting to null.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.TransactionInProgressException">
+            <summary>
+            XMS throws this exception if an application requests an
+            operation that is not valid because a transaction is in
+            progress.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.TransactionInProgressException.#ctor(System.String,System.String)">
+            <summary>
+            Constructs an exception with the specified reason and error code.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.TransactionInProgressException.#ctor(System.String)">
+            <summary>
+            Constructs an exception with the specified reason and with the error code
+            defaulting to null.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.TransactionRolledBackException">
+            <summary>
+            XMS throws this exception if an application calls
+            Session.commit() to commit the current transaction, but
+            the transaction is subsequently rolled back.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.TransactionRolledBackException.#ctor(System.String,System.String)">
+            <summary>
+            Constructs an exception with the specified reason and error code.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.TransactionRolledBackException.#ctor(System.String)">
+            <summary>
+            Constructs an exception with the specified reason and with the error code
+            defaulting to null.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.IBytesMessage">
+            <summary>
+            A BytesMessage object is used to send a message containing a stream of
+            uninterpreted bytes. It inherits from the Message interface and adds a bytes
+            message body. When the message is first created, and when clearBody is called,
+            the body of the message is in write-only mode. After the first call to reset has
+            been made, the message body is in read-only mode. After a message has been sent,
+            the client that sent it can retain and modify it without affecting the message
+            that has been sent. The same message object can be sent multiple times. When a
+            message has been received, XMS will call reset so that the message body is in
+            read-only mode for the client. 
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.IMessage">
+            <summary>
+            Base message interface. The IMessage interface is the parent of all
+            message objects. It can be used in the messaging functions to
+            represent any of the 6 message types.  
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.IPropertyContext">
+            <summary>
+            PropertyContext Interface
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.GetBooleanProperty(System.String)">
+            <summary>
+            Get boolean property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.GetByteProperty(System.String)">
+            <summary>
+            Get byte property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.GetSignedByteProperty(System.String)">
+            <summary>
+            Get signed byte property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.GetBytesProperty(System.String)">
+            <summary>
+            Get byte array property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.GetCharProperty(System.String)">
+            <summary>
+            Get char property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.GetDoubleProperty(System.String)">
+            <summary>
+            Get double property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.GetFloatProperty(System.String)">
+            <summary>
+            Get float property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.GetIntProperty(System.String)">
+            <summary>
+            Get int property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.GetLongProperty(System.String)">
+            <summary>
+            Get long property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.GetObjectProperty(System.String)">
+            <summary>
+            Get object property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.GetShortProperty(System.String)">
+            <summary>
+            Get short property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.GetStringProperty(System.String)">
+            <summary>
+            Get string property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.SetBooleanProperty(System.String,System.Boolean)">
+            <summary>
+            Set boolean property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <param name="value"></param>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.SetByteProperty(System.String,System.Byte)">
+            <summary>
+            Set byte property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <param name="value"></param>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.SetSignedByteProperty(System.String,System.Int16)">
+            <summary>
+            Set signed byte property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <param name="value"></param>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.SetBytesProperty(System.String,System.Byte[])">
+            <summary>
+            Set byte array property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <param name="value"></param>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.SetCharProperty(System.String,System.Char)">
+            <summary>
+            Set char property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <param name="value"></param>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.SetDoubleProperty(System.String,System.Double)">
+            <summary>
+            Set double property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <param name="value"></param>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.SetFloatProperty(System.String,System.Single)">
+            <summary>
+            Set float property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <param name="value"></param>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.SetIntProperty(System.String,System.Int32)">
+            <summary>
+            Set int property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <param name="value"></param>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.SetLongProperty(System.String,System.Int64)">
+            <summary>
+            Set long property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <param name="value"></param>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.SetObjectProperty(System.String,System.Object)">
+            <summary>
+            Set object property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <param name="value"></param>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.SetShortProperty(System.String,System.Int16)">
+            <summary>
+            Set short property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <param name="value"></param>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.SetStringProperty(System.String,System.String)">
+            <summary>
+            Set string property with specified name.
+            </summary>
+            <param name="property_name"></param>
+            <param name="value"></param>
+        </member>
+        <member name="M:IBM.XMS.IPropertyContext.PropertyExists(System.String)">
+            <summary>
+            Check if property exists with the specified name.
+            </summary>
+            <param name="propertyName"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IBM.XMS.IMessage.Acknowledge">
+            <summary>
+            Acknowledges all received messages in the session that this message 
+            belongs to.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMessage.ClearBody">
+            <summary>
+            Clears out the message body. Clearing a message's body does not clear 
+            its header values or property entries. 
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMessage.ClearProperties">
+            <summary>
+            Clears a message's properties. The message's header fields and body 
+            are not cleared.
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IMessage.JMSCorrelationID">
+            <summary>
+            Gets the correlation ID for the message as a string.
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IMessage.JMSCorrelationIDAsBytes">
+            <summary>
+            In Java and .Net, this gets the correlation ID for the message as an array of 
+            bytes.  The size of the CorrelId byte array will depend on the transport.
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IMessage.JMSDeliveryMode">
+            <summary>
+            Get the delivery mode (persistence) of the message. 
+            The message producer's default delivery mode is Persistent.
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IMessage.JMSDestination">
+            <summary>
+            Gets the Destination to which the message is being sent. When a message 
+            is sent, this value is ignored. 
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IMessage.JMSExpiration">
+            <summary>
+            Gets the message's JMSExpiration header value in milliseconds since 
+            1970.01.01 00:00 GMT. 
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IMessage.JMSMessageID">
+            <summary>
+            Gets the message ID. 
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IMessage.JMSPriority">
+            <summary>
+            Gets the message priority level. The XMS client supports ten levels of priority,
+            with 0 as the lowest and 9 as the highest.  
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IMessage.JMSRedelivered">
+            <summary>
+            Gets an indication of whether this message is being redelivered.  
+            If the JMSRedelivered property is true for a message, it is likely, 
+            but not guaranteed, that this message was delivered earlier but that 
+            its receipt was not acknowledged at that time.
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IMessage.JMSReplyTo">
+            <summary>
+            Gets the Destination object to which a reply to this message 
+            should be sent. 
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IMessage.JMSTimestamp">
+            <summary>
+            Gets the message timestamp (the time a message was sent by the client). 
+            It is not the time the message was actually transmitted, because the 
+            actual send may be delayed due to transactions or client-side queueing 
+            of messages. 
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IMessage.JMSType">
+            <summary>
+            Get the message type.  
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IMessage.PropertyNames">
+            <summary>
+            Gets an enumeration of the property names of the message.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.Reset">
+            <summary>
+            Puts the message body in read-only mode and repositions the stream of bytes to
+            the beginning. 
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to reset the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotReadableException">
+             if the message is in write-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.ReadBoolean">
+            <summary>
+            Reads a boolean from the bytes message stream. 
+            </summary>
+            <returns>
+            </returns>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageEOFException">
+             if unexpected end of bytes stream has been reached.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotReadableException">
+             if the message is in write-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.ReadByte">
+            <summary>
+            Reads a byte from the bytes message stream. 
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageEOFException">
+             if unexpected end of bytes stream has been reached.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotReadableException">
+             if the message is in write-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.ReadSignedByte">
+            <summary>
+            Reads the next byte from the bytes message as a signed 8-bit integer 
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageEOFException">
+             if unexpected end of bytes stream has been reached.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotReadableException">
+             if the message is in write-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.ReadBytes(System.Byte[])">
+            <summary>
+            Read a byte array from the bytes message stream and return the number of bytes
+            read.
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotReadableException">
+             if the message is in write-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.ReadBytes(System.Byte[],System.Int32)">
+            <summary>
+            Read a byte array from the bytes message stream and return the number of bytes
+            read.
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotReadableException">
+             if the message is in write-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.ReadChar">
+            <summary>
+            Reads a two byte character from the bytes message stream. 
+            </summary>
+            <returns>
+            </returns>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageEOFException">
+             if unexpected end of bytes stream has been reached.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotReadableException">
+             if the message is in write-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.ReadDouble">
+            <summary>
+            Reads an eight byte double value from the bytes message.
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageEOFException">
+             if unexpected end of bytes stream has been reached.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotReadableException">
+             if the message is in write-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.ReadFloat">
+            <summary>
+            Reads a four byte float  from the bytes message stream. 
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageEOFException">
+             if unexpected end of bytes stream has been reached.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotReadableException">
+             if the message is in write-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.ReadInt">
+            <summary>
+            Reads a four byte (signed 32-bit integer) from the bytes message stream. 
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageEOFException">
+             if unexpected end of bytes stream has been reached.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotReadableException">
+             if the message is in write-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.ReadLong">
+            <summary>
+            Reads the next eight bytes from the bytes message as a  a signed 64-bit integer.
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageEOFException">
+             if unexpected end of bytes stream has been reached.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotReadableException">
+             if the message is in write-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.ReadShort">
+            <summary>
+            Reads the next two bytes from the bytes message as a signed 16-bit integer. 
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageEOFException">
+             if unexpected end of bytes stream has been reached.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotReadableException">
+             if the message is in write-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.ReadUTF">
+            <summary>
+            Reads a string that has been encoded using UTF-8 format from the 
+            bytes message.
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageEOFException">
+             if unexpected end of bytes stream has been reached.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotReadableException">
+             if the message is in write-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.ReadUnsignedShort">
+            <summary>
+            Reads the next two bytes from the bytes message as an unsigned 16-bit number.
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageEOFException">
+             if unexpected end of bytes stream has been reached.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotReadableException">
+             if the message is in write-only mode.
+            </exception> 
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.WriteBoolean(System.Boolean)">
+            <summary>
+            Writes a boolean to the bytes message stream.
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotWriteableException">
+             if the message is in read-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.WriteByte(System.Byte)">
+            <summary>
+            Writes a byte to the bytes message stream as a 1-byte value.
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotWriteableException">
+             if the message is in read-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.WriteSignedByte(System.Int16)">
+            <summary>
+            Writes a signed byte to the bytes message stream.
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotWriteableException">
+             if the message is in read-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.WriteBytes(System.Byte[])">
+            <summary>
+            Writes a byte array to the bytes message stream. 
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotWriteableException">
+             if the message is in read-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.WriteBytes(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Writes a byte array to the bytes message stream. 
+            The length is the number of bytes to write.
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotWriteableException">
+             if the message is in read-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.WriteChar(System.Char)">
+            <summary>
+            Writes a char to the bytes message stream as a 2-byte value, high-order
+            byte first.
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotWriteableException">
+             if the message is in read-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.WriteDouble(System.Double)">
+            <summary>
+            Converts the double argument to a long using the same technique as the java
+            Double.doubleToLongBits() method, and then writes that long value to the bytes
+            message stream as an 8-byte quantity, high byte first. 
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotWriteableException">
+             if the message is in read-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.WriteFloat(System.Single)">
+            <summary>
+            Converts the float argument to an int using the same technique as the java
+            Float.floatToIntBits() method, and then writes that int value to the bytes
+            message stream as a 4-byte quantity, high byte first. 
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotWriteableException">
+             if the message is in read-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.WriteInt(System.Int32)">
+            <summary>
+            Writes an int to the bytes message stream as four bytes, high byte first. 
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotWriteableException">
+             if the message is in read-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.WriteLong(System.Int64)">
+            <summary>
+            Writes a long to the bytes message stream as eight bytes, high byte first. 
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotWriteableException">
+             if the message is in read-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.WriteObject(System.Object)">
+            <summary>
+            Write specified object which should be one of the primitive types  into the byte
+            message stream.
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotWriteableException">
+             if the message is in read-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.WriteShort(System.Int16)">
+            <summary>
+            Writes a short to the bytes message stream as two bytes, high byte first. 
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotWriteableException">
+             if the message is in read-only mode.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IBytesMessage.WriteUTF(System.String)">
+            <summary>
+            Writes a string to the bytes message stream using UTF-8 encoding. 
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotWriteableException">
+             if the message is in read-only mode.
+            </exception>
+        </member>
+        <member name="P:IBM.XMS.IBytesMessage.BodyLength">
+            <summary>
+            Gets the number of bytes of the message body when the message is in  read-only
+            mode. The value returned is the entire length of the message body, regardless of
+            where the cursor for reading the message is currently located. 
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to read the message due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.MessageNotReadableException">
+             if the message is in write-only mode.
+            </exception>
+        </member>
+        <member name="T:IBM.XMS.AcknowledgeMode">
+            <summary>
+            Acknowledge mode for messages.
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.AcknowledgeMode.AutoAcknowledge">
+            <summary>Session will automatically acknowledge messages.</summary>
+        </member>
+        <member name="F:IBM.XMS.AcknowledgeMode.ClientAcknowledge">
+            <summary>Client will explicitly acknowledge messages.</summary>
+        </member>
+        <member name="F:IBM.XMS.AcknowledgeMode.DupsOkAcknowledge">
+            <summary>Lazy acknowledge which can lead to duplicate messages.</summary>
+        </member>
+        <member name="F:IBM.XMS.AcknowledgeMode.SessionTransacted">
+            <summary>Transacted session</summary>
+        </member>
+        <member name="T:IBM.XMS.ExceptionListener">
+            <summary>
+            Delegate for an exception listener which can be registered with the
+            connection in order to receive notifications for connection problems.
+            </summary>
+            <param name="ex">
+            Exception details
+            </param>
+        </member>
+        <member name="T:IBM.XMS.IConnection">
+            <summary>
+            The Connection object  is created via the ConnectionFactory class and is
+            responsible for creating Sessions. Creating a connection is expected to be
+            relatively expensive because it involves establishing a communication session,
+            and authenticating the client. 
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IConnection.Close">
+            <summary>
+            Closing a connection causes any of its sessions' in-process transactions 
+            to be rolled back. Closing a connection does not force an acknowledgement 
+            of client acknowledged sessions. 
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to close the connection due to some internal error.
+            For example, a failure to release resources or to close a socket connection can
+            cause this exception to be thrown.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IConnection.Start">
+            <summary>
+            Start (or restart) a connection's delivery of incoming messages. 
+            Starting a started session is ignored. Use the stop method to stop 
+            delivery. 
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to start message delivery due to some internal error.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IConnection.Stop">
+            <summary>
+            Used to stop a connection's delivery of incoming messages temporarily. It 
+            can be restarted using its start method. When stopped, delivery to all the 
+            connection's message consumers is inhibited. Synchronous receives are 
+            blocked, and messages are not delivered to message listeners. 
+            Stopping a session has no affect on its ability to send messages. Stopping 
+            a stopped session is ignored. 
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to stop message delivery due to some internal error.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IConnection.CreateSession(System.Boolean,IBM.XMS.AcknowledgeMode)">
+            <summary>
+            Creates a session.  
+            </summary>
+            
+            <param name="transacted">
+            Whether the session is transacted
+            </param>
+            <param name="acknowledgeMode">
+            Acknowledge mode (Auto/DupsOK/Client)
+            </param>
+            <returns>
+            Session
+            </returns>
+            <exception cref="T:IBM.XMS.XMSException">
+             if the Connection object fails to create a session due to some internal error
+            or lack of support for the specific transaction and acknowledgement mode.
+            </exception>
+        </member>
+        <member name="P:IBM.XMS.IConnection.ClientID">
+            <summary>
+            Get the client identifier for this connection. The client identifier can 
+            either be preconfigured by the administrator in a ConnectionFactory, 
+            or assigned by calling setClientId. 
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+            if the JMS provider fails to return the client ID for this connection due to
+            some internal error.
+            </exception>
+        </member>
+        <member name="P:IBM.XMS.IConnection.MetaData">
+            <summary>
+            Get the metadata for this connection
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+            if the JMS providerfails to get the connection metadata for this connection.
+            </exception>
+        </member>
+        <member name="P:IBM.XMS.IConnection.ExceptionListener">
+            <summary>
+            Get the ExceptionListener function pointers and context pointer for this 
+            connection.  Returns NULLs if no exception listener has been registered.
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+            if the JMS provider fails to get the ExceptionListener for this connection.
+            </exception>
+        </member>
+        <member name="T:IBM.XMS.IConnectionFactory">
+            <summary>
+            In JMS the Java ConnectionFactory is a class that is typically defined using
+            JNDI.  This administered object approach is the most  flexible way to specify
+            ConnectionFactory's because object definitions can be changed without changing
+            any code.  
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IConnectionFactory.CreateConnection">
+            <summary>
+            Create a connection with default user identity. If the  ConnectionFactory
+            properties XMSC.USERID and XMSC.PASSWORD have been  set, they will be used to
+            authenticate the connection.  If those properties are not set, an
+            unauthenticated connection will be created (if permitted by the Broker).
+            </summary>
+            
+            <returns>
+            Newly created connection object.
+            </returns>
+            <exception cref="T:IBM.XMS.XMSException">
+            if the provider fails to create the connection due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.SecurityException">
+              if client authentication fails due to an invalid user name or password.
+            </exception>
+        </member>
+        <member name="M:IBM.XMS.IConnectionFactory.CreateConnection(System.String,System.String)">
+            <summary>
+            Create a connection with the specified user identity. 
+            </summary>
+            
+            <param name="userId">
+            User ID
+            </param>
+            <param name="password">
+            Password
+            </param>
+            <returns>
+            Newly created connection object
+            </returns>
+            <exception cref="T:IBM.XMS.XMSException">
+            if the provider fails to create the connection due to some internal error.
+            </exception>
+            <exception cref="T:IBM.XMS.SecurityException">
+              if client authentication fails due to an invalid user name or password.
+            </exception>
+        </member>
+        <member name="T:IBM.XMS.IConnectionMetaData">
+            <summary>
+            A ConnectionMetaData object provides information about a connection.
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IConnectionMetaData.JMSXPropertyNames">
+            <summary>
+            Get a list of the JMSX properties supported by this connection.  
+            This method returns an enumerator of the JMSX properties 
+            that are supported for messages sent over this connection type.
+            </summary>
+            
+            <exception cref="T:IBM.XMS.XMSException">
+             if the JMS provider fails to retrieve metadata due to some internal error.
+            </exception>
+        </member>
+        <member name="T:IBM.XMS.IContext">
+            <summary>
+            IContext interface representing naming contexts. This is a readonly-interface to examine name-to-object
+            bindings.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IContext.AddToEnvironment(System.String,System.Object)">
+            <summary>
+            Add a new property to the environment
+            </summary>
+            <param name="propName">Name of property</param>
+            <param name="propVal">Value of property</param>
+            <returns>Old value of property</returns>
+        </member>
+        <member name="M:IBM.XMS.IContext.RemoveFromEnvironment(System.String)">
+            <summary>
+            Remove a property from the environment
+            </summary>
+            <param name="propName">Name of property</param>
+            <returns>Object removed</returns>
+        </member>
+        <member name="M:IBM.XMS.IContext.Lookup(System.String)">
+            <summary>
+            Retrieve a named object.
+            </summary>
+            <param name="name">Name of object</param>
+            <returns></returns>
+        </member>
+        <member name="M:IBM.XMS.IContext.Close">
+            <summary>
+            Close this context.
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IContext.Environment">
+            <summary>
+            Get the environment
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.DestinationType">
+            <summary>
+            Destination type (queue or topic)
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.DestinationType.Queue">
+            <summary>Queue destination</summary>
+        </member>
+        <member name="F:IBM.XMS.DestinationType.Topic">
+            <summary>Topic destination</summary>
+        </member>
+        <member name="T:IBM.XMS.IDestination">
+            <summary>
+            As with the ConnectionFactory, the most flexible way for XMS applications to
+            specify Destinations, is to define them as administered objects. This approach
+            allows clients written in C, C++ and .NET languages, as well as Java, to all
+            share the same definition of the Destination.  The properties of administered
+            Destination objects can be changed without changing any code.  
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IDestination.TypeId">
+            <summary>
+            Returns the destination's type.
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IDestination.Name">
+            <summary>
+            Returns the base destination name - that is, the base queue, or 
+            topic name.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.IMapMessage">
+            <summary>
+            The MapMessage is built from a set of name-value pairs, where the names are
+            strings and the values are primitive XMS types.  The values can be accessed
+            sequentially, via  xmsMsgGetProperties(), which returns an iterator listing all
+            the properties, or randomly by name.  
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.ItemExists(System.String)">
+            <summary>
+            Indicates whether a map item exists in the map message.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.GetBoolean(System.String)">
+            <summary>
+            Get the boolean value identified by name from the body of the map message.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.GetByte(System.String)">
+            <summary>
+            Get the byte value identified by name from the body of the map message.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.GetSignedByte(System.String)">
+            <summary>
+            Get the signed byte value identified by name from the body of the map message.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.GetBytes(System.String)">
+            <summary>
+            Get the array of bytes  identified by name from the body of the map message.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.GetChar(System.String)">
+            <summary>
+            Get the two-byte character identified by name from the body of the map message.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.GetDouble(System.String)">
+            <summary>
+            Get the double value identified by name from the body of the map message.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.GetFloat(System.String)">
+            <summary>
+            Get the float value identified by name from the body of the map message.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.GetInt(System.String)">
+            <summary>
+            Get the int value identified by name from the body of the map message.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.GetLong(System.String)">
+            <summary>
+            Get the 8-byte long value identified by name from the body of the map message.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.GetObject(System.String)">
+            <summary>
+            Get the object value identified by name from the body of the map message. 
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.GetShort(System.String)">
+            <summary>
+            Get the short value identified by name from the body of the map message.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.GetString(System.String)">
+            <summary>
+            Get the string value identified by name from the body of the map message.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.SetBoolean(System.String,System.Boolean)">
+            <summary>
+            Sets a boolean value in the body of the map message
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.SetByte(System.String,System.Byte)">
+            <summary>
+            Sets a byte value in the body of the map message
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.SetSignedByte(System.String,System.Int16)">
+            <summary>
+            Sets a signed byte value in the body of the map message
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.SetBytes(System.String,System.Byte[])">
+            <summary>
+            Sets an array of bytes  in the body of the map message
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.SetBytes(System.String,System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Sets an array of bytes  in the body of the map message
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.SetChar(System.String,System.Char)">
+            <summary>
+            Sets a character value in the body of the map message
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.SetDouble(System.String,System.Double)">
+            <summary>
+            Sets a double value in the body of the map message
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.SetFloat(System.String,System.Single)">
+            <summary>
+            Sets a float value in the body of the map message
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.SetInt(System.String,System.Int32)">
+            <summary>
+            Sets an int value in the body of the map message
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.SetLong(System.String,System.Int64)">
+            <summary>
+            Sets a long value in the body of the map message
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.SetObject(System.String,System.Object)">
+            <summary>
+            Set an object into the Map. In C/C++, the object is specified as a byte array.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.SetShort(System.String,System.Int16)">
+            <summary>
+            Sets a short value in the body of the map message
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMapMessage.SetString(System.String,System.String)">
+            <summary>
+            Sets a string value in the body of the map message
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IMapMessage.MapNames">
+            <summary>
+            Get a list of the name-value pairs for this message.  
+            This function returns an iterator of the name-value pairs in 
+            the Map message body.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.MessageListener">
+            <summary>
+            Message listener delegate. Can be registered with a consumer
+            in order to receive messages asynchronously.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.IMessageConsumer">
+            <summary>
+            An application uses a message consumer to receive messages sent to a
+            destination.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMessageConsumer.Close">
+            <summary>
+            Frees the resources used by the message consumer.  
+            A call to close for a Consumer that is already closed will be ignored.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMessageConsumer.Receive">
+            <summary>
+            Synchronously receive a message.  This function waits indefinitely for
+            a message.  If the Message Consumer is closed while this function 
+            is waiting, a NULL message handle is returned
+            </summary>
+            <returns>
+            </returns>
+        </member>
+        <member name="M:IBM.XMS.IMessageConsumer.Receive(System.Int64)">
+            <summary>
+            Receive the next available message.  
+            This function waits for the specified number of milliseconds for a message.
+            A value of zero means the function waits indefinitely.  
+            A NULL message handle is returned if no message is available in the time 
+            period or if the Consumer is closed.
+            </summary>
+            
+            <param name="delay">
+            The time, in milliseconds, that the call waits for a message. If you specify a
+            wait interval of zero, the call waits indefinitely for a message.
+            </param>
+        </member>
+        <member name="M:IBM.XMS.IMessageConsumer.ReceiveNoWait">
+            <summary>
+            Receive the next message if one is available.  
+            A NULL message handle is returned if no message is available
+            or if the Consumer is closed.
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IMessageConsumer.MessageSelector">
+            <summary>
+            Retrieves the message selector that this message consumer was created 
+            with.
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IMessageConsumer.MessageListener">
+            <summary>
+            Get or sets the consumer's message listener for
+            asynchronous operation.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.IMessageProducer">
+            <summary>
+            An application uses a message producer to send messages to a destination.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMessageProducer.Close">
+            <summary>
+            Frees  resources used by the message producer.  
+            A call to close for a message producer that is already closed will 
+            be ignored.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IMessageProducer.Send(IBM.XMS.IMessage)">
+            <summary>
+            Send a message to the destination that was specified when this producer 
+            was created.  The producer's defaults will be used for Priority, Time 
+            to Live, and Delivery Mode.
+            </summary>
+            
+            <param name="msg">
+            The Message object.
+            </param>
+        </member>
+        <member name="M:IBM.XMS.IMessageProducer.Send(IBM.XMS.IMessage,IBM.XMS.DeliveryMode,System.Int32,System.Int64)">
+            <summary>
+            Send a message to the destination that was specified when this producer 
+            was created.  This function allows the message Priority, Time to Live, 
+            and Delivery Mode to be specified.
+            </summary>
+            
+            <param name="msg">
+            The Message object.
+            </param>
+            <param name="deliveryMode">
+            The delivery mode for the message.
+            </param>
+            <param name="priority">
+            The priority of the message. The value can be an integer in the range 0, for the
+            lowest priority, to 9, for the highest priority. If the connection uses
+            WebSphere MQ Real-Time Transport, the value is ignored.
+            </param>
+            <param name="timeToLive">
+            The time to live for the message in milliseconds. A value of zero means that the
+            message never expires. If the connection uses WebSphere MQ Real-Time Transport,
+            the value must be zero.
+            </param>
+        </member>
+        <member name="M:IBM.XMS.IMessageProducer.Send(IBM.XMS.IDestination,IBM.XMS.IMessage)">
+            <summary>
+            Send a message to the specified destination using the producer's 
+            default Priority, Time to Live, and Delivery Mode.
+            </summary>
+            
+            <param name="dest">
+            The Destination object.
+            </param>
+            <param name="msg">
+            The Message object.
+            </param>
+        </member>
+        <member name="M:IBM.XMS.IMessageProducer.Send(IBM.XMS.IDestination,IBM.XMS.IMessage,IBM.XMS.DeliveryMode,System.Int32,System.Int64)">
+            <summary>
+            Send a message to the specified destination using the specified 
+            Priority, Time to Live, and Delivery Mode.
+            </summary>
+            
+            <param name="msg">
+            The Message object.
+            </param>
+            <param name="dest">
+            The Destination object.
+            </param>
+            <param name="deliveryMode">
+            The delivery mode for the message.
+            </param>
+            <param name="priority">
+            The priority of the message. The value can be an integer in the range 0, for the
+            lowest priority, to 9, for the highest priority. If the connection uses
+            WebSphere MQ Real-Time Transport, the value is ignored.
+            </param>
+            <param name="timeToLive">
+            The time to live for the message in milliseconds. A value of zero means that the
+            message never expires. If the connection uses WebSphere MQ Real-Time Transport,
+            the value must be zero.
+            </param>
+        </member>
+        <member name="P:IBM.XMS.IMessageProducer.DeliveryMode">
+            <summary>
+            Returns the message delivery mode (persistent or non-persistent) for 
+            this message producer.  
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IMessageProducer.DisableMessageID">
+            <summary>
+            Check whether message ids are disabled.
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IMessageProducer.DisableMessageTimestamp">
+            <summary>
+            Check whether message timestamps are disabled.
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IMessageProducer.Priority">
+            <summary>
+            Returns the default message priority for the producer .
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IMessageProducer.TimeToLive">
+            <summary>
+            Returns the default length of time in milliseconds from its dispatch 
+            time before a produced message expires.
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IMessageProducer.Destination">
+            <summary>
+            Returns the destination for the producer (if one is specified).  Returns
+            NULL if not destination was specified.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.InitialContext">
+            <summary>
+            InitialContext for administered objects. Initial context implements the IContext interface, 
+            and is the starting point for resolution of names.
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.InitialContext.FILE_URL_PREFIX">
+            <summary>Prefix used for file system based provider URL</summary>
+        </member>
+        <member name="F:IBM.XMS.InitialContext.LDAP_URL_PREFIX">
+            <summary>Prefix used for ldap system based provider URL</summary>
+        </member>
+        <member name="F:IBM.XMS.InitialContext.HTTP_URL_PREFIX">
+            <summary>Prefix used for webservice based  URL</summary>
+        </member>
+        <member name="F:IBM.XMS.InitialContext.COSNAMING_URL_PREFIX">
+            <summary>Prefix used for cosnaming based provider URL</summary>
+        </member>
+        <member name="F:IBM.XMS.InitialContext.WEBSERVICES_URL_PREFIX">
+            <summary>Prefix used for webservice based provider URL</summary>
+        </member>
+        <member name="F:IBM.XMS.InitialContext.env">
+            <summary>Table of environment props</summary>
+        </member>
+        <member name="M:IBM.XMS.InitialContext.#ctor">
+            <summary>
+            Default constructor
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.InitialContext.#ctor(System.Collections.Hashtable)">
+            <summary>
+            Create an initial context with the specified properties.
+            </summary>
+            <param name="env"></param>
+        </member>
+        <member name="M:IBM.XMS.InitialContext.AddToEnvironment(System.String,System.Object)">
+            <summary>
+            Add a new property to the environment
+            </summary>
+            <param name="propName">Name of property</param>
+            <param name="propVal">Value of property</param>
+            <returns>Old value of property</returns>
+        </member>
+        <member name="M:IBM.XMS.InitialContext.RemoveFromEnvironment(System.String)">
+            <summary>
+            Remove a property from the environment
+            </summary>
+            <param name="propName">Name of property</param>
+            <returns>Object removed</returns>
+        </member>
+        <member name="M:IBM.XMS.InitialContext.Lookup(System.String)">
+            <summary>
+            Retrieve a named object.
+            </summary>
+            <param name="name">Name of object</param>
+            <returns></returns>
+        </member>
+        <member name="M:IBM.XMS.InitialContext.Close">
+            <summary>
+            Close this context.
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.InitialContext.Environment">
+            <summary>
+            Get the environment
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.IObjectMessage">
+            <summary>
+            ObjectMessages represent serialised Java objects.  XMS supports the sending and
+            receiving of Object messages, and the manipulation of Header and Property
+            values.  .  The body of Object messages is treated as a byte stream by XMS. 
+            XMS will support getting/setting the body of an object message, treating the
+            data as a BytesArray
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IObjectMessage.GetObject">
+            <summary>
+            Read a the object from the object message as a byte array.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IObjectMessage.SetObject(System.Byte[])">
+            <summary>
+            Set the object that forms the body of the object message.
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IObjectMessage.Object">
+            <summary>
+            Get/sets the object that forms the body of the object message.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.IQueueBrowser">
+            <summary>
+            An application uses a queue browser to browse messages on a queue without
+            removing them.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IQueueBrowser.Close">
+            <summary>
+            Close the queue browser.
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IQueueBrowser.MessageSelector">
+            <summary>
+            Get the message selector for the queue browser.
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.IQueueBrowser.Queue">
+            <summary>
+            Get the queue associated with the queue browser.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.ISession">
+            <summary>
+            Sessions are XMS objects with the responsibility for producing and consuming
+            messages. A Sessions allow XMS clients to create MessageProducers and
+            MessageConsumers.  
+            Sessions can be used to group messages together into transactions.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.Close">
+            <summary>
+            Close session.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.Commit">
+            <summary>
+            Commits all messages processed in the current transaction.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.Recover">
+            <summary>
+            Recover the session. This stops message delivery and restarts it 
+            with the oldest unacknowledged message. 
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.Rollback">
+            <summary>
+            Rollback the current unit of work. 
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.Unsubscribe(System.String)">
+            <summary>
+            Unsubscribe a durable subscription - this deletes the state being 
+            maintained by the Broker for the durable subscription.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.CreateBytesMessage">
+            <summary>
+            Create a bytes message.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.CreateMapMessage">
+            <summary>
+            Create a map message.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.CreateMessage">
+            <summary>
+            Create a message consisting only of message headers.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.CreateObjectMessage">
+            <summary>
+            Create an object message.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.CreateStreamMessage">
+            <summary>
+            Create a stream message.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.CreateTextMessage">
+            <summary>
+            Create a text message.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.CreateTextMessage(System.String)">
+            <summary>
+            Create a text message, initialised with the given text.
+            To ensure interoperability with JMS, this text data will be converted 
+            into the equivalent of a java.lang.String before being transmitted.  
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.CreateConsumer(IBM.XMS.IDestination)">
+            <summary>
+            Create a consumer session for specified destination.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.CreateConsumer(IBM.XMS.IDestination,System.String)">
+            <summary>
+            Create a message consumer to receiver messages from the specified destination. 
+            The messages will be filtered by the given message selector.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.CreateConsumer(IBM.XMS.IDestination,System.String,System.Boolean)">
+            <summary>
+            Create a message consumer to receiver messages from the specified
+            destination.  The messages will be filtered by the given message selector.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.CreateDurableSubscriber(IBM.XMS.IDestination,System.String)">
+            <summary>
+            Creates a durable subscriber for the specified topic. 
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.CreateDurableSubscriber(IBM.XMS.IDestination,System.String,System.String,System.Boolean)">
+            <summary>
+            Creates a durable subscriber for the specified topic.  The messages will 
+            be filtered by the given message selector.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.CreateProducer(IBM.XMS.IDestination)">
+            <summary>
+            Creates a message producer to send messages to the specified 
+            topic or queue destination.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.CreateQueue(System.String)">
+            <summary>
+            This method is used to create a queue destination object.  
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.CreateTopic(System.String)">
+            <summary>
+            This method is used to create a topic destination object.  
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.CreateTemporaryQueue">
+            <summary>
+            Creates a temporary queue.  The temporary queue is scoped to the
+            connection and can only be used by sessions created for that connection.
+            The temporary queue stays in existence for the life of the connection.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.CreateTemporaryTopic">
+            <summary>
+            Creates a temporary topic.  The temporary topic is scoped to the 
+            connection and can only be used by sessions created for that connection.
+            The temporary topic stays in existence for the life of the connection.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.ISession.CreateBrowser(IBM.XMS.IDestination)">
+            <summary>
+            Create a queue browser.
+            </summary>
+            <param name="queue"></param>
+            <returns></returns>
+        </member>
+        <member name="M:IBM.XMS.ISession.CreateBrowser(IBM.XMS.IDestination,System.String)">
+            <summary>
+            Create a queue browser that selects messages using the specified message
+            selector.
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.ISession.Transacted">
+            <summary>
+            Get the transacted state of the session.  Returns True for 
+            transacted sessions and False for non-transacted sessions.
+            This method always returns False for connections using the 
+            real-time transport.
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.ISession.AcknowledgeMode">
+            <summary>
+            Returns the acknowledge mode for the session
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.IStreamMessage">
+            <summary>
+            StreamMessage is like a MapMessage but without the element names.  It is filled
+            or read sequentially.  
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.ReadBoolean">
+            <summary>
+            Read a boolean value from stream.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.ReadByte">
+            <summary>
+            Read a byte value from stream.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.ReadSignedByte">
+            <summary>
+            Read a signed byte value from stream.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.ReadBytes(System.Byte[])">
+            <summary>
+            Read a byte array value from stream.
+            </summary>
+            <returns>Number of bytes read.</returns>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.ReadChar">
+            <summary>
+            Read a 2-byte character value from the message stream
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.ReadDouble">
+            <summary>
+            Read a double value from stream.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.ReadFloat">
+            <summary>
+            Read a float value from stream.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.ReadInt">
+            <summary>
+            Read an int value from stream.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.ReadLong">
+            <summary>
+            Read a long value from stream.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.ReadObject">
+            <summary>
+            Read an object value from stream.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.ReadShort">
+            <summary>
+            Read a short value from stream.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.ReadString">
+            <summary>
+            Read a string value from stream.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.Reset">
+            <summary>
+            Puts the message body in read-only mode and repositions the stream to the
+            beginning.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.WriteBoolean(System.Boolean)">
+            <summary>
+            Writes a boolean to the message stream. The value true is written as the value
+            1; the value false is written as the value 0. 
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.WriteByte(System.Byte)">
+            <summary>
+            Writes a byte to the message stream as a 1-byte value.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.WriteSignedByte(System.Int16)">
+            <summary>
+            Writes a signed byte to the message stream as a 1-byte value. 
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.WriteBytes(System.Byte[])">
+            <summary>
+            Write a byte array to stream.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.WriteBytes(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Writes a partial byte array to the message stream. 
+            The length is the number of bytes to write.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.WriteChar(System.Char)">
+            <summary>
+            Writes a  character to the message stream as a 2-byte value, high-order
+            byte first. 
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.WriteDouble(System.Double)">
+            <summary>
+            Converts the double argument to a long writes that long value to the  message 
+            stream as an 8-byte quantity, high byte first. 
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.WriteFloat(System.Single)">
+            <summary>
+            Converts the float argument to an int and then writes that int value 
+            to the  message stream as a 4-byte quantity, high byte first. 
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.WriteInt(System.Int32)">
+            <summary>
+            Writes an int to the message stream as four bytes, high byte first. 
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.WriteLong(System.Int64)">
+            <summary>
+            Writes a long to the message stream as eight bytes, high byte first. 
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.WriteObject(System.Object)">
+            <summary>
+            Write an object to stream.
+            </summary>
+            <param name="value"></param>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.WriteShort(System.Int16)">
+            <summary>
+            Writes a short to the message stream as two bytes, high byte first. 
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.IStreamMessage.WriteString(System.String)">
+            <summary>
+            Write a string value to stream.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.ITextMessage">
+            <summary>
+            This is a message containing an encoded string.  
+            </summary>
+        </member>
+        <member name="P:IBM.XMS.ITextMessage.Text">
+            <summary>
+            Reads the text body from the text message.
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.Requestor">
+            <summary>
+            An application uses a requestor to send a request message and then wait for,
+            and receive, the reply.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.Requestor.#ctor(IBM.XMS.ISession,IBM.XMS.IDestination)">
+            <summary>
+            Constructor.
+            </summary>
+            <param name="session"></param>
+            <param name="destination"></param>
+        </member>
+        <member name="M:IBM.XMS.Requestor.Request(IBM.XMS.IMessage)">
+            <summary>
+            Send a request message and then wait for, and receive, the reply.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.Requestor.Close">
+            <summary>
+            Close the requestor.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.Requestor.Dispose">
+            <summary>
+            Dispose of this requestor.
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.Requestor.Dispose(System.Boolean)">
+            <summary>
+            Dispose of this requestor.
+            </summary>
+            <param name="disposing"></param>
+        </member>
+        <member name="T:IBM.XMS.XMSC">
+            <summary>
+            Constants used by XMS.
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.CONNECTION_TYPE">
+            <summary>CONNECTION_TYPE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_CONNECTION_MODE">
+            <summary>WMQ_CONNECTION_MODE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.RTT_CONNECTION_PROTOCOL">
+            <summary>RTT_CONNECTION_PROTOCOL</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.USERID">
+            <summary>USERID</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.PASSWORD">
+            <summary>PASSWORD</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.CLIENT_ID">
+            <summary>CLIENT_ID</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_BUS_NAME">
+            <summary>WPM_BUS_NAME</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_DUR_SUB_HOME">
+            <summary>WPM_DUR_SUB_HOME</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_LOCAL_ADDRESS">
+            <summary>WPM_LOCAL_ADDRESS</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_READ_AHEAD">
+            <summary>WPM_READ_AHEAD</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_TEMP_Q_NAME_PREFIX">
+            <summary>WPM_TEMP_Q_NAME_PREFIX</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_TEMP_TOPIC_NAME_PREFIX">
+            <summary>WPM_TEMP_TOPIC_NAME_PREFIX</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_NON_PERSISTENT_MAP">
+            <summary>WPM_NON_PERSISTENT_MAP</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_PERSISTENT_MAP">
+            <summary>WPM_PERSISTENT_MAP</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_PROVIDER_ENDPOINTS">
+            <summary>WPM_PROVIDER_ENDPOINTS</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_TARGET_GROUP">
+            <summary>WPM_TARGET</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_TARGET_TYPE">
+            <summary>WPM_TARGET_TYPE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_TARGET_SIGNIFICANCE">
+            <summary>WPM_TARGET_SIGNIFICANCE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_TARGET_TRANSPORT_CHAIN">
+            <summary>WPM_TARGET_TRANSPORT_CHAIN</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_CONNECTION_PROXIMITY">
+            <summary>WPM_CONNECTION_PROXIMITY</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.RTT_DIRECT_AUTH">
+            <summary>RTT_DIRECT_AUTH</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.RTT_HOST_NAME">
+            <summary>RTT_HOST_NAME</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.RTT_LOCAL_ADDRESS">
+            <summary>RTT_LOCAL_ADDRESS</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.RTT_MULTICAST">
+            <summary>RTT_MULTICAST - values are defined as RTT_MULTICAST_...</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.RTT_PORT">
+            <summary>RTT_PORT</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.RTT_PROXY_HOSTNAME">
+            <summary>RTT_PROXY_HOSTNAME</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.RTT_PROXY_PORT">
+            <summary>RTT_PROXY_PORT</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_BROKER_CONTROLQ">
+            <summary>WMQ_BROKER_CONTROLQ</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_BROKER_DUR_SUBQ">
+            <summary>WMQ_BROKER_DUR_SUBQ</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_BROKER_PUBQ">
+            <summary>WMQ_BROKER_PUBQ</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_BROKER_QMGR">
+            <summary>WMQ_BROKER_QMGR</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_BROKER_SUBQ">
+            <summary>WMQ_BROKER_SUBQ</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_BROKER_VERSION">
+            <summary>WMQ_BROKER_VERSION</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_CERT_STORES">
+            <summary>WMQ_CERT_STORES</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_CHANNEL">
+            <summary>WMQ_CHANNEL</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_CIPHER_SUITE">
+            <summary>WMQ_CIPHER_SUITE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_CLEANUP_INTERVAL">
+            <summary>WMQ_CLEANUP_INTERVAL</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_CLEANUP_LEVEL">
+            <summary>WMQ_CLEANUP_LEVEL</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_CLIENT_ID">
+            <summary>WMQ_CLIENT_ID</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_FAIL_IF_QUIESCE">
+            <summary>WMQ_FAIL_IF_QUIESCE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_HOST_NAME">
+            <summary>WMQ_HOST_NAME</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_LOCAL_ADDRESS">
+            <summary>WMQ_LOCAL_ADDRESS</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_MESSAGE_SELECTION">
+            <summary>WMQ_MESSAGE_SELECTION</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_MQ_IPADDRV">
+            <summary>WMQ_MQ_IPADDRV</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_MSG_BATCH_SIZE">
+            <summary>WMQ_MSG_BATCH_SIZE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_PEERNAME">
+            <summary>WMQ_PEERNAME</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_POLLING_INTERVAL">
+            <summary>WMQ_POLLING_INTERVAL</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_PORT">
+            <summary>WMQ_PORT</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_PUB_ACK_INTERVAL">
+            <summary>WMQ_PUB_ACK_INTERVAL</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_QMGR_CCSID">
+            <summary>WMQ_QMGR_CCSID</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_QMGR_CHANNEL">
+            <summary>WMQ_QMGR_CHANNEL</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_QUEUE_MANAGER">
+            <summary>WMQ_QUEUE_MANAGER</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_RECEIVE_EXIT">
+            <summary>WMQ_RECEIVE_EXIT</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_RECEIVE_EXIT_INIT">
+            <summary>WMQ_RECEIVE_EXIT_INIT</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_SECURITY_EXIT">
+            <summary>WMQ_SECURITY_EXIT</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_SECURITY_EXIT_INIT">
+            <summary>WMQ_SECURITY_EXIT_INIT</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_SEND_EXIT">
+            <summary>WMQ_SEND_EXIT</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_SEND_EXIT_INIT">
+            <summary>WMQ_SEND_EXIT_INIT</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_SPARSE_SUBSCRIPTIONS">
+            <summary>WMQ_SPARSE_SUBSCRIPTIONS</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_STATUS_REFRESH_INTERVAL">
+            <summary>WMQ_STATUS_REFRESH_INTERVAL</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_SUBSCRIPTION_STORE">
+            <summary>WMQ_SUBSCRIPTION_STORE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_SYNCPOINT_ALL_GETS">
+            <summary>WMQ_SYNCPOINT_ALL_GETS</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_TEMP_Q_PREFIX">
+            <summary>WMQ_TEMP_Q_PREFIX</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_TEMPORARY_MODEL">
+            <summary>WMQ_TEMPORARY_MODEL</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_USE_CONNECTION_POOLING">
+            <summary>WMQ_USE_CONNECTION_POOLING</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_CF_VERSION">
+            <summary>WMQ_CF_VERSION</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_CF_DESCRIPTION">
+            <summary>WMQ_CF_DESCRIPTION</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_MAJOR_VERSION">
+            <summary>JMS_MAJOR_VERSION</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_MINOR_VERSION">
+            <summary>JMS_MINOR_VERSION</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_VERSION">
+            <summary>JMS_VERSION</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.PROVIDER_NAME">
+            <summary>PROVIDER_NAME</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.MAJOR_VERSION">
+            <summary>MAJOR_VERSION</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.MINOR_VERSION">
+            <summary>MINOR_VERSION</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.VERSION">
+            <summary>VERSION</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.TIME_TO_LIVE">
+            <summary>TIME_TO_LIVE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.DELIVERY_MODE">
+            <summary>DELIVERY_MODE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.PRIORITY">
+            <summary>PRIORITY</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_TOPIC_SPACE">
+            <summary>WPM_TOPIC_SPACE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_INHIBIT_DESTINATION">
+            <summary>WPM_INHIBIT_DESTINATION</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_CCSID">
+            <summary>CCSID</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_TARGET_CLIENT">
+            <summary>WMQ_TARGET_CLIENT</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_DUR_SUBQ">
+            <summary>WMQ_DUR_SUBQ</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_BROKER_PUBQ_QMGR">
+            <summary>WMQ_BROKER_PUBQ_QMGR</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_QUEUE_NAME">
+            <summary>WMQ_QUEUE_NAME</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_TOPIC_NAME">
+            <summary>WMQ_TOPIC_NAME</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_ENCODING">
+            <summary>ENCODING</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_DEST_VERSION">
+            <summary> WMQ_DEST_VERSION</summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.IC_URL">
+            <summary>IC_URL</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.IC_PROVIDER_URL">
+            <summary>IC_PROVIDER_URL</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.IC_SECURITY_PROTOCOL">
+            <summary>IC_SECURITY_PROTOCOL</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.IC_SECURITY_AUTHENTICATION">
+            <summary>IC_SECURITY_AUTHENTICATION</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.IC_SECURITY_PRINCIPAL">
+            <summary>IC_SECURITY_PRINCIPAL</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.IC_SECURITY_CREDENTIALS">
+            <summary>IC_SECURITY_CREDENTIALS</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.DISABLE_MSG_ID">
+            <summary>DISABLE_MSG_ID</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.DISABLE_MSG_TS">
+            <summary>DISABLE_MSG_TS</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.IS_SUBSCRIPTION_MULTICAST">
+            <summary>IS_SUBSCRIPTION_MULTICAST</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.IS_SUBSCRIPTION_RELIABLE_MULTICAST">
+            <summary>IS_SUBSCRIPTION_RELIABLE_MULTICAST</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.NOLOCAL">
+            <summary>NOLOCAL</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_DESTINATION">
+            <summary>JMS_DESTINATION</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_DELIVERY_MODE">
+            <summary>JMS_DELIVERY_MODE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_EXPIRATION">
+            <summary>JMS_EXPIRATION</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_PRIORITY">
+            <summary>JMS_PRIORITY</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_MESSAGEID">
+            <summary>JMS_MESSAGEID</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_TIMESTAMP">
+            <summary>JMS_TIMESTAMP</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_CORRELATIONID">
+            <summary>JMS_CORRELATIONID</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_REPLYTO">
+            <summary>JMS_REPLYTO</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_TYPE">
+            <summary>JMS_TYPE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_REDELIVERED">
+            <summary>JMS_REDELIVERED</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMSX_USERID">
+            <summary>JMSX_USERID</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMSX_APPID">
+            <summary>JMSX_APPID</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMSX_DELIVERY_COUNT">
+            <summary>JMSX_DELIVERY_COUNT</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMSX_GROUPID">
+            <summary>JMSX_GROUPID</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMSX_GROUPSEQ">
+            <summary>JMSX_GROUPSEQ</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_REPORT_EXCEPTION">
+            <summary>JMS_IBM_REPORT_EXCEPTION</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_REPORT_EXPIRATION">
+            <summary>JMS_IBM_REPORT_EXPIRATION</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_REPORT_COA">
+            <summary>JMS_IBM_REPORT_COA</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_REPORT_COD">
+            <summary>JMS_IBM_REPORT_COD</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_REPORT_NAN">
+            <summary>JMS_IBM_REPORT_NAN</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_REPORT_PAN">
+            <summary>JMS_IBM_REPORT_PAN</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_REPORT_PASS_MSG_ID">
+            <summary>JMS_IBM_REPORT_PASS_MSG_ID</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_REPORT_PASS_CORREL_ID">
+            <summary>JMS_IBM_REPORT_PASS_CORREL_ID</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_REPORT_DISCARD_MSG">
+            <summary>JMS_IBM_REPORT_DISCARD_MSG</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_MSGTYPE">
+            <summary>JMS_IBM_MSGTYPE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_FEEDBACK">
+            <summary>JMS_IBM_FEEDBACK</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_FORMAT">
+            <summary>JMS_IBM_FORMAT</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_PUTAPPLTYPE">
+            <summary>JMS_IBM_PUTAPPLTYPE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_ENCODING">
+            <summary>JMS_IBM_ENCODING</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_CHARACTER_SET">
+            <summary>JMS_IBM_CHARACTER_SET</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_PUTDATE">
+            <summary>JMS_IBM_PUTDATE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_PUTTIME">
+            <summary>JMS_IBM_PUTTIME</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_LAST_MSG_IN_GROUP">
+            <summary>JMS_IBM_LAST_MSG_IN_GROUP</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_EXCEPTION_REASON">
+            <summary>JMS_IBM_EXCEPTION_REASON</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_EXCEPTION_TIMESTAMP">
+            <summary>JMS_IBM_EXCEPTION_TIMESTAMP</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_EXCEPTION_MESSAGE">
+            <summary>JMS_IBM_EXCEPTION_MESSAGE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_IBM_SYSTEM_MESSAGE_ID">
+            <summary>JMS_IBM_SYSTEM_MESSAGE_ID</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.JMS_EXCEPTION_PROBLEM_DESTINATION">
+            <summary>JMS_EXCEPTION_PROBLEM_DESTINATION</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_CONNECTION_PROTOCOL">
+            <summary>WPM_CONNECTION_PROTOCOL</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_HOST_NAME">
+            <summary>WPM_HOST_NAME</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_PORT">
+            <summary>WPM_PORT</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_ME_NAME">
+            <summary>WPM_ME_NAME</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.ACKNOWLEDGE_MODE">
+            <summary>XMSC_ACKNOWLEDGE_MODE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.TRANSACTED">
+            <summary>XMSC_TRANSACTED</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.DIRECTAUTH_BASIC">
+            <summary>RTT_DIRECT_AUTH = DIRECTAUTH_BASIC</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.DIRECTAUTH_CERTIFICATE">
+            <summary>RTT_DIRECT_AUTH = DIRECTAUTH_CERTIFICATE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.RTT_DEFAULT_PORT">
+            <summary>Default RTT_PORT </summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_DEFAULT_PORT">
+            <summary>Default WMQ_PORT </summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.CT_WMQ">
+            <summary>Connection type WMQ</summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.CT_RTT">
+            <summary>Connection type RTT</summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.CT_WPM">
+            <summary>Connection type WPM</summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_CM_BINDINGS">
+            <summary>WMQ connection mode bindings</summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_CM_CLIENT">
+            <summary>WMQ connection mode client</summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_CM_CLIENT_UNMANAGED">
+            <summary>WMQ connection mode unmanaged client</summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.RTT_CP_TCP">
+            <summary>RTT connection protocol TCP</summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_CP_TCP">
+            <summary>WPM connection protocol TCP</summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_CP_SSL">
+            <summary>WPM connection protocol SSL</summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_CP_HTTP">
+            <summary>WPM connection protocol HTTP</summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_CP_HTTPS">
+            <summary>WPM connection protocol HTTPS</summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_FIQ_YES">
+            <summary>FAIL_IF_QUIESCE = FIQ_YES (default)</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_FIQ_NO">
+            <summary>FAIL_IF_QUIESCE = FIQ_NO</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.RTT_MULTICAST_ASCF">
+            <summary>RTT_MULTICAST = MULTICAST_ASCF</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.RTT_MULTICAST_DISABLED">
+            <summary>RTT_MULTICAST = MULTICAST_DISABLED</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.RTT_MULTICAST_NOT_RELIABLE">
+            <summary>RTT_MULTICAST = MULTICAST_NOT_RELIABLE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.RTT_MULTICAST_RELIABLE">
+            <summary>RTT_MULTICAST = MULTICAST_RELIABLE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.RTT_MULTICAST_ENABLED">
+            <summary>RTT_MULTICAST = MULTICAST_ENABLED</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.DELIVERY_AS_APP">
+            <summary>DELIVERY_MODE = DELIVERY_AS_APP</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.DELIVERY_AS_DEST">
+            <summary>DELIVERY_MODE = DELIVERY_AS_DEST</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.DELIVERY_NOT_PERSISTENT">
+            <summary>DELIVERY_MODE = DELIVERY_NOT_PERSISTENT</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.DELIVERY_PERSISTENT">
+            <summary>DELIVERY_MODE = DELIVERY_PERSISTENT</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.TIME_TO_LIVE_UNLIMITED">
+            <summary>TIME_TO_LIVE = TIME_TO_LIVE_UNLIMITED</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.TIME_TO_LIVE_AS_APP">
+            <summary>TIME_TO_LIVE = TIME_TO_LIVE_AS_APP</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.PRIORITY_AS_DEST">
+            <summary>PRIORITY = PRIORITY_AS_DEST</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.PRIORITY_AS_APP">
+            <summary>PRIORITY = PRIORITY_AS_APP</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_DEFAULT_TCP_PORT">
+            <summary>WPM_PORT Default for TCP</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_DEFAULT_SSL_PORT">
+            <summary>WPM_PORT Default for SSL</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_READ_AHEAD_DEFAULT">
+            <summary>WPM_READ_AHEAD = DEFAULT</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_READ_AHEAD_ON">
+            <summary>WPM_READ_AHEAD = On</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_READ_AHEAD_OFF">
+            <summary>WPM_READ_AHEAD = Off</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_READ_AHEAD_AS_CONNECTION">
+            <summary>WPM_READ_AHEAD = AsConnection </summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_MAPPING_NONE">
+            <summary>WPM_PERSISTENT_MAP/WPM_NON_PERSISTENT_MAP </summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_MAPPING_BEST_EFFORT_NON_PERSISTENT">
+            <summary>WPM_PERSISTENT_MAP/WPM_NON_PERSISTENT_MAP </summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_MAPPING_EXPRESS_NON_PERSISTENT">
+            <summary>WPM_PERSISTENT_MAP/WPM_NON_PERSISTENT_MAP </summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_MAPPING_RELIABLE_NON_PERSISTENT">
+            <summary>WPM_PERSISTENT_MAP/WPM_NON_PERSISTENT_MAP </summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_MAPPING_RELIABLE_PERSISTENT">
+            <summary>WPM_PERSISTENT_MAP/WPM_NON_PERSISTENT_MAP </summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_MAPPING_ASSURED_PERSISTENT">
+            <summary>WPM_PERSISTENT_MAP/WPM_NON_PERSISTENT_MAP </summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_MAPPING_AS_DESTINATION">
+            <summary>
+            Used to indicate that XMS messages should be sent with 
+            the default reliability configured on the SIB destination. This is
+            a synonym for MAPPING_NONE.
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_MULTICAST">
+            <summary>WPM_MULTICAST - values are defined as WPM_MULTICAST_../WPM_UNICAST_..</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_UNICAST_ONLY">
+            <summary>WPM_UNICAST_ONLY</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_MULTICAST_ONLY">
+            <summary>WPM_MULTICAST_ONLY</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_UNICAST_AND_MULTICAST">
+            <summary>WPM_UNICAST_AND_MULTICAST</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_MULTICAST_INTERFACE">
+            <summary>WPM_MULTICAST_INTERFACE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.AUTO_ACKNOWLEDGE">
+            <summary>ACKNOWLEDGE_MODE - XMSC_AUTO_ACKNOWLEDGE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.CLIENT_ACKNOWLEDGE">
+            <summary>ACKNOWLEDGE_MODE - XMSC_CLIENT_ACKNOWLEDGE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.DUPS_OK_ACKNOWLEDGE">
+            <summary>ACKNOWLEDGE_MODE - XMSC_DUPS_OK_ACKNOWLEDGE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.SESSION_TRANSACTED">
+            <summary>ACKNOWLEDGE_MODE - XMSC_SESSION_TRANSACTED</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_BOOTSTRAP_TCP">
+            <summary>WPM_PROVIDER_ENDPOINTS chain - WPM_BOOTSTRAP_TCP</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_BOOTSTRAP_SSL">
+            <summary>WPM_PROVIDER_ENDPOINTS chain - WPM_BOOTSTRAP_SSL</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_BOOTSTRAP_HTTP">
+            <summary>WPM_PROVIDER_ENDPOINTS chain - WPM_BOOTSTRAP_HTTP</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_BOOTSTRAP_HTTPS">
+            <summary>WPM_PROVIDER_ENDPOINTS chain - WPM_BOOTSTRAP_HTTPS</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_TARGET_TRANSPORT_CHAIN_BASIC">
+            <summary>WPM_TARGET_TRANSPORT_CHAIN - WPM_TARGET_TRANSPORT_CHAIN_BASIC</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_TARGET_TRANSPORT_CHAIN_SECURE">
+            <summary>WPM_TARGET_TRANSPORT_CHAIN - WPM_TARGET_TRANSPORT_CHAIN_SECURE</summary> 
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_CONNECTION_PROXIMITY_SERVER">
+            <summary>
+            Value for the connectionProximity property of a ConnectionFactory that
+            indicates that the application wishes to connect to any messaging engine
+            in the same server process.
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_CONNECTION_PROXIMITY_HOST">
+            <summary>
+            Value for the connectionProximity property of a ConnectionFactory that
+            indicates that the application wishes to connect to any messaging engine
+            on the same host as the client application.
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_CONNECTION_PROXIMITY_BUS">
+            <summary>
+            Default value for the connectionProximity property of a ConnectionFactory that
+            indicates that the application wishes to connect to any messaging engine
+            in the specified bus.
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_CONNECTION_PROXIMITY_CLUSTER">
+            <summary>
+            Value for the connectionProximity property of a ConnectionFactory that
+            indicates that the application wishes to connect to any messaging engine
+            on the same cluster as the client application.
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_TARGET_TYPE_BUSMEMBER">
+            <summary>
+            Value for the targetType property of a ConnectionFactory that
+            indicates that the information specified in the targetGroup is
+            the name of a bus.
+            
+            The messaging engine chosen to connect to should be a member of this bus.
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_TARGET_TYPE_CUSTOM">
+            <summary>
+            Value for the targetType property of a ConnectionFactory that
+            indicates that the information specified in the targetGroup is
+            a user specified group name.
+            
+            The messaging engine chosen to connect to should be a member of this
+            user specified group.
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_TARGET_TYPE_ME">
+            <summary>
+            Value for the targetType property of a ConnectionFactory that
+            indicates that the information specified in the targetGroup is
+            the name of a messaging engine.
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_TARGET_SIGNIFICANCE_REQUIRED">
+            <summary>
+            Value for the targetSignificance property of a ConnectionFactory
+            that indicates that selected messaging engine must be in the targetGroup.
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WPM_TARGET_SIGNIFICANCE_PREFERRED">
+            <summary>
+            Value for the targetSignificance property of a ConnectionFactory
+            that indicates that it is preferred that the selected messaging engine be
+            in the targetGroup.
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.MQJMS_CLIENT_JMS_COMPLIANT">
+            <summary>
+            This parameter can be passed to WmqCOnnectionFactory to indicate that messages will 
+            be sent to a client running the WebSphere MQ JMS client. 
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.MQJMS_CLIENT_NONJMS_MQ">
+            <summary>
+            This parameter can be passed to to indicate that messages will be sent 
+            to a non-JMS WebSphere MQ client. 
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_RFH2_COMPLIANT">
+            <summary>
+            XMS property that means the same as MQJMS_CLIENT_JMS_COMPLIANT but with
+            a less JMS specific name
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_NOT_RFH2_COMPLIANT">
+            <summary>
+            XMS property that means the same as MQJMS_CLIENT_NONJMS_MQ but with
+            a less JMS specific name
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_MSEL_CLIENT">
+            <summary>
+            This parameter is used to indicate that the client should 
+            perform message selection. This is the default value for message selection. 
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_MSEL_BROKER">
+            <summary>
+            This parameter is used to indicate that the broker 
+            should perform message selection. 
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_BROKER_V1">
+            <summary>
+            This parameter is used to indicate that the broker should use RFH1 headers. 
+            This is required when using the WebSphere MQ publish subscribe broker or 
+            when using any of WebSphere MQ Integrator V2, WebSphere MQ Event Broker or 
+            WebSphere Business Integration Message Broker in compatibility mode.
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_BROKER_V2">
+            <summary>
+            This parameter is used to indicate that the broker should use RFH2 headers. 
+            This is available when using the WebSphere MQ publish subscribe broker or 
+            when using any of WebSphere MQ Integrator V2, WebSphere MQ Event Broker or 
+            WebSphere Business Integration Message Broker in native mode.
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_SYNCP_ALL_GETS_NO">
+            <summary>WMQ_SYNCPOINT_ALL_GETS = WMQ_SYNCP_ALL_GETS_NO</summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_SYNCP_ALL_GETS_YES">
+            <summary>WMQ_SYNCPOINT_ALL_GETS = WMQ_SYNCP_ALL_GETS_YES</summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_PS_DEF_ND_SHARED_QUEUE">
+            <summary>
+             Default name for the XMS non-durable subscriber queue. This can be altered using
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSC.WMQ_PS_DEF_D_SHARED_QUEUE">
+            <summary> 
+            Default name for the JMS durable subscriber queue. This can be altered using
+            </summary>
+        </member>
+        <member name="T:IBM.XMS.XMSFactoryFactory">
+            <summary>
+            Summary description for XMSFactoryFactory.
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSFactoryFactory.WPM_FACTORY_FACTORY">
+            <summary>
+            This constant contains the name of the class which implements the
+            XmsFactoryFactory (for WPM) interface. This constant is used to dynamically instantiate
+            the implementation class in order to provide separation between component
+            interfaces and implementation.
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSFactoryFactory.WMQI_FACTORY_FACTORY">
+            <summary>
+            This constant contains the name of the class which implements the
+            XmsFactoryFactory (for WMQI) interface. This constant is used to dynamically instantiate
+            the implementation class in order to provide separation between component
+            interfaces and implementation.
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSFactoryFactory.WMQ_FACTORY_FACTORY">
+            <summary>
+            This constant contains the name of the class which implements the
+            XmsFactoryFactory (for WMQ) interface. This constant is used to dynamically instantiate
+            the implementation class in order to provide separation between component
+            interfaces and implementation.
+            </summary>
+        </member>
+        <member name="F:IBM.XMS.XMSFactoryFactory.XMS_IMPL_ASSEMBLY">
+            <summary>
+            Assembly containing XMS Implementation layer.
+            
+            <i>This is not intended for use by customer applications.</i>
+            
+            </summary>
+        </member>
+        <member name="M:IBM.XMS.XMSFactoryFactory.GetInstance(System.Int32)">
+            <summary>
+            Instance of singleton factory class.
+            </summary>
+            <param name="connectionType"></param>
+        </member>
+        <member name="M:IBM.XMS.XMSFactoryFactory.CreateConnectionFactory">
+            <summary>
+            Create a connection factory.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:IBM.XMS.XMSFactoryFactory.CreateQueue(System.String)">
+            <summary>
+            This method is called by the application to create a
+            a XMS administered queue object.
+            </summary>
+            <param name="name"></param>
+            <returns>Queue created</returns>
+            <exception cref="T:IBM.XMS.XMSException"></exception>
+        </member>
+        <member name="M:IBM.XMS.XMSFactoryFactory.CreateTopic(System.String)">
+            <summary>
+            CreateTopic
+            </summary>
+            <param name="name"></param>
+            <returns>Topic created</returns>
+            <exception cref="T:IBM.XMS.XMSException"></exception>
+        </member>
+        <member name="P:IBM.XMS.XMSFactoryFactory.MetaData">
+            <summary>
+            Connection metadata.
+            </summary>
+        </member>
+    </members>
+</doc>

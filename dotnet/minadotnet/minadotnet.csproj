@@ -153,6 +153,11 @@
     <Compile Include="jpmorgan\mina\transport\socket\networkstream\ISocketSessionManager.cs" />
     <Compile Include="jpmorgan\mina\transport\socket\networkstream\support\SocketIoProcessor.cs" />
     <Compile Include="jpmorgan\mina\transport\socket\networkstream\support\SocketSessionImpl.cs" />
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\iesi\Iesi.Collections.csproj">
@@ -162,6 +167,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="blazeKey.snk" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

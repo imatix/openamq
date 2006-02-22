@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using Iesi.Collections;
 
 namespace jpmorgan.mina.common
 {
@@ -161,14 +160,14 @@ namespace jpmorgan.mina.common
         ///
         /// Returns the known names of this transport type.
         ///
-        public Set Names
+        public Hashtable Names
         {
             get
             {       
-                Set result = new SortedSet();
+                Hashtable result = new Hashtable();
                 for (int i = names.Length - 1; i >= 0; i--)
                 {
-                    result.Add(names[i]);
+                    result[names[i]] = 1;
                 }
                 
                 return result;

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Text;
 using System.Net;
 
@@ -15,10 +14,10 @@ namespace jpmorgan.mina.common
     /// <p>
     /// You should bind to the desired socket address to accept incoming
     /// connections, and then events for incoming connections will be sent to
-    /// the specified default {@link IoHandler}.
+    /// the specified default {@link IHandler}.
     /// <p>
     /// Threads accept incoming connections start automatically when
-    /// {@link #bind(SocketAddress, IoHandler)} is invoked, and stop when all
+    /// {@link #bind(SocketAddress, IHandler)} is invoked, and stop when all
     /// addresses are unbound.    
     public interface IAcceptor
     {

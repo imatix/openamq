@@ -39,7 +39,7 @@ namespace JPMorgan.XMS.RequestReply1
             IMessageConsumer consumer = _session.CreateConsumer(destination,
                                                                 100, true, false, _selector);
 
-            consumer.MessageListener = OnMessage;
+            consumer.MessageListener = new MessageListener(OnMessage);
         }
         
         [Test]

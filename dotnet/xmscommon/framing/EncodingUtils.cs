@@ -5,7 +5,7 @@ using log4net;
 
 namespace OpenAMQ.Framing
 {
-    public static class EncodingUtils
+    public class EncodingUtils
     {
         private static readonly Encoding DEFAULT_ENCODER = Encoding.ASCII;
         

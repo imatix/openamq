@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<project name="Commons Collections" default="build">
+    <property name="nant.settings.currentframework" value="net-1.0" />
+    <property name="basename" value="CommonCollections"/>
+    <property name="debug" value="true"/>
+
+    <if propertyexists="debug" propertytrue="debug">
+        <property name="targetdir" value="bin/${nant.settings.currentframework}/Debug"/>
+    </if>
+    <ifnot propertyexists="debug" propertytrue="debug">
+        <property name="targetdir" value="bin/${nant.settings.currentframework}/Release"/>
+    </ifnot>
+
+    <target name="clean">
+        <delete>
+            <fileset>
+                <include name="${targetdir}/${basename}.dll"/>
+                <include name="${targetdir}/${basename}.pdb"/>
+            </fileset>
+        </delete>
+    </target>
+
+    <target name="init">
+        <mkdir dir="${targetdir}"/>
+    </target>
+
+    <target name="build" depends="init">
+        <csc target="library" output="${targetdir}/${basename}.dll" debug="${debug}">
+            <sources>
+                <include name="**/*.cs"/>
+            </sources>
+        </csc>
+    </target>
+</project>

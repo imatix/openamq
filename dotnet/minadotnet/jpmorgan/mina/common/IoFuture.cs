@@ -102,7 +102,7 @@ namespace jpmorgan.mina.common
         {
             if (_callback != null)
             {
-                _callback.Invoke(this, _result);
+                _callback(this, _result);
             }            
         }        
     }

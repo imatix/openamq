@@ -84,7 +84,7 @@ namespace JPMorgan.XMS.RequestReply1
 
             _startTime = DateTime.Now.Ticks;
 
-            messageConsumer.MessageListener = OnMessage;
+            messageConsumer.MessageListener = new MessageListener(OnMessage);
             _connection.Start();
             for (int i = 0; i < _expectedMessageCount; i++)
             {
@@ -150,7 +150,7 @@ namespace JPMorgan.XMS.RequestReply1
                 }
                 catch (XMSException e)
                 {
-                    _log.Error("Error closing connection");
+                    _log.Error("Error closing connection: " + e, e);
                 }
             }
         }

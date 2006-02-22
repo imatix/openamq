@@ -1,5 +1,5 @@
 using System;
-using Iesi.Collections;
+using System.Collections;
 using jpmorgan.mina.common;
 
 namespace jpmorgan.mina.registry
@@ -30,24 +30,24 @@ namespace jpmorgan.mina.registry
         ///
         /// Returns {@link Set} of all services bound in this registry.
         ///
-        Set getAllServices();
+        Hashtable getAllServices();
     
         ///
         /// Returns {@link Set} of services bound in this registry with the
         /// specified service(or protocol) name.
         ///
-        Set getServices(String name);
+        Hashtable getServices(String name);
 
         ///
         /// Returns {@link Set} of services bound in this registry with the
         /// specified transport type.
         ///
-        Set getServices(TransportType transportType);
+        Hashtable getServices(TransportType transportType);
     
         ///
         /// Returns {@link Set} of services bound in this registry with the
         /// specified port number.
-        Set getServices(int port);
+        Hashtable getServices(int port);
 
         IAcceptor getAcceptor(TransportType transportType);
     }

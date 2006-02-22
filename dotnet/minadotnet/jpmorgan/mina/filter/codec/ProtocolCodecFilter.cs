@@ -10,6 +10,8 @@ namespace jpmorgan.mina.filter.codec
 {
     public class ProtocolCodecFilter : FilterAdapter
     {
+        private static readonly ILog _log = LogManager.GetLogger(typeof(ProtocolCodecFilter));
+
         public static string ENCODER = typeof(ProtocolCodecFilter).FullName + ".encoder";
         public static string DECODER = typeof(ProtocolCodecFilter).FullName + ".decoder";
         public static string ENCODER_OUT = typeof(ProtocolCodecFilter).FullName + ".encoderOutput";
@@ -204,7 +206,7 @@ namespace jpmorgan.mina.filter.codec
             catch (Exception e)
             {
                 // TODO: change logger
-                Console.Error.WriteLine("Failed to dispose encoder");
+                _log.Error("Failed to dispose encoder: " + e, e);
             }
         }
 
@@ -224,7 +226,7 @@ namespace jpmorgan.mina.filter.codec
             catch (Exception e)
             {
                 // TODO: change logger
-                Console.Error.WriteLine("Failed to dispose decoder");
+                _log.Error("Failed to dispose decoder: " + e, e);
             }
         }
 

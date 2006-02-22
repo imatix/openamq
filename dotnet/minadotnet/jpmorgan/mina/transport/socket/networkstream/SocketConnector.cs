@@ -44,7 +44,7 @@ namespace jpmorgan.mina.transport.socket.networkstream
         /// <exception cref="SocketException">when the host cannot be found in DNS</exception>                
         public ConnectFuture Connect(string host, int port, IHandler handler)
         {
-            IPAddress[] addresses = Dns.GetHostAddresses(host);
+            IPAddress[] addresses = Dns.GetHostByName(host).AddressList;
             if (addresses != null && addresses.Length > 0)
             {
                 IPEndPoint endpoint = new IPEndPoint(addresses[0], port);
