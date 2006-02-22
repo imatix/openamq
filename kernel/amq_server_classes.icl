@@ -26,7 +26,6 @@
 <import class = "amq_content_tunnel" />
 <import class = "amq_cluster" />
 <import class = "amq_exchange" />
-<import class = "amq_exchange_list" />
 <import class = "amq_exchange_direct" />
 <import class = "amq_exchange_topic" />
 <import class = "amq_exchange_headers" />
