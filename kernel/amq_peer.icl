@@ -146,8 +146,8 @@ cluster class.
     Disconnects from the cluster node.
     </doc>
     <local>
-    amq_exchange_list_iterator_t
-        iterator;
+    amq_exchange_t
+        *exchange;
     </local>
     //
     if (self->thread) {
@@ -156,15 +156,15 @@ cluster class.
         smt_thread_unlink (&self->thread);
     }
     if (self->connected) {
-        iterator = amq_exchange_list_begin (amq_vhost->exchange_list);
-        while (iterator) {
-            amq_exchange_unbind_peer (*iterator, self);
-            iterator = amq_exchange_list_next (iterator);
+        //  Go through all exchanges & bindings, remove link to peer
+        exchange = amq_exchange_by_vhost_first (amq_vhost->exchange_list);
+        while (exchange) {
+            amq_exchange_unbind_peer (exchange, self);
+            exchange = amq_exchange_by_vhost_next (&exchange);
         }
         self->connected = FALSE;
-        self->offlined  = TRUE;
-        asl_log_print (amq_broker->alert_log,
-            "I: cluster - disconnected from %s", self->host);
+        self->offlined = TRUE;
+        icl_console_print ("I: cluster - disconnected from %s", self->host);
     }
 </method>
 

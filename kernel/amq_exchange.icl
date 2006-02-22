@@ -17,6 +17,9 @@ for each type of exchange. This is a lock-free asynchronous class.
     <option name = "hash_type" value = "str" />
     <option name = "hash_size" value = "65535" />
 </inherit>
+<inherit class = "icl_list_item">
+    <option name = "prefix" value = "by_vhost" />
+</inherit>
 <inherit class = "amq_console_object" />
 <inherit class = "smt_object_tracker" />
 
@@ -136,7 +139,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         asl_log_print (amq_broker->alert_log,
             "E: invalid type '%d' in exchange_new", self->type);
 
-    amq_exchange_list_push_back (self->vhost->exchange_list, self);
+    amq_exchange_by_vhost_queue (self->vhost->exchange_list, self);
     if (amq_server_config_trace_route (amq_server_config))
         asl_log_print (amq_broker->debug_log, "X: create   exchange=%s", self->name);
 </method>

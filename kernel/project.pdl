@@ -93,7 +93,8 @@
 <file name = "amq_exchange.icl"      class = "icl private class" >Server exchange class</file>
 <file name = "amq_exchange_table.icl"
                                      class = "icl private cont"  >Container for server exchange class</file>
-<file name = "amq_exchange_list.icl" class = "icl private class" >List of exchanges</file>
+<file name = "amq_exchange_by_vhost.icl"
+                                     class = "icl private cont"  >List of exchanges per vhost</file>
 <file name = "amq_exchange_agent.smt"
                                      class = "smt public module"
                                      generated = "1"             >Server exchange agent</file>
