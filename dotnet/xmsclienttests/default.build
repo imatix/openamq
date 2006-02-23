@@ -6,7 +6,7 @@
     <property name="MINADir" value="../minadotnet"/>
     <property name="XMSCommonDir" value="../xmscommon"/>
     <property name="XMSClientDir" value="../xmsclient"/>
-    <property name="NunitDir" value="../nunit-2.2.7"/>
+    <property name="NunitDir" value="../build/nunit"/>
 
     <if test="${debug}">
         <property name="targetdir" value="bin/${nant.settings.currentframework}/Debug"/>
