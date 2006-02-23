@@ -250,17 +250,16 @@
         self->dump_state_timer--;
         if (self->dump_state_timer == 0) {
             self->dump_state_timer = amq_server_config_dump_state (amq_server_config);
-
-        asl_log_print (amq_broker->alert_log,
-            "I: cnn=%ld msg=%ld mem=%luB/%luB exc=%ld que=%ld csm=%ld bnd=%ld",
-            amq_server_connection_count (),
-            amq_content_basic_count (),
-            (qbyte) ipr_bucket_used (),
-            (qbyte) icl_mem_used (),
-            amq_exchange_count (),
-            amq_queue_count (),
-            amq_consumer_count (),
-            amq_binding_count ());
+            asl_log_print (amq_broker->alert_log,
+                "I: cnn=%ld msg=%ld mem=%uK/%uK exc=%ld que=%ld csm=%ld bnd=%ld",
+                amq_server_connection_count (),
+                amq_content_basic_count (),
+                (int) (ipr_bucket_used () / 1024),
+                (int) (icl_mem_used () / 1024),
+                amq_exchange_count (),
+                amq_queue_count (),
+                amq_consumer_count (),
+                amq_binding_count ());
         }
     }
     if (self->auto_crash_timer) {
