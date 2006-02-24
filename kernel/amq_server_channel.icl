@@ -201,7 +201,6 @@ maximum number of consumers per channel is set at compile time.
     if (connection) {
         channel = amq_server_channel_table_search (connection->channels, atoi (channel_nbr));
         amq_server_connection_unlink (&connection);
-        assert (streq (channel->cluster_id, cluster_id));
     }
     else
         channel = NULL;
