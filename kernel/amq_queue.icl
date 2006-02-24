@@ -460,8 +460,6 @@ s_set_queue_limits ($(selftype) *self)
                 //  testing limits until the queue size has exceeded this.
                 if (self->limit_min > limit_value)
                     self->limit_min = limit_value;
-icl_console_print ("## queue:%s limit:%d action:%s",
-    self->name, limit_value, action_text);
             }
             else {
                 asl_log_print (amq_broker->alert_log,
