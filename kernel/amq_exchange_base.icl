@@ -65,8 +65,9 @@ This is an abstract base class for all exchange implementations.
         *message_id = NULL;
     Bool
         mandatory = FALSE,              //  Mandatory option from method
-        delivered = FALSE,              //  Set to TRUE if message processed
         returned = FALSE;
+    int
+        delivered = 0;                  //  Number of message deliveries
     </local>
     //
     <header>
@@ -83,7 +84,7 @@ This is an abstract base class for all exchange implementations.
             "E: $(selfname) - bad class_id - %d", method->class_id);
     </header>
     <footer>
-    if (delivered == FALSE && mandatory) {
+    if (!delivered && mandatory) {
         if (method->class_id == AMQ_SERVER_BASIC) {
             if (amq_server_channel_alive (channel) && !basic_content->returned) {
                 amq_server_agent_basic_return (
@@ -100,17 +101,16 @@ This is an abstract base class for all exchange implementations.
             }
         }
     }
-    if (amq_server_config_trace_route (amq_server_config)) {
+    if (amq_server_config_debug_route (amq_server_config)) {
         if (returned)
             asl_log_print (amq_broker->debug_log,
-                "X: return   message=%s reason=unroutable_mandatory",
-                message_id);
+                "X: return   message=%s reason=unroutable_mandatory", message_id);
         else
         if (!delivered)
             asl_log_print (amq_broker->debug_log,
-                "X: discard  message=%s reason=unroutable_optional",
-                message_id);
+                "X: discard  message=%s reason=unroutable_optional", message_id);
     }
+    rc = delivered;                     //  Return number of deliveries
     </footer>
 </method>
 

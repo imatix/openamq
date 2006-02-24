@@ -223,7 +223,7 @@ amq_cluster_t
                     name_valid = TRUE;
                 }
                 else {
-                    if (amq_server_config_trace_cluster (amq_server_config))
+                    if (amq_server_config_debug_cluster (amq_server_config))
                         asl_log_print (amq_broker->debug_log,
                             "C: server name=%s host=%s", name, host);
 
@@ -447,7 +447,7 @@ amq_cluster_t
         peer = amq_peer_list_next (&peer);
     }
     if (best_peer) {
-        if (amq_server_config_trace_cluster (amq_server_config))
+        if (amq_server_config_debug_cluster (amq_server_config))
             asl_log_print (amq_broker->debug_log,
                 "C: redirect client=%s tohost=%s",
                 connection->client_address, best_peer->host);
@@ -590,7 +590,7 @@ amq_cluster_t
         asl_log_print (amq_broker->alert_log, "E: %s", strerror);
     assert (method);
 
-    if (amq_server_config_trace_cluster (amq_server_config)) {
+    if (amq_server_config_debug_cluster (amq_server_config)) {
         icl_console_print ("C: accept   method=%s from=%s",
             content->data_name, content->proxy_name);
         amq_server_method_dump (method, amq_broker->debug_log, "C: ");
@@ -674,7 +674,7 @@ s_append_to_state (
     amq_cluster_t        *self,
     amq_content_tunnel_t *content)
 {
-    if (amq_server_config_trace_cluster (amq_server_config))
+    if (amq_server_config_debug_cluster (amq_server_config))
         asl_log_print (amq_broker->debug_log, "C: record   method=%s", content->data_name);
 
     amq_content_tunnel_link (content);

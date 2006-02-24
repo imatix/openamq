@@ -15,10 +15,13 @@ This class implements the connection class for the AMQ server.
 <option name = "basename" value = "amq_server" />
 
 <public name = "header">
-//  These are the three connection types we allow
-#define AMQ_CONNECTION_TYPE_NORMAL    1
-#define AMQ_CONNECTION_TYPE_CONSOLE   2
-#define AMQ_CONNECTION_TYPE_CLUSTER   3
+//  These are the connection groups we allow
+#define AMQ_CONNECTION_GROUP_NORMAL    1
+#define AMQ_CONNECTION_GROUP_SUPER     2
+#define AMQ_CONNECTION_GROUP_CONSOLE   3
+#define AMQ_CONNECTION_GROUP_CLUSTER   4
+#define CONNECTION_IS_USER(c)    ((c) == 1 || (c) == 2)
+#define CONNECTION_IS_CONTROL(c) ((c) == 3 || (c) == 4)
 </public>
 
 <context>
@@ -34,10 +37,12 @@ This class implements the connection class for the AMQ server.
         cluster_id;                     //  Cluster id for connection
     qbyte
         consumer_tag;                   //  Last consumer tag
+    qbyte
+        per_client;                     //  Messages owned by this client
     icl_shortstr_t
         user_name;                      //  User login name
     int
-        type;                           //  User connection type
+        group;                          //  User connection group
 </context>
 
 <method name = "new">
@@ -71,8 +76,8 @@ This class implements the connection class for the AMQ server.
     </local>
     //
     //  Remove the queue from the list of exclusive connections
-    iterator = amq_queue_list_find (amq_queue_list_begin (self->own_queue_list),
-        NULL, queue);
+    iterator = amq_queue_list_find (
+        amq_queue_list_begin (self->own_queue_list), NULL, queue);
     if (iterator)
         amq_queue_list_erase (self->own_queue_list, iterator);
 </method>
@@ -80,7 +85,7 @@ This class implements the connection class for the AMQ server.
 <method name = "ready" template = "function">
     //  If cluster is booting, let through only cluster or console connections
     if (amq_cluster->enabled && !amq_cluster->ready)
-        rc = self->type != AMQ_CONNECTION_TYPE_NORMAL;
+        rc = CONNECTION_IS_CONTROL (self->group);
     else
         rc = TRUE;
 </method>
@@ -93,6 +98,7 @@ This class implements the connection class for the AMQ server.
     <argument name = "self" type = "amq_server_connection_t *" />
     <argument name = "reply code" type = "dbyte" >Error code</argument>
     <argument name = "reply text" type = "char *">Error text</argument>
+    //
     if (self)
         amq_server_connection_exception (self, reply_code, reply_text);
     else
@@ -109,13 +115,12 @@ This class implements the connection class for the AMQ server.
         self->client_address, self->client_product, self->client_version);
 
     switch (s_auth_plain (self, method)) {
-        case AMQ_CONNECTION_TYPE_NORMAL:
+        case AMQ_CONNECTION_GROUP_NORMAL:
+        case AMQ_CONNECTION_GROUP_SUPER:
+        case AMQ_CONNECTION_GROUP_CONSOLE:
             self->authorised = TRUE;
             break;
-        case AMQ_CONNECTION_TYPE_CONSOLE:
-            self->authorised = TRUE;
-            break;
-        case AMQ_CONNECTION_TYPE_CLUSTER:
+        case AMQ_CONNECTION_GROUP_CLUSTER:
             self->authorised = TRUE;
             self->nowarning  = TRUE;    //  No disconnect warnings for cluster proxy
             break;
@@ -130,8 +135,7 @@ This class implements the connection class for the AMQ server.
     assert (self->vhost);
 
     //  If locked, allow only cluster & console access
-    if (amq_broker->locked
-    &&  self->type == AMQ_CONNECTION_TYPE_NORMAL)
+    if (amq_broker->locked && CONNECTION_IS_USER (self->group))
         self_exception (self, ASL_ACCESS_REFUSED, "Connections not allowed at present");
     else
     if (amq_cluster->enabled) {
@@ -140,7 +144,7 @@ This class implements the connection class for the AMQ server.
             if (method->insist)
                 amq_server_agent_connection_open_ok (self->thread, amq_cluster->known_hosts);
             else
-            if (self->type != AMQ_CONNECTION_TYPE_NORMAL)
+            if (CONNECTION_IS_CONTROL (self->group))
                 amq_server_agent_connection_open_ok (self->thread, NULL);
             else
                 amq_cluster_balance_client (amq_cluster, self);
@@ -170,6 +174,7 @@ This class implements the connection class for the AMQ server.
     amq_consumer_t
         *consumer = (amq_consumer_t *) callback;
     </local>
+    //
     if (consumer) {
         amq_consumer_link (consumer);
         icl_atomic_inc32 ((volatile qbyte *) &consumer->busy);
@@ -186,6 +191,7 @@ This class implements the connection class for the AMQ server.
     amq_consumer_t
         *consumer = *((amq_consumer_t **) callback_p);
     </local>
+    //
     if (consumer) {
         icl_atomic_dec32 ((volatile qbyte *) &consumer->busy);
         if (!consumer->busy)
@@ -200,7 +206,7 @@ static int
 </private>
 
 <private name = "body">
-//  Sets and returns connection type, zero indicating an error
+//  Sets and returns connection group, zero indicating an error
 
 static int s_auth_plain (
     $(selftype) *self,
@@ -211,7 +217,7 @@ static int s_auth_plain (
     char
         *login = NULL,                  //  Login string
         *password = NULL,               //  Password string
-        *type;                          //  Type name from config
+        *group;                         //  Group name from config
     ipr_config_t
         *config;                        //  Current server config file
 
@@ -236,35 +242,38 @@ static int s_auth_plain (
         asl_field_list_unlink (&fields);
         return (0);
     }
-    //  Now check user login and password and set type if found
+    //  Now check user login and password and set group if found
     ipr_config_locate (config, "user", NULL);
     while (config->located) {
         if (streq (login,    ipr_config_get (config, "name", ""))
         &&  streq (password, ipr_config_get (config, "password", ""))) {
             icl_shortstr_cpy (self->user_name, login);
-            type = ipr_config_get (config, "type", "");
-            if (streq (type, "normal"))
-                self->type = AMQ_CONNECTION_TYPE_NORMAL;
+            group = ipr_config_get (config, "group", "");
+            if (streq (group, "normal"))
+                self->group = AMQ_CONNECTION_GROUP_NORMAL;
             else
-            if (streq (type, "console"))
-                self->type = AMQ_CONNECTION_TYPE_CONSOLE;
+            if (streq (group, "super"))
+                self->group = AMQ_CONNECTION_GROUP_SUPER;
             else
-            if (streq (type, "cluster"))
-                self->type = AMQ_CONNECTION_TYPE_CLUSTER;
+            if (streq (group, "console"))
+                self->group = AMQ_CONNECTION_GROUP_CONSOLE;
+            else
+            if (streq (group, "cluster"))
+                self->group = AMQ_CONNECTION_GROUP_CLUSTER;
             else {
                 asl_log_print (amq_broker->alert_log,
-                    "E: invalid user type '%s' in config", type);
+                    "E: invalid user group '%s' in config", group);
                 self_exception (self, ASL_INTERNAL_ERROR, "Bad server configuration");
             }
             asl_log_print (amq_broker->daily_log,
-                "I: valid login from=%s user=%s type=%s", self->client_address, login, type);
+                "I: valid login from=%s user=%s group=%s", self->client_address, login, group);
             break;
         }
         ipr_config_next (config);
     }
     ipr_config_destroy (&config);
     asl_field_list_unlink (&fields);
-    return (self->type);
+    return (self->group);
 }
 </private>
 

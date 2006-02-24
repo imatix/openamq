@@ -42,6 +42,20 @@ for each type of exchange. This is a lock-free asynchronous class.
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%ld", amq_binding_list_size (self->binding_list));</get>
         </field>
+        <field name = "traffic_in" type = "int" label = "Inbound traffic, MB">
+          <rule name = "show on summary" />
+          <get>icl_shortstr_fmt (field_value, "%d", (int) (self->traffic_in / (1024 * 1024)));</get>
+        </field>
+        <field name = "traffic_out" type = "int" label = "Outbound traffic, MB">
+          <rule name = "show on summary" />
+          <get>icl_shortstr_fmt (field_value, "%d", (int) (self->traffic_out / (1024 * 1024)));</get>
+        </field>
+        <field name = "contents_in" type = "int" label = "Total messages received">
+          <get>icl_shortstr_fmt (field_value, "%d", self->contents_in);</get>
+        </field>
+        <field name = "contents_out" type = "int" label = "Total messages sent">
+          <get>icl_shortstr_fmt (field_value, "%d", self->contents_out);</get>
+        </field>
     </class>
 </data>
 
@@ -76,6 +90,13 @@ for each type of exchange. This is a lock-free asynchronous class.
             void                 *self,
             amq_binding_t        *binding,
             amq_server_channel_t *channel);
+
+    //  Statistics
+    int64_t
+        traffic_in,                     //  Traffic in, in octets
+        traffic_out,                    //  Traffic out, in octets
+        contents_in,                    //  Contents in, in octets
+        contents_out;                   //  Contents out, in octets
 </context>
 
 <public name = "header">
@@ -140,13 +161,13 @@ for each type of exchange. This is a lock-free asynchronous class.
             "E: invalid type '%d' in exchange_new", self->type);
 
     amq_exchange_by_vhost_queue (self->vhost->exchange_list, self);
-    if (amq_server_config_trace_route (amq_server_config))
+    if (amq_server_config_debug_route (amq_server_config))
         asl_log_print (amq_broker->debug_log, "X: create   exchange=%s", self->name);
 </method>
 
 <method name = "destroy">
     <action>
-    if (amq_server_config_trace_route (amq_server_config))
+    if (amq_server_config_debug_route (amq_server_config))
         asl_log_print (amq_broker->debug_log, "X: destroy  exchange=%s", self->name);
 
     amq_binding_list_destroy (&self->binding_list);
@@ -255,7 +276,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     </release>
     //
     <action>
-    if (amq_server_config_trace_route (amq_server_config))
+    if (amq_server_config_debug_route (amq_server_config))
         asl_log_print (amq_broker->debug_log,
             "X: bind     queue=%s onto=%s", queue->name, self->name);
 
@@ -284,7 +305,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     </release>
     //
     <action>
-    if (amq_server_config_trace_route (amq_server_config))
+    if (amq_server_config_debug_route (amq_server_config))
         asl_log_print (amq_broker->debug_log,
             "X: bind     peer=%s onto=%s", peer->name, self->name);
 
@@ -360,9 +381,21 @@ for each type of exchange. This is a lock-free asynchronous class.
     </release>
     //
     <action>
-    self->publish (self->object, channel, method);
+    int
+        delivered;                      //  Number of message deliveries
+    int64_t
+        content_size;
+
+    delivered = self->publish (self->object, channel, method);
     ipr_meter_count (amq_broker->xmeter);
     ipr_meter_count (amq_broker->imeter);
+    content_size = ((amq_content_basic_t *) method->content)->body_size;
+
+    //  Track exchange statistics
+    self->contents_in  += 1;
+    self->contents_out += delivered;
+    self->traffic_in   += content_size;
+    self->traffic_out  += (delivered * content_size);
     </action>
 </method>
 

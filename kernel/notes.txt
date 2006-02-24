@@ -1,30 +1,46 @@
+Changes
+    - trace_queue,route,cluster -> debug_queue, etc.
+    - changed user 'type' to 'group'
+    - added 'super' user group, not restricted in server
+    - log files cycled at end of day (before midnight LT)
+    - added queue profiles in server.cfg
+    - implemented queue limit features (warn/drop/trim implemented, not kill)
+    - increased server listen queue size from 5 to 500 (clients were failing to connect)
+    - fixed error in processing of immediate messages
+    - discards/returns undeliverable messages if all consumers mismatch
+
 Todo
     - server restart still failing
-    - memory leaks on certain accesses
+
+- split config options into basic, advanced
+- ui rule on ip address -> amq_shell does RDNS
+
+
+per_client
+    - limit defined in config
+    - current value held in connection
+    - when message queued on exclusive queue
+        - per_client is incremented
+    - when message dequeued off exclusive queue
+        - per_client is decremented
+    -> when we destroy a queue, how do we know if the
+        connection is still alive, linked?
 
 logging
-    - logs:
-        - trace, daily, alert
-        -> trace, alert cc'd to stderr
-        
-    - s/verbosity/tracing/
-        - trace protocol 1,2,3
-        - trace logins
-        - trace cluster
-        - trace queues
-        - trace routing
-        - trace console
-        - trace errors
-        - trace warnings
-        - trace broker
-        - trace overflow
-        - trace limits
+    - callback on log file
+    - send alerts to system exchange
+    - amq-shell mode to monitor all alerts
+    
+statistics to keep
+    - traffic per exchange, per queue
+        - in, out
+        - throughput, using meters
+    - 
     
 - multilevel config
     - e.g. user names, groups
     - we can do this using objects...
     - amq_user, amq_group
-    
 
 amq_shell
 - show queues by number of messages
@@ -61,6 +77,9 @@ logging
     log level
     log fields?
 
+
+OpenAMQ Logging System
+======================
 
 
 icl_set_allocator

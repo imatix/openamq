@@ -38,9 +38,14 @@ class.  This is a lock-free asynchronous class.
         <field name = "durable" label = "Durable queue?" type = "bool">
           <get>icl_shortstr_fmt (field_value, "%d", self->durable);</get>
         </field>
-        <field name = "exclusive" label = "Exclusive to one connection?" type = "bool">
+        <field name = "exclusive" label = "Exclusive to one client?" type = "bool">
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", self->exclusive);</get>
+        </field>
+        <field name = "client" label = "Client host name">
+          <rule name = "show on summary" />
+          <rule name = "translate rdns" />
+          <get>icl_shortstr_cpy (field_value, self->connection? self->connection->client_address: "");</get>
         </field>
         <field name = "auto_delete" label = "Auto-deleted?" type = "bool">
           <rule name = "show on summary" />
@@ -54,6 +59,20 @@ class.  This is a lock-free asynchronous class.
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", amq_queue_message_count (self));</get>
         </field>
+        <field name = "traffic_in" type = "int" label = "Inbound traffic, MB">
+          <rule name = "show on summary" />
+          <get>icl_shortstr_fmt (field_value, "%d", (int) (self->traffic_in / (1024 * 1024)));</get>
+        </field>
+        <field name = "traffic_out" type = "int" label = "Outbound traffic, MB">
+          <rule name = "show on summary" />
+          <get>icl_shortstr_fmt (field_value, "%d", (int) (self->traffic_out / (1024 * 1024)));</get>
+        </field>
+        <field name = "contents_in" type = "int" label = "Total messages received">
+          <get>icl_shortstr_fmt (field_value, "%d", self->contents_in);</get>
+        </field>
+        <field name = "contents_out" type = "int" label = "Total messages sent">
+          <get>icl_shortstr_fmt (field_value, "%d", self->contents_out);</get>
+        </field>
 
         <method name = "purge" label = "Purge all queue messages">
           <exec>amq_queue_basic_purge (self->queue_basic);</exec>
@@ -63,15 +82,23 @@ class.  This is a lock-free asynchronous class.
 
 <import class = "amq_server_classes" />
 
+<public>
+//  Queue limit actions
+#define AMQ_QUEUE_LIMIT_WARN   1        //  Send warning to alert log
+#define AMQ_QUEUE_LIMIT_DROP   2        //  Drop the message
+#define AMQ_QUEUE_LIMIT_TRIM   3        //  Trim the queue first
+#define AMQ_QUEUE_LIMIT_KILL   4        //  Kill the connection
+
+#define AMQ_QUEUE_LIMIT_MAX    10       //  Allow up to 10 limits
+</public>
+
 <context>
-    amq_cluster_t
-        *cluster;                       //  Held cluster object KILL THIS BEFORE BB
     amq_vhost_t
         *vhost;                         //  Parent virtual host
+    amq_server_connection_t
+        *connection;                    //  Parent connection, if any
     icl_shortstr_t
         name;                           //  Queue name
-    icl_shortstr_t
-        owner_id;                       //  Owner connection
     Bool
         enabled,                        //  Queue is enabled?
         durable,                        //  Is queue durable?
@@ -84,11 +111,23 @@ class.  This is a lock-free asynchronous class.
         consumers;                      //  Number of consumers
     amq_queue_basic_t
         *queue_basic;                   //  Basic content queue
+    qbyte
+        limits,                         //  Number of limits
+        limit_min,                      //  Lowest limit
+        limit_value  [AMQ_QUEUE_LIMIT_MAX],
+        limit_action [AMQ_QUEUE_LIMIT_MAX];
+
+    //  Statistics
+    int64_t
+        traffic_in,                     //  Traffic in, in octets
+        traffic_out,                    //  Traffic out, in octets
+        contents_in,                    //  Contents in, in octets
+        contents_out;                   //  Contents out, in octets
 </context>
 
 <method name = "new">
     <argument name = "vhost"       type = "amq_vhost_t *">Parent vhost</argument>
-    <argument name = "owner id"    type = "char *">Owner context id</argument>
+    <argument name = "connection"  type = "amq_server_connection_t *">Owner connection</argument>
     <argument name = "name"        type = "char *">Queue name</argument>
     <argument name = "durable"     type = "Bool">Is queue durable?</argument>
     <argument name = "exclusive"   type = "Bool">Is queue exclusive?</argument>
@@ -98,6 +137,7 @@ class.  This is a lock-free asynchronous class.
     <dismiss argument = "key" value = "name" />
     //
     self->vhost       = vhost;
+    self->connection  = connection;
     self->enabled     = TRUE;
     self->durable     = durable;
     self->exclusive   = exclusive;
@@ -105,15 +145,16 @@ class.  This is a lock-free asynchronous class.
     self->auto_delete = auto_delete;
     self->queue_basic = amq_queue_basic_new (self);
     icl_shortstr_cpy (self->name, name);
-    icl_shortstr_cpy (self->owner_id, owner_id);
     amq_queue_by_vhost_queue (self->vhost->queue_list, self);
-    if (amq_server_config_trace_queue (amq_server_config))
+    if (amq_server_config_debug_queue (amq_server_config))
         asl_log_print (amq_broker->debug_log, "Q: create   queue=%s", self->name);
+
+    s_set_queue_limits (self);
 </method>
 
 <method name = "destroy">
     <action>
-    if (amq_server_config_trace_queue (amq_server_config))
+    if (amq_server_config_debug_queue (amq_server_config))
         asl_log_print (amq_broker->debug_log, "Q: destroy  queue=%s", self->name);
 
     amq_queue_basic_destroy (&self->queue_basic);
@@ -143,7 +184,7 @@ class.  This is a lock-free asynchronous class.
     if (self->clustered && !amq_broker->master) {
         //  Pass message to shared queue on master server unless
         //  message already came to us from another cluster peer.
-        if (channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
+        if (channel->connection->group != AMQ_CONNECTION_GROUP_CLUSTER)
             amq_cluster_peer_push (amq_cluster, amq_cluster->master_peer, method);
     }
     else
@@ -204,7 +245,7 @@ class.  This is a lock-free asynchronous class.
 
     //  Validate consumer
     if (self->exclusive
-    &&  strneq (self->owner_id, consumer->channel->connection->id))
+    &&  self->connection != consumer->channel->connection)
         error = "Queue is exclusive to another connection";
     else
     if (consumer->exclusive) {
@@ -258,10 +299,11 @@ class.  This is a lock-free asynchronous class.
     self->locked = FALSE;
     self->consumers--;
     if (self->auto_delete && self->consumers == 0) {
-        int timeout
-            = amq_server_config_queue_timeout (amq_server_config) * 1000 * 1000;
+        int
+            timeout = amq_server_config_queue_timeout (amq_server_config)
+                    * 1000 * 1000;
         if (timeout == 0)
-            timeout = 1;
+            timeout = 1;                //  Send the event very rapidly
         smt_timer_request_delay (self->thread, timeout, auto_delete_event);
     }
     </action>
@@ -274,7 +316,7 @@ class.  This is a lock-free asynchronous class.
 
     //  If we're still at zero consumers, self-destruct
     if (self->consumers == 0) {
-        if (amq_server_config_trace_queue (amq_server_config))
+        if (amq_server_config_debug_queue (amq_server_config))
             asl_log_print (amq_broker->debug_log, "Q: auto-del queue=%s", self->name);
             
         queue_ref = amq_queue_link (self);
@@ -366,6 +408,77 @@ class.  This is a lock-free asynchronous class.
     amq_queue_by_vhost_push (self->vhost->queue_list, self);
 </method>
 
+
+<private name = "header">
+static void
+    s_set_queue_limits ($(selftype) *self);
+</private>
+
+<private name = "footer">
+static void
+s_set_queue_limits ($(selftype) *self)
+{
+    ipr_config_t
+        *config;                        //  Current server config file
+    qbyte
+        limit_value,                    //  Specified limit value
+        limit_action;                   //  Specified limit action
+    char
+        *action_text;                   //  Limit action as string
+
+    config = ipr_config_dup (amq_server_config->config);
+    ipr_config_locate (config, "/config/queue_profile", self->exclusive? "private": "shared");
+    if (config->located)
+        ipr_config_locate (config, "limit", NULL);
+
+    self->limit_min = UINT_MAX;
+    while (config->located) {
+        limit_value = atol (ipr_config_get (config, "value",  "0"));
+        action_text = ipr_config_get (config, "action", "(empty)");
+        if (streq (action_text, "warn"))
+            limit_action = AMQ_QUEUE_LIMIT_WARN;
+        else
+        if (streq (action_text, "drop"))
+            limit_action = AMQ_QUEUE_LIMIT_DROP;
+        else
+        if (streq (action_text, "trim"))
+            limit_action = AMQ_QUEUE_LIMIT_TRIM;
+        else
+        if (streq (action_text, "kill"))
+            limit_action = AMQ_QUEUE_LIMIT_KILL;
+        else {
+            limit_action = 0;
+            asl_log_print (amq_broker->alert_log,
+                "E: invalid configured limit action '%s'", action_text);
+        }
+        if (limit_value && limit_action) {
+            if (self->limits < AMQ_QUEUE_LIMIT_MAX) {
+                self->limit_value  [self->limits] = limit_value;
+                self->limit_action [self->limits] = limit_action;
+                self->limits++;
+                //  We track lowest limit so that we don't need to start
+                //  testing limits until the queue size has exceeded this.
+                if (self->limit_min > limit_value)
+                    self->limit_min = limit_value;
+icl_console_print ("## queue:%s limit:%d action:%s",
+    self->name, limit_value, action_text);
+            }
+            else {
+                asl_log_print (amq_broker->alert_log,
+                    "E: too many limits for queue profile (%d)", self->limits);
+                break;
+            }
+        }
+        else
+            asl_log_print (amq_broker->alert_log,
+                "W: configured limit value '%s' ignored", action_text);
+        ipr_config_next (config);
+    }
+    ipr_config_destroy (&config);
+}
+</private>
+
 <method name = "selftest" />
 
 </class>
+

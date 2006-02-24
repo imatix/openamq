@@ -195,12 +195,12 @@ cluster class.
 
     //  If we are the master server, synchronise our state to the new peer
     if (amq_broker->master) {
-        if (amq_server_config_trace_cluster (amq_server_config))
+        if (amq_server_config_debug_cluster (amq_server_config))
             asl_log_print (amq_broker->debug_log, "C: cluster synchronising with new peer");
         looseref = ipr_looseref_list_first (self->cluster->state_list);
         while (looseref) {
             content = (amq_content_tunnel_t *) (looseref->object);
-            if (amq_server_config_trace_cluster (amq_server_config))
+            if (amq_server_config_debug_cluster (amq_server_config))
                 asl_log_print (amq_broker->debug_log, "C: replay   method=%s", content->data_name);
             amq_peer_tunnel (self, content);
             looseref = ipr_looseref_list_next (&looseref);
@@ -307,7 +307,7 @@ cluster class.
     <argument name = "content" type = "amq_content_tunnel_t *">Data to send</argument>
     //
     if (self->connected) {
-        if (amq_server_config_trace_cluster (amq_server_config))
+        if (amq_server_config_debug_cluster (amq_server_config))
             asl_log_print (amq_broker->debug_log,
                 "C: proxy    method=%s peer=%s", content->data_name, self->name);
         amq_proxy_agent_tunnel_request (self->thread, self->channel_nbr, content, NULL);
@@ -323,7 +323,7 @@ cluster class.
     //
     if (self->connected) {
         if (self->last_sequence != method->sequence) {
-            if (amq_server_config_trace_cluster (amq_server_config))
+            if (amq_server_config_debug_cluster (amq_server_config))
                 asl_log_print (amq_broker->debug_log,
                     "C: passthru method=%s peer=%s", method->name, self->name);
             amq_proxy_agent_push (

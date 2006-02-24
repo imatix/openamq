@@ -44,24 +44,32 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "queue timeout" type = "int" default = "30" dynamic = "1">
+    <property name = "queue timeout" type = "int" default = "0" dynamic = "1">
     Timeout for auto-deleted queues
     <doc>
     Specifies the delay, in seconds, after which auto-deleted queues
     are effectively deleted, following disconnection of their last
-    consumer.  If zero, queues are deleted immediately.
+    consumer. If zero, queues are deleted immediately.
     </doc>
     </property>
 </path>
 
 <path name = "/config/resources">
-    <property name = "trace" type = "int" dynamic = "1">
-    Desired trace level
+    <property name = "max memory mb" default = "512" type = "size_t" dynamic = "1">
+    Maximum allowed memory, MBytes
     <doc>
-    Specifies the trace level, which can be 0 (no tracing), 1 (show
-    information and protocol methods), 2 (show protocol animation),
-    3 (show wire-level data).  You should not use any tracing on
-    production servers except in low-volume scenarios.
+    Specifies the maximum memory allowed for the server, in MB. When the
+    server reaches this limit, it will slow down publishers. If zero, no
+    limit is enforced.
+    </doc>
+    </property>
+
+    <property name = "per client" type = "size_t" default = "0" dynamic = "1">
+    Default messages per client
+    <doc>
+    Specifies the limit per client, in messages.  Clients that exceed this
+    limit will be disconnected, and their messages discarded.  Applies only
+    to messages held on private queues belonging to one client.
     </doc>
     </property>
 
@@ -77,57 +85,9 @@ $\(selftype)
     <property name = "dump state" type = "int" default = "60" dynamic = "1">
     Dump state interval, seconds
     <doc>
-    If greater than zero, specifies the interval at which the server
-    will report its state to the console.  The recommended value is
-    60.
-    </doc>
-    </property>
-
-    <property name = "max memory mb" type = "size_t" dynamic = "1">
-    Maximum allowed memory, MBytes
-    <doc>
-    Specifies the maximum memory allowed for the server, in MB.
-    When the server reaches this limit, it will attempt to free
-    resources and refuse new connections until memory has been
-    made available.  If zero, no limit is used.
-    </doc>
-    </property>
-
-    <property name = "queue limit" type = "size_t" default = "0" dynamic = "1">
-    Default queue max messages
-    <doc>
-    Specifies the limit for queues, in messages. When a queue reaches
-    this limit, messages are discarded, using a suitable heuristic.
-    If zero, no limit is applied to queues.
-    </doc>
-    </property>
-</path>
-
-<path name = "/config/verbosity">
-    <property name = "trace route" type = "Bool" dynamic = "1">
-    Trace message routing?
-    <doc>
-    Specifies whether exchange routing is traced or not.  The
-    recommended setting is 1 for development servers and zero
-    otherwise.
-    </doc>
-    </property>
-
-    <property name = "trace queue" type = "Bool" dynamic = "1">
-    Trace queue activity?
-    <doc>
-    Specifies whether queue dispatching is traced or not.  The
-    recommended setting is 1 for development servers and zero
-    otherwise.
-    </doc>
-    </property>
-
-    <property name = "trace cluster" type = "Bool" dynamic = "1">
-    Trace cluster messages?
-    <doc>
-    Specifies whether cluster activity is traced or not.  The
-    recommended setting is 1 when you are testing a cluster
-    configuration and zero for production use.
+    Specifies the interval at which the server will report its state.
+    This shows the number of messages, queues, consumers, etc. used by
+    the server. If zero, no state is logged.
     </doc>
     </property>
 </path>
@@ -152,12 +112,12 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "state mb" type = "size_t" default = "250" dynamic = "1">
+    <property name = "state mb" type = "size_t" default = "50" dynamic = "1">
     Maximum cluster state, MB.
     <doc>
     Specifies the maximum amount of memory in MB reserved for the
     cluster state.  Note that this state will grow as the cluster is
-    used.
+    used.  If zero, no limit is enforced (this is not recommended).
     </doc>
     </property>
 
@@ -173,7 +133,7 @@ $\(selftype)
 </path>
 
 <path name = "/config/logging">
-    <property name = "log_path" type = "char *" default = "logs">
+    <property name = "log path" type = "char *" default = "logs">
     Active log file directory
     <doc>
     Specifies the directory path into which active log files are
@@ -181,7 +141,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "archive_path" type = "char *" default = "archive">
+    <property name = "archive path" type = "char *" default = "archive">
     Archive log file directory
     <doc>
     Specifies the directory path into which archived log files are
@@ -190,7 +150,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "archive_cmd" type = "icl_shortstr_t">
+    <property name = "archive cmd" type = "icl_shortstr_t">
     Archive command
     <doc>
     If specified, this command is run on all archived log files. You can
@@ -200,7 +160,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "alert_log" type = "icl_shortstr_t" default = "alert.log">
+    <property name = "alert log" type = "icl_shortstr_t" default = "alert.log">
     Error log file name
     <doc>
     The name of the alert log file, which records all errors and warnings
@@ -209,7 +169,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "daily_log" type = "icl_shortstr_t" default = "daily.log">
+    <property name = "daily log" type = "icl_shortstr_t" default = "daily.log">
     Daily log file name
     <doc>
     The name of the daily log file, which records all normal activity
@@ -218,12 +178,49 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "debug_log" type = "icl_shortstr_t" default = "debug.log">
+    <property name = "debug log" type = "icl_shortstr_t" default = "debug.log">
     Debug log file name
     <doc>
     The name of the debug log file, which records all normal activity,
     errors, and debug trace information. Note that the server port number
     is always added to the name of the log file.
+    </doc>
+    </property>
+
+    <property name = "debug route" type = "Bool" dynamic = "1">
+    Debug message routing?
+    <doc>
+    Specifies whether exchange routing is logged or not. Set this
+    option when you are debugging a message routing design.  For
+    production use, we recommend you do not set this option.
+    </doc>
+    </property>
+
+    <property name = "debug queue" type = "Bool" dynamic = "1">
+    Debug queue activity?
+    <doc>
+    Specifies whether queue dispatching is logged or not.  Set this
+    option when you are debugging message processing in the server.
+    For production use, we recommend you do not set this option.
+    </doc>
+    </property>
+
+    <property name = "debug cluster" type = "Bool" dynamic = "1">
+    Debug cluster messages?
+    <doc>
+    Specifies whether cluster activity is logged or not.  Set this
+    option when you are configuring or debugging a cluster.  For
+    production use, we recommend you do not set this option.
+    </doc>
+    </property>
+
+    <property name = "trace" type = "int" default = "0" dynamic = "1">
+    Protocol trace level
+    <doc>
+    Specifies the protocol debug level, which can be 0 (no tracing),
+    1 (show information and protocol methods), 2 (show protocol
+    animation), 3 (show wire-level data).  You should not use any
+    tracing on production servers except in low-volume scenarios.
     </doc>
     </property>
 </path>
@@ -260,10 +257,10 @@ $\(selftype)
     </property>
 
     <property name = "os threads" type = "int" default = "4">
-    Max number of OS threads
+    Number of OS threads
     <doc>
-    On multithreaded builds, defines the maximum number of OS threads that
-    the server will use.  This should be at least as high as the number of
+    On multithreaded builds, defines the number of OS threads that the
+    server will use.  This should be at least as high as the number of
     CPUs and you can experiment with higher values.
     </doc>
     </property>

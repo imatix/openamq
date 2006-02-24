@@ -74,7 +74,7 @@ that is in every content header).
             if (field->name [0] == 'X' && field->name [1] == '-') {
                 if (streq (field->name, "X-match")) {
                     if (streq (asl_field_string (field), "any")) {
-                        if (amq_server_config_trace_route (amq_server_config))
+                        if (amq_server_config_debug_route (amq_server_config))
                             asl_log_print (amq_broker->debug_log,
                                 "X: select   match=any", index_key);
                         binding->match_all = FALSE;
@@ -163,9 +163,8 @@ that is in every content header).
             if (binding) {
                 if ((binding->match_all && hitset->hit_count [binding_nbr] == binding->field_count)
                 || (!binding->match_all && hitset->hit_count [binding_nbr] > 0)) {
-                    if (amq_binding_publish (binding, channel, method))
-                        delivered = TRUE;
-                    if (amq_server_config_trace_route (amq_server_config))
+                    delivered += amq_binding_publish (binding, channel, method);
+                    if (amq_server_config_debug_route (amq_server_config))
                         asl_log_print (amq_broker->debug_log,
                             "X: have_hit match=%s hits=%d binding=%d",
                             binding->match_all? "all": "any",
@@ -195,7 +194,7 @@ s_compile_binding (
     amq_index_t
         *index;                         //  Index reference from index_hash
 
-    if (amq_server_config_trace_route (amq_server_config))
+    if (amq_server_config_debug_route (amq_server_config))
         asl_log_print (amq_broker->debug_log,
             "X: index    request=%s binding=%d", index_key, binding->index);
 

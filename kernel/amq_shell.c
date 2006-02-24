@@ -44,10 +44,11 @@ int main (int argc, char *argv[])
         s_opt_date = FALSE,             //  -d means show date, time
         s_opt_time = FALSE;             //  -t means show time
     char
-        *s_opt_xml = NULL,              //  -x specifies XML filename
         *s_opt_host = NULL,             //  -s specifies server name
         *s_opt_user = NULL,             //  -u specifies user name
-        *s_opt_pass = NULL;             //  -p specifies password
+        *s_opt_pass = NULL,             //  -p specifies password
+        *s_opt_cmds = NULL,             //  -e specifies command string
+        *s_opt_xml  = NULL;             //  -x specifies XML filename
     char
         **argparm;                      //  Argument parameter to pick-up
     amq_mgt_console_t
@@ -79,6 +80,10 @@ int main (int argc, char *argv[])
                     break;
                 case 'p':
                     argparm = &s_opt_pass;
+                    break;
+                case 'e':
+                    icl_console_print ("-e option is not yet supported");
+                    argparm = &s_opt_cmds;
                     break;
                 case 'x':
                     argparm = &s_opt_xml;

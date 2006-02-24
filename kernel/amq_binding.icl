@@ -159,7 +159,8 @@ class.
 <method name = "publish" template = "function">
     <doc>
     Publish message to all queues and peers defined for the binding.
-    Returns number of active consumers found on all queues published to.
+    Returns number of times the message was published (fanout), which
+    is 1 or greater if there were recipients, zero if not.
     </doc>
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
@@ -173,24 +174,22 @@ class.
     </local>
     //
     //  Publish to all queues, sending method to async queue class
-    iterator  = amq_queue_list_begin (self->queue_list);
-    while (iterator)
-    {
-        if (amq_server_config_trace_route (amq_server_config))
+    iterator = amq_queue_list_begin (self->queue_list);
+    while (iterator) {
+        if (amq_server_config_debug_route (amq_server_config))
             asl_log_print (amq_broker->debug_log, "X: publish  queue=%s", (*iterator)->key);
         amq_queue_publish (*iterator, channel, method);
-        rc++;  //  Count recepients
-        iterator  = amq_queue_list_next  (iterator);
+        iterator = amq_queue_list_next (iterator);
+        rc++;                           //  Count recepients
     }
-
     //  Publish to peers, sending method to async cluster class
     looseref = ipr_looseref_list_first (self->peer_list);
     while (looseref) {
         peer = (amq_peer_t *) (looseref->object);
         if (amq_cluster->enabled
-        &&  channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+        &&  channel->connection->group != AMQ_CONNECTION_GROUP_CLUSTER
         &&  strneq (channel->connection->client_proxy_name, peer->name)) {
-            if (amq_server_config_trace_route (amq_server_config))
+            if (amq_server_config_debug_route (amq_server_config))
                 asl_log_print (amq_broker->debug_log, "X: publish  peer=%s", peer->name);
             amq_cluster_peer_push (amq_cluster, peer, method);
             rc++;                       //  Count recepients

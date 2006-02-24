@@ -119,32 +119,34 @@ class.
         ipr_xml_unlink (&xml_command);
         
         while (xml_field) {
-            field_name = ipr_xml_attr_get (xml_field, "name", "");
+            field_name  = ipr_xml_attr_get (xml_field, "name", "");
             field_value = ipr_xml_child_value (xml_field);
+            if (field_value) {
 .for field
 .   if !first ()
-            else
+              else
 .   endif
-            if (streq (field_name, "$(name)")) {
+                if (streq (field_name, "$(name)")) {
 .   if type = "string"
-                icl_shortstr_cpy (self->$(name), field_value);
+                    icl_shortstr_cpy (self->$(name), field_value);
 .   elsif type = "int" | type = "bool" | type = "time"
-                self->$(name) = (qbyte) atoi (field_value);
+                    self->$(name) = (qbyte) atoi (field_value);
 .   endif
-            }
+                }
 .endfor
 .for class
-            else
-            if (streq (field_name, "$(name)")) {
+                else
+                if (streq (field_name, "$(name)")) {
 .   if repeat ?= 1
-                $(name) = amq_mgt_$(name)_new (self->session, atoi (field_value));
-                ipr_looseref_queue (self->$(name)_list, $(name));
+                    $(name) = amq_mgt_$(name)_new (self->session, atoi (field_value));
+                    ipr_looseref_queue (self->$(name)_list, $(name));
 .   else
-                self->$(name) = amq_mgt_$(name)_new (self->session, atoi (field_value));
+                    self->$(name) = amq_mgt_$(name)_new (self->session, atoi (field_value));
 .   endif
-            }
+                }
 .endfor
-            icl_mem_free (field_value);
+                icl_mem_free (field_value);
+            }
             xml_field = ipr_xml_next_sibling (&xml_field);
         }
         self->loaded = TRUE;
@@ -435,8 +437,6 @@ static void
 static ipr_xml_t *
     s_request_response ($\(selftype) *self, char *request, qbyte object_id,
         char *method, asl_field_list_t *fields);
-static ipr_xml_t *
-    s_parse_content (amq_content_basic_t *content);
 static void
     s_print_property (char *label, char *value, char *name);
 .if class.modifiable ?= 1

@@ -22,18 +22,6 @@
         <field name = "locked" type = "bool" label = "Broker is locked?">
           <get>icl_shortstr_fmt (field_value, "%d", self->locked);</get>
         </field>
-        <field name = "traffic_in" type = "int" label = "Inbound traffic, MB">
-          <get>icl_shortstr_fmt (field_value, "%d", (int) (self->traffic_in / (1024 * 1024)));</get>
-        </field>
-        <field name = "traffic_out" type = "int" label = "Outbound traffic, MB">
-          <get>icl_shortstr_fmt (field_value, "%d", (int) (self->traffic_out / (1024 * 1024)));</get>
-        </field>
-        <field name = "contents_in" type = "int" label = "Total messages received">
-          <get>icl_shortstr_fmt (field_value, "%d", self->contents_in);</get>
-        </field>
-        <field name = "contents_out" type = "int" label = "Total messages sent">
-          <get>icl_shortstr_fmt (field_value, "%d", self->contents_out);</get>
-        </field>
         <field name = "activemb" type = "int" label = "Active memory consumption">
           <get>icl_shortstr_fmt (field_value, "%lu", (qbyte) ipr_bucket_used ());</get>
         </field>

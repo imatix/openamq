@@ -154,7 +154,7 @@ s_get_next_consumer (
             break;                      //  We have our consumer
         }
         else
-        if (consumer->channel->connection->type == AMQ_CONNECTION_TYPE_CLUSTER) {
+        if (consumer->channel->connection->group == AMQ_CONNECTION_GROUP_CLUSTER) {
             //  If the consumer is a cluster peer then the consumer tag is
             //  serverid/connectionid/xxx where xxx is the original consumer
             //  tag.  We can compare this with the content cluster_id, which

@@ -19,12 +19,10 @@ routed to all bound queues and exchanges.
 </method>
 
 <method name = "publish">
-    if (!amq_binding_list_empty (self->exchange->binding_list)) {
-        if (amq_binding_publish (
-              *amq_binding_list_begin (self->exchange->binding_list),
-              channel, method))
-            delivered = TRUE;
-    }
+    if (!amq_binding_list_empty (self->exchange->binding_list))
+        delivered += amq_binding_publish (
+            *amq_binding_list_begin (self->exchange->binding_list),
+            channel, method);
 </method>
 
 </class>

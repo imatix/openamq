@@ -33,7 +33,7 @@ on the routing_key.
         *hash;                          //  Hash entry
     </local>
     //
-    if (amq_server_config_trace_route (amq_server_config))
+    if (amq_server_config_debug_route (amq_server_config))
         asl_log_print (amq_broker->debug_log,
             "X: compile  routing_key=%s", binding->routing_key);
     hash = amq_hash_new (self->binding_hash, binding->routing_key, binding);
@@ -56,15 +56,14 @@ on the routing_key.
          *hash;                         //  Entry into hash table
      </local>
     //
-    if (amq_server_config_trace_route (amq_server_config))
+    if (amq_server_config_debug_route (amq_server_config))
         asl_log_print (amq_broker->debug_log,
             "X: route    routing_key=%s", routing_key);
 
     hash = amq_hash_table_search (self->binding_hash, routing_key);
     if (hash) {
         binding = hash->data;
-        if (amq_binding_publish (binding, channel, method))
-            delivered = TRUE;
+        delivered += amq_binding_publish (binding, channel, method);
         amq_hash_unlink (&hash);
     }
 </method>

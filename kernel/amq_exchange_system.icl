@@ -29,7 +29,7 @@ key):
     if (method->class_id == AMQ_SERVER_BASIC) {
         if (streq (routing_key, "amq.console")) {
             amq_console_accept (amq_console, basic_content);
-            delivered = TRUE;
+            delivered++;
         }
         else
             asl_log_print (amq_broker->alert_log,

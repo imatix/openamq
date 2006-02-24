@@ -86,7 +86,7 @@ for Basic, File, and Stream content classes.
             icl_atomic_inc32 ((volatile qbyte *) &(channel->connection->consumer_tag)));
 
     //  Broadcast consume method to cluster using our cluster_id
-    if (self->channel->connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+    if (self->channel->connection->group != AMQ_CONNECTION_GROUP_CLUSTER
     &&  self->queue->clustered) {
         icl_shortstr_fmt (self->cluster_id,
             "%s/%s", channel->connection->cluster_id, self->tag);

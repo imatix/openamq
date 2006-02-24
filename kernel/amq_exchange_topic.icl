@@ -57,7 +57,7 @@ specification.
     s_topic_to_regexp (binding->routing_key, binding->regexp);
     regexp = ipr_regexp_new (binding->regexp);
 
-    if (amq_server_config_trace_route (amq_server_config))
+    if (amq_server_config_debug_route (amq_server_config))
         asl_log_print (amq_broker->debug_log,
             "X: reindex  wildcard=%s", binding->routing_key);
 
@@ -66,7 +66,7 @@ specification.
         index = amq_index_array_fetch (self->index_array, index_nbr);
         if (index) {
             if (ipr_regexp_match (regexp, index->key, NULL)) {
-                if (amq_server_config_trace_route (amq_server_config))
+                if (amq_server_config_debug_route (amq_server_config))
                     asl_log_print (amq_broker->debug_log,
                         "X: index    wildcard=%s routing_key=%s",
                         binding->routing_key, index->key);
@@ -98,7 +98,7 @@ specification.
     //  Check if routing_key is already indexed, else reindex bindings on it
     index = amq_index_hash_search (self->index_hash, routing_key);
     if (index == NULL) {
-        if (amq_server_config_trace_route (amq_server_config))
+        if (amq_server_config_debug_route (amq_server_config))
             asl_log_print (amq_broker->debug_log,
                 "X: reindex  routing_key=%s", routing_key);
 
@@ -111,7 +111,7 @@ specification.
             //  sub-structure for bindings, dependent on exchange class...
             regexp = ipr_regexp_new ((*iterator)->regexp);
             if (ipr_regexp_match (regexp, routing_key, NULL)) {
-                if (amq_server_config_trace_route (amq_server_config))
+                if (amq_server_config_debug_route (amq_server_config))
                     asl_log_print (amq_broker->debug_log,
                         "X: index  routing_key=%s wildcard=%s",
                         routing_key, (*iterator)->routing_key);
@@ -124,7 +124,7 @@ specification.
             iterator = amq_binding_list_next (iterator);
         }
     }
-    if (amq_server_config_trace_route (amq_server_config))
+    if (amq_server_config_debug_route (amq_server_config))
         asl_log_print (amq_broker->debug_log,
             "X: route    routing_key=%s", routing_key);
 
@@ -132,11 +132,10 @@ specification.
     binding_nbr = ipr_bits_first (index->bindset);
     while (binding_nbr >= 0) {
         binding = self->exchange->binding_index->data [binding_nbr];
-        if (amq_server_config_trace_route (amq_server_config))
+        if (amq_server_config_debug_route (amq_server_config))
             asl_log_print (amq_broker->debug_log,
                 "X: hit      wildcard=%s", binding->routing_key);
-        if (amq_binding_publish (binding, channel, method))
-            delivered = TRUE;
+        delivered += amq_binding_publish (binding, channel, method);
         binding_nbr = ipr_bits_next (index->bindset, binding_nbr);
     }
     amq_index_unlink (&index);

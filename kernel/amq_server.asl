@@ -53,7 +53,7 @@
                     if (exchange) {
                         //  Create exchange on all cluster peers
                         if (amq_cluster->enabled
-                        &&  connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
+                        &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER)
                             amq_cluster_tunnel_out (amq_cluster,
                                 AMQ_CLUSTER_ALL, self, AMQ_CLUSTER_DURABLE, channel);
                     }
@@ -87,7 +87,7 @@
     if (exchange) {
         //  Delete exchange on all cluster peers
         if (amq_cluster->enabled
-        &&  connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
+        &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER)
             amq_cluster_tunnel_out (amq_cluster,
                 AMQ_CLUSTER_ALL, self, AMQ_CLUSTER_DURABLE, channel);
 
@@ -128,7 +128,7 @@
         else {
             queue = amq_queue_new (
                 amq_vhost,
-                connection? connection->id: "",
+                method->exclusive? connection: NULL,
                 method->queue,
                 method->durable,
                 method->exclusive,
@@ -144,7 +144,7 @@
                     amq_server_connection_own_queue (connection, queue);
 
                 if (amq_cluster->enabled
-                &&  connection->type != AMQ_CONNECTION_TYPE_CLUSTER) {
+                &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER) {
                     if (method->exclusive)
                         //  Forward private queue default binding to all nodes
                         amq_cluster_bind_exchange (amq_cluster, NULL, queue->name, NULL);
@@ -161,8 +161,7 @@
     }
     if (queue) {
         //TODO: verify this in cluster context
-        if (method->exclusive
-        &&  strneq (queue->owner_id, connection->id))
+        if (method->exclusive && queue->connection != connection)
             amq_server_channel_error (
                 channel,
                 ASL_ACCESS_REFUSED,
@@ -197,7 +196,7 @@
 
             //  Tell cluster about new queue binding
             if (amq_cluster->enabled
-            &&  connection->type != AMQ_CONNECTION_TYPE_CLUSTER) {
+            &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER) {
                 if (queue->clustered)
                     //  Make same binding on all cluster peers
                     amq_cluster_tunnel_out (amq_cluster,
@@ -226,7 +225,7 @@
     if (queue) {
         //  Delete the queue on all cluster peers
         if (amq_cluster->enabled
-        &&  connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+        &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER
         &&  queue->clustered)
             amq_cluster_tunnel_out (amq_cluster,
                 AMQ_CLUSTER_ALL, self, AMQ_CLUSTER_DURABLE, channel);
@@ -252,7 +251,7 @@
     if (queue) {
         //  Purge queue on all cluster peers, using
         if (amq_cluster->enabled
-        &&  connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+        &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER
         &&  queue->clustered)
             amq_cluster_tunnel_out (amq_cluster,
                 AMQ_CLUSTER_ALL, self, AMQ_CLUSTER_TRANSIENT, channel);
@@ -274,7 +273,7 @@
         *queue;
     </local>
     if (strlen (method->consumer_tag) > 127
-    &&  connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
+    &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER)
         amq_server_connection_error (connection,
             ASL_SYNTAX_ERROR, "Consumer tag exceeds limit of 127 chars");
     else {
@@ -314,9 +313,8 @@
                 method->routing_key,
                 connection->id);
 
-            //  Set cluster-id on fresh content coming from applications
-            if (amq_cluster->enabled
-            &&  connection->type != AMQ_CONNECTION_TYPE_CLUSTER)
+            //  Set cluster-id on all fresh content coming from applications
+            if (connection->group != AMQ_CONNECTION_GROUP_CLUSTER)
                 amq_content_$(class.name)_set_cluster_id (self->content, channel->cluster_id);
 
             amq_exchange_publish (exchange, channel, self);
@@ -340,7 +338,7 @@
     if (queue) {
         //  Pass request to cluster master if we are not he
         if (amq_cluster->enabled
-        &&  connection->type != AMQ_CONNECTION_TYPE_CLUSTER
+        &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER
         &&  queue->clustered
         && !amq_broker->master)
             amq_cluster_tunnel_out (amq_cluster,
@@ -370,7 +368,7 @@
   <action name = "request">
     method = NULL;    //  Prevent compiler warning on unused method variable
     if (amq_cluster->enabled
-    &&  connection->type == AMQ_CONNECTION_TYPE_CLUSTER)
+    &&  connection->group == AMQ_CONNECTION_GROUP_CLUSTER)
         amq_cluster_tunnel_in (amq_cluster, self->content, channel);
     else
         amq_server_connection_error (connection, ASL_NOT_ALLOWED, "Method not allowed");
