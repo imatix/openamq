@@ -15,7 +15,7 @@
         <basic_publish exchange = "" routing_key = "myqueue" immediate = "0" mandatory = "1" />
         <basic_content message_id = "id2" priority = "0" />
         <basic_publish exchange = "" routing_key = "myqueue"  immediate = "0" mandatory = "1" />
-        <wait timeout = "2000" />
+        <sleep timeout = "2000" />
         <basic_consume queue = "myqueue" />
         <wait timeout = "3000" />
         <basic_arrived>
