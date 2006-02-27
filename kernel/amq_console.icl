@@ -127,7 +127,7 @@ $(selftype)
     </doc>
     <argument name = "content" type = "amq_content_basic_t *">The message content</argument>
     <possess>
-    amq_content_basic_link (content);
+    content = amq_content_basic_link (content);
     </possess>
     <release>
     amq_content_basic_unlink (&content);
@@ -203,8 +203,8 @@ $(selftype)
     <argument name = "fields"    type = "asl_field_list_t *">Object fields</argument>
     <argument name = "notice"    type = "char *">Reply notice, if any</argument>
     <possess>
-    amq_content_basic_link (request);
-    asl_field_list_link (fields);
+    request = amq_content_basic_link (request);
+    fields  = asl_field_list_link (fields);
     notice = icl_mem_strdup (notice);
     </possess>
     <release>
@@ -260,7 +260,7 @@ $(selftype)
     <argument name = "request"   type = "amq_content_basic_t *">Original request</argument>
     <argument name = "object id" type = "qbyte">Object id</argument>
     <possess>
-    amq_content_basic_link (request);
+    request = amq_content_basic_link (request);
     </possess>
     <release>
     amq_content_basic_unlink (&request);
@@ -555,6 +555,7 @@ s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
     smt_initialise ();
     amq_console = amq_console_new ();
     amq_console_destroy (&amq_console);
+    smt_terminate ();
 </method>
 
 </class>

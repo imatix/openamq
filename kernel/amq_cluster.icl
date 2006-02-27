@@ -424,7 +424,7 @@ amq_cluster_t
     <argument name = "connection" type = "amq_server_connection_t *">client connection</argument>
     //
     <possess>
-    amq_server_connection_link (connection);
+    connection = amq_server_connection_link (connection);
     </possess>
     <release>
     amq_server_connection_unlink (&connection);
@@ -444,7 +444,7 @@ amq_cluster_t
             best_peer = amq_peer_link (peer);
             lowest_load = peer->load;
         }
-        peer = amq_peer_list_next (&peer);
+        peer = amq_peer_list_next (&best_peer);
     }
     if (best_peer) {
         if (amq_server_config_debug_cluster (amq_server_config))
@@ -496,8 +496,8 @@ amq_cluster_t
     <argument name = "channel" type = "amq_server_channel_t *">channel for reply</argument>
     //
     <possess>
-    amq_server_method_link (method);
-    amq_server_channel_link (channel);
+    method  = amq_server_method_link (method);
+    channel = amq_server_channel_link (channel);
     </possess>
     <release>
     amq_server_method_unlink (&method);
@@ -563,8 +563,8 @@ amq_cluster_t
     <argument name = "channel" type = "amq_server_channel_t *">channel for reply</argument>
     //
     <possess>
-    amq_content_tunnel_link (content);
-    amq_server_channel_link (channel);
+    content = amq_content_tunnel_link (content);
+    channel = amq_server_channel_link (channel);
     </possess>
     <release>
     amq_content_tunnel_unlink (&content);
@@ -629,7 +629,7 @@ amq_cluster_t
     <argument name = "method" type = "amq_server_method_t *">Publish method</argument>
     //
     <possess>
-    amq_server_method_link (method);
+    method = amq_server_method_link (method);
     </possess>
     <release>
     amq_server_method_unlink (&method);
@@ -677,17 +677,19 @@ s_append_to_state (
     if (amq_server_config_debug_cluster (amq_server_config))
         asl_log_print (amq_broker->debug_log, "C: record   method=%s", content->data_name);
 
-    amq_content_tunnel_link (content);
-    ipr_looseref_queue (self->state_list, content);
-    self->state_size += content->body_size + sizeof (content);
-
-    if (self->state_size
-    > amq_server_config_cluster_state_mb (amq_server_config) * 1024 * 1024
-    && !self->state_alert) {
-        asl_log_print (amq_broker->alert_log,
-            "E: WARNING: cluster state exceeds %dMb",
-            amq_server_config_cluster_state_mb (amq_server_config));
-        self->state_alert = TRUE;
+    content = amq_content_tunnel_link (content);
+    if (content) {
+        ipr_looseref_queue (self->state_list, content);
+        self->state_size += content->body_size + sizeof (content);
+    
+        if (self->state_size
+        > amq_server_config_cluster_state_mb (amq_server_config) * 1024 * 1024
+        && !self->state_alert) {
+            asl_log_print (amq_broker->alert_log,
+                "E: WARNING: cluster state exceeds %dMb",
+                amq_server_config_cluster_state_mb (amq_server_config));
+            self->state_alert = TRUE;
+        }
     }
 }
 

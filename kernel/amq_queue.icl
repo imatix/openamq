@@ -172,8 +172,8 @@ class.  This is a lock-free asynchronous class.
     <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
     //
     <possess>
-    amq_server_channel_link (channel);
-    amq_server_method_link (method);
+    channel = amq_server_channel_link (channel);
+    method  = amq_server_method_link (method);
     </possess>
     <release>
     amq_server_channel_unlink (&channel);
@@ -210,7 +210,7 @@ class.  This is a lock-free asynchronous class.
     <argument name = "cluster id" type = "char *">Stamp content with cluster id</argument>
     //
     <possess>
-    amq_server_channel_link (channel);
+    channel    = amq_server_channel_link (channel);
     cluster_id = icl_mem_strdup (cluster_id);
     </possess>
     <release>
@@ -233,7 +233,7 @@ class.  This is a lock-free asynchronous class.
     <argument name = "active"   type = "Bool">Create active consumer?</argument>
     //
     <possess>
-    amq_consumer_link (consumer);
+    consumer = amq_consumer_link (consumer);
     </possess>
     <release>
     amq_consumer_unlink (&consumer);
@@ -336,7 +336,7 @@ class.  This is a lock-free asynchronous class.
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
     //
     <possess>
-    amq_server_channel_link (channel);
+    channel = amq_server_channel_link (channel);
     </possess>
     <release>
     amq_server_channel_unlink (&channel);
@@ -360,7 +360,7 @@ class.  This is a lock-free asynchronous class.
     <argument name = "active"   type = "Bool">Active consumer?</argument>
     //
     <possess>
-    amq_consumer_link (consumer);
+    consumer = amq_consumer_link (consumer);
     </possess>
     <release>
     amq_consumer_unlink (&consumer);

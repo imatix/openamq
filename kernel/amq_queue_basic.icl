@@ -130,9 +130,11 @@ runs lock-free as a child of the asynchronous queue class.
         }
         else {
             content->immediate = immediate;
-            amq_content_basic_link (content);
-            looseref = ipr_looseref_queue (self->content_list, content);
-            ipr_meter_count (amq_broker->imeter);
+            content = amq_content_basic_link (content);
+            if (content) {
+                looseref = ipr_looseref_queue (self->content_list, content);
+                ipr_meter_count (amq_broker->imeter);
+            }
         }
     }
     self_dispatch (self);

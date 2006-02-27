@@ -71,7 +71,7 @@ static amq_console_class_t
     assert (self);
     </header>
     <possess>
-    amq_content_basic_link (request);
+    request = amq_content_basic_link (request);
     </possess>
     <release>
     amq_content_basic_unlink (&request);
@@ -129,7 +129,7 @@ static amq_console_class_t
     assert (self);
     </header>
     <possess>
-    amq_content_basic_link (request);
+    request = amq_content_basic_link (request);
     asl_field_list_link (fields);
     </possess>
     <release>
@@ -177,8 +177,8 @@ static amq_console_class_t
     </header>
     <possess>
     method_name = icl_mem_strdup (method_name);
-    amq_content_basic_link (request);
-    asl_field_list_link (fields);
+    request = amq_content_basic_link (request);
+    fields  = asl_field_list_link (fields);
     </possess>
     <release>
     icl_mem_free (method_name);

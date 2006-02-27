@@ -176,7 +176,7 @@ This class implements the connection class for the AMQ server.
     </local>
     //
     if (consumer) {
-        amq_consumer_link (consumer);
+        consumer = amq_consumer_link (consumer);
         icl_atomic_inc32 ((volatile qbyte *) &consumer->busy);
     }
 </method>

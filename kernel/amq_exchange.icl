@@ -263,8 +263,8 @@ for each type of exchange. This is a lock-free asynchronous class.
     <argument name = "arguments"   type = "icl_longstr_t *">Bind arguments</argument>
     //
     <possess>
-    channel = amq_server_channel_link (channel);
-    queue = amq_queue_link (queue);
+    channel   = amq_server_channel_link (channel);
+    queue     = amq_queue_link (queue);
     arguments = icl_longstr_dup (arguments);
     routing_key = icl_mem_strdup (routing_key);
     </possess>
@@ -294,8 +294,8 @@ for each type of exchange. This is a lock-free asynchronous class.
     <argument name = "arguments"   type = "icl_longstr_t *">Bind arguments</argument>
     //
     <possess>
-    peer = amq_peer_link (peer);
-    arguments = icl_longstr_dup (arguments);
+    peer        = amq_peer_link (peer);
+    arguments   = icl_longstr_dup (arguments);
     routing_key = icl_mem_strdup (routing_key);
     </possess>
     <release>
@@ -372,8 +372,8 @@ for each type of exchange. This is a lock-free asynchronous class.
     <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
     //
     <possess>
-    amq_server_channel_link (channel);
-    amq_server_method_link (method);
+    channel = amq_server_channel_link (channel);
+    method  = amq_server_method_link (method);
     </possess>
     <release>
     amq_server_channel_unlink (&channel);

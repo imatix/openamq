@@ -256,12 +256,19 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "os threads" type = "int" default = "4">
-    Number of OS threads
+    <property name = "polling threads" type = "int" default = "4">
+    Number of polling OS threads
     <doc>
-    On multithreaded builds, defines the number of OS threads that the
-    server will use.  This should be at least as high as the number of
-    CPUs and you can experiment with higher values.
+    On multithreaded builds, defines the number of OS threads dedicated to
+    socket polling.
+    </doc>
+    </property>
+
+    <property name = "working threads" type = "int" default = "4">
+    Number of working OS threads
+    <doc>
+    On multithreaded builds, defines the number of OS threads dedicated to
+    processing, that is, tasks other than socket polling.
     </doc>
     </property>
 

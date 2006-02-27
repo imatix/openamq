@@ -79,8 +79,8 @@ maximum number of consumers per channel is set at compile time.
     <argument name = "method" type = "amq_server_method_t *">Consume method</argument>
     //
     <possess>
-    amq_queue_link (queue);
-    amq_server_method_link (method);
+    queue  = amq_queue_link (queue);
+    method = amq_server_method_link (method);
     </possess>
     <release>
     amq_queue_unlink (&queue);
@@ -241,6 +241,7 @@ maximum number of consumers per channel is set at compile time.
         smt_wait (0);
     }
     amq_server_channel_table_destroy (&table);
+    smt_terminate ();
 </method>
 
 </class>

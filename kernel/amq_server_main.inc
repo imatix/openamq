@@ -217,9 +217,10 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
     ipr_config_destroy (&config);
 
     //  Set system options from configuration
-    smt_set_max_os_thread  (amq_server_config_os_threads     (amq_server_config));
-    smt_set_poll_frequency (amq_server_config_poll_frequency (amq_server_config));
-    smt_set_action_limit   (amq_server_config_kernel_limit   (amq_server_config));
+    smt_set_polling_threads (amq_server_config_polling_threads (amq_server_config));
+    smt_set_working_threads (amq_server_config_working_threads (amq_server_config));
+    smt_set_poll_frequency  (amq_server_config_poll_frequency  (amq_server_config));
+    smt_set_action_limit    (amq_server_config_kernel_limit    (amq_server_config));
 
     //  Move into the background if so desired
     if (s_opt_bkground) {
@@ -296,6 +297,7 @@ s_run_server (void)
     if (s_opt_showinfo)
         icl_stats_dump ();
     icl_console_print ("I: shutdown is complete");
+    smt_terminate ();
     icl_system_terminate ();
     return (rc);
 }
