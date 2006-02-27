@@ -9,19 +9,24 @@
 
     <include filename = "amq_test_base.pal" />
     <session>
+        <set name = "count" value = "0" />
         <queue_declare queue = "myqueue" />
-        <basic_consume queue = "myqueue" prefetch_size = "5120" auto_ack = "0" />
+        <basic_consume queue = "myqueue" prefetch_size = "5120" no_ack = "0" />
         
         <basic_content size = "1024" />
         <repeat times = "10">
-            <basic_publish exchange = "amq.direct" routing_key = "myqueue" />
+            <basic_publish exchange = "" routing_key = "myqueue" />
         </repeat>
-        <basic_arrived>
-        </basic_arrived>
-        <empty>
-            <abort>Messages did not come back, this is bad!</abort>
-        </empty>
-        <basic_get queue = "myqueue" />
-        <assert name = "message_count" value = "5" />
+        <wait timeout = "5000" />
+        <repeat>
+            <basic_arrived>
+                <inc name = "count" />
+            </basic_arrived>
+            <empty>
+                <echo>$count</echo>
+                <assert name = "count" value = "5" />
+            </empty>
+            <wait timeout = "500" />
+        </repeat>
     </session>
 </pal>
