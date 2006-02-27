@@ -297,7 +297,6 @@ s_run_server (void)
     if (s_opt_showinfo)
         icl_stats_dump ();
     icl_console_print ("I: shutdown is complete");
-    smt_terminate ();
     icl_system_terminate ();
     return (rc);
 }

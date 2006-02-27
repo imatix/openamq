@@ -187,7 +187,7 @@ $(selftype)
             s_invalid_cml (content, bucket, "can't parse CML");
         ipr_xml_unlink (&xml_cml);
     }
-    ipr_bucket_destroy (&bucket);
+    ipr_bucket_unlink (&bucket);
     ipr_xml_destroy (&xml_root);
     </action>
 </method>
@@ -326,7 +326,7 @@ s_execute_schema (amq_content_basic_t *request, ipr_xml_t *xml_command)
         bucket = ipr_file_slurp (schema_file);
         if (bucket) {
             s_reply_bucket (request, bucket);
-            ipr_bucket_destroy (&bucket);
+            ipr_bucket_unlink (&bucket);
         }
         else {
             asl_log_print (amq_broker->alert_log, "E: can't read '%s'", schema_file);
@@ -509,7 +509,7 @@ s_reply_xml (amq_content_basic_t *request, ipr_xml_t *xml_item)
     ipr_bucket_fill (bucket, xml_text, strlen (xml_text));
     icl_mem_free (xml_text);
     s_reply_bucket (request, bucket);
-    ipr_bucket_destroy (&bucket);
+    ipr_bucket_unlink (&bucket);
 }
 
 
@@ -555,7 +555,6 @@ s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
     smt_initialise ();
     amq_console = amq_console_new ();
     amq_console_destroy (&amq_console);
-    smt_terminate ();
 </method>
 
 </class>

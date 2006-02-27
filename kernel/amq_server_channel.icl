@@ -241,7 +241,6 @@ maximum number of consumers per channel is set at compile time.
         smt_wait (0);
     }
     amq_server_channel_table_destroy (&table);
-    smt_terminate ();
 </method>
 
 </class>

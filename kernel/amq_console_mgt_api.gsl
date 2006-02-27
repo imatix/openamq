@@ -507,7 +507,7 @@ s_request_response (
     amq_content_basic_set_reply_to (content, self->session->queue);
     amq_client_session_basic_publish (self->session,
         content, 0, "amq.system", "amq.console", FALSE, FALSE);
-    amq_content_basic_destroy (&content);
+    amq_content_basic_unlink (&content);
 
     //  Wait for response on our queue
     if (amq_client_session_wait (self->session, 10000) == 0)
@@ -522,7 +522,7 @@ s_request_response (
             content, bucket->data, bucket->max_size);
         descr.data = bucket->data;
         descr.size = bucket->cur_size;
-        ipr_bucket_destroy (&bucket);
+        ipr_bucket_unlink (&bucket);
 
         //  Parse as XML message
         ipr_xml_load_descr (&xml_root, &descr, FALSE);
@@ -565,7 +565,7 @@ s_request_response (
                 //  If command not valid, return NULL
                 ipr_xml_destroy (&xml_root);
         }
-        amq_content_basic_destroy (&content);
+        amq_content_basic_unlink (&content);
         ipr_xml_unlink (&xml_command);
         ipr_xml_unlink (&xml_cml);
         return (xml_root);

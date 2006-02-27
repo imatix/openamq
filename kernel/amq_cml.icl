@@ -74,7 +74,7 @@
     amq_content_basic_set_content_type (content, "text/xml");
     amq_content_basic_record_body      (content, bucket);
 
-    ipr_bucket_destroy (&bucket);
+    ipr_bucket_unlink (&bucket);
     ipr_xml_unlink  (&cur_item);
     ipr_xml_destroy (&cml_item);
 </method>
@@ -86,7 +86,7 @@
     </local>
     //
     content = amq_cml_encode ("test-method", "myobject", 123, "ok", NULL, NULL);
-    amq_content_basic_destroy (&content);
+    amq_content_basic_unlink (&content);
 </method>
 
 </class>

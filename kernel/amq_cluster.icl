@@ -524,7 +524,7 @@ amq_cluster_t
         amq_content_tunnel_set_headers_field (content,
             "channel", "%d", channel->number);
     }
-    ipr_bucket_destroy (&bucket);
+    ipr_bucket_unlink (&bucket);
 
     //  Record wrapped method in state if wanted
     if (durable)                        
@@ -611,7 +611,7 @@ amq_cluster_t
         peer = amq_peer_list_next (&peer);
     }
     amq_server_method_unlink (&method);
-    ipr_bucket_destroy (&bucket);
+    ipr_bucket_unlink (&bucket);
     amq_peer_unlink (&peer);
 
     //  If message is part of the cluster state, record it
