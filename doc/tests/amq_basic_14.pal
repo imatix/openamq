@@ -8,7 +8,7 @@
     is expected.
 
     <include filename = "amq_test_base.pal" />
-    <session>
+    <session error_handling = "recover">
         <exchange_declare exchange = "myexchange" type = "direct" internal = "1" />
         <queue_declare queue = "myqueue" />
         <queue_bind queue = "myqueue" exchange = "myexchange" routing_key = "myqueue" />
