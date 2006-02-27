@@ -8,13 +8,13 @@
 
     <include filename = "amq_test_base.pal" />
     <session>
-        <queue_declare />
-        <basic_consume queue = "$queue" />
-        <echo>$consumer_tag works in echo, but not as a value it seems</echo>
-        <set name = "ct" value = "$consumer_tag" />
-        <basic_cancel queue = "$queue" consumer = "$ct" />
+        <queue_declare queue = "myqueue" />
+        <basic_consume queue = "myqueue" />
+        <basic_content size = "10485760" />
+        <basic_publish exchange = "" routing_key = "myqueue" />
+        <wait timeout = "5000" />
+        <basic_cancel queue = "myqueue" consumer_tag = "$consumer_tag" />
     </session>
-    
 </pal>
 
 
