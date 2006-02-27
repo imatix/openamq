@@ -3,8 +3,8 @@
     script = "amq_pal_gen"
     desc   = "the server MUST handle basic cancel requests"
     >
-    This test creates a queue (bound by default) attaches a consumer, and then
-    cancels the consume.
+    This test creates a queue (bound by default), attaches a consumer and 
+    publishes a 10MB message, and finally cancels the consume.
 
     <include filename = "amq_test_base.pal" />
     <session>
