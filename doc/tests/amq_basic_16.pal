@@ -10,7 +10,7 @@
     <session>
         <queue_declare queue = "myqueue" />
         <basic_content />
-        <basic_publish exchange = "amq.direct" routing_key = "myqueue" immediate = "1"/>
+        <basic_publish exchange = "" routing_key = "myqueue" immediate = "1"/>
         <wait timeout = "5000" />
         <basic_arrived>
             <abort>Message came back, it should have been returned!</abort>

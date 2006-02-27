@@ -15,6 +15,7 @@
         <basic_consume queue = "myqueue" />
         <basic_content />
         <basic_publish exchange = "myexchange" routing_key = "myqueue" />
+        <wait timeout = "5000" />
         <if name = "reply_code" test = "ne" value = "403">
             <echo>$reply_code: $reply_text</echo>
         </if>
