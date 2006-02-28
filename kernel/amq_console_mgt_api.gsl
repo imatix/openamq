@@ -79,7 +79,6 @@ class.
 <method name = "destroy">
     s_destroy_children (self);
 .for class where repeat ?= 1
-    ipr_looseref_unlink (&self->$(name)_ref);
     ipr_looseref_list_destroy (&self->$(name)_list);
 .endfor
 </method>

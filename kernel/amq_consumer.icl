@@ -11,6 +11,8 @@ ties the channel to the queue, and envelopes class-specific consumers
 for Basic, File, and Stream content classes.
 </doc>
 
+<option name = "links" value = "1"/>
+
 <inherit class = "icl_object">
     <option name = "alloc" value = "cache" />
 </inherit>

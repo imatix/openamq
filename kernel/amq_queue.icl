@@ -12,6 +12,8 @@ that acts as a envelope for the separate queue managers for each
 class.  This is a lock-free asynchronous class.
 </doc>
 
+<option name = "links" value = "1"/>
+
 <inherit class = "smt_object">
     <option name = "possess" value = "1" />
 </inherit>

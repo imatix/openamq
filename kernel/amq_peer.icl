@@ -12,6 +12,8 @@ to the peer agent and replies are handled by callbacks back via the
 cluster class.
 </doc>
 
+<option name = "links" value = "1"/>
+
 <inherit class = "icl_object">
     <option name = "alloc" value = "cache" />
 </inherit>

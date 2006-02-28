@@ -112,9 +112,7 @@ class.
     while (looseref && looseref->object != peer)
         looseref = ipr_looseref_list_next (&looseref);
 
-    if (looseref)                       //  Ignore duplicates
-        ipr_looseref_unlink (&looseref);
-    else
+    if (!looseref)                      //  Ignore duplicates
         ipr_looseref_queue (self->peer_list, amq_peer_link (peer));
 </method>
 

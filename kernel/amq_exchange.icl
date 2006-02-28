@@ -12,6 +12,8 @@ object that acts as a envelope for the separate exchange managers
 for each type of exchange. This is a lock-free asynchronous class.
 </doc>
 
+<option name = "links" value = "1"/>
+
 <inherit class = "smt_object" />
 <inherit class = "icl_hash_item">
     <option name = "hash_type" value = "str" />
