@@ -5,6 +5,7 @@
     >
     This test declares an internal exchange and a queue, and then attempts
     to bind the queue to the exchange.  We expect a reply code 530.
+    
     <include filename = "amq_test_base.pal" />
     <session error_handling = "recover" >
         <exchange_declare exchange = "my.exchange" type = "fanout" internal = "1" />

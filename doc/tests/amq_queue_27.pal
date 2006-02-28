@@ -9,9 +9,8 @@
     <include filename = "amq_test_base.pal" />
     <session error_handling = "recover">
         <queue_declare queue = "myqueue" />
-        <queue_bind queue = "myqueue" exchange = "amq.direct" routing_key = "key" />
         <basic_content size = "64000" message_id = "id1"/>
-        <basic_publish exchange = "amq.direct" routing_key = "key" />
+        <basic_publish exchange = "" routing_key = "myqueue" mandatory = "1" />
         <queue_delete queue = "myqueue" if_empty = "1"/>
         <if name = "reply_code" test = "ne" value = "504">
             <echo>$reply_code: $reply_text</echo>
