@@ -3,7 +3,7 @@
     script = "amq_pal_gen"
     desc   = "the server MUST respect the exclusive flag on exchanges"
     >
-    This test sets up a session where an exclusive exchange is created. Then te
+    This test sets up a session where an exclusive exchange is created. Then the
     session is reastablished using a new connection. The exchange created should
     not be accessible from the new session.
     

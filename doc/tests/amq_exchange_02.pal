@@ -7,7 +7,6 @@
     it opens up a new session (with a new connection) to check if the exchange
     has been deleted. This is done by a passive exchange declaration, which
     returns a reply_code of 404 if the exchange is gone.
-
     
     <include filename = "amq_test_base.pal" />
     <session>
