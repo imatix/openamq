@@ -214,6 +214,21 @@
 
 <event name = "monitor">
     <action>
+    //  Config may change, in which case use new configured values
+    /*
+    -- TODO:
+    -- if config is zero, stop timer
+    -- if timer is zero, take from config
+    if (self->monitor_timer == 0)
+        self->monitor_timer = amq_server_config_monitor (amq_server_config);
+    if (self->dump_state_timer == 0)
+        self->dump_state_timer = amq_server_config_dump_state (amq_server_config);
+    if (self->auto_crash_timer == 0)
+        self->auto_crash_timer = amq_server_config_auto_crash (amq_server_config);
+    if (self->auto_crash_timer == 0)
+        self->auto_block_timer = amq_server_config_auto_block (amq_server_config);
+    */
+
     if (self->monitor_timer) {
         self->monitor_timer--;
         if (self->monitor_timer == 0) {
@@ -253,7 +268,7 @@
     if (self->auto_crash_timer) {
         if (--self->auto_crash_timer == 0) {
             asl_log_print (amq_broker->alert_log,
-                "W: #########################  AUTO-CRASH  ########################");
+                "W: ************************  AUTO-CRASH  ************************");
             asl_log_print (amq_broker->alert_log,
                 "W: server is now emulating a system crash, and will exit brutally.");
             exit (0);
@@ -262,7 +277,7 @@
     if (self->auto_block_timer) {
         if (--self->auto_block_timer == 0) {
             asl_log_print (amq_broker->alert_log,
-                "W: #########################  AUTO-BLOCK  ########################");
+                "W: ************************  AUTO-BLOCK  ************************");
             asl_log_print (amq_broker->alert_log,
                 "W: server is now emulating a blockage, and will freeze for 5 minutes.");
             sleep (300);

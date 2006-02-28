@@ -14,53 +14,27 @@ on the routing_key.
 
 <import class = "amq_hash" />
 
-<context>
-    amq_hash_table_t
-        *binding_hash;                  //  Bindings hashed by routing_key
-</context>
-
-<method name = "new">
-    self->binding_hash = amq_hash_table_new ();
-</method>
-
-<method name = "destroy">
-    amq_hash_table_destroy (&self->binding_hash);
-</method>
-
 <method name = "compile">
-    <local>
-    amq_hash_t
-        *hash;                          //  Hash entry
-    </local>
-    //
+    //  We don't do anything, since we use the exchange's binding
+    //  hash table for our lookups.
     if (amq_server_config_debug_route (amq_server_config))
         asl_log_print (amq_broker->debug_log,
             "X: compile  routing_key=%s", binding->routing_key);
-    hash = amq_hash_new (self->binding_hash, binding->routing_key, binding);
-    if (hash)
-        amq_hash_unlink (&hash);
-    else {
-        rc = 1;
-        amq_server_connection_error (
-            channel? channel->connection: NULL,
-            ASL_INTERNAL_ERROR,
-            "Please contact OpenAMQ technical support (DUPBIND)");
-    }
 </method>
 
 <method name = "publish">
     <local>
     amq_binding_t
         *binding;
-     amq_hash_t
-         *hash;                         //  Entry into hash table
+    amq_hash_t
+        *hash;                          //  Entry into hash table
      </local>
     //
     if (amq_server_config_debug_route (amq_server_config))
         asl_log_print (amq_broker->debug_log,
             "X: route    routing_key=%s", routing_key);
 
-    hash = amq_hash_table_search (self->binding_hash, routing_key);
+    hash = amq_hash_table_search (self->exchange->binding_hash, routing_key);
     if (hash) {
         binding = hash->data;
         delivered += amq_binding_publish (binding, channel, method);

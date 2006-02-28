@@ -78,6 +78,8 @@ for each type of exchange. This is a lock-free asynchronous class.
         *object;                        //  Exchange implementation
     amq_binding_list_t
         *binding_list;                  //  Bindings as a list
+    amq_hash_table_t
+        *binding_hash;                  //  Bindings hashed by routing_key
     ipr_index_t
         *binding_index;                 //  Gives us binding indices
 
@@ -126,6 +128,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     self->auto_delete   = auto_delete;
     self->internal      = internal;
     self->binding_list  = amq_binding_list_new ();
+    self->binding_hash  = amq_hash_table_new ();
     self->binding_index = ipr_index_new ();
     icl_shortstr_cpy (self->name, name);
 
@@ -172,6 +175,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     if (amq_server_config_debug_route (amq_server_config))
         asl_log_print (amq_broker->debug_log, "X: destroy  exchange=%s", self->name);
 
+    amq_hash_table_destroy (&self->binding_hash);
     amq_binding_list_destroy (&self->binding_list);
     ipr_index_destroy (&self->binding_index);
     if (self->type == AMQ_EXCHANGE_SYSTEM)
@@ -265,8 +269,8 @@ for each type of exchange. This is a lock-free asynchronous class.
     <argument name = "arguments"   type = "icl_longstr_t *">Bind arguments</argument>
     //
     <possess>
-    channel   = amq_server_channel_link (channel);
-    queue     = amq_queue_link (queue);
+    channel = amq_server_channel_link (channel);
+    queue = amq_queue_link (queue);
     arguments = icl_longstr_dup (arguments);
     routing_key = icl_mem_strdup (routing_key);
     </possess>
@@ -296,8 +300,8 @@ for each type of exchange. This is a lock-free asynchronous class.
     <argument name = "arguments"   type = "icl_longstr_t *">Bind arguments</argument>
     //
     <possess>
-    peer        = amq_peer_link (peer);
-    arguments   = icl_longstr_dup (arguments);
+    peer = amq_peer_link (peer);
+    arguments = icl_longstr_dup (arguments);
     routing_key = icl_mem_strdup (routing_key);
     </possess>
     <release>
@@ -375,7 +379,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     //
     <possess>
     channel = amq_server_channel_link (channel);
-    method  = amq_server_method_link (method);
+    method = amq_server_method_link (method);
     </possess>
     <release>
     amq_server_channel_unlink (&channel);
@@ -434,39 +438,51 @@ s_bind_object (
     amq_binding_list_iterator_t
         iterator;
     amq_binding_t
-        *binding = NULL;
+        *binding = NULL;                //  New binding created
+    amq_hash_t
+        *hash;                          //  Entry into hash table
 
     //  Treat empty arguments as null to simplify comparisons
     if (arguments && arguments->cur_size == 0)
         arguments = NULL;
 
-    //  Check existing bindings to see if we have one that matches
-    iterator  = amq_binding_list_begin (self->binding_list);
-    while (iterator) {
-        if (streq ((*iterator)->routing_key, routing_key)
-              &&  icl_longstr_eq ((*iterator)->arguments, arguments))
-            break;
-        iterator  = amq_binding_list_next  (iterator);
+    //  We need to know if this is a new binding or not
+    //  First, we'll check on the routing key
+    hash = amq_hash_table_search (self->binding_hash, routing_key);
+    if (hash) {
+        //  We found the same routing key, now we need to check
+        //  all bindings to check for an exact match
+        iterator = amq_binding_list_begin (self->binding_list);
+        while (iterator) {
+            if (streq ((*iterator)->routing_key, routing_key)
+            && icl_longstr_eq ((*iterator)->arguments, arguments)) {
+                binding = *iterator;
+                break;
+            }
+            iterator = amq_binding_list_next (iterator);
+        }
     }
-
-    if (iterator) {
-        //  If the binding already exist, bind it to the object passed
+    if (binding) {
+        //  If the binding already exists, attach the queue/peer to it
         if (queue)
-            amq_binding_bind_queue (*iterator, queue);
+            amq_binding_bind_queue (binding, queue);
         else
         if (peer)
-            amq_binding_bind_peer (*iterator, peer);
+            amq_binding_bind_peer (binding, peer);
     }
     else {
-        //  If no binding matched, create a new one
-        //  and compile it to the exchange
+        //  If no binding matched, create a new one and compile it
         binding = amq_binding_new (self, routing_key, arguments);
         if (binding) {
+            if (!hash)                  //  Hash routing key if needed
+                hash = amq_hash_new (self->binding_hash, routing_key, binding);
+
             if (self->compile (self->object, binding, channel) == 0) {
                 amq_binding_list_push_back (self->binding_list, binding);
                 if (queue)
                     amq_binding_bind_queue (binding, queue);
-                else if (peer)
+                else
+                if (peer)
                     amq_binding_bind_peer (binding, peer);
             }
             amq_binding_unlink (&binding);
@@ -475,6 +491,7 @@ s_bind_object (
             amq_server_channel_error (
                 channel, ASL_RESOURCE_ERROR, "Cannot make new binding");
     }
+    amq_hash_unlink (&hash);
 }
 </private>
 

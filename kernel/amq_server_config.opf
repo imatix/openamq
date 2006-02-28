@@ -259,8 +259,8 @@ $\(selftype)
     <property name = "polling threads" type = "int" default = "4">
     Number of polling OS threads
     <doc>
-    On multithreaded builds, defines the number of OS threads dedicated to
-    socket polling.
+    On multithreaded builds, defines the number of OS threads dedicated
+    to socket polling.
     </doc>
     </property>
 
@@ -285,7 +285,7 @@ $\(selftype)
 </path>
 
 <path name = "/config/internal">
-    <property name = "auto crash" type = "int" default = "0">
+    <property name = "auto crash" type = "int" default = "0" dynamic = "1">
     Auto-crash test timer, seconds
     <doc>
     If set, the server will crash at irregular intervals, being some random
@@ -295,7 +295,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "auto block" type = "int" default = "0">
+    <property name = "auto block" type = "int" default = "0" dynamic = "1">
     Auto-freeze test timer, seconds
     <doc>
     If set, the server will block at irregular intervals, being some random
@@ -305,7 +305,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "kernel limit" type = "int" default = "0">
+    <property name = "kernel limit" type = "int" default = "0" dynamic = "1">
     SMT kernel limit
     <doc>
     Sets an action limit for the SMT kernel: after this many steps it will

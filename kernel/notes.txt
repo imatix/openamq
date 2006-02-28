@@ -9,12 +9,18 @@ Changes
     - fixed error in processing of immediate messages
     - discards/returns undeliverable messages if all consumers mismatch
 
+Protocol todo
+    - remove prefetch max from asl_channel
+    - remove vhost concept
+    - corrections vs. comments
+    
 Todo
+    - console figures, format with suffix ("K") etc
     - server restart still failing
-
-- split config options into basic, advanced
-- ui rule on ip address -> amq_shell does RDNS
-
+    - set mem from config/cmdline
+        - start with direct, load, throw-away & restart
+    - split config options into basic, advanced
+    - console rule on ip address -> amq_shell does RDNS
 
 per_client
     - limit defined in config
@@ -51,7 +57,6 @@ amq_shell
 - execute from command line
 
 - broker
-    - avg. traffic
     - dropped messages
 
     structure properties?

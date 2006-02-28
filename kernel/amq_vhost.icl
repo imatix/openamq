@@ -174,7 +174,6 @@ $(selftype)
         amq_exchange_unbind_queue (exchange, queue);
         exchange = amq_exchange_by_vhost_next (&exchange);
     }
-
     //  Remove the queue from queue list and queue table
     amq_queue_by_vhost_remove (queue);
     amq_queue_table_remove (queue);

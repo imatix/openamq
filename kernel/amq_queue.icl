@@ -69,11 +69,14 @@ class.  This is a lock-free asynchronous class.
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", (int) (self->traffic_out / (1024 * 1024)));</get>
         </field>
-        <field name = "contents_in" type = "int" label = "Total messages received">
+        <field name = "contents_in" type = "int" label = "Messages received">
           <get>icl_shortstr_fmt (field_value, "%d", self->contents_in);</get>
         </field>
-        <field name = "contents_out" type = "int" label = "Total messages sent">
+        <field name = "contents_out" type = "int" label = "Messages sent">
           <get>icl_shortstr_fmt (field_value, "%d", self->contents_out);</get>
+        </field>
+        <field name = "dropped" type = "int" label = "Dropped messages">
+          <get>icl_shortstr_fmt (field_value, "%d", self->dropped);</get>
         </field>
 
         <method name = "purge" label = "Purge all queue messages">
@@ -124,7 +127,8 @@ class.  This is a lock-free asynchronous class.
         traffic_in,                     //  Traffic in, in octets
         traffic_out,                    //  Traffic out, in octets
         contents_in,                    //  Contents in, in octets
-        contents_out;                   //  Contents out, in octets
+        contents_out,                   //  Contents out, in octets
+        dropped;                        //  Dropped messages
 </context>
 
 <method name = "new">
@@ -313,23 +317,35 @@ class.  This is a lock-free asynchronous class.
 
 <event name = "auto_delete">
     <action>
-    amq_queue_t
-        *queue_ref;                     //  Need a reference to call destroy
-
     //  If we're still at zero consumers, self-destruct
     if (self->consumers == 0) {
         if (amq_server_config_debug_queue (amq_server_config))
             asl_log_print (amq_broker->debug_log, "Q: auto-del queue=%s", self->name);
-            
-        queue_ref = amq_queue_link (self);
-        amq_vhost_unbind_queue (self->vhost, queue_ref);
-        //  Ask broker to ask connections to drop link to queue
-        if (self->exclusive) 
-            amq_broker_unbind_queue (amq_broker, queue_ref);
-        amq_queue_unlink (&queue_ref);
+        amq_queue_self_destruct (self);
     }
     </action>
 </event>
+
+<method name = "self destruct" template = "async function" async = "1">
+    <doc>
+    Self-destruct the queue.  This is somewhat delicate because it's
+    an async object, and because it's linked to by exchanges/bindings
+    and by connections.
+    </doc>
+    //
+    <action>
+    amq_queue_t
+        *queue_ref;                     //  Need a reference to call destroy
+
+    queue_ref = amq_queue_link (self);
+    amq_vhost_unbind_queue (self->vhost, queue_ref);
+    //  Ask broker to ask connections to drop link to queue
+    if (self->exclusive) 
+        amq_broker_unbind_queue (amq_broker, queue_ref);
+
+    amq_queue_unlink (&queue_ref);
+    </action>
+</method>
 
 <method name = "purge" template = "async function" async = "1">
     <doc>
@@ -410,7 +426,6 @@ class.  This is a lock-free asynchronous class.
     amq_queue_by_vhost_push (self->vhost->queue_list, self);
 </method>
 
-
 <private name = "header">
 static void
     s_set_queue_limits ($(selftype) *self);
@@ -435,8 +450,7 @@ s_set_queue_limits ($(selftype) *self)
 
     self->limit_min = UINT_MAX;
     while (config->located) {
-        limit_value = atol (ipr_config_get (config, "value",  "0"));
-        action_text = ipr_config_get (config, "action", "(empty)");
+        action_text = ipr_config_get (config, "name", "(empty)");
         if (streq (action_text, "warn"))
             limit_action = AMQ_QUEUE_LIMIT_WARN;
         else
@@ -453,6 +467,7 @@ s_set_queue_limits ($(selftype) *self)
             asl_log_print (amq_broker->alert_log,
                 "E: invalid configured limit action '%s'", action_text);
         }
+        limit_value = atol (ipr_config_get (config, "value",  "0"));
         if (limit_value && limit_action) {
             if (self->limits < AMQ_QUEUE_LIMIT_MAX) {
                 self->limit_value  [self->limits] = limit_value;

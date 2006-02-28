@@ -643,8 +643,6 @@ s_set_property ($\(selftype) *self, char *command)
         if (xml_root) {
             icl_console_print (" OK - %s", *self->notice? self->notice: "done");
             ipr_xml_destroy (&xml_root);
-            self_load (self);
-            self_print_full (self, NULL);
         }
         asl_field_list_destroy (&fields);
     }
