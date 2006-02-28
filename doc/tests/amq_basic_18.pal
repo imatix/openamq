@@ -23,8 +23,10 @@
                 <inc name = "count" />
             </basic_arrived>
             <empty>
-                <echo>$count</echo>
-                <assert name = "count" value = "5" />
+                <if name = "count" test = "gt" value = "5">
+                    <echo>$count</echo>
+                </if>
+                <assert name = "count" test = "lt" value = "6" />
             </empty>
             <wait timeout = "500" />
         </repeat>

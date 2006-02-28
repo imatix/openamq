@@ -6,13 +6,14 @@
     This test sets up a session where an auto_delete exchange is created. Then
     it opens up a new session (with a new connection) to check if the exchange
     has been deleted. This is done by a passive exchange declaration, which
-    returns a reply_code of 504 if the exchange is gone.
+    returns a reply_code of 404 if the exchange is gone.
 
     
     <include filename = "amq_test_base.pal" />
     <session>
         <exchange_declare exchange = "myexchange" type = "fanout" auto_delete = "1" />
     </session>
+    <wait timeout = "5000" />
     <session error_handling = "recover" restart = "1">
         <exchange_declare exchange = "myexchange" type = "fanout" passive = "1" />
         <if name = "reply_code" test = "ne" value = "404">
@@ -20,7 +21,6 @@
         </if>
         <assert name = "reply_code" value = "404" />
     </session>
-
 </pal>
 
 
