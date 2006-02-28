@@ -6,7 +6,7 @@
     Test to see if it's possible to declare an exchange with an illegal name.
 
     <include filename = "amq_test_base.pal" />
-    <session>
+    <session error_handling = "recover">
         <exchange_declare exchange = "$#%$(*" type = "fanout" />
         <if name = "reply_code" test = "ne" value = "502">
             <echo>$reply_code: $reply_text</echo>
