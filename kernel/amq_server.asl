@@ -50,6 +50,12 @@
                         method->auto_delete,
                         method->internal);
 
+                    //  This can fail if two threads create the same exchange at the
+                    //  same time... so let's go find the actual exchange object
+                    if (!exchange)
+                        exchange = amq_exchange_search (
+                            amq_vhost->exchange_table, method->exchange);
+
                     if (exchange) {
                         //  Create exchange on all cluster peers
                         if (amq_cluster->enabled
@@ -132,7 +138,14 @@
                 method->queue,
                 method->durable,
                 method->exclusive,
-                method->auto_delete);
+                //  Setting the 'exclusive' flag always implies 'auto-delete'
+                method->exclusive? TRUE: method->auto_delete);
+
+            //  This can fail if two threads create the same queue at the
+            //  same time... so let's go find the actual queue object
+            if (!queue)
+                queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
+
             if (queue) {
                 //  Make default binding, if wanted
                 if (amq_vhost->default_exchange)
