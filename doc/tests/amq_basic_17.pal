@@ -27,6 +27,7 @@
                     <echo>$count</echo>
                 </if>
                 <assert name = "count" test = "lt" value = "6" />
+                <break />
             </empty>
             <wait timeout = "500" />
         </repeat>

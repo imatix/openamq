@@ -5,10 +5,7 @@
     >
     To be able to implement this in PAL, PAL must have multithreaded and synchronization capabilities.
     
-    <abort>not implemented</abort>
-    <include filename = "amq_test_base.pal" />
-    <session>
-    </session>
+    <abort>cannot yet be implemented</abort>
 </pal>
 
 
