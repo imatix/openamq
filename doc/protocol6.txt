@@ -81,7 +81,7 @@ decades, is to provides disk-based or memory-based FIFO data stores
 (variously called queues, destinations, topics, and so on) that many
 applications can write to and read to simultaneously.
 
-AMQ calls these data stores “message queues”, and it is AMQ's prime task
+AMQ calls these data stores "message queues", and it is AMQ's prime task
 to provide applications with reliable, pervasive, fast, secure and
 economical shared access to a distributed network of message queues.
 
@@ -417,7 +417,7 @@ readers), but:
  - Messages are provided to the network as files (rather than memory
    blocks).
 
- - Files can be sent in batches (I.E. “send any file in this folder”).
+ - Files can be sent in batches (I.E. "send any file in this folder").
 
  - Files are delivered in the order received by the destination. If
    there is one writer this means in order sent by the writer.
