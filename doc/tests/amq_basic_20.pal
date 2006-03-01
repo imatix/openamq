@@ -7,7 +7,7 @@
     message, and raise a channel exception if this is not the case.
     
     <include filename = "amq_test_base.pal" />
-    <session>
+    <session error_handling = "recover">
         <set name = "count" value = "0" />
         <queue_declare queue = "myqueue" />
         <basic_consume queue = "myqueue" no_ack = "0" />
