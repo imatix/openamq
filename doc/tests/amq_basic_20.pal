@@ -1,16 +1,37 @@
 <?xml?>
 <pal
     script = "amq_pal_gen"
-    desc   = "the server MUST respect the multiple field on ack"
+    desc   = "the server MUST validate the delivery-tag on ack for multiple messages"
     >
-    <!--
-        - ?
-    -->
-    <abort>not implemented</abort>
+    The server MUST validate that a non-zero delivery-tag refers to an delivered 
+    message, and raise a channel exception if this is not the case.
+    
     <include filename = "amq_test_base.pal" />
     <session>
+        <set name = "count" value = "0" />
+        <queue_declare queue = "myqueue" />
+        <basic_consume queue = "myqueue" no_ack = "0" />
+        <repeat times = "5" >
+            <inc name = "i" />
+            <basic_content />
+            <basic_publish routing_key = "myqueue" exchange = "" mandatory = "1" />
+        </repeat>
+        <wait timeout = "5000" />
+        <repeat>
+            <basic_arrived>
+                <inc name = "count" />
+                <if name = "count" value = "5">
+                    <inc name = "delivery_tag" />                
+                    <basic_ack multiple = "1" delivery_tag = "$delivery_tag" />
+                    <assert name = "reply_code" test = "gt" value = "0" />
+                </if>
+            </basic_arrived>
+            <empty>
+                <abort>Message did not come back, this is bad!</abort>
+            </empty>
+            <wait timeout = "500" />
+        </repeat>
     </session>
-    
 </pal>
 
 
