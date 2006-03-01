@@ -1,0 +1,41 @@
+<?xml?>
+<!-- This pal script sends a series of messages to a topic exchange
+     and waits for a confirmation from each subscriber that it has
+     read the entire series. You should tell this script how many
+     subcribers there are (default = 20).
+
+     To use:
+        
+        scriptname -M messages -S subscribers
+ -->
+ 
+<pal script = "amq_pal_gen">
+    <set name = "messages" value = "1000" cmdline = "M" />
+    <set name = "subscribers" value = "20" cmdline = "S" />
+    <set name = "size" value = "500" cmdline = "Z" />
+    
+    <session cluster_key = "my.cluster">
+        <!-- Create reply queue and start consuming from it -->
+        <queue_declare exclusive = "1" />
+        <basic_consume queue = "$queue" />
+        
+        <!-- Send off our test messages -->
+        <repeat counter = "id" times = "$messages">
+            <basic_content size = "$size" message_id = "id-$message_id" reply_to = "$queue" />
+            <basic_publish exchange = "amq.topic" routing_key = "test" />
+        </repeat>
+
+        <!-- Send off END message -->
+        <basic_content size = "1" message_id = "END" reply_to = "$queue" />
+        <basic_publish exchange = "amq.topic" routing_key = "test" />
+
+        <!-- Expect confirmations from subscribers -->
+        <repeat times = "subscribers">
+            <wait timeout = "2000" />
+            <basic_arrived />
+            <empty>
+                <abort>E: no response from subscriber</abort>
+            </empty>
+        </repeat>
+    </session>
+</pal>
