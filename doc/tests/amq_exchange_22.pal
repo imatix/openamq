@@ -14,6 +14,7 @@
         <basic_consume queue = "myqueue" />
         <basic_content />
         <basic_publish routing_key = "myqueue" exchange = "amq.direct" />
+        <wait timeout = "5000" />
         <basic_arrived>
             <abort>Message arrived, this is bad!</abort>
         </basic_arrived>
