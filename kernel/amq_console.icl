@@ -7,32 +7,30 @@
     target    = "smt"
     >
 <doc>
-This implements the AMQ Console object, which is a system-wide
-object responsible for implementing the AMQ Console service.
+This implements the AMQ Console object, which is a system-wide object
+responsible for implementing the AMQ Console service.
 
 The console works as follows:
 
- - AMQ Console is instantiated as a global object of this class,
-   which has its own context.
+ - AMQ Console is instantiated as a global object of this class, which
+   has its own context.
 
- - All operable objects register with the console class, using a
-   console class object as a holder for the methods the object
-   class implements.
+ - All operable objects register with the console class, using a console
+   class object as a holder for the methods the object class implements.
 
- - The amq.system exchange sends it messages using the publish
-   method. For now, it is hard-coded in amq.system that any
-   messages with the "amq.console" will get sent to amq_console.
+ - The amq.system exchange sends it messages using the publish method.
+   For now, it is hard-coded in amq.system that any messages with the
+   "amq.console" will get sent to amq_console.
 
- - The amq_console decodes the messages and routes it to an
-   object (if found), via the amq_console_class definition for
-   that object.
+ - The amq_console decodes the messages and routes it to an object (if
+   found), via the amq_console_class definition for that object.
 
- - The operable objects implement a register, cancel, inspect,
-   and modify methods, and return their replies to amq_console
-   asynchrously via inspect_ok, modify_ok.
+ - The operable objects implement a register, cancel, inspect, and modify
+   methods, and return their replies to amq_console asynchrously via
+   inspect_ok, modify_ok.
 
- - All interfaces between amq_console and operable classes is
-   done using asl_field lists.
+ - All interfaces between amq_console and operable classes is done using
+   asl_field lists.
 </doc>
 
 <inherit class = "smt_object" />
@@ -69,7 +67,7 @@ $(selftype)
 </context>
 
 <method name = "new">
-#   define MAX_OBJECTS  32000
+#   define MAX_OBJECTS  256000
     self->max_objects = MAX_OBJECTS;
     self->object_ref  = icl_mem_alloc (sizeof (void *) * MAX_OBJECTS);
     self->class_ref   = icl_mem_alloc (sizeof (void *) * MAX_OBJECTS);
