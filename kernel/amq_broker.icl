@@ -22,14 +22,11 @@
         <field name = "locked" type = "bool" label = "Broker is locked?">
           <get>icl_shortstr_fmt (field_value, "%d", self->locked);</get>
         </field>
-        <field name = "activemb" type = "int" label = "Active memory consumption">
-          <get>icl_shortstr_fmt (field_value, "%lu", (qbyte) ipr_bucket_used ());</get>
+        <field name = "datamem" type = "int" label = "Memory used for all data">
+          <get>icl_shortstr_fmt (field_value, "%dK", (int) (icl_mem_used () / 1024));</get>
         </field>
-        <field name = "cachedmb" type = "int" label = "Cached memory consumption">
-          <get>icl_shortstr_fmt (field_value, "%lu", (qbyte) icl_mem_used ());</get>
-        </field>
-        <field name = "connections" type = "int" label = "Number of active connections">
-          <get>icl_shortstr_fmt (field_value, "%d", amq_server_connection_count ());</get>
+        <field name = "bucketmem" type = "int" label = "Memory used for messages">
+          <get>icl_shortstr_fmt (field_value, "%dK", (int) (ipr_bucket_used () / 1024));</get>
         </field>
         <field name = "messages" type = "int" label = "Number of queued messages">
           <get>icl_shortstr_fmt (field_value, "%d", amq_content_basic_count ());</get>
@@ -46,7 +43,7 @@
         <field name = "bindings" type = "int" label = "Number of queue bindings">
           <get>icl_shortstr_fmt (field_value, "%d", amq_binding_count ());</get>
         </field>
-        
+
         <class name = "vhost" label = "Virtual hosts" repeat = "1">
           <get>
             icl_shortstr_fmt (field_value, "%ld", amq_vhost->object_id);
@@ -236,17 +233,18 @@
 
             if (ipr_meter_mark (self->xmeter, amq_server_config_monitor (amq_server_config)))
                 asl_log_print (amq_broker->debug_log,
-                    "I: external message rate=%d average=%d peak=%d",
+                    "I: message rate=%d average=%d peak=%d",
                     self->xmeter->current,
                     self->xmeter->average,
                     self->xmeter->maximum);
-
+#if _THIS_SHOULD_BE_OPTIONAL
             if (ipr_meter_mark (self->imeter, amq_server_config_monitor (amq_server_config)))
                 asl_log_print (amq_broker->debug_log,
                     "I: internal message rate=%d average=%d peak=%d",
                     self->imeter->current,
                     self->imeter->average,
                     self->imeter->maximum);
+#endif
         }
     }
     if (self->dump_state_timer) {
