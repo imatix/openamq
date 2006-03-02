@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<config>
+    <tuning
+        packio = "1"
+        polling_threads = "6"
+        working_threads = "2" />
+    <queue_profile name = "shared">
+        <limit name = "warn" value = "50000" />
+    </queue_profile>
+    <queue_profile name = "private">
+        <limit name = "warn" value = "50000" />
+    </queue_profile>
+</config>
