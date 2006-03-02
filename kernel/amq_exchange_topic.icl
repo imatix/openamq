@@ -85,8 +85,6 @@ specification.
     <local>
     amq_index_t
         *index;                         //  Index object
-    amq_binding_list_iterator_t
-        iterator;                       //  Iterator through bindings list
     amq_binding_t
         *binding;                       //  Auxiliary variable
     ipr_regexp_t
@@ -104,24 +102,23 @@ specification.
 
         //  Create new index and recompile all bindings for it
         index = amq_index_new (self->index_hash, routing_key, self->index_array);
-        iterator = amq_binding_list_begin (self->exchange->binding_list);
-        while (iterator) {
-            
+        binding = amq_binding_list_first (self->exchange->binding_list);
+        while (binding) {
             //  TODO: size of regexp object? keep it active per binding
             //  sub-structure for bindings, dependent on exchange class...
-            regexp = ipr_regexp_new ((*iterator)->regexp);
+            regexp = ipr_regexp_new (binding->regexp);
             if (ipr_regexp_match (regexp, routing_key, NULL)) {
                 if (amq_server_config_debug_route (amq_server_config))
                     asl_log_print (amq_broker->debug_log,
                         "X: index  routing_key=%s wildcard=%s",
-                        routing_key, (*iterator)->routing_key);
+                        routing_key, binding->routing_key);
 
                 //  Cross-reference binding and index
-                ipr_bits_set (index->bindset, (*iterator)->index);
-                ipr_looseref_queue ((*iterator)->index_list, index);
+                ipr_bits_set (index->bindset, binding->index);
+                ipr_looseref_queue (binding->index_list, index);
             }
             ipr_regexp_destroy (&regexp);
-            iterator = amq_binding_list_next (iterator);
+            binding = amq_binding_list_next (&binding);
         }
     }
     if (amq_server_config_debug_route (amq_server_config))
@@ -132,6 +129,7 @@ specification.
     binding_nbr = ipr_bits_first (index->bindset);
     while (binding_nbr >= 0) {
         binding = self->exchange->binding_index->data [binding_nbr];
+        assert (binding);        
         if (amq_server_config_debug_route (amq_server_config))
             asl_log_print (amq_broker->debug_log,
                 "X: hit      wildcard=%s", binding->routing_key);

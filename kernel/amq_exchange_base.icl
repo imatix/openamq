@@ -114,6 +114,22 @@ This is an abstract base class for all exchange implementations.
     </footer>
 </method>
 
+<method name = "unbind" return = "rc">
+    <doc>
+    Unbinds the binding for the exchange.
+    </doc>
+    <argument name = "self_v"  type = "void *">The exchange cast as a void *</argument>
+    <argument name = "binding" type = "amq_binding_t *">Binding to compile</argument>
+    <declare name = "rc" type = "int" default = "0">Return code</declare>
+    <local>
+    $(selftype)
+        *self = self_v;
+    </local>
+    <header>
+    assert (self);
+    </header>
+</method>
+
 <method name = "selftest" />
 
 </class>

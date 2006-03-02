@@ -42,4 +42,20 @@ on the routing_key.
     }
 </method>
 
+<method name = "unbind">
+    <local>
+    amq_hash_t
+        *hash;                          //  Entry into hash table
+     </local>
+    //
+    //  We know there is exactly one entry in the hash table
+    //  so we can safely delete the binding completely.
+    //
+    hash = amq_hash_table_search (self->exchange->binding_hash, binding->routing_key);
+    if (hash) {
+        amq_hash_table_remove (hash);
+        amq_hash_unlink (&hash);
+    }
+</method>
+
 </class>

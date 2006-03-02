@@ -16,7 +16,11 @@ class.
     <option name = "links" value = "1" />
     <option name = "alloc" value = "cache" />
 </inherit>
+<inherit class = "icl_list_item">
+    <option name = "count" value = "1" />
+</inherit>
 <inherit class = "icl_tracker" />
+<option name = "rwlock" value = "0" />
 
 <import class = "amq_server_classes" />
 
@@ -81,7 +85,7 @@ class.
         amq_peer_unlink (&peer);
 
     ipr_index_delete (self->exchange->binding_index, self->index);
-    amq_queue_list_destroy (&self->queue_list);
+    amq_queue_list_destroy    (&self->queue_list);
     ipr_looseref_list_destroy (&self->peer_list);
     ipr_looseref_list_destroy (&self->index_list);
     icl_longstr_destroy       (&self->arguments);
@@ -92,9 +96,9 @@ class.
     Attach queue to current binding if it is not already there.
     </doc>
     <argument name = "queue" type = "amq_queue_t *">Queue to bind</argument>
-
-    if (!amq_queue_list_find (amq_queue_list_begin (self->queue_list), NULL,
-          queue))
+    //
+    if (!amq_queue_list_find (
+        amq_queue_list_begin (self->queue_list), NULL, queue))
         amq_queue_list_push_back (self->queue_list, queue);
 </method>
 
@@ -118,7 +122,8 @@ class.
 
 <method name = "unbind queue" template = "function">
     <doc>
-    Remove queue from current binding it is there.
+    Remove queue from current binding it is there.  Returns -1 if the
+    binding is empty after this operation.
     </doc>
     <argument name = "queue" type = "amq_queue_t *">Queue to unbind</argument>
     <local>
@@ -130,11 +135,17 @@ class.
         amq_queue_list_begin (self->queue_list), NULL, queue);
     if (iterator)
         amq_queue_list_erase (self->queue_list, iterator);
+
+    //  Signal to caller if binding is now empty
+    if (amq_queue_list_size (self->queue_list) == 0
+    &&  ipr_looseref_list_count (self->peer_list) == 0)
+        rc = -1;                        
 </method>
 
 <method name = "unbind peer" template = "function">
     <doc>
-    Remove peer from current binding it is there.
+    Remove peer from current binding it is there. Returns -1 if the
+    binding is empty after this operation.
     </doc>
     <argument name = "peer" type = "amq_peer_t *">Peer to unbind</argument>
     <local>
@@ -152,6 +163,10 @@ class.
         }
         looseref = ipr_looseref_list_next (&looseref);
     }
+    //  Signal to caller if binding is now empty
+    if (amq_queue_list_size (self->queue_list) == 0
+    &&  ipr_looseref_list_count (self->peer_list) == 0)
+        rc = -1;                        
 </method>
 
 <method name = "publish" template = "function">

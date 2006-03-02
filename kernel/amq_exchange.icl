@@ -42,7 +42,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         </field>
         <field name = "bindings" label = "Number of bindings" type = "int">
           <rule name = "show on summary" />
-          <get>icl_shortstr_fmt (field_value, "%ld", amq_binding_list_size (self->binding_list));</get>
+          <get>icl_shortstr_fmt (field_value, "%ld", amq_binding_list_count (self->binding_list));</get>
         </field>
         <field name = "traffic_in" type = "int" label = "Inbound traffic, MB">
           <rule name = "show on summary" />
@@ -94,6 +94,10 @@ for each type of exchange. This is a lock-free asynchronous class.
             void                 *self,
             amq_binding_t        *binding,
             amq_server_channel_t *channel);
+    int
+        (*unbind) (
+            void                 *self,
+            amq_binding_t        *binding);
 
     //  Statistics
     int64_t
@@ -136,30 +140,35 @@ for each type of exchange. This is a lock-free asynchronous class.
         self->object  = amq_exchange_system_new (self);
         self->publish = amq_exchange_system_publish;
         self->compile = amq_exchange_system_compile;
+        self->unbind  = amq_exchange_system_unbind;
     }
     else
     if (self->type == AMQ_EXCHANGE_FANOUT) {
         self->object  = amq_exchange_fanout_new (self);
         self->publish = amq_exchange_fanout_publish;
         self->compile = amq_exchange_fanout_compile;
+        self->unbind  = amq_exchange_fanout_unbind;
     }
     else
     if (self->type == AMQ_EXCHANGE_DIRECT) {
         self->object  = amq_exchange_direct_new (self);
         self->publish = amq_exchange_direct_publish;
         self->compile = amq_exchange_direct_compile;
+        self->unbind  = amq_exchange_direct_unbind;
     }
     else
     if (self->type == AMQ_EXCHANGE_TOPIC) {
         self->object  = amq_exchange_topic_new (self);
         self->publish = amq_exchange_topic_publish;
         self->compile = amq_exchange_topic_compile;
+        self->unbind  = amq_exchange_topic_unbind;
     }
     else
     if (self->type == AMQ_EXCHANGE_HEADERS) {
         self->object  = amq_exchange_headers_new (self);
         self->publish = amq_exchange_headers_publish;
         self->compile = amq_exchange_headers_compile;
+        self->unbind  = amq_exchange_headers_unbind;
     }
     else
         asl_log_print (amq_broker->alert_log,
@@ -319,56 +328,6 @@ for each type of exchange. This is a lock-free asynchronous class.
     </action>
 </method>
 
-<method name = "unbind queue" template = "async function" async = "1">
-    <doc>
-    Unbind a queue from the exchange.
-    </doc>
-    <argument name = "queue" type = "amq_queue_t *">The queue to unbind</argument>
-    //
-    <possess>
-    queue = amq_queue_link (queue);
-    </possess>
-    <release>
-    amq_queue_unlink (&queue);
-    </release>
-    //
-    <action>
-    amq_binding_list_iterator_t
-        iterator;
-
-    iterator = amq_binding_list_begin (self->binding_list);
-    while (iterator) {
-        amq_binding_unbind_queue (*iterator, queue);
-        iterator = amq_binding_list_next  (iterator);
-    }
-    </action>
-</method>
-
-<method name = "unbind peer" template = "async function" async = "1">
-    <doc>
-    Unbind a cluster peer from the exchange.
-    </doc>
-    <argument name = "peer" type = "amq_peer_t *">The peer to unbind</argument>
-    //
-    <possess>
-    peer = amq_peer_link (peer);
-    </possess>
-    <release>
-    amq_peer_unlink (&peer);
-    </release>
-    //
-    <action>
-    amq_binding_list_iterator_t
-        iterator;
-
-    iterator  = amq_binding_list_begin (self->binding_list);
-    while (iterator) {
-        amq_binding_unbind_peer (*iterator, peer);
-        iterator  = amq_binding_list_next  (iterator);
-    }
-    </action>
-</method>
-
 <method name = "publish" template = "async function" async = "1">
     <doc>
     Publishes the message to the exchange.  The actual routing mechanism
@@ -405,6 +364,66 @@ for each type of exchange. This is a lock-free asynchronous class.
     </action>
 </method>
 
+<method name = "unbind queue" template = "async function" async = "1">
+    <doc>
+    Unbind a queue from the exchange.
+    </doc>
+    <argument name = "queue" type = "amq_queue_t *">The queue to unbind</argument>
+    //
+    <possess>
+    queue = amq_queue_link (queue);
+    </possess>
+    <release>
+    amq_queue_unlink (&queue);
+    </release>
+    //
+    <action>
+    amq_binding_t
+        *binding;
+
+    binding = amq_binding_list_first (self->binding_list);
+    while (binding) {
+        if (amq_binding_unbind_queue (binding, queue)) {
+            self->unbind (self->object, binding);
+            amq_binding_destroy (&binding);
+            break;                      //  We found & killed the queue
+        }
+        else
+            binding = amq_binding_list_next (&binding);
+    }
+    </action>
+</method>
+
+<method name = "unbind peer" template = "async function" async = "1">
+    <doc>
+    Unbind a cluster peer from the exchange.
+    </doc>
+    <argument name = "peer" type = "amq_peer_t *">The peer to unbind</argument>
+    //
+    <possess>
+    peer = amq_peer_link (peer);
+    </possess>
+    <release>
+    amq_peer_unlink (&peer);
+    </release>
+    //
+    <action>
+    amq_binding_t
+        *binding;
+
+    binding = amq_binding_list_first (self->binding_list);
+    while (binding) {
+        if (amq_binding_unbind_peer (binding, peer)) {
+            self->unbind (self->object, binding);
+            amq_binding_destroy (&binding);
+            break;                      //  We found & killed the peer
+        }
+        else
+            binding = amq_binding_list_next (&binding);
+    }
+    </action>
+</method>
+
 <private name = "async header">
 //  Bind an object
 static void
@@ -435,8 +454,6 @@ s_bind_object (
     char            *routing_key,
     icl_longstr_t   *arguments)
 {
-    amq_binding_list_iterator_t
-        iterator;
     amq_binding_t
         *binding = NULL;                //  New binding created
     amq_hash_t
@@ -452,45 +469,31 @@ s_bind_object (
     if (hash) {
         //  We found the same routing key, now we need to check
         //  all bindings to check for an exact match
-        iterator = amq_binding_list_begin (self->binding_list);
-        while (iterator) {
-            if (streq ((*iterator)->routing_key, routing_key)
-            && icl_longstr_eq ((*iterator)->arguments, arguments)) {
-                binding = *iterator;
+        binding = amq_binding_list_first (self->binding_list);
+        while (binding) {
+            if (streq (binding->routing_key, routing_key)
+            && icl_longstr_eq (binding->arguments, arguments))
                 break;
-            }
-            iterator = amq_binding_list_next (iterator);
+            binding = amq_binding_list_next (&binding);
         }
     }
-    if (binding) {
-        //  If the binding already exists, attach the queue/peer to it
-        if (queue)
-            amq_binding_bind_queue (binding, queue);
-        else
-        if (peer)
-            amq_binding_bind_peer (binding, peer);
-    }
-    else {
+    if (!binding) {
         //  If no binding matched, create a new one and compile it
         binding = amq_binding_new (self, routing_key, arguments);
-        if (binding) {
-            if (!hash)                  //  Hash routing key if needed
-                hash = amq_hash_new (self->binding_hash, routing_key, binding);
+        assert (binding);
+        if (!hash)                      //  Hash routing key if needed
+            hash = amq_hash_new (self->binding_hash, routing_key, binding);
 
-            if (self->compile (self->object, binding, channel) == 0) {
-                amq_binding_list_push_back (self->binding_list, binding);
-                if (queue)
-                    amq_binding_bind_queue (binding, queue);
-                else
-                if (peer)
-                    amq_binding_bind_peer (binding, peer);
-            }
-            amq_binding_unlink (&binding);
-        }
-        else
-            amq_server_channel_error (
-                channel, ASL_RESOURCE_ERROR, "Cannot make new binding");
+        if (self->compile (self->object, binding, channel) == 0)
+            amq_binding_list_queue (self->binding_list, binding);
     }
+    if (queue)
+        amq_binding_bind_queue (binding, queue);
+    else
+    if (peer)
+        amq_binding_bind_peer (binding, peer);
+
+    amq_binding_unlink (&binding);
     amq_hash_unlink (&hash);
 }
 </private>

@@ -110,6 +110,7 @@
 <file name = "amq_exchange_headers.icl"
                                      class = "icl private class" >Server headers exchange class</file>
 <file name = "amq_binding.icl"       class = "icl private class" >Server exchange bindings class</file>
+<file name = "amq_binding_list.icl"  class = "icl private cont"  >Server bindings list</file>
 <file name = "amq_hitset.icl"        class = "icl private class" >Server exchange hitset class</file>
 <file name = "amq_index.icl"         class = "icl private class" >Message matching index class</file>
 <file name = "amq_index_hash.icl"    class = "icl private cont"  >Message matching index hash</file>
@@ -144,8 +145,6 @@
 <file name = "amq_content_basic_list.icl"
                                      class = "icl private class" >List of basic contents</file>
 <file name = "amq_content_file_list.icl"
-                                     class = "icl private class" >List of file contents</file>
-<file name = "amq_binding_list.icl"
                                      class = "icl private class" >List of file contents</file>
 <file name = "server.cfg"            class = "public resource"   >Server config file</file>
 
