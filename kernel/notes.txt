@@ -1,4 +1,15 @@
-Changes
+Changes 2/3
+    - console figures, format with suffix ("K") etc
+    - bindings correctly cleaned-up when queues deleted
+    - PAL extended to show interim timer values
+
+Changes 28/2
+    - setting the 'exclusive' flag always implies 'auto-delete'
+    - changed binding create to use hash lookup (faster creation)
+    - regexps are cached in method validation (performance)
+    - changed amq_binding_list back to old model (iterator model nfg)
+
+Changes 25/2
     - trace_queue,route,cluster -> debug_queue, etc.
     - changed user 'type' to 'group'
     - added 'super' user group, not restricted in server
@@ -9,14 +20,20 @@ Changes
     - fixed error in processing of immediate messages
     - discards/returns undeliverable messages if all consumers mismatch
 
+Change requests
+    - console default is read-only, need option to make writeable
+    - show console amounts in kb
+    - add ipaddress rdns in console (ipr_net?)
+    - console should use hash table to store objects, not array
+
 Protocol todo
     - remove prefetch max from asl_channel
     - remove vhost concept
     - corrections vs. comments
     
 Todo
-    - console figures, format with suffix ("K") etc
     - server restart still failing
+    - change monitor values still failing
     - set mem from config/cmdline
         - start with direct, load, throw-away & restart
     - split config options into basic, advanced
