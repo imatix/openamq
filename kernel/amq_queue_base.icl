@@ -210,7 +210,7 @@ s_free_consumer_queue (amq_consumer_by_queue_t **queue)
             amq_consumer_destroy (&consumer);
         }
         else
-            amq_consumer_unlink (&consumer);
+            amq_consumer_destroy (&consumer);
     }
     amq_consumer_by_queue_destroy (queue);
 }

@@ -67,8 +67,8 @@ for Basic, File, and Stream content classes.
     amq_server_basic_consume_t
         *basic_consume;
     </local>
-    self->channel  = channel;
-    self->queue    = queue;
+    self->channel  = amq_server_channel_link (channel);
+    self->queue    = amq_queue_link (queue);
     self->class_id = method->class_id;
 
     //  Class-dependent properties
@@ -106,6 +106,9 @@ for Basic, File, and Stream content classes.
         *method;
     </local>
     //
+    amq_server_channel_unlink (&self->channel);
+    amq_queue_unlink (&self->queue);
+
     if (self->class_id == AMQ_SERVER_BASIC) {
         amq_consumer_basic_destroy (&self->consumer_basic);
 
