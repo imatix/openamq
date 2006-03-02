@@ -3,16 +3,16 @@
     script = "amq_pal_gen"
     desc   = "the server MUST raise a connection exception on bind failure"
     >
-    <!--
-        - declare a queue
-        - bind the queue to an exchange, provoking a failure
-        - assert failure
-    -->
-    <abort>not implemented</abort>
+
     <include filename = "amq_test_base.pal" />
-    <session>
+    <session error_handling = "recover">
+        <queue_declare queue = "myqueue" />
+        <queue_bind queue = "myqueue" exchange = "noexchange" />
+        <if name = "reply_code" test = "ne" value = "404">
+            <echo>$reply_code: $reply_text</echo>
+        </if>
+        <assert name = "reply_code" value = "404" />
     </session>
-    
 </pal>
 
 

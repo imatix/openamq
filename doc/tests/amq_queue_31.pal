@@ -26,6 +26,9 @@
         <basic_cancel consumer_tag = "myconsumer2" />
         <wait timeout = "5000" />
         <basic_consume queue = "myqueue2" consumer_tag = "myconsumer2" />
+        <if name = "reply_code" test = "ne" value = "404">
+            <echo>$reply_code: $reply_text</echo>
+        </if>
         <assert name = "reply_code" value = "404" />
     </session> 
 </pal>
