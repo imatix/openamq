@@ -1,0 +1,21 @@
+<?xml?>
+<pal script = "amq_pal_gen">
+    <session>
+        <queue_declare exclusive = "1" />
+        <queue_bind queue = "$queue" exchange = "amq.topic" routing_key = "test" />
+        <basic_consume queue = "$queue" />
+        <repeat>
+            <wait/>
+            <basic_arrived>
+                <!-- To test a content property we need to assign it to a variable -->
+                <set name = "message_id" value = "$message_id" />
+                <if name = "message_id" test = "eq" value = "END">
+                    <basic_publish routing_key = "$reply_to" />
+                    <echo>End of message stream from $reply_to...</echo>
+                </if>
+                <break />
+            </basic_arrived>
+        </repeat>
+    </session>
+</pal>
+
