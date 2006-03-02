@@ -20,6 +20,8 @@ class.
     <option name = "count" value = "1" />
 </inherit>
 <inherit class = "icl_tracker" />
+<!-- Workaround to force links -->
+<option name = "links" value = "1" />
 <option name = "rwlock" value = "0" />
 
 <import class = "amq_server_classes" />
