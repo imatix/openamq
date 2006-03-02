@@ -42,6 +42,7 @@ static char
     "General options:\n"                                                     \
     "  -w directory     Working directory for server (current)\n"            \
     "  -c name          Set server cluster name (none)\n"                    \
+    "  -X comment       Comment\n"                                           \
     "  -q               Quiet mode: no messages (no)\n"                      \
     "  -b               Run as background server process (no)\n"             \
     "  -f               Run as foreground console process (yes)\n"           \
@@ -73,6 +74,7 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
         argn;                           //  Argument number                  
     char
         *myname,                        //  Executable's name                
+        *comment,                       //  We ignore this argument
         **argparm;                      //  Argument parameter to pick-up
     ipr_config_t
         *config;                        //  Current server config file
@@ -121,6 +123,9 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
                 case 'm':
                     icl_console_print ("W: deprecated argument, suggest you use '--monitor'");
                     argparm = &s_opt_monitor;
+                    break;
+                case 'X':
+                    argparm = &comment;
                     break;
 
                 //  These switches have an immediate effect
