@@ -8,27 +8,27 @@
 
 <include filename = "prelude.pdl" />
 
-<file name = "blaster_client.pal"  class = "pal script" />
-<file name = "blaster_server.pal"  class = "pal script" />
-<file name = "echo_client.pal"     class = "pal script" />
-<file name = "echo_server.pal"     class = "pal script" />
-<file name = "topic_publish.pal"   class = "pal script" />
-<file name = "topic_subscribe.pal" class = "pal script" />
-<file name = "n_topic_publish.c"   class = "main program" />
-<file name = "n_topic_subscribe.c" class = "main program" />
-<file name = "reader_amq_340.pal"  class = "pal script" />
-<file name = "writer_amq_340.pal"  class = "pal script" />
+<file name = "blaster_client.pal"    class = "pal script" />
+<file name = "blaster_server.pal"    class = "pal script" />
+<file name = "echo_client.pal"       class = "pal script" />
+<file name = "echo_server.pal"       class = "pal script" />
+<file name = "s_topic_publish.pal"   class = "pal script" />
+<file name = "s_topic_subscribe.pal" class = "pal script" />
+<file name = "n_topic_publish.c"     class = "main program" />
+<file name = "n_topic_subscribe.c"   class = "main program" />
+<file name = "topic_publish.pal"     class = "pal script" />
+<file name = "topic_subscribe.pal"   class = "pal script" />
 
 <file name = "blaster_client"      class = "public command" />
 <file name = "blaster_server"      class = "public command" />
 <file name = "echo_client"         class = "public command" />
 <file name = "echo_server"         class = "public command" />
-<file name = "topic_publish"       class = "public command" />
-<file name = "topic_subscribe"     class = "public command" />
+<file name = "s_topic_publish"     class = "public command" />
+<file name = "s_topic_subscribe"   class = "public command" />
 <file name = "n_topic_publish"     class = "public command" />
 <file name = "n_topic_subscribe"   class = "public command" />
-<file name = "reader_amq_340"      class = "public command" />
-<file name = "writer_amq_340"      class = "public command" />
+<file name = "topic_publish"       class = "public command" />
+<file name = "topic_subscribe"     class = "public command" />
 
 <class name = "pal script" inherit = "gsl data">
 PAL script
