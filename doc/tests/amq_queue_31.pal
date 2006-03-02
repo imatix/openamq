@@ -13,7 +13,6 @@
         <basic_consume queue = "myqueue" consumer_tag = "myconsumer" />
         <basic_content />
         <basic_publish routing_key = "myqueue" exchange = "" />
-        <wait timeout = "5000" />
         <basic_cancel consumer_tag = "myconsumer" />
         <wait timeout = "5000" />
         <basic_consume queue = "myqueue" consumer_tag = "myconsumer" />
@@ -24,7 +23,6 @@
         <basic_consume queue = "myqueue2" consumer_tag = "myconsumer2" />
         <basic_content />
         <basic_publish routing_key = "myqueue2" exchange = "" />
-        <wait timeout = "5000" />
         <basic_cancel consumer_tag = "myconsumer2" />
         <wait timeout = "5000" />
         <basic_consume queue = "myqueue2" consumer_tag = "myconsumer2" />
