@@ -3,15 +3,20 @@
     script = "amq_pal_gen"
     desc   = "the server MUST create a default binding for newly created queues"
     >
-    <!--
-    - create a queue
-    - ?
-    -->
-    <abort>not implemented</abort>
+    
     <include filename = "amq_test_base.pal" />
     <session>
+        <queue_declare queue = "myqueue" />
+        <basic_consume queue = "myqueue" />
+        <basic_content />
+        <basic_publish routing_key = "myqueue" exchange = "" />
+        <wait timeout = "5000" />
+        <basic_arrived>
+        </basic_arrived>
+        <empty>
+            <abort>Message didn't come back, this is bad!</abort>
+        </empty>
     </session>
-    
 </pal>
 
 
