@@ -82,7 +82,7 @@
             method->message_count,
             NULL);                      //  TODO: busy/unbusy consumer?
         amq_server_channel_unlink (&channel);
-        ipr_meter_count (amq_broker->xmeter);
+        ipr_meter_count (amq_broker->ometer);
     }
     else
         icl_console_print ("E: no channel for proxied message, discarding");

@@ -85,7 +85,7 @@ independent of the queue content type.
     amq_consumer_by_queue_remove (consumer);
     if (active) {
         amq_consumer_by_queue_queue (self->active_consumers, consumer);
-        amq_queue_pre_dispatch (self->queue);
+        amq_queue_dispatch (self->queue);
     }
     else
         amq_consumer_by_queue_queue (self->paused_consumers, consumer);

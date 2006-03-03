@@ -63,8 +63,6 @@ maximum number of consumers per channel is set at compile time.
         consumer = amq_consumer_by_channel_next (&consumer);
     }
     amq_server_agent_channel_flow_ok (self->connection->thread, self->number, self->active);
-    if (self->active)
-        amq_vhost_dispatch (self->connection->vhost);
     </action>
 </method>
 
@@ -100,7 +98,7 @@ maximum number of consumers per channel is set at compile time.
     </action>
 </method>
 
-<method name = "cancel" template = "async function" async = "1">
+<method name = "cancel" template = "async function" async = "1" on_shutdown = "1">
     <doc>
     Cancels channel consumer specified by tag.  May be called either
     from method handler - sync true - or from queue agent - sync false.

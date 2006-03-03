@@ -194,7 +194,7 @@ This class implements the connection class for the AMQ server.
     //
     if (consumer) {
         icl_atomic_dec32 ((volatile qbyte *) &consumer->busy);
-        if (!consumer->busy)
+        if (!consumer->busy && !consumer->zombie)
             amq_queue_dispatch (consumer->queue);
         amq_consumer_unlink (&consumer);
     }

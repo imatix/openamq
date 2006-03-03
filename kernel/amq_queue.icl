@@ -283,7 +283,7 @@ class.  This is a lock-free asynchronous class.
     </action>
 </method>
 
-<method name = "cancel" template = "async function" async = "1">
+<method name = "cancel" template = "async function" async = "1" on_shutdown = "1">
     <doc>
     Cancel consumer, by reference, and alert client application if
     we're doing this in a synchronous exchange of methods.  If the
@@ -414,16 +414,6 @@ class.  This is a lock-free asynchronous class.
     </doc>
     //
     rc = self->consumers;
-</method>
-
-<method name = "pre dispatch" template = "function">
-    <doc>
-    Flags the queue as "dirty" and moves it to the front of the dispatch
-    list so that the virtual host will dispatch it next.
-    </doc>
-    //
-    self->dirty = TRUE;
-    amq_queue_by_vhost_push (self->vhost->queue_list, self);
 </method>
 
 <private name = "header">

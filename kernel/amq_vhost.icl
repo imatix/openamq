@@ -76,7 +76,7 @@ $(selftype)
     amq_exchange_table_t
         *exchange_table;                //  Exchanges for vhost, hash table
     amq_exchange_by_vhost_t
-        *exchange_list;                 //  Queues for dispatching
+        *exchange_list;                 //  List of exchanges
     amq_queue_table_t
         *queue_table;                   //  Queues for vhost, hash table
     amq_queue_by_vhost_t
@@ -123,31 +123,6 @@ $(selftype)
     amq_queue_table_destroy        (&self->queue_table);
     amq_queue_by_vhost_destroy     (&self->queue_list);
     ipr_symbol_table_destroy       (&self->shared_queues);
-    </action>
-</method>
-
-<method name = "dispatch" template = "async function" async = "1">
-    <doc>
-    Dispatches all queues that have received new messages, i.e. have the
-    'dirty' property set. All dispatchable queues are at the head of the
-    vhost queue list.
-    </doc>
-    <action>
-    amq_queue_t
-        *queue;
-
-    //  Dispatch all dirty message queues, which come at start of list
-    queue = amq_queue_by_vhost_first (self->queue_list);
-    while (queue) {
-        if (queue->dirty) {
-            amq_queue_dispatch (queue);
-            queue = amq_queue_by_vhost_next (&queue);
-        }
-        else {
-            amq_queue_unlink (&queue);
-            break;
-        }
-    }
     </action>
 </method>
 
