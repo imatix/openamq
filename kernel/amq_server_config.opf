@@ -282,6 +282,24 @@ $\(selftype)
     The maximum valid value for this setting is 1024.
     </doc>
     </property>
+
+    <property name = "tcp rcvbuf" type = "int" default = "0" dynamic = "1">
+    TCP/IP receive buffer, in bytes
+    <doc>
+    If this value is greater than zero, all client connections will use
+    the specified value.  Note: setting this value is delicate, do not
+    use this option unless you know what you are doing.
+    </doc>
+    </property>
+
+    <property name = "tcp sndbuf" type = "int" default = "0" dynamic = "1">
+    TCP/IP send buffer, in bytes
+    <doc>
+    If this value is greater than zero, all client connections will use
+    the specified value.  Note: setting this value is delicate, do not
+    use this option unless you know what you are doing.
+    </doc>
+    </property>
 </path>
 
 <path name = "/config/internal">
