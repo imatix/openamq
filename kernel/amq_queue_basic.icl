@@ -143,7 +143,6 @@ runs lock-free as a child of the asynchronous queue class.
             content->immediate = immediate;
             amq_content_basic_link (content);
             looseref = ipr_looseref_queue (self->content_list, content);
-            ipr_meter_count (amq_broker->imeter);
         }
     }
     self_dispatch (self);
@@ -205,7 +204,7 @@ runs lock-free as a child of the asynchronous queue class.
             amq_consumer_by_queue_queue (self->active_consumers, consumer);
             amq_content_basic_unlink (&content);
             amq_consumer_unlink (&consumer);
-            ipr_meter_count (amq_broker->xmeter);
+            ipr_meter_count (amq_broker->ometer);
         }
         else
         if (rc == CONSUMER_BUSY) {
@@ -286,7 +285,7 @@ runs lock-free as a child of the asynchronous queue class.
                 ipr_looseref_list_count (self->content_list),
                 NULL);
             amq_content_basic_unlink (&content);
-            ipr_meter_count (amq_broker->xmeter);
+            ipr_meter_count (amq_broker->ometer);
         }
         else
             amq_server_agent_basic_get_empty (

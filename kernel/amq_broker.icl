@@ -22,10 +22,10 @@
         <field name = "locked" type = "bool" label = "Broker is locked?">
           <get>icl_shortstr_fmt (field_value, "%d", self->locked);</get>
         </field>
-        <field name = "datamem" type = "int" label = "Memory used for all data">
+        <field name = "datamem" label = "Memory used for all data">
           <get>icl_shortstr_fmt (field_value, "%dK", (int) (icl_mem_used () / 1024));</get>
         </field>
-        <field name = "bucketmem" type = "int" label = "Memory used for messages">
+        <field name = "bucketmem" label = "Memory used for messages">
           <get>icl_shortstr_fmt (field_value, "%dK", (int) (ipr_bucket_used () / 1024));</get>
         </field>
         <field name = "messages" type = "int" label = "Number of queued messages">
@@ -143,8 +143,8 @@
         auto_crash_timer,               //  Automatic failure
         auto_block_timer;               //  Automatic blockage
     ipr_meter_t
-        *xmeter,                        //  External switch meter
-        *imeter;                        //  Internal switch meter
+        *imeter,                        //  Incoming messages meter
+        *ometer;                        //  Outgoing messages meter
 </context>
 
 <method name = "new">
@@ -160,8 +160,8 @@
     //  TODO: load list of vhosts from config file
     amq_vhost = amq_vhost_new (self, "/");
     amq_console_config = amq_console_config_new (self);
-    self->xmeter = ipr_meter_new ();
     self->imeter = ipr_meter_new ();
+    self->ometer = ipr_meter_new ();
     self->monitor_timer    = amq_server_config_monitor    (amq_server_config);
     self->dump_state_timer = amq_server_config_dump_state (amq_server_config);
     self->auto_crash_timer = amq_server_config_auto_crash (amq_server_config);
@@ -178,8 +178,8 @@
     <action>
     amq_vhost_destroy (&amq_vhost);
     amq_console_config_destroy (&amq_console_config);
-    ipr_meter_destroy (&self->xmeter);
     ipr_meter_destroy (&self->imeter);
+    ipr_meter_destroy (&self->ometer);
     </action>
 </method>
 
@@ -231,20 +231,19 @@
         if (self->monitor_timer == 0) {
             self->monitor_timer = amq_server_config_monitor (amq_server_config);
 
-            if (ipr_meter_mark (self->xmeter, amq_server_config_monitor (amq_server_config)))
-                asl_log_print (amq_broker->debug_log,
-                    "I: message rate=%d average=%d peak=%d",
-                    self->xmeter->current,
-                    self->xmeter->average,
-                    self->xmeter->maximum);
-#if _THIS_SHOULD_BE_OPTIONAL
             if (ipr_meter_mark (self->imeter, amq_server_config_monitor (amq_server_config)))
                 asl_log_print (amq_broker->debug_log,
-                    "I: internal message rate=%d average=%d peak=%d",
+                    "I: incoming rate=%d average=%d peak=%d",
                     self->imeter->current,
                     self->imeter->average,
                     self->imeter->maximum);
-#endif
+            if (ipr_meter_mark (self->ometer, amq_server_config_monitor (amq_server_config)))
+                asl_log_print (amq_broker->debug_log,
+                    "I: outgoing rate=%d average=%d peak=%d iomean=%d",
+                    self->ometer->current,
+                    self->ometer->average,
+                    self->ometer->maximum,
+                    self->ometer->average + self->imeter->average);
         }
     }
     if (self->dump_state_timer) {
