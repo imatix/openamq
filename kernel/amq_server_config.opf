@@ -283,6 +283,15 @@ $\(selftype)
     </doc>
     </property>
 
+    <property name = "tcp nodelay" type = "Bool" default = "1" dynamic = "1">
+    TCP/IP NDELAY option
+    <doc>
+    If this value is 1, socket data is written immediately, which is
+    usually good for latency.  If this value is 0, data is buffered
+    until there is a full packet, which is usually good for throughput.
+    </doc>
+    </property>
+
     <property name = "tcp rcvbuf" type = "int" default = "0" dynamic = "1">
     TCP/IP receive buffer, in bytes
     <doc>
