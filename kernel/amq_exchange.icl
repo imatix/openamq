@@ -384,7 +384,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     while (binding) {
         if (amq_binding_unbind_queue (binding, queue)) {
             self->unbind (self->object, binding);
-            amq_binding_destroy (&binding);
+            amq_binding_unlink (&binding);
             break;                      //  We found & killed the queue
         }
         else

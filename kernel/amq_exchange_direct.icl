@@ -56,6 +56,10 @@ on the routing_key.
         amq_hash_table_remove (hash);
         amq_hash_unlink (&hash);
     }
+    //  We are going to destroy the binding that was passed to us
+    //  but first we need to grab a link to it...
+    binding = amq_binding_link (binding);
+    amq_binding_destroy (&binding);
 </method>
 
 </class>
