@@ -7,6 +7,8 @@
 
 #include "icl.h"                
 #include "amq_mgt_console.h"            //  Definitions for our class
+#include "amq_mgt_broker.h"             //  Definitions for our class
+#include "amq_mgt_vhost.h"              //  Definitions for our class
 #include "version.h"
 
 #define NOWARRANTY \
@@ -24,9 +26,10 @@
     "  -p password      Password for console access (console)\n"             \
     "  -e commands      Run shell commands, delimited by ;\n"                \
     "  -x filename      Save all status data as XML\n"                       \
+    "  -b               Show broker status and then exit\n"          \
+    "  -q               Show all broker queues and exit\n"                   \
     "  -d               Show date and time in shell output\n"                \
     "  -t               Show time in shell output\n"                         \
-    "  -i               Show instant broker status and then exit\n"          \
     "  -v               Show version information\n"                          \
     "  -h               Show summary of command-line options\n"              \
     "\n"                                                                     \
@@ -40,7 +43,8 @@ int main (int argc, char *argv[])
         argn;                           //  Argument number
     Bool
         args_ok = TRUE,                 //  Were the arguments okay?
-        s_opt_instant = FALSE,          //  -i means show instant status
+        s_opt_broker = FALSE,           //  -b means show broker status
+        s_opt_queues = FALSE,           //  -q means show queues
         s_opt_date = FALSE,             //  -d means show date, time
         s_opt_time = FALSE;             //  -t means show time
     char
@@ -53,6 +57,8 @@ int main (int argc, char *argv[])
         **argparm;                      //  Argument parameter to pick-up
     amq_mgt_console_t
         *console;
+    amq_mgt_vhost_t
+        *vhost;                         //  First vhost
     FILE
         *xml_data = NULL;               //  XML capture stream
 
@@ -88,14 +94,17 @@ int main (int argc, char *argv[])
                 case 'x':
                     argparm = &s_opt_xml;
                     break;
+                case 'b':
+                    s_opt_broker = TRUE;
+                    break;
+                case 'q':
+                    s_opt_queues = TRUE;
+                    break;
                 case 'd':
                     s_opt_date = TRUE;
                     break;
                 case 't':
                     s_opt_time = TRUE;
-                    break;
-                case 'i':
-                    s_opt_instant = TRUE;
                     break;
                 case 'v':
                     printf (PRODUCT "\n");
@@ -163,8 +172,15 @@ int main (int argc, char *argv[])
         fprintf (xml_data, "<console_data>\n");
     }
     //  Either dump broker state and exit, or do full command line
-    if (s_opt_instant)
+    if (s_opt_broker)
         amq_mgt_broker_print_full (console->broker, xml_data);
+    else
+    if (s_opt_queues) {
+        amq_mgt_broker_load (console->broker);
+        vhost = amq_mgt_broker_vhost_first (console->broker);
+        if (vhost)
+             amq_mgt_vhost_print (vhost, xml_data);
+    }
     else
         amq_mgt_broker_cmdline (console->broker, console->connection->server_host, 0, xml_data);
 
@@ -177,4 +193,6 @@ int main (int argc, char *argv[])
     icl_system_terminate ();            //  Terminate all classes
     return (EXIT_SUCCESS);
 }
+
+
 

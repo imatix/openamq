@@ -123,7 +123,7 @@ class.
             if (field_value) {
 .for field
 .   if !first ()
-              else
+                else
 .   endif
                 if (streq (field_name, "$(name)")) {
 .   if type = "string"
@@ -153,6 +153,17 @@ class.
     }
     else
         rc = -1;                        //  Object no longer available
+</method>
+
+<method name = "print" template = "function">
+    <doc>
+    Prints the $(name)'s contents to the console.
+    </doc>
+    <argument name = "xml_data" type = "FILE *">XML data capture</argument>
+    //
+    if (!self->loaded)
+        self_load (self);
+    s_list_children (self);
 </method>
 
 <method name = "print full" template = "function">
