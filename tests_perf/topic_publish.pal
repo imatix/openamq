@@ -31,7 +31,7 @@
 
         <!-- Expect confirmations from subscribers -->
         <repeat counter = "id" times = "subscribers">
-            <wait timeout = "2000" />
+            <wait timeout = "120000" />
             <basic_arrived>
                 <echo>Subscriber $id finished</echo>
                 <timer action = "show" />
