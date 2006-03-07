@@ -22,6 +22,7 @@
 
         <repeat>
             <!-- Send off our test messages -->
+	    <timer action = "reset" />
             <repeat counter = "id" times = "$messages">
                 <basic_content size = "$size" message_id = "message-$id" reply_to = "$queue" />
                 <basic_publish exchange = "amq.topic" routing_key = "test" />
