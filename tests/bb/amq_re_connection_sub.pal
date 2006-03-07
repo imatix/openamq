@@ -1,0 +1,29 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = ""
+    >
+    <repeat>
+        <echo>P: starting new connection</echo>
+        <session restart = "1">
+            <exchange_declare exchange = "exchange" type = "headers" />
+            <queue_declare queue = "$queue" />
+            <queue_bind queue = "$queue" exchange = "exchange" routing_key = "gen_pub" />
+            <basic_consume queue = "$queue" />
+            <set name = "count" value = "10" cmdline = "C" />
+            <repeat counter = "loop" >
+                <wait />
+                <basic_arrived>
+                    <echo>I: message '$message_id' arrived</echo>
+                </basic_arrived>
+                <if name = "loop" test = "eq" value = "count" >
+                    <break />
+                </if>
+            </repeat>
+        </session>
+        <echo>P: connection destroyed</echo>
+    </repeat>
+    
+</pal>
+
+
