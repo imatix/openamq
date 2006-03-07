@@ -6,7 +6,7 @@
     <repeat>
         <echo>P: starting new connection</echo>
         <session restart = "1">
-            <exchange_declare exchange = "exchange" type = "headers" />
+            <exchange_declare exchange = "exchange" type = "direct" />
             <queue_declare queue = "$queue" />
             <queue_bind queue = "$queue" exchange = "exchange" routing_key = "gen_pub" />
             <basic_consume queue = "$queue" />
