@@ -1,0 +1,13 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = ""
+    >
+    <session>
+        <basic_content message_id = "id-$random" />
+        <basic_publish exchange = "exchange" routing_key = "gen_pub" />
+    </session>
+    
+</pal>
+
+
