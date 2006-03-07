@@ -1,0 +1,22 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = ""
+    >
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <exchange_declare exchange = "hexchange" type = "headers" />
+        <queue_declare queue = "$queue" />
+        <queue_bind queue = "$queue" exchange = "hexchange" />
+        <basic_consume queue = "$queue" />
+        <repeat>
+            <wait />
+            <basic_arrived>
+                <echo>Message '$message_id' arrived</echo>
+            </basic_arrived>
+        </repeat>
+    </session>
+    
+</pal>
+
+
