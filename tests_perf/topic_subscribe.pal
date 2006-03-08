@@ -1,5 +1,7 @@
 <?xml?>
 <pal script = "amq_pal_gen">
+    <set name = "once"        value = "0"    cmdline = "O" />
+
     <session>
         <queue_declare exclusive = "1" />
         <queue_bind queue = "$queue" exchange = "amq.topic" routing_key = "test" />
@@ -12,6 +14,9 @@
                 <if name = "message_id" test = "eq" value = "END">
                     <basic_publish routing_key = "$reply_to" />
                     <echo>End of message stream from $reply_to...</echo>
+                    <if name = "once">
+                        <exit />
+                    </if>
                 </if>
                 <break />
             </basic_arrived>

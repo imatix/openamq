@@ -14,6 +14,7 @@
     <set name = "subscribers" value = "20"   cmdline = "S" />
     <set name = "size"        value = "500"  cmdline = "Z" />
     <set name = "settle"      value = "0"    cmdline = "W" />
+    <set name = "once"        value = "0"    cmdline = "O" />
 
     <session cluster_key = "my.cluster">
         <!-- Create reply queue and start consuming from it -->
@@ -22,7 +23,7 @@
 
         <repeat>
             <!-- Send off our test messages -->
-	    <timer action = "reset" />
+            <timer action = "reset" />
             <repeat counter = "id" times = "$messages">
                 <basic_content size = "$size" message_id = "message-$id" reply_to = "$queue" />
                 <basic_publish exchange = "amq.topic" routing_key = "test" />
@@ -33,11 +34,18 @@
             <basic_publish exchange = "amq.topic" routing_key = "test" />
 
             <!-- Expect confirmations from subscribers -->
-            <repeat counter = "id" times = "subscribers">
+            <set name = "id" value = "0" />
+            <repeat>
                 <wait timeout = "120000" />
                 <basic_arrived>
                     <echo>Subscriber $id finished</echo>
                     <timer action = "show" />
+                    <inc name = "id" />
+                    <if name = "once">
+                        <if name = "id" value = "$subscribers" >
+                            <exit />
+                        </if>
+                    </if>
                 </basic_arrived>
                 <empty>
                     <abort>E: no response from subscriber</abort>
