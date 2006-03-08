@@ -38,8 +38,7 @@ main (int argc, char *argv [])
     int
         argn;                           //  Argument number
     Bool
-        args_ok = TRUE,                 //  Were the arguments okay?
-        persistent = FALSE;             //  -p means persistent messages
+        args_ok = TRUE;                 //  Were the arguments okay?
     char
         *opt_server,                    //  Host to connect to
         *opt_trace,                     //  0-3
