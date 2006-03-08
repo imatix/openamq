@@ -20,22 +20,12 @@
     "Options:\n"                                                            \
     "  -s server[:port] Name or address, port of server (localhost)\n"      \
     "  -n number        Number of messages to send/receive (1)\n"           \
-    "  -b batch         Size of each batch (100)\n"                         \
     "  -x size          Size of each message (default = 1024)\n"            \
+    "  -a connections   Open N active connections (1)\n"                    \
+    "  -p connections   Open N passive connections (0)\n"                   \
     "  -r repeat        Repeat test N times (1)\n"                          \
-    "  -X exchange      Name of exchange to work with (EXCHANGE)\n"         \
-    "  -R routing key   Routing key to publish to (QUEUE)\n"                \
-    "  -Q queue         Queue to consume from (QUEUE)\n"                    \
     "  -t level         Set trace level (default = 0)\n"                    \
     "                   0=none, 1=low, 2=medium, 3=high\n"                  \
-    "  -a               Use async consumers (default is browsing)\n"        \
-    "  -8               Simulate 0.8 synchronous consumer\n"                \
-    "  -m               Publish mandatory (default is no)\n"                \
-    "  -I               Publish immediate (default is no)\n"                \
-    "  -i               Show program statistics when ending (no)\n"         \
-    "  -p               Use persistent messages (no)\n"                     \
-    "  -d               Delayed mode; sleeps after receiving a message\n"   \
-    "  -q               Quiet mode: no messages\n"                          \
     "  -v               Show version information\n"                         \
     "  -h               Show summary of command-line options\n"             \
     "\nThe order of arguments is not important. Switches and filenames\n"   \
@@ -49,29 +39,24 @@ main (int argc, char *argv [])
         argn;                           //  Argument number
     Bool
         args_ok = TRUE,                 //  Were the arguments okay?
-        quiet_mode = FALSE,             //  -q means suppress messages
-        delay_mode = FALSE,             //  -d means work slowly
-        async_mode = FALSE,             //  -a means async consumers
-        simul_mode = FALSE,             //  -8 means simulate 0.8 consumers
-        mandatory = FALSE,              //  -m means publish mandatory
-        immediate = FALSE,              //  -I means publish immediate
-        showinfo = FALSE,               //  -i means show information
         persistent = FALSE;             //  -p means persistent messages
     char
         *opt_server,                    //  Host to connect to
         *opt_trace,                     //  0-3
         *opt_messages,                  //  Size of test set
-        *opt_exchange,                  //  Exchange to work with
-        *opt_routing,                   //  Routing key to publish to
-        *opt_queue,                     //  Queue to consume from
-        *opt_batch,                     //  Size of batches
         *opt_msgsize,                   //  Message size
         *opt_repeats,                   //  Test repetitions
+        *opt_active,                    //  Active connections
+        *opt_passive,                   //  Passive connections
         **argparm;                      //  Argument parameter to pick-up
     amq_client_connection_t
-        *connection = NULL;             //  Current connection
+        **a_connections,                //  Active connection table
+        **p_connections,                //  Passive connection table
+        *connection;                    //  Current connection
     amq_client_session_t
-        *session = NULL;                //  Current session
+        **a_sessions,                   //  Active session table
+        **p_sessions,                   //  Passive session table
+        *session;                       //  Current session
     amq_content_basic_t
         *content = NULL;                //  Message content
     dbyte
@@ -79,15 +64,14 @@ main (int argc, char *argv [])
     byte
         *test_data = NULL;              //  Test message data
     int
-        rc,                             //  Method return code
-        count,
+        the_index,                      //  Current index into set
+        nbr_active,                     //  Active connections
+        nbr_passive,                    //  Passive connections
+        out_count,                      //  Messages sent
+        expected,                       //  Messages expected
         messages,
-        batch_left,
-        batch_size,
         msgsize,
         repeats;
-    Bool
-        got_messages;                   //  Browsing indicator
     icl_shortstr_t
         message_id;                     //  Message identifier
     icl_longstr_t
@@ -97,12 +81,10 @@ main (int argc, char *argv [])
     opt_server   = "localhost";
     opt_trace    = "0";
     opt_messages = "1";
-    opt_exchange = "EXCHANGE";
-    opt_queue    = "QUEUE";
-    opt_routing  =  NULL;               //  Same as queue by default
-    opt_batch    = "100";
     opt_msgsize  = "1024";
     opt_repeats  = "1";
+    opt_active   = "1";
+    opt_passive  = "0";
 
     //  Initialise system in order to use console.
     icl_system_initialise (argc, argv);
@@ -130,17 +112,11 @@ main (int argc, char *argv [])
                 case 'n':
                     argparm = &opt_messages;
                     break;
-                case 'b':
-                    argparm = &opt_batch;
+                case 'a':
+                    argparm = &opt_active;
                     break;
-                case 'X':
-                    argparm = &opt_exchange;
-                    break;
-                case 'R':
-                    argparm = &opt_routing;
-                    break;
-                case 'Q':
-                    argparm = &opt_queue;
+                case 'p':
+                    argparm = &opt_passive;
                     break;
                 case 't':
                     argparm = &opt_trace;
@@ -153,31 +129,6 @@ main (int argc, char *argv [])
                     break;
 
                 //  These switches have an immediate effect
-                case 'p':
-                    persistent = TRUE;
-                    icl_console_print ("W: -p option is not yet implemented");
-                    break;
-                case 'a':
-                    async_mode = TRUE;
-                    break;
-                case '8':
-                    simul_mode = TRUE;
-                    break;
-                case 'm':
-                    mandatory = TRUE;
-                    break;
-                case 'I':
-                    immediate = TRUE;
-                    break;
-                case 'i':
-                    showinfo = TRUE;
-                    break;
-                case 'q':
-                    quiet_mode = TRUE;
-                    break;
-                case 'd':
-                    delay_mode = TRUE;
-                    break;
                 case 'v':
                     printf (CLIENT_NAME " - revision " SVN_REVISION "\n\n");
                     printf (COPYRIGHT "\n");
@@ -213,168 +164,157 @@ main (int argc, char *argv [])
         exit (EXIT_FAILURE);
     }
     messages   = atoi (opt_messages);
-    batch_size = atoi (opt_batch);
     msgsize    = atoi (opt_msgsize);
     repeats    = atoi (opt_repeats);
-    if (batch_size > messages)
-        batch_size = messages;
     if (repeats < 1)
         repeats = -1;                   //  Loop forever
-    if (opt_routing == NULL)
-        opt_routing = opt_queue;
-
+    nbr_passive = atoi (opt_passive);
+    nbr_active  = atoi (opt_active);
+    
     //  Allocate a test message for publishing
     test_data = icl_mem_alloc (msgsize);
     memset (test_data, 0xAB, msgsize);
 
+    //  Allocate connection & session tables
+    a_connections = icl_mem_alloc (sizeof (void *) * nbr_active);
+    p_connections = icl_mem_alloc (sizeof (void *) * nbr_passive);
+    a_sessions    = icl_mem_alloc (sizeof (void *) * nbr_active);
+    p_sessions    = icl_mem_alloc (sizeof (void *) * nbr_passive);
+    memset (a_connections, 0, sizeof (void *) * nbr_active);
+    memset (p_connections, 0, sizeof (void *) * nbr_passive);
+    memset (a_sessions,    0, sizeof (void *) * nbr_active);
+    memset (p_sessions,    0, sizeof (void *) * nbr_passive);
+    
     if (atoi (opt_trace) > 2) {
         amq_client_connection_animate (TRUE);
         amq_client_session_animate (TRUE);
     }
-    auth_data  = amq_client_connection_auth_plain ("guest", "guest");
-    connection = amq_client_connection_new (
-        opt_server, "/", auth_data, atoi (opt_trace), 30000);
-    icl_longstr_destroy (&auth_data);
-
-    if (connection)
-        icl_console_print ("I: connected to %s/%s - %s - %s",
-            connection->server_product,
-            connection->server_version,
-            connection->server_platform,
-            connection->server_information);
-    else {
-        icl_console_print ("E: could not connect to server");
-        goto finished;
-    }
-    session = amq_client_session_new (connection);
-    if (!session) {
-        icl_console_print ("E: could not open session to server");
-        goto finished;
-    }
-    //  Declare exchange and queue
-    if (amq_client_session_exchange_declare (session,
-        ticket, opt_exchange, "direct", FALSE, FALSE, FALSE, FALSE, NULL))
-        goto finished;
-    if (amq_client_session_queue_declare (session,
-        ticket, opt_queue, FALSE, FALSE, FALSE, FALSE, NULL))
-        goto finished;
-
-    //  Set-up a simple binding based on queue name
-    rc = amq_client_session_queue_bind (
-        session, ticket, opt_queue, opt_exchange, opt_queue, NULL);
-    if (rc)
-        goto finished;                  //  Quit if that failed
-
-    if (async_mode) {
+    //  Open all connections
+    auth_data = amq_client_connection_auth_plain ("guest", "guest");
+    for (the_index = 0; the_index < nbr_active; the_index++) {
+        connection = amq_client_connection_new (
+            opt_server, "/", auth_data, atoi (opt_trace), 30000);
+        if (connection) {
+            a_sessions [the_index] = amq_client_session_new (connection);
+            a_connections [the_index] = connection;
+        }
+        else {
+            icl_console_print ("E: could not connect to %s", opt_server);
+            goto finished;
+        }
+    }        
+    for (the_index = 0; the_index < nbr_passive; the_index++) {
+        connection = amq_client_connection_new (
+            opt_server, "/", auth_data, atoi (opt_trace), 30000);
+        if (connection) {
+            p_sessions [the_index] = amq_client_session_new (connection);
+            p_connections [the_index] = connection;
+        }
+        else {
+            icl_console_print ("E: could not connect to %s", opt_server);
+            goto finished;
+        }
+    }        
+    if (nbr_active && a_connections [0])
+        icl_console_print ("I: opened %d connection%s to %s/%s",
+            nbr_active + nbr_passive,
+           (nbr_active + nbr_passive) > 1? "s": "",
+            a_connections [0]->server_product,
+            a_connections [0]->server_version,
+            a_connections [0]->server_platform,
+            a_connections [0]->server_information);
+    
+    //  Declare automatic queues
+    for (the_index = 0; the_index < nbr_active; the_index++) {
+        session = a_sessions [the_index];
+        if (amq_client_session_queue_declare (
+            session, ticket, NULL, FALSE, FALSE, TRUE, TRUE, NULL))
+            goto finished;
         amq_client_session_basic_consume (session,
             ticket,                     //  Access ticket granted by server
-            opt_queue,                  //  Queue name
+            session->queue,             //  Queue name
             NULL,                       //  Client key
             0,                          //  Prefetch size
             0,                          //  Prefetch count
             FALSE,                      //  No local messages
             TRUE,                       //  Auto-acknowledge
             FALSE);                     //  Exclusive access to queue
-        if (simul_mode)
-            amq_client_session_channel_flow (session, FALSE);
     }
     while (repeats) {
-        //  Send messages to the test queue
-        if (!quiet_mode)
-            icl_console_print ("I: [%s] (%d) sending %d messages to server...",
-                opt_routing, repeats, messages);
-        batch_left = batch_size;
-        for (count = 0; count < messages; count++) {
-            content = amq_content_basic_new ();
-            icl_shortstr_fmt (message_id, "ID%d", count);
-            amq_content_basic_set_body       (content, test_data, msgsize, NULL);
+        //  Send messages to server
+        icl_console_print ("I: (%d) sending %d messages to server...",
+            repeats, messages);
+            
+        content = amq_content_basic_new ();
+        amq_content_basic_set_body (content, test_data, msgsize, NULL);
+        
+        for (out_count = 0; out_count < messages; out_count++) {
+            icl_shortstr_fmt (message_id, "ID%d", out_count);
             amq_content_basic_set_message_id (content, message_id);
-
-            rc = amq_client_session_basic_publish (
-                    session, content, ticket, opt_exchange,
-                    opt_routing, mandatory, immediate);
-            amq_content_basic_unlink (&content);
-            if (rc) {
-                icl_console_print ("E: [%s] could not send message to server - %s",
-                    opt_queue, session->error_text);
-                goto finished;
-            }
-            if (--batch_left == 0) {
-                if (!quiet_mode)
-                    icl_console_print ("I: [%s] commit batch %d...",
-                        opt_queue, count / batch_size);
-                batch_left = batch_size;
-            }
-        }
-        //  Now read messages off the test queue
-        if (!quiet_mode)
-            icl_console_print ("I: [%s] (%d) - reading back messages...", opt_queue, repeats);
-        if (async_mode && simul_mode)
-            amq_client_session_channel_flow (session, TRUE);
-
-        count = 0;
-        while (count < messages) {
-            //  If we're browsing, do a synchronous get
-            if (!async_mode)
-                amq_client_session_basic_get (session, ticket, opt_queue, TRUE);
-
-            //  Process whatever content has already arrived
-            got_messages = FALSE;
-            while ((content = amq_client_session_basic_arrived (session)) != NULL) {
-                got_messages = TRUE;
-                count++;
-                if ((delay_mode || messages < 100) && !quiet_mode)
-                    icl_console_print ("I: [%s] message number %s arrived",
-                        opt_queue, content->message_id);
-                if (count % batch_size == 0) {
-                    if (!quiet_mode)
-                        icl_console_print ("I: [%s] acknowledge batch %d...",
-                            opt_queue, count / batch_size);
-                }
-                amq_content_basic_unlink (&content);
-                if (delay_mode)
-                    sleep (1);
-
-                if (smt_signal_raised) {
-                    icl_console_print ("I: SMT signal raised - ending test");
+    
+            for (the_index = 0; the_index < nbr_active; the_index++) {
+                session = a_sessions [the_index];
+                if (amq_client_session_basic_publish (
+                    session, content, ticket, NULL, session->queue, FALSE, FALSE)
+                ) {
+                    icl_console_print ("E: [%s] could not send message to server - %s",
+                        session->queue, session->error_text);
                     goto finished;
                 }
             }
-            //  Process returned messages, if any
-            while ((content = amq_client_session_basic_returned (session)) != NULL) {
-                got_messages = TRUE;
-                count++;
-                icl_console_print ("I: [%s] message number %s was returned",
-                    opt_queue, content->message_id);
-                amq_content_basic_unlink (&content);
-            }
-            if (async_mode) {
-                //  If we expect more, wait for something to happen
-                if (count < messages && amq_client_session_wait (session, 0)) {
-                    icl_console_print ("E: [%s] error receiving messages - ending test", opt_queue);
-                    goto finished;      //  Quit if there was a problem
+        }
+        amq_content_basic_unlink (&content);
+        
+        //  Read messages back from server, discard them
+        expected = messages * nbr_active;
+        while (expected) {
+            for (the_index = 0; the_index < nbr_active; the_index++) {
+                session = a_sessions [the_index];
+                content = amq_client_session_basic_arrived (session);
+                if (content) {
+                    amq_content_basic_unlink (&content);
+                    expected--;
+                }
+                else
+                    amq_client_session_wait (session, 1000);
+
+                if (!session->alive)
+                    goto finished;
+                if (smt_signal_raised) {
+                    icl_console_print ("I: SMT signal raised - ending test");
+                    icl_console_print ("I: %d messages not received");
+                    goto finished;
                 }
             }
-            else
-            if (!got_messages)
-                break;                  //  Browsing ended, no more data
         }
-        if (!quiet_mode)
-            icl_console_print ("I: [%s] received %d messages back from server", opt_queue, count);
         if (repeats > 0)
             repeats--;
     }
-    if (async_mode)
+    for (the_index = 0; the_index < nbr_active; the_index++) {
+        session = a_sessions [the_index];
         amq_client_session_basic_cancel (session, session->consumer_tag);
-
+    }
     finished:
 
+    for (the_index = 0; the_index < nbr_active; the_index++) {
+        if (a_sessions [the_index])
+            amq_client_session_destroy (&a_sessions [the_index]);
+        if (a_connections [the_index])
+            amq_client_connection_destroy (&a_connections [the_index]);
+    }
+    for (the_index = 0; the_index < nbr_passive; the_index++) {
+        if (p_sessions [the_index])
+            amq_client_session_destroy (&p_sessions [the_index]);
+        if (p_connections [the_index])
+            amq_client_connection_destroy (&p_connections [the_index]);
+    }
+    amq_content_basic_unlink (&content);
+    icl_longstr_destroy (&auth_data);
     icl_mem_free (test_data);
-    amq_client_session_destroy (&session);
-    amq_client_connection_destroy (&connection);
-
-    if (showinfo)
-        icl_stats_dump ();
+    icl_mem_free (a_connections);
+    icl_mem_free (p_connections);
+    icl_mem_free (a_sessions);
+    icl_mem_free (p_sessions);
 
     icl_system_terminate ();
     return (0);
