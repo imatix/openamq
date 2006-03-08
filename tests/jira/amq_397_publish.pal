@@ -8,7 +8,7 @@
         <set name = "a" value = "verb1" cmdline = "V" />
         <set name = "b" value = "test" cmdline = "T" />
         <exchange_declare exchange = "pubsub" type = "headers" />
-        <repeat times = "500" counter = "count">
+        <repeat times = "5000" counter = "count">
             <basic_content size = "4096" message_id = "id-$count">
                 <headers>
                     <field name = "Verb" value = "$a" />
