@@ -4,16 +4,15 @@
     desc   = "GRM-like publisher"
     >
     
-    <include filename = "amq_test_base.pal" />
     <session>
         <set name = "a" value = "verb1" cmdline = "V" />
         <set name = "b" value = "test" cmdline = "T" />
         <exchange_declare exchange = "pubsub" type = "headers" />
-        <repeat counter = "count">
+        <repeat times = "500" counter = "count">
             <basic_content size = "4096" message_id = "id-$count">
                 <headers>
                     <field name = "Verb" value = "$a" />
-                    <field name = "Text" alue = "$b" />
+                    <field name = "Text" value = "$b" />
                 </headers>
             </basic_content>
             <basic_publish exchange = "pubsub" routing_key = "pubsub" />

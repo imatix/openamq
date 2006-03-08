@@ -13,7 +13,7 @@
         <queue_bind queue = "$queue" exchange = "pubsub" >
             <arguments>
                 <field name = "Verb" value = "$a" />
-                <field name = "Text" alue = "$b" />
+                <field name = "Text" value = "$b" />
             </arguments>
         </queue_bind>
         <basic_consume queue = "$queue" />
