@@ -553,6 +553,7 @@ s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
     smt_initialise ();
     amq_console = amq_console_new ();
     amq_console_destroy (&amq_console);
+    smt_wait (0);
 </method>
 
 </class>
