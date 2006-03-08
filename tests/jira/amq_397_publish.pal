@@ -1,0 +1,22 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "GRM-like publisher"
+    >
+    
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <set name = "a" value = "verb1" cmdline = "V" />
+        <set name = "b" value = "test" cmdline = "T" />
+        <exchange_declare exchange = "pubsub" type = "headers" />
+        <repeat counter = "count">
+            <basic_content size = "4096" message_id = "id-$count">
+                <headers>
+                    <field name = "Verb" value = "$a" />
+                    <field name = "Text" alue = "$b" />
+                </headers>
+            </basic_content>
+            <basic_publish exchange = "pubsub" routing_key = "pubsub" />
+        </repeat>
+    </session>
+</pal>
