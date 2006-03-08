@@ -266,7 +266,9 @@ s_run_server (void)
 {
     int
         rc  = 0;                        //  0 = done, 1 = restart
-        
+    amq_broker_t
+        *broker_ref;
+
     //  Synchronous start-up
     if (s_opt_trace)
         amq_server_config_set_trace   (amq_server_config, atoi (s_opt_trace));
@@ -283,12 +285,15 @@ s_run_server (void)
     smt_wait (0);                       //  Execute the server
     if (amq_broker->restart)
         rc = 1;                         //  Restart the broker
-        
+
+    broker_ref = amq_broker_link (amq_broker);
     amq_cluster_destroy (&amq_cluster);
     smt_wait (0);
-    amq_broker_destroy  (&amq_broker);
+    amq_broker_destroy (&broker_ref);
     smt_wait (0);
     amq_console_destroy (&amq_console);
+    smt_wait (0);
+    amq_broker_unlink (&amq_broker);
     smt_wait (0);
 
     //  Synchronous shutdown

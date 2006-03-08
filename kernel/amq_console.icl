@@ -38,11 +38,26 @@ The console works as follows:
 <import class = "amq_server_classes"/>
 <import class = "asl_field_list" />
 
-<public>
+<public name = "header">
 extern $(selftype)
     *amq_console;                       //  Single system-wide console
 extern qbyte
     amq_object_id;                      //  Global object ID
+</public>
+
+<public name = "header">
+typedef struct _amq_console_entry_t amq_console_entry_t;
+</public>
+
+<public>
+struct _amq_console_entry_t {
+    amq_console_class_t
+        *class_ref;                     //  Reference to object class
+    void
+        *object_ref;                    //  Reference to object
+    ipr_hash_t
+        *hash;                          //  Pointer back to own hash
+};
 </public>
 
 <private name = "header">
@@ -53,35 +68,32 @@ $(selftype)
 </private>
 
 <context>
-    //  Quick and dirty object store, will need to be redesigned for
-    //  large-scale use.  The goal of this is to allow the Console to
-    //  be bootstrapped from alpha upwards...
-    qbyte
-        max_objects;
-    void
-        **object_ref;
-    amq_console_class_t
-        **class_ref;
-    qbyte
-        *parent_id;
+    ipr_hash_table_t
+        *object_store;                  //  Object store is a hash table
 </context>
 
 <method name = "new">
-#   define MAX_OBJECTS  256000
-    self->max_objects = MAX_OBJECTS;
-    self->object_ref  = icl_mem_alloc (sizeof (void *) * MAX_OBJECTS);
-    self->class_ref   = icl_mem_alloc (sizeof (void *) * MAX_OBJECTS);
-    self->parent_id   = icl_mem_alloc (sizeof (qbyte)  * MAX_OBJECTS);
-    memset (self->object_ref, 0, sizeof (void *) * MAX_OBJECTS);
-    memset (self->class_ref,  0, sizeof (void *) * MAX_OBJECTS);
-    memset (self->parent_id,  0, sizeof (qbyte)  * MAX_OBJECTS);
+    self->object_store = ipr_hash_table_new ();
 </method>
 
 <method name = "destroy">
     <action>
-    icl_mem_free (self->object_ref);
-    icl_mem_free (self->class_ref);
-    icl_mem_free (self->parent_id);
+    uint
+        table_idx;
+    ipr_hash_t
+        *hash;
+    amq_console_entry_t
+        *entry;
+
+    for (table_idx = 0; table_idx < IPR_HASH_TABLE_MAXSIZE; table_idx++) {
+        hash = self->object_store->table_items [table_idx];
+        if (hash && hash != IPR_HASH_DELETED) {
+            entry = hash->data;
+            icl_mem_free (entry);
+            ipr_hash_destroy (&hash);
+        }
+    }
+    ipr_hash_table_destroy (&self->object_store);
     </action>
 </method>
 
@@ -93,18 +105,23 @@ $(selftype)
     <argument name = "object ref" type = "void *">Object reference</argument>
     <argument name = "class ref"  type = "amq_console_class_t *" />
     <argument name = "parent id"  type = "qbyte">Parent object id</argument>
+    //
     <action>
-    if (object_id &lt; self->max_objects) {
-        self->object_ref [object_id] = object_ref;
-        self->class_ref  [object_id] = class_ref;
-        self->parent_id  [object_id] = parent_id;
-    }
-    else {
-        asl_log_print (amq_broker->alert_log,
-            "E: Console object store is full, please restart server");
-        asl_log_print (amq_broker->alert_log,
-            "I: Current limitation will be removed in next release");
-    }
+    ipr_hash_t
+        *hash;                          //  Entry into hash table
+    icl_shortstr_t
+        object_key;                     //  Stringified object id
+    amq_console_entry_t
+        *entry;
+
+    sprintf (object_key, "%X", object_id);
+    hash = ipr_hash_new (self->object_store, object_key, NULL);
+
+    entry = icl_mem_alloc (sizeof (amq_console_entry_t));
+    entry->object_ref = object_ref;
+    entry->class_ref  = class_ref;
+    entry->hash       = hash;           //  Holds link to hash
+    hash->data        = entry;
     </action>
 </method>
 
@@ -114,7 +131,14 @@ $(selftype)
     </doc>
     <argument name = "object id" type = "qbyte">Object ID</argument>
     <action>
-    self->object_ref [object_id] = NULL;
+    amq_console_entry_t
+        *entry;
+
+    entry = s_lookup_object (self, object_id);
+    if (entry) {
+        ipr_hash_destroy (&entry->hash);
+        icl_mem_free (entry);
+    }
     </action>
 </method>
 
@@ -202,7 +226,7 @@ $(selftype)
     <argument name = "notice"    type = "char *">Reply notice, if any</argument>
     <possess>
     request = amq_content_basic_link (request);
-    fields  = asl_field_list_link (fields);
+    fields = asl_field_list_link (fields);
     notice = icl_mem_strdup (notice);
     </possess>
     <release>
@@ -220,13 +244,17 @@ $(selftype)
         *val_item;                      //  Value of field
     icl_shortstr_t
         strvalue;                       //  Stringified numeric value
+    amq_console_entry_t
+        *entry;                         //  Object store entry
+
+    entry = s_lookup_object (self, object_id);
 
     cml_item = ipr_xml_new (NULL, "cml", NULL);
     ipr_xml_attr_set (cml_item, "version", "1.0");
     ipr_xml_attr_set (cml_item, "xmlns", "http://www.openamq.org/schema/cml");
 
     cur_item = ipr_xml_new (cml_item, name, NULL);
-    ipr_xml_attr_set (cur_item, "class",  self->class_ref [object_id]->name);
+    ipr_xml_attr_set (cur_item, "class",  entry->class_ref->name);
     ipr_xml_attr_set (cur_item, "object", icl_shortstr_fmt (strvalue, "%ld", object_id));
     ipr_xml_attr_set (cur_item, "status", "ok");
     if (notice)
@@ -269,13 +297,16 @@ $(selftype)
         *cur_item;                      //  Top level object
     icl_shortstr_t
         strvalue;                       //  Stringified numeric value
+    amq_console_entry_t
+        *entry;                         //  Object store entry
 
+    entry = s_lookup_object (self, object_id);
     cml_item = ipr_xml_new (NULL, "cml", NULL);
     ipr_xml_attr_set (cml_item, "version", "1.0");
     ipr_xml_attr_set (cml_item, "xmlns", "http://www.openamq.org/schema/cml");
 
     cur_item = ipr_xml_new (cml_item, name, NULL);
-    ipr_xml_attr_set (cur_item, "class",  self->class_ref [object_id]->name);
+    ipr_xml_attr_set (cur_item, "class",  entry->class_ref->name);
     ipr_xml_attr_set (cur_item, "object", icl_shortstr_fmt (strvalue, "%ld", object_id));
     ipr_xml_attr_set (cur_item, "status", status);
 
@@ -289,6 +320,8 @@ $(selftype)
 //  This file is generated when we build the project
 #define AMQ_CONSOLE_SCHEMA      "amq_console_schema.cml"
 
+static amq_console_entry_t *
+    s_lookup_object   (amq_console_t *self, qbyte object_id);
 static void
     s_execute_schema  (amq_content_basic_t *request, ipr_xml_t *xml_command);
 static void
@@ -312,6 +345,25 @@ static void
 </private>
 
 <private name = "async footer">
+static amq_console_entry_t *
+s_lookup_object (amq_console_t *self, qbyte object_id)
+{
+    icl_shortstr_t
+        object_key;                     //  Stringified object id
+    amq_console_entry_t
+        *entry = NULL;
+    ipr_hash_t
+        *hash;                          //  Entry into hash table
+
+    sprintf (object_key, "%X", object_id);
+    hash = ipr_hash_table_search (self->object_store, object_key);
+    if (hash) {
+        entry = hash->data;
+        ipr_hash_unlink (&hash);
+    }
+    return (entry);
+}
+
 static void
 s_execute_schema (amq_content_basic_t *request, ipr_xml_t *xml_command)
 {
@@ -345,16 +397,14 @@ s_execute_inspect (
 {
     char
         *object_str;
-    qbyte
-        object_id;
+    amq_console_entry_t
+        *entry;                         //  Object store entry
 
     object_str = ipr_xml_attr_get (xml_command, "object", "");
     if (*object_str) {
-        object_id = atol (object_str);
-        if (object_id < self->max_objects
-        && self->object_ref [object_id]) {
-            self->class_ref [object_id]->inspect (self->object_ref [object_id], request);
-        }
+        entry = s_lookup_object (self, atol (object_str));
+        if (entry)
+            entry->class_ref->inspect (entry->object_ref, request);
         else
             s_reply_error (request, "inspect-reply", "notfound");
     }
@@ -370,19 +420,17 @@ s_execute_modify (
 {
     char
         *object_str;
-    qbyte
-        object_id;
     asl_field_list_t
         *fields;                        //  Properties to set
+    amq_console_entry_t
+        *entry;                         //  Object store entry
 
     object_str = ipr_xml_attr_get (xml_command, "object", "");
     if (*object_str) {
-        object_id = atol (object_str);
-        if (object_id < self->max_objects
-        && self->object_ref [object_id]) {
+        entry = s_lookup_object (self, atol (object_str));
+        if (entry) {
             fields = s_get_field_list (xml_command);
-            self->class_ref [object_id]->modify (
-                self->object_ref [object_id], request, fields);
+            entry->class_ref->modify (entry->object_ref, request, fields);
             asl_field_list_unlink (&fields);
         }
         else
@@ -438,20 +486,18 @@ s_execute_method (
     char
         *object_str,
         *method_name;                   //  Method to invoke
-    qbyte
-        object_id;
     asl_field_list_t
         *fields;                        //  Properties to pass
+    amq_console_entry_t
+        *entry;                         //  Object store entry
 
     object_str  = ipr_xml_attr_get (xml_command, "object", "");
     method_name = ipr_xml_attr_get (xml_command, "name", "");
     if (*object_str && *method_name) {
-        object_id = atol (object_str);
-        if (object_id < self->max_objects
-        && self->object_ref [object_id]) {
+        entry = s_lookup_object (self, atol (object_str));
+        if (entry) {
             fields = s_get_field_list (xml_command);
-            self->class_ref [object_id]->method (
-                self->object_ref [object_id], method_name, request, fields);
+            entry->class_ref->method (entry->object_ref, method_name, request, fields);
             asl_field_list_unlink (&fields);
         }
         else

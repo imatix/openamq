@@ -138,23 +138,33 @@ s_get_next_consumer (
         *consumer;
     int
         rc = CONSUMER_NONE;
+    amq_server_connection_t
+        *connection;
+    amq_server_channel_t
+        *channel;
+    Bool
+        channel_active;
         
     //  We expect to process the first consumer on the active list
     consumer = amq_consumer_by_queue_first (self->active_consumers);
     while (consumer) {
-        if (!consumer->channel->active
-        ||  !amq_server_channel_alive (consumer->channel))
+        channel_active = FALSE;
+        channel = amq_server_channel_link (consumer->channel);
+        if (channel) {
+            connection = amq_server_connection_link (channel->connection);
+            if (connection && !connection->thread->zombie)
+                channel_active = channel->active;
+        }
+        if (!channel_active)
             ;                           //  Skip this consumer
         else
         if (consumer->busy)
             rc = CONSUMER_BUSY;         //  Unless we have better news
         else
-        if (consumer->no_local == FALSE) {
-            rc = CONSUMER_FOUND;
-            break;                      //  We have our consumer
-        }
+        if (consumer->no_local == FALSE)
+            rc = CONSUMER_FOUND;        //  We have our consumer
         else
-        if (consumer->channel->connection->group == AMQ_CONNECTION_GROUP_CLUSTER) {
+        if (connection->group == AMQ_CONNECTION_GROUP_CLUSTER) {
             //  If the consumer is a cluster peer then the consumer tag is
             //  serverid/connectionid/xxx where xxx is the original consumer
             //  tag.  We can compare this with the content cluster_id, which
@@ -178,19 +188,21 @@ s_get_next_consumer (
             else
                 ids_match = FALSE;
 
-            if (!ids_match) {
-                rc = CONSUMER_FOUND;
-                break;                  //  We have our consumer
-            }
+            if (!ids_match)
+                rc = CONSUMER_FOUND;    //  We have our consumer
         }
         else
-        if (strneq (consumer->channel->connection->id, producer_id)) {
+        if (strneq (connection->id, producer_id)) {
             //  If the consumer is an application then we can compare the
             //  content producer_id with the connection id of the consumer.
-            rc = CONSUMER_FOUND;
-            break;                  //  We have our consumer
+            rc = CONSUMER_FOUND;        //  We have our consumer
         }
-        consumer = amq_consumer_by_queue_next (&consumer);
+        amq_server_connection_unlink (&connection);
+        amq_server_channel_unlink (&channel);
+        if (rc == CONSUMER_FOUND)
+            break;                      //  Return this consumer
+        else
+            consumer = amq_consumer_by_queue_next (&consumer);
     }
     *consumer_p = consumer; 
     return (rc);
@@ -205,12 +217,11 @@ s_free_consumer_queue (amq_consumer_by_queue_t **queue)
 
     while ((consumer = amq_consumer_by_queue_pop (*queue))) {
         if (amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE)) {
+            //  If async cancel failed, we need to do an extra unlink
             consumer_ref = consumer;
-            amq_consumer_unlink  (&consumer_ref);
-            amq_consumer_destroy (&consumer);
+            amq_consumer_unlink (&consumer_ref);
         }
-        else
-            amq_consumer_destroy (&consumer);
+        amq_consumer_destroy (&consumer);
     }
     amq_consumer_by_queue_destroy (queue);
 }

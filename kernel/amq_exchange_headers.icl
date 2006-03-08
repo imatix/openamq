@@ -13,8 +13,6 @@ that is in every content header).
 
 <inherit class = "amq_exchange_base" />
 
-<import class = "amq_hash" />
-
 <context>
     amq_index_hash_t
         *index_hash;                    //  Access by text key
@@ -76,7 +74,7 @@ that is in every content header).
                     if (streq (asl_field_string (field), "any")) {
                         if (amq_server_config_debug_route (amq_server_config))
                             asl_log_print (amq_broker->debug_log,
-                                "X: select   match=any", index_key);
+                                "X: select   %s: match=any", self->exchange->name, index_key);
                         binding->match_all = FALSE;
                     }
                 }
@@ -98,7 +96,7 @@ that is in every content header).
             }
             field = asl_field_list_next (&field);
         }
-        asl_field_list_unlink (&fields);
+        asl_field_list_destroy (&fields);
 
         //  If zero fields specified, match on all messages
         if (binding->field_count == 0)
@@ -166,14 +164,15 @@ that is in every content header).
                     delivered += amq_binding_publish (binding, channel, method);
                     if (amq_server_config_debug_route (amq_server_config))
                         asl_log_print (amq_broker->debug_log,
-                            "X: have_hit match=%s hits=%d binding=%d",
+                            "X: have_hit %s: match=%s hits=%d binding=%d",
+                            self->exchange->name,
                             binding->match_all? "all": "any",
                             hitset->hit_count [binding_nbr], binding_nbr);
                 }
             }
         }
         amq_hitset_destroy (&hitset);
-        asl_field_list_unlink (&headers);
+        asl_field_list_destroy (&headers);
     }
 </method>
 
@@ -196,7 +195,8 @@ s_compile_binding (
 
     if (amq_server_config_debug_route (amq_server_config))
         asl_log_print (amq_broker->debug_log,
-            "X: index    request=%s binding=%d", index_key, binding->index);
+            "X: index    %s: request=%s binding=%d",
+                self->exchange->name, index_key, binding->index);
 
     if (binding->index < IPR_BITS_SIZE_BITS) {
         index = amq_index_hash_search (self->index_hash, index_key);

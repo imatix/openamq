@@ -230,7 +230,7 @@ static int s_auth_plain (
     password = asl_field_list_string (fields, "password");
     if (!login || !password) {
         self_exception (self, ASL_SYNTAX_ERROR, "Missing authentication data");
-        asl_field_list_unlink (&fields);
+        asl_field_list_destroy (&fields);
         return (0);
     }
     config = ipr_config_dup (amq_server_config->config);
@@ -239,7 +239,7 @@ static int s_auth_plain (
         asl_log_print (amq_broker->alert_log,
             "E: no 'plain' security defined in server config");
         self_exception (self, ASL_INTERNAL_ERROR, "Bad server configuration");
-        asl_field_list_unlink (&fields);
+        asl_field_list_destroy (&fields);
         return (0);
     }
     //  Now check user login and password and set group if found
@@ -272,7 +272,7 @@ static int s_auth_plain (
         ipr_config_next (config);
     }
     ipr_config_destroy (&config);
-    asl_field_list_unlink (&fields);
+    asl_field_list_destroy (&fields);
     return (self->group);
 }
 </private>

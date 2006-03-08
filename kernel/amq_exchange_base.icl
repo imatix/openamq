@@ -68,10 +68,13 @@ This is an abstract base class for all exchange implementations.
         returned = FALSE;
     int
         delivered = 0;                  //  Number of message deliveries
+    amq_server_connection_t
+        *connection;
     </local>
     //
     <header>
     assert (self);
+
     if (method->class_id == AMQ_SERVER_BASIC) {
         basic_method  = &method->payload.basic_publish;
         basic_content = (amq_content_basic_t *) (method->content);
@@ -86,17 +89,22 @@ This is an abstract base class for all exchange implementations.
     <footer>
     if (!delivered && mandatory) {
         if (method->class_id == AMQ_SERVER_BASIC) {
-            if (amq_server_channel_alive (channel) && !basic_content->returned) {
-                amq_server_agent_basic_return (
-                    channel->connection->thread,
-                    channel->number,
-                    basic_content,
-                    ASL_NOT_DELIVERED,
-                    "Message cannot be processed - no route is defined",
-                    basic_method->exchange,
-                    routing_key,
-                    NULL);
-                basic_content->returned = TRUE;
+            if (!basic_content->returned) {
+                connection = channel?
+                    amq_server_connection_link (channel->connection): NULL;
+                if (connection) {
+                    amq_server_agent_basic_return (
+                        connection->thread,
+                        channel->number,
+                        basic_content,
+                        ASL_NOT_DELIVERED,
+                        "Message cannot be processed - no route is defined",
+                        basic_method->exchange,
+                        routing_key,
+                        NULL);
+                    amq_server_connection_unlink (&connection);
+                    basic_content->returned = TRUE;
+                }
                 returned = TRUE;
             }
         }
@@ -104,11 +112,13 @@ This is an abstract base class for all exchange implementations.
     if (amq_server_config_debug_route (amq_server_config)) {
         if (returned)
             asl_log_print (amq_broker->debug_log,
-                "X: return   message=%s reason=unroutable_mandatory", message_id);
+                "X: return   %s: message=%s reason=unroutable_mandatory",
+                    self->exchange->name, message_id);
         else
         if (!delivered)
             asl_log_print (amq_broker->debug_log,
-                "X: discard  message=%s reason=unroutable_optional", message_id);
+                "X: discard  %s: message=%s reason=unroutable_optional",
+                    self->exchange->name, message_id);
     }
     rc = delivered;                     //  Return number of deliveries
     </footer>

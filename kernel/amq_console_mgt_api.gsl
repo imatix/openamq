@@ -685,8 +685,10 @@ s_list_children ($\(selftype) *self)
         $(name) = self_$(name)_next (self);
     }
 .   else
-    amq_mgt_$(name)_load (self->$(name));
-    amq_mgt_$(name)_print_row (self->$(name));
+    if (self->$(name)) {
+        amq_mgt_$(name)_load (self->$(name));
+        amq_mgt_$(name)_print_row (self->$(name));
+    }
 .   endif
 .   if last ()
     if (first_time) {

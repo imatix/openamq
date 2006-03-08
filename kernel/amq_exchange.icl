@@ -78,7 +78,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         *object;                        //  Exchange implementation
     amq_binding_list_t
         *binding_list;                  //  Bindings as a list
-    amq_hash_table_t
+    ipr_hash_table_t
         *binding_hash;                  //  Bindings hashed by routing_key
     ipr_index_t
         *binding_index;                 //  Gives us binding indices
@@ -132,7 +132,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     self->auto_delete   = auto_delete;
     self->internal      = internal;
     self->binding_list  = amq_binding_list_new ();
-    self->binding_hash  = amq_hash_table_new ();
+    self->binding_hash  = ipr_hash_table_new ();
     self->binding_index = ipr_index_new ();
     icl_shortstr_cpy (self->name, name);
 
@@ -175,16 +175,11 @@ for each type of exchange. This is a lock-free asynchronous class.
             "E: invalid type '%d' in exchange_new", self->type);
 
     amq_exchange_by_vhost_queue (self->vhost->exchange_list, self);
-    if (amq_server_config_debug_route (amq_server_config))
-        asl_log_print (amq_broker->debug_log, "X: create   exchange=%s", self->name);
 </method>
 
 <method name = "destroy">
     <action>
-    if (amq_server_config_debug_route (amq_server_config))
-        asl_log_print (amq_broker->debug_log, "X: destroy  exchange=%s", self->name);
-
-    amq_hash_table_destroy (&self->binding_hash);
+    ipr_hash_table_destroy (&self->binding_hash);
     amq_binding_list_destroy (&self->binding_list);
     ipr_index_destroy (&self->binding_index);
     if (self->type == AMQ_EXCHANGE_SYSTEM)
@@ -293,7 +288,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     <action>
     if (amq_server_config_debug_route (amq_server_config))
         asl_log_print (amq_broker->debug_log,
-            "X: bind     queue=%s onto=%s", queue->name, self->name);
+            "X: bind     %s: queue=%s", self->name, queue->name);
 
     s_bind_object (self, channel, queue, NULL, routing_key, arguments);
     </action>
@@ -322,7 +317,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     <action>
     if (amq_server_config_debug_route (amq_server_config))
         asl_log_print (amq_broker->debug_log,
-            "X: bind     peer=%s onto=%s", peer->name, self->name);
+            "X: bind     %s: peer=%s", self->name, peer->name);
 
     s_bind_object (self, NULL, NULL, peer, routing_key, arguments);
     </action>
@@ -455,7 +450,7 @@ s_bind_object (
 {
     amq_binding_t
         *binding = NULL;                //  New binding created
-    amq_hash_t
+    ipr_hash_t
         *hash;                          //  Entry into hash table
 
     //  Treat empty arguments as null to simplify comparisons
@@ -464,7 +459,7 @@ s_bind_object (
 
     //  We need to know if this is a new binding or not
     //  First, we'll check on the routing key
-    hash = amq_hash_table_search (self->binding_hash, routing_key);
+    hash = ipr_hash_table_search (self->binding_hash, routing_key);
     if (hash) {
         //  We found the same routing key, now we need to check
         //  all bindings to check for an exact match
@@ -481,7 +476,7 @@ s_bind_object (
         binding = amq_binding_new (self, routing_key, arguments);
         assert (binding);
         if (!hash)                      //  Hash routing key if needed
-            hash = amq_hash_new (self->binding_hash, routing_key, binding);
+            hash = ipr_hash_new (self->binding_hash, routing_key, binding);
 
         if (self->compile (self->object, binding, channel) == 0)
             amq_binding_list_queue (self->binding_list, binding);
@@ -493,7 +488,7 @@ s_bind_object (
         amq_binding_bind_peer (binding, peer);
 
     amq_binding_unlink (&binding);
-    amq_hash_unlink (&hash);
+    ipr_hash_unlink (&hash);
 }
 </private>
 

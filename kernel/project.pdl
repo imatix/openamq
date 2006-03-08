@@ -149,8 +149,6 @@
 <file name = "server.cfg"            class = "public resource"   >Server config file</file>
 
 <!-- Shared classes & resources -->
-<file name = "amq_hash.icl"          class = "icl private class" >Loose hash item</file>
-<file name = "amq_hash_table.icl"    class = "icl private cont"  >Loose hash table</file>
 <file name = "amq_content_basic.icl" class = "icl public cont"   >Basic content class</file>
 <file name = "amq_content_file.icl"  class = "icl public cont"   >File content class</file>
 <file name = "amq_content_stream.icl"

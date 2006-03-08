@@ -43,20 +43,32 @@
         *consumer;                      //  Consumer to send message to
     amq_content_$(class.name)_t
         *content;                       //  Current content
+    amq_server_connection_t
+        *connection;
+    amq_server_channel_t
+        *channel;
 
     consumer = amq_consumer_cluster_search (method->consumer_tag);
     if (consumer) {
         content = (amq_content_$(class.name)_t *) self->content;
-        amq_server_agent_$(class.name)_deliver (
-            consumer->channel->connection->thread,
-            consumer->channel->number,
-            content,
-            consumer->tag,
-            0,                          //  Delivery tag
-            FALSE,                      //  Redelivered
-            method->exchange,
-            method->routing_key,
-            NULL);
+        channel = amq_server_channel_link (consumer->channel);
+        if (channel) {
+            connection = amq_server_connection_link (channel->connection);
+            if (connection) {
+                amq_server_agent_$(class.name)_deliver (
+                    connection->thread,
+                    channel->number,
+                    content,
+                    consumer->tag,
+                    0,                  //  Delivery tag
+                    FALSE,              //  Redelivered
+                    method->exchange,
+                    method->routing_key,
+                    NULL);
+                amq_server_connection_unlink (&connection);
+            }
+            amq_server_channel_unlink (&channel);
+        }
         amq_consumer_unlink (&consumer);
     }
   </action>
@@ -66,21 +78,28 @@
         *content;                       //  Current content
     amq_server_channel_t
         *channel;                       //  Channel to send message on to
+    amq_server_connection_t
+        *connection;
 
     //  We use content's cluster_id to know where to forward content
     content = (amq_content_$(class.name)_t *) self->content;
     channel = amq_server_channel_cluster_search (content->cluster_id);
     if (channel) {
-        amq_server_agent_$(class.name)_get_ok (
-            channel->connection->thread,
-            channel->number,
-            content,
-            method->delivery_tag,
-            method->redelivered,
-            method->exchange,
-            method->routing_key,
-            method->message_count,
-            NULL);                      //  TODO: busy/unbusy consumer?
+        connection = amq_server_connection_link (channel->connection);
+        if (connection) {
+            amq_server_agent_$(class.name)_get_ok (
+                connection->thread,
+                channel->number,
+                content,
+                method->delivery_tag,
+                method->redelivered,
+                method->exchange,
+                method->routing_key,
+                method->message_count,
+                NULL);                  //  TODO: busy/unbusy consumer?
+
+            amq_server_connection_unlink (&connection);
+        }
         amq_server_channel_unlink (&channel);
         ipr_meter_count (amq_broker->ometer);
     }
@@ -91,14 +110,20 @@
   <action name = "get-empty">
     amq_server_channel_t
         *channel;                       //  Channel to send message to
+    amq_server_connection_t
+        *connection;
 
     //  The method actually has the cluster id in it, still
     channel = amq_server_channel_cluster_search (method->cluster_id);
     if (channel) {
-        amq_server_agent_$(class.name)_get_empty (
-            channel->connection->thread,
-            channel->number,
-            NULL);                      //  Cluster_id is null
+        connection = amq_server_connection_link (channel->connection);
+        if (connection) {
+            amq_server_agent_$(class.name)_get_empty (
+                connection->thread,
+                channel->number,
+                NULL);                  //  Cluster_id is null
+            amq_server_connection_unlink (&connection);
+        }
         amq_server_channel_unlink (&channel);
     }
   </action>

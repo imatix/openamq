@@ -1,4 +1,11 @@
+Changes 7/3
+    - force reference to consumer->channel->connection
+        - should move unlinks to free so they are always valid
+        - double-check for linked objects
+    - amq_console uses new object store format
+
 Changes 2/3
+    - show console amounts in Kb
     - console figures, format with suffix ("K") etc
     - bindings correctly cleaned-up when queues deleted
     - PAL extended to show interim timer values
@@ -22,14 +29,15 @@ Changes 25/2
 
 Change requests
     - console default is read-only, need option to make writeable
-    - show console amounts in kb
     - add ipaddress rdns in console (ipr_net?)
     - console should use hash table to store objects, not array
+    - better messages for each item, can/not be modified at runtime
+    - get monitor and trace working dynamically from console
 
 Protocol todo
     - remove prefetch max from asl_channel
-    - remove vhost concept
-    - corrections vs. comments
+    - remove vhost concept (?)
+    - corrections vs. comments from Iona
     
 Todo
     - server restart still failing
@@ -560,3 +568,36 @@ Console
         - persistence
     - guso
         - documentation
+
+
+OMI
+
+Here's a more precise list of requirements for OMI.  Note that we are an
+internal-only application, so we can relax some of the more stringent
+requirements you'd find in an internet-facing application.
+
+Basic requirements:
+  Message publishers must authenticate with Janus SSO.
+  Subscriber must be able to validate the identity of the message
+  publisher.
+  Janus SSO password cannot be sent over the network in plaintext.
+
+Typical security issues we MUST address:
+  Network sniffers capturing an identification token (password, Janus
+  token), allowing one user to authenticate as another user
+  Authentication replay attacks (can be resolved by including one-time
+  challenge phrase or timestamp in encrpyted SSO token)
+
+Some typical security issues we are NOT concerned with:
+  Man-in-the-middle (messages being changed in flight)
+  Ethernet/TCP frame spoofing
+  IP address spoofing (dns compromise, etc.)
+
+If using public key/private key encryption for the SSO token transfer, it
+would be nice to support generic public/private keys, and not have to deal
+with CA certificate chains, Verisign, and the expiration of certificates.
+From my perspective, I imagine it's even safe to download the public key
+from the server at runtime (as part of authentication handshake).  If you
+can make it configurable, that would support other applications which
+require a higher level of server authentication.
+

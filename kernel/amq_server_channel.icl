@@ -37,7 +37,8 @@ maximum number of consumers per channel is set at compile time.
 
     //  We destroy consumers by asking the respective queues
     while ((consumer = amq_consumer_by_channel_pop (self->consumer_list))) {
-        if (amq_queue_cancel (consumer->queue, &consumer, FALSE))
+        if (amq_queue_cancel (consumer->queue, consumer, FALSE))
+            //  If the async cancel failed, destroy the consumer ourselves
             amq_consumer_destroy (&consumer);
     }
     //  Now destroy containers
@@ -118,7 +119,7 @@ maximum number of consumers per channel is set at compile time.
         amq_consumer_by_channel_remove (consumer);
         if (sync) {
             //  Pass to queue to do the final honours
-            amq_queue_cancel (consumer->queue, &consumer, TRUE);
+            amq_queue_cancel (consumer->queue, consumer, TRUE);
         }
         else {
             //  Consumer must have been removed from its per-queue list
@@ -140,28 +141,11 @@ maximum number of consumers per channel is set at compile time.
     <argument name = "self" type = "amq_server_channel_t *">Reference to channel</argument>
     <argument name = "reply code" type = "dbyte" >Error code</argument>
     <argument name = "reply text" type = "char *">Error text</argument>
-    if (amq_server_channel_alive (self))
+    if (self)
         amq_server_channel_close (self, reply_code, reply_text);
     else
         asl_log_print (amq_broker->alert_log,
             "E: channel exception: (%d) %s", reply_code, reply_text);
-</method>
-
-<method name = "alive" return = "rc">
-    <doc>
-    Returns TRUE if the channel appears to be alive.  Accepts
-    a null channel reference (which is considered as 'not alive').
-    </doc>
-    <argument name = "self" type = "amq_server_channel_t *">Reference to channel</argument>
-    <declare name = "rc" type = "int" default = "0">Return code</declare>
-    //
-    if (self
-    &&  self->zombie == FALSE
-    &&  self->connection
-    &&  self->connection->thread)
-        rc = TRUE;
-    else
-        rc = FALSE;
 </method>
 
 <method name = "cluster search" return = "channel">

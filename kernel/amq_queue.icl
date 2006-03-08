@@ -143,7 +143,7 @@ class.  This is a lock-free asynchronous class.
     <dismiss argument = "key" value = "name" />
     //
     self->vhost       = vhost;
-    self->connection  = connection;
+    self->connection  = amq_server_connection_link (connection);
     self->enabled     = TRUE;
     self->durable     = durable;
     self->exclusive   = exclusive;
@@ -160,6 +160,7 @@ class.  This is a lock-free asynchronous class.
 
 <method name = "destroy">
     <action>
+    amq_server_connection_unlink (&self->connection);
     if (amq_server_config_debug_queue (amq_server_config))
         asl_log_print (amq_broker->debug_log, "Q: destroy  queue=%s", self->name);
 
@@ -187,11 +188,19 @@ class.  This is a lock-free asynchronous class.
     </release>
     //
     <action>
+    amq_server_connection_t
+        *connection;
+
     if (self->clustered && !amq_broker->master) {
         //  Pass message to shared queue on master server unless
         //  message already came to us from another cluster peer.
-        if (channel->connection->group != AMQ_CONNECTION_GROUP_CLUSTER)
-            amq_cluster_peer_push (amq_cluster, amq_cluster->master_peer, method);
+        connection = channel?
+            amq_server_connection_link (channel->connection): NULL;
+        if (connection) {
+            if (connection->group != AMQ_CONNECTION_GROUP_CLUSTER)
+                amq_cluster_peer_push (amq_cluster, amq_cluster->master_peer, method);
+            amq_server_connection_unlink (&connection);
+        }
     }
     else
     if (self->enabled) {
@@ -216,7 +225,7 @@ class.  This is a lock-free asynchronous class.
     <argument name = "cluster id" type = "char *">Stamp content with cluster id</argument>
     //
     <possess>
-    channel    = amq_server_channel_link (channel);
+    channel = amq_server_channel_link (channel);
     cluster_id = icl_mem_strdup (cluster_id);
     </possess>
     <release>
@@ -248,10 +257,21 @@ class.  This is a lock-free asynchronous class.
     //
     char
         *error = NULL;                  //  If not null, consumer is invalid
+    amq_server_connection_t
+        *connection;
+    amq_server_channel_t
+        *channel;
+    amq_consumer_t
+        *consumer_ref;
 
     //  Validate consumer
-    if (self->exclusive
-    &&  self->connection != consumer->channel->connection)
+    channel = amq_server_channel_link (consumer->channel);
+    if (channel)
+        connection = amq_server_connection_link (channel->connection);
+    else
+        connection = NULL;
+        
+    if (self->exclusive && self->connection != connection)
         error = "Queue is exclusive to another connection";
     else
     if (consumer->exclusive) {
@@ -265,21 +285,26 @@ class.  This is a lock-free asynchronous class.
         error = "Queue is being used exclusively by another consumer";
 
     if (error) {
-        amq_server_channel_error  (consumer->channel, ASL_ACCESS_REFUSED, error);
-        amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE);
+        amq_server_channel_error (consumer->channel, ASL_ACCESS_REFUSED, error);
+        if (amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE)) {
+            //  If async cancel failed, we need to do an extra unlink
+            consumer_ref = consumer;
+            amq_consumer_unlink (&consumer_ref);
+        }
+        amq_consumer_destroy (&consumer);
     }
     else {
         if (consumer->class_id == AMQ_SERVER_BASIC) {
             amq_queue_basic_consume (self->queue_basic, consumer, active);
-            if (amq_server_channel_alive (consumer->channel))
+            if (connection)
                 amq_server_agent_basic_consume_ok (
-                    consumer->channel->connection->thread,
-                    consumer->channel->number,
-                    consumer->tag);
+                    connection->thread, channel->number, consumer->tag);
         }
         self->consumers++;
         amq_queue_dispatch (self);
     }
+    amq_server_connection_unlink (&connection);
+    amq_server_channel_unlink (&channel);
     </action>
 </method>
 
@@ -290,16 +315,35 @@ class.  This is a lock-free asynchronous class.
     cancel is being done at channel close, no notify will be sent
     back to the client.
     </doc>
-    <argument name = "consumer" type = "amq_consumer_t *" ref = "1">Consumer reference</argument>
+    <argument name = "consumer" type = "amq_consumer_t *">Consumer reference</argument>
     <argument name = "notify" type = "Bool">Notify client application?</argument>
     //
+    <possess>
+    consumer = amq_consumer_link (consumer);
+    </possess>
+    <release>
+    amq_consumer_unlink (&consumer);
+    </release>
+    //
     <action>
+    amq_server_connection_t
+        *connection;
+    amq_server_channel_t
+        *channel;
+        
     if (consumer->class_id == AMQ_SERVER_BASIC) {
-        if (notify && amq_server_channel_alive (consumer->channel))
-            amq_server_agent_basic_cancel_ok (
-                consumer->channel->connection->thread,
-                consumer->channel->number,
-                consumer->tag);
+        if (notify) {
+            channel = amq_server_channel_link (consumer->channel);
+            if (channel) {
+                connection = amq_server_connection_link (channel->connection);
+                if (connection) {
+                    amq_server_agent_basic_cancel_ok (
+                        connection->thread, channel->number, consumer->tag);
+                    amq_server_connection_unlink (&connection);
+                }
+                amq_server_channel_unlink (&channel);
+            }
+        }
         amq_queue_basic_cancel (self->queue_basic, consumer);
     }
     self->locked = FALSE;
@@ -363,10 +407,17 @@ class.  This is a lock-free asynchronous class.
     <action>
     long
         messages = 0;
+    amq_server_connection_t
+        *connection;
 
     messages += amq_queue_basic_purge (self->queue_basic);
-    amq_server_agent_queue_purge_ok (
-        channel->connection->thread, channel->number, messages);
+    connection = channel?
+        amq_server_connection_link (channel->connection): NULL;
+    if (connection) {
+        amq_server_agent_queue_purge_ok (
+            connection->thread, channel->number, messages);
+        amq_server_connection_unlink (&connection);
+    }
     </action>
 </method>
 

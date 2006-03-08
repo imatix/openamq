@@ -186,6 +186,8 @@ class.
         *looseref;                      //  Bound object
     amq_peer_t
         *peer;                          //  Peer we publish to
+    amq_server_connection_t
+        *connection;
     </local>
     //
     //  Publish to all queues, sending method to async queue class
@@ -198,12 +200,15 @@ class.
         rc++;                           //  Count recepients
     }
     //  Publish to peers, sending method to async cluster class
+    connection = channel?
+        amq_server_connection_link (channel->connection): NULL;
     looseref = ipr_looseref_list_first (self->peer_list);
     while (looseref) {
         peer = (amq_peer_t *) (looseref->object);
         if (amq_cluster->enabled
-        &&  channel->connection->group != AMQ_CONNECTION_GROUP_CLUSTER
-        &&  strneq (channel->connection->client_proxy_name, peer->name)) {
+        &&  connection
+        &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER
+        &&  strneq (connection->client_proxy_name, peer->name)) {
             if (amq_server_config_debug_route (amq_server_config))
                 asl_log_print (amq_broker->debug_log, "X: publish  peer=%s", peer->name);
             amq_cluster_peer_push (amq_cluster, peer, method);
@@ -211,8 +216,10 @@ class.
         }
         looseref = ipr_looseref_list_next (&looseref);
     }
+    amq_server_connection_unlink (&connection);
 </method>
 
 <method name = "selftest" />
 
 </class>
+

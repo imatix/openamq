@@ -509,6 +509,8 @@ amq_cluster_t
         *content;                       //  Message content
     ipr_bucket_t
         *bucket;
+    amq_server_connection_t
+        *connection;
 
     //  Wrap outgoing method as a content that we can tunnel to the
     //  other peer or peers
@@ -518,11 +520,15 @@ amq_cluster_t
     amq_content_tunnel_set_proxy_name (content, amq_broker->name);
     amq_content_tunnel_set_data_name  (content, method->name);
     amq_content_tunnel_set_durable    (content, durable);
-    if (channel) {
+
+    connection = channel?
+        amq_server_connection_link (channel->connection): NULL;
+    if (connection) {
         amq_content_tunnel_set_headers_field (content,
             "connection", channel->connection->id);
         amq_content_tunnel_set_headers_field (content,
             "channel", "%d", channel->number);
+        amq_server_connection_unlink (&connection);
     }
     ipr_bucket_unlink (&bucket);
 
@@ -711,6 +717,8 @@ s_execute_basic_get (
         *channel_nbr;
     amq_queue_t
         *queue;
+    amq_server_connection_t
+        *connection;
     //  We format a cluster-id that is stamped into the content before
     //  it is sent back to the requesting node, so that this node can
     //  route the content out to the correct client application.
@@ -729,9 +737,15 @@ s_execute_basic_get (
         amq_queue_unlink (&queue);
     }
     else {
-        asl_log_print (amq_broker->alert_log,
-            "E: cluster queue '%s' not defined", method->payload.basic_get.queue);
-        amq_server_agent_basic_get_empty (channel->connection->thread, channel->number, cluster_id);
+        connection = channel?
+            amq_server_connection_link (channel->connection): NULL;
+        if (connection) {
+            asl_log_print (amq_broker->alert_log,
+                "E: cluster queue '%s' not defined", method->payload.basic_get.queue);
+            amq_server_agent_basic_get_empty (
+                connection->thread, channel->number, cluster_id);
+            amq_server_connection_unlink (&connection);
+        }
     }
 }
 

@@ -46,6 +46,8 @@ runs lock-free as a child of the asynchronous queue class.
         queue_size;                     //  Current queue size
     ipr_looseref_t
         *looseref;                      //  Queued message
+    amq_server_connection_t
+        *connection;
     </local>
     //
     /*  Limitations of current design:
@@ -67,12 +69,16 @@ runs lock-free as a child of the asynchronous queue class.
             limit_action = 0;           //  Ultimate action to execute
         amq_content_basic_t
             *oldest;
-        
-        if (channel->connection->group == AMQ_CONNECTION_GROUP_NORMAL)
-            for (limit_nbr = 0; limit_nbr < self->queue->limits; limit_nbr++)
-                if (queue_size &gt;= self->queue->limit_value [limit_nbr])
-                    limit_action = self->queue->limit_action [limit_nbr];
 
+        connection = channel?
+            amq_server_connection_link (channel->connection): NULL;
+        if (connection) {
+            if (connection->group == AMQ_CONNECTION_GROUP_NORMAL)
+                for (limit_nbr = 0; limit_nbr < self->queue->limits; limit_nbr++)
+                    if (queue_size &gt;= self->queue->limit_value [limit_nbr])
+                        limit_action = self->queue->limit_action [limit_nbr];
+            amq_server_connection_unlink (&connection);
+        }
         switch (limit_action) {
             case AMQ_QUEUE_LIMIT_WARN:
                 if (!self->warned) {
@@ -129,15 +135,20 @@ runs lock-free as a child of the asynchronous queue class.
                     self->queue->name, content->message_id);
 
             content->returned = TRUE;
-            amq_server_agent_basic_return (
-                channel->connection->thread,
-                channel->number,
-                content,
-                ASL_NOT_DELIVERED,
-                "No immediate consumers for Basic message",
-                content->exchange,
-                content->routing_key,
-                NULL);
+            connection = channel?
+                amq_server_connection_link (channel->connection): NULL;
+            if (connection) {
+                amq_server_agent_basic_return (
+                    connection->thread,
+                    channel->number,
+                    content,
+                    ASL_NOT_DELIVERED,
+                    "No immediate consumers for Basic message",
+                    content->exchange,
+                    content->routing_key,
+                    NULL);
+                amq_server_connection_unlink (&connection);
+            }
         }
         else {
             content->immediate = immediate;
@@ -162,6 +173,10 @@ runs lock-free as a child of the asynchronous queue class.
         *consumer;                      //  Consumer reference
     amq_content_basic_t
         *content;                       //  Content object reference
+    amq_server_connection_t
+        *connection;
+    amq_server_channel_t
+        *channel;
     </local>
     //
     if (amq_server_config_debug_queue (amq_server_config))
@@ -186,20 +201,24 @@ runs lock-free as a child of the asynchronous queue class.
 
             self->queue->contents_out++;
             self->queue->traffic_out += content->body_size;
-
-            //TODO: need reference count from consumer to channel
-            //      to ensure channel does not disappear.
-            amq_server_agent_basic_deliver (
-                consumer->channel->connection->thread,
-                consumer->channel->number,
-                content,
-                consumer->tag,
-                0,                          //  Delivery tag
-                FALSE,                      //  Redelivered
-                content->exchange,
-                content->routing_key,
-                consumer);
-
+            channel = amq_server_channel_link (consumer->channel);
+            if (channel) {
+                connection = amq_server_connection_link (channel->connection);
+                if (connection) {
+                    amq_server_agent_basic_deliver (
+                        connection->thread,
+                        channel->number,
+                        content,
+                        consumer->tag,
+                        0,                  //  Delivery tag
+                        FALSE,              //  Redelivered
+                        content->exchange,
+                        content->routing_key,
+                        consumer);
+                    amq_server_connection_unlink (&connection);
+                }
+                amq_server_channel_unlink (&channel);
+            }
             //  Move consumer to end of queue to implement a round-robin
             amq_consumer_by_queue_queue (self->active_consumers, consumer);
             amq_content_basic_unlink (&content);
@@ -233,16 +252,20 @@ runs lock-free as a child of the asynchronous queue class.
                 //  We use content's cluster_id for return path
                 channel = amq_server_channel_cluster_search (content->cluster_id);
                 if (channel) {
-                    content->returned = TRUE;
-                    amq_server_agent_basic_return (
-                        channel->connection->thread,
-                        channel->number,
-                        content,
-                        ASL_NOT_DELIVERED,
-                        "No immediate consumers for Basic message",
-                        content->exchange,
-                        content->routing_key,
-                        NULL);
+                    connection = amq_server_connection_link (channel->connection);
+                    if (connection) {
+                        content->returned = TRUE;
+                        amq_server_agent_basic_return (
+                            connection->thread,
+                            channel->number,
+                            content,
+                            ASL_NOT_DELIVERED,
+                            "No immediate consumers for Basic message",
+                            content->exchange,
+                            content->routing_key,
+                            NULL);
+                        amq_server_connection_unlink (&connection);
+                    }
                     amq_server_channel_unlink (&channel);
                 }
             }
@@ -266,16 +289,22 @@ runs lock-free as a child of the asynchronous queue class.
     <local>
     amq_content_basic_t
         *content;                       //  Content object reference
+    amq_server_connection_t
+        *connection;
     </local>
     //
     //  Get next message off list, if any
-    if (amq_server_channel_alive (channel)) {
-        content = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
+    content = (amq_content_basic_t *) ipr_looseref_pop (self->content_list);
+    connection = channel?
+        amq_server_connection_link (channel->connection): NULL;
+
+    if (connection) {
         if (content) {
             if (cluster_id)
                 amq_content_basic_set_cluster_id (content, cluster_id);
+
             amq_server_agent_basic_get_ok (
-                channel->connection->thread,
+                connection->thread,
                 channel->number,
                 content,
                 0,                      //  Delivery tag
@@ -284,12 +313,15 @@ runs lock-free as a child of the asynchronous queue class.
                 content->routing_key,
                 ipr_looseref_list_count (self->content_list),
                 NULL);
+
             amq_content_basic_unlink (&content);
             ipr_meter_count (amq_broker->ometer);
         }
         else
             amq_server_agent_basic_get_empty (
-                channel->connection->thread, channel->number, NULL);
+                connection->thread, channel->number, NULL);
+
+        amq_server_connection_unlink (&connection);
     }
 </method>
 
