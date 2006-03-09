@@ -233,13 +233,13 @@
 
             if (ipr_meter_mark (self->imeter, amq_server_config_monitor (amq_server_config)))
                 asl_log_print (amq_broker->debug_log,
-                    "I: incoming rate=%d average=%d peak=%d",
+                    "I: incoming rate=%d mean=%d peak=%d",
                     self->imeter->current,
                     self->imeter->average,
                     self->imeter->maximum);
             if (ipr_meter_mark (self->ometer, amq_server_config_monitor (amq_server_config)))
                 asl_log_print (amq_broker->debug_log,
-                    "I: outgoing rate=%d average=%d peak=%d iomean=%d",
+                    "I: outgoing rate=%d mean=%d peak=%d iomean=%d",
                     self->ometer->current,
                     self->ometer->average,
                     self->ometer->maximum,

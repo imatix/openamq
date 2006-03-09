@@ -210,8 +210,7 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
     config = ipr_config_dup (amq_server_config->config);
     ipr_config_locate (config, "/config/security", "plain");
     if (!config->located) {
-        asl_log_print (amq_broker->alert_log,
-            "E: no 'plain' security defined in server config");
+        icl_console_print ("E: no 'plain' security defined in server config");
         exit (EXIT_FAILURE);
     }
     //  Now check console login/password
@@ -244,14 +243,11 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
 
             logfile = fopen (logfile_name, "a");
             icl_console_redirect (logfile);
-            asl_log_print (amq_broker->daily_log,
-                "I: ************************   SERVER START   ************************");
-            asl_log_print (amq_broker->daily_log,
-                "I: " SERVER_NAME "/" VERSION " - revision " SVN_REVISION);
+            icl_console_print ("I: ************************   SERVER START   ************************");
+            icl_console_print ("I: " SERVER_NAME "/" VERSION " - revision " SVN_REVISION);
         }
         else {
-            asl_log_print (amq_broker->alert_log,
-                "E: backgrounding failed - server is halting");
+            icl_console_print ("E: backgrounding failed - server is halting");
             exit (EXIT_FAILURE);
         }
     }
@@ -288,11 +284,11 @@ s_run_server (void)
 
     broker_ref = amq_broker_link (amq_broker);
     amq_cluster_destroy (&amq_cluster);
-    smt_wait (0);
+//    smt_wait (0);
     amq_broker_destroy (&broker_ref);
-    smt_wait (0);
+ //   smt_wait (0);
     amq_console_destroy (&amq_console);
-    smt_wait (0);
+  //  smt_wait (0);
     amq_broker_unlink (&amq_broker);
     smt_wait (0);
 
