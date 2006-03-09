@@ -141,6 +141,15 @@ $\(selftype)
     </doc>
     </property>
 
+    <property name = "keep logs" type = "Bool" default = "1">
+    Keep log files
+    <doc>
+    Specifies whether or not the server should keep logs.  If zero,
+    the server will not keep logs.  If 1, it will keep an alert log,
+    a daily log, and a debug log as specified.
+    </doc>
+    </property>
+
     <property name = "archive path" type = "char *" default = "archive">
     Archive log file directory
     <doc>
