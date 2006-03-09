@@ -1,0 +1,34 @@
+<?xml?>
+<pal script = "amq_pal_gen">
+    <set name = "once"        value = "0"    cmdline = "O" />
+    <set name = "field1"      value = "v1" cmdline = "V" />
+    <set name = "field2"      value = "v2" cmdline = "U" />
+
+    <session>
+        <queue_declare exclusive = "1" />
+        <queue_bind queue = "$queue" exchange = "amq.headers" routing_key = "test">
+            <arguments>
+                <field name = "f1" value = "$field1" />
+                <field name = "f2" value = "$field2" />
+            </arguments>
+        </queue_bind>
+
+        <basic_consume queue = "$queue" />
+        <repeat>
+            <wait/>
+            <basic_arrived>
+                <!-- To test a content property we need to assign it to a variable -->
+                <set name = "message_id" value = "$message_id" />
+                <if name = "message_id" test = "eq" value = "END">
+                    <basic_publish routing_key = "$reply_to" />
+                    <echo>End of message stream from $reply_to...</echo>
+                    <if name = "once">
+                        <exit />
+                    </if>
+                </if>
+                <break />
+            </basic_arrived>
+        </repeat>
+    </session>
+</pal>
+

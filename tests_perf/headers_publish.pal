@@ -1,0 +1,67 @@
+<?xml?>
+<!-- This pal script sends a series of messages to a headers exchange
+     and waits for a confirmation from each subscriber that it has
+     read the entire series. You should tell this script how many
+     subcribers there are (default = 20).
+
+     To use:
+
+        scriptname -M messages -S subscribers
+ -->
+
+<pal script = "amq_pal_gen">
+    <set name = "messages"    value = "1000" cmdline = "M" />
+    <set name = "subscribers" value = "20"   cmdline = "S" />
+    <set name = "size"        value = "500"  cmdline = "Z" />
+    <set name = "settle"      value = "0"    cmdline = "W" />
+    <set name = "once"        value = "0"    cmdline = "O" />
+    <set name = "field1"      value = "v1"   cmdline = "V" />
+    <set name = "field2"      value = "v2"   cmdline = "U" />
+
+    <session cluster_key = "my.cluster">
+        <!-- Create reply queue and start consuming from it -->
+        <queue_declare exclusive = "1" />
+        <basic_consume queue = "$queue" />
+
+        <repeat>
+            <!-- Send off our test messages -->
+            <timer action = "reset" />
+            <repeat counter = "id" times = "$messages">
+                <basic_content size = "$size" message_id = "message-$id" reply_to = "$queue">
+                  <headers>
+                      <field name = "f1" value = "$field1" />
+                      <field name = "f2" value = "$field2" />
+                  </headers>
+                </basic_content>
+                <basic_publish exchange = "amq.headers" routing_key = "test" />
+            </repeat>
+
+            <!-- Send off END message -->
+            <basic_content size = "0" message_id = "END" reply_to = "$queue" />
+            <basic_publish exchange = "amq.headers" routing_key = "test" />
+
+            <!-- Expect confirmations from subscribers -->
+            <set name = "id" value = "0" />
+            <repeat>
+                <wait timeout = "120000" />
+                <basic_arrived>
+                    <echo>Subscriber $id finished</echo>
+                    <timer action = "show" />
+                    <inc name = "id" />
+                    <if name = "once">
+                        <if name = "id" value = "$subscribers" >
+                            <exit />
+                        </if>
+                    </if>
+                </basic_arrived>
+                <empty>
+                    <abort>E: no response from subscriber</abort>
+                </empty>
+            </repeat>
+            <if name = "settle">
+                <echo>Waiting for $settle msecs...</echo>
+                <wait timeout = "$settle" />
+            </if>
+        </repeat>
+    </session>
+</pal>
