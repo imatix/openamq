@@ -43,7 +43,7 @@ our $childnr;
 # Signal handeling
 sub quit { print "[$$] SIGINT received. quitting...\n" if $debug; reap(); exit; }
 sub reap { print "[$$] {$?} reaping child...\n" if $debug; wait(); }
-sub alarm { print "+++ Automatic SIG_INT sent. killing pid [$subchild] +++\n"; kill (2,$subchild); } 
+sub alarm { if($subchild) { print "+++ Automatic SIG_INT sent. killing pid [$subchild] +++\n"; kill (2,$subchild); } } 
 $SIG{ALRM} = \&alarm;
 $SIG{CHLD} = \&reap;
 $SIG{INT} = \&quit;
