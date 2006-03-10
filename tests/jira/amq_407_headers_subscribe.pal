@@ -1,0 +1,54 @@
+<?xml?>
+<pal script = "amq_pal_gen">
+    <!-- Quit after having received this number of messages,
+         0=disable -->
+    <set name = "count"          value = "10000" cmdline = "C" />
+
+    <!-- Log number of messages sent/received every N messages,
+         0=disable -->
+    <set name = "log_interval"   value = "0"     cmdline = "L" />
+
+    <!-- Fields to send in headers -->
+    <set name = "field1"      value = "v1" cmdline = "V" />
+    <set name = "field2"      value = "v2" cmdline = "U" />
+
+    <set name = "received"       value = "0"                   />
+    <set name = "total_received" value = "0"                   />
+
+    <if name = "count" test = "ne" value = "0" >
+        <echo>I: Waiting for $count messages ...</echo>
+    </if>
+    <session exchange = "amq.headers">
+        <queue_declare auto_delete = "1" />
+        <queue_bind    queue = "$queue" routing_key = "test.publish">
+            <arguments>
+                <field name = "f1" value = "$field1" />
+                <field name = "f2" value = "$field2" />
+            </arguments>
+        </queue_bind>
+        <basic_consume queue = "$queue" auto_ack    = "1" />
+        <repeat>
+            <wait timeout = "1" />
+            <basic_arrived>
+                <if  name  = "total_received" value = "0" >
+                    <timer />
+                </if>
+                <inc name = "total_received" />
+                <if  name = "log_interval" test = "ne" value = "0" >
+                    <inc name = "received" />
+                    <if  name = "received" value = "log_interval" >
+                        <echo>I: Received $total_received messages</echo>
+                        <set name = "received" value = "0" />
+                    </if>
+                </if>
+                <if  name = "count" test = "ne" value = "0" >
+                    <if name = "total_received" value = "count" >
+                        <echo>I: Received all messages</echo>
+                        <exit />
+                    </if>
+                </if>
+            </basic_arrived>
+        </repeat>
+    </session>
+</pal>
+

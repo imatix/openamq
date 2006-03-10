@@ -1,0 +1,43 @@
+<?xml?>
+<pal script = "amq_pal_gen">
+    <!-- Number of messages to send -->
+    <set name = "count"          value = "10000" cmdline = "C" />
+
+    <!-- Size of each message body -->
+    <set name = "size"           value = "512"   cmdline = "S" />
+
+    <!-- Log number of messages sent/received every N messages,
+         0=disable -->
+    <set name = "log_interval"   value = "0"     cmdline = "L" />
+
+    <!-- Fields to send in headers -->
+    <set name = "field1"      value = "v1"   cmdline = "V" />
+    <set name = "field2"      value = "v2"   cmdline = "U" />
+
+    <set name = "sent"           value = "0"                   />
+    <set name = "total_sent"     value = "0"                   />
+
+    <echo>I: Sending $count messages of $size bytes ...</echo>
+    <session exchange = "amq.headers">
+        <basic_content fill       = "random" size     = "$size" 
+                       message_id = "xxx"    reply_to = "$queue">
+            <headers>
+                <field name = "f1" value = "$field1" />
+                <field name = "f2" value = "$field2" />
+            </headers>
+        </basic_content>
+        <repeat times = "$count" counter = "id">
+            <basic_publish routing_key = "test.publish" />
+            <inc name = "total_sent" />
+            <if  name = "log_interval" test = "ne" value = "0" >
+                <inc name = "sent" />
+                <if  name = "sent" value = "log_interval" >
+                    <echo>I: Sent $total_sent messages</echo>
+                    <set name = "sent" value = "0" />
+                </if>
+            </if>
+        </repeat>
+    </session>
+    <echo>I: Sent all messages</echo>
+</pal>
+
