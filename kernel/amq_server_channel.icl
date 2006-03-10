@@ -32,6 +32,7 @@ maximum number of consumers per channel is set at compile time.
 
 <method name = "destroy">
     <action>
+    {
     amq_consumer_t
         *consumer;                      //  Consumer in index table
 
@@ -43,6 +44,7 @@ maximum number of consumers per channel is set at compile time.
     }
     //  Now destroy containers
     amq_consumer_by_channel_destroy (&self->consumer_list);
+    }
     </action>
 </method>
 
