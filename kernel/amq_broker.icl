@@ -46,7 +46,7 @@
 
         <class name = "vhost" label = "Virtual hosts" repeat = "1">
           <get>
-            icl_shortstr_fmt (field_value, "%ld", amq_vhost->object_id);
+            icl_shortstr_fmt (field_value, "%d", amq_vhost->object_id);
           </get>
         </class>
 
@@ -58,24 +58,24 @@
           <get>
             connection = amq_server_connection_list_first (self->connection_list);
             if (connection)
-                icl_shortstr_fmt (field_value, "%ld", connection->mgt_object->object_id);
+                icl_shortstr_fmt (field_value, "%d", connection->mgt_object->object_id);
           </get>
           <next>
             connection = amq_server_connection_list_next (&connection);
             if (connection)
-                icl_shortstr_fmt (field_value, "%ld", connection->mgt_object->object_id);
+                icl_shortstr_fmt (field_value, "%d", connection->mgt_object->object_id);
           </next>
         </class>
 
         <class name = "cluster" label = "Cluster">
           <get>
-            icl_shortstr_fmt (field_value, "%ld", amq_cluster->object_id);
+            icl_shortstr_fmt (field_value, "%d", amq_cluster->object_id);
           </get>
         </class>
 
         <class name = "config" label = "Configuration" source = "amq_console_config">
           <get>
-            icl_shortstr_fmt (field_value, "%ld", amq_console_config->object_id);
+            icl_shortstr_fmt (field_value, "%d", amq_console_config->object_id);
           </get>
         </class>
 
@@ -251,11 +251,11 @@
         if (self->dump_state_timer == 0) {
             self->dump_state_timer = amq_server_config_dump_state (amq_server_config);
             asl_log_print (amq_broker->alert_log,
-                "I: cnn=%ld msg=%ld mem=%uK/%uK exc=%ld que=%ld csm=%ld bnd=%ld",
+                "I: cnn=%d msg=%d mem=%uK/%uK exc=%d que=%d csm=%d bnd=%d",
                 amq_server_connection_count (),
                 amq_content_basic_count (),
-                (int) (ipr_bucket_used () / 1024),
-                (int) (icl_mem_used () / 1024),
+                ipr_bucket_used () / 1024,
+                icl_mem_used () / 1024,
                 amq_exchange_count (),
                 amq_queue_count (),
                 amq_consumer_count (),

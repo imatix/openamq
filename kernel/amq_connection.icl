@@ -89,14 +89,14 @@ merge these two classes into one.
             if (self->parent->own_queue_list
             && !amq_queue_list_empty (self->parent->own_queue_list)) {
                 queue_p = amq_queue_list_begin (self->parent->own_queue_list);
-                icl_shortstr_fmt (field_value, "%ld", (*queue_p)->object_id);
+                icl_shortstr_fmt (field_value, "%d", (*queue_p)->object_id);
             }
           </get>
           <next>
             if (queue_p) {
                 queue_p = amq_queue_list_next (queue_p);
                 if (queue_p)
-                    icl_shortstr_fmt (field_value, "%ld", (*queue_p)->object_id);
+                    icl_shortstr_fmt (field_value, "%d", (*queue_p)->object_id);
             }
           </next>
         </class>

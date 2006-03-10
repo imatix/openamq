@@ -27,12 +27,12 @@ Defines a virtual host. This is a lock-free asynchronous class.
           </local>
           <get>
             exchange = amq_exchange_by_vhost_first (self->exchange_list);
-            icl_shortstr_fmt (field_value, "%ld", exchange->object_id);
+            icl_shortstr_fmt (field_value, "%d", exchange->object_id);
           </get>
           <next>
             exchange = amq_exchange_by_vhost_next (&exchange);
             if (exchange)
-                icl_shortstr_fmt (field_value, "%ld", exchange->object_id);
+                icl_shortstr_fmt (field_value, "%d", exchange->object_id);
           </next>
         </class>
 
@@ -43,12 +43,12 @@ Defines a virtual host. This is a lock-free asynchronous class.
           </local>
           <get>
             queue = amq_queue_by_vhost_first (self->queue_list);
-            icl_shortstr_fmt (field_value, "%ld", queue->object_id);
+            icl_shortstr_fmt (field_value, "%d", queue->object_id);
           </get>
           <next>
             queue = amq_queue_by_vhost_next (&queue);
             if (queue)
-                icl_shortstr_fmt (field_value, "%ld", queue->object_id);
+                icl_shortstr_fmt (field_value, "%d", queue->object_id);
           </next>
         </class>
     </class>

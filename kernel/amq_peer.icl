@@ -335,14 +335,14 @@ cluster class.
         }
         else
             asl_log_print (amq_broker->alert_log,
-                "W: cluster dropped method=%s peer=%s seq=%ld reason=duplicate",
+                "W: cluster dropped method=%s peer=%s seq=%d reason=duplicate",
                 method->name, self->name, method->sequence);
 
         self->last_sequence = method->sequence;
     }
     else
         asl_log_print (amq_broker->alert_log,
-            "W: cluster dropped method=%s peer=%s seq=%ld reason=unconnected",
+            "W: cluster dropped method=%s peer=%s seq=%d reason=unconnected",
             method->name, self->name, method->sequence);
 </method>
 

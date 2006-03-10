@@ -42,7 +42,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         </field>
         <field name = "bindings" label = "Number of bindings" type = "int">
           <rule name = "show on summary" />
-          <get>icl_shortstr_fmt (field_value, "%ld", amq_binding_list_count (self->binding_list));</get>
+          <get>icl_shortstr_fmt (field_value, "%d", amq_binding_list_count (self->binding_list));</get>
         </field>
         <field name = "traffic_in" type = "int" label = "Inbound traffic, MB">
           <rule name = "show on summary" />

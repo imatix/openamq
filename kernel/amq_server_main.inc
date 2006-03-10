@@ -284,12 +284,9 @@ s_run_server (void)
 
     broker_ref = amq_broker_link (amq_broker);
     amq_cluster_destroy (&amq_cluster);
-//    smt_wait (0);
-    amq_broker_destroy (&broker_ref);
- //   smt_wait (0);
+    amq_broker_destroy  (&broker_ref);
     amq_console_destroy (&amq_console);
-  //  smt_wait (0);
-    amq_broker_unlink (&amq_broker);
+    amq_broker_unlink   (&amq_broker);
     smt_wait (0);
 
     //  Synchronous shutdown

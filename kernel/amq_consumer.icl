@@ -84,7 +84,7 @@ for Basic, File, and Stream content classes.
 
     icl_shortstr_cpy (self->tag, basic_consume->consumer_tag);
     if (strnull (self->tag))
-        icl_shortstr_fmt (self->tag, "%ld",
+        icl_shortstr_fmt (self->tag, "%d",
             icl_atomic_inc32 ((volatile qbyte *) &(channel->connection->consumer_tag)));
 
     //  Broadcast consume method to cluster using our cluster_id

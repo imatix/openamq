@@ -255,7 +255,7 @@ $(selftype)
 
     cur_item = ipr_xml_new (cml_item, name, NULL);
     ipr_xml_attr_set (cur_item, "class",  entry->class_ref->name);
-    ipr_xml_attr_set (cur_item, "object", icl_shortstr_fmt (strvalue, "%ld", object_id));
+    ipr_xml_attr_set (cur_item, "object", icl_shortstr_fmt (strvalue, "%d", object_id));
     ipr_xml_attr_set (cur_item, "status", "ok");
     if (notice)
         ipr_xml_attr_set (cur_item, "notice", notice);
@@ -307,7 +307,7 @@ $(selftype)
 
     cur_item = ipr_xml_new (cml_item, name, NULL);
     ipr_xml_attr_set (cur_item, "class",  entry->class_ref->name);
-    ipr_xml_attr_set (cur_item, "object", icl_shortstr_fmt (strvalue, "%ld", object_id));
+    ipr_xml_attr_set (cur_item, "object", icl_shortstr_fmt (strvalue, "%d", object_id));
     ipr_xml_attr_set (cur_item, "status", status);
 
     s_reply_xml (request, cml_item);
