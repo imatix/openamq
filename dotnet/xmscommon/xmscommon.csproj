@@ -87,6 +87,7 @@
     <Compile Include="generated\ChannelCloseBody.cs" />
     <Compile Include="generated\ChannelCloseOkBody.cs" />
     <Compile Include="generated\ChannelFlowBody.cs" />
+    <Compile Include="generated\ChannelFlowOkBody.cs" />
     <Compile Include="generated\ChannelOpenBody.cs" />
     <Compile Include="generated\ChannelOpenOkBody.cs" />
     <Compile Include="generated\ConnectionCloseBody.cs" />

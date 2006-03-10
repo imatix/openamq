@@ -2,7 +2,6 @@ Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "minadotnet", "minadotnet\minadotnet.csproj", "{E6EED856-9650-439F-BB81-F35A2C0F8AB8}"
 	ProjectSection(ProjectDependencies) = postProject
-		{CEF80E5F-E838-4F27-9435-2E3630D5F9E0} = {CEF80E5F-E838-4F27-9435-2E3630D5F9E0}
 		{CB5CD46B-902F-48DA-915D-1DA0082F25F4} = {CB5CD46B-902F-48DA-915D-1DA0082F25F4}
 	EndProjectSection
 EndProject
@@ -10,8 +9,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "minatests", "minatests\mina
 	ProjectSection(ProjectDependencies) = postProject
 		{E6EED856-9650-439F-BB81-F35A2C0F8AB8} = {E6EED856-9650-439F-BB81-F35A2C0F8AB8}
 	EndProjectSection
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iesi.Collections", "iesi\Iesi.Collections.csproj", "{CEF80E5F-E838-4F27-9435-2E3630D5F9E0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "xmscommon", "xmscommon\xmscommon.csproj", "{77064C42-24D2-4CEB-9EA2-0EF481A43205}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -30,8 +27,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "xmsclienttests", "xmsclient
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommonCollections", "CommonCollections\CommonCollections.csproj", "{CB5CD46B-902F-48DA-915D-1DA0082F25F4}"
 EndProject
-Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "SetupKit", "SetupKit\SetupKit.vdproj", "{EFF12ED5-DAB9-4F01-83D3-37F2BF050BBB}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -46,10 +41,6 @@ Global
 		{BB3F6DD7-E5F4-45B0-9F5A-7D641FB1D192}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BB3F6DD7-E5F4-45B0-9F5A-7D641FB1D192}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BB3F6DD7-E5F4-45B0-9F5A-7D641FB1D192}.Release|Any CPU.Build.0 = Release|Any CPU
-		{CEF80E5F-E838-4F27-9435-2E3630D5F9E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{CEF80E5F-E838-4F27-9435-2E3630D5F9E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{CEF80E5F-E838-4F27-9435-2E3630D5F9E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{CEF80E5F-E838-4F27-9435-2E3630D5F9E0}.Release|Any CPU.Build.0 = Release|Any CPU
 		{77064C42-24D2-4CEB-9EA2-0EF481A43205}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{77064C42-24D2-4CEB-9EA2-0EF481A43205}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{77064C42-24D2-4CEB-9EA2-0EF481A43205}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -66,8 +57,6 @@ Global
 		{CB5CD46B-902F-48DA-915D-1DA0082F25F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CB5CD46B-902F-48DA-915D-1DA0082F25F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CB5CD46B-902F-48DA-915D-1DA0082F25F4}.Release|Any CPU.Build.0 = Release|Any CPU
-		{EFF12ED5-DAB9-4F01-83D3-37F2BF050BBB}.Debug|Any CPU.ActiveCfg = Debug
-		{EFF12ED5-DAB9-4F01-83D3-37F2BF050BBB}.Release|Any CPU.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

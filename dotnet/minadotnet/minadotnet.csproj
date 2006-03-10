@@ -160,12 +160,6 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\iesi\Iesi.Collections.csproj">
-      <Project>{CEF80E5F-E838-4F27-9435-2E3630D5F9E0}</Project>
-      <Name>Iesi.Collections</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="blazeKey.snk" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

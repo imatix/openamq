@@ -14,7 +14,10 @@ namespace JPMorgan.XMS.RequestReply1
     {
         private static ILog _logger = LogManager.GetLogger(typeof(BaseMessagingTestFixture));
 
+        //protected string _host = "eqd-lxamq01.uk.jpmorgan.com";
         protected string _host = "localhost";
+        
+        //protected int _port = 8576;
 
         protected int _port = 5672;
 

@@ -35,7 +35,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Class1.cs" />
     <Compile Include="JPMorgan\Collections\BlockingQueue.cs" />
     <Compile Include="JPMorgan\Collections\LinkedBlockingQueue.cs" />
     <Compile Include="JPMorgan\Collections\SynchronousQueue.cs" />

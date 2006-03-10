@@ -50,11 +50,13 @@ namespace OpenAMQ.XMS.Client.Protocol
             AMQProtocolProvider provider = new AMQProtocolProvider();
             session.FilterChain.AddLast("protocolFilter",
                                         new ProtocolCodecFilter(provider.CodecFactory));
+            _protocolSession = new AMQProtocolSession(session, _connection);
+            _protocolSession.Init();
         }
 
         public override void SessionOpened(jpmorgan.mina.common.ISession session)
         {
-            _protocolSession = new AMQProtocolSession(session, _connection);
+            
         }
 
         public override void SessionClosed(jpmorgan.mina.common.ISession session)

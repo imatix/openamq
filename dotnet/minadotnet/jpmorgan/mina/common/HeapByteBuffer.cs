@@ -330,7 +330,7 @@ namespace jpmorgan.mina.common
 	        {
 	            throw new BufferOverflowException("Not enought capacity in this buffer for " + n + " elements - only " + Remaining + " remaining");
 	        }
-	        Array.Copy(sb._underlyingData, _position, _underlyingData, _position, n);
+	        Array.Copy(sb._underlyingData, sb._position, _underlyingData, _position, n);
             sb._position += n;
 	        _position += n;	    	
 	    }        

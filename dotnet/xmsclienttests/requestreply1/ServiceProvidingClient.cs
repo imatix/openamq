@@ -1,8 +1,12 @@
 using System;
+using System.IO;
 using System.Threading;
 using IBM.XMS;
 using log4net;
+using log4net.Appender;
 using log4net.Config;
+using log4net.Layout;
+using log4net.spi;
 using NUnit.Framework;
 using OpenAMQ.XMS.Client;
 
@@ -25,9 +29,10 @@ namespace JPMorgan.XMS.RequestReply1
         
         [SetUp]
         public override void Init()
-        {
-            base.Init();
-            BasicConfigurator.Configure();
+        {            
+            DOMConfigurator.Configure(new FileInfo("log4net.config"));
+            base.Init();            
+            
             _logger.Info("Starting...");
                     
             _logger.Info("Service (queue) name is '" + _serviceName + "'...");

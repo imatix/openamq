@@ -4,6 +4,7 @@
     <property name="basename" value="MINA"/>
     <property name="debug" value="true"/>
     <property name="CommonCollectionsDir" value="../CommonCollections"/>
+    <property name="log4netDir" value="../xmscommon/lib/log4net"/>
 
     <if test="${debug}">
         <property name="targetdir" value="bin/${nant.settings.currentframework}/Debug"/>
@@ -34,7 +35,7 @@
             <references>
                 <lib>
                     <include name="${CommonCollectionsDir}/${targetdir}" />
-                    <include name="lib/**" />
+                    <include name="${log4netDir}" />
                 </lib>
                 <include name="CommonCollections.dll" />
                 <include name="log4net.dll" />

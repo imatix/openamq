@@ -17,7 +17,7 @@
             <Component Id='MainLibrary' Guid='6123683C-E742-4047-BCA4-E770403B8754'>
                <File Id='XMSClientDLL' Name='XMSClien.dll' LongName='XMSClient.dll' DiskId='1'
                    Source='..\xmsclient\bin\net-1.0\Debug\XMSClient.dll' Vital='yes'/>
-               <File Id='XMSCommonDLL' Name='XMSCommo.dll' LongName='XMSClient.dll' DiskId='1'
+               <File Id='XMSCommonDLL' Name='XMSCommo.dll' LongName='XMSCommon.dll' DiskId='1'
                    Source='..\xmscommon\bin\net-1.0\Debug\XMSCommon.dll' Vital='yes'/>
                <File Id='MINADLL' Name='MINA.dll' LongName='MINA.dll' DiskId='1'
                    Source='..\minadotnet\bin\net-1.0\Debug\MINA.dll' Vital='yes'/>

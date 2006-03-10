@@ -1,9 +1,14 @@
 using System;
+using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading;
 using IBM.XMS;
 using log4net;
+using log4net.Appender;
+using log4net.Config;
+using log4net.Layout;
+using log4net.spi;
 using OpenAMQ;
 using OpenAMQ.XMS.Client;
 using NUnit.Framework;
@@ -48,7 +53,7 @@ namespace JPMorgan.XMS.RequestReply1
         
         private string _commandQueueName = "ServiceQ1";
         
-        private int _messageCount = 1000;
+        private int _messageCount = 10;
 
         private AMQQueue _tempDestination;
 
@@ -57,7 +62,9 @@ namespace JPMorgan.XMS.RequestReply1
         [SetUp]
         public override void Init()
         {
+            DOMConfigurator.Configure(new FileInfo("log4net.config"));
             base.Init();
+            
             try
             {                
                 AMQQueue destination = new AMQQueue(_commandQueueName);

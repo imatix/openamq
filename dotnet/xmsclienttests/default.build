@@ -41,7 +41,6 @@
                     <include name="${XMSClientDir}/${targetdir}" />
                     <include name="${XMSCommonDir}/lib/**" />
                     <include name="${NunitDir}/bin" />
-                    <include name="lib/**" />
                 </lib>
                 <include name="log4net.dll" />
                 <include name="MINA.dll" />

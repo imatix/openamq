@@ -32,7 +32,8 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\xmsapi\lib\IBM.XMS.dll</HintPath>
     </Reference>
-    <Reference Include="log4net, Version=1.2.9.0, Culture=neutral, PublicKeyToken=b32731d11ce58905">
+    <Reference Include="log4net, Version=1.2.0.30714, Culture=neutral, PublicKeyToken=500ffcafb14f92df">
+      <SpecificVersion>False</SpecificVersion>
       <HintPath>..\xmscommon\lib\log4net\log4net.dll</HintPath>
     </Reference>
     <Reference Include="System" />
@@ -40,7 +41,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Class1.cs" />
     <Compile Include="Client\AMQConnection.cs" />
     <Compile Include="Client\AMQDestination.cs" />
     <Compile Include="Client\AMQQueue.cs" />

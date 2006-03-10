@@ -40,7 +40,10 @@ namespace OpenAMQ.XMS.Client.Protocol
             _minaProtocolSession = protocolSession;
             // properties of the connection are made available to the event handlers
             _minaProtocolSession.SetAttribute(AMQ_CONNECTION, connection);
+        }
 
+        public void Init()
+        {
             // start the process of setting up the connection. This is the first place that
             // data is written to the server.
             _minaProtocolSession.Write(new ProtocolInitiation());
