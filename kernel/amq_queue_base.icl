@@ -144,7 +144,7 @@ s_get_next_consumer (
         *channel;
     Bool
         channel_active;
-        
+
     //  We expect to process the first consumer on the active list
     consumer = amq_consumer_by_queue_first (self->active_consumers);
     while (consumer) {
@@ -155,6 +155,9 @@ s_get_next_consumer (
             if (connection && !connection->thread->zombie)
                 channel_active = channel->active;
         }
+        else
+            connection = NULL;
+            
         if (!channel_active)
             ;                           //  Skip this consumer
         else
