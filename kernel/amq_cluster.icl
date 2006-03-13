@@ -444,7 +444,7 @@ amq_cluster_t
             best_peer = amq_peer_link (peer);
             lowest_load = peer->load;
         }
-        peer = amq_peer_list_next (&best_peer);
+        peer = amq_peer_list_next (&peer);
     }
     if (best_peer) {
         if (amq_server_config_debug_cluster (amq_server_config))
