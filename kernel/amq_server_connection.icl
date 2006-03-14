@@ -56,6 +56,9 @@ This class implements the connection class for the AMQ server.
     amq_connection_destroy (&self->mgt_object);
     amq_vhost_unlink       (&self->vhost);
     amq_queue_list_destroy (&self->own_queue_list);
+</method>
+
+<method name = "free">
     amq_consumer_table_destroy (&self->consumer_table);
 </method>
 
