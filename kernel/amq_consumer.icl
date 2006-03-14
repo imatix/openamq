@@ -60,13 +60,19 @@ for Basic, File, and Stream content classes.
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "queue"   type = "amq_queue_t *">Parent queue</argument>
     <argument name = "method"  type = "amq_server_method_t *">Consume method</argument>
-    <dismiss argument = "table" value = "channel->connection->consumer_table" />
+    <dismiss argument = "table" value = "connection->consumer_table" />
     <dismiss argument = "key"   value = "self->tag" />
     //
     <local>
     amq_server_basic_consume_t
         *basic_consume;
+    amq_server_connection_t
+        *connection;
     </local>
+    //
+    connection = channel?
+        amq_server_connection_link (channel->connection): NULL;
+
     self->channel  = amq_server_channel_link (channel);
     self->queue    = amq_queue_link (queue);
     self->class_id = method->class_id;
@@ -85,19 +91,20 @@ for Basic, File, and Stream content classes.
     icl_shortstr_cpy (self->tag, basic_consume->consumer_tag);
     if (strnull (self->tag))
         icl_shortstr_fmt (self->tag, "%d",
-            icl_atomic_inc32 ((volatile qbyte *) &(channel->connection->consumer_tag)));
+            icl_atomic_inc32 ((volatile qbyte *) &(connection->consumer_tag)));
 
     //  Broadcast consume method to cluster using our cluster_id
-    if (self->channel->connection->group != AMQ_CONNECTION_GROUP_CLUSTER
+    if (connection->group != AMQ_CONNECTION_GROUP_CLUSTER
     &&  self->queue->clustered) {
         icl_shortstr_fmt (self->cluster_id,
-            "%s/%s", channel->connection->cluster_id, self->tag);
+            "%s/%s", connection->cluster_id, self->tag);
         icl_shortstr_cpy (
             method->payload.basic_consume.consumer_tag, self->cluster_id);
         amq_cluster_tunnel_out (amq_cluster,
             AMQ_CLUSTER_ALL, method, AMQ_CLUSTER_DURABLE, channel);
         self->clustered = TRUE;
     }
+    amq_server_connection_unlink (&connection);
 </method>
 
 <method name = "destroy">

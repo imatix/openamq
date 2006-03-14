@@ -58,6 +58,8 @@ maximum number of consumers per channel is set at compile time.
     <action>
     amq_consumer_t
         *consumer;                      //  Consumer object reference
+    amq_server_connection_t
+        *connection;
 
     self->active = active;
     consumer = amq_consumer_by_channel_first (self->consumer_list);
@@ -65,7 +67,10 @@ maximum number of consumers per channel is set at compile time.
         amq_queue_flow (consumer->queue, consumer, active);
         consumer = amq_consumer_by_channel_next (&consumer);
     }
-    amq_server_agent_channel_flow_ok (self->connection->thread, self->number, self->active);
+    connection = channel?
+        amq_server_connection_link (channel->connection): NULL;
+    amq_server_agent_channel_flow_ok (connection->thread, self->number, self->active);
+    amq_server_connection_unlink (&connection);
     </action>
 </method>
 
@@ -115,8 +120,14 @@ maximum number of consumers per channel is set at compile time.
     <action>
     amq_consumer_t
         *consumer = NULL;               //  Consumer reference
+    amq_server_connection_t
+        *connection;
 
-    consumer = amq_consumer_table_search (self->connection->consumer_table, tag);
+    connection = channel?
+        amq_server_connection_link (channel->connection): NULL;
+    consumer = amq_consumer_table_search (connection->consumer_table, tag);
+    amq_server_connection_unlink (&connection);
+
     if (consumer) {
         amq_consumer_by_channel_remove (consumer);
         if (sync) {

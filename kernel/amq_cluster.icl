@@ -525,7 +525,7 @@ amq_cluster_t
         amq_server_connection_link (channel->connection): NULL;
     if (connection) {
         amq_content_tunnel_set_headers_field (content,
-            "connection", channel->connection->id);
+            "connection", connection->id);
         amq_content_tunnel_set_headers_field (content,
             "channel", "%d", channel->number);
         amq_server_connection_unlink (&connection);

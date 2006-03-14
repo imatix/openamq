@@ -153,7 +153,8 @@ class.  This is a lock-free asynchronous class.
     icl_shortstr_cpy (self->name, name);
     amq_queue_by_vhost_queue (self->vhost->queue_list, self);
     if (amq_server_config_debug_queue (amq_server_config))
-        asl_log_print (amq_broker->debug_log, "Q: create   queue=%s", self->name);
+        asl_log_print (amq_broker->debug_log, 
+            "Q: create   queue=%s auto_delete=%d", self->name, self->auto_delete);
 
     s_set_queue_limits (self);
 </method>
