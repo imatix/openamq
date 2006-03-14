@@ -3,9 +3,8 @@
     <session>
         <exchange_declare exchange = "d_1" type = "direct" />
         <queue_declare queue = "dq_1" auto_delete = "1" />
-        <queue_declare queue = "dq_2" auto_delete = "1" />
-        <queue_declare queue = "dq_3" auto_delete = "1" />
         <queue_bind queue = "dq_1" exchange = "d_1" routing_key = "dr_1" />
+        <queue_bind queue = "dq_1" exchange = "d_1" routing_key = "dr_2" />
         
         <basic_content message_id = "id-1" />
         <basic_consume queue = "dq_1" />
