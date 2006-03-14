@@ -69,10 +69,11 @@ for Basic, File, and Stream content classes.
     amq_server_connection_t
         *connection;
     </local>
-    //
+    <header>
     connection = channel?
         amq_server_connection_link (channel->connection): NULL;
-
+    </header>
+    //
     self->channel  = amq_server_channel_link (channel);
     self->queue    = amq_queue_link (queue);
     self->class_id = method->class_id;
@@ -104,7 +105,9 @@ for Basic, File, and Stream content classes.
             AMQ_CLUSTER_ALL, method, AMQ_CLUSTER_DURABLE, channel);
         self->clustered = TRUE;
     }
+    <footer>
     amq_server_connection_unlink (&connection);
+    </footer>
 </method>
 
 <method name = "destroy">
