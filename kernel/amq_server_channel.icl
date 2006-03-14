@@ -67,8 +67,7 @@ maximum number of consumers per channel is set at compile time.
         amq_queue_flow (consumer->queue, consumer, active);
         consumer = amq_consumer_by_channel_next (&consumer);
     }
-    connection = channel?
-        amq_server_connection_link (channel->connection): NULL;
+    connection = amq_server_connection_link (self->connection): NULL;
     amq_server_agent_channel_flow_ok (connection->thread, self->number, self->active);
     amq_server_connection_unlink (&connection);
     </action>
@@ -123,8 +122,7 @@ maximum number of consumers per channel is set at compile time.
     amq_server_connection_t
         *connection;
 
-    connection = channel?
-        amq_server_connection_link (channel->connection): NULL;
+    connection = amq_server_connection_link (self->connection);
     consumer = amq_consumer_table_search (connection->consumer_table, tag);
     amq_server_connection_unlink (&connection);
 
