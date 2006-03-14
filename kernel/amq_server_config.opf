@@ -351,4 +351,8 @@ $\(selftype)
     </property>
 </path>
 
+<!-- These sections are allowed but ignored -->
+<path name = "/config/queue_profile" />
+<path name = "/config/security" />
+
 </opf>

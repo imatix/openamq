@@ -373,14 +373,17 @@ for each type of exchange. This is a lock-free asynchronous class.
     //
     <action>
     amq_binding_t
-        *binding;
+        *binding,
+        *target;
 
     binding = amq_binding_list_first (self->binding_list);
     while (binding) {
         if (amq_binding_unbind_queue (binding, queue)) {
-            self->unbind (self->object, binding);
-            amq_binding_unlink (&binding);
-            break;                      //  We found & killed the queue
+            //  Allow the exchange implementation the chance to cleanup the
+            //  binding, but be careful to get the next binding first...
+            target = binding;
+            binding = amq_binding_list_next (&binding);
+            self->unbind (self->object, target);
         }
         else
             binding = amq_binding_list_next (&binding);
@@ -403,14 +406,17 @@ for each type of exchange. This is a lock-free asynchronous class.
     //
     <action>
     amq_binding_t
-        *binding;
+        *binding,
+        *target;
 
     binding = amq_binding_list_first (self->binding_list);
     while (binding) {
         if (amq_binding_unbind_peer (binding, peer)) {
-            self->unbind (self->object, binding);
-            amq_binding_destroy (&binding);
-            break;                      //  We found & killed the peer
+            //  Allow the exchange implementation the chance to cleanup the
+            //  binding, but be careful to get the next binding first...
+            target = binding;
+            binding = amq_binding_list_next (&binding);
+            self->unbind (self->object, target);
         }
         else
             binding = amq_binding_list_next (&binding);
