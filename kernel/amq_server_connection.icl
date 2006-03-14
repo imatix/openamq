@@ -190,12 +190,18 @@ This class implements the connection class for the AMQ server.
     <local>
     amq_consumer_t
         *consumer = *((amq_consumer_t **) callback_p);
+    amq_queue_t
+        *queue;
     </local>
     //
     if (consumer) {
         icl_atomic_dec32 ((volatile qbyte *) &consumer->busy);
-        if (!consumer->busy && !consumer->zombie)
-            amq_queue_dispatch (consumer->queue);
+        if (!consumer->busy) {
+            queue = amq_queue_link (consumer->queue);
+            if (queue)
+                amq_queue_dispatch (queue);
+            amq_queue_unlink (&queue);
+        }
         amq_consumer_unlink (&consumer);
     }
 </method>

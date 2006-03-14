@@ -136,6 +136,8 @@ s_get_next_consumer (
 {
     amq_consumer_t
         *consumer;
+    smt_thread_t
+        *thread;
     int
         rc = CONSUMER_NONE;
     amq_server_connection_t
@@ -152,8 +154,12 @@ s_get_next_consumer (
         channel = amq_server_channel_link (consumer->channel);
         if (channel) {
             connection = amq_server_connection_link (channel->connection);
-            if (connection && !connection->thread->zombie)
-                channel_active = channel->active;
+            if (connection) {
+                thread = smt_thread_link (channel->thread);
+                if (thread && !thread->zombie)
+                    channel_active = channel->active;
+                smt_thread_unlink (&thread);
+            }
         }
         else
             connection = NULL;

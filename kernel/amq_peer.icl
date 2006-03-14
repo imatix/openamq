@@ -95,9 +95,14 @@ cluster class.
     heartbeat intervals.  This model allows heartbeating to be tuned in
     a cluster that has both LAN and WAN components.
     </doc>
+    <local>
+    smt_thread_t
+        *thread;
+    </local>
     //
-    if (self->thread) {
-        if (self->thread->zombie)
+    thread = smt_thread_link (self->thread);
+    if (thread) {
+        if (thread->zombie)
             self_disconnect (self);
         else
         if (self->connected) {
@@ -116,6 +121,7 @@ cluster class.
                 }
             }
         }
+        smt_thread_unlink (&thread);
     }
     else
         self_connect (self);
