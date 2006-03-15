@@ -108,8 +108,7 @@ maximum number of consumers per channel is set at compile time.
             amq_consumer_unlink (&consumer);
         }
         else
-            asl_log_print (amq_broker->alert_log,
-                "W: duplicate consumer requested, tag='%s'", method->payload.basic_consume.consumer_tag);
+            asl_log_print (amq_broker->alert_log, "W: cannot create consumer - too many consumers?")
         amq_server_connection_unlink (&connection);
     }
     </action>
