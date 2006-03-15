@@ -68,7 +68,7 @@ static amq_console_class_t
         *self = self_v;
     </local>
     <header>
-    assert (self);
+    $(selfname:upper)_ASSERT_SANE (self);
     </header>
     <possess>
     request = amq_content_basic_link (request);
@@ -126,7 +126,7 @@ static amq_console_class_t
         *self = self_v;
     </local>
     <header>
-    assert (self);
+    $(selfname:upper)_ASSERT_SANE (self);
     </header>
     <possess>
     request = amq_content_basic_link (request);
@@ -173,7 +173,7 @@ static amq_console_class_t
         *self = self_v;
     </local>
     <header>
-    assert (self);
+    $(selfname:upper)_ASSERT_SANE (self);
     </header>
     <possess>
     method_name = icl_mem_strdup (method_name);

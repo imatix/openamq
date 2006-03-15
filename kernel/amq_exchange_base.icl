@@ -41,7 +41,7 @@ This is an abstract base class for all exchange implementations.
         *self = self_v;
     </local>
     <header>
-    assert (self);
+    $(selfname:upper)_ASSERT_SANE (self);
     </header>
 </method>
 
@@ -73,7 +73,7 @@ This is an abstract base class for all exchange implementations.
     </local>
     //
     <header>
-    assert (self);
+    $(selfname:upper)_ASSERT_SANE (self);
 
     if (method->class_id == AMQ_SERVER_BASIC) {
         basic_method  = &method->payload.basic_publish;
@@ -136,7 +136,7 @@ This is an abstract base class for all exchange implementations.
         *self = self_v;
     </local>
     <header>
-    assert (self);
+    $(selfname:upper)_ASSERT_SANE (self);
     </header>
 </method>
 
