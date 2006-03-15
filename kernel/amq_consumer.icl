@@ -57,22 +57,17 @@ for Basic, File, and Stream content classes.
 </context>
 
 <method name = "new">
+    <argument name = "connection" type = "amq_server_connection_t *">Parent connection</argument>
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
-    <argument name = "queue"   type = "amq_queue_t *">Parent queue</argument>
-    <argument name = "method"  type = "amq_server_method_t *">Consume method</argument>
+    <argument name = "queue" type = "amq_queue_t *">Parent queue</argument>
+    <argument name = "method" type = "amq_server_method_t *">Consume method</argument>
     <dismiss argument = "table" value = "connection->consumer_table" />
     <dismiss argument = "key"   value = "self->tag" />
     //
     <local>
     amq_server_basic_consume_t
         *basic_consume;
-    amq_server_connection_t
-        *connection;
     </local>
-    <header>
-    connection = channel?
-        amq_server_connection_link (channel->connection): NULL;
-    </header>
     //
     self->channel  = amq_server_channel_link (channel);
     self->queue    = amq_queue_link (queue);
@@ -105,9 +100,6 @@ for Basic, File, and Stream content classes.
             AMQ_CLUSTER_ALL, method, AMQ_CLUSTER_DURABLE, channel);
         self->clustered = TRUE;
     }
-    <footer>
-    amq_server_connection_unlink (&connection);
-    </footer>
 </method>
 
 <method name = "destroy">

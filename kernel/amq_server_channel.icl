@@ -95,13 +95,23 @@ maximum number of consumers per channel is set at compile time.
     <action>
     amq_consumer_t
         *consumer = NULL;
+    amq_server_connection_t
+        *connection;
 
     //  Create and configure the consumer object
-    consumer = amq_consumer_new (self, queue, method);
-    assert (consumer);
-    amq_consumer_by_channel_queue (self->consumer_list, consumer);
-    amq_queue_consume (queue, consumer, self->active);
-    amq_consumer_unlink (&consumer);
+    connection = amq_server_connection_link (self->connection);
+    if (connection) {
+        consumer = amq_consumer_new (connection, self, queue, method);
+        if (consumer) {
+            amq_consumer_by_channel_queue (self->consumer_list, consumer);
+            amq_queue_consume (queue, consumer, self->active);
+            amq_consumer_unlink (&consumer);
+        }
+        else
+            asl_log_print (amq_broker->alert_log,
+                "W: duplicate consumer requested, tag='%s'", method->payload.basic_consume.consumer_tag);
+        amq_server_connection_unlink (&connection);
+    }
     </action>
 </method>
 
