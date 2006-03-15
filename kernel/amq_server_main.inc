@@ -148,8 +148,8 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
                     printf (NOWARRANTY);
                     printf ("Build model:" BUILDMODEL "\n");
                     printf ("Memory model: %s\n", 
-                        icl_mem_allocator == ICL_MEM_THIN?   "fat":
-                        icl_mem_allocator == ICL_MEM_FAT?    "thin":
+                        icl_mem_allocator == ICL_MEM_THIN?   "thin":
+                        icl_mem_allocator == ICL_MEM_FAT?    "fat":
                         icl_mem_allocator == ICL_MEM_DIRECT? "direct": "unknown");
 #if (defined (BASE_THREADSAFE))
                     printf ("Threading model: multithreaded\n");
