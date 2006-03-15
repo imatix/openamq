@@ -286,6 +286,7 @@ s_run_server (void)
     amq_cluster_destroy (&amq_cluster);
     amq_broker_destroy  (&broker_ref);
     amq_console_destroy (&amq_console);
+    smt_wait (0);
     amq_broker_unlink   (&amq_broker);
     smt_wait (0);
 

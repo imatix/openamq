@@ -134,9 +134,11 @@ This class implements the connection class for the AMQ server.
 
 <method name = "open">
     //  For now, link to single global vhost object
-    self->vhost = amq_vhost_link (amq_vhost);
-    assert (self->vhost);
+    self->vhost = amq_vhost_link (amq_broker->vhost);
 
+    if (!self->vhost)
+        self_exception (self, ASL_ACCESS_REFUSED, "Server is not ready");
+    else
     //  If locked, allow only cluster & console access
     if (amq_broker->locked && CONNECTION_IS_USER (self->group))
         self_exception (self, ASL_ACCESS_REFUSED, "Connections not allowed at present");

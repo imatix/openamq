@@ -133,7 +133,7 @@ amq_cluster_t
     <argument name = "cluster name" type = "char *">Cluster name</argument>
     //
     self->broker     = amq_broker_link (broker);
-    self->vhost      = amq_vhost_link  (amq_vhost);
+    self->vhost      = amq_vhost_link (broker->vhost);
     self->peer_list  = amq_peer_list_new ();
     self->state_list = ipr_looseref_list_new ();
     self->crc        = ipr_crc_new ();
@@ -731,7 +731,7 @@ s_execute_basic_get (
     icl_shortstr_fmt (cluster_id, "%s/%s/%s", peer->name, connection_id, channel_nbr);
     asl_field_list_destroy (&headers);
 
-    queue = amq_queue_table_search (amq_vhost->queue_table, method->payload.basic_get.queue);
+    queue = amq_queue_table_search (self->vhost->queue_table, method->payload.basic_get.queue);
     if (queue) {
         amq_queue_get (queue, channel, method->class_id, cluster_id);
         amq_queue_unlink (&queue);
@@ -769,10 +769,10 @@ s_execute_method (
             *exchange;              //  Exchange to bind to
 
         if (strnull (method->payload.cluster_bind.exchange))
-            exchange = amq_exchange_link (amq_vhost->default_exchange);
+            exchange = amq_exchange_link (self->vhost->default_exchange);
         else
             exchange = amq_exchange_search (
-                amq_vhost->exchange_table, method->payload.cluster_bind.exchange);
+                self->vhost->exchange_table, method->payload.cluster_bind.exchange);
 
         if (exchange) {
             amq_exchange_bind_peer (

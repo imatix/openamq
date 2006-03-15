@@ -28,11 +28,25 @@
     int
         exchange_type = 0;
     </local>
+    <local>
+    amq_vhost_t
+        *vhost;
+    </local>
+    <header>
+    vhost = amq_vhost_link (amq_broker->vhost);
+    if (vhost) {
+    </header>
+    <footer>
+        amq_vhost_unlink (&vhost);
+    }
+    else
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
+    </footer>
     //
     exchange_type = amq_exchange_type_lookup (method->type);
     if (exchange_type) {
         //  Find exchange and create if necessary
-        exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
+        exchange = amq_exchange_search (vhost->exchange_table, method->exchange);
         if (!exchange) {
             if (method->passive)
                 amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined");
@@ -42,8 +56,8 @@
                         ASL_ACCESS_REFUSED, "Exchange name not allowed");
                 else {
                     exchange = amq_exchange_new (
-                        amq_vhost->exchange_table,
-                        amq_vhost,
+                        vhost->exchange_table,
+                        vhost,
                         exchange_type,
                         method->exchange,
                         method->durable,
@@ -53,8 +67,7 @@
                     //  This can fail if two threads create the same exchange at the
                     //  same time... so let's go find the actual exchange object
                     if (!exchange)
-                        exchange = amq_exchange_search (
-                            amq_vhost->exchange_table, method->exchange);
+                        exchange = amq_exchange_search (vhost->exchange_table, method->exchange);
 
                     if (exchange) {
                         //  Create exchange on all cluster peers
@@ -71,8 +84,7 @@
         }
         if (exchange) {
             if (exchange->type == exchange_type)
-                amq_server_agent_exchange_declare_ok (
-                    connection->thread, channel->number);
+                amq_server_agent_exchange_declare_ok (connection->thread, channel->number);
             else
                 amq_server_connection_error (connection,
                     ASL_NOT_ALLOWED, "Exchange exists with different type");
@@ -89,7 +101,22 @@
     amq_exchange_t
         *exchange;
     </local>
-    exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
+    <local>
+    amq_vhost_t
+        *vhost;
+    </local>
+    <header>
+    vhost = amq_vhost_link (amq_broker->vhost);
+    if (vhost) {
+    </header>
+    <footer>
+        amq_vhost_unlink (&vhost);
+    }
+    else
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
+    </footer>
+    //
+    exchange = amq_exchange_search (vhost->exchange_table, method->exchange);
     if (exchange) {
         //  Delete exchange on all cluster peers
         if (amq_cluster->enabled
@@ -118,6 +145,20 @@
     static qbyte
         queue_index = 0;
     </local>
+    <local>
+    amq_vhost_t
+        *vhost;
+    </local>
+    <header>
+    vhost = amq_vhost_link (amq_broker->vhost);
+    if (vhost) {
+    </header>
+    <footer>
+        amq_vhost_unlink (&vhost);
+    }
+    else
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
+    </footer>
     //
     //  Find queue and create if necessary
     if (strnull (method->queue)) {
@@ -127,13 +168,13 @@
         else
             icl_shortstr_fmt (method->queue, "tmp_%06d", icl_atomic_inc32 (&queue_index));
     }
-    queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
+    queue = amq_queue_table_search (vhost->queue_table, method->queue);
     if (!queue) {
         if (method->passive)
             amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
         else {
             queue = amq_queue_new (
-                amq_vhost,
+                vhost,
                 method->exclusive? connection: NULL,
                 method->queue,
                 method->durable,
@@ -144,13 +185,13 @@
             //  This can fail if two threads create the same queue at the
             //  same time... so let's go find the actual queue object
             if (!queue)
-                queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
+                queue = amq_queue_table_search (vhost->queue_table, method->queue);
 
             if (queue) {
                 //  Make default binding, if wanted
-                if (amq_vhost->default_exchange)
+                if (vhost->default_exchange)
                     amq_exchange_bind_queue (
-                        amq_vhost->default_exchange, NULL, queue, queue->name, NULL);
+                        vhost->default_exchange, NULL, queue, queue->name, NULL);
 
                 //  Add to connection's exclusive queue list
                 if (method->exclusive)
@@ -198,9 +239,24 @@
     amq_queue_t
         *queue;
     </local>
-    exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
+    <local>
+    amq_vhost_t
+        *vhost;
+    </local>
+    <header>
+    vhost = amq_vhost_link (amq_broker->vhost);
+    if (vhost) {
+    </header>
+    <footer>
+        amq_vhost_unlink (&vhost);
+    }
+    else
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
+    </footer>
+    //
+    exchange = amq_exchange_search (vhost->exchange_table, method->exchange);
     if (exchange) {
-        queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
+        queue = amq_queue_table_search (vhost->queue_table, method->queue);
         if (queue) {
             amq_exchange_bind_queue (
                 exchange, channel, queue, method->routing_key, method->arguments);
@@ -234,7 +290,22 @@
     amq_queue_t
         *queue;
     </local>
-    queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
+    <local>
+    amq_vhost_t
+        *vhost;
+    </local>
+    <header>
+    vhost = amq_vhost_link (amq_broker->vhost);
+    if (vhost) {
+    </header>
+    <footer>
+        amq_vhost_unlink (&vhost);
+    }
+    else
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
+    </footer>
+    //
+    queue = amq_queue_table_search (vhost->queue_table, method->queue);
     if (queue) {
         //  Delete the queue on all cluster peers
         if (amq_cluster->enabled
@@ -248,7 +319,7 @@
             connection->thread, channel->number, amq_queue_message_count (queue));
 
         //  Destroy the queue on this peer
-        amq_vhost_unbind_queue (queue->vhost, queue);
+        amq_vhost_unbind_queue (vhost, queue);
         amq_queue_unlink (&queue);
     }
     else
@@ -260,7 +331,22 @@
     amq_queue_t
         *queue;
     </local>
-    queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
+    <local>
+    amq_vhost_t
+        *vhost;
+    </local>
+    <header>
+    vhost = amq_vhost_link (amq_broker->vhost);
+    if (vhost) {
+    </header>
+    <footer>
+        amq_vhost_unlink (&vhost);
+    }
+    else
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
+    </footer>
+    //
+    queue = amq_queue_table_search (vhost->queue_table, method->queue);
     if (queue) {
         //  Purge queue on all cluster peers, using
         if (amq_cluster->enabled
@@ -285,12 +371,27 @@
     amq_queue_t
         *queue;
     </local>
+    <local>
+    amq_vhost_t
+        *vhost;
+    </local>
+    <header>
+    vhost = amq_vhost_link (amq_broker->vhost);
+    if (vhost) {
+    </header>
+    <footer>
+        amq_vhost_unlink (&vhost);
+    }
+    else
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
+    </footer>
+    //
     if (strlen (method->consumer_tag) > 127
     &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER)
         amq_server_connection_error (connection,
             ASL_SYNTAX_ERROR, "Consumer tag exceeds limit of 127 chars");
     else {
-        queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
+        queue = amq_queue_table_search (vhost->queue_table, method->queue);
         if (queue) {
             //  The channel is responsible for creating/cancelling consumers
             amq_server_channel_consume (channel, queue, self);
@@ -308,12 +409,27 @@
     amq_exchange_t
         *exchange;
     </local>
+    <local>
+    amq_vhost_t
+        *vhost;
+    </local>
+    <header>
+    vhost = amq_vhost_link (amq_broker->vhost);
+    if (vhost) {
+    </header>
+    <footer>
+        amq_vhost_unlink (&vhost);
+    }
+    else
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
+    </footer>
+    //
     if (*method->exchange)
         //  Lookup exchange specified in method
-        exchange = amq_exchange_search (amq_vhost->exchange_table, method->exchange);
+        exchange = amq_exchange_search (vhost->exchange_table, method->exchange);
     else
         //  Get default exchange for virtual host
-        exchange = amq_exchange_link (amq_vhost->default_exchange);
+        exchange = amq_exchange_link (vhost->default_exchange);
 
     if (exchange) {
         if (!exchange->internal || strnull (method->exchange)) {
@@ -347,7 +463,22 @@
     amq_queue_t
         *queue;
     </local>
-    queue = amq_queue_table_search (amq_vhost->queue_table, method->queue);
+    <local>
+    amq_vhost_t
+        *vhost;
+    </local>
+    <header>
+    vhost = amq_vhost_link (amq_broker->vhost);
+    if (vhost) {
+    </header>
+    <footer>
+        amq_vhost_unlink (&vhost);
+    }
+    else
+        amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
+    </footer>
+    //
+    queue = amq_queue_table_search (vhost->queue_table, method->queue);
     if (queue) {
         //  Pass request to cluster master if we are not he
         if (amq_cluster->enabled

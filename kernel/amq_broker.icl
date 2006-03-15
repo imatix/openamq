@@ -46,7 +46,7 @@
 
         <class name = "vhost" label = "Virtual hosts" repeat = "1">
           <get>
-            icl_shortstr_fmt (field_value, "%d", amq_vhost->object_id);
+            icl_shortstr_fmt (field_value, "%d", self->vhost->object_id);
           </get>
         </class>
 
@@ -145,6 +145,8 @@
     ipr_meter_t
         *imeter,                        //  Incoming messages meter
         *ometer;                        //  Outgoing messages meter
+    amq_vhost_t
+        *vhost;                         //  Single vhost (for now)
 </context>
 
 <method name = "new">
@@ -158,14 +160,14 @@
     //
     //  We use a single global vhost for now
     //  TODO: load list of vhosts from config file
-    amq_vhost = amq_vhost_new (self, "/");
-    amq_console_config = amq_console_config_new (self);
+    self->vhost = amq_vhost_new (self, "/");
     self->imeter = ipr_meter_new ();
     self->ometer = ipr_meter_new ();
     self->monitor_timer    = amq_server_config_monitor    (amq_server_config);
     self->dump_state_timer = amq_server_config_dump_state (amq_server_config);
     self->auto_crash_timer = amq_server_config_auto_crash (amq_server_config);
     self->auto_block_timer = amq_server_config_auto_block (amq_server_config);
+    amq_console_config = amq_console_config_new (self);
 
     randomize ();
     if (self->auto_crash_timer)
@@ -176,8 +178,8 @@
 
 <method name = "destroy">
     <action>
-    amq_vhost_destroy (&amq_vhost);
     amq_console_config_destroy (&amq_console_config);
+    amq_vhost_destroy (&self->vhost);
     ipr_meter_destroy (&self->imeter);
     ipr_meter_destroy (&self->ometer);
     </action>

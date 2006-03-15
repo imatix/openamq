@@ -156,6 +156,8 @@ cluster class.
     <local>
     amq_exchange_t
         *exchange;
+    amq_vhost_t
+        *vhost;
     </local>
     //
     if (self->thread) {
@@ -163,9 +165,10 @@ cluster class.
             amq_proxy_agent_connection_close (self->thread);
         smt_thread_unlink (&self->thread);
     }
-    if (self->connected) {
+    vhost = amq_vhost_link (amq_broker->vhost);
+    if (vhost && self->connected) {
         //  Go through all exchanges & bindings, remove link to peer
-        exchange = amq_exchange_by_vhost_first (amq_vhost->exchange_list);
+        exchange = amq_exchange_by_vhost_first (vhost->exchange_list);
         while (exchange) {
             amq_exchange_unbind_peer (exchange, self);
             exchange = amq_exchange_by_vhost_next (&exchange);
@@ -174,6 +177,7 @@ cluster class.
         self->offlined = TRUE;
         icl_console_print ("I: cluster - disconnected from %s", self->host);
     }
+    amq_vhost_unlink (&vhost);
 </method>
 
 <method name = "ready" template = "function">

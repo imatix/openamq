@@ -56,16 +56,6 @@ Defines a virtual host. This is a lock-free asynchronous class.
 
 <import class = "amq_server_classes" />
 
-<public>
-extern $(selftype)
-    *amq_vhost;                         //  Single vhost, for now
-</public>
-
-<private>
-$(selftype)
-    *amq_vhost = NULL;
-</private>
-
 <context>
     amq_broker_t
         *broker;                        //  Parent broker
