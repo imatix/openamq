@@ -146,7 +146,7 @@
                                      class = "icl private class" >List of basic contents</file>
 <file name = "amq_content_file_list.icl"
                                      class = "icl private class" >List of file contents</file>
-<file name = "server.cfg"            class = "public resource"   >Server config file</file>
+<file name = "amq_server_base.cfg"   class = "public resource"   >Server config file</file>
 
 <!-- Shared classes & resources -->
 <file name = "amq_content_basic.icl" class = "icl public cont"   >Basic content class</file>

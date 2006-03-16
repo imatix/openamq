@@ -22,6 +22,7 @@ static Bool
 static char
     *s_opt_port = NULL,                 //  -p specifies server port
     *s_opt_workdir = NULL,              //  -w specifies working directory
+    *s_opt_config = NULL,               //  -s specifies configuration file
     *s_opt_cluster = NULL,              //  -c specifies broker cluster name
     *s_opt_trace = NULL,                //  -t defines trace level
     *s_opt_monitor = NULL;              //  -m means monitor server
@@ -41,7 +42,8 @@ static char
     "\n"                                                                     \
     "General options:\n"                                                     \
     "  -w directory     Working directory for server (current)\n"            \
-    "  -c name          Set server cluster name (none)\n"                    \
+    "  -s filename      Load custom settings from file (amq_server.cfg)\n"   \
+    "  -c name          Set server cluster name and join cluster (none)\n"   \
     "  -X comment       Comment\n"                                           \
     "  -q               Quiet mode: no messages (no)\n"                      \
     "  -b               Run as background server process (no)\n"             \
@@ -66,7 +68,7 @@ static char
 //  Parse arguments, return 0 if OK, 1 if error
 
 static void
-s_start (int argc, char *argv [], char *config_file, char *overlay)
+s_start (int argc, char *argv [])
 {
     Bool
         arg_error = FALSE;
@@ -112,6 +114,9 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
                     break;
                 case 'w':
                     argparm = &s_opt_workdir;
+                    break;
+                case 's':
+                    argparm = &s_opt_config;
                     break;
                 case 'c':
                     argparm = &s_opt_cluster;
@@ -202,8 +207,10 @@ s_start (int argc, char *argv [], char *config_file, char *overlay)
         exit (EXIT_FAILURE);
     }
     //  Load configuration data, if any, into the config_table
-    amq_server_config = amq_server_config_new (config_file, overlay, TRUE);
-    amq_proxy_config  = amq_proxy_config_new  (config_file, overlay, FALSE);
+    if (!s_opt_config)
+        s_opt_config = "amq_server.cfg";
+    amq_server_config = amq_server_config_new ("amq_server_base.cfg", s_opt_config, TRUE);
+    amq_proxy_config  = amq_proxy_config_new  ("amq_server_base.cfg", s_opt_config, FALSE);
     amq_server_config_cmdline_parse (amq_server_config, SERVER_NAME, s_argc, s_argv);
 
     //  Check that server security is reasonably defined

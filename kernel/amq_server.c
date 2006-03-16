@@ -15,7 +15,7 @@ int
 main (int argc, char *argv [])
 {
     FOREVER {
-        s_start (argc, argv, "server.cfg", "custom.cfg");
+        s_start (argc, argv);
         if (s_run_server () == 0)
             break;                      //  Rerun server if wanted
     }
