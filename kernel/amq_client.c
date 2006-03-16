@@ -205,8 +205,9 @@ main (int argc, char *argv [])
     for (the_index = 0; the_index < nbr_passive; the_index++) {
         connection = amq_client_connection_new (
             opt_server, "/", auth_data, atoi (opt_trace), 30000);
-        if (connection) {
-            p_sessions [the_index] = amq_client_session_new (connection);
+        session = connection? amq_client_session_new (connection): NULL;
+        if (session) {
+            p_sessions    [the_index] = session;
             p_connections [the_index] = connection;
         }
         else {
