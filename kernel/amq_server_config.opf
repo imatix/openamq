@@ -11,6 +11,7 @@
     name    = "amq_server_config"
     comment = "Server configuration properties"
     script  = "opf_gen"
+    root    = "config"
     >
 
 <!-- Generate the OpenAMQ Console configuration interface -->
@@ -26,7 +27,7 @@ $\(selftype)
     *amq_server_config = NULL;          //  Global properties
 </private>
 
-<path name = "/config/server">
+<path name = "server">
     <property name = "port" type = "char *" default = "5672">
     Server port for clients
     <doc>
@@ -54,7 +55,7 @@ $\(selftype)
     </property>
 </path>
 
-<path name = "/config/resources">
+<path name = "resources">
     <property name = "max memory mb" default = "512" type = "size_t" dynamic = "1">
     Maximum allowed memory, MBytes
     <doc>
@@ -92,7 +93,7 @@ $\(selftype)
     </property>
 </path>
 
-<path name = "/config/cluster" prefix = "cluster">
+<path name = "cluster" prefix = "cluster">
     <property name = "host" type = "char *">
     Server IP address and port
     <doc>
@@ -132,7 +133,7 @@ $\(selftype)
     </property>
 </path>
 
-<path name = "/config/logging">
+<path name = "logging">
     <property name = "log path" type = "char *" default = "logs">
     Active log file directory
     <doc>
@@ -234,7 +235,7 @@ $\(selftype)
     </property>
 </path>
 
-<path name = "/config/tuning">
+<path name = "tuning">
     <property name = "packio" type = "Bool" default = "0" dynamic = "1">
     Pack network writes?
     <doc>
@@ -320,7 +321,7 @@ $\(selftype)
     </property>
 </path>
 
-<path name = "/config/internal">
+<path name = "internal">
     <property name = "auto crash" type = "int" default = "0" dynamic = "1">
     Auto-crash test timer, seconds
     <doc>
@@ -352,7 +353,7 @@ $\(selftype)
 </path>
 
 <!-- These sections are allowed but ignored -->
-<path name = "/config/queue_profile" />
-<path name = "/config/security" />
+<path name = "queue_profile" />
+<path name = "security" />
 
 </opf>

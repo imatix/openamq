@@ -3,9 +3,10 @@
     name    = "amq_vhost_config"
     comment = "Virtual host configuration properties"
     script  = "opf_gen"
+    root    = "config"
     >
 
-<path name = "/config/vhost">
+<path name = "vhost">
     <property name = "name" type = "char *">
     Virtual host name
     </property>

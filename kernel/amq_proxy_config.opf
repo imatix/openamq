@@ -12,6 +12,7 @@
     name    = "amq_proxy_config"
     comment = "Cluster proxy configuration properties"
     script  = "opf_gen"
+    root    = "config"
     >
 
 <public>
@@ -24,7 +25,7 @@ $\(selftype)
     *amq_proxy_config = NULL;           //  Global properties
 </private>
 
-<path name = "/config/tuning">
+<path name = "tuning">
     <property name = "packio" type = "int" default = "1">
     Pack network data before writing
     <doc>
@@ -56,12 +57,12 @@ $\(selftype)
 </path>
 
 <!-- These sections are allowed but ignored -->
-<path name = "/config/server" />
-<path name = "/config/resources" />
-<path name = "/config/cluster" />
-<path name = "/config/logging" />
-<path name = "/config/internal" />
-<path name = "/config/queue_profile" />
-<path name = "/config/security" />
+<path name = "server" />
+<path name = "resources" />
+<path name = "cluster" />
+<path name = "logging" />
+<path name = "internal" />
+<path name = "queue_profile" />
+<path name = "security" />
 
 </opf>
