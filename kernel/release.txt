@@ -8,7 +8,6 @@ Changes:
     AMQ-413     Tighten use of zombied objects       
     AMQ-403     Add option to disable server logging      
     BASE2-201   Remove pre-writable poll-check.     
-    BASE2-63    Use lock-free queues for SMT message passing    
     AMQ-390     OpenAMQ to log msgs in and out separately.       
     FOR-12      Disable epoll/kqueue/port implementations of apr_pollset_poll       
     AMQ-389     Make TCP socket kernel/stack I/O queue-sizes configurable.  
