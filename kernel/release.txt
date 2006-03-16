@@ -1,3 +1,148 @@
+1.0c0 - 2006/03/16
+---------------------------------------------------------------------
+Changes:
+
+    AMQ-418     Rename server & client configuration files
+    AMQ-417 	Broker should warn about unknown elements in server.cfg  	 
+    BASE2-219 	iCL objects should check they are valid, in all methods  	 
+    AMQ-413 	Tighten use of zombied objects  	 
+    AMQ-403     Add option to disable server logging      
+    BASE2-201   Remove pre-writable poll-check.     
+    BASE2-63    Use lock-free queues for SMT message passing    
+    AMQ-390 	OpenAMQ to log msgs in and out separately.  	 
+    FOR-12 	    Disable epoll/kqueue/port implementations of apr_pollset_poll  	 
+    AMQ-389 	Make TCP socket kernel/stack I/O queue-sizes configurable.  
+    AMQ-385     amq_shell should have a command line option (-q) to show all
+                queues in the server and exit      
+    AMQ-377     Change / remove limit on object store       
+    FOR-1       Implement read buffering for sockets in APR    
+    AMQ-380     Clean-up bindings when possible     
+    AMQ-387     Add no-op comment switch to amq_server command line      
+    AMQ-349     Get consumer destruction process to order       
+    BASE2-192   Tighter control over generation of links code
+    BASE2-179   _destroy method should be replaced by _unlink method  
+    AMQ-378     Review #calls to ipr_regexp_eq from amq_server_method_decode    
+    BASE2-190   Reduce number of calls to apr_os_thread_current      
+    BASE2-184   Make object history conditional
+    BASE2-188   Turn container object counting off by default       
+    BASE2-187   Improve threadlet scheduling
+    BASE-43     Remove 'nice' from c script    
+    BASE2-189   Remove optimisation in _link method       
+    BASE-42     Remove 'nice    
+    BASE2-186   Reduce calls to apr_time_now       
+    AMQ-223     Logging: allow logging level to be changed dynamically       
+    AMQ-287     Strategy for no-local consumers
+    AMQ-308     Strategy for queue limits       
+    BASE2-182   Increase server listen queue size    
+    BASE2-181   Optimised use of atomic operations
+    AMQ-362     Add server garbage collection function to console (amq_shell)
+    AMQ-358     Remove memory garbage collection function (recycler)      
+    AMQ-357     Improve server memory management 
+    AMQ-353     If server reaches memory limit, slow down publishers    
+    AMQ-359     Dump-state function must not become completely silent     
+    AMQ-343     slow down SMT       
+    
+Bug Fixes:
+
+    AMQ-414 	Server dumps core when many clients are killed in quick
+                succession
+    AMQ-422 	amq_vhost is sometimes 0x0 making a cluster crash on
+                amq_peer_disconnect  	 
+    AMQ-424 	Assertion `consumer' failed when a client tries to register
+                197+ services  	 
+    AMQ-421 	Secondary server dumps when primary is killed in a cluster  	 
+    AMQ-408 	dangling queues when client disconnects  	 
+    AMQ-420 	assertion failed when restarting primary server in cluster  	 
+    AMQ-400 	Queues and Messages are not getting cleaned up  	 
+    AMQ-419 	Server aborts with message Assertion `self->tag == 0xFabbU'
+                failed when lots of clients disconnect  	 
+    BASE2-218 	SMT does not build single-threaded  	 
+    AMQ-412 	Server segfaults when closing connection (rare)  	 
+    AMQ-416 	Race condition when sending methods to connection thread  	 
+    BASE2-211 	smt_socket_request.by_socket_next is sometimes invalid making
+                the server segfault  	 
+    BASE2-215 	Aliasing warnings in icl_mem_lockfree.h  	 
+    BASE2-212 	Invalid data access (rwlock) in smt_thread_destroy  	 
+    AMQ-411 	Error in cluster causes crash when clients connect to it  	 
+    AMQ-410 	Infinite loop when connecting to cluster  
+    AMQ-409     Invalid access in s_get_next_consumer when closing client conn
+    AMQ-383     Broker crashes when some of the clients are stopped     
+    AMQ-405     Destroyed consumers are still getting message deliveries      
+    AMQ-406     AMQ windows build fails     
+    BASE2-203   asl_log_print_v produces wrong output.
+    AMQ-397     Creating more connections and/or queues slows down the server
+    BASE2-193   Server shutdown is *very* slow    
+    BASE2-194   Assertion failed: self, file smt_signal_table.c, line 664 (at
+                SIGINT)     
+    BASE2-195   ipr_bits_test aborts with Bus Error     
+    AMQ-396     server crashes on amq_server_channel_destroy_       
+    AMQ-401     AMQ crashes if server.cfg can't be found    
+    AMQ-392     Server dumps in clustering mode for grm_c tests     
+    AMQ-398     Server should not start on a default port if specified port is
+                in use    
+    AMQ-399     Client API handling of "method sent on closed channel -
+                discarded" needs to be improved    
+    BASE2-172   Trace of poll() calls show some unusual activity   
+    AMQ-402 	When consumer is created on closing channel, server crashes  	 
+    BASE2-202 	SMT occasionally crashes when threads are destroyed  	 
+    BASE2-199 	Enable memory history in debug builds  	 
+    AMQ-393 	amq_console_test leaks memory  	 
+    AMQ-324 	Spending lots of time in apr_pool_cleanup_kill.  	 
+    BASE2-198 	ASL client layer 'wait' method does not work as expected  	 
+    BASE2-197 	Assertion failure in s_execute on ST build  	 
+    BASE2-171 	Link function not generated  	 
+    BASE2-185 	Race condition on SMT shutdown  	 
+    AMQ-375 	Server gets slower and slower while creating high number of
+                queues  	 
+    AMQ-394 	When multiple C subscribers are run, some publish messages are
+                sent to the client more than once  	 
+    AMQ-391 	Server asserts with binding issue  	 
+    AMQ-388     Channel.flow-Ok method is being rejected by client as 'invalid'    
+    AMQ-371     queues are not getting deleted even after the application is
+                exited     
+    AMQ-347     Secondary server dumps with "unrecognised event" for clustering     
+    AMQ-382     Write simple C clients to test server latency with a single
+                publisher/multiple subscribers scenario    
+    BASE2-169   amq_server_channel_test -q core-dumps (stops the build)    
+    BASE-44     Gurudoc PDF formatting errors      
+    AMQ-374     Messages lost with a fast publisher and bit slower subscriber      
+    AMQ-365     Server log generated with 'dump state' enabled, shows that
+                some messages are not deleted  
+    AMQ-379     kernel reports number of exchanges wrongly      
+    FOR-11      Foreign does not build on win32       
+    AMQ-376     Failure to test for linking to zombie     
+    BASE2-183   Race condition on object unlink methods    
+    AMQ-361     'Expected a content header frame' error occuring unexpectedly     
+    AMQ-325     Implement dump state signal handler    
+    AMQ-368     Change memory display to show number of bytes allocated, not Mb     
+    AMQ-370     Logging: cycle log files automatically each night at midnight    
+    AMQ-373     Assertion when running grm/c tests  
+    AMQ-372     assertion failed on amq_server_agent.c:20890:
+                action_send_basic_deliver: in Server     
+    AMQ-369     Move all trace output onto new logging system       
+    AMQ-345     secondary server core dumps for clustering       
+    AMQ-364     Secondary server core dumps once primary is bounced during
+                clustering      
+    BASE2-151   Logging: build logging manager       
+    AMQ-366     Change auto_ack to no_ack
+    BASE-41     tr in boomake does not uppercase BOOM_MODEL variables
+    AMQ-367     Access violation during queue unbinding     
+    BASE2-178   icl_rwlock heap corruption     
+    AMQ-360     Broker not delivering messages when a consumer sends itself an
+                initialisation message.
+    AMQ-350     Queues not being auto-deleted       
+    AMQ-356     Use old-style list for list of queues in vhost     
+    AMQ-352     Busy consumers are being treated as absent, for immediate
+                messages  
+    AMQ-333     When a queue exceeds configured limit, the queue is never
+                emptied and number of messages in the queue remains there for
+                ever     
+    AMQ-351     Pal doesn't compile with constant string values in <if> and
+                <assert> statements
+    AMQ-348     Queued messages not delivered to a client that starts after
+                they were sent until a new message is sent     
+ 
+
 1.0b0 - 2006/02/14
 ---------------------------------------------------------------------
 Bug Fixes:
