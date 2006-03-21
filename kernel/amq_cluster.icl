@@ -260,13 +260,13 @@ amq_cluster_t
 
     if (primaries != 1) {
         asl_log_print (amq_broker->alert_log,
-            "E: cluster - exactly primary must be defined");
+            "E: cluster - exactly one primary must be defined (have %d)", primaries);
         smt_shut_down ();
     }
     else
     if (backups > 1) {
         asl_log_print (amq_broker->alert_log,
-            "E: cluster - multiple backup servers not allowed");
+            "E: cluster - multiple backup servers not allowed (have %d)", backups);
         smt_shut_down ();
     }
     else
@@ -332,19 +332,25 @@ amq_cluster_t
         if (peer->offlined) {
             if (self->primary) {
                 //  If we're primary and backup goes offline, we become master
-                if (peer->backup && peer->master)
+                if (peer->backup && peer->master) {
                     self->master = TRUE;
+                    peer->master = FALSE;
+                }
             }
             else
             if (self->backup) {
                 //  If we're backup and primary goes offline, we become 
                 //  master if we have at least one connected client.
                 if (peer->primary && peer->master) {
-                    if (amq_server_connection_count ())
+                    if (amq_server_connection_count ()) {
                         self->master = TRUE;
+                        peer->master = FALSE;
+                    }
                     else {
-                        asl_log_print (amq_broker->alert_log,
-                            "I: cluster - can't become master without connected clients");
+                        //  Only log this message the first time
+                        if (self->master_peer)
+                            asl_log_print (amq_broker->alert_log,
+                                "I: cluster - can't become master without connected clients");
                         self->master_peer = NULL;
                     }
                 }
@@ -355,9 +361,9 @@ amq_cluster_t
                     asl_log_print (amq_broker->alert_log,
                         "I: cluster - no master server present");
                     self->master_peer = NULL;
+                    peer->master = FALSE;
                 }
             }
-            peer->master = FALSE;       //  In any case
         }
         else
             cluster_alive = FALSE;      //  Waiting for cluster to start fully
