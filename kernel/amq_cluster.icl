@@ -586,6 +586,8 @@ amq_cluster_t
         *peer;                          //  Cluster peer for sender
     icl_shortstr_t
         strerror;                       //  Text for method errors
+    amq_server_connection_t
+        *connection;
 
     //  Decode proxied method from content body
     bucket = ipr_bucket_new (IPR_BUCKET_MAX_SIZE);
@@ -596,13 +598,16 @@ amq_cluster_t
         asl_log_print (amq_broker->alert_log, "E: %s", strerror);
     assert (method);
 
+    connection = channel?
+        amq_server_connection_link (channel->connection): NULL;
+
     if (amq_server_config_debug_cluster (amq_server_config)) {
         icl_console_print ("C: accept   method=%s from=%s",
             content->data_name, content->proxy_name);
         amq_server_method_dump (method, amq_broker->debug_log, "C: ");
     }
     //  Find out what peer sent this method to us
-    peer = amq_peer_list_first (self->peer_list);
+    peer = connection? amq_peer_list_first (self->peer_list): NULL;
     while (peer) {
         if (streq (peer->name, content->proxy_name)) {
             if (method->class_id == AMQ_SERVER_CLUSTER)
@@ -612,10 +617,11 @@ amq_cluster_t
             &&  method->method_id == AMQ_SERVER_BASIC_GET)
                 s_execute_basic_get (self, method, peer, channel, content);
             else
-                amq_server_method_execute (method, channel->connection, channel);
+                amq_server_method_execute (method, connection, channel);
         }
         peer = amq_peer_list_next (&peer);
     }
+    amq_server_connection_unlink (&connection);
     amq_server_method_unlink (&method);
     ipr_bucket_unlink (&bucket);
     amq_peer_unlink (&peer);
