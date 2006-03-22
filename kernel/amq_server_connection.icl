@@ -180,7 +180,7 @@ This class implements the connection class for the AMQ server.
         *consumer = (amq_consumer_t *) callback;
     </local>
     //
-    if (consumer && amq_server_config_gate_consumers (amq_server_config))) {
+    if (consumer && amq_server_config_gate_consumers (amq_server_config)) {
         consumer = amq_consumer_link (consumer);
         icl_atomic_inc32 ((volatile qbyte *) &consumer->busy);
     }
@@ -199,15 +199,16 @@ This class implements the connection class for the AMQ server.
         *queue;
     </local>
     //
-    if (consumer && amq_server_config_gate_consumers (amq_server_config))) {
+    if (consumer && amq_server_config_gate_consumers (amq_server_config)) {
         icl_atomic_dec32 ((volatile qbyte *) &consumer->busy);
         if (!consumer->busy) {
             queue = amq_queue_link (consumer->queue);
-        if (queue) {
-            amq_queue_dispatch (queue);
-            amq_queue_unlink (&queue);
+            if (queue) {
+                amq_queue_dispatch (queue);
+                amq_queue_unlink (&queue);
+            }
+            amq_consumer_unlink (&consumer);
         }
-        amq_consumer_unlink (&consumer);
     }
 </method>
 
