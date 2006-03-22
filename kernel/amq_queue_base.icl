@@ -145,19 +145,23 @@ s_get_next_consumer (
     amq_server_channel_t
         *channel;
     Bool
-        channel_active;
+        channel_active,
+        channel_busy;
 
     //  We expect to process the first consumer on the active list
     consumer = amq_consumer_by_queue_first (self->active_consumers);
     while (consumer) {
         channel_active = FALSE;
+        channel_busy   = FALSE;
         channel = amq_server_channel_link (consumer->channel);
         if (channel) {
             connection = amq_server_connection_link (channel->connection);
             if (connection) {
                 thread = smt_thread_link (channel->thread);
-                if (thread && !thread->zombie)
+                if (thread) {
                     channel_active = channel->active;
+                    channel_busy = (smt_method_queue_count (thread->reply_queue) > 100);
+                }
                 smt_thread_unlink (&thread);
             }
         }
@@ -167,7 +171,7 @@ s_get_next_consumer (
         if (!channel_active)
             ;                           //  Skip this consumer
         else
-        if (consumer->busy)
+        if (channel_busy)
             rc = CONSUMER_BUSY;         //  Unless we have better news
         else
         if (consumer->no_local == FALSE)

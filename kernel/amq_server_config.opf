@@ -352,15 +352,6 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "gate consumers" type = "int" default = "1" dynamic = "1">
-    Do we gate consumers?
-    <doc>
-    If 1, the server gates consumers, which prevents slow consumers from 
-    causing backlogs.  If 0, the server ignores the risk of slow consumers
-    and sends data to connections as fast as possible.  Under review.
-    </doc>
-    </property>
-
     <property name = "kernel limit" type = "int" default = "0" dynamic = "1">
     SMT kernel limit
     <doc>

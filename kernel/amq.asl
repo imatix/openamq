@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <protocol
     name     = "amq"
-    comment  = "AMQ protocol 0.9d0"
+    comment  = "AMQ protocol 1.0c0"
     script   = "asl_gen"
     target   = "stdc"
     >

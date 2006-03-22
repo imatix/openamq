@@ -169,49 +169,6 @@ This class implements the connection class for the AMQ server.
         amq_server_agent_connection_open_ok (self->thread, NULL);
 </method>
 
-<method name = "callback link">
-    <doc>
-    Virtualised function that lets the connection create a reference to
-    the callback object used to control output of contents.  The server
-    agent calls this method before sending an output content.
-    </doc>
-    <local>
-    amq_consumer_t
-        *consumer = (amq_consumer_t *) callback;
-    </local>
-    //
-    if (consumer && amq_server_config_gate_consumers (amq_server_config)) {
-        consumer = amq_consumer_link (consumer);
-        icl_atomic_inc32 ((volatile qbyte *) &consumer->busy);
-    }
-</method>
-
-<method name = "callback unlink">
-    <doc>
-    Virtualised function that lets the connection destroy a reference to
-    the callback object used to control output of contents.  The server
-    agent calls this method after sending an output content.
-    </doc>
-    <local>
-    amq_consumer_t
-        *consumer = *((amq_consumer_t **) callback_p);
-    amq_queue_t
-        *queue;
-    </local>
-    //
-    if (consumer && amq_server_config_gate_consumers (amq_server_config)) {
-        icl_atomic_dec32 ((volatile qbyte *) &consumer->busy);
-        if (!consumer->busy) {
-            queue = amq_queue_link (consumer->queue);
-            if (queue) {
-                amq_queue_dispatch (queue);
-                amq_queue_unlink (&queue);
-            }
-            amq_consumer_unlink (&consumer);
-        }
-    }
-</method>
-
 <private name = "header">
 static int
     s_auth_plain ($(selftype) *self, amq_server_connection_start_ok_t *method);
