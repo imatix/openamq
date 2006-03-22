@@ -446,7 +446,7 @@ amq_cluster_t
     peer = amq_peer_list_first (self->peer_list);
     while (peer) {
         //  Weight our peer to avoid needless redirections
-        if (peer->load + 5 < lowest_load) {
+        if (peer->load + amq_server_config_cluster_rebalance (amq_server_config) < lowest_load) {
             best_peer = amq_peer_link (peer);
             lowest_load = peer->load;
         }

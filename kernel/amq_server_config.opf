@@ -131,6 +131,16 @@ $\(selftype)
     can handle the traffic.
     </doc>
     </property>
+
+    <property name = "rebalance" type = "int" default = "5" dynamic = "1">
+    Cluster rebalance accuracy
+    <doc>
+    Specifies the accuracy of cluster rebalancing.  A cluster server 
+    will redirect clients when it finds another cluster server with
+    this amount fewer clients.  When set to zero, the cluster will
+    never redirect clients.
+    </doc>
+    </property>
 </path>
 
 <path name = "logging">
