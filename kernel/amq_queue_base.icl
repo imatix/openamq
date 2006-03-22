@@ -160,7 +160,10 @@ s_get_next_consumer (
                 thread = smt_thread_link (channel->thread);
                 if (thread) {
                     channel_active = channel->active;
-                    channel_busy = (smt_method_queue_count (thread->reply_queue) > 100);
+                    //  ML: We shouldn't need a lock here since count is 
+                    //  always updated atomically, so at worst we get some
+                    //  past value
+                    channel_busy = (thread->reply_queue->count > 100);
                 }
                 smt_thread_unlink (&thread);
             }
