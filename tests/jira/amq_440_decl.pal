@@ -1,0 +1,15 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = ""
+    >
+    <set name = "qname"   value = "def"     cmdline = "Z" />
+    <session>
+        <exchange_declare exchange = "hexchange" type = "headers" />
+        <queue_declare queue = "$qname" />
+        <queue_bind queue = "$qname" exchange = "hexchange" />
+    </session>
+    
+</pal>
+
+

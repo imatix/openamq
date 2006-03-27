@@ -1,0 +1,19 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = ""
+    >
+    <set name = "qname"   value = "def"     cmdline = "Z" />
+    <session>
+        <basic_consume queue = "$qname" exclusive = "1"/>
+        <repeat>
+            <wait />
+            <basic_arrived>
+                <echo>Message '$message_id' arrived</echo>
+            </basic_arrived>
+        </repeat>
+    </session>
+    
+</pal>
+
+
