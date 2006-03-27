@@ -271,7 +271,7 @@ class.  This is a lock-free asynchronous class.
         connection = amq_server_connection_link (channel->connection);
     else
         connection = NULL;
-        
+
     if (self->exclusive && self->connection != connection)
         error = "Queue is exclusive to another connection";
     else
@@ -294,7 +294,6 @@ class.  This is a lock-free asynchronous class.
                 amq_consumer_unlink (&consumer_ref);
             }
         }
-        amq_consumer_destroy (&consumer);
     }
     else {
         if (consumer->class_id == AMQ_SERVER_BASIC) {

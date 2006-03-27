@@ -182,7 +182,7 @@ amq_cluster_t
     int
         primaries = 0,                  //  Number of primary servers
         backups = 0;                    //  Number of backup server
-        
+
     s_stop_cluster (self);
     icl_shortstr_cpy (amq_broker->name, cluster_name);
     self->enabled    = TRUE;
@@ -199,19 +199,26 @@ amq_cluster_t
         while (config->located) {
             name = ipr_config_get (config, "name", "");
             host = ipr_config_get (config, "host", "");
-            
+
             is_primary = atoi (ipr_config_get (config, "primary", "0")) > 0;
             if (is_primary)
                 primaries++;
             is_backup = atoi (ipr_config_get (config, "backup", "0"))  > 0;
             if (is_backup)
                 backups++;
-            
+
             if (is_primary && is_backup)
                 asl_log_print (amq_broker->alert_log,
                     "E: server cannot be both primary and backup");
             else
-            if (*name & *host) {
+            if (strnull (name) || strnull (host))
+                asl_log_print (amq_broker->alert_log,
+                    "E: cluster - server needs 'name' and valid 'host', skipped");
+            else
+            if (!ipr_net_validate_addr (host))
+                asl_log_print (amq_broker->alert_log,
+                    "E: cluster - please use a valid 'host', '%s' was skipped", host);
+            else {
                 //  Keep running checksum of server list
                 ipr_crc_calc_str (self->crc, name);
                 ipr_crc_calc_str (self->crc, host);
@@ -230,7 +237,7 @@ amq_cluster_t
                     if (*self->known_hosts)
                         icl_shortstr_cat (self->known_hosts, " ");
                     icl_shortstr_cat (self->known_hosts, host);
-                    
+
                     peer = amq_peer_new (self, name, host, is_primary, is_backup);
                     amq_peer_list_queue (self->peer_list, peer);
                     if (is_primary)
@@ -238,14 +245,10 @@ amq_cluster_t
                     else
                     if (is_backup)
                         self->backup_peer = peer;
-                    
+
                     amq_peer_unlink (&peer);
                 }
             }
-            else
-                asl_log_print (amq_broker->alert_log,
-                    "E: cluster - server needs 'name' and 'host', skipped");
-                
             ipr_config_next (config);
         }
     }
@@ -254,7 +257,7 @@ amq_cluster_t
     //  Set initial master to primary node
     self->master      = self->primary;
     self->master_peer = self->primary_peer;
-        
+
     //  We go through an asynchronous method so that it can send timer
     //  events to the cluster agent. A cluster of one is allowed.
 
