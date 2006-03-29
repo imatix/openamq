@@ -102,6 +102,11 @@ This class implements the connection class for the AMQ server.
     <argument name = "reply code" type = "dbyte" >Error code</argument>
     <argument name = "reply text" type = "char *">Error text</argument>
     //
+    if (self->group == AMQ_CONNECTION_GROUP_CLUSTER) {
+        icl_console_print ("E: cluster connection error (%d) %s", reply_code, reply_text);
+        exit (1);
+    }
+    else
     if (self)
         amq_server_connection_exception (self, reply_code, reply_text);
     else

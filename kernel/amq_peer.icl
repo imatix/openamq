@@ -206,6 +206,8 @@ cluster class.
     self_send_hello (self);
 
     //  If we are the master server, synchronise our state to the new peer
+    /*  State reproduction is broken, needs redesigning
+
     if (amq_broker->master) {
         if (amq_server_config_debug_cluster (amq_server_config))
             asl_log_print (amq_broker->debug_log, "C: cluster synchronising with new peer");
@@ -218,6 +220,7 @@ cluster class.
             looseref = ipr_looseref_list_next (&looseref);
         }
     }
+    */
 </method>
 
 <method name = "send hello" template = "function">

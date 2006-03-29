@@ -614,6 +614,11 @@ amq_cluster_t
     connection = channel?
         amq_server_connection_link (channel->connection): NULL;
 
+    if (connection == NULL)
+        asl_log_print (amq_broker->alert_log,
+            "W: cluster method %s from disconnecting peer %s, ignored",
+            content->data_name, content->proxy_name);
+    else
     if (amq_server_config_debug_cluster (amq_server_config)) {
         icl_console_print ("C: accept   method=%s from=%s",
             content->data_name, content->proxy_name);

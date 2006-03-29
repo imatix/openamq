@@ -9,7 +9,7 @@
     Defines the proxy client protocol methods and how they are
     processed.
     -->
-    
+
 <inherit name = "amq_cluster" />
 <inherit name = "amq" />
 
@@ -34,6 +34,14 @@
 
     //  Tell the cluster that the peer we're talking to is now alive
     amq_cluster_peer_ready (amq_cluster, session, name);
+  </action>
+</class>
+
+<class name = "channel">
+  <action name = "close">
+    //
+    icl_console_print ("E: cluster peer closed channel unexpectedly, aborting");
+    exit (1);
   </action>
 </class>
 
