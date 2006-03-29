@@ -115,6 +115,13 @@ maximum number of consumers per channel is set at compile time.
     <argument name = "tag"  type = "char *">Consumer tag</argument>
     <argument name = "sync" type = "Bool">Are we talking to a client?</argument>
     //
+    <possess>
+    tag = icl_mem_strdup (tag);
+    </possess>
+    <release>
+    icl_mem_free (tag);
+    </release>
+    //
     <action>
     amq_consumer_t
         *consumer = NULL;               //  Consumer reference

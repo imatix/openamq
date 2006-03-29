@@ -225,11 +225,13 @@ $(selftype)
     <argument name = "fields"    type = "asl_field_list_t *">Object fields</argument>
     <argument name = "notice"    type = "char *">Reply notice, if any</argument>
     <possess>
+    name = icl_mem_strdup (name);
     request = amq_content_basic_link (request);
     fields = asl_field_list_link (fields);
     notice = icl_mem_strdup (notice);
     </possess>
     <release>
+    icl_mem_free (name);
     amq_content_basic_unlink (&request);
     asl_field_list_unlink (&fields);
     icl_mem_free (notice);
@@ -286,9 +288,13 @@ $(selftype)
     <argument name = "request"   type = "amq_content_basic_t *">Original request</argument>
     <argument name = "object id" type = "qbyte">Object id</argument>
     <possess>
+    name = icl_mem_strdup (name);
+    status = icl_mem_strdup (status);
     request = amq_content_basic_link (request);
     </possess>
     <release>
+    icl_mem_free (name);
+    icl_mem_free (status);
     amq_content_basic_unlink (&request);
     </release>
     <action>

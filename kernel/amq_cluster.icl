@@ -415,9 +415,11 @@ amq_cluster_t
     <argument name = "name" type = "char *">Peer's server name</argument>
     //
     <possess>
+    peer = amq_peer_link (peer);
     name = icl_mem_strdup (name);
     </possess>
     <release>
+    amq_peer_unlink (&peer);
     icl_mem_free (name);
     </release>
     <action>
@@ -505,10 +507,12 @@ amq_cluster_t
     <argument name = "channel" type = "amq_server_channel_t *">channel for reply</argument>
     //
     <possess>
-    method  = amq_server_method_link (method);
+    peer = amq_peer_link (peer);
+    method = amq_server_method_link (method);
     channel = amq_server_channel_link (channel);
     </possess>
     <release>
+    amq_peer_unlink (&peer);
     amq_server_method_unlink (&method);
     amq_server_channel_unlink (&channel);
     </release>
@@ -650,9 +654,11 @@ amq_cluster_t
     <argument name = "method" type = "amq_server_method_t *">Publish method</argument>
     //
     <possess>
+    peer = amq_peer_link (peer);
     method = amq_server_method_link (method);
     </possess>
     <release>
+    amq_peer_unlink (&peer);
     amq_server_method_unlink (&method);
     </release>
     //
