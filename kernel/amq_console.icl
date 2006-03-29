@@ -579,7 +579,7 @@ s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
     vhost = amq_vhost_link (amq_broker->vhost);
     if (vhost) {
         if (*request->reply_to) {
-            exchange = amq_exchange_search (vhost->exchange_table, "amq.direct");
+            exchange = amq_exchange_table_search (vhost->exchange_table, "amq.direct");
             assert (exchange);
 
             //  Create a Basic.Publish method to carry the content

@@ -46,7 +46,7 @@
     exchange_type = amq_exchange_type_lookup (method->type);
     if (exchange_type) {
         //  Find exchange and create if necessary
-        exchange = amq_exchange_search (vhost->exchange_table, method->exchange);
+        exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
         if (!exchange) {
             if (method->passive)
                 amq_server_channel_error (channel, ASL_NOT_FOUND, "No such exchange defined");
@@ -67,7 +67,7 @@
                     //  This can fail if two threads create the same exchange at the
                     //  same time... so let's go find the actual exchange object
                     if (!exchange)
-                        exchange = amq_exchange_search (vhost->exchange_table, method->exchange);
+                        exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
 
                     if (exchange) {
                         //  Create exchange on all cluster peers
@@ -116,7 +116,7 @@
         amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
     </footer>
     //
-    exchange = amq_exchange_search (vhost->exchange_table, method->exchange);
+    exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
     if (exchange) {
         //  Delete exchange on all cluster peers
         if (amq_cluster->enabled
@@ -254,7 +254,7 @@
         amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
     </footer>
     //
-    exchange = amq_exchange_search (vhost->exchange_table, method->exchange);
+    exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
     if (exchange) {
         queue = amq_queue_table_search (vhost->queue_table, method->queue);
         if (queue) {
@@ -426,7 +426,7 @@
     //
     if (*method->exchange)
         //  Lookup exchange specified in method
-        exchange = amq_exchange_search (vhost->exchange_table, method->exchange);
+        exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
     else
         //  Get default exchange for virtual host
         exchange = amq_exchange_link (vhost->default_exchange);

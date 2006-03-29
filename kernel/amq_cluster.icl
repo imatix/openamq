@@ -797,7 +797,7 @@ s_execute_method (
         if (strnull (method->payload.cluster_bind.exchange))
             exchange = amq_exchange_link (self->vhost->default_exchange);
         else
-            exchange = amq_exchange_search (
+            exchange = amq_exchange_table_search (
                 self->vhost->exchange_table, method->payload.cluster_bind.exchange);
 
         if (exchange) {
