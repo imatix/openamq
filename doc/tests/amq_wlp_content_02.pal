@@ -10,9 +10,17 @@
     - check that server replies with Connection.Close and reply code
       501 (frame error).
     -->
-    <abort>not implemented</abort>
+
     <include filename = "amq_test_base.pal" />
     <session>
+        <queue_declare queue = "myqueue" />
+        <basic_consume queue = "myqueue" />
+        <basic_content content_type = "x" />
+        <basic_publish routing_key = "myqueue" exchange = "" />
+        <if name = "reply_code" test = "ne" value = "504">
+            <echo>$reply_code: $reply_text</echo>
+        </if>
+        <assert name = "reply_code" value = "504" />
     </session> 
 </pal>
 

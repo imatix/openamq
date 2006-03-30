@@ -12,5 +12,5 @@ pdflatex --interaction batchmode $FILE.tex
 pdflatex --interaction batchmode $FILE.tex
 
 # clean-up intermediary files
-rm $FILE.aux $FILE.gdl $FILE.log $FILE.tex $FILE.toc
+#rm $FILE.aux $FILE.gdl $FILE.log $FILE.tex $FILE.toc
 
