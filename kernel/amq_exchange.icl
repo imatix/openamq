@@ -199,14 +199,6 @@ for each type of exchange. This is a lock-free asynchronous class.
     </action>
 </method>
 
-<method name = "search" return = "self">
-    <argument name = "table" type = "$(selfname)_table_t *">Exchange table</argument>
-    <argument name = "name"  type = "char *"               >Exchange name</argument>
-    <declare name = "self" type = "$(selftype) *">The found object</declare>
-    //
-    self = $(selfname)_table_search (table, name);
-</method>
-
 <method name = "type lookup" return = "rc">
     <doc>
     Translates an exchange type name into an internal type number.  If
