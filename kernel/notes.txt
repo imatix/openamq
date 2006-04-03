@@ -1,3 +1,34 @@
+Potential write issues
+
+References
+    - object_new -> object ptr
+    - object new r -> object
+    - no way to get a ref from an object
+    - object_ref_dup -> new ref, replaces link
+    - object_ref_destroy -> destroy ref and/or object
+    - object_ref_stop -> stop the object
+    - object_destroy -> stop the object
+
+patterns
+    - simple use:
+        handle = object_new ()
+        object_destroy (&handle)
+
+    - shared use:
+        ref = object_ref_new ()
+        async call
+            possess:
+                ref = object_ref_dup (ref)
+            release:
+                object_ref_destroy (&ref)
+        ...
+        object_ref_destroy (&ref)
+
+toto
+    - finish log disabling
+        - always create log objects
+        - open output
+        
 Changes 7/3
     - force reference to consumer->channel->connection
         - should move unlinks to free so they are always valid
@@ -257,56 +288,7 @@ amq bridging
     ... ? no.
 
 
-
-
 ********************************************************************
-
-Planning for 1.0 release
-
-Date: 31 January 2005
-    This is very brutal.
-
-Functionality:
-
-    - Persistence
-        - using abstract storage system
-        - MS in progress
-    - Transactions
-        - on single primary server
-        - MS in progress
-    - Clustering
-        - for failover
-        - for pub/sub
-        - NOT for persistence/transactions
-        - PH done RTT
-    - openamq.org
-        - ready for 1.0
-        - PH in progress
-    - documentation
-        - openamq server guide
-        - GS done RTT
-        - stdc api guide
-        - PH done
-    - clients
-        - swig
-        - TE in progress
-    - logging
-        - PH in progress
-    - console
-        - PH in progress
-
-
-Who what:
-
- tim: pluggable modules
-    - for exchange extensions, cbr, filtering examples
- ph: - spec the abstract storage system
- ph: - work on clustering
- mato: - swig api
- mato: - openamq.org updates
- mato: - openamq software handbooks
- ph: - find/design service-oriented api
- 
 
 - build simple queued file transfer application
 - gigabyte files
@@ -341,61 +323,6 @@ Who what:
 
 ********************************************************************
 
-basic protocol rules
-    - any property needed for interop is named & standard
-    - anything else is allowed, extensible x-, X-
-        - server warns but ignores unsupported non-standard properties
-    - we aim to support full configuration & changeable
-        via the protocol
-        every entity and attribute of the vhost
-    - watching the server is console's job
-    - how to extend
-        - write own exchange
-        - send arbitrary messages to exchange
-
-Powerpointy stuff
-    - vision of amqp becoming ubiquitous
-    - easy examples in PAL
-    - nice scenarios
-
-
-General rule for handling issues
-
-1. Bug process
-    - describe the problem
-    - localise the layer
-        - platform dependent? (5%)
-        - build dependent? (15%)
-        - functional scenario? (85%)
-    - reproduce it consistently
-        - specific test case if needed
-    - assign to the developer
-        - on basis of test case
-    - fix the problem
-        - in vitro
-    - confirm the fix
-        - in vitro
-        - in veritas
-
-2. Change process
-    - describe the requirement
-        - _not_ the solution!
-    - assign to the developer
-    - document
-        - confirm the requirement
-        - propose a solution
-        - argumentation and alternatives
-        - cost and planning
-    - confirm
-        - silence means consent
-    - develop
-        - solution
-        - test cases
-    - confirm
-        - in vitro
-        - in veritas
-    
-
 The 'Watch' Method
 ------------------
 
@@ -416,9 +343,6 @@ Asynchronous information - alerts - are sent to the amq.console.alert
 exchange, and console interface layer(s) get these alerts using a
 pub/sub model. Alerts are published with a topic-style routing key that
 allows selective subscription to specific types of alert.
-
-
-Format:
 
 
 ---- TEST HARNESS
@@ -479,16 +403,6 @@ Format:
     - define reply-to as URL:
         amqp://servername:port/exchange/destination
 
----- FOR 1.0
-
----- POST-1.0
-
----- BUGS
-
---- TEST CASES
-
---- WORLDVIEW
-
 ---- BASE
 
     - boom install history in $IBASE/install
@@ -514,90 +428,4 @@ Format:
            - e.g. disconnection trapped only when next client connects
         - check multithreaded usage of objects
     
----- SMT links HOWTO
-
-    - if you get a reference from a container
-        - either unlink it
-        - or destroy it
-        - or get a next reference
-    - if you pass a reference via a call
-        - synch call: do nothing
-        - asynch call: link to it on behalf of called
-        - called asynch method: unlink or destroy it
-    - if you store a reference anywhere
-        - link when storing the reference
-        - unlink when finished with the reference
-    - do not link to parent object
-        - hierarchy of creation/destruction
-    - looseref to objects
-        - when using, check if zombied and then unlink
-
----- HASH HOWTO
-
-    - don't manipulate self->key
-        - provide real key at insertion
-        - don't use self->key after removal...
-        - rename to _key?
-
----- PACKAGING
-
-    - Unix
-        -> source packages and configure/make
-        - configure includes all build options
-    - win32
-        -> source packages and configure/make
-        - configure includes all build options
-        -> binary packages
-            - using win32 installer
-            - including configuration
-            - control panel application
-    - other
-        -> debian packages?
-        -> very version dependent...
-
-
-Console
-    - command line
-        - inspect object
-        - modify object
-        - execute method
-        - api is interpreted from schema
-    - tim
-        - swig clients
-    - martin
-        - persistence
-    - guso
-        - documentation
-
-
-OMI
-
-Here's a more precise list of requirements for OMI.  Note that we are an
-internal-only application, so we can relax some of the more stringent
-requirements you'd find in an internet-facing application.
-
-Basic requirements:
-  Message publishers must authenticate with Janus SSO.
-  Subscriber must be able to validate the identity of the message
-  publisher.
-  Janus SSO password cannot be sent over the network in plaintext.
-
-Typical security issues we MUST address:
-  Network sniffers capturing an identification token (password, Janus
-  token), allowing one user to authenticate as another user
-  Authentication replay attacks (can be resolved by including one-time
-  challenge phrase or timestamp in encrpyted SSO token)
-
-Some typical security issues we are NOT concerned with:
-  Man-in-the-middle (messages being changed in flight)
-  Ethernet/TCP frame spoofing
-  IP address spoofing (dns compromise, etc.)
-
-If using public key/private key encryption for the SSO token transfer, it
-would be nice to support generic public/private keys, and not have to deal
-with CA certificate chains, Verisign, and the expiration of certificates.
-From my perspective, I imagine it's even safe to download the public key
-from the server at runtime (as part of authentication handshake).  If you
-can make it configurable, that would support other applications which
-require a higher level of server authentication.
 
