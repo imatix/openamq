@@ -67,17 +67,6 @@ warn the primary server to cede its role as master.
         <field name = "state_mb" type = "int" label = "Cluster state size, MB">
           <get>icl_shortstr_fmt (field_value, "%d", self->state_size / (1024 * 1024));</get>
         </field>
-        
-        <method name = "start" label = "Join cluster if not joined">
-          <doc>
-          If this server is not already started as part of the cluster,
-          start it.  You must specify a valid and accurate cluster name.
-          </doc>
-          <field name = "cluster_name" label = "cluster-name" />
-          <exec>
-            amq_cluster_start (self, cluster_name);
-          </exec>
-        </method>
     </class>
 </data>
 
@@ -138,8 +127,10 @@ amq_cluster_t
     self->state_list = ipr_looseref_list_new ();
     self->crc        = ipr_crc_new ();
 
-    if (cluster_name)
-        amq_cluster_start (self, cluster_name);
+    if (cluster_name) {
+        icl_shortstr_cpy (amq_broker->name, cluster_name);
+        amq_cluster_start (self);
+    }
     else
         icl_shortstr_cpy (amq_broker->name, "Standalone");
 </method>
@@ -158,14 +149,6 @@ amq_cluster_t
     Start the cluster.  This can be done at any time, if the
     cluster is not already started.
     </doc>
-    <argument name = "cluster name" type = "char *">Peer's server name</argument>
-    //
-    <possess>
-    cluster_name = icl_mem_strdup (cluster_name);
-    </possess>
-    <release>
-    icl_mem_free (cluster_name);
-    </release>
     //
     <action>
     ipr_config_t
@@ -183,8 +166,6 @@ amq_cluster_t
         primaries = 0,                  //  Number of primary servers
         backups = 0;                    //  Number of backup server
 
-    s_stop_cluster (self);
-    icl_shortstr_cpy (amq_broker->name, cluster_name);
     self->enabled    = TRUE;
     self->peer_list  = amq_peer_list_new ();
     self->state_list = ipr_looseref_list_new ();
