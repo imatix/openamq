@@ -34,8 +34,6 @@ back, as master, the primary stops being head.
 If we're neither primary nor backup, we work with primary or backup as
 they specify.  If both servers claim to be master at the same time, we
 warn the primary server to cede its role as master.
-
-//TODO: integrate with amq console
 </doc>
 
 <inherit class = "smt_object" />
@@ -273,7 +271,7 @@ amq_cluster_t
     update the cluster status.  It rechecks each peer and counts the
     votes to decide whether this broker should become master or not.
  -->
-/
+
 <event name = "monitor">
     <action>
     amq_peer_t
