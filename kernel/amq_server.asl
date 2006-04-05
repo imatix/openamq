@@ -217,11 +217,14 @@
         if (queue->connection == NULL)
             icl_console_print ("W: queue.declare aborted by connection close");
         else
-        if (method->exclusive && queue->connection != connection)
+        if (method->exclusive && queue->connection != connection) {
+            icl_console_print ("### QUEUE name=%s/%s connection=%pp/%pp",
+                        method->queue, queue->name, connection, queue->connection);
             amq_server_channel_error (
                 channel,
                 ASL_ACCESS_REFUSED,
                 "Queue cannot be made exclusive to this connection");
+        }
         else
             amq_server_agent_queue_declare_ok (
                 connection->thread,
