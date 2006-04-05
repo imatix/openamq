@@ -214,7 +214,9 @@
         }
     }
     if (queue) {
-        //TODO: verify this in cluster context
+        if (queue->connection == NULL)
+            icl_console_print ("W: queue.declare aborted by connection close");
+        else
         if (method->exclusive && queue->connection != connection)
             amq_server_channel_error (
                 channel,
