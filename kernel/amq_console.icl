@@ -161,7 +161,7 @@ $(selftype)
     ipr_bucket_t
         *bucket = NULL;                 //  Message comes here
     ipr_xml_t
-        *xml_root = NULL,               //  Tree of file we've loaded         
+        *xml_root = NULL,               //  Tree of file we've loaded
         *xml_cml,                       //  Top level cml item
         *xml_command;                   //  Command name
     int
@@ -169,15 +169,17 @@ $(selftype)
 
     //  Get content body into a bucket
     bucket = ipr_bucket_new (IPR_BUCKET_MAX_SIZE);
-    bucket->cur_size = amq_content_basic_get_body (
-        content, bucket->data, bucket->max_size);
+    bucket->cur_size = amq_content_basic_get_body (content, bucket->data, bucket->max_size);
     descr.data = bucket->data;
     descr.size = bucket->cur_size;
 
     //  Parse as XML message
     rc = ipr_xml_load_descr (&xml_root, &descr, FALSE);
-    if (rc)
+    if (rc) {
+        //AMQ-451 scaffolding
+        assert (bucket);
         s_invalid_cml (content, bucket, "can't parse XML");
+    }
     else {
         xml_cml = ipr_xml_first_child (xml_root);
         if (xml_cml && ipr_xml_name (xml_cml)
@@ -516,6 +518,9 @@ s_execute_method (
 static void
 s_invalid_cml (amq_content_basic_t *request, ipr_bucket_t *bucket, char *error)
 {
+    //AMQ-451 scaffolding
+    assert (bucket);
+
     asl_log_print (amq_broker->alert_log,
         "W: amq.console: content body is not valid CML: %s", error);
     ipr_bucket_dump (bucket, "I: ");
