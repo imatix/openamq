@@ -173,6 +173,7 @@
         if (method->passive)
             amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
         else {
+            //  The queue->connection specifies owner connection, for exclusive queues
             queue = amq_queue_new (
                 vhost,
                 method->exclusive? connection: NULL,
@@ -214,7 +215,7 @@
         }
     }
     if (queue) {
-        if (queue->connection == NULL)
+        if (method->exclusive && queue->connection == NULL)
             icl_console_print ("W: queue.declare aborted by connection close");
         else
         if (method->exclusive && queue->connection != connection) {
