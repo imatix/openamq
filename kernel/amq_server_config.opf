@@ -94,15 +94,6 @@ $\(selftype)
 </path>
 
 <path name = "cluster" prefix = "cluster">
-    <property name = "host" type = "char *">
-    Server IP address and port
-    <doc>
-    Specifies the ipaddress:port to use for incoming cluster connections
-    if the server runs on multiple IP addresses.  If not specified, the
-    cluster will connect to this server on its first IP address.
-    </doc>
-    </property>
-
     <property name = "vhost" type = "char *" default = "">
     Cluster virtual host
     <doc>

@@ -235,6 +235,7 @@ amq_cluster_t
 
     //  Set initial master to primary node
     self->master      = self->primary;
+    self->master = FALSE;
     self->master_peer = self->primary_peer;
 
     //  We go through an asynchronous method so that it can send timer
@@ -277,7 +278,7 @@ amq_cluster_t
     amq_peer_t
         *peer;                          //  Cluster peer
     int
-        masters = 0;                    //  How many masters
+        current_masters = 0;            //  How many masters
     Bool
         cluster_alive = TRUE;           //  Is cluster alive?
 
@@ -285,7 +286,10 @@ amq_cluster_t
     peer = amq_peer_list_first (self->peer_list);
     while (peer) {
         amq_peer_monitor (peer);
-        if (peer->connected) {
+        if (peer->master)
+            current_masters++;
+
+        if (peer->joined) {
             if (self->primary) {
                 //  If we're primary, and backup is master, we stop being master
                 if (peer->backup && peer->master) {
@@ -301,9 +305,7 @@ amq_cluster_t
             }
             else {
                 //  If we're support, complain if we detect multiple masters
-                if (peer->master)
-                    masters++;
-                if (masters == 1) {
+                if (current_masters > 1) {
                     asl_log_print (amq_broker->alert_log,
                         "E: cluster - multiple masters detected");
                     self->master_peer = NULL;
@@ -322,7 +324,7 @@ amq_cluster_t
             else
             if (self->backup) {
                 //  If we're backup and primary goes offline, we become
-                //  master if/when we have at least one client connection. 
+                //  master if/when we have at least one client connection.
                 if (peer->primary && peer->master) {
                     if (amq_server_connection_count ()) {
                         self->master = TRUE;
@@ -352,6 +354,10 @@ amq_cluster_t
 
         peer = amq_peer_list_next (&peer);
     }
+    //  If cluster started and there are no masters, primary becomes master
+    if (cluster_alive && current_masters == 0 && self->primary)
+        self->master = TRUE;
+
     //  Set new calculated master state
     if (self->master) {
         if (!amq_broker->master)

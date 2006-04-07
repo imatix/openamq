@@ -40,7 +40,8 @@ cluster class.
         name,                           //  Peer server name
         host;                           //  Peer host name
     Bool
-        connected,                      //  Peer is connected & ready?
+        connected,                      //  Peer is connected?
+        joined,                         //  Peer has shown signs of life?
         offlined,                       //  Peer has gone offline
         primary,                        //  Peer is the primary node?
         backup,                         //  Peer is the backup node
@@ -52,7 +53,7 @@ cluster class.
         load;                           //  Peer load, connections
     qbyte
         last_sequence;                  //  Last publish method seen
-</context>              
+</context>
 
 <method name = "new">
     <argument name = "cluster" type = "amq_cluster_t *">Parent cluster controller</argument>
@@ -174,7 +175,8 @@ cluster class.
             exchange = amq_exchange_by_vhost_next (&exchange);
         }
         self->connected = FALSE;
-        self->offlined = TRUE;
+        self->joined    = FALSE;
+        self->offlined  = TRUE;
         icl_console_print ("I: cluster - disconnected from %s", self->host);
     }
     amq_vhost_unlink (&vhost);
@@ -309,6 +311,7 @@ cluster class.
     <argument name = "method" type = "amq_server_cluster_status_t *">Method</argument>
     //
     //  Normalise heartbeat between peers
+    self->joined = TRUE;
     self->heartbeat = (amq_server_config_cluster_heartbeat (amq_server_config)
                     + method->heartbeat) / 2;
     self->heartbeat_ttl = AMQ_HEARTBEAT_TTL;

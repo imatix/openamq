@@ -150,13 +150,6 @@
 </context>
 
 <method name = "new">
-    <header>
-    //  Set host address from config file, otherwise it'll be set to
-    //  our first IP address and port. We have to do this before
-    //  the broker starts the protocol agent, which may also set
-    //  the host value.
-    icl_shortstr_cpy (self->host, amq_server_config_cluster_host (amq_server_config));
-    </header>
     //
     //  We use a single global vhost for now
     //  TODO: load list of vhosts from config file
