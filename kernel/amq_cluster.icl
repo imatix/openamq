@@ -251,12 +251,14 @@ amq_cluster_t
     if (primaries != 1) {
         asl_log_print (amq_broker->alert_log,
             "E: cluster - exactly one primary must be defined (have %d)", primaries);
+        s_stop_cluster (self);
         smt_shut_down ();
     }
     else
     if (backups > 1) {
         asl_log_print (amq_broker->alert_log,
             "E: cluster - multiple backup servers not allowed (have %d)", backups);
+        s_stop_cluster (self);
         smt_shut_down ();
     }
     else
@@ -269,6 +271,7 @@ amq_cluster_t
     else {
         asl_log_print (amq_broker->alert_log,
             "E: cluster - '%s' not configured server name", amq_broker->name);
+        s_stop_cluster (self);
         smt_shut_down ();
     }
     </action>
