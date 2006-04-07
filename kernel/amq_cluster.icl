@@ -153,7 +153,8 @@ amq_cluster_t
         *config;                        //  Server config tree
     char
         *name = NULL,                   //  Peer server name
-        *host = NULL;                   //  Peer server host
+        *host = NULL,                   //  Peer external name
+        *internal = NULL;               //  Peer internal name
     amq_peer_t
         *peer;                          //  Cluster peer
     Bool
@@ -178,6 +179,7 @@ amq_cluster_t
         while (config->located) {
             name = ipr_config_get (config, "name", "");
             host = ipr_config_get (config, "host", "");
+            internal = ipr_config_get (config, "internal", host);
 
             is_primary = atoi (ipr_config_get (config, "primary", "0")) > 0;
             if (is_primary)
@@ -196,11 +198,16 @@ amq_cluster_t
             else
             if (!ipr_net_validate_addr (host))
                 asl_log_print (amq_broker->alert_log,
-                    "E: cluster - please use a valid 'host', '%s' was skipped", host);
+                    "E: cluster - please use a valid 'host' address, '%s' was skipped", host);
+            else
+            if (!ipr_net_validate_addr (internal))
+                asl_log_print (amq_broker->alert_log,
+                    "E: cluster - please use a valid 'internal' address, '%s' was skipped", internal);
             else {
                 //  Keep running checksum of server list
                 ipr_crc_calc_str (self->crc, name);
                 ipr_crc_calc_str (self->crc, host);
+                ipr_crc_calc_str (self->crc, internal);
 
                 //  We do not create a peer for ourselves
                 if (streq (name, amq_broker->name)) {
@@ -211,13 +218,13 @@ amq_cluster_t
                 else {
                     if (amq_server_config_debug_cluster (amq_server_config))
                         asl_log_print (amq_broker->debug_log,
-                            "C: server name=%s host=%s", name, host);
+                            "C: server name=%s host=%s internal=%s", name, host, internal);
 
                     if (*self->known_hosts)
                         icl_shortstr_cat (self->known_hosts, " ");
                     icl_shortstr_cat (self->known_hosts, host);
 
-                    peer = amq_peer_new (self, name, host, is_primary, is_backup);
+                    peer = amq_peer_new (self, name, internal, is_primary, is_backup);
                     amq_peer_list_queue (self->peer_list, peer);
                     if (is_primary)
                         self->primary_peer = peer;
