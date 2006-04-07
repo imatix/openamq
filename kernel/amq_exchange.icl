@@ -88,7 +88,8 @@ for each type of exchange. This is a lock-free asynchronous class.
         (*publish) (
             void                 *self,
             amq_server_channel_t *channel,
-            amq_server_method_t  *method);
+            amq_server_method_t  *method,
+            Bool                  from_cluster);
     int
         (*compile) (
             void                 *self,
@@ -322,6 +323,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     </doc>
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
+    <argument name = "from_cluster" type = "Bool">Intra-cluster publish?</argument>
     //
     <possess>
     channel = amq_server_channel_link (channel);
@@ -338,7 +340,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     int64_t
         content_size;
 
-    delivered = self->publish (self->object, channel, method);
+    delivered = self->publish (self->object, channel, method, from_cluster);
     ipr_meter_count (amq_broker->imeter);
     content_size = ((amq_content_basic_t *) method->content)->body_size;
 

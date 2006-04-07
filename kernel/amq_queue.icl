@@ -174,14 +174,16 @@ class.  This is a lock-free asynchronous class.
     Publish message content onto queue. Handles cluster distribution
     of messages to shared queues: if cluster is enabled and queue is
     shared (!exclusive), message is queued only at master server. If
-    we are not a master server, we forward the message to the master.
+    we are not a master server, we forward the message to the master,
+    unless the message already came from the cluster.
     </doc>
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
+    <argument name = "from_cluster" type = "Bool">Intra-cluster publish?</argument>
     //
     <possess>
     channel = amq_server_channel_link (channel);
-    method  = amq_server_method_link (method);
+    method = amq_server_method_link (method);
     </possess>
     <release>
     amq_server_channel_unlink (&channel);
@@ -189,20 +191,10 @@ class.  This is a lock-free asynchronous class.
     </release>
     //
     <action>
-    amq_server_connection_t
-        *connection;
-
-    if (self->clustered && !amq_broker->master) {
-        //  Pass message to shared queue on master server unless
-        //  message already came to us from another cluster peer.
-        connection = channel?
-            amq_server_connection_link (channel->connection): NULL;
-        if (connection) {
-            if (connection->group != AMQ_CONNECTION_GROUP_CLUSTER)
-                amq_cluster_peer_push (amq_cluster, amq_cluster->master_peer, method);
-            amq_server_connection_unlink (&connection);
-        }
-    }
+    //  Pass message to shared queue on master server unless message already
+    //  came to us from another cluster peer.
+    if (self->clustered && !amq_broker->master && !from_cluster)
+        amq_cluster_peer_push (amq_cluster, amq_cluster->master_peer, method);
     else
     if (self->enabled) {
         if (method->class_id == AMQ_SERVER_BASIC)

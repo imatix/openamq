@@ -2,7 +2,7 @@
 <pal script = "amq_pal_gen">
     <set name = "myqueue" value = "my.queue" cmdline = "Q" />
     <set name = "private" value = "0"        cmdline = "P" />
-    <session cluster_key = "my.cluster">
+    <session virtual_host = "/test">
         <queue_declare queue = "$myqueue" exclusive = "$private" />
         <queue_bind    queue = "$myqueue" exchange = "amq.direct" routing_key = "test" />
         <basic_consume queue = "$myqueue" no_local = "1" />

@@ -179,6 +179,7 @@ class.
     </doc>
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
+    <argument name = "from_cluster" type = "Bool">Intra-cluster publish?</argument>
     <local>
     amq_queue_list_iterator_t
         iterator;
@@ -195,7 +196,7 @@ class.
     while (iterator) {
         if (amq_server_config_debug_route (amq_server_config))
             asl_log_print (amq_broker->debug_log, "X: publish  queue=%s", (*iterator)->key);
-        amq_queue_publish (*iterator, channel, method);
+        amq_queue_publish (*iterator, channel, method, from_cluster);
         iterator = amq_queue_list_next (iterator);
         rc++;                           //  Count recepients
     }

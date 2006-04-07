@@ -2,7 +2,7 @@
 <pal script = "amq_pal_gen">
     <set name = "messages" value = "1" cmdline = "M" />
     <set name = "message_id" value = "$random" cmdline = "I" />
-    <session cluster_key = "my.cluster">
+    <session virtual_host = "/test">
         <repeat counter = "id" times = "$messages" >
             <basic_content size = "1000" message_id = "id-$message_id" />
             <basic_publish exchange = "amq.direct" routing_key = "test" />

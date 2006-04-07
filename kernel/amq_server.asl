@@ -452,7 +452,7 @@
             if (connection->group != AMQ_CONNECTION_GROUP_CLUSTER)
                 amq_content_$(class.name)_set_cluster_id (self->content, channel->cluster_id);
 
-            amq_exchange_publish (exchange, channel, self);
+            amq_exchange_publish (exchange, channel, self, (connection->group == AMQ_CONNECTION_GROUP_CLUSTER));
         }
         else
             amq_server_channel_error (channel,

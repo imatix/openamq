@@ -321,8 +321,8 @@ amq_cluster_t
             }
             else
             if (self->backup) {
-                //  If we're backup and primary goes offline, we become 
-                //  master if we have at least one connected client.
+                //  If we're backup and primary goes offline, we become
+                //  master if/when we have at least one client connection. 
                 if (peer->primary && peer->master) {
                     if (amq_server_connection_count ()) {
                         self->master = TRUE;

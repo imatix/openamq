@@ -161,7 +161,7 @@ that is in every content header).
             if (binding) {
                 if ((binding->match_all && hitset->hit_count [binding_nbr] == binding->field_count)
                 || (!binding->match_all && hitset->hit_count [binding_nbr] > 0)) {
-                    delivered += amq_binding_publish (binding, channel, method);
+                    delivered += amq_binding_publish (binding, channel, method, from_cluster);
                     if (amq_server_config_debug_route (amq_server_config))
                         asl_log_print (amq_broker->debug_log,
                             "X: have_hit %s: match=%s hits=%d binding=%d",
