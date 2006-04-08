@@ -170,6 +170,8 @@ $(selftype)
     //  Get content body into a bucket
     bucket = ipr_bucket_new (IPR_BUCKET_MAX_SIZE);
     bucket->cur_size = amq_content_basic_get_body (content, bucket->data, bucket->max_size);
+    assert (bucket->cur_size < IPR_BUCKET_MAX_SIZE);
+    bucket->data [bucket->cur_size++] = 0;
     descr.data = bucket->data;
     descr.size = bucket->cur_size;
 
