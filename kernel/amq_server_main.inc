@@ -284,8 +284,8 @@ s_run_server (void)
     amq_console = amq_console_new ();
     amq_broker  = amq_broker_new  ();
     amq_cluster = amq_cluster_new (amq_broker, s_opt_cluster);
-
     smt_wait (0);                       //  Execute the server
+
     if (amq_broker->restart)
         rc = 1;                         //  Restart the broker
 

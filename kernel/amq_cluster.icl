@@ -96,6 +96,7 @@ amq_cluster_t
     icl_shortstr_t
         known_hosts;                    //  List of known hosts
     Bool
+        failed,                         //  Cluster startup failed
         enabled,                        //  Cluster is enabled
         ready,                          //  Cluster is ready for use
         primary,                        //  We're the primary node
@@ -132,7 +133,7 @@ amq_cluster_t
     else
         icl_shortstr_cpy (amq_broker->name, "Standalone");
 </method>
-        
+
 <method name = "destroy">
     <action>
     //
@@ -165,6 +166,7 @@ amq_cluster_t
         primaries = 0,                  //  Number of primary servers
         backups = 0;                    //  Number of backup server
 
+    s_stop_cluster (self);
     self->enabled    = TRUE;
     self->peer_list  = amq_peer_list_new ();
     self->state_list = ipr_looseref_list_new ();
@@ -241,26 +243,17 @@ amq_cluster_t
     ipr_config_destroy (&config);
 
     //  Set initial master to primary node
-    self->master      = self->primary;
     self->master = FALSE;
     self->master_peer = self->primary_peer;
 
     //  We go through an asynchronous method so that it can send timer
     //  events to the cluster agent. A cluster of one is allowed.
 
-    if (primaries != 1) {
-        asl_log_print (amq_broker->alert_log,
-            "E: cluster - exactly one primary must be defined (have %d)", primaries);
-        s_stop_cluster (self);
-        smt_shut_down ();
-    }
+    if (primaries != 1)
+        icl_console_print ("E: cluster - exactly one primary must be defined (have %d)", primaries);
     else
-    if (backups > 1) {
-        asl_log_print (amq_broker->alert_log,
-            "E: cluster - multiple backup servers not allowed (have %d)", backups);
-        s_stop_cluster (self);
-        smt_shut_down ();
-    }
+    if (backups > 1)
+        icl_console_print ("E: cluster - multiple backup servers not allowed (have %d)", backups);
     else
     if (name_valid) {
         amq_proxy_agent_init ();
@@ -268,12 +261,8 @@ amq_cluster_t
             "I: cluster - own server name is '%s'", amq_broker->name);
         smt_timer_request_delay (self->thread, 100 * 1000, monitor_event);
     }
-    else {
-        asl_log_print (amq_broker->alert_log,
-            "E: cluster - '%s' not configured server name", amq_broker->name);
-        s_stop_cluster (self);
-        smt_shut_down ();
-    }
+    else
+        icl_console_print ("E: cluster - '%s' not configured server name", amq_broker->name);
     </action>
 </method>
 
