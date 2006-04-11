@@ -118,6 +118,7 @@ $(selftype)
 
     sprintf (object_key, "%X", object_id);
     hash = ipr_hash_new (self->object_store, object_key, NULL);
+    assert (hash);
 
     entry = icl_mem_alloc (sizeof (amq_console_entry_t));
     entry->object_ref = object_ref;
@@ -169,6 +170,9 @@ $(selftype)
     bucket->cur_size = amq_content_basic_get_body (content, bucket->data, bucket->max_size);
     assert (bucket->cur_size < IPR_BUCKET_MAX_SIZE);
     bucket->data [bucket->cur_size] = 0;
+    
+    if (amq_server_config_debug_console (amq_server_config))
+        asl_log_print (amq_broker->debug_log, "C: accept  xml=%s", bucket->data
 
     //  Parse as XML message
     xml_root = ezxml_parse_str (bucket->data, bucket->cur_size);
@@ -396,11 +400,15 @@ s_execute_inspect (
         entry = s_lookup_object (self, atol (object_str));
         if (entry)
             entry->class_ref->inspect (entry->object_ref, request);
-        else
+        else {
+            asl_log_print (amq_broker->alert_log, "E: no such object found (ID=%s)", object_str);
             s_reply_error (request, "inspect-reply", "notfound");
+        }
     }
-    else
+    else {
+        asl_log_print (amq_broker->alert_log, "E: badly-formatted CML method, no object ID");
         s_reply_error (request, "inspect-reply", "invalid");
+    }
 }
 
 static void
@@ -424,11 +432,15 @@ s_execute_modify (
             entry->class_ref->modify (entry->object_ref, request, fields);
             asl_field_list_unlink (&fields);
         }
-        else
+        else {
+            asl_log_print (amq_broker->alert_log, "E: no such object found (ID=%s)", object_str);
             s_reply_error (request, "modify-reply", "notfound");
+        }
     }
-    else
+    else {
+        asl_log_print (amq_broker->alert_log, "E: badly-formatted CML method, no object ID");
         s_reply_error (request, "modify-reply", "invalid");
+    }
 }
 
 
@@ -466,11 +478,15 @@ s_execute_method (
                 entry->object_ref, (char *) method_name, request, fields);
             asl_field_list_unlink (&fields);
         }
-        else
-            s_reply_error (request, "method-reply", "notfound");
+        else {
+            asl_log_print (amq_broker->alert_log, "E: no such object found (ID=%s)", object_str);
+            s_reply_error (request, "modify-reply", "notfound");
+        }
     }
-    else
-        s_reply_error (request, "method-reply", "invalid");
+    else {
+        asl_log_print (amq_broker->alert_log, "E: badly-formatted CML method, no object ID");
+        s_reply_error (request, "modify-reply", "invalid");
+    }
 }
 
 //  Builds field list from body of XML command

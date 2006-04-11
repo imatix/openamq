@@ -225,6 +225,16 @@ $\(selftype)
     </doc>
     </property>
 
+    <property name = "debug console" type = "Bool" dynamic = "1">
+    Debug console I/O?
+
+    <doc>
+    Specifies whether console activity is logged or not.  Set this
+    option when you are configuring or debugging the console. For
+    production use, we recommend you do not set this option.
+    </doc>
+    </property>
+
     <property name = "trace" type = "int" default = "0" dynamic = "1">
     Protocol trace level
     <doc>
