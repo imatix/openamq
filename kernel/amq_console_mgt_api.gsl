@@ -496,8 +496,6 @@ s_request_response (
 {
     amq_content_basic_t
         *content;                       //  Last content sent/recieved
-    DESCR
-        descr;                          //  XML string as descriptor
     ipr_bucket_t
         *bucket = NULL;                 //  Message comes here
     icl_shortstr_t
@@ -528,14 +526,13 @@ s_request_response (
         //  TODO: amq_cml_decode
         //  Get content body into a bucket
         bucket = ipr_bucket_new (IPR_BUCKET_MAX_SIZE);
-        bucket->cur_size = amq_content_basic_get_body (
-            content, bucket->data, bucket->max_size);
-        descr.data = bucket->data;
-        descr.size = bucket->cur_size;
-        ipr_bucket_unlink (&bucket);
+        bucket->cur_size = amq_content_basic_get_body (content, bucket->data, bucket->max_size);
+        assert (bucket->cur_size < IPR_BUCKET_MAX_SIZE);
+        bucket->data [bucket->cur_size] = 0;
 
         //  Parse as XML message
-        ipr_xml_load_descr (&xml_root, &descr, FALSE);
+        ipr_xml_load (&xml_root, bucket->data, FALSE);
+        ipr_bucket_unlink (&bucket);
         assert (xml_root);
 
         //  Check that the result is valid CML
@@ -556,7 +553,7 @@ s_request_response (
 
         if (streq (ipr_xml_name (xml_command), "invalid")) {
             icl_console_print ("E: invalid request sent to console");
-            ipr_xml_destroy (&xml_root);
+            exit (EXIT_FAILURE);
         }
         else
         if (streq (ipr_xml_name (xml_command), "notify"))

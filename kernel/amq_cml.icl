@@ -65,8 +65,8 @@
         }
     }
     xml_text = ipr_xml_save_string (cml_item);
-    bucket = ipr_bucket_new (strlen (xml_text));
-    ipr_bucket_fill (bucket, xml_text, strlen (xml_text));
+    bucket = ipr_bucket_new (strlen (xml_text) + 1);
+    ipr_bucket_fill (bucket, xml_text, strlen (xml_text) + 1);
     icl_mem_free (xml_text);
 
     //  Create a content with our desired reply data

@@ -172,7 +172,7 @@ $(selftype)
     bucket->data [bucket->cur_size] = 0;
     
     if (amq_server_config_debug_console (amq_server_config))
-        asl_log_print (amq_broker->debug_log, "C: console xml=%s", bucket->data
+        asl_log_print (amq_broker->debug_log, "C: console xml=%s", bucket->data);
 
     //  Parse as XML message
     xml_root = ezxml_parse_str (bucket->data, bucket->cur_size);

@@ -26,10 +26,10 @@
     "  -p password      Password for console access (console)\n"             \
     "  -e commands      Run shell commands, delimited by ;\n"                \
     "  -x filename      Save all status data as XML\n"                       \
+    "  -t level         Set trace level (default = 0)\n"                    \
     "  -b               Show broker status and then exit\n"          \
     "  -q               Show all broker queues and exit\n"                   \
     "  -d               Show date and time in shell output\n"                \
-    "  -t               Show time in shell output\n"                         \
     "  -v               Show version information\n"                          \
     "  -h               Show summary of command-line options\n"              \
     "\n"                                                                     \
@@ -45,13 +45,13 @@ int main (int argc, char *argv[])
         args_ok = TRUE,                 //  Were the arguments okay?
         s_opt_broker = FALSE,           //  -b means show broker status
         s_opt_queues = FALSE,           //  -q means show queues
-        s_opt_date = FALSE,             //  -d means show date, time
-        s_opt_time = FALSE;             //  -t means show time
+        s_opt_date = FALSE;             //  -d means show date, time
     char
         *s_opt_host = NULL,             //  -s specifies server name
         *s_opt_user = NULL,             //  -u specifies user name
         *s_opt_pass = NULL,             //  -p specifies password
         *s_opt_cmds = NULL,             //  -e specifies command string
+        *s_opt_trace = NULL,            //  -t specifies trace level
         *s_opt_xml  = NULL;             //  -x specifies XML filename
     char
         **argparm;                      //  Argument parameter to pick-up
@@ -91,6 +91,9 @@ int main (int argc, char *argv[])
                     icl_console_print ("-e option is not yet supported");
                     argparm = &s_opt_cmds;
                     break;
+                case 't':
+                    argparm = &s_opt_trace;
+                    break;
                 case 'x':
                     argparm = &s_opt_xml;
                     break;
@@ -102,9 +105,6 @@ int main (int argc, char *argv[])
                     break;
                 case 'd':
                     s_opt_date = TRUE;
-                    break;
-                case 't':
-                    s_opt_time = TRUE;
                     break;
                 case 'v':
                     printf (PRODUCT "\n");
@@ -137,7 +137,7 @@ int main (int argc, char *argv[])
     printf (COPYRIGHT "\n\n");
 
     icl_console_mode (ICL_CONSOLE_DATE, s_opt_date);
-    icl_console_mode (ICL_CONSOLE_TIME, s_opt_date || s_opt_time);
+    icl_console_mode (ICL_CONSOLE_TIME, s_opt_date);
      
     //  If there was a missing parameter or an argument error, quit
     if (argparm) {
@@ -156,8 +156,10 @@ int main (int argc, char *argv[])
         s_opt_user = "console";
     if (!s_opt_pass)
         s_opt_pass = "console";
+    if (!s_opt_trace)
+        s_opt_trace = "0";
         
-    console = amq_mgt_console_new (s_opt_host, s_opt_user, s_opt_pass);
+    console = amq_mgt_console_new (s_opt_host, s_opt_user, s_opt_pass, atoi (s_opt_trace));
     if (!console)
         exit (EXIT_FAILURE);
         
