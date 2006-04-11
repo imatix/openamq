@@ -245,10 +245,10 @@ main (int argc, char *argv [])
         icl_console_print ("I: (%d) sending %d messages to server...",
             repeats, messages);
             
-        content = amq_content_basic_new ();
-        amq_content_basic_set_body (content, test_data, msgsize, NULL);
-        
         for (out_count = 0; out_count < messages; out_count++) {
+            content = amq_content_basic_new ();
+            amq_content_basic_set_body (content, test_data, msgsize, NULL);
+
             icl_shortstr_fmt (message_id, "ID%d", out_count);
             amq_content_basic_set_message_id (content, message_id);
     
@@ -262,9 +262,8 @@ main (int argc, char *argv [])
                     goto finished;
                 }
             }
+            amq_content_basic_unlink (&content);
         }
-        amq_content_basic_unlink (&content);
-        
         //  Read messages back from server, discard them
         expected = messages * nbr_active;
         while (expected) {
