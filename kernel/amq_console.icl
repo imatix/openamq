@@ -172,7 +172,7 @@ $(selftype)
     bucket->data [bucket->cur_size] = 0;
     
     if (amq_server_config_debug_console (amq_server_config))
-        asl_log_print (amq_broker->debug_log, "C: accept  xml=%s", bucket->data
+        asl_log_print (amq_broker->debug_log, "C: console xml=%s", bucket->data
 
     //  Parse as XML message
     xml_root = ezxml_parse_str (bucket->data, bucket->cur_size);
@@ -557,8 +557,8 @@ s_reply_xml (amq_content_basic_t *request, ipr_xml_t *xml_item)
         *bucket;
 
     xml_text = ipr_xml_save_string (xml_item);
-    bucket = ipr_bucket_new (strlen (xml_text));
-    ipr_bucket_fill (bucket, xml_text, strlen (xml_text));
+    bucket = ipr_bucket_new (strlen (xml_text) + 1);
+    ipr_bucket_fill (bucket, xml_text, strlen (xml_text) + 1);
     icl_mem_free (xml_text);
     s_reply_bucket (request, bucket);
     ipr_bucket_unlink (&bucket);
@@ -577,6 +577,9 @@ s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
         *exchange;                      //  We send the reply to amq.direct
     amq_vhost_t
         *vhost;
+
+    if (amq_server_config_debug_console (amq_server_config))
+        asl_log_print (amq_broker->debug_log, "C: response xml=%s", bucket->data);
 
     vhost = amq_vhost_link (amq_broker->vhost);
     if (vhost) {
