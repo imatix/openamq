@@ -169,6 +169,15 @@ class.  This is a lock-free asynchronous class.
     </action>
 </method>
 
+<method name = "unbind connection" template = "async function" async = "1">
+    <action>
+    assert (self->connection);
+    assert (self->auto_delete);
+    if (self->consumers == 0)
+        smt_timer_request_delay (self->thread, 1, auto_delete_event);
+    </action>
+</method>
+
 <method name = "publish" template = "async function" async = "1">
     <doc>
     Publish message content onto queue. Handles cluster distribution

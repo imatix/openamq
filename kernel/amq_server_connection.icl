@@ -53,6 +53,17 @@ This class implements the connection class for the AMQ server.
 </method>
 
 <method name = "destroy">
+    amq_queue_list_iterator_t
+       iterator;
+
+    //  Firstly, send notification of connection termination to all
+    //  exclusive queues created by the connection, so that they can be
+    //  destroyed even if there is no consumer on the queue.
+    for (iterator = amq_queue_list_begin (self->own_queue_list);
+          iterator != NULL;
+          iterator = amq_queue_list_next (iterator))
+        amq_queue_unbind_connection (*iterator);
+
     amq_connection_destroy (&self->mgt_object);
     amq_vhost_unlink       (&self->vhost);
     amq_queue_list_destroy (&self->own_queue_list);
