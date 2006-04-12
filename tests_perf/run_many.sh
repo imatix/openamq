@@ -10,7 +10,9 @@ shift
 COMMAND=$1
 shift
 
-for client in `yes | head -${NUMCLIENTS}`; do
+N=0
+while [ "$N" -lt "$NUMCLIENTS" ]; do
     ${COMMAND} "$@" &
+    N=`expr $N + 1`
 done
 
