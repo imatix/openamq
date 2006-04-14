@@ -1,0 +1,25 @@
+<?xml?>
+<pal
+    name   = "amq_460"
+    script = "amq_pal_gen"
+    target = "stdc"
+    >
+    
+<session scope = "default">
+    <exchange_declare exchange = "amq.topic" type = "topic" />
+    <queue_declare queue = "myqueue" />
+    <queue_bind exchange = "amq.topic" queue = "myqueue" routing_key = "test_topic" />
+    <basic_content message_id = "id-1" />
+    <basic_consume queue = "myqueue" />
+    <basic_publish exchange = "amq.topic" routing_key = "test_topic" />
+    <wait timeout = "2000"/>
+    <basic_arrived>
+        <echo>msg</echo>
+    </basic_arrived>
+    <empty>
+        <echo>Message did not come back, this is bad!</echo>
+    </empty>
+</session>
+
+</pal>
+
