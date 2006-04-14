@@ -14,7 +14,7 @@
     <basic_publish exchange = "amq.topic" routing_key = "test_topic" />
     <wait timeout = "2000"/>
     <basic_arrived>
-        <echo>msg</echo>
+        <echo>msg arrived</echo>
     </basic_arrived>
     <empty>
         <echo>Message did not come back, this is bad!</echo>
