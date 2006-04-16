@@ -162,15 +162,11 @@ s_topic_to_regexp (char *topic, char *regexp)
 
     /*  We want a regexp starting with ^, ending with $, and with the
         * and # index wildcards replaced by appropriate regexp chars.
-        We also filter out any non-alphanum characters.  We may allow
-        full RE indexing on index names at a later stage.
+        We may allow full RE indexing on index names at a later stage.
      */
     to_ptr = regexp;
     *to_ptr++ = '^';                    //  index start of index name
     for (from_ptr = topic; *from_ptr; from_ptr++) {
-        if (isalnum (*from_ptr))
-            *to_ptr++ = *from_ptr;
-        else
         if (*from_ptr == '.') {
             *to_ptr++ = '`';
             *to_ptr++ = '.';
@@ -185,6 +181,9 @@ s_topic_to_regexp (char *topic, char *regexp)
             strcpy (to_ptr, S_WILDCARD_MULTIPLE);
             to_ptr += strlen (S_WILDCARD_MULTIPLE);
         }
+        else
+        if (isprint (*from_ptr))
+            *to_ptr++ = *from_ptr;
     }
     *to_ptr++ = '$';                    //  index end of index name
     *to_ptr++ = 0;
