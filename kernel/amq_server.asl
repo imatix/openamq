@@ -163,7 +163,7 @@
     //  Find queue and create if necessary
     if (strnull (method->queue)) {
         if (amq_cluster->enabled && !method->exclusive)
-            icl_shortstr_fmt (method->queue, "%s:$%d",
+            icl_shortstr_fmt (method->queue, "%s:%d",
                 amq_broker->name, icl_atomic_inc32 (&queue_index));
         else
             icl_shortstr_fmt (method->queue, "$%d", icl_atomic_inc32 (&queue_index));
