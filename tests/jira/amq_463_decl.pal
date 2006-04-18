@@ -1,0 +1,10 @@
+<?xml?>
+<pal script = "amq_pal_gen">
+    <session>
+        <queue_declare queue = "$qname" />
+        <queue_bind queue = "$qname" exchange = "amq.direct" />
+    </session>
+    
+</pal>
+
+
