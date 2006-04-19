@@ -3,7 +3,7 @@
     <session>
         <set name = "count" value = "1001" cmdline = "C" />
         <repeat times = "$count" counter = "counter">
-        <basic_content message_id = "id-$counter" />
+        <basic_content message_id = "id-$counter" routing_key = "foo.bar.baz.$counter" />
         <basic_publish exchange = "mytopicexchange" routing_key = "foo.bar.baz.$counter"/>
         </repeat>
     </session>

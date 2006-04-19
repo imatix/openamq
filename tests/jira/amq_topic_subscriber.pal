@@ -8,25 +8,24 @@
             <queue_bind queue = "mytopicqueue" exchange = "mytopicexchange" routing_key = "foo.bar.baz.$counter" />
         </repeat>
         <basic_consume queue = "mytopicqueue" />
-
-        <wait/>
-        <timer/>
-        <basic_arrived>
-            <echo>[$message_id] with rk=$routing_key</echo>
-        </basic_arrived>
-        <empty>
-            <abort>No message</abort>
-        </empty>
-        <repeat times = "$count">
+        <set name = "total" value = "0" />
+        <repeat>
             <wait />
+            <if  name  = "total" value = "0" >
+                <timer />
+            </if>
             <basic_arrived>
+                <inc name = "total" />
                 <echo>[$message_id] with rk=$routing_key</echo>
             </basic_arrived>
             <empty>
                 <abort>No message</abort>
             </empty>
+            <if name = "count" test = "eq" value = "total">
+                <timer action = "show" />
+                <exit />
+            </if>
         </repeat>
-        <timer action = "show" />
     </session>
     
 </pal>
