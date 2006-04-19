@@ -1,0 +1,41 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "Subscribe client 2"
+    >
+    <session>
+        <exchange_declare exchange = "myheadersexchange" type = "headers" />
+        <queue_declare queue = "myheaderqueue" />
+        <queue_bind queue = "myheaderqueue" exchange = "myheadersexchange">
+            <arguments>
+                <field name = "x" value = "a" />
+            </arguments>
+        </queue_bind>
+        <basic_consume queue = "myheaderqueue" />
+        <wait/>
+        <timer/>
+        <basic_arrived>
+            <inc name = "messages"/>
+            <echo>In $messages: [$message_id] with x=$headers-x y=$headers-y z=$headers-z</echo>
+        </basic_arrived>
+        <empty>
+            <abort>No message</abort>
+        </empty>
+        <repeat times = "10000">
+            <wait />
+            <basic_arrived>
+            <!--
+                <inc name = "messages"/>
+                <echo>In $messages: [$message_id] with x=$headers-x y=$headers-y z=$headers-z</echo>
+                -->
+            </basic_arrived>
+            <empty>
+                <abort>No message</abort>
+            </empty>
+        </repeat>
+        <timer action = "show" />
+    </session>
+    
+</pal>
+
+
