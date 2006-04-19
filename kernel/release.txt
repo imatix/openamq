@@ -1,3 +1,83 @@
+1.0c1 - 2006/04/19
+---------------------------------------------------------------------
+
+Changes:
+    AMQ-461     Review valid characters for queue names       
+    AMQ-462     review topic matching algorithm (topic_to_regexp)    
+    AMQ-332     Closing connection should destroy its exclusive queues       
+    AMQ-459     Server should reject attempts to create queues using
+                server-generated queue names
+    AMQ-456     Add more tracing to console when shell sends invalid data    
+    BASE2-58    ICL - icl_console_print and below needs tuning.     
+    AMQ-435     Cluster should have internal and external connections       
+    BASE2-221   Tracking objects that are freed too early (the mosquito
+                catcher)    
+    AMQ-404     Client agent: Change to a design that uses a single queue to
+                communicate between threads     
+    BASE-47     Add 'noopt' model to Boom     
+    BASE-46     Add 'gprof' model to Boom       
+    AMQ-434     server should validate cluster addresses    
+    AMQ-425     Update the documentation for custom.cfg in Wiki     
+    AMQ-436     Allow cluster balancing to be switched off
+    BASE2-54    Compile time option macros should be reviewed and standardised     
+    BASE2-214   Simplify list option settings     
+
+Bugfixes:
+    AMQ-463     Secondary server assertion failure while running GRM_C tests
+                in cluster mode     
+    AMQ-448     Failover does not happen for some clients with multiple
+                resubscriptions under heavy load    
+    AMQ-460     Topic exchange failing to route message.
+    AMQ-457     Failure to connect during mass start-up/connect.    
+    BASE2-191   GSL string.replace function is not safe, allows memory
+                overwrite     
+    BASE2-196   ipr_process waits forever when terminating       
+    AMQ-450     Under heavy load the server cannot create new exclusive queues
+    AMQ-451     Assertion failure in server at ipr_bucket.c:931 in
+                ipr_bucket_dump      
+    AMQ-454     amq_shell is not functional     
+    AMQ-455     amq_client sometimes fails with assertion failure on content
+                header size
+    BASE2-226   SMT: Incorrect usage of condition variables      
+    AMQ-453     Master election fails when backup is killed in 3-server
+                cluster setup (split brain issue)
+    AMQ-452     amq_server does not unlink amq_peer_list when started with
+                unknown clustername      
+    AMQ-437     Shorten server-generated queue names    
+    BASE2-222   demo_client_config_tests fails in the build process      
+    BASE2-224   SMT sometimes not registering socket (disconnection) events
+                immediately     
+    AMQ-449     Secondary server asserts after primary bounce during clustering       
+    AMQ-432     Server looping forever  
+    AMQ-443     Cluster is *not* reestablished after bouncing primary
+    AMQ-444     Cluster gets disconnected when clients are stopped      
+    AMQ-415     When many clients are connected, some get arbitrarily
+                disconnected
+    AMQ-445     Freed Memory Reads and Writes with the default (thin?)
+                allocator.
+    AMQ-427     Server loops forever when failovered from primary to backup in
+                cluster    
+    AMQ-446     cluster debug output shows wrong count on opteron  
+    AMQ-440     Missing link on amq_consumer object     
+    AMQ-442     Broker core-dumps practically as soon as the first client
+                connects.     
+    BASE2-225   Broker frequently crashes on win32 with error in
+                smt_socket_request      
+    BASE2-213   Delete/regen generated containers automatically     
+    BASE2-206   Format of 'thread' argument in animation is wrong      
+    BASE2-220   ipr_hash_insert: programming error (not 64-bit clean)      
+    BASE2-204   Server hangs on shutdown       
+    AMQ-428     Dangling connections    
+    AMQ-423     Assertion `self->thread' failed in primary server when
+                restarting in a cluster    
+    AMQ-429     Assertion failed on self->links > 0 in amq_consumer_unlink_  
+    AMQ-430     SEGFAULT after backup server being restarted    
+    AMQ-426     Make provision to specify the location of the custom.cfg while
+                starting server      
+    BASE2-223   logfiles written on disk get the wrong filename    
+    AMQ-344     Let the server know the client is suspended.      
+    BASE-45     Add gurudoc filter for ODF (OpenOffice)     
+
 1.0c0 - 2006/03/16
 ---------------------------------------------------------------------
 Changes:
