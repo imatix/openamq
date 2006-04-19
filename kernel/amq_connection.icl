@@ -25,6 +25,7 @@ merge these two classes into one.
         </field>
         <field name = "address" label = "Client IP address">
           <rule name = "show on summary" />
+          <rule name = "ip address" />
           <get>icl_shortstr_cpy (field_value, self->parent->client_address);</get>
         </field>
         <field name = "user_name" label = "User login name">

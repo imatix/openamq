@@ -46,8 +46,12 @@ class.  This is a lock-free asynchronous class.
         </field>
         <field name = "client" label = "Client host name">
           <rule name = "show on summary" />
-          <rule name = "translate rdns" />
+          <rule name = "ip address" />
           <get>icl_shortstr_cpy (field_value, self->connection? self->connection->client_address: "");</get>
+        </field>
+        <field name = "binding" label = "Last binding?">
+          <rule name = "show on summary" />
+          <get>icl_shortstr_cpy (field_value, self->last_binding);</get>
         </field>
         <field name = "auto_delete" label = "Auto-deleted?" type = "bool">
           <rule name = "show on summary" />
@@ -116,6 +120,8 @@ class.  This is a lock-free asynchronous class.
         consumers;                      //  Number of consumers
     amq_queue_basic_t
         *queue_basic;                   //  Basic content queue
+    icl_shortstr_t
+        last_binding;                   //  Last queue routing key
     qbyte
         limits,                         //  Number of limits
         limit_min,                      //  Lowest limit
@@ -387,7 +393,7 @@ class.  This is a lock-free asynchronous class.
     queue_ref = amq_queue_link (self);
     amq_vhost_unbind_queue (self->vhost, queue_ref);
     //  Ask broker to ask connections to drop link to queue
-    if (self->exclusive) 
+    if (self->exclusive)
         amq_broker_unbind_queue (amq_broker, queue_ref);
 
     amq_queue_unlink (&queue_ref);
@@ -470,6 +476,25 @@ class.  This is a lock-free asynchronous class.
     rc = self->consumers;
 </method>
 
+<method name = "set last binding" template = "async function" async = "1">
+    <doc>
+    Sets the last binding information for the queue. We do this via an
+    async method to avoid two threads squashing the queue's context at the
+    same time. The last binding information is used only by the console.
+    </doc>
+    <argument name = "last binding" type = "char *"></argument>
+    //
+    <possess>
+    last_binding = icl_mem_strdup (last_binding);
+    </possess>
+    <release>
+    icl_mem_free (last_binding);
+    </release>
+    <action>
+    icl_shortstr_cpy (self->last_binding, last_binding);
+    </action>
+</method>
+
 <private name = "header">
 static void
     s_set_queue_limits ($(selftype) *self);
@@ -540,4 +565,3 @@ s_set_queue_limits ($(selftype) *self)
 <method name = "selftest" />
 
 </class>
-

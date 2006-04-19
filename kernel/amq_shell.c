@@ -5,7 +5,7 @@
     For documentation and updates see http://www.openamq.org.
  *---------------------------------------------------------------------------*/
 
-#include "icl.h"                
+#include "icl.h"
 #include "amq_mgt_console.h"            //  Definitions for our class
 #include "amq_mgt_broker.h"             //  Definitions for our class
 #include "amq_mgt_vhost.h"              //  Definitions for our class
@@ -18,16 +18,17 @@
 
 #define USAGE                                                                \
     "Syntax: amq_shell [options...]\n"                                       \
-    "   Management Console for OpenAMQ Servers\n"                            \
+    "   Management Console for OpenAMQ Brokers\n"                            \
     "\n"                                                                     \
     "General options:\n"                                                     \
-    "  -s hostname      Server hostname and :port (localhost)\n"             \
+    "  -s hostname      Broker hostname and :port (localhost)\n"             \
     "  -u user          User name for console access (console)\n"            \
     "  -p password      Password for console access (console)\n"             \
-    "  -e commands      Run shell commands, delimited by ;\n"                \
+    "  -e \"commands\"    Run shell commands, delimited by ;\n"              \
     "  -x filename      Save all status data as XML\n"                       \
-    "  -t level         Set trace level (default = 0)\n"                    \
-    "  -b               Show broker status and then exit\n"          \
+    "  -t level         Set trace level (default = 0)\n"                     \
+    "  -b               Show broker status and then exit\n"                  \
+    "  -r               Report all active local brokers\n"                   \
     "  -q               Show all broker queues and exit\n"                   \
     "  -d               Show date and time in shell output\n"                \
     "  -v               Show version information\n"                          \
@@ -35,7 +36,9 @@
     "\n"                                                                     \
     "The order of arguments is not important. Switches and filenames\n"      \
     "are case sensitive. See documentation for detailed information.\n"      \
-    "\n"                                                                     
+    "\n"
+
+static void s_do_authenticated_port_scan (char *s_opt_host, char *s_opt_user, char *s_opt_pass);
 
 int main (int argc, char *argv[])
 {
@@ -45,12 +48,13 @@ int main (int argc, char *argv[])
         args_ok = TRUE,                 //  Were the arguments okay?
         s_opt_broker = FALSE,           //  -b means show broker status
         s_opt_queues = FALSE,           //  -q means show queues
+        s_opt_report = FALSE,           //  -r means report brokers
         s_opt_date = FALSE;             //  -d means show date, time
     char
         *s_opt_host = NULL,             //  -s specifies server name
         *s_opt_user = NULL,             //  -u specifies user name
         *s_opt_pass = NULL,             //  -p specifies password
-        *s_opt_cmds = NULL,             //  -e specifies command string
+        *s_opt_command = NULL,          //  -e specifies command string
         *s_opt_trace = NULL,            //  -t specifies trace level
         *s_opt_xml  = NULL;             //  -x specifies XML filename
     char
@@ -59,6 +63,8 @@ int main (int argc, char *argv[])
         *console;
     amq_mgt_vhost_t
         *vhost;                         //  First vhost
+    ipr_token_list_t
+        *tokens;                        //  Command tokens
     FILE
         *xml_data = NULL;               //  XML capture stream
 
@@ -88,8 +94,7 @@ int main (int argc, char *argv[])
                     argparm = &s_opt_pass;
                     break;
                 case 'e':
-                    icl_console_print ("-e option is not yet supported");
-                    argparm = &s_opt_cmds;
+                    argparm = &s_opt_command;
                     break;
                 case 't':
                     argparm = &s_opt_trace;
@@ -102,6 +107,9 @@ int main (int argc, char *argv[])
                     break;
                 case 'q':
                     s_opt_queues = TRUE;
+                    break;
+                case 'r':
+                    s_opt_report = TRUE;
                     break;
                 case 'd':
                     s_opt_date = TRUE;
@@ -133,12 +141,12 @@ int main (int argc, char *argv[])
     //  Initialise global class so we can use the console
     icl_system_initialise (argc, argv);
 
-    printf ("amq_shell/%s - Management Console for OpenAMQ Servers\n", VERSION);
+    printf ("amq_shell/%s - Management Console for OpenAMQ Brokers\n", VERSION);
     printf (COPYRIGHT "\n\n");
 
     icl_console_mode (ICL_CONSOLE_DATE, s_opt_date);
     icl_console_mode (ICL_CONSOLE_TIME, s_opt_date);
-     
+
     //  If there was a missing parameter or an argument error, quit
     if (argparm) {
         icl_console_print ("E: argument missing - use '-h' option for help");
@@ -158,11 +166,14 @@ int main (int argc, char *argv[])
         s_opt_pass = "console";
     if (!s_opt_trace)
         s_opt_trace = "0";
-        
+
+    if (s_opt_report)
+        s_do_authenticated_port_scan (s_opt_host, s_opt_user, s_opt_pass);
+
     console = amq_mgt_console_new (s_opt_host, s_opt_user, s_opt_pass, atoi (s_opt_trace));
     if (!console)
         exit (EXIT_FAILURE);
-        
+
     icl_console_print ("Connected to %s/%s on %s\n",
         console->connection->server_product,
         console->connection->server_version,
@@ -183,9 +194,15 @@ int main (int argc, char *argv[])
         if (vhost)
              amq_mgt_vhost_print (vhost, xml_data);
     }
-    else
-        amq_mgt_broker_cmdline (console->broker, console->connection->server_host, 0, xml_data);
+    else {
+        if (s_opt_command)
+            tokens = ipr_token_split_rich (s_opt_command, ";");
+        else
+            tokens = NULL;
 
+        amq_mgt_broker_cmdline (console->broker, console->connection->server_host, 0, tokens, xml_data);
+        ipr_token_list_destroy (&tokens);
+    }
     if (s_opt_xml) {
         fprintf (xml_data, "</console_data>\n");
         fclose (xml_data);
@@ -196,5 +213,34 @@ int main (int argc, char *argv[])
     return (EXIT_SUCCESS);
 }
 
+static void s_do_authenticated_port_scan (
+    char *s_opt_host, char *s_opt_user, char *s_opt_pass)
+{
+    int
+        port;
+    icl_longstr_t
+        *auth_data;                     //  Authorisation data
+    amq_client_connection_t
+        *connection;
+    icl_shortstr_t
+        host;
+    int
+        brokers_found = 0;
 
-
+    icl_console_print ("Scanning for all accessible brokers on %s (ports 5000-9999)", s_opt_host);
+    auth_data = amq_client_connection_auth_plain (s_opt_user, s_opt_pass);
+    for (port = 5000; port < 10000; port++) {
+        icl_shortstr_fmt (host, "%s:%d", s_opt_host, port);
+        connection = amq_client_connection_new (host, "/", auth_data, 0, 1000);
+        if (connection) {
+            icl_console_print ("Found %s/%s on %s",
+                connection->server_product, connection->server_version, host);
+            brokers_found++;
+            amq_client_connection_destroy (&connection);
+        }
+    }
+    icl_longstr_destroy (&auth_data);
+    if (!brokers_found)
+        icl_console_print ("No accessible AMQP brokers found");
+    exit (EXIT_SUCCESS);
+}

@@ -219,6 +219,7 @@
             icl_console_print ("W: queue.declare aborted by connection close");
         else
         if (method->exclusive && queue->connection != connection) {
+            //TODO: remove warning before 1.0d final candidate
             icl_console_print ("### QUEUE name=%s/%s connection=%pp/%pp",
                         method->queue, queue->name, connection, queue->connection);
             amq_server_channel_error (
@@ -268,6 +269,7 @@
                 exchange, channel, queue, method->routing_key, method->arguments);
             amq_server_agent_queue_bind_ok (
                 connection->thread, channel->number);
+            amq_queue_set_last_binding (queue, method->routing_key);
 
             //  Tell cluster about new queue binding
             if (amq_cluster->enabled

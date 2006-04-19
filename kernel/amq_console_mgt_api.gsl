@@ -174,6 +174,11 @@ class.
     <local>
     icl_shortstr_t
         field_value;
+.for field where count (rule, name = "ip address")
+    icl_shortstr_t
+        $(name)_host,
+        $(name)_fmt;
+.endfor
     </local>
     //
     if (!self->loaded)
@@ -182,7 +187,16 @@ class.
     icl_console_print (" %d) $(name) = \\\\"%s\\\\" ", self->id, self->name);
 .for field where name <> "name"
 .   if type = "string"
+.       if count (rule, name = "ip address")
+    ipr_net_lookup_host (self->$(name), $(name)_host);
+    if (strneq (self->$(name), $(name)_host))
+        icl_shortstr_fmt ($(name)_fmt, "%s (%s)", $(name)_host, self->$(name));
+    else
+        icl_shortstr_fmt ($(name)_fmt, self->$(name));
+    s_print_property ("$(label)", $(name)_fmt, \
+.       else
     s_print_property ("$(label)", *self->$(name)? self->$(name): "(empty)", \
+.       endif
 .   elsif type = "int"
     sprintf (field_value, "%d", self->$(name));
     s_print_property ("$(label)", field_value, \
@@ -237,14 +251,30 @@ NULL);
     Prints the $(name) to the console in a single row.
     </doc>
     <local>
-.for field where count (rule, name = "show on summary") & type = "time"
+.for field where count (rule, name = "show on summary")
+.   if type = "time"
     icl_shortstr_t
         $(name)_str;
+.   endif
+.   if count (rule, name = "ip address")
+    icl_shortstr_t
+        $(name)_host,
+        $(name)_fmt;
+.   endif
 .endfor
     </local>
     //
-.for field where count (rule, name = "show on summary") & type = "time"
+.for field where count (rule, name = "show on summary")
+.   if type = "time"
     ipr_time_iso8601 (self->$(name), ipr_date_format_minute, 0, 0, $(name)_str);
+.   endif
+.   if count (rule, name = "ip address")
+    ipr_net_lookup_host (self->$(name), $(name)_host);
+    if (strneq (self->$(name), $(name)_host))
+        icl_shortstr_fmt ($(name)_fmt, "%s (%s)", $(name)_host, self->$(name));
+    else
+        icl_shortstr_fmt ($(name)_fmt, self->$(name));
+.   endif
 .endfor
     icl_console_print (" %d) $(name) = \\\\"%s\\\\"\
 .for field where count (rule, name = "show on summary")
@@ -261,7 +291,11 @@ NULL);
     ", self->id, self->name\
 .for field where count (rule, name = "show on summary")
 .   if type = "string"
+.       if count (rule, name = "ip address")
+, $(name)_fmt\
+.       else
 , *self->$(name)? self->$(name): "(empty)"\
+.       endif
 .   elsif type = "int"
 , self->$(name)\
 .   elsif type = "bool"
@@ -302,7 +336,7 @@ NULL);
         self->$(name)_ref = ipr_looseref_list_next (&self->$(name)_ref);
     else
         self->$(name)_ref = ipr_looseref_list_first (self->$(name)_list);
-    
+
     if (self->$(name)_ref)
         $(name) = self->$(name)_ref->object;
     else
@@ -316,6 +350,7 @@ NULL);
     </doc>
     <argument name = "path" type = "char *">Current path</argument>
     <argument name = "depth" type = "int">Current depth</argument>
+    <argument name = "tokens" type = "ipr_token_list_t *">Automation, if any</argument>
     <argument name = "xml_data" type = "FILE *">XML data capture</argument>
     <local>
     icl_shortstr_t
@@ -334,18 +369,33 @@ NULL);
     //
     self_print_full (self, xml_data);
     s_list_children (self);
-    
+
     while (TRUE) {
         amq_client_session_wait (self->session, 1);
         if (!self->session->alive) {
             icl_console_print (" Server disconnected - %s", self->session->error_text);
             exit (EXIT_FAILURE);
         }
-        //  Read command from stdin
-        printf ("/%s>", path);
-        strclr (command);
-        fgets (command, 255, stdin);
-        command [strlen (command) - 1] = 0;
+        //  If we're in autopilot mode, take next command else wait for user
+        if (tokens) {
+            ipr_token_t
+                *token = ipr_token_list_first (tokens);
+            if (token) {
+                icl_shortstr_cpy (command, token->value);
+                ipr_token_destroy (&token);
+            }
+            else {
+                rc = 1;                 //  Signal exit
+                break;
+            }
+        }
+        else {
+            //  Read command from stdin
+            printf ("/%s>", path);
+            strclr (command);
+            fgets (command, 255, stdin);
+            command [strlen (command) - 1] = 0;
+        }
         ipr_str_lower (command);
         ipr_str_crop  (command);
 
@@ -364,7 +414,7 @@ NULL);
                 id = atoi (command);
             Bool
                 id_found = FALSE;
-                
+
             if (id == self->id) {
                 self_print_full (self, xml_data);
                 id_found = TRUE;
@@ -376,7 +426,7 @@ NULL);
                 while ($(name)) {
                     if ($(name)->id == id) {
                         icl_shortstr_fmt (child_path, "%s/$(name)", path);
-                        rc = amq_mgt_$(name)_cmdline ($(name), child_path, depth + 1, xml_data);
+                        rc = amq_mgt_$(name)_cmdline ($(name), child_path, depth + 1, tokens, xml_data);
                         id_found = TRUE;
                     }
                     $(name) = self_$(name)_next (self);
@@ -384,7 +434,7 @@ NULL);
 .   else
                 if (self->$(name)->id == id) {
                     icl_shortstr_fmt (child_path, "%s/$(name)", path);
-                    rc = amq_mgt_$(name)_cmdline (self->$(name), child_path, depth + 1, xml_data);
+                    rc = amq_mgt_$(name)_cmdline (self->$(name), child_path, depth + 1, tokens, xml_data);
                     id_found = TRUE;
                 }
 .   endif
@@ -396,11 +446,6 @@ NULL);
             else
             if (!id_found)
                 icl_console_print (" No item number %d in scope.", id);
-        }
-        else
-        if (streq (command, ".")) {
-            self_load (self);
-            self_print_full (self, xml_data);
         }
         else
         if (streq (command, "..") || streq (command, "cd ..")) {
@@ -415,6 +460,11 @@ NULL);
             }
         }
         else
+        if (*command == '?') {          //  Search children for matching text
+            //  Not yet implemented
+            icl_console_print ("Search is not yet implemented");
+        }
+        else
         if (ipr_str_prefixed (command, "set"))
 .if class.modifiable ?= 1
             s_set_property (self, command);
@@ -427,12 +477,12 @@ NULL);
             s_execute_$(name) (self, command);
         else
 .endfor
-        if (streq (command, "exit") || streq (command, "quit")) {
+        if (streq (command, "exit") || streq (command, "quit") || streq (command, "q")) {
             rc = 1;                     //  Signal exit
             break;
         }
         else
-        if (streq (command, "help") || streq (command, "?"))
+        if (streq (command, "help"))
             s_show_help ();
         else {
             icl_console_print (" Not a valid command");
@@ -756,14 +806,15 @@ s_show_help (void)
     icl_console_print ("");
     icl_console_print (" Command            Has this effect");
     icl_console_print (" -------            -------------------");
-    icl_console_print (" ls                 Show $(name) and all children");
-    icl_console_print (" n                  Look at item [n] (n is a number)");
-    icl_console_print (" /                  Return to top item (broker)");
+    icl_console_print (" ls | dir           Show $(name) and all children");
+    icl_console_print (" nnn                Look at item [nnn] (nnn is a number)");
+    icl_console_print (" ?text              Look at item matching text");
+    icl_console_print (" /                  Return to broker item");
     icl_console_print (" .                  Refresh current item");
     icl_console_print (" ..                 Move back to previous item");
     icl_console_print (" set name value     Set object property");
     icl_console_print (" help               Show this text");
-    icl_console_print (" exit               Leave the OpenAMQ shell");
+    icl_console_print (" exit | quit        Leave the OpenAMQ shell");
 .for method
     icl_console_print ("");
     icl_console_print (" $(name)\
