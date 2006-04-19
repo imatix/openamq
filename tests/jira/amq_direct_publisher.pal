@@ -1,16 +1,16 @@
 <?xml?>
-<pal script = "amq_pal_gen">
+<pal script = "amq_pal_gen" >
     <session>
         <set name = "count" value = "4" cmdline = "C" />
-        <repeat times = "$count" counter = "counter">
-        <basic_content message_id = "id-$counter">
+        <repeat times = "$count">
+        <basic_content message_id = "id-$random">
             <headers>
                 <field name = "x" value = "a" />
                 <field name = "y" value = "b" />
                 <field name = "z" value = "c" />
             </headers>
         </basic_content>
-        <basic_publish exchange = "mytopicexchange" routing_key = "foo.bar.baz.$counter"/>
+        <basic_publish exchange = "mydirectexchange" />
         </repeat>
     </session>
     

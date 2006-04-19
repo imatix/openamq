@@ -1,14 +1,14 @@
 <?xml?>
-<pal script = "amq_pal_gen">
-    <set name = "count" value = "4" cmdline = "C" />
+<pal script = "amq_pal_gen" >
     <session>
-        <exchange_declare exchange = "mytopicexchange" type = "topic" />
-        <queue_declare queue = "mytopicqueue" />
-        <repeat times = "1000" counter = "i">
-            <queue_bind queue = "mytopicqueue" exchange = "mytopicexchange" routing_key = "foo.bar.baz.$i" />
-        </repeat>
-        <basic_consume queue = "mytopicqueue" />
-
+        <exchange_declare exchange = "mydirectexchange" type = "direct" />
+        <queue_declare queue = "mydirectqueue" />
+        <queue_bind queue = "mydirectqueue" exchange = "mydirectexchange">
+            <arguments>
+                <field name = "x" value = "a" />
+            </arguments>
+        </queue_bind>
+        <basic_consume queue = "mydirectqueue" />
         <wait/>
         <timer/>
         <basic_arrived>
@@ -18,10 +18,12 @@
         <empty>
             <abort>No message</abort>
         </empty>
-        <repeat times = "$count">
+        <repeat times = "10000">
             <wait />
             <basic_arrived>
+                <!-- <inc name = "messages"/>
                 <echo>In $messages: [$message_id] with x=$headers-x y=$headers-y z=$headers-z</echo>
+                -->
             </basic_arrived>
             <empty>
                 <abort>No message</abort>
