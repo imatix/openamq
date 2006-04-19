@@ -4,11 +4,6 @@
         <set name = "count" value = "4" cmdline = "C" />
         <repeat times = "$count">
         <basic_content message_id = "id-$random">
-            <headers>
-                <field name = "x" value = "a" />
-                <field name = "y" value = "b" />
-                <field name = "z" value = "c" />
-            </headers>
         </basic_content>
         <basic_publish exchange = "mydirectexchange" />
         </repeat>

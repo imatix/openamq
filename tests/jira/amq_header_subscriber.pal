@@ -3,6 +3,7 @@
     script = "amq_pal_gen"
     desc   = "Subscribe client 2"
     >
+    <set name = "count" value = "4" cmdline = "C" />
     <session>
         <exchange_declare exchange = "myheadersexchange" type = "headers" />
         <queue_declare queue = "myheaderqueue" />
@@ -12,28 +13,25 @@
             </arguments>
         </queue_bind>
         <basic_consume queue = "myheaderqueue" />
-        <wait/>
-        <timer/>
-        <basic_arrived>
-            <inc name = "messages"/>
-            <echo>In $messages: [$message_id] with x=$headers-x y=$headers-y z=$headers-z</echo>
-        </basic_arrived>
-        <empty>
-            <abort>No message</abort>
-        </empty>
-        <repeat times = "10000">
+        <set name = "total" value = "0" />
+        <repeat>
             <wait />
+            <if  name  = "total" value = "0" >
+                <timer />
+            </if>
             <basic_arrived>
-            <!--
-                <inc name = "messages"/>
+                <inc name = "total" />
                 <echo>In $messages: [$message_id] with x=$headers-x y=$headers-y z=$headers-z</echo>
-                -->
             </basic_arrived>
             <empty>
                 <abort>No message</abort>
             </empty>
+            <if name = "count" test = "eq" value = "total">
+                <timer action = "show" />
+                <exit />
+            </if>
         </repeat>
-        <timer action = "show" />
+
     </session>
     
 </pal>
