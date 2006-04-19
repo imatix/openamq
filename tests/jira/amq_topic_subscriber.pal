@@ -4,16 +4,15 @@
     <session>
         <exchange_declare exchange = "mytopicexchange" type = "topic" />
         <queue_declare queue = "mytopicqueue" />
-        <repeat times = "1000" counter = "i">
-            <queue_bind queue = "mytopicqueue" exchange = "mytopicexchange" routing_key = "foo.bar.baz.$i" />
+        <repeat times = "1000" counter = "counter">
+            <queue_bind queue = "mytopicqueue" exchange = "mytopicexchange" routing_key = "foo.bar.baz.$counter" />
         </repeat>
         <basic_consume queue = "mytopicqueue" />
 
         <wait/>
         <timer/>
         <basic_arrived>
-            <inc name = "messages"/>
-            <echo>In $messages: [$message_id] with x=$headers-x y=$headers-y z=$headers-z</echo>
+            <echo>[$message_id] with rk=$routing_key</echo>
         </basic_arrived>
         <empty>
             <abort>No message</abort>
@@ -21,7 +20,7 @@
         <repeat times = "$count">
             <wait />
             <basic_arrived>
-                <echo>In $messages: [$message_id] with x=$headers-x y=$headers-y z=$headers-z</echo>
+                <echo>[$message_id] with rk=$routing_key</echo>
             </basic_arrived>
             <empty>
                 <abort>No message</abort>
