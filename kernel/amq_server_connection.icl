@@ -53,9 +53,11 @@ This class implements the connection class for the AMQ server.
 </method>
 
 <method name = "destroy">
+    <local>
     amq_queue_list_iterator_t
        iterator;
-
+    </local>
+    //
     //  Firstly, send notification of connection termination to all
     //  exclusive queues created by the connection, so that they can be
     //  destroyed even if there is no consumer on the queue.
