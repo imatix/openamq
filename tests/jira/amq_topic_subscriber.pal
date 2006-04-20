@@ -1,13 +1,17 @@
 <?xml?>
 <pal script = "amq_pal_gen">
-    <set name = "count" value = "4" cmdline = "C" />
+    <set name = "count" cmdline = "C" />
+    <set name = "bindings" cmdline = "B" />
+    <set name = "client" cmdline = "N" />
     <session>
         <exchange_declare exchange = "mytopicexchange" type = "topic" />
-        <queue_declare queue = "mytopicqueue" />
-        <repeat times = "1000" counter = "counter">
-            <queue_bind queue = "mytopicqueue" exchange = "mytopicexchange" routing_key = "foo.bar.baz.$counter" />
+        <queue_declare queue = "mytopicqueue-$client" />
+        <echo>do NOT start your test yet...</echo>
+        <repeat times = "$bindings" counter = "counter">
+            <queue_bind queue = "mytopicqueue-$client" exchange = "mytopicexchange" routing_key = "foo.bar.baz.$counter" />
         </repeat>
-        <basic_consume queue = "mytopicqueue" />
+        <echo>ok, you can start the publisher now</echo>
+        <basic_consume queue = "mytopicqueue-$client" />
         <set name = "total" value = "0" />
         <repeat>
             <wait />
@@ -23,11 +27,12 @@
             </empty>
             <if name = "count" test = "eq" value = "total">
                 <timer action = "show" />
+                <basic_content message_id="stopmessage" />
+                <basic_publish exchange = "stoptopic" />
                 <exit />
             </if>
         </repeat>
     </session>
-    
 </pal>
 
 
