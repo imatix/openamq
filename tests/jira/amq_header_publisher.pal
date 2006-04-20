@@ -1,12 +1,14 @@
 <?xml?>
-<pal
-    script = "amq_pal_gen"
-    desc   = "Publishing client"
-    >
+<pal script = "amq_pal_gen" >
     <session>
-        <set name = "count" value = "4" cmdline = "C" />
+        <set name = "count" value = "1000" cmdline = "C" />
+        <set name = "subscribers" value = "1" cmdline = "S" />
+		<exchange_declare exchange = "stopheaders" type = "direct" />
+		<queue_declare queue = "stopqueue" />
+		<queue_bind queue = "stopqueue" exchange = "stopheaders" />
+		<timer />
         <repeat times = "$count">
-        <basic_content message_id = "id-$random">
+        	<basic_content message_id = "id-$random">
             <headers>
                 <field name = "x" value = "a" />
                 <field name = "y" value = "b" />
@@ -15,6 +17,17 @@
         </basic_content>
         <basic_publish exchange = "myheadersexchange" />
         </repeat>
+
+		<basic_consume queue = "stopqueue" />
+		<repeat times = "$subscribers">
+			<wait/>
+			<basic_arrived>
+				<echo>got stop message</echo>
+			</basic_arrived>
+			<empty>
+			</empty>
+		</repeat>
+		<timer action = "show" />
     </session>
     
 </pal>

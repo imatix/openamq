@@ -21,17 +21,18 @@
             </if>
             <basic_arrived>
                 <inc name = "total" />
-                <echo>In $messages: [$message_id] with x=$headers-x y=$headers-y z=$headers-z</echo>
+                <!-- <echo>In $messages: [$message_id] with x=$headers-x y=$headers-y z=$headers-z</echo>-->
             </basic_arrived>
             <empty>
                 <abort>No message</abort>
             </empty>
             <if name = "count" test = "eq" value = "total">
                 <timer action = "show" />
+		<basic_content message_id="stopmessage" />
+		<basic_publish exchange = "stopheaders" />
                 <exit />
             </if>
         </repeat>
-
     </session>
     
 </pal>

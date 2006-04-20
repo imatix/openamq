@@ -18,7 +18,7 @@
             </if>
             <basic_arrived>
                 <inc name = "total" />
-                <echo>In $messages: [$message_id]</echo>
+                <!-- <echo>In $messages: [$message_id]</echo> -->
             </basic_arrived>
             <empty>
                 <abort>No message</abort>

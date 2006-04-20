@@ -16,7 +16,7 @@
             </if>
             <basic_arrived>
                 <inc name = "total" />
-                <echo>[$message_id] with rk=$routing_key</echo>
+                <!-- <echo>[$message_id] with rk=$routing_key</echo> -->
             </basic_arrived>
             <empty>
                 <abort>No message</abort>
