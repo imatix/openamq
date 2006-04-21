@@ -1,10 +1,15 @@
 <?xml?>
 <pal script = "amq_pal_gen">
-    <set name = "once"        value = "0"    cmdline = "O" />
+    <set name = "once"   value = "0" cmdline = "O" />
+    <set name = "topics" value = "0" cmdline = "T" />
 
     <session>
         <queue_declare exclusive = "1" />
         <queue_bind queue = "$queue" exchange = "amq.topic" routing_key = "test" />
+        <!-- Create extra topics to load the topic exchange -->
+        <repeat times = "$topics">
+            <queue_bind queue = "$queue" exchange = "amq.topic" routing_key = "test.$random" />
+        </repeat>
         <basic_consume queue = "$queue" />
         <repeat>
             <wait/>
