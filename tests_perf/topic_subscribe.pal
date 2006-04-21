@@ -7,9 +7,10 @@
         <queue_declare exclusive = "1" />
         <queue_bind queue = "$queue" exchange = "amq.topic" routing_key = "test" />
         <!-- Create extra topics to load the topic exchange -->
-        <repeat times = "$topics">
-            <queue_bind queue = "$queue" exchange = "amq.topic" routing_key = "test.$random" />
+        <repeat times = "$topics" counter = "id">
+            <queue_bind queue = "$queue" exchange = "amq.topic" routing_key = "test.topic.$id" />
         </repeat>
+        <echo>Subscriber is ready</echo>
         <basic_consume queue = "$queue" />
         <repeat>
             <wait/>
