@@ -258,6 +258,13 @@ $\(selftype)
     </doc>
     </property>
 
+    <property name = "heartbeat" type = "int" default = "2" dynamic = "1">
+    Heartbeat from client to server, seconds
+    <doc>
+    Defines the timeout for connection heartbeating.
+    </doc>
+    </property>
+
     <property name = "read timeout" type = "int" default = "30" dynamic = "1">
     Network read timeout, seconds
     <doc>
