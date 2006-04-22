@@ -195,7 +195,7 @@ class.
     iterator = amq_queue_list_begin (self->queue_list);
     while (iterator) {
         if (amq_server_config_debug_route (amq_server_config))
-            asl_log_print (amq_broker->debug_log, "X: publish  queue=%s", (*iterator)->key);
+            asl_log_print (amq_broker->debug_log, "X: deliver  queue=%s", (*iterator)->key);
         amq_queue_publish (*iterator, channel, method, from_cluster);
         iterator = amq_queue_list_next (iterator);
         rc++;                           //  Count recepients

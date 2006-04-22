@@ -31,6 +31,7 @@ manage OpenAMQ servers.
 
 <method name = "new">
     <argument name = "host" type = "char *">Server host name</argument>
+    <argument name = "vhost" type = "char *">Virtual host name</argument>
     <argument name = "user" type = "char *">Login user name</argument>
     <argument name = "password" type = "char *">Login password</argument>
     <argument name = "trace" type = "int">Trace level</argument>
@@ -44,7 +45,7 @@ manage OpenAMQ servers.
     icl_system_initialise (0, NULL);
 
     auth_data = amq_client_connection_auth_plain (user, password);
-    self->connection = amq_client_connection_new (host, "/", auth_data, trace, 5000);
+    self->connection = amq_client_connection_new (host, vhost, auth_data, trace, 5000);
     icl_longstr_destroy (&auth_data);
 
     if (self->connection) {

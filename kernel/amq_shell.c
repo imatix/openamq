@@ -22,6 +22,7 @@
     "\n"                                                                     \
     "General options:\n"                                                     \
     "  -s hostname      Broker hostname and :port (localhost)\n"             \
+    "  -V virtualhost   Specify cluster virtual host\n"                      \
     "  -u user          User name for console access (console)\n"            \
     "  -p password      Password for console access (console)\n"             \
     "  -e \"commands\"    Run shell commands, delimited by ;\n"              \
@@ -38,7 +39,8 @@
     "are case sensitive. See documentation for detailed information.\n"      \
     "\n"
 
-static void s_do_authenticated_port_scan (char *s_opt_host, char *s_opt_user, char *s_opt_pass);
+static void s_do_authenticated_port_scan (
+    char *s_opt_host, char *s_opt_vhost, char *s_opt_user, char *s_opt_pass);
 
 int main (int argc, char *argv[])
 {
@@ -54,6 +56,7 @@ int main (int argc, char *argv[])
         *s_opt_host = NULL,             //  -s specifies server name
         *s_opt_user = NULL,             //  -u specifies user name
         *s_opt_pass = NULL,             //  -p specifies password
+        *s_opt_vhost = NULL,            //  -V specifies virtual host
         *s_opt_command = NULL,          //  -e specifies command string
         *s_opt_trace = NULL,            //  -t specifies trace level
         *s_opt_xml  = NULL;             //  -x specifies XML filename
@@ -92,6 +95,9 @@ int main (int argc, char *argv[])
                     break;
                 case 'p':
                     argparm = &s_opt_pass;
+                    break;
+                case 'V':
+                    argparm = &s_opt_vhost;
                     break;
                 case 'e':
                     argparm = &s_opt_command;
@@ -164,13 +170,15 @@ int main (int argc, char *argv[])
         s_opt_user = "console";
     if (!s_opt_pass)
         s_opt_pass = "console";
+    if (!s_opt_vhost)
+        s_opt_vhost = "/";
     if (!s_opt_trace)
         s_opt_trace = "0";
 
     if (s_opt_report)
-        s_do_authenticated_port_scan (s_opt_host, s_opt_user, s_opt_pass);
+        s_do_authenticated_port_scan (s_opt_host, s_opt_vhost, s_opt_user, s_opt_pass);
 
-    console = amq_mgt_console_new (s_opt_host, s_opt_user, s_opt_pass, atoi (s_opt_trace));
+    console = amq_mgt_console_new (s_opt_host, s_opt_vhost, s_opt_user, s_opt_pass, atoi (s_opt_trace));
     if (!console)
         exit (EXIT_FAILURE);
 
@@ -214,7 +222,7 @@ int main (int argc, char *argv[])
 }
 
 static void s_do_authenticated_port_scan (
-    char *s_opt_host, char *s_opt_user, char *s_opt_pass)
+    char *s_opt_host, char *s_opt_vhost, char *s_opt_user, char *s_opt_pass)
 {
     int
         port;
@@ -231,7 +239,7 @@ static void s_do_authenticated_port_scan (
     auth_data = amq_client_connection_auth_plain (s_opt_user, s_opt_pass);
     for (port = 5000; port < 10000; port++) {
         icl_shortstr_fmt (host, "%s:%d", s_opt_host, port);
-        connection = amq_client_connection_new (host, "/", auth_data, 0, 1000);
+        connection = amq_client_connection_new (host, s_opt_vhost, auth_data, 0, 1000);
         if (connection) {
             icl_console_print ("Found %s/%s on %s",
                 connection->server_product, connection->server_version, host);
