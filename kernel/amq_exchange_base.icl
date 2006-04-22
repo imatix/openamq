@@ -82,8 +82,9 @@ This is an abstract base class for all exchange implementations.
         mandatory     = basic_method->mandatory;
         routing_key   = basic_method->routing_key;
         message_id    = basic_content->message_id;
-        asl_log_print (amq_broker->debug_log,
-            "X: publish  %s: routing_key=%s", self->exchange->name, routing_key);
+        if (amq_server_config_debug_route (amq_server_config))
+            asl_log_print (amq_broker->debug_log,
+                "X: publish  %s: routing_key=%s", self->exchange->name, routing_key);
     }
     else
         asl_log_print (amq_broker->alert_log,
