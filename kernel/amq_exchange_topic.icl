@@ -108,7 +108,7 @@ specification.
             if (ipr_regexp_match (regexp, routing_key, NULL)) {
                 if (amq_server_config_debug_route (amq_server_config))
                     asl_log_print (amq_broker->debug_log,
-                        "X: index  %s: routing_key=%s wildcard=%s",
+                        "X: index    %s: routing_key=%s wildcard=%s",
                         self->exchange->name, routing_key, binding->routing_key);
 
                 //  Cross-reference binding and index
