@@ -246,7 +246,7 @@
         if (self->dump_state_timer == 0) {
             self->dump_state_timer = amq_server_config_dump_state (amq_server_config);
             asl_log_print (amq_broker->alert_log,
-                "I: cnn=%d msg=%d mem=%uK/%uK exc=%d que=%d csm=%d bnd=%d",
+                "I: cnn=%d msg=%d mem=%uK/%uK exc=%d que=%d csm=%d bnd=%d adx=%d idx=%d map=%d",
                 amq_server_connection_count (),
                 amq_content_basic_count (),
                 ipr_bucket_used () / 1024,
@@ -254,7 +254,10 @@
                 amq_exchange_count (),
                 amq_queue_count (),
                 amq_consumer_count (),
-                amq_binding_count ());
+                amq_binding_count (),
+                amq_index_count (),
+                ipr_index_count (),
+                ipr_bits_count ());
         }
     }
     if (self->auto_crash_timer) {

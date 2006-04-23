@@ -8,7 +8,8 @@
 <doc>
 This class implements the topic exchange, which routes messages
 based on the routing_key matched against a wild-card topic tree
-specification.
+specification.  Max. topics per exchange is limited by size of
+amq_index_hash table.
 </doc>
 
 <inherit class = "amq_exchange_base" />
@@ -52,31 +53,52 @@ specification.
     </local>
     //
     //  Turn the routing_key string into a nice regexp
-    s_topic_to_regexp (binding->routing_key, binding->regexp);
-    regexp = ipr_regexp_new (binding->regexp);
+    binding->is_wildcard = s_topic_to_regexp (binding->routing_key, binding->regexp);
 
-    if (amq_server_config_debug_route (amq_server_config))
-        asl_log_print (amq_broker->debug_log,
-            "X: reindex  %s: wildcard=%s", self->exchange->name, binding->routing_key);
+    if (binding->is_wildcard) {
+        if (amq_server_config_debug_route (amq_server_config))
+            asl_log_print (amq_broker->debug_log,
+                "X: compile  %s: wildcard=%s", self->exchange->name, binding->routing_key);
 
-    //  We scan all indices to see which ones match our regexp
-    for (index_nbr = 0; index_nbr < self->index_array->bound; index_nbr++) {
-        index = amq_index_array_fetch (self->index_array, index_nbr);
-        if (index) {
-            if (ipr_regexp_match (regexp, index->key, NULL)) {
-                if (amq_server_config_debug_route (amq_server_config))
-                    asl_log_print (amq_broker->debug_log,
-                        "X: index    %s: wildcard=%s routing_key=%s",
-                        self->exchange->name, binding->routing_key, index->key);
+        //  We scan all indices to see which ones match our regexp
+        regexp = ipr_regexp_new (binding->regexp);
+        for (index_nbr = 0; index_nbr < self->index_array->bound; index_nbr++) {
+            index = amq_index_array_fetch (self->index_array, index_nbr);
+            if (index) {
+                if (ipr_regexp_match (regexp, index->key, NULL)) {
+                    if (amq_server_config_debug_route (amq_server_config))
+                        asl_log_print (amq_broker->debug_log,
+                            "X: index    %s: wildcard=%s routing_key=%s",
+                            self->exchange->name, binding->routing_key, index->key);
 
-                //  Cross-reference binding and index
-                ipr_bits_set (index->bindset, binding->index);
-                ipr_looseref_queue (binding->index_list, index);
+                    //  Cross-reference binding and index
+                    ipr_bits_set (index->bindset, binding->index);
+                    ipr_looseref_queue (binding->index_list, index);
+                }
+                amq_index_unlink (&index);
             }
-            amq_index_unlink (&index);
         }
+        ipr_regexp_destroy (&regexp);
     }
-    ipr_regexp_destroy (&regexp);
+    else {
+        if (amq_server_config_debug_route (amq_server_config))
+            asl_log_print (amq_broker->debug_log,
+                "X: compile  %s: topic=%s", self->exchange->name, binding->routing_key);
+
+        //  Find index that matches our topic name as-is
+        index = amq_index_hash_search (self->index_hash, binding->routing_key);
+        if (index == NULL) {
+            if (amq_server_config_debug_route (amq_server_config))
+                asl_log_print (amq_broker->debug_log,
+                    "X: newtopic %s: topic=%s", self->exchange->name, binding->routing_key);
+
+            index = amq_index_new (self->index_hash, binding->routing_key, self->index_array);
+        }
+        //  Cross-reference binding and index
+        ipr_bits_set (index->bindset, binding->index);
+        ipr_looseref_queue (binding->index_list, index);
+        amq_index_unlink (&index);
+    }
 </method>
 
 <method name = "publish">
@@ -96,12 +118,12 @@ specification.
     if (index == NULL) {
         if (amq_server_config_debug_route (amq_server_config))
             asl_log_print (amq_broker->debug_log,
-                "X: reindex  %s: routing_key=%s", self->exchange->name, routing_key);
+                "X: newtopic %s: topic=%s", self->exchange->name, routing_key);
 
         //  Create new index and recompile all bindings for it
         index = amq_index_new (self->index_hash, routing_key, self->index_array);
         binding = amq_binding_list_first (self->exchange->binding_list);
-        while (binding) {
+        while (binding && binding->is_wildcard) {
             //  TODO: size of regexp object? keep it active per binding
             //  sub-structure for bindings, dependent on exchange class...
             regexp = ipr_regexp_new (binding->regexp);
@@ -118,6 +140,8 @@ specification.
             ipr_regexp_destroy (&regexp);
             binding = amq_binding_list_next (&binding);
         }
+        if (binding)                    //  If we stopped before the end of the list
+            amq_binding_unlink (&binding);
     }
     if (amq_server_config_debug_route (amq_server_config))
         asl_log_print (amq_broker->debug_log,
@@ -142,7 +166,7 @@ specification.
 //  digits, and underscores.
 #define S_WILDCARD_SINGLE     "`w+"                 //  *
 #define S_WILDCARD_MULTIPLE   "`w+(?:`.`w+)*"       //  #
-static void
+static Bool
     s_topic_to_regexp (char *index_regexp, char *regexp);
 </private>
 
@@ -152,13 +176,16 @@ static void
       '*' in the routing_key name means wildcard a single level of indexes.
       '#' in the routing_key name means wildcard zero or more levels.
       index levels are separated by '.'.  regexp must be an icl_shortstr_t.
+      Returns true if topic is a wildcard, false if it's a simple topic name.
  */
-static void
+static Bool
 s_topic_to_regexp (char *topic, char *regexp)
 {
     char
         *from_ptr,
         *to_ptr;
+    Bool
+        is_wildcard = FALSE;
 
     /*  We want a regexp starting with ^, ending with $, and with the
         * and # index wildcards replaced by appropriate regexp chars.
@@ -173,11 +200,13 @@ s_topic_to_regexp (char *topic, char *regexp)
         }
         else
         if (*from_ptr == '*') {
+            is_wildcard = TRUE;
             strcpy (to_ptr, S_WILDCARD_SINGLE);
             to_ptr += strlen (S_WILDCARD_SINGLE);
         }
         else
         if (*from_ptr == '#') {
+            is_wildcard = TRUE;
             strcpy (to_ptr, S_WILDCARD_MULTIPLE);
             to_ptr += strlen (S_WILDCARD_MULTIPLE);
         }
@@ -187,6 +216,7 @@ s_topic_to_regexp (char *topic, char *regexp)
     }
     *to_ptr++ = '$';                    //  index end of index name
     *to_ptr++ = 0;
+    return (is_wildcard);
 }
 </private>
 

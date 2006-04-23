@@ -6,9 +6,9 @@
     script    = "icl_gen"
     >
 <doc>
-    Holds a hitset, which is the result of a match field name and
-    value.  The hitset is an array of all matching indices plus
-    upper/lower limits on this array.
+    Holds a hitset, which is the result of a match field name and value.  
+    The hitset is an array of all matching indices plus upper/lower 
+    limits on this array.
 </doc>
 
 <inherit class = "icl_object">
@@ -47,8 +47,7 @@
         while (item_nbr >= 0) {
             if (amq_server_config_debug_route (amq_server_config))
                 asl_log_print (amq_broker->debug_log,
-                    "X: route    header=%s binding=%d",
-                    index_key, item_nbr);
+                    "X: route    header=%s binding=%d", index_key, item_nbr);
             if (item_nbr < self->lowest)
                 self->lowest = item_nbr;
             //  We don't nullify this object so initialise new hit counts

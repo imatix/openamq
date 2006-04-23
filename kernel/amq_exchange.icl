@@ -478,8 +478,14 @@ s_bind_object (
         if (!hash)                      //  Hash routing key if needed
             hash = ipr_hash_new (self->binding_hash, routing_key, binding);
 
-        if (self->compile (self->object, binding, channel) == 0)
-            amq_binding_list_queue (self->binding_list, binding);
+        //  Compile binding and put all 'wildcard' bindings at the front
+        //  of the list. The meaning of this flag depends on the exchange.
+        if (self->compile (self->object, binding, channel) == 0) {
+            if (binding->is_wildcard)
+                amq_binding_list_push (self->binding_list, binding);
+            else
+                amq_binding_list_queue (self->binding_list, binding);
+        }
     }
     if (queue)
         amq_binding_bind_queue (binding, queue);

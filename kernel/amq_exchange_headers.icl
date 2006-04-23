@@ -8,7 +8,8 @@
 <doc>
 This class implements the headers exchange, which routes messages
 based on the message header fields (the field table called "headers"
-that is in every content header).
+that is in every content header).  Max. unique fields exchange is
+limited by size of amq_index_hash table.
 </doc>
 
 <inherit class = "amq_exchange_base" />
@@ -39,17 +40,6 @@ that is in every content header).
     prefixed by X- are not matched on.  The field called "X-match"
     can have the value "all" or "any", meaning logical AND or OR of
     all matches.  It defaults to "all".
-
-    Deprecated:
-    Compiles a property binding.  The arguments must contain a field
-    called "headers", which is a field table that holds a set of fields
-    to match on.  Each field with a non-empty value is matched for that
-    field/value pair.  Each field with an empty value is matched for
-    presence only (matching any value in the message).  The matching
-    function is controlled by a second field, called "match", which
-    can be "all" or "any" - like logical AND and OR - and which defaults
-    to "all".  An empty or missing headers field means, "match all
-    messages."
     </doc>
     <local>
     asl_field_list_t

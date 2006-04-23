@@ -39,14 +39,16 @@ class.
         routing_key;                    //  Binding routing key
     icl_longstr_t
         *arguments;                     //  Additional binding arguments
+    Bool
+        is_wildcard;                    //  Matches multiple routing keys?
     int
         index;                          //  Index in exchange->binding_index
 
-    //  Only used for dest-wild matching, might be moved elsewhere
+    //  Only used for topic exchange, might be moved elsewhere
     icl_shortstr_t
         regexp;                         //  Binding routing key pattern
 
-    //  Only used for property matching, might be moved elsewhere
+    //  Only used for header exchange, might be moved elsewhere
     int
         field_count;                    //  Number of fields indexed
     Bool
@@ -141,7 +143,7 @@ class.
     //  Signal to caller if binding is now empty
     if (amq_queue_list_size (self->queue_list) == 0
     &&  ipr_looseref_list_count (self->peer_list) == 0)
-        rc = -1;                        
+        rc = -1;
 </method>
 
 <method name = "unbind peer" template = "function">
