@@ -1,12 +1,33 @@
 <?xml?>
 <pal script = "amq_pal_gen" >
     <session>
-        <set name = "count" value = "4" cmdline = "C" />
+        <set name = "count" value = "1000" cmdline = "C" />
+	<set name = "subscribers" value = "0" cmdline = "S" />
+        <exchange_declare exchange = "stopdirect" type = "direct" />
+	<queue_declare queue = "stopqueue" />
+	<queue_bind queue = "stopqueue" exchange = "stopdirect" />
+	<timer />
         <repeat times = "$count">
-        <basic_content message_id = "id-$random">
-        </basic_content>
-        <basic_publish exchange = "mydirectexchange" />
+            <basic_content message_id = "id-$random" />
+            <basic_publish exchange = "mydirectexchange" />
         </repeat>
+	<basic_consume queue = "stopqueue" />
+	<set name = "stopcount" value = "0" />
+        <repeat>
+                <wait/>
+                <basic_arrived>
+                        <inc name = "stopcount" />
+                        <echo>got stop message</echo>
+                </basic_arrived>
+                <empty>
+                        <echo>empty</echo>
+                </empty>
+                <if name = "stopcount" test = "eq" value = "$subscribers">
+                        <timer action = "show" />
+                        <exit />
+                </if>
+        </repeat>
+	
     </session>
     
 </pal>

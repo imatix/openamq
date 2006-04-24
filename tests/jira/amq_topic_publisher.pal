@@ -7,10 +7,13 @@
 	<queue_declare queue = "stopqueue" />
 	<queue_bind queue = "stopqueue" exchange = "stoptopic" />
 	<timer />
-        <repeat times = "$count" counter = "counter">
-	    <basic_content message_id = "id-$counter" routing_key = "foo.bar.baz.$counter" />
-	    <basic_publish exchange = "mytopicexchange" routing_key = "foo.bar.baz.$counter"/>
-        </repeat>
+	<!-- next to lines are reversed to amq_topic_publisher.pal -->
+        <repeat times = "$subscribers" counter = "sub">
+            <repeat times = "$count" counter = "counter">
+	        <basic_content message_id = "id-$sub.$counter" routing_key = "foo.bar.$sub.$counter" />
+	        <basic_publish exchange = "mytopicexchange" routing_key = "foo.bar.$sub.$counter"/>
+            </repeat>
+	</repeat>
 	<basic_consume queue = "stopqueue" />
 	<set name = "stopcount" value = "0" />
 	<repeat>

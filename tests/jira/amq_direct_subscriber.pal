@@ -1,15 +1,16 @@
 <?xml?>
 <pal script = "amq_pal_gen" >
-    <set name = "count" value = "4" cmdline = "C" />
+    <set name = "count" value = "1000" cmdline = "C" />
+    <set name = "client" value = "0" cmdline = "N" />
     <session>
         <exchange_declare exchange = "mydirectexchange" type = "direct" />
-        <queue_declare queue = "mydirectqueue" />
-        <queue_bind queue = "mydirectqueue" exchange = "mydirectexchange">
+        <queue_declare queue = "mydirectqueue-$client" />
+        <queue_bind queue = "mydirectqueue-$client" exchange = "mydirectexchange">
             <arguments>
                 <field name = "x" value = "a" />
             </arguments>
         </queue_bind>
-        <basic_consume queue = "mydirectqueue" />
+        <basic_consume queue = "mydirectqueue-$client" />
         <set name = "total" value = "0" />
         <repeat>
             <wait />
@@ -23,8 +24,11 @@
             <empty>
                 <abort>No message</abort>
             </empty>
+	    <!-- <echo>count: $count total: $total</echo> -->
             <if name = "count" test = "eq" value = "total">
                 <timer action = "show" />
+		<basic_content message_id = "stopmessage" />
+		<basic_publish exchange = "stopdirect" />
                 <exit />
             </if>
         </repeat>

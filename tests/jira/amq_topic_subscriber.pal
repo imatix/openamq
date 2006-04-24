@@ -1,21 +1,20 @@
 <?xml?>
 <pal script = "amq_pal_gen">
-    <set name = "count" cmdline = "C" />
-    <set name = "bindings" cmdline = "B" />
-    <set name = "client" cmdline = "N" />
+    <set name = "count" value = "0" cmdline = "C" />
+    <set name = "client" value = "0" cmdline = "N" />
+    <set name = "messages" value = "1" cmdline = "M" />
     <session>
-        <exchange_declare exchange = "mytopicexchange" type = "topic" />
-        <queue_declare queue = "mytopicqueue-$client" />
-        <echo>do NOT start your test yet...</echo>
-        <repeat times = "$bindings" counter = "counter">
-            <queue_bind queue = "mytopicqueue-$client" exchange = "mytopicexchange" routing_key = "foo.bar.baz.$counter" />
+        <queue_declare queue = "queue-$client" auto_delete = "1" />
+        <repeat times = "$count" counter = "counter">
+            <queue_bind queue = "queue-$client" exchange = "amq.topic" routing_key = "foo.bar.$client.$counter" />
         </repeat>
-        <echo>ok, you can start the publisher now</echo>
-        <basic_consume queue = "mytopicqueue-$client" />
+        <basic_consume queue = "queue-$client" />
+        <echo>Subscriber ready</echo>
+
         <set name = "total" value = "0" />
         <repeat>
             <wait />
-            <if  name  = "total" value = "0" >
+            <if name  = "total" value = "0" >
                 <timer />
             </if>
             <basic_arrived>
@@ -25,10 +24,11 @@
             <empty>
                 <abort>No message</abort>
             </empty>
-            <if name = "count" test = "eq" value = "total">
+	    <!-- <echo>count: $count total: $total </echo> -->
+            <if name = "messages" test = "eq" value = "total">
                 <timer action = "show" />
-                <basic_content message_id="stopmessage" />
-                <basic_publish exchange = "stoptopic" />
+                <basic_content message_id = "stop" />
+                <basic_publish routing_key = "publisher-control" />
                 <exit />
             </if>
         </repeat>
