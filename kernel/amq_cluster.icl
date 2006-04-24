@@ -282,11 +282,10 @@ amq_cluster_t
         cluster_alive = TRUE;           //  Is cluster alive?
 
     //  Update all peers' status
-    //TRACE icl_console_print ("##### Cluster monitor ");
     peer = amq_peer_list_first (self->peer_list);
     while (peer) {
-        //TRACE icl_console_print ("## Checking peer name=%s host=%s master=%d joined=%d offlined=%d backup=%d",
-        //TRACE     peer->name, peer->host, peer->master, peer->joined, peer->offlined, peer->backup);
+        icl_console_print ("## Checking peer name=%s host=%s master=%d joined=%d offlined=%d backup=%d",
+            peer->name, peer->host, peer->master, peer->joined, peer->offlined, peer->backup);
         amq_peer_monitor (peer);
         if (peer->master)
             current_masters++;
@@ -594,6 +593,8 @@ amq_cluster_t
         strerror;                       //  Text for method errors
     amq_server_connection_t
         *connection;
+    Bool
+        delivered_to_peer;              //  Message for peer was delivered
 
     //  Decode proxied method from content body
     bucket = ipr_bucket_new (IPR_BUCKET_MAX_SIZE);
@@ -619,6 +620,7 @@ amq_cluster_t
     }
     //  Find out what peer sent this method to us
     peer = connection? amq_peer_list_first (self->peer_list): NULL;
+    delivered_to_peer = FALSE;
     while (peer) {
         if (streq (peer->name, content->proxy_name)) {
             if (method->class_id == AMQ_SERVER_CLUSTER)
@@ -629,9 +631,15 @@ amq_cluster_t
                 s_execute_basic_get (self, method, peer, channel, content);
             else
                 amq_server_method_execute (method, connection, channel);
+
+            delivered_to_peer = TRUE;
         }
         peer = amq_peer_list_next (&peer);
     }
+    if (!delivered_to_peer)
+        asl_log_print (amq_broker->alert_log,
+            "E: check cluster config - is '%s' used for wrong peer?", content->proxy_name);
+
     amq_server_connection_unlink (&connection);
     amq_server_method_unlink (&method);
     ipr_bucket_unlink (&bucket);
