@@ -1,0 +1,17 @@
+<?xml?>
+<pal script = "amq_pal_gen" > 
+    <set name = "client" value = "0" cmdline = "N" />
+    <set name = "first" value = "1" cmdline = "F" />
+    <set name = "second" value = "1" cmdline = "S" />
+    <session>
+        <repeat times = "first" counter = "i" >
+	    <repeat times = "second" counter = "j" >
+                <basic_content message_id = "id.$i.$j" />
+		<repeat times = "1000">
+		    <basic_publish exchange = "myexchange-$client" routing_key = "foo.bar.baz.$i.$j" />
+		</repeat>
+	    </repeat>
+	</repeat>
+    </session>
+</pal>
+

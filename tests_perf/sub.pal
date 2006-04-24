@@ -1,0 +1,34 @@
+<?xml?>
+<pal script = "amq_pal_gen" >
+    <set name = "client"   value = "0" cmdline = "N" />
+    <set name = "first" value = "1" cmdline = "F" />
+    <set name = "second" value = "1" cmdline = "S" />
+    <session>
+    	<exchange_declare exchange = "myexchange-$client" type = "topic" />
+    	<queue_declare queue = "myqueue-$client" />
+	<repeat times = "$first" counter = "i"> 
+	    <repeat times = "$second" counter = "j">
+	        <queue_bind queue = "myqueue-$client" exchange = "myexchange-$client" routing_key = "foo.bar.baz.$i.$j" />
+	    </repeat> 
+	</repeat>
+	<echo>start test now</echo>
+	<timer />
+        <basic_consume queue = "myqueue-$client" />
+	<set name = "passed" value = "0" />
+        <repeat>
+            <wait />
+            <basic_arrived>
+	    	<inc name = "passed" />
+                <!-- <echo>Message '$message_id' [$body_size] came back from $exchange to us using rk: '$routing_key'</echo> -->
+            </basic_arrived>
+            <empty>
+                <echo>Message did not come back, this is bad!</echo>
+            </empty>
+	    <if name = "passed" test = "eq" value = "1000">
+	    	<timer action = "show" />
+		<exit/>
+	    </if>
+	</repeat>
+    </session>
+</pal>
+
