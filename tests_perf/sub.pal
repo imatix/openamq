@@ -12,11 +12,13 @@
 	    </repeat> 
 	</repeat>
 	<echo>start test now</echo>
-	<timer />
         <basic_consume queue = "myqueue-$client" />
 	<set name = "passed" value = "0" />
         <repeat>
             <wait />
+	    <if name = "passed" test = "eq" value = "0">
+	    	<timer/>
+	    </if>
             <basic_arrived>
 	    	<inc name = "passed" />
                 <!-- <echo>Message '$message_id' [$body_size] came back from $exchange to us using rk: '$routing_key'</echo> -->
