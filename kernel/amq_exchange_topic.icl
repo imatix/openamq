@@ -123,6 +123,7 @@ amq_index_hash table.
         //  Create new index and recompile all bindings for it
         index = amq_index_new (self->index_hash, routing_key, self->index_array);
         binding = amq_binding_list_first (self->exchange->binding_list);
+
         while (binding && binding->is_wildcard) {
             //  TODO: size of regexp object? keep it active per binding
             //  sub-structure for bindings, dependent on exchange class...
