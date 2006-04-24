@@ -189,12 +189,10 @@ cluster class.
     </doc>
     <argument name = "name" type = "char *">Node's server name</argument>
     <local>
-#ifdef REMOVED_PENDING_REVIEW
     ipr_looseref_t
         *looseref;                      //  State object
     amq_content_tunnel_t
         *content;                       //  Server state message
-#endif
     </local>
     //
     self->connected = TRUE;
@@ -210,7 +208,6 @@ cluster class.
     self_send_hello (self);
 
     //  If we are the master server, synchronise our state to the new peer
-#ifdef REMOVED_PENDING_REVIEW
     if (amq_broker->master) {
         if (amq_server_config_debug_cluster (amq_server_config))
             asl_log_print (amq_broker->debug_log, "C: cluster synchronising with new peer");
@@ -223,7 +220,6 @@ cluster class.
             looseref = ipr_looseref_list_next (&looseref);
         }
     }
-#endif
 </method>
 
 <method name = "send hello" template = "function">

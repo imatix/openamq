@@ -94,8 +94,12 @@ for Basic, File, and Stream content classes.
             "%s/%s", connection->cluster_id, self->tag);
         icl_shortstr_cpy (
             method->payload.basic_consume.consumer_tag, self->cluster_id);
-        amq_cluster_tunnel_out (amq_cluster,
-            AMQ_CLUSTER_ALL, method, AMQ_CLUSTER_DURABLE, channel);
+        amq_cluster_tunnel_out (
+            amq_cluster,
+            AMQ_CLUSTER_ALL,
+            method,
+            AMQ_CLUSTER_TRANSIENT,
+            channel);
         self->clustered = TRUE;
     }
 </method>
@@ -115,10 +119,11 @@ for Basic, File, and Stream content classes.
         //  Broadcast cancel method to cluster using our cluster_id
         if (amq_cluster && amq_cluster->enabled && self->clustered) {
             method = amq_proxy_method_new_basic_cancel (self->cluster_id);
-            amq_cluster_tunnel_out (amq_cluster,
+            amq_cluster_tunnel_out (
+                amq_cluster,
                 AMQ_CLUSTER_ALL,
                 (amq_server_method_t *) method,
-                AMQ_CLUSTER_DURABLE,
+                AMQ_CLUSTER_TRANSIENT,
                 NULL);
             amq_proxy_method_destroy (&method);
         }

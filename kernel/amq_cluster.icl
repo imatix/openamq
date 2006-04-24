@@ -74,6 +74,7 @@ warn the primary server to cede its role as master.
 #define AMQ_CLUSTER_VERSION     0x100   //  1.0a
 #define AMQ_CLUSTER_MASTER      (void *) 1
 #define AMQ_CLUSTER_ALL         0
+
 #define AMQ_CLUSTER_TRANSIENT   0       //  Method durability
 #define AMQ_CLUSTER_DURABLE     1
 
@@ -481,7 +482,7 @@ amq_cluster_t
     </local>
     //
     method = amq_server_method_new_cluster_bind (exchange, routing_key, arguments);
-    amq_cluster_tunnel_out (self, AMQ_CLUSTER_ALL, method, AMQ_CLUSTER_DURABLE, NULL);
+    amq_cluster_tunnel_out (self, AMQ_CLUSTER_ALL, method, AMQ_CLUSTER_TRANSIENT, NULL);
     amq_server_method_unlink (&method);
 </method>
 
@@ -538,7 +539,7 @@ amq_cluster_t
     ipr_bucket_unlink (&bucket);
 
     //  Record wrapped method in state if wanted
-    if (durable)                        
+    if (durable)
         s_append_to_state (self, content);
 
     //  The peer argument can be a constant, or a real peer reference

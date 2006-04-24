@@ -73,8 +73,12 @@
                         //  Create exchange on all cluster peers
                         if (amq_cluster->enabled
                         &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER)
-                            amq_cluster_tunnel_out (amq_cluster,
-                                AMQ_CLUSTER_ALL, self, AMQ_CLUSTER_DURABLE, channel);
+                            amq_cluster_tunnel_out (
+                                amq_cluster,
+                                AMQ_CLUSTER_ALL,
+                                self,
+                                AMQ_CLUSTER_DURABLE,
+                                channel);
                     }
                     else
                         amq_server_connection_error (connection,
@@ -121,8 +125,12 @@
         //  Delete exchange on all cluster peers
         if (amq_cluster->enabled
         &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER)
-            amq_cluster_tunnel_out (amq_cluster,
-                AMQ_CLUSTER_ALL, self, AMQ_CLUSTER_DURABLE, channel);
+            amq_cluster_tunnel_out (
+                amq_cluster,
+                AMQ_CLUSTER_ALL,
+                self,
+                AMQ_CLUSTER_DURABLE,
+                channel);
 
         //  Tell client delete was successful
         amq_server_agent_exchange_delete_ok (connection->thread, channel->number);
@@ -205,8 +213,12 @@
                         amq_cluster_bind_exchange (amq_cluster, NULL, queue->name, NULL);
                     else
                         //  Forward queue.declare to all nodes
-                        amq_cluster_tunnel_out (amq_cluster,
-                            AMQ_CLUSTER_ALL, self, AMQ_CLUSTER_DURABLE, channel);
+                        amq_cluster_tunnel_out (
+                            amq_cluster,
+                            AMQ_CLUSTER_ALL,
+                            self,
+                            AMQ_CLUSTER_DURABLE,
+                            channel);
                 }
             }
             else
@@ -276,8 +288,12 @@
             &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER) {
                 if (queue->clustered)
                     //  Make same binding on all cluster peers
-                    amq_cluster_tunnel_out (amq_cluster,
-                        AMQ_CLUSTER_ALL, self, AMQ_CLUSTER_DURABLE, channel);
+                    amq_cluster_tunnel_out (
+                        amq_cluster,
+                        AMQ_CLUSTER_ALL,
+                        self,
+                        AMQ_CLUSTER_DURABLE,
+                        channel);
                 else
                     //  Make exchange-to-exchange binding on all cluster peers
                     amq_cluster_bind_exchange (amq_cluster,
@@ -319,8 +335,12 @@
         if (amq_cluster->enabled
         &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER
         &&  queue->clustered)
-            amq_cluster_tunnel_out (amq_cluster,
-                AMQ_CLUSTER_ALL, self, AMQ_CLUSTER_DURABLE, channel);
+            amq_cluster_tunnel_out (
+                amq_cluster,
+                AMQ_CLUSTER_ALL,
+                self,
+                AMQ_CLUSTER_DURABLE,
+                channel);
 
         //  Tell client we deleted the queue ok
         amq_server_agent_queue_delete_ok (
@@ -360,8 +380,12 @@
         if (amq_cluster->enabled
         &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER
         &&  queue->clustered)
-            amq_cluster_tunnel_out (amq_cluster,
-                AMQ_CLUSTER_ALL, self, AMQ_CLUSTER_TRANSIENT, channel);
+            amq_cluster_tunnel_out (
+                amq_cluster,
+                AMQ_CLUSTER_ALL,
+                self,
+                AMQ_CLUSTER_TRANSIENT,
+                channel);
 
         amq_queue_purge (queue, channel);
         amq_queue_unlink (&queue);
@@ -493,8 +517,12 @@
         &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER
         &&  queue->clustered
         && !amq_broker->master)
-            amq_cluster_tunnel_out (amq_cluster,
-                AMQ_CLUSTER_MASTER, self, AMQ_CLUSTER_TRANSIENT, channel);
+            amq_cluster_tunnel_out (
+                amq_cluster,
+                AMQ_CLUSTER_MASTER,
+                self,
+                AMQ_CLUSTER_TRANSIENT,
+                channel);
         else
             amq_queue_get (queue, channel, self->class_id, NULL);
 
