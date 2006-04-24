@@ -4,11 +4,13 @@
     <set name = "client" value = "0" cmdline = "N" />
     <set name = "messages" value = "1" cmdline = "M" />
     <session>
-        <queue_declare queue = "queue-$client" auto_delete = "1" />
+    	<exchange_declare exchange = "mytopicexchange" type = "topic" />
+        <queue_declare queue = "mytopicqueue-$client" auto_delete = "1" />
+	<queue_bind queue = "mytopicqueue-$client" exchange = "mytopicexchange" />
         <repeat times = "$count" counter = "counter">
-            <queue_bind queue = "queue-$client" exchange = "amq.topic" routing_key = "foo.bar.$client.$counter" />
+            <queue_bind queue = "mytopicqueue-$client" exchange = "mytopicexchange" routing_key = "foo.bar.$client.$counter" />
         </repeat>
-        <basic_consume queue = "queue-$client" />
+        <basic_consume queue = "mytopicqueue-$client" />
         <echo>Subscriber ready</echo>
 
         <set name = "total" value = "0" />
@@ -27,8 +29,8 @@
 	    <!-- <echo>count: $count total: $total </echo> -->
             <if name = "messages" test = "eq" value = "total">
                 <timer action = "show" />
-                <basic_content message_id = "stop" />
-                <basic_publish routing_key = "publisher-control" />
+                <basic_content message_id = "stopmessage" />
+                <basic_publish exchange = "stoptopic" />
                 <exit />
             </if>
         </repeat>

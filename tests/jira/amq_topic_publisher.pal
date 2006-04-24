@@ -3,6 +3,7 @@
     <session>
         <set name = "count" value = "1000" cmdline = "C" />
         <set name = "subscribers" value = "1" cmdline = "S" />
+	
 	<exchange_declare exchange = "stoptopic" type = "direct" />
 	<queue_declare queue = "stopqueue" />
 	<queue_bind queue = "stopqueue" exchange = "stoptopic" />
