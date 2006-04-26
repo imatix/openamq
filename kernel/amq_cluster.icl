@@ -285,15 +285,11 @@ amq_cluster_t
     //  Update all peers' status
     peer = amq_peer_list_first (self->peer_list);
     while (peer) {
-        icl_console_print ("## Checking peer name=%s host=%s master=%d joined=%d offlined=%d backup=%d",
-            peer->name, peer->host, peer->master, peer->joined, peer->offlined, peer->backup);
         amq_peer_monitor (peer);
         if (peer->master)
             current_masters++;
 
         if (peer->joined) {
-            //TRACE icl_console_print ("## peer is joined, self primary=%d backup=%d",
-            //TRACE     self->primary, self->backup);
             if (self->primary) {
                 //  If we're primary, and backup is master, we stop being master
                 if (peer->backup && peer->master) {
@@ -318,8 +314,6 @@ amq_cluster_t
         }
         else
         if (peer->offlined) {
-            //TRACE icl_console_print ("## peer is offlined, self primary=%d backup=%d",
-            //TRACE     self->primary, self->backup);
             if (self->primary) {
                 //  If we're primary and backup goes offline, we become master
                 if (peer->backup && peer->master) {
@@ -360,8 +354,6 @@ amq_cluster_t
 
         peer = amq_peer_list_next (&peer);
     }
-    //TRACE icl_console_print ("## after monitor: cluster_alive=%d masters=%d self->primary=%d",
-    //TRACE     cluster_alive, current_masters, self->primary);
     //  If cluster started and there are no masters, primary becomes master
     if (cluster_alive && current_masters == 0 && self->primary)
         self->master = TRUE;
