@@ -354,7 +354,7 @@ s_establish_session (
         if (ipr_net_ping (server_name, "5672")) {
             auth_data = amq_client_connection_auth_plain ("guest", "guest");
             s_connection = amq_client_connection_new (
-                server_name, virtual_host, auth_data, trace_level, 30000);
+                server_name, virtual_host, auth_data, "pal script", trace_level, 30000);
             icl_longstr_destroy (&auth_data);
 
         }

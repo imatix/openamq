@@ -45,7 +45,7 @@ manage OpenAMQ servers.
     icl_system_initialise (0, NULL);
 
     auth_data = amq_client_connection_auth_plain (user, password);
-    self->connection = amq_client_connection_new (host, vhost, auth_data, trace, 5000);
+    self->connection = amq_client_connection_new (host, vhost, auth_data, "management console", trace, 5000);
     icl_longstr_destroy (&auth_data);
 
     if (self->connection) {

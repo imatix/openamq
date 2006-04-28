@@ -239,7 +239,7 @@ static void s_do_authenticated_port_scan (
     auth_data = amq_client_connection_auth_plain (s_opt_user, s_opt_pass);
     for (port = 5000; port < 10000; port++) {
         icl_shortstr_fmt (host, "%s:%d", s_opt_host, port);
-        connection = amq_client_connection_new (host, s_opt_vhost, auth_data, 0, 1000);
+        connection = amq_client_connection_new (host, s_opt_vhost, auth_data, "amq_shell", 0, 1000);
         if (connection) {
             icl_console_print ("Found %s/%s on %s",
                 connection->server_product, connection->server_version, host);

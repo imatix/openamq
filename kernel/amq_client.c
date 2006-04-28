@@ -192,7 +192,7 @@ main (int argc, char *argv [])
     auth_data = amq_client_connection_auth_plain ("guest", "guest");
     for (the_index = 0; the_index < nbr_active; the_index++) {
         connection = amq_client_connection_new (
-            opt_server, "/", auth_data, atoi (opt_trace), 30000);
+            opt_server, "/", auth_data, "amq_client", atoi (opt_trace), 30000);
         if (connection) {
             a_sessions [the_index] = amq_client_session_new (connection);
             a_connections [the_index] = connection;
@@ -204,7 +204,7 @@ main (int argc, char *argv [])
     }        
     for (the_index = 0; the_index < nbr_passive; the_index++) {
         connection = amq_client_connection_new (
-            opt_server, "/", auth_data, atoi (opt_trace), 30000);
+            opt_server, "/", auth_data, "amq_client", atoi (opt_trace), 30000);
         session = connection? amq_client_session_new (connection): NULL;
         if (session) {
             p_sessions    [the_index] = session;

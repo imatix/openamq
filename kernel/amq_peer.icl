@@ -144,6 +144,7 @@ cluster class.
         self->host,
         amq_server_config_cluster_vhost (amq_server_config),
         auth_data,
+        "cluster",
         amq_server_config_trace (amq_server_config));
 
     amq_proxy_agent_channel_open (self->thread, self->channel_nbr);

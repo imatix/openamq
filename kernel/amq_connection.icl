@@ -31,6 +31,9 @@ merge these two classes into one.
         <field name = "user_name" label = "User login name">
           <get>icl_shortstr_cpy (field_value, self->parent->user_name);</get>
         </field>
+        <field name = "instance" label = "Client instance name">
+          <get>icl_shortstr_cpy (field_value, self->parent->client_instance);</get>
+        </field>
         <field name = "queues" label = "Number of private queues" type = "int">
           <get>
           icl_shortstr_fmt (field_value, "%d",
