@@ -32,6 +32,7 @@ merge these two classes into one.
           <get>icl_shortstr_cpy (field_value, self->parent->user_name);</get>
         </field>
         <field name = "instance" label = "Client instance name">
+          <rule name = "show on summary" />
           <get>icl_shortstr_cpy (field_value, self->parent->client_instance);</get>
         </field>
         <field name = "queues" label = "Number of private queues" type = "int">
