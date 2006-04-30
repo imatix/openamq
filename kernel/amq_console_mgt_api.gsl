@@ -175,8 +175,11 @@ class.
     icl_shortstr_t
         field_value;
 .for field where count (rule, name = "ip address")
+    char
+        *$(name)_port_pos;
     icl_shortstr_t
         $(name)_host,
+        $(name)_ip,
         $(name)_fmt;
 .endfor
     </local>
@@ -188,8 +191,15 @@ class.
 .for field where name <> "name"
 .   if type = "string"
 .       if count (rule, name = "ip address")
-    ipr_net_lookup_host (self->$(name), $(name)_host);
-    if (strneq (self->$(name), $(name)_host))
+    $(name)_port_pos = NULL;
+    if (($(name)_port_pos = strchr (self->$(name), ':'))) {
+        icl_shortstr_ncpy ($(name)_ip, self->$(name), 
+                           $(name)_port_pos - self->$(name));
+    } else {
+        icl_shortstr_cpy ($(name)_ip, self->$(name));
+    }
+    ipr_net_lookup_host ($(name)_ip, $(name)_host);
+    if (strneq ($(name)_ip, $(name)_host))
         icl_shortstr_fmt ($(name)_fmt, "%s (%s)", $(name)_host, self->$(name));
     else
         icl_shortstr_fmt ($(name)_fmt, self->$(name));
@@ -257,8 +267,11 @@ NULL);
         $(name)_str;
 .   endif
 .   if count (rule, name = "ip address")
+    char
+        *$(name)_port_pos;
     icl_shortstr_t
         $(name)_host,
+        $(name)_ip,
         $(name)_fmt;
 .   endif
 .endfor
@@ -269,8 +282,15 @@ NULL);
     ipr_time_iso8601 (self->$(name), ipr_date_format_minute, 0, 0, $(name)_str);
 .   endif
 .   if count (rule, name = "ip address")
-    ipr_net_lookup_host (self->$(name), $(name)_host);
-    if (strneq (self->$(name), $(name)_host))
+    $(name)_port_pos = NULL;
+    if (($(name)_port_pos = strchr (self->$(name), ':'))) {
+        icl_shortstr_ncpy ($(name)_ip, self->$(name), 
+                           $(name)_port_pos - self->$(name));
+    } else {
+        icl_shortstr_cpy ($(name)_ip, self->$(name));
+    }
+    ipr_net_lookup_host ($(name)_ip, $(name)_host);
+    if (strneq ($(name)_ip, $(name)_host))
         icl_shortstr_fmt ($(name)_fmt, "%s (%s)", $(name)_host, self->$(name));
     else
         icl_shortstr_fmt ($(name)_fmt, self->$(name));

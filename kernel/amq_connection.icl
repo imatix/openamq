@@ -23,7 +23,7 @@ merge these two classes into one.
         <field name = "name" label = "Connection name">
           <get>icl_shortstr_cpy (field_value, self->parent->id);</get>
         </field>
-        <field name = "address" label = "Client IP address">
+        <field name = "address" label = "Client IP address:port">
           <rule name = "show on summary" />
           <rule name = "ip address" />
           <get>icl_shortstr_cpy (field_value, self->parent->client_address);</get>
