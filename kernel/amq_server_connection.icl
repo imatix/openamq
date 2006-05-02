@@ -190,6 +190,8 @@ This class implements the connection class for the AMQ server.
 <private name = "header">
 static int
     s_auth_plain ($(selftype) *self, amq_server_connection_start_ok_t *method);
+static uint
+    s_collect_plain_token (byte *data, char *token, uint token_end);
 </private>
 
 <private name = "body">
@@ -199,25 +201,24 @@ static int s_auth_plain (
     $(selftype) *self,
     amq_server_connection_start_ok_t *method)
 {
-    asl_field_list_t
-        *fields;                        //  Decoded response table
+    icl_shortstr_t
+        login,
+        password;
+    uint
+        token_null;
     char
-        *login = NULL,                  //  Login string
-        *password = NULL,               //  Password string
         *group;                         //  Group name from config
     ipr_config_t
         *config;                        //  Current server config file
 
-    //  Check name and password
-    if ((fields = asl_field_list_new (method->response)) == NULL) {
-        self_exception (self, ASL_SYNTAX_ERROR, "Invalid response field table");
-        return (0);
-    }
-    login    = asl_field_list_string (fields, "login");
-    password = asl_field_list_string (fields, "password");
-    if (!login || !password) {
+    //  method->response holds PLAIN data in format "[NULL]login[NULL]password"
+    token_null = s_collect_plain_token (
+        method->response->data, password, method->response->cur_size);
+    if (token_null) 
+        s_collect_plain_token (method->response->data, login, token_null);
+
+    if (strnull (login) || strnull (password)) {
         self_exception (self, ASL_SYNTAX_ERROR, "Missing authentication data");
-        asl_field_list_destroy (&fields);
         return (0);
     }
     config = ipr_config_dup (amq_server_config->config);
@@ -226,7 +227,6 @@ static int s_auth_plain (
         asl_log_print (amq_broker->alert_log,
             "E: no 'plain' security defined in server config");
         self_exception (self, ASL_INTERNAL_ERROR, "Bad server configuration");
-        asl_field_list_destroy (&fields);
         return (0);
     }
     //  Now check user login and password and set group if found
@@ -259,8 +259,33 @@ static int s_auth_plain (
         ipr_config_next (config);
     }
     ipr_config_destroy (&config);
-    asl_field_list_destroy (&fields);
     return (self->group);
+}
+
+//  Collects a token, returns offset of null octet at start
+static uint
+s_collect_plain_token (byte *data, char *token, uint token_end)
+{
+    uint
+        token_null,
+        token_size;
+
+    //  Find start of token, scanning back from known end
+    token_null = --token_end;
+    while (token_null && data [token_null])
+        token_null--;
+        
+    strclr (token);
+    //  Token start must point to a null octet before the string
+    token_size = token_end - token_null;
+    if (token_size > ICL_SHORTSTR_MAX)
+        asl_log_print (amq_broker->alert_log,
+            "W: client used over-long authentication value - rejected");
+    else {
+        memcpy (token, data + token_null + 1, token_size);
+        token [token_size] = 0;
+    }
+    return (token_null);
 }
 </private>
 

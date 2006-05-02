@@ -1,4 +1,20 @@
-Potential write issues
+Web interface
+    - smt_http server front-end
+    - accepts http requests
+    - passes to registered extensions based on path
+    - extension is object that registers
+        - path, starting with "/"
+        - get, post method handlers
+    - extensions are:
+        - dynamic
+        - cgi-bin
+        - file system
+        - etc.
+        - default extension receives empty url
+    - read http request
+    - parse headers
+    - smt_http object?
+    
 
 References
     - object_new -> object ptr
@@ -24,47 +40,6 @@ patterns
         ...
         object_ref_destroy (&ref)
 
-toto
-    - finish log disabling
-        - always create log objects
-        - open output
-        
-Changes 7/3
-    - force reference to consumer->channel->connection
-        - should move unlinks to free so they are always valid
-        - double-check for linked objects
-    - amq_console uses new object store format
-
-Changes 2/3
-    - show console amounts in Kb
-    - console figures, format with suffix ("K") etc
-    - bindings correctly cleaned-up when queues deleted
-    - PAL extended to show interim timer values
-
-Changes 28/2
-    - setting the 'exclusive' flag always implies 'auto-delete'
-    - changed binding create to use hash lookup (faster creation)
-    - regexps are cached in method validation (performance)
-    - changed amq_binding_list back to old model (iterator model nfg)
-
-Changes 25/2
-    - trace_queue,route,cluster -> debug_queue, etc.
-    - changed user 'type' to 'group'
-    - added 'super' user group, not restricted in server
-    - log files cycled at end of day (before midnight LT)
-    - added queue profiles in server.cfg
-    - implemented queue limit features (warn/drop/trim implemented, not kill)
-    - increased server listen queue size from 5 to 500 (clients were failing to connect)
-    - fixed error in processing of immediate messages
-    - discards/returns undeliverable messages if all consumers mismatch
-
-Change requests
-    - console default is read-only, need option to make writeable
-    - add ipaddress rdns in console (ipr_net?)
-    - console should use hash table to store objects, not array
-    - better messages for each item, can/not be modified at runtime
-    - get monitor and trace working dynamically from console
-
 Protocol todo
     - remove prefetch max from asl_channel
     - remove vhost concept (?)
@@ -76,7 +51,6 @@ Todo
     - set mem from config/cmdline
         - start with direct, load, throw-away & restart
     - split config options into basic, advanced
-    - console rule on ip address -> amq_shell does RDNS
 
 per_client
     - limit defined in config
@@ -104,52 +78,12 @@ statistics to keep
     - we can do this using objects...
     - amq_user, amq_group
 
-amq_shell
-- show queues by number of messages
-    - general sort by option?
-- show page by page, with more option
-- config save, only items that are not default
-- select item by name, 'vhost /' -> first matching prefix
-- execute from command line
-
-- broker
-    - dropped messages
-
-    structure properties?
-    general
-    traffic
-    statistics
-    
-
-
 amq_shell could become sysman
     - stop cluster brokers
     - connect to them
     - wizard for cluster configuration
     - etc.
     - using virtual cmdline objects...
-
-
-logging
-    access
-    error
-    console
-    discard
-    log level
-    log fields?
-
-
-OpenAMQ Logging System
-======================
-
-
-icl_set_allocator
-smt_set_max_os_thread
-smt_set_action_allocator
-
-amq_shell
-    configurable
-        - name/pass
 
 
 openamq chip
@@ -189,7 +123,6 @@ openamq chip
         - shell
         - performance graphs
         - statistics
-
     - pdf whitepapers, reports
         - conformance test results
         - performance & tuning
@@ -212,13 +145,6 @@ openamq chip
         - Server handbook
     - technical reference material
         
-
-
-Fixes
-    - Error in console caused server to abort (reference to destroyed object).
-    - Console was not checking that client used reply-to - fixed.
-
-
 AMQP USPs
     Wire level protocol
     Carries opaque binary packages
@@ -227,7 +153,6 @@ AMQP USPs
     Powerful routing architecture
     Widely-backed standard
     Vendor, system neutral
-    
     
 OpenAMQ USPs
     WireAPIs in C, C++, Java, Perl, Python
@@ -241,11 +166,6 @@ Missing
     Secure authentication and transport
     Persistent messages
     
-    
-
-
-
-
 amq bridging
     - create server-to-server bridge
     - or cluster-to-cluster bridge
