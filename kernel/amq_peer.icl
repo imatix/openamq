@@ -138,7 +138,8 @@ cluster class.
     </local>
     //
     assert (!self->thread);
-    auth_data = asl_field_list_build ("login", "cluster", "password", "cluster", NULL);
+
+    auth_data = amq_client_connection_auth_plain ("cluster", "cluster");
     self->thread = amq_proxy_agent_connection_thread_new (
         self,                           //  Callback for incoming methods
         self->host,
