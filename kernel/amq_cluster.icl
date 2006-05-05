@@ -474,7 +474,7 @@ amq_cluster_t
     </local>
     //
     method = amq_server_method_new_cluster_bind (exchange, routing_key, arguments);
-    amq_cluster_tunnel_out (self, AMQ_CLUSTER_ALL, method, AMQ_CLUSTER_TRANSIENT, NULL);
+    amq_cluster_tunnel_out (self, AMQ_CLUSTER_ALL, method, AMQ_CLUSTER_DURABLE, NULL);
     amq_server_method_unlink (&method);
 </method>
 
