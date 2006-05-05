@@ -129,7 +129,7 @@
                 amq_cluster,
                 AMQ_CLUSTER_ALL,
                 self,
-                AMQ_CLUSTER_DURABLE,
+                AMQ_CLUSTER_TRANSIENT,
                 channel);
 
         //  Tell client delete was successful
@@ -339,7 +339,7 @@
                 amq_cluster,
                 AMQ_CLUSTER_ALL,
                 self,
-                AMQ_CLUSTER_DURABLE,
+                AMQ_CLUSTER_TRANSIENT,
                 channel);
 
         //  Tell client we deleted the queue ok

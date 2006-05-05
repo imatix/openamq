@@ -209,18 +209,16 @@ cluster class.
     //  Send a status message immediately to check our configuration
     self_send_hello (self);
 
-    //  If we are the master server, synchronise our state to the new peer
-    if (amq_broker->master) {
+    //  Synchronise our state to the new peer
+    if (amq_server_config_debug_cluster (amq_server_config))
+        asl_log_print (amq_broker->debug_log, "C: cluster synchronising with new peer");
+    looseref = ipr_looseref_list_first (self->cluster->state_list);
+    while (looseref) {
+        content = (amq_content_tunnel_t *) (looseref->object);
         if (amq_server_config_debug_cluster (amq_server_config))
-            asl_log_print (amq_broker->debug_log, "C: cluster synchronising with new peer");
-        looseref = ipr_looseref_list_first (self->cluster->state_list);
-        while (looseref) {
-            content = (amq_content_tunnel_t *) (looseref->object);
-            if (amq_server_config_debug_cluster (amq_server_config))
-                asl_log_print (amq_broker->debug_log, "C: replay   method=%s", content->data_name);
-            amq_peer_tunnel (self, content);
-            looseref = ipr_looseref_list_next (&looseref);
-        }
+            asl_log_print (amq_broker->debug_log, "C: replay   method=%s", content->data_name);
+        amq_peer_tunnel (self, content);
+        looseref = ipr_looseref_list_next (&looseref);
     }
 </method>
 
