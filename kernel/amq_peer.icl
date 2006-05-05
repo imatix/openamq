@@ -217,6 +217,7 @@ cluster class.
         content = (amq_content_tunnel_t *) (looseref->object);
         if (amq_server_config_debug_cluster (amq_server_config))
             asl_log_print (amq_broker->debug_log, "C: replay   method=%s", content->data_name);
+        icl_shortstr_cpy (content->proxy_name, self->cluster->broker->name);
         amq_peer_tunnel (self, content);
         looseref = ipr_looseref_list_next (&looseref);
     }
