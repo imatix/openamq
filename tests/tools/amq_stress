@@ -18,6 +18,7 @@ my $exec = undef;
 my $subchild = 0;
 my $respawncount = 0;
 my $stop = 0;
+my $killsig = 2;
 
 # Parse the options from the command line.
 GetOptions('help|?'     => \$help, 
@@ -27,6 +28,7 @@ GetOptions('help|?'     => \$help,
            'stop|s!'   =>  \$stop,
            'exec|e=s'   => \$exec,
            'kill|k=s'   => \$killexpr,
+           'signal|s=s' => \$killsig,
            'number|n=n' => \$processes,
            'respawn|r=n' => \$respawncount,
           ) or pod2usage(2);
@@ -39,11 +41,10 @@ pod2usage(1) unless $exec;
 our $parent = $$;
 our $childnr;
 
-
 # Signal handeling
 sub quit { print "[$$] SIGINT received. quitting...\n" if $debug; reap(); exit; }
 sub reap { print "[$$] {$?} reaping child...\n" if $debug; wait(); }
-sub alarm { if($subchild) { print "+++ Automatic SIG_INT sent. killing pid [$subchild] +++\n"; kill (2,$subchild); } } 
+sub alarm { if($subchild != 0) { print "+++ Automatic kill($killsig,$subchild) sent. killing pid [$subchild] +++\n"; kill ($killsig,$subchild); } } 
 $SIG{ALRM} = \&alarm;
 $SIG{CHLD} = \&reap;
 $SIG{INT} = \&quit;
@@ -72,30 +73,32 @@ if ($$ == $parent) {
     # The child process.
     close CHILD_OUT;
     
-    for(my $i = 0; $i <= $respawncount; $i++) {
-        if($killexpr) {
-            $killexpr =~ s/\$i/$childnr/g;
-            $killexpr =~ s/{([^}]*)}/eval "$1"/eg;
-            $killexpr =~ s/[^\d.]//g;
-            Time::HiRes::alarm $killexpr;
-        }
-        
+    for (my $i = 0; $i <= $respawncount; $i++) {
         my ($hl,$dl);
         $hl = '['.(int(($childnr%16)/7)).';3'.($childnr%7 || 7)."m" if ($color);
         $dl = '[1;37m' if ($color);
+       
+        my $evalcmd = $exec;
+        $evalcmd =~ s/\$i/$childnr/g;
+        $evalcmd =~ s/{([^}]*)}/eval "$1"/eg;
         
-        $exec =~ s/\$i/$childnr/g;
-        $exec =~ s/{([^}]*)}/eval "$1"/eg;
-        
-        print "<<< spawning: '$exec'";
-        print " kill in [${killexpr}s] " if($killexpr);
+        $subchild = open (CMD,"$evalcmd |");
+        my $evalkillexpr;
+        if ($killexpr) {
+            $evalkillexpr = $killexpr;
+            $evalkillexpr =~ s/\$i/$childnr/g;
+            $evalkillexpr =~ s/{([^}]*)}/eval "$1"/eg;
+            $evalkillexpr =~ s/[^\d.]//g;
+            Time::HiRes::alarm $evalkillexpr;
+        }
+        print "<<< spawning: '$evalcmd'";
+        print " kill in [${evalkillexpr}s] " if($evalkillexpr);
         print ">>>\n";
         
-        $subchild = open (CMD,"$exec |");
         while (chomp (my $line = <CMD>)) {
             print PARENT_IN $hl."[$subchild]{".$childnr."} $line $dl\n";
         }
-        if($?) {
+        if ($?) {
             # I'm not sure $? is set correctly here, not using these for now
             my $retvalue = $? >> 8;
             my $signal = $? >> 127;
@@ -147,11 +150,13 @@ amq_stress [options] --exec program
  - every {} (block) will be eval'ed
 
  examples:
+    
     amq_stress -n 10 --exec "echo this is child \$i";
     amq_stress -n 10 --exec 'echo this is child $i'";
     amq_stress -n 10 --exec 'echo this is child $i with a random number: { int(rand(10)) }';
-    amq_stress -n 10 --exec './amq_client -n { int(rand(10) * 1000) } -Q queue_$i -b 500 -r 10 2>&1';
-    amq_stress -n 10 -r 2 --kill '{ rand(10) }' --exec './amq_client -n { int(rand(10) * 1000) } -Q queue_$i -b 500 -r 10 2>&1';
+    amq_stress -n 10 --exec './amq_client -n { int(rand(10) * 1000) } 2>&1';
+    amq_stress -n 10 -r 2 --kill '{ rand(10) }' --exec './amq_client -n { int(rand(10) * 1000) } 2>&1';
+    amq_stress -s 9 -c -n 2 -r 4 -k 1 -e 'echo "sleeping..."; sleep 10; echo $i {rand 10} {rand 20}'
 
 =head1 OPTIONS
 
@@ -164,10 +169,13 @@ The program that will be spawned.
 Number of children to spawn.
 
 =item B<--kill>
-Time in seconds (float), after which the child will be send a SIG_INT
+Time in seconds before killing the child.
+
+=item B<--signal>
+Signal number to kill with. ie: SIG_INT = 2, (see man kill)
 
 =item B<--stop>
-Stop all other children if one of them crashes or fails with an exit status != 0
+Stop all other children if one of them fails
 
 =item B<--respawn>
 Number of times to respawn the children if they die or finish.
