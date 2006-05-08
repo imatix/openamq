@@ -1,0 +1,20 @@
+<page name = "wireapi">
+<language name = "en">
+<title>Wiki</title>
+<subtitle>the openamq whiteboard</subtitle>
+<content>
+
+OpenAMQ.org Wiki
+****************
+
+This is the developer's whiteboard.
+
+ - The wiki is currently accessible to everyone who visits this site.
+ - Anyone can edit the wiki.
+ - The OpenAMQ team may undo edits that they do not feel are useful.
+
+[http://wiki.openamq.org/cgi-bin/wiki:Go to the developer's wiki].
+
+</content>
+</language>
+</page>

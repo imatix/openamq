@@ -7,62 +7,108 @@
 OpenAMQ Features
 ****************
 
-The OpenAMQ server implements this principal functionality:
+Ease of Use
+===========
 
- - Create and manage named or unnamed message queues.
- - Create and manage exchanges.
- - Fanout and direct exchanges (point-to-point messaging).
- - Topic hierarchy exchange (publish/subscribe).
- - Header matching exchanges (content based routing).
+ - Single stand-alone binary.
+ - Natively portable to all modern operating systems.
+ - Runs with zero configuration if needed.
+ - Configurable through command-line switches.
+ - Uses standard AMQP port (5672).
+
+Message Routing
+===============
+
+ - Create and manage exchanges (limited to 64k exchanges per server).
+ - Implements the AMQP fanout, direct, topic and header exchange types.
+ - Hierarchical topics of any complexity (limited to 128k topics per exchange).
+
+Message Queuing
+===============
+
+ - Create and manage named or unnamed queues (limited to 64k queues per server).
  - Basic content messages of zero bytes up to 4Gb.
  - Multiple readers per queue with round-robin dispatching
  - Asynchonous message publishing and dispatching.
  - Shared queues and exclusive private queues.
- - Configurable limits on queues and memory.
- - SASL authentication (PLAIN mechanism).
- - Configuration via XML configuration files or command-line.
- - Clustering for load-balancing and fail-over.
- - Remote administration and configuration (amq_shell).
+
+Resource Management
+===================
+
+ - Configurable limits on queue sizes.
+ - Configurable limits on maximum memory used for messages.
+ - Automatic slowing of heavy publishers when limits are exceeded.
+
+Clustering and Failover
+=======================
+
+ - Create server clusters of any size.
+ - Fanout publish/subscribe load across many servers.
  - Configurable client-server heartbeating.
+
+Security
+========
+
+ - Configurable user definitions.
+ - SASL authentication (PLAIN mechanism).
+
+Administration
+==============
+
+ - Configuration via XML configuration files or command-line.
+ - Remote administration and configuration (amq_shell).
+
+Logging
+=======
+
+ - Configurable debug logging levels.
+ - Logging of normal client application accesses.
+ - Logging of all exceptional events, warnings, and errors.
+ - Automatic daily cycling of log files.
+ - Configurable log archiving process (compression, removal, etc.)
+
+Automation
+==========
+
  - Includes full test client (amq_client).
- - Multilevel logging (error, daily, debug) with automatic cycling.
  - PAL scripting language for automation and testing.
- - Automatic flow control for heavy publishers.
+ - Console extension protocol.
 
-These functions are not yet implemented:
-
- - Persistent messages and transactions.
- - Synchronous consumers (explicity acknowledgements).
- - Encryption.
- - Server access controls.
-
-The WireAPI client implements this principal functionality:
+WireAPI Client Principal Features
+=================================
 
  - Support for all methods defined in the AMQP standard.
  - Asynchronous background message delivery.
  - Error reporting to applications.
  - Currently available for C and C++.
 
+Not Yet Implemented
+===================
+
+ - Persistent messages and transactions.
+ - Synchronous consumers (explicity acknowledgements).
+ - TLS/SSL encryption.
+ - Server access controls (user groups and realms).
+
 Technical Features
 ******************
 
-The OpenAMQ server has these technical features:
+Code Platform
+=============
 
- - Both single-threaded and multi-threaded versions available.
+ - Multithreaded ANSI C built on custom client/server frameworks.
  - Portable to Linux, Windows, Solaris, and other POSIX systems.
- - Low-latency, high-throughput communications design.
- - Single binary (amq_server).
- - Automatic background operation (Unix, Linux only).
+ - Single code base builds both single-threaded and multi-threaded versions.
+
+Performance and Stability
+=========================
+
+ - Built on a low-latency, high-throughput communications framework.
  - Configurable TCP/IP parameters (timeouts, buffers).
  - Configurable OS footprint (number of threads).
-
-The WireAPI clients have these technical features:
-
- - Both single-threaded and multi-threaded versions available.
- - Portable to Linux, Windows, Solaris, and other POSIX systems.
- - Low-latency, high-throughput communications design.
- - Connection heartbeating (multithreaded clients only).
- - Configurable TCP/IP parameters (timeouts, buffers).
+ - Configurable memory managers (including heap caching).
+ - Processes 40-50k messages per second on 1 CPU.
+ - Processes 120-140k messages per second on an 8-CPU box.
 
 Coming Next
 ***********

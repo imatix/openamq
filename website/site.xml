@@ -12,11 +12,11 @@
     copyright = "Copyright &copy; 2004-2005 iMatix Corporation."
     main_version = "1.0c2"
     >
-    <section name = "OpenAMQ.org" >
-        <page name = "index"     />
-        <page name = "license"   />
-        <page name = "overview"  />
-        <page name = "about"     />
+    <section name = "OpenAMQ.org">
+        <page name = "index" />
+        <page name = "license" />
+        <page name = "features" />
+        <page name = "about" />
     </section>
 
 <!--
@@ -28,21 +28,22 @@
 - about
 -->
 
-    <section name = "Software"    >
-        <page name = "download"  />
-        <page name = "build"     />
-        <page name = "deploy"    />
+    <section name = "Software">
+        <page name = "download" />
+        <page name = "build" />
+        <page name = "config" />
+        <page name = "deploy" />
     </section>
 
-    <section name = "Support"     >
-        <page name = "maillist"  />
-        <page name = "library"   />
-        <page name = "faq"       />
+    <section name = "Support">
+        <page name = "maillist" />
+        <page name = "library" />
+        <page name = "faq" />
     </section>
 
-    <section name = "Developers"  >
-        <page name = "examples"  />
-        <page name = "wireapi"   />
-        <page name = "wiki"      />
+    <section name = "Developers">
+        <page name = "examples" />
+        <page name = "wireapi" />
+        <page name = "wiki" />
     </section>
 </site>
