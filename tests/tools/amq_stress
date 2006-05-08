@@ -40,11 +40,37 @@ pod2usage(1) unless $exec;
 # Global variables used to keep track of parent/child relations.
 our $parent = $$;
 our $childnr;
+our $quitting = 0;
 
-# Signal handeling
-sub quit { print "[$$] SIGINT received. quitting...\n" if $debug; reap(); exit; }
-sub reap { print "[$$] {$?} reaping child...\n" if $debug; wait(); }
-sub alarm { if($subchild != 0) { print "+++ Automatic kill($killsig,$subchild) sent. killing pid [$subchild] +++\n"; kill ($killsig,$subchild); } } 
+# Signal handling
+sub quit { 
+    kill(9,$parent); # kill of the parent, regain control
+    # reap the children in the background
+    if($$ != $parent) {
+    	$quitting = 1;
+        $SIG{ALRM} = undef; 
+        print "[$$] SIGINT $$ $parent $childnr received. quitting...\n" if $debug; 
+        exit; 
+    }
+}
+
+sub reap { # called when receiving SIGCHLD 
+    if($subchild != 0) { 
+        print "[$$] {$childnr} killing subchild {$subchild}\n" if $debug; 
+        kill(9,$subchild); 
+        print "[$$] {$childnr} reaping child...\n" if $debug; 
+        wait(); 
+	$SIG{CHLD} = \&reap;  # reinstall handler
+    }
+}
+
+sub alarm { 
+    if($subchild != 0) { 
+        print "+++ Automatic SIGNAL '$killsig' sent. killing pid [$subchild] +++\n"; 
+	kill ($killsig,$subchild); 
+    } 
+}
+
 $SIG{ALRM} = \&alarm;
 $SIG{CHLD} = \&reap;
 $SIG{INT} = \&quit;
@@ -59,13 +85,10 @@ spawn ($processes);
 
 if ($$ == $parent) {
     # The parent process.
-    sub stop { print ":::::::::::::::::::::::: kill -HUP $$ ::::::::::::::::::::::::::::\n"; kill (1, -$$); }
-    $SIG{USR1} = \&stop;
     close PARENT_IN;
     while (chomp (my $line = <CHILD_OUT>)) {
         print $line."\n";
     }
-    print "[$$]{p} waiting for children to finish\n";
     wait (); 
     print "[$$]{p} finished\n";
     close CHILD_OUT;
@@ -74,6 +97,7 @@ if ($$ == $parent) {
     close CHILD_OUT;
     
     for (my $i = 0; $i <= $respawncount; $i++) {
+    	next if $quitting;
         my ($hl,$dl);
         $hl = '['.(int(($childnr%16)/7)).';3'.($childnr%7 || 7)."m" if ($color);
         $dl = '[1;37m' if ($color);
@@ -107,7 +131,7 @@ if ($$ == $parent) {
                 close CMD;
                 close CHILD_OUT;
                 close PARENT_IN;
-                kill (10, $parent);
+                kill (9, $parent);
                 exit($?);
             }
         }
