@@ -8,7 +8,7 @@ Documentation Library
 *********************
 
 AMQ Background and Concepts (Detailed)
-......................................
+======================================
 
 This is a general introduction to AMQ, intended for a technically-minded
 readership. It explains the basic AMQ concepts, and goes into medium
@@ -20,19 +20,19 @@ detail on all significant aspects of the architecture and technology.
 - [/doc/concepts.txt:Gurudoc text]
 
 The AMQP/Fast Wire-Level Protocol v0.9 draft
-............................................
+======================================
 
 We propose a wire-level protocol and a set of formal semantics for building
 large scale and high-performance middleware architectures.  AMQP/0.9 is the
 third major design iteration of the AMQ protocol.
 
-- [/doc/protocol.html:HTML framed] 
-- [/doc/protocol_flat.html:HTML flat] 
+- [/doc/protocol.html:HTML framed]
+- [/doc/protocol_flat.html:HTML flat]
 - [/doc/protocol.pdf:PDF]
 - [/doc/protocol.txt:Gurudoc text]
 
 Installation and Use of the OpenAMQ Server
-..........................................
+======================================
 
 OpenAMQ is a reference implementation of the AMQ middleware protocol
 (AMQP). It provides a high-speed message provider along with clients for
@@ -45,7 +45,7 @@ installing and using the OpenAMQ server (v0.8).
 - [/doc/server.txt:Gurudoc text]
 
 AMQ RFC001 - The OpenAMQ RFC System
-...................................
+======================================
 
 The OpenAMQ RFC system is modelled on existing RFC systems.  Our goal is
 to create a light-weight but useful basis for capturing the discussions,
@@ -58,7 +58,7 @@ This document defines the OpenAMQ RFC system itself.
 - [/doc/amq_rfc001.txt:Gurudoc text]
 
 AMQ RFC002 - Coding Standards
-.............................
+======================================
 
 This document describes the ANSI C coding standards that are used in the
 OpenAMQ project.
@@ -69,7 +69,7 @@ OpenAMQ project.
 - [/doc/amq_rfc002.txt:Gurudoc text]
 
 AMQ RFC003 - Rapid Message Matching
-...................................
+======================================
 
 This document describes a matching algorithm that provides all the
 functionality needed for topic matching and most of the functionality
@@ -81,19 +81,19 @@ needed for content-based routing.
 - [/doc/amq_rfc003.txt:Gurudoc text]
 
 AMQ RFC006 - The AMQP/Fast Wire-Level Protocol v0.8
-...................................................
+======================================
 
 We propose a wire-level protocol and a set of formal semantics for building
 large scale and high-performance middleware architectures.  AMQP/0.8 is the
 second major design iteration of the AMQ protocol.
 
-- [/doc/amq_rfc006.html:HTML framed] 
-- [/doc/amq_rfc006_flat.html:HTML flat] 
+- [/doc/amq_rfc006.html:HTML framed]
+- [/doc/amq_rfc006_flat.html:HTML flat]
 - [/doc/amq_rfc006.pdf:PDF]
 - [/doc/amq_rfc006.txt:Gurudoc text]
 
 AMQ RFC011 - AMQP Reply Codes
-.............................
+======================================
 
 This document defines the standard set of 3-digit reply codes used by AMQ
 implementations including OpenAMQ.  The reply codes are based on the IETF
@@ -105,7 +105,7 @@ standard model as described in IETF RFC2821 and RFC2822.
 - [/doc/amq_rfc011.txt:Gurudoc text]
 
 AMQ RFC014 - AMQP Agnostic Client Design
-......................................
+======================================
 
 We propose a language agnostic design for an AMQP/Fast client.  The intent
 is that client implementors will use this document as a basic design for
@@ -120,7 +120,7 @@ abstraction.
 - [/doc/amq_rfc014.txt:Gurudoc text]
 
 AMQ RFC015 - AMQ Client Component API
-......................................
+======================================
 
 We define a single platform- and language-independent standard API for AMQ
 client components.  By standardising the API for AMQP client components we

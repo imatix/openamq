@@ -6,6 +6,7 @@
 #   Page content can be XHTML or Gurudoc or a combination of the two.
 #
 
+ignorecase = 0
 new root.content
     for site.page
         xml to content from page.name
@@ -27,7 +28,7 @@ for root.content
             #   Convert gurudoc content to XHTML
             output "temp.txt"
             for content
-                >$(content.?)
+                >$(gsl.exec (content.?'', 1))
             endfor
             close
             process = proc.new ("./gd2xhtml", ".", "temp.txt", "temp.xml")

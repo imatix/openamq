@@ -1,0 +1,36 @@
+<page name = "about">
+<language name = "en">
+<title>About</title>
+<subtitle>about openamq</subtitle>
+<content>
+Credits
+*******
+
+The Producers
+=============
+
+ - Produced by [http://www.imatix.com:iMatix Corporation]
+ - Written and directed by Pieter Hintjens & John O'Hara
+
+On Location
+===========
+
+ - Brussels: Pieter Hintjens | Tim Esselens | Gustavo Broos
+ - Bratislava: Martin Sustrik | Martin Lucina | Lubica Segecova
+ - Melborne: Jonathan Schultz
+ - London: Mark Atwell | Steve Connelly | Samiullah Shaikh | Mahesh Karmarkar
+ - Glasgow: Robert Grieg
+
+With Thanks To
+==============
+
+ - The Free Software Foundation's [http://www.gnu.org/:GNU tools and languages]
+ - iMatix Corporation's [http://www.imatix.net/mop/:model-oriented programming (MOP)] tools and languages.
+ - The Apache Foundation's [http://apr.apache.org/:Portable Runtime]
+ - Atlassian [http://www.atlassian.com/software/jira/:Jira system] for change management
+ - Tigris.org's [http://subversion.tigris.org/:Subversion] for source control
+ - Philip Hazel's [http://www.pcre.org/:PCRE library]
+ - Greg Roelofs and Jean-loup Gailly's [http://www.zlib.net/:zlib library]
+</content>
+</language>
+</page>

@@ -9,25 +9,29 @@
 <site
     name   = "OpenAMQ"
     script = "site.gsl"
+    copyright = "Copyright &copy; 2004-2005 iMatix Corporation."
+    main_version = "1.0c2"
     >
     <section name = "OpenAMQ.org" >
         <page name = "index"     />
         <page name = "license"   />
         <page name = "overview"  />
-        <page name = "credits"   />
+        <page name = "about"     />
     </section>
 
+<!--
+- main page
+- software features
+- download, build, install
+- configure, run, admin
+- support, contact
+- about
+-->
+
     <section name = "Software"    >
-        <page name = "contents"  />
         <page name = "download"  />
         <page name = "build"     />
         <page name = "deploy"    />
-    </section>
-
-    <section name = "Features"    >
-        <page name = "server"    />
-        <page name = "clients"   />
-        <page name = "protocol"  />
     </section>
 
     <section name = "Support"     >
@@ -38,7 +42,7 @@
 
     <section name = "Developers"  >
         <page name = "examples"  />
-        <page name = "apis"      />
+        <page name = "wireapi"   />
         <page name = "wiki"      />
     </section>
 </site>

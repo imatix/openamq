@@ -5,7 +5,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html>
 <head>
-  <title>$(root->site.name:): $(->title.)</title>
+  <title>$(root->site.name): $(->title.)</title>
   <link rel="stylesheet" href="default.css" type="text/css"/>
 </head>
 <body>
@@ -15,35 +15,29 @@
     </div>
     <div id="menu_container">
 .for root->site.section
-      <h3 class="menu_heading">$(name:)</h3>
+      <h3 class="menu_heading">$(name)</h3>
       <ul class="menu_item">
 .   for page as section_page
 .       for root->content.page where name = section_page.name
 .           for language
-        <li><a class="menu_item" href="$(section_page.name:).html">$(->title.:)</a></li>
+        <li><a class="menu_item" href="$(section_page.name).html">$(->title.)</a></li>
 .           endfor
 .       endfor
 .   endfor
       </ul>
 .endfor
-      <h3 class="menu_heading">Copyright & Disclaimer</h3>
+      <h3 class="menu_heading">Copyright</h3>
     </div>
-    <div id="disclaimer">
-      <p>Access to this website and all materials it contains is restricted to
-      authorised personnel.  Layout and content copyright &copy; 2004-2005
-      JPMorgan. The names "AMQ" and "OpenAMQ" and the AMQ and OpenAMQ logos are
-      trademarks protected in the United States, United Kingdom. Unauthorized
-      use is strictly prohibited. The information herein is provided for
-      information purposes only.
-      </p>
+    <div id="copyright">
+      <p>$(copyright)</p>
     </div>
     <h3 class="menu_heading">&nbsp;</h3>
   </div>
 
   <div id="right_container">
     <div id="title_container">
-      <h1 id="title">$(->title:)</h1>
-      <h2 id="title">$(->subtitle?:)</h2>
+      <h1 id="title">$(->title)</h1>
+      <h2 id="title">$(->subtitle?)</h2>
     </div>
     <div id="content_container">
 
@@ -51,7 +45,7 @@
 .for content
 .   content_string = content.string()
 .endfor
-    $(content_string:)
+    $(content_string)
     <!-- End page content -->
     </div>
   </div>

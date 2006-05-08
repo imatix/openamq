@@ -1,81 +1,79 @@
-<page name = "overview">
+<page name = "features">
 <language name = "en">
-<title>Overview</title>
-<subtitle>an overview of openamq</subtitle>
+<title>Features</title>
+<subtitle>openamq principal features</subtitle>
 <content>
 
-The Goals of the Project
-************************
+OpenAMQ Features
+****************
 
-Define a Standard Protocol
-==========================
+The OpenAMQ server implements this principal functionality:
 
-There is no industry standard middleware protocol.  A standard
-protocol is necessary for interoperability and competition between
-vendors' implementations.
+ - Create and manage named or unnamed message queues.
+ - Create and manage exchanges.
+ - Fanout and direct exchanges (point-to-point messaging).
+ - Topic hierarchy exchange (publish/subscribe).
+ - Header matching exchanges (content based routing).
+ - Basic content messages of zero bytes up to 4Gb.
+ - Multiple readers per queue with round-robin dispatching
+ - Asynchonous message publishing and dispatching.
+ - Shared queues and exclusive private queues.
+ - Configurable limits on queues and memory.
+ - SASL authentication (PLAIN mechanism).
+ - Configuration via XML configuration files or command-line.
+ - Clustering for load-balancing and fail-over.
+ - Remote administration and configuration (amq_shell).
+ - Configurable client-server heartbeating.
+ - Includes full test client (amq_client).
+ - Multilevel logging (error, daily, debug) with automatic cycling.
+ - PAL scripting language for automation and testing.
+ - Automatic flow control for heavy publishers.
 
-Build a Reference Server
-========================
+These functions are not yet implemented:
 
-A reference server implementation is the only way to verify that
-the standard wire-level protocol is well-formed and feasible to
-implement.
+ - Persistent messages and transactions.
+ - Synchronous consumers (explicity acknowledgements).
+ - Encryption.
+ - Server access controls.
 
-Build a Set of Client APIs
-==========================
+The WireAPI client implements this principal functionality:
 
-Creating a set of client APIs saves developers the cost of learning
-the wire-level protocol.  There exist industry-standard APIs, such as
-JMS, which we (will) conform to.
+ - Support for all methods defined in the AMQP standard.
+ - Asynchronous background message delivery.
+ - Error reporting to applications.
+ - Currently available for C and C++.
 
-Create an Open Source Project
-=============================
+Technical Features
+******************
 
-OpenAMQ is designed as an open source project that will promote the
-AMQP wire-level protocol and the AMQ standard architecture.
+The OpenAMQ server has these technical features:
 
-The AMQP Wire-Level Protocol
-****************************
+ - Both single-threaded and multi-threaded versions available.
+ - Portable to Linux, Windows, Solaris, and other POSIX systems.
+ - Low-latency, high-throughput communications design.
+ - Single binary (amq_server).
+ - Automatic background operation (Unix, Linux only).
+ - Configurable TCP/IP parameters (timeouts, buffers).
+ - Configurable OS footprint (number of threads).
 
-AMQP has these features:
+The WireAPI clients have these technical features:
 
- - High-level: implements a set of generic primitives that
-   can be easily mapped to standard message-oriented middleware use cases.
- - Modern: uses channel multiplexing, security negotiation, MIME typing,
-   and many other 'best of breed' techniques.
- - Efficient: uses fast binary data structures.
- - Pervasive: portable to any operating system with network I/O.
- - Standard: will be proposed as an IETF standard.
+ - Both single-threaded and multi-threaded versions available.
+ - Portable to Linux, Windows, Solaris, and other POSIX systems.
+ - Low-latency, high-throughput communications design.
+ - Connection heartbeating (multithreaded clients only).
+ - Configurable TCP/IP parameters (timeouts, buffers).
 
-More information: [/doc/protocol.html:The AMQP protocol]
+Coming Next
+***********
 
-The Reference Server
-********************
+This functionality is planned and/or in progress:
 
-The OpenAMQ server has these features:
-
- - Small, fast, efficient single-process server
- - A complete implementation of AMQP
- - Portable to Linux, Solaris, Unix, Win32
- - Built in ANSI C, using iMatix technology
-
-More information: [/doc/server.html:The OpenAMQ server]
-
-The Client APIs
-***************
-
-The OpenAMQ client APIs have these features:
-
- - Providing a JMS-like interface, with extensions
- - Implemented in Java, C, COM
- - Planned implementations: Perl, C++
-
-More information: [/doc/clients.html:The OpenAMQ clients]
-
-The Open Source Project
-***********************
-
-The OpenAMQ open source project is still under construction.
+ - Secure SASL authentication mechanisms.
+ - TLS/SSL Encryption.
+ - User and group access controls.
+ - Persistent messages and transactions.
+ - WireAPI clients for Perl, Python, PHP, Ruby.
 
 </content>
 </language>

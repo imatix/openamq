@@ -1,52 +1,55 @@
 <page name = "download">
 <language name = "en">
 <title>Download</title>
-<subtitle>downloading and installing the openamq software</subtitle>
+<subtitle>downloading and installing openamq</subtitle>
 <content>
+Ready-To-Run OpenAMQ
+********************
 
-Terms of Use
-************
+The complete OpenAMQ ready-to-run for your system:
 
-OpenAMQ is currently a JPMC confidential project and restricted to
-use under the [/license.html:terms of the License agreement].
-By downloading this software you confirm that you understand and accept
-the terms described here.
+ - [/pub/OpenAMQ-$(main_version)-linux.tar.gz:OpenAMQ server for Linux]
+ - [/pub/OpenAMQ-$(main_version)-solaris.tar.gz:OpenAMQ server for Solaris 10]
+ - [/pub/OpenAMQ-$(main_version)-win32.zip:OpenAMQ server for Windows]
 
-Download OpenAMQ
-****************
-The current version is 0.9b11.  This is a beta release of the server
-and clients.
+Install and run in 5 minutes:
 
-Source Packages
-===============
+1. Download the right package for your operating system.
+2. Unpack the compressed file.
+3. Add the OpenAMQ /bin directory to your PATH.
+4. The broker is called 'amq_server' - start this on the command-line.
+5. The OpenAMQ libraries are in the /lib directory.
 
- - [http://www.openamq.org/pub/OpenAMQ-0.9b11.tar.gz]
-   POSIX (Linux, Solaris, Unix) source package
- - [http://www.openamq.org/pub/OpenAMQ-0.9b11.zip]
-   Win32 source package
+Note - above packages are not yet ready.
 
-Unpack into a working directory and run 'configure' and then 'make', or 
-alternatively run 'boom all'.  The source package includes recent validated 
-versions of the Apache Portable Runtime (APR) and other external packages
-used by OpenAMQ.
+More information: [/deploy.html:Running and managing an OpenAMQ server]
 
-More information: [/build.html:Building and installing OpenAMQ].
+OpenAMQ From Source
+*******************
 
-More information: [/deploy.html:Running and managing an OpenAMQ server].
+Build your own OpenAMQ from source:
 
+ - [/pub/OpenAMQ-$(main_version).tar.gz:Unix/Linux source]
+ - [/pub/OpenAMQ-$(main_version).zip:Windows] (requires MSVC)
 
-Binary Packages
-=============
+Build, install, and run in 25 minutes:
 
- - (currently unavailable)
-   Win32 executables
+1. Download the right package for your operating system.
+2. Unpack the compressed file into a user directory.
+3. Set IBASE to $HOME/ibase and add $IBASE/bin to your PATH.
+4. cd OpenAMQ-$(main_version)
+5. On Linux/Unix: sh build.sh; on Windows: build.
+6. The broker is called 'amq_server' - start this on the command-line.
+7. The OpenAMQ libraries are in the $IBASE/lib directory.
 
-Unpack into a final directory, e.g. c:\openamq.  The clients
-subdirectory contains OpenAMQ client tools.  The servers
-subdirectory contains the OpenAMQ server executables and a demonstration
-configuration.
+More information: [/build.html:Building OpenAMQ from source]
 
-More information: [/deploy.html:Running and managing an OpenAMQ server].
+Older Versions of OpenAMQ
+*************************
+
+Older versions of the OpenAMQ software are available here:
+
+ - [http://www.openamq.org/pub/:All previous versions]
 
 </content>
 </language>

@@ -1,55 +1,46 @@
 <page name = "index">
 <language name = "en">
 <title>Welcome</title>
-<subtitle>commodity middleware working for you</subtitle>
+<subtitle>commodity middleware</subtitle>
 <content>
-
-Quick Links
-**************
-
- - [/download.html:Download OpenAMQ software]
- - [/maillist.html:OpenAMQ email support lists]
- - [/protocol.html:The OpenAMQ protocol specifications]
 
 Welcome
 *******
 
-Welcome to the OpenAMQ website. OpenAMQ is a commodity middleware platform
-that implements an industry-standard protocol - AMQP - as a high-performance
-server and client API.
+OpenAMQ brings you a superior high-performance messaging broker
+designed for Linux, Solaris, and Windows. Our mission is to provide
+you with zero-defect code that runs your mission-critical applications
+without breaking or slowing.
 
-The Advanced Message Queues Protocol (AMQP)
-===========================================
+More information: [/server.html:Running the OpenAMQ server]
+| [/protocol.html:The AMQ protocol]
 
-AMQP is a standardised wire-protocol for high-performance message exchange
-between a server and a set of clients.  It supports the standard models of
-point-to-point queuing, publish-subscribe, and file-transfer, in a modern and
-language-independent manner.
+Download OpenAMQ
+****************
 
-More information: [/protocol.html:The AMQ protocol]
+The complete OpenAMQ ready-to-run for your system:
 
-The OpenAMQ Server
-===================
+ - [/pub/OpenAMQ-$(main_version)-linux.tar.gz:OpenAMQ server for Linux]
+ - [/pub/OpenAMQ-$(main_version)-solaris.tar.gz:OpenAMQ server for Solaris 10]
+ - [/pub/OpenAMQ-$(main_version)-win32.exe:OpenAMQ server for Windows]
 
-This is a fast open source implementation of AMQP that runs on all
-modern platforms (Linux, Win32, Solaris, other Unixes).  OpenAMQ is written
-in ANSI C and is highly configurable for specific messaging scenarios or
-memory/performance constraints.
+Note - above packages are not yet ready.
 
-More information: [/server.html:The OpenAMQ server]
+Build your own OpenAMQ from source:
 
-The OpenAMQ Clients
-===================
+ - [/pub/OpenAMQ-$(main_version).tar.gz:Unix/Linux source]
+ - [/pub/OpenAMQ-$(main_version).zip:Windows] (requires MSVC)
 
-Whatever your preferred language, you will find an OpenAMQ library or API
-that gives you seamless access to AMQP services.  Most of the OpenAMQ clients
-use the standard JMS (Java Messaging Services) model, with extensions.  It
-typically takes 1-2 days to start using OpenAMQ in your applications.
+More information: [/download.html:All downloads]
 
-Since AMQP is an open standard, you can write your own client layers.
-The average effort is about 10-20 days.
+The WireAPI clients
+*******************
 
-More information: [/clients.html:The AMQP clients]
+The WireAPI client libraries give your applications full access to AMQP,
+whether you use OpenAMQ or a less-capable AMQ broker.  People appreciate
+WireAPI for its ease of use and powerful functionality.
+
+More information: [/clients.html:The WireAPI clients]
 
 </content>
 </language>

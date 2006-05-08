@@ -149,9 +149,7 @@ H2#title {
 #content_container TD {
     padding-left: 1em;
 }
-
-/* Disclaimer (bottom right, below content */
-#disclaimer P {
+#copyright P {
     font-size: 7pt;
     background-color: #b9cdd8;
     border-width: 1pt 1pt 1pt 1pt;
@@ -161,7 +159,6 @@ H2#title {
     padding: 1em;
     color: #01415c;
 }
-
 /* Links */
 A:active {
     text-decoration: none;
