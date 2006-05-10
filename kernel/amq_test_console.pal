@@ -1,0 +1,28 @@
+<?xml?>
+<pal script = "amq_pal_gen">
+    The test console works in collaboration with test_console.pl,
+    which drives the actual test scenarios.  Please read the perl
+    script for details.
+    <include filename = "amq_test_base.pal" />
+    <session>
+        <queue_declare />
+        <queue_bind queue = "$queue" exchange = "amq.direct" routing_key = "$queue" />
+        <basic_consume queue = "$queue" auto_ack = "1" />
+        <repeat counter = "count">
+            <basic_content exec = "perl amq_test_console.pl" reply_to = "$queue" />
+            <if name = "body_size" value = "0">
+                <break/>
+            </if>
+            <basic_publish exchange = "amq.system" routing_key = "amq.console" />
+            <wait/>
+            <basic_arrived>
+                <echo>Got response from console - $message_id</echo>
+            </basic_arrived>
+            <empty>
+                <echo>No response arrived from console, aborting</echo>
+                <break/>
+            </empty>
+        </repeat>
+    </session>
+</pal>
+
