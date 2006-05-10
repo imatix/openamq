@@ -1,22 +1,12 @@
-<!--
-    OpenAMQ website definition
-
-    A <site> has a name (user visible), some <page>s and <sections> with
-    more <page>s.
-
-    Each <page> will be loaded from name.xml
--->
+<?xml version = "1.0" ?>
 <site
-    name   = "OpenAMQ"
+    name = "OpenAMQ"
     script = "site.gsl"
-    copyright = "Copyright &copy; 2004-2005 iMatix Corporation."
     main_version = "1.0c2"
     >
-    <section name = "OpenAMQ.org">
+    <section name = "Welcome">
         <page name = "index" />
         <page name = "license" />
-        <page name = "features" />
-        <page name = "about" />
     </section>
 
 <!--
@@ -28,22 +18,43 @@
 - about
 -->
 
-    <section name = "Software">
+    <section name = "Getting Started">
+        <page name = "features" />
         <page name = "download" />
         <page name = "build" />
-        <page name = "config" />
+    </section>
+    
+    <section name = "OpenAMQ Server">
         <page name = "deploy" />
+        <page name = "config" />
+        <page name = "options" />
+        <page name = "logging" />
+        <page name = "cluster" />
+        <page name = "admin" />
     </section>
 
+    <section name = "OpenAMQ WireAPI">
+        <page name = "wireapi" />
+        <page name = "examples" />
+        <!--
+        <page name = "scripting" />
+        -->
+    </section>
+    
     <section name = "Support">
         <page name = "maillist" />
         <page name = "library" />
-        <page name = "faq" />
-    </section>
-
-    <section name = "Developers">
-        <page name = "examples" />
-        <page name = "wireapi" />
         <page name = "wiki" />
     </section>
+
+    <section name = "Footer">
+        <page name = "contact" />
+        <page name = "about" />
+    </section>
+
+    <copyright>
+    Copyright &copy; 2004-2006 iMatix Corporation.
+    OpenAMQ is free software distributed under the GPL/LGPL.
+    OpenAMQ is a trademark of iMatix Corporation.
+    </copyright>
 </site>

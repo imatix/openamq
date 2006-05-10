@@ -9,24 +9,32 @@
 }
 BODY {
     font-family: Verdana, Arial, Helvetica, sans-serif;
-    font-size: 10pt;
+    font-size: 9pt;
+    background-color: #b9cdd8;
 }
 
 /* Left column container */
 #left_container {
     float: left;
     width: 220px;
+    height: 100%;
     margin: 0;
+}
+#left_footer {
+    height: 100%;
+    background-color: black;
 }
 
 /* Right column container */
 #right_container {
     margin-left: 220px;
+    background-color: white;
 }
 
 /* Logo (left, top) container */
 #logo_container {
     height: 100px;
+    background-color: white;
 }
 /* Logo itself */
 #logo {
@@ -63,6 +71,16 @@ UL.menu_item LI {
     border-color: white;
     text-indent: 15pt;
     line-height: 15pt;
+}
+
+#copyright P {
+    font-size: 8pt;
+    background-color: #b9cdd8;
+    border-width: 3pt 0 4pt 0;
+    border-style: solid;
+    border-color: #b9cdd8;
+    padding-left: 15pt;
+    color: #01415c;
 }
 
 #title_container {
@@ -102,29 +120,34 @@ H2#title {
 #content_container H1 {
     margin-top: 12pt;
     background-color: #b9cdd8;
-    font-size: 14pt;
+    font-size: 12pt;
     font-variant: small-caps;
     text-indent: 10pt;
 }
 #content_container H2 {
     margin-top: 12pt;
     font-variant: small-caps;
-    font-size: 12pt;
+    font-size: 10pt;
     padding-left: 10pt;
 }
 #content_container H3 {
     margin-top: 11pt;
     font-variant: small-caps;
-    font-size: 11pt;
+    font-size: 9pt;
     padding-left: 10pt;
 }
 #content_container H4 {
     margin-top: 10pt;
     font-variant: small-caps;
-    font-size: 10pt;
+    font-size: 8pt;
     padding-left: 10pt;
 }
 #content_container UL {
+    margin: 1em;
+    margin-left: 2em;
+    margin-right: 2em;
+}
+#content_container OL {
     margin: 1em;
     margin-left: 2em;
     margin-right: 2em;
@@ -140,8 +163,9 @@ H2#title {
 #content_container PRE {
     background-color: #E0E0E0;
     margin: 1em;
-    margin-left: 4em;
+    margin-left: 2em;
     margin-right: 4em;
+    padding-left: 2em;
 }
 #content_container TABLE {
     margin-left: 3em;
@@ -149,16 +173,18 @@ H2#title {
 #content_container TD {
     padding-left: 1em;
 }
-#copyright P {
-    font-size: 7pt;
-    background-color: #b9cdd8;
-    border-width: 1pt 1pt 1pt 1pt;
-    border-style: solid;
-    border-color: #b9cdd8;
-    margin: 0pt;
-    padding: 1em;
-    color: #01415c;
+#content_container DL {
+    margin: 1em;
+    font-weight: bold;
+    padding-left: 1em;
 }
+#content_container DD {
+    margin: 3px;
+    font-weight: normal;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+
 /* Links */
 A:active {
     text-decoration: none;
@@ -179,8 +205,6 @@ A[HREF]:hover {
     background-color: #b9cdd8;
     color: black;
 }
-
-
 A.menu_item:active {
     text-decoration: none;
     color: black;

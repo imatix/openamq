@@ -1,20 +1,13 @@
-<page name = "wireapi">
-<language name = "en">
-<title>Wiki</title>
-<subtitle>the openamq whiteboard</subtitle>
-<content>
+<page
+    name = "wireapi"
+    title = "WireAPI"
+    subtitle = "The WireAPI Clients"
+    >
+<content type = "gurudoc">
 
-OpenAMQ.org Wiki
+What is WireAPI?
 ****************
 
-This is the developer's whiteboard.
-
- - The wiki is currently accessible to everyone who visits this site.
- - Anyone can edit the wiki.
- - The OpenAMQ team may undo edits that they do not feel are useful.
-
-[http://wiki.openamq.org/cgi-bin/wiki:Go to the developer's wiki].
 
 </content>
-</language>
 </page>

@@ -1,8 +1,9 @@
-<page name = "library">
-<language name = "en">
-<title>Documentation</title>
-<subtitle>catalogue of on-line documentation</subtitle>
-<content>
+<page
+    name = "library"
+    title = "Documentation"
+    subtitle = "OpenAMQ Documentation"
+    >
+<content type = "gurudoc">
 
 Documentation Library
 *********************
@@ -133,5 +134,4 @@ their users, who need to learn only a single API.
 - [/doc/amq_rfc015.txt:Gurudoc text]
 
 </content>
-</language>
 </page>

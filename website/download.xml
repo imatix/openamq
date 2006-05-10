@@ -1,12 +1,14 @@
-<page name = "download">
-<language name = "en">
-<title>Download</title>
-<subtitle>downloading and installing openamq</subtitle>
-<content>
-Ready-To-Run OpenAMQ
+<page
+    name = "download"
+    title = "Download"
+    subtitle = "Downloading and Installing OpenAMQ"
+    >
+<content type = "gurudoc">
+
+Ready-to-run OpenAMQ
 ********************
 
-The complete OpenAMQ ready-to-run for your system:
+Download one of these packages:
 
  - [/pub/OpenAMQ-$(main_version)-linux.tar.gz:OpenAMQ server for Linux]
  - [/pub/OpenAMQ-$(main_version)-solaris.tar.gz:OpenAMQ server for Solaris 10]
@@ -14,43 +16,44 @@ The complete OpenAMQ ready-to-run for your system:
 
 Install and run in 5 minutes:
 
-1. Download the right package for your operating system.
+1. Unpack the compressed file.
+2. Add the OpenAMQ /bin directory to your PATH.
+3. To start the OpenAMQ broker, run 'amq_server'.
+
+More information: [/deploy.html:Running and Managing an OpenAMQ Installation]
+
+Build OpenAMQ From Source - Linux, Solaris, Unix
+************************************************
+
+Build, install, and run in 20 minutes:
+
+1. Download the [/pub/OpenAMQ-$(main_version).tar.gz:Unix/Linux source package].
 2. Unpack the compressed file.
-3. Add the OpenAMQ /bin directory to your PATH.
-4. The broker is called 'amq_server' - start this on the command-line.
-5. The OpenAMQ libraries are in the /lib directory.
+3. Type these shell commands:
 
-Note - above packages are not yet ready.
+    $ cd OpenAMQ-$(main_version)
+    $ set IBASE=$HOME/ibase; export IBASE
+    $ set PATH=$IBASE/bin:$PATH; export PATH
+    $ sh build.sh
+    $ amq_server
 
-More information: [/deploy.html:Running and managing an OpenAMQ server]
+More information: [/build.html#A2:Build Instructions]
 
-OpenAMQ From Source
-*******************
+Build OpenAMQ From Source - Windows
+***********************************
 
-Build your own OpenAMQ from source:
+Build, install, and run in 20 minutes, requires MSVC:
 
- - [/pub/OpenAMQ-$(main_version).tar.gz:Unix/Linux source]
- - [/pub/OpenAMQ-$(main_version).zip:Windows] (requires MSVC)
+1. Download the [/pub/OpenAMQ-$(main_version).zip:Windows source package].
+2. Unpack the compressed file.
+3. Open a DOS console and type these commands:
 
-Build, install, and run in 25 minutes:
+    > cd \\path\\to\\OpenAMQ-$(main_version)
+    > set IBASE=c:\\ibase
+    > set PATH=%IBASE%\\bin;%PATH%
+    > build
+    > amq_server
 
-1. Download the right package for your operating system.
-2. Unpack the compressed file into a user directory.
-3. Set IBASE to $HOME/ibase and add $IBASE/bin to your PATH.
-4. cd OpenAMQ-$(main_version)
-5. On Linux/Unix: sh build.sh; on Windows: build.
-6. The broker is called 'amq_server' - start this on the command-line.
-7. The OpenAMQ libraries are in the $IBASE/lib directory.
-
-More information: [/build.html:Building OpenAMQ from source]
-
-Older Versions of OpenAMQ
-*************************
-
-Older versions of the OpenAMQ software are available here:
-
- - [http://www.openamq.org/pub/:All previous versions]
-
+More information: [/build.html#A3:Build Instructions]
 </content>
-</language>
 </page>

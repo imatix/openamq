@@ -1,0 +1,15 @@
+<page
+    name = "cluster"
+    title = "Clustering"
+    subtitle = "Constructing OpenAMQ Clusters"
+    >
+<content type = "gurudoc">
+
+- principles of clustering
+- example configuration
+- application requirements
+- critical configuration options
+- FAQ
+
+</content>
+</page>

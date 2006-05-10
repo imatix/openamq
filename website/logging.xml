@@ -1,0 +1,14 @@
+<page
+    name = "logging"
+    title = "Logging"
+    subtitle = "Managing Your Server Logs"
+    >
+<content type = "gurudoc">
+
+- types of logging
+- log file cycling
+- advanced log file cycling
+- critical configuration options
+
+</content>
+</page>

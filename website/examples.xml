@@ -1,8 +1,9 @@
-<page name = "examples">
-<language name = "en">
-<title>Examples</title>
-<subtitle>provided examples and demo applications</subtitle>
-<content>
+<page
+    name = "examples"
+    title = "Examples"
+    subtitle = "Provided Examples and Demo Applications"
+    >
+<content type = "gurudoc">
 
 Under Construction
 ******************
@@ -10,5 +11,4 @@ Under Construction
 This page has deliberately been left blank.
 
 </content>
-</language>
 </page>

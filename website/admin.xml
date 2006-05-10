@@ -1,0 +1,15 @@
+<page
+    name = "admin"
+    title = "Administration"
+    subtitle = "Looking After Your OpenAMQ Servers"
+    >
+<content type = "gurudoc">
+
+- State dumping
+- Monitoring server performance
+- Killing bad clients
+- Monitoring memory & CPU consumption
+- critical configuration options
+
+</content>
+</page>

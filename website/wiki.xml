@@ -1,8 +1,9 @@
-<page name = "wiki">
-<language name = "en">
-<title>Wiki</title>
-<subtitle>the openamq whiteboard</subtitle>
-<content>
+<page
+    name = "wiki"
+    title = "Wiki"
+    subtitle = "The OpenAMQ Wiki"
+    >
+<content type = "gurudoc">
 
 OpenAMQ.org Wiki
 ****************
@@ -16,5 +17,4 @@ This is the developer's whiteboard.
 [http://wiki.openamq.org/cgi-bin/wiki:Go to the developer's wiki].
 
 </content>
-</language>
 </page>

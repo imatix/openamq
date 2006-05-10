@@ -1,11 +1,12 @@
-<page name = "deploy">
-<language name = "en">
-<title>Deployment</title>
-<subtitle>running and managing an openamq installation</subtitle>
-<content>
+<page
+    name = "deploy"
+    title = "Deployment"
+    subtitle = "Deploying an OpenAMQ Server"
+    >
+<content type = "gurudoc">
 
 Getting Started
-**************
+***************
 
 To run the OpenAMQ server you need (a) the openamqd server binary
 somewhere on your path, and (b) a configured directory. To make life
@@ -32,14 +33,14 @@ Starting and Stopping the Server
 The simplest way to start and stop the server is to run it using
 the command:
 
-    openamqd
+    amq_server
 
 and to stop it by typing Ctrl-C.
 
 Under Unix/Linux the server can be run as a detached background
 process using the command:
 
-    openamqd -s
+    amq_server -s
 
 Under Win32 you can use the srvany tool (part of the Windows Resource Kit)
 to register openamqd as a service.  Future versions of openamqd will
@@ -58,5 +59,4 @@ a web-based administation interface in the future.
 More information: server documentation.
 
 </content>
-</language>
 </page>

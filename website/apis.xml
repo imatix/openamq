@@ -1,8 +1,9 @@
-<page name = "apis">
-<language name = "en">
-<title>Developer APIs</title>
-<subtitle>Using openamq in your applications</subtitle>
-<content>
+<page
+    name = "apis"
+    title = "Developer APIs"
+    subtitle = "Using OpenAMQ in your Applications"
+    >
+<content type = "gurudoc">
 
 Under Construction
 ******************
@@ -10,5 +11,4 @@ Under Construction
 This page has deliberately been left blank.
 
 </content>
-</language>
 </page>

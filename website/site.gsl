@@ -6,43 +6,51 @@
 #   Page content can be XHTML or Gurudoc or a combination of the two.
 #
 
+function report (message)
+    if !defined (switches.quiet)
+        echo my.message
+    endif
+endfunction
+
 ignorecase = 0
-new root.content
-    for site.page
-        xml to content from page.name
-    endfor
-    for site.section
-        for page
-            xml to content from page.name
-        endfor
-    endfor
-endnew
 
-for root.content
+#   Load page contents from external files
+report ("Loading XML page data...")
+for section
     for page
-        for language
-            if !defined (switches.quiet)
-                echo "Generating $(page.name).html"
-            endif
+        xml to section from page.name
+        delete page
+    endfor
+endfor
 
-            #   Convert gurudoc content to XHTML
-            output "temp.txt"
-            for content
+#   Convert page contents
+report ("Converting page content...")
+for section
+    for page
+        for content where type = "gurudoc"
+            if !defined (content.filename)
+                content.filename = "temp.txt"
+                output content.filename
                 >$(gsl.exec (content.?'', 1))
-            endfor
-            close
-            process = proc.new ("./gd2xhtml", ".", "temp.txt", "temp.xml")
+                close
+            endif
+            #   Convert gurudoc content to XHTML
+            process = proc.new ("./gd2xhtml", ".", content.filename, "temp.xml")
             process.run ()
-            new content to language
+            new content to page
                 content.load_file ("temp.xml")
             endnew
-            file.delete ("temp.txt")
-            file.delete ("temp.xml")
-
-            #   Generate the page
-            output "$(page.name).html"
-            include "template.gsl"
+            delete content
         endfor
+    endfor
+endfor
+
+#   Generate output
+report ("Generating output HTML...")
+for section
+    for page
+        output "$(page.name).html"
+        include "template.gsl"
     endfor
 endfor
 

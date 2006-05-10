@@ -1,12 +1,29 @@
-<page name = "config">
-<language name = "en">
-<title>Configuration</title>
-<subtitle>configuring your openamq server</subtitle>
-<content>
+<page
+    name = "config"
+    title = "Configuration"
+    subtitle = "Configuring Your OpenAMQ Server"
+    >
+<content type = "gurudoc">
 
-Configuration
-*************
+OpenAMQ Configuration Model
+***************************
+
+Runtime Options
+    
+- command-line
+- static XML
+- layering
+-
+
+More information: [/options.html:Configurable Server Options]
+
+Logging
+
+More information: [/logging.html:Managing Your Server Logs]
+
+Clustering
+
+More information: [/cluster.html:Constructing OpenAMQ Clusters]
 
 </content>
-</language>
 </page>

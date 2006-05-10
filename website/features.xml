@@ -1,8 +1,9 @@
-<page name = "features">
-<language name = "en">
-<title>Features</title>
-<subtitle>openamq principal features</subtitle>
-<content>
+<page
+    name = "features"
+    title = "Features"
+    subtitle = "Principal Features of OpenAMQ"
+    >
+<content type = "gurudoc">
 
 OpenAMQ Features
 ****************
@@ -14,7 +15,6 @@ Ease of Use
  - Natively portable to all modern operating systems.
  - Runs with zero configuration if needed.
  - Configurable through command-line switches.
- - Uses standard AMQP port (5672).
 
 Message Routing
 ===============
@@ -82,13 +82,16 @@ WireAPI Client Principal Features
  - Error reporting to applications.
  - Currently available for C and C++.
 
-Not Yet Implemented
-===================
+Coming Soon...
+==============
 
- - Persistent messages and transactions.
- - Synchronous consumers (explicity acknowledgements).
- - TLS/SSL encryption.
+Planned and/or in progress:
+
+ - Secure SASL authentication mechanisms.
+ - TLS/SSL Encryption.
  - Server access controls (user groups and realms).
+ - Persistent messages and transactions.
+ - WireAPI clients for Perl, Python, PHP, Ruby.
 
 Technical Features
 ******************
@@ -107,20 +110,7 @@ Performance and Stability
  - Configurable TCP/IP parameters (timeouts, buffers).
  - Configurable OS footprint (number of threads).
  - Configurable memory managers (including heap caching).
- - Processes 40-50k messages per second on 1 CPU.
- - Processes 120-140k messages per second on an 8-CPU box.
-
-Coming Next
-***********
-
-This functionality is planned and/or in progress:
-
- - Secure SASL authentication mechanisms.
- - TLS/SSL Encryption.
- - User and group access controls.
- - Persistent messages and transactions.
- - WireAPI clients for Perl, Python, PHP, Ruby.
-
+ - Processes 40-50k transient messages per second on 1 CPU.
+ - Processes 120-140k transient messages per second on an 4-way box.
 </content>
-</language>
 </page>

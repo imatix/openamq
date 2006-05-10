@@ -1,0 +1,7 @@
+<page
+    name = "options"
+    title = "Runtime Options"
+    subtitle = "Configurable Server Options"
+    >
+<content type = "gurudoc" filename = "../kernel/amq_server_config.txt" />
+</page>

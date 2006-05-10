@@ -1,8 +1,9 @@
-<page name = "faq">
-<language name = "en">
-<title>FAQ</title>
-<subtitle>frequently-asked questions</subtitle>
-<content>
+<page
+    name = "faq"
+    title = "FAQ"
+    subtitle = "Frequently-asked Questions"
+    >
+<content type = "gurudoc">
 
 Frequently Asked Questions
 **************************
@@ -59,5 +60,4 @@ How can I participate in the OpenAMQ process?
 You should [/maillist.html:join the amq-dev mailing list]
 
 </content>
-</language>
 </page>
