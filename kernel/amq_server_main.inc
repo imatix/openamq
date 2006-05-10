@@ -1,6 +1,6 @@
 /*===========================================================================
 
-    Main preparation for demo server
+    Main set-up for amq_servers
 
     This file is defined as an include file so that it can be invoked
     directly from the main, setting up static variables that are used
