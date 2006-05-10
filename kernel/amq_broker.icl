@@ -147,9 +147,15 @@
         *ometer;                        //  Outgoing messages meter
     amq_vhost_t
         *vhost;                         //  Single vhost (for now)
+    FILE
+        *stats;                         //  Statistics output
 </context>
 
 <method name = "new">
+    <local>
+    icl_shortstr_t
+        stats_file;
+    </local>
     //
     //  We use a single global vhost for now
     //  TODO: load list of vhosts from config file
@@ -167,6 +173,14 @@
         self->auto_crash_timer = randomof (self->auto_crash_timer) + 1;
     if (self->auto_block_timer)
         self->auto_block_timer = randomof (self->auto_block_timer) + 1;
+
+    if (amq_server_config_record_stats (amq_server_config)) {
+        icl_shortstr_fmt (stats_file, "amq_server_stats_%s.del",
+            amq_server_config_port (amq_server_config));
+        self->stats = fopen (stats_file, "w");
+        //  We use a tab-delimited form that pastes easily into spreadsheets
+        fprintf (self->stats, "Clients\\tMsgMemK\\tCurIn\\tCurOut\\tAvgIn\\tAvgOut\\n");
+    }
 </method>
 
 <method name = "destroy">
@@ -175,6 +189,7 @@
     amq_vhost_destroy (&self->vhost);
     ipr_meter_destroy (&self->imeter);
     ipr_meter_destroy (&self->ometer);
+    fclose (self->stats);
     </action>
 </method>
 
@@ -224,21 +239,36 @@
     if (self->monitor_timer) {
         self->monitor_timer--;
         if (self->monitor_timer == 0) {
+            Bool
+                new_stats = FALSE;      //  Do we have new stats to print?
+                
             self->monitor_timer = amq_server_config_monitor (amq_server_config);
 
-            if (ipr_meter_mark (self->imeter, amq_server_config_monitor (amq_server_config)))
+            if (ipr_meter_mark (self->imeter, amq_server_config_monitor (amq_server_config))) {
                 asl_log_print (amq_broker->debug_log,
                     "I: incoming rate=%d mean=%d peak=%d",
                     self->imeter->current,
                     self->imeter->average,
                     self->imeter->maximum);
-            if (ipr_meter_mark (self->ometer, amq_server_config_monitor (amq_server_config)))
+                new_stats = TRUE;
+            }
+            if (ipr_meter_mark (self->ometer, amq_server_config_monitor (amq_server_config))) {
                 asl_log_print (amq_broker->debug_log,
                     "I: outgoing rate=%d mean=%d peak=%d iomean=%d",
                     self->ometer->current,
                     self->ometer->average,
                     self->ometer->maximum,
                     self->ometer->average + self->imeter->average);
+                new_stats = TRUE;
+            }
+            //  Record statistics if necessary
+            if (self->stats && new_stats) {
+                fprintf (self->stats, "%d\\t%u\\t%d\\t%d\\t%d\\t%d\\n",
+                    amq_server_connection_count (),
+                    ipr_bucket_used () / 1024,
+                    self->imeter->current, self->ometer->current,
+                    self->imeter->average, self->ometer->average);
+            }
         }
     }
     if (self->dump_state_timer) {
