@@ -1,0 +1,14 @@
+<!-- Include this file at the start of all self-running AMQP tests -->
+
+<!-- All standard macros should be defined in this file -->
+
+<set name = "start_server" value = "1" cmdline = "S" />
+<if name = "start_server">
+    <server name = "amq_server" where = "." stdout = "amq_server.log" stderr = "amq_server.log" />
+    <session>
+        <echo>Connected to $server_product/$server_version - $server_platform</echo>
+        <echo>Running $script...</echo>
+        <assert name = "version_major" value = "10" />
+    </session>
+</if>
+
