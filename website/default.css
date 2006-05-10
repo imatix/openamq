@@ -97,7 +97,7 @@ H2#title {
 /* Content (right, bottom) container */
 /* FIXME: Style more HTML elements here */
 #content_container {
-    width: 50%;
+    width: 55%;
     position: absolute;
     left: 240px;
     top: 100px;
@@ -200,26 +200,26 @@ A:link IMG, A:visited IMG {
     z-index: 1;
     position: absolute;
     left: 0px;
-    top: 30px;
-    width: 270px;
+    top: 20px;
+    width: 260px;
     height: 240px;
     background-color: #e4edf3;
 }
 #float_2 {
     z-index: 2;
     position: absolute;
-    left: 290px;
-    top: 30px;
-    width: 270px;
+    left: 270px;
+    top: 20px;
+    width: 260px;
     height: 240px;
     background-color: #cfdee7;
 }
 #float_3 {
     z-index: 3;
     position: absolute;
-    left: 580px;
-    top: 30px;
-    width: 270px;
+    left: 540px;
+    top: 20px;
+    width: 260px;
     height: 240px;
     background-color: #b2cbd8;
 }
@@ -227,26 +227,26 @@ A:link IMG, A:visited IMG {
     z-index: 4;
     position: absolute;
     left: 0px;
-    top: 300px;
-    width: 270px;
+    top: 270px;
+    width: 260px;
     height: 240px;
     background-color: #b2cbd8;
 }
 #float_5 {
     z-index: 5;
     position: absolute;
-    left: 290px;
-    top: 300px;
-    width: 270px;
+    left: 270px;
+    top: 270px;
+    width: 260px;
     height: 240px;
     background-color: #cfdee7;
 }
 #float_6 {
     z-index: 6;
     position: absolute;
-    left: 580px;
-    top: 300px;
-    width: 270px;
+    left: 540px;
+    top: 270px;
+    width: 260px;
     height: 240px;
     background-color: #e4edf3;
 }
