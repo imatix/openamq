@@ -84,6 +84,14 @@ merge these two classes into one.
         <field name = "information" label = "Other client information">
           <get>icl_shortstr_cpy (field_value, self->parent->client_information);</get>
         </field>
+        <field name = "trace" label = "Trace level, 0-3" type = "int">
+          <get>
+          icl_shortstr_fmt (field_value, "%d", self->parent->trace);
+          </get>
+          <put>
+          amq_server_connection_set_trace (self->parent, atoi (field_value));
+          </put>
+        </field>
 
         <class name = "queue" label = "Private queues" repeat = "1">
           <local>
