@@ -7,6 +7,7 @@
     <section name = "Welcome">
         <page name = "index" />
         <page name = "license" />
+        <page name = "features" />
     </section>
 
 <!--
@@ -19,13 +20,13 @@
 -->
 
     <section name = "Getting Started">
-        <page name = "features" />
         <page name = "download" />
         <page name = "build" />
     </section>
-    
+
     <section name = "OpenAMQ Server">
         <page name = "deploy" />
+        <page name = "security" />
         <page name = "config" />
         <page name = "options" />
         <page name = "logging" />
@@ -40,8 +41,8 @@
         <page name = "scripting" />
         -->
     </section>
-    
-    <section name = "Support">
+
+    <section name = "Community">
         <page name = "maillist" />
         <page name = "library" />
         <page name = "wiki" />
@@ -53,8 +54,8 @@
     </section>
 
     <copyright>
-    Copyright &copy; 2004-2006 iMatix Corporation.
-    OpenAMQ is free software distributed under the GPL/LGPL.
-    OpenAMQ is a trademark of iMatix Corporation.
+    Layout and content copyright &copy; 2004-2006 iMatix Corporation.
+    OpenAMQ is free software distributed under the GPL/LGPL. OpenAMQ is
+    a trademark of iMatix Corporation.
     </copyright>
 </site>

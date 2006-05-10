@@ -1,7 +1,7 @@
 <page
     name = "admin"
     title = "Administration"
-    subtitle = "Looking After Your OpenAMQ Servers"
+    subtitle = "Look After your Deployment"
     >
 <content type = "gurudoc">
 

@@ -1,7 +1,7 @@
 <page
     name = "build"
     title = "Build Instructions"
-    subtitle = "Building OpenAMQ from Source"
+    subtitle = "Build Your Own OpenAMQ"
     >
 <content type = "gurudoc">
 
@@ -137,7 +137,7 @@ The client will create a temporary queue on the server, send a single
 message to its own queue, and read the message back off its queue.  To
 stop the server, press Ctrl-C.
 
-More information: [/deploy.html:Deploying an OpenAMQ Server]
+More information: [page:deploy]
 
 Building on Windows Systems
 ***************************
@@ -265,6 +265,6 @@ The client will create a temporary queue on the server, send a single
 message to its own queue, and read the message back off its queue.  To
 stop the server, press Ctrl-C.
 
-More information: [/deploy.html:Deploying an OpenAMQ Server]
+More information: [page:deploy]
 </content>
 </page>

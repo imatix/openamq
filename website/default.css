@@ -10,7 +10,6 @@
 BODY {
     font-family: Verdana, Arial, Helvetica, sans-serif;
     font-size: 9pt;
-    background-color: #b9cdd8;
 }
 
 /* Left column container */
@@ -28,7 +27,6 @@ BODY {
 /* Right column container */
 #right_container {
     margin-left: 220px;
-    background-color: white;
 }
 
 /* Logo (left, top) container */
@@ -46,41 +44,26 @@ BODY {
 
 /* Menu (left, bottom) container */
 #menu_container {
-    color: black;
-    background-color: #b9cdd8;
+    background-color: white;
 }
-H3.menu_heading {
-    color: white;
-    background-color: #01415c;
-    font-size: 10pt;
-    line-height: 16pt;
-    font-variant: small-caps;
+.menu_section {
+    background-color: #b9cdd8;
+    margin-bottom: 10px;
+    margin-left: 10px;
+}
+.menu_title {
+    font-size: 11pt;
     text-indent: 10pt;
+    margin: 2pt;
 }
-UL.menu_item {
-    font-variant: normal;
-    list-style: none;
-    border-width: 0 0 1pt 0;
-    border-style: solid;
-    border-color: white;
-    line-height: 16pt;
+.menu_item  {
+    text-indent: 20pt;
+    padding-bottom: 3px;
 }
-UL.menu_item LI {
-    border-width: 1pt 0 0 0;
-    border-style: solid;
-    border-color: white;
-    text-indent: 15pt;
-    line-height: 15pt;
-}
-
-#copyright P {
-    font-size: 8pt;
-    background-color: #b9cdd8;
-    border-width: 3pt 0 4pt 0;
-    border-style: solid;
-    border-color: #b9cdd8;
+#copyright {
+    font-size: 7pt;
     padding-left: 15pt;
-    color: #01415c;
+    margin: 2pt;
 }
 
 #title_container {
@@ -114,15 +97,18 @@ H2#title {
 /* Content (right, bottom) container */
 /* FIXME: Style more HTML elements here */
 #content_container {
-    width: 80%;
-    margin: 20pt;
+    width: 50%;
+    position: absolute;
+    left: 240px;
+    top: 100px;
 }
 #content_container H1 {
     margin-top: 12pt;
-    background-color: #b9cdd8;
     font-size: 12pt;
     font-variant: small-caps;
-    text-indent: 10pt;
+    border-width: 0 0 1pt 0;
+    border-style: dashed;
+    border-color: #b9cdd8;
 }
 #content_container H2 {
     margin-top: 12pt;
@@ -160,12 +146,12 @@ H2#title {
     margin-left: 2em;
     margin-right: 2em;
 }
-#content_container PRE {
-    background-color: #E0E0E0;
+#content_container pre {
+    background-color: #b9cdd8;
+    color: black;
     margin: 1em;
-    margin-left: 2em;
+    margin-left: 4em;
     margin-right: 4em;
-    padding-left: 2em;
 }
 #content_container TABLE {
     margin-left: 3em;
@@ -202,24 +188,72 @@ A:visited {
     color: #01415c;
 }
 A[HREF]:hover {
-    background-color: #b9cdd8;
-    color: black;
-}
-A.menu_item:active {
-    text-decoration: none;
-    color: black;
-}
-A.menu_item:link {
-    text-decoration: none;
-    color: black;
-}
-A.menu_item:visited {
-    text-decoration: none;
-    color: black;
-}
-A.menu_item[HREF]:hover {
     color: red;
 }
 A:link IMG, A:visited IMG {
     border-style: none;
+}
+
+
+/* Floating boxes */
+#float_1 {
+    z-index: 1;
+    position: absolute;
+    left: 0px;
+    top: 30px;
+    width: 270px;
+    height: 240px;
+    background-color: #e4edf3;
+}
+#float_2 {
+    z-index: 2;
+    position: absolute;
+    left: 290px;
+    top: 30px;
+    width: 270px;
+    height: 240px;
+    background-color: #cfdee7;
+}
+#float_3 {
+    z-index: 3;
+    position: absolute;
+    left: 580px;
+    top: 30px;
+    width: 270px;
+    height: 240px;
+    background-color: #b2cbd8;
+}
+#float_4 {
+    z-index: 4;
+    position: absolute;
+    left: 0px;
+    top: 300px;
+    width: 270px;
+    height: 240px;
+    background-color: #b2cbd8;
+}
+#float_5 {
+    z-index: 5;
+    position: absolute;
+    left: 290px;
+    top: 300px;
+    width: 270px;
+    height: 240px;
+    background-color: #cfdee7;
+}
+#float_6 {
+    z-index: 6;
+    position: absolute;
+    left: 580px;
+    top: 300px;
+    width: 270px;
+    height: 240px;
+    background-color: #e4edf3;
+}
+#float_header {
+    margin-top: 6pt;
+    font-size: 12pt;
+    font-weight: bold;
+    text-indent: 0;
+    text-align: center;
 }

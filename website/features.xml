@@ -1,7 +1,7 @@
 <page
     name = "features"
     title = "Features"
-    subtitle = "Principal Features of OpenAMQ"
+    subtitle = "Main Features"
     >
 <content type = "gurudoc">
 
@@ -91,7 +91,7 @@ Planned and/or in progress:
  - TLS/SSL Encryption.
  - Server access controls (user groups and realms).
  - Persistent messages and transactions.
- - WireAPI clients for Perl, Python, PHP, Ruby.
+ - WireAPI clients for Perl, Python, PHP, Ruby, Java.
 
 Technical Features
 ******************
@@ -108,9 +108,9 @@ Performance and Stability
 
  - Built on a low-latency, high-throughput communications framework.
  - Configurable TCP/IP parameters (timeouts, buffers).
- - Configurable OS footprint (number of threads).
+ - Configurable OS footprint (memory, number of threads).
  - Configurable memory managers (including heap caching).
- - Processes 40-50k transient messages per second on 1 CPU.
- - Processes 120-140k transient messages per second on an 4-way box.
+ - Processes 40-50k transient messages per second on single CPU.
+ - Processes 120-140k transient messages per second on multiway box.
 </content>
 </page>

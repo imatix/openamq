@@ -1,0 +1,15 @@
+<page
+    name = "security"
+    title = "Security"
+    subtitle = "Secure Your OpenAMQ Server"
+    >
+<content type = "gurudoc">
+
+Default Security
+****************
+
+Defining New Users
+******************
+
+</content>
+</page>

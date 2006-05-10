@@ -1,7 +1,7 @@
 <page
     name = "download"
     title = "Download"
-    subtitle = "Downloading and Installing OpenAMQ"
+    subtitle = "Download and Install"
     >
 <content type = "gurudoc">
 
@@ -20,7 +20,7 @@ Install and run in 5 minutes:
 2. Add the OpenAMQ /bin directory to your PATH.
 3. To start the OpenAMQ broker, run 'amq_server'.
 
-More information: [/deploy.html:Running and Managing an OpenAMQ Installation]
+More information: [page:deploy]
 
 Build OpenAMQ From Source - Linux, Solaris, Unix
 ************************************************
@@ -37,7 +37,7 @@ Build, install, and run in 20 minutes:
     $ sh build.sh
     $ amq_server
 
-More information: [/build.html#A2:Build Instructions]
+More information: [page:build]
 
 Build OpenAMQ From Source - Windows
 ***********************************
@@ -54,6 +54,6 @@ Build, install, and run in 20 minutes, requires MSVC:
     > build
     > amq_server
 
-More information: [/build.html#A3:Build Instructions]
+More information: [page:build]
 </content>
 </page>

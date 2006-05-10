@@ -1,56 +1,74 @@
 <page
     name = "index"
-    title = "Welcome"
-    subtitle = "Welcome to Commodity Middleware"
+    title = "OpenAMQ.org"
+    subtitle = "Fast, Easy, Free Commodity Middleware"
     >
 <content type = "gurudoc">
+{rule:floating frames}
 
-Industry-Standard Messaging Protocol
-************************************
+Welcome
+*******
 
-AMQP - the Advanced Message Queues Protocol - is the industry-standard
-messaging middleware protocol, designed for performance, flexibility,
-interoperability, and longevity.
+Used by some of the world's largest businesses, OpenAMQ is a complete
+and mature open source messaging middleware package.
 
-The Most Complete AMQP Solution
-===============================
+Our mission: to connect your mission critical applications at low cost,
+and transfer your data quickly and safely.
 
-OpenAMQ brings you a first-class open-source AMQP solution built for
-Linux, Solaris, and Windows. Our mission is to provide you with an
-efficient, high-performance, zero-defect product that runs your
-mission-critical applications without breaking or slowing.
+More: [page:features]
 
-OpenAMQ gives you a full AMQP broker, client libraries, administration
-tools, automation interfaces, documentation, and test tools, and is the
-most complete open-source AMQP solution available today.
+License
+*******
 
-More information: [/features.html:Principal Features of OpenAMQ]
+The OpenAMQ server is free software licensed under the Free Software
+Foundation's [http://www.gnu.org/licenses/gpl.html:GPL].
 
-Ready-to-Run for Your System
-============================
+The OpenAMQ client libraries are free software licensed under the Free
+Software Foundation's [http://www.gnu.org/licenses/lgpl.html:LGPL].
 
-The complete OpenAMQ ready-to-run for your system:
+More: [page:license]
 
- - [/pub/OpenAMQ-$(main_version)-linux.tar.gz:OpenAMQ server for Linux]
- - [/pub/OpenAMQ-$(main_version)-solaris.tar.gz:OpenAMQ server for Solaris 10]
- - [/pub/OpenAMQ-$(main_version)-win32.exe:OpenAMQ server for Windows]
+Getting Started
+***************
 
-More information: [/download.html:Downloading and Installing OpenAMQ]
+Download the full OpenAMQ package ready-to-run for your system:
 
-Full AMQP Access for Your Applications
-======================================
+ - [/pub/OpenAMQ-$(main_version)-linux.tar.gz:Linux 2.4 or 2.6]
+ - [/pub/OpenAMQ-$(main_version)-solaris.tar.gz:Solaris 8 or Solaris 10]
+ - [/pub/OpenAMQ-$(main_version)-win32.exe:32-bit Windows]
 
-The WireAPI clients give your applications full access to AMQP, whether
-you use OpenAMQ or an alternative AMQ broker.
+More: [page:download]
 
-More information: [/wireapi.html:The WireAPI Clients]
+The OpenAMQ Server
+******************
 
-Operating Your OpenAMQ Server
-*****************************
+The OpenAMQ server (broker) installs and runs out-of-the-box with
+!zero configuration!.
 
-For rapid instructions on operating an OpenAMQ server, start here.
+You can also secure and fine-tune the server's performance, logging,
+security, and other functions.
 
-More information: [/deploy.html:Deploying an OpenAMQ Server]
+More: [page:deploy], [page:config]
+
+The WireAPI Clients
+*******************
+
+The WireAPI clients give your applications full access to the power of AMQP.
+
+Easy to use in C, C++, Perl, Java, Python, COM, and other platforms.
+
+More: [page:wireapi]
+
+Community
+*********
+
+Ea lobortis vel hendrerit, facilisis dignissim vero illum molestie minim eros
+consequat facilisi at dolor, enim luptatum.
+
+Erat, dolor velit et tation et ut suscipit et iusto vel enim autem consectetuer
+quis duis dolore veniam nibh iriure lobortis.
+
+More: [page:contact]
 
 </content>
 </page>

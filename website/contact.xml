@@ -1,6 +1,6 @@
 <page
     name = "contact"
-    title = "Contact"
+    title = "Contact Us"
     subtitle = "Contact Us"
     >
 <content type = "gurudoc">

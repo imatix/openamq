@@ -1,7 +1,7 @@
 #! /usr/bin/perl
 #============================================================================
 #
-#   gd2xhtml    Gurudoc-to-XHTML converter
+#   gd2xhtml    Gurudoc-to-XHTML converter, modified for OpenAMQ site model
 #
 #   Originally taken from the iMatix htmlpp tool.
 #
@@ -37,12 +37,19 @@ sub text_to_xhtml {
     $had_blank    = 1;                  #   Last line was blank, initially
 
     while (get_plain_line ()) {
+        #   Process rules
+
+        if (/^\{rule:(.*)\}/) {
+            $floating_frames = 1 if $1 eq "floating frames";
+            next;
+        }
+
         #   Numbered list consists of line starting with a number, that
         #   number must be followed by a '-', '.' or ')' character, and
         #   followed by a whitespace.
-        if (s/^\s{0,2}[0-9]+[\.\-\)]\s+//) {
+        elsif (s/^\s{0,2}[0-9]+[\.\-\)]\s+//) {
             guru_want_block ("ol");
-            $content .= "<li>";
+            $content .= "<li>\n";
             do {
                 s/^\s+/ /;
                 $content .= "$_";
@@ -56,7 +63,7 @@ sub text_to_xhtml {
         #   '*', and followed by a whitespace.
         elsif (s/^\s{0,2}[\-\*\+]\s+//) {
             guru_want_block ("ul");
-            $content .= "<li>";
+            $content .= "<li>\n";
             do {
                 s/^\s+/ /;
                 $content .= "$_";
@@ -120,8 +127,15 @@ sub text_to_xhtml {
             if (/^\*\*\*/) {
                 guru_want_block ("");  #   Close any previous block
                 $anchors++;
-                $header  .= "<li><a href=\"#A$anchors\">$first</a></li>";
-                $content .= "<h1><a name=\"A$anchors\">$anchors\. $first</a></h1>\n";
+                if ($floating_frames) {
+                    $content .= "</div>\n\n" if $anchors > 1;
+                    $content .= "<div id=\"float_$anchors\">\n";
+                    $content .= "<div id=\"float_header\"><a name=\"A$anchors\">$first</a></div>\n";
+                }
+                else {
+                    $content .= "<h1><a name=\"A$anchors\">$anchors\. $first</a></h1>\n";
+                }
+                $header .= "<li><a href=\"#A$anchors\">$first</a></li>\n";
                 $had_blank = 1;
                 next;
             }
@@ -146,11 +160,11 @@ sub text_to_xhtml {
 
             #   Tables are triggered by either a header line in the form
             #   'This field:  Has this meaning:', or by a table line in
-            #   the form 'One_word: Explanation...', where both the word
+            #   the form 'This text: Has some meaning', where both the word
             #   and the text start in a letter or a digit.
             #
             elsif ($first =~ /^[A-Za-z0-9].*(:\s+[A-Za-z].*)+:/
-            ||     $first =~ /^[A-Za-z0-9]\w*(:\s+\S+)+/) {
+            || ($table_row && $first =~ /^[A-Za-z0-9]\w*(:\s+\S+)+/)) {
                 &guru_want_block ("");  #   Close any previous block
                 $content .= "<table>\n";
                 $table_row = 1;
@@ -175,10 +189,10 @@ sub text_to_xhtml {
             #
             elsif (/^\s/ && $first =~ /^(.*):$/) {
                 guru_want_block ("dl");
-                $content .= "<dt>";
+                $content .= "<dt>\n";
                 $content .= $1;
                 $content .= "</dt>\n";
-                $content .= "<dd>";
+                $content .= "<dd>\n";
                 while (/^\s/) {
                     s/^\s+//;
                     $content .= "$_\n";
@@ -228,10 +242,13 @@ sub text_to_xhtml {
         }
     }
     guru_want_block ("");              #   Close any current block
-    
-    if ($anchors > 1) {
-        print "<h1>Contents of This Page</h1>";
-        print "<ol>$header</ol>";
+
+    if ($floating_frames) {
+        $content .= "</div>\n\n" if $anchors > 1;
+    }
+    elsif ($anchors > 1) {
+        print "<h1>Contents</h1>\n";
+        print "<ol>$header</ol>\n";
     }
     print $content;
 }
@@ -284,6 +301,23 @@ sub get_plain_line {
             elsif (/\[\/([^\]]+)\]/) {
                 $_ = $`."<a href=\"$1\">$1</a>".$';
             }
+            #   Format [page:filename]
+            elsif (/\[page:([^\]]+)\]/) {
+                $file = $1;
+                $title = $1;
+                #   Pick up title from XML model
+                if (-f "$file.xml") {
+                    open (MODEL, "$file.xml") || die "Can't read $file.xml: $!";
+                    while (<MODEL>) {
+                        if (/subtitle\s*=\s*"([^"]+)"/) {
+                            $title = $1;
+                            last;
+                        }
+                    }
+                    close MODEL;
+                }
+                $_ = $`."<a href=\"$file.html\">$title</a>".$';
+            }
             else {
                 last;
             }
@@ -300,7 +334,7 @@ sub guru_want_block {
 
     if ($guru_block ne $new_block) {
         if ($guru_block) {
-            $content .= "</$guru_block>\n\n" ;
+            $content .= "</$guru_block>\n" ;
         }
         if ($new_block) {
             $content .= "<$new_block>\n";

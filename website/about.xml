@@ -1,7 +1,7 @@
 <page
     name = "about"
-    title = "About"
-    subtitle = "About OpenAMQ"
+    title = "About OpenAMQ"
+    subtitle = "Background Information on OpenAMQ"
     >
 <content type = "gurudoc">
 
@@ -54,7 +54,7 @@ Statistics
 
  - Current version of OpenAMQ software: *$(main_version)*.
  - Number of versions of OpenAMQ released and tested before 1.0d0: *55.*
- - Date of birth of first line of OpenAMQ code: *12, August 2004.*
+ - Date of birth of first line of OpenAMQ code: *2, October 2004.*
  - Number of Jiras fixed on OpenAMQ since August 2005: *621.*
  - Size of iMatix technology stack: *524,133 lines of C/C++ code.*
  - Size of OpenAMQ main products: *309,656 lines of C/C++ code.*

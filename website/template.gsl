@@ -7,6 +7,10 @@
 <head>
   <title>$(site.name): $(page.title)</title>
   <link rel="stylesheet" href="default.css" type="text/css"/>
+  <link rel="stylesheet" type="text/css" href="niftyCorners.css">
+  <link rel="stylesheet" type="text/css" href="niftyPrint.css" media="print">
+  <script type="text/javascript" src="niftycube.js"></script>
+  <script type="text/javascript" src="layout.js"></script>
 </head>
 <body>
   <div id="left_container">
@@ -15,21 +19,20 @@
     </div>
     <div id="menu_container">
 .for site.section
-      <h3 class="menu_heading">$(name)</h3>
-      <ul class="menu_item">
+      <div class="menu_section">
+        <h1 class="menu_title">$(name)</h1>
 .   for page
-        <li><a class="menu_item" href="$(page.name).html">$(page.title)</a></li>
+          <p class="menu_item"><a href="$(page.name).html">$(page.title)</a></p>
 .   endfor
-      </ul>
+        </ul>
+      </div>
 .endfor
-      <h3 class="menu_heading">Copyright Notice</h3>
     </div>
     <div id="copyright">
 .for site.copyright
-      <p>$(copyright.string ())</p>
+      $(copyright.string ())
 .endfor
     </div>
-    <h3 class="menu_heading">&nbsp;</h3>
   </div>
 
   <div id="right_container">
@@ -50,4 +53,3 @@
 </body>
 </html>
 .endtemplate
-

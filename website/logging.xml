@@ -1,7 +1,7 @@
 <page
     name = "logging"
     title = "Logging"
-    subtitle = "Managing Your Server Logs"
+    subtitle = "Manage Your Server Logs"
     >
 <content type = "gurudoc">
 
