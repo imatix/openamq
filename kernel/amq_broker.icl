@@ -180,6 +180,8 @@
         self->stats = fopen (stats_file, "w");
         //  We use a tab-delimited form that pastes easily into spreadsheets
         fprintf (self->stats, "Clients\\tMsgMemK\\tCurIn\\tCurOut\\tAvgIn\\tAvgOut\\n");
+    } else {
+        self->stats = NULL;
     }
 </method>
 
@@ -189,7 +191,8 @@
     amq_vhost_destroy (&self->vhost);
     ipr_meter_destroy (&self->imeter);
     ipr_meter_destroy (&self->ometer);
-    fclose (self->stats);
+    if (self->stats)
+        fclose (self->stats);
     </action>
 </method>
 
