@@ -9,19 +9,16 @@
         <page name = "license" />
         <page name = "features" />
     </section>
-
     <section name = "Getting Started">
         <page name = "download" />
         <page name = "build" />
     </section>
-
     <section>
         <!-- todo -->
-        <page name = "build_posix" />
+        <page name = "build_unix" />
         <!-- todo -->
         <page name = "build_win32" />
     </section>
-
     <section name = "OpenAMQ Server">
         <page name = "deploy" />
         <!-- todo -->
@@ -36,7 +33,6 @@
         <!-- todo -->
         <page name = "admin" />
     </section>
-
     <section name = "OpenAMQ WireAPI">
         <!-- todo -->
         <page name = "wireapi" />
@@ -47,7 +43,6 @@
         <page name = "scripting" />
         -->
     </section>
-
     <section name = "Community">
         <!-- todo -->
         <page name = "community" />
@@ -58,12 +53,10 @@
         <!-- todo -->
         <page name = "wiki" />
     </section>
-
     <section name = "Footer">
         <page name = "contact" />
         <page name = "about" />
     </section>
-
     <copyright>
     Layout and content copyright &copy; 2004-2006 iMatix Corporation.
     OpenAMQ is free software distributed under the GPL/LGPL. OpenAMQ is

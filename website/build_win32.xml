@@ -5,158 +5,8 @@
     >
 <content type = "gurudoc">
 
-Overview of the Build Process
-*****************************
-
-The Unix and Windows packages have identical contents but the text files
-they contain are formatted for POSIX and Windows respectively. If you
-attempt to build the Windows file on Linux, Solaris or an other POSIX
-system, you will get shell errors unless you convert all files (using
-zip or some similar tool).
-
-OpenAMQ depends on multiple packages, which are built as part of the
-process. However, you do not need to download any other software to
-build and run OpenAMQ - the OpenAMQ source kits are self-complete and
-contain qualified and tested versions of all required packages.
-
-Building on Linux, Solaris, and other POSIX Systems
-***************************************************
-
-Quick Guide
-===========
-
-These shell commands build OpenAMQ from the Unix source kit:
-
-    $ IBASE=$HOME/ibase; export IBASE
-    $ PATH=$IBASE/bin:$PATH; export PATH
-    $ tar zxvf /path/to/OpenAMQ-$(main_version).tar.gz
-    $ cd /path/to/OpenAMQ-$(main_version)
-    $ sh build.sh
-
-The next section explains the process in more detail.
-
-Step 0 - Requirements
-=====================
-
- - Linux 2.4 or later, Solaris 8 or 10, or another POSIX system
- - An ANSI C compiler (OpenAMQ builds with gcc, Sun C, and Intel C)
- - 1 gigabyte of available disk space
- - unzip or tar + gunzip
-
-OpenAMQ has been validated on Linux 2.4 and 2.6, Solaris 8 and 10. It
-may not build and/or not operate correctly on other POSIX systems. If
-you need to build OpenAMQ on other POSIX systems please contact us for
-rapid and free support.
-
-Step 1 - Specify IBASE Directory
-================================
-
-The OpenAMQ libraries and executables are installed into the directory
-defined by the environment variable IBASE (the shared install base for
-all iMatix products).
-
-Define IBASE using a command following this example:
-
-    $ IBASE=$HOME/ibase
-    $ export IBASE
-
-You can add these commands to your shell startup script so that you do
-not need to retype them in each shell window.
-
-Step 2 - Set Your PATH
-======================
-
-To correctly access the OpenAMQ executables, you must place the IBASE/bin
-directory on your path.  Do this using these commands:
-
-    $ PATH=$IBASE/bin:$PATH
-    $ export PATH
-
-You can add these commands to your shell startup script so that you do not
-need to retype them in each shell window.
-
-Step 3 - Choose a Build Model
-=============================
-
-From the same OpenAMQ source kit you can build many variations of the
-software:
-
- - single-threaded, useful for single-core servers (st).
- - multi-threaded, ideal for servers with two or more cores (mt).
- - with full debugging information (debug).
- - optimised, without debugging information (release).
-
-The default build is mt,release. To choose a different build, set the
-BOOM_MODEL environment variable following this example:
-
-   $ BOOM_MODEL="mt,debug"
-   $ export BOOM_MODEL
-
-You can add these commands to your shell startup script so that you do
-not need to retype them in each shell window.
-
-Step 4 - Unpack the Source Code
-===============================
-
-After downloading the OpenAMQ source kit, move it to a working directory
-with sufficient disk space and then unpack the source code using this
-command:
-
-    $ tar zxvf /path/to/OpenAMQ-$(main_version).tar.gz
-    $ cd /path/to/OpenAMQ-$(main_version)
-
-Step 5 - Build the Packages
-===========================
-
-After setting IBASE, your PATH, and BOOM_MODEL, build the software using
-this command, in the OpenAMQ-$(main_version) directory:
-
-    $ sh build.sh
-
-Step 6 - Test the Server
-========================
-
-After a successful build, start the server as follows:
-
-    $ amq_server
-    OpenAMQ/$(main_version)
-    Production release
-
-    Copyright (c) 2004-2006 iMatix Corporation
-    This is free software; see the source for copying conditions.  There is NO
-    warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-    2006-05-09 10:12:41: W: security warning - console login uses default password
-    2006-05-09 10:12:42: I: server ready for incoming AMQ connections
-
-And in a second window, start the test client as follows:
-
-    $ amq_client
-
-The client will create a temporary queue on the server, send a single
-message to its own queue, and read the message back off its queue.  To
-stop the server, press Ctrl-C.
-
-More information: [page:deploy]
-
-Building on Windows Systems
-***************************
-
-Quick Guide
-===========
-
-These Windows console commands build OpenAMQ from the Windows source kit:
-
-    > set IBASE=c:\\ibase
-    > set PATH=%IBASE%\\bin;%PATH%
-    > unzip \\path\\to\\OpenAMQ-$(main_version).zip
-    > cd \\path\\to\\OpenAMQ-$(main_version)
-    > build
-
-The next section explains the process in more detail.
-
-Step 0 - Requirements
-=====================
+Requirements for OpenAMQ on Windows
+***********************************
 
  - Any modern Windows platform
  - Microsoft Visual C/C++ 6.x or Visual Studio 7.x
@@ -179,8 +29,8 @@ correctly.  Otherwise follow these instructions:
    to the MSVC application directory.
  - You can set this manually in the system environment variables.
 
-Step 1 - Specify IBASE Directory
-================================
+Specify the IBASE Directory
+***************************
 
 The OpenAMQ libraries and executables are installed into the directory
 defined by the environment variable IBASE (the common base for all
@@ -193,8 +43,8 @@ Define IBASE using a command following this example:
 You can add this command to your server environment so that you do not
 need to retype it in each shell window.
 
-Step 2 - Set Your PATH
-======================
+Set Your PATH
+*************
 
 To correctly access the OpenAMQ executables, you must place the IBASE\\bin
 directory on your path.  Do this using this command:
@@ -204,8 +54,8 @@ directory on your path.  Do this using this command:
 You can add this command to your server environment so that you do not
 need to retype it in each shell window.
 
-Step 3 - Choose a Build Model
-=============================
+Choose a Build Model
+********************
 
 From the same OpenAMQ source kit you can build many variations of the
 software:
@@ -223,8 +73,8 @@ BOOM_MODEL environment variable following this example:
 You can add this command to your server environment so that you do not
 need to retype it in each shell window.
 
-Step 4 - Unpack the Source Code
-===============================
+Unpack the Source Code
+**********************
 
 After downloading the OpenAMQ source kit, move it to a working directory
 with sufficient disk space and then unpack the source code using these
@@ -233,16 +83,16 @@ commands:
     > unzip \\path\\to\\OpenAMQ-$(main_version).zip
     > cd \\path\\to\\OpenAMQ-$(main_version)
 
-Step 5 - Build the Packages
-===========================
+Build the Packages
+******************
 
 After setting IBASE, your PATH, and BOOM_MODEL, build the software using
 this command, in the OpenAMQ-$(main_version) directory:
 
     > build
 
-Step 6 - Test the Server
-========================
+Test the Server
+***************
 
 After a successful build, start the server as follows:
 
