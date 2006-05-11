@@ -180,8 +180,6 @@
         self->stats = fopen (stats_file, "w");
         //  We use a tab-delimited form that pastes easily into spreadsheets
         fprintf (self->stats, "Clients\\tMsgMemK\\tCurIn\\tCurOut\\tAvgIn\\tAvgOut\\n");
-    } else {
-        self->stats = NULL;
     }
 </method>
 
