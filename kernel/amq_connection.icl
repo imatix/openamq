@@ -86,10 +86,10 @@ merge these two classes into one.
         </field>
         <field name = "trace" label = "Trace level, 0-3" type = "int">
           <get>
-          icl_shortstr_fmt (field_value, "%d", self->parent->trace);
+            icl_shortstr_fmt (field_value, "%d", self->parent->trace);
           </get>
           <put>
-          amq_server_connection_set_trace (self->parent, atoi (field_value));
+            amq_server_connection_set_trace (self->parent, atoi (field_value));
           </put>
         </field>
 
@@ -121,8 +121,7 @@ merge these two classes into one.
           <exec>
             asl_log_print (amq_broker->alert_log,
                 "W: operator killed connection to %s", self->parent->client_address);
-            amq_server_connection_error (self->parent,
-                ASL_CONNECTION_FORCED, "Operator killed connection explicitly");
+            amq_server_connection_kill (self->parent);
           </exec>
         </method>
     </class>
