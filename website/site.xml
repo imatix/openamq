@@ -10,41 +10,52 @@
         <page name = "features" />
     </section>
 
-<!--
-- main page
-- software features
-- download, build, install
-- configure, run, admin
-- support, contact
-- about
--->
-
     <section name = "Getting Started">
         <page name = "download" />
         <page name = "build" />
     </section>
 
+    <section>
+        <!-- todo -->
+        <page name = "build_posix" />
+        <!-- todo -->
+        <page name = "build_win32" />
+    </section>
+
     <section name = "OpenAMQ Server">
         <page name = "deploy" />
+        <!-- todo -->
         <page name = "security" />
+        <!-- todo -->
         <page name = "config" />
         <page name = "options" />
+        <!-- todo -->
         <page name = "logging" />
+        <!-- todo -->
         <page name = "cluster" />
+        <!-- todo -->
         <page name = "admin" />
     </section>
 
     <section name = "OpenAMQ WireAPI">
+        <!-- todo -->
         <page name = "wireapi" />
+        <!-- todo -->
         <page name = "examples" />
+        <!-- todo -->
         <!--
         <page name = "scripting" />
         -->
     </section>
 
     <section name = "Community">
+        <!-- todo -->
+        <page name = "community" />
+        <!-- todo -->
         <page name = "maillist" />
+        <!-- todo -->
         <page name = "library" />
+        <!-- todo -->
         <page name = "wiki" />
     </section>
 

@@ -52,7 +52,7 @@ BODY {
     margin-left: 10px;
 }
 .menu_title {
-    font-size: 11pt;
+    font-size: 10pt;
     text-indent: 10pt;
     margin: 2pt;
 }
@@ -61,9 +61,10 @@ BODY {
     padding-bottom: 3px;
 }
 #copyright {
-    font-size: 7pt;
-    padding-left: 15pt;
-    margin: 2pt;
+    color: white;
+    background-color: #01415c;
+    font-size: 8pt;
+    padding: 1.5em;
 }
 
 #title_container {
@@ -97,7 +98,7 @@ H2#title {
 /* Content (right, bottom) container */
 /* FIXME: Style more HTML elements here */
 #content_container {
-    width: 55%;
+    width: 60%;
     position: absolute;
     left: 240px;
     top: 100px;
@@ -105,26 +106,22 @@ H2#title {
 #content_container H1 {
     margin-top: 12pt;
     font-size: 12pt;
-    font-variant: small-caps;
     border-width: 0 0 1pt 0;
     border-style: dashed;
     border-color: #b9cdd8;
 }
 #content_container H2 {
     margin-top: 12pt;
-    font-variant: small-caps;
     font-size: 10pt;
     padding-left: 10pt;
 }
 #content_container H3 {
     margin-top: 11pt;
-    font-variant: small-caps;
     font-size: 9pt;
     padding-left: 10pt;
 }
 #content_container H4 {
     margin-top: 10pt;
-    font-variant: small-caps;
     font-size: 8pt;
     padding-left: 10pt;
 }
@@ -147,17 +144,11 @@ H2#title {
     margin-right: 2em;
 }
 #content_container pre {
-    background-color: #b9cdd8;
+    background-color: #cfdee7;
     color: black;
     margin: 1em;
     margin-left: 4em;
     margin-right: 4em;
-}
-#content_container TABLE {
-    margin-left: 3em;
-}
-#content_container TD {
-    padding-left: 1em;
 }
 #content_container DL {
     margin: 1em;
@@ -194,66 +185,45 @@ A:link IMG, A:visited IMG {
     border-style: none;
 }
 
-
-/* Floating boxes */
+/* Floating boxes are calculated in ems */
 #float_1 {
-    z-index: 1;
-    position: absolute;
-    left: 0px;
-    top: 20px;
-    width: 260px;
-    height: 240px;
+    top: 2em;
+    left: 0em;
     background-color: #e4edf3;
 }
 #float_2 {
-    z-index: 2;
-    position: absolute;
-    left: 270px;
-    top: 20px;
-    width: 260px;
-    height: 240px;
+    top: 2em;
+    left: 24em;
     background-color: #cfdee7;
 }
 #float_3 {
-    z-index: 3;
-    position: absolute;
-    left: 540px;
-    top: 20px;
-    width: 260px;
-    height: 240px;
+    top: 2em;
+    left: 48em;
     background-color: #b2cbd8;
 }
 #float_4 {
-    z-index: 4;
-    position: absolute;
-    left: 0px;
-    top: 270px;
-    width: 260px;
-    height: 240px;
+    top: 26em;
+    left: 0em;
     background-color: #b2cbd8;
 }
 #float_5 {
-    z-index: 5;
-    position: absolute;
-    left: 270px;
-    top: 270px;
-    width: 260px;
-    height: 240px;
+    top: 26em;
+    left: 24em;
     background-color: #cfdee7;
 }
 #float_6 {
-    z-index: 6;
-    position: absolute;
-    left: 540px;
-    top: 270px;
-    width: 260px;
-    height: 240px;
+    top: 26em;
+    left: 48em;
     background-color: #e4edf3;
 }
-#float_header {
+.float_cell {
+    width: 22em;
+    height: 22em;
+    position: absolute;
+}
+.float_header {
     margin-top: 6pt;
     font-size: 12pt;
     font-weight: bold;
-    text-indent: 0;
     text-align: center;
 }

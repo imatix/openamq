@@ -100,7 +100,7 @@ Code Platform
 =============
 
  - Multithreaded ANSI C built on custom client/server frameworks.
- - Portable to Linux, Windows, Solaris, and other POSIX systems.
+ - Portable to Linux, Windows, Solaris, and other Unix systems.
  - Single code base builds both single-threaded and multi-threaded versions.
 
 Performance and Stability

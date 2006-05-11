@@ -9,11 +9,11 @@
 Welcome
 *******
 
-Used by some of the world's largest businesses, OpenAMQ is a complete
-and mature open source messaging middleware package.
+Your problem: to connect your critical applications cheaply and safely
+without paying a fortune for proprietary products that go nowhere.
 
-Our mission: to connect your mission critical applications cheaply,
-easily, and rapidly.
+Our proposal: a complete AMQ message queueing broker, written in
+high-performance C, interoperable, easy to use, and reliable.
 
 More: [page:features]
 
@@ -23,52 +23,58 @@ License
 The OpenAMQ server is free software licensed under the Free Software
 Foundation's [http://www.gnu.org/licenses/gpl.html:GPL].
 
-The OpenAMQ client libraries are free software licensed under the Free
-Software Foundation's [http://www.gnu.org/licenses/lgpl.html:LGPL].
+The OpenAMQ WireAPI client libraries are free software licensed under
+the Free Software Foundation's [http://www.gnu.org/licenses/lgpl.html:LGPL]
+so your applications are not affected by the GPL.
 
 More: [page:license]
 
 Getting Started
 ***************
 
-Download the full OpenAMQ package ready-to-run for your system:
+You can download and install OpenAMQ in just a few minutes for your Linux,
+Windows, or Solaris system.
 
- - [/pub/OpenAMQ-$(main_version)-linux.tar.gz:Linux 2.4 or 2.6]
- - [/pub/OpenAMQ-$(main_version)-solaris.tar.gz:Solaris 8 or Solaris 10]
- - [/pub/OpenAMQ-$(main_version)-win32.exe:32-bit Windows]
+No package dependencies, no DLLs - the OpenAMQ package comes with everything
+you need to get started.
 
 More: [page:download]
 
 The OpenAMQ Server
 ******************
 
-The OpenAMQ server (broker) installs and runs out-of-the-box with
-!zero configuration!.
+The OpenAMQ server (broker) installs and runs out-of-the-box with zero
+configuration except setting an admin password.
+
+More: [page:deploy]
 
 You can also secure and fine-tune the server's performance, logging,
 security, and other functions.
 
-More: [page:deploy], [page:config]
+More: [page:config]
 
 The WireAPI Clients
 *******************
 
-The WireAPI clients give your applications full access to the power of AMQP.
+The WireAPI clients give your applications the power of messaging in a
+simple and consistent API.
 
-Easy to use in C, C++, Perl, Java, Python, COM, and other platforms.
+An easy-to-use alternative to JMS that works with C, C++, Perl, Java,
+Python, COM, and more languages.
 
 More: [page:wireapi]
 
 Community
 *********
 
-Ea lobortis vel hendrerit, facilisis dignissim vero illum molestie minim eros
-consequat facilisi at dolor, enim luptatum.
+The OpenAMQ community keeps it simple. Mailing lists, a public wiki, and a
+public [http://www.atlassian.com/software/jira/:Jira] for bug tracking and
+change requests.
 
-Erat, dolor velit et tation et ut suscipit et iusto vel enim autem consectetuer
-quis duis dolore veniam nibh iriure lobortis.
+If you're wondering about OpenAMQ, join one of the mailing lists and see
+what other people say about it.
 
-More: [page:contact]
+More: [page:community]
 
 </content>
 </page>

@@ -5,11 +5,20 @@
     >
 <content type = "gurudoc">
 
-Default Security
-****************
+Security Model
+**************
+
+!*By default a new OpenAMQ installation is insecure.*!
+
+- normal application users
+- plain network security
 
 Defining New Users
 ******************
+
+- what file
+- example
+
 
 </content>
 </page>

@@ -129,8 +129,8 @@ sub text_to_xhtml {
                 $anchors++;
                 if ($floating_frames) {
                     $content .= "</div>\n\n" if $anchors > 1;
-                    $content .= "<div id=\"float_$anchors\">\n";
-                    $content .= "<div id=\"float_header\"><a name=\"A$anchors\">$first</a></div>\n";
+                    $content .= "<div class=\"float_cell\" id=\"float_$anchors\">\n";
+                    $content .= "<div class=\"float_header\"><a name=\"A$anchors\">$first</a></div>\n";
                 }
                 else {
                     $content .= "<h1><a name=\"A$anchors\">$anchors\. $first</a></h1>\n";

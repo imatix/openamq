@@ -10,7 +10,4 @@ window.onload=function() {
     Nifty ("div#float_4", "tl bottom big same-height");
     Nifty ("div#float_5", "tl bottom big same-height");
     Nifty ("div#float_6", "tl bottom big same-height");
-    Nifty ("div#float_7", "tl bottom big same-height");
-    Nifty ("div#float_8", "tl bottom big same-height");
-    Nifty ("div#float_9", "tl bottom big same-height");
 }
