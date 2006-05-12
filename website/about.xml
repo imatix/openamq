@@ -80,8 +80,8 @@ machines, class systems, grammars, and meta-models. We quite routinely
 plug one end of a MOP tool into another, creating models that build
 models that build models, which eventually produces code that we can
 compile and run, and documentation we can print and share. It sounds
-insane, and possibly it is, but it produces code with very few bugs, at
-a fraction of the conventional cost.
+impossible, and possibly it is, but it produces code with very few bugs,
+at a fraction of the conventional cost.
 
 OpenAMQ sits on several technology layers, the largest of which is ASL,
 which stands for "Abstract Server Language".
@@ -91,18 +91,21 @@ a MOP model, of course, since we were mainly responsible for designing
 the protocol and writing the standard) and turn them automatically into
 client and server frameworks. It happened thus, one summer afternoon
 when we decided to throw out the fast but inelegantly single-threaded
-OpenAMQ/0.8 and start on a brand new multithreaded version. "OK, how are
-we going to build this server?" "Let's make a tool that generates it!"
-"Great idea!" Again, it sounds insane, and caused some grief to our
-patient patron, but was one of the most brilliant ideas in this project.
+OpenAMQ/0.8 and start on a brand new multithreaded version, based on a
+new, elegantly-abstracted protocol design. "OK, how are we going to
+build this server?" "Let's make a tool that generates it!" "Great idea!"
+Again, it sounds impossible, and it definitely caused some grief to our
+patient patron, but this was one of the most brilliant ideas in this
+project and today all AMQ implementations do some form of code
+generation.
 
-Take arbitrary AMQP-style protocol, push button, and after about five to
-ten seconds of grinding, ASL gives you a full working client, a server
-framework, large parts of your documentation, and a protocol scripting
-language. Which itself is a MOP tool, but you had guessed that already.
-ASL lets us take any past or future version of the AMQP protocol and
-generate a !complete! client API. This about this next time you read a
-protocol specification and wonder where to start.
+Take arbitrary AMQP-style protocol written as an ASL model, push button,
+and after about five to ten seconds of grinding, ASL gives you a full
+working client, a server framework, large parts of your documentation,
+and a protocol scripting language. Which itself is a MOP tool, but you
+had guessed that already. ASL lets us take any past or future version of
+the AMQP protocol and generate a !complete! client API. This about this
+next time you read a protocol specification and wonder where to start.
 
 SMT, the State Machine Threadlets system, is what makes OpenAMQ into a
 real server. It's a multithreading network I/O platform, supporting C

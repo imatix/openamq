@@ -1,13 +1,12 @@
 <page
     name = "wireapi"
     title = "WireAPI"
-    subtitle = "Use WireAPI in Your Applications"
+    subtitle = "Programming AMQP"
     >
 <content type = "gurudoc">
 
 What is WireAPI?
 ****************
-
 
 </content>
 </page>

@@ -193,32 +193,32 @@ A:link IMG, A:visited IMG {
 }
 #float_2 {
     top: 2em;
-    left: 24em;
+    left: 22em;
     background-color: #cfdee7;
 }
 #float_3 {
     top: 2em;
-    left: 48em;
+    left: 44em;
     background-color: #b2cbd8;
 }
 #float_4 {
-    top: 26em;
+    top: 24em;
     left: 0em;
     background-color: #b2cbd8;
 }
 #float_5 {
-    top: 26em;
-    left: 24em;
+    top: 24em;
+    left: 22em;
     background-color: #cfdee7;
 }
 #float_6 {
-    top: 26em;
-    left: 48em;
+    top: 24em;
+    left: 44em;
     background-color: #e4edf3;
 }
 .float_cell {
-    width: 22em;
-    height: 22em;
+    width: 20em;
+    height: 20em;
     position: absolute;
 }
 .float_header {
@@ -227,3 +227,28 @@ A:link IMG, A:visited IMG {
     font-weight: bold;
     text-align: center;
 }
+#float_1 P {
+    margin-left: 1em;
+    margin-right: 1em;
+}
+#float_2 P {
+    margin-left: 1em;
+    margin-right: 1em;
+}
+#float_3 P {
+    margin-left: 1em;
+    margin-right: 1em;
+}
+#float_4 P {
+    margin-left: 1em;
+    margin-right: 1em;
+}
+#float_5 P {
+    margin-left: 1em;
+    margin-right: 1em;
+}
+#float_6 P {
+    margin-left: 1em;
+    margin-right: 1em;
+}
+

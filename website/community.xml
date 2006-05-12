@@ -1,7 +1,7 @@
 <page
     name = "community"
     title = "OpenAMQ Community"
-    subtitle = "Good Software is All About People"
+    subtitle = "Software is People"
     >
 <content type = "gurudoc">
 

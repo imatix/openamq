@@ -1,7 +1,7 @@
 <page
     name = "download"
     title = "Download"
-    subtitle = "Download OpenAMQ Now"
+    subtitle = "Get OpenAMQ Now"
     >
 <content type = "gurudoc">
 {rule:floating frames}

@@ -9,8 +9,8 @@
 Welcome
 *******
 
-Your problem: to connect your critical applications cheaply and safely
-without paying a fortune for proprietary products that go nowhere.
+Your problem: to connect your applications cheaply and safely
+without paying a fortune for dead-end proprietary products.
 
 Our proposal: a complete AMQ message queueing broker, written in
 high-performance C, interoperable, easy to use, and reliable.
@@ -48,8 +48,8 @@ configuration except setting an admin password.
 
 More: [page:deploy]
 
-You can also secure and fine-tune the server's performance, logging,
-security, and other functions.
+You can also tune the server's performance, logging, security, and other
+functions.
 
 More: [page:config]
 

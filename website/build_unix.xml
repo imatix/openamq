@@ -8,15 +8,19 @@
 Requirements for OpenAMQ on Unix
 ********************************
 
- - Linux, Solaris 8 or 10, or another POSIX system
+ - Linux, Solaris 8 or 10, or another Unix system
  - An ANSI C compiler (OpenAMQ builds with gcc, Sun C, and Intel C)
  - 1 gigabyte of available disk space
  - unzip or tar + gunzip
 
-OpenAMQ has been validated on Linux, Solaris 8 and 10. It
-may not build and/or not operate correctly on other POSIX systems. If
-you need to build OpenAMQ on other POSIX systems please contact us for
-rapid and free support.
+OpenAMQ has been validated on these Unix/Linux systems:
+
+ - Red Hat Enterprise Linux 3 and 4.
+ - Debian Linux with 2.4, 2.6 kernels.
+ - Solaris 8, 10.
+
+It may not build and/or not operate correctly on other Unix systems. If
+you need help to build OpenAMQ on other Unix systems please contact us.
 
 Specify the IBASE Directory
 ***************************
@@ -108,5 +112,6 @@ message to its own queue, and read the message back off its queue.  To
 stop the server, press Ctrl-C.
 
 More information: [page:deploy]
+
 </content>
 </page>
