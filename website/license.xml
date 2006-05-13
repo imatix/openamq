@@ -5,54 +5,61 @@
     >
 <content type = "gurudoc">
 
-OpenAMQ is Free Software
-************************
+OpenAMQ Server License
+**********************
 
-The OpenAMQ broker is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License as published
-by the Free Software Foundation; either version 2 of the License, or (at
-your option) any later version.
+The OpenAMQ server ('broker') is free software; you can redistribute it
+and/or modify it under the terms of the GNU General Public License as
+published by the Free Software Foundation; either version 2 of the License,
+or (at your option) any later version.
 
-The OpenAMQ client libraries are free software; you can redistribute
-them and/or modify them under the terms of the GNU Lesser General Public
-License as published by the Free Software Foundation; either version 2.1
-of the License, or (at your option) any later version.
-
-The OpenAMQ software is distributed in the hope that it will be useful,
+The OpenAMQ server is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
-Public License and GNU Lesser General Public License for more details.
+Public License for more details.
 
-More information: [http://www.gnu.org/licenses/gpl.html:GPL] |
-[http://www.gnu.org/licenses/lgpl.html:LGPL]
+More information: [http://www.gnu.org/licenses/gpl.html:GPL]
+
+OpenAMQ Client Libraries License
+********************************
+
+The OpenAMQ WireAPI ('client') libraries are free software; you can
+redistribute them and/or modify them under the terms of the GNU Lesser
+General Public License as published by the Free Software Foundation;
+either version 2.1 of the License, or (at your option) any later version.
+
+OpenAMQ WireAPI is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+License for more details.
+
+More information: [http://www.gnu.org/licenses/lgpl.html:LGPL]
 
 OEM Commercial Licenses
-=======================
+***********************
 
 For OEMs, ISVs, and VARs who distribute products derived from OpenAMQ,
 and do not license and distribute their source code under the GPL,
 iMatix Corporation provides an OEM Commercial License. Please contact us
 at sales at iMatix dot com for an OEM Commercial License.
 
-Frequently-Asked Questions
-==========================
+License FAQ
+***********
 
-- When do I need an OEM license?
+ - !Are my application affected by the GPL?! Answer: no, applications that
+   use the WireAPI libraries are not affected by the GPL.  WireAPI is 100%
+   safe to use in commercial and proprietary applications.
 
-You need an OEM license to distribute proprietary products based on the
-OpenAMQ source code. You do not need an OEM license to use the OpenAMQ
-client libraries and the OpenAMQ server in your applications.
+ - !When do I need an OEM license?! Answer: you need an OEM license to
+   distribute proprietary products based on the OpenAMQ server source code.
+   You do not need an OEM license to use the OpenAMQ server.
 
-- How much does an OEM license cost?
+ - !How much does an OEM license cost?! Answer: please send us an email to
+   sales at iMatix dot com, with a description of your OEM product plan or
+   proposal.
 
-Please send an email to sales at iMatix dot com, with a description of
-your OEM product plan or proposal.
-
-- Is the free OpenAMQ software complete?
-
-Some functionality developed for OEM customer may not be included in the
-free OpenAMQ software version. However we strive to make OpenAMQ the
-most complete open source AMQP solution possible.
-
+ - !Is the free OpenAMQ software complete?! Answer: we don't believe in
+   crippleware.  We strive to make OpenAMQ the most complete open source AMQP
+   solution available.
 </content>
 </page>

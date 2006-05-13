@@ -1,7 +1,7 @@
 <page
     name = "build_win32"
     title = "Building for Windows"
-    subtitle = "Build Your Own OpenAMQ for Windows"
+    subtitle = "Building on Windows Systems"
     >
 <content type = "gurudoc">
 
@@ -116,5 +116,11 @@ message to its own queue, and read the message back off its queue.  To
 stop the server, press Ctrl-C.
 
 More information: [page:deploy]
+
+Windows Build FAQ
+*****************
+
+ - !?! Answer:
+
 </content>
 </page>

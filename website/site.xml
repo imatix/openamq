@@ -14,13 +14,12 @@
         <page name = "build" />
     </section>
     <section>
-        <!-- todo -->
         <page name = "build_unix" />
-        <!-- todo -->
         <page name = "build_win32" />
     </section>
     <section name = "OpenAMQ Server">
         <page name = "deploy" />
+
         <!-- todo -->
         <page name = "security" />
         <!-- todo -->
