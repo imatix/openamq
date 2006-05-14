@@ -53,23 +53,24 @@ More: [page:deploy]
 Other Unix
 **********
 
-This package contains the full OpenAMQ source code for Linux, Solaris,
-and Unix systems.  Building from source gives you the most control over
-the results you get:
+This package contains the full OpenAMQ source code for Unix systems, for
+full control over build options. Easy to build using gcc or another ANSI
+C compiler:
 
 1. [/pub/OpenAMQ-$(main_version).tar.gz:Download tar.gz (9Mb)].
-2. [/build_posix.html:Step-by-step instructions].
+2. [/build_posix.html:How to build and test].
 
 More: [page:build]
 
 Windows Sources
 ***************
 
-This package contains the full OpenAMQ source code for Windows. Building
-from source gives you the most control over the results you get:
+This package contains the full OpenAMQ source code for Windows, for full
+control over build options (e.g. to get debug libraries). Requires MSVC
+6.x or later:
 
 1. [/pub/OpenAMQ-$(main_version).zip:Download zip (10Mb)].
-2. [/build_win32.html:Step-by-step instructions].
+2. [/build_win32.html:How to build and test].
 
 More: [page:build]
 
