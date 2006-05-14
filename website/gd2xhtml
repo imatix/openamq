@@ -268,7 +268,6 @@ sub get_plain_line {
         while (/(.*?)([\200-\377])(?=(.*))/) {
             $_ = $1 . "\\" . ord ($2) . $3;
         }
-        s/&/&amp;/g;                    #   Replace & by &amp;
         s/</&lt;/g;                     #   Replace < by &lt;
         s/>/&gt;/g;                     #   Replace > by &gt;
 

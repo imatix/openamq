@@ -19,11 +19,7 @@
     </section>
     <section name = "OpenAMQ Server">
         <page name = "deploy" />
-
-        <!-- todo -->
         <page name = "security" />
-        <!-- todo -->
-        <page name = "config" />
         <page name = "options" />
         <!-- todo -->
         <page name = "logging" />
@@ -45,12 +41,13 @@
     <section name = "Community">
         <!-- todo -->
         <page name = "community" />
-        <!-- todo -->
+        <!-- todo
         <page name = "maillist" />
-        <!-- todo -->
+        <!-- todo
         <page name = "library" />
-        <!-- todo -->
+        <!-- todo
         <page name = "wiki" />
+        -->
     </section>
     <section name = "Footer">
         <page name = "contact" />

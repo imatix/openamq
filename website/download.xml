@@ -15,9 +15,9 @@ to use for Linux:
  - [/pub/OpenAMQ-$(main_version)-linux.tar.gz:OpenAMQ for Linux]
 
 1. Untar the package.
-2. Run ./install script.
+2. Run the ./install script.
 3. Run amq_server.
-4. Run amq_client to test.
+4. To test, run amq_client.
 
 More: [page:deploy]
 
@@ -30,9 +30,9 @@ to use for Solaris:
  - [/pub/OpenAMQ-$(main_version)-solaris.tar.gz:OpenAMQ for Solaris 10]
 
 1. Untar the package.
-2. Run ./install script.
+2. Run the ./install script.
 3. Run amq_server.
-4. Run amq_client to test.
+4. To test, run amq_client.
 
 More: [page:deploy]
 
