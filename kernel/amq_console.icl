@@ -151,6 +151,7 @@ $(selftype)
     to the AMQ Console specifications.
     </doc>
     <argument name = "content" type = "amq_content_basic_t *">The message content</argument>
+    <argument name = "group" type = "int">User group</argument>
     <possess>
     content = amq_content_basic_link (content);
     </possess>
@@ -182,16 +183,16 @@ $(selftype)
             s_execute_schema (content);
         else
         if (streq (ezxml_name (xml_item), "inspect-request"))
-            s_execute_inspect (self, content, xml_item);
+            s_execute_inspect (self, content, xml_item, group);
         else
         if (streq (ezxml_name (xml_item), "modify-request"))
-            s_execute_modify (self, content, xml_item);
+            s_execute_modify (self, content, xml_item, group);
         else
         if (streq (ezxml_name (xml_item), "monitor-request"))
-            s_execute_monitor (self, content, xml_item);
+            s_execute_monitor (self, content, xml_item, group);
         else
         if (streq (ezxml_name (xml_item), "method-request"))
-            s_execute_method (self, content, xml_item);
+            s_execute_method (self, content, xml_item, group);
         else
             s_invalid_cml (content, bucket, "unknown CML command");
     }
@@ -320,13 +321,13 @@ static amq_console_entry_t *
 static void
     s_execute_schema  (amq_content_basic_t *request);
 static void
-    s_execute_inspect (amq_console_t *self, amq_content_basic_t *request, ezxml_t xml_item);
+    s_execute_inspect (amq_console_t *self, amq_content_basic_t *request, ezxml_t xml_item, int group);
 static void
-    s_execute_modify  (amq_console_t *self, amq_content_basic_t *request, ezxml_t xml_item);
+    s_execute_modify  (amq_console_t *self, amq_content_basic_t *request, ezxml_t xml_item, int group);
 static void
-    s_execute_monitor (amq_console_t *self, amq_content_basic_t *request, ezxml_t xml_item);
+    s_execute_monitor (amq_console_t *self, amq_content_basic_t *request, ezxml_t xml_item, int group);
 static void
-    s_execute_method  (amq_console_t *self, amq_content_basic_t *request, ezxml_t xml_item);
+    s_execute_method  (amq_console_t *self, amq_content_basic_t *request, ezxml_t xml_item, int group);
 static asl_field_list_t *
     s_get_field_list  (ezxml_t xml_item);
 static void
@@ -388,7 +389,8 @@ static void
 s_execute_inspect (
     amq_console_t *self,
     amq_content_basic_t *request,
-    ezxml_t xml_item)
+    ezxml_t xml_item,
+    int group)
 {
     const char
         *object_str;
@@ -415,7 +417,8 @@ static void
 s_execute_modify (
     amq_console_t *self,
     amq_content_basic_t *request,
-    ezxml_t xml_item)
+    ezxml_t xml_item,
+    int group)
 {
     const char
         *object_str;
@@ -428,9 +431,16 @@ s_execute_modify (
     if (object_str) {
         entry = s_lookup_object (self, atol (object_str));
         if (entry) {
-            fields = s_get_field_list (xml_item);
-            entry->class_ref->modify (entry->object_ref, request, fields);
-            asl_field_list_unlink (&fields);
+            if (group == AMQ_CONNECTION_GROUP_NORMAL) {
+                asl_log_print (amq_broker->alert_log,
+                    "W: normal user attempted super-user function");
+                s_reply_error (request, "modify-reply", "noaccess");
+            }
+            else {
+                fields = s_get_field_list (xml_item);
+                entry->class_ref->modify (entry->object_ref, request, fields);
+                asl_field_list_unlink (&fields);
+            }
         }
         else {
             asl_log_print (amq_broker->alert_log, "E: no such object found (ID=%s)", object_str);
@@ -448,7 +458,8 @@ static void
 s_execute_monitor (
     amq_console_t *self,
     amq_content_basic_t *request,
-    ezxml_t xml_item)
+    ezxml_t xml_item,
+    int group)
 {
     asl_log_print (amq_broker->debug_log, "amq_console: monitor");
 }
@@ -458,7 +469,8 @@ static void
 s_execute_method (
     amq_console_t *self,
     amq_content_basic_t *request,
-    ezxml_t xml_item)
+    ezxml_t xml_item,
+    int group)
 {
     const char
         *object_str,
@@ -473,19 +485,26 @@ s_execute_method (
     if (object_str && method_name) {
         entry = s_lookup_object (self, atol (object_str));
         if (entry) {
-            fields = s_get_field_list (xml_item);
-            entry->class_ref->method (
-                entry->object_ref, (char *) method_name, request, fields);
-            asl_field_list_unlink (&fields);
+            if (group == AMQ_CONNECTION_GROUP_NORMAL) {
+                asl_log_print (amq_broker->alert_log,
+                    "W: normal user attempted super-user function");
+                s_reply_error (request, "method-reply", "noaccess");
+            }
+            else {
+                fields = s_get_field_list (xml_item);
+                entry->class_ref->method (
+                    entry->object_ref, (char *) method_name, request, fields);
+                asl_field_list_unlink (&fields);
+            }
         }
         else {
             asl_log_print (amq_broker->alert_log, "E: no such object found (ID=%s)", object_str);
-            s_reply_error (request, "modify-reply", "notfound");
+            s_reply_error (request, "method-reply", "notfound");
         }
     }
     else {
         asl_log_print (amq_broker->alert_log, "E: badly-formatted CML method, no object ID");
-        s_reply_error (request, "modify-reply", "invalid");
+        s_reply_error (request, "method-reply", "invalid");
     }
 }
 

@@ -23,8 +23,8 @@
     "General options:\n"                                                     \
     "  -s hostname      Broker hostname and :port (localhost)\n"             \
     "  -V virtualhost   Specify cluster virtual host\n"                      \
-    "  -u user          User name for console access (console)\n"            \
-    "  -p password      Password for console access (console)\n"             \
+    "  -u user          User name for console access (guest)\n"              \
+    "  -p password      Password for console access (guest)\n"               \
     "  -e \"commands\"    Run shell commands, delimited by ;\n"              \
     "  -x filename      Save all status data as XML\n"                       \
     "  -t level         Set trace level (default = 0)\n"                     \
@@ -167,9 +167,9 @@ int main (int argc, char *argv[])
     if (!s_opt_host)
         s_opt_host = "localhost";
     if (!s_opt_user)
-        s_opt_user = "console";
+        s_opt_user = "guest";
     if (!s_opt_pass)
-        s_opt_pass = "console";
+        s_opt_pass = "guest";
     if (!s_opt_vhost)
         s_opt_vhost = "/";
     if (!s_opt_trace)

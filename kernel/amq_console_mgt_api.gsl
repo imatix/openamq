@@ -639,8 +639,23 @@ s_request_response (
                 assert (reply_object == self->id);
             }
             else
+            if (streq (reply_status, "notfound")) {
+                icl_console_print ("E: object was not found");
                 //  If command not valid, return NULL
                 ipr_xml_destroy (&xml_root);
+            }
+            else
+            if (streq (reply_status, "noaccess")) {
+                icl_console_print ("E: not allowed to execute requested operation");
+                //  If command not valid, return NULL
+                ipr_xml_destroy (&xml_root);
+            }
+            else
+            if (streq (reply_status, "invalid")) {
+                icl_console_print ("E: internal error in CML formatting");
+                //  If command not valid, return NULL
+                ipr_xml_destroy (&xml_root);
+            }
         }
         amq_content_basic_unlink (&content);
         ipr_xml_unlink (&xml_command);

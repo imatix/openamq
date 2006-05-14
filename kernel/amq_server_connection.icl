@@ -18,8 +18,7 @@ This class implements the connection class for the AMQ server.
 //  These are the connection groups we allow
 #define AMQ_CONNECTION_GROUP_NORMAL    1
 #define AMQ_CONNECTION_GROUP_SUPER     2
-#define AMQ_CONNECTION_GROUP_CONSOLE   3
-#define AMQ_CONNECTION_GROUP_CLUSTER   4
+#define AMQ_CONNECTION_GROUP_CLUSTER   3
 #define CONNECTION_IS_USER(c)    ((c) == 1 || (c) == 2)
 #define CONNECTION_IS_CONTROL(c) ((c) == 3 || (c) == 4)
 </public>
@@ -138,7 +137,6 @@ This class implements the connection class for the AMQ server.
     switch (s_auth_plain (self, method)) {
         case AMQ_CONNECTION_GROUP_NORMAL:
         case AMQ_CONNECTION_GROUP_SUPER:
-        case AMQ_CONNECTION_GROUP_CONSOLE:
             self->authorised = TRUE;
             break;
         case AMQ_CONNECTION_GROUP_CLUSTER:
@@ -241,9 +239,6 @@ static int s_auth_plain (
             else
             if (streq (group, "super"))
                 self->group = AMQ_CONNECTION_GROUP_SUPER;
-            else
-            if (streq (group, "console"))
-                self->group = AMQ_CONNECTION_GROUP_CONSOLE;
             else
             if (streq (group, "cluster"))
                 self->group = AMQ_CONNECTION_GROUP_CLUSTER;
