@@ -3,7 +3,7 @@
 <class
     name    = "exchange"
     handler = "channel"
-    index   = "4"
+    index   = "40"
   >
   work with exchanges
 
@@ -49,7 +49,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "declare" synchronous = "1">
+<method name = "declare" synchronous = "1" index = "10">
   declare exchange, create if needed
   <doc>
     This method creates an exchange if it does not already exist, and if the
@@ -162,6 +162,15 @@
     </doc>
   </field>
 
+  <field name = "nowait" type = "bit">
+    do not send a reply method
+    <doc>
+    If set, the server will not respond to the method. The client should
+    not wait for a reply method.  If the server could not complete the
+    method it will raise a channel or connection exception.
+    </doc>
+  </field>
+
   <field name = "arguments" type = "table">
     arguments for declaration
     <doc>
@@ -173,7 +182,7 @@
 </method>
 
 
-<method name = "declare-ok" synchronous = "1">
+<method name = "declare-ok" synchronous = "1" index = "11">
   confirms an exchange declaration
   <doc>
     This method confirms a Declare method and confirms the name of the
@@ -185,7 +194,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "delete" synchronous = "1">
+<method name = "delete" synchronous = "1" index = "20">
   delete an exchange
   <doc>
     This method deletes an exchange.  When an exchange is deleted all queue
@@ -222,13 +231,21 @@
     </doc>
     <doc name = "rule" test = "amq_exchange_13">
       If set, the server SHOULD raise a channel exception if the exchange is in
-      use.  
+      use.
+    </doc>
+  </field>
+
+  <field name = "nowait" type = "bit">
+    do not send a reply method
+    <doc>
+    If set, the server will not respond to the method. The client should
+    not wait for a reply method.  If the server could not complete the
+    method it will raise a channel or connection exception.
     </doc>
   </field>
 </method>
 
-
-<method name = "delete-ok" synchronous = "1">
+<method name = "delete-ok" synchronous = "1" index = "21">
   confirm deletion of an exchange
   <doc>
     This method confirms the deletion of an exchange.
@@ -237,4 +254,3 @@
 </method>
 
 </class>
-

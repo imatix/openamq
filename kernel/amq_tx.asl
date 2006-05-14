@@ -3,7 +3,7 @@
 <class
     name    = "tx"
     handler = "channel"
-    index   = "9"
+    index   = "90"
   >
   work with standard transactions
 
@@ -33,7 +33,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "select" synchronous = "1">
+<method name = "select" synchronous = "1" index = "10">
 select standard transaction mode
   <doc>
     This method sets the channel to use standard transactions.  The
@@ -44,7 +44,7 @@ select standard transaction mode
   <response name = "select-ok" />
 </method>
 
-<method name = "select-ok" synchronous = "1">
+<method name = "select-ok" synchronous = "1" index = "11">
 confirm transaction mode
   <doc>
     This method confirms to the client that the channel was successfully
@@ -55,7 +55,7 @@ confirm transaction mode
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "commit" synchronous = "1">
+<method name = "commit" synchronous = "1" index = "20">
 commit the current transaction
   <doc>
     This method commits all messages published and acknowledged in
@@ -66,7 +66,7 @@ commit the current transaction
   <response name = "commit-ok" />
 </method>
 
-<method name = "commit-ok" synchronous = "1">
+<method name = "commit-ok" synchronous = "1" index = "21">
 confirm a successful commit
   <doc>
     This method confirms to the client that the commit succeeded.
@@ -77,7 +77,7 @@ confirm a successful commit
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "rollback" synchronous = "1">
+<method name = "rollback" synchronous = "1" index = "30">
 abandon the current transaction
   <doc>
     This method abandons all messages published and acknowledged in
@@ -88,7 +88,7 @@ abandon the current transaction
   <response name = "rollback-ok" />
 </method>
 
-<method name = "rollback-ok" synchronous = "1">
+<method name = "rollback-ok" synchronous = "1" index = "31">
 confirm a successful rollback
   <doc>
     This method confirms to the client that the rollback succeeded.

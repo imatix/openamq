@@ -43,10 +43,6 @@ for Basic, File, and Stream content classes.
         cluster_id;                     //  Cluster id for connection
     amq_consumer_basic_t
         *consumer_basic;                //  Basic consumer
-    qbyte
-        prefetch_size;                  //  Prefetch size
-    dbyte
-        prefetch_count;                 //  Prefetch count
     Bool
         no_local,                       //  Don't want own messages
         no_ack,                         //  Auto acknowledge messages
@@ -75,8 +71,6 @@ for Basic, File, and Stream content classes.
     assert (method->class_id == AMQ_SERVER_BASIC);
 
     basic_consume = &method->payload.basic_consume;
-    self->prefetch_size  = basic_consume->prefetch_size;
-    self->prefetch_count = basic_consume->prefetch_count;
     self->no_local       = basic_consume->no_local;
     self->no_ack         = basic_consume->no_ack;
     self->exclusive      = basic_consume->exclusive;
@@ -118,7 +112,7 @@ for Basic, File, and Stream content classes.
 
         //  Broadcast cancel method to cluster using our cluster_id
         if (amq_cluster && amq_cluster->enabled && self->clustered) {
-            method = amq_proxy_method_new_basic_cancel (self->cluster_id);
+            method = amq_proxy_method_new_basic_cancel (self->cluster_id, FALSE);
             amq_cluster_tunnel_out (
                 amq_cluster,
                 AMQ_CLUSTER_ALL,

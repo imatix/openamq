@@ -2,7 +2,7 @@
 <class
     name    = "file"
     handler = "channel"
-    index   = "7"
+    index   = "70"
   >
   work with file content
 
@@ -13,11 +13,12 @@
   acknowledgements are subject to channel transactions.  Note that the
   file class does not provide message browsing methods; these are not
   compatible with the staging model.  Applications that need browsable
-  file transfer should use JMS content and the JMS class.
+  file transfer should use Basic content and the Basic class.
 </doc>
 
 <doc name = "grammar">
-    file                = C:CONSUME S:CONSUME-OK
+    file                = C:QOS S:QOS-OK
+                        / C:CONSUME S:CONSUME-OK
                         / C:CANCEL S:CANCEL-OK
                         / C:OPEN S:OPEN-OK C:STAGE content
                         / S:OPEN C:OPEN-OK S:STAGE content
@@ -83,50 +84,18 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "consume" synchronous = "1">
-  start a queue consumer
+<method name = "qos" synchronous = "1" index = "10">
+  specify quality of service
   <doc>
-    This method asks the server to start a "consumer", which is a
-    transient request for messages from a specific queue. Consumers
-    last as long as the channel they were created on, or until the
-    client cancels them.
-  </doc>
-  <doc name = "rule">
-    The server SHOULD support at least 16 consumers per queue, unless
-    the queue was declared as private, and ideally, impose no limit
-    except as defined by available resources.
+    This method requests a specific quality of service.  The QoS can
+    be specified for the current channel or for all channels on the
+    connection.  The particular properties and semantics of a qos method
+    always depend on the content class semantics.  Though the qos method
+    could in principle apply to both peers, it is currently meaningful
+    only for the server.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <response name = "consume-ok" />
-
-  <field name = "ticket" domain = "access ticket">
-    <doc name = "rule">
-      The client MUST provide a valid access ticket giving "read" access
-      rights to the realm for the queue.
-    </doc>
-  </field>
-
-  <field name = "queue" domain = "queue name">
-    <doc>
-      Specifies the name of the queue to consume from.
-    </doc>
-    <assert check = "notnull" />
-  </field>
-
-  <field name = "consumer tag" domain = "consumer tag">
-    <doc>
-      Specifies the identifier for the consumer. The consumer tag is
-      local to a connection, so two clients can use the same consumer
-      tags. If this field is empty the server will generate a unique
-      tag.
-    </doc>
-    <doc name = "rule" test = "todo">
-      The tag MUST NOT refer to an existing consumer. If the client
-      attempts to create two consumers with the same non-empty tag
-      the server MUST raise a connection exception with reply code
-      530 (not allowed).
-    </doc>
-  </field>
+  <response name = "qos-ok" />
 
   <field name = "prefetch size" type = "long">
     prefetch window in octets
@@ -158,6 +127,78 @@
     </doc>
   </field>
 
+  <field name = "global" type = "bit">
+    apply to entire connection
+    <doc>
+      By default the QoS settings apply to the current channel only.  If
+      this field is set, they are applied to the entire connection.
+    </doc>
+  </field>
+</method>
+
+<method name = "qos-ok" synchronous = "1" index = "11">
+  confirm the requested qos
+  <doc>
+    This method tells the client that the requested QoS levels could
+    be handled by the server.  The requested QoS applies to all active
+    consumers until a new QoS is defined.
+  </doc>
+  <chassis name = "client" implement = "MUST" />
+</method>
+
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+<method name = "consume" synchronous = "1" index = "20">
+  start a queue consumer
+  <doc>
+    This method asks the server to start a "consumer", which is a
+    transient request for messages from a specific queue. Consumers
+    last as long as the channel they were created on, or until the
+    client cancels them.
+  </doc>
+  <doc name = "rule">
+    The server SHOULD support at least 16 consumers per queue, unless
+    the queue was declared as private, and ideally, impose no limit
+    except as defined by available resources.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+  <response name = "consume-ok" />
+
+  <field name = "ticket" domain = "access ticket">
+    <doc name = "rule">
+      The client MUST provide a valid access ticket giving "read" access
+      rights to the realm for the queue.
+    </doc>
+  </field>
+
+  <field name = "queue" domain = "queue name">
+    <doc>
+      Specifies the name of the queue to consume from.  If the queue name
+      is null, refers to the current queue for the channel, which is the
+      last declared queue.
+    </doc>
+    <doc name = "rule">
+      If the client did not previously declare a queue, and the queue name
+      in this method is empty, the server MUST raise a connection exception
+      with reply code 530 (not allowed).
+    </doc>
+  </field>
+
+  <field name = "consumer tag" domain = "consumer tag">
+    <doc>
+      Specifies the identifier for the consumer. The consumer tag is
+      local to a connection, so two clients can use the same consumer
+      tags. If this field is empty the server will generate a unique
+      tag.
+    </doc>
+    <doc name = "rule" test = "todo">
+      The tag MUST NOT refer to an existing consumer. If the client
+      attempts to create two consumers with the same non-empty tag
+      the server MUST raise a connection exception with reply code
+      530 (not allowed).
+    </doc>
+  </field>
+
   <field name = "no local" domain = "no local" />
 
   <field name = "no ack" domain = "no ack" />
@@ -174,9 +215,18 @@
       exception with return code 405 (resource locked).
     </doc>
   </field>
+
+  <field name = "nowait" type = "bit">
+    do not send a reply method
+    <doc>
+    If set, the server will not respond to the method. The client should
+    not wait for a reply method.  If the server could not complete the
+    method it will raise a channel or connection exception.
+    </doc>
+  </field>
 </method>
 
-<method name = "consume-ok" synchronous = "1">
+<method name = "consume-ok" synchronous = "1" index = "21">
   confirm a new consumer
   <doc>
     This method provides the client with a consumer tag which it MUST
@@ -195,7 +245,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "cancel" synchronous = "1">
+<method name = "cancel" synchronous = "1" index = "30">
   end a queue consumer
   <doc>
     This method cancels a consumer. This does not affect already
@@ -206,9 +256,18 @@
   <response name = "cancel-ok" />
 
   <field name = "consumer tag" domain = "consumer tag" />
+
+  <field name = "nowait" type = "bit">
+    do not send a reply method
+    <doc>
+    If set, the server will not respond to the method. The client should
+    not wait for a reply method.  If the server could not complete the
+    method it will raise a channel or connection exception.
+    </doc>
+  </field>
 </method>
 
-<method name = "cancel-ok" synchronous = "1">
+<method name = "cancel-ok" synchronous = "1" index = "31">
   confirm a cancelled consumer
   <doc>
     This method confirms that the cancellation was completed.
@@ -221,7 +280,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "open" synchronous = "1">
+<method name = "open" synchronous = "1" index = "40">
   request to start staging
   <doc>
     This method requests permission to start staging a message.  Staging
@@ -261,7 +320,7 @@
   </field>
 </method>
 
-<method name = "open-ok" synchronous = "1">
+<method name = "open-ok" synchronous = "1" index = "41">
   confirm staging ready
   <doc>
     This method confirms that the recipient is ready to accept staged
@@ -293,7 +352,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "stage" content = "1">
+<method name = "stage" content = "1" index = "50">
   stage message content
   <doc>
     This method stages the message, sending the message content to the
@@ -306,7 +365,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "publish">
+<method name = "publish" index = "60">
   publish a message
   <doc>
     This method publishes a staged file message to a specific exchange.
@@ -392,7 +451,7 @@
   </field>
 </method>
 
-<method name = "return" content = "1">
+<method name = "return" content = "1" index = "70">
   return a failed message
   <doc>
     This method returns an undeliverable message that was published
@@ -417,14 +476,14 @@
     <doc>
       Specifies the routing key name specified when the message was
       published.
-    </doc>     
+    </doc>
   </field>
 </method>
 
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "deliver">
+<method name = "deliver" index = "80">
   notify the client of a consumer message
   <doc>
     This method delivers a staged file message to the client, via a
@@ -478,7 +537,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "ack">
+<method name = "ack" index = "90">
   acknowledge one or more messages
   <doc>
     This method acknowledges one or more messages delivered via the
@@ -508,7 +567,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "reject">
+<method name = "reject" index = "100">
   reject an incoming message
   <doc>
     This method allows a client to reject a message.  It can be used to
@@ -524,7 +583,7 @@
     A client MUST NOT use this method as a means of selecting messages
     to process.  A rejected message MAY be discarded or dead-lettered,
     not necessarily passed to another client.
-  </doc>      
+  </doc>
   <chassis name = "server" implement = "MUST" />
     
   <field name = "delivery tag" domain = "delivery tag" />

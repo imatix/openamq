@@ -3,7 +3,7 @@
 <class
     name    = "access"
     handler = "connection"
-    index   = "3"
+    index   = "30"
   >
   work with access tickets
 
@@ -23,7 +23,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "request" synchronous = "1">
+<method name = "request" synchronous = "1" index = "10">
   request an access ticket
   <doc>
     This method requests an access ticket for an access realm.
@@ -100,7 +100,7 @@
   </field>
 </method>
 
-<method name = "request-ok" synchronous = "1">
+<method name = "request-ok" synchronous = "1" index = "11">
   grant access to server resources
   <doc>
     This method provides the client with an access ticket. The access

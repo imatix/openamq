@@ -58,7 +58,7 @@ manage OpenAMQ servers.
 
         if (!rc)
             rc = amq_client_session_basic_consume (self->session,
-                0, self->session->queue, NULL, 0, 0, FALSE, TRUE, FALSE);
+                0, self->session->queue, NULL, FALSE, TRUE, TRUE);
                 
         if (!rc)
             rc = amq_client_session_queue_bind (self->session,

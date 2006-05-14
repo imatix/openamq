@@ -3,7 +3,7 @@
 <class
     name    = "test"
     handler = "channel"
-    index   = "11"
+    index   = "120"
   >
   test functional primitives of the implementation
 
@@ -32,7 +32,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "integer" synchronous = "1">
+<method name = "integer" synchronous = "1" index = "10">
   test integer handling
   <doc>
     This method tests the peer's capability to correctly marshal integer
@@ -84,7 +84,7 @@
   </field>
 </method>
 
-<method name = "integer-ok" synchronous = "1">
+<method name = "integer-ok" synchronous = "1" index = "11">
   report integer test result
   <doc>
     This method reports the result of an Integer method.
@@ -102,7 +102,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "string" synchronous = "1">
+<method name = "string" synchronous = "1" index = "20">
   test string handling
   <doc>
     This method tests the peer's capability to correctly marshal string
@@ -140,7 +140,7 @@
   </field>
 </method>
 
-<method name = "string-ok" synchronous = "1">
+<method name = "string-ok" synchronous = "1" index = "21">
   report string test result
   <doc>
     This method reports the result of a String method.
@@ -158,7 +158,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "table" synchronous = "1">
+<method name = "table" synchronous = "1" index = "30">
   test field table handling
   <doc>
     This method tests the peer's capability to correctly marshal field
@@ -202,7 +202,7 @@
   </field>
 </method>
 
-<method name = "table-ok" synchronous = "1">
+<method name = "table-ok" synchronous = "1" index = "31">
   report table test result
   <doc>
     This method reports the result of a Table method.
@@ -227,7 +227,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "content" synchronous = "1" content = "1">
+<method name = "content" synchronous = "1" content = "1" index = "40">
   test content handling
   <doc>
     This method tests the peer's capability to correctly marshal content.
@@ -237,7 +237,7 @@
   <response name = "content-ok" />
 </method>
 
-<method name = "content-ok" synchronous = "1" content = "1">
+<method name = "content-ok" synchronous = "1" content = "1" index = "41">
   report content test result
   <doc>
     This method reports the result of a Content method.  It contains the

@@ -2,7 +2,7 @@
 <class
     name    = "dtx"
     handler = "channel"
-    index   = "10"
+    index   = "100"
   >
   work with distributed transactions
 
@@ -26,7 +26,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "select" synchronous = "1">
+<method name = "select" synchronous = "1" index = "10">
 select standard transaction mode
   <doc>
     This method sets the channel to use distributed transactions.  The
@@ -37,7 +37,7 @@ select standard transaction mode
   <response name = "select-ok" />
 </method>
 
-<method name = "select-ok" synchronous = "1">
+<method name = "select-ok" synchronous = "1" index = "11">
 confirm transaction mode
   <doc>
     This method confirms to the client that the channel was successfully
@@ -48,7 +48,7 @@ confirm transaction mode
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "start" synchronous = "1">
+<method name = "start" synchronous = "1" index = "20">
   start a new distributed transaction
   <doc>
     This method starts a new distributed transaction.  This must be
@@ -70,7 +70,7 @@ confirm transaction mode
   </field>
 </method>
 
-<method name = "start-ok" synchronous = "1">
+<method name = "start-ok" synchronous = "1" index = "21">
   confirm the start of a new distributed transaction
   <doc>
     This method confirms to the client that the transaction started.

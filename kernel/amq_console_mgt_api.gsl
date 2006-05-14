@@ -583,8 +583,8 @@ s_request_response (
     icl_shortstr_fmt (command, "%s-request", request);
     content = amq_cml_encode (command, "$(name)", object_id, NULL, method, fields);
     amq_content_basic_set_reply_to (content, self->session->queue);
-    amq_client_session_basic_publish (self->session,
-        content, 0, "amq.system", "amq.console", FALSE, FALSE);
+    amq_client_session_basic_publish (
+        self->session, content, 0, "amq.system", "amq.console", FALSE, FALSE);
     amq_content_basic_unlink (&content);
 
     //  Wait for response on our queue

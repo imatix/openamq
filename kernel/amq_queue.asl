@@ -3,7 +3,7 @@
 <class
     name    = "queue"
     handler = "channel"
-    index   = "5"
+    index   = "50"
   >
   work with queues
 
@@ -33,7 +33,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "declare" synchronous = "1">
+<method name = "declare" synchronous = "1" index = "10">
   declare queue, create if needed
   <doc>
     This method creates or checks a queue.  When creating a new queue
@@ -156,6 +156,15 @@
     </doc>
   </field>
 
+  <field name = "nowait" type = "bit">
+    do not send a reply method
+    <doc>
+    If set, the server will not respond to the method. The client should
+    not wait for a reply method.  If the server could not complete the
+    method it will raise a channel or connection exception.
+    </doc>
+  </field>
+
   <field name = "arguments" type = "table">
     arguments for declaration
     <doc>
@@ -166,8 +175,7 @@
   </field>
 </method>
 
-
-<method name = "declare-ok" synchronous = "1">
+<method name = "declare-ok" synchronous = "1" index = "11">
   confirms a queue definition
   <doc>
     This method confirms a Declare method and confirms the name of the
@@ -204,7 +212,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "bind" synchronous = "1">
+<method name = "bind" synchronous = "1" index = "20">
   bind queue to an exchange
   <doc>
     This method binds a queue to an exchange.  Until a queue is
@@ -249,11 +257,20 @@
   </field>
 
   <field name = "queue" domain = "queue name">
-    <doc name = "rule" test = "amq_queue_26">
-      If the queue does not exist the server MUST raise a channel
-      exception with reply code 404 (not found).
+    <doc>
+      Specifies the name of the queue to bind.  If the queue name is
+      empty, refers to the current queue for the channel, which is
+      the last declared queue.
     </doc>
-    <assert check = "notnull" />
+    <doc name = "rule">
+      If the client did not previously declare a queue, and the queue
+      name in this method is empty, the server MUST raise a connection
+      exception with reply code 530 (not allowed).
+    </doc>
+    <doc name = "rule" test = "amq_queue_26">
+      If the queue does not exist the server MUST raise a channel exception
+      with reply code 404 (not found).
+    </doc>
   </field>
 
   <field name = "exchange" domain = "exchange name">
@@ -276,6 +293,15 @@
     </doc>
   </field>
 
+  <field name = "nowait" type = "bit">
+    do not send a reply method
+    <doc>
+    If set, the server will not respond to the method. The client should
+    not wait for a reply method.  If the server could not complete the
+    method it will raise a channel or connection exception.
+    </doc>
+  </field>
+
   <field name = "arguments" type = "table">
     arguments for binding
     <doc>
@@ -285,7 +311,7 @@
   </field>
 </method>
 
-<method name = "bind-ok" synchronous = "1">
+<method name = "bind-ok" synchronous = "1" index = "21">
   confirm bind successful
   <doc>
     This method confirms that the bind was successful.
@@ -296,8 +322,8 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "purge" synchronous = "1">
-  purge a queue 
+<method name = "purge" synchronous = "1" index = "30">
+  purge a queue
   <doc>
     This method removes all messages from a queue.  It does not cancel
     consumers.  Purged messages are deleted without any formal "undo"
@@ -337,12 +363,29 @@
       The queue must exist. Attempting to purge a non-existing queue
       causes a channel exception.
     </doc>
-    <assert check = "notnull" />
+    <doc>
+      Specifies the name of the queue to purge.  If the queue name is
+      empty, refers to the current queue for the channel, which is
+      the last declared queue.
+    </doc>
+    <doc name = "rule">
+      If the client did not previously declare a queue, and the queue
+      name in this method is empty, the server MUST raise a connection
+      exception with reply code 530 (not allowed).
+    </doc>
+  </field>
+
+  <field name = "nowait" type = "bit">
+    do not send a reply method
+    <doc>
+    If set, the server will not respond to the method. The client should
+    not wait for a reply method.  If the server could not complete the
+    method it will raise a channel or connection exception.
+    </doc>
   </field>
 </method>
 
-
-<method name = "purge-ok" synchronous = "1">
+<method name = "purge-ok" synchronous = "1" index = "31">
   confirms a queue purge
   <doc>
     This method confirms the purge of a queue.
@@ -360,7 +403,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "delete" synchronous = "1">
+<method name = "delete" synchronous = "1" index = "40">
   delete a queue
   <doc>
     This method deletes a queue.  When a queue is deleted any pending
@@ -384,11 +427,20 @@
   </field>
 
   <field name = "queue" domain = "queue name">
+    <doc>
+      Specifies the name of the queue to delete. If the queue name is
+      empty, refers to the current queue for the channel, which is the
+      last declared queue.
+    </doc>
+    <doc name = "rule">
+      If the client did not previously declare a queue, and the queue
+      name in this method is empty, the server MUST raise a connection
+      exception with reply code 530 (not allowed).
+    </doc>
     <doc name = "rule" test = "amq_queue_21">
       The queue must exist. Attempting to delete a non-existing queue
       causes a channel exception.
     </doc>
-    <assert check = "notnull" />
   </field>
 
   <field name = "if unused" type = "bit" test = "amq_queue_29">
@@ -411,10 +463,18 @@
       exception.
     </doc>
   </field>
+
+  <field name = "nowait" type = "bit">
+    do not send a reply method
+    <doc>
+    If set, the server will not respond to the method. The client should
+    not wait for a reply method.  If the server could not complete the
+    method it will raise a channel or connection exception.
+    </doc>
+  </field>
 </method>
 
-
-<method name = "delete-ok" synchronous = "1">
+<method name = "delete-ok" synchronous = "1" index = "41">
   confirm deletion of a queue
   <doc>
     This method confirms the deletion of a queue.
@@ -430,4 +490,3 @@
 </method>
 
 </class>
-
