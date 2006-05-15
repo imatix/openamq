@@ -289,7 +289,9 @@
       Specifies the routing key for the binding.  The routing key is
       used for routing messages depending on the exchange configuration.
       Not all exchanges use a routing key - refer to the specific
-      exchange documentation.
+      exchange documentation. If the routing key is empty and the queue
+      name is empty, the routing key will be the current queue for the
+      channel, which is the last declared queue.
     </doc>
   </field>
 

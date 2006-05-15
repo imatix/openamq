@@ -285,9 +285,11 @@
     </footer>
     //
     //  Use current channel queue if method uses a blank queue
-    if (strnull (method->queue))
+    if (strnull (method->queue)) {
         icl_shortstr_cpy (method->queue, channel->current_queue);
-
+        if (strnull (method->routing_key))
+            icl_shortstr_cpy (method->routing_key, channel->current_queue);
+    }
     exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
     if (exchange) {
         queue = amq_queue_table_search (vhost->queue_table, method->queue);

@@ -30,7 +30,8 @@ This is an abstract base class for all exchange implementations.
 <method name = "compile" return = "rc">
     <doc>
     Compiles the binding for the exchange, returns 1 if the binding was
-    invalid.
+    invalid.  Note that if an exchange uses a routing key at all, it must be
+    mandatory in all binds.
     </doc>
     <argument name = "self_v"  type = "void *">The exchange cast as a void *</argument>
     <argument name = "binding" type = "amq_binding_t *">Binding to compile</argument>
