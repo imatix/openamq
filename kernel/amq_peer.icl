@@ -142,7 +142,10 @@ cluster class.
     assert (!self->thread);
 
     config = ipr_config_dup (amq_server_config->config);
-    ipr_config_locate (config, "user", "cluster");
+    ipr_config_locate (config, "/config/security", "plain");
+    if (config->located)
+        ipr_config_locate (config, "user", "cluster");
+
     if (config->located) {
         auth_data = amq_client_connection_auth_plain ("cluster", ipr_config_get (config, "password", ""));
         self->thread = amq_proxy_agent_connection_thread_new (
