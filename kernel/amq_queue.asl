@@ -359,10 +359,6 @@
   </field>
 
   <field name = "queue" domain = "queue name">
-    <doc name = "rule" test = "amq_queue_16">
-      The queue must exist. Attempting to purge a non-existing queue
-      causes a channel exception.
-    </doc>
     <doc>
       Specifies the name of the queue to purge.  If the queue name is
       empty, refers to the current queue for the channel, which is
@@ -372,6 +368,10 @@
       If the client did not previously declare a queue, and the queue
       name in this method is empty, the server MUST raise a connection
       exception with reply code 530 (not allowed).
+    </doc>
+    <doc name = "rule" test = "amq_queue_16">
+      The queue must exist. Attempting to purge a non-existing queue
+      causes a channel exception.
     </doc>
   </field>
 

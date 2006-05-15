@@ -221,10 +221,10 @@ s_start (int argc, char *argv [])
         exit (EXIT_FAILURE);
     }
     //  Now check console login/password
-    ipr_config_locate (config, "user", "console");
+    ipr_config_locate (config, "user", "super");
     if (config->located
-    && streq (ipr_config_get (config, "password", ""), "console"))
-        icl_console_print ("W: security warning - console login uses default password");
+    && streq (ipr_config_get (config, "password", ""), "super"))
+        icl_console_print ("W: security warning - logins use default passwords");
     ipr_config_destroy (&config);
 
     //  Set system options from configuration

@@ -16,8 +16,8 @@
         <field name = "name" label = "Broker name">
           <get>icl_shortstr_fmt (field_value, "OpenAMQ %s", VERSION);</get>
         </field>
-        <field name = "started" label = "Date, time broker started">
-          <get>ipr_time_iso8601 (self->started, ipr_date_format_minute, 0, 0, field_value);</get>
+        <field name = "started" label = "Date, time broker started" type = "time">
+          <get>icl_shortstr_fmt (field_value, "%d", self->started);</get>
         </field>
         <field name = "locked" type = "bool" label = "Broker is locked?">
           <get>icl_shortstr_fmt (field_value, "%d", self->locked);</get>

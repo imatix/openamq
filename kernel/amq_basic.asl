@@ -484,7 +484,14 @@
 
   <field name = "queue" domain = "queue name">
     <doc>
-      Specifies the name of the queue to get from.
+      Specifies the name of the queue to consume from.  If the queue name
+      is null, refers to the current queue for the channel, which is the
+      last declared queue.
+    </doc>
+    <doc name = "rule">
+      If the client did not previously declare a queue, and the queue name
+      in this method is empty, the server MUST raise a connection exception
+      with reply code 530 (not allowed).
     </doc>
   </field>
 

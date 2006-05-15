@@ -63,7 +63,7 @@ class.
         *$(name);                       //  $(label?'No description')
 .   endif
 .endfor
-</context>              
+</context>
 
 <method name = "new">
     <argument name = "session" type = "amq_client_session_t *">AMQP session</argument>
@@ -213,7 +213,7 @@ class.
 .   elsif type = "bool"
     s_print_property ("$(label)", self->$(name)? "Yes": "No", \
 .   elsif type = "time"
-    ipr_time_iso8601 (self->$(name), ipr_date_format_minute, 0, 0, field_value);
+    ipr_time_iso8601 (self->$(name), ipr_date_format_minute, 0, ipr_time_zone (), field_value);
     s_print_property ("$(label)", field_value, \
 .   endif
 .   if count (put)
@@ -244,7 +244,7 @@ NULL);
 .   elsif type = "int" | type = "bool"
  $(name) = \\\\"%d\\\\"\
 .   elsif type = "time"
- $(name) = \\\\"%s\\\\"\
+ $(name) = \\\\"%ld\\\\"\
 .   endif
 .endfor
 /&gt;\\\\n",
@@ -279,7 +279,7 @@ NULL);
     //
 .for field where count (rule, name = "show on summary")
 .   if type = "time"
-    ipr_time_iso8601 (self->$(name), ipr_date_format_minute, 0, 0, $(name)_str);
+    ipr_time_iso8601 (self->$(name), ipr_date_format_minute, 0, ipr_time_zone (), $(name)_str);
 .   endif
 .   if count (rule, name = "ip address")
     $(name)_port_pos = NULL;
