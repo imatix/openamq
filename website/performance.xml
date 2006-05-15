@@ -1,0 +1,118 @@
+<page
+    name = "performance"
+    title = "Performance"
+    subtitle = "Performance Test Results"
+    >
+<content type = "gurudoc">
+
+Summary
+*******
+
+OpenAMQ has been recorded as transferring 200k messages per second, sustained
+over ten seconds, in the following scenario:
+
+ - one publisher, 64 subscribers
+ - full fanout from publisher to all subscribers
+ - messages of 500 bytes large
+ - publisher and server running on an 8-way Opteron
+ - subscribers all running on a 4-way Opteron
+ - server load around 60-70%, client load around 90%
+ - systems connected via gigabit ethernet
+
+Publish-Subscribe Test
+**********************
+
+Application Configuration
+=========================
+
+The publisher and subscribers are written as [/wireml.html:WireML] scripts:
+
+ - [/topic_publish:topic publisher WireML script].
+ - [/topic_subscribe:topic subscriber WireML script].
+
+The command used to start the subscribers is:
+
+    ./run_many.sh 64 ./topic_subscribe -s [server address and port]
+
+And the command used to start the publisher is:
+
+    ./topic_publish -z 500 -S 64 -M 100000
+
+Software Configuration
+======================
+
+The tests were conducted using this software configuration:
+
+ - OpenAMQ server 1.0c2
+ - Multithreaded release build
+ - Direct memory allocator
+ - Operating system: Linux Red Hat Enterprise Linux 4
+
+Hardware Configuration
+======================
+
+The server and publisher were run on an 8-way Opteron.  The subscribers
+were run on a 4-way Opteron.  The two servers were connected via gigabit
+ethernet networking.
+
+Test Results
+============
+
+The tests show an average of about 190-200k messages per second
+sustained over ten seconds. Note that the incoming rate shows the
+single publisher and outgoing rate shows the 64 subscribers.  The
+server loading was about 60-70% during these tests:
+
+    2006-05-15 17:39:24: I: outgoing rate=193897 mean=188151 peak=216151 iomean=191091
+    2006-05-15 17:39:25: I: incoming rate=2727 mean=2956 peak=3425
+    2006-05-15 17:39:25: I: outgoing rate=174485 mean=189182 peak=216151 iomean=192138
+    2006-05-15 17:39:26: I: incoming rate=3241 mean=3045 peak=3425
+    2006-05-15 17:39:26: I: outgoing rate=205666 mean=194798 peak=216151 iomean=197843
+    2006-05-15 17:39:27: I: incoming rate=3168 mean=3122 peak=3425
+    2006-05-15 17:39:27: I: outgoing rate=204349 mean=199818 peak=216151 iomean=202940
+    2006-05-15 17:39:27: I: cnn=65 msg=83713 mem=41847K/0K exc=7 que=65 csm=65 bnd=66 adx=1idx=7 map=1
+    2006-05-15 17:39:28: I: incoming rate=2831 mean=3117 peak=3425
+    2006-05-15 17:39:28: I: outgoing rate=181163 mean=200031 peak=216151 iomean=203148
+    2006-05-15 17:39:29: I: incoming rate=2781 mean=3072 peak=3425
+    2006-05-15 17:39:29: I: outgoing rate=173779 mean=196162 peak=216151 iomean=199234
+    2006-05-15 17:39:30: I: incoming rate=2933 mean=3029 peak=3425
+    2006-05-15 17:39:30: I: outgoing rate=189949 mean=194547 peak=216151 iomean=197576
+    2006-05-15 17:39:31: I: incoming rate=3078 mean=3000 peak=3425
+    2006-05-15 17:39:31: I: outgoing rate=198779 mean=193070 peak=216151 iomean=196070
+    2006-05-15 17:39:32: I: incoming rate=2708 mean=2929 peak=3425
+    2006-05-15 17:39:32: I: outgoing rate=173294 mean=188785 peak=216151 iomean=191714
+    2006-05-15 17:39:32: I: cnn=65 msg=81189 mem=40586K/0K exc=7 que=65 csm=65 bnd=66 adx=1 idx=7 map=1
+    2006-05-15 17:39:33: I: incoming rate=3324 mean=2982 peak=3425
+    2006-05-15 17:39:33: I: outgoing rate=209012 mean=190437 peak=216151 iomean=193419
+    2006-05-15 17:39:34: I: incoming rate=3200 mean=2999 peak=3425
+    2006-05-15 17:39:34: I: outgoing rate=208394 mean=191887 peak=216151 iomean=194886
+
+Supporting Scripts
+==================
+
+This is the run_many.sh script used to start the clients:
+
+    #!/bin/sh
+    if [ $# -lt 2  ]; then
+        echo "usage: run_many.sh NUMCLIENTS COMMAND [client options]"
+        exit 1
+    fi
+    NUMCLIENTS=$1
+    shift
+    COMMAND=$1
+    shift
+    for client in `yes | head -${NUMCLIENTS}`; do
+        ${COMMAND} "$@" &
+    done
+
+Performance FAQ
+===============
+
+ - !What is the fastest build?' Answer: mt,release.
+
+ - !Is OpenAMQ still too slow?' Answer: yes. We feel it should be getting about
+   250-300k messages per second on the above configuration, with more horsepower
+   to run test clients, and further tuning of the i/o layers.
+
+</content>
+</page>

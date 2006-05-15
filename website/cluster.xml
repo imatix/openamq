@@ -5,13 +5,271 @@
     >
 <content type = "gurudoc">
 
-- principles of clustering
-- example configuration
-- application requirements
-- critical configuration options
-- FAQ
+OpenAMQ Clustering
+******************
 
-Logging FAQ
+General Principles
+==================
+
+An OpenAMQ cluster consists of two or more OpenAMQ servers with a
+specific configuration.  OpenAMQ clustering provides these features:
+
+ 1. Load balancing for large topic publish-subscribe networks.  A
+    set of applications that share the same overall data sources may
+    be distributed across many servers, so that the load on each
+    server is kept manageable.
+
+ 2. Failover. When a broker used by a set of applications has a failure
+    for some reason, a secondary server can be brought into action
+    rapidly, allowing the applications to continue working.
+
+Main Clustering Principles
+==========================
+
+These are the main principles underlying OpenAMQ clustering:
+
+ 1. The topology of the cluster is static; that is the cluster servers
+    do not attempt to discover each other.
+
+ 2. All servers in a cluster must share identical cluster configuration
+    data.
+
+ 3. All servers in a cluster must use the same configured virtual host.
+
+ 4. To start the cluster, all servers in the configuration set must come
+    up and successfully connect to each other.
+
+ 5. Failover from primary to backup is automatic.
+
+ 6. Recover from backup to primary is manual and happens only after an
+    explicit act from the operator.
+
+The goal of these principles is to make clustering simple and predictable.
+
+Cluster Tradeoffs
+=================
+
+If you use a cluster for pub-sub scaling, you will add extra hops to
+published messages.  Note that:
+
+ - All publishers should connect explicitly to the primary server,
+   using the WireAPI connection 'force' option.
+
+ - High-priority subscribers should also connect to the primary server.
+
+ - Low-priority subscribers will be load-balanced around the entire
+   cluster.  These subscribers will suffer some extra latency in their
+   received messages.
+
+Cluster Organisation
+====================
+
+This describes the cluster organisation:
+
+ - An OpenAMQ cluster consists of one primary server, zero or one
+   backup server, and zero or more support servers. At any moment
+   either the primary or the backup server is the "master server".
+
+ - The cluster servers are fully interconnected and share information
+   using heartbeating commands.
+
+ - The master server holds all active shared queues.
+
+ - Failover from primary to backup is automatic, recovery to
+   primary happens manually, through stopping the backup server
+   after the primary server has been restarted.
+
+ - At startup the primary server becomes master, the backup does not.
+
+ - If the backup server sees the primary server going away and if it
+   has at least one connected client, it becomes master and remains
+   master until it is stopped. If the primary server goes away, and
+   the backup server has no clients, it cedes its position as master.
+
+ - If the primary server sees the backup server going away, and it
+   is not master, it becomes master. If the primary server sees the
+   backup coming back, as master, the primary stops being master.
+
+ - If a server is neither primary nor backup, it counts the number
+   of masters, and if both primary and backup claim to be master at
+   the same time, it warns the primary server to cede its role as
+   master.
+
+Cluster Limitations
+===================
+
+These are the main limitations of the clustering implementation:
+
+ - There is no support for persistence or transactions, this is a
+   general limitation of the current OpenAMQ implementation.
+
+ - Servers cannot be added or removed dynamically.  To add a new
+   server to the cluster you must restart the entire cluster.
+
+Cluster Cookbook
+****************
+
+Four steps to configure your cluster:
+
+ 1. Choose a cluster topology
+ 2. Configure the cluster
+ 3. Start the cluster
+ 4. Test the cluster
+
+Choosing a Cluster Topology
+===========================
+
+Choose your cluster topology as follows:
+
+ 1. You always want a primary server.
+
+ 2. You always want a backup server.
+
+ 3. You want one or more support servers if, and only if, you are doing
+    very heavy topic publish-subscribe that is exceeding the capacities
+    of a single OpenAMQ server.
+
+Configure the Cluster
+=====================
+
+This example configuration file shows how to configure a cluster for
+a primary, backup, and one support server:
+
+    &lt;?xml?&gt;
+    &lt;config&gt;
+        ... other configuration sections
+        &lt;cluster
+            vhost = "/test-cluster"
+            heartbeat = "5"
+            &gt;
+            &lt;server name = "cluster-001" host = "10.0.0.1:5672" primary = "1" /&gt;
+            &lt;server name = "cluster-002" host = "10.0.0.1:5673" backup = "1" /&gt;
+            &lt;server name = "cluster-003" host = "10.0.0.1:5674" /&gt;
+        &lt;/cluster&gt;
+    &lt;/config&gt;
+
+Start the Cluster
+=================
+
+Start each of the cluster servers by running these commands:
+
+    amq_server -c cluster-001 --port 5672&
+    amq_server -c cluster-002 --port 5673&
+    amq_server -c cluster-003 --port 5674&
+
+If you run the cluster servers on different systems, make sure the host
+setting correctly specifies the IP address and port of each server, and
+make sure each server accesses the same configuration data, by either
+duplicating the configuration file, or holding it on a shared file system.
+
+Test the Cluster
+================
+
+
+PAL Test Scripts
+----------------
+
+Test script 1: message consumer
+
+    &lt;?xml?&gt;
+    &lt;pal script = "amq_pal_gen"&gt;
+        &lt;set name = "myqueue" value = "my.queue" cmdline = "Q" /&gt;
+        &lt;set name = "private" value = "0"        cmdline = "P" /&gt;
+        &lt;session cluster_key = "my.cluster"&gt;
+            &lt;queue_declare queue = "$myqueue" exclusive = "$private" /&gt;
+            &lt;queue_bind    queue = "$myqueue" exchange = "amq.direct" routing_key = "test" /&gt;
+            &lt;basic_consume queue = "$myqueue" no_local = "1" /&gt;
+            &lt;repeat&gt;
+                &lt;wait/&gt;
+                &lt;basic_arrived&gt;
+                    &lt;echo&gt;I: Message $message_id arrived&lt;/echo&gt;
+                &lt;/basic_arrived&gt;
+                &lt;empty&gt;
+                    &lt;abort&gt;E: Message did not arrive&lt;/abort&gt;
+                &lt;/empty&gt;
+            &lt;/repeat&gt;
+        &lt;/session&gt;
+    &lt;/pal&gt;
+
+Test script 2: message publisher
+
+    &lt;?xml?&gt;
+    &lt;pal script = "amq_pal_gen"&gt;
+        &lt;set name = "messages" value = "1" cmdline = "M" /&gt;
+        &lt;set name = "message_id" value = "$random" cmdline = "I" /&gt;
+        &lt;session cluster_key = "my.cluster"&gt;
+            &lt;repeat counter = "id" times = "$messages" &gt;
+                &lt;basic_content size = "1000" message_id = "id-$message_id" /&gt;
+                &lt;basic_publish exchange = "amq.direct" routing_key = "test" /&gt;
+                &lt;basic_returned&gt;
+                    &lt;echo&gt;W: Message $message_id returned&lt;/echo&gt;
+                &lt;/basic_returned&gt;
+            &lt;/repeat&gt;
+        &lt;/session&gt;
+    &lt;/pal&gt;
+
+Cluster Configuration File
+--------------------------
+
+Sample configuration file (custom.cfg):
+
+    &lt;?xml?&gt;
+    &lt;config&gt;
+        &lt;verbosity trace_cluster = "1" /&gt;
+        &lt;cluster heartbeat = "5"&gt;
+            &lt;server name = "cluster-001" host = "localhost:5001" primary = "1" /&gt;
+            &lt;server name = "cluster-002" host = "localhost:5002" backup = "1" /&gt;
+        &lt;/cluster&gt;
+    &lt;/config&gt;
+
+Starting the Cluster
+--------------------
+
+    amq_server -c cluster-001 --port 5001
+    amq_server -c cluster-002 --port 5002
+
+Testing Shared Queues
+---------------------
+
+Starting two readers on the same shared queue:
+
+    reader -s localhost:5001 -Q q.shared
+    reader -s localhost:5002 -Q q.shared
+
+Publishing 5 messages to each peer:
+
+    "Writer one" writer -s localhost:5001 -M 5
+    "Writer one" writer -s localhost:5002 -M 5
+
+Expected results:
+
+ - The messages from the writer are distributed in round-robin fashion between the
+   readers.
+
+Note that unless there is a certain load of clients, the cluster will not redirect client
+connections, so we can actually decide which cluster server we connect to for testing.
+
+Testing Private Queues
+----------------------
+
+Starting two readers, each with their own provate queue:
+
+    reader -s localhost:5001 -Q q.private -P 1
+    reader -s localhost:5002 -Q q.private -P 1
+
+Publishing 5 messages to each peer:
+
+    "Writer one" writer -s localhost:5001 -M 5
+    "Writer one" writer -s localhost:5002 -M 5
+
+Expected results:
+
+ - Each reader receives a copy of each published message.
+
+
+
+
+Cluster FAQ
 ***********
 
  - !?! Answer:

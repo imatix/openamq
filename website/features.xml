@@ -101,7 +101,7 @@ Automation
 Comes with tools for testing and automation:
 
  - Includes full test client (amq_client).
- - PAL scripting language for automation and testing.
+ - Extensive [/wireml.html:WireML] scripting language for automation and testing.
  - Console extension protocol.
 
 Coming Soon...
@@ -130,13 +130,32 @@ Built on a high-performance portability framework:
 Performance and Stability
 =========================
 
-Designed for performance and reliability:
+Designed for fast performance and reliability:
 
+ - Server starts and is ready for connections in one second.
  - Built on a low-latency, high-throughput communications framework.
  - Configurable TCP/IP parameters (timeouts, buffers).
  - Configurable OS footprint (memory, number of threads).
  - Configurable memory managers (including heap caching).
  - Processes 40-50k transient messages per second on single CPU.
- - Processes 120-140k transient messages per second on multiway box.
+ - Processes 200k transient messages per second on multiway box
+   ([/performance.html:detailed test results).
+
+Features FAQ
+************
+
+ - !What makes OpenAMQ special?! Answer: the one thing that stands out with
+   OpenAMQ is the quality of the product.  It's not just software - it's a
+   large, smooth-running machine that will work for decades, whatever trends
+   come and go.
+
+ - !How does ANSI C compare to Java?! Answer: recent Java runtimes are very
+   fast but as someone said, "Java kills your system".  If you are running
+   a large Java server in any case, you may prefer an AMQ Java broker.  But
+   for software that installs silently and runs without a whisper, you want
+   a pure ANSI C solution, and that means OpenAMQ.
+
+ - !I want feature X, how do I get it?'  Answer: if it's supported by the
+   AMQP standard, and is not yet in OpenAMQ, ask us.
 </content>
 </page>

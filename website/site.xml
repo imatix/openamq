@@ -21,7 +21,6 @@
         <page name = "deploy" />
         <page name = "security" />
         <page name = "options" />
-        <!-- todo -->
         <page name = "logging" />
         <!-- todo -->
         <page name = "cluster" />
@@ -31,6 +30,8 @@
     <section name = "OpenAMQ WireAPI">
         <!-- todo -->
         <page name = "wireapi" />
+        <!-- todo -->
+        <page name = "wireml" />
         <!-- todo -->
         <page name = "examples" />
         <!-- todo -->
