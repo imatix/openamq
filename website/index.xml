@@ -9,11 +9,12 @@
 Welcome
 *******
 
-Your problem: to connect your applications cheaply and safely
-without paying a fortune for dead-end proprietary products.
+Your problem: to connect your applications cheaply and safely without
+paying a fortune for dead-end proprietary products.
 
-Our proposal: a complete AMQ message queueing broker, written in
-high-performance C, interoperable, easy to use, and reliable.
+Our proposal: a complete AMQ message queueing broker that gives you
+[/performance.html:extreme performance] but remains easy to use and highly
+reliable.
 
 More: [page:features]
 

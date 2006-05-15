@@ -1,0 +1,43 @@
+<page
+    name = "paranoia"
+    title = "Paranoid Programming"
+    subtitle = "How to Write Secure C Code"
+    >
+<content type = "gurudoc">
+
+- control user input
+    - fixed length strings with fixed api (shortstr class)
+    - length-specified buffers (bucket class)
+    - no other string data types (none!)
+
+- length-specified data
+    - protocol design criteria
+
+- nullify destroyed classes
+    - nullify on destroy
+
+- nullify held references on destroy
+    - destroy (&reference)
+
+- object sanity checking
+    - 0xDEAD, 0xFABB on all methods
+
+- reference counting
+
+- generated code
+    - high, high quality
+
+- regression tests
+    - each class is self-testing
+
+- quality of code
+    - readability, compactness, quality
+
+- don't share data in globals
+    - objects accessed by reference
+
+- run in user space
+    - amqp port > 4096, no need to run as root
+
+</content>
+</page>

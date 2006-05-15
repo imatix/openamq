@@ -101,7 +101,7 @@ Automation
 Comes with tools for testing and automation:
 
  - Includes full test client (amq_client).
- - Extensive [/wireml.html:WireML] scripting language for automation and testing.
+ - Extensive [/pal.html:PAL] scripting language for automation and testing.
  - Console extension protocol.
 
 Coming Soon...
@@ -155,7 +155,7 @@ Features FAQ
    for software that installs silently and runs without a whisper, you want
    a pure ANSI C solution, and that means OpenAMQ.
 
- - !I want feature X, how do I get it?'  Answer: if it's supported by the
+ - !I want feature X, how do I get it?!  Answer: if it's supported by the
    AMQP standard, and is not yet in OpenAMQ, ask us.
 </content>
 </page>

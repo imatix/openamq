@@ -132,19 +132,18 @@ Choose your cluster topology as follows:
 Configure the Cluster
 =====================
 
-This example configuration file shows how to configure a cluster for
-a primary, backup, and one support server:
+This example configuration file shows how to configure a cluster with
+a primary, a backup, and no support servers:
 
     &lt;?xml?&gt;
     &lt;config&gt;
         ... other configuration sections
         &lt;cluster
-            vhost = "/test-cluster"
+            vhost = "my.cluster"
             heartbeat = "5"
             &gt;
-            &lt;server name = "cluster-001" host = "10.0.0.1:5672" primary = "1" /&gt;
-            &lt;server name = "cluster-002" host = "10.0.0.1:5673" backup = "1" /&gt;
-            &lt;server name = "cluster-003" host = "10.0.0.1:5674" /&gt;
+            &lt;server name = "cluster-001" host = "10.0.0.1:5001" primary = "1" /&gt;
+            &lt;server name = "cluster-002" host = "10.0.0.1:5002" backup = "1" /&gt;
         &lt;/cluster&gt;
     &lt;/config&gt;
 
@@ -153,9 +152,8 @@ Start the Cluster
 
 Start each of the cluster servers by running these commands:
 
-    amq_server -c cluster-001 --port 5672&
-    amq_server -c cluster-002 --port 5673&
-    amq_server -c cluster-003 --port 5674&
+    amq_server -c cluster-001 --port 5001&
+    amq_server -c cluster-002 --port 5002&
 
 If you run the cluster servers on different systems, make sure the host
 setting correctly specifies the IP address and port of each server, and
@@ -165,17 +163,17 @@ duplicating the configuration file, or holding it on a shared file system.
 Test the Cluster
 ================
 
+You can test the cluster by writing an AMQP application but there is a
+simpler way, using the [/pal.html:PAL] scripting languages to build a
+simple messaging client and server.
 
-PAL Test Scripts
-----------------
-
-Test script 1: message consumer
+This script, reader.pal, shows the messaging client:
 
     &lt;?xml?&gt;
     &lt;pal script = "amq_pal_gen"&gt;
         &lt;set name = "myqueue" value = "my.queue" cmdline = "Q" /&gt;
         &lt;set name = "private" value = "0"        cmdline = "P" /&gt;
-        &lt;session cluster_key = "my.cluster"&gt;
+        &lt;session cluster_key = "/my.cluster"&gt;
             &lt;queue_declare queue = "$myqueue" exclusive = "$private" /&gt;
             &lt;queue_bind    queue = "$myqueue" exchange = "amq.direct" routing_key = "test" /&gt;
             &lt;basic_consume queue = "$myqueue" no_local = "1" /&gt;
@@ -191,13 +189,13 @@ Test script 1: message consumer
         &lt;/session&gt;
     &lt;/pal&gt;
 
-Test script 2: message publisher
+This script, writer.pal, shows the messaging publisher:
 
     &lt;?xml?&gt;
     &lt;pal script = "amq_pal_gen"&gt;
         &lt;set name = "messages" value = "1" cmdline = "M" /&gt;
         &lt;set name = "message_id" value = "$random" cmdline = "I" /&gt;
-        &lt;session cluster_key = "my.cluster"&gt;
+        &lt;session cluster_key = "/my.cluster"&gt;
             &lt;repeat counter = "id" times = "$messages" &gt;
                 &lt;basic_content size = "1000" message_id = "id-$message_id" /&gt;
                 &lt;basic_publish exchange = "amq.direct" routing_key = "test" /&gt;
@@ -208,26 +206,6 @@ Test script 2: message publisher
         &lt;/session&gt;
     &lt;/pal&gt;
 
-Cluster Configuration File
---------------------------
-
-Sample configuration file (custom.cfg):
-
-    &lt;?xml?&gt;
-    &lt;config&gt;
-        &lt;verbosity trace_cluster = "1" /&gt;
-        &lt;cluster heartbeat = "5"&gt;
-            &lt;server name = "cluster-001" host = "localhost:5001" primary = "1" /&gt;
-            &lt;server name = "cluster-002" host = "localhost:5002" backup = "1" /&gt;
-        &lt;/cluster&gt;
-    &lt;/config&gt;
-
-Starting the Cluster
---------------------
-
-    amq_server -c cluster-001 --port 5001
-    amq_server -c cluster-002 --port 5002
-
 Testing Shared Queues
 ---------------------
 
@@ -236,43 +214,44 @@ Starting two readers on the same shared queue:
     reader -s localhost:5001 -Q q.shared
     reader -s localhost:5002 -Q q.shared
 
-Publishing 5 messages to each peer:
+Publishing 5 messages to each cluster server:
 
-    "Writer one" writer -s localhost:5001 -M 5
-    "Writer one" writer -s localhost:5002 -M 5
+    writer -s localhost:5001 -M 5
+    writer -s localhost:5002 -M 5
 
 Expected results:
 
- - The messages from the writer are distributed in round-robin fashion between the
-   readers.
+ - The messages from the writer are distributed in round-robin fashion
+   between the readers.
 
-Note that unless there is a certain load of clients, the cluster will not redirect client
-connections, so we can actually decide which cluster server we connect to for testing.
+Note that unless there is a certain load of clients, the cluster will
+not redirect client connections, so we can actually decide which cluster
+server we connect to for testing.
 
 Testing Private Queues
 ----------------------
 
-Starting two readers, each with their own provate queue:
+Starting two readers, each with their own private queue:
 
     reader -s localhost:5001 -Q q.private -P 1
     reader -s localhost:5002 -Q q.private -P 1
 
 Publishing 5 messages to each peer:
 
-    "Writer one" writer -s localhost:5001 -M 5
-    "Writer one" writer -s localhost:5002 -M 5
+    writer -s localhost:5001 -M 5
+    writer -s localhost:5002 -M 5
 
 Expected results:
 
  - Each reader receives a copy of each published message.
 
-
-
-
 Cluster FAQ
 ***********
 
- - !?! Answer:
+ - !When do I need to use OpenAMQ clustering?! Answer: mainly if you want
+   failover, in case your main messaging server crashes.  Since OpenAMQ
+   very rarely crashes, most people do not need this.  But for those who
+   need extreme reliability, clustering is very useful.
 
 </content>
 </page>

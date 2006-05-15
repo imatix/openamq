@@ -13,10 +13,6 @@
         <page name = "download" />
         <page name = "build" />
     </section>
-    <section>
-        <page name = "build_unix" />
-        <page name = "build_win32" />
-    </section>
     <section name = "OpenAMQ Server">
         <page name = "deploy" />
         <page name = "security" />
@@ -31,7 +27,7 @@
         <!-- todo -->
         <page name = "wireapi" />
         <!-- todo -->
-        <page name = "wireml" />
+        <page name = "pal" />
         <!-- todo -->
         <page name = "examples" />
         <!-- todo -->
@@ -53,6 +49,11 @@
     <section name = "Footer">
         <page name = "contact" />
         <page name = "about" />
+    </section>
+    <section>
+        <page name = "performance" />
+        <page name = "build_unix" />
+        <page name = "build_win32" />
     </section>
     <copyright>
     Layout and content copyright &copy; 2004-2006 iMatix Corporation.

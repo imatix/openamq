@@ -25,10 +25,10 @@ Publish-Subscribe Test
 Application Configuration
 =========================
 
-The publisher and subscribers are written as [/wireml.html:WireML] scripts:
+The publisher and subscribers are written as [/pal.html:PAL] scripts:
 
- - [/topic_publish:topic publisher WireML script].
- - [/topic_subscribe:topic subscriber WireML script].
+ - [/topic_publish:topic publisher PAL script].
+ - [/topic_subscribe:topic subscriber PAL script].
 
 The command used to start the subscribers is:
 
@@ -70,7 +70,7 @@ server loading was about 60-70% during these tests:
     2006-05-15 17:39:26: I: outgoing rate=205666 mean=194798 peak=216151 iomean=197843
     2006-05-15 17:39:27: I: incoming rate=3168 mean=3122 peak=3425
     2006-05-15 17:39:27: I: outgoing rate=204349 mean=199818 peak=216151 iomean=202940
-    2006-05-15 17:39:27: I: cnn=65 msg=83713 mem=41847K/0K exc=7 que=65 csm=65 bnd=66 adx=1idx=7 map=1
+    2006-05-15 17:39:27: I: cnn=65 msg=83713 mem=41847K/0K exc=7 que=65 csm=65 bnd=66
     2006-05-15 17:39:28: I: incoming rate=2831 mean=3117 peak=3425
     2006-05-15 17:39:28: I: outgoing rate=181163 mean=200031 peak=216151 iomean=203148
     2006-05-15 17:39:29: I: incoming rate=2781 mean=3072 peak=3425
@@ -81,7 +81,7 @@ server loading was about 60-70% during these tests:
     2006-05-15 17:39:31: I: outgoing rate=198779 mean=193070 peak=216151 iomean=196070
     2006-05-15 17:39:32: I: incoming rate=2708 mean=2929 peak=3425
     2006-05-15 17:39:32: I: outgoing rate=173294 mean=188785 peak=216151 iomean=191714
-    2006-05-15 17:39:32: I: cnn=65 msg=81189 mem=40586K/0K exc=7 que=65 csm=65 bnd=66 adx=1 idx=7 map=1
+    2006-05-15 17:39:32: I: cnn=65 msg=81189 mem=40586K/0K exc=7 que=65 csm=65 bnd=66 
     2006-05-15 17:39:33: I: incoming rate=3324 mean=2982 peak=3425
     2006-05-15 17:39:33: I: outgoing rate=209012 mean=190437 peak=216151 iomean=193419
     2006-05-15 17:39:34: I: incoming rate=3200 mean=2999 peak=3425
@@ -108,9 +108,9 @@ This is the run_many.sh script used to start the clients:
 Performance FAQ
 ===============
 
- - !What is the fastest build?' Answer: mt,release.
+ - !What is the fastest build?! Answer: mt,release.
 
- - !Is OpenAMQ still too slow?' Answer: yes. We feel it should be getting about
+ - !Is OpenAMQ still too slow?! Answer: yes. We feel it should be getting about
    250-300k messages per second on the above configuration, with more horsepower
    to run test clients, and further tuning of the i/o layers.
 
