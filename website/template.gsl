@@ -46,7 +46,6 @@
     $(content.string ())
 .endfor
     <!-- End page content -->
-    <br/>
     </div>
   </div>
 </body>

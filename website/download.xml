@@ -58,7 +58,7 @@ full control over build options. Easy to build using gcc or another ANSI
 C compiler:
 
 1. [/pub/OpenAMQ-$(main_version).tar.gz:Download tar.gz (9Mb)].
-2. [/build_posix.html:How to build and test].
+2. [/build_unix.html:How to build and test].
 
 More: [page:build]
 

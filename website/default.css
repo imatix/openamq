@@ -47,18 +47,19 @@ BODY {
     margin-left: 10px;
 }
 .menu_title {
-    font-size: 10pt;
+    font-size: 100%;
     text-indent: 10pt;
     margin: 2pt;
 }
 .menu_item  {
+    font-size: 90%;
     text-indent: 20pt;
     padding-bottom: 3px;
 }
 #copyright {
     color: white;
     background-color: #01415c;
-    font-size: 8pt;
+    font-size: 80%;
     padding: 1.5em;
 }
 
@@ -69,7 +70,7 @@ BODY {
     position: relative;
 }
 H1#title {
-    width: 80%;
+    width: 48em;
     position: absolute;
     font-variant: small-caps;
     margin-left: 30px;
@@ -77,7 +78,7 @@ H1#title {
     font-size: 200%;
 }
 H2#title {
-    width: 80%;
+    width: 48em;
     color: #b9cdd8;
     position: absolute;
     font-variant: small-caps;
@@ -93,53 +94,53 @@ H2#title {
 /* Content (right, bottom) container */
 /* FIXME: Style more HTML elements here */
 #content_container {
+    height: 100%;
     width: 60%;
     position: absolute;
     left: 240px;
     top: 100px;
 }
-#content_container H1 {
+#content_container h1 {
     margin-top: 1em;
     font-size: 140%;
     border-width: 0 0 1pt 0;
     border-style: dashed;
     border-color: #b9cdd8;
 }
-#content_container H2 {
+#content_container h2 {
     margin-top: 1em;
     font-size: 120%;
     padding-left: 1em;
 }
-#content_container H3 {
+#content_container h3 {
     margin-top: 0.5em;
     font-size: 110%;
     padding-left: 1em;
 }
-#content_container H4 {
+#content_container h4 {
     margin-top: 0.5em;
     font-size: 100%;
     padding-left: 1em;
 }
-#content_container UL {
+#content_container ul {
     margin: 1em;
 }
-#content_container OL {
+#content_container ol {
     margin: 1em;
 }
-#content_container LI {
+#content_container li {
     margin: 0.2em;
     margin-left: 2em;
 }
-#content_container P {
+#content_container p {
     margin: 1em;
-    margin-left: 1em;
+    margin-left: 1.25em;
 }
 #content_container pre {
     background-color: #cfdee7;
     color: black;
     margin: 1em;
-    margin-left: 4em;
-    margin-right: 4em;
+    margin-left: 2em;
 }
 #content_container DL {
     margin: 1em;

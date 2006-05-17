@@ -61,10 +61,16 @@ Statistics
  - Size of OpenAMQ main products: *10,537 lines of MOP code.*
  - Percentage of OpenAMQ that is generated from models: *99.79%.*
  - Highest speed recorded on a single CPU: *48,000 messages/second.*
- - Highest speed recorded on a multi-way box: *268,769 messages/second.*
+ - Highest speed recorded on a multi-way box: *265,828 500-byte messages/second.*
+ - Theoretical limit on a gigabit network: *512,000 500-byte messages/second.*
  - The team's opinion on OpenAMQ performance: *"it's still too slow!"*
  - First production data flow through OpenAMQ: *9 May 2006 (JPMorganChase).*
  - Number of animals harmed in the production of OpenAMQ: *none.*
+
+    2006-05-15 17:52:58: I: outgoing rate=225132 mean=261309 iomean=265828
+    2006-05-15 17:52:59: I: outgoing rate=228540 mean=256710 iomean=261229
+    2006-05-15 17:53:00: I: outgoing rate=218673 mean=255787 iomean=260306
+    2006-05-15 17:53:01: I: outgoing rate=123070 mean=241817 iomean=246336
 
 Technology
 **********
@@ -147,10 +153,5 @@ version of SMT.
 This web site, however, !is! built using MOP. I hope that settles any
 doubts you have about whether or not MOP produces readable output.
 
-
- [06:55:40 pm] <mato>2006-05-15 17:52:58: I: outgoing rate=225132 mean=261309 peak=429603 iomean=265828
- [06:55:40 pm] <mato>2006-05-15 17:52:59: I: outgoing rate=228540 mean=256710 peak=429603 iomean=261229
- [06:55:42 pm] <mato>2006-05-15 17:53:00: I: outgoing rate=218673 mean=255787 peak=429603 iomean=260306
- [06:55:45 pm] <mato>2006-05-15 17:53:01: I: outgoing rate=123070 mean=241817 peak=429603 iomean=246336
 </content>
 </page>

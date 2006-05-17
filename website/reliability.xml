@@ -1,0 +1,262 @@
+<page
+    name = "reliability"
+    title = "Reliable Programming"
+    subtitle = "Writing Secure and Robust C Code"
+    >
+<content type = "gurudoc">
+
+General Principles
+******************
+
+We had many goals when we built OpenAMQ, but one of the most central was
+to build a server that could not be broken, hacked, or compromised. To
+achieve this in ANSI C, a language which has zero security features,
+means defining strong policies and applying these ruthlessly.
+
+Security also means reliability. While writing secure software requires
+certain specialised techniques, these also contribute to reliability.
+Each buffer overflow exploit makes use of a bug that can, in other
+conditions, cause the application to behave badly, or crash.
+
+We assume that any successful server that is widely used on the Internet
+will be the target of constant attacks conducted by motivated, clever,
+and immoral individuals who at the least seek credit for finding
+exploits and at the worst, seek entry into key systems. A server has to
+withstand such attacks without blinking. Thus, reliability also means
+security.
+
+One noticeable thing about OpenAMQ is that it is built on a large stack
+of pure iMatix technology. Yes, it also uses several external packages
+such as Apache APR. But 95% of the code is ours, which is bad because
+it means we have a lot more work, but good, because we can enforce our
+standards across all that code.
+
+We enforce standards in many ways, some less obvious than others. These
+are the main ones:
+
+ - We obviously insist on our teams writing excellent code, easy to
+   read and improve. Excellent code is the basis for all excellent
+   software. If it looks good, it usually is, and if it looks terrible,
+   it most definitely is.
+
+ - We tend to be conservative about the technology we import, but we are
+   agressive in developing our own technology.  This means we take risk
+   only in those areas where we are confident of managing it well.  So,
+   we will prefer to rewrite a library than import an unproven library.
+
+ - We implement new functionality slowly, and we expect any significant
+   design to take several major cycles before it is mature enough to
+   deliver to production users. We always aim for quality above
+   quantity.
+
+ - We rely very heavily on agressive code generation, mostly using our
+   Model Oriented Programming (MOP) technique. The less code we write
+   by hand, the fewer mistakes we can make.  MOP is the main lever we
+   use to lift up the quality and security of our code.
+
+ - The OpenAMQ application sits on a large and well-organised technology
+   stack. Most of these layers are too esoteric for general-purpose use,
+   but they are appropriate for writing middleware like OpenAMQ. When we
+   design software as well-organised layers we eliminate complexity, we
+   improve testability, and we improve quality. All of which reduce the
+   scope for security loopholes.
+
+ - We test obsessively. Each technology layer has test capabilities and
+   we run selftests each time the software is built.  OpenAMQ itself
+   comes with a large test suite that tests all protocol rules.
+
+ - We are pedantic about the style and syntax used in internal APIs.
+   If each developer invents their own style, it becomes impossible to
+   make general improvements or fix identified security issues. Almost
+   all of our internal APIs are generated from models, so cost us very
+   little to build and improve.
+
+ - We always aim to write tools, not code. Most problems have general
+   solutions and by identifying and building these, rather than just
+   writing code to solve specific cases, we make overall better
+   software.
+   
+Programming Techniques
+**********************
+
+These are some of the programming techniques we use to enforce
+reliability and security.
+
+Control over Input Data
+=======================
+
+We restrict ourselves to three types of byte arrays (strings):
+
+ - Short strings, 0-255 octets, held as a fixed array of 256 octets,
+   and accessed through a dedicated API (icl_shortstr).
+ 
+ - Long strings, 0-4Gb octets, held as a descriptor consisting of a
+   32-bit size plus a data reference, and accessed through a dedicated
+   API (icl_longstr).
+   
+ - Data buckets of various sizes, held as descriptors containing
+   32-bit current and maximum sizes, plus data reference, and accessed
+   through a dedicated API (ipr_bucket).
+
+Before:
+
+    char
+        my_string [100];
+    strcpy (my_string, random_unsafe_data);
+    
+After:
+
+    icl_shortstr_t
+        my_string;
+    icl_shortstr_cpy (my_string, random_unsafe_data);
+
+Well-Designed Protocol Strings
+==============================
+
+Many of the security problems in communications software stem from
+protocols that use variable-length strings which the software must parse
+and scan. Safely parsing and scanning text is a discipline all in
+itself, and hard to do entirely safely. The wave of human readable
+protocols developed in the 1980's and 90's did not improve things.
+
+The AMQ protocol does not attempt to be human readable, but instead to
+be safely and easily processed by software. This means prefixing all
+strings with a length indicator.
+
+AMQP strings are variable length and represented by an integer length
+followed by zero or more octets of data. AMQP defines two string
+types:
+
+- Short strings, stored as an 8-bit unsigned integer length followed
+  by zero or more octets of data. Short strings can carry UTF-8 data,
+  but may not contain binary zero octets.
+
+- Long strings, stored as a 32-bit unsigned integer length followed
+  by zero or more octets of data. Long strings can contain any data.
+
+OpenAMQ internally uses identical matching string types. Most texts
+destined for human input and output are treated as short strings. All
+texts that need more capacity are treated as long strings. We use two
+classes that implement these strings, and methods to operate on them.
+
+An AMQP string can be verified before it is parsed. If it is too long,
+we know this in advance, and we can reject the entire frame and close
+the connection without pity.
+
+This effectively eliminates all scope for buffer overflow attacks based
+on submitting fraudulent data to the server.
+
+Before:
+
+    HTTP/1.1 GET /somedomain.com/my/long/url?long_arguments
+    
+After (no, this is not really AMQP, it's a sketch):
+
+    [13]BASIC.CONSUME
+    [17]   QUEUE=MY.QUEUE
+
+Nullify Destroyed Data
+======================
+
+When we destroy an object, and possibly free its data, we first nullify
+it.  That ensures that any further access to the object will fail, and
+that if the memory is reused elsewhere, it cannot contain 'interesting'
+data.
+
+Before:
+
+    free (pointer);
+    pass_illegal_data (pointer->data);
+
+After:
+
+    //  In the application:
+    my_object_destroy (&reference);
+    //  And in the object's destroy method:
+    memset (self, 0, sizeof (my_object_t));
+    *self = NULL;           //  Parent reference is now NULL
+
+Destroy Released References
+===========================
+
+When references are released, either by an unlink or a destroy method,
+the reference is nullified. This kind of coding style and practice makes
+it impossible to use released memory. It's enforcable because all
+internal APIs are code-generated, meaning an OpenAMQ developer gets safe
+code by default.
+
+Before:
+
+    free (pointer);
+    pass_illegal_data (pointer->data);
+
+After:
+
+    my_object_unlink (&reference);
+    //  And in the object's unlink method:
+    *self = NULL;           //  Parent reference is now NULL
+
+We always use the second case - you'll not find a single malloc or free
+call in the OpenAMQ code except in dedicated memory management layers.
+
+Sanity Checking on Objects
+==========================
+
+Even a code-generated framework can have errors, since these frameworks
+are made by humans, and humans make mistakes. So we add extra paranoia
+into every object method, which we call "sanity checking".  It's quite
+simple:
+
+ - When we create a new object we give it an ALIVE tag.
+ - When we destroy an object we set its tag to DEAD.
+
+Which gives us several useful extra checks against rare but not unheard
+of errors:
+
+ - If OpenAMQ programs overwrite their objects, which is hard but not
+   impossible, the object tags get corrupted and will not be ALIVE.
+
+ - If OpenAMQ programs use destroyed objects or released references,
+   which is very hard, but not impossible, the object tags will be DEAD,
+   not ALIVE.
+
+ - If OpenAMQ programs use references that point to invalid data, the
+   object tags will not be ALIVE as they should be.
+
+    //  In every live object method
+    assert (self->object_tag == ALIVE);
+
+Run in User Space
+=================
+
+Why do some applications present a real security risk? Part of the
+problem is that to use TCP/IP ports below 4096, such as the HTTP port
+80, applications need to run as root on Unix systems. Well-designed
+applications run as root only for the short time it takes to open a
+port, then they switch to a less powerful user. But this still leaves a
+window of opportunity for malign software to start the server, then
+immediately compromise it, and thus get root access to the system.
+
+OpenAMQ solves this elegantly by using a user-space port, 5672, which
+needs no special authorisation to open.  OpenAMQ never runs as root,
+and this makes it even safer to run.
+
+Before:
+
+    sudo my_web_server
+
+After:
+
+    amq_server --port 5672
+
+Assertions
+==========
+
+The OpenAMQ code never attempts to recover from internal errors. It
+makes heavy use of assertions to ensure that errors in one layer cannot
+affect other layers.
+
+    //  In every object method
+    assert (self);
+</content>
+</page>

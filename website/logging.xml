@@ -48,7 +48,7 @@ The alert log:
     2006-05-14 18:30:04: I: amq_server binding to 192.168.55.107:5672
     2006-05-14 18:30:04: I: amq_server binding to 127.0.0.1:5672
     2006-05-14 18:30:05: I: server ready for incoming AMQ connections
-    2006-05-14 18:30:10: I: cnn=1 msg=2 mem=2K/10439K exc=7 que=1 csm=1 bnd=2 adx=0 idx=7 map=0
+    2006-05-14 18:30:10: I: cnn=1 msg=2 mem=2K/10439K exc=7 que=1 csm=1 bnd=2
 
 The daily log:
 
@@ -57,27 +57,32 @@ The daily log:
     2006-05-14 18:30:04: I: amq_server binding to 192.168.55.107:5672
     2006-05-14 18:30:04: I: amq_server binding to 127.0.0.1:5672
     2006-05-14 18:30:05: I: server ready for incoming AMQ connections
-    2006-05-14 18:30:07: I: start login from=127.0.0.1:40441 product=OpenAMQ Kernel Client version=1.0c0
-    2006-05-14 18:30:07: I: valid login from=127.0.0.1:40441 user=console group=console
-    2006-05-14 18:30:10: I: cnn=1 msg=2 mem=2K/10439K exc=7 que=1 csm=1 bnd=2 adx=0 idx=7 map=0
-    2006-05-14 18:30:12: I: start login from=127.0.0.1:40442 product=OpenAMQ Kernel Client version=1.0c0
+    2006-05-14 18:30:07: I: start login from=127.0.0.1:40441 -
+                            product=OpenAMQ Kernel Client version=1.0c0
+    2006-05-14 18:30:07: I: valid login from=127.0.0.1:40441 user=console -
+                            group=console
+    2006-05-14 18:30:10: I: cnn=1 msg=2 mem=2K/10439K exc=7 que=1 csm=1 bnd=2
+    2006-05-14 18:30:12: I: start login from=127.0.0.1:40442 -
+                            product=OpenAMQ Kernel Client version=1.0c0
 
 The debug log:
 
-    2006-05-14 18:30:04: ****************  Process Environment Variables  ****************
+    2006-05-14 18:30:04: ###########  Process Environment Variables  ###########
     2006-05-14 18:30:04: KDE_MULTIHEAD=false
     2006-05-14 18:30:04: SSH_AGENT_PID=1821
     2006-05-14 18:30:04: TERM=vt220
     2006-05-14 18:30:04: ...
-    2006-05-14 18:30:04: *******************  Configuration Settings  ********************
+    2006-05-14 18:30:04: ##############  Configuration Settings  ###############
     2006-05-14 18:30:04: port=5672
     2006-05-14 18:30:04: background=0
     2006-05-14 18:30:04: queue_timeout=0
     2006-05-14 18:30:04: max_memory_mb=512
     2006-05-14 18:30:04: per_client=0
     2006-05-14 18:30:04: ...
-    2006-05-14 18:30:07: I: start login from=127.0.0.1:40441 product=OpenAMQ Kernel Client version=1.0c0
-    2006-05-14 18:30:07: I: valid login from=127.0.0.1:40441 user=console group=console
+    2006-05-14 18:30:07: I: start login from=127.0.0.1:40441 -
+                         product=OpenAMQ Kernel Client version=1.0c0
+    2006-05-14 18:30:07: I: valid login from=127.0.0.1:40441 user=console -
+                         group=console
     2006-05-14 18:30:07: X: bind     $default$: queue=#0
     2006-05-14 18:30:07: X: compile  $default$: routing_key=#0
     2006-05-14 18:30:07: X: bind     amq.direct: queue=#0
@@ -96,7 +101,8 @@ The debug log:
     2006-05-14 18:30:07: X: deliver  queue=#0
     2006-05-14 18:30:08: I: incoming rate=10 mean=10 peak=10
     2006-05-14 18:30:08: I: outgoing rate=5 mean=5 peak=5 iomean=15
-    2006-05-14 18:30:12: I: start login from=127.0.0.1:40442 product=OpenAMQ Kernel Client version=1.0c0
+    2006-05-14 18:30:12: I: start login from=127.0.0.1:40442 -
+                         product=OpenAMQ Kernel Client version=1.0c0
 
 Custom Log File Names
 *********************

@@ -8,8 +8,8 @@
 Summary
 *******
 
-OpenAMQ has been recorded as transferring 200k messages per second, sustained
-over ten seconds, in the following scenario:
+*OpenAMQ has been recorded as transferring 190-200k messages per second*,
+sustained over ten seconds, in the following scenario:
 
  - one publisher, 64 subscribers
  - full fanout from publisher to all subscribers
@@ -63,29 +63,29 @@ sustained over ten seconds. Note that the incoming rate shows the
 single publisher and outgoing rate shows the 64 subscribers.  The
 server loading was about 60-70% during these tests:
 
-    2006-05-15 17:39:24: I: outgoing rate=193897 mean=188151 peak=216151 iomean=191091
+    2006-05-15 17:39:24: I: outgoing rate=193897 mean=188151 iomean=191091
     2006-05-15 17:39:25: I: incoming rate=2727 mean=2956 peak=3425
-    2006-05-15 17:39:25: I: outgoing rate=174485 mean=189182 peak=216151 iomean=192138
+    2006-05-15 17:39:25: I: outgoing rate=174485 mean=189182 iomean=192138
     2006-05-15 17:39:26: I: incoming rate=3241 mean=3045 peak=3425
-    2006-05-15 17:39:26: I: outgoing rate=205666 mean=194798 peak=216151 iomean=197843
+    2006-05-15 17:39:26: I: outgoing rate=205666 mean=194798 iomean=197843
     2006-05-15 17:39:27: I: incoming rate=3168 mean=3122 peak=3425
-    2006-05-15 17:39:27: I: outgoing rate=204349 mean=199818 peak=216151 iomean=202940
+    2006-05-15 17:39:27: I: outgoing rate=204349 mean=199818 iomean=202940
     2006-05-15 17:39:27: I: cnn=65 msg=83713 mem=41847K/0K exc=7 que=65 csm=65 bnd=66
     2006-05-15 17:39:28: I: incoming rate=2831 mean=3117 peak=3425
-    2006-05-15 17:39:28: I: outgoing rate=181163 mean=200031 peak=216151 iomean=203148
+    2006-05-15 17:39:28: I: outgoing rate=181163 mean=200031 iomean=203148
     2006-05-15 17:39:29: I: incoming rate=2781 mean=3072 peak=3425
-    2006-05-15 17:39:29: I: outgoing rate=173779 mean=196162 peak=216151 iomean=199234
+    2006-05-15 17:39:29: I: outgoing rate=173779 mean=196162 iomean=199234
     2006-05-15 17:39:30: I: incoming rate=2933 mean=3029 peak=3425
-    2006-05-15 17:39:30: I: outgoing rate=189949 mean=194547 peak=216151 iomean=197576
+    2006-05-15 17:39:30: I: outgoing rate=189949 mean=194547 iomean=197576
     2006-05-15 17:39:31: I: incoming rate=3078 mean=3000 peak=3425
-    2006-05-15 17:39:31: I: outgoing rate=198779 mean=193070 peak=216151 iomean=196070
+    2006-05-15 17:39:31: I: outgoing rate=198779 mean=193070 iomean=196070
     2006-05-15 17:39:32: I: incoming rate=2708 mean=2929 peak=3425
-    2006-05-15 17:39:32: I: outgoing rate=173294 mean=188785 peak=216151 iomean=191714
+    2006-05-15 17:39:32: I: outgoing rate=173294 mean=188785 iomean=191714
     2006-05-15 17:39:32: I: cnn=65 msg=81189 mem=40586K/0K exc=7 que=65 csm=65 bnd=66 
     2006-05-15 17:39:33: I: incoming rate=3324 mean=2982 peak=3425
-    2006-05-15 17:39:33: I: outgoing rate=209012 mean=190437 peak=216151 iomean=193419
+    2006-05-15 17:39:33: I: outgoing rate=209012 mean=190437 iomean=193419
     2006-05-15 17:39:34: I: incoming rate=3200 mean=2999 peak=3425
-    2006-05-15 17:39:34: I: outgoing rate=208394 mean=191887 peak=216151 iomean=194886
+    2006-05-15 17:39:34: I: outgoing rate=208394 mean=191887 iomean=194886
 
 Supporting Scripts
 ==================

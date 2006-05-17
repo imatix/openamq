@@ -1,43 +1,206 @@
 <page
-    name = "paranoia"
-    title = "Paranoid Programming"
-    subtitle = "How to Write Secure C Code"
+    name = "reliability"
+    title = "Reliable Programming"
+    subtitle = "Writing Secure and Robust C Code"
     >
 <content type = "gurudoc">
 
-- control user input
-    - fixed length strings with fixed api (shortstr class)
-    - length-specified buffers (bucket class)
-    - no other string data types (none!)
+General Principles
+******************
 
-- length-specified data
-    - protocol design criteria
+We had many goals when we built OpenAMQ, but one of the most central was
+to build a server that could not be broken, hacked, or compromised. To
+achieve this in ANSI C, a language which has zero security features,
+means defining strong policies and applying these ruthlessly.
 
-- nullify destroyed classes
-    - nullify on destroy
+Security also means reliability. While writing secure software requires
+certain specialised techniques, these also contribute to reliability.
+Each buffer overflow exploit makes use of a bug that can, in other
+conditions, cause the application to behave badly, or crash.
 
-- nullify held references on destroy
-    - destroy (&reference)
 
-- object sanity checking
-    - 0xDEAD, 0xFABB on all methods
 
-- reference counting
 
-- generated code
-    - high, high quality
 
-- regression tests
-    - each class is self-testing
+A product with bugs is by definition
+insecure.  
 
-- quality of code
-    - readability, compactness, quality
+******************
 
-- don't share data in globals
-    - objects accessed by reference
+We approach the problem of security along the lines of several general
+principles, most of which are also related to reliability and quality.
 
-- run in user space
-    - amqp port > 4096, no need to run as root
+Conservative Technology
+=======================
+
+When we include external packages into our software we aim to use only
+well-tested, mature code that has a proven track record of security.
+
+Clear Priorities
+================
+
+Given a choice between additional functionality, or security and
+robustness, we always choose the latter.  We do not add features to
+OpenAMQ unless and until they are demonstrably safe.
+
+Quality of Code
+===============
+
+Security depends on maintaining high standards and this requires highly
+readable code. We thus spend a great effort on keeping the OpenAMQ code
+clean, easy to read, and efficiently compact.
+
+Zero Tolerance
+==============
+
+Bugs create security loopholes.  We are therefore manic about fixing
+bugs in OpenAMQ, no matter what the cost.
+
+Code Generation
+===============
+
+Good code generators produce reliably correct code and eliminate a large
+class of errors. We therefore automate all areas of programming that can
+be usefully adapted to our Model Oriented Programming frameworks.
+
+Architecture
+============
+
+Quality depends on a clean code architecture. In OpenAMQ, every function
+has its place and every function is always in its place. The technical
+layers that constitute OpenAMQ may seem complex but they ensure the
+quality of the result.
+
+Strong Internal APIs
+====================
+
+Large C projects need hig-quality internal APIs so that each unit of
+code can validate its arguments and handle incorrect or suspicious
+situations correctly. It's not reasonable to try to do this by hand when
+working at a large scale, so we generate all internal APIs from class
+models.  We get consistently paranoid code at no extra cost.
+
+Testability
+===========
+
+A well-architected design is testable, with each layer fullfilling a
+well-defined, well-packaged, and fully-testable set of functional
+requirements.
+
+Tools, not Code
+===============
+
+We design the architecture of our systems as layers of tools rather than
+layers of code. The difference is that tools, being general purpose,
+achieve a higher quality in every sense. Our network i/o layer - SMT -
+was not specially written for OpenAMQ, though it was heavily driven by
+our extreme needs. SMT can be used to write !any! kind of TCP/IP server.
+This means it can be tested, improved, and validated entirely
+independently of the rest of the OpenAMQ code.
+
+Programming Techniques
+**********************
+
+The C/C++ programming language has its own challenges when it comes to
+writing fully secure code. Again, there is a large overlap between
+security, and reliablity and quality.
+
+Control over Input Data
+=======================
+
+We restrict ourselves to three types of byte arrays (strings):
+
+ - Short strings, 0-255 octets, held as a fixed array of 256 octets,
+   and accessed through a dedicated API (icl_shortstr).
+ 
+ - Long strings, 0-4Gb octets, held as a descriptor consisting of a
+   32-bit size plus a data reference, and accessed through a dedicated
+   API (icl_longstr).
+   
+ - Data buckets of various sizes, held as descriptors containing
+   32-bit current and maximum sizes, plus data reference, and accessed
+   through a dedicated API (ipr_bucket).
+
+Correctly-Designed Protocol
+===========================
+
+The AMQ Protocol itself helps drive robust code, by using length
+specified strings in all places. It's no coincidence that OpenAMQ uses
+the same techniques, since we were also the main architects of the AMQ
+Protocol. Before reading any data, the OpenAMQ application knows exactly
+how many bytes it's going to need to store it. and buffer overflows
+become a thing of the past.
+
+Nullify Destroyed Data
+======================
+
+When we destroy an object, and possibly free its data, we first nullify
+it.  That ensures that any further access to the object will fail, and
+that if the memory is reused elsewhere, it cannot contain 'interesting'
+data.
+
+Destroy Released References
+===========================
+
+What's the difference between these two examples?
+
+    free (pointer);
+    my_object_unlink (&reference);
+
+We always use the second case - you'll not find a single malloc or free
+call in the OpenAMQ code except in dedicated memory management layers.
+
+When references are released, either by an unlink or a destroy method,
+the reference is nullified. This kind of coding style and practice makes
+it impossible to use released memory. It's enforcable because all
+internal APIs are code-generated, meaning an OpenAMQ developer gets safe
+code by default.
+
+Sanity Checking on Objects
+==========================
+
+Even a code-generated framework can have errors, since these frameworks
+are made by humans, and humans make mistakes. So we add extra paranoia
+into every object method, which we call "sanity checking".  It's quite
+simple:
+
+ - When we create a new object we give it an ALIVE tag.
+ - When we destroy an object we set its tag to DEAD.
+
+Which gives us several useful extra checks against rare but not unheard
+of errors:
+
+ - If OpenAMQ programs overwrite their objects, which is hard but not
+   impossible, the object tags get corrupted and will not be ALIVE.
+
+ - If OpenAMQ programs use destroyed objects or released references,
+   which is very hard, but not impossible, the object tags will be DEAD,
+   not ALIVE.
+
+ - If OpenAMQ programs use references that point to invalid data, the
+   object tags will not be ALIVE as they should be.
+
+Run in User Space
+=================
+
+Why do some applications present a real security risk? Part of the
+problem is that to use TCP/IP ports like 80, applications need to run as
+root on Unix systems. Well-designed applications run as root only for
+the short time it takes to open a port, then they switch to a less
+powerful user. But this still leaves a window of opportunity for malign
+software to start the server, then immediately compromise it, and thus
+get root access to the system.
+
+OpenAMQ solves this elegantly by using a user-space port, 5672, which
+needs no special authorisation to open.  OpenAMQ never runs as root,
+and this makes it even safer to run.
+
+Assertions
+==========
+
+The OpenAMQ code never attempts to recover from internal errors. It
+makes heavy use of assertions to ensure that errors in one layer cannot
+affect other layers.
 
 </content>
 </page>

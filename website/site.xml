@@ -8,6 +8,7 @@
         <page name = "index" />
         <page name = "license" />
         <page name = "features" />
+        <page name = "partners" />
     </section>
     <section name = "Getting Started">
         <page name = "download" />
@@ -50,10 +51,13 @@
         <page name = "contact" />
         <page name = "about" />
     </section>
+    <!-- Pages that are not shown in the index but linked to from
+         elsewhere -->
     <section>
-        <page name = "performance" />
         <page name = "build_unix" />
         <page name = "build_win32" />
+        <page name = "performance" />
+        <page name = "reliability" />
     </section>
     <copyright>
     Layout and content copyright &copy; 2004-2006 iMatix Corporation.
