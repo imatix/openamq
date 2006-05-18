@@ -1,6 +1,19 @@
 /*
-   OpenAMQ stylesheet
-*/
+    Copyright (c) 1991-2006 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ */
 
 /* Global defaults */
 * {
@@ -9,7 +22,7 @@
 }
 BODY {
     font-family: Verdana, Arial, Helvetica, sans-serif;
-    font-size: 9pt;
+    font-size: 10pt;
 }
 
 /* Left column container */
@@ -27,7 +40,7 @@ BODY {
 /* Logo (left, top) container */
 #logo_container {
     height: 100px;
-    background-color: white;
+    background-image: url('topfade.png');
 }
 /* Logo itself */
 #logo {
@@ -39,22 +52,29 @@ BODY {
 
 /* Menu (left, bottom) container */
 #menu_container {
-    background-color: white;
+    background-color: #01415c;
+    height: 45em;
 }
 .menu_section {
     background-color: #b9cdd8;
-    margin-bottom: 10px;
-    margin-left: 10px;
+    margin-bottom: 1em;
+    margin-left: 1em;
 }
 .menu_title {
     font-size: 100%;
-    text-indent: 10pt;
-    margin: 2pt;
+    text-indent: 1em;
+    margin: 0.3em;
+}
+.menu_curr  {
+    font-size: 90%;
+    text-indent: 2.5em;
+    padding-bottom: 0.3em;
+    background-color: white;
 }
 .menu_item  {
     font-size: 90%;
-    text-indent: 20pt;
-    padding-bottom: 3px;
+    text-indent: 2.5em;
+    padding-bottom: 0.3em;
 }
 #copyright {
     color: white;
@@ -65,12 +85,12 @@ BODY {
 
 #title_container {
     color: white;
-    background-color: #01415c;
+    background-image: url('topfade.png');
     height: 100px;
     position: relative;
 }
 H1#title {
-    width: 48em;
+    width: 80%;
     position: absolute;
     font-variant: small-caps;
     margin-left: 30px;
@@ -78,7 +98,7 @@ H1#title {
     font-size: 200%;
 }
 H2#title {
-    width: 48em;
+    width: 80%;
     color: #b9cdd8;
     position: absolute;
     font-variant: small-caps;
@@ -92,7 +112,6 @@ H2#title {
 }
 
 /* Content (right, bottom) container */
-/* FIXME: Style more HTML elements here */
 #content_container {
     height: 100%;
     width: 60%;
@@ -246,4 +265,3 @@ A:link IMG, A:visited IMG {
     margin-left: 1em;
     margin-right: 1em;
 }
-

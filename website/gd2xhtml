@@ -227,7 +227,7 @@ sub text_to_xhtml {
 
         #   Preformatted text consists of text indented by 4+ spaces
         #   or a single tab character.  We strip off 4 spaces or a tab;
-        #   final indentation will be handled by the GDL processor.
+        #   final indentation will be handled by style sheet.
         #
         elsif (s/^(    |\t)//) {
             $_ = $';

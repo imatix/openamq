@@ -1,4 +1,5 @@
 .template 1
+.- iMatix standard website template
 .-
 .- Run once for each page and language
 .-
@@ -21,8 +22,12 @@
 .for site.section where defined (section.name)
       <div class="menu_section">
         <h1 class="menu_title">$(name)</h1>
-.   for page
-          <p class="menu_item"><a href="$(page.name).html">$(page.title)</a></p>
+.   for page as menu_page
+.       if menu_page.name = page.name
+          <p class="menu_curr"><a href="$(menu_page.name).html">$(menu_page.title)</a></p>
+.       else
+          <p class="menu_item"><a href="$(menu_page.name).html">$(menu_page.title)</a></p>
+.       endif
 .   endfor
       </div>
 .endfor
@@ -45,6 +50,7 @@
 .for page.content
     $(content.string ())
 .endfor
+    <p>&nbsp;</p>
     <!-- End page content -->
     </div>
   </div>
