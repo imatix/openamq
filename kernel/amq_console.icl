@@ -365,24 +365,15 @@ s_execute_schema (amq_content_basic_t *request)
 {
     ipr_bucket_t
         *bucket;                        //  Schema loaded from disk
-    icl_shortstr_t
-        schema_file;                    //  Full name of schema file
 
-    if (ipr_file_where (AMQ_CONSOLE_SCHEMA, "PATH", schema_file) == 0) {
-        bucket = ipr_file_slurp (schema_file);
-        if (bucket) {
-            s_reply_bucket (request, bucket);
-            ipr_bucket_unlink (&bucket);
-        }
-        else {
-            asl_log_print (amq_broker->alert_log, "E: can't read '%s'", schema_file);
-            s_reply_error (request, "schema-reply", "notfound");
-        }
-    }
-    else {
-        asl_log_print (amq_broker->alert_log, "E: can't find '%s'", schema_file);
-        s_reply_error (request, "schema-reply", "notfound");
-    }
+    //  The console schema is packaged with the binary using the
+    //  iPR Resource Compiler; we can load it into a bucket without
+    //  doing any file system access.
+
+    bucket = amq_server_resource_get (AMQ_CONSOLE_SCHEMA);
+    assert (bucket);
+    s_reply_bucket (request, bucket);
+    ipr_bucket_unlink (&bucket);
 }
 
 static void

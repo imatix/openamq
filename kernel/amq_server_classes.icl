@@ -41,6 +41,7 @@
 <import class = "amq_server_channel" />
 <import class = "amq_server_config" />
 <import class = "amq_server_connection" />
+<import class = "amq_server_resource" />
 <import class = "amq_vhost" />
 <import class = "amq_vhost_config" />
 
