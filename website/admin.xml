@@ -5,13 +5,29 @@
     >
 <content type = "gurudoc">
 
-- State dumping
-- Monitoring server performance
-- Killing bad clients
-- Monitoring memory & CPU consumption
-- critical configuration options
+Monitoring a Server
+*******************
 
-openamq console guide
+- using process monitors
+- using shell
+- command-line monitoring
+
+Using the OpenAMQ Console
+*************************
+
+- general principles
+- help & examples
+- command-line options
+
+Automatic Recovery
+******************
+
+- recovery shell script
+
+Key Configuration Options
+*************************
+
+- monitoring
 
 Administration FAQ
 ******************

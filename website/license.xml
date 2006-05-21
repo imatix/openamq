@@ -18,14 +18,14 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
 Public License for more details.
 
-More information: [http://www.gnu.org/licenses/gpl.html:GPL]
+More information: [http://www.gnu.org/licenses/gpl.html:GNU General Public License].
 
 OpenAMQ Client Libraries License
 ********************************
 
-The OpenAMQ WireAPI ('client') libraries are free software. The ANSI C
-source code for these libraries is distributed under the terms of the BSD
-license:
+The OpenAMQ WireAPI ('client') libraries are free software. The complete
+ANSI C source code for these libraries is distributed under the terms of
+the BSD license:
 
     Copyright (c) 1996-2006 iMatix Corporation
     All rights reserved.
@@ -58,7 +58,9 @@ license:
     POSSIBILITY OF SUCH DAMAGE.
 
 Other licenses may apply to source code distributed in other languages
-and/or forms.  Please read the file COPYING that accompanies each package.
+and/or forms. Non-iMatix libraries have their own copyrights. The full
+client stack is licensed using the BSD License or similar. For detailed
+information please refer to each package.
 
 More information: [http://www.opensource.org/licenses/bsd-license.php:BSD License].
 
@@ -70,37 +72,47 @@ and do not license and distribute their source code under the GPL,
 iMatix Corporation provides an OEM Commercial License. Please contact us
 at sales at iMatix dot com for an OEM Commercial License.
 
+Contributions
+*************
+
+We welcome patches, extensions, plugins, and other community
+contributions. If you wish us to include these changes in OpenAMQ you
+must transfer the copyright of your work to iMatix Corporation. We
+reserve the right to ignore or rewrite these contributions as we see
+fit.
+
+Trademarks
+**********
+
+IMATIX, OPENAMQ, and WIREAPI are a world-wide trademarks of iMatix
+Corporation. The use of these name in the context of promoting any
+product or service, without the express consent of iMatix Corporation,
+is not permitted.
+
 License FAQ
 ***********
 
- - !How are my applications affected by these licenses?!
+ - !How are my applications affected by these licenses?! Answer: you can
+   develop and distribute free or non-free applications using WireAPI
+   following the above BSD license.  You are not required to make any
+   source code available.  You can modify and reuse parts of the WireAPI
+   ANSI C code with no requirements to redistribute the source code.
 
+ - !Can I package the OpenAMQ server with my applications?! Answer: yes
+   you can, under the terms of the GPL. You must provide access to the
+   source code for the version of the OpenAMQ server that you distribute.
 
+ - !When do I need an OEM license?! Answer: you need an OEM license when
+   your business makes non-free products derived from the OpenAMQ server
+   code.
 
-
- - !When do I need an OEM license?! Answer: you need an OEM license to
-   distribute proprietary products based on the OpenAMQ server source code.
-   You do not need an OEM license to use the OpenAMQ server.
-
- - !How much does an OEM license cost?! Answer: please send us an email to
-   sales at iMatix dot com, with a description of your OEM product plan or
-   proposal.
+ - !How much does an OEM license cost?! Answer: please send us an email
+   to sales at iMatix dot com, with a description of your OEM product
+   plan or proposal.
 
  - !Is the free OpenAMQ software complete?! Answer: we don't believe in
-   crippleware.  We strive to make OpenAMQ the fastest and most complete open
-   source AMQP solution available.
-
-Contributions
--------------
-
-We welcome patches, contributions, and so on. However, if you make
-changes to our sources, and you want these changes included in the
-'official' version, you will have to:
-
-1. Transfer the copyright of this work to us.
-2. Accept that we may rewrite your changes in any way we see fit.
-3. Do not complain if this takes months or even years.
-
+   crippleware. We strive to make OpenAMQ the fastest and most complete
+   open source AMQP solution available.
 
 </content>
 </page>

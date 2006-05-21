@@ -24,9 +24,8 @@ License
 The OpenAMQ server is free software licensed under the Free Software
 Foundation's [http://www.gnu.org/licenses/gpl.html:GPL].
 
-The OpenAMQ WireAPI client libraries are free software licensed under
-the Free Software Foundation's [http://www.gnu.org/licenses/lgpl.html:LGPL]
-so your applications are not affected by the GPL.
+The OpenAMQ client libraries (WireAPI) are free software licensed under
+the [http://www.opensource.org/licenses/bsd-license.php:BSD License].
 
 More: [page:license]
 
@@ -47,12 +46,10 @@ The OpenAMQ Server
 The OpenAMQ server (broker) installs and runs out-of-the-box with zero
 configuration except setting an admin password.
 
+Of course you can also tune the server's performance, logging, security,
+and other functions.
+
 More: [page:deploy]
-
-You can also tune the server's performance, logging, security, and other
-functions.
-
-More: [page:config]
 
 The WireAPI Clients
 *******************

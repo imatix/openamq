@@ -56,7 +56,6 @@ Supports failover and scalability through in-built clustering:
  - Create server clusters of any size.
  - Fanout publish/subscribe load across many servers.
  - Configurable client-server heartbeating.
- - Cluster configuration wizard.(*)
 
 Security
 ========
@@ -153,9 +152,10 @@ Features FAQ
    fast but as someone said, "Java kills your system".  If you are running
    a large Java server in any case, you may prefer an AMQ Java broker.  But
    for software that installs silently and runs without a whisper, you want
-   a pure ANSI C solution, and that means OpenAMQ.
+   a pure ANSI C solution, and that means OpenAMQ, and the decades of R&D
+   into internet servers that went into it.
 
  - !I want feature X, how do I get it?!  Answer: if it's supported by the
-   AMQP standard, and is not yet in OpenAMQ, ask us.
+   AMQP standard, and is not yet in OpenAMQ, ask us.  
 </content>
 </page>

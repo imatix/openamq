@@ -19,10 +19,10 @@
         <page name = "security" />
         <page name = "options" />
         <page name = "logging" />
-        <!-- todo -->
         <page name = "cluster" />
         <!-- todo -->
         <page name = "admin" />
+        <page name = "tuning" />
     </section>
     <section name = "OpenAMQ WireAPI">
         <!-- todo -->
@@ -49,6 +49,7 @@
     </section>
     <section name = "Footer">
         <page name = "contact" />
+        <page name = "imatix" />
         <page name = "about" />
     </section>
     <!-- Pages that are not shown in the index but linked to from

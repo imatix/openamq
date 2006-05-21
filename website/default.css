@@ -40,7 +40,6 @@ BODY {
 /* Logo (left, top) container */
 #logo_container {
     height: 100px;
-    background-image: url('topfade.png');
 }
 /* Logo itself */
 #logo {
@@ -52,12 +51,10 @@ BODY {
 
 /* Menu (left, bottom) container */
 #menu_container {
-    background-color: #01415c;
-    height: 45em;
+    height: 40em;
 }
 .menu_section {
-    background-color: #b9cdd8;
-    margin-bottom: 1em;
+    margin-bottom: 0.75em;
     margin-left: 1em;
 }
 .menu_title {
@@ -66,26 +63,22 @@ BODY {
     margin: 0.3em;
 }
 .menu_curr  {
-    font-size: 90%;
+    font-size: 80%;
     text-indent: 2.5em;
     padding-bottom: 0.3em;
     background-color: white;
 }
 .menu_item  {
-    font-size: 90%;
+    font-size: 80%;
     text-indent: 2.5em;
     padding-bottom: 0.3em;
 }
 #copyright {
-    color: white;
-    background-color: #01415c;
     font-size: 80%;
     padding: 1.5em;
 }
 
 #title_container {
-    color: white;
-    background-image: url('topfade.png');
     height: 100px;
     position: relative;
 }
@@ -99,7 +92,6 @@ H1#title {
 }
 H2#title {
     width: 80%;
-    color: #b9cdd8;
     position: absolute;
     font-variant: small-caps;
     text-align: right;
@@ -108,7 +100,6 @@ H2#title {
     font-size: 130%;
     border-width: 1pt 0 0 0;
     border-style: dashed;
-    border-color: #b9cdd8;
 }
 
 /* Content (right, bottom) container */
@@ -124,7 +115,6 @@ H2#title {
     font-size: 140%;
     border-width: 0 0 1pt 0;
     border-style: dashed;
-    border-color: #b9cdd8;
 }
 #content_container h2 {
     margin-top: 1em;
@@ -156,7 +146,6 @@ H2#title {
     margin-left: 1.25em;
 }
 #content_container pre {
-    background-color: #cfdee7;
     color: black;
     margin: 1em;
     margin-left: 2em;
@@ -180,17 +169,14 @@ H2#title {
 A:active {
     text-decoration: none;
     font-weight: bold;
-    color: #01415c;
 }
 A:link {
     text-decoration: none;
     font-weight: bold;
-    color: #01415c;
 }
 A:visited {
     text-decoration: none;
     font-weight: bold;
-    color: #01415c;
 }
 A[HREF]:hover {
     color: red;
@@ -200,40 +186,34 @@ A:link IMG, A:visited IMG {
 }
 
 /* Floating boxes are calculated in ems */
-#float_1 {
-    top: 2em;
-    left: 0em;
-    background-color: #e4edf3;
-}
-#float_2 {
-    top: 2em;
-    left: 22em;
-    background-color: #cfdee7;
-}
-#float_3 {
-    top: 2em;
-    left: 44em;
-    background-color: #b2cbd8;
-}
-#float_4 {
-    top: 24em;
-    left: 0em;
-    background-color: #b2cbd8;
-}
-#float_5 {
-    top: 24em;
-    left: 22em;
-    background-color: #cfdee7;
-}
-#float_6 {
-    top: 24em;
-    left: 44em;
-    background-color: #e4edf3;
-}
 .float_cell {
-    width: 20em;
+    width: 18em;
     height: 20em;
     position: absolute;
+}
+#float_1 {
+    top: 1em;
+    left: 0em;
+}
+#float_2 {
+    top: 1em;
+    left: 19em;
+}
+#float_3 {
+    top: 1em;
+    left: 38em;
+}
+#float_4 {
+    top: 22em;
+    left: 0em;
+}
+#float_5 {
+    top: 22em;
+    left: 19em;
+}
+#float_6 {
+    top: 22em;
+    left: 38em;
 }
 .float_header {
     margin-top: 6pt;

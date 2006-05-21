@@ -171,39 +171,40 @@ This script, reader.pal, shows the messaging client:
 
     &lt;?xml?&gt;
     &lt;pal script = "amq_pal_gen"&gt;
-        &lt;set name = "myqueue" value = "my.queue" cmdline = "Q" /&gt;
-        &lt;set name = "private" value = "0"        cmdline = "P" /&gt;
-        &lt;session cluster_key = "/my.cluster"&gt;
-            &lt;queue_declare queue = "$myqueue" exclusive = "$private" /&gt;
-            &lt;queue_bind    queue = "$myqueue" exchange = "amq.direct" routing_key = "test" /&gt;
-            &lt;basic_consume queue = "$myqueue" no_local = "1" /&gt;
-            &lt;repeat&gt;
-                &lt;wait/&gt;
-                &lt;basic_arrived&gt;
-                    &lt;echo&gt;I: Message $message_id arrived&lt;/echo&gt;
-                &lt;/basic_arrived&gt;
-                &lt;empty&gt;
-                    &lt;abort&gt;E: Message did not arrive&lt;/abort&gt;
-                &lt;/empty&gt;
-            &lt;/repeat&gt;
-        &lt;/session&gt;
+       &lt;set name = "myqueue" value = "my.queue" cmdline = "Q" /&gt;
+       &lt;set name = "private" value = "0" cmdline = "P" /&gt;
+       &lt;session cluster_key = "/my.cluster"&gt;
+          &lt;queue_declare queue = "$myqueue" exclusive = "$private" /&gt;
+          &lt;queue_bind queue = "$myqueue" exchange = "amq.direct"
+              routing_key = "test" /&gt;
+          &lt;basic_consume queue = "$myqueue" no_local = "1" /&gt;
+          &lt;repeat&gt;
+             &lt;wait/&gt;
+             &lt;basic_arrived&gt;
+                &lt;echo&gt;I: Message $message_id arrived&lt;/echo&gt;
+             &lt;/basic_arrived&gt;
+             &lt;empty&gt;
+                &lt;abort&gt;E: Message did not arrive&lt;/abort&gt;
+             &lt;/empty&gt;
+          &lt;/repeat&gt;
+       &lt;/session&gt;
     &lt;/pal&gt;
 
 This script, writer.pal, shows the messaging publisher:
 
     &lt;?xml?&gt;
     &lt;pal script = "amq_pal_gen"&gt;
-        &lt;set name = "messages" value = "1" cmdline = "M" /&gt;
-        &lt;set name = "message_id" value = "$random" cmdline = "I" /&gt;
-        &lt;session cluster_key = "/my.cluster"&gt;
-            &lt;repeat counter = "id" times = "$messages" &gt;
-                &lt;basic_content size = "1000" message_id = "id-$message_id" /&gt;
-                &lt;basic_publish exchange = "amq.direct" routing_key = "test" /&gt;
-                &lt;basic_returned&gt;
-                    &lt;echo&gt;W: Message $message_id returned&lt;/echo&gt;
-                &lt;/basic_returned&gt;
-            &lt;/repeat&gt;
-        &lt;/session&gt;
+       &lt;set name = "messages" value = "1" cmdline = "M" /&gt;
+       &lt;set name = "message_id" value = "$random" cmdline = "I" /&gt;
+       &lt;session cluster_key = "/my.cluster"&gt;
+          &lt;repeat counter = "id" times = "$messages" &gt;
+             &lt;basic_content size = "1000" message_id = "id-$message_id" /&gt;
+             &lt;basic_publish exchange = "amq.direct" routing_key = "test" /&gt;
+             &lt;basic_returned&gt;
+                &lt;echo&gt;W: Message $message_id returned&lt;/echo&gt;
+             &lt;/basic_returned&gt;
+          &lt;/repeat&gt;
+       &lt;/session&gt;
     &lt;/pal&gt;
 
 Testing Shared Queues
@@ -253,5 +254,11 @@ Cluster FAQ
    very rarely crashes, most people do not need this.  But for those who
    need extreme reliability, clustering is very useful.
 
+ - !Do I need clustering for performance?! Answer: OpenAMQ is very fast
+   on a multi-CPU box. It's probably cheaper and simpler to buy a faster
+   server, if you need the performance, than to use clustering. However
+   if you have at least three existing slower servers and you need to
+   handle a large number of clients (thousands), you can use clustering
+   to split the load across these servers.
 </content>
 </page>

@@ -153,7 +153,8 @@ Logging FAQ
    of the message.  E is an error, W is a warning, I is information,
    and other letters are used to trace different types of activity.
 
- -
+ - !Can I disable logging!? Answer: yes, use the --keep_logs 0 option to
+   disable logging.
 
 </content>
 </page>

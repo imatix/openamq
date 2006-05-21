@@ -8,6 +8,7 @@
 <head>
   <title>$(site.name): $(page.title)</title>
   <link rel="stylesheet" href="default.css" type="text/css"/>
+  <link rel="stylesheet" href="custom.css" type="text/css"/>
   <link rel="stylesheet" type="text/css" href="niftyCorners.css" />
   <link rel="stylesheet" type="text/css" href="niftyPrint.css" media="print" />
   <script type="text/javascript" src="niftycube.js"></script>
@@ -16,7 +17,7 @@
 <body>
   <div id="left_container">
     <div id="logo_container">
-      <a href="index.html"><img id="logo" width="155" height="80" src="logo.png"/></a>
+      <a href="index.html"><img id="logo" src="logo.png"/></a>
     </div>
     <div id="menu_container">
 .for site.section where defined (section.name)

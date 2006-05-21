@@ -1,0 +1,34 @@
+<page
+    name = "tuning"
+    title = "Tuning"
+    subtitle = "Getting the Best out of OpenAMQ"
+    >
+<content type = "gurudoc">
+
+
+--max_memory_mb
+--record_stats
+--heartbeart
+--packio
+--read_timeout
+--write_timeout
+--polling_threads
+--working_threads
+--tcp options
+
+
+Testing Throughput
+******************
+
+- clients, server
+- network stability
+- testing tools
+
+Tuning FAQ
+**********
+
+ - !?! Answer:
+
+
+</content>
+</page>
