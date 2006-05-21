@@ -6,6 +6,9 @@
     background-color: #01415c;
 }
 #menu_container {
+    border-width: 0 0 1pt 0;
+    border-style: solid;
+    border-color: #01415c;
     background-color: #01415c;
 }
 .menu_section {

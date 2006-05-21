@@ -58,9 +58,11 @@ the BSD license:
     POSSIBILITY OF SUCH DAMAGE.
 
 Other licenses may apply to source code distributed in other languages
-and/or forms. Non-iMatix libraries have their own copyrights. The full
-client stack is licensed using the BSD License or similar. For detailed
-information please refer to each package.
+and/or forms. Non-iMatix libraries have their own copyrights. Full ANSI
+C code for the client stack is licensed using the BSD License or similar.
+Original XML models for the ANSI C code are licensed under the GNU GPL.
+For detailed information please refer to each package and/or each source
+file.
 
 More information: [http://www.opensource.org/licenses/bsd-license.php:BSD License].
 

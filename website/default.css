@@ -51,7 +51,7 @@ BODY {
 
 /* Menu (left, bottom) container */
 #menu_container {
-    height: 40em;
+    height: 100%;
 }
 .menu_section {
     margin-bottom: 0.75em;
