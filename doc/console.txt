@@ -1,28 +1,50 @@
 gdl
     title     = The AMQ Console
-    subtitle  = Operator Control for AMQ Servers
+    subtitle  = Operational Control for AMQ Servers
     product   = OpenAMQ
-    author    = iMatix Corporation <amq@imatix.com>
+    author    = Pieter Hintjens <ph@imatix.com>
     date      = 2006/02/07
-    copyright = Copyright (c) 2004-2005 JPMorgan
+    copyright = Copyright (c) 1996-2006 iMatix Corporation
     version   = 1.0a1
 end gdl
 
-Document Control
-****************
+Cover
+*****
 
-Change History
-==============
+State of this Document
+======================
 
-1.0a1:
-    Set version number to match OpenAMQ version number.
+This document is an end-user reference aimed at software developers.
 
-Tasks Pending
-=============
+Copyright and License
+=====================
 
- - Define CML language as AMQ RFC, and using formal grammar(s).
- - In separate document, describe OpenAMQ openamq.org/kernel console
-   schema.
+Copyright (c) 1996-2006 iMatix Corporation
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or (at
+your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+For information on alternative licensing for OEMs, please contact
+iMatix Corporation.
+
+Authors
+=======
+
+This document was written by Pieter Hintjens <ph@imatix.com>.
+
+Abstract
+========
+
+We define a standard for remote administration of OpenAMQ servers; the
+standard consists of an XML language that defines objects and methods,
+and a transport mechanism that is itself built on top of AMQP.
 
 Overview
 ********
@@ -53,7 +75,7 @@ We want the console to have these features:
 
  - To be generally compatible with conventional console abstractions,
    e.g. Java management beans.
-   
+
  - To provide access to all "operable" internals of the server, i.e.
    to any object that may be tuned, configured, or managed.
 
@@ -531,7 +553,7 @@ interface forms without too much work.  We allow these types of field:
    This is the default type.
  - int: defines an integer. Integers are unsigned 32 bits.
  - bool: defines a boolean value, which can be shown as a check box.
- - time: defines a date/time, held as a time_t format.
+ - time: defines a date/time, held as a UTC time_t format.
  - object: defines a relationship to another object.
 
 String and integer fields can be enumerated, with one or more values.
@@ -737,4 +759,9 @@ specific field in the object.  For example:
              </field>
           </notify>
        </cml>
+
+Worked Examples
+***************
+
+This section must still be completed.
 

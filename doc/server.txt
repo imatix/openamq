@@ -3,9 +3,9 @@ gdl
     subtitle  = Installation and Use of the OpenAMQ Server
     product   = OpenAMQ
     author    = iMatix Corporation <amq@imatix.com>
-    date      = 2006/01/05
+    date      = 2006/04/24
     copyright = Copyright (c) 2004-2006 JPMorganChase
-    version   = 1.0a0
+    version   = 1.0c
 end gdl
 
 Overview
@@ -14,9 +14,9 @@ Overview
 Introduction
 ============
 
-OpenAMQ is the reference implementation of the AMQ middleware protocol
-standard (AMQP). It aims to provide a reliable, fast, portable (along with
-clients for various languages), industry-standards-compatible (e.g. JMS) 
+OpenAMQ is a superior implementation of the AMQ middleware protocol
+standard (AMQP). It provides a reliable, fast, portable (along with
+clients for various languages), industry-standards-compatible (e.g. JMS)
 open source platform for service-oriented networks.
 
 AMQ ("Advanced Message Queues") is commodity middleware for use in large-scale
@@ -40,24 +40,24 @@ The current version of OpenAMQ is capable of:
 
 Industry standard messaging models such as topics and queues:
     OpenAMQ implements a high-level protocol which is fully capable of, but not
-    limited to, the Java Message Service. A JMS wrapper is provided as part of 
+    limited to, the Java Message Service. A JMS wrapper is provided as part of
     the server package. The JMS wrapper allows for Java applications to join the
-    service network easily (and no native libraries are required).  
+    service network easily (and no native libraries are required).
 
 Flexible and extensible high-performance message delivery:
     The exchange is a concept unique to OpenAMQ, it is a kind of plug-in mechanism
-    that allows for different message distribution schemes, such as publish-subscribe 
-    and point-to-point. Different types of exchanges can be created to solve diferent 
+    that allows for different message distribution schemes, such as publish-subscribe
+    and point-to-point. Different types of exchanges can be created to solve diferent
     needs with high efficiency (For example Broadcast (Fan-out), SQLXX, Load-balancing).
 
 Out-of-band message delivery*:
-    Messages can be sent using out-of-band transport. The specific out-of-band 
+    Messages can be sent using out-of-band transport. The specific out-of-band
     transport used, and its configuration, is defined when a channel is opened.
- 
+
 High performance transactions:
     OpenAMQ supports distributed* and non-distributed transactions, this gives flexibility
-    for different application needs. From the client's point of view there's no difference 
-    between the non-transacted, transacted, and distributed transactions model. Compatibility 
+    for different application needs. From the client's point of view there's no difference
+    between the non-transacted, transacted, and distributed transactions model. Compatibility
     of AMQ transactions with XA distributed transactions is yet to be implemented.
 
 Clustering and scalability:

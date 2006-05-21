@@ -1,34 +1,67 @@
 gdl
-    title     = AMQ C API
-    subtitle  = Standard C API for AMQP Server
+    title     = WireAPI
+    subtitle  = A Standard API for AMQP
     product   = OpenAMQ
-    author    = iMatix Corporation <amq@imatix.com>
+    author    = Pieter Hintjens <ph@imatix.com>
     date      = 2005/10/28
-    copyright = Copyright (c) 2004-2005 JPMorgan
-    version   = 1.3b0
+    copyright = Copyright (c) 2004-2006 iMatix Corporation
+    version   = 1.0b0
 end gdl
+
+Cover
+*****
+
+State of this Document
+======================
+
+This document is an end-user reference aimed at software developers.
+
+Copyright and License
+=====================
+
+Copyright (c) 1996-2006 iMatix Corporation
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or (at
+your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+For information on alternative licensing for OEMs, please contact
+iMatix Corporation.
+
+Authors
+=======
+
+This document was written by Pieter Hintjens <ph@imatix.com>.
+
+Abstract
+========
+
+We describe a standard API for application developers that wish to use
+the AMQP for messaging services in their applications.  WireAPI is a
+standard cross-language API that gives developers full access to the
+full functionality of the AMQP protocol.
 
 Introduction
 ************
 
-Version
-=======
+How The AMQ Protocol Works
+==========================
 
-This describes OpenAMQ server and client release 0.9d0.
-
-How AMQ Works
-=============
-
-The reader should refer to the document "AMQ - A General-Purpose
-Middleware Standard" for a detailed discussion of the AMQ protocol and
-architecture.
+The reader should refer to the AMQ Protocol specifications for a detailed
+discussion of the AMQ Protocol and architecture.  See http://www.amqp.org.
 
 Goals and Principles
 ====================
 
-The standard C client API is built using the same technology as the
-OpenAMQ server, and provides a component-based interface to the AMQ
-protocol from the client side.  It is designed to:
+The WireAPI is built using the same technology as the OpenAMQ server, and
+provides a component-based interface to the AMQ protocol from the client
+side.  It is designed to:
 
  - Support multiple channels over a single connection.
  - Provide full asynchronous background operations.
@@ -36,9 +69,9 @@ protocol from the client side.  It is designed to:
  - Provide full access to all AMQP methods except those used for connection
    and session start-up and shut-down.
  - Provide full access to all AMQP method properties.
- - Act as the basis for other language APIs based on the C layers.
+ - Act as the basis for other language APIs based on the WireAPI model.
  - Be 100% portable to common platforms.
- - Work with any AMQ server implementation.
+ - Work with any AMQP server implementation.
 
 Technicalities
 ==============
@@ -52,7 +85,7 @@ It is mainly built using these technologies:
  - iMatix Boom for building and packaging.
 
 However, the calling application does not need to use any of these tools in
-order to use the C API, except to correctly initialise and terminate iCL.
+order to use WireAPI, except to correctly initialise and terminate iCL.
 It needs only the header files and the libraries.  The simplest way to get
 these is to build the full OpenAMQ kernel, and then use the $IBASE/include
 and $IBASE/lib directories when compiling and linking the application.
@@ -64,13 +97,13 @@ single-threaded build easier to debug.
 Basic Architecture
 ==================
 
-The C client API sits between the application:
+WireAPI sits between the application:
 
-    .---------------.      .--------------.      .--------------.
-    |               | ---> |              | ---> |              |
-    |  Application  |      |  Client API  |      |  AMQ Server  |
-    |               | <--- |              | <--- |              |
-    `---------------'      `--------------'      `--------------'
+    .---------------.      .-------------.      .--------------.
+    |               | ---> |             | ---> |              |
+    |  Application  |      |   WireAPI   |      |  AMQ Server  |
+    |               | <--- |             | <--- |              |
+    `---------------'      `-------------'      `--------------'
 
 Here is a trivial example that sends one message to an AMQ server. This
 program does no error handling so you should *not* copy this code:
@@ -118,7 +151,7 @@ program does no error handling so you should *not* copy this code:
         return (0);
     }
 
-This shows some of the main object classes that compose the client API:
+This shows some of the main object classes that compose WireAPI:
 
  - amq_client_connection: lets you connect to a server.
  - amq_client_session: lets you create a session and talk to the server
@@ -129,7 +162,7 @@ This shows some of the main object classes that compose the client API:
 The iCL Class Syntax
 ====================
 
-The client API classes are all constructed using iCL and some knowledge
+The WireAPI classes are all constructed using iCL and some knowledge
 of iCL will make your life easier.  However, the syntax for using iCL
 classes in C is consistent and we can summarise it:
 
@@ -180,8 +213,8 @@ The Connection Class
 
 AMQP is a multi-channel protocol, meaning that one network connection can
 carry an arbitrary number of parallel, independent virtual connections,
-which AMQP calls "channels".  In the C API these are called "sessions"
-for compatability with other middleware APIs.
+which AMQP calls "channels".  In WireAPI these are called "sessions" for
+compatability with other middleware APIs.
 
 Before calling any iCL method including amq_client_connection_new,
 you must have called icl_system_initialise (), or your application will
@@ -224,7 +257,7 @@ Creates a new connection to the server.
    auth_plain method. The new method destroys the auth_data block on
    behalf of the caller.
 
- - The trace argument sets the trace level for the client API.
+ - The trace argument sets the trace level for WireAPI.
 
  - The timeout argument governs all synchronous exchanges with the server -
    if the server does not respond within this time, the connection treats
@@ -257,7 +290,7 @@ These are the properties of a connection object:
 
  - alive (Boolean) - FALSE when connection has had an error
  - silent (Boolean) - set this TRUE to suppress error reporting
- - error_text (string) - error string reported by API
+ - error_text (string) - error string reported by the API
  - reply_text (string) - error string reported by server
  - reply_code (integer) - error value reported by server
  - version_major (integer) - server protocol version major
@@ -319,7 +352,7 @@ timeout expired:
 Content Access Methods
 ======================
 
-For each content class (Basic, File, Stream), the API provides a set of
+For each content class (Basic, File, Stream), WireAPI provides a set of
 methods to access arrived and returned content:
 
     amq_client_session_<classname>_<arrived|returned> ()
@@ -374,7 +407,7 @@ These are the properties of a session object:
 
  - alive (Boolean) - FALSE when connection has had an error
  - silent (Boolean) - set this TRUE to suppress error reporting
- - error_text (string) - error string reported by API
+ - error_text (string) - error string reported by the API
  - ticket (integer) - access ticket granted by server
  - queue (string) - queue name assigned by server
  - exchange (string) - exchange name from last method
@@ -405,7 +438,7 @@ internal technical levels, so is confusing).  The protocol defines
 distinct content classes - basic, file, stream - for different
 application domains.
 
-For each content class defined in the protocol the client API provides
+For each content class defined in the protocol WireAPI provides
 an iCL class that lets you create and manipulate contents. For example:
 
     amq_content_basic_t
@@ -490,7 +523,7 @@ ASL Field Table Classes
 The Easy Way to Make a Field Table
 ==================================
 
-The C API uses ASL field tables as a basic type to implement all "field
+WireAPI uses ASL field tables as a basic type to implement all "field
 table" arguments.  There are two classes that you can use:
 
  - asl_field - defines a single named field holding data of various types.
@@ -586,7 +619,7 @@ You can also access a field's properties directly:
 Error Handling
 **************
 
-The C API returns two types of error:
+WireAPI returns two types of error:
 
  - Errors reported internally, e.g. timeout.
  - Errors reported by the remote server, e.g. invalid queue name.
@@ -614,7 +647,7 @@ Miscellaneous Topics
 Object Ownership
 ================
 
-The C API uses the standard iCL model to define object ownership:
+WireAPI uses the standard iCL model to define object ownership:
 
  - The layer which calls the "new" method on an object also destroys it.
 
@@ -630,27 +663,26 @@ Synchronous vs. Asynchronous Methods
 
 AMQP (like all ASL protocols) divides methods strictly into those that
 expect an immediate reply (synchronous) and those that do not
-(asynchronous).  The standard C client API handles these cases as
-follows:
+(asynchronous).  WireAPI handles these cases as follows:
 
- - When you use a synchronous method (e.g. Basic.Consume), the API
+ - When you use a synchronous method (e.g. Basic.Consume), WireAPI
    waits for the server to respond with a synchronous reply, and
    it processes this reply.  Any asynchronous methods that the server
    sends before the reply are also processed (e.g. incoming content
    will be correctly queued.)
 
- - When you use an asynchronous method (e.g. Basic.Publish), the API
+ - When you use an asynchronous method (e.g. Basic.Publish), WireAPI
    does not wait for any server response.  You can therefore send
-   such events rapidly and expect the API to return as fast as it
+   such events rapidly and expect WireAPI to return as fast as it
    can, and process them in the background.
 
 Single-Threaded Background Processing
 =====================================
 
-The standard C client API works in both a multi-threaded model (in which
-one thread handles all dialogue with the server and a second handles the
-application) and single-threaded (in which a single thread does all the
-work).
+WireAPI works in both a multi-threaded model (in which one thread
+handles all dialogue with the server and a second handles the
+application) and single-threaded (in which a single thread does all
+the work).
 
 You choose the model when you build OpenAMQ, which specifically has
 both single- and multi-threaded capability built into it.
