@@ -8,13 +8,7 @@
 
 <include filename = "prelude.pdl" />
 
-<file name = "concepts.txt"          class = "gurudoc text" />
-<file name = "wireapi.txt"           class = "gurudoc text" />
-<file name = "console.txt"           class = "gurudoc text" />
-<file name = "background.txt"        class = "gurudoc text" />
 <file name = "standards.txt"         class = "gurudoc text" />
-<file name = "matching.txt"          class = "gurudoc text" />
-
 <file name = "gdstyle.css"           class = "web resource">Gurudoc style sheet</file>
 <file name = "mainlogo.jpg"          class = "web resource">AMQ logo</file>
 
