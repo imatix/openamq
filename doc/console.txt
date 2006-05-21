@@ -3,9 +3,9 @@ gdl
     subtitle  = Operational Control for AMQ Servers
     product   = OpenAMQ
     author    = Pieter Hintjens <ph@imatix.com>
-    date      = 2006/02/07
+    date      = 2006/05/13
     copyright = Copyright (c) 1996-2006 iMatix Corporation
-    version   = 1.0a1
+    version   = 1.0d0
 end gdl
 
 Cover
@@ -505,26 +505,32 @@ This is the grammar for server messages:
 
     inspect-reply   = <inspect-reply class = "class-name" object = "object-id"
                        [ watches  = "watch-count" ]
-                         status   = "reply-status">
+                         status   = "reply-status"
+                       [ notice = "notice-text" ] >
                         [ field-data ]...
                       </inspect-reply>
 
     watch-count     = 0..maxint - 1
 
     modify-reply    = <modify-reply
-                        class = "class-name"
-                        object = "object-id"
-                        status = "reply-status" />
+                         class = "class-name"
+                         object = "object-id"
+                         status = "reply-status"
+                       [ notice = "notice-text" ] />
+
+    notice          = valid-text
 
     method-reply    = <method-reply
-                        class = "class-name"
-                        object = "object-id"
-                        status = "reply-status" />
+                         class = "class-name"
+                         object = "object-id"
+                         status = "reply-status" 
+                       [ notice = "notice-text" ] />
 
     watch-reply     = <watch-reply
-                        class = "class-name"
-                        object = "object-id"
-                        status = "reply-status">
+                         class = "class-name"
+                         object = "object-id"
+                         status = "reply-status"
+                       [ notice = "notice-text" ] >
                        [ watch-field ]...
                       </watch-reply>
 
