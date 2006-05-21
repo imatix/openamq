@@ -1,5 +1,5 @@
 gdl
-    title     = The AMQ Console
+    title     = OpenAMQ Console
     subtitle  = Operational Control for AMQ Servers
     product   = OpenAMQ
     author    = Pieter Hintjens <ph@imatix.com>
