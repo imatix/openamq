@@ -304,6 +304,11 @@ class.  This is a lock-free asynchronous class.
                 amq_consumer_unlink (&consumer_ref);
             }
         }
+        else {
+            //  Unlink consumer now, so it's destroyed
+            consumer_ref = consumer;
+            amq_consumer_unlink (&consumer_ref);
+        }
     }
     else {
         if (consumer->class_id == AMQ_SERVER_BASIC) {

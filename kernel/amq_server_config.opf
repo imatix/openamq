@@ -36,16 +36,6 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "background" type = "Bool" default = "0">
-    Run as background process?
-    <doc>
-    Used on Unix/Linux only. If set, the server will automatically
-    detatch itself from the console and move into the background when
-    started from a console.  This is useful if you have to run the
-    server manually.
-    </doc>
-    </property>
-
     <property name = "queue timeout" type = "int" default = "0" dynamic = "1">
     Timeout for auto-deleted queues
     <doc>
