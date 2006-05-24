@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package name    = "OpenAMQ"
-         release = "1.0c"
+         release = "1.0c2"
          script  = "makesrc.gsl">
 
   <product name = "base"
