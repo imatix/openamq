@@ -3,14 +3,14 @@
          release = "1.0c3"
          script  = "makesrc.gsl">
 
+  <product name = "foreign"
+           url  = "https://svn.imatix.net/imatix/foreign/branches/prod_openamq_1.0c/"
+           rev  = "9372" />
   <product name = "base"
            url  = "https://svn.imatix.net/imatix/base/branches/prod_openamq_1.0c/"
            rev  = "9372" />
   <product name = "gsl4"
            url  = "https://svn.imatix.net/imatix/gsl4/branches/prod_openamq_1.0c/"
-           rev  = "9372" />
-  <product name = "foreign"
-           url  = "https://svn.imatix.net/imatix/foreign/branches/prod_openamq_1.0c/"
            rev  = "9372" />
   <product name = "base2"
            url  = "https://svn.imatix.net/imatix/base2/branches/prod_openamq_1.0c/"
