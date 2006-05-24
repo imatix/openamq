@@ -1,0 +1,11 @@
+<?xml?>
+<!--
+    Test script for topic subscriber
+  -->
+<pal script = "amq_pal_gen">
+    <session>
+      <queue_declare queue = "myqueue" auto_delete = "1" />
+      <basic_consume queue = "myqueue" />
+    </session>
+</pal>
+

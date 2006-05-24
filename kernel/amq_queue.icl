@@ -253,8 +253,7 @@ class.  This is a lock-free asynchronous class.
     Attach consumer to appropriate queue consumer list.
     </doc>
     <argument name = "consumer" type = "amq_consumer_t *">Consumer reference</argument>
-    <argument name = "active" type = "Bool">Create active consumer?</argument>
-    <argument name = "nowait" type = "Bool">No reply method wanted</argument>
+    <argument name = "active"   type = "Bool">Create active consumer?</argument>
     //
     <possess>
     consumer = amq_consumer_link (consumer);
@@ -294,26 +293,19 @@ class.  This is a lock-free asynchronous class.
         error = "Queue is being used exclusively by another consumer";
 
     if (error) {
-        //AMQ-498
-        icl_console_print ("### AMQ_QUEUE: %s (consumer=%pp)", error, consumer);
         if (channel) {
             amq_server_channel_error (channel, ASL_ACCESS_REFUSED, error);
-            if (amq_server_channel_cancel (channel, consumer->tag, FALSE, TRUE)) {
+            if (amq_server_channel_cancel (channel, consumer->tag, FALSE)) {
                 //  If async cancel failed, we need to do an extra unlink
                 consumer_ref = consumer;
                 amq_consumer_unlink (&consumer_ref);
             }
         }
-        else {
-            //  Unlink consumer now, so it's destroyed
-            consumer_ref = consumer;
-            amq_consumer_unlink (&consumer_ref);
-        }
     }
     else {
         if (consumer->class_id == AMQ_SERVER_BASIC) {
             amq_queue_basic_consume (self->queue_basic, consumer, active);
-            if (connection && !nowait)
+            if (connection)
                 amq_server_agent_basic_consume_ok (
                     connection->thread, channel->number, consumer->tag);
         }
@@ -334,7 +326,6 @@ class.  This is a lock-free asynchronous class.
     </doc>
     <argument name = "consumer" type = "amq_consumer_t *">Consumer reference</argument>
     <argument name = "notify" type = "Bool">Notify client application?</argument>
-    <argument name = "nowait" type = "Bool">No reply method wanted</argument>
     //
     <possess>
     consumer = amq_consumer_link (consumer);
@@ -354,7 +345,7 @@ class.  This is a lock-free asynchronous class.
             channel = amq_server_channel_link (consumer->channel);
             if (channel) {
                 connection = amq_server_connection_link (channel->connection);
-                if (connection && !nowait) {
+                if (connection) {
                     amq_server_agent_basic_cancel_ok (
                         connection->thread, channel->number, consumer->tag);
                     amq_server_connection_unlink (&connection);
@@ -414,7 +405,6 @@ class.  This is a lock-free asynchronous class.
     Purge all content on a queue.
     </doc>
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
-    <argument name = "nowait" type = "Bool">No reply method wanted</argument>
     //
     <possess>
     channel = amq_server_channel_link (channel);
@@ -430,14 +420,12 @@ class.  This is a lock-free asynchronous class.
         *connection;
 
     messages += amq_queue_basic_purge (self->queue_basic);
-    if (!nowait) {
-        connection = channel?
-            amq_server_connection_link (channel->connection): NULL;
-        if (connection) {
-            amq_server_agent_queue_purge_ok (
-                connection->thread, channel->number, messages);
-            amq_server_connection_unlink (&connection);
-        }
+    connection = channel?
+        amq_server_connection_link (channel->connection): NULL;
+    if (connection) {
+        amq_server_agent_queue_purge_ok (
+            connection->thread, channel->number, messages);
+        amq_server_connection_unlink (&connection);
     }
     </action>
 </method>

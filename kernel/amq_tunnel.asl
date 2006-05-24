@@ -2,7 +2,7 @@
 <class
     name    = "tunnel"
     handler = "tunnel"
-    index   = "110"
+    index   = "11"
   >
   methods for protocol tunneling.
 
@@ -38,7 +38,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "request" content = "1" index = "10">
+<method name = "request" content = "1">
   sends a tunnelled method
   <doc>
     This method tunnels a block of binary data, which can be an

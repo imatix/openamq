@@ -30,8 +30,7 @@ This is an abstract base class for all exchange implementations.
 <method name = "compile" return = "rc">
     <doc>
     Compiles the binding for the exchange, returns 1 if the binding was
-    invalid.  Note that if an exchange uses a routing key at all, it must be
-    mandatory in all binds.
+    invalid.
     </doc>
     <argument name = "self_v"  type = "void *">The exchange cast as a void *</argument>
     <argument name = "binding" type = "amq_binding_t *">Binding to compile</argument>
@@ -90,15 +89,13 @@ This is an abstract base class for all exchange implementations.
     else
         asl_log_print (amq_broker->alert_log,
             "E: $(selfname) - bad class_id - %d", method->class_id);
-   
-    //  Grab reference to connection 
-    connection = channel?
-        amq_server_connection_link (channel->connection): NULL;
     </header>
     <footer>
     if (!delivered && mandatory) {
         if (method->class_id == AMQ_SERVER_BASIC) {
             if (!basic_content->returned) {
+                connection = channel?
+                    amq_server_connection_link (channel->connection): NULL;
                 if (connection) {
                     amq_server_agent_basic_return (
                         connection->thread,
@@ -109,6 +106,7 @@ This is an abstract base class for all exchange implementations.
                         basic_method->exchange,
                         routing_key,
                         NULL);
+                    amq_server_connection_unlink (&connection);
                     basic_content->returned = TRUE;
                 }
                 returned = TRUE;
@@ -126,7 +124,6 @@ This is an abstract base class for all exchange implementations.
                 "X: discard  %s: message=%s reason=unroutable_optional",
                     self->exchange->name, message_id);
     }
-    amq_server_connection_unlink (&connection);
     rc = delivered;                     //  Return number of deliveries
     </footer>
 </method>

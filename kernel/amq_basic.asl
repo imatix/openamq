@@ -2,7 +2,7 @@
 <class
     name    = "basic"
     handler = "channel"
-    index   = "60"
+    index   = "6"
   >
   work with basic content
 <doc>
@@ -11,8 +11,7 @@
 </doc>
 
 <doc name = "grammar">
-    basic               = C:QOS S:QOS-OK
-                        / C:CONSUME S:CONSUME-OK
+    basic               = C:CONSUME S:CONSUME-OK
                         / C:CANCEL S:CANCEL-OK
                         / C:PUBLISH content
                         / S:RETURN content
@@ -102,18 +101,50 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "qos" synchronous = "1" index = "10">
-  specify quality of service
+<method name = "consume" synchronous = "1">
+  start a queue consumer
   <doc>
-    This method requests a specific quality of service.  The QoS can
-    be specified for the current channel or for all channels on the
-    connection.  The particular properties and semantics of a qos method
-    always depend on the content class semantics.  Though the qos method
-    could in principle apply to both peers, it is currently meaningful
-    only for the server.
+    This method asks the server to start a "consumer", which is a
+    transient request for messages from a specific queue. Consumers
+    last as long as the channel they were created on, or until the
+    client cancels them.
+  </doc>
+  <doc name = "rule" test = "amq_basic_01">
+    The server SHOULD support at least 16 consumers per queue, unless
+    the queue was declared as private, and ideally, impose no limit
+    except as defined by available resources.
   </doc>
   <chassis name = "server" implement = "MUST" />
-  <response name = "qos-ok" />
+  <response name = "consume-ok" />
+
+  <field name = "ticket" domain = "access ticket">
+    <doc name = "rule">
+      The client MUST provide a valid access ticket giving "read" access
+      rights to the realm for the queue.
+    </doc>
+  </field>
+
+  <field name = "queue" domain = "queue name">
+    <doc>
+      Specifies the name of the queue to consume from.
+    </doc>
+    <assert check = "notnull" />
+  </field>
+
+  <field name = "consumer tag" domain = "consumer tag">
+    <doc>
+      Specifies the identifier for the consumer. The consumer tag is
+      local to a connection, so two clients can use the same consumer
+      tags. If this field is empty the server will generate a unique
+      tag.
+    </doc>
+    <doc name = "rule" test = "todo">
+      The tag MUST NOT refer to an existing consumer. If the client
+      attempts to create two consumers with the same non-empty tag
+      the server MUST raise a connection exception with reply code
+      530 (not allowed).
+    </doc>
+  </field>
 
   <field name = "prefetch size" type = "long">
     prefetch window in octets
@@ -153,78 +184,6 @@
     </doc>
   </field>
 
-  <field name = "global" type = "bit">
-    apply to entire connection
-    <doc>
-      By default the QoS settings apply to the current channel only.  If
-      this field is set, they are applied to the entire connection.
-    </doc>
-  </field>
-</method>
-
-<method name = "qos-ok" synchronous = "1" index = "11">
-  confirm the requested qos
-  <doc>
-    This method tells the client that the requested QoS levels could
-    be handled by the server.  The requested QoS applies to all active
-    consumers until a new QoS is defined.
-  </doc>
-  <chassis name = "client" implement = "MUST" />
-</method>
-
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-
-<method name = "consume" synchronous = "1" index = "20">
-  start a queue consumer
-  <doc>
-    This method asks the server to start a "consumer", which is a
-    transient request for messages from a specific queue. Consumers
-    last as long as the channel they were created on, or until the
-    client cancels them.
-  </doc>
-  <doc name = "rule" test = "amq_basic_01">
-    The server SHOULD support at least 16 consumers per queue, unless
-    the queue was declared as private, and ideally, impose no limit
-    except as defined by available resources.
-  </doc>
-  <chassis name = "server" implement = "MUST" />
-  <response name = "consume-ok" />
-
-  <field name = "ticket" domain = "access ticket">
-    <doc name = "rule">
-      The client MUST provide a valid access ticket giving "read" access
-      rights to the realm for the queue.
-    </doc>
-  </field>
-
-  <field name = "queue" domain = "queue name">
-    <doc>
-      Specifies the name of the queue to consume from.  If the queue name
-      is null, refers to the current queue for the channel, which is the
-      last declared queue.
-    </doc>
-    <doc name = "rule">
-      If the client did not previously declare a queue, and the queue name
-      in this method is empty, the server MUST raise a connection exception
-      with reply code 530 (not allowed).
-    </doc>
-  </field>
-
-  <field name = "consumer tag" domain = "consumer tag">
-    <doc>
-      Specifies the identifier for the consumer. The consumer tag is
-      local to a connection, so two clients can use the same consumer
-      tags. If this field is empty the server will generate a unique
-      tag.
-    </doc>
-    <doc name = "rule" test = "todo">
-      The tag MUST NOT refer to an existing consumer. If the client
-      attempts to create two consumers with the same non-empty tag
-      the server MUST raise a connection exception with reply code
-      530 (not allowed).
-    </doc>
-  </field>
-
   <field name = "no local" domain = "no local" />
 
   <field name = "no ack" domain = "no ack" />
@@ -241,18 +200,9 @@
       exception with return code 403 (access refused).
     </doc>
   </field>
-
-  <field name = "nowait" type = "bit">
-    do not send a reply method
-    <doc>
-    If set, the server will not respond to the method. The client should
-    not wait for a reply method.  If the server could not complete the
-    method it will raise a channel or connection exception.
-    </doc>
-  </field>
 </method>
 
-<method name = "consume-ok" synchronous = "1" index = "21">
+<method name = "consume-ok" synchronous = "1">
   confirm a new consumer
   <doc>
     The server provides the client with a consumer tag, which is used
@@ -271,7 +221,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "cancel" synchronous = "1" index = "30">
+<method name = "cancel" synchronous = "1">
   end a queue consumer
   <doc test = "amq_basic_04">
     This method cancels a consumer. This does not affect already
@@ -289,18 +239,9 @@
   <response name = "cancel-ok" />
 
   <field name = "consumer tag" domain = "consumer tag" />
-
-  <field name = "nowait" type = "bit">
-    do not send a reply method
-    <doc>
-    If set, the server will not respond to the method. The client should
-    not wait for a reply method.  If the server could not complete the
-    method it will raise a channel or connection exception.
-    </doc>
-  </field>
 </method>
 
-<method name = "cancel-ok" synchronous = "1" index = "31">
+<method name = "cancel-ok" synchronous = "1">
   confirm a cancelled consumer
   <doc>
     This method confirms that the cancellation was completed.
@@ -313,7 +254,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "publish" content = "1" index = "40">
+<method name = "publish" content = "1">
   publish a message
   <doc>
     This method publishes a message to a specific exchange. The message
@@ -388,7 +329,7 @@
   </field>
 </method>
 
-<method name = "return" content = "1" index = "50">
+<method name = "return" content = "1">
   return a failed message
   <doc>
     This method returns an undeliverable message that was published
@@ -420,7 +361,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "deliver" content = "1" index = "60">
+<method name = "deliver" content = "1">
   notify the client of a consumer message
   <doc>
     This method delivers a message to the client, via a consumer.  In
@@ -463,7 +404,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "get" synchronous = "1" index = "70">
+<method name = "get" synchronous = "1">
   direct access to a queue
   <doc>
     This method provides a direct access to the messages in a queue
@@ -484,21 +425,14 @@
 
   <field name = "queue" domain = "queue name">
     <doc>
-      Specifies the name of the queue to consume from.  If the queue name
-      is null, refers to the current queue for the channel, which is the
-      last declared queue.
-    </doc>
-    <doc name = "rule">
-      If the client did not previously declare a queue, and the queue name
-      in this method is empty, the server MUST raise a connection exception
-      with reply code 530 (not allowed).
+      Specifies the name of the queue to get from.
     </doc>
   </field>
 
   <field name = "no ack" domain = "no ack" />
 </method>
 
-<method name = "get-ok" synchronous = "1" content = "1" index = "71">
+<method name = "get-ok" synchronous = "1" content = "1">
   provide client with a message
   <doc>
     This method delivers a message to the client following a get
@@ -538,7 +472,8 @@
   </field>
 </method>
 
-<method name = "get-empty" synchronous = "1" index = "72">
+
+<method name = "get-empty" synchronous = "1">
   indicate no messages available
   <doc>
     This method tells the client that the queue has no messages
@@ -557,7 +492,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "ack" index = "80">
+<method name = "ack">
   acknowledge one or more messages
   <doc>
     This method acknowledges one or more messages delivered via the
@@ -585,9 +520,10 @@
   </field>
 </method>
 
+
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "reject" index = "90">
+<method name = "reject">
   reject an incoming message
   <doc>
     This method allows a client to reject a message.  It can be used to

@@ -13,7 +13,7 @@ asynchronous object. It manages a list of cluster peers.
 
 The cluster consists of one primary server, zero or one backup server,
 and zero or more support servers. At any moment either the primary or
-the backup server is the "master server".  The master server holds all
+the backup server is the "head server".  The head server holds all
 shared queues.
 
 Failover from primary to backup is automatic, recovery to primary
@@ -29,7 +29,7 @@ has no clients, it cedes its position as master.
 
 If the primary server sees the backup server going away, and it is not
 master, it becomes master. If the primary server sees the backup coming
-back, as master, the primary stops being master.
+back, as master, the primary stops being head.
 
 If we're neither primary nor backup, we work with primary or backup as
 they specify.  If both servers claim to be master at the same time, we

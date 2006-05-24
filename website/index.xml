@@ -1,78 +1,56 @@
-<page
-    name = "index"
-    title = "OpenAMQ.org"
-    subtitle = "Fast, Easy, Free Commodity Middleware"
-    >
-<content type = "gurudoc">
-{rule:floating frames}
+<page name = "index">
+<language name = "en">
+<title>Welcome</title>
+<subtitle>commodity middleware working for you</subtitle>
+<content>
+
+Quick Links
+**************
+
+ - [/download.html:Download OpenAMQ software]
+ - [/maillist.html:OpenAMQ email support lists]
+ - [/protocol.html:The OpenAMQ protocol specifications]
 
 Welcome
 *******
 
-Your problem: to connect your applications cheaply and safely without
-paying a fortune for dead-end proprietary products.
+Welcome to the OpenAMQ website. OpenAMQ is a commodity middleware platform
+that implements an industry-standard protocol - AMQP - as a high-performance
+server and client API.
 
-Our proposal: a complete AMQ message queueing broker that gives you
-[/performance.html:extreme performance] but remains easy to use and
-[/reliability.html:highly reliable].
+The Advanced Message Queues Protocol (AMQP)
+===========================================
 
-More: [page:features]
+AMQP is a standardised wire-protocol for high-performance message exchange
+between a server and a set of clients.  It supports the standard models of
+point-to-point queuing, publish-subscribe, and file-transfer, in a modern and
+language-independent manner.
 
-License
-*******
-
-The OpenAMQ server is free software licensed under the Free Software
-Foundation's [http://www.gnu.org/licenses/gpl.html:GPL].
-
-The OpenAMQ client libraries (WireAPI) are free software licensed under
-the [http://www.opensource.org/licenses/bsd-license.php:BSD License].
-
-More: [page:license]
-
-Getting Started
-***************
-
-You can download and install OpenAMQ in just a few minutes for your Linux,
-Windows, or Solaris system.
-
-No package dependencies, no DLLs - the OpenAMQ package comes with everything
-you need to get started.
-
-More: [page:download]
+More information: [/protocol.html:The AMQ protocol]
 
 The OpenAMQ Server
-******************
+===================
 
-The OpenAMQ server (broker) installs and runs out-of-the-box with zero
-configuration except setting an admin password.
+This is a fast open source implementation of AMQP that runs on all
+modern platforms (Linux, Win32, Solaris, other Unixes).  OpenAMQ is written
+in ANSI C and is highly configurable for specific messaging scenarios or
+memory/performance constraints.
 
-Of course you can also tune the server's performance, logging, security,
-and other functions.
+More information: [/server.html:The OpenAMQ server]
 
-More: [page:deploy]
+The OpenAMQ Clients
+===================
 
-The WireAPI Clients
-*******************
+Whatever your preferred language, you will find an OpenAMQ library or API
+that gives you seamless access to AMQP services.  Most of the OpenAMQ clients
+use the standard JMS (Java Messaging Services) model, with extensions.  It
+typically takes 1-2 days to start using OpenAMQ in your applications.
 
-The WireAPI clients give your applications the power of messaging in a
-simple and consistent API.
+Since AMQP is an open standard, you can write your own client layers.
+The average effort is about 10-20 days.
 
-An easy-to-use alternative to JMS that works with C, C++, Perl, Java,
-Python, COM, and more languages.
-
-More: [page:wireapi]
-
-Community
-*********
-
-The OpenAMQ community keeps it simple. Mailing lists, a public wiki, and a
-public [http://www.atlassian.com/software/jira/:Jira] for bug tracking and
-change requests.
-
-If you're wondering about OpenAMQ, join one of the mailing lists and see
-what other people say about it.
-
-More: [page:community]
+More information: [/clients.html:The AMQP clients]
 
 </content>
+</language>
 </page>

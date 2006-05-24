@@ -1,0 +1,26 @@
+-- message content templating
+    - delivery mode
+    - priority
+    - destination
+    - arguments
+    -> specified by name, nbr?
+
+AMQP/Fast topic names form a hierarchy of names delimited by dots, e.g.
+
+    a
+    a.b.c
+    a.b.c.d
+
+Pattern matching on this hierarchy uses the special characters '*' and
+'#', which match one and any number of topic name parts respectively.
+
+- 
+xxx define topic patterns
+xxx wildcards within partial names?
+xxx number of matches & topics to support?
+
+//TODO: define the formal class/method specification language in
+an AMQ RFC.
+//TODO: reorganise the AMQ RFC directory to separate working drafts
+from RFCs, rename all unused RFCs as working drafts.
+

@@ -26,20 +26,18 @@ key):
     //  lookup is hard-coded, but in future we may use the compile
     //  method to allow arbitrary system services to register.
     //    
-    if (connection) {
-        if (method->class_id == AMQ_SERVER_BASIC) {
-            if (streq (routing_key, "amq.console")) {
-                amq_console_accept (amq_console, basic_content, connection->group);
-                delivered++;
-            }
-            else
-                asl_log_print (amq_broker->alert_log,
-                    "E: unknown system routing key '%s' rejected", routing_key);
+    if (method->class_id == AMQ_SERVER_BASIC) {
+        if (streq (routing_key, "amq.console")) {
+            amq_console_accept (amq_console, basic_content);
+            delivered++;
         }
         else
             asl_log_print (amq_broker->alert_log,
-                "E: system exchange only accepts Basic contents");
+                "E: unknown system routing key '%s' rejected", routing_key);
     }
+    else
+        asl_log_print (amq_broker->alert_log,
+            "E: system exchange only accepts Basic contents");
 </method>
 
 </class>

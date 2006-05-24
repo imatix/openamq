@@ -13,7 +13,6 @@
     comment = "Cluster proxy configuration properties"
     script  = "opf_gen"
     root    = "config"
-    config  = "amq_proxy.cfg"
     >
 
 <public>

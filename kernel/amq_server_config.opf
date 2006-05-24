@@ -12,7 +12,6 @@
     comment = "Server configuration properties"
     script  = "opf_gen"
     root    = "config"
-    config  = "amq_server.cfg"
     >
 
 <!-- Generate the OpenAMQ Console configuration interface -->
@@ -33,6 +32,16 @@ $\(selftype)
     Server port for clients
     <doc>
     Specifies the port on which the server should open its connections.
+    </doc>
+    </property>
+
+    <property name = "background" type = "Bool" default = "0">
+    Run as background process?
+    <doc>
+    Used on Unix/Linux only. If set, the server will automatically
+    detatch itself from the console and move into the background when
+    started from a console.  This is useful if you have to run the
+    server manually.
     </doc>
     </property>
 
@@ -82,28 +91,16 @@ $\(selftype)
     the server. If zero, no state is logged.
     </doc>
     </property>
-
-    <property name = "record stats" type = "Bool" default = "0" dynamic = "1">
-    Record performance statistics
-    <doc>
-    Specifies whether or not the server records performance statistics
-    in a format suitable for importing into a spreadsheet.  If set, the
-    server creates a file called 'amq_server_stats_(portnumber).del' which
-    contains performance statistics in a comma-delimited format.  For this
-    setting to take effect, the monitor option must also be set.
-    </doc>
-    </property>
 </path>
 
 <path name = "cluster" prefix = "cluster">
-    <property name = "vhost" type = "char *" default = "/">
+    <property name = "vhost" type = "char *" default = "">
     Cluster virtual host
     <doc>
-    Specifies the cluster vhost name, which must be identical for all
-    servers in a cluster.  Any string, up to 255 chars long, may be used.
-    By convention virtual host names are formatted as POSIX paths,
-    starting with '/'.  Note that all applications must use the same
-    virtual host name when connecting to the cluster.
+    Specifies the cluster vhost name, which must be identical for
+    all servers in a cluster.  Any string, up to 255 chars long,
+    can be used.  Note that applications must use the same virtual
+    host name when connecting to the cluster.
     </doc>
     </property>
 
@@ -165,12 +162,12 @@ $\(selftype)
     </property>
 
     <property name = "archive cmd" type = "icl_shortstr_t">
-    Archive log file command
+    Archive command
     <doc>
     If specified, this command is run on all archived log files. You can
     use this option to compress archived log files, or clean up old and
     unwanted files.  When the command is run, the name of the archived
-    log file is provided to it as a single argument.
+    log file is provided as an argument to it.
     </doc>
     </property>
 
@@ -201,7 +198,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "debug route" type = "Bool" default = "0" dynamic = "1">
+    <property name = "debug route" type = "Bool" dynamic = "1">
     Debug message routing?
     <doc>
     Specifies whether exchange routing is logged or not. Set this
@@ -210,7 +207,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "debug queue" type = "Bool" default = "0" dynamic = "1">
+    <property name = "debug queue" type = "Bool" dynamic = "1">
     Debug queue activity?
     <doc>
     Specifies whether queue dispatching is logged or not.  Set this
@@ -219,7 +216,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "debug cluster" type = "Bool" default = "0" dynamic = "1">
+    <property name = "debug cluster" type = "Bool" dynamic = "1">
     Debug cluster messages?
     <doc>
     Specifies whether cluster activity is logged or not.  Set this
@@ -228,8 +225,9 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "debug console" type = "Bool" default = "0" dynamic = "1">
+    <property name = "debug console" type = "Bool" dynamic = "1">
     Debug console I/O?
+
     <doc>
     Specifies whether console activity is logged or not.  Set this
     option when you are configuring or debugging the console. For
@@ -337,15 +335,6 @@ $\(selftype)
     If this value is greater than zero, all client connections will use
     the specified value.  Note: setting this value is delicate, do not
     use this option unless you know what you are doing.
-    </doc>
-    </property>
-
-    <property name = "frame max" type = "int" min = "2048" max = "4194304" default = "32768">
-    Maximum size of AMQP content frames
-    <doc>
-    Defines the maximum frame size the server will accept. Larger frame
-    sizes are useful for applications that create very large message
-    headers but will cause congestion on multi-channel connections.
     </doc>
     </property>
 </path>

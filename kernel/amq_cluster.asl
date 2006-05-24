@@ -28,7 +28,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "hello" index = "10">
+<method name = "hello">
   greet cluster peer
   <doc>
     This method tells the cluster peer our name and cluster protocol
@@ -71,7 +71,7 @@
   </field>
 </method>
 
-<method name = "status" index = "20">
+<method name = "status">
   provide peer status data
   <doc>
     This method provides a cluster peer with status information.  We
@@ -160,7 +160,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "bind" index = "30">
+<method name = "bind">
   bind local exchange to remote exchange
   <doc>
     This method binds an exchange on one server to an exchange on

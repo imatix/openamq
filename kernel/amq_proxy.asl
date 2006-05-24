@@ -109,6 +109,7 @@
             amq_server_connection_unlink (&connection);
         }
         amq_server_channel_unlink (&channel);
+        ipr_meter_count (amq_broker->ometer);
     }
     else
         icl_console_print ("E: no channel for proxied message, discarding");

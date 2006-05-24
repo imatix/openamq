@@ -1,0 +1,48 @@
+<?xml?>
+<!--
+    DOC: Regression testing of the AMQ protocol, specifically the queue_declare method
+-->
+<pal script = "amq_pal_gen">
+    <session error_handling="recover">
+       <!-- .......... "should pass" tests .............................-->
+       <queue_declare queue="queue-autodel_1"   auto_delete="1" />
+       <queue_declare queue="queue-ticket_1"    ticket="0"      />
+       <queue_declare queue="queue-durable_1"   durable="1"     />
+       <queue_declare queue="az09-_"                            />
+       <queue_declare queue=""                                  />
+       <queue_declare queue="queue-passive_0"                   />
+       <queue_declare queue="queue-passive_0"   passive="1"     />
+       <queue_declare queue="queue-private_1"   private="1"     />
+
+       <!-- .......... "should fail" tests .............................-->
+       <!-- [0] Declare queue with illegal name -->
+       <queue_declare queue="@%$^&*()!" />
+        <assert name = "reply_code" value = "502">
+        E: Failure in '[0] Declare queue with illegal name' reply code != 502
+        </assert>
+
+       <!--
+       FIXME: Testcase for invalid tickets needed
+       <queue_declare queue="queue-ticket_1" ticket="invalid" />
+       -->
+
+       <!--
+       FIXME: need a new connection here, while the other is still open
+       TODO: catch binding private queue violation (507?)
+       <session>
+           <queue_bind queue="queue-private_1" exchange="amq.direct">
+              <arguments>
+                 <field name="routing_key" value="bogus" />
+              </arguments>
+           </queue_bind>
+       </session>
+       -->
+
+       <!-- FIXME: channel gets closed, I want to be able to catch this
+       <session error_handling="recover">
+          <queue_declare queue="queue-passive_1" passive="1" />
+          <assert name="reply_code" value="404" />
+       </session>
+       -->
+    </session>
+</pal>

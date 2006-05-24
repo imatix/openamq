@@ -234,6 +234,8 @@ main (int argc, char *argv [])
             ticket,                     //  Access ticket granted by server
             session->queue,             //  Queue name
             NULL,                       //  Client key
+            0,                          //  Prefetch size
+            0,                          //  Prefetch count
             FALSE,                      //  No local messages
             TRUE,                       //  Auto-acknowledge
             FALSE);                     //  Exclusive access to queue

@@ -232,7 +232,7 @@ s_free_consumer_queue (amq_consumer_by_queue_t **queue)
         *consumer_ref;
 
     while ((consumer = amq_consumer_by_queue_pop (*queue))) {
-        if (amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE, TRUE)) {
+        if (amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE)) {
             //  If async cancel failed, we need to do an extra unlink
             consumer_ref = consumer;
             amq_consumer_unlink (&consumer_ref);

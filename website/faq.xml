@@ -1,0 +1,63 @@
+<page name = "faq">
+<language name = "en">
+<title>FAQ</title>
+<subtitle>frequently-asked questions</subtitle>
+<content>
+
+Frequently Asked Questions
+**************************
+
+Can I tell other people about AMQ?
+==================================
+
+If you have to ask this question, the answer is "no".
+
+What is the status of the OpenAMQ project?
+==========================================
+
+Development started in October 2004, and we are currently at a
+version 0.8 which implements the core of AMQP.  We plan to review
+the AMQP specifications to make the protocol more general, following
+the seven months of experience from implementing the server and clients.
+This 0.9 protocol specification is planned for mid-May.  The server
+and clients will conform to that specification by end-May.  At the
+same time we are implementing native multithreading in the server to
+achieve our target volumes (100k messages/second) on large boxes.
+The 1.0 release has not been specifically planned but should be
+ready by October 2005, approximately one year after development of
+the software started.
+
+Will OpenAMQ handle 100k messages per second?
+=============================================
+
+A lot depends on the type of messages and whether we achieve a
+good use of OS threads to spread work out between multiple CPUs.
+The matching engine in OpenAMQ can today perform about 2M matches
+per second per Ghz. So our bottlenecks will mainly be network i/o,
+and disk i/o for persistent messages.
+
+What is special about OpenAMQ?
+==============================
+
+It's open source, it's ANSI C, it's fast, and small.  The server
+runs in 3-4MB, depending on the size of in-memory queues.
+
+AMQP - the protocol - defines a wire-level standard, so you can
+develop your own bridges, clients, and servers that interoperate with
+or replace the standard components.
+
+The OpenAMQ clients and server implement industrial-quality
+messaging, capable of running in production scenarios.  The software
+must still be hardened for stress cases.  But its goal is simple:
+to provide an open source commodity middleware that performs at least
+as well as, and generally better than, any commercially-available
+middleware product.
+
+How can I participate in the OpenAMQ process?
+=============================================
+
+You should [/maillist.html:join the amq-dev mailing list]
+
+</content>
+</language>
+</page>

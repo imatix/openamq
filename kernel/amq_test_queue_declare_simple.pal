@@ -1,0 +1,15 @@
+<?xml?>
+<!--
+    Simple test for queue declare
+    This test declares a queue and checks that it is available by referencing it from a bind.
+  -->
+<pal script = "amq_pal_gen">
+    <session>
+        <echo>TEST: queue_declare_simple</echo>
+        <!-- Queue name supplied by server -->
+        <queue_declare queue = ""/>
+        <!-- Since $queue should now be available, expect a clean bind -->
+        <queue_bind queue = "$queue" exchange = "amq.direct" routing_key = "a_dest"/>
+    </session>
+    <echo>PASS: queue_declare_simple</echo>
+</pal>

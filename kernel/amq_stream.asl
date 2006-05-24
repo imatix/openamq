@@ -2,7 +2,7 @@
 <class
     name    = "stream"
     handler = "channel"
-    index   = "80"
+    index   = "8"
   >
   work with streaming content
 
@@ -16,8 +16,7 @@
 </doc>
 
 <doc name = "grammar">
-    stream              = C:QOS S:QOS-OK
-                        / C:CONSUME S:CONSUME-OK
+    stream              = C:CONSUME S:CONSUME-OK
                         / C:CANCEL S:CANCEL-OK
                         / C:PUBLISH content
                         / S:RETURN
@@ -64,80 +63,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "qos" synchronous = "1" index = "10">
-  specify quality of service
-  <doc>
-    This method requests a specific quality of service.  The QoS can
-    be specified for the current channel or for all channels on the
-    connection.  The particular properties and semantics of a qos method
-    always depend on the content class semantics.  Though the qos method
-    could in principle apply to both peers, it is currently meaningful
-    only for the server.
-  </doc>
-  <chassis name = "server" implement = "MUST" />
-  <response name = "qos-ok" />
-
-  <field name = "prefetch size" type = "long">
-    prefetch window in octets
-    <doc>
-      The client can request that messages be sent in advance so that
-      when the client finishes processing a message, the following
-      message is already held locally, rather than needing to be sent
-      down the channel.  Prefetching gives a performance improvement.
-      This field specifies the prefetch window size in octets. May be
-      set to zero, meaning "no specific limit".  Note that other
-      prefetch limits may still apply.
-    </doc>
-  </field>
-
-  <field name = "prefetch count" type = "short">
-    prefetch window in messages
-    <doc>
-      Specifies a prefetch window in terms of whole messages.  This
-      field may be used in combination with the prefetch-size field;
-      a message will only be sent in advance if both prefetch windows
-      (and those at the channel and connection level) allow it.
-    </doc>
-  </field>
-
-  <field name = "consume rate" type = "long">
-    transfer rate in octets/second
-    <doc>
-      Specifies a desired transfer rate in octets per second. This is
-      usually determined by the application that uses the streaming
-      data.  A value of zero means "no limit", i.e. as rapidly as
-      possible.
-    </doc>
-    <doc name = "rule">
-      The server MAY ignore the prefetch values and consume rates,
-      depending on the type of stream and the ability of the server
-      to queue and/or reply it.  The server MAY drop low-priority
-      messages in favour of high-priority messages.
-    </doc>
-  </field>
-
-  <field name = "global" type = "bit">
-    apply to entire connection
-    <doc>
-      By default the QoS settings apply to the current channel only.  If
-      this field is set, they are applied to the entire connection.
-    </doc>
-  </field>
-</method>
-
-<method name = "qos-ok" synchronous = "1" index = "11">
-  confirm the requested qos
-  <doc>
-    This method tells the client that the requested QoS levels could
-    be handled by the server.  The requested QoS applies to all active
-    consumers until a new QoS is defined.
-  </doc>
-  <chassis name = "client" implement = "MUST" />
-</method>
-
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-
-<method name = "consume" synchronous = "1" index = "20">
+<method name = "consume" synchronous = "1">
   start a queue consumer
   <doc>
     This method asks the server to start a "consumer", which is a
@@ -168,15 +94,9 @@
 
   <field name = "queue" domain = "queue name">
     <doc>
-      Specifies the name of the queue to consume from.  If the queue name
-      is null, refers to the current queue for the channel, which is the
-      last declared queue.
+      Specifies the name of the queue to consume from.
     </doc>
-    <doc name = "rule">
-      If the client did not previously declare a queue, and the queue name
-      in this method is empty, the server MUST raise a connection exception
-      with reply code 530 (not allowed).
-    </doc>
+    <assert check = "notnull" />
   </field>
 
   <field name = "consumer tag" domain = "consumer tag">
@@ -194,6 +114,45 @@
     </doc>
   </field>
 
+  <field name = "prefetch size" type = "long">
+    prefetch window in octets
+    <doc>
+      The client can request that messages be sent in advance so that
+      when the client finishes processing a message, the following
+      message is already held locally, rather than needing to be sent
+      down the channel.  Prefetching gives a performance improvement.
+      This field specifies the prefetch window size in octets. May be
+      set to zero, meaning "no specific limit".  Note that other
+      prefetch limits may still apply.
+    </doc>
+  </field>
+      
+  <field name = "prefetch count" type = "short">
+    prefetch window in messages
+    <doc>
+      Specifies a prefetch window in terms of whole messages.  This
+      field may be used in combination with the prefetch-size field;
+      a message will only be sent in advance if both prefetch windows
+      (and those at the channel and connection level) allow it.
+    </doc>
+  </field>
+
+  <field name = "consume rate" type = "long">
+    transfer rate in octets/second
+    <doc>
+      Specifies a desired transfer rate in octets per second. This is
+      usually determined by the application that uses the streaming
+      data.  A value of zero means "no limit", i.e. as rapidly as
+      possible.
+    </doc>
+    <doc name = "rule">
+      The server MAY ignore the prefetch values and consume rates,
+      depending on the type of stream and the ability of the server
+      to queue and/or reply it.  The server MAY drop low-priority
+      messages in favour of high-priority messages.
+    </doc>
+  </field>
+
   <field name = "no local" domain = "no local" />
 
   <field name = "exclusive" type = "bit">
@@ -208,19 +167,10 @@
       exception with return code 405 (resource locked).
     </doc>
   </field>
-
-  <field name = "nowait" type = "bit">
-    do not send a reply method
-    <doc>
-    If set, the server will not respond to the method. The client should
-    not wait for a reply method.  If the server could not complete the
-    method it will raise a channel or connection exception.
-    </doc>
-  </field>
 </method>
 
 
-<method name = "consume-ok" synchronous = "1" index = "21">
+<method name = "consume-ok" synchronous = "1">
   confirm a new consumer
   <doc>
     This method provides the client with a consumer tag which it may
@@ -238,7 +188,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "cancel" synchronous = "1" index = "30">
+<method name = "cancel" synchronous = "1">
   end a queue consumer
   <doc>
     This method cancels a consumer.  Since message delivery is
@@ -250,18 +200,9 @@
   <response name = "cancel-ok" />
 
   <field name = "consumer tag" domain = "consumer tag" />
-
-  <field name = "nowait" type = "bit">
-    do not send a reply method
-    <doc>
-    If set, the server will not respond to the method. The client should
-    not wait for a reply method.  If the server could not complete the
-    method it will raise a channel or connection exception.
-    </doc>
-  </field>
 </method>
 
-<method name = "cancel-ok" synchronous = "1" index = "31">
+<method name = "cancel-ok" synchronous = "1">
   confirm a cancelled consumer
   <doc>
     This method confirms that the cancellation was completed.
@@ -274,7 +215,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "publish" content = "1" index = "40">
+<method name = "publish" content = "1">
   publish a message
   <doc>
     This method publishes a message to a specific exchange. The message
@@ -349,7 +290,7 @@
   </field>
 </method>
 
-<method name = "return" content = "1" index = "50">
+<method name = "return" content = "1">
   return a failed message
   <doc>
     This method returns an undeliverable message that was published
@@ -381,7 +322,7 @@
 
 <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-<method name = "deliver" content = "1" index = "60">
+<method name = "deliver" content = "1">
   notify the client of a consumer message
   <doc>
     This method delivers a message to the client, via a consumer.  In

@@ -1,63 +1,126 @@
-<page
-    name = "build"
-    title = "Build Instructions"
-    subtitle = "Building from Source"
-    >
-<content type = "gurudoc">
+<page name = "build">
+<language name = "en">
+<title>Installation</title>
+<subtitle>building and installing openamq</subtitle>
+<content>
 
-Why Build from Source?
-**********************
+Source kits
+***********
 
-Building from source lets you tune and customise your OpenAMQ software:
+The .tar.gz package and .zip packages are identical except that
+the text files they contain are formatted for POSIX and Win32
+respectively.  You can convert line endings using zip (-l and -a
+options) but we suggest you simply unpack the appropriate file.
 
- - Building for other platforms than those we provide binaries for.
- - Choosing a single-threaded or multithreaded version, to get the best
-   performance out of your hardware.
- - Choosing a release or debug build.
- - Enabling other compile-time options.
+POSIX - Linux, Solaris, Unix
+****************************
 
-Overview of the Build Process
-*****************************
+Requirements
+============
 
-The Unix and Windows packages have identical contents but the text
-files they contain are formatted for Unix and Windows respectively.
-If you attempt to build the Windows file on Linux, Solaris or an other
-Unix system, you will get shell errors unless you convert all files
-(using zip or some similar tool).
+ - Solaris 8 or later, or Linux 2.4 or later
+ - GNU development tools: tar, gunzip, make, gcc, ar
 
-OpenAMQ depends on multiple supporting packages, which are built as
-part of the process. However, you do not need to download any other
-software to build and run OpenAMQ - the OpenAMQ source kits are
-self-complete and contain qualified and tested versions of all required
-supporting packages.
+Building from the Source Package
+================================
 
-Quick Guide to Building on Unix
-*******************************
+Select an installation directory.  For instance, $HOME.
+This is where the compiled/linked programs will be installed.
+We call this the IBASE directory.
 
-These shell commands build OpenAMQ from the Unix source kit:
+After detarring, change to the freshly created directory and
+run this command:
 
-    $ IBASE=$HOME/ibase
-    $ export IBASE
-    $ PATH=$IBASE/bin:$PATH
-    $ export PATH
-    $ tar zxvf /path/to/OpenAMQ-$(main_version).tar.gz
-    $ cd /path/to/OpenAMQ-$(main_version)
-    $ sh build.sh
+    configure --with-ibase=IBASE-DIRECTORY
 
-More information: [page:build_unix]
+Alternatively, define an environment variable 'IBASE' with
+this directory as its value, and then run 'configure':
 
-Quick Guide to Building on Windows
-**********************************
+    configure
 
-These Windows console commands build OpenAMQ from the Windows source kit:
+Now build using this command:
 
-    > set IBASE=c:\\ibase
-    > set PATH=%IBASE%\\bin;%PATH%
-    > unzip \\path\\to\\OpenAMQ-$(main_version).zip
-    > cd \\path\\to\\OpenAMQ-$(main_version)
-    > build
+    make
 
-More information: [page:build_win32]
+Installing the Server and Clients
+=================================
+
+Install into the IBASE directory using this command:
+
+    make install
+
+Windows 32
+**********
+
+Requirements
+============
+
+ - MSVC 6.x or later configured for command-line compilation
+ - A standard unzip tool (note: WinZip does not handle the supplied
+   tar.gz files correctly).
+
+Under Win32 the MS C/C++ compiler must be configured for command-line
+use.  During MSVC installation, make sure you register the environment
+variables needed for command-line use of the compiler.  Check the
+vcvars32.bat script for correctness.  When you open a console box, the
+MSVCDir variable must point correctly to the MSVC application directory.
+You can set this in the system environment variables.
+
+Select an installation directory.  For instance, C:\Home.
+This is where the compiled/linked programs will be installed.
+We call this the IBASE directory.
+
+After unzipping, change to the freshly created directory and
+run this command:
+
+    configure --with-ibase=IBASE-DIRECTORY
+
+Alternatively, define an environment variable 'IBASE' with
+this directory as its value, and then run 'configure':
+
+    configure
+
+Now build using this command:
+
+    nmake
+
+Installing the Server and Clients
+=================================
+
+Install into the IBASE directory using this command:
+
+    nmake install
+
+Installed Components
+********************
+
+All installed components are placed under the IBASE directory;
+you can delete the OpenAMQ installation by deleting this directory.
+The working directory used during building is not needed to run
+OpenAMQ.
+
+The IBASE directory has these subdirectories:
+
+ - openamq/server - the OpenAMQ server along with a demo configuration
+ - openamq/clients - the OpenAMQ clients
+ - openamq/tests - a set of regression tests
+ - bin - tools
+ - lib - libraries, including the OpenAMQ client API libraries
+ - include - C header files, including the OpenAMQ client API headers
+ - doc - all available project documentation
+
+
+Testing your Server Installation
+********************************
+
+We are still preparing the regression test suite.  In the meantime:
+
+ - Go to the IBASE/openamq/server directory and run openamqd.
+
+ - In a second window, go to the IBASE/openamq/clients/stdc directory and
+   run amqpcli_serial.  This sends 1000 messages to a queue on the
+   server and reads them back.
 
 </content>
+</language>
 </page>

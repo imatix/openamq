@@ -1,0 +1,26 @@
+<?xml?>
+<pal script = "amq_pal_gen">
+    <session error_handling="recover">
+        <!-- ....... "should work" testcases .............................. --> 
+        <queue_declare  queue = "queue-delete_0" />
+        <queue_bind     queue = "queue-delete_0" exchange = "amq.direct" routing_key = "rk_delete" />
+        <basic_content  size = "64000"      message_id = "id-$random" />
+        <basic_publish  exchange = "amq.direct" routing_key = "rk_delete" />
+        <basic_get      queue = "queue-delete_0"/>
+        <queue_delete   queue = "queue-delete_0" /> 
+        <!-- TODO: how to assert this delete? -->
+        <!-- TODO: how to assert messages moved to dead-letter -->
+        
+        <queue_declare  queue = "queue-delete_1" />
+        <queue_bind     queue = "queue-delete_1" exchange = "amq.direct" routing_key = "rk_delete" />
+        <basic_content  size = "64000"      message_id = "id-$random" />
+        <basic_publish  exchange = "amq.direct" routing_key = "rk_delete" />
+        <basic_get      queue = "queue-delete_1"/>
+        <queue_delete   queue = "queue-delete_1" ticket = "0" /> 
+       
+        <!-- ....... "should fail" testcases .............................. --> 
+        <!-- [0] delete unknown queue -->
+        <queue_delete   queue = "trigger_channel_exception" />
+        <assert         name = "reply_code" value = "504">E: Failure in '[0] Delete unknown queue' reply code != 504</assert>
+    </session>
+</pal>

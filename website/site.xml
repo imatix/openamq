@@ -1,62 +1,44 @@
-<?xml version = "1.0" ?>
+<!--
+    OpenAMQ website definition
+
+    A <site> has a name (user visible), some <page>s and <sections> with
+    more <page>s.
+
+    Each <page> will be loaded from name.xml
+-->
 <site
-    name = "OpenAMQ"
+    name   = "OpenAMQ"
     script = "site.gsl"
-    main_version = "1.0c2"
     >
-    <section name = "Welcome">
-        <page name = "index" />
-        <page name = "license" />
-        <page name = "features" />
-        <page name = "partners" />
+    <section name = "OpenAMQ.org" >
+        <page name = "index"     />
+        <page name = "license"   />
+        <page name = "overview"  />
+        <page name = "credits"   />
     </section>
-    <section name = "Getting Started">
-        <page name = "download" />
-        <page name = "build" />
+
+    <section name = "Software"    >
+        <page name = "contents"  />
+        <page name = "download"  />
+        <page name = "build"     />
+        <page name = "deploy"    />
     </section>
-    <section name = "OpenAMQ Server">
-        <page name = "deploy" />
-        <page name = "security" />
-        <page name = "options" />
-        <page name = "logging" />
-        <page name = "cluster" />
-        <page name = "admin" />
-        <page name = "tuning" />
+
+    <section name = "Features"    >
+        <page name = "server"    />
+        <page name = "clients"   />
+        <page name = "protocol"  />
     </section>
-    <section name = "OpenAMQ WireAPI">
-        <!-- todo -->
-        <page name = "wireapi" />
-        <!-- todo -->
-        <page name = "pal" />
-        <!-- todo -->
-        <page name = "examples" />
-        <!--
-        <page name = "scripting" />
-        -->
+
+    <section name = "Support"     >
+        <page name = "maillist"  />
+        <page name = "library"   />
+        <page name = "faq"       />
     </section>
-    <section name = "Community">
-        <!-- todo -->
-        <page name = "community" />
-        <page name = "library" />
-        <page name = "maillist" />
-        <page name = "wiki" />
+
+    <section name = "Developers"  >
+        <page name = "examples"  />
+        <page name = "apis"      />
+        <page name = "wiki"      />
     </section>
-    <section name = "Footer">
-        <page name = "contact" />
-        <page name = "imatix" />
-        <page name = "about" />
-    </section>
-    <!-- Pages that are not shown in the index but linked to from
-         elsewhere -->
-    <section>
-        <page name = "build_unix" />
-        <page name = "build_win32" />
-        <page name = "performance" />
-        <page name = "reliability" />
-    </section>
-    <copyright>
-    Layout and content copyright &copy; 2004-2006 iMatix Corporation.
-    OpenAMQ is free software distributed under the GPL/LGPL. OpenAMQ is
-    a trademark of iMatix Corporation.
-    </copyright>
 </site>

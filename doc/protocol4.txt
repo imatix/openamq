@@ -23,13 +23,13 @@ sections that detail the different frame types and their formats):
     literal-AMQP        = %d65.77.81.80             ; "AMQP"
     protocol-id         = %d1.1                     ; AMQP over TCP/IP
     protocol-version    = %d9.1                     ; 0.9 revision 1
-
+    
     amqp-unit           = method | oob-method | trace | heartbeat
-
+    
     method              = method-frame [ content ]
     method-frame        = %d1 frame-properties method-payload frame-end
-    frame-properties    = frame-flags channel payload-size
-    frame-flags         = OCTET
+    frame-properties    = cycle channel payload-size
+    cycle               = OCTET
     channel             = short-integer             ; Non-zero
     payload-size        = long-integer
     method-payload      = class-id method-id *amqp-field
@@ -80,11 +80,11 @@ sections that detail the different frame types and their formats):
     oob-child-content   = content-weight*oob-content
     oob-content-body    = %d6 frame-properties frame-end
     
-    trace               = %d7 frame-flags %d0 payload-size trace-payload
+    trace               = %d7 cycle %d0 payload-size trace-payload
                           frame-end
     trace-payload       = *OCTET
     
-    heartbeat           = %d8 frame-flags %d0 %d0 frame-end
+    heartbeat           = %d8 cycle %d0 %d0 frame-end
 
 We use the Augmented BNF syntax defined in IETF RFC 2234. In summary,
 
@@ -185,14 +185,14 @@ General Frame Format
 --------------------
 
 All frames start with an 8-octet header composed of a type field
-(octet), a frame-flags field (octet), a channel field (short integer) and a
+(octet), a cycle field (octet), a channel field (short integer) and a
 size field (long integer):
 
-    0      1             2         4             8               size+8
-    +------+-------------+---------+----------+  +------------+  +-----------+
-    | type | frame-flags | channel |   size   |  |  payload   |  | frame-end |
-    +------+-------------+---------+----------+  +------------+  +-----------+
-     octet      octet       short      long       size octets       octet
+    0      1       2         4             8               size+8
+    +------+-------+---------+----------+  +------------+  +-----------+
+    | type | cycle | channel |   size   |  |  payload   |  | frame-end |
+    +------+-------+---------+----------+  +------------+  +-----------+
+     octet   octet    short      long       size octets       octet
 
 AMQP defines these frame types:
 

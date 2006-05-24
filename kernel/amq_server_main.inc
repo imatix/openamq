@@ -1,6 +1,6 @@
 /*===========================================================================
 
-    Main set-up for amq_servers
+    Main preparation for demo server
 
     This file is defined as an include file so that it can be invoked
     directly from the main, setting up static variables that are used
@@ -221,10 +221,10 @@ s_start (int argc, char *argv [])
         exit (EXIT_FAILURE);
     }
     //  Now check console login/password
-    ipr_config_locate (config, "user", "super");
+    ipr_config_locate (config, "user", "console");
     if (config->located
-    && streq (ipr_config_get (config, "password", ""), "super"))
-        icl_console_print ("W: security warning - logins use default passwords");
+    && streq (ipr_config_get (config, "password", ""), "console"))
+        icl_console_print ("W: security warning - console login uses default password");
     ipr_config_destroy (&config);
 
     //  Set system options from configuration

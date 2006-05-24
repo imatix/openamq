@@ -63,7 +63,7 @@ class.
         *$(name);                       //  $(label?'No description')
 .   endif
 .endfor
-</context>
+</context>              
 
 <method name = "new">
     <argument name = "session" type = "amq_client_session_t *">AMQP session</argument>
@@ -213,7 +213,7 @@ class.
 .   elsif type = "bool"
     s_print_property ("$(label)", self->$(name)? "Yes": "No", \
 .   elsif type = "time"
-    ipr_time_iso8601 (self->$(name), ipr_date_format_minute, 0, ipr_time_zone (), field_value);
+    ipr_time_iso8601 (self->$(name), ipr_date_format_minute, 0, 0, field_value);
     s_print_property ("$(label)", field_value, \
 .   endif
 .   if count (put)
@@ -244,7 +244,7 @@ NULL);
 .   elsif type = "int" | type = "bool"
  $(name) = \\\\"%d\\\\"\
 .   elsif type = "time"
- $(name) = \\\\"%ld\\\\"\
+ $(name) = \\\\"%s\\\\"\
 .   endif
 .endfor
 /&gt;\\\\n",
@@ -279,7 +279,7 @@ NULL);
     //
 .for field where count (rule, name = "show on summary")
 .   if type = "time"
-    ipr_time_iso8601 (self->$(name), ipr_date_format_minute, 0, ipr_time_zone (), $(name)_str);
+    ipr_time_iso8601 (self->$(name), ipr_date_format_minute, 0, 0, $(name)_str);
 .   endif
 .   if count (rule, name = "ip address")
     $(name)_port_pos = NULL;
@@ -583,8 +583,8 @@ s_request_response (
     icl_shortstr_fmt (command, "%s-request", request);
     content = amq_cml_encode (command, "$(name)", object_id, NULL, method, fields);
     amq_content_basic_set_reply_to (content, self->session->queue);
-    amq_client_session_basic_publish (
-        self->session, content, 0, "amq.system", "amq.console", FALSE, FALSE);
+    amq_client_session_basic_publish (self->session,
+        content, 0, "amq.system", "amq.console", FALSE, FALSE);
     amq_content_basic_unlink (&content);
 
     //  Wait for response on our queue
@@ -639,23 +639,8 @@ s_request_response (
                 assert (reply_object == self->id);
             }
             else
-            if (streq (reply_status, "notfound")) {
-                icl_console_print ("E: object was not found");
                 //  If command not valid, return NULL
                 ipr_xml_destroy (&xml_root);
-            }
-            else
-            if (streq (reply_status, "noaccess")) {
-                icl_console_print ("E: not allowed to execute requested operation");
-                //  If command not valid, return NULL
-                ipr_xml_destroy (&xml_root);
-            }
-            else
-            if (streq (reply_status, "invalid")) {
-                icl_console_print ("E: internal error in CML formatting");
-                //  If command not valid, return NULL
-                ipr_xml_destroy (&xml_root);
-            }
         }
         amq_content_basic_unlink (&content);
         ipr_xml_unlink (&xml_command);

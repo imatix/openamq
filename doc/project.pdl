@@ -2,15 +2,24 @@
 <pdl
     name      = "OpenAMQ Documentation"
     version   = "1.0c1"
-    copyright = "Copyright (c) 2004-2005 iMatix Corporation"
+    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     workflow  = "standard.pwl"
     >
 
 <include filename = "prelude.pdl" />
 
-<file name = "standards.txt"         class = "gurudoc text" />
+<file name = "concepts.txt"          class = "gurudoc text">OpenAMQ concepts</file>
+<file name = "server.txt"            class = "gurudoc text">OpenAMQ servers user guide</file>
+<file name = "protocol.txt"          class = "gurudoc text">AMQP specifications</file>
+
 <file name = "gdstyle.css"           class = "web resource">Gurudoc style sheet</file>
 <file name = "mainlogo.jpg"          class = "web resource">AMQ logo</file>
+
+<!-- file name = "amq_server_agent.dot"  class = "digraph"     >OpenAMQ server FSM</file -->
+<!-- file name = "amq_sclient_agent.dot" class = "digraph"     >OpenAMQ client FSM</file -->
+<!-- file name = "amq_aclient_agent.dot" class = "digraph"     >OpenAMQ client FSM</file -->
+<!-- file name = "server_classes.dot"    class = "digraph"     >OpenAMQ server classes</file -->
+<!-- file name = "openamq_tools.dot"     class = "digraph"     >OpenAMQ tool chain</file -->
 
 <class name = "digraph" inherit = "private resource">
     <derive extension = ".png"  class = "generated" />

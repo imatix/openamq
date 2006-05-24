@@ -18,9 +18,6 @@ maximum number of consumers per channel is set at compile time.
     amq_consumer_by_channel_t
         *consumer_list;                 //  List of consumers for channel
     icl_shortstr_t
-        current_exchange,               //  Last exchange declared on channel
-        current_queue;                  //  Last queue declared on channel
-    icl_shortstr_t
         cluster_id;                     //  Cluster id for channel
 </context>
 
@@ -41,7 +38,7 @@ maximum number of consumers per channel is set at compile time.
 
     //  We destroy consumers by asking the respective queues
     while ((consumer = amq_consumer_by_channel_pop (self->consumer_list))) {
-        if (amq_queue_cancel (consumer->queue, consumer, FALSE, TRUE))
+        if (amq_queue_cancel (consumer->queue, consumer, FALSE))
             //  If the async cancel failed, destroy the consumer ourselves
             amq_consumer_destroy (&consumer);
     }
@@ -81,7 +78,6 @@ maximum number of consumers per channel is set at compile time.
     </doc>
     <argument name = "queue"  type = "amq_queue_t *">Queue to consume from</argument>
     <argument name = "method" type = "amq_server_method_t *">Consume method</argument>
-    <argument name = "nowait" type = "Bool">No reply method wanted</argument>
     //
     <possess>
     queue  = amq_queue_link (queue);
@@ -100,7 +96,7 @@ maximum number of consumers per channel is set at compile time.
     consumer = amq_consumer_new (self->connection, self, queue, method);
     if (consumer) {
         amq_consumer_by_channel_queue (self->consumer_list, consumer);
-        amq_queue_consume (queue, consumer, self->active, nowait);
+        amq_queue_consume (queue, consumer, self->active);
         amq_consumer_unlink (&consumer);
     }
     else
@@ -118,7 +114,6 @@ maximum number of consumers per channel is set at compile time.
     </doc>
     <argument name = "tag"  type = "char *">Consumer tag</argument>
     <argument name = "sync" type = "Bool">Are we talking to a client?</argument>
-    <argument name = "nowait" type = "Bool">No reply method wanted</argument>
     //
     <possess>
     tag = icl_mem_strdup (tag);
@@ -136,7 +131,7 @@ maximum number of consumers per channel is set at compile time.
         amq_consumer_by_channel_remove (consumer);
         if (sync) {
             //  Pass to queue to do the final honours
-            amq_queue_cancel (consumer->queue, consumer, TRUE, nowait);
+            amq_queue_cancel (consumer->queue, consumer, TRUE);
         }
         else {
             //  Consumer must have been removed from its per-queue list

@@ -47,7 +47,7 @@
             <!-- Expect confirmations from subscribers -->
             <set name = "id" value = "0" />
             <repeat>
-                <wait timeout = "99999" />
+                <wait timeout = "120000" />
                 <basic_arrived>
                     <echo>Subscriber $id finished</echo>
                     <timer action = "show" />

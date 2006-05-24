@@ -6,51 +6,42 @@
 #   Page content can be XHTML or Gurudoc or a combination of the two.
 #
 
-function report (message)
-    if !defined (switches.quiet)
-        echo my.message
-    endif
-endfunction
-
-ignorecase = 0
-
-#   Load page contents from external files
-report ("Loading XML page data...")
-for section
-    for page
-        xml to section from page.name
-        delete page
+new root.content
+    for site.page
+        xml to content from page.name
     endfor
-endfor
-
-#   Convert page contents
-report ("Converting page content...")
-for section
-    for page
-        for content where type = "gurudoc"
-            if !defined (content.filename)
-                content.filename = "temp.txt"
-                output content.filename
-                >$(gsl.exec (content.?'', 1))
-                close
-            endif
-            #   Convert gurudoc content to XHTML
-            process = proc.new ("./gd2xhtml", ".", content.filename, "temp.xml")
-            process.run ()
-            new content to page
-                content.load_file ("temp.xml")
-            endnew
-            delete content
+    for site.section
+        for page
+            xml to content from page.name
         endfor
     endfor
-endfor
+endnew
 
-#   Generate output
-report ("Generating output HTML...")
-for section
+for root.content
     for page
-        output "$(page.name).html"
-        include "template.gsl"
+        for language
+            if !defined (switches.quiet)
+                echo "Generating $(page.name).html"
+            endif
+
+            #   Convert gurudoc content to XHTML
+            output "temp.txt"
+            for content
+                >$(content.?)
+            endfor
+            close
+            process = proc.new ("./gd2xhtml", ".", "temp.txt", "temp.xml")
+            process.run ()
+            new content to language
+                content.load_file ("temp.xml")
+            endnew
+            file.delete ("temp.txt")
+            file.delete ("temp.xml")
+
+            #   Generate the page
+            output "$(page.name).html"
+            include "template.gsl"
+        endfor
     endfor
 endfor
 

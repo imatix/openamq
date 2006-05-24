@@ -23,15 +23,14 @@
     "General options:\n"                                                     \
     "  -s hostname      Broker hostname and :port (localhost)\n"             \
     "  -V virtualhost   Specify cluster virtual host\n"                      \
-    "  -u user          User name for console access (guest)\n"              \
-    "  -p password      Password for console access (guest)\n"               \
+    "  -u user          User name for console access (console)\n"            \
+    "  -p password      Password for console access (console)\n"             \
     "  -e \"commands\"    Run shell commands, delimited by ;\n"              \
     "  -x filename      Save all status data as XML\n"                       \
     "  -t level         Set trace level (default = 0)\n"                     \
     "  -b               Show broker status and then exit\n"                  \
     "  -r               Report all active local brokers\n"                   \
     "  -q               Show all broker queues and exit\n"                   \
-    "  -c               Show all broker connections and exit\n"              \
     "  -d               Show date and time in shell output\n"                \
     "  -v               Show version information\n"                          \
     "  -h               Show summary of command-line options\n"              \
@@ -51,7 +50,6 @@ int main (int argc, char *argv[])
         args_ok = TRUE,                 //  Were the arguments okay?
         s_opt_broker = FALSE,           //  -b means show broker status
         s_opt_queues = FALSE,           //  -q means show queues
-        s_opt_clients = FALSE,          //  -c means show clients
         s_opt_report = FALSE,           //  -r means report brokers
         s_opt_date = FALSE;             //  -d means show date, time
     char
@@ -66,6 +64,8 @@ int main (int argc, char *argv[])
         **argparm;                      //  Argument parameter to pick-up
     amq_mgt_console_t
         *console;
+    amq_mgt_vhost_t
+        *vhost;                         //  First vhost
     ipr_token_list_t
         *tokens;                        //  Command tokens
     FILE
@@ -113,9 +113,6 @@ int main (int argc, char *argv[])
                     break;
                 case 'q':
                     s_opt_queues = TRUE;
-                    break;
-                case 'c':
-                    s_opt_clients = TRUE;
                     break;
                 case 'r':
                     s_opt_report = TRUE;
@@ -170,9 +167,9 @@ int main (int argc, char *argv[])
     if (!s_opt_host)
         s_opt_host = "localhost";
     if (!s_opt_user)
-        s_opt_user = "guest";
+        s_opt_user = "console";
     if (!s_opt_pass)
-        s_opt_pass = "guest";
+        s_opt_pass = "console";
     if (!s_opt_vhost)
         s_opt_vhost = "/";
     if (!s_opt_trace)
@@ -200,25 +197,10 @@ int main (int argc, char *argv[])
         amq_mgt_broker_print_full (console->broker, xml_data);
     else
     if (s_opt_queues) {
-        amq_mgt_vhost_t
-            *vhost;                     //  Child vhost
         amq_mgt_broker_load (console->broker);
         vhost = amq_mgt_broker_vhost_first (console->broker);
         if (vhost)
              amq_mgt_vhost_print (vhost, xml_data);
-    }
-    else
-    if (s_opt_clients) {
-        amq_mgt_connection_t
-            *connection;                //  Child connection
-        amq_mgt_broker_load (console->broker);
-
-        connection = amq_mgt_broker_connection_first (console->broker);
-        while (connection) {
-            amq_mgt_connection_load (connection);
-            amq_mgt_connection_print_row (connection);
-            connection = amq_mgt_broker_connection_next (console->broker);
-        }
     }
     else {
         if (s_opt_command)

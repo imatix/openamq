@@ -135,34 +135,21 @@ cluster class.
     <local>
     icl_longstr_t
         *auth_data;                     //  Authorisation data
-    ipr_config_t
-        *config;                        //  Current server config file
     </local>
     //
     assert (!self->thread);
 
-    config = ipr_config_dup (amq_server_config->config);
-    ipr_config_locate (config, "/config/security", "plain");
-    if (config->located)
-        ipr_config_locate (config, "user", "cluster");
+    auth_data = amq_client_connection_auth_plain ("cluster", "cluster");
+    self->thread = amq_proxy_agent_connection_thread_new (
+        self,                           //  Callback for incoming methods
+        self->host,
+        amq_server_config_cluster_vhost (amq_server_config),
+        auth_data,
+        "cluster",
+        amq_server_config_trace (amq_server_config));
 
-    if (config->located) {
-        auth_data = amq_client_connection_auth_plain ("cluster", ipr_config_get (config, "password", ""));
-        self->thread = amq_proxy_agent_connection_thread_new (
-            self,                       //  Callback for incoming methods
-            self->host,
-            amq_server_config_cluster_vhost (amq_server_config),
-            auth_data,
-            "Cluster connection",       //  Instance name
-            amq_server_config_trace (amq_server_config));
-
-        amq_proxy_agent_channel_open (self->thread, self->channel_nbr);
-        icl_longstr_destroy (&auth_data);
-    }
-    else
-        icl_console_print ("W: no cluster login defined, cannot join cluster");
-
-    ipr_config_destroy (&config);
+    amq_proxy_agent_channel_open (self->thread, self->channel_nbr);
+    icl_longstr_destroy (&auth_data);
 </method>
 
 <method name = "disconnect" template = "function" private = "1">

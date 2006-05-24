@@ -49,8 +49,8 @@ merge these two classes into one.
           <get>icl_shortstr_fmt (field_value, "%d",
             self->parent->channels? self->parent->channels->nbr_items: 0);</get>
         </field>
-        <field name = "started" label = "Date, time connection started" type = "time">
-          <get>icl_shortstr_fmt (field_value, "%d", self->parent->started);</get>
+        <field name = "started" label = "Date, time connection started">
+          <get>ipr_time_iso8601 (self->parent->started, ipr_date_format_minute, 0, 0, field_value);</get>
         </field>
         <field name = "traffic_in" type = "int" label = "Inbound traffic, MB">
           <rule name = "show on summary" />
@@ -84,14 +84,6 @@ merge these two classes into one.
         <field name = "information" label = "Other client information">
           <get>icl_shortstr_cpy (field_value, self->parent->client_information);</get>
         </field>
-        <field name = "trace" label = "Trace level, 0-3" type = "int">
-          <get>
-            icl_shortstr_fmt (field_value, "%d", self->parent->trace);
-          </get>
-          <put>
-            amq_server_connection_set_trace (self->parent, atoi (field_value));
-          </put>
-        </field>
 
         <class name = "queue" label = "Private queues" repeat = "1">
           <local>
@@ -121,7 +113,8 @@ merge these two classes into one.
           <exec>
             asl_log_print (amq_broker->alert_log,
                 "W: operator killed connection to %s", self->parent->client_address);
-            amq_server_connection_kill (self->parent);
+            amq_server_connection_error (self->parent,
+                ASL_CONNECTION_FORCED, "Operator killed connection explicitly");
           </exec>
         </method>
     </class>

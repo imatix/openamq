@@ -1,14 +1,14 @@
 #! /usr/bin/perl
 #============================================================================
 #
-#   gd2xhtml    Gurudoc-to-XHTML converter, modified for OpenAMQ site model
+#   gd2xhtml    Gurudoc-to-XHTML converter
 #
-#   Originally taken from the iMatix htmlpp tool.
+#   Taken from the htmlpp tool.
 #
 #   Written:    2005/05/04   Pieter Hintjens <ph@imatix.com>
-#   Revised:    2006/05/09
+#   Revised:    2005/05/04
 #
-#   Copyright (c) 1996-2006 iMatix
+#   Copyright (c) 1996-2005 iMatix
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
@@ -37,25 +37,18 @@ sub text_to_xhtml {
     $had_blank    = 1;                  #   Last line was blank, initially
 
     while (get_plain_line ()) {
-        #   Process rules
-
-        if (/^\{rule:(.*)\}/) {
-            $floating_frames = 1 if $1 eq "floating frames";
-            next;
-        }
-
         #   Numbered list consists of line starting with a number, that
         #   number must be followed by a '-', '.' or ')' character, and
         #   followed by a whitespace.
-        elsif (s/^\s{0,2}[0-9]+[\.\-\)]\s+//) {
+        if (s/^\s{0,2}[0-9]+[\.\-\)]\s+//) {
             guru_want_block ("ol");
-            $content .= "<li>\n";
+            print "<li>";
             do {
                 s/^\s+/ /;
-                $content .= "$_";
+                print "$_";
                 get_plain_line ();
-            } while (/^\s{1,2}[^\.\-\)]/ & !/^\s{0,2}[0-9]+[\.\-\)]\s+/);
-            $content .= "</li>\n";
+            } while (/^\s{1,2}[^\.\-\)]/);
+            print "</li>\n";
             redo;
         }
 
@@ -63,13 +56,13 @@ sub text_to_xhtml {
         #   '*', and followed by a whitespace.
         elsif (s/^\s{0,2}[\-\*\+]\s+//) {
             guru_want_block ("ul");
-            $content .= "<li>\n";
+            print "<li>";
             do {
                 s/^\s+/ /;
-                $content .= "$_";
+                print "$_";
                 get_plain_line ();
             } while (/^\s{1,2}[^\.\-\)]/);
-            $content .= "</li>\n";
+            print "</li>\n";
             redo;
         }
 
@@ -105,12 +98,12 @@ sub text_to_xhtml {
             $width  = &image_width  ($2);
             $height = &image_height ($2);
 
-            $content .= "<img";
-            $content .= " src=\"$2\"";
-            $content .= " width=\"$width\"" if $width;
-            $content .= " height=\"$height\"" if $height;
-            $content .= $captext;
-            $content .= "/>\n";
+            print "<img";
+            print " src=\"$2\"";
+            print " width=\"$width\"" if $width;
+            print " height=\"$height\"" if $height;
+            print $captext;
+            print "/>\n";
             next;
         }
 
@@ -126,47 +119,38 @@ sub text_to_xhtml {
             #
             if (/^\*\*\*/) {
                 guru_want_block ("");  #   Close any previous block
-                $anchors++;
-                if ($floating_frames) {
-                    $content .= "</div>\n\n" if $anchors > 1;
-                    $content .= "<div class=\"float_cell\" id=\"float_$anchors\">\n";
-                    $content .= "<div class=\"float_header\"><a name=\"A$anchors\">$first</a></div>\n";
-                }
-                else {
-                    $content .= "<h1><a name=\"A$anchors\">$anchors\. $first</a></h1>\n";
-                }
-                $header .= "<li><a href=\"#A$anchors\">$first</a></li>\n";
+                print "<h1>$first</h1>\n";
                 $had_blank = 1;
                 next;
             }
             elsif (/^\=\=\=/) {
                 guru_want_block ("");  #   Close any previous block
-                $content .= "<h2>$first</h2>\n";
+                print "<h2>$first</h2>\n";
                 $had_blank = 1;
                 next;
             }
             elsif (/^\-\-\-/) {
                 guru_want_block ("");  #   Close any previous block
-                $content .= "<h3>$first</h3>\n";
+                print "<h3>$first</h3>\n";
                 $had_blank = 1;
                 next;
             }
             elsif (/^\.\.\./) {
                 guru_want_block ("");  #   Close any previous block
-                $content .= "<h4>$first</h4>\n";
+                print "<h4>$first</h4>\n";
                 $had_blank = 1;
                 next;
             }
 
             #   Tables are triggered by either a header line in the form
             #   'This field:  Has this meaning:', or by a table line in
-            #   the form 'This text: Has some meaning', where both the word
+            #   the form 'One_word: Explanation...', where both the word
             #   and the text start in a letter or a digit.
             #
             elsif ($first =~ /^[A-Za-z0-9].*(:\s+[A-Za-z].*)+:/
-            || ($table_row && $first =~ /^[A-Za-z0-9]\w*(:\s+\S+)+/)) {
+            ||     $first =~ /^[A-Za-z0-9]\w*(:\s+\S+)+/) {
                 &guru_want_block ("");  #   Close any previous block
-                $content .= "<table>\n";
+                print "<table>\n";
                 $table_row = 1;
                 while ($first =~ /:\s/) {
                     #   $_ holds next line
@@ -179,7 +163,7 @@ sub text_to_xhtml {
                     }
                     &get_plain_line;
                 }
-                $content .= "</table>\n";
+                print "</table>\n";
                 redo;                   #   Next line is in $_
             }
 
@@ -189,22 +173,22 @@ sub text_to_xhtml {
             #
             elsif (/^\s/ && $first =~ /^(.*):$/) {
                 guru_want_block ("dl");
-                $content .= "<dt>\n";
-                $content .= $1;
-                $content .= "</dt>\n";
-                $content .= "<dd>\n";
+                print "<dt>";
+                print $1;
+                print "</dt>\n";
+                print "<dd>";
                 while (/^\s/) {
                     s/^\s+//;
-                    $content .= "$_\n";
+                    print "$_\n";
                     get_plain_line ();
                 }
-                $content .= "</dd>\n";
+                print "</dd>\n";
                 redo;                   #   Next line is in $_
             }
             else {                      #   Start new paragraph
                 &guru_want_block ("");  #   Close any previous block
                 $guru_block = "p";
-                $content .= "<p>$first\n";
+                print "<p>$first\n";
                 $had_blank = 0;
                 redo;                   #   Next line is in $_
             }
@@ -215,42 +199,33 @@ sub text_to_xhtml {
         #
         elsif (/^(    |\t)"/) {
             guru_want_block ("");      #   Close any previous block
-            $content .= "<blockquote>\n";
+            print "<blockquote>\n";
             while (/^\s/) {
                 s/^\s+//;
-                $content .= "$_\n";
+                print "$_\n";
                 get_plain_line ();
             }
-            $content .= "</blockquote>\n";
+            print "</blockquote>\n";
             redo;                       #   Next line is in $_
         }
 
         #   Preformatted text consists of text indented by 4+ spaces
         #   or a single tab character.  We strip off 4 spaces or a tab;
-        #   final indentation will be handled by style sheet.
+        #   final indentation will be handled by the GDL processor.
         #
         elsif (s/^(    |\t)//) {
-            $_ = $';
+            $_ = "  $'";                #   Indent by 2 spaces
             guru_want_block ("pre");
         }
         if (/^\s*$/) {
             $had_blank = 1;
         }
         else {
-            $content .= "$_\n";
+            print "$_\n";
             $had_blank = 0;
         }
     }
     guru_want_block ("");              #   Close any current block
-
-    if ($floating_frames) {
-        $content .= "</div>\n\n" if $anchors > 1;
-    }
-    elsif ($anchors > 1) {
-        print "<h1>Contents</h1>\n";
-        print "<ol>$header</ol>\n";
-    }
-    print $content;
 }
 
 sub get_plain_line {
@@ -268,54 +243,31 @@ sub get_plain_line {
         while (/(.*?)([\200-\377])(?=(.*))/) {
             $_ = $1 . "\\" . ord ($2) . $3;
         }
+        s/&/&amp;/g;                    #   Replace & by &amp;
         s/</&lt;/g;                     #   Replace < by &lt;
         s/>/&gt;/g;                     #   Replace > by &gt;
 
-        #   Add bold and italic formatting
-        while (/\*([^*]+)\*/) {           #   *this is bold*
-            $_ = $`."<b>".$1."</b>".$';
-        }
-        while (/\!([^!]+)\!/) {           #   !this is italic!
-            $_ = $`."<i>".$1."</i>".$';
-        }
         #   Replace all hyperlinks in line
         for (;;) {
             #   Format [a@host]
-            if (/\[([^@]+@[^\]]+)\]/) {
+            if (/\[([^@]+@[^&]+)\]/) {
                 $_ = $`."<a href=\"mailto:$1\">$1</a>".$';
             }
             #   Format [xxx://host/uri:description]
-            elsif (/\[(\w+:\/\/[^\]]+):([^\]]+)\]/) {
+            elsif (/\[(\w+:\/\/[^&]+):([^&]+)\]/) {
                 $_ = $`."<a href=\"$1\">$2</a>".$';
             }
             #   Format [xxx://host/uri]
-            elsif (/\[(\w+:\/\/[^\]]+)\]/) {
+            elsif (/\[(\w+:\/\/[^&]+)\]/) {
                 $_ = $`."<a href=\"$1\">$1</a>".$';
             }
             #   Format [/localfile:description]
-            elsif (/\[\/([^\]]+):([^\]]+)\]/) {
+            elsif (/\[\/([^&]+):([^&]+)\]/) {
                 $_ = $`."<a href=\"$1\">$2</a>".$';
             }
             #   Format [/localfile]
-            elsif (/\[\/([^\]]+)\]/) {
-                $_ = $`."<a href=\"$1\">$1</a>".$';
-            }
-            #   Format [page:filename]
-            elsif (/\[page:([^\]]+)\]/) {
-                $file = $1;
-                $title = $1;
-                #   Pick up title from XML model
-                if (-f "$file.xml") {
-                    open (MODEL, "$file.xml") || die "Can't read $file.xml: $!";
-                    while (<MODEL>) {
-                        if (/subtitle\s*=\s*"([^"]+)"/) {
-                            $title = $1;
-                            last;
-                        }
-                    }
-                    close MODEL;
-                }
-                $_ = $`."<a href=\"$file.html\">$title</a>".$';
+            elsif (/\[\/([^&]+)\]/) {
+                $_ = $`."<a href=\"$1\">$2</a>".$';
             }
             else {
                 last;
@@ -333,10 +285,10 @@ sub guru_want_block {
 
     if ($guru_block ne $new_block) {
         if ($guru_block) {
-            $content .= "</$guru_block>\n" ;
+            print "</$guru_block>\n\n" ;
         }
         if ($new_block) {
-            $content .= "<$new_block>\n";
+            print "<$new_block>\n";
         }
         $guru_block = $new_block;
     }
@@ -346,20 +298,21 @@ sub guru_table_row {
     local ($_, $row) = @_;              #   Get arguments
 
     s/_/ /g;                            #   Underlines -> spaces
-    $content .= "<tr>\n";
+    print "<tr>\n";
     #   Table header?
     if ($row == 1 && /(.*):\s+(.*):$/) {
-        $content .= "<th>$1</th><th>$2</th>\n";
+        print "<th>$1</th><th>$2</th>\n";
     }
     elsif (/([^:]*):\s+((.|\n)*)/) {
-        $content .= "<td>$1</td><td>$2</td>\n";
+        print "<td>$1</td><td>$2</td>\n";
     }
-    $content .= "</tr>\n";
+    print "</tr>\n";
 }
+
 
 #   -------------------------------------------------------------------------
 #   The code to extract image sizes was mostly provided by Craig Smith
-#   <cs@aba.net.au> in December 1997.
+#   <cs@aba.net.au> in December 1997 (thanks, Craig!).
 #   -------------------------------------------------------------------------
 
 #   Subroutine returns width of GIF or JPG image, if found, else 0
@@ -418,6 +371,7 @@ sub image_height {
         return (0);
     }
 }
+
 
 #   First we identify whether the file is indeed a JFIF file, then we
 #   need to skip through the segments in the file until we find a JPEG

@@ -1,0 +1,13 @@
+<?xml?>
+<pal script = "amq_pal_gen">
+    Creates and binds 1M queues, which is more than we expect
+    the server to support.  We expect to see the server refuse
+    and remain robust.
+    <repeat times = "1000000" counter = "index">
+        <session>
+            <exchange_declare exchange="tmp" type="fanout" />
+            <queue_declare queue="queue_$index" />
+            <queue_bind queue="queue_$index" exchange="tmp" />
+        </session>
+    </repeat>
+</pal>

@@ -16,8 +16,8 @@
         <field name = "name" label = "Broker name">
           <get>icl_shortstr_fmt (field_value, "OpenAMQ %s", VERSION);</get>
         </field>
-        <field name = "started" label = "Date, time broker started" type = "time">
-          <get>icl_shortstr_fmt (field_value, "%d", self->started);</get>
+        <field name = "started" label = "Date, time broker started">
+          <get>ipr_time_iso8601 (self->started, ipr_date_format_minute, 0, 0, field_value);</get>
         </field>
         <field name = "locked" type = "bool" label = "Broker is locked?">
           <get>icl_shortstr_fmt (field_value, "%d", self->locked);</get>
@@ -138,9 +138,13 @@
         master,                         //  Acting as cluster master server?
         restart;                        //  Restart broker after exit?
     int
+        monitor_timer,                  //  Monitor timer
         dump_state_timer,               //  Dump state timer
         auto_crash_timer,               //  Automatic failure
         auto_block_timer;               //  Automatic blockage
+    ipr_meter_t
+        *imeter,                        //  Incoming messages meter
+        *ometer;                        //  Outgoing messages meter
     amq_vhost_t
         *vhost;                         //  Single vhost (for now)
 </context>
@@ -150,6 +154,9 @@
     //  We use a single global vhost for now
     //  TODO: load list of vhosts from config file
     self->vhost = amq_vhost_new (self, "/");
+    self->imeter = ipr_meter_new ();
+    self->ometer = ipr_meter_new ();
+    self->monitor_timer    = amq_server_config_monitor    (amq_server_config);
     self->dump_state_timer = amq_server_config_dump_state (amq_server_config);
     self->auto_crash_timer = amq_server_config_auto_crash (amq_server_config);
     self->auto_block_timer = amq_server_config_auto_block (amq_server_config);
@@ -166,6 +173,8 @@
     <action>
     amq_console_config_destroy (&amq_console_config);
     amq_vhost_destroy (&self->vhost);
+    ipr_meter_destroy (&self->imeter);
+    ipr_meter_destroy (&self->ometer);
     </action>
 </method>
 
@@ -211,6 +220,27 @@
     if (self->auto_crash_timer == 0)
         self->auto_block_timer = amq_server_config_auto_block (amq_server_config);
     */
+
+    if (self->monitor_timer) {
+        self->monitor_timer--;
+        if (self->monitor_timer == 0) {
+            self->monitor_timer = amq_server_config_monitor (amq_server_config);
+
+            if (ipr_meter_mark (self->imeter, amq_server_config_monitor (amq_server_config)))
+                asl_log_print (amq_broker->debug_log,
+                    "I: incoming rate=%d mean=%d peak=%d",
+                    self->imeter->current,
+                    self->imeter->average,
+                    self->imeter->maximum);
+            if (ipr_meter_mark (self->ometer, amq_server_config_monitor (amq_server_config)))
+                asl_log_print (amq_broker->debug_log,
+                    "I: outgoing rate=%d mean=%d peak=%d iomean=%d",
+                    self->ometer->current,
+                    self->ometer->average,
+                    self->ometer->maximum,
+                    self->ometer->average + self->imeter->average);
+        }
+    }
     if (self->dump_state_timer) {
         self->dump_state_timer--;
         if (self->dump_state_timer == 0) {

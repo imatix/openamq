@@ -1,19 +1,6 @@
 /*
-    Copyright (c) 1991-2006 iMatix Corporation
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or (at
-    your option) any later version.
-
-    This program is distributed in the hope that it will be useful, but
-    WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    General Public License for more details.
-
-    For information on alternative licensing for OEMs, please contact
-    iMatix Corporation.
- */
+   OpenAMQ stylesheet
+*/
 
 /* Global defaults */
 * {
@@ -51,34 +38,36 @@ BODY {
 
 /* Menu (left, bottom) container */
 #menu_container {
-    height: 100%;
+    color: black;
+    background-color: #b9cdd8;
 }
-.menu_section {
-    margin-bottom: 0.75em;
-    margin-left: 1em;
+H3.menu_heading {
+    color: white;
+    background-color: #01415c;
+    font-size: 10pt;
+    line-height: 16pt;
+    font-variant: small-caps;
+    text-indent: 10pt;
 }
-.menu_title {
-    font-size: 100%;
-    text-indent: 1em;
-    margin: 0.3em;
+UL.menu_item {
+    font-variant: normal;
+    list-style: none;
+    border-width: 0 0 1pt 0;
+    border-style: solid;
+    border-color: white;
+    line-height: 16pt;
 }
-.menu_curr  {
-    font-size: 80%;
-    text-indent: 2.5em;
-    padding-bottom: 0.3em;
-    background-color: white;
-}
-.menu_item  {
-    font-size: 80%;
-    text-indent: 2.5em;
-    padding-bottom: 0.3em;
-}
-#copyright {
-    font-size: 80%;
-    padding: 1.5em;
+UL.menu_item LI {
+    border-width: 1pt 0 0 0;
+    border-style: solid;
+    border-color: white;
+    text-indent: 15pt;
+    line-height: 15pt;
 }
 
 #title_container {
+    color: white;
+    background-color: #01415c;
     height: 100px;
     position: relative;
 }
@@ -86,162 +75,130 @@ H1#title {
     width: 80%;
     position: absolute;
     font-variant: small-caps;
-    margin-left: 30px;
-    margin-top: 20px;
-    font-size: 200%;
+    margin-left: 20pt;
+    margin-top: 20pt;
+    font-size: 18pt;
 }
 H2#title {
     width: 80%;
+    color: #b9cdd8;
     position: absolute;
     font-variant: small-caps;
     text-align: right;
-    margin-top: 60px;
-    margin-left: 30px;
-    font-size: 130%;
+    margin-top: 45pt;
+    margin-left: 20pt;
+    font-size: 12pt;
     border-width: 1pt 0 0 0;
     border-style: dashed;
+    border-color: #b9cdd8;
 }
 
 /* Content (right, bottom) container */
+/* FIXME: Style more HTML elements here */
 #content_container {
-    height: 100%;
-    width: 60%;
-    position: absolute;
-    left: 240px;
-    top: 100px;
+    width: 80%;
+    margin: 20pt;
 }
-#content_container h1 {
-    margin-top: 1em;
-    font-size: 140%;
-    border-width: 0 0 1pt 0;
-    border-style: dashed;
+#content_container H1 {
+    margin-top: 12pt;
+    background-color: #b9cdd8;
+    font-size: 14pt;
+    font-variant: small-caps;
+    text-indent: 10pt;
 }
-#content_container h2 {
-    margin-top: 1em;
-    font-size: 120%;
-    padding-left: 1em;
+#content_container H2 {
+    margin-top: 12pt;
+    font-variant: small-caps;
+    font-size: 12pt;
+    padding-left: 10pt;
 }
-#content_container h3 {
-    margin-top: 0.5em;
-    font-size: 110%;
-    padding-left: 1em;
+#content_container H3 {
+    margin-top: 11pt;
+    font-variant: small-caps;
+    font-size: 11pt;
+    padding-left: 10pt;
 }
-#content_container h4 {
-    margin-top: 0.5em;
-    font-size: 100%;
-    padding-left: 1em;
+#content_container H4 {
+    margin-top: 10pt;
+    font-variant: small-caps;
+    font-size: 10pt;
+    padding-left: 10pt;
 }
-#content_container ul {
-    margin: 1em;
-}
-#content_container ol {
-    margin: 1em;
-}
-#content_container li {
-    margin: 0.2em;
-    margin-left: 2em;
-}
-#content_container p {
-    margin: 1em;
-    margin-left: 1.25em;
-}
-#content_container pre {
-    color: black;
+#content_container UL {
     margin: 1em;
     margin-left: 2em;
+    margin-right: 2em;
 }
-#content_container DL {
+#content_container LI {
+    margin-left: 2em;
+}
+#content_container P {
     margin: 1em;
-    font-weight: bold;
+    margin-left: 2em;
+    margin-right: 2em;
+}
+#content_container PRE {
+    background-color: #E0E0E0;
+    margin: 1em;
+    margin-left: 4em;
+    margin-right: 4em;
+}
+#content_container TABLE {
+    margin-left: 3em;
+}
+#content_container TD {
     padding-left: 1em;
 }
-#content_container DT {
-    padding-top: 0.5em;
-}
-#content_container DD {
-    margin: 0.2em;
-    font-weight: normal;
-    padding-left: 1em;
-    padding-right: 1em;
+
+/* Disclaimer (bottom right, below content */
+#disclaimer P {
+    font-size: 7pt;
+    background-color: #b9cdd8;
+    border-width: 1pt 1pt 1pt 1pt;
+    border-style: solid;
+    border-color: #b9cdd8;
+    margin: 0pt;
+    padding: 1em;
+    color: #01415c;
 }
 
 /* Links */
 A:active {
     text-decoration: none;
     font-weight: bold;
+    color: #01415c;
 }
 A:link {
     text-decoration: none;
     font-weight: bold;
+    color: #01415c;
 }
 A:visited {
     text-decoration: none;
     font-weight: bold;
+    color: #01415c;
 }
 A[HREF]:hover {
+    background-color: #b9cdd8;
+    color: black;
+}
+
+
+A.menu_item:active {
+    text-decoration: none;
+    color: black;
+}
+A.menu_item:link {
+    text-decoration: none;
+    color: black;
+}
+A.menu_item:visited {
+    text-decoration: none;
+    color: black;
+}
+A.menu_item[HREF]:hover {
     color: red;
 }
 A:link IMG, A:visited IMG {
     border-style: none;
-}
-
-/* Floating boxes are calculated in ems */
-.float_cell {
-    width: 18em;
-    height: 20em;
-    position: absolute;
-}
-#float_1 {
-    top: 1em;
-    left: 0em;
-}
-#float_2 {
-    top: 1em;
-    left: 19em;
-}
-#float_3 {
-    top: 1em;
-    left: 38em;
-}
-#float_4 {
-    top: 22em;
-    left: 0em;
-}
-#float_5 {
-    top: 22em;
-    left: 19em;
-}
-#float_6 {
-    top: 22em;
-    left: 38em;
-}
-.float_header {
-    margin-top: 6pt;
-    font-size: 12pt;
-    font-weight: bold;
-    text-align: center;
-}
-#float_1 P {
-    margin-left: 1em;
-    margin-right: 1em;
-}
-#float_2 P {
-    margin-left: 1em;
-    margin-right: 1em;
-}
-#float_3 P {
-    margin-left: 1em;
-    margin-right: 1em;
-}
-#float_4 P {
-    margin-left: 1em;
-    margin-right: 1em;
-}
-#float_5 P {
-    margin-left: 1em;
-    margin-right: 1em;
-}
-#float_6 P {
-    margin-left: 1em;
-    margin-right: 1em;
 }

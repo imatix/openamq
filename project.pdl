@@ -7,8 +7,7 @@
     >
 
     <inherit filename = "classes.pdl" />
-
-    <file name = "project.pdl"  class = "private resource" >Project Definition</file>
+    <file name = "README" class = "readme">Read Me file</file>
 
     <distrib name = "OpenAMQ source" type = "source">
         <project directory = "kernel"        />

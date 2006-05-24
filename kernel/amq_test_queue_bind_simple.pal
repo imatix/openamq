@@ -1,0 +1,74 @@
+<?xml?>
+<!--
+    Simple test for queue bind
+    This test checks that a message passes through each of the default exchange classes,
+        providing a common case for those.
+  -->
+<pal script = "amq_pal_gen">
+    <echo>TEST: queue_bind_simple</echo>
+    <session>
+        <!-- Bind for direct class -->
+        <invoke macro = "direct"/>
+        <!-- Bind for topic class -->
+        <invoke macro = "topic"/>
+        <!-- Bind for headers class -->
+        <invoke macro = "headers"/>
+    </session>
+    <macro
+        name = "direct">
+        <echo>CASE: direct class</echo>
+        <queue_declare queue = ""/>
+        <queue_bind queue = "$queue" exchange = "amq.direct" routing_key = "a_dest"/>
+        <basic_consume queue = "$queue" />
+        <basic_content size = "1024" message_id = "id-0001" />
+        <basic_publish exchange = "amq.direct" routing_key = "a_dest" />
+        <wait timeout = "1000"/>
+        <basic_arrived>
+            <echo>I: Message arrived</echo>
+        </basic_arrived>
+        <empty>
+            <abort>E: Message did not arrive to the binded queue</abort>
+        </empty>
+    </macro>    
+    <macro
+        name = "topic">
+        <echo>CASE: topic class</echo>
+        <queue_declare queue = ""/>
+        <queue_bind queue = "$queue" exchange = "amq.topic" routing_key = "dest.*"/>
+        <basic_consume queue = "$queue" />
+        <basic_content size = "1024" message_id = "id-0002" />
+        <basic_publish exchange = "amq.topic" routing_key = "dest.a" />
+        <wait timeout = "1000"/>
+        <basic_arrived>
+            <echo>I: Message arrived</echo>
+        </basic_arrived>
+        <empty>
+            <abort>E: Message did not arrive to the binded queue</abort>
+        </empty>
+    </macro>    
+    <macro
+        name = "headers">
+        <echo>CASE: headers class</echo>
+        <queue_declare queue = ""/>
+        <queue_bind queue = "$queue" exchange = "amq.match">
+            <arguments>
+                <field name = "key1" value = "x"/>
+            </arguments>
+        </queue_bind>
+        <basic_consume queue = "$queue" />
+        <basic_content size = "1024" message_id = "id-0003">
+            <headers>
+               <field name = "key1" value = "x" />
+           </headers>
+        </basic_content>
+        <basic_publish exchange = "amq.match"/>
+        <wait timeout = "1000"/>
+        <basic_arrived>
+            <echo>I: Message arrived</echo>
+        </basic_arrived>
+        <empty>
+            <abort>E: Message did not arrive to the binded queue</abort>
+        </empty>
+    </macro>    
+    <echo>PASS: queue_bind_simple</echo>
+</pal>

@@ -341,6 +341,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         content_size;
 
     delivered = self->publish (self->object, channel, method, from_cluster);
+    ipr_meter_count (amq_broker->imeter);
     content_size = ((amq_content_basic_t *) method->content)->body_size;
 
     //  Track exchange statistics

@@ -1,0 +1,46 @@
+<?xml?>
+<!--
+    DOC: Regression testing of the AMQ protocol, specifically the exchange_declare method
+-->
+<pal script = "amq_pal_gen">
+    <session error_handling="recover">
+        <!-- ....... "should work" tests ....................... -->
+        <exchange_declare   exchange="exchange-declare_0" class="direct" />
+        <exchange_declare   exchange="exchange_declare_1" class="direct" ticket="0"/>
+        <exchange_declare   exchange="exchange-declare_2" class="topic" />
+        <exchange_declare   exchange="exchange-declare_3" class="direct" />
+        <exchange_declare   exchange="exchange-declare_3" class="direct" passive="1"/>
+        <exchange_declare   exchange="exchange-declare_6" class="direct" durable="1"/>
+        <exchange_declare   exchange="exchange-declare_7" class="direct" auto_delete="1"/>
+        <exchange_declare   exchange="exchange-declare_8" class="direct" internal="1"/>
+
+        <!-- ....... "should fail" tests ....................... -->
+        <!-- [0] declare exch with illegal name -->
+        <exchange_declare   exchange="exchange-$#!"       class="direct"/>
+        <assert             name="reply_code"             value="502">E: Failure in '[0] Declare exch with illegal name' reply code != 502</assert>
+        
+        <!-- [1] declare exch with illegal class -->
+        <exchange_declare   exchange="exchange-declare_4" class="$#@"/>
+        <assert             name="reply_code"             value="502">E: Failure in '[1] Declare exch with illegal class' reply code != 502</assert>
+        
+        <!-- [2] declare existing exch with other class -->
+        <exchange_declare   exchange="exchange-declare_3" class="topic" />
+        <assert             name="reply_code"             value="502">E: Failure in '[2] Declare existing exch with other class' reply code != 502</assert>
+        
+        <!-- [3] declare passive exch which doesn't exist -->
+        <exchange_declare   exchange="exchange-declare_5" class="topic" passive="1"/>
+        <assert             name="reply_code"             value="502">E: Failure in '[3] Declare passive exch which doesn't exist' reply code != 502</assert>
+        
+        <!-- [4] declare passive exch which had a different class -->
+        <exchange_declare   exchange="exchange-declare_2" class="direct" passive="1"/>
+        <assert             name="reply_code"             value="502">E: Failure in '[4] Declare passive exch with other class' reply code != 502</assert>
+        
+        <!-- [5] declare exch with unknown class -->
+        <exchange_declare   exchange="exchange-declare_9" class="someclass"/>
+        <assert             name="reply_code"             value="502">E: Failure in '[5] Declare exch with unknown class' reply code != 502</assert>
+
+        <!-- FIXME: ticket not implemented yet
+        <exchange_declare   ticket = "foobar" />
+        -->
+    </session>
+</pal>

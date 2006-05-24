@@ -87,11 +87,8 @@
             }
         }
         if (exchange) {
-            if (exchange->type == exchange_type) {
-                icl_shortstr_cpy (channel->current_exchange, exchange->name);
-                if (!method->nowait)
-                    amq_server_agent_exchange_declare_ok (connection->thread, channel->number);
-            }
+            if (exchange->type == exchange_type)
+                amq_server_agent_exchange_declare_ok (connection->thread, channel->number);
             else
                 amq_server_connection_error (connection,
                     ASL_NOT_ALLOWED, "Exchange exists with different type");
@@ -123,10 +120,6 @@
         amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
     </footer>
     //
-    //  Use current channel exchange if method has a blank name
-    if (strnull (method->exchange))
-        icl_shortstr_cpy (method->exchange, channel->current_exchange);
-
     exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
     if (exchange) {
         //  Delete exchange on all cluster peers
@@ -140,8 +133,7 @@
                 channel);
 
         //  Tell client delete was successful
-        if (!method->nowait)
-            amq_server_agent_exchange_delete_ok (connection->thread, channel->number);
+        amq_server_agent_exchange_delete_ok (connection->thread, channel->number);
 
         //  Destroy the exchange on this peer
         amq_exchange_destroy (&exchange);
@@ -247,17 +239,14 @@
                 ASL_ACCESS_REFUSED,
                 "Queue cannot be made exclusive to this connection");
         }
-        else {
-            //  AMQP requires us to hold a current queue per channel
-            icl_shortstr_cpy (channel->current_queue, queue->name);
-            if (!method->nowait)
-                amq_server_agent_queue_declare_ok (
-                    connection->thread,
-                    channel->number,
-                    queue->name,
-                    amq_queue_message_count (queue),
-                    amq_queue_consumer_count (queue));
-        }
+        else
+            amq_server_agent_queue_declare_ok (
+                connection->thread,
+                channel->number,
+                queue->name,
+                amq_queue_message_count (queue),
+                amq_queue_consumer_count (queue));
+
         amq_queue_unlink (&queue);
     }
   </action>
@@ -284,20 +273,14 @@
         amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
     </footer>
     //
-    //  Use current channel queue if method uses a blank queue
-    if (strnull (method->queue)) {
-        icl_shortstr_cpy (method->queue, channel->current_queue);
-        if (strnull (method->routing_key))
-            icl_shortstr_cpy (method->routing_key, channel->current_queue);
-    }
     exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
     if (exchange) {
         queue = amq_queue_table_search (vhost->queue_table, method->queue);
         if (queue) {
             amq_exchange_bind_queue (
                 exchange, channel, queue, method->routing_key, method->arguments);
-            if (!method->nowait)
-                amq_server_agent_queue_bind_ok (connection->thread, channel->number);
+            amq_server_agent_queue_bind_ok (
+                connection->thread, channel->number);
             amq_queue_set_last_binding (queue, method->routing_key);
 
             //  Tell cluster about new queue binding
@@ -346,10 +329,6 @@
         amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
     </footer>
     //
-    //  Use current channel queue if method uses a blank queue
-    if (strnull (method->queue))
-        icl_shortstr_cpy (method->queue, channel->current_queue);
-
     queue = amq_queue_table_search (vhost->queue_table, method->queue);
     if (queue) {
         //  Delete the queue on all cluster peers
@@ -364,9 +343,8 @@
                 channel);
 
         //  Tell client we deleted the queue ok
-        if (!method->nowait)
-            amq_server_agent_queue_delete_ok (
-                connection->thread, channel->number, amq_queue_message_count (queue));
+        amq_server_agent_queue_delete_ok (
+            connection->thread, channel->number, amq_queue_message_count (queue));
 
         //  Destroy the queue on this peer
         amq_vhost_unbind_queue (vhost, queue);
@@ -396,10 +374,6 @@
         amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
     </footer>
     //
-    //  Use current channel queue if method uses a blank queue
-    if (strnull (method->queue))
-        icl_shortstr_cpy (method->queue, channel->current_queue);
-
     queue = amq_queue_table_search (vhost->queue_table, method->queue);
     if (queue) {
         //  Purge queue on all cluster peers, using
@@ -413,7 +387,7 @@
                 AMQ_CLUSTER_TRANSIENT,
                 channel);
 
-        amq_queue_purge (queue, channel, method->nowait);
+        amq_queue_purge (queue, channel);
         amq_queue_unlink (&queue);
     }
     else
@@ -444,10 +418,6 @@
         amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
     </footer>
     //
-    //  Use current channel queue if method uses a blank queue
-    if (strnull (method->queue))
-        icl_shortstr_cpy (method->queue, channel->current_queue);
-
     if (strlen (method->consumer_tag) > 127
     &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER)
         amq_server_connection_error (connection,
@@ -456,7 +426,7 @@
         queue = amq_queue_table_search (vhost->queue_table, method->queue);
         if (queue) {
             //  The channel is responsible for creating/cancelling consumers
-            amq_server_channel_consume (channel, queue, self, method->nowait);
+            amq_server_channel_consume (channel, queue, self);
             amq_queue_unlink (&queue);
         }
         else
@@ -540,10 +510,6 @@
         amq_server_connection_error (connection, ASL_CONNECTION_FORCED, "Server not ready");
     </footer>
     //
-    //  Use current channel queue if method uses a blank queue
-    if (strnull (method->queue))
-        icl_shortstr_cpy (method->queue, channel->current_queue);
-
     queue = amq_queue_table_search (vhost->queue_table, method->queue);
     if (queue) {
         //  Pass request to cluster master if we are not he
@@ -567,7 +533,7 @@
   </action>
 
   <action name = "cancel">
-    amq_server_channel_cancel (channel, method->consumer_tag, TRUE, method->nowait);
+    amq_server_channel_cancel (channel, method->consumer_tag, TRUE);
   </action>
 </class>
 

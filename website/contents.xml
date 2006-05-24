@@ -1,0 +1,66 @@
+<page name = "contents">
+<language name = "en">
+<title>Package Contents</title>
+<subtitle>what you get when you download openamq</subtitle>
+<content>
+
+Source Packages
+***************
+
+OpenAMQ Source Code
+===================
+
+The openamq directory contains the full source code for the OpenAMQ project.
+
+ - openamq/kernel - The OpenAMQ server kernel code (ANSI C)
+ - openamq/clients - The OpenAMQ client API implementations
+   (ANSI C, C++, COM, Java)
+ - openamq/server - A sample server configuration
+
+iMatix Technology Packages
+==========================
+
+A set of software engineering tools focussing on infrastructure design
+and development.  We use these tools extensively in the OpenAMQ server and
+clients.
+
+ - base - a package of ANSI-C tools and libraries
+ - base2 - XML-based code generation frameworks
+ - gsl4 - the iMatix XML-based code generator
+
+Each package contains documentation.  This will eventually be put online at
+imatix.com (we are revising this site, slowly).
+
+3rd Party Packages
+==================
+
+We use a number of external open source packages in OpenAMQ.  We
+include the most recent validated versions of these in the OpenAMQ source
+packages.  (see source directory "base2/foreign").
+
+ - base2/foreign/apr - the Apache Portable Runtime
+ - base2/foreign/bdb - the Berkeley Database system
+
+Documentation
+=============
+
+The source packages include the current OpenAMQ documentation set.
+
+ - openamq/server/index.html - installing and configuring the OpenAMQ server
+ - openamq/rfc/index.html - all AMQ RFCs (formal specification documents)
+
+Binary Packages
+***************
+
+Win32 Binary Packages
+======================
+
+These are provided as a simple zip file (a more sophisticated installer
+will be provided at a future date).
+
+ - openamq/server - server executable, as console process
+ - openamq/clients - client executables and COM component
+
+</content>
+</language>
+</page>
