@@ -119,7 +119,7 @@ class.
         
         while (xml_field) {
             field_name  = ipr_xml_attr_get (xml_field, "name", "");
-            field_value = ipr_xml_child_value (xml_field);
+            field_value = ipr_xml_text (xml_field);
             if (field_value) {
 .for field
 .   if !first ()
