@@ -39,8 +39,6 @@ The console works as follows:
 <import class = "asl_field_list" />
 
 <public name = "header">
-#include "ezxml.h"                      //  XML parsing library
-
 extern $(selftype)
     *amq_console;                       //  Single system-wide console
 extern qbyte
@@ -162,9 +160,10 @@ $(selftype)
     //
     ipr_bucket_t
         *bucket = NULL;                 //  Message comes here
-    ezxml_t
-        xml_root,
-        xml_item;
+    ipr_xml_t
+        *xml_root,
+        *xml_cml,
+        *xml_item;
 
     //  Get content body into a bucket
     bucket = ipr_bucket_new (IPR_BUCKET_MAX_SIZE);
@@ -176,31 +175,35 @@ $(selftype)
         asl_log_print (amq_broker->debug_log, "C: console xml=%s", bucket->data);
 
     //  Parse as XML message
-    xml_root = ezxml_parse_str (bucket->data, bucket->cur_size);
-    if (streq (ezxml_name (xml_root), "cml")) {
-        xml_item = xml_root->child;
-        if (streq (ezxml_name (xml_item), "schema-request"))
+    xml_root = ipr_xml_parse_string (bucket->data);
+    xml_cml = ipr_xml_first_child (xml_root);
+    if (xml_cml && streq (ipr_xml_name (xml_cml), "cml")) {
+        xml_item = ipr_xml_first_child (xml_cml);
+        if (streq (ipr_xml_name (xml_item), "schema-request"))
             s_execute_schema (content);
         else
-        if (streq (ezxml_name (xml_item), "inspect-request"))
+        if (streq (ipr_xml_name (xml_item), "inspect-request"))
             s_execute_inspect (self, content, xml_item, group);
         else
-        if (streq (ezxml_name (xml_item), "modify-request"))
+        if (streq (ipr_xml_name (xml_item), "modify-request"))
             s_execute_modify (self, content, xml_item, group);
         else
-        if (streq (ezxml_name (xml_item), "monitor-request"))
+        if (streq (ipr_xml_name (xml_item), "monitor-request"))
             s_execute_monitor (self, content, xml_item, group);
         else
-        if (streq (ezxml_name (xml_item), "method-request"))
+        if (streq (ipr_xml_name (xml_item), "method-request"))
             s_execute_method (self, content, xml_item, group);
         else
             s_invalid_cml (content, bucket, "unknown CML command");
+
+        ipr_xml_unlink (&xml_item);
     }
     else
         s_invalid_cml (content, bucket, "Not a valid CML document");
 
     ipr_bucket_unlink (&bucket);
-    ezxml_free (xml_root);
+    ipr_xml_destroy (&xml_cml);
+    ipr_xml_destroy (&xml_root);
     </action>
 </method>
 
@@ -321,15 +324,15 @@ static amq_console_entry_t *
 static void
     s_execute_schema  (amq_content_basic_t *request);
 static void
-    s_execute_inspect (amq_console_t *self, amq_content_basic_t *request, ezxml_t xml_item, int group);
+    s_execute_inspect (amq_console_t *self, amq_content_basic_t *request, ipr_xml_t *xml_item, int group);
 static void
-    s_execute_modify  (amq_console_t *self, amq_content_basic_t *request, ezxml_t xml_item, int group);
+    s_execute_modify  (amq_console_t *self, amq_content_basic_t *request, ipr_xml_t *xml_item, int group);
 static void
-    s_execute_monitor (amq_console_t *self, amq_content_basic_t *request, ezxml_t xml_item, int group);
+    s_execute_monitor (amq_console_t *self, amq_content_basic_t *request, ipr_xml_t *xml_item, int group);
 static void
-    s_execute_method  (amq_console_t *self, amq_content_basic_t *request, ezxml_t xml_item, int group);
+    s_execute_method  (amq_console_t *self, amq_content_basic_t *request, ipr_xml_t *xml_item, int group);
 static asl_field_list_t *
-    s_get_field_list  (ezxml_t xml_item);
+    s_get_field_list  (ipr_xml_t *xml_item);
 static void
     s_invalid_cml     (amq_content_basic_t *request, ipr_bucket_t *bucket, char *error);
 static void
@@ -380,15 +383,15 @@ static void
 s_execute_inspect (
     amq_console_t *self,
     amq_content_basic_t *request,
-    ezxml_t xml_item,
+    ipr_xml_t *xml_item,
     int group)
 {
-    const char
+    char
         *object_str;
     amq_console_entry_t
         *entry;                         //  Object store entry
 
-    object_str = ezxml_attr (xml_item, "object");
+    object_str = ipr_xml_attr_get (xml_item, "object", NULL);
     if (object_str) {
         entry = s_lookup_object (self, atol (object_str));
         if (entry)
@@ -408,17 +411,17 @@ static void
 s_execute_modify (
     amq_console_t *self,
     amq_content_basic_t *request,
-    ezxml_t xml_item,
+    ipr_xml_t *xml_item,
     int group)
 {
-    const char
+    char
         *object_str;
     asl_field_list_t
         *fields;                        //  Properties to set
     amq_console_entry_t
         *entry;                         //  Object store entry
 
-    object_str = ezxml_attr (xml_item, "object");
+    object_str = ipr_xml_attr_get (xml_item, "object", NULL);
     if (object_str) {
         entry = s_lookup_object (self, atol (object_str));
         if (entry) {
@@ -449,7 +452,7 @@ static void
 s_execute_monitor (
     amq_console_t *self,
     amq_content_basic_t *request,
-    ezxml_t xml_item,
+    ipr_xml_t *xml_item,
     int group)
 {
     asl_log_print (amq_broker->debug_log, "amq_console: monitor");
@@ -460,10 +463,10 @@ static void
 s_execute_method (
     amq_console_t *self,
     amq_content_basic_t *request,
-    ezxml_t xml_item,
+    ipr_xml_t *xml_item,
     int group)
 {
-    const char
+    char
         *object_str,
         *method_name;                   //  Method to invoke
     asl_field_list_t
@@ -471,8 +474,8 @@ s_execute_method (
     amq_console_entry_t
         *entry;                         //  Object store entry
 
-    object_str  = ezxml_attr (xml_item, "object");
-    method_name = ezxml_attr (xml_item, "name");
+    object_str  = ipr_xml_attr_get (xml_item, "object", NULL);
+    method_name = ipr_xml_attr_get (xml_item, "name", NULL);
     if (object_str && method_name) {
         entry = s_lookup_object (self, atol (object_str));
         if (entry) {
@@ -484,7 +487,7 @@ s_execute_method (
             else {
                 fields = s_get_field_list (xml_item);
                 entry->class_ref->method (
-                    entry->object_ref, (char *) method_name, request, fields);
+                    entry->object_ref, method_name, request, fields);
                 asl_field_list_unlink (&fields);
             }
         }
@@ -503,24 +506,25 @@ s_execute_method (
 //  Caller must destroy field list when finished
 
 static asl_field_list_t *
-s_get_field_list (ezxml_t xml_item)
+s_get_field_list (ipr_xml_t *xml_item)
 {
     asl_field_list_t
         *fields;
-    const char
+    char
         *field_name,
         *field_value;
-    ezxml_t
-        xml_field;
+    ipr_xml_t
+        *xml_field;
 
     fields = asl_field_list_new (NULL);
-    xml_field = xml_item->child;
+    xml_field = ipr_xml_first_child (xml_item);
     while (xml_field) {
-        field_name  = ezxml_attr (xml_field, "name");
-        field_value = ezxml_txt  (xml_field);
+        field_name  = ipr_xml_attr_get (xml_field, "name", NULL);
+        field_value = ipr_xml_text (xml_field);
         if (field_name)
-            asl_field_new_string (fields, (char *) field_name, (char *) field_value);
-        xml_field = xml_field->next;
+            asl_field_new_string (fields, field_name, field_value);
+        icl_mem_free (field_value);
+        xml_field = ipr_xml_next_sibling (&xml_item);
     }
     return (fields);
 }
