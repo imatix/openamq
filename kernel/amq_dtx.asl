@@ -7,9 +7,7 @@
   work with distributed transactions
 
 <doc>
-  Distributed transactions provide so-called "2-phase commit".  This
-  is slower and more complex than standard transactions but provides
-  more assurance that messages will be delivered exactly once.  The
+  Distributed transactions provide so-called "2-phase commit".  The
   AMQP distributed transaction model supports the X-Open XA
   architecture and other distributed transaction implementations.
   The Dtx class assumes that the server has a private communications
