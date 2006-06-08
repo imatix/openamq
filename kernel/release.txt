@@ -1,3 +1,98 @@
+1.0d0 - 2006/06/08
+---------------------------------------------------------------------
+Changes:
+    AMQ-512    The connection name of the client should be logged (along with
+               the ip) for any logging in server log regarding a particular client       
+    BASE2-243  Optimise link/unlink operations in icl/smt objects      
+    AMQ-509    Change server monitoring to reflect real network i/o     
+    AMQ-458    Server-generated queue names need their own namespace      
+    AMQ-465    Proposed protocol modification to improve startup/failover performance  
+    AMQ-506    Changes for AMQP/0.7
+    AMQ-496    Dynamic logging to be implemented in server  
+    AMQ-505    amq_shell should have an option to display only the instance
+               names for the connections and exit
+    AMQ-502    Split console functions into normal/super functions  
+
+Bugfixes:
+    AMQ-513    Assertion failure at self->tag ==
+               ICL_CACHE_ALIVE,icl_mem_thin.h, line 548 while attempting failover     
+    AMQ-511    Branch and deliver OpenAMQ 1.0c3 release with fix for  BASE2-236      
+    AMQ-510    Assertion failure in file smt_thread_queue.c, line 760 for
+               item->queue_head == NULL       
+    BASE2-241  Missing file license.gsl    
+    AMQ-498    Missing link on amq_consumer object     
+    AMQ-499    Remove dependency on external console schema file       
+    BASE2-240  all pal clients abort with amq_client_agent.c:5602:
+               amq_client_agent_manager: Assertion `thread->manager ==
+               amq_client_agent_manager' failed.     
+    BASE2-239  Types get converted to lower case, breaking 'Bool' declarations     
+    BASE2-237  Hashed object tags causing problems in openamq    
+    AMQ-507    perf_tests build failure  
+    AMQ-503    OpenAMQ tests fail to build   
+    AMQ-504    amq_shell does not display the correct start time of a connection
+
+
+
+1.0c3 - 2006/05/12
+---------------------------------------------------------------------
+
+Changes:
+     BASE-50    Upgrade to the latest version of ZLIB       
+     BASE-48    Upgrade to latest version of PCRE       
+     BASE-52    Move 'c' script into foreign package     
+     AMQ-438    Don't send content body frame when body length is zero      
+     BASE-51    Disable PCRE and ZLIB support in gsl3
+     AMQ-478    Improve topic performance      
+     AMQ-470    Implement heartbeat in clients and servers
+     AMQ-469    Include routing key in summary for a queue  
+     AMQ-468    Implement "-e" option for amq_shell; running shell commands
+     AMQ-467    Display hostname instead of ip in summary for a connection
+                shown by amq_shell    
+
+Bugfixes:
+     AMQ-501    server segfault due to use of self->stats even if not
+                configured
+     AMQ-495    Tracing level cannot be set to 3 via amq_shell      
+     AMQ-500    amq_shell unable to kill a connection       
+     AMQ-489    Assertion failure at amq_server_agent.c:5638: s_write_payload    
+     BASE2-234  Heavy socket activity causes timers to get delayed or lost    
+     BASE2-235  ASL demo server/client broken      
+     AMQ-486    Change log is not sent to primary after its restart     
+     AMQ-485    Cluster reporting nonsense error after primary restart      
+     AMQ-493    Cluster cannot be started because of authentication issues      
+     AMQ-473    Cluster: After primary restart secondary server looks to
+                accept new connections, but is not able to route them for some
+                time (6 sec)    
+     AMQ-472    Cluster disconnects when clients are disconnected unexpectedly      
+     AMQ-492    With heartbeats of 5 seconds clients get disconnected after
+                some time
+     BASE2-233  Memory leaks in MT server build     
+     FOR-13     apr-util/xml/expat/Makefile.in should not attempt to
+                regenerate configure
+     AMQ-491    With ALLOCATOR=direct , the server dumps at startup  
+     AMQ-490    server dump in asl_log_agent_manager for RHAS4      
+     AMQ-484    Authentication: PLAIN description in specification and
+                implementation on C broker is not compliant      
+     AMQ-480    With default heartbeat settings clients are disconnected after
+                some time
+     BASE2-232  Race condition on writing history of unlink     
+     AMQ-487    Server should provide provision for connection to have a name      
+     AMQ-488    Heartbeat with ST clients can lead to slightly pathological
+                situations
+     BASE2-231  Make heartbeat code more clear      
+     AMQ-464    cluster disconnects and reconnects by itself while running
+                grm_c tests     
+     AMQ-479    Cluster controller should check common for invalid 'internal'
+                addresses    
+     AMQ-471    Protocol change for SASL implementation     
+     AMQ-475    What are the warning messages in AMQ server for limits being
+                reached?      
+     AMQ-477    amq_shell has no option for providing vhost    
+     AMQ-476    Cluster Mode: amq_consumer_table reaches its limit very soon
+                (csm=9725)     
+     BASE2-230  smt_socket_request_monitor timeouts do not work correctly      
+     AMQ-474    Windows build fails with 1.0c1 kit      
+
 1.0c1 - 2006/04/19
 ---------------------------------------------------------------------
 
