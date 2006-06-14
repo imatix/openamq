@@ -172,7 +172,7 @@ $(selftype)
     bucket->data [bucket->cur_size] = 0;
     
     if (amq_server_config_debug_console (amq_server_config))
-        asl_log_print (amq_broker->debug_log, "C: console xml=%s", bucket->data);
+        smt_log_print (amq_broker->debug_log, "C: console xml=%s", bucket->data);
 
     //  Parse as XML message
     xml_root = ipr_xml_parse_string (bucket->data);
@@ -397,12 +397,12 @@ s_execute_inspect (
         if (entry)
             entry->class_ref->inspect (entry->object_ref, request);
         else {
-            asl_log_print (amq_broker->alert_log, "E: no such object found (ID=%s)", object_str);
+            smt_log_print (amq_broker->alert_log, "E: no such object found (ID=%s)", object_str);
             s_reply_error (request, "inspect-reply", "notfound");
         }
     }
     else {
-        asl_log_print (amq_broker->alert_log, "E: badly-formatted CML method, no object ID");
+        smt_log_print (amq_broker->alert_log, "E: badly-formatted CML method, no object ID");
         s_reply_error (request, "inspect-reply", "invalid");
     }
 }
@@ -426,7 +426,7 @@ s_execute_modify (
         entry = s_lookup_object (self, atol (object_str));
         if (entry) {
             if (group == AMQ_CONNECTION_GROUP_NORMAL) {
-                asl_log_print (amq_broker->alert_log,
+                smt_log_print (amq_broker->alert_log,
                     "W: normal user attempted super-user function");
                 s_reply_error (request, "modify-reply", "noaccess");
             }
@@ -437,12 +437,12 @@ s_execute_modify (
             }
         }
         else {
-            asl_log_print (amq_broker->alert_log, "E: no such object found (ID=%s)", object_str);
+            smt_log_print (amq_broker->alert_log, "E: no such object found (ID=%s)", object_str);
             s_reply_error (request, "modify-reply", "notfound");
         }
     }
     else {
-        asl_log_print (amq_broker->alert_log, "E: badly-formatted CML method, no object ID");
+        smt_log_print (amq_broker->alert_log, "E: badly-formatted CML method, no object ID");
         s_reply_error (request, "modify-reply", "invalid");
     }
 }
@@ -455,7 +455,7 @@ s_execute_monitor (
     ipr_xml_t *xml_item,
     int group)
 {
-    asl_log_print (amq_broker->debug_log, "amq_console: monitor");
+    smt_log_print (amq_broker->debug_log, "amq_console: monitor");
 }
 
 
@@ -480,7 +480,7 @@ s_execute_method (
         entry = s_lookup_object (self, atol (object_str));
         if (entry) {
             if (group == AMQ_CONNECTION_GROUP_NORMAL) {
-                asl_log_print (amq_broker->alert_log,
+                smt_log_print (amq_broker->alert_log,
                     "W: normal user attempted super-user function");
                 s_reply_error (request, "method-reply", "noaccess");
             }
@@ -492,12 +492,12 @@ s_execute_method (
             }
         }
         else {
-            asl_log_print (amq_broker->alert_log, "E: no such object found (ID=%s)", object_str);
+            smt_log_print (amq_broker->alert_log, "E: no such object found (ID=%s)", object_str);
             s_reply_error (request, "method-reply", "notfound");
         }
     }
     else {
-        asl_log_print (amq_broker->alert_log, "E: badly-formatted CML method, no object ID");
+        smt_log_print (amq_broker->alert_log, "E: badly-formatted CML method, no object ID");
         s_reply_error (request, "method-reply", "invalid");
     }
 }
@@ -532,7 +532,7 @@ s_get_field_list (ipr_xml_t *xml_item)
 static void
 s_invalid_cml (amq_content_basic_t *request, ipr_bucket_t *bucket, char *error)
 {
-    asl_log_print (amq_broker->alert_log,
+    smt_log_print (amq_broker->alert_log,
         "W: amq.console: content body is not valid CML: %s", error);
     ipr_bucket_dump (bucket, "I: ");
     s_reply_error (request, "invalid", NULL);
@@ -593,7 +593,7 @@ s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
         *vhost;
 
     if (amq_server_config_debug_console (amq_server_config))
-        asl_log_print (amq_broker->debug_log, "C: response xml=%s", bucket->data);
+        smt_log_print (amq_broker->debug_log, "C: response xml=%s", bucket->data);
 
     vhost = amq_vhost_link (amq_broker->vhost);
     if (vhost) {
@@ -619,7 +619,7 @@ s_reply_bucket (amq_content_basic_t *request, ipr_bucket_t *bucket)
             amq_exchange_unlink (&exchange);
         }
         else
-            asl_log_print (amq_broker->alert_log,
+            smt_log_print (amq_broker->alert_log,
                 "E: amq.console: client did not specify Reply-To queue");
     }
     amq_vhost_unlink (&vhost);

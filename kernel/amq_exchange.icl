@@ -172,7 +172,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         self->unbind  = amq_exchange_headers_unbind;
     }
     else
-        asl_log_print (amq_broker->alert_log,
+        smt_log_print (amq_broker->alert_log,
             "E: invalid type '%d' in exchange_new", self->type);
 
     amq_exchange_by_vhost_queue (self->vhost->exchange_list, self);
@@ -280,7 +280,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     //
     <action>
     if (amq_server_config_debug_route (amq_server_config))
-        asl_log_print (amq_broker->debug_log,
+        smt_log_print (amq_broker->debug_log,
             "X: bind     %s: queue=%s", self->name, queue->name);
 
     s_bind_object (self, channel, queue, NULL, routing_key, arguments);
@@ -309,7 +309,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     //
     <action>
     if (amq_server_config_debug_route (amq_server_config))
-        asl_log_print (amq_broker->debug_log,
+        smt_log_print (amq_broker->debug_log,
             "X: bind     %s: peer=%s", self->name, peer->name);
 
     s_bind_object (self, NULL, NULL, peer, routing_key, arguments);

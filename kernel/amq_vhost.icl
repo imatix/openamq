@@ -84,7 +84,7 @@ Defines a virtual host. This is a lock-free asynchronous class.
     //TODO: load config from directory
     //TODO: amq_server object, holding vhost hash table
     icl_shortstr_cpy (self->name, name);
-    asl_log_print (amq_broker->daily_log, "I: starting virtual host '%s'", self->name);
+    smt_log_print (amq_broker->daily_log, "I: starting virtual host '%s'", self->name);
 
     self->broker = broker;
     self->config = amq_vhost_config_new (NULL, NULL, FALSE);

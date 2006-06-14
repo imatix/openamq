@@ -192,19 +192,19 @@ amq_cluster_t
                 backups++;
 
             if (is_primary && is_backup)
-                asl_log_print (amq_broker->alert_log,
+                smt_log_print (amq_broker->alert_log,
                     "E: server cannot be both primary and backup");
             else
             if (strnull (name) || strnull (host))
-                asl_log_print (amq_broker->alert_log,
+                smt_log_print (amq_broker->alert_log,
                     "E: cluster - server needs 'name' and valid 'host', skipped");
             else
             if (!ipr_net_validate_addr (host))
-                asl_log_print (amq_broker->alert_log,
+                smt_log_print (amq_broker->alert_log,
                     "E: cluster - please use a valid 'host' address, '%s' was skipped", host);
             else
             if (!ipr_net_validate_addr (internal))
-                asl_log_print (amq_broker->alert_log,
+                smt_log_print (amq_broker->alert_log,
                     "E: cluster - please use a valid 'internal' address, '%s' was skipped", internal);
             else {
                 //  Keep running checksum of server list
@@ -220,7 +220,7 @@ amq_cluster_t
                 }
                 else {
                     if (amq_server_config_debug_cluster (amq_server_config))
-                        asl_log_print (amq_broker->debug_log,
+                        smt_log_print (amq_broker->debug_log,
                             "C: server name=%s host=%s internal=%s", name, host, internal);
 
                     if (*self->known_hosts)
@@ -258,7 +258,7 @@ amq_cluster_t
     else
     if (name_valid) {
         amq_proxy_agent_init ();
-        asl_log_print (amq_broker->alert_log,
+        smt_log_print (amq_broker->alert_log,
             "I: cluster - own server name is '%s'", amq_broker->name);
         smt_timer_request_delay (self->thread, 100 * 1000, monitor_event);
     }
@@ -306,7 +306,7 @@ amq_cluster_t
             else {
                 //  If we're support, complain if we detect multiple masters
                 if (current_masters > 1) {
-                    asl_log_print (amq_broker->alert_log,
+                    smt_log_print (amq_broker->alert_log,
                         "E: cluster - multiple masters detected");
                     self->master_peer = NULL;
                 }
@@ -333,7 +333,7 @@ amq_cluster_t
                     else {
                         //  Only log this message the first time
                         if (self->master_peer)
-                            asl_log_print (amq_broker->alert_log,
+                            smt_log_print (amq_broker->alert_log,
                                 "I: cluster - can't become master without connected clients");
                         self->master_peer = NULL;
                     }
@@ -342,7 +342,7 @@ amq_cluster_t
             else {
                 //  If we're support, and master goes offline, we suspend cluster
                 if (peer->master) {
-                    asl_log_print (amq_broker->alert_log,
+                    smt_log_print (amq_broker->alert_log,
                         "I: cluster - no master server present");
                     self->master_peer = NULL;
                     peer->master = FALSE;
@@ -361,14 +361,14 @@ amq_cluster_t
     //  Set new calculated master state
     if (self->master) {
         if (!amq_broker->master)
-            asl_log_print (amq_broker->alert_log,
+            smt_log_print (amq_broker->alert_log,
                 "I: ********************  MASTER ON  *********************");
         amq_broker->master = TRUE;
         self->master_peer = NULL;
     }
     else {
         if (amq_broker->master)
-            asl_log_print (amq_broker->alert_log,
+            smt_log_print (amq_broker->alert_log,
                 "I: ********************  MASTER OFF  ********************");
         amq_broker->master = FALSE;
         if (!self->master_peer)
@@ -376,14 +376,14 @@ amq_cluster_t
     }
     if (cluster_alive && !self->ready) {
         self->ready = TRUE;         //  Cluster is now ready for use
-        asl_log_print (amq_broker->alert_log,
+        smt_log_print (amq_broker->alert_log,
             "I: *****  CLUSTER VHOST '%s' READY FOR CONNECTIONS  *****",
             amq_server_config_cluster_vhost (amq_server_config));
     }
     else
     if (!cluster_alive && self->ready) {
         self->ready = FALSE;
-        asl_log_print (amq_broker->alert_log,
+        smt_log_print (amq_broker->alert_log,
             "I: *****  CLUSTER VHOST '%s' STOPPING NEW CONNECTIONS  *****",
             amq_server_config_cluster_vhost (amq_server_config));
     }
@@ -444,7 +444,7 @@ amq_cluster_t
     }
     if (best_peer) {
         if (amq_server_config_debug_cluster (amq_server_config))
-            asl_log_print (amq_broker->debug_log,
+            smt_log_print (amq_broker->debug_log,
                 "C: redirect client=%s tohost=%s",
                 connection->client_address, best_peer->host);
 
@@ -539,7 +539,7 @@ amq_cluster_t
         if (self->master_peer)
             amq_peer_tunnel (self->master_peer, content);
         else
-            asl_log_print (amq_broker->alert_log, "E: cluster - no tunnel to master");
+            smt_log_print (amq_broker->alert_log, "E: cluster - no tunnel to master");
     }
     else
     if (peer == AMQ_CLUSTER_ALL) {
@@ -595,14 +595,14 @@ amq_cluster_t
         content, bucket->data, bucket->max_size);
     method = amq_server_method_decode (bucket, strerror);
     if (!method)
-        asl_log_print (amq_broker->alert_log, "E: %s", strerror);
+        smt_log_print (amq_broker->alert_log, "E: %s", strerror);
     assert (method);
 
     connection = channel?
         amq_server_connection_link (channel->connection): NULL;
 
     if (connection == NULL)
-        asl_log_print (amq_broker->alert_log,
+        smt_log_print (amq_broker->alert_log,
             "W: cluster method %s from disconnecting peer %s, ignored",
             content->data_name, content->proxy_name);
     else
@@ -630,7 +630,7 @@ amq_cluster_t
         peer = amq_peer_list_next (&peer);
     }
     if (!delivered_to_peer)
-        asl_log_print (amq_broker->alert_log,
+        smt_log_print (amq_broker->alert_log,
             "E: check cluster config - is '%s' used for wrong peer?", content->proxy_name);
 
     amq_server_connection_unlink (&connection);
@@ -701,7 +701,7 @@ s_append_to_state (
     amq_content_tunnel_t *content)
 {
     if (amq_server_config_debug_cluster (amq_server_config))
-        asl_log_print (amq_broker->debug_log, "C: record   method=%s", content->data_name);
+        smt_log_print (amq_broker->debug_log, "C: record   method=%s", content->data_name);
 
     content = amq_content_tunnel_link (content);
     if (content) {
@@ -711,7 +711,7 @@ s_append_to_state (
         if (self->state_size
         > amq_server_config_cluster_state_mb (amq_server_config) * 1024 * 1024
         && !self->state_alert) {
-            asl_log_print (amq_broker->alert_log,
+            smt_log_print (amq_broker->alert_log,
                 "E: WARNING: cluster state exceeds %dMb",
                 amq_server_config_cluster_state_mb (amq_server_config));
             self->state_alert = TRUE;
@@ -760,7 +760,7 @@ s_execute_basic_get (
         connection = channel?
             amq_server_connection_link (channel->connection): NULL;
         if (connection) {
-            asl_log_print (amq_broker->alert_log,
+            smt_log_print (amq_broker->alert_log,
                 "E: cluster queue '%s' not defined", method->payload.basic_get.queue);
             amq_server_agent_basic_get_empty (
                 connection->thread, channel->number, cluster_id);
@@ -803,7 +803,7 @@ s_execute_method (
             amq_exchange_unlink (&exchange);
         }
         else
-            asl_log_print (amq_broker->alert_log,
+            smt_log_print (amq_broker->alert_log,
                 "E: no such exchange defined: '%s'",
                 method->payload.cluster_bind.exchange);
     }

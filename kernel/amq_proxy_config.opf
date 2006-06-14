@@ -1,13 +1,4 @@
 <?xml?>
-<!--
-    The Object Property Framework
-    Yet Another Production from The iMatix Industrial Bit Factory
-
-    OPF generates classes that provide a management framework for
-    object properties. A typical use is for configuration data.
-
-  -->
-
 <opf
     name    = "amq_proxy_config"
     comment = "Cluster proxy configuration properties"

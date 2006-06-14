@@ -1,12 +1,4 @@
 <?xml?>
-<!--
-    The Object Property Framework
-    Yet Another Production from iMatix Software Engineering.
-
-    OPF generates classes that provide a management framework for
-    object properties. A typical use is for configuration data.
-
-  -->
 <opf
     name    = "amq_server_config"
     comment = "Server configuration properties"

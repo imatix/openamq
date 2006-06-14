@@ -104,7 +104,7 @@ maximum number of consumers per channel is set at compile time.
         amq_consumer_unlink (&consumer);
     }
     else
-        asl_log_print (amq_broker->alert_log, "W: cannot create consumer - too many consumers?");
+        smt_log_print (amq_broker->alert_log, "W: cannot create consumer - too many consumers?");
     </action>
 </method>
 
@@ -161,7 +161,7 @@ maximum number of consumers per channel is set at compile time.
     if (self)
         amq_server_channel_close (self, reply_code, reply_text);
     else
-        asl_log_print (amq_broker->alert_log,
+        smt_log_print (amq_broker->alert_log,
             "E: channel exception: (%d) %s", reply_code, reply_text);
 </method>
 

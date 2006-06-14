@@ -63,13 +63,13 @@ limited by size of amq_index_hash table.
                 if (streq (field->name, "X-match")) {
                     if (streq (asl_field_string (field), "any")) {
                         if (amq_server_config_debug_route (amq_server_config))
-                            asl_log_print (amq_broker->debug_log,
+                            smt_log_print (amq_broker->debug_log,
                                 "X: select   %s: match=any", self->exchange->name, index_key);
                         binding->match_all = FALSE;
                     }
                 }
                 else
-                    asl_log_print (amq_broker->alert_log,
+                    smt_log_print (amq_broker->alert_log,
                         "W: unknown field '%s' in bind arguments", field->name);
             }
             else {
@@ -153,7 +153,7 @@ limited by size of amq_index_hash table.
                 || (!binding->match_all && hitset->hit_count [binding_nbr] > 0)) {
                     delivered += amq_binding_publish (binding, channel, method, from_cluster);
                     if (amq_server_config_debug_route (amq_server_config))
-                        asl_log_print (amq_broker->debug_log,
+                        smt_log_print (amq_broker->debug_log,
                             "X: have_hit %s: match=%s hits=%d binding=%d",
                             self->exchange->name,
                             binding->match_all? "all": "any",
@@ -184,7 +184,7 @@ s_compile_binding (
         *index;                         //  Index reference from index_hash
 
     if (amq_server_config_debug_route (amq_server_config))
-        asl_log_print (amq_broker->debug_log,
+        smt_log_print (amq_broker->debug_log,
             "X: index    %s: request=%s binding=%d",
                 self->exchange->name, index_key, binding->index);
 
@@ -202,7 +202,7 @@ s_compile_binding (
         amq_index_unlink (&index);
     }
     else {
-        asl_log_print (amq_broker->alert_log,
+        smt_log_print (amq_broker->alert_log,
             "E: too many bindings, limit is %d", IPR_BITS_SIZE_BITS);
         rc = 1;
     }
