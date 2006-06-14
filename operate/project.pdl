@@ -1,0 +1,34 @@
+<?xml?>
+<pdl
+    name      = "OpenAMQ Operate"
+    version   = "1.0d0"
+    copyright = "Copyright (c) 1996-2006 iMatix Corporation"
+    workflow  = "standard.pwl"
+    library   = "libamq_shell"
+    >
+
+<!-- TODO: split this into constituent projects -->
+
+<include filename = "prelude.pdl" />
+<inherit filename = "icl_classes.pdl" />
+<inherit filename = "smt_classes.pdl" />
+
+<file name = "version.h"             class = "c version"         >Project version file</file>
+<file name = "libamq_shell"          class = "public library"    >Object library</file>
+
+<!-- OpenAMQ Management Console front-end -->
+<file name = "amq_shell.c"           class = "main program"      >Management console</file>
+<file name = "amq_mgt_console.icl"   class = "icl public class"  >Management console class</file>
+<file name = "amq_mgt_broker.icl"    class = "icl public cont"   >Management broker class</file>
+<file name = "amq_mgt_vhost.icl"     class = "icl public cont"   >Management vhost class</file>
+<file name = "amq_mgt_exchange.icl"  class = "icl public cont"   >Management exchange class</file>
+<file name = "amq_mgt_queue.icl"     class = "icl public cont"   >Management queue class</file>
+<file name = "amq_mgt_cluster.icl"   class = "icl public cont"   >Management cluster class</file>
+<file name = "amq_mgt_config.icl"    class = "icl public cont"   >Management config class</file>
+<file name = "amq_mgt_connection.icl"
+                                     class = "icl public cont"   >Management connection class</file>
+
+<!-- OpenAMQ deliverables -->
+<file name = "amq_shell"             class = "public command"    >Console shell</file>
+
+</pdl>

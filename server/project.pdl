@@ -1,10 +1,10 @@
 <?xml?>
 <pdl
-    name      = "OpenAMQ Kernel"
+    name      = "OpenAMQ Server"
     version   = "1.0d0"
     copyright = "Copyright (c) 1996-2006 iMatix Corporation"
     workflow  = "standard.pwl"
-    library   = "libamq"
+    library   = "libamq_server"
     >
 
 <!-- TODO: split this into constituent projects -->
@@ -14,10 +14,9 @@
 <inherit filename = "smt_classes.pdl" />
 
 <file name = "version.h"             class = "c version"         >Project version file</file>
-<file name = "libamq"                class = "public library"    >Object library</file>
+<file name = "libamq_server"         class = "public library"    >Object library</file>
 
 <!-- AMQ protocol specification -->
-<!-- mato: leave in server for now -->
 <file name = "amq.asl"               class = "public resource"   >AMQ protocol definition</file>
 <file name = "amq_access.asl"        class = "public resource"   >Access control</file>
 <file name = "amq_exchange.asl"      class = "public resource"   >Exchange management</file>
@@ -30,28 +29,7 @@
 <file name = "amq_tunnel.asl"        class = "public resource"   >Method tunneling</file>
 <file name = "amq_cluster.asl"       class = "public resource"   >Cluster management</file>
 
-<!-- OpenAMQ WireAPI/C implementation -->
-<!-- mato: move to clients -->
-<file name = "amq_client.asl"        class = "gsl data"          >Client definition</file>
-<file name = "amq_client.c"          class = "main program"      >Client test program</file>
-<file name = "amq_client_method.icl" class = "icl public cont"   >Client method class</file>
-<file name = "amq_client_agent.smt"  class = "smt public module"
-                                     generated = "1"             >Client protocol agent</file>
-<file name = "amq_client_config.opf" class = "gsl data"          >Client configuration</file>
-<file name = "amq_client_config.icl" class = "icl private cont"  >Client configuration class</file>
-<file name = "amq_client_classes.icl"
-                                     class = "icl public data"   >Client classes</file>
-<file name = "amq_client_connection.icl"
-                                     class = "icl public cont"   >Client API connection class</file>
-<file name = "amq_client_session.icl"
-                                     class = "icl public cont"   >Client API session class</file>
-<file name = "amq_client_channel.icl"
-                                     class = "icl public class"  >Client channel class</file>
-<file name = "amq_client_channel_table.icl"
-                                     class = "icl public cont"  >Client channel table</file>
-
 <!-- OpenAMQ server implementation -->
-<!-- mato: leave in server -->
 <file name = "amq_server.asl"        class = "gsl data"          >Server definition</file>
 <file name = "amq_server.c"          class = "main program"      >Server main</file>
 <file name = "amq_server_main.inc"   class = "private resource"  >Server main core</file>
@@ -166,7 +144,6 @@
                                      generated = "1"             >Constants class</file>
 
 <!-- OpenAMQ Management Console back-end -->
-<!-- mato: leave in server -->
 <file name = "amq_console.icl"       class = "icl private class" >Server console class</file>
 <file name = "amq_console_agent.smt" class = "smt public module"
                                      generated = "1"             >Server console agent</file>
@@ -185,33 +162,10 @@
                                      generated = "1"             >Config wrapper agent</file>
 <file name = "amq_cml.icl"           class = "icl public class"  >CML functionality</file>
 
-<!-- OpenAMQ Management Console front-end -->
-<!-- mato: move to operate -->
-<file name = "amq_shell.c"           class = "main program"      >Management console</file>
-<file name = "amq_mgt_console.icl"   class = "icl public class"  >Management console class</file>
-<file name = "amq_mgt_broker.icl"    class = "icl public cont"   >Management broker class</file>
-<file name = "amq_mgt_vhost.icl"     class = "icl public cont"   >Management vhost class</file>
-<file name = "amq_mgt_exchange.icl"  class = "icl public cont"   >Management exchange class</file>
-<file name = "amq_mgt_queue.icl"     class = "icl public cont"   >Management queue class</file>
-<file name = "amq_mgt_cluster.icl"   class = "icl public cont"   >Management cluster class</file>
-<file name = "amq_mgt_config.icl"    class = "icl public cont"   >Management config class</file>
-<file name = "amq_mgt_connection.icl"
-                                     class = "icl public cont"   >Management connection class</file>
-
 <!-- OpenAMQ deliverables -->
 <file name = "amq_server"            class = "public command"    >Server</file>
-<file name = "amq_client"            class = "public command"    >Client</file>
-<file name = "amq_shell"             class = "public command"    >Console shell</file>
-
-<!-- Test programs -->
-<!-- mato: ? i think these are archaic -->
-<file name = "amq_test_base.pal"     class = "public resource"   >Base test header</file>
-<file name = "amq_test_console.pal"  class = "private resource"  >Console test program</file>
-<file name = "amq_test_console.pl"   class = "private resource"  >Console test driver</file>
-<file name = "amq_test_cpp.cpp"      class = "c++ main program"  >C++ test program</file>
 
 <!-- PAL/AMQ code generator -->
-<!-- mato: leave in kernel -->
 <file name = "amq_pal.xnf"           class = "generated" />
 <file name = "amq_pal_stdc.gsl"      class = "generated resource" />
 <file name = "amq_pal_codegen.gsl"   class = "generated resource" />
@@ -220,7 +174,6 @@
 <file name = "amq_pal_parse.gsl"     class = "generated resource" />
 <file name = "amq_pal_preproc.gsl"   class = "generated resource" />
 
-<!-- mato: leave in server -->
 <!-- Generate AMQ Console schema -->
 <actions>
   <generate>

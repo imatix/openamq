@@ -1,0 +1,41 @@
+<?xml?>
+<pdl
+    name      = "OpenAMQ Client"
+    version   = "1.0d0"
+    copyright = "Copyright (c) 1996-2006 iMatix Corporation"
+    workflow  = "standard.pwl"
+    library   = "libamq"
+    >
+
+<!-- TODO: split this into constituent projects -->
+
+<include filename = "prelude.pdl" />
+<inherit filename = "icl_classes.pdl" />
+<inherit filename = "smt_classes.pdl" />
+
+<file name = "version.h"             class = "c version"         >Project version file</file>
+<file name = "libamq"                class = "public library"    >Object library</file>
+
+<!-- OpenAMQ WireAPI/C implementation -->
+<file name = "amq_client.asl"        class = "gsl data"          >Client definition</file>
+<file name = "amq_client.c"          class = "main program"      >Client test program</file>
+<file name = "amq_client_method.icl" class = "icl public cont"   >Client method class</file>
+<file name = "amq_client_agent.smt"  class = "smt public module"
+                                     generated = "1"             >Client protocol agent</file>
+<file name = "amq_client_config.opf" class = "gsl data"          >Client configuration</file>
+<file name = "amq_client_config.icl" class = "icl private cont"  >Client configuration class</file>
+<file name = "amq_client_classes.icl"
+                                     class = "icl public data"   >Client classes</file>
+<file name = "amq_client_connection.icl"
+                                     class = "icl public cont"   >Client API connection class</file>
+<file name = "amq_client_session.icl"
+                                     class = "icl public cont"   >Client API session class</file>
+<file name = "amq_client_channel.icl"
+                                     class = "icl public class"  >Client channel class</file>
+<file name = "amq_client_channel_table.icl"
+                                     class = "icl public cont"  >Client channel table</file>
+
+<!-- OpenAMQ deliverables -->
+<file name = "amq_client"            class = "public command"    >Client</file>
+
+</pdl>
