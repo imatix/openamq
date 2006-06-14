@@ -1,0 +1,66 @@
+.output "AMQ.i"
+
+#if (defined (__IS_32BIT__))
+typedef unsigned long   qbyte;          /*  Quad byte = 32 bits              */
+%apply unsigned long {qbyte};
+#else
+typedef unsigned int    qbyte;          /*  Quad byte = 32 bits              */
+%apply unsigned int {qbyte};
+#endif
+
+typedef int Bool;
+%apply int {Bool};
+%apply int {size_t};
+%apply (char *STRING, int LENGTH) { (char *Data, int Size) };
+
+%feature("shadow") IclLongstr ( void *Data, size_t Size )
+%{
+    sub new {
+        my $pkg = shift;
+        my $blob = shift;
+        my $self = undef;
+        do {
+            use bytes;
+            $self = AMQc::new_IclLongstr(\$blob,length($blob));
+        };
+        bless $self, $pkg if defined ($self);
+    }
+%}
+
+%feature("shadow") Connection (
+        const char* Host,
+        const char* VirtualHost,
+        const char* Login,
+        const char* Password,
+        const char* Instance,
+        int Trace = 0,
+        int Timeout = 30000)
+%{
+  sub new {
+   my $pkg = shift;
+   my @in = (@_);
+   my $self = undef;
+   if($in[0] =~ m/^\-/) {
+        (my %h) = (@in);
+        $self = AMQc::new_Connection($h{-host},
+                                     $h{-virtualhost},
+                                     $h{-login},
+                                     $h{-password},
+                                     $h{-instance},);
+   } else {
+     $self = AMQc::new_Connection(@_);
+   }
+   print STDERR "Constructed an @{[ref($self)]}\\n";
+   bless $self, $pkg if defined($self);
+  }
+%}
+
+%module AMQ
+%{
+.for classes.class
+#include "$(name:).hpp"
+.endfor
+%}
+.for classes.class
+%include "$(name:).hpp"
+.endfor

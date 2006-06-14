@@ -1,0 +1,6 @@
+<classes>
+    <class name = "connection" />
+    <class name = "session" />
+    <class name = "message" />
+    <class name = "field_table" />
+</classes>
