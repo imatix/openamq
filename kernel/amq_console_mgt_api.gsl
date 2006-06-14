@@ -1,6 +1,3 @@
-.if !defined (switches.quiet)
-.   echo "Generating amq_mgt_$(name).icl..."
-.endif
 .output "amq_mgt_$(name).icl"
 <?xml?>
 <class

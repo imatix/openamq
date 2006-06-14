@@ -184,10 +184,6 @@ main (int argc, char *argv [])
     memset (a_sessions,    0, sizeof (void *) * nbr_active);
     memset (p_sessions,    0, sizeof (void *) * nbr_passive);
     
-    if (atoi (opt_trace) > 2) {
-        amq_client_connection_animate (TRUE);
-        amq_client_session_animate (TRUE);
-    }
     //  Open all connections
     auth_data = amq_client_connection_auth_plain ("guest", "guest");
     for (the_index = 0; the_index < nbr_active; the_index++) {
