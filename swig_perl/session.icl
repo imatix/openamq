@@ -99,13 +99,10 @@
 <method name = "basic consume" template = "function">
     <argument name = "queue" type = "char *" pass = "in">queue name</argument>
     <argument name = "consumer_tag" type = "char *" default = "&quot;&quot;" pass = "in">consumer tag</argument>
-    <argument name = "prefetch_size" type = "int" default = "0" pass = "in">prefetch window in octets</argument>
-    <argument name = "prefetch_count" type = "int" default = "0" pass = "in">prefetch window in messages</argument>
     <argument name = "no_local" type = "Bool" default = "0" pass = "in">do not deliver own messages</argument>
     <argument name = "no_ack" type = "Bool" default = "1" pass = "in">no acknowledgement needed</argument>
     <argument name = "exclusive" type = "Bool" default = "0" pass = "in">request exclusive access</argument>
-    amq_client_session_basic_consume (self->session, 0, queue, consumer_tag, prefetch_size,
-        prefetch_count, no_local, no_ack, exclusive);
+    amq_client_session_basic_consume (self->session, 0, queue, consumer_tag, no_local, no_ack, exclusive);
 </method>
 
 <method name = "basic cancel" template = "function">
