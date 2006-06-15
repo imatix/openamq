@@ -16,7 +16,7 @@
 <file name = "message.icl"              class = "icl public class"  >Simple wrapper for AMQ message</file>
 <file name = "field_table.icl"          class = "icl public class"  >Simple wrapper for AMQ field table</file>
 <file name = "AMQ_wrap.cpp"             class = "generated resource">SWIG generated wrapper</file>
-<file name = "AMQ.i"                    class = "generated resource">SWIG interface definition</file>
+<file name = "AMQ.i"                    class = "private resource">SWIG interface definition</file>
 <file name = "amq_client.pl"            class = "command script"    >AMQ Client in Perl</file>
 <file name = "test_use.pl"              class = "private resource"  >Test program</file>
 <file name = "test_client_direct.pl"    class = "private resource"  >Test AMQ client</file>
