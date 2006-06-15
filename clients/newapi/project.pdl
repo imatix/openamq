@@ -39,7 +39,7 @@
         <!-- Build SWIG/Perl DSO -->
         ARCHLIB=`perl -e 'use Config; print $Config{archlib};'`
         c -p -c -I. -I$ARCHLIB/CORE -Dbool=char AMQ_wrap.cpp
-        c -p -L -shared AMQ_wrap
+        c -p -L -I$ARCHLIB/CORE -shared AMQ_wrap
         mv AMQ_wrap lib/auto/AMQ/AMQ.so
     </execute>
 </build>
