@@ -1,0 +1,51 @@
+<?xml?>
+<pdl
+    name      = "OpenAMQ Common"
+    version   = "1.1a0"
+    workflow  = "standard.pwl"
+    copyright = "Copyright (c) 1996-2006 iMatix Corporation"
+    >
+
+<include filename = "prelude.pdl" />
+
+<!-- AMQ protocol specification -->
+<file name = "amq.asl"               class = "public resource"   >AMQ protocol definition</file>
+<file name = "amq_access.asl"        class = "public resource"   >Access control</file>
+<file name = "amq_exchange.asl"      class = "public resource"   >Exchange management</file>
+<file name = "amq_queue.asl"         class = "public resource"   >Queue management</file>
+<file name = "amq_basic.asl"         class = "public resource"   >Basic content</file>
+<file name = "amq_file.asl"          class = "public resource"   >File content</file>
+<file name = "amq_stream.asl"        class = "public resource"   >Stream content</file>
+<file name = "amq_tx.asl"            class = "public resource"   >Transactions</file>
+<file name = "amq_dtx.asl"           class = "public resource"   >2-phase transactions</file>
+<file name = "amq_tunnel.asl"        class = "public resource"   >Method tunneling</file>
+<file name = "amq_cluster.asl"       class = "public resource"   >Cluster management</file>
+
+<!-- PAL/AMQ code generator -->
+<file name = "amq_pal.xnf"           class = "generated" />
+<file name = "amq_pal_stdc.gsl"      class = "generated resource" />
+<file name = "amq_pal_codegen.gsl"   class = "generated resource" />
+<file name = "amq_pal_gen.gsl"       class = "generated resource" />
+<file name = "amq_pal_inherit.gsl"   class = "generated resource" />
+<file name = "amq_pal_parse.gsl"     class = "generated resource" />
+<file name = "amq_pal_preproc.gsl"   class = "generated resource" />
+
+<!-- Generate AMQ protocol documentation -->
+<actions>
+  <generate>
+    <execute>
+    gsl -q -quiet:1 -target:doc amq.asl
+    </execute>
+  </generate>
+</actions>
+<!-- Build PAL toolkit for AMQ protocol -->
+<actions>
+  <generate>
+    <execute>
+    gsl -q -quiet:1 -target:pal amq.asl
+    gsl -q -quiet:1 amq_pal.xnf
+    </execute>
+  </generate>
+</actions>
+
+</pdl>
