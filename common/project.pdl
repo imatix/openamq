@@ -13,7 +13,6 @@
 <file name = "version.h"                 class = "c version"         >Project version file</file>
 <file name = "libamqc"                   class = "public library"    >Object library</file>
 
-
 <!-- AMQ protocol specification -->
 <file name = "amq.asl"                   class = "gsl public data"   >AMQ protocol definition</file>
 <file name = "amq_access.asl"            class = "public resource"   >Access control</file>
