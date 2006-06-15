@@ -107,11 +107,5 @@ process_class ("amq_broker", indent)
 ></schema-reply>
 ></cml>
 
-shuffle = 2
-
-#   Generate management API
-.template
-.for class
-.   include "amq_console_mgt_api.gsl"
-.endfor
-.endtemplate
+#   Save XML tree for further code generation processes
+save root as "amq_console_schema.xml"

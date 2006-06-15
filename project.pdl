@@ -1,26 +1,28 @@
 <?xml version="1.0"?>
 <pdl
     name      = "OpenAMQ"
-    version   = "1.0d0"
-    copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
+    version   = "1.1a0"
     workflow  = "product.pwl"
+    copyright = "Copyright (c) 1996-2006 iMatix Corporation"
     >
+<inherit filename = "classes.pdl" />
 
-    <inherit filename = "classes.pdl" />
+<file name = "project.pdl"  class = "private resource" />
 
-    <file name = "project.pdl"  class = "private resource" >Project Definition</file>
+<distrib name = "OpenAMQ source" type = "source">
+    <project directory = "common"  />
+    <project directory = "clients" />
+    <project directory = "server"  />
+    <project directory = "operate" />
+    <project directory = "website" />
+</distrib>
 
-    <distrib name = "OpenAMQ source" type = "source">
-        <project directory = "kernel"        />
-        <project directory = "tests"         />
-        <project directory = "tests_perf"    />
-        <project directory = "doc"           />
-    </distrib>
+<distrib name = "OpenAMQ install" type = "install">
+    <project directory = "common"  />
+    <project directory = "clients" />
+    <project directory = "server"  />
+    <project directory = "operate" />
+    <project directory = "website" />
+</distrib>
 
-    <distrib name = "OpenAMQ install" type = "install">
-        <project directory = "kernel"        />
-        <project directory = "tests"         />
-        <project directory = "tests_perf"    />
-        <project directory = "doc"           />
-    </distrib>
 </pdl>
