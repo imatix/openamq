@@ -29,8 +29,8 @@
     <doc>
     Adds string value to the field table
     </doc>
-    <argument name = "name" type = "char*" pass = "in" />
-    <argument name = "value" type = "char*" pass = "in" />
+    <argument name = "name" type = "char*" const = "1" />
+    <argument name = "value" type = "char*" const = "1" />
     <declare name = "str" type = "icl_longstr_t*" />
     str = icl_longstr_new (value, strlen (value));
     assert (str);
@@ -42,7 +42,7 @@
     <doc>
     Adds integer value to the field table
     </doc>
-    <argument name = "name" type = "char*" pass = "in" />
+    <argument name = "name" type = "char*" const = "1" />
     <argument name = "value" type = "int" />
     asl_field_new_integer (self->list, name, value);
 </method>

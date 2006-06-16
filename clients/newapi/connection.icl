@@ -19,11 +19,11 @@
 </context>
 
 <method name = "new">
-    <argument name = "host" type = "char *" pass = "in">Host to connect to</argument>
-    <argument name = "virtual host" type = "char *" pass = "in">Virtual host</argument>
-    <argument name = "login" type = "char*" pass = "in">Login</argument>
-    <argument name = "password" type = "char*" pass = "in">Password</argument>
-    <argument name = "instance" type = "char*" pass = "in">Client instance name</argument>
+    <argument name = "host" type = "char *" const = "1">Host to connect to</argument>
+    <argument name = "virtual host" type = "char *" const = "1">Virtual host</argument>
+    <argument name = "login" type = "char*" const = "1">Login</argument>
+    <argument name = "password" type = "char*" const = "1">Password</argument>
+    <argument name = "instance" type = "char*" const = "1">Client instance name</argument>
     <argument name = "trace" type = "int" default = "0">Trace level, 0 - 3</argument>
     <argument name = "timeout" type = "int" default = "30000">Connection timeout, msecs</argument>
     <local>
