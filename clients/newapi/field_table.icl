@@ -7,8 +7,9 @@
     >
 
 <inherit class = "icl_object" />
-<import class = "asl_field_list" interface = "0" />
-<import class = "icl_longstr" interface = "0" />
+
+<import class = "asl_field_list" type = "private" />
+<import class = "icl_longstr" type = "private" />
 
 <context>
     asl_field_list_t

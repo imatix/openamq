@@ -8,11 +8,12 @@
 
 <inherit class = "icl_object" />
 
-<import class = "amq_client_session" interface = "0" />
-<import class = "amq_content_basic" interface = "0" />
-<import class = "icl_longstr" interface = "0" />
-<import class = "icl_shortstr" interface = "0" />
-<import class = "field_table" interface = "1" />
+<import class = "field_table" />
+
+<import class = "amq_client_session" type = "private" />
+<import class = "amq_content_basic" type = "private" />
+<import class = "icl_longstr" type = "private" />
+<import class = "icl_shortstr" type = "private" />
 
 <context>
     void

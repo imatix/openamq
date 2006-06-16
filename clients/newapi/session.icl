@@ -7,9 +7,12 @@
     >
 
 <inherit class = "icl_object" />
-<import class = "amq_client_session" interface = "0" />
-<import class = "icl_longstr" interface = "0" />
-<import class = "message" interface = "1" />
+
+<import class = "message" />
+
+<import class = "amq_client_session" type = "private" />
+<import class = "icl_longstr" type = "private" />
+
 
 <context>
     amq_client_session_t
