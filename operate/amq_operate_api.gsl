@@ -32,7 +32,7 @@ for ->root.class
 <doc>
 Implements the management console $(name) object, used by applications
 to manage OpenAMQ servers. Use in conjunction with the amq_mgt_console
-class.
+class. This is a generated file, do not modify except transiently.
 </doc>
 
 <inherit class = "icl_object">
