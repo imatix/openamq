@@ -47,6 +47,12 @@
 </method>
 
 <method name = "selftest">
+    <local>
+        connection_t 
+            *conn;
+    </local>
+    conn = connection_new ("localhost","/","guest","guest","selftest",3,10000);
+    connection_destroy (&conn);
 </method>
 
 </class>
