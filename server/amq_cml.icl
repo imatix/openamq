@@ -47,7 +47,6 @@
     cur_item = ipr_xml_new (cml_item, name, NULL);
     ipr_xml_attr_set (cur_item, "class",  class);
     ipr_xml_attr_set (cur_item, "object", icl_shortstr_fmt (strvalue, "%d", object_id));
-    
     if (status)
         ipr_xml_attr_set (cur_item, "status", status);
     if (method)

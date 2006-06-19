@@ -170,7 +170,7 @@ $(selftype)
     bucket->cur_size = amq_content_basic_get_body (content, bucket->data, bucket->max_size);
     assert (bucket->cur_size < IPR_BUCKET_MAX_SIZE);
     bucket->data [bucket->cur_size] = 0;
-    
+
     if (amq_server_config_debug_console (amq_server_config))
         smt_log_print (amq_broker->debug_log, "C: console xml=%s", bucket->data);
 
@@ -524,7 +524,7 @@ s_get_field_list (ipr_xml_t *xml_item)
         if (field_name)
             asl_field_new_string (fields, field_name, field_value);
         icl_mem_free (field_value);
-        xml_field = ipr_xml_next_sibling (&xml_item);
+        xml_field = ipr_xml_next_sibling (&xml_field);
     }
     return (fields);
 }
