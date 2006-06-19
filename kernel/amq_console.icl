@@ -524,7 +524,7 @@ s_get_field_list (ipr_xml_t *xml_item)
         if (field_name)
             asl_field_new_string (fields, field_name, field_value);
         icl_mem_free (field_value);
-        xml_field = ipr_xml_next_sibling (&xml_item);
+        xml_field = ipr_xml_next_sibling (&xml_field);
     }
     return (fields);
 }
