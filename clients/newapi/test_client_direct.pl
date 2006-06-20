@@ -26,13 +26,13 @@ $conn = new AMQ::Connection (
 $sess = $conn->CreateSession ();
 
 #  Declare a queue
-$sess->QueueDeclare ("queue");          #  Queue name
+$sess->QueueDeclare (-Queue => "queue");           #  Queue name
 
 #  Bind queue to exchange
-$sess->QueueBind    ("queue");          #  Queue name
+$sess->QueueBind    ("queue");                     #  Queue name
 
 #  Consume messages from the queue
-$sess->BasicConsume ("queue");          #  Queue name
+$sess->BasicConsume ("queue");                     #  Queue name
 
 #  Create a new message
 $msg = new AMQ::Message ();
@@ -41,7 +41,7 @@ $msg = new AMQ::Message ();
 $msg->PutBlob ("\x01\x02");
 
 #  Publish the message
-$sess->BasicPublish ($msg);            #  The message
+$sess->BasicPublish ($msg);                        #  The message
 
 #  Receive a message
 $msg = $sess->GetMessage ();

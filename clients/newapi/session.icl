@@ -171,15 +171,31 @@
 </method>
 
 <method name = "basic ack" template = "function">
-    <argument name = "delivery_tag" type = "int64_t" const = "1">server-assigned delivery tag</argument>
+    <argument name = "delivery_tag" type = "char*" const = "1">server-assigned delivery tag</argument>
     <argument name = "multiple" type = "int" default = "1" const = "1">acknowledge multiple messages</argument>
-    amq_client_session_basic_ack (self->session, delivery_tag, multiple);
+    <declare name = "tag" type = "int64_t" />
+    <declare name = "pos" type = "int" />
+    tag = 0;
+    pos = 0;
+    while (delivery_tag [pos]) {
+        tag *= 10;
+        tag += delivery_tag [pos] - '0';
+    }
+    amq_client_session_basic_ack (self->session, tag, multiple);
 </method>
 
 <method name = "basic reject" template = "function">
-    <argument name = "delivery_tag" type = "int64_t" const = "1">server-assigned delivery tag</argument>
+    <argument name = "delivery_tag" type = "char*" const = "1">server-assigned delivery tag</argument>
     <argument name = "requeue" type = "int" default = "0" const = "1">requeue the message</argument>
-    amq_client_session_basic_reject (self->session, delivery_tag, requeue);
+    <declare name = "tag" type = "int64_t" />
+    <declare name = "pos" type = "int" />
+    tag = 0;
+    pos = 0;
+    while (delivery_tag [pos]) {
+        tag *= 10;
+        tag += delivery_tag [pos] - '0';
+    }
+    amq_client_session_basic_reject (self->session, tag, requeue);
 </method>
 
 <method name = "get message" template = "function" return = "rc">
