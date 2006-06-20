@@ -29,17 +29,17 @@
 </method>
 
 <method name = "flow" template = "function">
-    <argument name = "active" type = "Bool" const = "1">start/stop content frames</argument>
+    <argument name = "active" type = "int" const = "1">start/stop content frames</argument>
     amq_client_session_channel_flow (self->session, active);
 </method>
 
 <method name = "access request" template = "function">
     <argument name = "realm" type = "char *" const = "1">name of requested realm</argument>
-    <argument name = "exclusive" type = "Bool" default = "0" const = "1">request exclusive access</argument>
-    <argument name = "passive" type = "Bool" default = "0" const = "1">request passive access</argument>
-    <argument name = "active" type = "Bool" default = "1" const = "1">request active access</argument>
-    <argument name = "write" type = "Bool" default = "1" const = "1">request write access</argument>
-    <argument name = "read" type = "Bool" default = "1" const = "1">request read access</argument>
+    <argument name = "exclusive" type = "int" default = "0" const = "1">request exclusive access</argument>
+    <argument name = "passive" type = "int" default = "0" const = "1">request passive access</argument>
+    <argument name = "active" type = "int" default = "1" const = "1">request active access</argument>
+    <argument name = "write" type = "int" default = "1" const = "1">request write access</argument>
+    <argument name = "read" type = "int" default = "1" const = "1">request read access</argument>
     amq_client_session_access_request (self->session, realm, exclusive,
         passive, active, write, read);
 </method>
@@ -47,26 +47,26 @@
 <method name = "exchange declare" template = "function">
     <argument name = "exchange" type = "char *" const = "1">exchange name</argument>
     <argument name = "type" type = "char *" const = "1">exchange type</argument>
-    <argument name = "passive" type = "Bool" default = "0" const = "1">do not create exchange</argument>
-    <argument name = "durable" type = "Bool" default = "1" const = "1">request a durable exchange</argument>
-    <argument name = "auto_delete" type = "Bool" default = "0" const = "1">auto-delete when unused</argument>
-    <argument name = "internal" type = "Bool" default = "0" const = "1">create internal exchange</argument>
+    <argument name = "passive" type = "int" default = "0" const = "1">do not create exchange</argument>
+    <argument name = "durable" type = "int" default = "1" const = "1">request a durable exchange</argument>
+    <argument name = "auto_delete" type = "int" default = "0" const = "1">auto-delete when unused</argument>
+    <argument name = "internal" type = "int" default = "0" const = "1">create internal exchange</argument>
     amq_client_session_exchange_declare (self->session, 0, exchange, type, passive,
         durable, auto_delete, internal, NULL);
 </method>
 
 <method name = "exchange delete" template = "function">
     <argument name = "exchange" type = "char *" const = "1">exchange name</argument>
-    <argument name = "if_unused" type = "Bool" default = "0" const = "1">delete only if unused</argument>
+    <argument name = "if_unused" type = "int" default = "0" const = "1">delete only if unused</argument>
     amq_client_session_exchange_delete (self->session, 0, exchange, if_unused);
 </method>
 
 <method name = "queue declare" template = "function">
     <argument name = "queue" type = "char *" const = "1">queue name</argument>
-    <argument name = "passive" type = "Bool" default = "0" const = "1">do not create queue</argument>
-    <argument name = "durable" type = "Bool" default = "1" const = "1">request a durable queue</argument>
-    <argument name = "exclusive" type = "Bool" default = "0" const = "1">request an exclusive queue</argument>
-    <argument name = "auto_delete" type = "Bool" default = "0" const = "1">auto-delete queue when unused</argument>
+    <argument name = "passive" type = "int" default = "0" const = "1">do not create queue</argument>
+    <argument name = "durable" type = "int" default = "1" const = "1">request a durable queue</argument>
+    <argument name = "exclusive" type = "int" default = "0" const = "1">request an exclusive queue</argument>
+    <argument name = "auto_delete" type = "int" default = "0" const = "1">auto-delete queue when unused</argument>
     amq_client_session_queue_declare (self->session, 0, queue, passive,
         durable, exclusive, auto_delete, NULL);
 </method>
@@ -93,8 +93,8 @@
 
 <method name = "queue delete" template = "function">
     <argument name = "queue" type = "char *" const = "1">queue name</argument>
-    <argument name = "if_unused" type = "Bool" default = "0" const = "1">delete only if unused</argument>
-    <argument name = "if_empty" type = "Bool" default = "0" const = "1">delete only if empty</argument>
+    <argument name = "if_unused" type = "int" default = "0" const = "1">delete only if unused</argument>
+    <argument name = "if_empty" type = "int" default = "0" const = "1">delete only if empty</argument>
     amq_client_session_queue_delete (self->session, 0, queue,
         if_unused, if_empty);
 </method>
@@ -102,9 +102,9 @@
 <method name = "basic consume" template = "function">
     <argument name = "queue" type = "char *" const = "1">queue name</argument>
     <argument name = "consumer_tag" type = "char *" default = "&quot;&quot;" const = "1">consumer tag</argument>
-    <argument name = "no_local" type = "Bool" default = "0" const = "1">do not deliver own messages</argument>
-    <argument name = "no_ack" type = "Bool" default = "1" const = "1">no acknowledgement needed</argument>
-    <argument name = "exclusive" type = "Bool" default = "0" const = "1">request exclusive access</argument>
+    <argument name = "no_local" type = "int" default = "0" const = "1">do not deliver own messages</argument>
+    <argument name = "no_ack" type = "int" default = "1" const = "1">no acknowledgement needed</argument>
+    <argument name = "exclusive" type = "int" default = "0" const = "1">request exclusive access</argument>
     amq_client_session_basic_consume (self->session, 0, queue, consumer_tag, no_local, no_ack, exclusive);
 </method>
 
@@ -117,8 +117,8 @@
     <argument name = "msg" type = "message_t*" const = "1">message to publish</argument>
     <argument name = "exchange" type = "char *" default = "&quot;amq.direct&quot;" const = "1">exchange name</argument>
     <argument name = "routing_key" type = "char *" default = "&quot;&quot;" const = "1">Message routing key</argument>
-    <argument name = "mandatory" type = "Bool" default = "0" const = "1">indicate mandatory routing</argument>
-    <argument name = "immediate" type = "Bool" default = "0" const = "1">request immediate delivery</argument>
+    <argument name = "mandatory" type = "int" default = "0" const = "1">indicate mandatory routing</argument>
+    <argument name = "immediate" type = "int" default = "0" const = "1">request immediate delivery</argument>
     <declare name = "content" type = "amq_content_basic_t*" />
     content = amq_content_basic_new ();
     assert (content);
@@ -166,19 +166,19 @@
 
 <method name = "basic get" template = "function">
     <argument name = "queue" type = "char *" const = "1">queue name</argument>
-    <argument name = "no_ack" type = "Bool" default = "1" const = "1">no acknowledgement needed</argument>
+    <argument name = "no_ack" type = "int" default = "1" const = "1">no acknowledgement needed</argument>
     amq_client_session_basic_get (self->session, 0, queue, no_ack);
 </method>
 
 <method name = "basic ack" template = "function">
     <argument name = "delivery_tag" type = "int64_t" const = "1">server-assigned delivery tag</argument>
-    <argument name = "multiple" type = "Bool" default = "1" const = "1">acknowledge multiple messages</argument>
+    <argument name = "multiple" type = "int" default = "1" const = "1">acknowledge multiple messages</argument>
     amq_client_session_basic_ack (self->session, delivery_tag, multiple);
 </method>
 
 <method name = "basic reject" template = "function">
     <argument name = "delivery_tag" type = "int64_t" const = "1">server-assigned delivery tag</argument>
-    <argument name = "requeue" type = "Bool" default = "0" const = "1">requeue the message</argument>
+    <argument name = "requeue" type = "int" default = "0" const = "1">requeue the message</argument>
     amq_client_session_basic_reject (self->session, delivery_tag, requeue);
 </method>
 

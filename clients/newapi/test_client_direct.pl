@@ -16,11 +16,11 @@ AMQ::Initialise ();
 
 #  Create a connection
 $conn = new AMQ::Connection (
-                     -host => "localhost",         #  Server hostname:port
-                     -virtualhost => "/",          #  Virtual host
-                     -login => "guest",            #  Login
-                     -password => "guest",         #  Password
-                     -instance => "test_client");  #  Client instance name
+                     -Host => "localhost",         #  Server hostname:port
+                     -VirtualHost => "/",          #  Virtual host
+                     -Login => "guest",            #  Login
+                     -Password => "guest",         #  Password
+                     -Instance => "test_client");  #  Client instance name
 
 #  Create a session
 $sess = $conn->CreateSession ();
