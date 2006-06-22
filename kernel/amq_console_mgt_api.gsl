@@ -175,6 +175,10 @@ class.
     icl_shortstr_t
         field_value;
 .for field where count (rule, name = "ip address")
+.   if type = "time"
+    apr_time_t
+        $(name)_time;
+.   endif
     char
         *$(name)_port_pos;
     icl_shortstr_t
@@ -213,7 +217,8 @@ class.
 .   elsif type = "bool"
     s_print_property ("$(label)", self->$(name)? "Yes": "No", \
 .   elsif type = "time"
-    ipr_time_iso8601 (self->$(name), ipr_date_format_minute, 0, ipr_time_zone (), field_value);
+    apr_time_ansi_put (&$(name)_time, self->$(name));
+    ipr_time_iso8601 ($(name)_time, ipr_date_format_minute, 0, ipr_time_zone (), field_value);
     s_print_property ("$(label)", field_value, \
 .   endif
 .   if count (put)
@@ -263,6 +268,8 @@ NULL);
     <local>
 .for field where count (rule, name = "show on summary")
 .   if type = "time"
+    apr_time_t
+        $(name)_time;
     icl_shortstr_t
         $(name)_str;
 .   endif
@@ -279,12 +286,13 @@ NULL);
     //
 .for field where count (rule, name = "show on summary")
 .   if type = "time"
-    ipr_time_iso8601 (self->$(name), ipr_date_format_minute, 0, ipr_time_zone (), $(name)_str);
+    apr_time_ansi_put (&$(name)_time, self->$(name));
+    ipr_time_iso8601 ($(name)_time, ipr_date_format_minute, 0, ipr_time_zone (), $(name)_str);
 .   endif
 .   if count (rule, name = "ip address")
     $(name)_port_pos = NULL;
     if (($(name)_port_pos = strchr (self->$(name), ':'))) {
-        icl_shortstr_ncpy ($(name)_ip, self->$(name), 
+        icl_shortstr_ncpy ($(name)_ip, self->$(name),
                            $(name)_port_pos - self->$(name));
     } else {
         icl_shortstr_cpy ($(name)_ip, self->$(name));

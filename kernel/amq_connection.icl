@@ -49,8 +49,9 @@ merge these two classes into one.
           <get>icl_shortstr_fmt (field_value, "%d",
             self->parent->channels? self->parent->channels->nbr_items: 0);</get>
         </field>
-        <field name = "started" label = "Date, time connection started" type = "time">
-          <get>icl_shortstr_fmt (field_value, "%d", self->parent->started);</get>
+        <field name = "started" label = "Date, time connection started">
+          <get>ipr_time_iso8601 (self->parent->started,
+            ipr_date_format_minute, 0, ipr_time_zone (), field_value);</get>
         </field>
         <field name = "traffic_in" type = "int" label = "Inbound traffic, MB">
           <rule name = "show on summary" />
