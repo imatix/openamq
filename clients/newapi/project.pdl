@@ -15,12 +15,15 @@
 <file name = "session.icl"              class = "icl public class"  >Simple wrapper for AMQ session</file>
 <file name = "message.icl"              class = "icl public class"  >Simple wrapper for AMQ message</file>
 <file name = "field_table.icl"          class = "icl public class"  >Simple wrapper for AMQ field table</file>
-<file name = "AMQ_wrap.cpp"             class = "generated resource">SWIG generated wrapper</file>
-<file name = "AMQ.i"                    class = "private resource">SWIG interface definition</file>
+<file name = "AMQ-perl_wrap.cpp"        class = "generated resource">SWIG generated wrapper</file>
+<file name = "AMQ-python_wrap.cpp"      class = "generated resource">SWIG generated wrapper</file>
+<file name = "AMQ-perl.i"               class = "private resource"  >SWIG interface definition</file>
+<file name = "AMQ-python.i"             class = "private resource"  >SWIG interface definition</file>
 <file name = "amq_client.pl"            class = "command script"    >AMQ Client in Perl</file>
 <file name = "test_use.pl"              class = "private resource"  >Test program</file>
 <file name = "test_client_direct.pl"    class = "private resource"  >Test AMQ client</file>
 <file name = "test_client_headers.pl"   class = "private resource"  >Test AMQ client</file>
+<file name = "test_client.py"           class = "private resource"  >Test AMQ client</file>
 
 <actions when = "after">
 <generate>
@@ -31,22 +34,29 @@
         gsl -q -target:swig_perl message.icl
         gsl -q -target:swig_perl field_table.icl
         mkdir -p lib/auto/AMQ
-        swig -c++ -perl -I. -I$IBASE/include -o AMQ_wrap.cpp -outdir lib/ AMQ.i
+        swig -c++ -perl -I. -I$IBASE/include -o AMQ-perl_wrap.cpp -outdir lib/ AMQ-perl.i
+        swig -c++ -python -o AMQ-python_wrap.cpp AMQ-python.i
     </execute>
 </generate>
 <build>
     <execute target = "unix"> 
         <!-- Build SWIG/Perl DSO -->
         ARCHLIB=`perl -e 'use Config; print $Config{archlib};'`
-        c -p -c -I. -I$ARCHLIB/CORE -Dbool=char AMQ_wrap.cpp
-        c -p -L -I$ARCHLIB/CORE -shared AMQ_wrap
-        mv AMQ_wrap lib/auto/AMQ/AMQ.so
+        c -p -c -I. -I$ARCHLIB/CORE -Dbool=char AMQ-perl_wrap.cpp
+        c -p -L -I$ARCHLIB/CORE -shared AMQ-perl_wrap
+        mv AMQ-perl_wrap lib/auto/AMQ/AMQ.so
+        
+        c -p -c -I. -I/usr/include/python2.4 AMQ-python_wrap.cpp
+        c -p -L -I/usr/include/python2.4 -shared AMQ-python_wrap.opp
+        mv AMQ-python_wrap _AMQ.so                               
     </execute>
 </build>
 <clean>
     <execute target = "unix">
-        [ -f ./AMQ_wrap.opp ] && rm ./AMQ_wrap.opp
-        [ -d ./lib ]          && rm -r ./lib
+        [ -f ./AMQ-perl_wrap.opp ]   && rm ./AMQ-perl_wrap.opp
+        [ -f ./AMQ-python_wrap.opp ] && rm ./AMQ-python_wrap.opp
+        [ -d ./lib ]                 && rm -r ./lib
+        [ -f ./_AMQ.so ]             && rm ./_AMQ.so
     </execute>
 </clean>
 </actions>

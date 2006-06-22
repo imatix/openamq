@@ -16,7 +16,7 @@ AMQ::Initialise ();
 
 #  Create a connection
 $conn = new AMQ::Connection (
-                     -Host => "localhost",         #  Server hostname:port
+                     -host => "localhost",         #  Server hostname:port
                      -VirtualHost => "/",          #  Virtual host
                      -Login => "guest",            #  Login
                      -Password => "guest",         #  Password
