@@ -73,8 +73,6 @@ Defines a virtual host. This is a lock-free asynchronous class.
         *queue_list;                    //  Queues for dispatching
     amq_exchange_t
         *default_exchange;              //  Default exchange
-    ipr_symbol_table_t
-        *shared_queues;                 //  Cluster shared queues
 </context>
 
 <method name = "new">
@@ -93,7 +91,6 @@ Defines a virtual host. This is a lock-free asynchronous class.
     self->exchange_list  = amq_exchange_by_vhost_new ();
     self->queue_table    = amq_queue_table_new ();
     self->queue_list     = amq_queue_by_vhost_new ();
-    self->shared_queues  = ipr_symbol_table_new ();
 
     //  Automatic wiring schemes
     s_exchange_declare (self, "$default$",  AMQ_EXCHANGE_DIRECT,  TRUE);
@@ -112,7 +109,6 @@ Defines a virtual host. This is a lock-free asynchronous class.
     amq_exchange_by_vhost_destroy  (&self->exchange_list);
     amq_queue_table_destroy        (&self->queue_table);
     amq_queue_by_vhost_destroy     (&self->queue_list);
-    ipr_symbol_table_destroy       (&self->shared_queues);
     </action>
 </method>
 
