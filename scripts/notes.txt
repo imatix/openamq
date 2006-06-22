@@ -1,0 +1,32 @@
+All,
+
+Here is the nth iteration of this layer, broken down into pieces we
+think we can actually make:
+
+1. buildsvn - updates, checks out svn, does a full or partial rebuild,
+runs regression tests and reports success/failure.  Arguments: build
+model.
+
+2. buildsrc - makes new source kits based on current built svn tree.
+Replaces the old 'makesrc'.
+
+3. buildbin - unpacks source kit, builds binary files, builds binary
+kits.  Arguments: build model.
+
+4. upload - uploads source kits and/or binary kits to a well-defined server.
+
+5. release - downloads source and binary kits, renames to current
+release, and uploads to public distribution server.  Updates web site
+accordingly.
+
+6. autobuild - overall manager, integrates these pieces into coherent
+processes.
+
+We will make write the code as perl + Libero.  The scripts will be in
+openamq/packaging.  Mato will make first drafts of the Libero dialogs
+and perl code where possible; Pieter and Tim will finish this work.
+
+Deadline is end of next week.
+
+-Pieter
+

@@ -1,0 +1,41 @@
+1. dir layout
+=============
+    ./
+    ./bootstrap (should contain an ibase skeleton)
+    ./build (contains build script)
+        ./build-[mt|st]-r$revision-$date (autobuilt revision)
+        ...
+    ./packages (contains tgz binary package on successfull build)
+
+2. prequisits
+=============
+  build bootstrap packages first, put the resulting ibase into the bootstrap
+  dir, with the name ibase_skel_mt or ibase_skel_st depending on how you built it
+
+    * download packages from imatix.net/pub
+    * untar base foreign and gsl
+    * export BOOM_MODEL="mt" or BOOM_MODEL="st"
+    * export IBASE=/tmp/ibase_skel_mt or IBASE=/tmp/ibase_skel_st
+    * build the packages (boomake build install)
+    * mv /tmp/ibase_skel_[mt|st] bootstrap/
+
+  login to subversion once to save credentials for passwordless login, do
+  this with the account you are using to build the clients.
+
+4. building 
+===========
+    - start the run.pl script (from cron for example)
+        the run.pl script needs minimal of parameters, namely --model
+	and revision. --model sets the BOOM_MODEL for the build you are about to start
+        depending on the model, run.pl will select ibase_skel_mt or ibase_skel_st
+
+5. script flow
+==============
+    - detection of st or mt build, will grab ibase_skel_[mt|st] and copy it for usage
+    - iterate over previous builds, check which one is correctly built
+      previous builds were correctly build if [ -f $builddir/done ]
+    - get the revision from subversion 
+    - grab all subversion trunks (base base2 gsl4 foreign openamq)
+    - build these (boom build test install)
+    - if successfull touch $builddir/done and continue, else stop
+    - create a binary package by copying files and tarring them
