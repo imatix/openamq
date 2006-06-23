@@ -1,0 +1,123 @@
+.#   Java chassis template
+
+.targetDir = "org/openamq/framing"
+
+.for class by index
+.    for method
+.        javaClassName = getJavaClassName("$(class.Name)$(method.Name)Body")
+.        open_output ("$(targetDir)/$(javaClassName).java")
+package org.openamq.framing;
+
+import org.apache.mina.common.ByteBuffer;
+
+/**
+ * Generated from amq.asl by asl_chassis_java.gsl using GSL/4.
+ * DO NOT MODIFY THIS FILE.
+ * @author Code Generator Script by mark.atwell@jpmorgan.com and robert.j.greig@jpmorgan.com
+ */
+public class $(javaClassName) extends $(method.framingSuperclass) implements EncodableAMQDataBlock
+{
+.for field by index where !field.global
+    public $(field.jtype:no) $(field.jname:no);
+.endfor
+
+    protected int getClazz()
+    {
+        return $(class.index);
+    }
+   
+    protected int getMethod()
+    {
+        return $(method.index);
+    }
+
+    protected int getBodySize()
+    {
+.plus = 0
+.size = ""
+.for field where !field.global
+.   if plus > 0
+.       size += " +\n            "
+.   else
+.       plus = 1
+.   endif
+.       size += "$(field.encodedSize)"
+.endfor
+.if plus < 1
+.    size = "0"
+.endif
+        return $(size:);
+    }
+
+    protected void writeMethodPayload(ByteBuffer buffer)
+    {
+.for field where !field.global
+        $(field.encodeMethod:)
+.endfor
+    }
+
+    public void populateMethodBodyFromBuffer(ByteBuffer buffer) throws AMQFrameDecodingException
+    {
+.for field where !field.global
+        $(field.decodeMethod:);
+.endfor
+    }
+
+    public String toString()
+    {
+        StringBuffer buf = new StringBuffer(super.toString());
+
+.for field where !field.global
+        buf.append("\\n\\t$(field.jname:no): ").append(String.valueOf($(field.jname:no)));
+.endfor
+ 
+        return buf.toString();
+    }
+
+.args = "int channelId"
+.for field where !field.global
+.args += ", $(field.jtype:no) $(field.jname:no)"
+.endfor
+    public static AMQFrame createAMQFrame($(args:))
+    {
+        $(javaClassName) body = new $(javaClassName)();
+.for field where !field.global
+        body.$(field.jname:no) = $(field.jname:no);
+.endfor
+    
+        AMQFrame frame = new AMQFrame();
+        frame.channel = channelId;
+        frame.bodyFrame = body;
+    
+        return frame;
+    }
+}
+.    endfor
+.endfor
+.close
+
+.javaClassName = "MainRegistry"
+.open_output ("$(targetDir)/$(javaClassName).java")
+package org.openamq.framing;
+
+import java.util.Map;
+
+/**
+ * Generated from amq.asl by asl_chassis_java.gsl using GSL/4.
+ * DO NOT MODIFY THIS FILE.
+ * @author Code Generator Script by mark.atwell@jpmorgan.com and robert.j.greig@jpmorgan.com
+ */
+public final class $(javaClassName)
+{
+    static void register(Map map)
+    {
+.for class by index
+.    for method
+.        decoderClassName = getJavaClassName("$(class.Name)$(method.Name)Body")
+.        magicNumber = class.index * 1000 + method.index
+        map.put(new Integer($(magicNumber)), $(decoderClassName).class);
+.    endfor
+.endfor
+    }
+}
+.close

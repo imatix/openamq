@@ -58,7 +58,7 @@ public class AMQClientSession {
     }
 
     public void exchangeDeclare(String exchange, String type) throws Exception {
-        exchangeDeclare(exchange, type, false, true, false, false, null) throws Exception {
+        exchangeDeclare(exchange, type, false, true, false, false, null);
     }
 
     public void exchangeDeclare(String exchange, String type, boolean passive, boolean durable, boolean autoDelete,
@@ -142,11 +142,11 @@ public class AMQClientSession {
         writeFrame(BasicAckBody.createAMQFrame(sessionId, deliveryTag, multiple));
     }
 
-    public void basicAck(long deliveryTag) throws Exception {
+    public void basicRejectBody(long deliveryTag) throws Exception {
         basicAck(deliveryTag, false);
     }
 
-    public void basicAck(long deliveryTag, boolean multiple) throws Exception {
+    public void basicRejectBody(long deliveryTag, boolean requeue) throws Exception {
         writeFrame(BasicRejectBody.createAMQFrame(sessionId, deliveryTag, requeue));
     }
 
