@@ -301,7 +301,6 @@ class.  This is a lock-free asynchronous class.
             if (amq_server_channel_cancel (channel, consumer->tag, FALSE, TRUE)) {
                 //  If async cancel failed, we need to do an extra unlink
                 consumer_ref = consumer;
-                amq_consumer_unlink (&consumer_ref);
             }
         }
         else {
@@ -357,8 +356,9 @@ class.  This is a lock-free asynchronous class.
                 if (connection && !nowait) {
                     amq_server_agent_basic_cancel_ok (
                         connection->thread, channel->number, consumer->tag);
-                    amq_server_connection_unlink (&connection);
                 }
+                if (connection)
+                    amq_server_connection_unlink (&connection);
                 amq_server_channel_unlink (&channel);
             }
         }
