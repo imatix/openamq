@@ -19,13 +19,13 @@ public class Test {
             message = session.createMessage();
 
         // Consume messages
-        session.queueDeclare("aqueue", false, false, false, true);
-        session.basicConsume("aqueue", "", 0, 0, false, true, false);
+        session.queueDeclare("aqueue");
+        session.basicConsume("aqueue");
 
         // Send message
         message.getHeaders().setMessageId("id1");
         message.setBody("0123456789");
-        session.basicPublish(message, "", "aqueue", false, false);
+        session.basicPublish(message, "", "aqueue");
 
         // Receive message
         message = session.getMessage();
