@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+
+<!-- AMQPJ build file -->
+<project name="GRM" default="jar" basedir=".">
+    <property name="libs.location" value="${IBASE}/lib"/>
+    <path id="project.classpath">
+        <path refid="mainproject.classpath"/>
+        <path refid="libs.classpath"/>
+    </path>
+    <path id="mainproject.classpath">
+        <pathelement location="bin"/>
+    </path>
+    <path id="libs.classpath">
+        <pathelement location="${libs.location}/java/mina-core-0.9.5-SNAPSHOT.jar"/>
+        <pathelement location="${libs.location}/java/log4j-1.2.13.jar"/>
+    </path>
+    <target name="init">
+        <mkdir dir="bin"/>
+    </target>
+    <target name="clean">
+        <delete dir="bin"/>
+    </target>
+    <target name="build" depends="init" >
+        <javac destdir="bin" target="1.5" source="1.5" debug="on">
+            <src path="src"/>
+            <classpath refid="project.classpath"/>
+        </javac>
+    </target>
+    <!-- Build jar archive -->
+    <target name="jar" depends="build">
+        <delete file="dist/amqp.jar"/>
+        <jar basedir="bin" jarfile="dist/amqpj.jar"/>
+    </target>
+</project>
