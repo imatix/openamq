@@ -58,72 +58,79 @@ public class AMQClientSession {
     }
 
     public void exchangeDeclare(String exchange, String type) throws Exception {
-        exchangeDeclare(exchange, type, false, true, false, false, null);
+        exchangeDeclare(exchange, type, false, true, false, false, false, null);
     }
 
     public void exchangeDeclare(String exchange, String type, boolean passive, boolean durable, boolean autoDelete,
-        boolean internal, FieldTable arguments) throws Exception {
+        boolean internal, boolean nowait, FieldTable arguments) throws Exception {
 
         writeFrame(ExchangeDeclareBody.createAMQFrame(sessionId, 0, exchange, type, passive, durable, autoDelete,
-            internal, arguments));
+            internal, nowait, arguments));
     }
 
     public void exchangeDelete(String exchange) throws Exception {
-        exchangeDelete(exchange, false);
+        exchangeDelete(exchange, false, false);
     }
 
-    public void exchangeDelete(String exchange, boolean ifUnused) throws Exception {
-        writeFrame(ExchangeDeleteBody.createAMQFrame(sessionId, 0, exchange, ifUnused));
+    public void exchangeDelete(String exchange, boolean ifUnused, boolean nowait) throws Exception {
+        writeFrame(ExchangeDeleteBody.createAMQFrame(sessionId, 0, exchange, ifUnused, nowait));
     }
 
     public void queueDeclare(String queue) throws Exception {
-        queueDeclare(queue, false, true, false, false);
+        queueDeclare(queue, false, true, false, false, false);
     }
 
-    public void queueDeclare(String queue, boolean passive, boolean durable, boolean exclusive,
+    public void queueDeclare(String queue, boolean passive, boolean durable, boolean exclusive, boolean nowait,
         boolean autoDelete) throws Exception {
 
         writeFrame(QueueDeclareBody.createAMQFrame(sessionId, 0, queue, passive, durable,
-            exclusive, autoDelete, null));
+            exclusive, autoDelete, nowait, null));
     }
 
     public void queueBind(String queue, String routingKey) throws Exception {
-        queueBind(queue, "", routingKey, null);
+        queueBind(queue, "", routingKey, false, null);
     }
 
     public void queueBind(String queue, String exchange, String routingKey) throws Exception {
-        queueBind(queue, exchange, routingKey, null);
+        queueBind(queue, exchange, routingKey, false, null);
     }
 
-    public void queueBind(String queue, String exchange, String routingKey, FieldTable arguments) throws Exception {
-        writeFrame(QueueBindBody.createAMQFrame(sessionId, 0, queue, exchange, routingKey, arguments));
+    public void queueBind(String queue, String exchange, String routingKey, boolean nowait, FieldTable arguments) throws Exception {
+        writeFrame(QueueBindBody.createAMQFrame(sessionId, 0, queue, exchange, routingKey, nowait, arguments));
     }
 
     public void queuePurge(String queue) throws Exception {
-        writeFrame(QueuePurgeBody.createAMQFrame(sessionId, 0, queue));
+        queuePurge(queue, false);
+    }
+
+    public void queuePurge(String queue, boolean nowait) throws Exception {
+        writeFrame(QueuePurgeBody.createAMQFrame(sessionId, 0, queue, nowait));
     }
 
     public void queueDelete(String queue) throws Exception {
-        queueDelete(queue, false, false);
+        queueDelete(queue, false, false, false);
     }
 
-    public void queueDelete(String queue, boolean ifUnused, boolean ifEmpty) throws Exception {
-        writeFrame(QueueDeleteBody.createAMQFrame(sessionId, 0, queue, ifUnused, ifEmpty));
+    public void queueDelete(String queue, boolean ifUnused, boolean ifEmpty, boolean nowait) throws Exception {
+        writeFrame(QueueDeleteBody.createAMQFrame(sessionId, 0, queue, ifUnused, ifEmpty, nowait));
     }
 
     public void basicConsume(String queue) throws Exception {
-        basicConsume(queue, "", 0, 0, false, true, false);
+        basicConsume(queue, "", false, true, false, false);
     }
 
-    public void basicConsume(String queue, String consumerTag, long prefetchSize, int prefetchCount,
-        boolean noLocal, boolean noAck, boolean exclusive) throws Exception {
+    public void basicConsume(String queue, String consumerTag, boolean noLocal, boolean noAck, boolean exclusive,
+        boolean nowait) throws Exception {
 
-        writeFrame(BasicConsumeBody.createAMQFrame(sessionId, 0, queue, consumerTag, prefetchSize,
-            prefetchCount, noLocal, noAck, exclusive));
+        writeFrame(BasicConsumeBody.createAMQFrame(sessionId, 0, queue, consumerTag, noLocal, noAck, exclusive, nowait));
     }
 
     public void basicCancel(String consumerTag) throws Exception {
-        writeFrame(BasicCancelBody.createAMQFrame(sessionId, consumerTag));
+        basicCancel(consumerTag, false);
+    }
+
+    public void basicCancel(String consumerTag, boolean nowait) throws Exception {
+        writeFrame(BasicCancelBody.createAMQFrame(sessionId, consumerTag, nowait));
     }
 
     public void basicGet(String queue) throws Exception {

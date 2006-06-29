@@ -201,7 +201,7 @@ public boolean is_channel_opening ()
 public void channel_open ()
 {
     try {
-        aph.writeFrame(acs, ChannelOpenBody.createAMQFrame(acs.getSessionId(), acs.getPrefetch(), null));
+        aph.writeFrame(acs, ChannelOpenBody.createAMQFrame(acs.getSessionId(), null));
     } catch (Exception e) {
         throw new RuntimeException(e);
     }
