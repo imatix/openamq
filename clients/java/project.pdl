@@ -64,7 +64,6 @@
     <file name = "EncodableAMQDataBlock.java"          ></file>
     <file name = "EncodingUtils.java"                  ></file>
     <file name = "FieldTable.java"                     ></file>
-    <file name = "MainRegistry.java"                   ></file>
     <file name = "ProtocolInitiation.java"             ></file>
 </directory>
 
