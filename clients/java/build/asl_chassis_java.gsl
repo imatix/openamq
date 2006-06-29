@@ -1,6 +1,6 @@
 .#   Java chassis template
 
-.targetDir = "org/openamq/framing"
+.targetDir = "src/org/openamq/framing"
 
 .for class by index
 .    for method
