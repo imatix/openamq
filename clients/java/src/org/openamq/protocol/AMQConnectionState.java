@@ -11,7 +11,7 @@ import org.apache.log4j.Logger;
 import org.openamq.framing.*;
 import org.openamq.*;
 
-public class amqconnectionstate extends amqconnectionstatei implements Runnable
+public class AMQConnectionState extends AMQConnectionStateI implements Runnable
 {
 
 //////////////////////////////   G L O B A L S   //////////////////////////////
@@ -30,21 +30,21 @@ AMQFrame
 AMQMethodBody
     amb = null;
 boolean
-    expect_external_event,
-    connection_opened,
-    connection_opening;
+    ExpectExternalEvent,
+    ConnectionOpened,
+    ConnectionOpening;
 
 ///////////////////////////   C O N T R U C T O R   ///////////////////////////
 
-public amqconnectionstate (AMQClientConnection acc)
+public AMQConnectionState (AMQClientConnection acc)
 {
     this.acc = acc;
     this.aph = acc.getProtocolHandler();
     frames = new LinkedList();
     frame = null;
-    expect_external_event = false;
-    connection_opened = false;
-    connection_opening = true;
+    ExpectExternalEvent = false;
+    ConnectionOpened = false;
+    ConnectionOpening = true;
 }
 
 //////////////////////////////////   M A I N   ////////////////////////////////
@@ -56,14 +56,14 @@ public void run ()
 
 //////////////////////////   INITIALISE THE PROGRAM   /////////////////////////
 
-public void initialise_the_program ()
+public void InitialiseTheProgram ()
 {
-    the_next_event = ok_event;
+    TheNextEvent = ok_event;
 }
 
 ////////////////////////////   SET EXTERNAL EVENT   ///////////////////////////
 
-public void set_external_event (AMQFrame frame)
+public void SetExternalEvent (AMQFrame frame)
 {
     synchronized (frames) {
         frames.add(frame);
@@ -73,17 +73,17 @@ public void set_external_event (AMQFrame frame)
 
 ////////////////////////////   GET EXTERNAL EVENT   ///////////////////////////
 
-public void get_external_event ()
+public void GetExternalEvent ()
 {
     synchronized (frames) {
-        while (expect_external_event) {
+        while (ExpectExternalEvent) {
             if (frames.isEmpty()) {
                 try {
                     frames.wait();
                 } catch (InterruptedException e) {}
             } else {
                 frame = (AMQFrame)frames.removeFirst();
-                expect_external_event = false;
+                ExpectExternalEvent = false;
             }
         }
     }
@@ -91,7 +91,7 @@ public void get_external_event ()
     try {
         if (frame != null) {
             if (frame.bodyFrame instanceof HeartbeatBody) {
-                the_next_event = connection_open_ok_event;
+                TheNextEvent = ConnectionOpenOkEvent;
             } else if (frame.bodyFrame instanceof AMQMethodBody) {
                 amb = (AMQMethodBody)frame.bodyFrame;
     
@@ -100,38 +100,38 @@ public void get_external_event ()
                     switch (amb.getId())
                     {
                         case 1001:
-                            the_next_event = protocol_initiation_ok_event;
+                            TheNextEvent = ProtocolInitiationOkEvent;
                             break;
                         case 1005:
-                            the_next_event = connection_tune_event;
+                            TheNextEvent = ConnectionTuneEvent;
                             break;
                         case 1008:
                             synchronized (this) {
-                                connection_opened = true;
-                                connection_opening = false;
+                                ConnectionOpened = true;
+                                ConnectionOpening = false;
                                 notifyAll();
                             }
-                            the_next_event = connection_open_ok_event;
+                            TheNextEvent = ConnectionOpenOkEvent;
                             break;
                         case 1010:
-                            the_next_event = connection_close_event;
+                            TheNextEvent = ConnectionCloseEvent;
                             break;
                         case 1011:
-                            the_next_event = connection_finished_event;
+                            TheNextEvent = ConnectionFinishedEvent;
                             break;
                         default:
                             _logger.debug("No special action for frame at connection level: " + frame);
-                            the_next_event = connection_open_ok_event;
+                            TheNextEvent = ConnectionOpenOkEvent;
                     }
                 } else {
                     // Dispatch to sessions
                     acc.dispatchFrame(frame);
-                    the_next_event = connection_open_ok_event;
+                    TheNextEvent = ConnectionOpenOkEvent;
                 }
             } else if (frame.bodyFrame instanceof ContentBody || frame.bodyFrame instanceof ContentHeaderBody) {
                 // Dispatch to sessions
                 acc.dispatchFrame(frame);
-                the_next_event = connection_open_ok_event;
+                TheNextEvent = ConnectionOpenOkEvent;
             } else {
                 acc.close(AMQConstant.NOT_ALLOWED, "Frame not allowed at connection level: " + frame, 0, 0);
                 clean_up();
@@ -161,10 +161,10 @@ public void get_external_event ()
 
 ///////////////////////   WAIT FOR CONNECTION OPENED   ////////////////////////
 
-public void wait_connection_opened ()
+public void WaitConnectionOpened ()
 {
     synchronized (this) {
-        while (!connection_opened) {
+        while (!ConnectionOpened) {
             try {
                 wait();
             } catch (InterruptedException e) {}
@@ -174,19 +174,19 @@ public void wait_connection_opened ()
 
 ///////////////////////   CHECK FOR CONNECTION OPENED   ///////////////////////
 
-public boolean is_connection_opened ()
+public boolean IsConnectionOpened ()
 {
     synchronized (this) {
-        return connection_opened;
+        return ConnectionOpened;
     }
 }
 
 ///////////////////////   CHECK FOR CONNECTION OPENING   //////////////////////
 
-public boolean is_connection_opening ()
+public boolean IsConnectionOpening ()
 {
     synchronized (this) {
-        return connection_opening;
+        return ConnectionOpening;
     }
 }
 
@@ -194,7 +194,7 @@ public boolean is_connection_opening ()
 
 /////////////////////////   SEND PROTOCOL INITIATION   ////////////////////////
 
-public void send_protocol_initiation ()
+public void SendProtocolInitiation ()
 {
     // Send protocol initialization
     try {
@@ -206,7 +206,7 @@ public void send_protocol_initiation ()
 
 /////////////////////////////   CONNECTION START   ////////////////////////////
 
-public void connection_start_ok ()
+public void ConnectionStartOk ()
 {
     ConnectionStartBody
         csb = (ConnectionStartBody)amb;
@@ -229,7 +229,7 @@ public void connection_start_ok ()
 
 /////////////////////////////   CONNECTION OPEN   /////////////////////////////
 
-public void connection_open ()
+public void ConnectionOpen ()
 {
     try {
         aph.writeFrame(null, ConnectionOpenBody.createAMQFrame(0, acc.getVirtualHost(), null, true));
@@ -240,11 +240,11 @@ public void connection_open ()
 
 ///////////////////////////   CONNECTION CLOSE OK   ///////////////////////////
 
-public void connection_close_ok ()
+public void ConnectionCloseOk ()
 {
     try {
         aph.writeFrame(null, ConnectionCloseOkBody.createAMQFrame(0));
-        the_next_event = connection_finished_event;
+        TheNextEvent = ConnectionFinishedEvent;
     } catch (Exception e) {
         throw new RuntimeException(e);
     }
@@ -252,17 +252,17 @@ public void connection_close_ok ()
 
 /////////////////////////////////   CLEAN UP   ////////////////////////////////
 
-public void clean_up ()
+public void CleanUp ()
 {
     synchronized (this) {
-        connection_opened = false;
+        ConnectionOpened = false;
     }
     aph.closeProtocolSession();
 }
 
 ////////////////////////////   CONNECTION TUNE OK   ///////////////////////////
 
-public void connection_tune_ok ()
+public void ConnectionTuneOk ()
 {
     ConnectionTuneBody
         ctb = (ConnectionTuneBody)amb;
@@ -277,10 +277,10 @@ public void connection_tune_ok ()
 
 ///////////////////////////////   EXPECT FRAME   //////////////////////////////
 
-public void expect_frame ()
+public void ExpectFrame ()
 {
     synchronized (frames) {
-        expect_external_event = true;
+        ExpectExternalEvent = true;
     }
 }
 
