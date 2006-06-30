@@ -139,6 +139,7 @@ public void GetExternalEvent ()
             } else {
                 acs.close(AMQConstant.NOT_ALLOWED, "Frame not allowed at session level: " + frame, 0, 0);
                 CleanUp();
+                RaiseException(0);
             }
         } else {
             int
@@ -157,6 +158,7 @@ public void GetExternalEvent ()
             }
             acs.close(errorCode, errorMessage, 0, 0);
             CleanUp();
+            RaiseException(0);
         }
     } catch (Exception e) {
         throw new RuntimeException(e);
@@ -235,6 +237,9 @@ public void ChannelCloseOk ()
 
 public void CleanUp ()
 {
+    synchronized (this) {
+        ChannelOpened = false;
+    }
 }
 
 
@@ -257,6 +262,7 @@ public void ConsumeHeader ()
         if (message == null) {
             acs.close(AMQConstant.NOT_ALLOWED, "Content header not allowed (received before delivery frame): " + frame, 0, 0);
             CleanUp();
+            RaiseException(0);
         } else {
             ContentHeaderBody
                 chb = (ContentHeaderBody)frame.bodyFrame;
@@ -287,9 +293,11 @@ public void ConsumeBody ()
         if (message == null) {
             acs.close(AMQConstant.NOT_ALLOWED, "Content not allowed (received before delivery frame): " + frame, 0, 0);
             CleanUp();
+            RaiseException(0);
         } else if (message.getHeaders() == null) {
             acs.close(AMQConstant.NOT_ALLOWED, "Content not allowed (received before content header frame): " + frame, 0, 0);
             CleanUp();
+            RaiseException(0);
         } else {
             ByteBuffer
                 payload = ((ContentBody)frame.bodyFrame).payload;
@@ -299,6 +307,7 @@ public void ConsumeBody ()
             if (cmp < 0) {
                 acs.close(AMQConstant.CONTENT_TOO_LARGE, "Message content too large (" + (-cmp) + " bytes) with frame: " + frame, 0, 0);
                 CleanUp();
+                RaiseException(0);
             } else {
                 message.getBody().put(payload);
 

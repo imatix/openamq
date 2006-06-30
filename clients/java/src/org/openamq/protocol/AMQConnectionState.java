@@ -135,6 +135,7 @@ public void GetExternalEvent ()
             } else {
                 acc.close(AMQConstant.NOT_ALLOWED, "Frame not allowed at connection level: " + frame, 0, 0);
                 CleanUp();
+                RaiseException(0);
             }
         } else {
             int
@@ -153,6 +154,7 @@ public void GetExternalEvent ()
             }
             acc.close(errorCode, errorMessage, 0, 0);
             CleanUp();
+            RaiseException(0);
         }
     } catch (Exception e) {
         throw new RuntimeException(e);
