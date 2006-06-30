@@ -1,5 +1,6 @@
 -schema=lrschema.jav
 -source=AMQChannelState.java
+-style=caps
 
 After-Init:
     (--) Ok                                      -> Channel-Opened
