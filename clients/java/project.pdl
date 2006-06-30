@@ -3,7 +3,7 @@
     name      = "AMQP/Java"
     acronym   = "amqpj"
     version   = "0.0a1"
-    copyright = "Copyright (c) 2006 JPMorgan"
+    copyright = "Copyright (c) 2005-2006 JPMorgan and iMatix Corporation"
     workflow  = "standard.pwl"
     deploy    = "amqpj"
     >
@@ -94,7 +94,7 @@
 <actions target = "win32">
     <generate>
         <execute>
-        cd src/org/openamq/protocol
+        cd src\org\openamq\protocol
         lr -quiet  AMQConnectionState.l
         lr -quiet  AMQChannelState.l
         cd ..\..\..\..
