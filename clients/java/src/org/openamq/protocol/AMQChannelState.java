@@ -12,7 +12,7 @@ import org.apache.mina.common.ByteBuffer;
 import org.openamq.framing.*;
 import org.openamq.*;
 
-public class amqchannelstate extends amqchannelstatei implements Runnable
+public class AMQChannelState extends AMQChannelStateI implements Runnable
 {
 
 //////////////////////////////   G L O B A L S   //////////////////////////////
@@ -35,13 +35,13 @@ AMQMethodBody
 AMQMessage
     message;
 boolean
-    expect_external_event,
-    channel_opened,
-    channel_opening;
+    ExpectExternalEvent,
+    ChannelOpened,
+    ChannelOpening;
 
 ///////////////////////////   C O N T R U C T O R   ///////////////////////////
 
-public amqchannelstate (AMQClientConnection acc, AMQClientSession acs)
+public AMQChannelState (AMQClientConnection acc, AMQClientSession acs)
 {
     this.acc = acc;
     this.acs = acs;
@@ -50,9 +50,9 @@ public amqchannelstate (AMQClientConnection acc, AMQClientSession acs)
     frame = null;
     amb = null;
     message = null;
-    expect_external_event = false;
-    channel_opened = false;
-    channel_opening = true;
+    ExpectExternalEvent = false;
+    ChannelOpened = false;
+    ChannelOpening = true;
 }
 
 //////////////////////////////////   M A I N   ////////////////////////////////
@@ -65,14 +65,14 @@ public void run ()
 
 //////////////////////////   INITIALISE THE PROGRAM   /////////////////////////
 
-public void initialise_the_program ()
+public void InitialiseTheProgram ()
 {
-    the_next_event = ok_event;
+    TheNextEvent = OkEvent;
 }
 
 ////////////////////////////   SET EXTERNAL EVENT   ///////////////////////////
 
-public void set_external_event (AMQFrame frame)
+public void SetExternalEvent (AMQFrame frame)
 {
     synchronized (frames) {
         frames.add(frame);
@@ -82,17 +82,17 @@ public void set_external_event (AMQFrame frame)
 
 ////////////////////////////   GET EXTERNAL EVENT   ///////////////////////////
 
-public void get_external_event ()
+public void GetExternalEvent ()
 {
     synchronized (frames) {
-        while (expect_external_event) {
+        while (ExpectExternalEvent) {
             if (frames.isEmpty()) {
                 try {
                     frames.wait();
                 } catch (InterruptedException e) {}
             } else {
                 frame = (AMQFrame)frames.removeFirst();
-                expect_external_event = false;
+                ExpectExternalEvent = false;
             }
         }
     }
@@ -105,37 +105,37 @@ public void get_external_event ()
                 switch (amb.getId())
                 {
                     case 2002:
-                        the_next_event = channel_open_ok_event;
+                        TheNextEvent = ChannelOpenOkEvent;
                         synchronized (this) {
-                            channel_opened = true;
-                            channel_opening = false;
+                            ChannelOpened = true;
+                            ChannelOpening = false;
                             notifyAll();
                         }
                         break;
                     case 2006:
-                        the_next_event = channel_close_event;
+                        TheNextEvent = ChannelCloseEvent;
                         break;
                     case 2007:
-                        the_next_event = channel_finished_event;
+                        TheNextEvent = ChannelFinishedEvent;
                         break;
                     case 6006:
                         message = acs.createMessage();
                         message.setDelivery(amb);
-                        the_next_event = basic_return_event;
+                        TheNextEvent = BasicReturnEvent;
                         break;
                     case 6007:
                         message = acs.createMessage();
                         message.setDelivery(amb);
-                        the_next_event = basic_deliver_event;
+                        TheNextEvent = BasicDeliverEvent;
                         break;
                     default:
                         _logger.debug("No special action for frame (at channel level): " + frame);
-                        the_next_event = channel_open_ok_event;
+                        TheNextEvent = ChannelOpenOkEvent;
                 }
             } else if (frame.bodyFrame instanceof ContentHeaderBody) {
-                the_next_event = content_header_event;
+                TheNextEvent = ContentHeaderEvent;
             } else if (frame.bodyFrame instanceof ContentBody) {
-                the_next_event = content_body_event;
+                TheNextEvent = ContentBodyEvent;
             } else {
                 acs.close(AMQConstant.NOT_ALLOWED, "Frame not allowed at session level: " + frame, 0, 0);
                 clean_up();;
@@ -165,10 +165,10 @@ public void get_external_event ()
 
 ///////////////////////   WAIT FOR CHANNEL OPENED   ///////////////////////////
 
-public void wait_channel_opened ()
+public void WaitChannelOpened ()
 {
     synchronized (this) {
-        while (!channel_opened) {
+        while (!ChannelOpened) {
             try {
                 wait();
             } catch (InterruptedException e) {}
@@ -178,19 +178,19 @@ public void wait_channel_opened ()
 
 ////////////////////////   CHECK FOR CHANNEL OPENED   /////////////////////////
 
-public boolean is_channel_opened ()
+public boolean IsChannelOpened ()
 {
     synchronized (this) {
-        return channel_opened;
+        return ChannelOpened;
     }
 }
 
 ////////////////////////   CHECK FOR CHANNEL OPENING   ////////////////////////
 
-public boolean is_channel_opening ()
+public boolean IsChannelOpening ()
 {
     synchronized (this) {
-        return channel_opening;
+        return ChannelOpening;
     }
 }
 
@@ -198,7 +198,7 @@ public boolean is_channel_opening ()
 
 ///////////////////////////////   CHANNEL OPEN   //////////////////////////////
 
-public void channel_open ()
+public void ChannelOpen ()
 {
     try {
         aph.writeFrame(acs, ChannelOpenBody.createAMQFrame(acs.getSessionId(), null));
@@ -210,21 +210,21 @@ public void channel_open ()
 
 ///////////////////////////////   EXPECT FRAME   //////////////////////////////
 
-public void expect_frame ()
+public void ExpectFrame ()
 {
     synchronized (frames) {
-        expect_external_event = true;
+        ExpectExternalEvent = true;
     }
 }
 
 
 /////////////////////////////   CHANNEL CLOSE OK   ////////////////////////////
 
-public void channel_close_ok ()
+public void ChannelCloseOk ()
 {
     try {
         aph.writeFrame(acs, ChannelCloseOkBody.createAMQFrame(acs.getSessionId()));
-        the_next_event = channel_finished_event;
+        TheNextEvent = ChannelFinishedEvent;
     } catch (Exception e) {
         throw new RuntimeException(e);
     }
@@ -233,25 +233,25 @@ public void channel_close_ok ()
 
 /////////////////////////////////   CLEAN UP   ////////////////////////////////
 
-public void clean_up ()
+public void CleanUp ()
 {
 }
 
 
 /////////////////////////////   DISPATCH MESSAGE   ////////////////////////////
 
-public void dispatch_message ()
+public void DispatchMessage ()
 {
     acs.messageReceived(message);
     message = null;
 
-    the_next_event = channel_open_ok_event;
+    TheNextEvent = ChannelOpenOkEvent;
 }
 
 
 //////////////////////////////   CONSUME HEADER   /////////////////////////////
 
-public void consume_header ()
+public void ConsumeHeader ()
 {
     try {
         if (message == null) {
@@ -281,7 +281,7 @@ public void consume_header ()
 
 ///////////////////////////////   CONSUME BODY   //////////////////////////////
 
-public void consume_body ()
+public void ConsumeBody ()
 {
     try {
         if (message == null) {
@@ -306,7 +306,7 @@ public void consume_body ()
                     expect_frame();
                 } else if (cmp == 0) {
                     message.getBody().flip();
-                    the_next_event = message_consumed_event;
+                    TheNextEvent = MessageConsumedEvent;
                 }
             }
         }
