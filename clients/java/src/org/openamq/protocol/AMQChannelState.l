@@ -1,5 +1,5 @@
 -schema=lrschema.jav
--source=AMQChannelState.java
+-source="AMQChannelState"
 -style=caps
 
 After-Init:

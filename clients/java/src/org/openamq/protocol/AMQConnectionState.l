@@ -1,5 +1,5 @@
 -schema=lrschema.jav
--source=AMQConnectionState.java
+-source="AMQConnectionState"
 -style=caps
 
 After-Init:
