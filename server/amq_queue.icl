@@ -383,9 +383,12 @@ class.  This is a lock-free asynchronous class.
         int
             timeout = amq_server_config_queue_timeout (amq_server_config)
                     * 1000 * 1000;
-        if (timeout == 0)
-            timeout = 1;                //  Send the event very rapidly
-        smt_timer_request_delay (self->thread, timeout, auto_delete_event);
+        if (timeout == 0)               //  Send the event immediately
+            smt_method_send (self->thread->reply_queue,
+                             auto_delete_event,
+                             SMT_PRIORITY_NORMAL, SMT_OK, NULL, NULL);
+        else
+            smt_timer_request_delay (self->thread, timeout, auto_delete_event);
     }
     </action>
 </method>
