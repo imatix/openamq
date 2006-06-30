@@ -18,7 +18,7 @@ public class AMQClientSession {
         aph;
     AMQClientConnection
         acc;
-    amqchannelstate
+    AMQChannelState
         sessionState;
     Thread
         sessionThread;
@@ -38,7 +38,7 @@ public class AMQClientSession {
         this.sessionId = ++sessions;
         aph = acc.getProtocolHandler();
         sessionThread = null;
-        sessionState = new amqchannelstate(acc, this);
+        sessionState = new AMQChannelState(acc, this);
         messages = new LinkedBlockingQueue();
     }
 
@@ -217,7 +217,7 @@ public class AMQClientSession {
         aph.writeFrame(this, frame);
     }
 
-    public amqchannelstate getSessionState() {
+    public AMQChannelState getSessionState() {
        return sessionState;
     }
 

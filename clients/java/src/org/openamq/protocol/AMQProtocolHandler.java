@@ -9,7 +9,7 @@ import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.openamq.AMQClientConnection;
 import org.openamq.AMQClientSession;
 import org.openamq.AuthData;
-import org.openamq.protocol.amqconnectionstate;
+import org.openamq.protocol.AMQConnectionState;
 import org.openamq.framing.*;
 
 import java.util.TreeMap;
@@ -22,7 +22,7 @@ public class AMQProtocolHandler extends IoHandlerAdapter {
         connection;                     //   protocol handler is created.
     IoSession                           // The MINA protocol session handles the
         protocolSession = null;         //   AMQ method flow.
-    amqconnectionstate                  // The MINA handler relies on a libero
+    AMQConnectionState                  // The MINA handler relies on a libero
         connectionState;                //   state machine.
     TreeMap
         session2Filter = new TreeMap();
@@ -69,7 +69,7 @@ public class AMQProtocolHandler extends IoHandlerAdapter {
         if (iwrite)
             writeFrame(null, HeartbeatBody.FRAME);
         if (iread) 
-            connectionState.set_external_event(ConnectionCloseOkBody.createAMQFrame(0));
+            connectionState.SetExternalEvent(ConnectionCloseOkBody.createAMQFrame(0));
     }
 
     public void exceptionCaught(IoSession session, Throwable t) throws Exception {
@@ -80,7 +80,7 @@ public class AMQProtocolHandler extends IoHandlerAdapter {
         AMQFrame
             frame = (AMQFrame)message;
 
-        connectionState.set_external_event(frame);
+        connectionState.SetExternalEvent(frame);
     }
 
     public void messageSent(IoSession session, Object message) throws Exception {
@@ -88,9 +88,9 @@ public class AMQProtocolHandler extends IoHandlerAdapter {
 
     public void writeFrame(AMQClientSession session, AMQDataBlock frame) throws Exception
     {
-        if (connectionState.is_connection_opening() || connectionState.is_connection_opened()) {
-            if (session == null || session.getSessionState().is_channel_opening() ||
-                session.getSessionState().is_channel_opened())
+        if (connectionState.IsConnectionOpening() || connectionState.IsConnectionOpened()) {
+            if (session == null || session.getSessionState().IsChannelOpening() ||
+                session.getSessionState().IsChannelOpened())
 
                 protocolSession.write(frame);
             else

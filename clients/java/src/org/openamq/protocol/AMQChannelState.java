@@ -18,7 +18,7 @@ public class AMQChannelState extends AMQChannelStateI implements Runnable
 //////////////////////////////   G L O B A L S   //////////////////////////////
 
 private static final Logger
-    _logger = Logger.getLogger(amqchannelstate.class);
+    _logger = Logger.getLogger(AMQChannelState.class);
 
 AMQClientConnection
     acc;
@@ -101,7 +101,7 @@ public void GetExternalEvent ()
         if (frame != null) {
             if (frame.bodyFrame instanceof AMQMethodBody) {
                 amb = (AMQMethodBody)frame.bodyFrame;
-    
+
                 switch (amb.getId())
                 {
                     case 2002:
@@ -138,7 +138,7 @@ public void GetExternalEvent ()
                 TheNextEvent = ContentBodyEvent;
             } else {
                 acs.close(AMQConstant.NOT_ALLOWED, "Frame not allowed at session level: " + frame, 0, 0);
-                clean_up();;
+                CleanUp();
             }
         } else {
             int
@@ -156,7 +156,7 @@ public void GetExternalEvent ()
                 }
             }
             acs.close(errorCode, errorMessage, 0, 0);
-            clean_up();
+            CleanUp();
         }
     } catch (Exception e) {
         throw new RuntimeException(e);
@@ -256,11 +256,11 @@ public void ConsumeHeader ()
     try {
         if (message == null) {
             acs.close(AMQConstant.NOT_ALLOWED, "Content header not allowed (received before delivery frame): " + frame, 0, 0);
-            clean_up();
+            CleanUp();
         } else {
             ContentHeaderBody
                 chb = (ContentHeaderBody)frame.bodyFrame;
-    
+
             message.setHeaders((BasicContentHeaderProperties)chb.properties);
             if (chb.bodySize <= Integer.MAX_VALUE) {
                 int
@@ -271,7 +271,7 @@ public void ConsumeHeader ()
             } else {
                 throw new Exception("Message size too big for client ( > " + Integer.MAX_VALUE + " )");
             }
-            expect_frame();
+            ExpectFrame();
         }
     } catch (Exception e) {
         throw new RuntimeException(e);
@@ -286,10 +286,10 @@ public void ConsumeBody ()
     try {
         if (message == null) {
             acs.close(AMQConstant.NOT_ALLOWED, "Content not allowed (received before delivery frame): " + frame, 0, 0);
-            clean_up();
+            CleanUp();
         } else if (message.getHeaders() == null) {
             acs.close(AMQConstant.NOT_ALLOWED, "Content not allowed (received before content header frame): " + frame, 0, 0);
-            clean_up();
+            CleanUp();
         } else {
             ByteBuffer
                 payload = ((ContentBody)frame.bodyFrame).payload;
@@ -298,12 +298,12 @@ public void ConsumeBody ()
 
             if (cmp < 0) {
                 acs.close(AMQConstant.CONTENT_TOO_LARGE, "Message content too large (" + (-cmp) + " bytes) with frame: " + frame, 0, 0);
-                clean_up();
+                CleanUp();
             } else {
                 message.getBody().put(payload);
-    
+
                 if (cmp > 0) {
-                    expect_frame();
+                    ExpectFrame();
                 } else if (cmp == 0) {
                     message.getBody().flip();
                     TheNextEvent = MessageConsumedEvent;

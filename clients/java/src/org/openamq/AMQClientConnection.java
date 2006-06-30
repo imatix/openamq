@@ -18,7 +18,7 @@ public class AMQClientConnection {
         aph;
     AMQSocketConnection
         asc;
-    amqconnectionstate  
+    AMQConnectionState
         conState;
     Thread
         conThread;
@@ -51,11 +51,11 @@ public class AMQClientConnection {
         this.timeout = timeout;
         aph = new AMQProtocolHandler(this);
         asc = new AMQSocketConnection();
-        conState = new amqconnectionstate(this);
+        conState = new AMQConnectionState(this);
         sessions = new TreeMap();
 
         asc.connect(aph, new InetSocketAddress(host, AMQConstant.DEFAULT_PORT));
-        conState.wait_connection_opened();
+        conState.WaitConnectionOpened();
     }
 
     public AMQClientSession createSession() {
@@ -64,7 +64,7 @@ public class AMQClientConnection {
 
         sessions.put(acs.getSessionId(), acs);
         acs.start();
-        acs.getSessionState().wait_channel_opened();
+        acs.getSessionState().WaitChannelOpened();
 
         return acs;
     }
@@ -89,10 +89,10 @@ public class AMQClientConnection {
             acs = (AMQClientSession)sessions.get(frame.channel);
 
         if (acs != null) {
-            amqchannelstate
+            AMQChannelState
                 ass = acs.getSessionState();
 
-            ass.set_external_event(frame);
+            ass.SetExternalEvent(frame);
         } else {
             _logger.warn("Not handling channel id: " + frame.channel);
         }
@@ -103,7 +103,7 @@ public class AMQClientConnection {
         aph.writeFrame(null, frame);
     }
 
-    public amqconnectionstate getConnectionState() {
+    public AMQConnectionState getConnectionState() {
        return conState; 
     }
 

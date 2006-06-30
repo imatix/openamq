@@ -11,7 +11,7 @@
 <include filename = "prelude.pdl" />
 
 <!-- AMQPJ Jar files -->
-<directory name = "dist" class = "shared library">
+<directory name = "dist"  class = "shared library">
     <file name = "amqpj.jar"                           >AMQP Java API</file>
 </directory>
 
@@ -20,7 +20,7 @@
     <file name = "asl_chassis_java.gsl"                >Java ASL chassis</file>
 </directory>
 
-<file name = "build.xml" class = "private resource"    >ANT build file</file>
+<file name = "build.xml"  class = "private resource"   >ANT build file</file>
 
 <!-- AMQPJ API -->
 <directory name = "src/org/openamq"                    class = "private resource">
@@ -35,10 +35,8 @@
 </directory>
 
 <directory name = "src/org/openamq/protocol"           class = "private resource">
-    <file name = "amqchannelstatei.java"               ></file>
-    <file name = "amqchannelstate.java"                ></file>
-    <file name = "amqconnectionstatei.java"            ></file>
-    <file name = "amqconnectionstate.java"             ></file>
+    <file name = "AMQChannelState.java"                ></file>
+    <file name = "AMQConnectionState.java"             ></file>
     <file name = "AMQChannelState.l"                   ></file>
     <file name = "AMQConnectionState.l"                ></file>
     <file name = "AMQProtocolHandler.java"             ></file>
@@ -74,6 +72,10 @@
 <actions target = "unix">
     <generate>
         <execute>
+        cd src/org/openamq/protocol
+        lr -quiet  AMQConnectionState.l || croak
+        lr -quiet  AMQChannelState.l || croak
+        cd ../../../..
         gsl -q -target:java amq.asl || croak
         </execute>
     </generate>
@@ -92,6 +94,10 @@
 <actions target = "win32">
     <generate>
         <execute>
+        cd src/org/openamq/protocol
+        lr -quiet  AMQConnectionState.l
+        lr -quiet  AMQChannelState.l
+        cd ..\..\..\..
         gsl -q -target:java amq.asl
         </execute>
     </generate>

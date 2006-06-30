@@ -17,7 +17,7 @@ public class AMQConnectionState extends AMQConnectionStateI implements Runnable
 //////////////////////////////   G L O B A L S   //////////////////////////////
 
 private static final Logger
-    _logger = Logger.getLogger(amqconnectionstate.class);
+    _logger = Logger.getLogger(AMQConnectionState.class);
 
 AMQClientConnection
     acc;
@@ -58,7 +58,7 @@ public void run ()
 
 public void InitialiseTheProgram ()
 {
-    TheNextEvent = ok_event;
+    TheNextEvent = OkEvent;
 }
 
 ////////////////////////////   SET EXTERNAL EVENT   ///////////////////////////
@@ -94,7 +94,7 @@ public void GetExternalEvent ()
                 TheNextEvent = ConnectionOpenOkEvent;
             } else if (frame.bodyFrame instanceof AMQMethodBody) {
                 amb = (AMQMethodBody)frame.bodyFrame;
-    
+
                 if (amb.getId() < 2000) {
                     // Connection event
                     switch (amb.getId())
@@ -134,14 +134,14 @@ public void GetExternalEvent ()
                 TheNextEvent = ConnectionOpenOkEvent;
             } else {
                 acc.close(AMQConstant.NOT_ALLOWED, "Frame not allowed at connection level: " + frame, 0, 0);
-                clean_up();
+                CleanUp();
             }
         } else {
             int
                 errorCode;
             String
                 errorMessage;
-    
+
             synchronized (frames) {
                 if (frames.isEmpty()) {
                     errorCode = AMQConstant.INTERNAL_ERROR;
@@ -152,7 +152,7 @@ public void GetExternalEvent ()
                 }
             }
             acc.close(errorCode, errorMessage, 0, 0);
-            clean_up();
+            CleanUp();
         }
     } catch (Exception e) {
         throw new RuntimeException(e);
