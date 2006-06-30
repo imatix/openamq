@@ -2,7 +2,7 @@
 
 <!-- AMQPJ build file -->
 <project name="GRM" default="jar" basedir=".">
-    <property name="libs.location" value="${IBASE}/lib"/>
+    <property name="libs.location" value="lib"/>
     <path id="project.classpath">
         <path refid="mainproject.classpath"/>
         <path refid="libs.classpath"/>
@@ -11,8 +11,8 @@
         <pathelement location="bin"/>
     </path>
     <path id="libs.classpath">
-        <pathelement location="${libs.location}/java/mina-core-0.9.5-SNAPSHOT.jar"/>
-        <pathelement location="${libs.location}/java/log4j-1.2.13.jar"/>
+        <pathelement location="${libs.location}/mina-core-0.9.5-SNAPSHOT.jar"/>
+        <pathelement location="${libs.location}/log4j-1.2.13.jar"/>
     </path>
     <target name="init">
         <mkdir dir="bin"/>
