@@ -15,16 +15,12 @@ public abstract class AMQMethodBody extends AMQBody
     /**
      * @return unsigned short
      */
-    protected abstract int getClazz();
+    public abstract int getClazz();
 
     /**
      * @return unsigned short
      */
-    protected abstract int getMethod();
-
-    public int getId() {
-        return 1000 * getClazz() + getMethod();
-    }
+    public abstract int getMethod();
 
     protected abstract void writeMethodPayload(ByteBuffer buffer);
 

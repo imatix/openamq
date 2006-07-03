@@ -33,7 +33,7 @@ public class ContentHeaderPropertiesFactory
         ContentHeaderProperties properties;
         switch (classId)
         {
-            case 6:
+            case BasicConsumeBody.CLASS_ID:
                 properties = new BasicContentHeaderProperties();
                 break;
             default:

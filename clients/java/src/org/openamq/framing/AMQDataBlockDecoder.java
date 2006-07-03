@@ -13,7 +13,7 @@ import java.util.Map;
  */
 public class AMQDataBlockDecoder
 {
-	Logger _logger = Logger.getLogger(AMQDataBlockDecoder.class);
+    Logger _logger = Logger.getLogger(AMQDataBlockDecoder.class);
 
     private final Map _supportedBodies = new HashMap();
 
@@ -27,22 +27,13 @@ public class AMQDataBlockDecoder
 
     public boolean decodable(IoSession session, ByteBuffer in) throws AMQFrameDecodingException
     {
-        // final +1 represents the command end which we know we must require even
-        // if there is an empty body
-        if (in.remaining() < 1)
-        {
-            return false;
-        }
-        final byte type = in.get();
-
-        // zero, channel, body size and end byte
+        // type, channel, body size and end byte
         if (in.remaining() < (1 + 2 + 4 + 1))
         {
             return false;
         }
 
-        // this is just a filler value - no idea why it exists really
-        final byte zero = in.get();
+        final byte type = in.get();
         final int channel = in.getUnsignedShort();
         final long bodySize = in.getUnsignedInt();
 
@@ -66,7 +57,7 @@ public class AMQDataBlockDecoder
 
         if (!result)
         {
-        	_logger.warn("AMQDataBlockDecoder does not handle frame type " + frameType);
+            _logger.warn("AMQDataBlockDecoder does not handle frame type " + frameType);
         }
 
         return result;
@@ -80,8 +71,6 @@ public class AMQDataBlockDecoder
         {
             throw new AMQFrameDecodingException("Unsupported frame type: " + type);
         }
-        // just a filler
-        final byte zero = in.get();
         final int channel = in.getUnsignedShort();
         final long bodySize = in.getUnsignedInt();
 

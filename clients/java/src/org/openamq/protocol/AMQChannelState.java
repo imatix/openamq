@@ -26,6 +26,8 @@ AMQClientSession
     acs;
 AMQProtocolHandler
     aph;
+HashMap
+    MethodToEvent;
 LinkedList
     frames;
 AMQFrame
@@ -46,6 +48,7 @@ public AMQChannelState (AMQClientConnection acc, AMQClientSession acs)
     this.acc = acc;
     this.acs = acs;
     this.aph = acc.getProtocolHandler();
+    MethodToEvent = new HashMap();
     frames = new LinkedList();
     frame = null;
     amb = null;
@@ -53,6 +56,12 @@ public AMQChannelState (AMQClientConnection acc, AMQClientSession acs)
     ExpectExternalEvent = false;
     ChannelOpened = false;
     ChannelOpening = true;
+
+    MethodToEvent.put(ChannelOpenBody.class, new Integer(ChannelOpenOkEvent));
+    MethodToEvent.put(ChannelCloseBody.class, new Integer(ChannelCloseEvent));
+    MethodToEvent.put(ChannelCloseOkBody.class, new Integer(ChannelFinishedEvent));
+    MethodToEvent.put(BasicReturnBody.class, new Integer(BasicReturnEvent));
+    MethodToEvent.put(BasicDeliverBody.class, new Integer(BasicDeliverEvent));
 }
 
 //////////////////////////////////   M A I N   ////////////////////////////////
@@ -101,44 +110,25 @@ public void GetExternalEvent ()
         if (frame != null) {
             if (frame.bodyFrame instanceof AMQMethodBody) {
                 amb = (AMQMethodBody)frame.bodyFrame;
+                // Get connection event
+                Integer event = (Integer)MethodToEvent.get(amb.getClass());
 
-                switch (amb.getId())
+                if (event != null)
                 {
-                    case 2002:
-                        TheNextEvent = ChannelOpenOkEvent;
-                        synchronized (this) {
-                            ChannelOpened = true;
-                            ChannelOpening = false;
-                            notifyAll();
-                        }
-                        break;
-                    case 2006:
-                        TheNextEvent = ChannelCloseEvent;
-                        break;
-                    case 2007:
-                        TheNextEvent = ChannelFinishedEvent;
-                        break;
-                    case 6006:
-                        message = acs.createMessage();
-                        message.setDelivery(amb);
-                        TheNextEvent = BasicReturnEvent;
-                        break;
-                    case 6007:
-                        message = acs.createMessage();
-                        message.setDelivery(amb);
-                        TheNextEvent = BasicDeliverEvent;
-                        break;
-                    default:
-                        _logger.debug("No special action for frame (at channel level): " + frame);
-                        TheNextEvent = ChannelOpenOkEvent;
+                    TheNextEvent = event.intValue();
+                }
+                else
+                {
+                    _logger.debug("No special action for frame (at channel level): " + frame);
+                    TheNextEvent = ChannelOpenOkEvent;
                 }
             } else if (frame.bodyFrame instanceof ContentHeaderBody) {
                 TheNextEvent = ContentHeaderEvent;
             } else if (frame.bodyFrame instanceof ContentBody) {
                 TheNextEvent = ContentBodyEvent;
             } else {
-                acs.close(AMQConstant.NOT_ALLOWED, "Frame not allowed at session level: " + frame, 0, 0);
-                CleanUp();
+                acs.close(AMQConstant.NOT_ALLOWED, "Frame not allowed (at channel level): " + frame, 0, 0);
+                Cleanup();
                 RaiseException(0);
             }
         } else {
@@ -150,14 +140,14 @@ public void GetExternalEvent ()
             synchronized (frames) {
                 if (frames.isEmpty()) {
                     errorCode = AMQConstant.INTERNAL_ERROR;
-                    errorMessage = "FSM error at session level";
+                    errorMessage = "FSM error (at channel level)";
                 } else {
                     errorCode = AMQConstant.NOT_ALLOWED;
-                    errorMessage = "Frame not allowed at session level: " + frame;
+                    errorMessage = "Frame not allowed (at channel level): " + frame;
                 }
             }
             acs.close(errorCode, errorMessage, 0, 0);
-            CleanUp();
+            Cleanup();
             RaiseException(0);
         }
     } catch (Exception e) {
@@ -209,13 +199,26 @@ public void ChannelOpen ()
     }
 }
 
+/////////////////////////   CHANNEL OPEN OK HANDLER   /////////////////////////
+
+public void ChannelOpenOkHandler ()
+{
+    synchronized (this) {
+        ChannelOpened = true;
+        ChannelOpening = false;
+        notifyAll();
+    }
+}
 
 ///////////////////////////////   EXPECT FRAME   //////////////////////////////
 
 public void ExpectFrame ()
 {
-    synchronized (frames) {
-        ExpectExternalEvent = true;
+    if (IsChannelOpened() || IsChannelOpening())
+    {
+        synchronized (frames) {
+            ExpectExternalEvent = true;
+        }
     }
 }
 
@@ -235,13 +238,29 @@ public void ChannelCloseOk ()
 
 /////////////////////////////////   CLEAN UP   ////////////////////////////////
 
-public void CleanUp ()
+public void Cleanup ()
 {
     synchronized (this) {
         ChannelOpened = false;
+        ChannelOpening = false;
     }
+    TheNextEvent = TerminateEvent;
 }
 
+//////////////////////////   BASIC DELIVER HANDLER   //////////////////////////
+
+public void BasicDeliverHandler ()
+{
+    message = acs.createMessage();
+    message.setDelivery(amb);
+}
+
+//////////////////////////   BASIC RETURN HANDLER   ///////////////////////////
+
+public void BasicReturnHandler ()
+{
+    BasicDeliverHandler();
+}
 
 /////////////////////////////   DISPATCH MESSAGE   ////////////////////////////
 
@@ -261,7 +280,7 @@ public void ConsumeHeader ()
     try {
         if (message == null) {
             acs.close(AMQConstant.NOT_ALLOWED, "Content header not allowed (received before delivery frame): " + frame, 0, 0);
-            CleanUp();
+            Cleanup();
             RaiseException(0);
         } else {
             ContentHeaderBody
@@ -277,7 +296,6 @@ public void ConsumeHeader ()
             } else {
                 throw new Exception("Message size too big for client ( > " + Integer.MAX_VALUE + " )");
             }
-            ExpectFrame();
         }
     } catch (Exception e) {
         throw new RuntimeException(e);
@@ -292,11 +310,11 @@ public void ConsumeBody ()
     try {
         if (message == null) {
             acs.close(AMQConstant.NOT_ALLOWED, "Content not allowed (received before delivery frame): " + frame, 0, 0);
-            CleanUp();
+            Cleanup();
             RaiseException(0);
         } else if (message.getHeaders() == null) {
             acs.close(AMQConstant.NOT_ALLOWED, "Content not allowed (received before content header frame): " + frame, 0, 0);
-            CleanUp();
+            Cleanup();
             RaiseException(0);
         } else {
             ByteBuffer
@@ -306,14 +324,12 @@ public void ConsumeBody ()
 
             if (cmp < 0) {
                 acs.close(AMQConstant.CONTENT_TOO_LARGE, "Message content too large (" + (-cmp) + " bytes) with frame: " + frame, 0, 0);
-                CleanUp();
+                Cleanup();
                 RaiseException(0);
             } else {
                 message.getBody().put(payload);
 
-                if (cmp > 0) {
-                    ExpectFrame();
-                } else if (cmp == 0) {
+                if (cmp == 0) {
                     message.getBody().flip();
                     TheNextEvent = MessageConsumedEvent;
                 }

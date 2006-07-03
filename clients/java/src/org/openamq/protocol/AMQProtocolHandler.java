@@ -80,6 +80,9 @@ public class AMQProtocolHandler extends IoHandlerAdapter {
         AMQFrame
             frame = (AMQFrame)message;
 
+        if (_logger.isDebugEnabled())
+            _logger.debug("Frame received: " + frame);
+
         connectionState.SetExternalEvent(frame);
     }
 
@@ -88,15 +91,21 @@ public class AMQProtocolHandler extends IoHandlerAdapter {
 
     public void writeFrame(AMQClientSession session, AMQDataBlock frame) throws Exception
     {
+        if (_logger.isDebugEnabled())
+            _logger.debug("Writing frame: " + frame);
+
         if (connectionState.IsConnectionOpening() || connectionState.IsConnectionOpened()) {
             if (session == null || session.getSessionState().IsChannelOpening() ||
                 session.getSessionState().IsChannelOpened())
 
-                protocolSession.write(frame);
+                if (protocolSession.isConnected())
+                    protocolSession.write(frame);
+                else
+                    _logger.warn("Trying to write a frame on a closed socket: " + frame);
             else
-                throw new IllegalStateException("Trying to write a frame from a closed session.");
+                throw new IllegalStateException("Trying to write a frame from a closed session: " + frame);
         } else {
-            throw new IllegalStateException("Trying to write a frame from a closed connection.");
+            throw new IllegalStateException("Trying to write a frame from a closed connection: " + frame);
         }
     }
 

@@ -2,6 +2,7 @@ package org.openamq;
 
 import java.net.*;
 
+import org.openamq.framing.*;
 import org.openamq.transport.*;
 import org.openamq.protocol.*;
 

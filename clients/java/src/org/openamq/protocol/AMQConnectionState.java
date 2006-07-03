@@ -23,6 +23,8 @@ AMQClientConnection
     acc;
 AMQProtocolHandler
     aph;
+HashMap
+    MethodToEvent;
 LinkedList
     frames;
 AMQFrame
@@ -40,11 +42,18 @@ public AMQConnectionState (AMQClientConnection acc)
 {
     this.acc = acc;
     this.aph = acc.getProtocolHandler();
+    MethodToEvent = new HashMap();
     frames = new LinkedList();
     frame = null;
     ExpectExternalEvent = false;
     ConnectionOpened = false;
     ConnectionOpening = true;
+
+    MethodToEvent.put(ConnectionStartBody.class, new Integer(ProtocolInitiationOkEvent));
+    MethodToEvent.put(ConnectionTuneBody.class, new Integer(ConnectionTuneEvent));
+    MethodToEvent.put(ConnectionOpenOkBody.class, new Integer(ConnectionOpenOkEvent));
+    MethodToEvent.put(ConnectionCloseBody.class, new Integer(ConnectionCloseEvent));
+    MethodToEvent.put(ConnectionCloseOkBody.class, new Integer(ConnectionFinishedEvent));
 }
 
 //////////////////////////////////   M A I N   ////////////////////////////////
@@ -95,33 +104,18 @@ public void GetExternalEvent ()
             } else if (frame.bodyFrame instanceof AMQMethodBody) {
                 amb = (AMQMethodBody)frame.bodyFrame;
 
-                if (amb.getId() < 2000) {
-                    // Connection event
-                    switch (amb.getId())
+                if (amb.getClazz() == ConnectionStartBody.CLASS_ID) {
+                    // Get connection event
+                    Integer event = (Integer)MethodToEvent.get(amb.getClass());
+
+                    if (event != null)
                     {
-                        case 1001:
-                            TheNextEvent = ProtocolInitiationOkEvent;
-                            break;
-                        case 1005:
-                            TheNextEvent = ConnectionTuneEvent;
-                            break;
-                        case 1008:
-                            synchronized (this) {
-                                ConnectionOpened = true;
-                                ConnectionOpening = false;
-                                notifyAll();
-                            }
-                            TheNextEvent = ConnectionOpenOkEvent;
-                            break;
-                        case 1010:
-                            TheNextEvent = ConnectionCloseEvent;
-                            break;
-                        case 1011:
-                            TheNextEvent = ConnectionFinishedEvent;
-                            break;
-                        default:
-                            _logger.debug("No special action for frame at connection level: " + frame);
-                            TheNextEvent = ConnectionOpenOkEvent;
+                        TheNextEvent = event.intValue();
+                    }
+                    else
+                    {
+                        _logger.debug("No special action for frame (at connection level): " + frame);
+                        TheNextEvent = ConnectionOpenOkEvent;
                     }
                 } else {
                     // Dispatch to sessions
@@ -133,8 +127,8 @@ public void GetExternalEvent ()
                 acc.dispatchFrame(frame);
                 TheNextEvent = ConnectionOpenOkEvent;
             } else {
-                acc.close(AMQConstant.NOT_ALLOWED, "Frame not allowed at connection level: " + frame, 0, 0);
-                CleanUp();
+                acc.close(AMQConstant.NOT_ALLOWED, "Frame not allowed (at connection level): " + frame, 0, 0);
+                Cleanup();
                 RaiseException(0);
             }
         } else {
@@ -146,14 +140,14 @@ public void GetExternalEvent ()
             synchronized (frames) {
                 if (frames.isEmpty()) {
                     errorCode = AMQConstant.INTERNAL_ERROR;
-                    errorMessage = "FSM error at connection level";
+                    errorMessage = "FSM error (at connection level)";
                 } else {
                     errorCode = AMQConstant.NOT_ALLOWED;
-                    errorMessage = "Frame not allowed at connection level: " + frame;
+                    errorMessage = "Frame not allowed (at connection level): " + frame;
                 }
             }
             acc.close(errorCode, errorMessage, 0, 0);
-            CleanUp();
+            Cleanup();
             RaiseException(0);
         }
     } catch (Exception e) {
@@ -240,6 +234,17 @@ public void ConnectionOpen ()
     }
 }
 
+////////////////////////   CONNECTION OPEN OK HANDLER   ///////////////////////
+
+public void ConnectionOpenOkHandler ()
+{
+    synchronized (this) {
+        ConnectionOpened = true;
+        ConnectionOpening = false;
+        notifyAll();
+    }
+}
+
 ///////////////////////////   CONNECTION CLOSE OK   ///////////////////////////
 
 public void ConnectionCloseOk ()
@@ -254,12 +259,14 @@ public void ConnectionCloseOk ()
 
 /////////////////////////////////   CLEAN UP   ////////////////////////////////
 
-public void CleanUp ()
+public void Cleanup ()
 {
     synchronized (this) {
         ConnectionOpened = false;
+        ConnectionOpening = false;
     }
     aph.closeProtocolSession();
+    TheNextEvent = TerminateEvent;
 }
 
 ////////////////////////////   CONNECTION TUNE OK   ///////////////////////////
@@ -281,8 +288,11 @@ public void ConnectionTuneOk ()
 
 public void ExpectFrame ()
 {
-    synchronized (frames) {
-        ExpectExternalEvent = true;
+    if (IsConnectionOpened() || IsConnectionOpening())
+    {
+        synchronized (frames) {
+            ExpectExternalEvent = true;
+        }
     }
 }
 

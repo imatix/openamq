@@ -17,18 +17,22 @@ import org.apache.mina.common.ByteBuffer;
  */
 public class $(javaClassName) extends $(method.framingSuperclass) implements EncodableAMQDataBlock
 {
+    public static final int CLASS_ID = $(class.index);
+
+    public static final int METHOD_ID = $(method.index);
+
 .for field by index where !field.global
     public $(field.jtype:no) $(field.jname:no);
 .endfor
 
-    protected int getClazz()
+    public int getClazz()
     {
-        return $(class.index);
+        return CLASS_ID;
     }
-   
-    protected int getMethod()
+
+    public int getMethod()
     {
-        return $(method.index);
+        return METHOD_ID;
     }
 
     protected int getBodySize()

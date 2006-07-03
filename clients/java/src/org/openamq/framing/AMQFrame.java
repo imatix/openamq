@@ -20,14 +20,12 @@ public class AMQFrame extends AMQDataBlock implements EncodableAMQDataBlock
 
     public long getSize()
     {
-        return 1 + 1 + 2 + 4 + bodyFrame.getSize() + 1;
+        return 1 + 2 + 4 + bodyFrame.getSize() + 1;
     }
 
     public void writePayload(ByteBuffer buffer)
     {
         buffer.put(bodyFrame.getType());
-        // this is a filler
-        buffer.put((byte)0);
         // TODO: how does channel get populated
         EncodingUtils.writeUnsignedShort(buffer, channel);
         EncodingUtils.writeUnsignedInteger(buffer, bodyFrame.getSize());
