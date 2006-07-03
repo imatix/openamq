@@ -633,4 +633,30 @@
   </field>
 </method>
 
+<method name = "recover" index = "100">
+  redeliver unacknowledged messages
+  <doc>
+    This method asks the broker to redeliver all unacknowledged messages on a
+    specified channel. Zero or more messages may be redelivered.  This method
+    is only allowed on non-transacted channels.
+  </doc>
+  <chassis name = "server" implement = "MUST" />
+
+  <field name = "requeue" type = "bit">
+    requeue the message
+    <doc>
+      If this field is zero, the message will be redelivered to the original
+      recipient.  If this bit is 1, the server will attempt to requeue the
+      message, potentially then delivering it to an alternative subscriber.
+    </doc>
+  </field>
+
+    <doc name="rule">
+      The server MUST set the redelivered flag on all messages that are resent.
+    </doc>
+    <doc name="rule">
+    The server MUST raise a channel exception if this is called on a transacted channel.
+    </doc>
+</method>
+
 </class>
