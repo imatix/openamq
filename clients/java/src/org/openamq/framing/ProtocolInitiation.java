@@ -11,8 +11,8 @@ public class ProtocolInitiation extends AMQDataBlock implements EncodableAMQData
     // TODO: generate these constants automatically from the xml protocol spec file
     public byte protocolClass = 1;
     public byte protocolInstance = 1;
-    public byte protocolMajor = 10;
-    public byte protocolMinor = 3;
+    public byte protocolMajor = 7;
+    public byte protocolMinor = 0;
 
     public long getSize()
     {
