@@ -57,7 +57,7 @@ public AMQChannelState (AMQClientConnection acc, AMQClientSession acs)
     channelOpened = false;
     channelOpening = true;
 
-    methodToEvent.put(ChannelOpenBody.class, new Integer(channelOpenOkEvent));
+    methodToEvent.put(ChannelOpenOkBody.class, new Integer(channelOpenOkEvent));
     methodToEvent.put(ChannelCloseBody.class, new Integer(channelCloseEvent));
     methodToEvent.put(ChannelCloseOkBody.class, new Integer(channelFinishedEvent));
     methodToEvent.put(BasicReturnBody.class, new Integer(basicReturnEvent));
