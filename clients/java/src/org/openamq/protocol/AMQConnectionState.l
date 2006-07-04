@@ -1,6 +1,6 @@
 -schema=lrschema.jav
 -source="AMQConnectionState"
--style=caps
+-style=java
 
 after-Init:
     (--) ok                                      -> connection-Opening
