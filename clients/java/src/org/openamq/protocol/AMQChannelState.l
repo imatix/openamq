@@ -1,40 +1,40 @@
 -schema=lrschema.jav
 -source="AMQChannelState"
--style=caps
+-style=java
 
-After-Init:
-    (--) Ok                                      -> Channel-Opened
-          + Channel-Open
-          + Expect-frame
-    (--) Channel-Close                           -> Channel-Closed
+after-Init:
+    (--) ok                                      -> channel-Opened
+          + channel-Open
+          + expect-Frame
+    (--) channel-Close                           -> channel-Closed
           + Channel-Close-Ok
 
-Channel-Opened:
-    (--) Channel-Open-Ok                         -> Channel-Opened
-          + Channel-Open-Ok-Handler
-          + Expect-frame
-    (--) Basic-Deliver                           -> Message-Consuming
-          + Basic-Deliver-Handler
-          + Expect-frame
-    (--) Basic-Return                            -> Message-Consuming
-          + Basic-Return-Handler
-          + Expect-frame
-    (--) Channel-Close                           -> Channel-Closed
-          + Channel-Close-Ok
-    (--) Channel-Close-Ok                        -> Channel-Closed
+channel-Opened:
+    (--) channel-Open-Ok                         -> channel-Opened
+          + channel-Open-Ok-Handler
+          + expect-Frame
+    (--) basic-Deliver                           -> message-Consuming
+          + basic-Deliver-Handler
+          + expect-Frame
+    (--) Basic-Return                            -> message-Consuming
+          + basic-Return-Handler
+          + expect-Frame
+    (--) channel-Close                           -> channel-Closed
+          + channel-Close-Ok
+    (--) channel-Close-Ok                        -> channel-Closed
 
-Message-Consuming:
-    (--) Content-Header                          -> Message-Consuming
-          + Consume-Header
-          + Expect-frame
-    (--) Content-Body                            -> Message-Consuming
-          + Consume-Body
-          + Expect-frame
-    (--) Message-Consumed                        -> Channel-Opened
-          + Dispatch-Message
-    (--) Channel-Close                           -> Channel-Closed
-          + Channel-Close-Ok
+message-Consuming:
+    (--) content-Header                          -> message-Consuming
+          + consume-Header
+          + expect-Frame
+    (--) content-Body                            -> message-Consuming
+          + consume-Body
+          + expect-Frame
+    (--) message-Consumed                        -> channel-Opened
+          + dispatch-Message
+    (--) channel-Close                           -> channel-Closed
+          + channel-Close-Ok
                     
-Channel-Closed:
-    (--) Channel-Finished                        ->
-          + Cleanup
+channel-Closed:
+    (--) channel-Finished                        ->
+          + cleanup

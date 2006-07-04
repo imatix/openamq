@@ -27,7 +27,7 @@ AMQClientSession
 AMQProtocolHandler
     aph;
 HashMap
-    MethodToEvent;
+    methodToEvent;
 LinkedList
     frames;
 AMQFrame
@@ -37,9 +37,9 @@ AMQMethodBody
 AMQMessage
     message;
 boolean
-    ExpectExternalEvent,
-    ChannelOpened,
-    ChannelOpening;
+    expectExternalEvent,
+    channelOpened,
+    channelOpening;
 
 ///////////////////////////   C O N T R U C T O R   ///////////////////////////
 
@@ -48,20 +48,20 @@ public AMQChannelState (AMQClientConnection acc, AMQClientSession acs)
     this.acc = acc;
     this.acs = acs;
     this.aph = acc.getProtocolHandler();
-    MethodToEvent = new HashMap();
+    methodToEvent = new HashMap();
     frames = new LinkedList();
     frame = null;
     amb = null;
     message = null;
-    ExpectExternalEvent = false;
-    ChannelOpened = false;
-    ChannelOpening = true;
+    expectExternalEvent = false;
+    channelOpened = false;
+    channelOpening = true;
 
-    MethodToEvent.put(ChannelOpenBody.class, new Integer(ChannelOpenOkEvent));
-    MethodToEvent.put(ChannelCloseBody.class, new Integer(ChannelCloseEvent));
-    MethodToEvent.put(ChannelCloseOkBody.class, new Integer(ChannelFinishedEvent));
-    MethodToEvent.put(BasicReturnBody.class, new Integer(BasicReturnEvent));
-    MethodToEvent.put(BasicDeliverBody.class, new Integer(BasicDeliverEvent));
+    methodToEvent.put(ChannelOpenBody.class, new Integer(ChannelOpenOkEvent));
+    methodToEvent.put(ChannelCloseBody.class, new Integer(ChannelCloseEvent));
+    methodToEvent.put(ChannelCloseOkBody.class, new Integer(ChannelFinishedEvent));
+    methodToEvent.put(BasicReturnBody.class, new Integer(BasicReturnEvent));
+    methodToEvent.put(BasicDeliverBody.class, new Integer(BasicDeliverEvent));
 }
 
 //////////////////////////////////   M A I N   ////////////////////////////////
@@ -74,14 +74,14 @@ public void run ()
 
 //////////////////////////   INITIALISE THE PROGRAM   /////////////////////////
 
-public void InitialiseTheProgram ()
+public void initialiseTheProgram ()
 {
-    TheNextEvent = OkEvent;
+    theNextEvent = okEvent;
 }
 
 ////////////////////////////   SET EXTERNAL EVENT   ///////////////////////////
 
-public void SetExternalEvent (AMQFrame frame)
+public void setExternalEvent (AMQFrame frame)
 {
     synchronized (frames) {
         frames.add(frame);
@@ -91,17 +91,17 @@ public void SetExternalEvent (AMQFrame frame)
 
 ////////////////////////////   GET EXTERNAL EVENT   ///////////////////////////
 
-public void GetExternalEvent ()
+public void getExternalEvent ()
 {
     synchronized (frames) {
-        while (ExpectExternalEvent) {
+        while (expectExternalEvent) {
             if (frames.isEmpty()) {
                 try {
                     frames.wait();
                 } catch (InterruptedException e) {}
             } else {
                 frame = (AMQFrame)frames.removeFirst();
-                ExpectExternalEvent = false;
+                expectExternalEvent = false;
             }
         }
     }
@@ -111,21 +111,21 @@ public void GetExternalEvent ()
             if (frame.bodyFrame instanceof AMQMethodBody) {
                 amb = (AMQMethodBody)frame.bodyFrame;
                 // Get connection event
-                Integer event = (Integer)MethodToEvent.get(amb.getClass());
+                Integer event = (Integer)methodToEvent.get(amb.getClass());
 
                 if (event != null)
                 {
-                    TheNextEvent = event.intValue();
+                    theNextEvent = event.intValue();
                 }
                 else
                 {
                     _logger.debug("No special action for frame (at channel level): " + frame);
-                    TheNextEvent = ChannelOpenOkEvent;
+                    theNextEvent = channelOpenOkEvent;
                 }
             } else if (frame.bodyFrame instanceof BasicContentHeaderBody) {
-                TheNextEvent = ContentHeaderEvent;
+                theNextEvent = contentHeaderEvent;
             } else if (frame.bodyFrame instanceof ContentBody) {
-                TheNextEvent = ContentBodyEvent;
+                theNextEvent = contentBodyEvent;
             } else {
                 acs.close(AMQConstant.NOT_ALLOWED, "Frame not allowed (at channel level): " + frame, 0, 0);
                 Cleanup();
@@ -157,10 +157,10 @@ public void GetExternalEvent ()
 
 ///////////////////////   WAIT FOR CHANNEL OPENED   ///////////////////////////
 
-public void WaitChannelOpened ()
+public void waitchannelOpened ()
 {
     synchronized (this) {
-        while (!ChannelOpened) {
+        while (!channelOpened) {
             try {
                 wait();
             } catch (InterruptedException e) {}
@@ -170,19 +170,19 @@ public void WaitChannelOpened ()
 
 ////////////////////////   CHECK FOR CHANNEL OPENED   /////////////////////////
 
-public boolean IsChannelOpened ()
+public boolean ischannelOpened ()
 {
     synchronized (this) {
-        return ChannelOpened;
+        return channelOpened;
     }
 }
 
 ////////////////////////   CHECK FOR CHANNEL OPENING   ////////////////////////
 
-public boolean IsChannelOpening ()
+public boolean ischannelOpening ()
 {
     synchronized (this) {
-        return ChannelOpening;
+        return channelOpening;
     }
 }
 
@@ -190,7 +190,7 @@ public boolean IsChannelOpening ()
 
 ///////////////////////////////   CHANNEL OPEN   //////////////////////////////
 
-public void ChannelOpen ()
+public void channelOpen ()
 {
     try {
         aph.writeFrame(acs, ChannelOpenBody.createAMQFrame(acs.getSessionId(), null));
@@ -201,23 +201,23 @@ public void ChannelOpen ()
 
 /////////////////////////   CHANNEL OPEN OK HANDLER   /////////////////////////
 
-public void ChannelOpenOkHandler ()
+public void channelOpenOkHandler ()
 {
     synchronized (this) {
-        ChannelOpened = true;
-        ChannelOpening = false;
+        channelOpened = true;
+        channelOpening = false;
         notifyAll();
     }
 }
 
 ///////////////////////////////   EXPECT FRAME   //////////////////////////////
 
-public void ExpectFrame ()
+public void expectFrame ()
 {
-    if (IsChannelOpened() || IsChannelOpening())
+    if (IschannelOpened() || IschannelOpening())
     {
         synchronized (frames) {
-            ExpectExternalEvent = true;
+            expectExternalEvent = true;
         }
     }
 }
@@ -225,11 +225,11 @@ public void ExpectFrame ()
 
 /////////////////////////////   CHANNEL CLOSE OK   ////////////////////////////
 
-public void ChannelCloseOk ()
+public void channelCloseOk ()
 {
     try {
         aph.writeFrame(acs, ChannelCloseOkBody.createAMQFrame(acs.getSessionId()));
-        TheNextEvent = ChannelFinishedEvent;
+        theNextEvent = channelFinishedEvent;
     } catch (Exception e) {
         throw new RuntimeException(e);
     }
@@ -238,18 +238,18 @@ public void ChannelCloseOk ()
 
 /////////////////////////////////   CLEAN UP   ////////////////////////////////
 
-public void Cleanup ()
+public void cleanup ()
 {
     synchronized (this) {
-        ChannelOpened = false;
-        ChannelOpening = false;
+        channelOpened = false;
+        channelOpening = false;
     }
-    TheNextEvent = TerminateEvent;
+    theNextEvent = terminateEvent;
 }
 
 //////////////////////////   BASIC DELIVER HANDLER   //////////////////////////
 
-public void BasicDeliverHandler ()
+public void basicDeliverHandler ()
 {
     message = acs.createMessage();
     message.setDelivery(amb);
@@ -257,25 +257,25 @@ public void BasicDeliverHandler ()
 
 //////////////////////////   BASIC RETURN HANDLER   ///////////////////////////
 
-public void BasicReturnHandler ()
+public void basicReturnHandler ()
 {
     BasicDeliverHandler();
 }
 
 /////////////////////////////   DISPATCH MESSAGE   ////////////////////////////
 
-public void DispatchMessage ()
+public void dispatchMessage ()
 {
     acs.messageReceived(message);
     message = null;
 
-    TheNextEvent = ChannelOpenOkEvent;
+    theNextEvent = channelOpenOkEvent;
 }
 
 
 //////////////////////////////   CONSUME HEADER   /////////////////////////////
 
-public void ConsumeHeader ()
+public void consumeHeader ()
 {
     try {
         if (message == null) {
@@ -305,7 +305,7 @@ public void ConsumeHeader ()
 
 ///////////////////////////////   CONSUME BODY   //////////////////////////////
 
-public void ConsumeBody ()
+public void consumeBody ()
 {
     try {
         if (message == null) {
@@ -331,7 +331,7 @@ public void ConsumeBody ()
 
                 if (cmp == 0) {
                     message.getBody().flip();
-                    TheNextEvent = MessageConsumedEvent;
+                    theNextEvent = messageConsumedEvent;
                 }
             }
         }

@@ -2,32 +2,32 @@
 -source="AMQConnectionState"
 -style=caps
 
-After-Init:
-    (--) Ok                                      -> Connection-Opening
-          + Send-Protocol-Initiation
-          + Expect-frame
-    (--) Connection-Close                        -> Connection-Closed
-          + Connection-Close-Ok
+after-Init:
+    (--) ok                                      -> connection-Opening
+          + send-Protocol-Initiation
+          + expect-Frame
+    (--) connection-Close                        -> connection-Closed
+          + connection-Close-Ok
 
-Connection-Opening:
-    (--) Protocol-Initiation-Ok                  -> Connection-Opening
-          + Connection-Start-OK
-          + Expect-frame
-    (--) Connection-Tune                         -> Connection-Opened
-          + Connection-Tune-Ok
-          + Connection-Open
-          + Expect-frame
-    (--) Connection-Close                        -> Connection-Closed
-          + Connection-Close-Ok
+connection-Opening:
+    (--) protocol-Initiation-Ok                  -> connection-Opening
+          + connection-Start-OK
+          + expect-frame
+    (--) connection-Tune                         -> connection-Opened
+          + connection-Tune-Ok
+          + connection-Open
+          + expect-Frame
+    (--) connection-Close                        -> connection-Closed
+          + connection-Close-Ok
 
-Connection-Opened:
-    (--) Connection-Open-Ok                      -> Connection-Opened
-          + Connection-Open-Ok-Handler
-          + Expect-frame
-    (--) Connection-Close                        -> Connection-Closed
-          + Connection-Close-Ok
-    (--) Connection-Close-Ok                     -> Connection-Closed
+connection-Opened:
+    (--) connection-Open-Ok                      -> connection-Opened
+          + connection-Open-Ok-Handler
+          + expect-Frame
+    (--) connection-Close                        -> connection-Closed
+          + connection-Close-Ok
+    (--) connection-Close-Ok                     -> connection-Closed
                     
-Connection-Closed:
-    (--) Connection-Finished                     ->
-          + Cleanup
+connection-Closed:
+    (--) connection-Finished                     ->
+          + cleanup
