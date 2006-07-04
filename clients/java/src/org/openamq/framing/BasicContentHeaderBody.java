@@ -5,7 +5,7 @@ import org.apache.mina.common.ByteBuffer;
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
-public class ContentHeaderBody extends AMQBody
+public class BasicContentHeaderBody extends AMQBody
 {
     public static final byte TYPE = 2;
 
@@ -19,17 +19,17 @@ public class ContentHeaderBody extends AMQBody
     /** must never be null */
     public BasicContentHeaderProperties properties;
 
-    public ContentHeaderBody()
+    public BasicContentHeaderBody()
     {
     }
 
-    public ContentHeaderBody(BasicContentHeaderProperties props, int classId)
+    public BasicContentHeaderBody(BasicContentHeaderProperties props, int classId)
     {
         properties = props;
         this.classId = classId;
     }
 
-    public ContentHeaderBody(int classId, int weight, BasicContentHeaderProperties props, long bodySize)
+    public BasicContentHeaderBody(int classId, int weight, BasicContentHeaderProperties props, long bodySize)
     {
         this(props, classId);
         this.weight = weight;
