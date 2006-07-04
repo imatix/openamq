@@ -15,12 +15,12 @@ public abstract class AMQMethodBody extends AMQBody
     /**
      * @return unsigned short
      */
-    public abstract int getClazz();
+    public abstract int getClassId();
 
     /**
      * @return unsigned short
      */
-    public abstract int getMethod();
+    public abstract int getMethodId();
 
     protected abstract void writeMethodPayload(ByteBuffer buffer);
 
@@ -36,8 +36,8 @@ public abstract class AMQMethodBody extends AMQBody
 
     protected void writePayload(ByteBuffer buffer)
     {
-        EncodingUtils.writeUnsignedShort(buffer, getClazz());
-        EncodingUtils.writeUnsignedShort(buffer, getMethod());
+        EncodingUtils.writeUnsignedShort(buffer, getClassId());
+        EncodingUtils.writeUnsignedShort(buffer, getMethodId());
         writeMethodPayload(buffer);
     }
 
@@ -51,8 +51,8 @@ public abstract class AMQMethodBody extends AMQBody
     public String toString()
     {
         StringBuffer buf = new StringBuffer(getClass().toString());
-        buf.append("\n\tClass: ").append(getClazz());
-        buf.append("\n\tMethod: ").append(getMethod());
+        buf.append("\n\tClass: ").append(getClassId());
+        buf.append("\n\tMethod: ").append(getMethodId());
         return buf.toString();
     }
 
@@ -62,11 +62,11 @@ public abstract class AMQMethodBody extends AMQBody
      */
     public AMQChannelException getChannelException(int code, String message)
     {
-        return new AMQChannelException(code, message, getClazz(), getMethod());
+        return new AMQChannelException(code, message, getClassId(), getMethodId());
     }
 
     public AMQChannelException getChannelException(int code, String message, Throwable cause)
     {
-        return new AMQChannelException(code, message, getClazz(), getMethod(), cause);
+        return new AMQChannelException(code, message, getClassId(), getMethodId(), cause);
     }
 }

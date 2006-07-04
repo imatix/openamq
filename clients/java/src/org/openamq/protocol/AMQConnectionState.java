@@ -104,7 +104,7 @@ public void GetExternalEvent ()
             } else if (frame.bodyFrame instanceof AMQMethodBody) {
                 amb = (AMQMethodBody)frame.bodyFrame;
 
-                if (amb.getClazz() == ConnectionStartBody.CLASS_ID) {
+                if (amb.getClassId() == ConnectionStartBody.CLASS_ID) {
                     // Get connection event
                     Integer event = (Integer)MethodToEvent.get(amb.getClass());
 

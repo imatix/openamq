@@ -25,12 +25,12 @@ public class $(javaClassName) extends $(method.framingSuperclass) implements Enc
     public $(field.jtype:no) $(field.jname:no);
 .endfor
 
-    public int getClazz()
+    public int getClassId()
     {
         return CLASS_ID;
     }
 
-    public int getMethod()
+    public int getMethodId()
     {
         return METHOD_ID;
     }
