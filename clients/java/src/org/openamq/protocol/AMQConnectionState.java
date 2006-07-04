@@ -49,11 +49,11 @@ public AMQConnectionState (AMQClientConnection acc)
     connectionOpened = false;
     connectionOpening = true;
 
-    methodToEvent.put(ConnectionStartBody.class, new Integer(ProtocolInitiationOkEvent));
-    methodToEvent.put(ConnectionTuneBody.class, new Integer(ConnectionTuneEvent));
-    methodToEvent.put(ConnectionOpenOkBody.class, new Integer(ConnectionOpenOkEvent));
-    methodToEvent.put(ConnectionCloseBody.class, new Integer(ConnectionCloseEvent));
-    methodToEvent.put(ConnectionCloseOkBody.class, new Integer(ConnectionFinishedEvent));
+    methodToEvent.put(ConnectionStartBody.class, new Integer(protocolInitiationOkEvent));
+    methodToEvent.put(ConnectionTuneBody.class, new Integer(connectionTuneEvent));
+    methodToEvent.put(ConnectionOpenOkBody.class, new Integer(connectionOpenOkEvent));
+    methodToEvent.put(ConnectionCloseBody.class, new Integer(connectionCloseEvent));
+    methodToEvent.put(ConnectionCloseOkBody.class, new Integer(connectionFinishedEvent));
 }
 
 //////////////////////////////////   M A I N   ////////////////////////////////
@@ -128,8 +128,8 @@ public void getExternalEvent ()
                 theNextEvent = connectionOpenOkEvent;
             } else {
                 acc.close(AMQConstant.NOT_ALLOWED, "Frame not allowed (at connection level): " + frame, 0, 0);
-                Cleanup();
-                RaiseException(0);
+                cleanup();
+                raiseException(0);
             }
         } else {
             int
@@ -147,8 +147,8 @@ public void getExternalEvent ()
                 }
             }
             acc.close(errorCode, errorMessage, 0, 0);
-            Cleanup();
-            RaiseException(0);
+            cleanup();
+            raiseException(0);
         }
     } catch (Exception e) {
         throw new RuntimeException(e);
@@ -157,7 +157,7 @@ public void getExternalEvent ()
 
 ///////////////////////   WAIT FOR CONNECTION OPENED   ////////////////////////
 
-public void waitconnectionOpened ()
+public void waitConnectionOpened ()
 {
     synchronized (this) {
         while (!connectionOpened) {
@@ -170,7 +170,7 @@ public void waitconnectionOpened ()
 
 ///////////////////////   CHECK FOR CONNECTION OPENED   ///////////////////////
 
-public boolean isconnectionOpened ()
+public boolean isConnectionOpened ()
 {
     synchronized (this) {
         return connectionOpened;
@@ -179,7 +179,7 @@ public boolean isconnectionOpened ()
 
 ///////////////////////   CHECK FOR CONNECTION OPENING   //////////////////////
 
-public boolean isconnectionOpening ()
+public boolean isConnectionOpening ()
 {
     synchronized (this) {
         return connectionOpening;
@@ -288,7 +288,7 @@ public void connectionTuneOk ()
 
 public void expectFrame ()
 {
-    if (IsconnectionOpened() || IsconnectionOpening())
+    if (isConnectionOpened() || isConnectionOpening())
     {
         synchronized (frames) {
             expectExternalEvent = true;

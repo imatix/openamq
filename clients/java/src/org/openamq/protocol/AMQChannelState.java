@@ -57,11 +57,11 @@ public AMQChannelState (AMQClientConnection acc, AMQClientSession acs)
     channelOpened = false;
     channelOpening = true;
 
-    methodToEvent.put(ChannelOpenBody.class, new Integer(ChannelOpenOkEvent));
-    methodToEvent.put(ChannelCloseBody.class, new Integer(ChannelCloseEvent));
-    methodToEvent.put(ChannelCloseOkBody.class, new Integer(ChannelFinishedEvent));
-    methodToEvent.put(BasicReturnBody.class, new Integer(BasicReturnEvent));
-    methodToEvent.put(BasicDeliverBody.class, new Integer(BasicDeliverEvent));
+    methodToEvent.put(ChannelOpenBody.class, new Integer(channelOpenOkEvent));
+    methodToEvent.put(ChannelCloseBody.class, new Integer(channelCloseEvent));
+    methodToEvent.put(ChannelCloseOkBody.class, new Integer(channelFinishedEvent));
+    methodToEvent.put(BasicReturnBody.class, new Integer(basicReturnEvent));
+    methodToEvent.put(BasicDeliverBody.class, new Integer(basicDeliverEvent));
 }
 
 //////////////////////////////////   M A I N   ////////////////////////////////
@@ -128,8 +128,8 @@ public void getExternalEvent ()
                 theNextEvent = contentBodyEvent;
             } else {
                 acs.close(AMQConstant.NOT_ALLOWED, "Frame not allowed (at channel level): " + frame, 0, 0);
-                Cleanup();
-                RaiseException(0);
+                cleanup();
+                raiseException(0);
             }
         } else {
             int
@@ -147,8 +147,8 @@ public void getExternalEvent ()
                 }
             }
             acs.close(errorCode, errorMessage, 0, 0);
-            Cleanup();
-            RaiseException(0);
+            cleanup();
+            raiseException(0);
         }
     } catch (Exception e) {
         throw new RuntimeException(e);
@@ -157,7 +157,7 @@ public void getExternalEvent ()
 
 ///////////////////////   WAIT FOR CHANNEL OPENED   ///////////////////////////
 
-public void waitchannelOpened ()
+public void waitChannelOpened ()
 {
     synchronized (this) {
         while (!channelOpened) {
@@ -170,7 +170,7 @@ public void waitchannelOpened ()
 
 ////////////////////////   CHECK FOR CHANNEL OPENED   /////////////////////////
 
-public boolean ischannelOpened ()
+public boolean isChannelOpened ()
 {
     synchronized (this) {
         return channelOpened;
@@ -179,7 +179,7 @@ public boolean ischannelOpened ()
 
 ////////////////////////   CHECK FOR CHANNEL OPENING   ////////////////////////
 
-public boolean ischannelOpening ()
+public boolean isChannelOpening ()
 {
     synchronized (this) {
         return channelOpening;
@@ -214,7 +214,7 @@ public void channelOpenOkHandler ()
 
 public void expectFrame ()
 {
-    if (IschannelOpened() || IschannelOpening())
+    if (isChannelOpened() || isChannelOpening())
     {
         synchronized (frames) {
             expectExternalEvent = true;
@@ -259,7 +259,7 @@ public void basicDeliverHandler ()
 
 public void basicReturnHandler ()
 {
-    BasicDeliverHandler();
+    basicDeliverHandler();
 }
 
 /////////////////////////////   DISPATCH MESSAGE   ////////////////////////////
@@ -280,8 +280,8 @@ public void consumeHeader ()
     try {
         if (message == null) {
             acs.close(AMQConstant.NOT_ALLOWED, "Content header not allowed (received before delivery frame): " + frame, 0, 0);
-            Cleanup();
-            RaiseException(0);
+            cleanup();
+            raiseException(0);
         } else {
             BasicContentHeaderBody
                 bchb = (BasicContentHeaderBody)frame.bodyFrame;
@@ -310,12 +310,12 @@ public void consumeBody ()
     try {
         if (message == null) {
             acs.close(AMQConstant.NOT_ALLOWED, "Content not allowed (received before delivery frame): " + frame, 0, 0);
-            Cleanup();
-            RaiseException(0);
+            cleanup();
+            raiseException(0);
         } else if (message.getHeaders() == null) {
             acs.close(AMQConstant.NOT_ALLOWED, "Content not allowed (received before content header frame): " + frame, 0, 0);
-            Cleanup();
-            RaiseException(0);
+            cleanup();
+            raiseException(0);
         } else {
             ByteBuffer
                 payload = ((ContentBody)frame.bodyFrame).payload;
@@ -324,8 +324,8 @@ public void consumeBody ()
 
             if (cmp < 0) {
                 acs.close(AMQConstant.CONTENT_TOO_LARGE, "Message content too large (" + (-cmp) + " bytes) with frame: " + frame, 0, 0);
-                Cleanup();
-                RaiseException(0);
+                cleanup();
+                raiseException(0);
             } else {
                 message.getBody().put(payload);
 

@@ -69,7 +69,7 @@ public class AMQProtocolHandler extends IoHandlerAdapter {
         if (iwrite)
             writeFrame(null, HeartbeatBody.FRAME);
         if (iread) 
-            connectionState.SetExternalEvent(ConnectionCloseOkBody.createAMQFrame(0));
+            connectionState.setExternalEvent(ConnectionCloseOkBody.createAMQFrame(0));
     }
 
     public void exceptionCaught(IoSession session, Throwable t) throws Exception {
@@ -83,7 +83,7 @@ public class AMQProtocolHandler extends IoHandlerAdapter {
         if (_logger.isDebugEnabled())
             _logger.debug("Frame received: " + frame);
 
-        connectionState.SetExternalEvent(frame);
+        connectionState.setExternalEvent(frame);
     }
 
     public void messageSent(IoSession session, Object message) throws Exception {
@@ -94,9 +94,9 @@ public class AMQProtocolHandler extends IoHandlerAdapter {
         if (_logger.isDebugEnabled())
             _logger.debug("Writing frame: " + frame);
 
-        if (connectionState.IsConnectionOpening() || connectionState.IsConnectionOpened()) {
-            if (session == null || session.getSessionState().IsChannelOpening() ||
-                session.getSessionState().IsChannelOpened())
+        if (connectionState.isConnectionOpening() || connectionState.isConnectionOpened()) {
+            if (session == null || session.getSessionState().isChannelOpening() ||
+                session.getSessionState().isChannelOpened())
 
                 if (protocolSession.isConnected())
                     protocolSession.write(frame);
