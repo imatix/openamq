@@ -70,11 +70,11 @@ public class BasicContentHeaderBody extends AMQBody
     {
         final AMQFrame frame = new AMQFrame();
         frame.channel = channelId;
-        frame.bodyFrame = new ContentHeaderBody(classId, weight, properties, bodySize);
+        frame.bodyFrame = new BasicContentHeaderBody(classId, weight, properties, bodySize);
         return frame;
     }
 
-    public static AMQFrame createAMQFrame(int channelId, ContentHeaderBody body)
+    public static AMQFrame createAMQFrame(int channelId, BasicContentHeaderBody body)
     {
         final AMQFrame frame = new AMQFrame();
         frame.channel = channelId;

@@ -10,7 +10,7 @@ public class BasicContentHeaderBodyFactory implements BodyFactory
 {
     private static final Logger _log = Logger.getLogger(AMQMethodBodyFactory.class);
 
-    private static final BasicContentHeaderBodyFactory _instance = new ContentHeaderBodyFactory();
+    private static final BasicContentHeaderBodyFactory _instance = new BasicContentHeaderBodyFactory();
 
     public static BasicContentHeaderBodyFactory getInstance()
     {

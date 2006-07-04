@@ -43,25 +43,34 @@
 </directory>
 
 <directory name = "src/org/openamq/framing"            class = "private resource">
+    <file name = "AMQBody.java"                        ></file>
+    <file name = "AMQDataBlock.java"                   ></file>
     <file name = "AMQDataBlockDecoder.java"            ></file>
     <file name = "AMQDataBlockEncoder.java"            ></file>
-    <file name = "AMQDataBlock.java"                   ></file>
-    <file name = "AMQFrameDecodingException.java"      ></file>
-    <file name = "AMQProtocolEncoder.java"             ></file>
     <file name = "AMQFrame.java"                       ></file>
+    <file name = "AMQFrameDecodingException.java"      ></file>
+    <file name = "AMQMethodBody.java"                  ></file>
+    <file name = "AMQMethodBodyFactory.java"           ></file>
     <file name = "AMQProtocolClassException.java"      ></file>
     <file name = "AMQProtocolCodecFactory.java"        ></file>
     <file name = "AMQProtocolDecoder.java"             ></file>
+    <file name = "AMQProtocolEncoder.java"             ></file>
     <file name = "AMQProtocolHeaderException.java"     ></file>
     <file name = "AMQProtocolInstanceException.java"   ></file>
     <file name = "AMQProtocolVersionException.java"    ></file>
+    <file name = "BasicContentHeaderBody.java"         ></file>
+    <file name = "BasicContentHeaderBodyFactory.java"  ></file>
     <file name = "BasicContentHeaderProperties.java"   ></file>
+    <file name = "BodyFactory.java"                    ></file>
     <file name = "CompositeAMQDataBlock.java"          ></file>
-    <file name = "ContentHeaderPropertiesFactory.java" ></file>
-    <file name = "ContentHeaderProperties.java"        ></file>
+    <file name = "ContentBody.java"                    ></file>
+    <file name = "ContentBodyFactory.java"             ></file>
     <file name = "EncodableAMQDataBlock.java"          ></file>
     <file name = "EncodingUtils.java"                  ></file>
     <file name = "FieldTable.java"                     ></file>
+    <file name = "HeartbeatBody.java"                  ></file>
+    <file name = "HeartbeatBodyFactory.java"           ></file>
+    <file name = "MethodBodyDecoderRegistry.java"      ></file>
     <file name = "ProtocolInitiation.java"             ></file>
 </directory>
 

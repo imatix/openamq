@@ -6,7 +6,7 @@ import org.apache.log4j.Logger;
 /**
  * @author Robert Greig (robert.j.greig@jpmorgan.com)
  */
-public class BasicContentHeaderProperties implements ContentHeaderProperties
+public class BasicContentHeaderProperties
 {
     private static final Logger _logger = Logger.getLogger(BasicContentHeaderProperties.class);
 

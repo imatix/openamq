@@ -177,7 +177,7 @@ public class AMQClientSession {
 
         frames[0] = BasicPublishBody.createAMQFrame(sessionId, 0, exchange, routingKey,
             mandatory, immediate);
-        frames[1] = ContentHeaderBody.createAMQFrame(sessionId, BasicConsumeBody.CLASS_ID, 0, message.getHeaders(), body.limit());
+        frames[1] = BasicContentHeaderBody.createAMQFrame(sessionId, BasicConsumeBody.CLASS_ID, 0, message.getHeaders(), body.limit());
 
         writeFrame(new CompositeAMQDataBlock(frames, body, frameLimit));
     }

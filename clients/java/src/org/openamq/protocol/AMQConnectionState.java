@@ -122,7 +122,7 @@ public void GetExternalEvent ()
                     acc.dispatchFrame(frame);
                     TheNextEvent = ConnectionOpenOkEvent;
                 }
-            } else if (frame.bodyFrame instanceof ContentBody || frame.bodyFrame instanceof ContentHeaderBody) {
+            } else if (frame.bodyFrame instanceof ContentBody || frame.bodyFrame instanceof BasicContentHeaderBody) {
                 // Dispatch to sessions
                 acc.dispatchFrame(frame);
                 TheNextEvent = ConnectionOpenOkEvent;

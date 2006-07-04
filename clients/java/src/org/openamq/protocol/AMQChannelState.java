@@ -122,7 +122,7 @@ public void GetExternalEvent ()
                     _logger.debug("No special action for frame (at channel level): " + frame);
                     TheNextEvent = ChannelOpenOkEvent;
                 }
-            } else if (frame.bodyFrame instanceof ContentHeaderBody) {
+            } else if (frame.bodyFrame instanceof BasicContentHeaderBody) {
                 TheNextEvent = ContentHeaderEvent;
             } else if (frame.bodyFrame instanceof ContentBody) {
                 TheNextEvent = ContentBodyEvent;
@@ -283,13 +283,13 @@ public void ConsumeHeader ()
             Cleanup();
             RaiseException(0);
         } else {
-            ContentHeaderBody
-                chb = (ContentHeaderBody)frame.bodyFrame;
+            BasicContentHeaderBody
+                bchb = (BasicContentHeaderBody)frame.bodyFrame;
 
-            message.setHeaders((BasicContentHeaderProperties)chb.properties);
-            if (chb.bodySize <= Integer.MAX_VALUE) {
+            message.setHeaders((BasicContentHeaderProperties)bchb.properties);
+            if (bchb.bodySize <= Integer.MAX_VALUE) {
                 int
-                    size = (int)chb.bodySize;
+                    size = (int)bchb.bodySize;
 
                 message.setBody(ByteBuffer.allocate(size));
                 message.getBody().limit(size);
