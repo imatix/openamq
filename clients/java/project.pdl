@@ -10,6 +10,12 @@
 
 <include filename = "prelude.pdl" />
 
+<!-- Library dependencies -->
+<directory name = "lib"  class = "public binary">
+    <file name = "mina-core-0.9.5-SNAPSHOT.jar"         ></file>
+    <file name = "log4j-1.2.13.jar"                     ></file>
+</directory>
+
 <!-- AMQPJ Jar files -->
 <directory name = "dist"  class = "shared library">
     <file name = "amqpj.jar"                           >AMQP Java API</file>
