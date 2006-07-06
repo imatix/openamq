@@ -214,7 +214,7 @@
   <generate>
     <execute>
     gsl -q amq_server_config.opf
-    gsl -q amq_console_schema
+    gsl -q amq_console_schema.gsl
     </execute>
   </generate>
 </actions>
