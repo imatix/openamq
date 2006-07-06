@@ -1,3 +1,11 @@
+1.0c4 - 2006/07/06
+---------------------------------------------------------------------
+     JAMQ-6     backport of issues: 
+     AMQ-496    Dynamic logging to be implemented in server. 
+     AMQ-504    amq_shell does not display the correct start time of a connection 
+     AMQ-510    Assertion failure in file smt_thread_queue.c, line 760 
+     AMQ-500    GRM_C applications not getting killed by amq_shell
+
 1.0c3 - 2006/05/24
 ---------------------------------------------------------------------
 
