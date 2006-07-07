@@ -1,0 +1,40 @@
+Changes
+
+- queue detail should list consumers with connection data
+    -> consumer needs to be changed to async object
+    -> consumer needs to be added to console schema
+- from connection, show all consumed queues, not just private queues
+    -> need to add list of queues at connection level
+
+- allow wildcard matching on ls command (on object name, I guess)
+- use 'cd' plus number to navigate
+
+Postponed
+
+- show all non-private queues at top level (broker)
+
+Cannot do
+
+- emulate file system interface
+
+Done
+
+- show exchange type for last binding in queue properties
+- show routing key for last binding in queue properties
+- send normal output to STDOUT not STDERR
+- make IP translation optional
+- add total messages in, out to queues, and show on summary
+- add total messages in, out to broker and show on summary (if not already done)
+- show messages pending on queues (inad) in number and MB
+- do not display objects on [Enter], require an 'ls' command
+
+Modified files                      Backported?
+    amq_operate_api.gsl
+    amq_shell.c
+    amq_mgt_console.icl
+    amq_queue.icl                   ok
+    amq_broker.icl                  ok
+    amq_server.asl                  ok
+    asl_broker.icl                  ok
+    asl_server_agent.gsl            ok
+    icl_console.icl                 ok
