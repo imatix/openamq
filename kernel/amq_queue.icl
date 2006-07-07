@@ -184,7 +184,7 @@ class.  This is a lock-free asynchronous class.
     assert (self->auto_delete);
     if (self->consumers == 0) {
         if (amq_server_config_debug_queue (amq_server_config))
-            smt_log_print (amq_broker->debug_log, "Q: auto-del queue=%s", self->name);
+            asl_log_print (amq_broker->debug_log, "Q: auto-del queue=%s", self->name);
 
         queue_ref = amq_queue_link (self);
         amq_vhost_unbind_queue (self->vhost, queue_ref);
