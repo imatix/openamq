@@ -1,3 +1,18 @@
+1.0d1 - 2006/06/08
+---------------------------------------------------------------------
+Bugfixes (backport):
+    JAMQ-4     Old queues are recreated on primary server after restart in
+               cluster mode.
+    JAMQ-2     Assertion failure on `self->object_tag == 0xFABB' in
+               amq_consumer_unlink_ at amq_consumer.c:1238
+    JAMQ-3     amq_shell does not display the correct start time of a
+               connection
+    JAMQ-1     server dumps while setting trace level using amq_shell
+
+Bugfixes:
+    AMQ-504    amq_shell does not display the correct start time of a
+               connection
+
 1.0d0 - 2006/06/08
 ---------------------------------------------------------------------
 Changes:
@@ -31,6 +46,18 @@ Bugfixes:
     AMQ-503    OpenAMQ tests fail to build   
     AMQ-504    amq_shell does not display the correct start time of a connection
 
+
+1.0c5 - 2006/07/10
+---------------------------------------------------------------------
+     JAMQ-2     Added patch to remove extra unlinks on async cancel failure
+
+1.0c4 - 2006/07/06
+---------------------------------------------------------------------
+     JAMQ-6     backport of issues:
+     AMQ-496    Dynamic logging to be implemented in server.
+     AMQ-504    amq_shell does not display the correct start time of a connection
+     AMQ-510    Assertion failure in file smt_thread_queue.c, line 760
+     AMQ-500    GRM_C applications not getting killed by amq_shell
 
 
 1.0c3 - 2006/05/12
