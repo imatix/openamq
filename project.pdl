@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <pdl
     name      = "OpenAMQ"
-    version   = "1.0c4"
+    version   = "1.0c5"
     copyright = "Copyright (c) 2004-2005 JPMorgan and iMatix Corporation"
     workflow  = "product.pwl"
     >
