@@ -177,10 +177,23 @@ class.  This is a lock-free asynchronous class.
 
 <method name = "unbind connection" template = "async function" async = "1">
     <action>
+    amq_queue_t
+        *queue_ref;                     //  Need a reference to call destroy
+
     assert (self->connection);
     assert (self->auto_delete);
-    if (self->consumers == 0)
-        smt_timer_request_delay (self->thread, 1, auto_delete_event);
+    if (self->consumers == 0) {
+        if (amq_server_config_debug_queue (amq_server_config))
+            asl_log_print (amq_broker->debug_log, "Q: auto-del queue=%s", self->name);
+
+        queue_ref = amq_queue_link (self);
+        amq_vhost_unbind_queue (self->vhost, queue_ref);
+        //  Ask broker to ask connections to drop link to queue
+        if (self->exclusive)
+            amq_broker_unbind_queue (amq_broker, queue_ref);
+
+        amq_queue_unlink (&queue_ref);
+    }
     </action>
 </method>
 
@@ -298,16 +311,7 @@ class.  This is a lock-free asynchronous class.
         icl_console_print ("### AMQ_QUEUE: %s (consumer=%pp)", error, consumer);
         if (channel) {
             amq_server_channel_error (channel, ASL_ACCESS_REFUSED, error);
-            if (amq_server_channel_cancel (channel, consumer->tag, FALSE, TRUE)) {
-                //  If async cancel failed, we need to do an extra unlink
-                consumer_ref = consumer;
-                amq_consumer_unlink (&consumer_ref);
-            }
-        }
-        else {
-            //  Unlink consumer now, so it's destroyed
-            consumer_ref = consumer;
-            amq_consumer_unlink (&consumer_ref);
+            amq_server_channel_cancel (channel, consumer->tag, FALSE, TRUE);
         }
     }
     else {
