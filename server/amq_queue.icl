@@ -395,10 +395,26 @@ class.  This is a lock-free asynchronous class.
 
 <event name = "auto_delete">
     <action>
+    amq_proxy_method_t
+        *method;
+
     //  If we're still at zero consumers, self-destruct
     if (self->consumers == 0) {
         if (amq_server_config_debug_queue (amq_server_config))
             smt_log_print (amq_broker->debug_log, "Q: auto-del queue=%s", self->name);
+
+        //  Delete the queue on all cluster peers
+        method = amq_proxy_method_new_queue_delete (0, self->name, FALSE, FALSE, FALSE);
+        
+        if (amq_cluster && amq_cluster->enabled && self->clustered)
+            amq_cluster_tunnel_out (
+                amq_cluster,
+                AMQ_CLUSTER_ALL,
+                (amq_server_method_t *) method,
+                AMQ_CLUSTER_TRANSIENT,
+                NULL);
+        amq_proxy_method_destroy (&method);
+
         amq_queue_self_destruct (self);
     }
     </action>
