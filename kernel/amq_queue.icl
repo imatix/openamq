@@ -308,11 +308,7 @@ class.  This is a lock-free asynchronous class.
     if (error) {
         if (channel) {
             amq_server_channel_error (channel, ASL_ACCESS_REFUSED, error);
-            if (amq_server_channel_cancel (channel, consumer->tag, FALSE)) {
-                //  If async cancel failed, we need to do an extra unlink
-                consumer_ref = consumer;
-                amq_consumer_unlink (&consumer_ref);
-            }
+            amq_server_channel_cancel (channel, consumer->tag, FALSE);
         }
     }
     else {
