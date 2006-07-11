@@ -12,6 +12,7 @@ Bugfixes (backport):
 Bugfixes:
     AMQ-504    amq_shell does not display the correct start time of a
                connection
+    BASE2-236  smt_thread item inserted into multiple queue containers
 
 1.0d0 - 2006/06/08
 ---------------------------------------------------------------------
