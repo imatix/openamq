@@ -80,6 +80,10 @@
     <file name = "ProtocolInitiation.java"             ></file>
 </directory>
 
+<directory name = "src/org/openamq/test"               class = "private resource">
+    <file name = "AMQClient.java"                      ></file>
+</directory>
+
 <directory name = "src/org/openamq/transport"          class = "private resource">
     <file name = "AMQSocketConnection.java"            ></file>
 </directory>

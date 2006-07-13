@@ -53,22 +53,9 @@ public class AMQProtocolHandler extends IoHandlerAdapter {
     }
 
     public void sessionIdle(IoSession session, IdleStatus status) throws Exception {
-        boolean
-            iwrite = false,
-            iread = false;
-
-        if(status == IdleStatus.WRITER_IDLE) {
-            iwrite = true;
-        } else if(status == IdleStatus.READER_IDLE) {
-            iread = true;
-        } else if(status == IdleStatus.BOTH_IDLE) {
-            iwrite = true;
-            iread = true;
-        }
-
-        if (iwrite)
+        if(status == IdleStatus.WRITER_IDLE)
             writeFrame(null, HeartbeatBody.FRAME);
-        if (iread) 
+        else if(status == IdleStatus.READER_IDLE) 
             connectionState.setExternalEvent(ConnectionCloseOkBody.createAMQFrame(0));
     }
 

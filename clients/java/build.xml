@@ -19,15 +19,18 @@
     </target>
     <target name="clean">
         <delete dir="bin"/>
+        <delete dir="generated"/>
     </target>
     <target name="build" depends="init" >
         <javac destdir="bin" target="1.5" source="1.5" debug="on">
             <src path="src"/>
+            <src path="generated"/>
             <classpath refid="project.classpath"/>
         </javac>
     </target>
     <!-- Build jar archive -->
     <target name="jar" depends="build">
+        <copy file="src/log4j.properties" todir="bin"/>
         <delete file="dist/amqp.jar"/>
         <jar basedir="bin" jarfile="dist/amqpj.jar"/>
     </target>

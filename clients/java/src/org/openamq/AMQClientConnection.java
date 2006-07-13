@@ -40,15 +40,22 @@ public class AMQClientConnection {
         return new AuthDataPlain(user, password);
     }
 
+    public AMQClientConnection() {}
+
     public AMQClientConnection(String host, String virtualHost, AuthData authData, String instance,
         int trace, int timeout) throws IOException {
 
-        this.host = host;
-        this.virtualHost = virtualHost;
-        this.authData = authData;
-        this.instance = instance;
-        this.trace = trace;
-        this.timeout = timeout;
+        setHost(host);
+        setVirtualHost(virtualHost);
+        setAuthData(authData);
+        setClientInstance(instance);
+        setTrace(trace);
+        setTimeout(timeout);
+
+        connect();
+    }
+
+    public void connect() throws IOException {
         aph = new AMQProtocolHandler(this);
         asc = new AMQSocketConnection();
         conState = new AMQConnectionState(this);
@@ -56,6 +63,54 @@ public class AMQClientConnection {
 
         asc.connect(aph, new InetSocketAddress(host, AMQConstant.DEFAULT_PORT));
         conState.waitConnectionOpened();
+    }
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public void setVirtualHost(String virtualHost) {
+        this.virtualHost = virtualHost;
+    }
+
+    public String getVirtualHost() {
+        return virtualHost;
+    }
+
+    public void setAuthData(AuthData authData) {
+        this.authData = authData;
+    }
+
+    public AuthData getAuthData() {
+        return authData;
+    }
+
+    public void setClientInstance(String instance) {
+        this.instance = instance;
+    }
+
+    public String getClientInstance() {
+        return instance;
+    }
+
+    public void setTrace(int trace) {
+        this.trace = trace;
+    }
+
+    public int getTrace() {
+        return trace;
+    }
+
+    public void setTimeout(int timeout) {
+        this.timeout = timeout;
+    }
+
+    public int getTimeout() {
+        return timeout;
     }
 
     public AMQClientSession createSession() {
@@ -109,18 +164,6 @@ public class AMQClientConnection {
 
     public AMQProtocolHandler getProtocolHandler() {
         return aph;
-    }
-
-    public String getVirtualHost() {
-        return virtualHost;
-    }
-
-    public AuthData getAuthData() {
-        return authData;
-    }
-
-    public String getClientInstance() {
-        return instance;
     }
 
     public void setConnectionTuneData(ConnectionTuneBody ctb) {

@@ -23,6 +23,10 @@ public class AMQMessage {
         setBody(ByteBuffer.wrap(data.getBytes()));
     }
 
+    public void setBody(byte[] data) {
+        setBody(ByteBuffer.wrap(data));
+    }
+
     public void setBody(ByteBuffer data) {
         this.data = data;
     }
