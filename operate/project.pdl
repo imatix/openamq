@@ -21,13 +21,13 @@
 <file name = "amq_shell.c"              class = "main program"      >Management console</file>
 <file name = "amq_mgt_console.icl"      class = "icl public class"  >Management console class</file>
 <file name = "amq_mgt_broker.icl"       class = "icl public cont"   >Management broker class</file>
-<file name = "amq_mgt_vhost.icl"        class = "icl public cont"   >Management vhost class</file>
 <file name = "amq_mgt_exchange.icl"     class = "icl public cont"   >Management exchange class</file>
 <file name = "amq_mgt_queue.icl"        class = "icl public cont"   >Management queue class</file>
 <file name = "amq_mgt_cluster.icl"      class = "icl public cont"   >Management cluster class</file>
 <file name = "amq_mgt_config.icl"       class = "icl public cont"   >Management config class</file>
 <file name = "amq_mgt_connection.icl"   class = "icl public cont"   >Management connection class</file>
-
+<file name = "amq_mgt_queue_connection.icl" class = "icl public cont">Management queue connection class</file>
+<file name = "amq_mgt_connection_queue.icl" class = "icl public cont">Management connection queue class</file>
 
 <!-- Generate AMQ operate API -->
 <actions>

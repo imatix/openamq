@@ -11,48 +11,6 @@ Defines a virtual host. This is a lock-free asynchronous class.
 </doc>
 
 <inherit class = "smt_object" />
-<!-- any containers must come here -->
-<inherit class = "amq_console_object" />
-
-<data name = "cml">
-    <class name = "vhost" parent = "broker" label = "Virtual Hosts" >
-        <field name = "name" label = "Virtual host path">
-          <get>icl_shortstr_cpy (field_value, self->name);</get>
-        </field>
-
-        <class name = "exchange" label = "Message exchanges" repeat = "1">
-          <local>
-            amq_exchange_t
-                *exchange;
-          </local>
-          <get>
-            exchange = amq_exchange_by_vhost_first (self->exchange_list);
-            icl_shortstr_fmt (field_value, "%d", exchange->object_id);
-          </get>
-          <next>
-            exchange = amq_exchange_by_vhost_next (&exchange);
-            if (exchange)
-                icl_shortstr_fmt (field_value, "%d", exchange->object_id);
-          </next>
-        </class>
-
-        <class name = "queue" label = "Message queues" repeat = "1">
-          <local>
-            amq_queue_t
-                *queue;
-          </local>
-          <get>
-            queue = amq_queue_by_vhost_first (self->queue_list);
-            icl_shortstr_fmt (field_value, "%d", queue->object_id);
-          </get>
-          <next>
-            queue = amq_queue_by_vhost_next (&queue);
-            if (queue)
-                icl_shortstr_fmt (field_value, "%d", queue->object_id);
-          </next>
-        </class>
-    </class>
-</data>
 
 <import class = "amq_server_classes" />
 

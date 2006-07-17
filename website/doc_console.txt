@@ -3,9 +3,9 @@ gdl
     subtitle  = Operational Control for AMQ Servers
     product   = OpenAMQ
     author    = iMatix Corporation
-    date      = 2006/05/13
+    date      = 2006/07/16
     copyright = Copyright (c) 1996-2006 iMatix Corporation
-    version   = 1.0d0
+    version   = 1.0e0
 end gdl
 
 Cover
@@ -54,7 +54,6 @@ and management of an AMQ server, including:
  - Security configuration (authentication and access controls).
  - Monitoring of key entities (queues, etc.)
  - Collection of status information (performance, statistics)
- - Setting of watches (on queue size, etc.)
  - Administrative actions (purge queue, disconnect connection, etc.)
 
 We want the console to have these features:
@@ -204,8 +203,6 @@ The API consists of these commands:
  - "modify-reply" - confirms changes to a specific object.
  - "method-request" - executes a method on a specific object.
  - "method-reply" - returns result of a method-request.
- - "watch-request" - sets watches on fields of a specific object.
- - "watch-reply" - returns result of a watch-request.
  - "notify" - (from server to client) send a notification.
 
 Object Identification
@@ -216,33 +213,6 @@ it creates the object. This identifier is used in all messages when
 referring to an object.
 
 ID 0 (zero) always represents the root object.
-
-Watches
-=======
-
-Watch are tools that let an operator monitor specific objects without
-having to watch them constantly. Watches are set on specific properties
-of specific objects. I.e. to watch the size of two different queues
-requires two watches.
-
-While the specifics of watch implementation depend on the server, we
-assume a model like this:
-
- - A watch specifies an upper or lower limit for a numeric property.
-
- - The server regularly check all watches, for instance every 10 seconds.
-
- - When a watch limit is crossed, the console sends a notification
-   using the AMQP topic exchange mechanisms.
-
- - All correctly-subscribed clients can receive these notifications.
-
-Watches have the same lifespan as the objects they are applied to. That
-is, durable objects have durable watches. We assume that any mechanism
-in the server for serialising objects is also capable of serialising
-watches on objects. Note that in the current OpenAMQ server
-implementation, all objects are temporary, and so all watches are also
-temporary.
 
 The Console API
 ***************
@@ -324,24 +294,20 @@ We can show the client's request-reply logic using PAL scripting:
 The notification mechanism uses topic routing and subscription queues.
 The client creates a temporary, private queue and binds this to the
 amq.notify exchange (a topic exchange), with a routing key that
-specifies which notifications it wants to receive.  The client can
-bind many times with different routing keys:
+specifies which notifications it wants to receive.
 
 We can show the client's notification logic using PAL scripting:
 
  - The client creates a temporary, private reply queue and binds this
    to the amq.notify exchange:
-   
+
     <queue_declare queue = "" />
-    <queue_bind
-        queue = "$queue"
-        exchange = "amq.notify"
-        routing_key = "amq.queue.*.size" />
+    <queue_bind queue = "$queue" exchange = "amq.notify" routing_key = "amq.*" />
 
  - The client defines a consumer on the queue:
 
     <basic_consume queue = "$queue" />
-    
+
  - The client waits for notifications on its queue:
 
     <repeat>
@@ -383,8 +349,10 @@ overall grammar for CML messages:
 
 This is the grammar for client messages:
 
-    cml             = schema-request | inspect-request | modify-request
-                    | method-request | watch-request   
+    cml             = schema-request
+                    | inspect-request
+                    | modify-request
+                    | method-request
 
     schema-request  = <schema-request />
 
@@ -410,34 +378,14 @@ This is the grammar for client messages:
 
     method-name     = valid-name
 
-    watch-request   = <watch-request object = "object-id" [reset = "ask-reset"] >
-                       [ watch-field ]...
-                      </watch-request>
-
-    ask-reset       = (0) | 1
-
-    watch-field     = <field
-                         name  = "field-name"
-                       [ test  = "watch-type" ]
-                         value = "watch-value"
-                       [ route = "routing-key" ]>
-                       [ alert-message ]
-                      </field>
-
-    watch-type      = eq | ne | lt | le | gt | (ge)
-
-    watch-value     = integer
-
-    alert-message   = valid-text
-
-    valid-text      = {printable}...
-
-    routing-key     = valid-name
-
 This is the grammar for server messages:
 
-    cml-command     = schema-reply | inspect-reply | modify-reply
-                    | method-reply | watch-reply | invalid | notify
+    cml-command     = schema-reply
+                    | inspect-reply
+                    | modify-reply
+                    | method-reply
+                    | invalid
+                    | notify
 
     schema-reply    = <schema-reply name = "schema-name" version = "schema-version"
                         status = "reply-status" >
@@ -458,6 +406,8 @@ This is the grammar for server messages:
     class-name      = valid-name
 
     class-label     = valid-text
+
+    valid-text      = {printable}...
 
     schema-field    = group-field | simple-field
 
@@ -499,13 +449,10 @@ This is the grammar for server messages:
     method-label    = valid-text
 
     inspect-reply   = <inspect-reply class = "class-name" object = "object-id"
-                       [ watches  = "watch-count" ]
                          status   = "reply-status"
                        [ notice = "notice-text" ] >
                         [ field-data ]...
                       </inspect-reply>
-
-    watch-count     = 0..maxint - 1
 
     modify-reply    = <modify-reply
                          class = "class-name"
@@ -518,30 +465,14 @@ This is the grammar for server messages:
     method-reply    = <method-reply
                          class = "class-name"
                          object = "object-id"
-                         status = "reply-status" 
-                       [ notice = "notice-text" ] />
-
-    watch-reply     = <watch-reply
-                         class = "class-name"
-                         object = "object-id"
                          status = "reply-status"
-                       [ notice = "notice-text" ] >
-                       [ watch-field ]...
-                      </watch-reply>
+                       [ notice = "notice-text" ] />
 
     invalid         = <invalid />
 
-    notify          = <notify object = "object-id">
-                       [ notification ]...
-                       [ <field name = "field-name">
-                            notification
-                         </field> ]...
+    notify          = <notify>
+                        valid-text
                       </notify>
-
-    notification    = <alert>alert-message</alert>
-                      <cause>cause-message</cause>
-
-    cause-message   = valid-text
 
 Field Types
 ===========
@@ -689,75 +620,18 @@ except a status code.  For example:
 If the client specifies fields that are not valid (not in the modify
 view), the server will respond with an "invalid" status.
 
-The 'Watch' Command
--------------------
-
-The 'watch' command sets, removes, or queries the watches for a
-specific object.  The command works as follows:
-
- - If the 'reset' option is set to 1, all existing watches on the object
-   are deleted.
- - Any watches specified are applied to the object.
- - The server responds with the set of all watches on the object.
-
-This gives the client full control over the set of watches that are active
-for any given object.
-
-For example, to reset all watches:
-
-    C: <cml version = "1.0">
-          <watch-request object = "2" reset = "1" />
-       </cml>
-
-    S: <cml version = "1.0">
-          <watch-reply object = "2" status = "ok" />
-       </cml>
-
-To add a watch to the object:
-
-    C: <cml version = "1.0">
-          <watch-request object = "2">
-             <field name = "binding-count" value = "10000">
-             Exchange is getting overloaded
-             </field>
-          </watch-request>
-       </cml>
-
-    S: <cml version = "1.0">
-          <watch-request object = "2" status = "ok">
-             <field name = "binding-count" test = "gt" value = "10000"
-                route = "amq.exchange.2.binding-count">Exchange is
-                getting overloaded
-             </field>
-          </watch-request>
-       </cml>
-
- - The watch tests are: eq, ne, lt, gt, le, ge, which correspond to the
-   standard set of comparison operators.  The default test is "ge".
-
- - The watched value is a numeric value - only numeric and Boolean fields
-   can be watched.
-
- - Notifications sent to the amq.notify exchange using the routing
-   key, which defaults to "amq.<classname>.<idvalue>.<fieldname>".
-
 The 'Notify' Command
 --------------------
 
-The server broadcasts warnings, error reports, and watch alarms using
+The server broadcasts informational, warning and error messages using
 'notify' commands.  Any correctly subscribed AMQP client can get these
 notifications.
 
-The notification consists of an alert message and an explanation (the
-'cause').  The notification is attached either to an object or to a
-specific field in the object.  For example:
+The notification consists of a textual message:
 
     S: <cml version = "1.0">
-          <notify object = "2" >
-             <field name = "binding-count">
-                <alert>Exchange is getting overloaded</alert>
-                <cause>Exchange 'binding-count' is now at 10200 (limit 10000)</cause>
-             </field>
+          <notify>
+            E: queue exceeded configured limit of 5000.
           </notify>
        </cml>
 

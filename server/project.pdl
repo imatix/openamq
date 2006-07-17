@@ -86,12 +86,22 @@
 <file name = "amq_connection.icl"        class = "icl private class" >Connection mgt class</file>
 <file name = "amq_connection_agent.smt"  class = "smt public module"
                                          generated = "1"             >Connection mgt agent</file>
+<file name = "amq_connection_by_broker.icl"
+                                         class = "icl private cont"  >List of connection mgt objects</file>
 <file name = "amq_consumer.icl"          class = "icl private class" >Consumer class</file>
 <file name = "amq_consumer_table.icl"    class = "icl private cont"  >Container for consumers</file>
 <file name = "amq_consumer_by_queue.icl" class = "icl private cont"  >Consumers per queue</file>
 <file name = "amq_consumer_by_channel.icl"
                                          class = "icl private cont"  >Consumers per channel</file>
 <file name = "amq_consumer_basic.icl"    class = "icl private class" >Basic consumer class</file>
+<file name = "amq_queue_connection.icl"  class = "icl private class" >Queue-connection mgt class</file>
+<file name = "amq_queue_connection_agent.smt"
+                                         class = "smt public module" generated = "1"
+                                                                     >Queue-connection mgt agent</file>
+<file name = "amq_connection_queue.icl"  class = "icl private class" >Connection-queue mgt class</file>
+<file name = "amq_connection_queue_agent.smt"
+                                         class = "smt public module" generated = "1"
+                                                                     >Connection-queue mgt agent</file>
 <file name = "amq_server_method.icl"     class = "icl private cont"  >Server method class</file>
 <file name = "amq_server_base.cfg"       class = "public resource"   >Server config file</file>
 

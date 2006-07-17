@@ -6,9 +6,8 @@
  *---------------------------------------------------------------------------*/
 
 #include "icl.h"
-#include "amq_mgt_console.h"            //  Definitions for our class
-#include "amq_mgt_broker.h"             //  Definitions for our class
-#include "amq_mgt_vhost.h"              //  Definitions for our class
+#include "amq_mgt_console.h"
+#include "amq_mgt_broker.h"
 #include "version.h"
 
 #define NOWARRANTY \
@@ -28,6 +27,7 @@
     "  -e \"commands\"    Run shell commands, delimited by ;\n"              \
     "  -x filename      Save all status data as XML\n"                       \
     "  -t level         Set trace level (default = 0)\n"                     \
+    "  -a               Show IP addresses, not host name\n"                  \
     "  -b               Show broker status and then exit\n"                  \
     "  -r               Report all active local brokers\n"                   \
     "  -q               Show all broker queues and exit\n"                   \
@@ -50,9 +50,9 @@ int main (int argc, char *argv[])
     Bool
         args_ok = TRUE,                 //  Were the arguments okay?
         s_opt_broker = FALSE,           //  -b means show broker status
-        s_opt_queues = FALSE,           //  -q means show queues
         s_opt_clients = FALSE,          //  -c means show clients
         s_opt_report = FALSE,           //  -r means report brokers
+        s_opt_addr = FALSE,             //  -a means show addresses
         s_opt_date = FALSE;             //  -d means show date, time
     char
         *s_opt_host = NULL,             //  -s specifies server name
@@ -111,14 +111,14 @@ int main (int argc, char *argv[])
                 case 'b':
                     s_opt_broker = TRUE;
                     break;
-                case 'q':
-                    s_opt_queues = TRUE;
-                    break;
                 case 'c':
                     s_opt_clients = TRUE;
                     break;
                 case 'r':
                     s_opt_report = TRUE;
+                    break;
+                case 'a':
+                    s_opt_addr = TRUE;
                     break;
                 case 'd':
                     s_opt_date = TRUE;
@@ -181,11 +181,15 @@ int main (int argc, char *argv[])
     if (s_opt_report)
         s_do_authenticated_port_scan (s_opt_host, s_opt_vhost, s_opt_user, s_opt_pass);
 
-    console = amq_mgt_console_new (s_opt_host, s_opt_vhost, s_opt_user, s_opt_pass, atoi (s_opt_trace));
+    //  Set global options
+    g_opt_trace = atoi (s_opt_trace);
+    g_opt_addr  = s_opt_addr;
+
+    console = amq_mgt_console_new (s_opt_host, s_opt_vhost, s_opt_user, s_opt_pass);
     if (!console)
         exit (EXIT_FAILURE);
 
-    icl_console_print ("Connected to %s/%s on %s\n",
+    icl_console_out ("Connected to %s/%s on %s\n",
         console->connection->server_product,
         console->connection->server_version,
         console->connection->server_host);
@@ -196,16 +200,9 @@ int main (int argc, char *argv[])
         fprintf (xml_data, "<console_data>\n");
     }
     //  Either dump broker state and exit, or do full command line
-    if (s_opt_broker)
-        amq_mgt_broker_print_full (console->broker, xml_data);
-    else
-    if (s_opt_queues) {
-        amq_mgt_vhost_t
-            *vhost;                     //  Child vhost
-        amq_mgt_broker_load (console->broker);
-        vhost = amq_mgt_broker_vhost_first (console->broker);
-        if (vhost)
-             amq_mgt_vhost_print (vhost, xml_data);
+    if (s_opt_broker) {
+        amq_mgt_broker_print_properties (console->broker, xml_data);
+        amq_mgt_broker_print_children   (console->broker, xml_data);
     }
     else
     if (s_opt_clients) {
@@ -216,7 +213,7 @@ int main (int argc, char *argv[])
         connection = amq_mgt_broker_connection_first (console->broker);
         while (connection) {
             amq_mgt_connection_load (connection);
-            amq_mgt_connection_print_row (connection);
+            amq_mgt_connection_print_summary (connection, xml_data);
             connection = amq_mgt_broker_connection_next (console->broker);
         }
     }
@@ -253,13 +250,13 @@ static void s_do_authenticated_port_scan (
     int
         brokers_found = 0;
 
-    icl_console_print ("Scanning for all accessible brokers on %s (ports 5000-9999)", s_opt_host);
+    icl_console_out ("Scanning for all accessible brokers on %s (ports 5000-9999)", s_opt_host);
     auth_data = amq_client_connection_auth_plain (s_opt_user, s_opt_pass);
     for (port = 5000; port < 10000; port++) {
         icl_shortstr_fmt (host, "%s:%d", s_opt_host, port);
         connection = amq_client_connection_new (host, s_opt_vhost, auth_data, "amq_shell", 0, 1000);
         if (connection) {
-            icl_console_print ("Found %s/%s on %s",
+            icl_console_out ("Found %s/%s on %s",
                 connection->server_product, connection->server_version, host);
             brokers_found++;
             amq_client_connection_destroy (&connection);
@@ -267,6 +264,6 @@ static void s_do_authenticated_port_scan (
     }
     icl_longstr_destroy (&auth_data);
     if (!brokers_found)
-        icl_console_print ("No accessible AMQP brokers found");
+        icl_console_out ("No accessible AMQP brokers found");
     exit (EXIT_SUCCESS);
 }

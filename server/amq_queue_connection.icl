@@ -1,48 +1,25 @@
 <?xml?>
 <class
-    name      = "amq_connection"
-    comment   = "Connection management class"
+    name      = "amq_queue_connection"
+    comment   = "Queue-to-connection management class"
     version   = "1.0"
     script    = "smt_object_gen"
     target    = "smt"
     >
 <doc>
-This class acts as a management layer for the amq_server_connection
-class.  Ideally, that would be an async class but for now, it implies
-too large changes to the architecture.  At some future stage we will
-merge these two classes into one.
+This class shows the relationship from queue to connection, via the
+consumer object.
 </doc>
 
 <inherit class = "smt_object" />
-<inherit class = "icl_list_item">
-    <option name = "prefix" value = "by_broker" />
-</inherit>
+<!-- any containers must come here -->
 <inherit class = "amq_console_object" />
 
 <!-- Console definitions for this object -->
 <data name = "cml">
-    <class name = "connection" parent = "broker" label = "Client Connection">
+    <class name = "queue_connection" parent = "queue" label = "Queue connection">
         <field name = "name" label = "Connection name">
           <get>icl_shortstr_cpy (field_value, self->connection->id);</get>
-        </field>
-        <field name = "pending" label = "Messages pending" type = "int">
-          <rule name = "show on summary" />
-          <local>
-            size_t
-                pending = 0;
-            amq_consumer_t
-                *consumer;              //  Consumer object reference
-          </local>
-          <get>
-            //  Count total pending messages in all private (exclusive) queues
-            consumer = amq_consumer_by_channel_first (self->channel->consumer_list);
-            while (consumer) {
-                if (consumer->queue->exclusive)
-                    pending += amq_queue_message_count (consumer->queue);
-                consumer = amq_consumer_by_channel_next (&consumer);
-            }
-            icl_shortstr_fmt (field_value, "%d", pending);
-          </get>
         </field>
         <field name = "address" label = "Client IP address:port">
           <rule name = "show on summary" />
@@ -95,16 +72,6 @@ merge these two classes into one.
           </put>
         </field>
 
-        <class name = "connection_queue" label = "Connection queues" repeat = "1">
-          <get>
-            consumer = amq_consumer_by_channel_first (self->channel->consumer_list);
-            while (consumer) {
-                icl_shortstr_fmt (field_value, "%d", consumer->mgt_connection_queue->object_id);
-                consumer = amq_consumer_by_channel_next (&consumer);
-            }
-          </get>
-        </class>
-
         <method name = "kill" label = "Kill connection">
           <doc>
           Disconnects the client application.
@@ -121,17 +88,20 @@ merge these two classes into one.
 <import class = "amq_server_classes" />
 
 <context>
+    amq_consumer_t
+        *consumer;                      //  Consumer for this relationship
     amq_server_connection_t
-        *connection;                    //  Parent connection
+        *connection;                    //  Link to connection
     amq_server_channel_t
-        *channel;                       //  Parent channel
+        *channel;                       //  Link to channel
 </context>
 
 <method name = "new">
-    <argument name = "broker" type = "amq_broker_t *">Parent broker</argument>
-    <argument name = "channel" type = "amq_server_channel_t *">Parent server channel</argument>
-    amq_connection_by_broker_push (broker->mgt_connection_list, self);
-    self->channel = amq_server_channel_link (channel);
+    <argument name = "queue" type = "amq_queue_t *">Parent queue</argument>
+    <argument name = "consumer" type = "amq_consumer_t *">Consumer</argument>
+    //
+    self->consumer = amq_consumer_link (consumer);
+    self->channel  = amq_server_channel_link (consumer->channel);
     if (self->channel)
         self->connection = amq_server_connection_link (self->channel->connection);
     if (!self->connection)
@@ -140,6 +110,7 @@ merge these two classes into one.
 
 <method name = "destroy">
     <action>
+    amq_consumer_unlink (&self->consumer);
     amq_server_channel_unlink (&self->channel);
     amq_server_connection_unlink (&self->connection);
     </action>
