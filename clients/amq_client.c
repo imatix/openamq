@@ -68,7 +68,7 @@ main (int argc, char *argv [])
         nbr_active,                     //  Active connections
         nbr_passive,                    //  Passive connections
         out_count,                      //  Messages sent
-        total = 0,                      //  Messages total
+        in_count = 0,                   //  Messages received
         messages,
         msgsize,
         repeats;
@@ -258,14 +258,14 @@ main (int argc, char *argv [])
             amq_content_basic_unlink (&content);
         }
         //  Read messages back from server, discard them
-        total += messages * nbr_active;
-        while (total) {
+        in_count += messages * nbr_active;
+        while (in_count) {
             for (the_index = 0; the_index < nbr_active; the_index++) {
                 session = a_sessions [the_index];
                 content = amq_client_session_basic_arrived (session);
                 if (content) {
                     amq_content_basic_unlink (&content);
-                    total--;
+                    in_count--;
                 }
                 else
                     amq_client_session_wait (session, 1000);
@@ -286,9 +286,9 @@ main (int argc, char *argv [])
         amq_client_session_basic_cancel (session, session->consumer_tag);
     }
     finished:
-    if (total > 0) {
+    if (in_count > 0) {
         return_code = EXIT_FAILURE;
-        icl_console_print ("E: %d messages not received", total);
+        icl_console_print ("E: %d messages not received", in_count);
     }
 
     for (the_index = 0; the_index < nbr_active; the_index++) {
