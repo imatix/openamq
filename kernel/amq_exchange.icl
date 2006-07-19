@@ -27,7 +27,7 @@ for each type of exchange. This is a lock-free asynchronous class.
 
 <!-- Console definitions for this object -->
 <data name = "cml">
-    <class name = "exchange" parent = "vhost" label = "Exchange">
+    <class name = "exchange" parent = "broker" label = "Exchange">
         <field name = "name">
           <get>icl_shortstr_cpy (field_value, self->name);</get>
         </field>
@@ -44,19 +44,19 @@ for each type of exchange. This is a lock-free asynchronous class.
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", amq_binding_list_count (self->binding_list));</get>
         </field>
-        <field name = "traffic_in" type = "int" label = "Inbound traffic, MB">
+        <field name = "messages_in" type = "int" label = "Messages published">
+          <get>icl_shortstr_fmt (field_value, "%d", self->contents_in);</get>
+        </field>
+        <field name = "messages_out" type = "int" label = "Messages routed">
+          <get>icl_shortstr_fmt (field_value, "%d", self->contents_out);</get>
+        </field>
+        <field name = "megabytes_in" type = "int" label = "Megabytes published">
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", (int) (self->traffic_in / (1024 * 1024)));</get>
         </field>
-        <field name = "traffic_out" type = "int" label = "Outbound traffic, MB">
+        <field name = "megabytes_out" type = "int" label = "Megabytes routed">
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", (int) (self->traffic_out / (1024 * 1024)));</get>
-        </field>
-        <field name = "contents_in" type = "int" label = "Total messages received">
-          <get>icl_shortstr_fmt (field_value, "%d", self->contents_in);</get>
-        </field>
-        <field name = "contents_out" type = "int" label = "Total messages sent">
-          <get>icl_shortstr_fmt (field_value, "%d", self->contents_out);</get>
         </field>
     </class>
 </data>
@@ -64,6 +64,8 @@ for each type of exchange. This is a lock-free asynchronous class.
 <import class = "amq_server_classes" />
 
 <context>
+    amq_broker_t
+        *broker;                        //  Parent broker
     amq_vhost_t
         *vhost;                         //  Parent vhost
     int
@@ -126,7 +128,12 @@ for each type of exchange. This is a lock-free asynchronous class.
     <argument name = "auto delete" type = "Bool">Auto-delete unused exchange?</argument>
     <argument name = "internal" type = "Bool">Internal exchange?</argument>
     <dismiss argument = "key" value = "name">Key is exchange name</dismiss>
+    <local>
+    amq_broker_t
+        *broker = amq_broker;
+    </local>
     //
+    self->broker        = broker;
     self->vhost         = vhost;
     self->type          = type;
     self->durable       = durable;

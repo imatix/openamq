@@ -19,6 +19,7 @@
 <import class = "amq_consumer" />
 <import class = "amq_consumer_basic" />
 <import class = "amq_connection" />
+<import class = "amq_connection_queue" />
 <import class = "amq_content_basic" />
 <import class = "amq_content_file" />
 <import class = "amq_content_stream" />
@@ -36,8 +37,9 @@
 <import class = "amq_proxy_agent" />
 <import class = "amq_proxy_config" />
 <import class = "amq_queue" />
-<import class = "amq_queue_list" />
 <import class = "amq_queue_basic" />
+<import class = "amq_queue_list" />
+<import class = "amq_queue_connection" />
 <import class = "amq_server_channel" />
 <import class = "amq_server_config" />
 <import class = "amq_server_connection" />

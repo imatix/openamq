@@ -15,6 +15,8 @@ maximum number of consumers per channel is set at compile time.
 <option name = "basename" value = "amq_server" />
 
 <context>
+    amq_connection_t
+        *mgt_connection;                //  Connection management object
     amq_consumer_by_channel_t
         *consumer_list;                 //  List of consumers for channel
     icl_shortstr_t
@@ -26,6 +28,8 @@ maximum number of consumers per channel is set at compile time.
 
 <method name = "new">
     self->consumer_list = amq_consumer_by_channel_new ();
+    if (amq_broker)                     //  Null during self-testing
+        self->mgt_connection = amq_connection_new (amq_broker, self);
     icl_shortstr_fmt (self->cluster_id,
         "%s/%s/%d",
         amq_broker? amq_broker->name: "-",
@@ -47,6 +51,7 @@ maximum number of consumers per channel is set at compile time.
     }
     //  Now destroy containers
     amq_consumer_by_channel_destroy (&self->consumer_list);
+    amq_connection_destroy (&self->mgt_connection);
     }
     </action>
 </method>

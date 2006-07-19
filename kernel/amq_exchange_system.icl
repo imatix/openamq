@@ -6,11 +6,9 @@
     script    = "icl_gen"
     >
 <doc>
-This class implements these system services (specified by the routing
-key):
+This class implements these system services (specified by the routing key):
 
   - amq.console - AMQ Console service
-  - amq.cluster - AMQ Cluster service
 </doc>
 
 <inherit class = "amq_exchange_base" />
@@ -25,7 +23,7 @@ key):
     //  service.  Since we have just one service (amq.console), the
     //  lookup is hard-coded, but in future we may use the compile
     //  method to allow arbitrary system services to register.
-    //    
+    //
     if (connection) {
         if (method->class_id == AMQ_SERVER_BASIC) {
             if (streq (routing_key, "amq.console")) {

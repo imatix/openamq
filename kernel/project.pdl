@@ -132,6 +132,8 @@
 <file name = "amq_connection_agent.smt"
                                      class = "smt public module"
                                      generated = "1"             >Connection mgt agent</file>
+<file name = "amq_connection_by_broker.icl"
+                                     class = "icl private cont"  >List of connection mgt objects</file>
 <file name = "amq_consumer.icl"      class = "icl private class" >Consumer class</file>
 <file name = "amq_consumer_table.icl"
                                      class = "icl private cont"  >Container for consumers</file>
@@ -141,6 +143,14 @@
                                      class = "icl private cont"  >Consumers per channel</file>
 <file name = "amq_consumer_basic.icl"
                                      class = "icl private class" >Basic consumer class</file>
+<file name = "amq_queue_connection.icl"  
+                                     class = "icl private class" >Queue-connection mgt class</file>
+<file name = "amq_queue_connection_agent.smt"
+                                     class = "smt public module" generated = "1" >Queue-connection mgt agent</file>
+<file name = "amq_connection_queue.icl"  
+                                     class = "icl private class" >Connection-queue mgt class</file>
+<file name = "amq_connection_queue_agent.smt"
+                                     class = "smt public module" generated = "1" >Connection-queue mgt agent</file>
 <file name = "amq_server_method.icl" class = "icl private cont"  >Server method class</file>
 <file name = "amq_content_stream_list.icl"
                                      class = "icl private class" >List of stream contents</file>
@@ -185,13 +195,16 @@
 <file name = "amq_shell.c"           class = "main program"      >Management console</file>
 <file name = "amq_mgt_console.icl"   class = "icl public class"  >Management console class</file>
 <file name = "amq_mgt_broker.icl"    class = "icl public cont"   >Management broker class</file>
-<file name = "amq_mgt_vhost.icl"     class = "icl public cont"   >Management vhost class</file>
 <file name = "amq_mgt_exchange.icl"  class = "icl public cont"   >Management exchange class</file>
 <file name = "amq_mgt_queue.icl"     class = "icl public cont"   >Management queue class</file>
 <file name = "amq_mgt_cluster.icl"   class = "icl public cont"   >Management cluster class</file>
 <file name = "amq_mgt_config.icl"    class = "icl public cont"   >Management config class</file>
 <file name = "amq_mgt_connection.icl"
                                      class = "icl public cont"   >Management connection class</file>
+<file name = "amq_mgt_queue_connection.icl" 
+                                     class = "icl public cont"   >Management queue connection class</file>
+<file name = "amq_mgt_connection_queue.icl" 
+                                     class = "icl public cont"   >Management connection queue class</file>
 
 <!-- OpenAMQ deliverables -->
 <file name = "amq_server"            class = "public command"    >Server</file>

@@ -298,7 +298,7 @@
                 exchange, channel, queue, method->routing_key, method->arguments);
             if (!method->nowait)
                 amq_server_agent_queue_bind_ok (connection->thread, channel->number);
-            amq_queue_set_last_binding (queue, method->routing_key);
+            amq_queue_set_last_binding (queue, exchange->type, method->routing_key);
 
             //  Tell cluster about new queue binding
             if (amq_cluster->enabled

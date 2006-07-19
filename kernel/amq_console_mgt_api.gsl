@@ -116,7 +116,7 @@ class.
         xml_field   = ipr_xml_first_child (xml_command);
         ipr_xml_unlink (&xml_cml);
         ipr_xml_unlink (&xml_command);
-        
+
         while (xml_field) {
             field_name  = ipr_xml_attr_get (xml_field, "name", "");
             field_value = ipr_xml_text (xml_field);
@@ -155,18 +155,21 @@ class.
         rc = -1;                        //  Object no longer available
 </method>
 
-<method name = "print" template = "function">
+<method name = "print children" template = "function">
     <doc>
     Prints the $(name)'s contents to the console.
     </doc>
     <argument name = "xml_data" type = "FILE *">XML data capture</argument>
     //
+    char
+        command [] = "";
+
     if (!self->loaded)
         self_load (self);
-    s_list_children (self);
+    s_list_children (self, command, xml_data);
 </method>
 
-<method name = "print full" template = "function">
+<method name = "print properties" template = "function">
     <doc>
     Prints the $(name)'s values to the console in a two-column list.
     </doc>
@@ -191,7 +194,7 @@ class.
     if (!self->loaded)
         self_load (self);
 
-    icl_console_print (" %d) $(name) = \\\\"%s\\\\" ", self->id, self->name);
+    icl_console_out (" $(name) = \\\\"%s\\\\" ", self->name);
 .for field where name <> "name"
 .   if type = "string"
 .       if count (rule, name = "ip address")
@@ -199,41 +202,44 @@ class.
     if (($(name)_port_pos = strchr (self->$(name), ':'))) {
         icl_shortstr_ncpy ($(name)_ip, self->$(name), 
                            $(name)_port_pos - self->$(name));
-    } else {
+    } else
         icl_shortstr_cpy ($(name)_ip, self->$(name));
-    }
-    ipr_net_lookup_host ($(name)_ip, $(name)_host);
+
+    if (g_opt_addr)
+        icl_shortstr_cpy ($(name)_host, $(name)_ip);
+    else
+        ipr_net_lookup_host ($(name)_ip, $(name)_host);
     if (strneq ($(name)_ip, $(name)_host))
         icl_shortstr_fmt ($(name)_fmt, "%s (%s)", $(name)_host, self->$(name));
     else
         icl_shortstr_fmt ($(name)_fmt, self->$(name));
-    s_print_property ("$(label)", $(name)_fmt, \
+    s_print_property ("$(label:)", $(name)_fmt, \
 .       else
-    s_print_property ("$(label)", *self->$(name)? self->$(name): "(empty)", \
+    s_print_property ("$(label:)", *self->$(name)? self->$(name): "(empty)", \
 .       endif
 .   elsif type = "int"
     sprintf (field_value, "%d", self->$(name));
-    s_print_property ("$(label)", field_value, \
+    s_print_property ("$(label:)", field_value, \
 .   elsif type = "bool"
-    s_print_property ("$(label)", self->$(name)? "Yes": "No", \
+    s_print_property ("$(label:)", self->$(name)? "yes": "no", \
 .   elsif type = "time"
     apr_time_ansi_put (&$(name)_time, self->$(name));
     ipr_time_iso8601 ($(name)_time, ipr_date_format_minute, 0, ipr_time_zone (), field_value);
-    s_print_property ("$(label)", field_value, \
+    s_print_property ("$(label:)", field_value, \
 .   endif
 .   if count (put)
-"$(name)");
+"$(name)", NULL);
 .   else
-NULL);
+NULL, NULL);
 .   endif
 .endfor
 .for class where repeat ?= 1
     sprintf (field_value, "%d", ipr_looseref_list_count (self->$(name)_list));
-    s_print_property ("Number of $(label:lower)", field_value, NULL);
+    s_print_property ("Number of $(label:lower)", field_value, NULL, "[ls $(name)]");
 .endfor
 .for method
 .   if first ()
-    icl_console_print ("\
+    icl_console_out ("\
 .   endif
  [$(name)]\
 .   if last ()
@@ -261,10 +267,11 @@ NULL);
     }
 </method>
 
-<method name = "print row" template = "function">
+<method name = "print summary" template = "function">
     <doc>
     Prints the $(name) to the console in a single row.
     </doc>
+    <argument name = "xml_data" type = "FILE *">XML data capture</argument>
     <local>
 .for field where count (rule, name = "show on summary")
 .   if type = "time"
@@ -294,17 +301,20 @@ NULL);
     if (($(name)_port_pos = strchr (self->$(name), ':'))) {
         icl_shortstr_ncpy ($(name)_ip, self->$(name),
                            $(name)_port_pos - self->$(name));
-    } else {
+    } else
         icl_shortstr_cpy ($(name)_ip, self->$(name));
-    }
-    ipr_net_lookup_host ($(name)_ip, $(name)_host);
+
+    if (g_opt_addr)
+        icl_shortstr_cpy ($(name)_host, $(name)_ip);
+    else
+        ipr_net_lookup_host ($(name)_ip, $(name)_host);
     if (strneq ($(name)_ip, $(name)_host))
         icl_shortstr_fmt ($(name)_fmt, "%s (%s)", $(name)_host, self->$(name));
     else
         icl_shortstr_fmt ($(name)_fmt, self->$(name));
 .   endif
 .endfor
-    icl_console_print (" %d) $(name) = \\\\"%s\\\\"\
+    icl_console_out (" %d) $(name) = \\\\"%s\\\\"\
 .for field where count (rule, name = "show on summary")
 .   if type = "string"
  $(name)=\\\\"%s\\\\"\
@@ -327,12 +337,31 @@ NULL);
 .   elsif type = "int"
 , self->$(name)\
 .   elsif type = "bool"
-, self->$(name)? "Yes": "No"\
+, self->$(name)? "yes": "no"\
 .   elsif type = "time"
 , $(name)_str\
 .   endif
 .endfor
 );
+    //  Record data in XML form if wanted
+    if (xml_data) {
+        fprintf (xml_data, "&lt;$(name) id = \\\\"%d\\\\"\
+.for field
+.   if type = "string"
+ $(name) = \\\\"%s\\\\"\
+.   elsif type = "int" | type = "bool"
+ $(name) = \\\\"%d\\\\"\
+.   elsif type = "time"
+ $(name) = \\\\"%ld\\\\"\
+.   endif
+.endfor
+/&gt;\\\\n",
+            self->id\
+.for field
+, self->$(name)\
+.endfor
+);
+    }
 </method>
 
 .for class where repeat ?= 1
@@ -383,25 +412,17 @@ NULL);
     <local>
     icl_shortstr_t
         command;
-.for class
-.   if first ()
-    icl_shortstr_t
-        child_path;
-.   endif
-.   if repeat ?= 1
-    amq_mgt_$(name)_t
-        *$(name);                       //  Child $(name)
-.   endif
-.endfor
     </local>
     //
-    self_print_full (self, xml_data);
-    s_list_children (self);
+#   define CD_UP    1                   //  Child cmdline asks to move up
+#   define CD_TOP   2                   //  Child cmdline asks to move to top
+#   define CD_EXIT  3                   //  Child cmdline asks to exit
 
+    self_load (self);
     while (TRUE) {
         amq_client_session_wait (self->session, 1);
         if (!self->session->alive) {
-            icl_console_print (" Server disconnected - %s", self->session->error_text);
+            icl_console_print ("E: Server disconnected - %s", self->session->error_text);
             exit (EXIT_FAILURE);
         }
         //  If we're in autopilot mode, take next command else wait for user
@@ -413,7 +434,7 @@ NULL);
                 ipr_token_destroy (&token);
             }
             else {
-                rc = 1;                 //  Signal exit
+                rc = CD_EXIT;
                 break;
             }
         }
@@ -427,77 +448,59 @@ NULL);
         ipr_str_lower (command);
         ipr_str_crop  (command);
 
-        if (streq (command, "")) {
-            //  Enter -> refresh and show all
+        if (streq (command, ""))
+            ;   //  Do nothing
+        else
+        if (streq (command, ".")) {
             self_load (self);
-            self_print_full (self, xml_data);
-            s_list_children (self);
+            self_print_properties (self, xml_data);
         }
         else
-        if (streq (command, "ls") || streq (command, "dir"))
-            s_list_children (self);
+        if (ipr_str_prefixed (command, "ls"))
+            s_list_children (self, command + 2, xml_data);
         else
-        if (isdigit (*command)) {
-            int
-                id = atoi (command);
-            Bool
-                id_found = FALSE;
-
-            if (id == self->id) {
-                self_print_full (self, xml_data);
-                id_found = TRUE;
-            }
-.for class
-            if (!id_found) {
-.   if repeat ?= 1
-                $(name) = self_$(name)_first (self);
-                while ($(name)) {
-                    if ($(name)->id == id) {
-                        icl_shortstr_fmt (child_path, "%s/$(name)", path);
-                        rc = amq_mgt_$(name)_cmdline ($(name), child_path, depth + 1, tokens, xml_data);
-                        id_found = TRUE;
-                    }
-                    $(name) = self_$(name)_next (self);
-                }
-.   else
-                if (self->$(name)->id == id) {
-                    icl_shortstr_fmt (child_path, "%s/$(name)", path);
-                    rc = amq_mgt_$(name)_cmdline (self->$(name), child_path, depth + 1, tokens, xml_data);
-                    id_found = TRUE;
-                }
-.   endif
-            }
-.endfor
-            if (rc == 1                 //  1 means quit completely
-            || (rc == 2 && depth))      //  2 means return to top level
-                break;                  //  Called cmdline asked for exit
-            else
-            if (!id_found)
-                icl_console_print (" No item number %d in scope.", id);
-        }
+        if (ipr_str_prefixed (command, "top"))
+            s_top_children (self, command + 3, xml_data);
         else
-        if (streq (command, "..") || streq (command, "cd ..")) {
-            if (depth)
-                break;                  //  Back out
-        }
-        else
-        if (streq (command, "/") || streq (command, "cd /")) {
-            if (depth) {
-                rc = 2;                 //  Signal back to top
+        if (ipr_str_prefixed (command, "cd ")) {
+            rc = s_change_level (self, command + 3, path, depth, tokens, xml_data);
+            if (rc == CD_UP && depth) {
+                rc = 0;
                 break;
             }
+            else
+            if ((rc == CD_TOP && depth) || rc == CD_EXIT)
+                break;
         }
         else
-        if (*command == '?') {          //  Search children for matching text
-            //  Not yet implemented
-            icl_console_print ("Search is not yet implemented");
+        if (atoi (command)) {
+            rc = s_change_level (self, command, path, depth, tokens, xml_data);
+            if (rc == CD_UP && depth) {
+                rc = 0;
+                break;
+            }
+            else
+            if ((rc == CD_TOP && depth) || rc == CD_EXIT)
+                break;
+        }
+        else
+        if (streq (command, "..")) {
+            if (depth)
+                break;
+        }
+        else
+        if (streq (command, "/")) {
+            if (depth) {
+                rc = CD_TOP;
+                break;
+            }
         }
         else
         if (ipr_str_prefixed (command, "set"))
 .if class.modifiable ?= 1
             s_set_property (self, command);
 .else
-            icl_console_print (" This object has no modifiable properties");
+            icl_console_out (" This object has no modifiable properties");
 .endif
         else
 .for method
@@ -505,15 +508,16 @@ NULL);
             s_execute_$(name) (self, command);
         else
 .endfor
-        if (streq (command, "exit") || streq (command, "quit") || streq (command, "q")) {
-            rc = 1;                     //  Signal exit
+        if (streq (command, "exit") || streq (command, "quit")) {
+            rc = CD_EXIT;
             break;
         }
         else
         if (streq (command, "help"))
             s_show_help ();
+
         else {
-            icl_console_print (" Not a valid command");
+            icl_console_out (" Not a valid command");
             s_show_help ();
         }
     }
@@ -526,13 +530,18 @@ static ipr_xml_t *
     s_request_response ($\(selftype) *self, char *request, qbyte object_id,
         char *method, asl_field_list_t *fields);
 static void
-    s_print_property (char *label, char *value, char *name);
+    s_print_property (char *label, char *value, char *name, char *command);
 .if class.modifiable ?= 1
 static void
     s_set_property ($\(selftype) *self, char *command);
 .endif
+static int
+    s_change_level ($\(selftype) *self, char *command, char *path,
+        int depth, ipr_token_list_t *tokens, FILE *xml_data);
 static void
-    s_list_children ($\(selftype) *self);
+    s_list_children ($\(selftype) *self, char *command, FILE *xml_data);
+static void
+    s_top_children ($\(selftype) *self, char *command, FILE *xml_data);
 .for method
 static void
     s_execute_$(name) ($\(selftype) *self, char *command);
@@ -579,7 +588,7 @@ s_request_response (
     icl_shortstr_t
         command;                        //  CML request or reply name
     ipr_xml_t
-        *xml_root = NULL,               //  Tree of file we've loaded         
+        *xml_root = NULL,               //  Tree of file we've loaded
         *xml_cml,                       //  Top level cml item
         *xml_command;                   //  CML command
     char
@@ -654,7 +663,7 @@ s_request_response (
             }
             else
             if (streq (reply_status, "noaccess")) {
-                icl_console_print ("E: not allowed to execute requested operation");
+                icl_console_out (" Not allowed to execute requested operation");
                 //  If command not valid, return NULL
                 ipr_xml_destroy (&xml_root);
             }
@@ -671,13 +680,13 @@ s_request_response (
         return (xml_root);
     }
     else {
-        icl_console_print ("E: no reply from server - %s", self->session->error_text);
+        icl_console_out (" No reply from server - %s", self->session->error_text);
         exit (EXIT_FAILURE);
     }
 }
 
 static void
-s_print_property (char *label, char *value, char *name)
+s_print_property (char *label, char *value, char *name, char *command)
 {
     icl_shortstr_t
         property;
@@ -694,7 +703,11 @@ s_print_property (char *label, char *value, char *name)
         icl_shortstr_cat (property, name);
         icl_shortstr_cat (property, ")");
     }
-    icl_console_print (property);
+    if (command) {
+        icl_shortstr_cat (property, " ");
+        icl_shortstr_cat (property, command);
+    }
+    icl_console_out (property);
 }
 
 .if class.modifiable ?= 1
@@ -725,7 +738,7 @@ s_set_property ($\(selftype) *self, char *command)
                 value = token->value;
                 token = ipr_token_list_next (&token);
                 if (token) {
-                    icl_console_print (" Data from %s onwards was ignored", token->value);
+                    icl_console_out (" Data from %s onwards was ignored", token->value);
                     ipr_token_unlink (&token);
                 }
             }
@@ -735,58 +748,208 @@ s_set_property ($\(selftype) *self, char *command)
 .   for field where count (put)
     &&  strneq (name, "$(name)")$(last()??')')
 .   endfor
-        icl_console_print (" Not a valid property name, please check");
+        icl_console_out (" Not a valid property name, please check");
     else
     if (name && value) {
         fields = asl_field_list_new (NULL);
         asl_field_new_string (fields, name, value);
         xml_root = s_request_response (self, "modify", self->id, NULL, fields);
         if (xml_root) {
-            icl_console_print (" OK - %s", *self->notice? self->notice: "done");
+            icl_console_out (" OK - %s", *self->notice? self->notice: "done");
             ipr_xml_destroy (&xml_root);
         }
         asl_field_list_destroy (&fields);
     }
     else
-        icl_console_print (" Usage: set propertyname newvalue");
+        icl_console_out (" Usage: set propertyname newvalue");
 
     ipr_token_list_destroy (&tokens);
 }
 
 .endif
-static void
-s_list_children ($\(selftype) *self)
+
+static int
+s_change_level (
+    $\(selftype) *self,
+    char *command,
+    char *path,
+    int depth,
+    ipr_token_list_t *tokens,
+    FILE *xml_data)
 {
+    int
+        rc = 0,
+        child_id;
+    Bool
+        id_found = FALSE;
+.for class
+.   if first ()
+    icl_shortstr_t
+        child_path;
+.   endif
+.   if repeat ?= 1
+    amq_mgt_$(name)_t
+        *$(name);                       //  Child $(name)
+.   endif
+.endfor
+
+    ipr_str_crop (ipr_str_skip (command));
+    if (streq (command, ".."))
+        rc = CD_UP;
+    else
+    if (streq (command, "/"))
+        rc = CD_TOP;
+    else
+    if ((child_id = atoi (command))) {
+.for class
+.   if repeat ?= 1
+        $(name) = self_$(name)_first (self);
+        while ($(name)) {
+            if ($(name)->id == child_id) {
+                icl_shortstr_fmt (child_path, "%s/$(name)", path);
+                rc = amq_mgt_$(name)_cmdline ($(name), child_path, depth + 1, tokens, xml_data);
+                id_found = TRUE;
+            }
+            $(name) = self_$(name)_next (self);
+        }
+.   else
+        if (self->$(name)->id == child_id) {
+            icl_shortstr_fmt (child_path, "%s/$(name)", path);
+            rc = amq_mgt_$(name)_cmdline (self->$(name), child_path, depth + 1, tokens, xml_data);
+            id_found = TRUE;
+        }
+.   endif
+.endfor
+        if (!id_found)
+            icl_console_out (" No item number %d in scope", child_id);
+    }
+    else
+        icl_console_out (" Invalid command, use 'cd [number]'");
+
+    return (rc);
+}
+
+static void
+s_list_children ($\(selftype) *self, char *command, FILE *xml_data)
+{
+    ipr_token_list_t
+        *tokens;
+    ipr_token_t
+        *token;
+    char
+        *childname = NULL,
+        *pattern = NULL;
 .for class where repeat ?= 1
     amq_mgt_$(name)_t
         *$(name);                       //  Child $(name)
 .endfor
-.for class
-.   if first ()
-    static Bool
-        first_time = TRUE;              //  First time we do a list?
 
-.   endif
+    //  Get child name if any
+    tokens = ipr_token_split (command);
+    token = ipr_token_list_first (tokens);
+    if (token) {
+        if (strchr (token->value, '?') || strchr (token->value, '*'))
+            pattern = token->value;
+        else {
+            childname = token->value;
+            token = ipr_token_list_next (&token);
+            if (token)
+                pattern = token->value;
+        }
+        ipr_token_unlink (&token);
+    }
+.for class
+    if (!childname || ipr_str_prefixed ("$(name)", childname)) {
 .   if repeat ?= 1
-    $(name) = self_$(name)_first (self);
-    while ($(name)) {
-        amq_mgt_$(name)_load ($(name));
-        amq_mgt_$(name)_print_row ($(name));
-        $(name) = self_$(name)_next (self);
-    }
+        $(name) = self_$(name)_first (self);
+        while ($(name)) {
+            amq_mgt_$(name)_load ($(name));
+            if (!pattern || ipr_str_matches ($(name)->name, pattern))
+                amq_mgt_$(name)_print_summary ($(name), xml_data);
+            $(name) = self_$(name)_next (self);
+        }
 .   else
-    if (self->$(name)) {
-        amq_mgt_$(name)_load (self->$(name));
-        amq_mgt_$(name)_print_row (self->$(name));
-    }
+        if (self->$(name)) {
+            amq_mgt_$(name)_load (self->$(name));
+            if (!pattern || ipr_str_matches (self->$(name)->name, pattern))
+                amq_mgt_$(name)_print_summary (self->$(name), xml_data);
+        }
 .   endif
-.   if last ()
-    if (first_time) {
-        icl_console_print (" Type item number to see details, or [cmd]");
-        first_time = FALSE;
     }
-.   endif
 .endfor
+    ipr_token_list_destroy (&tokens);
+}
+
+static void
+s_top_children ($\(selftype) *self, char *command, FILE *xml_data)
+{
+#   define TOP_SIZE    10
+    ipr_token_list_t
+        *tokens;
+    ipr_token_t
+        *token;
+    char
+        *childname = NULL;
+.for class where repeat ?= 1 & count (rule, name = "monitor top")
+    size_t
+        top_value [TOP_SIZE];           //  Key values for top ten items
+    int
+        top_id [TOP_SIZE];              //  IDs of top ten items
+    uint
+        item_nbr,                       //  Where we intend to insert
+        item_move,                      //  Use when moving items up
+        nbr_tops;                       //  How many top items we have so far
+.   last
+.endfor
+.for class where repeat ?= 1 & count (rule, name = "monitor top")
+    amq_mgt_$(name)_t
+        *$(name);                       //  Child $(name)
+.endfor
+
+    //  Get child name if any
+    tokens = ipr_token_split (command);
+    token = ipr_token_list_first (tokens);
+    if (token) {
+        childname = token->value;
+        ipr_token_unlink (&token);
+    }
+.for class where repeat ?= 1 & count (rule, name = "monitor top")
+.   for rule where name = "monitor top"
+.       top_field = rule.field
+.   endfor
+    if (!childname || ipr_str_prefixed ("$(name)", childname)) {
+        $(name) = self_$(name)_first (self);
+        nbr_tops = 0;
+        while ($(name)) {
+            amq_mgt_$(name)_load ($(name));
+            //  Find slot for item, if any
+            for (item_nbr = 0; item_nbr < nbr_tops; item_nbr++)
+                if ($(class.name)->$(top_field) > top_value [item_nbr])
+                    break;
+            //  Move items up to make space for new item
+            item_move = TOP_SIZE - 1;
+            while (item_move > item_nbr) {
+                top_value [item_move] = top_value [item_move - 1];
+                top_id    [item_move] = top_id    [item_move - 1];
+                item_move--;
+            }
+            if (nbr_tops < TOP_SIZE)
+                nbr_tops++;
+            if (item_nbr < TOP_SIZE) {
+                top_value [item_nbr] = $(class.name)->$(top_field);
+                top_id    [item_nbr] = $(class.name)->id;
+            }
+            $(name) = self_$(name)_next (self);
+        }
+        for (item_nbr = 0; item_nbr < nbr_tops; item_nbr++) {
+            $(name) = amq_mgt_$(name)_new (self->session, top_id [item_nbr]);
+            amq_mgt_$(name)_load ($(name));
+            amq_mgt_$(name)_print_summary ($(name), xml_data);
+            amq_mgt_$(name)_destroy (&$(name));
+        }
+    }
+.endfor
+    ipr_token_list_destroy (&tokens);
 }
 
 .for method
@@ -805,14 +968,14 @@ s_execute_$(name) ($\(selftype) *self, char *command)
         *fields;                        //  Properties of object
     Bool
         is_valid = TRUE;                //  Valid method syntax?
-        
+
     tokens = ipr_token_split (command);
     fields = asl_field_list_new (NULL);
 
     //  Skip method name, first token in string
-    token  = ipr_token_list_first (tokens);
+    token = ipr_token_list_first (tokens);
     assert (token);
-    
+
 .   for field
     //  Collect $(name) value
     token = ipr_token_list_next (&token);
@@ -821,22 +984,19 @@ s_execute_$(name) ($\(selftype) *self, char *command)
     else
         is_valid = FALSE;
 .   endfor
-    if (token)
-        ipr_token_unlink (&token);
-
+    ipr_token_unlink (&token);
     if (is_valid) {
         xml_root = s_request_response (self, "method", self->id, "$(name)", fields);
         if (xml_root) {
-            icl_console_print (" OK");
+            icl_console_out (" OK");
             ipr_xml_destroy (&xml_root);
             self_load (self);
-            self_print_full (self, NULL);
         }
         else
-            icl_console_print (" ERROR");
+            icl_console_out (" ERROR");
     }
     else
-        icl_console_print (" Usage: $(name) arguments, use 'help $(name)' for details");
+        icl_console_out (" Usage: $(name) arguments, use 'help $(name)' for details");
 
     asl_field_list_destroy (&fields);
     ipr_token_list_destroy (&tokens);
@@ -846,27 +1006,28 @@ s_execute_$(name) ($\(selftype) *self, char *command)
 static void
 s_show_help (void)
 {
-    icl_console_print ("");
-    icl_console_print (" Command            Has this effect");
-    icl_console_print (" -------            -------------------");
-    icl_console_print (" ls | dir           Show $(name) and all children");
-    icl_console_print (" nnn                Look at item [nnn] (nnn is a number)");
-    icl_console_print (" ?text              Look at item matching text");
-    icl_console_print (" /                  Return to broker item");
-    icl_console_print (" .                  Refresh current item");
-    icl_console_print (" ..                 Move back to previous item");
-    icl_console_print (" set name value     Set object property");
-    icl_console_print (" help               Show this text");
-    icl_console_print (" exit | quit        Leave the OpenAMQ shell");
+    icl_console_out ("");
+    icl_console_out (" Command               Has this effect");
+    icl_console_out (" -------               -------------------");
+    icl_console_out (" ls [child] [pattern]  Show matching children");
+    icl_console_out (" top [child]           Show most important children");
+    icl_console_out (" cd [number]           Look at item [number]");
+    icl_console_out (" /                     Return to broker item");
+    icl_console_out (" .                     Show current item");
+    icl_console_out (" ..                    Move back to previous item");
+    icl_console_out (" set name value        Set object property");
+    icl_console_out (" help                  Show this text");
+    icl_console_out (" exit | quit           Leave the OpenAMQ shell");
+    icl_console_out ("");
 .for method
-    icl_console_print ("");
-    icl_console_print (" $(name)\
+    icl_console_out ("");
+    icl_console_out (" $(name)\
 .   for field
- $(label)\
+ $(label:)\
 .   endfor
 ");
 .   for doc
-    icl_console_print ("     $(.:justify,block                                         )");
+    icl_console_out ("     $(.:justify,block                                         )");
 .   endfor
 .endfor
 }

@@ -19,9 +19,9 @@ an object work with the AMQ Console (amq.console system exchange).
 .for global.top->data.class
 .   global.top.console_class = name
 .   if defined (parent)
-.       global.top.console_parent = "$(parent)->object_id"
+.       global.top.parent_id = "$(parent)->object_id"
 .   else
-.       global.top.console_parent = "0"
+.       global.top.parent_id = "0"
 .   endif
 .else
 .   abort "E: missing CML definition for $(class.name)"
@@ -46,9 +46,9 @@ static amq_console_class_t
 
 <method name = "new">
     <header>
-    self->console   = amq_console_link (amq_console);
+    self->console = amq_console_link (amq_console);
     self->object_id = icl_atomic_inc32 ((volatile qbyte *) &amq_object_id);
-    amq_console_register (self->console, self->object_id, self, s_class, $(console_parent));
+    amq_console_register (self->console, self->object_id, self, s_class, $(parent_id));
     </header>
 </method>
 
@@ -81,7 +81,12 @@ static amq_console_class_t
         *fields;                        //  Properties of object
     icl_shortstr_t
         field_value;
-.for global.top->data->class.class where repeat ?= 1
+.for global.top->data->class.field
+.   for local
+    $(string.trim (local.?''))
+.   endfor
+.endfor
+.for global.top->data->class.class
 .   for local
     $(string.trim (local.?''))
 .   endfor

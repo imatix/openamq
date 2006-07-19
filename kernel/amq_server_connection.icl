@@ -26,8 +26,6 @@ This class implements the connection class for the AMQ server.
 <context>
     amq_vhost_t
         *vhost;                         //  Parent virtual host
-    amq_connection_t
-        *mgt_object;                    //  Management object
     amq_queue_list_t
         *own_queue_list;                //  List of exclusive queues
     amq_consumer_table_t
@@ -47,7 +45,6 @@ This class implements the connection class for the AMQ server.
 <method name = "new">
     self->own_queue_list = amq_queue_list_new ();
     self->consumer_table = amq_consumer_table_new ();
-    self->mgt_object     = amq_connection_new (amq_broker, self);
     icl_shortstr_fmt (self->cluster_id, "%s/%s", amq_broker->name, self->id);
 </method>
 
@@ -65,7 +62,6 @@ This class implements the connection class for the AMQ server.
           iterator = amq_queue_list_next (iterator))
         amq_queue_unbind_connection (*iterator);
 
-    amq_connection_destroy (&self->mgt_object);
     amq_vhost_unlink       (&self->vhost);
     amq_queue_list_destroy (&self->own_queue_list);
 </method>

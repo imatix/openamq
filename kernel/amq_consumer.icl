@@ -38,6 +38,10 @@ for Basic, File, and Stream content classes.
         *channel;                       //  Parent channel
     amq_queue_t
         *queue;                         //  Parent queue
+    amq_connection_queue_t
+        *mgt_connection_queue;          //  Connection-queue management object
+    amq_queue_connection_t
+        *mgt_queue_connection;          //  Queue-connection management object
     icl_shortstr_t
         tag,                            //  Consumer tag
         cluster_id;                     //  Cluster id for connection
@@ -66,6 +70,10 @@ for Basic, File, and Stream content classes.
     self->channel  = amq_server_channel_link (channel);
     self->queue    = amq_queue_link (queue);
     self->class_id = method->class_id;
+
+    //  Interface to console
+    self->mgt_connection_queue = amq_connection_queue_new (channel->mgt_connection, self);
+    self->mgt_queue_connection = amq_queue_connection_new (queue, self);
 
     //  Class-dependent properties
     assert (method->class_id == AMQ_SERVER_BASIC);
@@ -104,8 +112,10 @@ for Basic, File, and Stream content classes.
         *method;
     </local>
     //
-    amq_server_channel_unlink (&self->channel);
-    amq_queue_unlink (&self->queue);
+    amq_server_channel_unlink   (&self->channel);
+    amq_queue_unlink            (&self->queue);
+    amq_connection_queue_unlink (&self->mgt_connection_queue);
+    amq_queue_connection_unlink (&self->mgt_queue_connection);
 
     if (self->class_id == AMQ_SERVER_BASIC) {
         amq_consumer_basic_destroy (&self->consumer_basic);

@@ -29,18 +29,18 @@ class.  This is a lock-free asynchronous class.
 
 <!-- Console definitions for this object -->
 <data name = "cml">
-    <class name = "queue" parent = "vhost" label = "Message Queue" >
+    <class name = "queue" parent = "broker" label = "Message Queue" >
         <field name = "name">
           <get>icl_shortstr_cpy (field_value, self->name);</get>
         </field>
-        <field name = "enabled" label = "Queue accepts new messages?">
-          <get>icl_shortstr_fmt (field_value, "%d", self->enabled);</get>
-          <put>self->enabled = atoi (field_value);</put>
+        <field name = "pending" label = "Messages pending" type = "int">
+          <rule name = "show on summary" />
+          <get>icl_shortstr_fmt (field_value, "%d", amq_queue_message_count (self));</get>
         </field>
         <field name = "durable" label = "Durable queue?" type = "bool">
           <get>icl_shortstr_fmt (field_value, "%d", self->durable);</get>
         </field>
-        <field name = "exclusive" label = "Exclusive to one client?" type = "bool">
+        <field name = "private" label = "Private queue?" type = "bool">
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", self->exclusive);</get>
         </field>
@@ -49,9 +49,13 @@ class.  This is a lock-free asynchronous class.
           <rule name = "ip address" />
           <get>icl_shortstr_cpy (field_value, self->connection? self->connection->client_address: "");</get>
         </field>
-        <field name = "binding" label = "Last binding?">
+        <field name = "exchange_type" label = "Exchange type">
           <rule name = "show on summary" />
-          <get>icl_shortstr_cpy (field_value, self->last_binding);</get>
+          <get>icl_shortstr_cpy (field_value, amq_exchange_type_name (self->last_exchange_type));</get>
+        </field>
+        <field name = "routing_key" label = "Routing key">
+          <rule name = "show on summary" />
+          <get>icl_shortstr_cpy (field_value, self->last_routing_key);</get>
         </field>
         <field name = "auto_delete" label = "Auto-deleted?" type = "bool">
           <rule name = "show on summary" />
@@ -61,27 +65,39 @@ class.  This is a lock-free asynchronous class.
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", self->consumers);</get>
         </field>
-        <field name = "messages" label = "Number of messages" type = "int">
+        <field name = "messages_in" type = "int" label = "Messages published">
           <rule name = "show on summary" />
-          <get>icl_shortstr_fmt (field_value, "%d", amq_queue_message_count (self));</get>
+          <get>icl_shortstr_fmt (field_value, "%d", self->contents_in);</get>
         </field>
-        <field name = "traffic_in" type = "int" label = "Inbound traffic, MB">
+        <field name = "messages_out" type = "int" label = "Messages consumed">
+          <rule name = "show on summary" />
+          <get>icl_shortstr_fmt (field_value, "%d", self->contents_out);</get>
+        </field>
+        <field name = "megabytes_in" type = "int" label = "Megabytes published">
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", (int) (self->traffic_in / (1024 * 1024)));</get>
         </field>
-        <field name = "traffic_out" type = "int" label = "Outbound traffic, MB">
+        <field name = "megabytes_out" type = "int" label = "Megabytes consumed">
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", (int) (self->traffic_out / (1024 * 1024)));</get>
         </field>
-        <field name = "contents_in" type = "int" label = "Messages received">
-          <get>icl_shortstr_fmt (field_value, "%d", self->contents_in);</get>
-        </field>
-        <field name = "contents_out" type = "int" label = "Messages sent">
-          <get>icl_shortstr_fmt (field_value, "%d", self->contents_out);</get>
-        </field>
-        <field name = "dropped" type = "int" label = "Dropped messages">
+        <field name = "dropped" type = "int" label = "Messages dropped">
           <get>icl_shortstr_fmt (field_value, "%d", self->dropped);</get>
         </field>
+
+        <class name = "queue_connection" label = "Queue connections" repeat = "1">
+          <local>
+            amq_consumer_t
+                *consumer;              //  Consumer object reference
+          </local>
+          <get>
+            consumer = amq_consumer_by_queue_first (self->queue_basic->active_consumers);
+            while (consumer) {
+                icl_shortstr_fmt (field_value, "%d", consumer->mgt_queue_connection->object_id);
+                consumer = amq_consumer_by_queue_next (&consumer);
+            }
+          </get>
+        </class>
 
         <method name = "purge" label = "Purge all queue messages">
           <exec>amq_queue_basic_purge (self->queue_basic);</exec>
@@ -102,6 +118,8 @@ class.  This is a lock-free asynchronous class.
 </public>
 
 <context>
+    amq_broker_t
+        *broker;                        //  Parent broker
     amq_vhost_t
         *vhost;                         //  Parent virtual host
     amq_server_connection_t
@@ -120,8 +138,10 @@ class.  This is a lock-free asynchronous class.
         consumers;                      //  Number of consumers
     amq_queue_basic_t
         *queue_basic;                   //  Basic content queue
+    int
+        last_exchange_type;             //  Last exchange type bound to
     icl_shortstr_t
-        last_binding;                   //  Last queue routing key
+        last_routing_key;               //  Last routing key
     qbyte
         limits,                         //  Number of limits
         limit_min,                      //  Lowest limit
@@ -147,7 +167,12 @@ class.  This is a lock-free asynchronous class.
 
     <dismiss argument = "table" value = "vhost->queue_table" />
     <dismiss argument = "key" value = "name" />
+    <local>
+    amq_broker_t
+        *broker = amq_broker;
+    </local>
     //
+    self->broker      = broker;
     self->vhost       = vhost;
     self->connection  = amq_server_connection_link (connection);
     self->enabled     = TRUE;
@@ -514,16 +539,18 @@ class.  This is a lock-free asynchronous class.
     async method to avoid two threads squashing the queue's context at the
     same time. The last binding information is used only by the console.
     </doc>
-    <argument name = "last binding" type = "char *"></argument>
+    <argument name = "exchange type" type = "int"></argument>
+    <argument name = "routing key" type = "char *"></argument>
     //
     <possess>
-    last_binding = icl_mem_strdup (last_binding);
+    routing_key = icl_mem_strdup (routing_key);
     </possess>
     <release>
-    icl_mem_free (last_binding);
+    icl_mem_free (routing_key);
     </release>
     <action>
-    icl_shortstr_cpy (self->last_binding, last_binding);
+    self->last_exchange_type = exchange_type;
+    icl_shortstr_cpy (self->last_routing_key, routing_key);
     </action>
 </method>
 

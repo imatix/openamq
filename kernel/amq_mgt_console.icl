@@ -20,6 +20,20 @@ manage OpenAMQ servers.
 <import class = "amq_client_session" />
 <import class = "amq_mgt_broker" />
 
+<public>
+extern int
+    g_opt_trace;                        //  Trace option
+extern Bool
+    g_opt_addr;                         //  Don't do RDNS lookups
+</public>
+
+<private>
+int
+    g_opt_trace = 0;                    //  Trace option
+Bool
+    g_opt_addr = FALSE;                 //  Don't do RDNS lookups
+</private>
+
 <context>
     amq_client_connection_t
         *connection;                    //  Current connection
@@ -27,14 +41,13 @@ manage OpenAMQ servers.
         *session;                       //  Current session
     amq_mgt_broker_t
         *broker;                        //  Top-level object
-</context>              
+</context>
 
 <method name = "new">
     <argument name = "host" type = "char *">Server host name</argument>
     <argument name = "vhost" type = "char *">Virtual host name</argument>
     <argument name = "user" type = "char *">Login user name</argument>
     <argument name = "password" type = "char *">Login password</argument>
-    <argument name = "trace" type = "int">Trace level</argument>
     <local>
     icl_longstr_t
         *auth_data;                     //  Authorisation data
@@ -45,7 +58,7 @@ manage OpenAMQ servers.
     icl_system_initialise (0, NULL);
 
     auth_data = amq_client_connection_auth_plain (user, password);
-    self->connection = amq_client_connection_new (host, vhost, auth_data, "amq_shell", trace, 5000);
+    self->connection = amq_client_connection_new (host, vhost, auth_data, "amq_shell", g_opt_trace, 5000);
     icl_longstr_destroy (&auth_data);
 
     if (self->connection) {
@@ -59,11 +72,11 @@ manage OpenAMQ servers.
         if (!rc)
             rc = amq_client_session_basic_consume (self->session,
                 0, self->session->queue, NULL, FALSE, TRUE, TRUE);
-                
+
         if (!rc)
             rc = amq_client_session_queue_bind (self->session,
                 0, self->session->queue, "amq.direct", self->session->queue, NULL);
-        
+
         if (!rc)
             self->broker = amq_mgt_broker_new (self->session, 0);
         else {
