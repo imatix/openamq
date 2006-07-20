@@ -1,3 +1,9 @@
+1.0d2 - 2006/07/20
+---------------------------------------------------------------------
+Bugfixes (backport):
+    JAMQ-9     amq_shell is missing certain features which are necessary for
+               monitoring individual connections.
+
 1.0d1 - 2006/06/08
 ---------------------------------------------------------------------
 Bugfixes (backport):
