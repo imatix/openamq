@@ -27,8 +27,9 @@
 <file name = "amq_tx.asl"            class = "public resource"   >Transactions</file>
 <file name = "amq_dtx.asl"           class = "public resource"   >2-phase transactions</file>
 <file name = "amq_tunnel.asl"        class = "public resource"   >Method tunneling</file>
+<!-- DEPRECATED
 <file name = "amq_cluster.asl"       class = "public resource"   >Cluster management</file>
-
+-->
 <!-- OpenAMQ WireAPI/C implementation -->
 <file name = "amq_client.asl"        class = "gsl data"          >Client definition</file>
 <file name = "amq_client.c"          class = "main program"      >Client test program</file>
@@ -78,6 +79,7 @@
 <file name = "amq_broker.icl"        class = "icl private class" >Server broker class</file>
 <file name = "amq_broker_agent.smt"  class = "smt public module"
                                      generated = "1"             >Server broker agent</file>
+<!-- DEPRECATED
 <file name = "amq_cluster.icl"       class = "icl private class" >Server cluster class</file>
 <file name = "amq_cluster_agent.smt" class = "smt public module"
                                      generated = "1"             >Server cluster agent</file>
@@ -89,6 +91,7 @@
 <file name = "amq_proxy_config.opf"  class = "gsl data"          >Cluster proxy configuration</file>
 <file name = "amq_proxy_config.icl"  class = "icl private cont"  >Cluster proxy configuration class</file>
 <file name = "amq_proxy_method.icl"  class = "icl public cont"   >Cluster proxy methods</file>
+ -->
 <file name = "amq_vhost.icl"         class = "icl private class" >Server vhost class</file>
 <file name = "amq_vhost_agent.smt"   class = "smt public module"
                                      generated = "1"             >Server vhost agent</file>
@@ -197,11 +200,13 @@
 <file name = "amq_mgt_broker.icl"    class = "icl public cont"   >Management broker class</file>
 <file name = "amq_mgt_exchange.icl"  class = "icl public cont"   >Management exchange class</file>
 <file name = "amq_mgt_queue.icl"     class = "icl public cont"   >Management queue class</file>
+<!-- DEPRECATED
 <file name = "amq_mgt_cluster.icl"   class = "icl public cont"   >Management cluster class</file>
+-->
 <file name = "amq_mgt_config.icl"    class = "icl public cont"   >Management config class</file>
 <file name = "amq_mgt_connection.icl"
                                      class = "icl public cont"   >Management connection class</file>
-<file name = "amq_mgt_queue_connection.icl" 
+<file name = "amq_mgt_queue_connection.icl"
                                      class = "icl public cont"   >Management queue connection class</file>
 <file name = "amq_mgt_connection_queue.icl" 
                                      class = "icl public cont"   >Management connection queue class</file>
@@ -231,7 +236,7 @@
   <generate>
     <execute>
     gsl -q amq_server_config.opf
-    gsl -q amq_console_schema
+    gsl -q amq_console_schema.gsl
     perl -S ipr_resource.pl @amq_server_resource.rc
     </execute>
   </generate>

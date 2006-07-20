@@ -24,7 +24,6 @@
 <import class = "amq_content_file" />
 <import class = "amq_content_stream" />
 <import class = "amq_content_tunnel" />
-<import class = "amq_cluster" />
 <import class = "amq_exchange" />
 <import class = "amq_exchange_direct" />
 <import class = "amq_exchange_topic" />
@@ -33,9 +32,6 @@
 <import class = "amq_exchange_system" />
 <import class = "amq_hitset" />
 <import class = "amq_index" />
-<import class = "amq_peer" />
-<import class = "amq_proxy_agent" />
-<import class = "amq_proxy_config" />
 <import class = "amq_queue" />
 <import class = "amq_queue_basic" />
 <import class = "amq_queue_list" />

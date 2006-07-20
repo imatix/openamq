@@ -113,12 +113,6 @@
           </next>
         </class>
 
-        <class name = "cluster" label = "Cluster">
-          <get>
-            icl_shortstr_fmt (field_value, "%d", amq_cluster->object_id);
-          </get>
-        </class>
-
         <class name = "config" label = "Configuration" source = "amq_console_config">
           <get>
             icl_shortstr_fmt (field_value, "%d", amq_console_config->object_id);
@@ -178,6 +172,7 @@
 
 <context>
     Bool
+        clustered,                      //  Holding point for cluster
         locked,                         //  Is broker locked?
         master,                         //  Acting as cluster master server?
         restart;                        //  Restart broker after exit?

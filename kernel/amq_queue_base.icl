@@ -113,8 +113,7 @@ independent of the queue content type.
 #define CONSUMER_BUSY   2
 
 static int
-    s_get_next_consumer (
-    $(selftype) *self, char *producer_id, char *cluster_id, amq_consumer_t **consumer_p);
+    s_get_next_consumer ($(selftype) *self, char *producer_id, amq_consumer_t **consumer_p);
 static void
     s_free_consumer_queue (amq_consumer_by_queue_t **queue);
 </private>
@@ -122,7 +121,6 @@ static void
 <private name = "footer">
 //  Find next consumer for queue and message
 //  - producer_id is used for local consumers,
-//  - cluster_id across the cluster
 //  Returns CONSUMER_FOUND if a valid consumer is found
 //  Returns CONSUMER_NONE if no valid consumers are found
 //  Returns CONSUMER_BUSY if there are busy consumers
@@ -131,7 +129,6 @@ static int
 s_get_next_consumer (
     $(selftype) *self,
     char *producer_id,
-    char *cluster_id,
     amq_consumer_t **consumer_p)
 {
     amq_consumer_t
@@ -179,34 +176,6 @@ s_get_next_consumer (
         else
         if (consumer->no_local == FALSE)
             rc = CONSUMER_FOUND;        //  We have our consumer
-        else
-        if (connection->group == AMQ_CONNECTION_GROUP_CLUSTER) {
-            //  If the consumer is a cluster peer then the consumer tag is
-            //  serverid/connectionid/xxx where xxx is the original consumer
-            //  tag.  We can compare this with the content cluster_id, which
-            //  is serverid/connectionid/channelnbr.
-            char
-                *slash;
-            size_t
-                id_size = 0;            //  Size of serverid/connectionid string
-            Bool
-                ids_match;              //  Do the two IDs match?
-
-            //  Compare the leading part of both id strings...
-            slash = strchr (cluster_id, '/');
-            if (slash)
-                slash = strchr (slash + 1, '/');
-            if (slash)
-                id_size = slash - cluster_id;
-            if (strlen (consumer->tag) > id_size
-            &&  memcmp (cluster_id, consumer->tag, id_size) == 0)
-                ids_match = TRUE;
-            else
-                ids_match = FALSE;
-
-            if (!ids_match)
-                rc = CONSUMER_FOUND;    //  We have our consumer
-        }
         else
         if (strneq (connection->id, producer_id)) {
             //  If the consumer is an application then we can compare the

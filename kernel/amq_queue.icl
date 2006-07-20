@@ -132,8 +132,7 @@ class.  This is a lock-free asynchronous class.
         exclusive,                      //  Is queue exclusive?
         auto_delete,                    //  Auto-delete unused queue?
         locked,                         //  Queue for exclusive consumer?
-        dirty,                          //  Queue has to be dispatched?
-        clustered;                      //  Queue is clustered (shared)?
+        dirty;                          //  Queue has to be dispatched?
     int
         consumers;                      //  Number of consumers
     amq_queue_basic_t
@@ -178,7 +177,6 @@ class.  This is a lock-free asynchronous class.
     self->enabled     = TRUE;
     self->durable     = durable;
     self->exclusive   = exclusive;
-    self->clustered   = amq_cluster->enabled && !self->exclusive;
     self->auto_delete = auto_delete;
     self->queue_basic = amq_queue_basic_new (self);
     icl_shortstr_cpy (self->name, name);
@@ -224,15 +222,10 @@ class.  This is a lock-free asynchronous class.
 
 <method name = "publish" template = "async function" async = "1">
     <doc>
-    Publish message content onto queue. Handles cluster distribution
-    of messages to shared queues: if cluster is enabled and queue is
-    shared (!exclusive), message is queued only at master server. If
-    we are not a master server, we forward the message to the master,
-    unless the message already came from the cluster.
+    Publish message content onto queue.
     </doc>
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
-    <argument name = "from_cluster" type = "Bool">Intra-cluster publish?</argument>
     //
     <possess>
     channel = amq_server_channel_link (channel);
@@ -244,11 +237,6 @@ class.  This is a lock-free asynchronous class.
     </release>
     //
     <action>
-    //  Pass message to shared queue on master server unless message already
-    //  came to us from another cluster peer.
-    if (self->clustered && !amq_broker->master && !from_cluster)
-        amq_cluster_peer_push (amq_cluster, amq_cluster->master_peer, method);
-    else
     if (self->enabled) {
         if (method->class_id == AMQ_SERVER_BASIC)
             amq_queue_basic_publish (
@@ -268,19 +256,16 @@ class.  This is a lock-free asynchronous class.
     </doc>
     <argument name = "channel"  type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "class id" type = "int" >The content class</argument>
-    <argument name = "cluster id" type = "char *">Stamp content with cluster id</argument>
     //
     <possess>
     channel = amq_server_channel_link (channel);
-    cluster_id = icl_mem_strdup (cluster_id);
     </possess>
     <release>
     amq_server_channel_unlink (&channel);
-    icl_mem_free (cluster_id);
     </release>
     <action>
     if (class_id == AMQ_SERVER_BASIC)
-        amq_queue_basic_get (self->queue_basic, channel, cluster_id);
+        amq_queue_basic_get (self->queue_basic, channel);
     else
         asl_log_print (amq_broker->alert_log, "E: illegal content class (%d)", class_id);
     </action>
@@ -322,7 +307,7 @@ class.  This is a lock-free asynchronous class.
         error = "Queue is exclusive to another connection";
     else
     if (consumer->exclusive) {
-        if (self->consumers == 0 && !self->clustered)
+        if (self->consumers == 0)
             self->locked = TRUE;        //  Grant exclusive access
         else
             error = "Exclusive access to queue not possible";
@@ -408,25 +393,10 @@ class.  This is a lock-free asynchronous class.
 
 <event name = "auto_delete">
     <action>
-    amq_proxy_method_t
-        *method;
-
     //  If we're still at zero consumers, self-destruct
     if (self->consumers == 0) {
         if (amq_server_config_debug_queue (amq_server_config))
             asl_log_print (amq_broker->debug_log, "Q: auto-del queue=%s", self->name);
-
-        //  Delete the queue on all cluster peers
-        method = amq_proxy_method_new_queue_delete (0, self->name, FALSE, FALSE, FALSE);
-
-        if (amq_cluster && amq_cluster->enabled && self->clustered)
-            amq_cluster_tunnel_out (
-                amq_cluster,
-                AMQ_CLUSTER_ALL,
-                (amq_server_method_t *) method,
-                AMQ_CLUSTER_TRANSIENT,
-                NULL);
-        amq_proxy_method_destroy (&method);
 
         amq_queue_self_destruct (self);
     }

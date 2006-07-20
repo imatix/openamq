@@ -4,7 +4,6 @@
     script  = "asl_gen"
     chassis = "server"
     >
-<inherit name = "amq_cluster" />
 <inherit name = "asl_server" />
 <inherit name = "amq" />
 
@@ -20,6 +19,11 @@
 
 <!-- EXCHANGE -->
 
+<!-- TODO this entire file needs to be redesigned
+    1. move the method bodies into the respective objects
+    2. allow this layer to be interfaced with other protocol agents
+       such as HTTP
+    -->
 <class name = "exchange">
   <action name = "declare">
     <local>
@@ -68,21 +72,6 @@
                     //  same time... so let's go find the actual exchange object
                     if (!exchange)
                         exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
-
-                    if (exchange) {
-                        //  Create exchange on all cluster peers
-                        if (amq_cluster->enabled
-                        &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER)
-                            amq_cluster_tunnel_out (
-                                amq_cluster,
-                                AMQ_CLUSTER_ALL,
-                                self,
-                                AMQ_CLUSTER_DURABLE,
-                                channel);
-                    }
-                    else
-                        amq_server_connection_error (connection,
-                            ASL_RESOURCE_ERROR, "Unable to declare exchange");
                 }
             }
         }
@@ -129,16 +118,6 @@
 
     exchange = amq_exchange_table_search (vhost->exchange_table, method->exchange);
     if (exchange) {
-        //  Delete exchange on all cluster peers
-        if (amq_cluster->enabled
-        &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER)
-            amq_cluster_tunnel_out (
-                amq_cluster,
-                AMQ_CLUSTER_ALL,
-                self,
-                AMQ_CLUSTER_TRANSIENT,
-                channel);
-
         //  Tell client delete was successful
         if (!method->nowait)
             amq_server_agent_exchange_delete_ok (connection->thread, channel->number);
@@ -178,7 +157,7 @@
     //
     //  Find queue and create if necessary
     if (strnull (method->queue)) {
-        if (amq_cluster->enabled && !method->exclusive)
+        if (amq_broker->clustered && !method->exclusive)
             icl_shortstr_fmt (method->queue, "%s:%d",
                 amq_broker->name, icl_atomic_inc32 (&queue_index));
         else
@@ -213,21 +192,6 @@
                 //  Add to connection's exclusive queue list
                 if (method->exclusive)
                     amq_server_connection_own_queue (connection, queue);
-
-                if (amq_cluster->enabled
-                &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER) {
-                    if (method->exclusive)
-                        //  Forward private queue default binding to all nodes
-                        amq_cluster_bind_exchange (amq_cluster, NULL, queue->name, NULL);
-                    else
-                        //  Forward queue.declare to all nodes
-                        amq_cluster_tunnel_out (
-                            amq_cluster,
-                            AMQ_CLUSTER_ALL,
-                            self,
-                            AMQ_CLUSTER_DURABLE,
-                            channel);
-                }
             }
             else
                 amq_server_connection_error (connection,
@@ -299,23 +263,6 @@
             if (!method->nowait)
                 amq_server_agent_queue_bind_ok (connection->thread, channel->number);
             amq_queue_set_last_binding (queue, exchange->type, method->routing_key);
-
-            //  Tell cluster about new queue binding
-            if (amq_cluster->enabled
-            &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER) {
-                if (queue->clustered)
-                    //  Make same binding on all cluster peers
-                    amq_cluster_tunnel_out (
-                        amq_cluster,
-                        AMQ_CLUSTER_ALL,
-                        self,
-                        AMQ_CLUSTER_DURABLE,
-                        channel);
-                else
-                    //  Make exchange-to-exchange binding on all cluster peers
-                    amq_cluster_bind_exchange (amq_cluster,
-                        method->exchange, method->routing_key, method->arguments);
-            }
             amq_queue_unlink (&queue);
         }
         else
@@ -352,17 +299,6 @@
 
     queue = amq_queue_table_search (vhost->queue_table, method->queue);
     if (queue) {
-        //  Delete the queue on all cluster peers
-        if (amq_cluster->enabled
-        &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER
-        &&  queue->clustered)
-            amq_cluster_tunnel_out (
-                amq_cluster,
-                AMQ_CLUSTER_ALL,
-                self,
-                AMQ_CLUSTER_TRANSIENT,
-                channel);
-
         //  Tell client we deleted the queue ok
         if (!method->nowait)
             amq_server_agent_queue_delete_ok (
@@ -402,17 +338,6 @@
 
     queue = amq_queue_table_search (vhost->queue_table, method->queue);
     if (queue) {
-        //  Purge queue on all cluster peers, using
-        if (amq_cluster->enabled
-        &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER
-        &&  queue->clustered)
-            amq_cluster_tunnel_out (
-                amq_cluster,
-                AMQ_CLUSTER_ALL,
-                self,
-                AMQ_CLUSTER_TRANSIENT,
-                channel);
-
         amq_queue_purge (queue, channel, method->nowait);
         amq_queue_unlink (&queue);
     }
@@ -448,26 +373,18 @@
     if (strnull (method->queue))
         icl_shortstr_cpy (method->queue, channel->current_queue);
 
-    if (strlen (method->consumer_tag) > 127
-    &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER)
-        amq_server_connection_error (connection,
-            ASL_SYNTAX_ERROR, "Consumer tag exceeds limit of 127 chars");
-    else {
-        queue = amq_queue_table_search (vhost->queue_table, method->queue);
-        if (queue) {
-            //  The channel is responsible for creating/cancelling consumers
-            amq_server_channel_consume (channel, queue, self, method->nowait);
-            amq_queue_unlink (&queue);
-        }
-        else
-            amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
+    queue = amq_queue_table_search (vhost->queue_table, method->queue);
+    if (queue) {
+        //  The channel is responsible for creating/cancelling consumers
+        amq_server_channel_consume (channel, queue, self, method->nowait);
+        amq_queue_unlink (&queue);
     }
+    else
+        amq_server_channel_error (channel, ASL_NOT_FOUND, "No such queue defined");
   </action>
 
   <action name = "publish">
     <local>
-    static qbyte
-        sequence = 0;                   //  For intra-cluster broadcasting
     amq_exchange_t
         *exchange;
     </local>
@@ -497,18 +414,18 @@
         if (!exchange->internal || strnull (method->exchange)) {
             //  This method may only come from an external application
             assert (connection);
-            self->sequence = ++sequence;
             amq_content_$(class.name)_set_routing_key (
                 self->content,
                 method->exchange,
                 method->routing_key,
                 connection->id);
 
-            //  Set cluster-id on all fresh content coming from applications
-            if (connection->group != AMQ_CONNECTION_GROUP_CLUSTER)
-                amq_content_$(class.name)_set_cluster_id (self->content, channel->cluster_id);
-
-            amq_exchange_publish (exchange, channel, self, (connection->group == AMQ_CONNECTION_GROUP_CLUSTER));
+#ifdef __DISABLED_CLUSTER_TODO__
+//  This was where we set the cluster tag for message returns... not very
+//  elegant.
+            amq_content_$(class.name)_set_cluster_id (self->content, channel->cluster_id);
+#endif
+            amq_exchange_publish (exchange, channel, self);
         }
         else
             amq_server_channel_error (channel,
@@ -546,20 +463,7 @@
 
     queue = amq_queue_table_search (vhost->queue_table, method->queue);
     if (queue) {
-        //  Pass request to cluster master if we are not he
-        if (amq_cluster->enabled
-        &&  connection->group != AMQ_CONNECTION_GROUP_CLUSTER
-        &&  queue->clustered
-        && !amq_broker->master)
-            amq_cluster_tunnel_out (
-                amq_cluster,
-                AMQ_CLUSTER_MASTER,
-                self,
-                AMQ_CLUSTER_TRANSIENT,
-                channel);
-        else
-            amq_queue_get (queue, channel, self->class_id, NULL);
-
+        amq_queue_get (queue, channel, self->class_id);
         amq_queue_unlink (&queue);
     }
     else
@@ -580,12 +484,18 @@
 
 <class name = "tunnel">
   <action name = "request">
+    //  This should be set up so that any object wanting a tunnel can
+    //  create it explicitly and get methods back like that.  Passing
+    //  them blindly to amq_cluster is not great.
+
     method = NULL;    //  Prevent compiler warning on unused method variable
+#ifdef __DISABLED_CLUSTER_TODO__
     if (amq_cluster->enabled
     &&  connection->group == AMQ_CONNECTION_GROUP_CLUSTER)
         amq_cluster_tunnel_in (amq_cluster, self->content, channel);
     else
-        amq_server_connection_error (connection, ASL_NOT_ALLOWED, "Method not allowed");
+#endif
+    amq_server_connection_error (connection, ASL_NOT_ALLOWED, "Method not allowed");
   </action>
 </class>
 

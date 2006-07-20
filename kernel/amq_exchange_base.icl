@@ -53,7 +53,6 @@ This is an abstract base class for all exchange implementations.
     <argument name = "self_v" type = "void *">The exchange cast as a void *</argument>
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "method" type = "amq_server_method_t *">Publish method</argument>
-    <argument name = "from_cluster" type = "Bool">Intra-cluster publish?</argument>
     <declare name = "rc" type = "int" default = "0">Return code</declare>
     <local>
     $(selftype)

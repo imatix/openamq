@@ -19,8 +19,6 @@ This class implements the connection class for the AMQ server.
 #define AMQ_CONNECTION_GROUP_NORMAL    1
 #define AMQ_CONNECTION_GROUP_SUPER     2
 #define AMQ_CONNECTION_GROUP_CLUSTER   3
-#define CONNECTION_IS_USER(c)    ((c) == 1 || (c) == 2)
-#define CONNECTION_IS_CONTROL(c) ((c) == 3 || (c) == 4)
 </public>
 
 <context>
@@ -30,8 +28,6 @@ This class implements the connection class for the AMQ server.
         *own_queue_list;                //  List of exclusive queues
     amq_consumer_table_t
         *consumer_table;                //  Consumers for connection
-    icl_shortstr_t
-        cluster_id;                     //  Cluster id for connection
     qbyte
         consumer_tag;                   //  Last consumer tag
     qbyte
@@ -45,7 +41,6 @@ This class implements the connection class for the AMQ server.
 <method name = "new">
     self->own_queue_list = amq_queue_list_new ();
     self->consumer_table = amq_consumer_table_new ();
-    icl_shortstr_fmt (self->cluster_id, "%s/%s", amq_broker->name, self->id);
 </method>
 
 <method name = "destroy">
@@ -94,11 +89,7 @@ This class implements the connection class for the AMQ server.
 </method>
 
 <method name = "ready" template = "function">
-    //  If cluster is booting, let through only cluster or console connections
-    if (amq_cluster->enabled && !amq_cluster->ready)
-        rc = CONNECTION_IS_CONTROL (self->group);
-    else
-        rc = TRUE;
+    rc = TRUE;
 </method>
 
 <method name = "error">
@@ -110,11 +101,6 @@ This class implements the connection class for the AMQ server.
     <argument name = "reply code" type = "dbyte" >Error code</argument>
     <argument name = "reply text" type = "char *">Error text</argument>
     //
-    if (self->group == AMQ_CONNECTION_GROUP_CLUSTER) {
-        icl_console_print ("E: cluster connection error (%d) %s", reply_code, reply_text);
-        exit (1);
-    }
-    else
     if (self)
         amq_server_connection_exception (self, reply_code, reply_text);
     else
@@ -130,18 +116,10 @@ This class implements the connection class for the AMQ server.
         "I: start login from=%s product=%s version=%s",
         self->client_address, self->client_product, self->client_version);
 
-    switch (s_auth_plain (self, method)) {
-        case AMQ_CONNECTION_GROUP_NORMAL:
-        case AMQ_CONNECTION_GROUP_SUPER:
-            self->authorised = TRUE;
-            break;
-        case AMQ_CONNECTION_GROUP_CLUSTER:
-            self->authorised = TRUE;
-            self->nowarning  = TRUE;    //  No disconnect warnings for cluster proxy
-            break;
-        default:
-            self_exception (self, ASL_ACCESS_REFUSED, "Invalid authentication data");
-    }
+    if (s_auth_plain (self, method))
+        self->authorised = TRUE;
+    else
+        self_exception (self, ASL_ACCESS_REFUSED, "Invalid authentication data");
 </method>
 
 <method name = "open">
@@ -151,17 +129,19 @@ This class implements the connection class for the AMQ server.
     if (!self->vhost)
         self_exception (self, ASL_ACCESS_REFUSED, "Server is not ready");
     else
-    //  If locked, allow only cluster & console access
-    if (amq_broker->locked && CONNECTION_IS_USER (self->group))
+    //  If locked, allow only super user access
+    if (amq_broker->locked && self->group == AMQ_CONNECTION_GROUP_NORMAL)
         self_exception (self, ASL_ACCESS_REFUSED, "Connections not allowed at present");
     else
+#ifdef __DISABLED_CLUSTER_TODO__
+    //TODO: similar type of check on cluster key
     if (amq_cluster->enabled) {
         if (streq (method->virtual_host, amq_server_config_cluster_vhost (amq_server_config))) {
             //  Don't redirect insisting or cluster/console clients
             if (method->insist)
                 amq_server_agent_connection_open_ok (self->thread, amq_cluster->known_hosts);
             else
-            if (CONNECTION_IS_CONTROL (self->group))
+            if (self->group == AMQ_CONNECTION_GROUP_SUPER)
                 amq_server_agent_connection_open_ok (self->thread, NULL);
             else
                 amq_cluster_balance_client (amq_cluster, self);
@@ -174,10 +154,7 @@ This class implements the connection class for the AMQ server.
         }
     }
     else
-    //  TODO: document or remove this debugging feature
-    if (streq (method->virtual_host, "/redirect"))
-        amq_server_agent_connection_redirect (self->thread, amq_broker->host, NULL);
-    else
+#endif
         amq_server_agent_connection_open_ok (self->thread, NULL);
 </method>
 
@@ -208,7 +185,7 @@ static int s_auth_plain (
     //  method->response holds PLAIN data in format "[NULL]login[NULL]password"
     token_null = s_collect_plain_token (
         method->response->data, password, method->response->cur_size);
-    if (token_null) 
+    if (token_null)
         s_collect_plain_token (method->response->data, login, token_null);
 
     if (strnull (login) || strnull (password)) {

@@ -90,8 +90,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         (*publish) (
             void                 *self,
             amq_server_channel_t *channel,
-            amq_server_method_t  *method,
-            Bool                  from_cluster);
+            amq_server_method_t  *method);
     int
         (*compile) (
             void                 *self,
@@ -286,40 +285,52 @@ for each type of exchange. This is a lock-free asynchronous class.
     </release>
     //
     <action>
+    amq_binding_t
+        *binding = NULL;                //  New binding created
+    ipr_hash_t
+        *hash;                          //  Entry into hash table
+
     if (amq_server_config_debug_route (amq_server_config))
         asl_log_print (amq_broker->debug_log,
             "X: bind     %s: queue=%s", self->name, queue->name);
 
-    s_bind_object (self, channel, queue, NULL, routing_key, arguments);
-    </action>
-</method>
+    //  Treat empty arguments as null to simplify comparisons
+    if (arguments && arguments->cur_size == 0)
+        arguments = NULL;
 
-<method name = "bind peer" template = "async function" async = "1">
-    <doc>
-    Bind a cluster peer to the exchange.  Works identically as for
-    bind queue.
-    </doc>
-    <argument name = "peer"        type = "amq_peer_t *">The peer to bind</argument>
-    <argument name = "routing key" type = "char *">Bind to routing key</argument>
-    <argument name = "arguments"   type = "icl_longstr_t *">Bind arguments</argument>
-    //
-    <possess>
-    peer = amq_peer_link (peer);
-    arguments = icl_longstr_dup (arguments);
-    routing_key = icl_mem_strdup (routing_key);
-    </possess>
-    <release>
-    amq_peer_unlink (&peer);
-    icl_longstr_destroy (&arguments);
-    icl_mem_free (routing_key);
-    </release>
-    //
-    <action>
-    if (amq_server_config_debug_route (amq_server_config))
-        asl_log_print (amq_broker->debug_log,
-            "X: bind     %s: peer=%s", self->name, peer->name);
+    //  We need to know if this is a new binding or not
+    //  First, we'll check on the routing key
+    hash = ipr_hash_table_search (self->binding_hash, routing_key);
+    if (hash) {
+        //  We found the same routing key, now we need to check
+        //  all bindings to check for an exact match
+        binding = amq_binding_list_first (self->binding_list);
+        while (binding) {
+            if (streq (binding->routing_key, routing_key)
+            && icl_longstr_eq (binding->arguments, arguments))
+                break;
+            binding = amq_binding_list_next (&binding);
+        }
+    }
+    if (!binding) {
+        //  If no binding matched, create a new one and compile it
+        binding = amq_binding_new (self, routing_key, arguments);
+        assert (binding);
+        if (!hash)                      //  Hash routing key if needed
+            hash = ipr_hash_new (self->binding_hash, routing_key, binding);
 
-    s_bind_object (self, NULL, NULL, peer, routing_key, arguments);
+        //  Compile binding and put all 'wildcard' bindings at the front
+        //  of the list. The meaning of this flag depends on the exchange.
+        if (self->compile (self->object, binding, channel) == 0) {
+            if (binding->is_wildcard)
+                amq_binding_list_push (self->binding_list, binding);
+            else
+                amq_binding_list_queue (self->binding_list, binding);
+        }
+    }
+    amq_binding_bind_queue (binding, queue);
+    amq_binding_unlink (&binding);
+    ipr_hash_unlink (&hash);
     </action>
 </method>
 
@@ -330,7 +341,6 @@ for each type of exchange. This is a lock-free asynchronous class.
     </doc>
     <argument name = "channel" type = "amq_server_channel_t *">Channel for reply</argument>
     <argument name = "method"  type = "amq_server_method_t *">Publish method</argument>
-    <argument name = "from_cluster" type = "Bool">Intra-cluster publish?</argument>
     //
     <possess>
     channel = amq_server_channel_link (channel);
@@ -347,7 +357,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     int64_t
         content_size;
 
-    delivered = self->publish (self->object, channel, method, from_cluster);
+    delivered = self->publish (self->object, channel, method);
     content_size = ((amq_content_basic_t *) method->content)->body_size;
 
     //  Track exchange statistics
@@ -390,119 +400,6 @@ for each type of exchange. This is a lock-free asynchronous class.
     }
     </action>
 </method>
-
-<method name = "unbind peer" template = "async function" async = "1">
-    <doc>
-    Unbind a cluster peer from the exchange.
-    </doc>
-    <argument name = "peer" type = "amq_peer_t *">The peer to unbind</argument>
-    //
-    <possess>
-    peer = amq_peer_link (peer);
-    </possess>
-    <release>
-    amq_peer_unlink (&peer);
-    </release>
-    //
-    <action>
-    amq_binding_t
-        *binding,
-        *target;
-
-    binding = amq_binding_list_first (self->binding_list);
-    while (binding) {
-        if (amq_binding_unbind_peer (binding, peer)) {
-            //  Allow the exchange implementation the chance to cleanup the
-            //  binding, but be careful to get the next binding first...
-            target = binding;
-            binding = amq_binding_list_next (&binding);
-            self->unbind (self->object, target);
-        }
-        else
-            binding = amq_binding_list_next (&binding);
-    }
-    </action>
-</method>
-
-<private name = "async header">
-//  Bind an object
-static void
-    s_bind_object (
-        amq_exchange_t *self,
-        amq_server_channel_t *channel,
-        amq_queue_t    *queue,
-        amq_peer_t     *peer,
-        char           *routing_key,
-        icl_longstr_t  *arguments);
-</private>
-
-<private name = "async footer">
-/*
-    Bind a queue or peer to the exchange.
-    The logic is the same for all exchange types - we compare all
-    existing bindings and if we find one that matches our arguments
-    (has identical arguments) we attach the queue to the binding.
-    Otherwise we create a new binding and compile it into the exchange,
-    this operation being exchange type-specific.
- */
-static void
-s_bind_object (
-    amq_exchange_t *self,
-    amq_server_channel_t *channel,
-    amq_queue_t     *queue,
-    amq_peer_t      *peer,
-    char            *routing_key,
-    icl_longstr_t   *arguments)
-{
-    amq_binding_t
-        *binding = NULL;                //  New binding created
-    ipr_hash_t
-        *hash;                          //  Entry into hash table
-
-    //  Treat empty arguments as null to simplify comparisons
-    if (arguments && arguments->cur_size == 0)
-        arguments = NULL;
-
-    //  We need to know if this is a new binding or not
-    //  First, we'll check on the routing key
-    hash = ipr_hash_table_search (self->binding_hash, routing_key);
-    if (hash) {
-        //  We found the same routing key, now we need to check
-        //  all bindings to check for an exact match
-        binding = amq_binding_list_first (self->binding_list);
-        while (binding) {
-            if (streq (binding->routing_key, routing_key)
-            && icl_longstr_eq (binding->arguments, arguments))
-                break;
-            binding = amq_binding_list_next (&binding);
-        }
-    }
-    if (!binding) {
-        //  If no binding matched, create a new one and compile it
-        binding = amq_binding_new (self, routing_key, arguments);
-        assert (binding);
-        if (!hash)                      //  Hash routing key if needed
-            hash = ipr_hash_new (self->binding_hash, routing_key, binding);
-
-        //  Compile binding and put all 'wildcard' bindings at the front
-        //  of the list. The meaning of this flag depends on the exchange.
-        if (self->compile (self->object, binding, channel) == 0) {
-            if (binding->is_wildcard)
-                amq_binding_list_push (self->binding_list, binding);
-            else
-                amq_binding_list_queue (self->binding_list, binding);
-        }
-    }
-    if (queue)
-        amq_binding_bind_queue (binding, queue);
-    else
-    if (peer)
-        amq_binding_bind_peer (binding, peer);
-
-    amq_binding_unlink (&binding);
-    ipr_hash_unlink (&hash);
-}
-</private>
 
 <method name = "selftest" />
 

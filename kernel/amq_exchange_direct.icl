@@ -35,7 +35,7 @@ on the routing_key.
     hash = ipr_hash_table_search (self->exchange->binding_hash, routing_key);
     if (hash) {
         binding = hash->data;
-        delivered += amq_binding_publish (binding, channel, method, from_cluster);
+        delivered += amq_binding_publish (binding, channel, method);
         ipr_hash_unlink (&hash);
     }
 </method>

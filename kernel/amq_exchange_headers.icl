@@ -151,7 +151,7 @@ limited by size of amq_index_hash table.
             if (binding) {
                 if ((binding->match_all && hitset->hit_count [binding_nbr] == binding->field_count)
                 || (!binding->match_all && hitset->hit_count [binding_nbr] > 0)) {
-                    delivered += amq_binding_publish (binding, channel, method, from_cluster);
+                    delivered += amq_binding_publish (binding, channel, method);
                     if (amq_server_config_debug_route (amq_server_config))
                         asl_log_print (amq_broker->debug_log,
                             "X: have_hit %s: match=%s hits=%d binding=%d",

@@ -156,7 +156,7 @@ amq_index_hash table.
         if (amq_server_config_debug_route (amq_server_config))
             asl_log_print (amq_broker->debug_log,
                 "X: hit      %s: wildcard=%s", self->exchange->name, binding->routing_key);
-        delivered += amq_binding_publish (binding, channel, method, from_cluster);
+        delivered += amq_binding_publish (binding, channel, method);
         binding_nbr = ipr_bits_next (index->bindset, binding_nbr);
     }
     amq_index_unlink (&index);
