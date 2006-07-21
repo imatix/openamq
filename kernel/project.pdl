@@ -89,13 +89,13 @@
 <file name = "amq_peering.icl"       class = "icl private class" >Server peering class</file>
 <file name = "amq_peering_agent.smt" class = "smt public module"
                                      generated = "1"             >Server peering agent</file>
-<file name = "amq_peercli_agent.smt" class = "smt public module"
+<file name = "amq_peer_agent.smt"    class = "smt public module"
                                      generated = "1"             >Peering client agent</file>
-<file name = "amq_peercli.asl"       class = "gsl data"          >Peering method interface</file>
-<file name = "amq_peercli_method.icl" class = "icl public cont"   >Peering methods, generated</file>
-<file name = "amq_peering_config.opf" class = "gsl data"          >Peering config syntax</file>
-<file name = "amq_peering_config.icl" class = "icl private cont"  >Peering config class</file>
-<file name = "amq_peering_config.txt" class = "generated resource">Peering config documentation</file>
+<file name = "amq_peer.asl"          class = "gsl data"          >Peering method interface</file>
+<file name = "amq_peer_method.icl"   class = "icl public cont"   >Peering methods, generated</file>
+<file name = "amq_peer_config.opf"   class = "gsl data"          >Peering config syntax</file>
+<file name = "amq_peer_config.icl"   class = "icl private cont"  >Peering config class</file>
+<file name = "amq_peer_config.txt"   class = "generated resource">Peering config documentation</file>
 
 <file name = "amq_vhost.icl"         class = "icl private class" >Server vhost class</file>
 <file name = "amq_vhost_agent.smt"   class = "smt public module"
