@@ -85,13 +85,18 @@
                                      generated = "1"             >Server cluster agent</file>
 <file name = "amq_peer.icl"          class = "icl private class" >Cluster peer class</file>
 <file name = "amq_peer_list.icl"     class = "icl private cont"  >Cluster peers per server</file>
-<file name = "amq_proxy.asl"         class = "gsl data"          >Cluster proxy definition</file>
-<file name = "amq_proxy_agent.smt"   class = "smt public module"
-                                     generated = "1"             >Cluster proxy agent</file>
-<file name = "amq_proxy_config.opf"  class = "gsl data"          >Cluster proxy configuration</file>
-<file name = "amq_proxy_config.icl"  class = "icl private cont"  >Cluster proxy configuration class</file>
-<file name = "amq_proxy_method.icl"  class = "icl public cont"   >Cluster proxy methods</file>
  -->
+<file name = "amq_peering.icl"       class = "icl private class" >Server peering class</file>
+<file name = "amq_peering_agent.smt" class = "smt public module"
+                                     generated = "1"             >Server peering agent</file>
+<file name = "amq_peercli_agent.smt" class = "smt public module"
+                                     generated = "1"             >Peering client agent</file>
+<file name = "amq_peercli.asl"       class = "gsl data"          >Peering method interface</file>
+<file name = "amq_peercli_method.icl" class = "icl public cont"   >Peering methods, generated</file>
+<file name = "amq_peering_config.opf" class = "gsl data"          >Peering config syntax</file>
+<file name = "amq_peering_config.icl" class = "icl private cont"  >Peering config class</file>
+<file name = "amq_peering_config.txt" class = "generated resource">Peering config documentation</file>
+
 <file name = "amq_vhost.icl"         class = "icl private class" >Server vhost class</file>
 <file name = "amq_vhost_agent.smt"   class = "smt public module"
                                      generated = "1"             >Server vhost agent</file>

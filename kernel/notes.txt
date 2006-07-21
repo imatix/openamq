@@ -1,4 +1,69 @@
-Changes
-    2006/05/09 - frame-max is server-configurable
-    2006/05/09 - connection thread trace is dynamically configurable
+1. make branch of trunk (ms)
+OK
+2. remove old cluster code and create cluster-free version of broker (ph)
+OK
+3. add proxying support so that broker objects can talk to remote servers
 
+This means that we want to allow a broker object to open a tunnel to a remote server and
+get responses back.
+
+
+4. add binding state subscription support so broker objects can track changes (ph, ms)
+5. implement fedex using above framework (ms)
+6. implement master state management by refactoring old cluster controller (ms, ph)
+
+
+
+The Peering API
+===============
+
+Requirements
+------------
+
+1. Opens a client connection to a remote AMQP server.
+2. Authenticates using peering credentials.
+3. Sends AMQP request methods to the remote server.
+4. Delivers AMQP reponse methods to a specified object.
+5. Detect connection failure and report to a specified object.
+
+Design
+------
+
+1. The peering API is provided by amq_peering, an asynchronous class.
+
+2. Each instance of this class represents one peering instance, from the current
+   server to a remote server.
+
+3. To start a new peering instance, some parent object creates a new amq_peering
+   instance, and specifies the remote server and peering login credentials.
+
+4. The parent object may, optionally, register a callback handler to which incoming
+   AMQP methods will be passed.
+
+5. The parent object may, optionally, register a callback handler that is invoked
+   if the peering is broken.
+
+6. The parent object can at any time ask the peering object to close its peering.
+   This also happens automatically when the peering object is destroyed.
+
+7. The parent object may ask the peering object to automatically reconnect in case
+   of a connection or network failure.
+
+Implementation
+--------------
+
+amq_peering methods:
+
+ - new (hostname, credentials)
+ - set_autoconnect (boolean)
+ - connect ()
+ - disconnect ()
+ - send (method)
+ - set_method_handler (method_handler_fn)
+ - set_disconnect_handler (disconnect_handler_fn)
+
+Internal design
+---------------
+
+amq_peering will use amq_proxy_agent to send methods.  This agent returns incoming
+methods via the amq_proxy.asl thunking layer.
