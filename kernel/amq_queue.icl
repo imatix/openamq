@@ -293,8 +293,6 @@ class.  This is a lock-free asynchronous class.
         *connection;
     amq_server_channel_t
         *channel;
-    amq_consumer_t
-        *consumer_ref;
 
     //  Validate consumer
     channel = amq_server_channel_link (consumer->channel);
@@ -317,8 +315,6 @@ class.  This is a lock-free asynchronous class.
         error = "Queue is being used exclusively by another consumer";
 
     if (error) {
-        //AMQ-498
-        icl_console_print ("### AMQ_QUEUE: %s (consumer=%pp)", error, consumer);
         if (channel) {
             amq_server_channel_error (channel, ASL_ACCESS_REFUSED, error);
             amq_server_channel_cancel (channel, consumer->tag, FALSE, TRUE);

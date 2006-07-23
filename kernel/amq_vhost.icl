@@ -54,13 +54,13 @@ Defines a virtual host. This is a lock-free asynchronous class.
     self->shared_queues  = ipr_symbol_table_new ();
 
     //  Automatic wiring schemes
-    s_exchange_declare (self, "$default$",  AMQ_EXCHANGE_DIRECT,  TRUE);
-    s_exchange_declare (self, "amq.fanout", AMQ_EXCHANGE_FANOUT,  FALSE);
-    s_exchange_declare (self, "amq.direct", AMQ_EXCHANGE_DIRECT,  FALSE);
-    s_exchange_declare (self, "amq.topic",  AMQ_EXCHANGE_TOPIC,   FALSE);
-    s_exchange_declare (self, "amq.match",  AMQ_EXCHANGE_HEADERS, FALSE);
-    s_exchange_declare (self, "amq.system", AMQ_EXCHANGE_SYSTEM,  FALSE);
-    s_exchange_declare (self, "amq.notify", AMQ_EXCHANGE_TOPIC,   FALSE);
+    s_exchange_declare (self, "$default$",   AMQ_EXCHANGE_DIRECT,  TRUE);
+    s_exchange_declare (self, "amq.fanout",  AMQ_EXCHANGE_FANOUT,  FALSE);
+    s_exchange_declare (self, "amq.direct",  AMQ_EXCHANGE_DIRECT,  FALSE);
+    s_exchange_declare (self, "amq.topic",   AMQ_EXCHANGE_TOPIC,   FALSE);
+    s_exchange_declare (self, "amq.headers", AMQ_EXCHANGE_HEADERS, FALSE);
+    s_exchange_declare (self, "amq.system",  AMQ_EXCHANGE_SYSTEM,  FALSE);
+    s_exchange_declare (self, "amq.notify",  AMQ_EXCHANGE_TOPIC,   FALSE);
 </method>
 
 <method name = "destroy">

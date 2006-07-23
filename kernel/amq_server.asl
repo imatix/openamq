@@ -415,7 +415,7 @@
             //  This method may only come from an external application
             assert (connection);
             amq_content_$(class.name)_set_routing_key (
-                self->content,
+                content,
                 method->exchange,
                 method->routing_key,
                 connection->id);
@@ -423,7 +423,7 @@
 #ifdef __DISABLED_CLUSTER_TODO__
 //  This was where we set the cluster tag for message returns... not very
 //  elegant.
-            amq_content_$(class.name)_set_cluster_id (self->content, channel->cluster_id);
+            amq_content_$(class.name)_set_cluster_id (content, channel->cluster_id);
 #endif
             amq_exchange_publish (exchange, channel, self);
         }
@@ -478,24 +478,12 @@
 <!-- File -->
 <class name = "file">
   <action name = "consume" sameas = "basic" />
-  <action name = "publish" sameas = "basic" />
   <action name = "cancel"  sameas = "basic" />
 </class>
 
 <class name = "tunnel">
   <action name = "request">
-    //  This should be set up so that any object wanting a tunnel can
-    //  create it explicitly and get methods back like that.  Passing
-    //  them blindly to amq_cluster is not great.
-
-    method = NULL;    //  Prevent compiler warning on unused method variable
-#ifdef __DISABLED_CLUSTER_TODO__
-    if (amq_cluster->enabled
-    &&  connection->group == AMQ_CONNECTION_GROUP_CLUSTER)
-        amq_cluster_tunnel_in (amq_cluster, self->content, channel);
-    else
-#endif
-    amq_server_connection_error (connection, ASL_NOT_ALLOWED, "Method not allowed");
+    //  Tunnelling is being redesigned as an explicit internal API
   </action>
 </class>
 

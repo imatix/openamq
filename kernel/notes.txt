@@ -52,18 +52,31 @@ Design
 Implementation
 --------------
 
-amq_peering methods:
-
- - new (hostname, credentials)
- - set_autoconnect (boolean)
- - connect ()
- - disconnect ()
- - send (method)
- - set_method_handler (method_handler_fn)
- - set_disconnect_handler (disconnect_handler_fn)
+amq_peering methods, see amq_peering.icl
 
 Internal design
 ---------------
 
-amq_peering will use amq_proxy_agent to send methods.  This agent returns incoming
-methods via the amq_proxy.asl thunking layer.
+amq_peering will use amq_peer_agent to send methods.  This agent returns incoming
+methods via the amq_peer.asl method layer, which sends selected AMQP methods back
+to the responsible amq_peering object.
+
+
+The Tunnelling API
+==================
+
+- design as extension to PEERING api
+    - 'open tunnel to service X'
+    - via amq.tunnel exchange?
+    
+- creates tunnel between two cooperating objects in both servers.
+- like a peering except:
+    - not a client-server relationship but peer-to-peer
+    - used to carry extension methods across AMQP
+- process:
+    - one server opens tunnel to second server
+    - tunnel specifies a logical name
+    - tunnel is opened and closed logically
+- tunnel is opened and managed automatically, like peering
+- either peer object can send methods to tunnel, which arrive at other side
+

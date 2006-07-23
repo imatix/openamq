@@ -9,21 +9,21 @@
   -->
 
 <opf
-    name    = "amq_proxy_config"
-    comment = "Cluster proxy configuration properties"
+    name    = "amq_peer_config"
+    comment = "Peer client configuration properties"
     script  = "opf_gen"
     root    = "config"
-    config  = "amq_proxy.cfg"
+    config  = "amq_peer.cfg"
     >
 
 <public>
 extern $\(selftype)
-    *amq_proxy_config;                  //  Global properties object
+    *amq_peer_config;                  //  Global properties object
 </public>
 
 <private>
 $\(selftype)
-    *amq_proxy_config = NULL;           //  Global properties
+    *amq_peer_config = NULL;           //  Global properties
 </private>
 
 <path name = "tuning">

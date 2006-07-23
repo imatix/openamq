@@ -125,10 +125,6 @@ class.
     <local>
     amq_queue_list_iterator_t
         iterator;
-    ipr_looseref_t
-        *looseref;                      //  Bound object
-    amq_server_connection_t
-        *connection;
     </local>
     //
     //  Publish to all queues, sending method to async queue class
