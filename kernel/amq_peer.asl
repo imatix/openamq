@@ -22,12 +22,6 @@
   </action>
 </class>
 
-<class name = "channel">
-  <action name = "close">
-    amq_peering_peer_channel_close (caller, method);
-  </action>
-</class>
-
 <class name = "basic">
   <!-- We use only asynchronous consumers to get messages -->
   <action name = "deliver">
