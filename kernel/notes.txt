@@ -12,6 +12,7 @@ get responses back.
 5. implement fedex using above framework (ms)
 6. implement master state management by refactoring old cluster controller (ms, ph)
 
+-> set broker name to something unique
 
 
 The Peering API
@@ -68,7 +69,7 @@ The Tunnelling API
 - design as extension to PEERING api
     - 'open tunnel to service X'
     - via amq.tunnel exchange?
-    
+
 - creates tunnel between two cooperating objects in both servers.
 - like a peering except:
     - not a client-server relationship but peer-to-peer

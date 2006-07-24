@@ -22,10 +22,16 @@
   </action>
 </class>
 
+<class name = "channel">
+  <action name = "open-ok">
+    amq_peering_peer_channel_open_ok (caller, method);
+  </action>
+</class>
+
 <class name = "basic">
   <!-- We use only asynchronous consumers to get messages -->
   <action name = "deliver">
-    amq_peering_peer_basic_deliver (caller, method, content);
+    amq_peering_peer_basic_deliver (caller, self);
   </action>
 </class>
 
