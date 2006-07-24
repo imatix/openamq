@@ -63,6 +63,24 @@ for each type of exchange. This is a lock-free asynchronous class.
 
 <import class = "amq_server_classes" />
 
+<public name = "header">
+    typedef void
+        (amq_binding_creation_notify_fn) (
+            void *object,
+            amq_exchange_t *exchange,
+            icl_shortstr_t routing_key,
+            icl_longstr_t *arguments);
+</public>
+
+<private>
+void s_create_binding_notify (
+    icl_shortstr_t routing_key,
+    icl_longstr_t *arguments)
+{
+    icl_console_print ("Binding created for the routing key %s", routing_key);
+}
+</private>
+
 <context>
     amq_broker_t
         *broker;                        //  Parent broker
@@ -107,6 +125,12 @@ for each type of exchange. This is a lock-free asynchronous class.
         traffic_out,                    //  Traffic out, in octets
         contents_in,                    //  Contents in, in octets
         contents_out;                   //  Contents out, in octets
+
+    //  Binding creation notification
+    amq_binding_creation_notify_fn
+        *binding_creation_subscription;
+    void
+        *subscribing_object;
 </context>
 
 <public name = "header">
@@ -182,6 +206,8 @@ for each type of exchange. This is a lock-free asynchronous class.
             "E: invalid type '%d' in exchange_new", self->type);
 
     amq_exchange_by_vhost_queue (self->vhost->exchange_list, self);
+
+    self->binding_creation_subscription = s_create_binding_notify;
 </method>
 
 <method name = "destroy">
@@ -327,6 +353,11 @@ for each type of exchange. This is a lock-free asynchronous class.
             else
                 amq_binding_list_queue (self->binding_list, binding);
         }
+
+        //  Send a notification about binding being created
+        if (self->binding_creation_subscription)
+            self->binding_creation_subscription (self->subscribing_object,
+                self, routing_key, arguments);
     }
     amq_binding_bind_queue (binding, queue);
     amq_binding_unlink (&binding);
@@ -398,6 +429,18 @@ for each type of exchange. This is a lock-free asynchronous class.
         else
             binding = amq_binding_list_next (&binding);
     }
+    </action>
+</method>
+
+<method name = "subscribe">
+    <doc>
+    Allows user to subscribe for notifications
+    </doc>
+    <argument name = "binding_created" type = "amq_binding_creation_notify_fn*" />
+    <argument name = "object" type = "void*" />
+    <action>
+        self->binding_creation_subscription = binding_created;
+        self->subscribing_object = object;
     </action>
 </method>
 
