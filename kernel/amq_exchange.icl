@@ -75,10 +75,12 @@ typedef struct {
     void
         *object;
     amq_binding_created_fn
-        *binding_created;
+        *callback;
 } amq_exchange_subscriber_t;
 
-#define MAX_EXCHANGE_SUBSCRIBERS 256
+//  This limit corresponds to the maximum number of subscribers per exchange
+//  For now this is hard-coded, pending a review of the subscription model.
+#define MAX_EXCHANGE_SUBSCRIBERS 16
 </public>
 
 <private>
@@ -88,7 +90,7 @@ void s_binding_created (
     icl_shortstr_t routing_key,
     icl_longstr_t *arguments)
 {
-    icl_console_print ("Binding created for the routing key %s", routing_key);
+    icl_console_print ("(TEST) Binding created for the routing key %s", routing_key);
 }
 </private>
 
@@ -218,8 +220,8 @@ void s_binding_created (
 
     amq_exchange_by_vhost_queue (self->vhost->exchange_list, self);
 
-    subscriber.object = 0x1;
-    subscriber.binding_created = s_binding_created;
+    //  Add a subscriber for test purposes
+    subscriber.callback = s_binding_created;
     self_subscribe (self, subscriber);
 </method>
 
@@ -328,7 +330,7 @@ void s_binding_created (
         *binding = NULL;                //  New binding created
     ipr_hash_t
         *hash;                          //  Entry into hash table
-    int
+    uint
         counter;
 
     if (amq_server_config_debug_route (amq_server_config))
@@ -370,13 +372,10 @@ void s_binding_created (
         }
 
         //  Send a notification about binding being created
-        for (counter = 0; counter != MAX_EXCHANGE_SUBSCRIBERS; counter++) {
-            if (self->subscribers [counter].object &&
-                  self->subscribers [counter].binding_created) {
-               self->subscribers [counter].binding_created (
-                    self->subscribers [counter].object, self, routing_key,
-                    arguments);
-            }
+        for (counter = 0; counter < MAX_EXCHANGE_SUBSCRIBERS; counter++) {
+            if (self->subscribers [counter].callback)
+               (self->subscribers [counter].callback) (
+                    self->subscribers [counter].object, self, routing_key, arguments);
         }
     }
     amq_binding_bind_queue (binding, queue);
@@ -454,18 +453,23 @@ void s_binding_created (
 
 <method name = "subscribe" template = "async function" async = "1">
     <doc>
-    Allows user to subscribe for notifications
+    Subscribe object for notifications.
     </doc>
     <argument name = "subscriber" type = "amq_exchange_subscriber_t" />
+    //
     <action>
-        int
-            counter = 0;
+    uint
+        counter;
 
-        while (counter != MAX_EXCHANGE_SUBSCRIBERS)
-            if (!self->subscribers [counter].object)
-                break;
-        assert (counter != MAX_EXCHANGE_SUBSCRIBERS);
+    //  Find empty slot
+    for (counter = 0; counter < MAX_EXCHANGE_SUBSCRIBERS; counter++)
+        if (!self->subscribers [counter].callback)
+            break;
+
+    if (counter < MAX_EXCHANGE_SUBSCRIBERS)
         self->subscribers [counter] = subscriber;
+    else
+        icl_console_print ("E: too many subscribers for exchange bindings");
     </action>
 </method>
 
@@ -473,16 +477,17 @@ void s_binding_created (
     <doc>
     Cancels subscription for notifications
     </doc>
-    <argument name = "object" type = "void*" />
+    <argument name = "object" type = "void *" />
     <action>
-        int
-            counter;
+    uint
+        counter;
 
-        while (counter != MAX_EXCHANGE_SUBSCRIBERS)
-            if (self->subscribers [counter].object == object)
-                break;
-        if (counter != MAX_EXCHANGE_SUBSCRIBERS)
-            self->subscribers [counter].object = NULL;
+    for (counter = 0; counter < MAX_EXCHANGE_SUBSCRIBERS; counter++) {
+        if (self->subscribers [counter].object == object) {
+            self->subscribers [counter].object   = NULL;
+            self->subscribers [counter].callback = NULL;
+        }
+    }
     </action>
 </method>
 
