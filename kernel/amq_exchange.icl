@@ -64,16 +64,27 @@ for each type of exchange. This is a lock-free asynchronous class.
 <import class = "amq_server_classes" />
 
 <public name = "header">
-    typedef void
-        (amq_binding_creation_notify_fn) (
-            void *object,
-            amq_exchange_t *exchange,
-            icl_shortstr_t routing_key,
-            icl_longstr_t *arguments);
+typedef void
+    (amq_binding_created_fn) (
+        void *self,
+        amq_exchange_t *exchange,
+        icl_shortstr_t routing_key,
+        icl_longstr_t *arguments);
+
+typedef struct {
+    void
+        *object;
+    amq_binding_created_fn
+        *binding_created;
+} amq_exchange_subscriber_t;
+
+#define MAX_EXCHANGE_SUBSCRIBERS 256
 </public>
 
 <private>
-void s_create_binding_notify (
+void s_binding_created (
+    void *self,
+    amq_exchange_t *exchange,
     icl_shortstr_t routing_key,
     icl_longstr_t *arguments)
 {
@@ -126,11 +137,9 @@ void s_create_binding_notify (
         contents_in,                    //  Contents in, in octets
         contents_out;                   //  Contents out, in octets
 
-    //  Binding creation notification
-    amq_binding_creation_notify_fn
-        *binding_creation_subscription;
-    void
-        *subscribing_object;
+    //  Exchange notification subscribers
+    amq_exchange_subscriber_t
+        subscribers [MAX_EXCHANGE_SUBSCRIBERS];
 </context>
 
 <public name = "header">
@@ -154,6 +163,8 @@ void s_create_binding_notify (
     <local>
     amq_broker_t
         *broker = amq_broker;
+    amq_exchange_subscriber_t
+        subscriber;
     </local>
     //
     self->broker        = broker;
@@ -207,7 +218,9 @@ void s_create_binding_notify (
 
     amq_exchange_by_vhost_queue (self->vhost->exchange_list, self);
 
-    self->binding_creation_subscription = s_create_binding_notify;
+    subscriber.object = 0x1;
+    subscriber.binding_created = s_binding_created;
+    self_subscribe (self, subscriber);
 </method>
 
 <method name = "destroy">
@@ -315,6 +328,8 @@ void s_create_binding_notify (
         *binding = NULL;                //  New binding created
     ipr_hash_t
         *hash;                          //  Entry into hash table
+    int
+        counter;
 
     if (amq_server_config_debug_route (amq_server_config))
         asl_log_print (amq_broker->debug_log,
@@ -355,9 +370,14 @@ void s_create_binding_notify (
         }
 
         //  Send a notification about binding being created
-        if (self->binding_creation_subscription)
-            self->binding_creation_subscription (self->subscribing_object,
-                self, routing_key, arguments);
+        for (counter = 0; counter != MAX_EXCHANGE_SUBSCRIBERS; counter++) {
+            if (self->subscribers [counter].object &&
+                  self->subscribers [counter].binding_created) {
+               self->subscribers [counter].binding_created (
+                    self->subscribers [counter].object, self, routing_key,
+                    arguments);
+            }
+        }
     }
     amq_binding_bind_queue (binding, queue);
     amq_binding_unlink (&binding);
@@ -432,15 +452,37 @@ void s_create_binding_notify (
     </action>
 </method>
 
-<method name = "subscribe">
+<method name = "subscribe" template = "async function" async = "1">
     <doc>
     Allows user to subscribe for notifications
     </doc>
-    <argument name = "binding_created" type = "amq_binding_creation_notify_fn*" />
+    <argument name = "subscriber" type = "amq_exchange_subscriber_t" />
+    <action>
+        int
+            counter = 0;
+
+        while (counter != MAX_EXCHANGE_SUBSCRIBERS)
+            if (!self->subscribers [counter].object)
+                break;
+        assert (counter != MAX_EXCHANGE_SUBSCRIBERS);
+        self->subscribers [counter] = subscriber;
+    </action>
+</method>
+
+<method name = "unsubscribe" template = "async function" async = "1">
+    <doc>
+    Cancels subscription for notifications
+    </doc>
     <argument name = "object" type = "void*" />
     <action>
-        self->binding_creation_subscription = binding_created;
-        self->subscribing_object = object;
+        int
+            counter;
+
+        while (counter != MAX_EXCHANGE_SUBSCRIBERS)
+            if (self->subscribers [counter].object == object)
+                break;
+        if (counter != MAX_EXCHANGE_SUBSCRIBERS)
+            self->subscribers [counter].object = NULL;
     </action>
 </method>
 
