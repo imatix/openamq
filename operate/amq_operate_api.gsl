@@ -439,6 +439,8 @@ NULL, NULL);
 #   define CD_EXIT  3                   //  Child cmdline asks to exit
 
     self_load (self);
+    self_print_properties (self, xml_data);
+    
     while (TRUE) {
         amq_client_session_wait (self->session, 1);
         if (!self->session->alive) {
