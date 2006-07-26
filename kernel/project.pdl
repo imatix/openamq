@@ -231,7 +231,7 @@
   <generate>
     <execute>
     gsl -q amq_server_config.opf
-    gsl -q amq_console_schema
+    gsl -q amq_console_schema.gsl
     perl -S ipr_resource.pl @amq_server_resource.rc
     </execute>
   </generate>
