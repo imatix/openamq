@@ -53,7 +53,7 @@ public AMQConnectionState (AMQClientConnection acc)
     methodToEvent.put(ConnectionTuneBody.class, new Integer(connectionTuneEvent));
     methodToEvent.put(ConnectionOpenOkBody.class, new Integer(connectionOpenOkEvent));
     methodToEvent.put(ConnectionCloseBody.class, new Integer(connectionCloseEvent));
-    methodToEvent.put(ConnectionCloseOkBody.class, new Integer(connectionFinishedEvent));
+    methodToEvent.put(ConnectionCloseOkBody.class, new Integer(connectionCloseOkEvent));
 }
 
 //////////////////////////////////   M A I N   ////////////////////////////////
@@ -61,6 +61,10 @@ public AMQConnectionState (AMQClientConnection acc)
 public void run ()
 {
     execute();
+    if (theNextEvent != terminateEvent) {
+        cleanup();
+        _logger.error("Connection-level FSM bug");
+    }
 }
 
 //////////////////////////   INITIALISE THE PROGRAM   /////////////////////////
@@ -95,6 +99,10 @@ public void getExternalEvent ()
                 expectExternalEvent = false;
             }
         }
+    }
+    synchronized (this) {
+        if (!(connectionOpening || connectionOpened))
+            return;
     }
 
     try {
@@ -160,7 +168,7 @@ public void getExternalEvent ()
 public void waitConnectionOpened ()
 {
     synchronized (this) {
-        while (!connectionOpened) {
+        while (connectionOpening && !connectionOpened) {
             try {
                 wait();
             } catch (InterruptedException e) {}
@@ -251,10 +259,18 @@ public void connectionCloseOk ()
 {
     try {
         aph.writeFrame(null, ConnectionCloseOkBody.createAMQFrame(0));
-        theNextEvent = connectionFinishedEvent;
+        connectionClosed();
     } catch (Exception e) {
         throw new RuntimeException(e);
     }
+}
+
+////////////////////////////   CONNECTION CLOSED   ////////////////////////////
+
+public void connectionClosed ()
+{
+    aph.closeProtocolSession();
+    theNextEvent = connectionFinishedEvent;
 }
 
 /////////////////////////////////   CLEAN UP   ////////////////////////////////
@@ -262,10 +278,15 @@ public void connectionCloseOk ()
 public void cleanup ()
 {
     synchronized (this) {
+        acc.disableSessions();
         connectionOpened = false;
         connectionOpening = false;
+        notifyAll();
     }
-    aph.closeProtocolSession();
+    synchronized (frames) {
+        expectExternalEvent = false;
+        frames.notifyAll();
+    }
     theNextEvent = terminateEvent;
 }
 

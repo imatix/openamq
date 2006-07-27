@@ -22,6 +22,7 @@ channel-Opened:
     (--) channel-Close                           -> channel-Closed
           + channel-Close-Ok
     (--) channel-Close-Ok                        -> channel-Closed
+          + channel-Closed
 
 message-Consuming:
     (--) content-Header                          -> message-Consuming

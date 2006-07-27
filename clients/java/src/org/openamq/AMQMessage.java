@@ -14,8 +14,8 @@ public class AMQMessage {
         delivery;
 
     public AMQMessage() {
-        setBody((ByteBuffer)null);
-        setHeaders(new BasicContentHeaderProperties());
+        clearBody();
+        clearHeaders();
         delivery = null;
     }
 
@@ -31,12 +31,22 @@ public class AMQMessage {
         this.data = data;
     }
 
+    public void clearBody() {
+        if (data != null)
+            data.release();
+        setBody((ByteBuffer)null);
+    }
+
     public ByteBuffer getBody() {
         return data;
     }
 
     public void setHeaders(BasicContentHeaderProperties headers) {
         this.headers = headers;
+    }
+
+    public void clearHeaders() {
+        setHeaders(new BasicContentHeaderProperties());
     }
 
     public BasicContentHeaderProperties getHeaders() {

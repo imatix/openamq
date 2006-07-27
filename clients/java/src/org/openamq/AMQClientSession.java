@@ -1,6 +1,6 @@
 package org.openamq;
 
-import java.util.concurrent.*;
+import java.util.LinkedList;
 
 import org.apache.mina.common.ByteBuffer;
 import org.apache.log4j.Logger;
@@ -22,7 +22,7 @@ public class AMQClientSession {
         sessionState;
     Thread
         sessionThread;
-    LinkedBlockingQueue
+    LinkedList
         messages;
     int
         sessionId,
@@ -39,7 +39,9 @@ public class AMQClientSession {
         aph = acc.getProtocolHandler();
         sessionThread = null;
         sessionState = new AMQChannelState(acc, this);
-        messages = new LinkedBlockingQueue();
+        messages = new LinkedList();
+
+        acc.putSession(this);
     }
 
     public void channelFlow(boolean active) throws Exception {
@@ -184,7 +186,16 @@ public class AMQClientSession {
 
     public AMQMessage getMessage() throws Exception {
         _logger.debug("Waiting for message");
-        return (AMQMessage)messages.take();
+        synchronized (messages) {
+            try {
+                if (messages.isEmpty() && acc.containsSession(sessionId))
+                    messages.wait();
+            } catch (InterruptedException e) {}
+            if (!messages.isEmpty())
+                return (AMQMessage)messages.removeFirst();
+            else
+                throw new AMQException("Cannot get message");
+        }
     }
 
     public AMQMessage createMessage() {
@@ -201,14 +212,26 @@ public class AMQClientSession {
     }
 
     public void close(int replyCode, String replyText, int classId, int methodId) throws Exception {
+        disableSession();
+
         if (replyCode != AMQConstant.REPLY_SUCCESS)
             _logger.error(replyText);
-        writeFrame(ChannelCloseBody.createAMQFrame(sessionId, replyCode, replyText, classId, methodId));
+        if (sessionState.isChannelOpening() || sessionState.isChannelOpened())
+            writeFrame(ChannelCloseBody.createAMQFrame(sessionId, replyCode, replyText, classId, methodId));
+    }
+
+    public void disableSession() {
+        synchronized (messages) {
+            _logger.debug("Disabling session: " + sessionId);
+            acc.removeSession(sessionId);
+            messages.notifyAll();
+        }
     }
 
     public void messageReceived(AMQMessage message) {
         synchronized (messages) {
             messages.add(message);
+            messages.notifyAll();
         }
     }
 

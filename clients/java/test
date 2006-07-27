@@ -5,4 +5,4 @@ dist=$IBASE/amqpj/dist
 
 libs="$lib/mina-core-0.9.5-SNAPSHOT.jar:$lib/log4j-1.2.13.jar:$dist/amqpj.jar"
 
-$JAVA_HOME/bin/java -Droot.logging.level="WARN" -Damqpj.logging.level="INFO" -classpath "$libs:." org.openamq.test.AMQClient $@
+$JAVA_HOME/bin/java -XX:MaxDirectMemorySize=256M -Droot.logging.level="WARN" -Damqpj.logging.level="INFO" -classpath "$libs:." org.openamq.test.AMQClient $@

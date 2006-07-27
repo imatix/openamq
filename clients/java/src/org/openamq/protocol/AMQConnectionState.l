@@ -27,6 +27,7 @@ connection-Opened:
     (--) connection-Close                        -> connection-Closed
           + connection-Close-Ok
     (--) connection-Close-Ok                     -> connection-Closed
+          + connection-Closed
                     
 connection-Closed:
     (--) connection-Finished                     ->

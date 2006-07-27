@@ -59,7 +59,7 @@ public AMQChannelState (AMQClientConnection acc, AMQClientSession acs)
 
     methodToEvent.put(ChannelOpenOkBody.class, new Integer(channelOpenOkEvent));
     methodToEvent.put(ChannelCloseBody.class, new Integer(channelCloseEvent));
-    methodToEvent.put(ChannelCloseOkBody.class, new Integer(channelFinishedEvent));
+    methodToEvent.put(ChannelCloseOkBody.class, new Integer(channelCloseOkEvent));
     methodToEvent.put(BasicReturnBody.class, new Integer(basicReturnEvent));
     methodToEvent.put(BasicDeliverBody.class, new Integer(basicDeliverEvent));
 }
@@ -69,6 +69,10 @@ public AMQChannelState (AMQClientConnection acc, AMQClientSession acs)
 public void run ()
 {
     execute();
+    if (theNextEvent != terminateEvent) {
+        cleanup();
+        _logger.error("Channel-level FSM bug");
+    }
 }
 
 
@@ -94,7 +98,7 @@ public void setExternalEvent (AMQFrame frame)
 public void getExternalEvent ()
 {
     synchronized (frames) {
-        while (expectExternalEvent) {
+        while (expectExternalEvent && (channelOpening || channelOpened)) {
             if (frames.isEmpty()) {
                 try {
                     frames.wait();
@@ -104,6 +108,10 @@ public void getExternalEvent ()
                 expectExternalEvent = false;
             }
         }
+    }
+    synchronized (this) {
+        if (!(channelOpening || channelOpened))
+            return;
     }
 
     try {
@@ -160,7 +168,7 @@ public void getExternalEvent ()
 public void waitChannelOpened ()
 {
     synchronized (this) {
-        while (!channelOpened) {
+        while (channelOpening && !channelOpened) {
             try {
                 wait();
             } catch (InterruptedException e) {}
@@ -229,10 +237,17 @@ public void channelCloseOk ()
 {
     try {
         aph.writeFrame(acs, ChannelCloseOkBody.createAMQFrame(acs.getSessionId()));
-        theNextEvent = channelFinishedEvent;
+        channelClosed();
     } catch (Exception e) {
         throw new RuntimeException(e);
     }
+}
+
+/////////////////////////////    CHANNEL CLOSED   /////////////////////////////
+
+public void channelClosed ()
+{
+    theNextEvent = channelFinishedEvent;
 }
 
 
@@ -241,8 +256,14 @@ public void channelCloseOk ()
 public void cleanup ()
 {
     synchronized (this) {
+        acs.disableSession();
         channelOpened = false;
         channelOpening = false;
+        notifyAll();
+    }
+    synchronized (frames) {
+        expectExternalEvent = false;
+        frames.notifyAll();
     }
     theNextEvent = terminateEvent;
 }
@@ -334,6 +355,8 @@ public void consumeBody ()
                     theNextEvent = messageConsumedEvent;
                 }
             }
+
+            payload.release();
         }
     } catch (Exception e) {
         throw new RuntimeException(e);

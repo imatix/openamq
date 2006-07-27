@@ -25,8 +25,6 @@ public class AMQClient extends AMQClientConnection {
             "  -a connections   Open N active connections (1)\n"                      +
             "  -p connections   Open N passive connections (0)\n"                     +
             "  -r repeat        Repeat test N times (1)\n"                            +
-            "  -t level         Set trace level (default = 0)\n"                      +
-            "                   0=none, 1=info, 2=warn, 3=debug\n"                    +
             "  -v               Show version information\n"                           +
             "  -h               Show summary of command-line options\n"               +
             "\nThe order of parameters is not important. Switches and filenames\n"     +
@@ -238,7 +236,9 @@ public class AMQClient extends AMQClientConnection {
 
             // Setup connections
             for (i = 0; i < connections.length; i++) {
-                connections[i] = new AMQClientConnection(getHost(), getVirtualHost(), getAuthData(), getClientInstance(), getTrace(), getTimeout());
+                connections[i] = new AMQClientConnection(getHost(), getVirtualHost(), getAuthData(),
+                    getClientInstance() + " " + i, getTrace(), getTimeout());
+                connections[i].connect();
                 sessions[i] = connections[i].createSession();
                 if (i < active) {
                     String
@@ -271,14 +271,16 @@ public class AMQClient extends AMQClientConnection {
                 // Receive messages and discard them
                 for (j = 0; j < messages; j++) {
                     for (k = 0; k < active; k++) {
+                        msgs[k].clearBody();
                         msgs[k] = sessions[k].getMessage();
-                        if (_logger.isDebugEnabled()) {
+                        if (_logger.isDebugEnabled())
                             _logger.debug("Receiving message with ID: " + msgs[k].getHeaders().getMessageId());
-                            _logger.debug(msgs[k].getBody().getHexDump());
-                        }
                     }
                 }
             }
+
+            for (i = 0; i < connections.length; i++) 
+                connections[i].close(); 
         } catch (Exception e) {
             _logger.error("error communicating with " + getHost(), e);
         }

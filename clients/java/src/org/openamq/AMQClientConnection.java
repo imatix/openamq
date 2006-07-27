@@ -30,11 +30,11 @@ public class AMQClientConnection {
         host,
         virtualHost,
         instance;
+    TreeMap
+        sessions;
     int
         trace,
         timeout;
-    TreeMap
-        sessions;
 
     public static AuthData authPlain(String user, String password) {
         return new AuthDataPlain(user, password);
@@ -51,8 +51,6 @@ public class AMQClientConnection {
         setClientInstance(instance);
         setTrace(trace);
         setTimeout(timeout);
-
-        connect();
     }
 
     public void connect() throws IOException {
@@ -113,15 +111,18 @@ public class AMQClientConnection {
         return timeout;
     }
 
-    public AMQClientSession createSession() {
-        AMQClientSession
-            acs = new AMQClientSession(this);
+    public AMQClientSession createSession() throws Exception {
+        if (conState != null && conState.isConnectionOpened()) {
+            AMQClientSession
+                acs = new AMQClientSession(this);
+    
+            acs.start();
+            acs.getSessionState().waitChannelOpened();
 
-        sessions.put(acs.getSessionId(), acs);
-        acs.start();
-        acs.getSessionState().waitChannelOpened();
-
-        return acs;
+            return acs;
+        } else {
+            throw new IllegalStateException("Connection is not opened");
+        }
     }
 
     public void start() {
@@ -134,20 +135,49 @@ public class AMQClientConnection {
     }
 
     public void close(int replyCode, String replyText, int classId, int methodId) throws Exception {
+        disableSessions();
+
         if (replyCode != AMQConstant.REPLY_SUCCESS)
             _logger.error(replyText);
-        writeFrame(ConnectionCloseBody.createAMQFrame(0, replyCode, replyText, classId, methodId));
+        if (conState.isConnectionOpening() || conState.isConnectionOpened())
+            writeFrame(ConnectionCloseBody.createAMQFrame(0, replyCode, replyText, classId, methodId));
+    }
+
+    public void disableSessions()  {
+        synchronized (sessions) {
+            if (_logger.isDebugEnabled())
+                _logger.debug("Disabling sessions for connection: " + instance);
+
+            while (!sessions.isEmpty())
+                ((AMQClientSession)sessions.get(sessions.firstKey())).disableSession();
+        }
     }
 
     public void dispatchFrame(AMQFrame frame) {
         AMQClientSession
+            acs = null;
+
+        synchronized (sessions) {
             acs = (AMQClientSession)sessions.get(frame.channel);
+        }
 
         if (acs != null) {
             AMQChannelState
                 ass = acs.getSessionState();
 
-            ass.setExternalEvent(frame);
+            if (ass.isChannelOpening() || ass.isChannelOpened()) {
+                if (_logger.isDebugEnabled()) {
+                    _logger.debug("Dispatching frame to session");
+                    _logger.debug("Connection: " + this);
+                    _logger.debug("Session: " + acs.getSessionId());
+                }
+
+                ass.setExternalEvent(frame);
+            } else {
+                _logger.warn("Receiving frame on a closed session");
+                _logger.warn("Session: " + acs.getSessionId());
+                _logger.warn(frame);
+            }
         } else {
             _logger.warn("Not handling channel id: " + frame.channel);
         }
@@ -173,5 +203,23 @@ public class AMQClientConnection {
 
     public ConnectionTuneBody getConnectionTuneData() {
         return ctb;
+    }
+
+    void putSession(AMQClientSession acs) {
+        synchronized (sessions) {
+            sessions.put(acs.getSessionId(), acs);
+        }
+    }
+
+    void removeSession(int sessionId) {
+        synchronized (sessions) {
+            sessions.remove(sessionId);
+        }
+    }
+
+    boolean containsSession(int sessionId) {
+        synchronized (sessions) {
+            return sessions.containsKey(sessionId);
+        }
     }
 } 

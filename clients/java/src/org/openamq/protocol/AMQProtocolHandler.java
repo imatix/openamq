@@ -8,6 +8,8 @@ import org.apache.mina.filter.codec.ProtocolCodecFilter;
 
 import org.openamq.AMQClientConnection;
 import org.openamq.AMQClientSession;
+import org.openamq.AMQConstant;
+import org.openamq.AMQException;
 import org.openamq.AuthData;
 import org.openamq.protocol.AMQConnectionState;
 import org.openamq.framing.*;
@@ -35,6 +37,7 @@ public class AMQProtocolHandler extends IoHandlerAdapter {
     public void sessionCreated(IoSession session) throws Exception {
         // Set up the protocol session
         _logger.debug("Protocol session created.");
+        _logger.debug("Connection: " + connection.getClientInstance());
         protocolSession = session;
 
         ProtocolCodecFilter
@@ -50,27 +53,55 @@ public class AMQProtocolHandler extends IoHandlerAdapter {
 
     public void sessionClosed(IoSession session) throws Exception {
         _logger.debug("Protocol session closed.");
+        _logger.debug("Connection: " + connection.getClientInstance());
     }
 
     public void sessionIdle(IoSession session, IdleStatus status) throws Exception {
-        if(status == IdleStatus.WRITER_IDLE)
-            writeFrame(null, HeartbeatBody.FRAME);
-        else if(status == IdleStatus.READER_IDLE) 
-            connectionState.setExternalEvent(ConnectionCloseOkBody.createAMQFrame(0));
+        if(status == IdleStatus.WRITER_IDLE) {
+            if (connectionState.isConnectionOpened())
+                writeFrame(null, HeartbeatBody.FRAME);
+        } else if(status == IdleStatus.READER_IDLE) {
+            if (!(connectionState.isConnectionOpening() || connectionState.isConnectionOpened())) {
+                closeProtocolSession();
+            } else {
+                Exception
+                    e = new AMQException("Heartbeat timeout");
+    
+                _logger.error(e.getMessage());
+                _logger.error("Connection: " + connection.getClientInstance());
+    
+                throw e;
+            }
+        }
     }
 
     public void exceptionCaught(IoSession session, Throwable t) throws Exception {
-        _logger.error("Exception caught in protocol session.", t);
+        _logger.error("Exception caught in protocol session", t);
+        _logger.error("Connection: " + connection.getClientInstance());
+
+        if (connectionState.isConnectionOpening() || connectionState.isConnectionOpened()) {
+            connection.close(AMQConstant.INTERNAL_ERROR, t.getMessage(), 0, 0);
+            connectionState.cleanup();
+            connectionState.raiseException(0);
+        }
     }
 
     public void messageReceived(IoSession session, Object message) throws Exception {
         AMQFrame
             frame = (AMQFrame)message;
 
-        if (_logger.isDebugEnabled())
-            _logger.debug("Frame received: " + frame);
-
-        connectionState.setExternalEvent(frame);
+        if (connectionState.isConnectionOpening() || connectionState.isConnectionOpened()) {
+            if (_logger.isDebugEnabled()) {
+                _logger.debug("Dispatching frame to connection");
+                _logger.debug("Connection: " + connection.getClientInstance());
+                _logger.debug(frame);
+            }
+            connectionState.setExternalEvent(frame);
+        } else {
+            _logger.warn("Receiving frame on a closed connection");
+            _logger.warn("Connection: " + connection.getClientInstance());
+            _logger.warn(frame);
+        }
     }
 
     public void messageSent(IoSession session, Object message) throws Exception {
@@ -79,20 +110,36 @@ public class AMQProtocolHandler extends IoHandlerAdapter {
     public void writeFrame(AMQClientSession session, AMQDataBlock frame) throws Exception
     {
         if (_logger.isDebugEnabled())
-            _logger.debug("Writing frame: " + frame);
+            _logger.debug("Writing: " + frame);
 
         if (connectionState.isConnectionOpening() || connectionState.isConnectionOpened()) {
             if (session == null || session.getSessionState().isChannelOpening() ||
-                session.getSessionState().isChannelOpened())
+                session.getSessionState().isChannelOpened()) {
 
-                if (protocolSession.isConnected())
+                if (protocolSession.isConnected()) {
                     protocolSession.write(frame);
-                else
-                    _logger.warn("Trying to write a frame on a closed socket: " + frame);
-            else
-                throw new IllegalStateException("Trying to write a frame from a closed session: " + frame);
+                } else {
+                    _logger.debug("Trying to write a frame on a closed socket: " + frame);
+                }
+            } else {
+                Exception
+                    e = new IllegalStateException("Trying to write a frame from a closed session: " + frame);
+
+                _logger.error(e.getMessage());
+                _logger.error("Session: " + session.getSessionId());
+                _logger.error(frame);
+
+                throw e;
+            }
         } else {
-            throw new IllegalStateException("Trying to write a frame from a closed connection: " + frame);
+            Exception
+                e = new IllegalStateException("Trying to write a frame from a closed connection");
+
+            _logger.error(e.getMessage());
+            _logger.error("Connection: " + connection.getClientInstance());
+            _logger.error(frame);
+
+            throw e;
         }
     }
 
@@ -102,6 +149,7 @@ public class AMQProtocolHandler extends IoHandlerAdapter {
     }
 
     public void closeProtocolSession() {
-        protocolSession.close().join();
+        if (!protocolSession.isClosing())
+            protocolSession.close().join();
     }
 }
