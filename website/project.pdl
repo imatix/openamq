@@ -11,6 +11,7 @@
 <file name = "doc_concepts.txt"   class = "gurudoc text" />
 <file name = "doc_wireapi.txt"    class = "gurudoc text" />
 <file name = "doc_console.txt"    class = "gurudoc text" />
+<file name = "doc_clustering.txt" class = "gurudoc text" />
 <file name = "doc_background.txt" class = "gurudoc text" />
 <file name = "doc_matching.txt"   class = "gurudoc text" />
 

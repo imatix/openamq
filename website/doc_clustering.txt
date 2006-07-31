@@ -1,0 +1,421 @@
+gdl
+    title     = OpenAMQ Clustering and Interclustering
+    subtitle  = Reliability and Distribution
+    product   = OpenAMQ
+    author    = iMatix Corporation <openamq@imatix.com>
+    date      = 2006/07/28
+    copyright = Copyright (c) 2006 iMatix Corporation
+    version   = 2.0
+end gdl
+
+Cover
+*****
+
+State of this Document
+======================
+
+This document is a technical whitepaper.
+
+Copyright and License
+=====================
+
+Copyright (c) 1996-2006 iMatix Corporation
+
+This product is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2 of the License, or (at your
+option) any later version.
+
+This product is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+Public License for more details.
+
+For information on alternative licensing for OEMs, please contact iMatix
+Corporation.
+
+Abstract
+========
+
+We analyse the requirements for OpenAMQ clustering and interclustering and
+we design a generic clustering and interclustering system based on simple
+and easy to manage elements.
+
+Overview
+********
+
+Clustering means many things.  In middleware a cluster generally means a set
+of servers that work closely together in order to create a more reliable and
+better-performing whole.  Interclustering is when we connect servers or
+clusters that are geographically seperated, so that they work together in
+useful ways.
+
+OpenAMQ is fast enough that clustering is not necessary for performance, and
+therefore performance improvement is not a design goal of clustering (though
+it was in early stages of OpenAMQ development).
+
+To a large extent clustering and interclustering depend the same elementary
+concepts, and so we tackle two issues as one generic design problem that has
+some specific elements.
+
+We can define our clustering and interclustering requirements as follows:
+
+ 1. The general ability to connect a set of servers in some configuration that
+    provides the support for clustering functionality.  We call this "Topology
+    Management".
+
+ 2. The ability to exchange status information across an active topology, so
+    that servers know about each other.  We call this "Status Management".
+
+ 3. The ability to organise a 'hot backup' server for a set of applications
+    so that disasterous system failures do not cause service interruption.
+    We call this "Failover Support".
+
+ 4. The ability to organise the flow of messages from one server to another
+    according to subscription requests made at the receiving side.  We call
+    this "Binding Propagation".
+
+ 5. The ability to address and forward messages to applications which may
+    be on any part of the topology.  We call this "Global Message Routing".
+
+ 6. The ability to replicate the state of objects such as exchanges and shared
+    queues between servers, which we call "State Replication".
+
+We explicitly will NOT look at:
+
+ - The ability to automatically define the topology, called "discovery". In
+   our current OpenAMQ use cases, the cluster topology is defined manually by
+   the system administrator.
+
+ - The ability to spread large numbers of clients across many servers, called
+   "load balancing".  In our current scenarios, the capacity of a single
+   exceeds the known requirements both in terms of number of connected users
+   and in total message transfer capacity.
+
+ - The ability to use clustered servers in any other role, for example as part
+   of a message persistence scheme.
+
+We look at each of our defined requirements in turn.
+
+Topology Management
+===================
+
+Topology management is the definition of, and the managing of, the
+relationships between different servers.  We can define two types of
+relationship:
+
+1. The intra-cluster relationships betwen servers within a single cluster.
+
+2. The inter-cluster relationships between clusters and servers.
+
+The main difference is that inter-clustering relationships are from one
+server onto the entire cluster, rather than onto individual servers.
+
+We do not need any form of automatic discovery of the network.  We assume
+that all relationships (of both types) are defined in the configuration of
+each server making the relationship.
+
+We call a server-to-server or server-to-cluster relationship a "peering".
+A peering has these properties:
+
+1. Peerings are directed, made from one server to another using the normal
+   AMQP client-to-server mode of connection.
+
+2. If a bi-directional relationship is needed, each server must create
+   its own peering onto the other.
+
+3. Peerings are robust and can survive network failure and reconnection.
+
+Peerings are a low-level entity in the cluster operational model; that is
+we do not expect them to be visible to system administrators.  Rather, they
+are meant to be used by other higher-level entities, with these higher-level
+entities being visible and configurable.
+
+Status Management
+=================
+
+Status management is the exchange of information between entities at each
+side of a relationship (a peering).  AMQP does not provide any semantics
+for such exchanges, so we must build our own on top of AMQP.
+
+The simplest way to add internal entity-to-entity semantics to AMQP is to
+use the exchange concept as a routing point.  That is, when one entity
+wishes to send status information to another, across a peering, it would
+create a content (a message) and publish that to a specific exchange at
+the destination server.
+
+While the AMQP specifications include a "tunnel" class that could also be
+used for this purpose, the semantics of publishing via an exchange are
+simple and generic enough that we will use that mechanism.
+
+Failover Support
+================
+
+The classic failover scenario is the following:
+
+ - A set of applications are working with a server on a computer system.
+ - Either the software or the hardware crashes.
+ - The applications detect the failure and reconnect to a backup server
+   that is ready and running.
+
+Our terminology will be as follows:
+
+ - Failover support requires a PRIMARY and a BACKUP server that are
+   connected into a cluster using intra-clustering peering.
+
+ - At any point in time one of these servers is the ACTIVE server, and
+   the other server, if alive, is the PASSIVE server.
+
+ - During normal operation, the primary server is active and the backup
+   server is passive.
+
+ - After failover, the primary server is either offline or passive, and
+   the backup server is active.
+
+Failover support does not need more than a single backup server.  There
+are several issues to resolve to create a smooth and above all safe
+failover mechanism:
+
+1. One must avoid 'false' failover, the so-called 'split brain' syndrome
+   in which both servers believe they are the current active server.
+
+2. One must prevent client applications from connecting to the backup
+   server unless it becomes active.
+
+3. One must provide a procedure for recovery and switchover back to the
+   primary server.
+
+Some good general principles for resolving these issues are:
+
+1. Failover happens automatically but recovery happens only through
+   manual intervention of some kind.
+
+2. The backup server will become active if it cannot see the master
+   server, but the master server will only become active if it can
+   see the backup server and the backup server has announced itself
+   as 'passive'.
+
+3. Client applications can connect to either master or backup server
+   and the server will redirect them (this is an AMQP semantic) to
+   the current active server if necessary.
+
+For administration, it is acceptable that the master/backup role of
+each server be defined either in a configuration file or on the command
+line when the process is started.
+
+Binding Propagation
+===================
+
+Binding propagation is the ability to organise the flow of messages from
+one server to another according to queue bindings made at the receiving
+side.
+
+The typical scenario for this is for inter-cluster pub-sub message
+routing:
+
+ - A central data center receives data from some source.
+
+ - A local / regional data center serves a number of client applications
+   that need access to some of this data.
+
+ - The local / regional data center tells the central data center exactly
+   what data is wanted.
+
+ - As matching data arrives centrally, the central data center forwards
+   this data to the remote data center.
+
+To make this work efficiently in real-life situations, bindings must be
+normalised so that many requests for the same data result in a single
+instance of that message being transferred to the remote data center.
+
+The connection between central and remote data centers is assumed to be
+slow, but reliable.  That is, we do not attempt to queue and forward
+messages in case of a network failure - messages will simply be dropped.
+
+AMQP does have semantics that let us construct binding propagation, using
+a temporary private queue and normal queue-to-exchange bindings.  We will
+look at this in more detail in the design section.
+
+Global Message Routing
+======================
+
+Global message routing means ability to address and forward messages to
+applications which may be on any part of the topology.  This is typically
+needed to allow request-response scenarios to operate between clusters
+(across inter-clustering peerings).
+
+AMQP routing semantics are based primarily on a "routing key".  To make
+global routing work, we need to ensure that routing keys are unique across
+all interconnected servers.
+
+The simplest way to create global routing keys is to use a naming convention
+that includes unique server-dependent information.  Some alternatives are:
+
+ - A hierarchical convention that lets us create multiple levels of
+   inter-clustering.
+
+ - A flat convention that lets us create a single level of intra-clustering.
+
+For our current needs, a single level of intra-clustering is more than
+sufficient.  However, we expect that future use cases for AMQP will expand
+the intra-clustering model further, so we will design a routing key naming
+convention that can be extended to a hierarchical naming scheme later.
+
+State Replication
+=================
+
+When several servers participate in the same overall application, it can be
+useful to replicate state, so that failover can happen faster, and so that
+application distribution is easier.
+
+For example:
+
+ - Exchanges created on one server can be automatically created on another.
+ - Shared queues created on one server can be automatically created on
+   another.
+
+AMQP does not provide explicit semantics for this, but it is quite easy to
+construct state replication semantics over AMQP, using a pub-sub model.
+
+Design Proposal
+***************
+
+Topology Management
+===================
+
+Topology management will be handled by 'peerings', which are internal server
+agents that maintain a relationship between two servers or from one server
+onto a cluster.
+
+The peering agent will automatically detect a network failure and reconnect
+when/if the network is reestablished.
+
+Peering agents act as remote clients, from the point of view of the target
+server or cluster.  Peering agents obey the same rules for failover as do
+any other clients connected to the target server.
+
+Status Management
+=================
+
+Status management will be handled by a special exchange, the 'amq.peer'
+exchange, and a set of specifically-formatted messages.  Within a single
+server, entities can subscribe to the local amq.peer exchange to receive
+incoming messages.  To send status information, an entity publishes a
+message to the remote amq.peer exchange, using the appropriate peering
+agent.  The amq.peer exchange is a simple fanout exchange and does not do
+any kind of routing-key translation.
+
+Failover Support
+================
+
+To support failover, we require a cluster of one primary server and one backup
+server.  At any moment either the primary or the backup server may be the
+"active server" and the other server is the "passive server".
+
+The algorithm is:
+
+1. Failover from primary to backup is automatic, recovery to primary happens
+   manually, by stopping the backup server after the primary server has been
+   restarted.
+
+2. At startup the primary server becomes active, the backup does not.
+
+3. If the backup server sees the primary server going away and if it has at
+   least one connected client, it becomes active and remains active until
+   it is stopped. If the primary server goes away, and the backup server
+   has no clients, it cedes its position as active.
+
+4. If the primary server sees the backup server going away, and it is not
+   active, it becomes active. If the primary server sees the backup coming
+   back, as active, the primary stops being active.
+
+When a client application connects to the passive server, and the other server
+has correctly identified itself as active, the passive server redirects the
+client application to the active server.
+
+Binding Propagation
+===================
+
+Binding propagation is handled by "exchange federation agents", or EFAs,
+which use peerings to federate a set of exchanges on one server with a set
+of exchanges on another server or cluster of servers.
+
+An EFA is a configured object that acts as a proxy for information passing
+through an exchange.  The EFA functionality covers:
+
+1. Propagation of new local bindings to the remote server or cluster so that
+   the necessary messages arrive at the local server.
+
+2. Propagation of published messages to the remote server or cluster, either
+   on a selective basis or a systematic basis.
+
+AMQP provides all the necessary semantics for binding propagation.
+
+Global Message Routing
+======================
+
+Global message routing ensures that messages relayed by EFAs across peerings
+are accurately sent to the necessary server.
+
+Message routing is done using either the elementary routing key or the vector
+of header fields.  For our purposes we will use only the elementary routing
+key.  Further, we are concerned only with internal routing keys, that is those
+routing keys generated by a server for its own use.
+
+We define an internal routing key to have these characteristics:
+
+1. A prefix that consists of the server identifier, which must be unique
+   among all servers taking part in a clustering or inter-clustering.
+
+2. A value that consists of the locally-generated routing key information.
+
+The implementation requires these functions:
+
+1. The ability to specify the server identifier ('name') either in the
+   configuration or when starting the process (via the command line).
+
+2. The ability for a server to identify itself to all its peers.
+
+3. The ability for peers to exchange sufficient information to allow
+   them to detect a duplicate name, and signal this.
+
+In our experience the difficulty is not in constructing global routing keys,
+but in detecting and reporting badly-configured clusters so that the users
+do not spend large amounts of time debugging them.
+
+State Replication
+=================
+
+State replication means the ability for servers to exchange information on
+the exchanges and queues they manage (and possibly other data too, such as
+access control lists).
+
+The design we propose is based on the subscribe-publish subscription model,
+in which the replication data is pushed from one server to the subscribing
+server using the normal AMQP semantics.
+
+The state replication implementation requires these functions:
+
+1. The ability to subscribe to new state changes, which is a subscription
+   to changes in the state of exchanges, queues, and other server entities.
+
+2. The ability to request full status updates, essentially when starting a
+   new subscription.
+
+The design must take into account the fact that state changes happen
+asynchronously and must be serialised with respect to the receiving server;
+i.e. it is not suitable to create two channels of communication, one for
+updates and one for full status.
+
+Evolution from OpenAMQ/1.0d
+***************************
+
+The designs described above are different from the clustering model implemented
+in OpenAMQ/1.0d in several ways:
+
+1. We propose a set of modular, reusable models, while the 1.0d clustering is
+   implemented as a single cluster controller entity.
+
+2. The 1.0d clustering does additional work - message fanout, shared queue
+   proxying - which has proven to be complex without adding any value.
+

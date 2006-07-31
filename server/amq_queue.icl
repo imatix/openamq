@@ -92,11 +92,14 @@ class.  This is a lock-free asynchronous class.
           </local>
           <get>
             consumer = amq_consumer_by_queue_first (self->queue_basic->active_consumers);
-            while (consumer) {
+            if (consumer)
                 icl_shortstr_fmt (field_value, "%d", consumer->mgt_queue_connection->object_id);
-                consumer = amq_consumer_by_queue_next (&consumer);
-            }
           </get>
+          <next>
+            consumer = amq_consumer_by_queue_next (&consumer);
+            if (consumer)
+                icl_shortstr_fmt (field_value, "%d", consumer->mgt_queue_connection->object_id);
+          </next>
         </class>
 
         <method name = "purge" label = "Purge all queue messages">

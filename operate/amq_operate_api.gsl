@@ -478,13 +478,18 @@ NULL, NULL);
             self_print_properties (self, xml_data);
         }
         else
-        if (ipr_str_prefixed (command, "ls"))
+        if (ipr_str_prefixed (command, "ls")) {
+            self_load (self);
             s_list_children (self, command + 2, xml_data);
+        }
         else
-        if (ipr_str_prefixed (command, "top"))
+        if (ipr_str_prefixed (command, "top")) {
+            self_load (self);
             s_top_children (self, command + 3, xml_data);
+        }
         else
         if (ipr_str_prefixed (command, "cd ")) {
+            self_load (self);
             rc = s_change_level (self, command + 3, path, depth, tokens, xml_data);
             if (rc == CD_UP && depth) {
                 rc = 0;
@@ -496,6 +501,7 @@ NULL, NULL);
         }
         else
         if (atoi (command)) {
+            self_load (self);
             rc = s_change_level (self, command, path, depth, tokens, xml_data);
             if (rc == CD_UP && depth) {
                 rc = 0;
@@ -654,7 +660,7 @@ s_request_response (
         xml_command = ipr_xml_first_child (xml_cml);
         assert (xml_command);
         assert (ipr_xml_name (xml_command));
-        
+
         reply_class  = ipr_xml_attr_get (xml_command, "class",  "");
         reply_status = ipr_xml_attr_get (xml_command, "status", "");
         reply_object = atol (ipr_xml_attr_get (xml_command, "object", ""));
@@ -886,14 +892,26 @@ s_list_children ($\(selftype) *self, char *command, FILE *xml_data)
         $(name) = self_$(name)_first (self);
         while ($(name)) {
             amq_mgt_$(name)_load ($(name));
-            if (!pattern || ipr_str_matches ($(name)->name, pattern))
+            if (!pattern
+.       for root->root.class as child where name = class.name
+.           for field where (type?"string") = "string"
+            || ipr_str_matches ($(class.name)->$(field.name), pattern)
+.           endfor
+            )
+.       endfor
                 amq_mgt_$(name)_print_summary ($(name), xml_data);
             $(name) = self_$(name)_next (self);
         }
 .   else
         if (self->$(name)) {
             amq_mgt_$(name)_load (self->$(name));
-            if (!pattern || ipr_str_matches (self->$(name)->name, pattern))
+            if (!pattern
+.       for root->root.class as child where name = class.name
+.           for field where (type?"string") = "string"
+            || ipr_str_matches (self->$(class.name)->$(field.name), pattern)
+.           endfor
+            )
+.       endfor
                 amq_mgt_$(name)_print_summary (self->$(name), xml_data);
         }
 .   endif
