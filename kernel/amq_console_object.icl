@@ -168,10 +168,10 @@ static amq_console_class_t
 </method>
 
 <method name = "method" async = "1" return = "rc">
-    <argument name = "self_v"  type = "void *">Object cast as a void *</argument>
-    <argument name = "method name"  type = "char *">Argument fields</argument>
+    <argument name = "self_v" type = "void *">Object cast as a void *</argument>
+    <argument name = "method name" type = "char *">Argument fields</argument>
     <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
-    <argument name = "fields"  type = "asl_field_list_t *">Argument fields</argument>
+    <argument name = "fields" type = "asl_field_list_t *">Argument fields</argument>
     <declare name = "rc" type = "int" default = "0" />
     <local>
     $(selftype)

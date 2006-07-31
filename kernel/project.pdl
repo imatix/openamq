@@ -27,9 +27,8 @@
 <file name = "amq_tx.asl"            class = "public resource"   >Transactions</file>
 <file name = "amq_dtx.asl"           class = "public resource"   >2-phase transactions</file>
 <file name = "amq_tunnel.asl"        class = "public resource"   >Method tunneling</file>
-<!-- DEPRECATED
 <file name = "amq_cluster.asl"       class = "public resource"   >Cluster management</file>
--->
+
 <!-- OpenAMQ WireAPI/C implementation -->
 <file name = "amq_client.asl"        class = "gsl data"          >Client definition</file>
 <file name = "amq_client.c"          class = "main program"      >Client test program</file>
@@ -57,7 +56,7 @@
 <file name = "amq_server_config.icl" class = "icl private cont"  >Server configuration class</file>
 <file name = "amq_server_agent.smt"  class = "smt public module"
                                      generated = "1"             >Server protocol agent</file>
-<file name = "amq_server_classes.icl"  
+<file name = "amq_server_classes.icl"
                                      class = "icl public data"   >Server classes</file>
 <file name = "amq_server_connection.icl"
                                      class = "icl private class" >Server connection class</file>
@@ -79,13 +78,9 @@
 <file name = "amq_broker.icl"        class = "icl private class" >Server broker class</file>
 <file name = "amq_broker_agent.smt"  class = "smt public module"
                                      generated = "1"             >Server broker agent</file>
-<!-- DEPRECATED
 <file name = "amq_cluster.icl"       class = "icl private class" >Server cluster class</file>
 <file name = "amq_cluster_agent.smt" class = "smt public module"
                                      generated = "1"             >Server cluster agent</file>
-<file name = "amq_peer.icl"          class = "icl private class" >Cluster peer class</file>
-<file name = "amq_peer_list.icl"     class = "icl private cont"  >Cluster peers per server</file>
- -->
 <file name = "amq_peering.icl"       class = "icl private class" >Server peering class</file>
 <file name = "amq_peering_agent.smt" class = "smt public module"
                                      generated = "1"             >Server peering agent</file>

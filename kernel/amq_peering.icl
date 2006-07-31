@@ -1,4 +1,20 @@
 <?xml?>
+<!--
+    Copyright (c) 1996-2006 iMatix Corporation
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ -->
 <class
     name      = "amq_peering"
     comment   = "AMQ server-to-server peering class"
@@ -7,18 +23,64 @@
     target    = "smt"
     >
 <doc>
-    - peering is a smart link to a remote server
-    - automatically connects and logs in
-        - queues outgoing requests if connection is dead
-    - reconnects if remote link goes down
-        - tells you if there is a problem
-    - creates private queue and consumes from queue
-    - lets you publish messages to peer
-    - provides you messages delivered from peer
-    - works with unlimited number of remote exchanges
+This class defines a smart link to a remote server.  You tell the peering
+what server to talk to and it will monitor the server and connect
+automatically when the server comes online, and reconnect if the server
+goes offline for a period.
 
-    todo:
-    - make locking work on register/cancel methods
+A peering has two functions:
+
+1. Binding propagation, in which messages published to an exchange on the
+   remote server can be "pulled" to this server.  You tell the peering what
+   bindings you are interested in, and it will deliver you all matching
+   messages.
+
+2. Message forwarding, in which messages originating locally are carried to
+   the remote peer.  This class does not specify where those local messages
+   come from.
+
+The peer link may be arbitrarily active or inactive depending on the state
+of the network and the remote server.
+
+The peering will replay all bindings if when the peer link becomes active.
+It will queue messages that are forwarded when the peer link is not active.
+
+Lastly, the peering will invoke callback methods to tell you when the peer
+link becomes active, and when a content arrives.  Currently this class
+works only with Basic contents.
+
+The selftest method demonstrates fairly sophisticated peering use.  To test
+this, set the environment variable AMQ_PEERING_TEST=1 and run an amq_server.
+
+This is a summary of the amq_peering API:
+
+    peering = amq_peering_new (remote-host-name, virtual-host, trace-level)
+        Create a new peering to the specified host and virtual host.
+
+    amq_peering_set_login (peering, login-name)
+        Tell the peering to login using the specified login-name, which
+        must be defined in the local amq_server_base.cfg or amq_server.cfg.
+
+    amq_peering_set_status_handler (peering, handler, calling-object)
+        Set the callback handler for status updates.
+
+    amq_peering_set_content_handler (peering, handler, calling-object)
+        Set the callback handler for incoming messages.
+
+    amq_peering_start (peering)
+        Enable the peering, connect to remote server when possible.
+
+    amq_peering_stop (peering)
+        Disable the peering, disconnect from remote server if necessary.
+
+    amq_peering_bind (peering, exchange-name, routing-key, arguments)
+        Replicate a binding onto the specified remote exchange.
+
+    amq_peering_forward (peering, exchange-name, routing-key, content)
+        Publish a message to the specified remote exchange.
+
+    amq_peering_destroy (&peering)
+        Destroy the peering.
 </doc>
 
 <inherit class = "smt_object" />
@@ -48,15 +110,13 @@ typedef int (amq_peering_content_fn) (
         *auth_data;                     //  Authentication data
     int
         trace;                          //  Trace level
-    Bool
-        nowait;                         //  Use nowait binding option?
     smt_thread_t
         *peer_agent_thread;             //  Active agent thread if any
     dbyte
         channel_nbr;                    //  Active channel number
     ipr_looseref_list_t
-        *pending_bindings,              //  Still to be sent to peer
-        *active_bindings;               //  Already sent to peer
+        *bindings,                      //  Bindings sent/pending
+        *forwards;                      //  Forwards pending
 
     //  Callbacks into caller object
     amq_peering_status_fn
@@ -79,11 +139,10 @@ typedef int (amq_peering_content_fn) (
     icl_shortstr_cpy (self->host, host);
     icl_shortstr_cpy (self->virtual_host, virtual_host);
     self->trace = trace;
-    self->nowait = TRUE;
 
     //  Create binding state lists
-    self->pending_bindings = ipr_looseref_list_new ();
-    self->active_bindings = ipr_looseref_list_new ();
+    self->bindings = ipr_looseref_list_new ();
+    self->forwards = ipr_looseref_list_new ();
 </method>
 
 <method name = "destroy">
@@ -94,14 +153,13 @@ typedef int (amq_peering_content_fn) (
     s_terminate_peering (self);
     icl_longstr_destroy (&self->auth_data);
 
-    //  Release all methods we're still holding onto
-    while ((method = (amq_peer_method_t *) ipr_looseref_pop (self->pending_bindings)))
+    while ((method = (amq_peer_method_t *) ipr_looseref_pop (self->bindings)))
         amq_peer_method_unlink (&method);
-    while ((method = (amq_peer_method_t *) ipr_looseref_pop (self->active_bindings)))
-        amq_peer_method_unlink (&method);
+    ipr_looseref_list_destroy (&self->bindings);
 
-    ipr_looseref_list_destroy (&self->active_bindings);
-    ipr_looseref_list_destroy (&self->pending_bindings);
+    while ((method = (amq_peer_method_t *) ipr_looseref_pop (self->forwards)))
+        amq_peer_method_unlink (&method);
+    ipr_looseref_list_destroy (&self->forwards);
     </action>
 </method>
 
@@ -202,18 +260,23 @@ typedef int (amq_peering_content_fn) (
     </release>
     //
     <action>
+    int
+        ticket = 0;
+    char
+        *queue = NULL;
+    Bool
+        nowait = TRUE;
     amq_peer_method_t
         *method;
 
-    //  Create a Queue.Bind method and save it to active or pending binding list
+    //  Create a Queue.Bind method
     method = amq_peer_method_new_queue_bind (
-        0, NULL, exchange, routing_key, self->nowait, arguments);
-    if (self->connected) {
-        ipr_looseref_queue (self->active_bindings, method);
+        ticket, queue, exchange, routing_key, nowait, arguments);
+
+    //  We hold onto all outgoing bindings so we can replay them
+    if (self->connected)
         amq_peer_agent_push (self->peer_agent_thread, self->channel_nbr, method);
-    }
-    else
-        ipr_looseref_queue (self->pending_bindings, method);
+    ipr_looseref_queue (self->bindings, method);
     </action>
 </method>
 
@@ -242,16 +305,21 @@ typedef int (amq_peering_content_fn) (
     Bool
         mandatory = FALSE,
         immediate = FALSE;
+    amq_peer_method_t
+        *method;
 
-    amq_peer_agent_basic_publish (
-        self->peer_agent_thread,
-        self->channel_nbr,
-        content,
-        ticket,
-        exchange,
-        routing_key,
-        mandatory,
-        immediate);
+    //  Create a Basic.Publish method
+    method = amq_peer_method_new_basic_publish (
+        ticket, exchange, routing_key, mandatory, immediate);
+    method->content = amq_content_basic_link (content);
+
+    //  We only hold forwards if the connection is currently down
+    if (self->connected) {
+        amq_peer_agent_push (self->peer_agent_thread, self->channel_nbr, method);
+        amq_peer_method_unlink (&method);
+    }
+    else
+        ipr_looseref_queue (self->forwards, method);
     </action>
 </method>
 
@@ -368,6 +436,23 @@ static void s_terminate_peering  (amq_peering_t *self);
 static void
 s_initialise_peering (amq_peering_t *self)
 {
+    int
+        ticket = 0;
+    char
+        *queue = NULL,
+        *consumer_tag = NULL;
+    Bool
+        passive = FALSE,
+        durable = FALSE,
+        exclusive = TRUE,
+        auto_delete = TRUE,
+        nowait = TRUE,
+        no_local = FALSE,
+        no_ack = FALSE;
+    icl_longstr_t
+        *arguments = NULL;
+    ipr_looseref_t
+        *looseref;                      //  Binding method
     amq_peer_method_t
         *method;                        //  Method to send to peer server
     //
@@ -380,30 +465,23 @@ s_initialise_peering (amq_peering_t *self)
         //  Create private queue on peer and consume off queue
         amq_peer_agent_queue_declare (
             self->peer_agent_thread, self->channel_nbr,
-            0,                          //  Ticket
-            NULL,                       //  Queue, empty-> current
-            FALSE,                      //  Passive
-            FALSE,                      //  Durable
-            TRUE,                       //  Exclusive
-            TRUE,                       //  Auto-delete
-            TRUE,                       //  Nowait
-            NULL);                      //  Arguments
+            ticket, queue, passive, durable, exclusive, auto_delete, nowait, arguments);
 
         amq_peer_agent_basic_consume (
-            self->peer_agent_thread,
-            self->channel_nbr,
-            0,                          //  Ticket
-            NULL,                       //  Queue, empty-> current
-            NULL,                       //  Consumer tag
-            FALSE,                      //  No-local
-            TRUE,                       //  No-ack
-            TRUE,                       //  Exclusive
-            TRUE);                      //  No-wait
+            self->peer_agent_thread, self->channel_nbr,
+            ticket, queue, consumer_tag, no_local, no_ack, exclusive, nowait);
 
-        //  Replicate pending bindings to the queue and move to active list
-        while ((method = (amq_peer_method_t *) ipr_looseref_pop (self->pending_bindings))) {
+        //  Replicate all bindings to remote peer
+        looseref = ipr_looseref_list_first (self->bindings);
+        while (looseref) {
+            method = (amq_peer_method_t *) (looseref->object);
             amq_peer_agent_push (self->peer_agent_thread, self->channel_nbr, method);
-            ipr_looseref_queue (self->active_bindings, method);
+            looseref = ipr_looseref_list_next (&looseref);
+        }
+        //  Forward all pending messages to remote peer
+        while ((method = (amq_peer_method_t *) ipr_looseref_pop (self->forwards))) {
+            amq_peer_agent_push (self->peer_agent_thread, self->channel_nbr, method);
+            amq_peer_method_unlink (&method);
         }
         if (self->status_fn)
             (self->status_fn) (self->status_caller, self, TRUE);
@@ -413,9 +491,6 @@ s_initialise_peering (amq_peering_t *self)
 static void
 s_terminate_peering (amq_peering_t *self)
 {
-    ipr_looseref_t
-        *looseref;                      //  Binding method
-
     //  Stop peer agent thread if it's still alive
     if (self->peer_agent_thread) {
         if (!self->peer_agent_thread->zombie)
@@ -426,13 +501,6 @@ s_terminate_peering (amq_peering_t *self)
         self->connected = FALSE;
         self->offlined  = TRUE;
 
-        //  Move all active bindings to front of pending list, in same order
-        looseref = ipr_looseref_list_last (self->active_bindings);
-        while (looseref) {
-            ipr_looseref_list_remove (looseref);
-            ipr_looseref_list_push (self->pending_bindings, looseref);
-            looseref = ipr_looseref_list_last (self->active_bindings);
-        }
         if (self->status_fn)
             (self->status_fn) (self->status_caller, self, FALSE);
     }
@@ -482,7 +550,12 @@ s_test_content_handler (
         *peering;                       //  Peering to remote server
     amq_content_basic_t
         *content;                       //  Content for testing the peering
+    int
+        seconds = 1000000;              //  Microseconds per second for sleep
 
+    //  This selftest is NOT run during normal builds
+    //  To enable it, set the environment variable AMQ_PEERING_TEST=1
+    //
     test_flag = getenv ("AMQ_PEERING_TEST");
     if (test_flag && *test_flag == '1') {
         icl_console_mode (ICL_CONSOLE_DATE, TRUE);
@@ -512,23 +585,23 @@ s_test_content_handler (
 
         //  Make some peering bindings, with pauses so we can see how the
         //  peering handles if we stop/restart the other server
-        apr_sleep (1000000);
+        apr_sleep (1 * seconds);
         icl_console_print ("I: (TEST) Making binding rk-aaaaaa");
         amq_peering_bind (peering, "amq.direct", "rk-aaaaaa", NULL);
 
-        apr_sleep (1000000);
+        apr_sleep (1 * seconds);
         icl_console_print ("I: (TEST) Stopping the peering...");
         amq_peering_stop (peering);
 
-        apr_sleep (1000000);
+        apr_sleep (1 * seconds);
         icl_console_print ("I: (TEST) Making binding rk-bbbbbb");
         amq_peering_bind (peering, "amq.direct", "rk-bbbbbb", NULL);
 
-        apr_sleep (1000000);
+        apr_sleep (1 * seconds);
         icl_console_print ("I: (TEST) Restarting the peering...");
         amq_peering_start (peering);
 
-        apr_sleep (1000000);
+        apr_sleep (1 * seconds);
         icl_console_print ("BIND");
         icl_console_print ("I: (TEST) Making binding rk-cccccc");
         amq_peering_bind (peering, "amq.direct", "rk-cccccc", NULL);

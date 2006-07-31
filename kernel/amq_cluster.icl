@@ -7,33 +7,98 @@
     target    = "smt"
     >
 <doc>
-This implements the cluster controller, which is responsible for all
-cluster transport and management issues. The cluster controller is an
-asynchronous object. It manages a list of cluster peers.
+The algorithm is:
 
-The cluster consists of one primary server, zero or one backup server,
-and zero or more support servers. At any moment either the primary or
-the backup server is the "master server".  The master server holds all
-shared queues.
+1. Failover from primary to backup is automatic, recovery to primary happens
+   manually, by stopping the backup server after the primary server has been
+   restarted.
 
-Failover from primary to backup is automatic, recovery to primary
-happens manually, through stopping the backup server after the primary
-server has been restarted.
+2. At startup the primary server becomes active, the backup does not.
 
-At startup the primary server becomes master, the backup does not.
+3. If the backup server sees the primary server going away and if it has at
+   least one connected client, it becomes active and remains active until
+   it is stopped. If the primary server goes away, and the backup server
+   has no clients, it cedes its position as active.
 
-If the backup server sees the primary server going away and if it has at
-least one connected client, it becomes master and remains master until
-it is stopped. If the primary server goes away, and the backup server
-has no clients, it cedes its position as master.
+4. If the primary server sees the backup server going away, and it is not
+   active, it becomes active. If the primary server sees the backup coming
+   back, as active, the primary stops being active.
 
-If the primary server sees the backup server going away, and it is not
-master, it becomes master. If the primary server sees the backup coming
-back, as master, the primary stops being master.
+When a client application connects to the passive server, and the other server
+has correctly identified itself as active, the passive server redirects the
+client application to the active server.
 
-If we're neither primary nor backup, we work with primary or backup as
-they specify.  If both servers claim to be master at the same time, we
-warn the primary server to cede its role as master.
+
+Cluster configuration:
+    - shared config files between both servers
+        - primary server config
+            - cluster ip address
+            - application ip address
+        - backup server config
+            - cluster ip address
+            - application ip address
+    - command-line
+        - select primary/backup/alone
+        - specify broker name (also non-cluster)
+
+amq_cluster implementation:
+    new
+        - create amq_cluster exchange
+            - hard-coded to always send message to amq_cluster object
+        - parse config, get primary & backup details
+        - if standalone, forget it
+        - create peering to other server
+        - send hello message to peering
+            - function to tunnel cluster message
+            - wrap as basic content
+            - publish to amq.cluster on peering
+    monitor
+        - set-up 1-second async monitor cycle
+        - send status message to peering
+    destroy
+        - unlink amq_cluster exchange
+        - stop / unlink peering
+
+amq_cluster_exchange implementation:
+    - get basic message, unpack it
+    - if hello, invoke amq_cluster_hello method
+        - tells cluster that peer is online
+    - if status, invoke amq_cluster_status method
+        - tells cluster about peer status
+
+Broker status:
+    - active/passive
+        - invoke method on broker to change state
+        - display message to console, show on console
+    - if standalone, cluster sets broker->active
+    - when incoming connection, if !broker->active
+        - then forward to other broker
+        -> who holds/calculates this address?
+
+
+
+
+        peering = amq_peering_new (peer server, vhost-key, tracelevel);
+        amq_peering_set_login (peering, "peering");
+
+        //  Register handlers, with no object reference, for this test
+        amq_peering_set_status_handler  (peering, s_test_status_handler, NULL);
+        amq_peering_set_content_handler (peering, s_test_content_handler, NULL);
+
+        //  Start the peering - connects to the AMQP server
+        amq_peering_start (peering);
+
+        content = amq_content_basic_new ();
+        amq_peering_forward (peering, "amq.cluster", NULL, content);
+        amq_content_basic_unlink (&content);
+
+        amq_peering_unlink (&peering);
+
+
+    - create amq.cluster exchange
+        - destroy at shutdown
+
+
 </doc>
 
 <inherit class = "smt_object" />
@@ -54,16 +119,12 @@ warn the primary server to cede its role as master.
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", self->ready);</get>
         </field>
-        <field name = "master" type = "bool" label = "Broker is cluster master?">
+        <field name = "active" type = "bool" label = "Active broker?">
           <rule name = "show on summary" />
-          <get>icl_shortstr_fmt (field_value, "%d", self->master);</get>
+          <get>icl_shortstr_fmt (field_value, "%d", self->active);</get>
         </field>
         <field name = "type" label = "Broker type">
-          <get>icl_shortstr_cpy (field_value,
-            self->primary? "primary": self->backup? "backup": "fanout");</get>
-        </field>
-        <field name = "state_mb" type = "int" label = "Cluster state size, MB">
-          <get>icl_shortstr_fmt (field_value, "%d", self->state_size / (1024 * 1024));</get>
+          <get>icl_shortstr_cpy (field_value, self->primary? "primary": "backup");</get>
         </field>
     </class>
 </data>
@@ -71,12 +132,9 @@ warn the primary server to cede its role as master.
 <import class = "amq_server_classes" />
 
 <public name = "header">
-#define AMQ_CLUSTER_VERSION     0x100   //  1.0a
-#define AMQ_CLUSTER_MASTER      (void *) 1
+#define AMQ_CLUSTER_VERSION     0x200   //  2.0a
+#define AMQ_CLUSTER_ACTIVE      (void *) 1
 #define AMQ_CLUSTER_ALL         0
-
-#define AMQ_CLUSTER_TRANSIENT   0       //  Method durability
-#define AMQ_CLUSTER_DURABLE     1
 
 extern amq_cluster_t
     *amq_cluster;                       //  Single broker, self
@@ -90,10 +148,10 @@ amq_cluster_t
 <context>
     amq_broker_t
         *broker;                        //  Hold onto patent broker
-    amq_vhost_t
-        *vhost;                         //  Hold onto parent vhost
-    amq_peer_list_t
-        *peer_list;                     //  List of peers in cluster
+    amq_peering_t
+        *peering;                       //  We talk to 0 or 1 other server
+
+    //tbcu
     icl_shortstr_t
         known_hosts;                    //  List of known hosts
     Bool
@@ -101,32 +159,18 @@ amq_cluster_t
         enabled,                        //  Cluster is enabled
         ready,                          //  Cluster is ready for use
         primary,                        //  We're the primary node
-        backup,                         //  We're the backup node
-        master;                         //  We're master
+        active;                         //  We're active
     amq_peer_t
         *primary_peer,                  //  Primary server, if not us
         *backup_peer,                   //  Backup server, if not us
-        *master_peer;                   //  Master server, if not us
-    ipr_looseref_list_t
-        *state_list;                    //  Cluster state, list of contents
-    int64_t
-        state_size;                     //  Size of cluster state
-    Bool
-        state_alert;                    //  State oversize alert shown?
-    ipr_crc_t
-        *crc;                           //  Check sum of server list
+        *active_peer;                   //  active server, if not us
 </context>
 
 <method name = "new">
     <argument name = "broker" type = "amq_broker_t *">Parent broker</argument>
     <argument name = "cluster name" type = "char *">Cluster name</argument>
     //
-    self->broker     = amq_broker_link (broker);
-    self->vhost      = amq_vhost_link (broker->vhost);
-    self->peer_list  = amq_peer_list_new ();
-    self->state_list = ipr_looseref_list_new ();
-    self->crc        = ipr_crc_new ();
-
+    self->broker = amq_broker_link (broker);
     if (cluster_name) {
         icl_shortstr_cpy (amq_broker->name, cluster_name);
         amq_cluster_start (self);
@@ -140,7 +184,6 @@ amq_cluster_t
     //
     s_stop_cluster (self);
     amq_broker_unlink (&self->broker);
-    amq_vhost_unlink  (&self->vhost);
     </action>
 </method>
 
@@ -161,7 +204,6 @@ amq_cluster_t
         *peer;                          //  Cluster peer
     Bool
         is_primary,                     //  Peer is primary server
-        is_backup,                      //  Peer is backup server
         name_valid;                     //  Own broker name is valid
     int
         primaries = 0,                  //  Number of primary servers
@@ -169,9 +211,6 @@ amq_cluster_t
 
     s_stop_cluster (self);
     self->enabled    = TRUE;
-    self->peer_list  = amq_peer_list_new ();
-    self->state_list = ipr_looseref_list_new ();
-    self->crc        = ipr_crc_new ();
 
     //  Load and check cluster configuration
     name_valid = FALSE;
@@ -187,14 +226,9 @@ amq_cluster_t
             is_primary = atoi (ipr_config_get (config, "primary", "0")) > 0;
             if (is_primary)
                 primaries++;
-            is_backup = atoi (ipr_config_get (config, "backup", "0"))  > 0;
-            if (is_backup)
+            else
                 backups++;
 
-            if (is_primary && is_backup)
-                asl_log_print (amq_broker->alert_log,
-                    "E: server cannot be both primary and backup");
-            else
             if (strnull (name) || strnull (host))
                 asl_log_print (amq_broker->alert_log,
                     "E: cluster - server needs 'name' and valid 'host', skipped");
@@ -207,15 +241,10 @@ amq_cluster_t
                 asl_log_print (amq_broker->alert_log,
                     "E: cluster - please use a valid 'internal' address, '%s' was skipped", internal);
             else {
-                //  Keep running checksum of server list
-                ipr_crc_calc_str (self->crc, name);
-                ipr_crc_calc_str (self->crc, host);
-                ipr_crc_calc_str (self->crc, internal);
 
                 //  We do not create a peer for ourselves
                 if (streq (name, amq_broker->name)) {
                     self->primary = is_primary;
-                    self->backup  = is_backup;
                     name_valid = TRUE;
                 }
                 else {
@@ -227,12 +256,10 @@ amq_cluster_t
                         icl_shortstr_cat (self->known_hosts, " ");
                     icl_shortstr_cat (self->known_hosts, host);
 
-                    peer = amq_peer_new (self, name, internal, is_primary, is_backup);
-                    amq_peer_list_queue (self->peer_list, peer);
+                    peer = amq_peer_new (self, name, internal, is_primary);
                     if (is_primary)
                         self->primary_peer = peer;
                     else
-                    if (is_backup)
                         self->backup_peer = peer;
 
                     amq_peer_unlink (&peer);
@@ -243,9 +270,9 @@ amq_cluster_t
     }
     ipr_config_destroy (&config);
 
-    //  Set initial master to primary node
-    self->master = FALSE;
-    self->master_peer = self->primary_peer;
+    //  Set initial active to primary node
+    self->active = FALSE;
+    self->active_peer = self->primary_peer;
 
     //  We go through an asynchronous method so that it can send timer
     //  events to the cluster agent. A cluster of one is allowed.
@@ -253,7 +280,7 @@ amq_cluster_t
     if (primaries != 1)
         icl_console_print ("E: cluster - exactly one primary must be defined (have %d)", primaries);
     else
-    if (backups > 1)
+    if (backups != 1)
         icl_console_print ("E: cluster - multiple backup servers not allowed (have %d)", backups);
     else
     if (name_valid) {
@@ -270,7 +297,7 @@ amq_cluster_t
 <!--
     This is the cluster monitor, which is invoked once per second to
     update the cluster status.  It rechecks each peer and counts the
-    votes to decide whether this broker should become master or not.
+    votes to decide whether this broker should become active or not.
  -->
 
 <event name = "monitor">
@@ -278,101 +305,98 @@ amq_cluster_t
     amq_peer_t
         *peer;                          //  Cluster peer
     int
-        current_masters = 0;            //  How many masters
+        current_actives = 0;            //  How many actives
     Bool
         cluster_alive = TRUE;           //  Is cluster alive?
 
     //  Update all peers' status
-    peer = amq_peer_list_first (self->peer_list);
     while (peer) {
         amq_peer_monitor (peer);
-        if (peer->master)
-            current_masters++;
+        if (peer->active)
+            current_actives++;
 
         if (peer->joined) {
             if (self->primary) {
-                //  If we're primary, and backup is master, we stop being master
-                if (peer->backup && peer->master) {
-                    self->master = FALSE;
-                    self->master_peer = peer;
+                //  If we're primary, and backup is active, we stop being active
+                if (peer->backup && peer->active) {
+                    self->active = FALSE;
+                    self->active_peer = peer;
                 }
             }
             else
             if (self->backup) {
-                //  If we're backup, and primary is master, leave things alone
-                if (peer->primary && peer->master)
-                    ;   //  Primary peer should itself stop being master
+                //  If we're backup, and primary is active, leave things alone
+                if (peer->primary && peer->active)
+                    ;   //  Primary peer should itself stop being active
             }
             else {
-                //  If we're support, complain if we detect multiple masters
-                if (current_masters > 1) {
+                //  If we're support, complain if we detect multiple actives
+                if (current_actives > 1) {
                     asl_log_print (amq_broker->alert_log,
-                        "E: cluster - multiple masters detected");
-                    self->master_peer = NULL;
+                        "E: cluster - multiple actives detected");
+                    self->active_peer = NULL;
                 }
             }
         }
         else
         if (peer->offlined) {
             if (self->primary) {
-                //  If we're primary and backup goes offline, we become master
-                if (peer->backup && peer->master) {
-                    self->master = TRUE;
-                    peer->master = FALSE;
+                //  If we're primary and backup goes offline, we become active
+                if (peer->backup && peer->active) {
+                    self->active = TRUE;
+                    peer->active = FALSE;
                 }
             }
             else
             if (self->backup) {
                 //  If we're backup and primary goes offline, we become
-                //  master if/when we have at least one client connection.
-                if (peer->primary && peer->master) {
+                //  active if/when we have at least one client connection.
+                if (peer->primary && peer->active) {
                     if (amq_server_connection_count ()) {
-                        self->master = TRUE;
-                        peer->master = FALSE;
+                        self->active = TRUE;
+                        peer->active = FALSE;
                     }
                     else {
                         //  Only log this message the first time
-                        if (self->master_peer)
+                        if (self->active_peer)
                             asl_log_print (amq_broker->alert_log,
-                                "I: cluster - can't become master without connected clients");
-                        self->master_peer = NULL;
+                                "I: cluster - can't become active without connected clients");
+                        self->active_peer = NULL;
                     }
                 }
             }
             else {
-                //  If we're support, and master goes offline, we suspend cluster
-                if (peer->master) {
+                //  If we're support, and active goes offline, we suspend cluster
+                if (peer->active) {
                     asl_log_print (amq_broker->alert_log,
-                        "I: cluster - no master server present");
-                    self->master_peer = NULL;
-                    peer->master = FALSE;
+                        "I: cluster - no active server present");
+                    self->active_peer = NULL;
+                    peer->active = FALSE;
                 }
             }
         }
         else
             cluster_alive = FALSE;      //  Waiting for cluster to start fully
-
-        peer = amq_peer_list_next (&peer);
     }
-    //  If cluster started and there are no masters, primary becomes master
-    if (cluster_alive && current_masters == 0 && self->primary)
-        self->master = TRUE;
+    //  If cluster started and there are no actives, primary becomes active
+    if (cluster_alive && current_actives == 0 && self->primary)
+        self->active = TRUE;
 
-    //  Set new calculated master state
-    if (self->master) {
-        if (!amq_broker->master)
+    //  Set new calculated active state
+    if (self->active) {
+        if (!amq_broker->active)
             asl_log_print (amq_broker->alert_log,
-                "I: ********************  MASTER ON  *********************");
-        amq_broker->master = TRUE;
-        self->master_peer = NULL;
+                "I: ********************  active ON  *********************");
+        amq_broker->active = TRUE;
+        self->active_peer = NULL;
     }
     else {
-        if (amq_broker->master)
+        if (amq_broker->active)
             asl_log_print (amq_broker->alert_log,
-                "I: ********************  MASTER OFF  ********************");
-        amq_broker->master = FALSE;
-        if (!self->master_peer)
-            cluster_alive = FALSE;      //  No master means cluster is inoperable
+                "I: ********************  active OFF  ********************");
+        amq_broker->active = FALSE;
+        if (!self->active_peer)
+            cluster_alive = FALSE;      //  No active means cluster is inoperable
     }
     if (cluster_alive && !self->ready) {
         self->ready = TRUE;         //  Cluster is now ready for use
@@ -391,26 +415,6 @@ amq_cluster_t
     smt_timer_request_delay (self->thread, 1000 * 1000, monitor_event);
     </action>
 </event>
-
-<method name = "peer ready" template = "async function" async = "1">
-    <doc>
-    Register a successful outgoing connection to a cluster peer.
-    </doc>
-    <argument name = "peer" type = "amq_peer_t *">Proxy session</argument>
-    <argument name = "name" type = "char *">Peer's server name</argument>
-    //
-    <possess>
-    peer = amq_peer_link (peer);
-    name = icl_mem_strdup (name);
-    </possess>
-    <release>
-    amq_peer_unlink (&peer);
-    icl_mem_free (name);
-    </release>
-    <action>
-    amq_peer_ready (peer, name);
-    </action>
-</method>
 
 <method name = "balance client" template = "async function" async = "1">
     <doc>
@@ -433,7 +437,6 @@ amq_cluster_t
     int
         lowest_load = amq_server_connection_count ();
 
-    peer = amq_peer_list_first (self->peer_list);
     while (peer) {
         //  Weight our peer to avoid needless redirections
         if (peer->load + amq_server_config_cluster_rebalance (amq_server_config) < lowest_load) {
@@ -458,25 +461,6 @@ amq_cluster_t
     </action>
 </method>
 
-<method name = "bind exchange" template = "function">
-    <doc>
-    Replicate cluster bind method to all peers. This sets up an
-    exchange-to-exchange binding so that messages will get bounced
-    down to the peer that holds the local queue. We send this method
-    packaged as a forwarded method.
-    </doc>
-    <argument name = "exchange"    type = "char *">exchange name</argument>
-    <argument name = "routing key" type = "char *">message routing key</argument>
-    <argument name = "arguments"   type = "icl_longstr_t *">arguments for binding</argument>
-    <local>
-    amq_server_method_t
-        *method;
-    </local>
-    //
-    method = amq_server_method_new_cluster_bind (exchange, routing_key, arguments);
-    amq_cluster_tunnel_out (self, AMQ_CLUSTER_ALL, method, AMQ_CLUSTER_DURABLE, NULL);
-    amq_server_method_unlink (&method);
-</method>
 
 <method name = "tunnel out" template = "async function" async = "1">
     <doc>
@@ -488,7 +472,6 @@ amq_cluster_t
     </doc>
     <argument name = "peer"    type = "amq_peer_t *">to peer</argument>
     <argument name = "method"  type = "amq_server_method_t *">method to send</argument>
-    <argument name = "durable" type = "Bool">part of cluster state?</argument>
     <argument name = "channel" type = "amq_server_channel_t *">channel for reply</argument>
     //
     <possess>
@@ -530,16 +513,12 @@ amq_cluster_t
     }
     ipr_bucket_unlink (&bucket);
 
-    //  Record wrapped method in state if wanted
-    if (durable)
-        s_append_to_state (self, content);
-
     //  The peer argument can be a constant, or a real peer reference
-    if (peer == AMQ_CLUSTER_MASTER) {
-        if (self->master_peer)
-            amq_peer_tunnel (self->master_peer, content);
+    if (peer == AMQ_CLUSTER_ACTIVE) {
+        if (self->active_peer)
+            amq_peer_tunnel (self->active_peer, content);
         else
-            asl_log_print (amq_broker->alert_log, "E: cluster - no tunnel to master");
+            asl_log_print (amq_broker->alert_log, "E: cluster - no tunnel to active");
     }
     else
     if (peer == AMQ_CLUSTER_ALL) {
@@ -637,10 +616,6 @@ amq_cluster_t
     amq_server_method_unlink (&method);
     ipr_bucket_unlink (&bucket);
     amq_peer_unlink (&peer);
-
-    //  If message is part of the cluster state, record it
-    if (content->durable)
-        s_append_to_state (self, content);
     </action>
 </method>
 
@@ -683,41 +658,10 @@ static void
 static void
 s_stop_cluster (amq_cluster_t *self)
 {
-    amq_content_tunnel_t
-        *content;                       //  Server state message
-
-    while ((content = (amq_content_tunnel_t *) ipr_looseref_pop (self->state_list)))
-        amq_content_tunnel_unlink (&content);
-
-    ipr_crc_destroy           (&self->crc);
-    ipr_looseref_list_destroy (&self->state_list);
-    amq_peer_list_destroy     (&self->peer_list);
+    amq_peer_list_destroy (&self->peer_list);
     self->ready = FALSE;
 }
 
-static void
-s_append_to_state (
-    amq_cluster_t        *self,
-    amq_content_tunnel_t *content)
-{
-    if (amq_server_config_debug_cluster (amq_server_config))
-        asl_log_print (amq_broker->debug_log, "C: record   method=%s", content->data_name);
-
-    content = amq_content_tunnel_link (content);
-    if (content) {
-        ipr_looseref_queue (self->state_list, content);
-        self->state_size += content->body_size + sizeof (content);
-    
-        if (self->state_size
-        > amq_server_config_cluster_state_mb (amq_server_config) * 1024 * 1024
-        && !self->state_alert) {
-            asl_log_print (amq_broker->alert_log,
-                "E: WARNING: cluster state exceeds %dMb",
-                amq_server_config_cluster_state_mb (amq_server_config));
-            self->state_alert = TRUE;
-        }
-    }
-}
 
 //  We handle the queue GET method here since we need to return it
 //  using the channel/connection information from the tunneled content
@@ -783,30 +727,6 @@ s_execute_method (
     else
     if (method->method_id == AMQ_SERVER_CLUSTER_STATUS)
         amq_peer_recv_status (peer, &method->payload.cluster_status);
-    else
-    if (method->method_id == AMQ_SERVER_CLUSTER_BIND) {
-        amq_exchange_t
-            *exchange;              //  Exchange to bind to
-
-        if (strnull (method->payload.cluster_bind.exchange))
-            exchange = amq_exchange_link (self->vhost->default_exchange);
-        else
-            exchange = amq_exchange_table_search (
-                self->vhost->exchange_table, method->payload.cluster_bind.exchange);
-
-        if (exchange) {
-            amq_exchange_bind_peer (
-                exchange,
-                peer,
-                method->payload.cluster_bind.routing_key,
-                method->payload.cluster_bind.arguments);
-            amq_exchange_unlink (&exchange);
-        }
-        else
-            asl_log_print (amq_broker->alert_log,
-                "E: no such exchange defined: '%s'",
-                method->payload.cluster_bind.exchange);
-    }
 }
 </private>
 

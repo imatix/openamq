@@ -20,7 +20,6 @@
 <doc name = "grammar">
     cluster             = C:HELLO
                         / C:STATUS
-                        / C:BIND
 </doc>
 
 <chassis name = "server" implement = "MAY" />
@@ -80,20 +79,12 @@
   <chassis name = "server" implement = "MUST" />
   <chassis name = "client" implement = "MUST" />
 
-  <field name = "master" type = "bit">
-     cluster master peer?
+  <field name = "active" type = "bit">
+     cluster active server?
     <doc>
-      Specifies whether the sender considers itself the master peer.
+      Specifies whether the sender considers itself the active peer.
       This should only be possible if the sender is the primary or
       the backup server.
-    </doc>
-  </field>
-
-  <field name = "heartbeat" type = "short">
-    peer heartbeat interval
-    <doc>
-      Specifies the peer's heartbeat interval, which lets the
-      recipient know when the peer has stopped responding.
     </doc>
   </field>
 
@@ -154,49 +145,6 @@
     <doc>
       Specifies the total number of cluster peers that the peer
       can see, including itself.
-    </doc>
-  </field>
-</method>
-
-<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-
-<method name = "bind" index = "30">
-  bind local exchange to remote exchange
-  <doc>
-    This method binds an exchange on one server to an exchange on
-    another server.
-  </doc>
-  <chassis name = "server" implement = "MUST" />
-  <chassis name = "client" implement = "MUST" />
-
-  <field name = "exchange" domain = "exchange name">
-    <doc>
-      The name of the remote exchange to bind to. The exchange must
-      exist both on the originating server, and the target server.
-      The same exchange name is used when publishing messages back
-      to the originating server.
-    </doc>
-    <doc name = "rule">
-      If the exchange does not exist the server MUST raise a channel
-      exception with reply code 404 (not found).
-    </doc>
-  </field>
-
-  <field name = "routing key" type = "shortstr">
-     message routing key
-    <doc>
-      Specifies the routing key for the binding.  The routing key is
-      used for routing messages depending on the exchange configuration.
-      Not all exchanges use a routing key - refer to the specific exchange
-      documentation.
-    </doc>
-  </field>
-
-  <field name = "arguments" type = "table">
-    arguments for binding
-    <doc>
-      A set of arguments for the binding.  The syntax and semantics of
-      these arguments depends on the exchange class.
     </doc>
   </field>
 </method>

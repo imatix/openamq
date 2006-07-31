@@ -1,83 +1,19 @@
 1. make branch of trunk (ms)
-OK
+OK, done
 2. remove old cluster code and create cluster-free version of broker (ph)
-OK
-3. add proxying support so that broker objects can talk to remote servers
-
-This means that we want to allow a broker object to open a tunnel to a remote server and
-get responses back.
-
-
-4. add binding state subscription support so broker objects can track changes (ph, ms)
+OK, done
+3. add peering support so that broker objects can talk to remote servers
+OK, done
+4. add binding state subscription support so broker objects can track changes (ms)
+OK, done
 5. implement fedex using above framework (ms)
+
 6. implement master state management by refactoring old cluster controller (ms, ph)
 
--> set broker name to something unique
 
-
-The Peering API
-===============
-
-Requirements
-------------
-
-1. Opens a client connection to a remote AMQP server.
-2. Authenticates using peering credentials.
-3. Sends AMQP request methods to the remote server.
-4. Delivers AMQP reponse methods to a specified object.
-5. Detect connection failure and report to a specified object.
-
-Design
-------
-
-1. The peering API is provided by amq_peering, an asynchronous class.
-
-2. Each instance of this class represents one peering instance, from the current
-   server to a remote server.
-
-3. To start a new peering instance, some parent object creates a new amq_peering
-   instance, and specifies the remote server and peering login credentials.
-
-4. The parent object may, optionally, register a callback handler to which incoming
-   AMQP methods will be passed.
-
-5. The parent object may, optionally, register a callback handler that is invoked
-   if the peering is broken.
-
-6. The parent object can at any time ask the peering object to close its peering.
-   This also happens automatically when the peering object is destroyed.
-
-7. The parent object may ask the peering object to automatically reconnect in case
-   of a connection or network failure.
-
-Implementation
---------------
-
-amq_peering methods, see amq_peering.icl
-
-Internal design
----------------
-
-amq_peering will use amq_peer_agent to send methods.  This agent returns incoming
-methods via the amq_peer.asl method layer, which sends selected AMQP methods back
-to the responsible amq_peering object.
-
-
-The Tunnelling API
-==================
-
-- design as extension to PEERING api
-    - 'open tunnel to service X'
-    - via amq.tunnel exchange?
-
-- creates tunnel between two cooperating objects in both servers.
-- like a peering except:
-    - not a client-server relationship but peer-to-peer
-    - used to carry extension methods across AMQP
-- process:
-    - one server opens tunnel to second server
-    - tunnel specifies a logical name
-    - tunnel is opened and closed logically
-- tunnel is opened and managed automatically, like peering
-- either peer object can send methods to tunnel, which arrive at other side
+1. make new async amq_fedex.icl object
+2. copy test code from peering, so object makes test peering
+3. subscribe to amq.direct exchange and pass bindings to peering
+4. demonstrate hard-coded federation between two brokers
+5. make it configurable
 

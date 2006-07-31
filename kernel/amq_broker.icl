@@ -113,6 +113,12 @@
           </next>
         </class>
 
+        <class name = "cluster" label = "Cluster">
+          <get>
+            icl_shortstr_fmt (field_value, "%d", amq_cluster->object_id);
+          </get>
+        </class>
+
         <class name = "config" label = "Configuration" source = "amq_console_config">
           <get>
             icl_shortstr_fmt (field_value, "%d", amq_console_config->object_id);
