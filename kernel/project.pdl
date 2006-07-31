@@ -27,8 +27,9 @@
 <file name = "amq_tx.asl"            class = "public resource"   >Transactions</file>
 <file name = "amq_dtx.asl"           class = "public resource"   >2-phase transactions</file>
 <file name = "amq_tunnel.asl"        class = "public resource"   >Method tunneling</file>
+<!--
 <file name = "amq_cluster.asl"       class = "public resource"   >Cluster management</file>
-
+-->
 <!-- OpenAMQ WireAPI/C implementation -->
 <file name = "amq_client.asl"        class = "gsl data"          >Client definition</file>
 <file name = "amq_client.c"          class = "main program"      >Client test program</file>
@@ -78,9 +79,11 @@
 <file name = "amq_broker.icl"        class = "icl private class" >Server broker class</file>
 <file name = "amq_broker_agent.smt"  class = "smt public module"
                                      generated = "1"             >Server broker agent</file>
+<!--
 <file name = "amq_cluster.icl"       class = "icl private class" >Server cluster class</file>
 <file name = "amq_cluster_agent.smt" class = "smt public module"
                                      generated = "1"             >Server cluster agent</file>
+-->
 <file name = "amq_peering.icl"       class = "icl private class" >Server peering class</file>
 <file name = "amq_peering_agent.smt" class = "smt public module"
                                      generated = "1"             >Server peering agent</file>
@@ -155,14 +158,6 @@
 <file name = "amq_connection_queue_agent.smt"
                                      class = "smt public module" generated = "1" >Connection-queue mgt agent</file>
 <file name = "amq_server_method.icl" class = "icl private cont"  >Server method class</file>
-<file name = "amq_content_stream_list.icl"
-                                     class = "icl private class" >List of stream contents</file>
-<file name = "amq_content_tunnel_list.icl"
-                                     class = "icl private class" >List of tunnel contents</file>
-<file name = "amq_content_basic_list.icl"
-                                     class = "icl private class" >List of basic contents</file>
-<file name = "amq_content_file_list.icl"
-                                     class = "icl private class" >List of file contents</file>
 <file name = "amq_server_base.cfg"   class = "public resource"   >Server config file</file>
 
 <!-- Shared classes & resources -->
@@ -172,6 +167,14 @@
                                      class = "icl public cont"   >Stream content class</file>
 <file name = "amq_content_tunnel.icl"
                                      class = "icl public cont"   >Tunnel content class</file>
+<file name = "amq_content_stream_list.icl"
+                                     class = "icl private class" >List of stream contents</file>
+<file name = "amq_content_tunnel_list.icl"
+                                     class = "icl private class" >List of tunnel contents</file>
+<file name = "amq_content_basic_list.icl"
+                                     class = "icl private class" >List of basic contents</file>
+<file name = "amq_content_file_list.icl"
+                                     class = "icl private class" >List of file contents</file>
 <file name = "amq_constants.icl"     class = "icl public data"
                                      generated = "1"             >Constants class</file>
 

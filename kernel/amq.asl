@@ -16,8 +16,9 @@
 <include filename = "amq_tx.asl" />
 <include filename = "amq_dtx.asl" />
 <include filename = "amq_tunnel.asl" />
+<!--
 <include filename = "amq_cluster.asl" />
-
+ -->
 <option name = "protocol_name"     value = "AMQP" />
 <option name = "protocol_port"     value = "5672" />
 <option name = "protocol_class"    value = "1"  />
