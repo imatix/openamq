@@ -1,905 +1,537 @@
 gdl
-    title     = OpenAMQ Clustering
-    subtitle  = Providing Reliability and Scalability
+    title     = OpenAMQ Clustering and Interclustering
+    subtitle  = Reliability and Distribution
     product   = OpenAMQ
     author    = iMatix Corporation <openamq@imatix.com>
-    date      = 2006/01/04
-    copyright = Copyright (c) 2004-2006 JPMorgan
-    version   = 1.0
+    date      = 2006/07/28
+    copyright = Copyright (c) 2006 iMatix Corporation
+    version   = 2.0
 end gdl
 
-General Discussion
-******************
+Cover
+*****
 
-What is "Clustering"?
-=====================
-
-We use the term "cluster" to mean a set of brokers that are tied
-together in such a way as to create a single virtual broker:
-
-           +------------------+------------------+
-           |                  |                  |
-    +------+-----+     +------+-----+     +------+-----+
-    |            |     |            |     |            |
-    |   Broker   |     |   Broker   |     |   Broker   |
-    |            |     |            |     |            |
-    +------+-----+     +------+-----+     +------+-----+
-           |                  |                  |
-           +------------------+------------------+
-                              | Cluster
-                              |
-    --------------------------+-------------------------
-                              |
-                       +------+------+
-                       |             |
-                       | Application |
-                       |             |
-                       +-------------+
-
-Note that the brokers may be physically distant.  We do not use the
-term to describe sets of interconnected brokers that serve different
-sets of applications, e.g.:
-
-        +---+                      +---+
-      +-+   +-+                  +-+   +-+
-      |       |      Bridge      |       |
-      |       | ---------------- |       |
-      +-+   +-+                  +-+   +-+
-        +-+-+                      +-+-+
-          |                          |
-          |                          |
-    +-----+-----+              +-----+-----+
-    |           |              |           |
-    |Application|              |Application|
-    |           |              |           |
-    +-----------+              +-----------+
-      New York                     Tokyo
-
-The correct term for this is "bridging", something that is done by
-specialised applications.  See the document entitled "AMQ Bridging".
-
-Why Cluster?
-============
-
-The main reasons for clustering are:
-
-1. Reliability: using redundant brokers so that if one fails, another
-   can take its place.  Reliability is principally for point-to-point
-   messages, the classic "queue service" scenario.
-
-2. Scalability: using multiple brokers so that work can be distributed
-   over more boxes and/or networks.  Scalability is principally for
-   transient publish/subscribe messages, the classic "topic service"
-   scenario.
-
-Since AMQ allows applications to mix the classic concepts of queue and
-topic into arbitrary messaging models, AMQ clustering must support both
-reliability and scalability, though these are somewhat different
-problems.
-
-Features of AMQ Clustering
-==========================
-
-We have some specific design goals for AMQ clustering:
-
-1. Simple to configure, administrater, and use in applications.
-
-2. Simplicity of implementation, except where the system becomes more
-   complex to use.
-
-3. Ability to scale to any size.
-
-4. Ability to use arbitrary storage systems (SAN, RAID, IDE).
-
-5. A single solution that provides both scalability and reliability,
-   albeit targetted towards specific application scenarios.
-
-Terminology
-===========
-
-We use the term "persistent" to mean data that is saved on disk, and
-survives broker restarts. This is contrasted with "transient", which
-means data held only in memory, and lost if the broker restarts. We use
-the term "reliable" to mean persistent data that is mirrored in some way
-to make it robust against disk failures.
-
-Levels of Reliability
-=====================
-
-We can define four levels of message reliability, each providing a
-different cost/reliability trade-off:
-
- - Fully transient: the message is held only in one memory and is
-   lost if that memory is reset.
-
- - Reliable transient: the message is replicated to a second memory
-   and is lost only if both memories are reset.
-
- - Persistent: the message is saved to a single disk system and is
-   lost if that disk system is damaged.
-
- - Reliable persistent: the message is saved to two distinct disk
-   systems and is lost only if both disk systems are damaged.
-
-Transactions vs. Messages
-=========================
-
-Although AMQ is a message-oriented middleware system, it is useful to
-consider reliability in terms of "transactions". A transaction consists
-of a set of actions that imply change to the broker state, and
-specifically, the set of messages held by a queue:
-
- - The simplest transactional model wraps every method in a transaction.
-   We call this an "automatic transaction".
-
- - The classic transaction model wraps a set of methods in a transaction.
-
- - The distributed transaction model coordinates transactions across a
-   set of brokers using a distributed transaction coordinator.  This is
-   more complex than we want to implement at present.
-
-Transactions can cover any mix of persistent, or transient messages, and
-durable or temporary queues.
-
-We do not make any a-priori distinction between persistent and transient
-messages, except that they are stored on more or less reliable media.
-We might have several types of persistent messages, for instance.
-
-General Solution for Reliability
-================================
-
-We consider the problem of storing persistent transactions in such a
-way that a broker or disk system failure does not cause loss of data.
-This is the classic "reliable point-to-point messaging" scenario.
-
-The cluster consists of two brokers, one acting as "root" and one as
-backup. In normal operation, all clients connect to the root broker,
-as shown by this diagram:
-
-        +-----------+        +-----------+
-        |           |        |           |
-        |   Root    +--------+  Backup   |
-        |  Broker   +--------+  Broker   |
-        |           |        |           |
-        +----/+\----+        +-----------+
-           // | \\
-          /   |   \\
-         /    |     \
-       //     |      \\
-     //-\    /+-\    /-\\
-    |    |  |    |  |    |
-    |    |  |    |  |    |
-     \--/    \--/    \--/
-
-      Client Applications
-
-Each broker maintains its own storage, and the root broker replicates
-transactions to the backup broker as follows:
-
-        -----                -----
-      //     \\            //     \\
-     | Disk 1  |          | Disk 2  |
-      \\     //            \\     //
-        --+--                --+--
-          | ||||||             | ||||||
-          |  B                 |  D
-    +-----+-----+        +-----+-----+
-    |           |  C     |           |
-    |   Root    +-||||||-+  Backup   |
-    |  Broker   +--------+  Broker   |
-    |           |     E  |           |
-    +-----+-----+        +-----------+
-          | ||||||
-         F|  A
-          |
-         /+-\
-        |    |
-        |    |
-         \--/
-        Client
-
- - (A) The client prepares a transaction (publishes messages and
-   acknowledges received messages) on the root broker.  The
-   client then does a COMMIT.
-
- - (B) The root broker writes this transaction to disk.  It may
-   or may not flush the disk, this is a matter of optimisation.
-
- - (C) The root broker passes the transaction to the backup
-   broker.
-
- - (D) The backup broker writes this transaction to disk.  Again,
-   it may or may not flush the disk depending on the degree of
-   reliability wanted.
-
- - (E) The backup broker confirms that the transaction has been
-   recorded safely.
-
- - (F) The root broker confirms to the client application that
-   the transacton has been completed.
-
-If the root broker fails, the client can detect this and switch
-to the backup broker:
-
-           -----                -----
-         //     \\            //     \\
-        | Disk 1  |          | Disk 2  |
-         \\     //            \\     //
-           --+--                --+--
-             |                    |
-          ---+---                 |
-      / //-------\\ \       +-----+-----+
-     | |           | |      |           |
-    |  |   Root    |  |     |  Backup   |
-    |  |  Broker   |  |     |  Broker   |
-     | |           | |      |           |
-      \ \\\-----/// /       +-----------+
-           -----            ----
-                        ----
-                    ----
-                ----
-            /--\
-           |    |
-           |    |
-            \--/
-           Client
-
-General Solution for Scalabilty
-===============================
-
-We consider the problem of handling very large numbers of clients (100k
-or more) that consume data from a small number of high-volume
-publishers. This is the classic "transient publish-subscribe scenario".
-
-This scenario has several particular features:
-
- - It does not use persistent transactions. This means
-   there is no requirement to replicate transactions.
-
- - It has a strong fan-out ratio from publishers to subscribers.
-   This means the same message can be sent to very many end-points.
-
-We in fact have two kinds of client application, publishers and
-subscribers, and we can draw the cluster like this, showing a
-set publisher and several sets of subscribers:
-
-                       Publishers
-                          ---
-                        //   \\
-                       |       |
-                       |       |
-                        \\   //
-                          -+-
-                           |
-          +----------------+-----------------+
-          |                |                 |
-    +-----+-----+    +-----+-----+     +-----+-----+
-    |           |    |           |     |           |
-    |  Broker   +----+  Broker   +-----+  Broker   |
-    |           |    |           |     |           |
-    +-----+-----+    +-----+-----+     +-----+-----+
-          |                |                 |
-          |                |                 |
-        /-+-\            /-+-\             /-+-\
-       |     |          |     |           |     |
-       |     |          |     |           |     |
-        \---/            \---/             \---/
-     Subscribers      Subscribers       Subscribers
-
- 1. Subscribers are distributed across the brokers, so that each
-    broker has a segment of the subscriber population.
-
- 2. Subscriptions (AMQ bindings and subscription queues) are held
-    separately for each subscriber on 'their' broker.
-
- 3. Every publisher sends every message to every broker.
-
-It is clear that this model only works where we can exploit a strong
-fan-out from publisher to subscriber.  If every published message goes
-only to a few subscribers, this model will not provide any advantage.
-
-Failover is relatively easy: all subscribers from the failing broker
-reconnect to another broker, resubscribe, and start to collect their
-messages.
-
-OpenAMQ Cluster Design
-**********************
-
-Cluster Organisation
-====================
-
-Defining an OpenAMQ Cluster
----------------------------
-
-An OpenAMQ cluster consists of 1 or more broker processes (also called
-"brokers"), running on one or more machines, interconnected by a LAN or
-high-reliability WAN links:
-
-- All brokers in a cluster share the same "cluster key", a configured
-  string that identifies the cluster.
-
-- All applications that work with the cluster must connect using the
-  same cluster key value.  This prevents, for example, an application
-  connecting to a production cluster by mistake.
-
-- There is no mechanism for combining two or more separate clusters
-  except through external bridging.  Each cluster is a closed set of
-  brokers.
-
-The Primary Partition
----------------------
-
-The "primary partition" consists of one or more brokers that are present
-at all times except during emergency breakdowns:
-
-- The primary brokers are fully-interconnected using a high-speed and
-  high-reliability network.
-
-- The primary brokers should share identical configuration data.
-
-- Brokers are interconnected by exactly one network path: each broker
-  creates a single network connection to every other broker using an
-  IP address and port specified in the configuration data.
-
-- It is not legal to create multiple independent network paths in the
-  cluster, e.g. three independent network paths between three brokers
-  A-->B, B-->C, and C-->A, which could lead to different views of the
-  network topology if one path breaks.
-
-The Secondary Partition
------------------------
-
-The "secondary partition" consists of zero or more brokers that may be
-activated and de-activated dynamically, without changing the cluster
-configuration:
-
-- Each secondary broker is connected to all primary brokers but not to
-  other secondary brokers.
-
-- The secondary brokers can usefully share identical configuration data
-  with each other, and with the primary brokers.
-
-The Root Broker
----------------
-
-The root broker is elected from the set of primary brokers:
-
-- The root broker is specifically responsible for handling shared queues,
-  i.e. queues that can be consumed by multiple applications at the same
-  time.
-
-- The root broker is always the most senior primary broker, i.e. the
-  broker with the oldest timestamp.
-
-Election Process
-----------------
-
-The election of the root broker is a continuous process that happens in
-parallel on all primary brokers:
-
-- Each primary broker manages its own election process by monitoring the
-  state and seniority of the primary brokers it is connected to.
-
-- A primary broker elects itself as "root" when it receives a unanimous
-  vote of all active primary brokers and the electorate constitutes more
-  than 50% of the defined primary brokers.
-
-- If any primary broker is still starting (at cluster start time) this
-  counts as a "no" vote, and no root will be elected.
-
-- If a primary broker has broken (gone offline), this counts as an
-  abstention, and does not affect the election process so long as the
-  active primaries form a quorum.
-
-- Secondary brokers do not vote because in a fragmented network this can
-  create split-brain scenarios in which more than one broker will elect
-  itself as root.
-
-- If the active root broker finds that the electorate constitutes strictly
-  less than 50% of the primary brokers, it resigns as root broker.
-
-Failover and Recovery
----------------------
-
-The cluster will, in most cases, manage its state automatically and
-safely:
-
-- Election of root is automatic when the cluster starts.
-
-- Failover of root to a backup broker is automatic so long as the cluster
-  state is unambiguous.
-
-- When the old root is restarted, it rejoins the primary cluster as a
-  backup broker.
-
-- For best results, the primary segment should have three or more brokers
-  running in it.
-
-- All primary brokers should be equally capable in terms of resources
-  (i.e. running on similarly-specified machines, with similar memory
-  and CPU limitations).
-
-The cluster will require manual intervention in some specific cases:
-
-- When the failure of the root leaves the cluster with exactly 50%
-  active primary brokers.  I.e., if the primary segment has two
-  defined brokers.
-
-- When more than half of the primary brokers crash, and this includes
-  the root broker.
-
-The current "intervention" strategy in such cases is manual restarts
-of the affected processes.
-
-In the worst case, it may be necessary to remove brokers from the
-primary segment (modifying the configuration data) and then restarting
-all the cluster processes.
-
-Cluster Management
-==================
-
-Application Connection to Cluster
----------------------------------
-
-An application is connected to a single cluster broker:
-
-- Initially, the application will connect to one of the primary brokers.
-
-- The primary broker can redirect the application to a different broker.
-
-- Eventually, applications should be fairly distributed across all
-  primary and secondary brokers in the cluster.
-
-- High-volume publishers and criticial consumers may explicitly ask to
-  be connected to the current root broker.
-
-Intra-Cluster Connections
--------------------------
-
-The cluster brokers are interconnected using AMQP connections (the
-wire-level protocol for AMQ):
-
-- Each broker acts as a client for the brokers it is connected to.
-
-- This relationship is bi-directional, so every broker manages a
-  set of inbound client connections from other brokers, and a set
-  of outbound proxy connections to other brokers.
-
-- The broker-to-broker connections use a specific login (user type
-  = "cluster") that are distinct from normal application logins and
-  from console logins.
-
-State Replication
------------------
-
-The cluster has state, consisting of resources that are created on
-brokers at different times, by applications:
-
-- The state is replicated to all brokers in the cluster, each time
-  an application makes a change on one broker.
-
-- When a new broker joins the cluster it receives the state from the
-  root broker.
-
-- The state is held on each primary broker, so that if the root broker
-  dies, the backup which becomes root already has the full state.
-
-- The cluster state has a certain maximum size, defined in the broker
-  configuration.
-
-Exchange Management
--------------------
-
-Exchanges are the broker objects to which applications publish messages.
-Note that applications may create exchanges dynamically:
-
-- When an application creates an exchange on its broker, that broker
-  replicates the "Exchange.Declare" method to all other brokers.
-
-- Exchanges form part of the cluster state.
-
-- There is no guarantee of consistent behaviour if the application
-  (for example) creates the same exchange on two brokers at the same
-  time, using different properties.
-
-Queue Management
-----------------
-
-Queues are the broker objects that hold messages before they are
-sent to consumers.  Note that applications create queues dynamically
-(the current OpenAMQ implementation does not support durable queues):
-
-- We have distinct management processes for private queues (used to
-  store subscription-type messages) and shared queues (used for
-  workload distribution).
-
-- A private queue is defined as a queue that is marked as exclusive
-  and is automatically deleted when the owning application leaves the
-  cluster.
-
-- A private queue is always present on the same broker as the consuming
-  application.
-
-- A shared queue is present on every cluster broker but is only active
-  on the current root broker.
-
-- When an application creates a private queue on its broker, the queue
-  is not replicated.
-
-- When an application creates a shared queue on its broker, the queue
-  is replicated to all brokers and forms part of the cluster state.
-
-Queue Bindings
---------------
-
-Queue bindings are the broker objects that link exchanges to queues and
-tell the exchanges how to route incoming messages.  Applications create
-bindings dynamically (the current OpenAMQ implementation does not
-support durable queues):
-
-- We have distinct management processes for bindings on private queues
-  and bindings on shared queues.
-
-- When an application creates a binding on a private queue, the broker
-  makes a "meta binding" between its instance of the exchange and the
-  eponyous exchange on all primary brokers.  The effect of this is to
-  route messages from exchange to exchange between brokers.
-
-- When an application creates a binding on a shared queue, the broker
-  replicates the binding command to all brokers.  The effect of this
-  is to create a local exchange-to-queue binding on all brokers.  Note
-  that the shared queue is (assumed to be) present on all brokers.
-
-Queue Consumers
----------------
-
-Queue consumers are the broker objects that link queues to consuming
-applications.  Applications always create consumers dynamically, and
-there is no concept of "durable consumer" in AMQ:
-
-- We have distinct management processes for consumers on private
-  queues and consumers on shared queues.
-
-- A consumer on a private queue works exactly the same way in a
-  clustered configuration as in a non-clustered configuration.
-
-- A consumer on a shared queue is proxied to all brokers in the
-  cluster.  That is, the original broker becomes a consumer of the
-  shared queue on the rest of the cluster.  Note that the shared
-  queue is only active on the root broker, but note also that the
-  current "root" may move around arbitrarily.
-
-Cluster State Workflow
+State of this Document
 ======================
 
-- root to all brokers
-- primary to all brokers
-- secondary to all primary brokers
-    - root to all other secondaries
+This document is a technical whitepaper.
 
-
-Cluster Message Workflow
-========================
-
-Publisher-to-Queue Workflow
----------------------------
-
-An application publishes its messages to a named exchange on its
-current broker:
-
-- The exchange will publish the message to queues and to eponynous
-  exchanges on other cluster brokers, as defined by its bindings.
-
-- When a message arrives in a shared queue and the current broker is
-  not the root broker, the message is pushed to the same exchange on
-  the root node instead of being held in the queue.  The root node
-  will route the message into the shared queue.
-
-- When a message arrives in a shared queue, on the root, it is held
-  and then dispatched to consumers as appropriate.
-
-- Inter-exchange messages (based on meta-bindings) are routed in
-  different ways depending on whether the message came from an
-  application or from a secondary brokers.
-
-- Messages from applications are routed to all meta-bound exchanges.
-
-- Messages from secondary brokers are routed, by the root broker,
-  to all secondary brokers except the originating broker.
-
-The above mechanisms prevent messages from bouncing around the cluster
-ad-nauseam:
-
-- A message is never sent back to a broker that originated it.
-
-- Messages are never sent twice to the same broker, even if there are
-  multiple bindings for the same message.
-
-Queue-to-Consumer Workflow
---------------------------
-
-A shared queue forwards messages to applications based on the consumers
-that it has registered on it:
-
-- Shared queues are always distributed from the root broker, either to
-  consumers on that broker, or other brokers.
-
-- Consumers can be local applications, on the current broker.
-
-- Consumers can be remote applications, on a different broker.
-
-- When a non-root broker gets a message from the root broker, it passes
-  this to its own matching consumer.
-
-Tutorial
-********
-
-In this section we configure a sample cluster and we run tests on it.
-For this you will need the OpenAMQ/1.0a0 software, or later.
-
-All commands are run on the same physical server.
-
-Overview
-========
-
-The cluster will consist of:
-
-1. A primary segment of 3 brokers, one of which will be the root.
-2. A secondary segment of 2 brokers.
-3. An application that reads from a private queue on each broker,
-   and from a shared queue (on the root broker).
-4. An application that publishes messages to different brokers on
-   the cluster.
-
-The exercise will consist of:
-
-1. Starting the cluster and verifying that the root broker is
-   correctly elected.
-2. Stopping and restarting the root broker and verifying that a
-   backup broker correctly takes over the root role.
-3. Publishing to each of the cluster brokers in turn and
-   verifying that messages reach all applications as expected.
-4. Stopping and restarting parts of the cluster and checking that
-   the cluster state is correctly re-established on new cluster
-   brokers.
-
-Cluster Configuration
+Copyright and License
 =====================
 
-All brokers will run from the same directory.  Note that the current
-OpenAMQ implementation does not use any disk resources except to read
-the configuration file at startup.
+Copyright (c) 1996-2006 iMatix Corporation
 
-* The primary brokers will run on these ports: 5001, 5002. 5003.
-* The secondary brokers will run on these ports: 6001, 6002.
+This product is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2 of the License, or (at your
+option) any later version.
 
-Edit custom.cfg to define the cluster:
+This product is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+Public License for more details.
 
-    <?xml?>
-    <config>
-        <cluster
-            enabled = "1"
-            key = "my.cluster"
-            primary = "localhost:5001 localhost:5002 localhost:5003"
-            />
-    </config>
+For information on alternative licensing for OEMs, please contact iMatix
+Corporation.
 
-Starting the Cluster
-====================
-
-We start the cluster by starting five (5) broker processes, which we can
-do from the command line or from a script.  For testing, it is simplest
-to open five windows and start one broker in each window:
-
-    amq_broker -p 5001
-    amq_broker -p 5002
-    amq_broker -p 5003
-    amq_broker -p 6001
-    amq_broker -p 6002
-
-The first primary broker that you start will report this message:
-
-    I: cluster - start as root (3/3/3 votes)
-
-Each broker should after a second or two, report this message:
-
-    **** CLUSTER 'my.cluster' READY FOR CONNECTIONS ****
-
-Testing Failover
-================
-
-We will now stop the root broker.  The second broker will now report this
-message:
-
-    I: **** CLUSTER 'my.cluster' STOPPING NEW CONNECTIONS ****
-    I: cluster - start as root (2/2/3 votes)
-    I: **** CLUSTER 'my.cluster' READY FOR CONNECTIONS ****
-
-Which indicates the votes, active primary brokers (2), and total primary
-brokers (3).  The other brokers will report this:
-
-    I: **** CLUSTER 'my.cluster' STOPPING NEW CONNECTIONS ****
-    I: **** CLUSTER 'my.cluster' READY FOR CONNECTIONS ****
-
-During the failover period, messages may get lost.
-
-We will now start the root broker again.  Note that it rejoins the cluster
-as a primary backup broker.
-
-Testing Message Throughput
-==========================
-
-The Consumer Application
-------------------------
-
-For our tests, we use the amq.direct exchange and the routing key "test".
-We will use PAL to write our test cases.
-
-This is the consumer application (reader.pal):
-
-    <?xml?>
-    <pal script = "amq_pal_gen">
-        <set name = "myqueue" value = "my.queue" cmdline = "Q" />
-        <set name = "private" value = "0"        cmdline = "P" />
-        <session cluster_key = "my.cluster">
-            <queue_declare queue = "$myqueue" exclusive = "$private" />
-            <queue_bind    queue = "$myqueue" exchange = "amq.direct"
-                routing_key = "test" />
-            <basic_consume queue = "$myqueue" />
-            <repeat>
-                <wait/>
-                <basic_arrived>
-                    <echo>I: Message $message_id arrived</echo>
-                </basic_arrived>
-                <empty>
-                    <abort>E: Message did not arrive</abort>
-                </empty>
-            </repeat>
-        </session>
-    </pal>
-
-To build this, use the command 'pal reader'.
-
-The Publisher Application
--------------------------
-
-This application (writer.pal) writes a number of messages to the
-amq.direct exchange and using the routing key "test":
-
-    <?xml?>
-    <pal script = "amq_pal_gen">
-        <set name = "messages" value = "1" cmdline = "M" />
-        <set name = "message_id" value = "$random" cmdline = "I" />
-        <session cluster_key = "my.cluster">
-            <repeat counter = "id" times = "$messages" >
-                <basic_content size = "1000" message_id = "id-$message_id" />
-                <basic_publish exchange = "amq.direct" routing_key = "test" />
-                <basic_returned>
-                    <echo>W: Message $message_id returned</echo>
-                </basic_returned>
-            </repeat>
-        </session>
-    </pal>
-
-To build this, use the command 'pal writer'.
-
-Testing Private Queues
-----------------------
-
-We will run five instances of the reader, one connected to each broker,
-reading messages from a private queue on each broker.
-
-This corresponds to a topic fanout scenario in which many subscribers
-read the same messages (here represented by the same routing key).
-
-Run these commands, each one in its own window:
-
-    reader -s localhost:5001 -P 1
-    reader -s localhost:5002 -P 1
-    reader -s localhost:5003 -P 1
-    reader -s localhost:6001 -P 1
-    reader -s localhost:6002 -P 1
-
-The '-P' option specifies 'private queue' or not.  Now run the publisher
-five times, sending two messages to each broker in the cluster:
-
-    writer -s localhost:5001 -M 2
-    writer -s localhost:5002 -M 2
-    writer -s localhost:5003 -M 2
-    writer -s localhost:6001 -M 2
-    writer -s localhost:6002 -M 2
-
-You can run these commands one after the other, in the same window.
-You should observe that each reader receives a copy of each message.
-Since each private queue is bound with the same routing key, the
-messages are fanned-out.
-
-Testing Shared Queues
----------------------
-
-We will run the same five instances of the reader, but this time each
-reader will take messages from a shared queue, which the cluster holds
-on the root server.
-
-You should Ctrl-C the reader processes and restart them as follows:
-
-    reader -s localhost:5001 -P 0
-    reader -s localhost:5002 -P 0
-    reader -s localhost:5003 -P 0
-    reader -s localhost:6001 -P 0
-    reader -s localhost:6002 -P 0
-
-Now you can run the writer again, sending two messages to each broker in
-the cluster:
-
-    writer -s localhost:5001 -M 2
-    writer -s localhost:5002 -M 2
-    writer -s localhost:5003 -M 2
-    writer -s localhost:6001 -M 2
-    writer -s localhost:6002 -M 2
-
-You can run these commands one after the other, in the same window.
-You should observe that the messages are distributed across the
-readers, so that each reader receives exactly two messages.  Since
-the readers are sharing the same single queue, there is no message
-fanout.
-
-Scripts
-=======
-
-Starting The Cluster
---------------------
-
-The 'start' script:
-
-    #!/bin/sh
-    #
-    #   Script to start example OpenAMQ Cluster
-    #
-    nohup amq_server -p 5001 >1.lst 2>&1 &
-    nohup amq_server -p 5002 >2.lst 2>&1 &
-    nohup amq_server -p 5003 >3.lst 2>&1 &
-    nohup amq_server -p 6001 >4.lst 2>&1 &
-    nohup amq_server -p 6002 >5.lst 2>&1 &
-
-Stopping The Cluster
---------------------
-
-The 'stop' script:
-
-    #!/bin/sh
-    #
-    #   Script to stop example OpenAMQ Cluster
-    #   May need fixing for different 'ps' command versions
-    #
-    for pid in `ps -ef | egrep amq_server | egrep -v grep | cut -c10-14`; do
-        kill $pid
-    done
-
-Comments
+Abstract
 ========
 
-Known Bugs
-----------
+We analyse the requirements for OpenAMQ clustering and interclustering and
+we design a generic clustering and interclustering system based on simple
+and easy to manage elements.
 
-The 1.0a0 version has these known bugs, under investigation:
+Overview
+********
 
-1. When using private queues, messages sent to a secondary server are
-   not correctly forwarded to other secondary servers.  [Fixed in 1.0a1].
+Clustering means many things.  In middleware a cluster generally means a set
+of servers that work closely together in order to create a more reliable and
+better-performing whole.  Interclustering is when we connect servers or
+clusters that are geographically seperated, so that they work together in
+useful ways.  We often call this a "bridge".
 
-2. The broker has been seen to segfault on one occasion while doing a
-   message publishing test.  Sadly no core dump was taken.
+OpenAMQ is fast enough that clustering is not necessary for performance, and
+therefore performance improvement is not a design goal of clustering (though
+it was in early stages of OpenAMQ development).
 
-Unimplemented Functionality
----------------------------
+To a large extent clustering and interclustering depend the same elementary
+concepts, and so we tackle two issues as one generic design problem that has
+some specific elements.
 
-1. Intra-cluster consumers are not cancelled correctly when a reader
-   goes away, so stopping and restarting readers on shared queues will
-   cause message loss.
+We can define our clustering and interclustering requirements as follows:
 
-2. The mechanism for redirecting applications across the cluster is not
-   yet implemented, so each application must connect to the specific
-   broker it wants to work with.
+ 1. The general ability to connect a set of servers in some configuration that
+    provides the support for clustering functionality.  We call this "Topology
+    Management".
 
-3. The Get method will not yet work on shared queues across the cluster.
+ 2. The ability to exchange status information across an active topology, so
+    that servers know about each other.  We call this "Status Management".
+
+ 3. The ability to organise a 'hot backup' server for a set of applications
+    so that disasterous system failures do not cause service interruption.
+    We call this "Failover Support".
+
+ 4. The ability to organise the flow of messages from one server to another
+    according to subscription requests made at the receiving side.  We call
+    this "Binding Propagation".
+
+ 5. The ability to address and forward messages to applications which may
+    be on any part of the topology.  We call this "Global Message Routing".
+
+ 6. The ability to replicate the state of objects such as exchanges and shared
+    queues between servers, which we call "State Replication".
+
+We explicitly will NOT look at:
+
+ - The ability to automatically define the topology, called "discovery". In
+   our current OpenAMQ use cases, the cluster topology is defined manually by
+   the system administrator.
+
+ - The ability to spread large numbers of clients across many servers, called
+   "load balancing".  In our current scenarios, the capacity of a single
+   exceeds the known requirements both in terms of number of connected users
+   and in total message transfer capacity.
+
+ - The ability to use clustered servers in any other role, for example as part
+   of a message persistence scheme.
+
+We look at each of our defined requirements in turn.
+
+Topology Management
+===================
+
+Topology management is the definition of, and the managing of, the
+relationships between different servers.  We can define two types of
+relationship:
+
+1. The intra-cluster relationships betwen servers within a single cluster.
+
+2. The inter-cluster relationships between clusters and servers.
+
+The main difference is that inter-clustering relationships are from one
+server onto the entire cluster, rather than onto individual servers.
+
+We do not need any form of automatic discovery of the network.  We assume
+that all relationships (of both types) are defined in the configuration of
+each server making the relationship.
+
+We call a server-to-server or server-to-cluster relationship a "peering".
+A peering has these properties:
+
+1. Peerings are directed, made from one server to another using the normal
+   AMQP client-to-server mode of connection.
+
+2. If a bi-directional relationship is needed, each server must create
+   its own peering onto the other.
+
+3. Peerings are robust and can survive network failure and reconnection.
+
+Peerings are a low-level entity in the cluster operational model; that is
+we do not expect them to be visible to system administrators.  Rather, they
+are meant to be used by other higher-level entities, with these higher-level
+entities being visible and configurable.
+
+Status Management
+=================
+
+Status management is the exchange of information between entities at each
+side of a relationship (a peering).  AMQP does not provide any semantics
+for such exchanges, so we must build our own on top of AMQP.
+
+The simplest way to add internal entity-to-entity semantics to AMQP is to
+use the exchange concept as a routing point.  That is, when one entity
+wishes to send status information to another, across a peering, it would
+create a content (a message) and publish that to a specific exchange at
+the destination server.
+
+While the AMQP specifications include a "tunnel" class that could also be
+used for this purpose, the semantics of publishing via an exchange are
+simple and generic enough that we will use that mechanism.
+
+Failover Support
+================
+
+The classic failover scenario is the following:
+
+ - A set of applications are working with a server on a computer system.
+ - Either the software or the hardware crashes.
+ - The applications detect the failure and reconnect to a backup server
+   that is ready and running.
+
+Our terminology will be as follows:
+
+ - Failover support requires a PRIMARY and a BACKUP server that are
+   connected into a cluster using intra-clustering peering.
+
+ - At any point in time one of these servers is the ACTIVE server, and
+   the other server, if alive, is the PASSIVE server.
+
+ - During normal operation, the primary server is active and the backup
+   server is passive.
+
+ - After failover, the primary server is either offline or passive, and
+   the backup server is active.
+
+Failover support does not need more than a single backup server.  There
+are several issues to resolve to create a smooth and above all safe
+failover mechanism:
+
+1. One must avoid 'false' failover, the so-called 'split brain' syndrome
+   in which both servers believe they are the current active server.
+
+2. One must prevent client applications from connecting to the backup
+   server unless it becomes active.
+
+3. One must provide a procedure for recovery and switchover back to the
+   primary server.
+
+Some good general principles for resolving these issues are:
+
+1. Failover happens automatically but recovery happens only through
+   manual intervention of some kind.
+
+2. The backup server will become active if it cannot see the master
+   server, but the master server will only become active if it can
+   see the backup server and the backup server has announced itself
+   as 'passive'.
+
+3. Client applications can connect to either master or backup server
+   and the server will redirect them (this is an AMQP semantic) to
+   the current active server if necessary.
+
+For administration, it is acceptable that the master/backup role of
+each server be defined either in a configuration file or on the command
+line when the process is started.
+
+Binding Propagation
+===================
+
+Binding propagation is the ability to organise the flow of messages from
+one server to another according to queue bindings made at the receiving
+side.
+
+The typical scenario for this is for inter-cluster pub-sub message
+routing:
+
+ - A central data center receives data from some source.
+
+ - A local / regional data center serves a number of client applications
+   that need access to some of this data.
+
+ - The local / regional data center tells the central data center exactly
+   what data is wanted.
+
+ - As matching data arrives centrally, the central data center forwards
+   this data to the remote data center.
+
+To make this work efficiently in real-life situations, bindings must be
+normalised so that many requests for the same data result in a single
+instance of that message being transferred to the remote data center.
+
+The connection between central and remote data centers is assumed to be
+slow, but reliable.  That is, we do not attempt to queue and forward
+messages in case of a network failure - messages will simply be dropped.
+
+AMQP does have semantics that let us construct binding propagation, using
+a temporary private queue and normal queue-to-exchange bindings.  We will
+look at this in more detail in the design section.
+
+Global Message Routing
+======================
+
+Global message routing means ability to address and forward messages to
+applications which may be on any part of the topology.  This is typically
+needed to allow request-response scenarios to operate between clusters
+(across inter-clustering peerings).
+
+AMQP routing semantics are based primarily on a "routing key".  To make
+global routing work, we need to ensure that routing keys are unique across
+all interconnected servers.
+
+The simplest way to create global routing keys is to use a naming convention
+that includes unique server-dependent information.  Some alternatives are:
+
+ - A hierarchical convention that lets us create multiple levels of
+   inter-clustering.
+
+ - A flat convention that lets us create a single level of intra-clustering.
+
+For our current needs, a single level of intra-clustering is more than
+sufficient.  However, we expect that future use cases for AMQP will expand
+the intra-clustering model further, so we will design a routing key naming
+convention that can be extended to a hierarchical naming scheme later.
+
+State Replication
+=================
+
+When several servers participate in the same overall application, it can be
+useful to replicate state, so that failover can happen faster, and so that
+application distribution is easier.
+
+For example:
+
+ - Exchanges created on one server can be automatically created on another.
+ - Shared queues created on one server can be automatically created on
+   another.
+
+AMQP does not provide explicit semantics for this, but it is quite easy to
+construct state replication semantics over AMQP, using a pub-sub model.
+
+Design Proposal
+***************
+
+Topology Management
+===================
+
+Topology management will be handled by 'peerings', which are internal server
+agents that maintain a relationship between two servers or from one server
+onto a cluster.
+
+The peering agent will automatically detect a network failure and reconnect
+when/if the network is reestablished.
+
+Peering agents act as remote clients, from the point of view of the target
+server or cluster.  Peering agents obey the same rules for failover as do
+any other clients connected to the target server.
+
+Status Management
+=================
+
+Status management will be handled by a special exchange, the 'amq.peer'
+exchange, and a set of specifically-formatted messages.  Within a single
+server, entities can subscribe to the local amq.peer exchange to receive
+incoming messages.  To send status information, an entity publishes a
+message to the remote amq.peer exchange, using the appropriate peering
+agent.  The amq.peer exchange is a simple fanout exchange and does not do
+any kind of routing-key translation.
+
+Failover Support
+================
+
+To support failover, we require a cluster of one primary server and one backup
+server.  At any moment either the primary or the backup server may be the
+"active server" and the other server is the "passive server".
+
+The algorithm is:
+
+1. Failover from primary to backup is automatic, recovery to primary happens
+   manually, by stopping the backup server after the primary server has been
+   restarted.
+
+2. At startup the primary server becomes active, the backup does not.
+
+3. If the backup server sees the primary server going away and if it has at
+   least one connected client, it becomes active and remains active until
+   it is stopped. If the primary server goes away, and the backup server
+   has no clients, it cedes its position as active.
+
+4. If the primary server sees the backup server going away, and it is not
+   active, it becomes active. If the primary server sees the backup coming
+   back, as active, the primary stops being active.
+
+When a client application connects to the passive server, and the other server
+has correctly identified itself as active, the passive server redirects the
+client application to the active server.
+
+Binding Propagation
+===================
+
+Binding propagation is handled by "exchange federation agents", or EFAs,
+which use peerings to federate a set of exchanges on one server with a set
+of exchanges on another server or cluster of servers.
+
+An EFA is a configured object that acts as a proxy for information passing
+through an exchange.  The EFA functionality covers:
+
+1. Propagation of new local bindings to the remote server or cluster so that
+   the necessary messages arrive at the local server.
+
+2. Propagation of published messages to the remote server or cluster, either
+   on a selective basis or a systematic basis.
+
+AMQP provides all the necessary semantics for binding propagation.
+
+Global Message Routing
+======================
+
+Global message routing ensures that messages relayed by EFAs across peerings
+are accurately sent to the necessary server.
+
+Message routing is done using either the elementary routing key or the vector
+of header fields.  For our purposes we will use only the elementary routing
+key.  Further, we are concerned only with internal routing keys, that is those
+routing keys generated by a server for its own use.
+
+We define an internal routing key to have these characteristics:
+
+1. A prefix that consists of the server identifier, which must be unique
+   among all servers taking part in a clustering or inter-clustering.
+
+2. A value that consists of the locally-generated routing key information.
+
+The implementation requires these functions:
+
+1. The ability to specify the server identifier ('name') either in the
+   configuration or when starting the process (via the command line).
+
+2. The ability for a server to identify itself to all its peers.
+
+3. The ability for peers to exchange sufficient information to allow
+   them to detect a duplicate name, and signal this.
+
+In our experience the difficulty is not in constructing global routing keys,
+but in detecting and reporting badly-configured clusters so that the users
+do not spend large amounts of time debugging them.
+
+State Replication
+=================
+
+State replication means the ability for servers to exchange information on
+the exchanges and queues they manage (and possibly other data too, such as
+access control lists).
+
+The design we propose is based on the subscribe-publish subscription model,
+in which the replication data is pushed from one server to the subscribing
+server using the normal AMQP semantics.
+
+The state replication implementation requires these functions:
+
+1. The ability to subscribe to new state changes, which is a subscription
+   to changes in the state of exchanges, queues, and other server entities.
+
+2. The ability to request full status updates, essentially when starting a
+   new subscription.
+
+The design must take into account the fact that state changes happen
+asynchronously and must be serialised with respect to the receiving server;
+i.e. it is not suitable to create two channels of communication, one for
+updates and one for full status.
+
+Configuration and Operation
+***************************
+
+We look at how the clustering and inter-clustering functions explained in this
+document are configured for real scenarios.
+
+Clustering
+==========
+
+Clustering covers failover.  The model for clustering consists of two
+servers (a primary server and a backup server), connected to each other by
+a reliable 'internal' network and to a set of client applications by an
+'external' network.  In many cases the internal and external networks may be
+the same.
+
+The configuration data for clustering needs to specify:
+
+ - The primary and backup server identities (their 'names').
+
+ - For each of the two servers, their external network addresses, used by
+   client applications.
+
+ - For each of these two servers, their internal network addresses, used for
+   the connections between the servers, if these addresses are not the same
+   as the external addresses.
+
+Operation of the cluster is as follows:
+
+ - When a server process is started, we need to tell it what configuration
+   data to load, and whether or not it takes part in the cluster.  A server
+   must know whether it is the primary or backup server.
+
+ - The cluster controller in a particular server can be interrogated via
+   the console, started and stopped.  This is one way of testing the
+   failover and recovery mechanisms without actually stopping and starting
+   processes.
+
+Interclustering
+===============
+
+Interclustering covers binding propagation and global message routing. The
+model for interclustering consists of two sets of servers, one acting as the
+'central' server or cluster, and one acting as the 'remote' server or cluster.
+
+The interclustering configuration needs to specify:
+
+ - Authentication information on the central server(s) so that the remote
+   server can connect.
+
+ - On the remote server(s), the name of each exchange to federate, and the
+   central server to federate it with.
+
+ - For each federation, whether or not to propagate bindings.
+
+ - For each federation, whether or not to forward messages.
+
+Worked Examples
+***************
+
+We work through two realistic scenarios:
+
+ 1. A subscribe-publish scenario in which a set of applications at a remote
+    location require market data coming from a central location.
+
+ 2. A request-response scenario in which a set of applications at a remote
+    location need to send requests to central services, and those services
+    need to send responses back to the remote applications.
+
+Subscribe-Publish Scenario
+==========================
+
+Configuration
+-------------
+
+1. The central servers are organised into a master/backup cluster.
+
+2. Remote clients are connected to a remote server.
+
+3. An Exchange Federation is configured on the remote server for the
+   pub-sub exchange (a topic or headers exchange) with binding
+   propagation enabled.
+
+Walk-Through
+------------
+
+1. A remote client makes a subscription request.  This registered at the
+   remote exchange.
+
+2. The EFA (exchange federation agent) relays this new binding to the
+   central master server.
+
+3. When the central publisher publishes messages that match this binding
+   the messages are relayed to the remote server.
+
+4. The remote server then passes these to the clients' subscription queues.
+
+Request-Response Scenario
+=========================
+
+Configuration
+-------------
+
+1. The central servers are organised into a master/backup cluster.
+
+2. Remote clients are connected to a remote server.
+
+3. An Exchange Federation is configured on the remote server for the
+   direct exchange with message forwarding and binding propagation enabled.
+
+Walk-Through
+------------
+
+1. A remote client creates a temporary queue, which is registered at the
+   remote exchange as a new binding.
+
+2. The EFA (exchange federation agent) relays this new binding to the
+   central master server.
+
+3. The remote client publishes a message to the remote exchange, and the EFA
+   forwards this message to the central server.  The message has 'reply-to'
+   set to the globally-unique name of temporary queue.
+
+4. The central server forwards the message to the service application which
+   processes it and sends a reponse using the reply-to value as routing key.
+
+5. The response arrives at the remote server, which passes it to the original
+   requesting client.
 
