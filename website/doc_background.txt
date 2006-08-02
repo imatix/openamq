@@ -2,9 +2,9 @@ gdl
     title     = AMQ Background
     subtitle  = Background to the AMQ Project
     product   = AMQ
-    author    = Pieter Hintjens, John O'Hara
+    author    = Pieter Hintjens
     date      = 2006/02/07
-    copyright = Copyright (c) 2004-2006 JPMorganChase and iMatix Corporation
+    copyright = Copyright (c) 2004-2006 iMatix Corporation
     version   = 1.0a1
 end gdl
 
@@ -19,8 +19,8 @@ This document is a design white paper.
 Copyright and License
 =====================
 
-Copyright (c) 2004-2006 JPMorganChase.
 Copyright (c) 2004-2006 iMatix Corporation.
+Parts copyright (c) 2004-2006 JP Morgan Chase & Co.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -35,11 +35,11 @@ General Public License for more details.
 Authors
 =======
 
-This document was written by Pieter Hintjens in 2005-06, based on original
-texts and designs by John O'Hara, and formed the basis for the AMQ Protocol
-Specifications.  Many other people contributed ideas, suggestions and
-comments that were included in part or whole in this document and the AMQ
-architectures.
+This document was written by Pieter Hintjens in 2005-06, based on
+original texts and designs by John O'Hara of JP Morgan Chase & Co., and
+formed the basis for the AMQ Protocol Specifications. Many other people
+contributed ideas, suggestions and comments that were included in part
+or whole in this document and the AMQ architectures.
 
 Abstract
 ========

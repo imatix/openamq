@@ -5,8 +5,24 @@
     >
 <content type = "gurudoc">
 
-OpenAMQ Documentation
+Technical Whitepapers
 *********************
+
+ - AMQ Background - [/doc_background.txt_flat.html:flat HTML] | [/doc_background.html:full HTML] | [/doc_background.pdf:PDF (29 pages)]
+
+Explains the rationale behind the development of AMQ as an architecture
+and AMQP as a new industry standard protocol.  This document is designed
+as useful background material for people wishing to understand the AMQP
+design.
+
+ - OpenAMQ Matching - [/doc_matching.txt_flat.html:flat HTML] | [/doc_matching.html:full HTML] | [/doc_matching.pdf:PDF (8 pages)]
+
+Describes a matching algorithm that provides all the functionality needed
+for topic matching and most of the functionality needed for content-based
+routing.
+
+Annex Specifications
+********************
 
  - The WireAPI Specifications - [/doc_wireapi.txt_flat.html:flat HTML] | [/doc_wireapi.html:full HTML] | [/doc_wireapi.pdf:PDF (17 pages)]
 
@@ -21,33 +37,11 @@ Defines a standard for remote administration of OpenAMQ servers; the
 standard consists of an XML language that defines objects and methods,
 and a transport mechanism that is itself built on top of AMQP.
 
-Technical Whitepapers
-*********************
-
- - AMQ Background - [/doc_background.txt_flat.html:flat HTML] | [/doc_background.html:full HTML] | [/doc_background.pdf:PDF (29 pages)]
-
-Explains the rationale behind the development of AMQ as an architecture
-and AMQP as a new industry standard protocol.  This document is designed
-as useful background material for people wishing to understand the AMQP
-design.
-
- - OpenAMQ Concepts and Vision - [/doc_concepts.txt_flat.html:flat HTML] | [/doc_concepts.html:full HTML] | [/doc_concepts.pdf:PDF (27 pages)]
-
-A general introduction to the OpenAMQ project, intended for a technical
-readership. It explains the basic AMQ concepts, and goes into medium
-detail on all significant aspects of the architecture and technology.
-
- - OpenAMQ Matching - [/doc_matching.txt_flat.html:flat HTML] | [/doc_matching.html:full HTML] | [/doc_matching.pdf:PDF (8 pages)]
-
-Describes a matching algorithm that provides all the functionality needed
-for topic matching and most of the functionality needed for content-based
-routing.
-
 Documentation FAQ
 *****************
 
  - !Do I need this documentation to use OpenAMQ?! Answer: no, everything
-   you need is explained on this site.  The documentation here provided
+   you need is explained on the site's web pages.  These documents provide
    more detail for people who need it.
 
 </content>

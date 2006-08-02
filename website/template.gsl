@@ -10,7 +10,6 @@
   <link rel="stylesheet" href="default.css" type="text/css"/>
   <link rel="stylesheet" href="custom.css" type="text/css"/>
   <link rel="stylesheet" type="text/css" href="niftyCorners.css" />
-  <link rel="stylesheet" type="text/css" href="niftyPrint.css" media="print" />
   <script type="text/javascript" src="niftycube.js"></script>
   <script type="text/javascript" src="layout.js"></script>
 </head>
