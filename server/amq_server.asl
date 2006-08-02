@@ -206,11 +206,10 @@
 
             if (queue) {
                 //  Make default binding, if wanted
-                if (vhost->default_exchange) {
+                if (vhost->default_exchange)
                     amq_exchange_bind_queue (
                         vhost->default_exchange, NULL, queue, queue->name, NULL);
-                    amq_queue_set_last_binding (queue, vhost->default_exchange->type, queue->name);
-                }
+
                 //  Add to connection's exclusive queue list
                 if (method->exclusive)
                     amq_server_connection_own_queue (connection, queue);
@@ -299,7 +298,6 @@
                 exchange, channel, queue, method->routing_key, method->arguments);
             if (!method->nowait)
                 amq_server_agent_queue_bind_ok (connection->thread, channel->number);
-            amq_queue_set_last_binding (queue, exchange->type, method->routing_key);
 
             //  Tell cluster about new queue binding
             if (amq_cluster->enabled
