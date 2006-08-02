@@ -8,6 +8,102 @@ gdl
     version   = 2.0
 end gdl
 
+- explanation of HAPlets
+- diagram describing forward functionality
+- diagram describing pull functionality
+- bridging scenarios using forward/pull
+- comparisons of push vs. pull
+- default forward routing
+
+hap:
+    - operator can force state of servers
+    - operator can shut-down primary normally
+    - document client semantics clearly
+        - how do clients connect?
+    - split-brain scenario, how can it happen
+    - allow multiple active/passive routes
+
+state replication
+    - synchronous/async?
+
+Description of Context
+======================
+
+Johannesburg and London are linked via a slow satellite connection (we
+assume 128Kb or similar). Users in Johannesburg use two main GRM functions:
+
+ 1. They subscribe to certain types of market data (pub-sub).
+
+ 2. They use London-based services (request-response).
+
+The current software uses an external bridge that copies data from London
+to South Africa, but this does not support pub-sub, and also requires
+extensive manual configuration to specify the list of available services
+in London.
+
+Currently OpenAMQ/1.0c runs in production in London.  The proposed changes
+would be implemented into OpenAMQ/1.0d (the version currently in testing).
+
+Goals
+=====
+
+These are the main goals of the proposed changes:
+
+ - Replace the manual bridging with fully-automatic bridging.
+ 
+ - Backwards compatibility with 1.0c server, requiring no changes to
+   London production implementation.
+
+ - Supports both pub-sub and request-response models used in GRM.
+
+ - Optimal use of satellite WAN link between Johannesburg and London.
+
+ - Easy to understand and manage for operators.
+
+Automatic Bridging
+------------------
+
+We require that the bridging works without the need to configure the list
+of services or subscriptions that the application uses.
+
+Backwards Compatibility
+-----------------------
+
+We require that the bridging can work with the existing 1.0c production
+deployment, allowing us to move 1.0d into production in South Africa
+and use this to validate that version for fuller deployment.
+
+Supporting Pub-Sub
+------------------
+
+We require that the bridge support the GRM pub-sub model, in which clients
+can subscribe to many different classes of data, and then receive these
+messages in private message queues.  In our case the clients would be in
+South Africa and the publishers would be market data sources in London.
+
+Supporting Request-Response
+---------------------------
+
+We require that the bridge support the GRM request-response model, in which
+clients send service requests to server applications, and then receive their
+replies into private message queues.  In our case the clients would be in
+South Africa, the services would either be in London, or in some cases in
+South Africa, and the private response queues would be in South Africa.
+
+Optimised WAN Communications
+----------------------------
+
+We require that when multiple consumers make the same subscription request,
+the resulting traffic consists of single instances of each message, rather
+than multiple instances.  This requires that duplicate subscriptions be
+identified and normalised beforehand.
+
+Ease of Configuration and Use
+-----------------------------
+
+We require that the design be easy to understand, to configure, and to use.
+This means making it visible and configurable via the operator console.
+
 Cover
 *****
 
@@ -320,10 +416,8 @@ The algorithm is:
 
 2. At startup the primary server becomes active, the backup does not.
 
-3. If the backup server sees the primary server going away and if it has at
-   least one connected client, it becomes active and remains active until
-   it is stopped. If the primary server goes away, and the backup server
-   has no clients, it cedes its position as active.
+3. If the backup server sees the primary server going away, it becomes
+   active and remains active until it is stopped.
 
 4. If the primary server sees the backup server going away, and it is not
    active, it becomes active. If the primary server sees the backup coming
