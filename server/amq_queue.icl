@@ -57,6 +57,10 @@ class.  This is a lock-free asynchronous class.
           <rule name = "show on summary" />
           <get>icl_shortstr_cpy (field_value, self->last_routing_key);</get>
         </field>
+        <field name = "binding_args" label = "Binding arguments">
+          <rule name = "show on summary" />
+          <get>icl_shortstr_cpy (field_value, self->last_binding_args);</get>
+        </field>
         <field name = "auto_delete" label = "Auto-deleted?" type = "bool">
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", self->auto_delete);</get>
@@ -145,8 +149,8 @@ class.  This is a lock-free asynchronous class.
         last_exchange_type;             //  Last exchange type bound to
     icl_shortstr_t
         last_routing_key;               //  Last routing key
-    icl_longstr_t
-        *last_binding_args;             //  Last binding arguments
+    icl_shortstr_t
+        last_binding_args;              //  Last binding arguments
     qbyte
         limits,                         //  Number of limits
         limit_min,                      //  Lowest limit
@@ -187,7 +191,6 @@ class.  This is a lock-free asynchronous class.
     self->auto_delete = auto_delete;
     self->queue_basic = amq_queue_basic_new (self);
     icl_shortstr_cpy (self->name, name);
-    self->last_binding_args = icl_longstr_new ("", 1);
     amq_queue_by_vhost_queue (self->vhost->queue_list, self);
     if (amq_server_config_debug_queue (amq_server_config))
         smt_log_print (amq_broker->debug_log,
@@ -198,7 +201,6 @@ class.  This is a lock-free asynchronous class.
 
 <method name = "destroy">
     <action>
-    icl_longstr_destroy (&self->last_binding_args);
     amq_server_connection_unlink (&self->connection);
     if (amq_server_config_debug_queue (amq_server_config))
         smt_log_print (amq_broker->debug_log, "Q: destroy  queue=%s", self->name);
@@ -580,7 +582,7 @@ class.  This is a lock-free asynchronous class.
     // Convert binding arguments to human readable string
     field_list = asl_field_list_new (arguments);
     assert (field_list);
-    asl_field_list_dump (field_list, self->last_binding_args);
+    asl_field_list_dump (field_list, &self->last_binding_args);
     asl_field_list_destroy (&field_list);
     </action>
 </method>
