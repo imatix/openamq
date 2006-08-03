@@ -145,6 +145,8 @@ class.  This is a lock-free asynchronous class.
         last_exchange_type;             //  Last exchange type bound to
     icl_shortstr_t
         last_routing_key;               //  Last routing key
+    icl_longstr_t
+        *last_binding_args;             //  Last binding arguments
     qbyte
         limits,                         //  Number of limits
         limit_min,                      //  Lowest limit
@@ -185,6 +187,7 @@ class.  This is a lock-free asynchronous class.
     self->auto_delete = auto_delete;
     self->queue_basic = amq_queue_basic_new (self);
     icl_shortstr_cpy (self->name, name);
+    self->last_binding_args = icl_longstr_new ("", 1);
     amq_queue_by_vhost_queue (self->vhost->queue_list, self);
     if (amq_server_config_debug_queue (amq_server_config))
         smt_log_print (amq_broker->debug_log,
@@ -195,6 +198,7 @@ class.  This is a lock-free asynchronous class.
 
 <method name = "destroy">
     <action>
+    icl_longstr_destroy (&self->last_binding_args);
     amq_server_connection_unlink (&self->connection);
     if (amq_server_config_debug_queue (amq_server_config))
         smt_log_print (amq_broker->debug_log, "Q: destroy  queue=%s", self->name);
@@ -556,16 +560,28 @@ class.  This is a lock-free asynchronous class.
     </doc>
     <argument name = "exchange type" type = "int"></argument>
     <argument name = "routing key" type = "char *"></argument>
+    <argument name = "arguments" type = "icl_longstr_t*"></argument>
     //
     <possess>
     routing_key = icl_mem_strdup (routing_key);
+    arguments = icl_longstr_dup (arguments);
     </possess>
     <release>
+    icl_longstr_destroy (&arguments);
     icl_mem_free (routing_key);
     </release>
     <action>
+    asl_field_list_t
+        *field_list;
+
     self->last_exchange_type = exchange_type;
     icl_shortstr_cpy (self->last_routing_key, routing_key);
+
+    // Convert binding arguments to human readable string
+    field_list = asl_field_list_new (arguments);
+    assert (field_list);
+    asl_field_list_dump (field_list, self->last_binding_args);
+    asl_field_list_destroy (&field_list);
     </action>
 </method>
 
