@@ -98,11 +98,14 @@ merge these two classes into one.
         <class name = "connection_queue" label = "Connection queues" repeat = "1">
           <get>
             consumer = amq_consumer_by_channel_first (self->channel->consumer_list);
-            while (consumer) {
+            if (consumer)
                 icl_shortstr_fmt (field_value, "%d", consumer->mgt_connection_queue->object_id);
-                consumer = amq_consumer_by_channel_next (&consumer);
-            }
           </get>
+          <next>
+            consumer = amq_consumer_by_channel_next (&consumer);
+            if (consumer)
+                icl_shortstr_fmt (field_value, "%d", consumer->mgt_connection_queue->object_id);
+          </next>
         </class>
 
         <method name = "kill" label = "Kill connection">

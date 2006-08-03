@@ -291,6 +291,7 @@ for each type of exchange. This is a lock-free asynchronous class.
             "X: bind     %s: queue=%s", self->name, queue->name);
 
     s_bind_object (self, channel, queue, NULL, routing_key, arguments);
+    amq_queue_set_last_binding (queue, self->type, routing_key, arguments);
     </action>
 </method>
 

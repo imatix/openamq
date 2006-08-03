@@ -29,8 +29,6 @@ class.
         *session;                       //  AMQP session
     int
         id;                             //  Object ID
-    Bool
-        loaded;                         //  Is object data loaded?
     icl_shortstr_t
         notice;                         //  Message from server
 .for field
@@ -70,7 +68,6 @@ class.
     <argument name = "id" type = "int">Object ID</argument>
     self->session = session;
     self->id = id;
-    self->loaded = FALSE;
 .for class where repeat ?= 1
     self->$(name)_list = ipr_looseref_list_new ();
 .endfor
@@ -148,7 +145,6 @@ class.
             }
             xml_field = ipr_xml_next_sibling (&xml_field);
         }
-        self->loaded = TRUE;
         ipr_xml_destroy (&xml_root);
     }
     else
@@ -160,12 +156,13 @@ class.
     Prints the $(name)'s contents to the console.
     </doc>
     <argument name = "xml_data" type = "FILE *">XML data capture</argument>
-    //
+    <local>
     char
         command [] = "";
-
-    if (!self->loaded)
-        self_load (self);
+    </local>
+    //
+    if (self_load (self))
+        return (0);
     s_list_children (self, command, xml_data);
 </method>
 
@@ -177,42 +174,26 @@ class.
     <local>
     icl_shortstr_t
         field_value;
-.for field where count (rule, name = "ip address")
+.for field
 .   if type = "time"
     apr_time_t
         $(name)_time;
 .   endif
-    char
-        *$(name)_port_pos;
+.   if count (rule, name = "ip address")
     icl_shortstr_t
-        $(name)_host,
-        $(name)_ip,
         $(name)_fmt;
+.   endif
 .endfor
     </local>
     //
-    if (!self->loaded)
-        self_load (self);
+    if (self_load (self))
+        return (0);
 
     icl_console_out (" $(name) = \\\\"%s\\\\" ", self->name);
 .for field where name <> "name"
 .   if type = "string"
 .       if count (rule, name = "ip address")
-    $(name)_port_pos = NULL;
-    if (($(name)_port_pos = strchr (self->$(name), ':'))) {
-        icl_shortstr_ncpy ($(name)_ip, self->$(name), 
-                           $(name)_port_pos - self->$(name));
-    } else
-        icl_shortstr_cpy ($(name)_ip, self->$(name));
-
-    if (g_opt_addr)
-        icl_shortstr_cpy ($(name)_host, $(name)_ip);
-    else
-        ipr_net_lookup_host ($(name)_ip, $(name)_host);
-    if (strneq ($(name)_ip, $(name)_host))
-        icl_shortstr_fmt ($(name)_fmt, "%s (%s)", $(name)_host, self->$(name));
-    else
-        icl_shortstr_fmt ($(name)_fmt, self->$(name));
+    ipr_net_fmt_display ($(name)_fmt, self->$(name), g_opt_addr);
     s_print_property ("$(label:)", $(name)_fmt, \
 .       else
     s_print_property ("$(label:)", *self->$(name)? self->$(name): "(empty)", \
@@ -281,11 +262,7 @@ NULL, NULL);
         $(name)_str;
 .   endif
 .   if count (rule, name = "ip address")
-    char
-        *$(name)_port_pos;
     icl_shortstr_t
-        $(name)_host,
-        $(name)_ip,
         $(name)_fmt;
 .   endif
 .endfor
@@ -297,21 +274,7 @@ NULL, NULL);
     ipr_time_iso8601 ($(name)_time, ipr_date_format_minute, 0, ipr_time_zone (), $(name)_str);
 .   endif
 .   if count (rule, name = "ip address")
-    $(name)_port_pos = NULL;
-    if (($(name)_port_pos = strchr (self->$(name), ':'))) {
-        icl_shortstr_ncpy ($(name)_ip, self->$(name),
-                           $(name)_port_pos - self->$(name));
-    } else
-        icl_shortstr_cpy ($(name)_ip, self->$(name));
-
-    if (g_opt_addr)
-        icl_shortstr_cpy ($(name)_host, $(name)_ip);
-    else
-        ipr_net_lookup_host ($(name)_ip, $(name)_host);
-    if (strneq ($(name)_ip, $(name)_host))
-        icl_shortstr_fmt ($(name)_fmt, "%s (%s)", $(name)_host, self->$(name));
-    else
-        icl_shortstr_fmt ($(name)_fmt, self->$(name));
+    ipr_net_fmt_display ($(name)_fmt, self->$(name), g_opt_addr);
 .   endif
 .endfor
     icl_console_out (" %d) $(name) = \\\\"%s\\\\"\
@@ -418,7 +381,10 @@ NULL, NULL);
 #   define CD_TOP   2                   //  Child cmdline asks to move to top
 #   define CD_EXIT  3                   //  Child cmdline asks to exit
 
-    self_load (self);
+    if (self_load (self))
+        return (CD_UP);
+    self_print_properties (self, xml_data);
+    
     while (TRUE) {
         amq_client_session_wait (self->session, 1);
         if (!self->session->alive) {
@@ -452,17 +418,26 @@ NULL, NULL);
             ;   //  Do nothing
         else
         if (streq (command, ".")) {
-            self_load (self);
+            if (self_load (self))
+                return (CD_UP);
             self_print_properties (self, xml_data);
         }
         else
-        if (ipr_str_prefixed (command, "ls"))
+        if (ipr_str_prefixed (command, "ls")) {
+            if (self_load (self))
+                return (CD_UP);
             s_list_children (self, command + 2, xml_data);
+        }
         else
-        if (ipr_str_prefixed (command, "top"))
+        if (ipr_str_prefixed (command, "top")) {
+            if (self_load (self))
+                return (CD_UP);
             s_top_children (self, command + 3, xml_data);
+        }
         else
         if (ipr_str_prefixed (command, "cd ")) {
+            if (self_load (self))
+                return (CD_UP);
             rc = s_change_level (self, command + 3, path, depth, tokens, xml_data);
             if (rc == CD_UP && depth) {
                 rc = 0;
@@ -474,6 +449,8 @@ NULL, NULL);
         }
         else
         if (atoi (command)) {
+            if (self_load (self))
+                return (CD_UP);
             rc = s_change_level (self, command, path, depth, tokens, xml_data);
             if (rc == CD_UP && depth) {
                 rc = 0;
@@ -632,7 +609,7 @@ s_request_response (
         xml_command = ipr_xml_first_child (xml_cml);
         assert (xml_command);
         assert (ipr_xml_name (xml_command));
-        
+
         reply_class  = ipr_xml_attr_get (xml_command, "class",  "");
         reply_status = ipr_xml_attr_get (xml_command, "status", "");
         reply_object = atol (ipr_xml_attr_get (xml_command, "object", ""));
@@ -860,21 +837,49 @@ s_list_children ($\(selftype) *self, char *command, FILE *xml_data)
     }
 .for class
     if (!childname || ipr_str_prefixed ("$(name)", childname)) {
-.   if repeat ?= 1
-        $(name) = self_$(name)_first (self);
-        while ($(name)) {
-            amq_mgt_$(name)_load ($(name));
-            if (!pattern || ipr_str_matches ($(name)->name, pattern))
+.   for root->root.class as child where name = class.name
+.       for field where count (rule, name = "ip address")
+        icl_shortstr_t
+            $(name)_fmt;
+.       endfor
+.       if repeat ?= 1
+        $(class.name) = self_$(class.name)_first (self);
+        while ($(class.name)) {
+            amq_mgt_$(name)_load ($(class.name));
+.           for field where count (rule, name = "ip address")
+            ipr_net_fmt_display ($(name)_fmt, $(class.name)->$(field.name), g_opt_addr);
+.           endfor
+            if (!pattern
+.           for field where (type?"string") = "string"
+.               if count (rule, name = "ip address")
+            || ipr_str_matches ($(name)_fmt, pattern)
+.               else
+            || ipr_str_matches ($(class.name)->$(field.name), pattern)
+.               endif
+.           endfor
+            )
                 amq_mgt_$(name)_print_summary ($(name), xml_data);
-            $(name) = self_$(name)_next (self);
+            $(class.name) = self_$(class.name)_next (self);
         }
-.   else
-        if (self->$(name)) {
-            amq_mgt_$(name)_load (self->$(name));
-            if (!pattern || ipr_str_matches (self->$(name)->name, pattern))
-                amq_mgt_$(name)_print_summary (self->$(name), xml_data);
+.       else
+        if (self->$(class.name)) {
+            amq_mgt_$(class.name)_load (self->$(class.name));
+.           for field where count (rule, name = "ip address")
+            ipr_net_fmt_display ($(name)_fmt, self->$(class.name)->$(field.name), g_opt_addr);
+.           endfor
+            if (!pattern
+.           for field where (type?"string") = "string"
+.               if count (rule, name = "ip address")
+            || ipr_str_matches ($(name)_fmt, pattern)
+.               else
+            || ipr_str_matches (self->$(class.name)->$(field.name), pattern)
+.               endif
+.           endfor
+            )
+                amq_mgt_$(class.name)_print_summary (self->$(class.name), xml_data);
         }
-.   endif
+.       endif
+.   endfor
     }
 .endfor
     ipr_token_list_destroy (&tokens);
@@ -990,7 +995,8 @@ s_execute_$(name) ($\(selftype) *self, char *command)
         if (xml_root) {
             icl_console_out (" OK");
             ipr_xml_destroy (&xml_root);
-            self_load (self);
+            if (self_load (self))
+                return;
         }
         else
             icl_console_out (" ERROR");

@@ -40,6 +40,10 @@ consumer object.
           <rule name = "show on summary" />
           <get>icl_shortstr_cpy (field_value, self->queue->last_routing_key);</get>
         </field>
+        <field name = "binding_args" label = "Binding arguments">
+          <rule name = "show on summary" />
+          <get>icl_shortstr_cpy (field_value, self->queue->last_binding_args);</get>
+        </field>
         <field name = "auto_delete" label = "Auto-deleted?" type = "bool">
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", self->queue->auto_delete);</get>

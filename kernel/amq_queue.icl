@@ -57,6 +57,10 @@ class.  This is a lock-free asynchronous class.
           <rule name = "show on summary" />
           <get>icl_shortstr_cpy (field_value, self->last_routing_key);</get>
         </field>
+        <field name = "binding_args" label = "Binding arguments">
+          <rule name = "show on summary" />
+          <get>icl_shortstr_cpy (field_value, self->last_binding_args);</get>
+        </field>
         <field name = "auto_delete" label = "Auto-deleted?" type = "bool">
           <rule name = "show on summary" />
           <get>icl_shortstr_fmt (field_value, "%d", self->auto_delete);</get>
@@ -92,11 +96,14 @@ class.  This is a lock-free asynchronous class.
           </local>
           <get>
             consumer = amq_consumer_by_queue_first (self->queue_basic->active_consumers);
-            while (consumer) {
+            if (consumer)
                 icl_shortstr_fmt (field_value, "%d", consumer->mgt_queue_connection->object_id);
-                consumer = amq_consumer_by_queue_next (&consumer);
-            }
           </get>
+          <next>
+            consumer = amq_consumer_by_queue_next (&consumer);
+            if (consumer)
+                icl_shortstr_fmt (field_value, "%d", consumer->mgt_queue_connection->object_id);
+          </next>
         </class>
 
         <method name = "purge" label = "Purge all queue messages">
@@ -142,6 +149,8 @@ class.  This is a lock-free asynchronous class.
         last_exchange_type;             //  Last exchange type bound to
     icl_shortstr_t
         last_routing_key;               //  Last routing key
+    icl_shortstr_t
+        last_binding_args;              //  Last binding arguments
     qbyte
         limits,                         //  Number of limits
         limit_min,                      //  Lowest limit
@@ -541,16 +550,28 @@ class.  This is a lock-free asynchronous class.
     </doc>
     <argument name = "exchange type" type = "int"></argument>
     <argument name = "routing key" type = "char *"></argument>
+    <argument name = "arguments" type = "icl_longstr_t*"></argument>
     //
     <possess>
     routing_key = icl_mem_strdup (routing_key);
+    arguments = icl_longstr_dup (arguments);
     </possess>
     <release>
+    icl_longstr_destroy (&arguments);
     icl_mem_free (routing_key);
     </release>
     <action>
+    asl_field_list_t
+        *field_list;
+
     self->last_exchange_type = exchange_type;
     icl_shortstr_cpy (self->last_routing_key, routing_key);
+
+    // Convert binding arguments to human readable string
+    field_list = asl_field_list_new (arguments);
+    assert (field_list);
+    asl_field_list_dump (field_list, &self->last_binding_args);
+    asl_field_list_destroy (&field_list);
     </action>
 </method>
 
