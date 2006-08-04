@@ -1,108 +1,12 @@
 gdl
-    title     = OpenAMQ Clustering and Interclustering
-    subtitle  = Reliability and Distribution
+    title     = OpenAMQ Clustering
+    subtitle  = High-Availabilty and Partitioning
     product   = OpenAMQ
     author    = iMatix Corporation <openamq@imatix.com>
-    date      = 2006/07/28
+    date      = 2006/08/03
     copyright = Copyright (c) 2006 iMatix Corporation
-    version   = 2.0
+    version   = 2.1
 end gdl
-
-- explanation of HAPlets
-- diagram describing forward functionality
-- diagram describing pull functionality
-- bridging scenarios using forward/pull
-- comparisons of push vs. pull
-- default forward routing
-
-hap:
-    - operator can force state of servers
-    - operator can shut-down primary normally
-    - document client semantics clearly
-        - how do clients connect?
-    - split-brain scenario, how can it happen
-    - allow multiple active/passive routes
-
-state replication
-    - synchronous/async?
-
-Description of Context
-======================
-
-Johannesburg and London are linked via a slow satellite connection (we
-assume 128Kb or similar). Users in Johannesburg use two main GRM functions:
-
- 1. They subscribe to certain types of market data (pub-sub).
-
- 2. They use London-based services (request-response).
-
-The current software uses an external bridge that copies data from London
-to South Africa, but this does not support pub-sub, and also requires
-extensive manual configuration to specify the list of available services
-in London.
-
-Currently OpenAMQ/1.0c runs in production in London.  The proposed changes
-would be implemented into OpenAMQ/1.0d (the version currently in testing).
-
-Goals
-=====
-
-These are the main goals of the proposed changes:
-
- - Replace the manual bridging with fully-automatic bridging.
- 
- - Backwards compatibility with 1.0c server, requiring no changes to
-   London production implementation.
-
- - Supports both pub-sub and request-response models used in GRM.
-
- - Optimal use of satellite WAN link between Johannesburg and London.
-
- - Easy to understand and manage for operators.
-
-Automatic Bridging
-------------------
-
-We require that the bridging works without the need to configure the list
-of services or subscriptions that the application uses.
-
-Backwards Compatibility
------------------------
-
-We require that the bridging can work with the existing 1.0c production
-deployment, allowing us to move 1.0d into production in South Africa
-and use this to validate that version for fuller deployment.
-
-Supporting Pub-Sub
-------------------
-
-We require that the bridge support the GRM pub-sub model, in which clients
-can subscribe to many different classes of data, and then receive these
-messages in private message queues.  In our case the clients would be in
-South Africa and the publishers would be market data sources in London.
-
-Supporting Request-Response
----------------------------
-
-We require that the bridge support the GRM request-response model, in which
-clients send service requests to server applications, and then receive their
-replies into private message queues.  In our case the clients would be in
-South Africa, the services would either be in London, or in some cases in
-South Africa, and the private response queues would be in South Africa.
-
-Optimised WAN Communications
-----------------------------
-
-We require that when multiple consumers make the same subscription request,
-the resulting traffic consists of single instances of each message, rather
-than multiple instances.  This requires that duplicate subscriptions be
-identified and normalised beforehand.
-
-Ease of Configuration and Use
------------------------------
-
-We require that the design be easy to understand, to configure, and to use.
-This means making it visible and configurable via the operator console.
 
 Cover
 *****
@@ -133,49 +37,285 @@ Corporation.
 Abstract
 ========
 
-We analyse the requirements for OpenAMQ clustering and interclustering and
-we design a generic clustering and interclustering system based on simple
-and easy to manage elements.
+We analyse the requirements for OpenAMQ local-area and wide-area clustering
+and we design a generic clustering model based on simple and easy to manage
+elements.  The clustering model provides two main functionalities: the use
+of high-availability pairs of servers and the ability to partition groups of
+client applications, for reasons of scalability and geographic distribution.
 
-Overview
-********
+Introduction
+************
 
-Clustering means many things.  In middleware a cluster generally means a set
-of servers that work closely together in order to create a more reliable and
-better-performing whole.  Interclustering is when we connect servers or
-clusters that are geographically seperated, so that they work together in
-useful ways.  We often call this a "bridge".
+Scope and Requirements
+======================
 
-OpenAMQ is fast enough that clustering is not necessary for performance, and
-therefore performance improvement is not a design goal of clustering (though
-it was in early stages of OpenAMQ development).
+This document describes the requirements, architecture, and design of the
+OpenAMQ clustering implementation.  The OpenAMQ clustering implementation
+covers two main requirements:
 
-To a large extent clustering and interclustering depend the same elementary
-concepts, and so we tackle two issues as one generic design problem that has
-some specific elements.
+1. The use of high-availability pairs to create automatic failover systems
+   in which applications can switch to a backup server if a primary server
+   crashes.
 
-We can define our clustering and interclustering requirements as follows:
+2. The interconnection of servers or high-availability pairs into larger
+   architectures that can support distributed request-response and pub-sub
+   scenarios.
 
- 1. The general ability to connect a set of servers in some configuration that
-    provides the support for clustering functionality.  We call this "Topology
-    Management".
+Out-of-Scope
+============
 
- 2. The ability to exchange status information across an active topology, so
-    that servers know about each other.  We call this "Status Management".
+We do not attempt to support these functions:
 
- 3. The ability to organise a 'hot backup' server for a set of applications
-    so that disasterous system failures do not cause service interruption.
-    We call this "Failover Support".
+1. The use of 'active backups'.  In a HA pair, the backup server is inactive
+   and does no useful work until the primary server goes offline.
 
- 4. The ability to organise the flow of messages from one server to another
-    according to subscription requests made at the receiving side.  We call
-    this "Binding Propagation".
+2. The load-balancing of applications between servers.  While applications
+   can be spread-out between servers (or HA pairs), this happens manually,
+   through the technique of "partitioning", i.e. the grouping of applications
+   into well-defined blocks, each served by a specific server or HA pair.
 
- 5. The ability to address and forward messages to applications which may
-    be on any part of the topology.  We call this "Global Message Routing".
+3. The handling of persistent messages or transactions in any specific way.
+   While our clustering design is compatible with persistent messaging and
+   transactions, these introduce specific concerns (such as the processing
+   of messages during failover) which we do not address at present.
 
- 6. The ability to replicate the state of objects such as exchanges and shared
-    queues between servers, which we call "State Replication".
+Technical Terminology
+=====================
+
+These terms have significance within the context of this document:
+
+Partition:
+    A group of AMQP client applications that are served by a single OpenAMQ
+    server, or a pair of servers that collaborate as a "high-availability
+    pair".
+Partitioned Network:
+    A network of OpenAMQ servers or HA pairs (which we call a "node").  Each
+    node serves a well-defined set of client applications, where applications
+    are tied to a particular node.  (A single application may work with
+    multiple nodes, but this must be done explicitly, there is no concept of
+    load-balancing between nodes.)
+Node:
+    A server or HA pair in a partitioned OpenAMQ network.  A node is either
+    one server or two servers that collaborate as a high-availability pair
+    in a primary-backup relationship designed to provide fast failover in case
+    of failure of the primary server.
+Cluster:
+    A general term that covers any network architecture involving more
+    than one OpenAMQ server in a collaborative relationship.
+
+Scenarios
+=========
+
+These are typical scenarios that we wish to support in OpenAMQ clustering:
+
+ - A set of applications working with a single message broker need a backup
+   broker than can take over in case of problems with the primary broker.
+   The failover needs to happen rapidly, and automatically, so that ongoing
+   business is not interrupted.
+
+ - A regional location is connected to a central location by a slow satellite
+   link.  The regional applications need to access market data and business
+   services that are provided centrally.  Traffic across the satellite link
+   must be optimised so that messages to multiple subscribes are sent only
+   once.
+
+ - A customer requires a message broker installed at their location so that
+   local applications can interoperate; these applications also subscribe
+   to data feeds from a central server.
+
+Basic Functionality
+===================
+
+We can organise the clustering functionality to two layers:
+
+1. High-availability, in which two servers collaborate to ensure that a set
+   of applications are well-served.
+
+2. Partitioning of applications into multiple groups so that we can create
+   larger networks of servers.
+
+We look at each of these aspects in more detail.
+
+High-Availability
+-----------------
+
+High-availability covers the following scenario:
+
+ - A set of applications are working with a server on a computer system.
+
+ - Either the software or the hardware crashes.
+
+ - The applications detect the failure and reconnect to a backup server
+   that is ready and running.
+
+When we look at implementing high-availability, we must consider a number
+of aspects:
+
+1. How many servers do we need to create a satisfactory level of redundancy?
+
+2. What happens to messages published during the failover process?
+
+3. What level of support is required from client applications (that is, the
+   AMQP client API)?
+
+4. Does the high-availability design place restrictions on the network
+   architecture?
+
+5. How do we avoid the "split-brain scenario" in which both servers of a HA
+   pair believe they are the active server?
+
+Each of these questions has good answers, which we will look at later.  In
+gross terms, we will aim to keep the HA design as simple as possible, since
+any additional complexity creates its own unreliability.
+
+Application Partitioning
+------------------------
+
+Partitioning means "divide and conquer", in a simple and direct sense.  When
+we have a large number of applications, it can be more useful to divide these
+across a set of servers, rather than concentrate them at a single point.
+
+The alternative to partitioning is "load-balancing", in which a group of
+applications is shared across multiple servers.
+
+Whether or not we need load-balancing is a very important question, because
+traditional clustering is about load-balancing as much as it is about high
+availability, and rather a lot less about partitioning.  (Few middleware
+products implement partitioning, which is the basis for grids, wide-area
+networks, and other interesting organisations).
+
+Traditionally, load-balancing is a performance option.  This makes sense in
+servers that have severe limitations - perhaps limited by the number of
+file handles (=sockets) that a single process can open, or simply by an
+inefficient protocol and implementation that does not allow scaling.
+
+In our experience, AMQP and OpenAMQ are fast enough that load-balancing is
+not a key requirement.  However, we can also divide typical messaging into
+two domains, request-response and publish-subscribe, and say that while we
+do not need to use performance boosting architectures for request-response
+processing, which is usually low on volume and high on reliability, we do
+potentially need performance-boosting architectures for publish-subscribe.
+
+On analysis, we discover that we can use partitioning as an effective and
+simple model for performance improvement, in a publish-subscribe scenario.
+This works by using a 'fanout' architecture (a tree or star model) in which
+messages are distributed from a central point to multiple servers, each
+serving a well-defined set of applications.
+
+Partitioning thus covers these needs:
+
+1. High-performance pub-sub architectures, for market-data and other very
+   high-volume scenarios.
+
+2. Geographic partitioning of applications, e.g. between central and
+   regional offices.
+
+General Architecture
+====================
+
+The Network "Node"
+------------------
+
+We construct a partitioned network out of nodes that are either standalone
+servers, or high-availability pairs.  From the perspective of the network,
+whether a node is a single server or a HA pair makes zero difference; this
+is a purely local decision based on the need for service continuity at that
+node.
+
+To simplify discussion, we use the term "node" to cover either of one
+OpenAMQ server, or a HA pair of OpenAMQ servers, collaborating to serve a
+single set of client applications.
+
+Partitioning Models
+-------------------
+
+These are a number of plausible network architectures, in which each node in
+the network is a HA pair or a single stand-alone server:
+
+1. A star network, with a single central node and many distributed nodes.
+   This would typically be used to send information from a central point to
+   regional networks, each serving a set of local applications and users.
+
+2. A tree network, with one top-level node, a small number of second-level
+   nodes, and more nodes connected to these, in a tree hierarchy.  This
+   would typically be used to create extremely-high volume data publishing
+   networks (capable of serving over a million messages per second).
+
+3. A loose network, with ad-hoc relationships between nodes organised at
+   regional, national, and global levels.  This would typically be used for
+   real-life global organisations with diverse information streams, each
+   involving a set of nodes.
+
+We do not favour any of these organisations, but partitioning provides the
+tools to build them all, and others that we have not yet considered.
+
+Message Pull and Push
+---------------------
+
+AMQP is easily compatible with organising the flow of messages between
+partitions.  The main semantics for message flow between two partitions are:
+
+1. The receiving partition can subscribe to a set of messages.
+
+2. The sending partition can forward a set of messages.
+
+These are typical "pull" and "push" models.  Within the context of AMQP we can
+define exactly what each of these mean.
+
+Subscription, in AMQP terms, means creating a private queue and binding this
+to one or more exchanges with specific binding conditions.  Messages published
+to those exchanges, which match the conditions, are copied into the private
+queue where they can be consumed.  This is how ordinary applications subscribe
+to messages; this is also how partitions pull messages from each other.
+
+We can in fact construct a full partitioned network using only pull mechanisms.
+However, this means that for each pair of connected partitions we have to
+configure subscriptions at each side.  The administrative cost for this can be
+significant.
+
+The push mechanism is a useful alternative because it lets us configure the
+connection between the partitions at one node only (both pull and push).  This
+means that adding a partition to an existing network can be done without any
+configuration changes to the existing nodes.
+
+To forward messages usefully we need some clear semantics.  From our analysis
+it makes sense to forward messages on a per-exchange basis under one of
+these (configurable) conditions:
+
+ - Forward all messages, but process local bindings additionally.
+
+ - Forward only messages that do not match any local bindings.
+
+There are other possibilities (such as forwarding all messages) but we do not
+have use cases for those.
+
+Architecture and Design
+***********************
+
+Layers of Operation
+===================
+
+We break the high-availability and partitioning architecture into a number of
+specific layers, each solving one problem:
+
+1. The general ability to connect pairs of servers together.  This is a core
+   requirement for both high-availability and partitioning.  We call this
+   "Server Peering".
+
+2. The ability for peers to exchange arbitrary non-application information.
+   This is a requirement for high-availability (so that peers can agree on
+   who is the active server).  We call this "Internal Messaging".
+
+3. A layer in each server that handles the high-availability functionality.
+   This is called the "High-availability Controller", or HAC.
+
+4. A layer in each server that pushes messages to or pulls messages from
+   another server, on behalf of its own client applications.  We call this the
+   "Message Transfer Agent", or MTA.
+
+5. The use of globally-unique names for reply queues, so that messages can be
+   routed successfully across a partitioned network.  We call this "Global
+   Routing".
 
 We explicitly will NOT look at:
 
@@ -184,322 +324,422 @@ We explicitly will NOT look at:
    the system administrator.
 
  - The ability to spread large numbers of clients across many servers, called
-   "load balancing".  In our current scenarios, the capacity of a single
-   exceeds the known requirements both in terms of number of connected users
-   and in total message transfer capacity.
+   "load balancing".  First, current OpenAMQ implementations are capable of
+   handling very large loads; secondly we can use partitioning to support more
+   clients if necessary.
 
  - The ability to use clustered servers in any other role, for example as part
    of a message persistence scheme.
 
-We look at each of our defined requirements in turn.
+ - The ability to replicate the state of objects such as exchanges and shared
+   queues between servers.
 
-Topology Management
-===================
+Server Peering
+==============
 
-Topology management is the definition of, and the managing of, the
-relationships between different servers.  We can define two types of
-relationship:
+The basic relationship between servers is called a "peering" and consists of
+an asymmetric relationship from one server to another.
 
-1. The intra-cluster relationships betwen servers within a single cluster.
+A peering goes in one direction, from a 'client' host onto a 'target' host.
+To create a symmetric relationship between two servers, we define one
+peering in each direction.
 
-2. The inter-cluster relationships between clusters and servers.
+Peerings are internal objects, not configured by administrators, nor visible
+to them, but created by other parts of the OpenAMQ server as needed.  Peerings
+have these properties:
 
-The main difference is that inter-clustering relationships are from one
-server onto the entire cluster, rather than onto individual servers.
+ - A peering will automatically detect network failures and target host
+   failures, and will suspend and reconnect as required.
 
-We do not need any form of automatic discovery of the network.  We assume
-that all relationships (of both types) are defined in the configuration of
-each server making the relationship.
+ - A peering acts as a remote client, with the only difference from the
+   perspective of the target host is that peerings may use their own
+   authentication data.
 
-We call a server-to-server or server-to-cluster relationship a "peering".
-A peering has these properties:
+ - A peering uses a single configured network route.  If two peers talk over
+   multiple network interfaces (for redundancy), this will imply multiple
+   peerings.
 
-1. Peerings are directed, made from one server to another using the normal
-   AMQP client-to-server mode of connection.
+A peering automatically creates a private queue on the target host and
+consumes messages off this queue.  Incoming messages are delivered to whatever
+server entity created the peering.
 
-2. If a bi-directional relationship is needed, each server must create
-   its own peering onto the other.
+Internal Messaging
+==================
 
-3. Peerings are robust and can survive network failure and reconnection.
+Internal messaging is the exchange of information between entities at each
+side of a peering.  AMQP does not provide any semantics for such exchanges, so
+we must build our own on top of AMQP.
 
-Peerings are a low-level entity in the cluster operational model; that is
-we do not expect them to be visible to system administrators.  Rather, they
-are meant to be used by other higher-level entities, with these higher-level
-entities being visible and configurable.
+The simplest way to add internal messaging semantics to AMQP is to use the
+exchange concept as a routing point.  That is, when one entity wishes to send
+status information to another, across a peering, it would create a content (a
+message) and publish that to a specific exchange at the destination server.
 
-Status Management
-=================
+While the AMQP specifications include a "tunnel" class that could also be used
+for this purpose, the semantics of publishing via an exchange are simple and
+generic enough that we will use that mechanism.
 
-Status management is the exchange of information between entities at each
-side of a relationship (a peering).  AMQP does not provide any semantics
-for such exchanges, so we must build our own on top of AMQP.
+Internal messaging is thus handled by an exchange called "amq.peer", and using
+a set of specific binding criteria and messages that allow the creation of
+simple request-response and pub-sub messaging models between peer entities.
+(Note that such messages never leave the high-availability pair.)
 
-The simplest way to add internal entity-to-entity semantics to AMQP is to
-use the exchange concept as a routing point.  That is, when one entity
-wishes to send status information to another, across a peering, it would
-create a content (a message) and publish that to a specific exchange at
-the destination server.
+High-availability Controller (HAC)
+==================================
 
-While the AMQP specifications include a "tunnel" class that could also be
-used for this purpose, the semantics of publishing via an exchange are
-simple and generic enough that we will use that mechanism.
+The HAC is an entity that operates within each server.  There is no external
+controller process.
 
-Failover Support
-================
+The two HACs in a HA pair use peering and peer messaging to talk to each
+other.  They exchange messages that include:
 
-The classic failover scenario is the following:
+ - Their own current status (active or passive).
 
- - A set of applications are working with a server on a computer system.
- - Either the software or the hardware crashes.
- - The applications detect the failure and reconnect to a backup server
-   that is ready and running.
+ - The number of clients they have connected (must be zero for passive
+   servers).
 
-Our terminology will be as follows:
+ - Their server identity ('name').
 
- - Failover support requires a PRIMARY and a BACKUP server that are
-   connected into a cluster using intra-clustering peering.
+Each HAC implements an algorithm that continually detects the state of the
+other HAC and decides whether to become passive or active.  The two HACs
+do not use the identical algorithm - there is a "primary HAC" and a "backup
+HAC" and the algorithm is slightly different in each case.
 
- - At any point in time one of these servers is the ACTIVE server, and
-   the other server, if alive, is the PASSIVE server.
+High-Availability Requirements
+------------------------------
 
- - During normal operation, the primary server is active and the backup
-   server is passive.
+We can list our requirements for a high-availability architecture:
 
- - After failover, the primary server is either offline or passive, and
-   the backup server is active.
+1. The time for a failover must be under 60 seconds and preferrably under 10
+   seconds.
 
-Failover support does not need more than a single backup server.  There
-are several issues to resolve to create a smooth and above all safe
-failover mechanism:
+2. Failover must happen automatically, while recovery must happen manually,
+   so that application service interruptions are minimise.
 
-1. One must avoid 'false' failover, the so-called 'split brain' syndrome
-   in which both servers believe they are the current active server.
+3. We need a single backup server to ensure an acceptable level of security.
+   Multiple backup servers creates extra complexity that creates its own
+   risks.
 
-2. One must prevent client applications from connecting to the backup
-   server unless it becomes active.
+4. We assume that the HA pair is connected by a reliable network, possibly by
+   multiple independent networks.
 
-3. One must provide a procedure for recovery and switchover back to the
-   primary server.
+5. We assume that the HA backup server is passive, not doing any work until
+   called upon to replace the HA primary server.  That is, we do not require
+   an active-backup server (which also adds complexity without necessarily
+   adding any value).
 
-Some good general principles for resolving these issues are:
+6. We assume that the HA backup and HA primary server are equally capable, or
+   at least that the HA backup can carry the full application load.  There is
+   no attempt to load-balance the application load across multiple backup
+   servers.
 
-1. Failover happens automatically but recovery happens only through
-   manual intervention of some kind.
+7. We need simple semantics for how client applications should work with a HA
+   pair.
 
-2. The backup server will become active if it cannot see the master
-   server, but the master server will only become active if it can
-   see the backup server and the backup server has announced itself
-   as 'passive'.
+8. We need clear instructions for network architects on how to avoid designs
+   that could result in a "split-brain" syndrome in which the HA pair becomes
+   split into two nodes through specific network failure scenarios.
 
-3. Client applications can connect to either master or backup server
-   and the server will redirect them (this is an AMQP semantic) to
-   the current active server if necessary.
+9. The startup sequence of a HA pair must not matter; that is, there must be
+   no timing-dependent issues at startup.
 
-For administration, it is acceptable that the master/backup role of
-each server be defined either in a configuration file or on the command
-line when the process is started.
+10. It must be possible to make planned stops and restarts of either server
+    without stopping the client applications.
 
-Binding Propagation
-===================
+11. Operators must be able to monitor both servers at all times.
 
-Binding propagation is the ability to organise the flow of messages from
-one server to another according to queue bindings made at the receiving
-side.
+General Principles
+------------------
 
-The typical scenario for this is for inter-cluster pub-sub message
-routing:
+The HAC has three internal states:
 
- - A central data center receives data from some source.
+ - Pending: the server has started and is waiting for its peer to start.
 
- - A local / regional data center serves a number of client applications
-   that need access to some of this data.
+ - Active: the server has become the active server for the partition.
 
- - The local / regional data center tells the central data center exactly
-   what data is wanted.
+ - Passive: the server is the passive (inactive failover) server for the
+   partition.
 
- - As matching data arrives centrally, the central data center forwards
-   this data to the remote data center.
+When a server is running in HA mode, and a client application attempts to
+connect, what happens depends on the the HAC state, and the type of client:
 
-To make this work efficiently in real-life situations, bindings must be
-normalised so that many requests for the same data result in a single
-instance of that message being transferred to the remote data center.
+ - If the client is the other peer in a HA pair, or a console user, it
+   is allowed to connect as usual, irrespective of the HAC state.
 
-The connection between central and remote data centers is assumed to be
-slow, but reliable.  That is, we do not attempt to queue and forward
-messages in case of a network failure - messages will simply be dropped.
+ - If the HAC is pending, normal clients are held in a connection 'opening'
+   state until the HAC leaves the pending state, or the client times out.
 
-AMQP does have semantics that let us construct binding propagation, using
-a temporary private queue and normal queue-to-exchange bindings.  We will
-look at this in more detail in the design section.
+ - If the HAC is active, the client connection is accepted as usual.
 
-Global Message Routing
-======================
+ - If the HAC is passive, the client connection is closed.
 
-Global message routing means ability to address and forward messages to
-applications which may be on any part of the topology.  This is typically
-needed to allow request-response scenarios to operate between clusters
-(across inter-clustering peerings).
+If a server becomes passive, and has normal clients, it disconnects those
+clients.  Console users and HA peers are not disconnected.
+
+Primary HAC Behaviour
+---------------------
+
+The primary HAC has these states and transitions:
+
+ * (Primary Pending) - backup server comes online and is pending or passive
+   ---> Primary Active.  Meaning: normal HA startup.
+
+ * (Primary Active) - backup server comes online and is active ---> Primary
+   Passive.  Meaning: primary has been restarted, and backup has taken over
+   active role.
+
+ * (Primary Passive) - backup server has gone offline and there is at least
+   one connected client or client attempting to connect ---> Primary Active.
+   Meaning: primary has been restarted, and now backup server has gone down.
+
+ * (Primary Passive) - backup server is passive ---> Primary Active. Meaning:
+   operator has forced backup server into passive mode to allow HA pair to
+   resume normal configuration.
+
+All other events result in no state changes.
+
+Backup HAC Algorithm
+--------------------
+
+The backup HAC has these states and transitions:
+
+ * (Backup Pending) - primary server comes online and is pending or active
+   ---> Backup Passive.  Meaning: normal HA startup.
+
+ * (Backup Passive) - primary server has gone offline and a client attempts to
+   connect ---> Backup Active.  Meaning: primary has crashed or stopped and
+   backup is still correctly connected to network.
+
+ * (Backup Passive) - primary server is passive ---> Backup Active. Meaning:
+   operator has forced primary server into passive mode to force HA pair into
+   failover configuration.
+
+ * (Backup Active) - primary server has gone offline and backup server has no
+   connected clients ---> Backup Passive.  Meaning: backup is not connected
+   to network any longer.
+
+Other events result in no state changes.
+
+Failover Scenarios
+------------------
+
+Here are a number of scenarios that will result in failover happening. Each
+starts from the same point, two HA servers, an active primary and a passive
+backup:
+
+1. The primary server process or system crashes, and the applications
+   reconnect to the backup server.
+
+2. The primary server is disconnected from the network long enough for at
+   least one application to disconnect (perhaps using agressive heartbeating)
+   and reconnect to the backup server while the primary server is offline.
+
+3. The operator forces the primary server into passive mode using the console.
+
+Recovery Process
+----------------
+
+There are several ways to recover from a failover.  First, the operators
+can always restart the primary server, with no impact on applications.  The
+primary server will not become active; it will defer to the backup server.
+
+Next, the operators can either stop and restart the backup server, or they
+can use the operator console to force it to go into passive mode.
+
+Normal Shutdown Process
+-----------------------
+
+The normal shutdown process is to either:
+
+1. Stop the passive server and then stop the active server, or
+
+2. Stop both servers in any order but within a few seconds of each other.
+
+Stopping the active and then the passive server with any intervening delay
+will force applications to disconnect, then reconnect, then disconnect
+again, which may disturb users.
+
+Split-Brain Prevention
+----------------------
+
+The algorithm for selecting the active/passive server eliminates split-brain
+situations in all usual cases.
+
+In some unusual cases, split-brain situations can still happen, and we can
+document these cases, and avoid them.
+
+The basic rule is that a peer will not become the active server unless it can
+see client applications.  For both servers to become active, we need a network
+configuration in which the servers cannot see each other, but each server can
+see a group of client applications.
+
+A typical scenario would a HA pair distributed between two buildings, where
+each building also had a set of applications, and there was a single network
+link between both buildings.  Breaking this link would create two sets of
+client applications, each with half of the HA pair, and each HA peer would
+become active.
+
+To prevent split-brain situations, we must connect HA peers using a dedicated
+network link, which can be as simple as plugging them both into the same
+switch.
+
+We must not split a HA pair into two islands, each with a set of applications.
+While this may be a common type of network architecture, we use partitioning,
+not high-availability, in such cases.
+
+Client-side Semantics
+---------------------
+
+Our goal with high-availability is to make the client semantics very simple:
+
+1. Client applications should know both HA peer addresses.  In the client APIs
+   we allow the "hostname" to be specified as a list.  This list would contain
+   two server names/addresses.
+
+2. The client API will attempt to connect to either of these, in an undefined
+   order.
+
+3. The server will either hold the connection (if the server is pending),
+   accept it (if the server is active, or the connection is 'special'), or
+   reject it (if the server is passive).
+
+4. If the client cannot connect to the first server, it will attempt to connect
+   to the second.
+
+5. The client may, optionally, retry this connection sequence, with appropriate
+   pauses, before abandoning.
+
+Note that we do NOT use the AMQP Connection.Redirect semantics, and we do not
+provide the client with alternative hosts to connect to (the known-hosts field
+of the Connection.Open method).  Both these semantics have proven complex and
+error-prone in the past, and today appear to be unnecessary.
+
+Message Transfer Agent (MTA)
+============================
+
+Requirements
+------------
+
+We can list our requirements for message transfer between partitions:
+
+1. Message transfer must work equally well over slow WAN connections as fast
+   LAN connections.  That is, message traffic must be optimised so that a
+   message destined for multiple recipients at a node is sent only once to
+   that node.
+
+2. Message transfer must be easy to configure, operate, and debug.
+
+4. We must support a distributed publish-subscribe fanout model in which data
+   streams are distributed from a central source to a distributed network of
+   nodes.
+
+5. We must also support a distributed service request-response model in which
+   services and the applications which use them can be put onto different
+   partitions.
+
+6. It must be possible to configure a working message transfer scenario from a
+   single node, i.e. without no configuration changes on the target node.
+
+7. We want to be able to create multiple independent message routing flows,
+   so that different application architectures can be implemented within a
+   single OpenAMQ server.
+
+General MTA Design
+------------------
+
+The general MTA design is this:
+
+ - An MTA is attached to an exchange.  An MTA instance always operates on a
+   single, well-specified exchange.
+
+ - An MTA pulls or pushes messages from/to an eopnymous exchange on another
+   partition.
+
+ - MTAs are configured objects that have the same lifespan as the exchanges
+   they operate on.
+
+Message "Pull" Processing
+-------------------------
+
+The message pull functionality is implemented as follows:
+
+ - The MTA connects to the specified partition using a peering.
+
+ - The MTA (or the peering, on behalf of the MTA) creates a temporary private
+   queue and consumes off this queue.
+
+ - When the exchange receives a new binding request (from an application), it
+   passes this to the MTA, which makes an identical binding request on the
+   remote partition, for the MTA's private queue.
+
+ - The MTA thus receives all messages at the remote partition which correspond
+   to the binding criteria that were specified.
+
+ - When the exchange destroys a binding, it also tells the MTA.  Note: AMQP does
+   not currently have any semantics for unbinding a queue, so any current MTA
+   implementation will gradually become inefficient, with old unused bindings.
+
+ - Incoming messages are published to the local exchange and thus to any local
+   queues that requested them.
+
+Message "Push" Processing
+-------------------------
+
+The message push functionality is implemented as follows:
+
+ - The MTA connects to the specified partition using a peering.
+
+ - The MTA tells the local exchange under what conditions it wants to receive
+   messages.
+
+ - When the exchange passes a message to the MTA, the MTA publishes it on the
+   remote partition.
+
+The conditions for message forwarding are:
+
+ 1. Forward all messages, but process local bindings additionally.
+
+ 2. Forward only messages that do not match any local bindings.
+
+We assume that the connection between partitions is perhaps slow, but
+reliable.  That is, we do not attempt to queue and forward messages in case
+of a network failure - messages will simply be dropped.
+
+Global Routing
+==============
+
+Routing Keys
+------------
+
+To enable request-response across partitions, using message transfer agents,
+we must ensure that reply-to values are global.  We do not specifically need
+service names to be global although this may be useful at some stage.
 
 AMQP routing semantics are based primarily on a "routing key".  To make
 global routing work, we need to ensure that routing keys are unique across
 all interconnected servers.
 
 The simplest way to create global routing keys is to use a naming convention
-that includes unique server-dependent information.  Some alternatives are:
+that includes unique server-dependent information.  We propose a convention
+that has been well-proven in the Internet domain:
 
- - A hierarchical convention that lets us create multiple levels of
-   inter-clustering.
+    queuename@hostname
 
- - A flat convention that lets us create a single level of intra-clustering.
+To implement global routing, we must:
 
-For our current needs, a single level of intra-clustering is more than
-sufficient.  However, we expect that future use cases for AMQP will expand
-the intra-clustering model further, so we will design a routing key naming
-convention that can be extended to a hierarchical naming scheme later.
+ 1. Ensure that every server is properly configured with a unique identity.
 
-State Replication
-=================
+ 2. Use the server identity when naming temporary private queues (which are
+    the basis for replies).
 
-When several servers participate in the same overall application, it can be
-useful to replicate state, so that failover can happen faster, and so that
-application distribution is easier.
+Default Routes
+--------------
 
-For example:
-
- - Exchanges created on one server can be automatically created on another.
- - Shared queues created on one server can be automatically created on
-   another.
-
-AMQP does not provide explicit semantics for this, but it is quite easy to
-construct state replication semantics over AMQP, using a pub-sub model.
-
-Design Proposal
-***************
-
-Topology Management
-===================
-
-Topology management will be handled by 'peerings', which are internal server
-agents that maintain a relationship between two servers or from one server
-onto a cluster.
-
-The peering agent will automatically detect a network failure and reconnect
-when/if the network is reestablished.
-
-Peering agents act as remote clients, from the point of view of the target
-server or cluster.  Peering agents obey the same rules for failover as do
-any other clients connected to the target server.
-
-Status Management
-=================
-
-Status management will be handled by a special exchange, the 'amq.peer'
-exchange, and a set of specifically-formatted messages.  Within a single
-server, entities can subscribe to the local amq.peer exchange to receive
-incoming messages.  To send status information, an entity publishes a
-message to the remote amq.peer exchange, using the appropriate peering
-agent.  The amq.peer exchange is a simple fanout exchange and does not do
-any kind of routing-key translation.
-
-Failover Support
-================
-
-To support failover, we require a cluster of one primary server and one backup
-server.  At any moment either the primary or the backup server may be the
-"active server" and the other server is the "passive server".
-
-The algorithm is:
-
-1. Failover from primary to backup is automatic, recovery to primary happens
-   manually, by stopping the backup server after the primary server has been
-   restarted.
-
-2. At startup the primary server becomes active, the backup does not.
-
-3. If the backup server sees the primary server going away, it becomes
-   active and remains active until it is stopped.
-
-4. If the primary server sees the backup server going away, and it is not
-   active, it becomes active. If the primary server sees the backup coming
-   back, as active, the primary stops being active.
-
-When a client application connects to the passive server, and the other server
-has correctly identified itself as active, the passive server redirects the
-client application to the active server.
-
-Binding Propagation
-===================
-
-Binding propagation is handled by "exchange federation agents", or EFAs,
-which use peerings to federate a set of exchanges on one server with a set
-of exchanges on another server or cluster of servers.
-
-An EFA is a configured object that acts as a proxy for information passing
-through an exchange.  The EFA functionality covers:
-
-1. Propagation of new local bindings to the remote server or cluster so that
-   the necessary messages arrive at the local server.
-
-2. Propagation of published messages to the remote server or cluster, either
-   on a selective basis or a systematic basis.
-
-AMQP provides all the necessary semantics for binding propagation.
-
-Global Message Routing
-======================
-
-Global message routing ensures that messages relayed by EFAs across peerings
-are accurately sent to the necessary server.
-
-Message routing is done using either the elementary routing key or the vector
-of header fields.  For our purposes we will use only the elementary routing
-key.  Further, we are concerned only with internal routing keys, that is those
-routing keys generated by a server for its own use.
-
-We define an internal routing key to have these characteristics:
-
-1. A prefix that consists of the server identifier, which must be unique
-   among all servers taking part in a clustering or inter-clustering.
-
-2. A value that consists of the locally-generated routing key information.
-
-The implementation requires these functions:
-
-1. The ability to specify the server identifier ('name') either in the
-   configuration or when starting the process (via the command line).
-
-2. The ability for a server to identify itself to all its peers.
-
-3. The ability for peers to exchange sufficient information to allow
-   them to detect a duplicate name, and signal this.
-
-In our experience the difficulty is not in constructing global routing keys,
-but in detecting and reporting badly-configured clusters so that the users
-do not spend large amounts of time debugging them.
-
-State Replication
-=================
-
-State replication means the ability for servers to exchange information on
-the exchanges and queues they manage (and possibly other data too, such as
-access control lists).
-
-The design we propose is based on the subscribe-publish subscription model,
-in which the replication data is pushed from one server to the subscribing
-server using the normal AMQP semantics.
-
-The state replication implementation requires these functions:
-
-1. The ability to subscribe to new state changes, which is a subscription
-   to changes in the state of exchanges, queues, and other server entities.
-
-2. The ability to request full status updates, essentially when starting a
-   new subscription.
-
-The design must take into account the fact that state changes happen
-asynchronously and must be serialised with respect to the receiving server;
-i.e. it is not suitable to create two channels of communication, one for
-updates and one for full status.
+Although we do not have a concrete use case for this, we are analysing the
+use of default routes for messages, based on the routing keys that follow a
+systematic queuename@hostname format.  This would allow automatic message
+transfer without the need for manual MTA configuration for each message
+stream.
 
 Configuration and Operation
 ***************************
@@ -507,125 +747,38 @@ Configuration and Operation
 We look at how the clustering and inter-clustering functions explained in this
 document are configured for real scenarios.
 
-Clustering
-==========
+HAC Configuration
+=================
 
-Clustering covers failover.  The model for clustering consists of two
-servers (a primary server and a backup server), connected to each other by
-a reliable 'internal' network and to a set of client applications by an
-'external' network.  In many cases the internal and external networks may be
-the same.
-
-The configuration data for clustering needs to specify:
+The configuration data for a HA pair must specify:
 
  - The primary and backup server identities (their 'names').
 
- - For each of the two servers, their external network addresses, used by
-   client applications.
+ - For each of these two servers, one or more internal network addresses, used
+   for connections between servers.
 
- - For each of these two servers, their internal network addresses, used for
-   the connections between the servers, if these addresses are not the same
-   as the external addresses.
+Operation of the HA pair is as follows:
 
-Operation of the cluster is as follows:
+ - When a server process is started, we must tell it what configuration data
+   to load, and whether or not it is half of a HA pair.  A server must know
+   whether it is the primary or backup server.
 
- - When a server process is started, we need to tell it what configuration
-   data to load, and whether or not it takes part in the cluster.  A server
-   must know whether it is the primary or backup server.
+ - The HAC in a particular server can be interrogated via the console, started
+   and stopped.  This is also how we test the failover and recovery mechanisms
+   without stopping and starting processes.
 
- - The cluster controller in a particular server can be interrogated via
-   the console, started and stopped.  This is one way of testing the
-   failover and recovery mechanisms without actually stopping and starting
-   processes.
+MTA Configuration
+=================
 
-Interclustering
-===============
-
-Interclustering covers binding propagation and global message routing. The
-model for interclustering consists of two sets of servers, one acting as the
-'central' server or cluster, and one acting as the 'remote' server or cluster.
-
-The interclustering configuration needs to specify:
+The configuration for an MTA needs to specify:
 
  - Authentication information on the central server(s) so that the remote
    server can connect.
 
- - On the remote server(s), the name of each exchange to federate, and the
-   central server to federate it with.
+ - On the remote server(s), the name of each exchange to operate on, and
+   the central server to federate it with.
 
- - For each federation, whether or not to propagate bindings.
+ - For each MTA, whether or not to pull messages.
 
- - For each federation, whether or not to forward messages.
-
-Worked Examples
-***************
-
-We work through two realistic scenarios:
-
- 1. A subscribe-publish scenario in which a set of applications at a remote
-    location require market data coming from a central location.
-
- 2. A request-response scenario in which a set of applications at a remote
-    location need to send requests to central services, and those services
-    need to send responses back to the remote applications.
-
-Subscribe-Publish Scenario
-==========================
-
-Configuration
--------------
-
-1. The central servers are organised into a master/backup cluster.
-
-2. Remote clients are connected to a remote server.
-
-3. An Exchange Federation is configured on the remote server for the
-   pub-sub exchange (a topic or headers exchange) with binding
-   propagation enabled.
-
-Walk-Through
-------------
-
-1. A remote client makes a subscription request.  This registered at the
-   remote exchange.
-
-2. The EFA (exchange federation agent) relays this new binding to the
-   central master server.
-
-3. When the central publisher publishes messages that match this binding
-   the messages are relayed to the remote server.
-
-4. The remote server then passes these to the clients' subscription queues.
-
-Request-Response Scenario
-=========================
-
-Configuration
--------------
-
-1. The central servers are organised into a master/backup cluster.
-
-2. Remote clients are connected to a remote server.
-
-3. An Exchange Federation is configured on the remote server for the
-   direct exchange with message forwarding and binding propagation enabled.
-
-Walk-Through
-------------
-
-1. A remote client creates a temporary queue, which is registered at the
-   remote exchange as a new binding.
-
-2. The EFA (exchange federation agent) relays this new binding to the
-   central master server.
-
-3. The remote client publishes a message to the remote exchange, and the EFA
-   forwards this message to the central server.  The message has 'reply-to'
-   set to the globally-unique name of temporary queue.
-
-4. The central server forwards the message to the service application which
-   processes it and sends a reponse using the reply-to value as routing key.
-
-5. The response arrives at the remote server, which passes it to the original
-   requesting client.
+ - For each MT, whether or not to push messages, and under what conditions.
 
