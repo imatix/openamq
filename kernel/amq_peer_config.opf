@@ -60,11 +60,11 @@ $\(selftype)
 <!-- These sections are allowed but ignored -->
 <path name = "server" />
 <path name = "resources" />
-<path name = "cluster" />
 <path name = "logging" />
 <path name = "internal" />
 <path name = "queue_profile" />
-<path name = "routing" />
 <path name = "security" />
+<path name = "cluster-hac" />
+<path name = "cluster-mta" />
 
 </opf>

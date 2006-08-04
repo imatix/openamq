@@ -95,19 +95,6 @@ $\(selftype)
     </property>
 </path>
 
-<path name = "cluster" prefix = "cluster">
-    <property name = "vhost" type = "char *" default = "/">
-    Cluster virtual host
-    <doc>
-    Specifies the cluster vhost name, which must be identical for all
-    servers in a cluster.  Any string, up to 255 chars long, may be used.
-    By convention virtual host names are formatted as POSIX paths,
-    starting with '/'.  Note that all applications must use the same
-    virtual host name when connecting to the cluster.
-    </doc>
-    </property>
-</path>
-
 <path name = "logging">
     <property name = "log path" type = "char *" default = "logs">
     Active log file directory
@@ -355,6 +342,7 @@ $\(selftype)
 <!-- These sections are allowed but ignored -->
 <path name = "queue_profile" />
 <path name = "security" />
-<path name = "routing" />
+<path name = "cluster-hac" />
+<path name = "cluster-mta" />
 
 </opf>
