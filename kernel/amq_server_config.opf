@@ -355,5 +355,6 @@ $\(selftype)
 <!-- These sections are allowed but ignored -->
 <path name = "queue_profile" />
 <path name = "security" />
+<path name = "routing" />
 
 </opf>

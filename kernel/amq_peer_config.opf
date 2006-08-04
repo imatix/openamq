@@ -64,7 +64,7 @@ $\(selftype)
 <path name = "logging" />
 <path name = "internal" />
 <path name = "queue_profile" />
+<path name = "routing" />
 <path name = "security" />
-<path name = "fedex" />
 
 </opf>
