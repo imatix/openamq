@@ -570,7 +570,7 @@ class.  This is a lock-free asynchronous class.
     // Convert binding arguments to human readable string
     field_list = asl_field_list_new (arguments);
     assert (field_list);
-    asl_field_list_dump (field_list, &self->last_binding_args);
+    asl_field_list_dump (field_list, self->last_binding_args);
     asl_field_list_destroy (&field_list);
     </action>
 </method>
