@@ -40,7 +40,17 @@ Defines a virtual host. This is a lock-free asynchronous class.
     <argument name = "name"   type = "char *">Virtual host name</argument>
     <local>
         amq_exchange_t
-            *direct;
+            *exchange_object;
+        ipr_config_t
+            *config;
+        char
+            *exchange,
+            *host,
+            *virtual_host,
+            *login,
+            *consume_mode,
+            *forward_mode,
+            *copy;
     </local>
 
     //TODO: load config from directory
@@ -66,19 +76,49 @@ Defines a virtual host. This is a lock-free asynchronous class.
     s_exchange_declare (self, "amq.system",  AMQ_EXCHANGE_SYSTEM,  FALSE);
     s_exchange_declare (self, "amq.notify",  AMQ_EXCHANGE_TOPIC,   FALSE);
 
-    //  Send bindings from amq.direct to remote server
-    if (atoi (amq_server_config_port (amq_server_config)) == 5672) {
-        direct = amq_exchange_table_search (self->exchange_table, "amq.direct");
-        amq_exchange_add_fedex (direct, "localhost:5000", "/", "peering",
-            TRUE, TRUE, FALSE);
-        amq_exchange_unlink (&direct);
+if (atoi (amq_server_config_port (amq_server_config)) == 5672) {
+    //  Initialise fedexes
+    config = ipr_config_dup (amq_server_config->config);
+    ipr_config_locate (config, "/config/cluster-mta", NULL);
+    while (config->located) {
+        if (strcmp (config->xml_item->name, "cluster-mta") == 0) {
+            exchange = ipr_config_get (config, "exchange", NULL);
+            host = ipr_config_get (config, "host", NULL);
+            virtual_host = ipr_config_get (config, "virtual-host", NULL);
+            login = ipr_config_get (config, "login", NULL);
+            consume_mode = ipr_config_get (config, "consume_mode", "0");
+            forward_mode = ipr_config_get (config, "forward_mode", "0");
+            copy = ipr_config_get (config, "copy", "1");
+            exchange_object = amq_exchange_table_search (self->exchange_table,
+                "amq.direct");
+            if (!exchange_object)
+                icl_console_print ("E: Unknown exchange %s used by fedex. Ignoring.",
+                    exchange);
+            else {
+                amq_exchange_add_fedex (exchange_object, host, virtual_host, login,
+                    strcmp (consume_mode, "all") == 0 ? TRUE : FALSE,
+                    strcmp (forward_mode, "all") == 0 ? TRUE : FALSE,
+                    strcmp (copy, "1") == 0 ? TRUE : FALSE);
+                amq_exchange_unlink (&exchange_object);
+            }
+        }
+        ipr_config_next (config);
     }
+    ipr_config_destroy (&config);
+}
 </method>
 
 <method name = "destroy">
     <action>
+    amq_exchange_t
+        *exchange;
     amq_vhost_config_destroy       (&self->config);
     amq_exchange_table_destroy     (&self->exchange_table);
+    exchange = amq_exchange_by_vhost_pop (self->exchange_list);
+    while (exchange) {
+        amq_exchange_destroy (&exchange);
+        exchange = amq_exchange_by_vhost_pop (self->exchange_list);
+    }
     amq_exchange_by_vhost_destroy  (&self->exchange_list);
     amq_queue_table_destroy        (&self->queue_table);
     amq_queue_by_vhost_destroy     (&self->queue_list);
