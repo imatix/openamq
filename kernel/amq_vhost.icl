@@ -38,6 +38,10 @@ Defines a virtual host. This is a lock-free asynchronous class.
 <method name = "new">
     <argument name = "broker" type = "amq_broker_t *">Parent broker</argument>
     <argument name = "name"   type = "char *">Virtual host name</argument>
+    <local>
+        amq_exchange_t
+            *direct;
+    </local>
 
     //TODO: load config from directory
     //TODO: amq_server object, holding vhost hash table
@@ -61,6 +65,14 @@ Defines a virtual host. This is a lock-free asynchronous class.
     s_exchange_declare (self, "amq.headers", AMQ_EXCHANGE_HEADERS, FALSE);
     s_exchange_declare (self, "amq.system",  AMQ_EXCHANGE_SYSTEM,  FALSE);
     s_exchange_declare (self, "amq.notify",  AMQ_EXCHANGE_TOPIC,   FALSE);
+
+    //  Send bindings from amq.direct to remote server
+    if (atoi (amq_server_config_port (amq_server_config)) == 5672) {
+        direct = amq_exchange_table_search (self->exchange_table, "amq.direct");
+        amq_exchange_add_fedex (direct, "localhost:5000", "/", "peering",
+            TRUE, TRUE, FALSE);
+        amq_exchange_unlink (&direct);
+    }
 </method>
 
 <method name = "destroy">

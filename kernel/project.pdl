@@ -214,6 +214,10 @@
 <file name = "amq_mgt_connection_queue.icl" 
                                      class = "icl public cont"   >Management connection queue class</file>
 
+<file name = "amq_fedex.icl"         class = "icl private class" >Fedex class</file>
+<file name = "amq_fedex_agent.smt"   class = "smt public module" >Fedex agent generated = "1"</file>
+<file name = "amq_fedex_list.icl"    class = "icl private class" >List of fedexes</file>
+
 <!-- OpenAMQ deliverables -->
 <file name = "amq_server"            class = "public command"    >Server</file>
 <file name = "amq_client"            class = "public command"    >Client</file>

@@ -270,6 +270,8 @@ typedef int (amq_peering_content_fn) (
         *method;
 
     //  Create a Queue.Bind method
+    //  Queue is NULL as the only queue used by this connection is the
+    //  peering's private queue
     method = amq_peer_method_new_queue_bind (
         ticket, queue, exchange, routing_key, nowait, arguments);
 

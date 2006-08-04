@@ -210,7 +210,6 @@ s_start (int argc, char *argv [])
     if (!s_opt_config)
         s_opt_config = "amq_server.cfg";
     amq_server_config = amq_server_config_new ("amq_server_base.cfg", s_opt_config, TRUE);
-    amq_peer_config  = amq_peer_config_new  ("amq_server_base.cfg", s_opt_config, FALSE);
     amq_server_config_cmdline_parse (amq_server_config, SERVER_NAME, s_argc, s_argv);
 
     //  Check that server security is reasonably defined
@@ -299,7 +298,6 @@ s_run_server (void)
 
     //  Synchronous shutdown
     amq_server_config_destroy (&amq_server_config);
-    amq_peer_config_destroy   (&amq_peer_config);
 
     if (s_opt_showinfo)
         icl_stats_dump ();

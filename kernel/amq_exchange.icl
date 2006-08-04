@@ -62,37 +62,7 @@ for each type of exchange. This is a lock-free asynchronous class.
 </data>
 
 <import class = "amq_server_classes" />
-
-<public name = "header">
-typedef void
-    (amq_binding_created_fn) (
-        void *self,
-        amq_exchange_t *exchange,
-        icl_shortstr_t routing_key,
-        icl_longstr_t *arguments);
-
-typedef struct {
-    void
-        *object;
-    amq_binding_created_fn
-        *callback;
-} amq_exchange_subscriber_t;
-
-//  This limit corresponds to the maximum number of subscribers per exchange
-//  For now this is hard-coded, pending a review of the subscription model.
-#define MAX_EXCHANGE_SUBSCRIBERS 16
-</public>
-
-<private>
-void s_binding_created (
-    void *self,
-    amq_exchange_t *exchange,
-    icl_shortstr_t routing_key,
-    icl_longstr_t *arguments)
-{
-    icl_console_print ("(TEST) Binding created for the routing key %s", routing_key);
-}
-</private>
+<import class = "amq_fedex_list" />
 
 <context>
     amq_broker_t
@@ -115,6 +85,11 @@ void s_binding_created (
         *binding_hash;                  //  Bindings hashed by routing_key
     ipr_index_t
         *binding_index;                 //  Gives us binding indices
+    Bool
+        discard_messages;               //  If true, all the messages are discarded
+                                        //  Only the notifications are sent
+    amq_fedex_list_t
+        *fedexes;                       //  List of fedexes attached to the exchange
 
     //  Exchange access functions
     int
@@ -138,10 +113,6 @@ void s_binding_created (
         traffic_out,                    //  Traffic out, in octets
         contents_in,                    //  Contents in, in octets
         contents_out;                   //  Contents out, in octets
-
-    //  Exchange notification subscribers
-    amq_exchange_subscriber_t
-        subscribers [MAX_EXCHANGE_SUBSCRIBERS];
 </context>
 
 <public name = "header">
@@ -165,8 +136,6 @@ void s_binding_created (
     <local>
     amq_broker_t
         *broker = amq_broker;
-    amq_exchange_subscriber_t
-        subscriber;
     </local>
     //
     self->broker        = broker;
@@ -178,6 +147,7 @@ void s_binding_created (
     self->binding_list  = amq_binding_list_new ();
     self->binding_hash  = ipr_hash_table_new ();
     self->binding_index = ipr_index_new ();
+    self->fedexes       = amq_fedex_list_new ();
     icl_shortstr_cpy (self->name, name);
 
     if (self->type == AMQ_EXCHANGE_SYSTEM) {
@@ -219,10 +189,6 @@ void s_binding_created (
             "E: invalid type '%d' in exchange_new", self->type);
 
     amq_exchange_by_vhost_queue (self->vhost->exchange_list, self);
-
-    //  Add a subscriber for test purposes
-    subscriber.callback = s_binding_created;
-    self_subscribe (self, subscriber);
 </method>
 
 <method name = "destroy">
@@ -230,6 +196,7 @@ void s_binding_created (
     ipr_hash_table_destroy (&self->binding_hash);
     amq_binding_list_destroy (&self->binding_list);
     ipr_index_destroy (&self->binding_index);
+    amq_fedex_list_destroy (&self->fedexes);
     if (self->type == AMQ_EXCHANGE_SYSTEM)
         amq_exchange_system_destroy ((amq_exchange_system_t **) &self->object);
     else
@@ -330,8 +297,8 @@ void s_binding_created (
         *binding = NULL;                //  New binding created
     ipr_hash_t
         *hash;                          //  Entry into hash table
-    uint
-        counter;
+    amq_fedex_list_iterator_t
+        iterator;
 
     if (amq_server_config_debug_route (amq_server_config))
         asl_log_print (amq_broker->debug_log,
@@ -371,12 +338,11 @@ void s_binding_created (
                 amq_binding_list_queue (self->binding_list, binding);
         }
 
-        //  Send a notification about binding being created
-        for (counter = 0; counter < MAX_EXCHANGE_SUBSCRIBERS; counter++) {
-            if (self->subscribers [counter].callback)
-               (self->subscribers [counter].callback) (
-                    self->subscribers [counter].object, self, routing_key, arguments);
-        }
+        //  Notify fedexes about binging being created
+        for (iterator = amq_fedex_list_begin (self->fedexes);
+              iterator != NULL;
+              iterator = amq_fedex_list_next (iterator))
+            amq_fedex_binding_created (*iterator, routing_key, arguments); 
     }
     amq_binding_bind_queue (binding, queue);
     amq_binding_unlink (&binding);
@@ -406,15 +372,25 @@ void s_binding_created (
         delivered;                      //  Number of message deliveries
     int64_t
         content_size;
+    amq_fedex_list_iterator_t
+        iterator;
 
-    delivered = self->publish (self->object, channel, method);
-    content_size = ((amq_content_basic_t *) method->content)->body_size;
+    if (!self->discard_messages) {
+        delivered = self->publish (self->object, channel, method);
+        content_size = ((amq_content_basic_t *) method->content)->body_size;
 
-    //  Track exchange statistics
-    self->contents_in  += 1;
-    self->contents_out += delivered;
-    self->traffic_in   += content_size;
-    self->traffic_out  += (delivered * content_size);
+        //  Track exchange statistics
+        self->contents_in  += 1;
+        self->contents_out += delivered;
+        self->traffic_in   += content_size;
+        self->traffic_out  += (delivered * content_size);
+    }
+
+    //  Notify fedexes about message being published
+    for (iterator = amq_fedex_list_begin (self->fedexes);
+          iterator != NULL;
+          iterator = amq_fedex_list_next (iterator))
+        amq_fedex_message_published (*iterator, method->content); 
     </action>
 </method>
 
@@ -451,43 +427,27 @@ void s_binding_created (
     </action>
 </method>
 
-<method name = "subscribe" template = "async function" async = "1">
-    <doc>
-    Subscribe object for notifications.
-    </doc>
-    <argument name = "subscriber" type = "amq_exchange_subscriber_t" />
-    //
+<method name = "add fedex" template = "async function" async = "1">
+    <argument name = "host" type = "char *">Host to connect to</argument>
+    <argument name = "virtual host" type = "char *">Virtual host</argument>
+    <argument name = "login" type = "char*">Login</argument>
+    <argument name = "pull" type = "Bool" />
+    <argument name = "push" type = "Bool" />
+    <argument name = "copy" type = "Bool" />
     <action>
-    uint
-        counter;
+    amq_fedex_t
+        *fedex;
 
-    //  Find empty slot
-    for (counter = 0; counter < MAX_EXCHANGE_SUBSCRIBERS; counter++)
-        if (!self->subscribers [counter].callback)
-            break;
-
-    if (counter < MAX_EXCHANGE_SUBSCRIBERS)
-        self->subscribers [counter] = subscriber;
-    else
-        icl_console_print ("E: too many subscribers for exchange bindings");
+    fedex = amq_fedex_new (host, virtual_host, login, self, pull, push, copy); 
+    amq_fedex_list_push_back (self->fedexes, fedex);
+    amq_fedex_unlink (&fedex);
     </action>
 </method>
 
-<method name = "unsubscribe" template = "async function" async = "1">
-    <doc>
-    Cancels subscription for notifications
-    </doc>
-    <argument name = "object" type = "void *" />
+<method name = "discard messages" template = "async function" async = "1">
+    <argument name = "value" type = "Bool" />
     <action>
-    uint
-        counter;
-
-    for (counter = 0; counter < MAX_EXCHANGE_SUBSCRIBERS; counter++) {
-        if (self->subscribers [counter].object == object) {
-            self->subscribers [counter].object   = NULL;
-            self->subscribers [counter].callback = NULL;
-        }
-    }
+    self->discard_messages = value;
     </action>
 </method>
 
