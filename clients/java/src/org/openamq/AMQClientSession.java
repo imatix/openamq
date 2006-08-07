@@ -33,7 +33,16 @@ import org.openamq.framing.*;
  * Immediately after the AMQConnection object returns a new session, the channel
  * methods and the getMessage function can be called.
  */
-public class AMQClientSession extends AMQClientSessionI {
+public class AMQClientSession {
+    AMQClientSessionI
+        impl;
+    int
+        sessionId;
+
+    AMQClientSession(AMQClientSessionI impl) {
+        this.impl = impl;
+        sessionId = impl.getSessionId();
+    }
 
     /**
      * Stops or allows message flow on the channel.
@@ -41,7 +50,7 @@ public class AMQClientSession extends AMQClientSessionI {
      * @param active when true allows message flow on the channel.
      */
     public void channelFlow(boolean active) throws Exception {
-        writeFrame(ChannelFlowBody.createAMQFrame(getSessionId(), active));
+        impl.writeFrame(ChannelFlowBody.createAMQFrame(sessionId, active));
     }
 
     /**
@@ -66,7 +75,7 @@ public class AMQClientSession extends AMQClientSessionI {
     public void accessRequest(String realm, boolean exclusive, boolean passive, boolean active,
         boolean write, boolean read) throws Exception {
 
-        writeFrame(AccessRequestBody.createAMQFrame(getSessionId(), realm, exclusive, passive,
+        impl.writeFrame(AccessRequestBody.createAMQFrame(sessionId, realm, exclusive, passive,
             active, write, read));
     }
 
@@ -95,7 +104,7 @@ public class AMQClientSession extends AMQClientSessionI {
     public void exchangeDeclare(String exchange, String type, boolean passive, boolean durable, boolean autoDelete,
         boolean internal, boolean nowait, FieldTable arguments) throws Exception {
 
-        writeFrame(ExchangeDeclareBody.createAMQFrame(getSessionId(), 0, exchange, type, passive, durable, autoDelete,
+        impl.writeFrame(ExchangeDeclareBody.createAMQFrame(sessionId, 0, exchange, type, passive, durable, autoDelete,
             internal, nowait, arguments));
     }
 
@@ -116,7 +125,7 @@ public class AMQClientSession extends AMQClientSessionI {
      * @param nowait do not wait for confirmation.
      */
     public void exchangeDelete(String exchange, boolean ifUnused, boolean nowait) throws Exception {
-        writeFrame(ExchangeDeleteBody.createAMQFrame(getSessionId(), 0, exchange, ifUnused, nowait));
+        impl.writeFrame(ExchangeDeleteBody.createAMQFrame(sessionId, 0, exchange, ifUnused, nowait));
     }
 
     /**
@@ -141,7 +150,7 @@ public class AMQClientSession extends AMQClientSessionI {
     public void queueDeclare(String queue, boolean passive, boolean durable, boolean exclusive, boolean autoDelete,
         boolean nowait) throws Exception {
 
-        writeFrame(QueueDeclareBody.createAMQFrame(getSessionId(), 0, queue, passive, durable,
+        impl.writeFrame(QueueDeclareBody.createAMQFrame(sessionId, 0, queue, passive, durable,
             exclusive, autoDelete, nowait, null));
     }
 
@@ -176,7 +185,7 @@ public class AMQClientSession extends AMQClientSessionI {
      * @param arguments binding arguments for the exchange.
      */
     public void queueBind(String queue, String exchange, String routingKey, boolean nowait, FieldTable arguments) throws Exception {
-        writeFrame(QueueBindBody.createAMQFrame(getSessionId(), 0, queue, exchange, routingKey, nowait, arguments));
+        impl.writeFrame(QueueBindBody.createAMQFrame(sessionId, 0, queue, exchange, routingKey, nowait, arguments));
     }
 
     /**
@@ -195,7 +204,7 @@ public class AMQClientSession extends AMQClientSessionI {
      * @param nowait do not wait for confirmation.
      */
     public void queuePurge(String queue, boolean nowait) throws Exception {
-        writeFrame(QueuePurgeBody.createAMQFrame(getSessionId(), 0, queue, nowait));
+        impl.writeFrame(QueuePurgeBody.createAMQFrame(sessionId, 0, queue, nowait));
     }
 
     /**
@@ -216,7 +225,7 @@ public class AMQClientSession extends AMQClientSessionI {
      * @param nowait do not wait for confirmation.
      */
     public void queueDelete(String queue, boolean ifUnused, boolean ifEmpty, boolean nowait) throws Exception {
-        writeFrame(QueueDeleteBody.createAMQFrame(getSessionId(), 0, queue, ifUnused, ifEmpty, nowait));
+        impl.writeFrame(QueueDeleteBody.createAMQFrame(sessionId, 0, queue, ifUnused, ifEmpty, nowait));
     }
 
     /**
@@ -241,7 +250,7 @@ public class AMQClientSession extends AMQClientSessionI {
     public void basicConsume(String queue, String consumerTag, boolean noLocal, boolean noAck, boolean exclusive,
         boolean nowait) throws Exception {
 
-        writeFrame(BasicConsumeBody.createAMQFrame(getSessionId(), 0, queue, consumerTag, noLocal, noAck, exclusive, nowait));
+        impl.writeFrame(BasicConsumeBody.createAMQFrame(sessionId, 0, queue, consumerTag, noLocal, noAck, exclusive, nowait));
     }
 
     /**
@@ -260,7 +269,7 @@ public class AMQClientSession extends AMQClientSessionI {
      * @param nowait do not wait for confirmation.
      */
     public void basicCancel(String consumerTag, boolean nowait) throws Exception {
-        writeFrame(BasicCancelBody.createAMQFrame(getSessionId(), consumerTag, nowait));
+        impl.writeFrame(BasicCancelBody.createAMQFrame(sessionId, consumerTag, nowait));
     }
 
     /**
@@ -279,7 +288,7 @@ public class AMQClientSession extends AMQClientSessionI {
      * @param noAck the client will not acknowledge messages, the server will not redeliver messages.
      */
     public void basicGet(String queue, boolean noAck) throws Exception {
-        writeFrame(BasicGetBody.createAMQFrame(getSessionId(), 0, queue, noAck));
+        impl.writeFrame(BasicGetBody.createAMQFrame(sessionId, 0, queue, noAck));
     }
 
     /**
@@ -298,7 +307,7 @@ public class AMQClientSession extends AMQClientSessionI {
      * @param multiple acknowledge all messages up to deliveryTag, inclusive.
      */
     public void basicAck(long deliveryTag, boolean multiple) throws Exception {
-        writeFrame(BasicAckBody.createAMQFrame(getSessionId(), deliveryTag, multiple));
+        impl.writeFrame(BasicAckBody.createAMQFrame(sessionId, deliveryTag, multiple));
     }
 
     /**
@@ -317,7 +326,7 @@ public class AMQClientSession extends AMQClientSessionI {
      * @param requeue requeue message.
      */
     public void basicRejectBody(long deliveryTag, boolean requeue) throws Exception {
-        writeFrame(BasicRejectBody.createAMQFrame(getSessionId(), deliveryTag, requeue));
+        impl.writeFrame(BasicRejectBody.createAMQFrame(sessionId, deliveryTag, requeue));
     }
 
     public void basicPublish(AMQMessage message, String routingKey) throws Exception {
@@ -340,7 +349,7 @@ public class AMQClientSession extends AMQClientSessionI {
     public void basicPublish(AMQMessage message, String exchange, String routingKey,
         boolean mandatory, boolean immediate) throws Exception {
 
-        writeFrame(super.preparePublish(message, exchange, routingKey, mandatory, immediate));
+        impl.writeFrame(impl.preparePublish(message, exchange, routingKey, mandatory, immediate));
     }
 
    /**
@@ -349,7 +358,7 @@ public class AMQClientSession extends AMQClientSessionI {
     * @return received message.
     */
     public AMQMessage getMessage() throws Exception {
-        return super.getMessage();
+        return new AMQMessage(this, impl.getMessage());
     }
 
    /**
@@ -358,7 +367,7 @@ public class AMQClientSession extends AMQClientSessionI {
     * @return A newly created message.
     */
     public AMQMessage createMessage() {
-        return super.createMessage();
+        return new AMQMessage(this, impl.createMessage());
     }
 
     /**
@@ -369,7 +378,7 @@ public class AMQClientSession extends AMQClientSessionI {
      * @exception Exception if an error occured while closing the session.
      */
     public void close() throws Exception {
-        super.close(AMQConstant.REPLY_SUCCESS, "Client closing session.", 0, 0);
+        impl.close(AMQConstant.REPLY_SUCCESS, "Client closing session.", 0, 0);
     }
 }
  

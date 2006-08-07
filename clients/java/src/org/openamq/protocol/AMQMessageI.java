@@ -16,7 +16,6 @@ public class AMQMessageI {
     public AMQMessageI() {
         clearBody();
         clearHeaders();
-        delivery = null;
     }
 
     public void setBody(String data) {
@@ -47,10 +46,39 @@ public class AMQMessageI {
 
     public void clearHeaders() {
         setHeaders(new BasicContentHeaderProperties());
+        delivery = null;
     }
 
     public BasicContentHeaderProperties getHeaders() {
         return headers;
+    }
+
+    public String consumerTag() {
+        if (delivery != null && delivery instanceof BasicDeliverBody)
+            return ((BasicDeliverBody)delivery).consumerTag;
+        else
+            return null;
+    }
+
+    public long deliveryTag() {
+        if (delivery != null && delivery instanceof BasicDeliverBody)
+            return ((BasicDeliverBody)delivery).deliveryTag;
+        else
+            return -1;
+    }
+
+    public int replyCode() {
+        if (delivery != null && delivery instanceof BasicReturnBody)
+            return ((BasicReturnBody)delivery).replyCode;
+        else
+            return -1;
+    }
+
+    public String replyText() {
+        if (delivery != null && delivery instanceof BasicReturnBody)
+            return ((BasicReturnBody)delivery).replyText;
+        else
+            return null;
     }
 
     void setDelivery(AMQMethodBody delivery) {
@@ -60,4 +88,4 @@ public class AMQMessageI {
     AMQMethodBody getDelivery() {
         return delivery;
     }
-} 
+}

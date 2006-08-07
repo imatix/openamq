@@ -27,7 +27,7 @@ public class AMQClientSessionI {
     int
         sessionId;
 
-    void initialize(AMQClientConnectionI acc) {
+    AMQClientSessionI(AMQClientConnectionI acc) {
         this.acc = acc;
         this.sessionId = ++sessions;
         aph = acc.getProtocolHandler();
@@ -42,7 +42,7 @@ public class AMQClientSessionI {
         return sessionId;
     }
 
-    public AMQMessage getMessage() throws Exception {
+    public AMQMessageI getMessage() throws Exception {
         _logger.debug("Waiting for message");
         synchronized (messages) {
             try {
@@ -50,14 +50,14 @@ public class AMQClientSessionI {
                     messages.wait();
             } catch (InterruptedException e) {}
             if (!messages.isEmpty())
-                return (AMQMessage)messages.removeFirst();
+                return (AMQMessageI)messages.removeFirst();
             else
                 throw new AMQException("Cannot get message");
         }
     }
 
-    public AMQMessage createMessage() {
-        return new AMQMessage();
+    public AMQMessageI createMessage() {
+        return new AMQMessageI();
     }
 
     void start() {

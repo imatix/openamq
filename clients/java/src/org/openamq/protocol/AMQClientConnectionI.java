@@ -76,10 +76,10 @@ public class AMQClientConnectionI {
         this.fullHost = fullHost;
 
         if (st.hasMoreTokens())
-            host = st.nextToken();
+            host = st.nextToken().trim();
 
         if (st.hasMoreTokens())
-            port = Integer.parseInt(st.nextToken());
+            port = Integer.parseInt(st.nextToken().trim());
         else
             port = AMQConstant.DEFAULT_PORT;
     }
@@ -120,9 +120,11 @@ public class AMQClientConnectionI {
         return timeout;
     }
 
-    public AMQClientSessionI createSession(AMQClientSessionI acs) throws Exception {
+    public AMQClientSessionI createSession() throws Exception {
         if (conState != null && conState.isConnectionOpened()) {
-            acs.initialize(this);
+            AMQClientSessionI
+                acs = new AMQClientSessionI(this);
+
             acs.start();
             acs.getSessionState().waitChannelOpened();
 

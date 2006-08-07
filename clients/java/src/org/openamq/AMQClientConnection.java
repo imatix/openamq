@@ -36,7 +36,9 @@ import org.openamq.protocol.AMQClientConnectionI;
  * AMQP broker has been stablished, and sessions can be requested with the
  * createSession function.
  */
-public class AMQClientConnection extends AMQClientConnectionI {
+public class AMQClientConnection {
+    AMQClientConnectionI
+        impl;
 
     /**
      * Given a user and password, get a plain-type authentication object.
@@ -50,8 +52,8 @@ public class AMQClientConnection extends AMQClientConnectionI {
     }
 
     /**
-     * Constructs a new AMQClientConnection object to be configured at
-     * least with authentication data before attempting connection.
+     * Constructs a new AMQClientConnection object (to be configured at
+     * least with authentication data before attempting connection).
      *
      * Default values will be used for most connection:
      *  host = "localhost:5672"
@@ -60,7 +62,7 @@ public class AMQClientConnection extends AMQClientConnectionI {
      * The instance name should be configured.
      */
     public AMQClientConnection() {
-        super();
+        impl = new AMQClientConnectionI();
     }
 
     /**
@@ -75,7 +77,7 @@ public class AMQClientConnection extends AMQClientConnectionI {
     public AMQClientConnection(String host, String virtualHost, AuthData authData, String instance,
         int timeout) throws IOException {
 
-        super(host, virtualHost, authData, instance, timeout);
+        impl = new AMQClientConnectionI(host, virtualHost, authData, instance, timeout);
     }
 
     /**
@@ -84,7 +86,7 @@ public class AMQClientConnection extends AMQClientConnectionI {
      * @param host AMQP host and port to connect to (e.g. "localhost", "192.168.50.15:5555", etc.).
      */
     public void setHost(String host) {
-        super.setHost(host);
+        impl.setHost(host);
     }
 
     /**
@@ -93,7 +95,7 @@ public class AMQClientConnection extends AMQClientConnectionI {
      * @return AMQP host and port.
      */
     public String getHost() {
-        return super.getHost();
+        return impl.getHost();
     }
 
     /**
@@ -102,7 +104,7 @@ public class AMQClientConnection extends AMQClientConnectionI {
      * @param virtualHost virtual host to connect to (e.g. "/", "/stock/europe", etc.).
      */
     public void setVirtualHost(String vHost) {
-        super.setVirtualHost(vHost);
+        impl.setVirtualHost(vHost);
     }
 
     /**
@@ -111,7 +113,7 @@ public class AMQClientConnection extends AMQClientConnectionI {
      * @return virtual host.
      */
     public String getVirtualHost() {
-        return super.getVirtualHost();
+        return impl.getVirtualHost();
     }
 
     /**
@@ -120,7 +122,7 @@ public class AMQClientConnection extends AMQClientConnectionI {
      * @param authData authentication data to be obtained with one of the static authXXX functions.
      */
     public void setAuthData(AuthData auth) {
-        super.setAuthData(auth);
+        impl.setAuthData(auth);
     }
 
     /**
@@ -129,7 +131,7 @@ public class AMQClientConnection extends AMQClientConnectionI {
      * @return authentication data.
      */
     public AuthData getAuthData() {
-        return super.getAuthData();
+        return impl.getAuthData();
     }
 
     /**
@@ -138,7 +140,7 @@ public class AMQClientConnection extends AMQClientConnectionI {
      * @param instance client name for the connection to the broker.
      */
     public void setClientInstance(String instance) {
-        super.setClientInstance(instance);
+        impl.setClientInstance(instance);
     }
 
     /**
@@ -147,7 +149,7 @@ public class AMQClientConnection extends AMQClientConnectionI {
      * @return client instance name.
      */
     public String getClientInstance() {
-        return super.getClientInstance();
+        return impl.getClientInstance();
     }
 
     /**
@@ -156,7 +158,7 @@ public class AMQClientConnection extends AMQClientConnectionI {
      * @param timeout disconnection after this amount of seconds if the broker (or the client) is not responding.
      */
     public void setTimeout(int timeout) {
-        super.setTimeout(timeout);
+        impl.setTimeout(timeout);
     }
 
     /**
@@ -165,7 +167,7 @@ public class AMQClientConnection extends AMQClientConnectionI {
      * @return disconnection timeout.
      */
     public int getTimeout() {
-        return super.getTimeout();
+        return impl.getTimeout();
     }
 
     /**
@@ -177,7 +179,7 @@ public class AMQClientConnection extends AMQClientConnectionI {
      * @exception Exception if there is a problem connecting to the broker.
      */
     public void connect() throws Exception {
-        super.connect();
+        impl.connect();
     }
 
     /**
@@ -187,7 +189,7 @@ public class AMQClientConnection extends AMQClientConnectionI {
      * @exception Exception if it is not possible to create a new session.
      */
     public AMQClientSession createSession() throws Exception {
-        return (AMQClientSession)super.createSession(new AMQClientSession());
+        return new AMQClientSession(impl.createSession());
     }
 
     /**
@@ -198,6 +200,6 @@ public class AMQClientConnection extends AMQClientConnectionI {
      * @exception Exception if an error occured while closing the connection.
      */
     public void close() throws Exception {
-        super.close(AMQConstant.REPLY_SUCCESS, "Client closing connection.", 0, 0);
+        impl.close(AMQConstant.REPLY_SUCCESS, "Client closing connection.", 0, 0);
     }
 }
