@@ -168,10 +168,16 @@ public class AMQMessage {
         return impl.replyText();
     }
 
+    /**
+     * Acknowledge this message.
+     */
     public void acknowledge() throws Exception {
         session.basicAck(deliveryTag());
     }
 
+    /**
+     * Acknowledge this message and all previous messages.
+     */
     public void acknowledgeAll() throws Exception {
         session.basicAck(deliveryTag(), true);
     }
