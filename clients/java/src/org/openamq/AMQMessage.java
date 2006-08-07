@@ -1,63 +1,105 @@
+/*---------------------------------------------------------------------------
+    AMQMessage.java
+
+    Copyright (c) 2005-2006 iMatix Corporation
+    
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+    
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+    
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ *---------------------------------------------------------------------------*/
+
 package org.openamq;
 
 import org.apache.mina.common.ByteBuffer;
 
-import org.openamq.protocol.*;
-import org.openamq.framing.*;
+import org.openamq.protocol.AMQMessageI;
+import org.openamq.framing.BasicContentHeaderProperties;
 
-public class AMQMessage {
-    ByteBuffer
-        data;
-    BasicContentHeaderProperties
-        headers;
-    AMQMethodBody
-        delivery;
-
+/**
+ * AMQMessage objects are sent and received from AMQSessions.
+ *
+ * An AMQMessage object carries properties and payload. The payload carries bytes
+ * which are interpreted by the client application.
+ */
+public class AMQMessage extends AMQMessageI {
     public AMQMessage() {
-        clearBody();
-        clearHeaders();
-        delivery = null;
+        super();
     }
 
+    /**
+     * Set message payload.
+     *
+     * @param data text payload.
+     */
     public void setBody(String data) {
-        setBody(ByteBuffer.wrap(data.getBytes()));
+        super.setBody(data);
     }
 
+    /**
+     * Set message payload.
+     *
+     * @param data bytes payload.
+     */
     public void setBody(byte[] data) {
-        setBody(ByteBuffer.wrap(data));
+        super.setBody(data);
     }
 
+    /**
+     * Set message payload.
+     *
+     * @param data ByteBuffer payload.
+     */
     public void setBody(ByteBuffer data) {
-        this.data = data;
+        super.setBody(data);
     }
 
+    /**
+     * Release message payload.
+     */
     public void clearBody() {
-        if (data != null)
-            data.release();
-        setBody((ByteBuffer)null);
+        super.clearBody();
     }
 
+    /**
+     * Get message payload.
+     *
+     * @return ByteBuffer payload.
+     */
     public ByteBuffer getBody() {
-        return data;
+        return super.getBody();
     }
 
+    /**
+     * Set message headers.
+     *
+     * @param headers routing and identification information.
+     */
     public void setHeaders(BasicContentHeaderProperties headers) {
-        this.headers = headers;
+        super.setHeaders(headers);
     }
 
+    /**
+     * Reset message headers.
+     */
     public void clearHeaders() {
-        setHeaders(new BasicContentHeaderProperties());
+        super.clearHeaders();
     }
 
+    /**
+     * Get message headers.
+     *
+     * @return message headers.
+     */
     public BasicContentHeaderProperties getHeaders() {
-        return headers;
+        return super.getHeaders();
     }
-
-    public void setDelivery(AMQMethodBody delivery) {
-        this.delivery = delivery;
-    }
-
-    public AMQMethodBody getDelivery() {
-        return delivery;
-    }
-} 
+}

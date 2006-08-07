@@ -6,8 +6,6 @@ import org.apache.mina.common.IoSession;
 import org.apache.mina.common.IdleStatus;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 
-import org.openamq.AMQClientConnection;
-import org.openamq.AMQClientSession;
 import org.openamq.AMQConstant;
 import org.openamq.AMQException;
 import org.openamq.AuthData;
@@ -20,7 +18,7 @@ public class AMQProtocolHandler extends IoHandlerAdapter {
     private static final Logger
         _logger = Logger.getLogger(AMQProtocolHandler.class);
 
-    AMQClientConnection                 // The client connection for which this
+    AMQClientConnectionI                // The client connection for which this
         connection;                     //   protocol handler is created.
     IoSession                           // The MINA protocol session handles the
         protocolSession = null;         //   AMQ method flow.
@@ -29,7 +27,7 @@ public class AMQProtocolHandler extends IoHandlerAdapter {
     TreeMap
         session2Filter = new TreeMap();
 
-    public AMQProtocolHandler(AMQClientConnection connection) {
+    public AMQProtocolHandler(AMQClientConnectionI connection) {
         this.connection = connection; 
         connectionState = null;
     }
@@ -107,7 +105,7 @@ public class AMQProtocolHandler extends IoHandlerAdapter {
     public void messageSent(IoSession session, Object message) throws Exception {
     }
 
-    public void writeFrame(AMQClientSession session, AMQDataBlock frame) throws Exception
+    public void writeFrame(AMQClientSessionI session, AMQDataBlock frame) throws Exception
     {
         if (_logger.isDebugEnabled())
             _logger.debug("Writing: " + frame);
@@ -144,8 +142,14 @@ public class AMQProtocolHandler extends IoHandlerAdapter {
     }
 
     public void setupHeartbeats(int timeout) {
-        protocolSession.setIdleTime(IdleStatus.WRITER_IDLE, timeout);
-        protocolSession.setIdleTime(IdleStatus.READER_IDLE, timeout);
+        int
+            readIdle = timeout - AMQConstant.LATENCY,
+            writeIdle = timeout + AMQConstant.LATENCY;
+
+        if (writeIdle >= 0)
+            protocolSession.setIdleTime(IdleStatus.WRITER_IDLE, writeIdle);
+        if (readIdle >= 0)
+            protocolSession.setIdleTime(IdleStatus.READER_IDLE, readIdle);
     }
 
     public void closeProtocolSession() {

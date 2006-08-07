@@ -35,9 +35,7 @@
     <file name = "AMQClientSession.java"               ></file>
     <file name = "AMQConstant.java"                    ></file>
     <file name = "AMQMessage.java"                     ></file>
-    <file name = "AuthDataPlain.java"                  ></file>
     <file name = "AMQException.java"                   ></file>
-    <file name = "AMQChannelException.java"            ></file>
 </directory>
 
 <directory name = "src/org/openamq/protocol"           class = "private resource">
@@ -46,6 +44,10 @@
     <file name = "AMQChannelState.l"                   ></file>
     <file name = "AMQConnectionState.l"                ></file>
     <file name = "AMQProtocolHandler.java"             ></file>
+    <file name = "AMQClientConnectionI.java"            ></file>
+    <file name = "AMQClientSessionI.java"               ></file>
+    <file name = "AMQMessageI.java"                     ></file>
+    <file name = "AuthDataPlain.java"                  ></file>
 </directory>
 
 <directory name = "src/org/openamq/framing"            class = "private resource">

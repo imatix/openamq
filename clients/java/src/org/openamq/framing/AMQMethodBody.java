@@ -1,7 +1,6 @@
 package org.openamq.framing;
 
 import org.apache.mina.common.ByteBuffer;
-import org.openamq.AMQChannelException;
 
 public abstract class AMQMethodBody extends AMQBody
 {
@@ -54,19 +53,5 @@ public abstract class AMQMethodBody extends AMQBody
         buf.append("\n\tClass: ").append(getClassId());
         buf.append("\n\tMethod: ").append(getMethodId());
         return buf.toString();
-    }
-
-    /**
-     * Creates an AMQChannelException for the corresponding body type (a channel exception
-     * should include the class and method ids of the body it resulted from).
-     */
-    public AMQChannelException getChannelException(int code, String message)
-    {
-        return new AMQChannelException(code, message, getClassId(), getMethodId());
-    }
-
-    public AMQChannelException getChannelException(int code, String message, Throwable cause)
-    {
-        return new AMQChannelException(code, message, getClassId(), getMethodId(), cause);
     }
 }

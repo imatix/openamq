@@ -9,8 +9,8 @@ import java.io.*;
 import org.apache.log4j.Logger;
 import org.apache.mina.common.ByteBuffer;
 
-import org.openamq.framing.*;
 import org.openamq.*;
+import org.openamq.framing.*;
 
 public class AMQChannelState extends AMQChannelStateI implements Runnable
 {
@@ -20,9 +20,9 @@ public class AMQChannelState extends AMQChannelStateI implements Runnable
 private static final Logger
     _logger = Logger.getLogger(AMQChannelState.class);
 
-AMQClientConnection
+AMQClientConnectionI
     acc;
-AMQClientSession
+AMQClientSessionI
     acs;
 AMQProtocolHandler
     aph;
@@ -34,7 +34,7 @@ AMQFrame
     frame;
 AMQMethodBody
     amb;
-AMQMessage
+AMQMessageI
     message;
 boolean
     expectExternalEvent,
@@ -43,7 +43,7 @@ boolean
 
 ///////////////////////////   C O N T R U C T O R   ///////////////////////////
 
-public AMQChannelState (AMQClientConnection acc, AMQClientSession acs)
+public AMQChannelState (AMQClientConnectionI acc, AMQClientSessionI acs)
 {
     this.acc = acc;
     this.acs = acs;
@@ -212,9 +212,11 @@ public void channelOpen ()
 public void channelOpenOkHandler ()
 {
     synchronized (this) {
-        channelOpened = true;
-        channelOpening = false;
-        notifyAll();
+        if (channelOpening) {
+            channelOpened = true;
+            channelOpening = false;
+            notifyAll();
+        }
     }
 }
 
@@ -255,6 +257,7 @@ public void channelClosed ()
 
 public void cleanup ()
 {
+    theNextEvent = terminateEvent;
     synchronized (this) {
         acs.disableSession();
         channelOpened = false;
@@ -265,7 +268,6 @@ public void cleanup ()
         expectExternalEvent = false;
         frames.notifyAll();
     }
-    theNextEvent = terminateEvent;
 }
 
 //////////////////////////   BASIC DELIVER HANDLER   //////////////////////////

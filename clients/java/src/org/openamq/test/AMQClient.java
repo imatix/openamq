@@ -1,3 +1,22 @@
+/*---------------------------------------------------------------------------
+    AMQClient.java
+
+    Copyright (c) 2005-2006 iMatix Corporation
+    
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or (at
+    your option) any later version.
+    
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+    
+    For information on alternative licensing for OEMs, please contact
+    iMatix Corporation.
+ *---------------------------------------------------------------------------*/
+
 package org.openamq.test;
 
 import java.io.*;
@@ -41,11 +60,11 @@ public class AMQClient extends AMQClientConnection {
 
     // Test parameters
     int
-        messages,
-        active,
-        passive,
-        msgSize,
-        repeats;
+        messages = 1,
+        active = 1,
+        passive = 0,
+        msgSize = 1024,
+        repeats = 1;
 
     // Test objects
     AMQClientConnection[]
@@ -55,21 +74,14 @@ public class AMQClient extends AMQClientConnection {
     AMQMessage[]
         msgs;
 
+    public AMQClient() throws IOException {
+        super();
+    }
+
     public AMQClient(String host, String virtualHost, AuthData authData, String instance,
-        int trace, int timeout) throws IOException {
+        int timeout) throws IOException {
 
-        setHost(host);
-        setVirtualHost(virtualHost);
-        setAuthData(authData);
-        setClientInstance(instance);
-        setTrace(trace);
-        setTimeout(timeout);
-
-        messages = 1;
-        active = 1;
-        passive = 0;
-        msgSize = 1024;
-        repeats = 1;
+        super(host, virtualHost, authData, instance, timeout);
     }
 
     public void setMessages(int messages) {
@@ -119,7 +131,6 @@ public class AMQClient extends AMQClientConnection {
             OPT_MESSAGES = "messages",
             OPT_ACTIVE = "active",
             OPT_PASSIVE = "passive",
-            OPT_TRACE = "trace",
             OPT_MSG_SIZE = "msgSize",
             OPT_REPEATS = "repeats";
 
@@ -161,9 +172,6 @@ public class AMQClient extends AMQClientConnection {
                     case 'p':
                         argParam = OPT_PASSIVE;
                         break;
-                    case 't':
-                        argParam = OPT_TRACE;
-                        break;
                     case 'x':
                         argParam = OPT_MSG_SIZE;
                         break;
@@ -204,13 +212,14 @@ public class AMQClient extends AMQClientConnection {
 
         // Test
         auth = AMQClientConnection.authPlain("guest", "guest");
-        client = new AMQClient("localhost", "/", auth, CLIENT_NAME, 0, 30000);
+        client = new AMQClient();
+        client.setClientInstance(CLIENT_NAME);
+        client.setAuthData(auth);
 
         client.setHost(parameters.getProperty(OPT_SERVER, client.getHost()));
         client.setMessages(parameters.getIntProperty(OPT_MESSAGES, client.getMessages()));
         client.setActive(parameters.getIntProperty(OPT_ACTIVE, client.getActive()));
         client.setPassive(parameters.getIntProperty(OPT_PASSIVE, client.getPassive()));
-        client.setTrace(parameters.getIntProperty(OPT_TRACE, client.getTrace()));
         client.setMsgSize(parameters.getIntProperty(OPT_MSG_SIZE, client.getMsgSize()));
         client.setRepeats(parameters.getIntProperty(OPT_REPEATS, client.getRepeats()));
 
@@ -237,7 +246,7 @@ public class AMQClient extends AMQClientConnection {
             // Setup connections
             for (i = 0; i < connections.length; i++) {
                 connections[i] = new AMQClientConnection(getHost(), getVirtualHost(), getAuthData(),
-                    getClientInstance() + " " + i, getTrace(), getTimeout());
+                    getClientInstance() + " " + i, getTimeout());
                 connections[i].connect();
                 sessions[i] = connections[i].createSession();
                 if (i < active) {

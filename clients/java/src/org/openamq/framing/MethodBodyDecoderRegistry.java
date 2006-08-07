@@ -27,12 +27,12 @@ public final class MethodBodyDecoderRegistry
 	    }
 	    catch (Exception e)
 	    {
-	    	throw new AMQFrameDecodingException(_log, "Unable to instantiate body class for class " + clazz + " and method " + method + ": " + e, e);
+	    	throw new AMQFrameDecodingException("Unable to instantiate body class for class " + clazz + " and method " + method + ": " + e, e);
 	    }
 	}
 	else
 	{
-	    throw new AMQFrameDecodingException(_log, "Unable to find a suitable decoder for class " + clazz + " and method " + method);
+	    throw new AMQFrameDecodingException("Unable to find a suitable decoder for class " + clazz + " and method " + method);
 	}    
     }
 }

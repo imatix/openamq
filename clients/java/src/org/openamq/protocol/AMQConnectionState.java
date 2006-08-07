@@ -8,8 +8,8 @@ import java.io.*;
 
 import org.apache.log4j.Logger;
 
-import org.openamq.framing.*;
 import org.openamq.*;
+import org.openamq.framing.*;
 
 public class AMQConnectionState extends AMQConnectionStateI implements Runnable
 {
@@ -19,7 +19,7 @@ public class AMQConnectionState extends AMQConnectionStateI implements Runnable
 private static final Logger
     _logger = Logger.getLogger(AMQConnectionState.class);
 
-AMQClientConnection
+AMQClientConnectionI
     acc;
 AMQProtocolHandler
     aph;
@@ -38,7 +38,7 @@ boolean
 
 ///////////////////////////   C O N T R U C T O R   ///////////////////////////
 
-public AMQConnectionState (AMQClientConnection acc)
+public AMQConnectionState (AMQClientConnectionI acc)
 {
     this.acc = acc;
     this.aph = acc.getProtocolHandler();
@@ -247,9 +247,11 @@ public void connectionOpen ()
 public void connectionOpenOkHandler ()
 {
     synchronized (this) {
-        connectionOpened = true;
-        connectionOpening = false;
-        notifyAll();
+        if (connectionOpening) {
+            connectionOpened = true;
+            connectionOpening = false;
+            notifyAll();
+        }
     }
 }
 
@@ -277,6 +279,7 @@ public void connectionClosed ()
 
 public void cleanup ()
 {
+    theNextEvent = terminateEvent;
     synchronized (this) {
         acc.disableSessions();
         connectionOpened = false;
@@ -287,7 +290,6 @@ public void cleanup ()
         expectExternalEvent = false;
         frames.notifyAll();
     }
-    theNextEvent = terminateEvent;
 }
 
 ////////////////////////////   CONNECTION TUNE OK   ///////////////////////////
@@ -299,7 +301,10 @@ public void connectionTuneOk ()
 
     acc.setConnectionTuneData(ctb);
     try {
-        aph.writeFrame(null, ConnectionTuneOkBody.createAMQFrame(0, ctb.channelMax, ctb.frameMax, ctb.heartbeat));
+        int
+            heartbeat = (acc.getTimeout() != -1) ? acc.getTimeout(): ctb.heartbeat;
+
+        aph.writeFrame(null, ConnectionTuneOkBody.createAMQFrame(0, ctb.channelMax, ctb.frameMax, heartbeat));
     } catch (Exception e) {
         throw new RuntimeException(e);
     }
