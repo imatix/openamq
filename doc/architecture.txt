@@ -1,0 +1,630 @@
+gdl
+    title     = Architecture
+    subtitle  = OpenAMQ Content Broker Architecture
+    product   = OpenAMQ Content Broker
+    author    = Pieter Hintjens <ph@imatix.com>
+    date      = 2006/08/11
+    copyright = Copyright (c) 1996-2006 iMatix Corporation
+    version   = 1.0
+end gdl
+
+Cover
+*****
+
+State of this Document
+======================
+
+This document is a design white paper.
+
+Copyright and License
+=====================
+
+Copyright (c) 1996-2006 iMatix Corporation
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or (at
+your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+For information on alternative licensing for OEMs, please contact
+iMatix Corporation.
+
+Abstract
+========
+
+This document describes the proposed architecture for the OpenAMQ content
+broker version 2.0.
+
+Goals and Objectives
+********************
+
+General Goals
+=============
+
+The goal of this architecture is to provide a clear set of objects and
+relationships between them which can become the basis for a very large
+product.
+
+While the 1.0 broker design was largely developed in an ad-hoc manner, we
+want the 2.0 broker design to be clearly specified and fully discussed
+before we start to implement it.
+
+Functional Compatability
+========================
+
+We want the major functionality of the 1.1 code to be reusable without
+heavy changes.
+
+Use of ASL Layer
+================
+
+Large parts of the architecture can be and will be handled by the code
+produced by ASL.  In gross terms, ASL provides the broad server, vhost,
+and session framework, while the OpenAMQ content broker code provides
+the AMQP-specific functionality.
+
+General Architecture
+********************
+
+Object Relationship Diagram
+===========================
+
+    mb_broker
+    :
+    :-- mb_exchange_portal  # meta-portal
+    :
+    :-- mb_vhost
+    :   :
+    :   `-- mb_exchange_portal --- mb_exchange_sometype
+    :
+    :
+    :
+    :
+
+Broker and Virtual Hosts
+========================
+
+The Broker Class
+----------------
+
+The broker class (mb_broker) defines a server instance.  The broker class
+holds all global server-side objects, such as log files, config files, and
+virtual hosts. The broker object is asynchronous, visible to the console.
+It is owned by the main-line code.
+
+The broker life-cycle is:
+
+ - Main-line code creates broker object.
+ - Main-line code executes SMT until finished.
+ - Main-line code stops broker object.
+
+The Virtual Host Class
+----------------------
+
+The virtual host class (mb_vhost) defines a virtual host.  A virtual host
+is a collection of server-side resources.  Virtual host objects are async
+objects, visible to the console, and children of the broker.  Virtual hosts
+are indexed in a hash table owned by the broker.
+
+The vhost life-cycle is:
+
+ - Broker constructor creates vhost objects according to configuration data
+   and indexes vhosts via hash table.
+ - Broker destructor stops vhost objects by stopping the hash table.
+
+Exchange Management
+===================
+
+Problem Statement
+-----------------
+
+We want to allow the broker to link arbitrary exchange classes together.  The
+only code that should know the specific set of exchange classes is the main
+line code.
+
+General Solution
+----------------
+
+Rather than work with exchange classes directly, we create portals that have
+implicit portal server objects (the exchange being the portal server), and we
+then work with those portals, rather than exchanges.  We use meta-portals to
+abstract the exchange classes, and normal portals to abstract the exchange
+instances.
+
+xxxx
+
+Broker and Vhost
+----------------
+
+We have a single set of exchange classes per broker, and we have a unique set
+of exchanges per vhost.  Thus we hold the exchange meta-portals in the broker
+object, and we hold the exchange portals in the vhost object.
+
+Registering Exchange Types
+--------------------------
+
+To register exchange types we create a set of meta-portals in the main-line
+code, one for each exchange type.  This is done using a broker method.  The
+meta-portals virtualise the exchange construction process.  The meta-portals
+are named and held on a looseref list in the broker object.
+
+Creating a New Exchange
+-----------------------
+
+To create a new exchange, we use the virtualised construction feature of the
+exchange meta-portals.  This means that we ask the meta-portal to create a
+new exchange for us, without any requirement to know the exchange's real
+class type.
+
+The exchange meta-portals are owned by the broker, but the vhost can use these
+portals, since it also acts as an exchange portal front-end. Thus the logic to
+create a new exchange called X of type T is as follows:
+
+ - An application object asks vhost to create an exchange X of type T.
+ - The vhost asks the broker to lookup the meta-portal called "T".(*)
+ - The vhost asks the meta-portal to create a new portal called "X" and
+   implied exchange object.(*)
+ - The vhost binds the new portal, so the portal is ready for use.(*)
+ - The vhost indexes the exchange portal by name.(*)
+ - The vhost informs the application that the exchange was created.
+
+The steps marked (*) are done synchronously using threadsafe mechanisms where
+needed.
+
+Implementation Sketches
+-----------------------
+
+Registering an Exchange Type
+............................
+
+In the main-line code, we register exchanges as follows:
+
+    mb_server_main.inc:
+    ----------------------------------------------------------------------
+    //  Register all exchange classes
+    mb_exchange_fanout_register  (mb_broker);
+    mb_exchange_direct_register  (mb_broker);
+    mb_exchange_topic_register   (mb_broker);
+    mb_exchange_headers_register (mb_broker);
+    mb_exchange_return_register  (mb_broker);
+    mb_exchange_system_register  (mb_broker);
+
+The exchange portal class has a "name" property, set in the portal class
+constructor:
+
+    mb_exchange_portal.icl:
+    ----------------------------------------------------------------------
+    <context>
+        icl_shortstr_t
+            name;           //  Exchange name or type
+        ipr_hast_t
+            *hash;          //  Reference into vhost exchange hash
+    </context>
+    <method name = "new">
+        <argument name = "name" type = "char *" />
+        icl_shortstr_cpy (self->name, name);
+    </method>
+
+Each exchange class inherits from an exchange base class and specifies its
+type name, e.g.:
+
+    mb_exchange_direct.icl:
+    ----------------------------------------------------------------------
+    <inherit class = "mb_exchange_base">
+        <option name = "type_name" value = "direct" />
+    </inherit>
+
+The exchange base class inherits from the exchange portal back-end glue and
+implements the "register" method:
+
+    mb_exchange_base.icl:
+    ----------------------------------------------------------------------
+    <inherit class = "mb_exchange_portal_back" />
+    <method name = "register" async = "1" template = "async function">
+        <argument name = "broker" type = "mb_broker_t *" />
+        <local>
+        exchange_portal_t
+            *meta_portal;
+        </local>
+        meta_portal = self_mb_exchange_portal_meta ("$(type_name)");
+        mb_broker_exchange_register (broker, meta_portal);
+        mb_exchange_portal_unlink (&portal);
+    </method>
+
+The "exchange register" method in the broker class binds the meta-portal to
+the broker, so that the meta-portal is correctly held as a child of the broker
+object (and destroyed correctly at shut-down):
+
+    mb_broker.icl:
+    ----------------------------------------------------------------------
+    <inherit class = "mb_exchange_portal_front" />
+    <method name = "exchange register" async = "1" template = "async function">
+        <argument name = "meta portal" type = "mb_exchange_portal_t *" />
+        self_mb_exchange_portal_bind (self, meta_portal);
+    </method>
+
+Virtual Host Exchange Hash Table
+................................
+
+The virtual host holds a loose-referenced hash table of all exchange portals it
+creates:
+
+    mb_vhost.icl:
+    ----------------------------------------------------------------------
+    <context>
+        ipr_hash_table_t
+            *exchanges;
+    </context>
+    <method name = "new">
+        self->exchanges = ipr_hash_table_new ();
+    </method>
+    <method name = "destroy">
+        ipr_hash_table_destroy (self->exchanges);
+    </method>
+
+Declaring a New Exchange
+........................
+
+Exchanges are children of vhosts. To declare an exchange we call the vhost
+"exchange declare" method, which creates a new exchange portal and implicit
+exchange, like this:
+
+    mb_vhost.icl:
+    ----------------------------------------------------------------------
+    <method name = "exchange declare" async = "1" template = "async function">
+        <argument name = "name" type = "char *">Exchange name</argument>
+        <argument name = "type" type = "char *">Exchange type</argument>
+        <local>
+        mb_exchange_portal_t
+            *meta_portal,
+            *portal;
+        ipr_hash_t
+            *hash;          //  Lookup exchange by name
+        </local>
+        //  Ignore multiple declares of same exchange
+        hash = ipr_hash_table_search (self->exchanges, name);
+        if (!hash) {
+            //  Get exchange meta-portal
+            meta_portal = mb_broker_exchange_type_lookup (self->broker, type);
+            if (meta_portal) {
+                portal = mb_exchange_portal_meta_new (meta_portal, name);
+                self_mb_exchange_portal_bind (self, portal);
+                //  Add portal to hash table
+                portal->hash = ipr_hash_new (self->exchanges, name, portal);
+                mb_exchange_portal_unlink (&portal);
+                mb_exchange_portal_unlink (&meta_portal);
+                //  Signal to session that exchange was created
+            }
+            else
+                //  Signal to session that exchange type was invalid
+        }
+    </method>
+
+The "exchange type lookup" method in the broker looks for and returns the
+meta-portal for the exchange type, like this:
+
+    mb_broker.icl:
+    ----------------------------------------------------------------------
+    <method name = "exchange type lookup" return = "portal">
+        <argument name = "self" type = "$(selftype) *" />
+        <argument name = "type" type = "char *">Exchange type</argument>
+        <declare name = "portal" type = "mb_exchange_portal_t" />
+        <local>
+        ipr_looseref_t
+            *looseref;           //  Meta-portal reference
+        </local>
+        //  This code assumes the portal list is not modified at runtime
+        looseref = ipr_looseref_list_first (self->mb_exchange_portal_list);
+        while (looseref) {
+            portal = (mb_exchange_portal_t *) (looseref->object);
+            if (streq (type, portal->name)) {
+                portal = mb_exchange_portal_link (portal);
+                break;                  //  Have a match
+            }
+            portal = NULL;              //  Reset matched portal
+            looseref = ipr_looseref_list_next (&looseref);
+        }
+    </method>
+
+Destroying an Exchange
+......................
+
+To destroy an exchange an application program calls the vhost "exchange delete"
+method, which finds and destroys the exchange's portal, like this:
+
+    mb_vhost.icl:
+    ----------------------------------------------------------------------
+    <method name = "exchange delete" async = "1" template = "async function">
+        <argument name = "name" type = "char *">Exchange name</argument>
+        <local>
+        mb_exchange_portal_t
+            *portal;
+        ipr_hash_t
+            *hash;          //  Lookup exchange by name
+        </local>
+        //  Ignore if exchange does not exist
+        hash = ipr_hash_table_search (self->exchanges, name);
+        if (hash) {
+            //  Get exchange meta-portal
+            portal = (mb_exchange_portal_t *) hash->data;
+            mb_exchange_portal_destroy (&portal);
+            ipr_hash_destroy (&hash);
+        }
+    </method>
+
+
+Session Management
+==================
+
+Problem Statement
+-----------------
+
+We want to solve two specific problems.  First, to allow the server to support
+arbitrary protocols in the same way as it can support arbitrary exchange types.
+Second, to provide both protocol server and protocol client functionality in a
+single layer.
+
+General Solution
+----------------
+
+The general solution uses a model that is very similar to the exchange class
+model:
+
+ - We introduce the concept of "gateway", which abstracts a protocol.  The
+   gateway implementation is entirely hidden to the rest of the server.  The
+   server includes at least one gateway class, and can include as many as the
+   implementor wants to provide, accessed by name.
+
+ - Rather than work with gateway classes directly, we create portals that have
+   implicit portal server objects (the gateway being the server), and then we work
+   with these portals, rather than with gateways.
+
+we allow
+
+Rather than work with exchange classes directly, we create portals that have
+implicit server objects (the exchange being the server), and we then work with
+those portals, rather than exchanges.  We use meta-portals to abstract the
+exchange classes, and normal portals to abstract the exchange instances.
+
+Rather than talk to the AMQP agent directly, the server will work with
+
+
+
+The Gateway
+-----------
+
+The gateway is a pluggable layer that handles a specific protocol.  The server
+supports one or more gateways, each handling both client and server roles for
+a given protocol.
+
+The internal architecture of each gateway is not relevant here but we know
+that for an AMQP or HTTP gateway, for example, we have two SMT agents, one for
+incoming connections from other servers or from applications (the server agent)
+and one for outgoing connections to other servers (the client agent).
+
+The gateway classes are registered
+
+
+General Solution
+----------------
+
+
+Broker and Vhost
+----------------
+
+We have a single set of exchange classes per broker, and we have a unique set
+of exchanges per vhost.  Thus we hold the exchange meta-portals in the broker
+object, and we hold the exchange portals in the vhost object.
+
+Registering Exchange Types
+--------------------------
+
+To register exchange types we create a set of meta-portals in the main-line
+code, one for each exchange type.  This is done using a broker method.  The
+meta-portals virtualise the exchange construction process.  The meta-portals
+are named and held on a looseref list in the broker object.
+
+Creating a New Exchange
+-----------------------
+
+To create a new exchange, we use the virtualised construction feature of the
+exchange meta-portals.  This means that we ask the meta-portal to create a
+new exchange for us, without any requirement to know the exchange's real
+class type.
+
+The exchange meta-portals are owned by the broker, but the vhost can use these
+portals, since it also acts as an exchange portal front-end. Thus the logic to
+create a new exchange called X of type T is as follows:
+
+ - An application object asks vhost to create an exchange X of type T.
+ - The vhost asks the broker to lookup the meta-portal called "T".(*)
+ - The vhost asks the meta-portal to create a new portal called "X" and
+   implied exchange object.(*)
+ - The vhost binds the new portal, so the portal is ready for use.(*)
+ - The vhost indexes the exchange portal by name.(*)
+ - The vhost informs the application that the exchange was created.
+
+The steps marked (*) are done synchronously using threadsafe mechanisms where
+needed.
+
+
+
+Connection and Session
+----------------------
+
+of "session portals", each corresponding to one client session.  This is a
+channel in AMQP terms, a connection in non-multiplexed scenarios.
+
+The connection and session will talk to the protocol layer(s) using portals;
+a connection portal and a session portal.
+
+
+
+connection talks to a broker
+
+    broker:
+        open connection (credentials)
+
+session talks to vhost
+    vhost:
+        open session (options)
+
+
+
+
+
+
+
+
+
+The Connection Class
+====================
+
+The connection class (mb_connection) defines a physical incoming client connection
+and wraps the AMQP connection concept.  The connection class has these properties:
+
+ - Parent is broker.
+ - Asynchronous object.
+ - List container, created and stopped by broker.
+
+Life-cycle:
+
+ - Gateway asks broker to create a connection, broker provides gateway with
+   connection reference.
+ - Any object can stop a given connection directly.
+
+[PH: can we extend connections and sessions to be bi-directional? This makes sense
+with respect to gateways...]
+
+The Session Class
+=================
+
+The session class (mb_session) defines an active protocol session and abstracts
+the concepts of connection, channel, and allows us to work with multiple protocol
+handlers in a transparent manner.
+
+A session implements a virtual connection, and maps to an AMQP channel in today's
+architecture.
+
+Sessions have these properties:
+
+ - Parent is virtual host.
+ - Asynchronous object.
+
+Sessions can be grouped. A group of sessions is treated as a single unit for some
+operations.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###############################################################################
+
+Zyre Portals
+============
+
+The BINDING Portal
+------------------
+
+Purpose: defines the relationship between an exchange instance and the objects that accept messages from an exchange.
+
+Server: an exchange instance (mb_exchange_xxxxx_t).
+
+Client: a queue (mb_queue_t), or a cluster-mta (mb_mta_t).
+
+Methods:
+
+ - C:bind, C:cancel
+ - S:deliver
+
+Confidence: 95%.
+
+The CONSUME Portal
+------------------
+
+Purpose: defines the relationship between a queue instance and the objects that consume messages off a queue.
+
+Server: a queue instance (mb_queue_t).
+
+Client: a session (mb_session_t).
+
+Methods:
+
+ - C:consume, C:cancel, C:get, C:ack
+ - S:deliver
+
+Confidence: 90%.
+
+The SESSION Portal
+------------------
+
+Purpose: defines the relationship between client sessions and a virtual host.
+
+Server: a virtual host.
+
+Client: a session.
+
+Methods:
+
+ - C:consume, C:cancel, C:get, C:ack
+ - S:deliver
+
+Confidence: 90%.
+
+The GATEWAY Portal
+------------------
+
+Purpose: defines the relationship between
+
+Server: a queue instance.
+
+Client: a session.
+
+Methods:
+
+ - C:consume, C:cancel, C:get, C:ack
+ - S:deliver
+
+Confidence: 90%.
+
+The ROUTING Portal
+------------------
+
+Purpose: defines the relationship between
+
+Server: a queue instance.
+
+Client: a session.
+
+Methods:
+
+ - C:consume, C:cancel, C:get, C:ack
+ - S:deliver
+
+Confidence: 90%.
+
