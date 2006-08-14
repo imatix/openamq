@@ -38,7 +38,7 @@ while ($arg = shift @ARGV) {
         $trace = shift @ARGV;
     }
     elsif ($arg eq "-h") {
-        print ("Copyright (c) 1996-2006 iMatix Corporation\n",
+        print "Copyright (c) 1996-2006 iMatix Corporation\n",
             "This is free software; see the source for copying conditions.  There is NO\n",
             "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
             "Syntax: program [options...]\n",
@@ -51,7 +51,7 @@ while ($arg = shift @ARGV) {
             "                   0=none, 1=low, 2=medium, 3=high\n",
             "  -h               Show summary of command-line options\n\n",
             "The order of arguments is not important. Switches and filenames\n",
-            "are case sensitive. See documentation for detailed information.\n");
+            "are case sensitive. See documentation for detailed information.\n";
             exit;
     }
     else {
@@ -67,7 +67,7 @@ for ($counter_repeat = 0; $counter_repeat != $repeat; $counter_repeat++) {
 
     #  Create a connection
     my ($conn, $sess, $msg);
-    $conn = new AMQ::Connection ($server, "/", "guest", "guest", "amq_client.pl", $trace);
+    $conn = new AMQ::Connection ($server, "/", "guest", "guest", "amq_client.pl", int($trace), 3000);
     $sess = $conn->CreateSession ();
 
     #  Create a queue and consume from it
