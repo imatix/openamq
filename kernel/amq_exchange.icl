@@ -62,7 +62,7 @@ for each type of exchange. This is a lock-free asynchronous class.
 </data>
 
 <import class = "amq_server_classes" />
-<import class = "amq_fedex_list" />
+<import class = "amq_cluster_mta_list" />
 
 <context>
     amq_broker_t
@@ -88,8 +88,8 @@ for each type of exchange. This is a lock-free asynchronous class.
     Bool
         discard_messages;               //  If true, all the messages are discarded
                                         //  Only the notifications are sent
-    amq_fedex_list_t
-        *fedexes;                       //  List of fedexes attached to the exchange
+    amq_cluster_mta_list_t
+        *mtas;                          //  List of MTAs attached to the exchange
 
     //  Exchange access functions
     int
@@ -147,7 +147,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     self->binding_list  = amq_binding_list_new ();
     self->binding_hash  = ipr_hash_table_new ();
     self->binding_index = ipr_index_new ();
-    self->fedexes       = amq_fedex_list_new ();
+    self->mtas          = amq_cluster_mta_list_new ();
     icl_shortstr_cpy (self->name, name);
 
     if (self->type == AMQ_EXCHANGE_SYSTEM) {
@@ -196,7 +196,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     ipr_hash_table_destroy (&self->binding_hash);
     amq_binding_list_destroy (&self->binding_list);
     ipr_index_destroy (&self->binding_index);
-    amq_fedex_list_destroy (&self->fedexes);
+    amq_cluster_mta_list_destroy (&self->mtas);
     if (self->type == AMQ_EXCHANGE_SYSTEM)
         amq_exchange_system_destroy ((amq_exchange_system_t **) &self->object);
     else
@@ -297,7 +297,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         *binding = NULL;                //  New binding created
     ipr_hash_t
         *hash;                          //  Entry into hash table
-    amq_fedex_list_iterator_t
+    amq_cluster_mta_list_iterator_t
         iterator;
 
     if (amq_server_config_debug_route (amq_server_config))
@@ -338,11 +338,11 @@ for each type of exchange. This is a lock-free asynchronous class.
                 amq_binding_list_queue (self->binding_list, binding);
         }
 
-        //  Notify fedexes about binging being created
-        for (iterator = amq_fedex_list_begin (self->fedexes);
+        //  Notify MTAs about binging being created
+        for (iterator = amq_cluster_mta_list_begin (self->mtas);
               iterator != NULL;
-              iterator = amq_fedex_list_next (iterator))
-            amq_fedex_binding_created (*iterator, routing_key, arguments); 
+              iterator = amq_cluster_mta_list_next (iterator))
+            amq_cluster_mta_binding_created (*iterator, routing_key, arguments); 
     }
     amq_binding_bind_queue (binding, queue);
     amq_binding_unlink (&binding);
@@ -372,7 +372,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         delivered;                      //  Number of message deliveries
     int64_t
         content_size;
-    amq_fedex_list_iterator_t
+    amq_cluster_mta_list_iterator_t
         iterator;
 
     if (!self->discard_messages) {
@@ -386,11 +386,13 @@ for each type of exchange. This is a lock-free asynchronous class.
         self->traffic_out  += (delivered * content_size);
     }
 
-    //  Notify fedexes about message being published
-    for (iterator = amq_fedex_list_begin (self->fedexes);
+    //  Notify MTAs about message being published
+    for (iterator = amq_cluster_mta_list_begin (self->mtas);
           iterator != NULL;
-          iterator = amq_fedex_list_next (iterator))
-        amq_fedex_message_published (*iterator, method->content); 
+          iterator = amq_cluster_mta_list_next (iterator))
+        amq_cluster_mta_message_published (*iterator, method->content,
+            method->payload.basic_publish.mandatory,
+            method->payload.basic_publish.immediate); 
     </action>
 </method>
 
@@ -427,7 +429,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     </action>
 </method>
 
-<method name = "add fedex" template = "async function" async = "1">
+<method name = "add mta" template = "async function" async = "1">
     <argument name = "host" type = "char *">Host to connect to</argument>
     <argument name = "virtual host" type = "char *">Virtual host</argument>
     <argument name = "login" type = "char*">Login</argument>
@@ -435,12 +437,12 @@ for each type of exchange. This is a lock-free asynchronous class.
     <argument name = "push" type = "Bool" />
     <argument name = "copy" type = "Bool" />
     <action>
-    amq_fedex_t
-        *fedex;
+    amq_cluster_mta_t
+        *mta;
 
-    fedex = amq_fedex_new (host, virtual_host, login, self, pull, push, copy); 
-    amq_fedex_list_push_back (self->fedexes, fedex);
-    amq_fedex_unlink (&fedex);
+    mta = amq_cluster_mta_new (host, virtual_host, login, self, pull, push, copy); 
+    amq_cluster_mta_list_push_back (self->mtas, mta);
+    amq_cluster_mta_unlink (&mta);
     </action>
 </method>
 

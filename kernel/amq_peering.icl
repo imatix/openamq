@@ -76,7 +76,8 @@ This is a summary of the amq_peering API:
     amq_peering_bind (peering, exchange-name, routing-key, arguments)
         Replicate a binding onto the specified remote exchange.
 
-    amq_peering_forward (peering, exchange-name, routing-key, content)
+    amq_peering_forward (peering, exchange-name, routing-key, content, madatory,
+        immediate)
         Publish a message to the specified remote exchange.
 
     amq_peering_destroy (&peering)
@@ -289,6 +290,8 @@ typedef int (amq_peering_content_fn) (
     <argument name = "exchange" type = "char *">Remote exchange name</argument>
     <argument name = "routing key" type = "char *">Routing key for publish</argument>
     <argument name = "content" type = "amq_content_basic_t *">Content to publish</argument>
+    <argument name = "mandatory" type = "Bool">Mandatory routing</argument>
+    <argument name = "immediate" type = "Bool">Immediate delivery</argument>
     //
     <possess>
     exchange = icl_mem_strdup (exchange);
@@ -304,9 +307,6 @@ typedef int (amq_peering_content_fn) (
     <action>
     int
         ticket = 0;
-    Bool
-        mandatory = FALSE,
-        immediate = FALSE;
     amq_peer_method_t
         *method;
 
@@ -610,9 +610,12 @@ s_test_content_handler (
 
         //  Publish a message to each binding, check that it arrives
         content = amq_content_basic_new ();
-        amq_peering_forward (peering, "amq.direct", "rk-aaaaaa", content);
-        amq_peering_forward (peering, "amq.direct", "rk-bbbbbb", content);
-        amq_peering_forward (peering, "amq.direct", "rk-cccccc", content);
+        amq_peering_forward (peering, "amq.direct", "rk-aaaaaa", content,
+            FALSE, FALSE);
+        amq_peering_forward (peering, "amq.direct", "rk-bbbbbb", content,
+            FALSE, FALSE);
+        amq_peering_forward (peering, "amq.direct", "rk-cccccc", content,
+            FALSE, FALSE);
         amq_content_basic_unlink (&content);
 
         icl_console_print ("I: (TEST) Finished - press Ctrl-C when done");

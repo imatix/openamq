@@ -1,7 +1,7 @@
 <?xml?>
 <class
-    name      = "amq_fedex"
-    comment   = "Fedex class"
+    name      = "amq_cluster_mta"
+    comment   = "Mesage transfer agent"
     version   = "1.0"
     script    = "smt_object_gen"
     target    = "smt"
@@ -26,6 +26,45 @@
         copy;
 </context>
 
+<private>
+static int
+s_content_handler (
+    void *vself,
+    amq_peering_t *peering,
+    amq_peer_method_t *peer_method)
+{
+    amq_cluster_mta_t
+        *self = (amq_cluster_mta_t*) self;
+    amq_client_method_t
+        *client_method;
+
+    if (peer_method->class_id == AMQ_PEER_BASIC &&
+          peer_method->method_id == AMQ_PEER_BASIC_DELIVER) {
+
+        /*  TODO:  Implement rejected messages returning in pull model       */
+        /*  Notice two last arguments in the call bellow                     */
+        client_method = amq_client_method_new_basic_publish (
+            0, peer_method->payload.basic_deliver.exchange,
+            peer_method->payload.basic_deliver.routing_key, FALSE, FALSE);
+        client_method->content = peer_method->content;
+        peer_method->content = NULL;
+        amq_exchange_publish (self->exchange, NULL,
+            (amq_server_method_t *) client_method);
+        amq_client_method_unlink (&client_method);
+    }
+    else if (peer_method->class_id == AMQ_PEER_BASIC &&
+          peer_method->method_id == AMQ_PEER_BASIC_RETURN) {
+
+        assert (0); // not implemented yet
+    }
+    else {
+        assert (0);
+    }
+
+    return (0);
+}
+</private>
+
 <method name = "new">
     <argument name = "host" type = "char *">Host to connect to</argument>
     <argument name = "virtual host" type = "char *">Virtual host</argument>
@@ -46,6 +85,8 @@
     self->peering = amq_peering_new (host, virtual_host,
         amq_server_config_trace (amq_server_config));
     amq_peering_set_login (self->peering, login);
+    amq_peering_set_content_handler (self->peering, s_content_handler,
+        (void*) self);
     amq_peering_start (self->peering);
     self->exchange = amq_exchange_link (exchange);
     if (!self->copy)
@@ -67,8 +108,10 @@
 
 <method name = "message published" template = "function">
     <argument name = "content" type = "amq_content_basic_t*" />
+    <argument name = "mandatory" type = "Bool" />
+    <argument name = "immediate" type = "Bool" />
     amq_peering_forward (self->peering, self->exchange->name,
-        content->routing_key, content);
+        content->routing_key, content, mandatory, immediate);
 </method>
 
 <method name = "selftest" />

@@ -146,6 +146,7 @@ runs lock-free as a child of the asynchronous queue class.
                     "No immediate consumers for Basic message",
                     content->exchange,
                     content->routing_key,
+                    content->sender_id,
                     NULL);
                 amq_server_connection_unlink (&connection);
             }
@@ -264,6 +265,7 @@ runs lock-free as a child of the asynchronous queue class.
                             "No immediate consumers for Basic message",
                             content->exchange,
                             content->routing_key,
+                            content->sender_id,
                             NULL);
                         amq_server_connection_unlink (&connection);
                     }

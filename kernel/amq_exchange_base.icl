@@ -63,7 +63,8 @@ This is an abstract base class for all exchange implementations.
         *basic_content = NULL;
     char
         *routing_key = "",
-        *message_id = NULL;
+        *message_id = NULL,
+        *sender_id = NULL;
     Bool
         mandatory = FALSE,              //  Mandatory option from method
         returned = FALSE;
@@ -82,6 +83,7 @@ This is an abstract base class for all exchange implementations.
         mandatory     = basic_method->mandatory;
         routing_key   = basic_method->routing_key;
         message_id    = basic_content->message_id;
+        sender_id     = basic_content->sender_id;
         if (amq_server_config_debug_route (amq_server_config))
             asl_log_print (amq_broker->debug_log,
                 "X: publish  %s: routing_key=%s", self->exchange->name, routing_key);
@@ -107,6 +109,7 @@ This is an abstract base class for all exchange implementations.
                         "Message cannot be processed - no route is defined",
                         basic_method->exchange,
                         routing_key,
+                        sender_id,
                         NULL);
                     basic_content->returned = TRUE;
                 }

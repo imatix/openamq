@@ -77,7 +77,7 @@ Defines a virtual host. This is a lock-free asynchronous class.
     s_exchange_declare (self, "amq.notify",  AMQ_EXCHANGE_TOPIC,   FALSE);
 
 if (atoi (amq_server_config_port (amq_server_config)) == 5672) {
-    //  Initialise fedexes
+    //  Initialise MTAs
     config = ipr_config_dup (amq_server_config->config);
     ipr_config_locate (config, "/config/cluster-mta", NULL);
     while (config->located) {
@@ -92,10 +92,10 @@ if (atoi (amq_server_config_port (amq_server_config)) == 5672) {
             exchange_object = amq_exchange_table_search (self->exchange_table,
                 "amq.direct");
             if (!exchange_object)
-                icl_console_print ("E: Unknown exchange %s used by fedex. Ignoring.",
+                icl_console_print ("E: Unknown exchange %s used by MTA. Ignoring.",
                     exchange);
             else {
-                amq_exchange_add_fedex (exchange_object, host, virtual_host, login,
+                amq_exchange_add_mta (exchange_object, host, virtual_host, login,
                     strcmp (consume_mode, "all") == 0 ? TRUE : FALSE,
                     strcmp (forward_mode, "all") == 0 ? TRUE : FALSE,
                     strcmp (copy, "1") == 0 ? TRUE : FALSE);
