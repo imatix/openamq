@@ -76,7 +76,7 @@ Object Relationship Diagram
 
     mb_broker
     :
-    :-- mb_exchange_portal  # meta-portal
+    :-- mb_exchange_portal  (factory)
     :
     :-- mb_vhost
     :   :
@@ -84,7 +84,7 @@ Object Relationship Diagram
     :   :
     :   `-- mb_session --> mb_gateway_sometype
     :
-    :-- mb_gateway_portal   # meta-portal
+    :-- mb_gateway_portal   (factory)
     :
     :-- mb_gateway_portal --> mb_gateway_sometype
     :   :
@@ -104,10 +104,10 @@ The Broker Class
 
 The broker class (mb_broker) defines a the central controlling object of
 the messaging broker. There is only a single broker though in theory we
-could construct multi-broker processes. The broker class holds all
-global server-side objects, such as log files, config files, and virtual
-hosts. The broker object is asynchronous, visible to the console. It is
-owned by the main-line code.
+could construct multi-broker processes. The broker class holds all global
+server-side objects, such as log files, config files, and virtual hosts.
+The broker object is asynchronous, visible to the console. It is owned by
+the main-line code.
 
 The broker life-cycle is:
 
@@ -127,7 +127,7 @@ The vhost life-cycle is:
 
 - Broker constructor creates vhost objects according to configuration
   data and indexes vhosts via hash table.
-   
+
 - Broker destructor stops vhost objects by stopping the hash table.
 
 Exchange Management
@@ -137,16 +137,16 @@ Problem Statement
 -----------------
 
 We want to allow the broker to link arbitrary exchange classes together.
-The only code that should know the specific set of exchange classes is
-the main line code.
+The only code that should know the specific set of exchange classes is the
+main line code.
 
 General Solution
 ----------------
 
 Rather than work with exchange classes directly, we create portals that
-have implicit portal server objects (the exchange being the portal
-server), and we then work with those portals, rather than exchanges. We
-use meta-portals to abstract the exchange classes, and normal portals to
+have implicit portal server objects (the exchange being the portal server),
+and we then work with those portals, rather than exchanges. We use
+portal factories to abstract the exchange classes, and normal portals to
 abstract the exchange instances.
 
 Broker and Vhost
@@ -154,33 +154,33 @@ Broker and Vhost
 
 We have a single set of exchange classes per broker, and we have a
 unique set of exchanges per vhost. Thus we hold the exchange
-meta-portals in the broker object, and we hold the exchange portals in
+factories in the broker object, and we hold the exchange portals in
 the vhost object.
 
 Registering Exchange Types
 --------------------------
 
-To register exchange types we create a set of meta-portals in the
+To register exchange types we create a set of factories in the
 main-line code, one for each exchange type. This is done using a broker
-method. The meta-portals virtualise the exchange construction process.
-The meta-portals are named and held on a looseref list in the broker
+method. The factories virtualise the exchange construction process.
+The factories are named and held on a looseref list in the broker
 object.
 
 Creating a New Exchange
 -----------------------
 
 To create a new exchange, we use the virtualised construction feature of
-the exchange meta-portals. This means that we ask the meta-portal to
+the exchange factories. This means that we ask the factory to
 create a new exchange for us, without any requirement to know the
 exchange's real class type.
 
-The exchange meta-portals are owned by the broker, but the vhost can use
+The exchange factories are owned by the broker, but the vhost can use
 these portals, since it also acts as an exchange portal front-end. Thus
 the logic to create a new exchange called X of type T is as follows:
 
  - An application object asks vhost to create an exchange X of type T.
- - The vhost asks the broker to lookup the meta-portal called "T".(*)
- - The vhost asks the meta-portal to create a new portal called "X" and
+ - The vhost asks the broker to lookup the factory called "T".(*)
+ - The vhost asks the factory to create a new portal called "X" and
    implied exchange object.(*)
  - The vhost binds the new portal, so the portal is ready for use.(*)
  - The vhost indexes the exchange portal by name.(*)
@@ -242,23 +242,23 @@ and implements the "register" method:
         <argument name = "broker" type = "mb_broker_t *" />
         <local>
         exchange_portal_t
-            *meta_portal;
+            *factoru;
         </local>
-        meta_portal = self_mb_exchange_portal_meta ("$(type_name)");
-        mb_broker_exchange_register (broker, meta_portal);
+        factory = self_mb_exchange_portal_factory ("$(type_name)");
+        mb_broker_exchange_register (broker, factory);
         mb_exchange_portal_unlink (&portal);
     </method>
 
-The "exchange register" method in the broker class binds the meta-portal
-to the broker, so that the meta-portal is correctly held as a child of
+The "exchange register" method in the broker class binds the factory
+to the broker, so that the factory is correctly held as a child of
 the broker object (and destroyed correctly at shut-down):
 
     mb_broker.icl:
     ----------------------------------------------------------------------
     <inherit class = "mb_exchange_portal_front" />
     <method name = "exchange register" async = "1" template = "async function">
-        <argument name = "meta portal" type = "mb_exchange_portal_t *" />
-        self_mb_exchange_portal_bind (self, meta_portal);
+        <argument name = "factory" type = "mb_exchange_portal_t *" />
+        self_mb_exchange_portal_bind (self, factory);
     </method>
 
 Virtual Host Exchange Hash Table
@@ -294,7 +294,7 @@ implicit exchange, like this:
         <argument name = "type" type = "char *">Exchange type</argument>
         <local>
         mb_exchange_portal_t
-            *meta_portal,
+            *factory,
             *portal;
         ipr_hash_t
             *hash;          //  Lookup exchange by name
@@ -302,15 +302,15 @@ implicit exchange, like this:
         //  Ignore multiple declares of same exchange
         hash = ipr_hash_table_search (self->exchanges, name);
         if (!hash) {
-            //  Get exchange meta-portal
-            meta_portal = mb_broker_exchange_type_lookup (self->broker, type);
-            if (meta_portal) {
-                portal = mb_exchange_portal_meta_new (meta_portal, name);
+            //  Get exchange factory
+            factory = mb_broker_exchange_type_lookup (self->broker, type);
+            if (factory) {
+                portal = mb_exchange_portal_factory (factory, name);
                 self_mb_exchange_portal_bind (self, portal);
                 //  Add portal to hash table
                 portal->hash = ipr_hash_new (self->exchanges, name, portal);
                 mb_exchange_portal_unlink (&portal);
-                mb_exchange_portal_unlink (&meta_portal);
+                mb_exchange_portal_unlink (&factory);
                 //  Signal to session that exchange was created
             }
             else
@@ -319,7 +319,7 @@ implicit exchange, like this:
     </method>
 
 The "exchange type lookup" method in the broker looks for and returns
-the meta-portal for the exchange type, like this:
+the factory for the exchange type, like this:
 
     mb_broker.icl:
     ----------------------------------------------------------------------
@@ -329,7 +329,7 @@ the meta-portal for the exchange type, like this:
         <declare name = "portal" type = "mb_exchange_portal_t" />
         <local>
         ipr_looseref_t
-            *looseref;           //  Meta-portal reference
+            *looseref;           //  Factory reference
         </local>
         //  This code assumes the portal list is not modified at runtime
         looseref = ipr_looseref_list_first (self->mb_exchange_portal_list);
@@ -364,7 +364,7 @@ this:
         //  Ignore if exchange does not exist
         hash = ipr_hash_table_search (self->exchanges, name);
         if (hash) {
-            //  Get exchange meta-portal
+            //  Get exchange factory
             portal = (mb_exchange_portal_t *) hash->data;
             mb_exchange_portal_destroy (&portal);
             ipr_hash_destroy (&hash);
@@ -398,7 +398,7 @@ class model:
 - Rather than work with gateway classes directly, we access gateways
   through portals.
 
-- We use meta-portals to abstract gateway types and portals to abstract
+- We use factories to abstract gateway types and portals to abstract
   gateway instances.
 
 The entire protocol layer is implemented at the ASL level (not in the
@@ -409,8 +409,8 @@ The Gateway Class
 
 The gateway class encapsulates a specific protocol implementation. The
 main-line code registers the various gateway classes that it wants to
-support. Each of these registrations is instantiated as a meta-portal of
-the mb_gateway_portal class. The gateway meta-portals are created by,
+support. Each of these registrations is instantiated as a factory of
+the mb_gateway_portal class. The gateway factories are created by,
 and belong to, the broker.
 
 The gateway class works as follows:
@@ -521,10 +521,11 @@ The subscriber portal defines these request methods:
 
 The routing options are:
 
- - match - when the subscription matches
- - ccall - request a copy of all messages
- - default - request all messages that have no other matching subscribers)
- 
+ - "match" - when the subscription matches
+ - "copyall" - request a copy of all messages
+ - "default" - request all messages that have no other matching
+   subscribers)
+
 The subscriber portal defines these response methods:
 
  - publish - delivers a message to the client object (e.g. the queue).
@@ -559,7 +560,8 @@ General Solution
 ----------------
 
 We use a portal class - the "consumer" - to link gateways with queues.
-The consumer is 
+The consumer is
+
 
 The Subscriber Class
 -----------------------
@@ -576,7 +578,7 @@ consume/cancel/deliver
 5. consumer is child of session
  - gateway asks session to create consumerr object
  - session creates consumer onto queue
- 
+
 connection (gateway <--> broker)
    -- session (gateway <--> vhost)
       -- consumer (gateway <-- queue)
