@@ -79,11 +79,9 @@
 <file name = "amq_broker.icl"        class = "icl private class" >Server broker class</file>
 <file name = "amq_broker_agent.smt"  class = "smt public module"
                                      generated = "1"             >Server broker agent</file>
-<!--
 <file name = "amq_cluster.icl"       class = "icl private class" >Server cluster class</file>
 <file name = "amq_cluster_agent.smt" class = "smt public module"
                                      generated = "1"             >Server cluster agent</file>
--->
 <file name = "amq_peering.icl"       class = "icl private class" >Server peering class</file>
 <file name = "amq_peering_agent.smt" class = "smt public module"
                                      generated = "1"             >Server peering agent</file>

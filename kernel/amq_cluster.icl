@@ -1,33 +1,12 @@
 <?xml?>
 <class
     name      = "amq_cluster"
-    comment   = "AMQ cluster controller class"
+    comment   = "OpenAMQ High-Availability Controller (HAC) class"
     version   = "1.0"
     script    = "smt_object_gen"
     target    = "smt"
     >
 <doc>
-The algorithm is:
-
-1. Failover from primary to backup is automatic, recovery to primary happens
-   manually, by stopping the backup server after the primary server has been
-   restarted.
-
-2. At startup the primary server becomes active, the backup does not.
-
-3. If the backup server sees the primary server going away and if it has at
-   least one connected client, it becomes active and remains active until
-   it is stopped. If the primary server goes away, and the backup server
-   has no clients, it cedes its position as active.
-
-4. If the primary server sees the backup server going away, and it is not
-   active, it becomes active. If the primary server sees the backup coming
-   back, as active, the primary stops being active.
-
-When a client application connects to the passive server, and the other server
-has correctly identified itself as active, the passive server redirects the
-client application to the active server.
-
 
 Cluster configuration:
     - shared config files between both servers
