@@ -16,6 +16,7 @@ merge these two classes into one.
 <inherit class = "smt_object" />
 <inherit class = "icl_list_item">
     <option name = "prefix" value = "by_broker" />
+    <option name = "links" value = "1"/>
 </inherit>
 <inherit class = "amq_console_object" />
 
