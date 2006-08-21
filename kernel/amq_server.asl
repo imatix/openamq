@@ -239,9 +239,6 @@
             icl_console_print ("W: queue.declare aborted by connection close");
         else
         if (method->exclusive && queue->connection != connection) {
-            //TODO: remove warning before 1.0d final candidate
-            icl_console_print ("### QUEUE name=%s/%s connection=%pp/%pp",
-                        method->queue, queue->name, connection, queue->connection);
             amq_server_channel_error (
                 channel,
                 ASL_ACCESS_REFUSED,
