@@ -37,8 +37,8 @@ iMatix Corporation.
 Abstract
 ========
 
-This document describes the proposed architecture for the OpenAMQ content
-broker version 2.0.
+This document describes the proposed architecture for the OpenAMQ
+content broker version 2.0.
 
 Goals and Objectives
 ********************
@@ -76,11 +76,15 @@ Object Relationship Diagram
 
     mb_broker
     :
-    :-- mb_exchange_portal  (factory)
+    :-- mb_exchange  (factory)
     :
     :-- mb_vhost
     :   :
-    :   :-- mb_exchange_portal --> mb_exchange_sometype
+    :   :-- mb_exchange --> mb_exchange_sometype
+    :   :
+    :   :-- mb_queue_portal --> mb_queue_sometype
+    :   :                       :
+    :   :                       `-- mb_subscriber
     :   :
     :   `-- mb_session --> mb_gateway_sometype
     :
@@ -88,14 +92,17 @@ Object Relationship Diagram
     :
     :-- mb_gateway_portal --> mb_gateway_sometype
     :   :
-    :   `-- mb_connection --> mb_broker
-    :       :
-    :       `-- mb_session --> mb_vhost
-    :
+    :   :-- mb_connection --> mb_broker
+    :   :   :
+    :   :   `-- mb_session --> mb_vhost
+    :   :
+    :   `-- mb_consumer --> mb_queue_portal
+    :    
     `-- mb_connection --> mb_gateway_sometype
         :
         `-- mb_session --> mb_gateway_sometype
-    
+        
+
 Broker and Virtual Hosts
 ========================
 
@@ -104,10 +111,10 @@ The Broker Class
 
 The broker class (mb_broker) defines a the central controlling object of
 the messaging broker. There is only a single broker though in theory we
-could construct multi-broker processes. The broker class holds all global
-server-side objects, such as log files, config files, and virtual hosts.
-The broker object is asynchronous, visible to the console. It is owned by
-the main-line code.
+could construct multi-broker processes. The broker class holds all
+global server-side objects, such as log files, config files, and virtual
+hosts. The broker object is asynchronous, visible to the console. It is
+owned by the main-line code.
 
 The broker life-cycle is:
 
@@ -137,42 +144,41 @@ Problem Statement
 -----------------
 
 We want to allow the broker to link arbitrary exchange classes together.
-The only code that should know the specific set of exchange classes is the
-main line code.
+The only code that should know the specific set of exchange classes is
+the main line code.
 
 General Solution
 ----------------
 
 Rather than work with exchange classes directly, we create portals that
-have implicit portal server objects (the exchange being the portal server),
-and we then work with those portals, rather than exchanges. We use
-portal factories to abstract the exchange classes, and normal portals to
-abstract the exchange instances.
+have implicit portal server objects (the exchange being the portal
+server), and we then work with those portals, rather than exchanges. We
+use portal factories to abstract the exchange classes, and normal
+portals to abstract the exchange instances.
 
 Broker and Vhost
 ----------------
 
 We have a single set of exchange classes per broker, and we have a
-unique set of exchanges per vhost. Thus we hold the exchange
-factories in the broker object, and we hold the exchange portals in
-the vhost object.
+unique set of exchanges per vhost. Thus we hold the exchange factories
+in the broker object, and we hold the exchange portals in the vhost
+object.
 
 Registering Exchange Types
 --------------------------
 
-To register exchange types we create a set of factories in the
-main-line code, one for each exchange type. This is done using a broker
-method. The factories virtualise the exchange construction process.
-The factories are named and held on a looseref list in the broker
-object.
+To register exchange types we create a set of factories in the main-line
+code, one for each exchange type. This is done using a broker method.
+The factories virtualise the exchange construction process. The
+factories are named and held on a looseref list in the broker object.
 
 Creating a New Exchange
 -----------------------
 
 To create a new exchange, we use the virtualised construction feature of
-the exchange factories. This means that we ask the factory to
-create a new exchange for us, without any requirement to know the
-exchange's real class type.
+the exchange factories. This means that we ask the factory to create a
+new exchange for us, without any requirement to know the exchange's real
+class type.
 
 The exchange factories are owned by the broker, but the vhost can use
 these portals, since it also acts as an exchange portal front-end. Thus
@@ -210,7 +216,7 @@ In the main-line code, we register exchanges as follows:
 The exchange portal class has a "name" property, set in the portal class
 constructor:
 
-    mb_exchange_portal.icl:
+    mb_exchange.icl:
     ----------------------------------------------------------------------
     <context>
         icl_shortstr_t
@@ -237,28 +243,28 @@ and implements the "register" method:
 
     mb_exchange_base.icl:
     ----------------------------------------------------------------------
-    <inherit class = "mb_exchange_portal_back" />
+    <inherit class = "mb_exchange_back" />
     <method name = "register" async = "1" template = "async function">
         <argument name = "broker" type = "mb_broker_t *" />
         <local>
         exchange_portal_t
-            *factoru;
+            *factory;
         </local>
-        factory = self_mb_exchange_portal_factory ("$(type_name)");
+        factory = self_mb_exchange_factory ("$(type_name)");
         mb_broker_exchange_register (broker, factory);
-        mb_exchange_portal_unlink (&portal);
+        mb_exchange_unlink (&factory);
     </method>
 
-The "exchange register" method in the broker class binds the factory
-to the broker, so that the factory is correctly held as a child of
-the broker object (and destroyed correctly at shut-down):
+The "exchange register" method in the broker class binds the factory to
+the broker, so that the factory is correctly held as a child of the
+broker object (and destroyed correctly at shut-down):
 
     mb_broker.icl:
     ----------------------------------------------------------------------
-    <inherit class = "mb_exchange_portal_front" />
+    <inherit class = "mb_exchange_front" />
     <method name = "exchange register" async = "1" template = "async function">
-        <argument name = "factory" type = "mb_exchange_portal_t *" />
-        self_mb_exchange_portal_bind (self, factory);
+        <argument name = "factory" type = "mb_exchange_t *" />
+        self_mb_exchange_bind (self, factory);
     </method>
 
 Virtual Host Exchange Hash Table
@@ -293,7 +299,7 @@ implicit exchange, like this:
         <argument name = "name" type = "char *">Exchange name</argument>
         <argument name = "type" type = "char *">Exchange type</argument>
         <local>
-        mb_exchange_portal_t
+        mb_exchange_t
             *factory,
             *portal;
         ipr_hash_t
@@ -305,12 +311,12 @@ implicit exchange, like this:
             //  Get exchange factory
             factory = mb_broker_exchange_type_lookup (self->broker, type);
             if (factory) {
-                portal = mb_exchange_portal_factory (factory, name);
-                self_mb_exchange_portal_bind (self, portal);
+                portal = mb_exchange_factory (factory, name);
+                self_mb_exchange_bind (self, portal);
                 //  Add portal to hash table
                 portal->hash = ipr_hash_new (self->exchanges, name, portal);
-                mb_exchange_portal_unlink (&portal);
-                mb_exchange_portal_unlink (&factory);
+                mb_exchange_unlink (&portal);
+                mb_exchange_unlink (&factory);
                 //  Signal to session that exchange was created
             }
             else
@@ -326,17 +332,17 @@ the factory for the exchange type, like this:
     <method name = "exchange type lookup" return = "portal">
         <argument name = "self" type = "$(selftype) *" />
         <argument name = "type" type = "char *">Exchange type</argument>
-        <declare name = "portal" type = "mb_exchange_portal_t" />
+        <declare name = "portal" type = "mb_exchange_t" />
         <local>
         ipr_looseref_t
             *looseref;           //  Factory reference
         </local>
         //  This code assumes the portal list is not modified at runtime
-        looseref = ipr_looseref_list_first (self->mb_exchange_portal_list);
+        looseref = ipr_looseref_list_first (self->mb_exchange_list);
         while (looseref) {
-            portal = (mb_exchange_portal_t *) (looseref->object);
+            portal = (mb_exchange_t *) (looseref->object);
             if (streq (type, portal->name)) {
-                portal = mb_exchange_portal_link (portal);
+                portal = mb_exchange_link (portal);
                 break;                  //  Have a match
             }
             portal = NULL;              //  Reset matched portal
@@ -356,7 +362,7 @@ this:
     <method name = "exchange delete" async = "1" template = "async function">
         <argument name = "name" type = "char *">Exchange name</argument>
         <local>
-        mb_exchange_portal_t
+        mb_exchange_t
             *portal;
         ipr_hash_t
             *hash;          //  Lookup exchange by name
@@ -365,8 +371,8 @@ this:
         hash = ipr_hash_table_search (self->exchanges, name);
         if (hash) {
             //  Get exchange factory
-            portal = (mb_exchange_portal_t *) hash->data;
-            mb_exchange_portal_destroy (&portal);
+            portal = (mb_exchange_t *) hash->data;
+            mb_exchange_destroy (&portal);
             ipr_hash_destroy (&hash);
         }
     </method>
@@ -409,14 +415,16 @@ The Gateway Class
 
 The gateway class encapsulates a specific protocol implementation. The
 main-line code registers the various gateway classes that it wants to
-support. Each of these registrations is instantiated as a factory of
-the mb_gateway_portal class. The gateway factories are created by,
-and belong to, the broker.
+support. Each of these registrations is instantiated as a factory of the
+mb_gateway class. The gateway factories are created by, and belong to,
+the broker.
 
 The gateway class works as follows:
 
  - A gateway class (mb_gateway_somename) implements a specific protocol.
 
+ - Gateways are created via portals and accessed via their portal.
+ 
  - Each gateway object acts as a protocol server for incoming connections
    and a managing object for outgoing connections.
 
@@ -472,63 +480,97 @@ portal object. The session class works as follows:
 
  - When the connection is stopped, all its sessions are also destroyed.
 
-Publishing Messages off an Exchange
-======================
+Queue Management
+================
 
 Problem Statement
 -----------------
 
-The goal is to let arbitrary application objects act as clients for
-exchanges. Currently this is hardcoded as a "binding" relationship
-between queues and exchanges. We want any object - not just a queue - to
-be able to bind to an exchange to receive messages. The main challenge
-is that we have a variant exchange class, and an undefined set of
-message-accepting classes (which includes queues and cluster-mtas).
+We want to allow the addition of plug-in queue classes to the server.
+Each queue class handles a specific content type and/or implements a
+queueing algorithm.
 
 General Solution
 ----------------
 
-We use a portal to connect application objects with exchanges. The
-portal is called the "subscriber".
+Queues are created via a portal class (mb_queue) that works in the same
+way as a gateway or exchange. Note one significant difference: the
+protocol allows multiple content types on a single 'queue', so we will
+need to implement some partition per content type.
+
+However, for now we can assume that queues are created and used via
+portal objects, like exchanges and gateways.
+
+Publishing Messages off an Exchange
+===================================
+
+Problem Statement
+-----------------
+
+We define a message "sink" as an object that is capable of receiving
+messages off an exchange. Sinks include queues, cluster agents, and
+exchanges.
+
+The goal is to let arbitrary application objects act as sinks. Currently
+this is hardcoded as a "binding" relationship between queues and
+exchanges. We want any object - not just a queue - to be able to bind to
+an exchange to receive messages. The main challenge is that we have a
+variant exchange class, and an undefined set of message-accepting
+classes (including queues and cluster-mtas).
+
+Additionally, we want to allow exchange-to-exchange bindings, which are
+a likely new feature of future AMQP versions.
+
+General Solution
+----------------
+
+We use a portal, called the "subscriber", to connect message sink objects
+with exchanges.
 
 The Subscriber Class
------------------------
+--------------------
 
 The subscriber class (mb_subscriber) is a portal that connects an
-arbitrary client object to an exchange as portal server. 
+arbitrary client object (the sink, usually a queue) to a server object
+(the exchange). Subscriber creation is always invoked from the sink
+side.
 
 Subscribers work as follows:
 
- - The client object (usually a queue) creates a subscriber using the
-   portal creation mechanism (it requests the exchange to create the
-   portal class, then binds this portal to itself).
+ - The client object (e.g. a queue) creates a subscriber using the normal
+   portal creation mechanism (it asks the exchange to create the portal
+   then it binds this portal to itself).
 
- - The client object configures the subscriber by sending a single 
-   "configure" method to the exchange.
+ - The client object configures the subscriber by sending a single
+   "configure" method to it, and thus to the exchange. The exchange
+   handles the configure method by creating a binding in its own data
+   structures.
 
- - The exchange delivers messages as they arrive and match the
-   subscription criteria. 
+ - The exchange delivers messages as they arrive and match the subscriber 
+   criteria. 
 
-Subscriptions are generally handled by exchanges using 'bindings' but
-this is an implementation detail and is not visible in the APIs.
-Bindings are internal exchange concepts.
+Subscriber are assumed to be mapped onto exchange bindings in a N-to-1
+relationship (multiple subscriber can use the same exchange binding).
+
+Subscriber Methods
+------------------
 
 The subscriber portal defines these request methods:
 
- - configure - configures a new subscription using the specified
-   arguments. The arguments are: a routing key, an arguments field table,
-   and a routing option. 
+ - configure - configures a new subscriber using the specified
+   arguments. The arguments are: a routing key, an arguments field
+   table, and a routing option.  The sink sends a single configure
+   method.
 
 The routing options are:
 
  - "match" - when the subscription matches
  - "copyall" - request a copy of all messages
- - "default" - request all messages that have no other matching
-   subscribers)
+ - "default" - request all messages that have no other matching sinks.
 
-The subscriber portal defines these response methods:
+The subscriber defines these response methods:
 
- - publish - delivers a message to the client object (e.g. the queue).
+ - publish - delivers a message to the sink object.
 
 Subscriber Management
 ---------------------
@@ -537,13 +579,16 @@ AMQP does not implement a cancel method for bindings but this will
 probably be added at some stage. Queues do not, in any case, need to
 manage subscribers on a per-session (channel) basis.
 
-For now, subscribers can be created and then ignored, at the queue side.
-When the queue is destroyed its subscribers will be destroyed
+For now, we can create subscribers and then ignore them, at the queue
+side. When the queue is destroyed its subscribers will be destroyed
 automatically. The exchange must correctly handle the destruction of
 subscribers to keep its routing tables updated.
 
-We map a subscriber to an exchange binding so that bindiings can be
-destroyed rapidly, without lookups.
+We will map each subscriber to single exchange binding (holding the
+binding reference in the subscriber object) so that bindings can be
+destroyed rapidly, without lookups. This can be done trivially using
+reference counting (when the last subscriber that uses a binding is
+destroyed, the binding is also destroyed).
 
 Delivering Messages off a Queue
 ===============================
@@ -554,98 +599,66 @@ Problem Statement
 The goal is to abstract the relationship between queues and gateways
 (the 'consumer' relationship), in such a way that we can add arbitrary
 queue implementations to the server, and they can work correctly with
-all gateway types.
+arbitrary gateway types.
 
 General Solution
 ----------------
 
-We use a portal class - the "consumer" - to link gateways with queues.
-The consumer is
+We use a portal, called the "consumer", to connect gateways with queues.
 
-
-The Subscriber Class
------------------------
-
-
-from queue to session
-- consumer model
-consume/cancel/deliver
-
-1. gateway is client, queue is server, consumer is the portal
-2. consumer can be created with arbitrary properties, used by queue
-3. queue selects and uses consumer, sends it the deliver
-4. consumer sends this to gateway, session is parent of consumer
-5. consumer is child of session
- - gateway asks session to create consumerr object
- - session creates consumer onto queue
-
-connection (gateway <--> broker)
-   -- session (gateway <--> vhost)
-      -- consumer (gateway <-- queue)
-
-- for messages from application; we deliver to vhost via session
-  - gateway has session to vhost, sends message to session
-  - vhost processes, using session for responses
-- for messages from queue to session, can we deliver via consumer
- 
-
-
-
-Purpose: defines the relationship between a queue instance and the objects that consume messages off a queue.
-
-Server: a queue instance (mb_queue_t).
-
-Client: a session (mb_session_t).
-
-Methods:
-
- - C:consume, C:cancel, C:get, C:ack
- - S:deliver
-
-
-
-
-
-
-
-###############################################################################
-
-session to vhost
-
- - C:consume, C:cancel, C:get, C:ack
- - S:deliver
-
-Confidence: 90%.
-
-The GATEWAY Portal
+The Consumer Class
 ------------------
 
-Purpose: defines the relationship between
+The consumer class (mb_consumer) is a portal that connects an arbitrary
+client class (the gateway) to a server class (the queue). Consumer
+creation is always invoked from the gateway side.
 
-Server: a queue instance.
+Consumers work as follows:
 
-Client: a session.
+ - A gateway object creates a consumer using the normal portal creation
+   mechanism (it asks the queue to create the portal, then it binds this
+   portal to itself).
 
-Methods:
+ - The gateway configures the consumer by sending a single "configure"
+   method to it, and thus to the queue. The queue handles the configure
+   method by adding the consumer to its list of active consumers.
 
- - C:consume, C:cancel, C:get, C:ack
- - S:deliver
+ - Consumers have a set of properties (like the no-local and prefetch
+   options), which the queue uses when selecting consumers. To avoid
+   concurrency issues on consumers, we se these properties from the
+   queue, not the gateway.
+   
+ - The gateway configures the consumer by sending "quality" methods to
+   it, and thus to the queue. The queue handles the configure method by
+   updating its own data structures. and by setting properties in the
+   consumer.
 
-Confidence: 90%.
+ - The queue uses its list of consumers to delivers messages as they
+   arrive and match the consumer criteria and queue round-robinning
+   mechanisms.
 
-The ROUTING Portal
-------------------
+Consumer Methods
+----------------
 
-Purpose: defines the relationship between
+The consumer defines these request methods:
 
-Server: a queue instance.
+ - configure - configures a new subscriber using the specified
+   arguments. The arguments are: a routing key, an arguments field
+   table, and a routing option.  The sink sends a single configure
+   method.
 
-Client: a session.
+ - quality - sets the quality of service for the consumer.  The gateway
+   can send zero or more quality methods.
 
-Methods:
+ - ack - acknowledges a set of delivered messages, for consumers that
+   use explicit acknowledgements.
 
- - C:consume, C:cancel, C:get, C:ack
- - S:deliver
+ - enable - enables the consumer.
 
-Confidence: 90%.
+ - disable - disables the consumer.
+
+The consumer defines these response methods:
+
+ - deliver - delivers a message to the gateway.
+
 
