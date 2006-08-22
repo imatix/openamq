@@ -383,7 +383,7 @@ typedef int (amq_peering_content_fn) (
     //
     <action>
     if (self->content_fn)
-        (self->content_fn) (self->status_caller, self, method);
+        (self->content_fn) (self->content_caller, self, method);
     </action>
 </method>
 

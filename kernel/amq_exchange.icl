@@ -134,8 +134,21 @@ for each type of exchange. This is a lock-free asynchronous class.
     <argument name = "internal" type = "Bool">Internal exchange?</argument>
     <dismiss argument = "key" value = "name">Key is exchange name</dismiss>
     <local>
-    amq_broker_t
-        *broker = amq_broker;
+        amq_broker_t
+            *broker = amq_broker;
+        ipr_config_t
+            *config;
+        amq_cluster_mta_t
+            *mta;
+        char
+            *exchange,
+            *host,
+            *virtual_host,
+            *login,
+            *consume_mode,
+            *forward_mode,
+            *copy;
+
     </local>
     //
     self->broker        = broker;
@@ -189,6 +202,34 @@ for each type of exchange. This is a lock-free asynchronous class.
             "E: invalid type '%d' in exchange_new", self->type);
 
     amq_exchange_by_vhost_queue (self->vhost->exchange_list, self);
+
+if (atoi (amq_server_config_port (amq_server_config)) == 5672) {
+    //  Create appropriate MTAs as specified in the config file
+    config = ipr_config_dup (amq_server_config->config);
+    ipr_config_locate (config, "/config/cluster-mta", NULL);
+    while (config->located) {
+        if (strcmp (config->xml_item->name, "cluster-mta") == 0) {
+            exchange = ipr_config_get (config, "exchange", NULL);
+            if (strcmp (name, exchange) == 0) {
+                host = ipr_config_get (config, "host", NULL);
+                virtual_host = ipr_config_get (config, "virtual-host", NULL);
+                login = ipr_config_get (config, "login", NULL);
+                consume_mode = ipr_config_get (config, "consume_mode", "0");
+                forward_mode = ipr_config_get (config, "forward_mode", "0");
+                copy = ipr_config_get (config, "copy", "1");
+                
+                mta = amq_cluster_mta_new (host, virtual_host, login, self,
+                    strcmp (consume_mode, "all") == 0 ? TRUE : FALSE,
+                    strcmp (forward_mode, "all") == 0 ? TRUE : FALSE,
+                    strcmp (copy, "1") == 0 ? TRUE : FALSE); 
+                amq_cluster_mta_list_push_back (self->mtas, mta);
+                amq_cluster_mta_unlink (&mta);
+            }
+        }
+        ipr_config_next (config);
+    }
+    ipr_config_destroy (&config);
+}
 </method>
 
 <method name = "destroy">
@@ -426,23 +467,6 @@ for each type of exchange. This is a lock-free asynchronous class.
         else
             binding = amq_binding_list_next (&binding);
     }
-    </action>
-</method>
-
-<method name = "add mta" template = "async function" async = "1">
-    <argument name = "host" type = "char *">Host to connect to</argument>
-    <argument name = "virtual host" type = "char *">Virtual host</argument>
-    <argument name = "login" type = "char*">Login</argument>
-    <argument name = "pull" type = "Bool" />
-    <argument name = "push" type = "Bool" />
-    <argument name = "copy" type = "Bool" />
-    <action>
-    amq_cluster_mta_t
-        *mta;
-
-    mta = amq_cluster_mta_new (host, virtual_host, login, self, pull, push, copy); 
-    amq_cluster_mta_list_push_back (self->mtas, mta);
-    amq_cluster_mta_unlink (&mta);
     </action>
 </method>
 

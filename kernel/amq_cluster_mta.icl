@@ -34,7 +34,7 @@ s_content_handler (
     amq_peer_method_t *peer_method)
 {
     amq_cluster_mta_t
-        *self = (amq_cluster_mta_t*) self;
+        *self = (amq_cluster_mta_t*) vself;
     amq_client_method_t
         *client_method;
 

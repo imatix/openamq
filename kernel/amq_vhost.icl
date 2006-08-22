@@ -38,20 +38,6 @@ Defines a virtual host. This is a lock-free asynchronous class.
 <method name = "new">
     <argument name = "broker" type = "amq_broker_t *">Parent broker</argument>
     <argument name = "name"   type = "char *">Virtual host name</argument>
-    <local>
-        amq_exchange_t
-            *exchange_object;
-        ipr_config_t
-            *config;
-        char
-            *exchange,
-            *host,
-            *virtual_host,
-            *login,
-            *consume_mode,
-            *forward_mode,
-            *copy;
-    </local>
 
     //TODO: load config from directory
     //TODO: amq_server object, holding vhost hash table
@@ -75,37 +61,6 @@ Defines a virtual host. This is a lock-free asynchronous class.
     s_exchange_declare (self, "amq.headers", AMQ_EXCHANGE_HEADERS, FALSE);
     s_exchange_declare (self, "amq.system",  AMQ_EXCHANGE_SYSTEM,  FALSE);
     s_exchange_declare (self, "amq.notify",  AMQ_EXCHANGE_TOPIC,   FALSE);
-
-if (atoi (amq_server_config_port (amq_server_config)) == 5672) {
-    //  Initialise MTAs
-    config = ipr_config_dup (amq_server_config->config);
-    ipr_config_locate (config, "/config/cluster-mta", NULL);
-    while (config->located) {
-        if (strcmp (config->xml_item->name, "cluster-mta") == 0) {
-            exchange = ipr_config_get (config, "exchange", NULL);
-            host = ipr_config_get (config, "host", NULL);
-            virtual_host = ipr_config_get (config, "virtual-host", NULL);
-            login = ipr_config_get (config, "login", NULL);
-            consume_mode = ipr_config_get (config, "consume_mode", "0");
-            forward_mode = ipr_config_get (config, "forward_mode", "0");
-            copy = ipr_config_get (config, "copy", "1");
-            exchange_object = amq_exchange_table_search (self->exchange_table,
-                "amq.direct");
-            if (!exchange_object)
-                icl_console_print ("E: Unknown exchange %s used by MTA. Ignoring.",
-                    exchange);
-            else {
-                amq_exchange_add_mta (exchange_object, host, virtual_host, login,
-                    strcmp (consume_mode, "all") == 0 ? TRUE : FALSE,
-                    strcmp (forward_mode, "all") == 0 ? TRUE : FALSE,
-                    strcmp (copy, "1") == 0 ? TRUE : FALSE);
-                amq_exchange_unlink (&exchange_object);
-            }
-        }
-        ipr_config_next (config);
-    }
-    ipr_config_destroy (&config);
-}
 </method>
 
 <method name = "destroy">
