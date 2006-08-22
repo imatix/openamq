@@ -33,6 +33,9 @@
   <action name = "deliver">
     amq_peering_peer_basic_deliver (caller, self);
   </action>
+  <action name = "return">
+    amq_peering_peer_basic_return (caller, self);
+  </action>
 </class>
 
 <class name = "file">

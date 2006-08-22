@@ -431,7 +431,7 @@ if (atoi (amq_server_config_port (amq_server_config)) == 5672) {
     for (iterator = amq_cluster_mta_list_begin (self->mtas);
           iterator != NULL;
           iterator = amq_cluster_mta_list_next (iterator))
-        amq_cluster_mta_message_published (*iterator, method->content,
+        amq_cluster_mta_message_published (*iterator, channel, method->content,
             method->payload.basic_publish.mandatory,
             method->payload.basic_publish.immediate); 
     </action>

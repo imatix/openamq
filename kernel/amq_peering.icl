@@ -97,6 +97,8 @@ typedef int (amq_peering_status_fn) (
     void *caller, amq_peering_t *peering, Bool connected);
 typedef int (amq_peering_content_fn) (
     void *caller, amq_peering_t *peering, __amq_peer_method_t *method);
+typedef int (amq_peering_return_fn) (
+    void *caller, amq_peering_t *peering, __amq_peer_method_t *method);
 </public>
 
 <context>
@@ -128,6 +130,10 @@ typedef int (amq_peering_content_fn) (
         *content_fn;                    //  Content delivery callback
     void
         *content_caller;                //  Object to invoke
+    amq_peering_return_fn
+        *return_fn;                     //  Returned message delivery callback
+    void
+        *return_caller;                 //  Object to invoke
 </context>
 
 <!-- ********  The following methods form part of the peering API  ******** -->
@@ -237,6 +243,30 @@ typedef int (amq_peering_content_fn) (
     //
     self->content_fn = NULL;
     self->content_caller = NULL;
+</method>
+
+<method name = "set return handler" template = "function">
+    <doc>
+    Register a basic_return callback handler.  The callback in invoked
+    when a returned basic message arrives from the remote peered server. If the
+    callback function is NULL, no basic return callbacks will be made.
+    The caller object MUST cancel its registration when stopping.
+    </doc>
+    <argument name = "return_fn" type = "amq_peering_return_fn *">Callback</argument>
+    <argument name = "caller" type = "void *">Reference of caller object</argument>
+    //
+    self->return_fn = return_fn;
+    self->return_caller = caller;
+</method>
+
+<method name = "cancel return handler" template = "function">
+    <doc>
+    Cancel a basic_return callback handler.
+    </doc>
+    <argument name = "caller" type = "void *">Reference of caller object</argument>
+    //
+    self->return_fn = NULL;
+    self->return_caller = NULL;
 </method>
 
 <method name = "bind" template = "async function" async = "1">
@@ -384,6 +414,18 @@ typedef int (amq_peering_content_fn) (
     <action>
     if (self->content_fn)
         (self->content_fn) (self->content_caller, self, method);
+    </action>
+</method>
+
+<method name = "peer basic return" template = "async function" async = "1">
+    <doc>
+    Handles a Basic.Return method coming from the peered server.
+    </doc>
+    <argument name = "method" type = "amq_peer_method_t *" />
+    //
+    <action>
+    if (self->return_fn)
+        (self->return_fn) (self->return_caller, self, method);
     </action>
 </method>
 
