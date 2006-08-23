@@ -141,14 +141,12 @@ for each type of exchange. This is a lock-free asynchronous class.
         amq_cluster_mta_t
             *mta;
         char
-            *exchange,
             *host,
             *virtual_host,
             *login,
             *consume_mode,
             *forward_mode,
             *copy;
-
     </local>
     //
     self->broker        = broker;
@@ -203,33 +201,25 @@ for each type of exchange. This is a lock-free asynchronous class.
 
     amq_exchange_by_vhost_queue (self->vhost->exchange_list, self);
 
-if (atoi (amq_server_config_port (amq_server_config)) == 5672) {
     //  Create appropriate MTAs as specified in the config file
     config = ipr_config_dup (amq_server_config->config);
-    ipr_config_locate (config, "/config/cluster-mta", NULL);
-    while (config->located) {
-        if (strcmp (config->xml_item->name, "cluster-mta") == 0) {
-            exchange = ipr_config_get (config, "exchange", NULL);
-            if (strcmp (name, exchange) == 0) {
-                host = ipr_config_get (config, "host", NULL);
-                virtual_host = ipr_config_get (config, "virtual-host", NULL);
-                login = ipr_config_get (config, "login", NULL);
-                consume_mode = ipr_config_get (config, "consume_mode", "0");
-                forward_mode = ipr_config_get (config, "forward_mode", "0");
-                copy = ipr_config_get (config, "copy", "1");
+    ipr_config_locate (config, "/config/cluster-mta", name);
+    if (config->located) {    
+        host = ipr_config_get (config, "host", NULL);
+        virtual_host = ipr_config_get (config, "virtual-host", NULL);
+        login = ipr_config_get (config, "login", NULL);
+        consume_mode = ipr_config_get (config, "consume-mode", "0");
+        forward_mode = ipr_config_get (config, "forward-mode", "0");
+        copy = ipr_config_get (config, "copy", "1");
                 
-                mta = amq_cluster_mta_new (host, virtual_host, login, self,
-                    strcmp (consume_mode, "all") == 0 ? TRUE : FALSE,
-                    strcmp (forward_mode, "all") == 0 ? TRUE : FALSE,
-                    strcmp (copy, "1") == 0 ? TRUE : FALSE); 
-                amq_cluster_mta_list_push_back (self->mtas, mta);
-                amq_cluster_mta_unlink (&mta);
-            }
-        }
-        ipr_config_next (config);
+        mta = amq_cluster_mta_new (host, virtual_host, login, self,
+            strcmp (consume_mode, "all") == 0 ? TRUE : FALSE,
+            strcmp (forward_mode, "all") == 0 ? TRUE : FALSE,
+            strcmp (copy, "1") == 0 ? TRUE : FALSE); 
+        amq_cluster_mta_list_push_back (self->mtas, mta);
+        amq_cluster_mta_unlink (&mta);
     }
     ipr_config_destroy (&config);
-}
 </method>
 
 <method name = "destroy">
