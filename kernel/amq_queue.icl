@@ -317,8 +317,6 @@ class.  This is a lock-free asynchronous class.
         *connection;
     amq_server_channel_t
         *channel;
-    amq_consumer_t
-        *consumer_ref;
 
     //  Validate consumer
     channel = amq_server_channel_link (consumer->channel);

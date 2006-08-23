@@ -24,23 +24,47 @@ merge these two classes into one.
 <data name = "cml">
     <class name = "connection" parent = "broker" label = "Client Connection">
         <field name = "name" label = "Connection name">
-          <get>icl_shortstr_cpy (field_value, self->connection->id);</get>
+          <local>
+            amq_server_connection_t
+                *connection;
+          </local>
+          <header>
+            connection = amq_server_connection_link (self->connection);
+            if (connection) {
+          </header>
+          <get>icl_shortstr_cpy (field_value, connection->id);</get>
+          <footer>
+                amq_server_connection_unlink (&connection);
+            }
+          </footer>
         </field>
         <field name = "pending" label = "Messages pending" type = "int">
           <rule name = "show on summary" />
-          <local>
+          <local name = "get">
             size_t
                 pending = 0;
             amq_consumer_t
                 *consumer;              //  Consumer object reference
+            amq_server_channel_t
+                *channel;
+            amq_queue_t
+                *queue;
           </local>
           <get>
             //  Count total pending messages in all private (exclusive) queues
-            consumer = amq_consumer_by_channel_first (self->channel->consumer_list);
-            while (consumer) {
-                if (consumer->queue->exclusive)
-                    pending += amq_queue_message_count (consumer->queue);
-                consumer = amq_consumer_by_channel_next (&consumer);
+            channel = amq_server_channel_link (self->channel);
+            if (channel) {
+                consumer = amq_consumer_by_channel_first (channel->consumer_list);
+                while (consumer) {
+                    queue = amq_queue_link (queue);
+                    if (queue) {
+                        if (queue->exclusive)
+                            pending += amq_queue_message_count (queue);
+                        amq_queue_unlink (&queue);
+                    }
+                    consumer = amq_consumer_by_channel_next (&consumer);
+                }
+                amq_server_channel_unlink (&channel);
             }
             icl_shortstr_fmt (field_value, "%d", pending);
           </get>
@@ -48,59 +72,63 @@ merge these two classes into one.
         <field name = "address" label = "Client IP address:port">
           <rule name = "show on summary" />
           <rule name = "ip address" />
-          <get>icl_shortstr_cpy (field_value, self->connection->client_address);</get>
+          <get>icl_shortstr_cpy (field_value, connection->client_address);</get>
         </field>
         <field name = "user_name" label = "User login name">
-          <get>icl_shortstr_cpy (field_value, self->connection->user_name);</get>
+          <get>icl_shortstr_cpy (field_value, connection->user_name);</get>
         </field>
         <field name = "instance" label = "Client instance name">
           <rule name = "show on summary" />
-          <get>icl_shortstr_cpy (field_value, self->connection->client_instance);</get>
+          <get>icl_shortstr_cpy (field_value, connection->client_instance);</get>
         </field>
         <field name = "started" label = "Date, time connection started">
-          <get>ipr_time_iso8601 (self->connection->started,
+          <get>ipr_time_iso8601 (connection->started,
             ipr_date_format_minute, 0, ipr_time_zone (), field_value);</get>
         </field>
         <field name = "messages_in" type = "int" label = "Messages published">
-          <get>icl_shortstr_fmt (field_value, "%d", self->connection->contents_in);</get>
+          <get>icl_shortstr_fmt (field_value, "%d", connection->contents_in);</get>
         </field>
         <field name = "messages_out" type = "int" label = "Messages consumed">
-          <get>icl_shortstr_fmt (field_value, "%d", self->connection->contents_out);</get>
+          <get>icl_shortstr_fmt (field_value, "%d", connection->contents_out);</get>
         </field>
         <field name = "megabytes_in" type = "int" label = "Megabytes published">
           <rule name = "show on summary" />
-          <get>icl_shortstr_fmt (field_value, "%d", (int) (self->connection->traffic_in / (1024 * 1024)));</get>
+          <get>icl_shortstr_fmt (field_value, "%d", (int) (connection->traffic_in / (1024 * 1024)));</get>
         </field>
         <field name = "megabytes_out" type = "int" label = "Megabytes consumed">
           <rule name = "show on summary" />
-          <get>icl_shortstr_fmt (field_value, "%d", (int) (self->connection->traffic_out / (1024 * 1024)));</get>
+          <get>icl_shortstr_fmt (field_value, "%d", (int) (connection->traffic_out / (1024 * 1024)));</get>
         </field>
         <field name = "product" label = "Reported client product name">
-          <get>icl_shortstr_cpy (field_value, self->connection->client_product);</get>
+          <get>icl_shortstr_cpy (field_value, connection->client_product);</get>
         </field>
         <field name = "version" label = "Reported client version">
-          <get>icl_shortstr_cpy (field_value, self->connection->client_version);</get>
+          <get>icl_shortstr_cpy (field_value, connection->client_version);</get>
         </field>
         <field name = "platform" label = "Reported client platform">
-          <get>icl_shortstr_cpy (field_value, self->connection->client_platform);</get>
+          <get>icl_shortstr_cpy (field_value, connection->client_platform);</get>
         </field>
         <field name = "information" label = "Other client information">
-          <get>icl_shortstr_cpy (field_value, self->connection->client_information);</get>
+          <get>icl_shortstr_cpy (field_value, connection->client_information);</get>
         </field>
         <field name = "trace" label = "Trace level, 0-3" type = "int">
           <get>
-            icl_shortstr_fmt (field_value, "%d", self->connection->trace);
+            icl_shortstr_fmt (field_value, "%d", connection->trace);
           </get>
           <put>
-            amq_server_connection_set_trace (self->connection, atoi (field_value));
+            amq_server_connection_set_trace (connection, atoi (field_value));
           </put>
         </field>
 
         <class name = "connection_queue" label = "Connection queues" repeat = "1">
           <get>
-            consumer = amq_consumer_by_channel_first (self->channel->consumer_list);
-            if (consumer)
-                icl_shortstr_fmt (field_value, "%d", consumer->mgt_connection_queue->object_id);
+            channel = amq_server_channel_link (self->channel);
+            if (channel) {
+                consumer = amq_consumer_by_channel_first (channel->consumer_list);
+                if (consumer)
+                    icl_shortstr_fmt (field_value, "%d", consumer->mgt_connection_queue->object_id);
+                amq_server_channel_unlink (&channel);
+            }
           </get>
           <next>
             consumer = amq_consumer_by_channel_next (&consumer);
@@ -113,10 +141,18 @@ merge these two classes into one.
           <doc>
           Disconnects the client application.
           </doc>
+          <local>
+            amq_server_connection_t
+                *connection;
+          </local>
           <exec>
-            asl_log_print (amq_broker->alert_log,
-                "W: operator killed connection to %s", self->connection->client_address);
-            amq_server_connection_kill (self->connection);
+            connection = amq_server_connection_link (self->connection);
+            if (connection) {
+                asl_log_print (amq_broker->alert_log,
+                    "W: operator killed connection to %s", connection->client_address);
+                amq_server_connection_kill (connection);
+                amq_server_connection_unlink (&connection);
+            }
           </exec>
         </method>
     </class>

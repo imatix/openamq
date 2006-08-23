@@ -82,17 +82,22 @@ static amq_console_class_t
     icl_shortstr_t
         field_value;
 .for global.top->data->class.field
-.   for local
+.   for local where (0.name?"get") = "get"
     $(string.trim (local.?''))
 .   endfor
 .endfor
 .for global.top->data->class.class
-.   for local
+.   for local where (0.name?"get") = "get"
     $(string.trim (local.?''))
 .   endfor
 .endfor
 
     fields = asl_field_list_new (NULL);
+.for global.top->data->class.field
+.   for header where (0.name?"get") = "get"
+    $(string.trim (header.?''))
+.   endfor
+.endfor
 .for global.top->data->class.field
 .   for get
     $(string.trim (get.?''))
@@ -115,6 +120,11 @@ static amq_console_class_t
 .   else
     asl_field_new_string (fields, "$(name)", field_value);
 .   endif
+.endfor
+.for global.top->data->class.field
+.   for footer where (0.name?"get") = "get"
+    $(string.trim (footer.?''))
+.   endfor
 .endfor
     amq_console_reply_ok (amq_console, "inspect-reply", request, self->object_id, fields, NULL);
     asl_field_list_unlink (&fields);
@@ -149,9 +159,19 @@ static amq_console_class_t
         field_value;
 .   last
 .endfor
-    char 
+.for global.top->data->class.field
+.   for local where (0.name?"put") = "put"
+    $(string.trim (local.?''))
+.   endfor
+.endfor
+    char
         *notice_text = NULL;            //  Notice to UI, if any
-        
+
+.for global.top->data->class.field
+.   for header where (0.name?"put") = "put"
+    $(string.trim (header.?''))
+.   endfor
+.endfor
 .for global.top->data->class.field
 .   for put
     field = asl_field_list_search (fields, "$(name)");
@@ -160,6 +180,11 @@ static amq_console_class_t
         $(string.trim (.))
         asl_field_unlink (&field);
     }
+.   endfor
+.endfor
+.for global.top->data->class.field
+.   for footer where (0.name?"put") = "put"
+    $(string.trim (footer.?''))
 .   endfor
 .endfor
     amq_console_reply_ok (
@@ -193,9 +218,13 @@ static amq_console_class_t
     <action>
     int
         rc = 0;
-    char 
+    char
         *notice_text = NULL;            //  Notice to UI, if any
-
+.for global.top->data->class.method
+.   for local
+    $(string.trim (local.?''))
+.   endfor
+.endfor
 .for global.top->data->class.method
     if (streq (method_name, "$(method.name)")) {
 .   for field
@@ -206,7 +235,7 @@ static amq_console_class_t
 .       endif
 .       if type = "string"
         icl_shortstr_t
-            $(name);     
+            $(name);
 .       elsif type = "int"
         qbyte
             $(name) = 0;

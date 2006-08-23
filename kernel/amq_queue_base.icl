@@ -228,8 +228,7 @@ static void
 s_free_consumer_queue (amq_consumer_by_queue_t **queue)
 {
     amq_consumer_t
-        *consumer,
-        *consumer_ref;
+        *consumer;
 
     while ((consumer = amq_consumer_by_queue_pop (*queue))) {
         amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE, TRUE);
