@@ -144,9 +144,9 @@ for each type of exchange. This is a lock-free asynchronous class.
             *host,
             *virtual_host,
             *login,
-            *consume_mode,
-            *forward_mode,
-            *copy;
+            *mode;
+        int
+            mta_mode = 0;
     </local>
     //
     self->broker        = broker;
@@ -208,16 +208,26 @@ for each type of exchange. This is a lock-free asynchronous class.
         host = ipr_config_get (config, "host", NULL);
         virtual_host = ipr_config_get (config, "virtual-host", NULL);
         login = ipr_config_get (config, "login", NULL);
-        consume_mode = ipr_config_get (config, "consume-mode", "0");
-        forward_mode = ipr_config_get (config, "forward-mode", "0");
-        copy = ipr_config_get (config, "copy", "1");
-                
-        mta = amq_cluster_mta_new (host, virtual_host, login, self,
-            strcmp (consume_mode, "all") == 0 ? TRUE : FALSE,
-            strcmp (forward_mode, "all") == 0 ? TRUE : FALSE,
-            strcmp (copy, "1") == 0 ? TRUE : FALSE); 
-        amq_cluster_mta_list_push_back (self->mtas, mta);
-        amq_cluster_mta_unlink (&mta);
+        mode = ipr_config_get (config, "mode", NULL);
+        if (mode) {
+            if (streq (mode, "subscriber"))
+                mta_mode = AMQ_CLUSTER_MTA_MODE_SUBSCRIBER;
+            else if (streq (mode, "forward-all"))
+                mta_mode = AMQ_CLUSTER_MTA_MODE_FORWARD_ALL;
+            else if (streq (mode, "forward-else"))
+                mta_mode = AMQ_CLUSTER_MTA_MODE_FORWARD_ELSE;
+            else
+                icl_console_print ("W: Invalid MTA mode in config file. Ignoring MTA.");
+
+            if (mta_mode) {
+                mta = amq_cluster_mta_new (host, virtual_host, login, self,
+                    mta_mode); 
+                amq_cluster_mta_list_push_back (self->mtas, mta);
+                amq_cluster_mta_unlink (&mta);
+            }
+        }
+        else
+            icl_console_print ("W: No 'mode' attribute set for MTA in config fie. Ignoring MTA.");
     }
     ipr_config_destroy (&config);
 </method>
@@ -400,7 +410,7 @@ for each type of exchange. This is a lock-free asynchronous class.
     //
     <action>
     int
-        delivered;                      //  Number of message deliveries
+        delivered = 0;                      //  Number of message deliveries
     int64_t
         content_size;
     amq_cluster_mta_list_iterator_t
@@ -423,7 +433,8 @@ for each type of exchange. This is a lock-free asynchronous class.
           iterator = amq_cluster_mta_list_next (iterator))
         amq_cluster_mta_message_published (*iterator, channel, method->content,
             method->payload.basic_publish.mandatory,
-            method->payload.basic_publish.immediate); 
+            method->payload.basic_publish.immediate,
+            delivered ? TRUE : FALSE); 
     </action>
 </method>
 

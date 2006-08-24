@@ -20,11 +20,15 @@
         *peering;
     amq_exchange_t
         *exchange;
-    Bool
-        pull,
-        push,
-        copy;
+    int
+        mode;  //  One of the AMQ_CLUSTER_MTA_MODE constants
 </context>
+
+<public>
+#define AMQ_CLUSTER_MTA_MODE_SUBSCRIBER     1
+#define AMQ_CLUSTER_MTA_MODE_FORWARD_ALL   2
+#define AMQ_CLUSTER_MTA_MODE_FORWARD_ELSE  3
+</public>
 
 <private>
 static int
@@ -38,7 +42,7 @@ s_content_handler (
     amq_client_method_t
         *client_method;
 
-    if (self->pull) {
+    if (self->mode == AMQ_CLUSTER_MTA_MODE_SUBSCRIBER) {
 
         assert (peer_method->class_id == AMQ_PEER_BASIC &&
               peer_method->method_id == AMQ_PEER_BASIC_DELIVER);
@@ -76,7 +80,8 @@ s_return_handler (
     amq_server_connection_t
         *connection;
 
-    if (self->push) {
+    if (self->mode == AMQ_CLUSTER_MTA_MODE_FORWARD_ALL ||
+          self->mode == AMQ_CLUSTER_MTA_MODE_FORWARD_ELSE) {
 
         assert (peer_method->class_id == AMQ_PEER_BASIC &&
               peer_method->method_id == AMQ_PEER_BASIC_RETURN);
@@ -121,18 +126,13 @@ s_return_handler (
     <argument name = "virtual host" type = "char *">Virtual host</argument>
     <argument name = "login" type = "char*">Login</argument>
     <argument name = "exchange" type = "amq_exchange_t*" />
-    <argument name = "pull" type = "Bool" />
-    <argument name = "push" type = "Bool" />
-    <argument name = "copy" type = "Bool">
-        <doc>
-        If true, message is published on both local and remote servers
-        If false, message is published only on the remote server
-        If push is false, argument has no meaning
-        </doc>
-    </argument>
-    self->pull = pull;
-    self->push = push;
-    self->copy = copy;
+    <argument name = "mode" type = "int" />
+
+    assert (mode == AMQ_CLUSTER_MTA_MODE_SUBSCRIBER ||
+        mode == AMQ_CLUSTER_MTA_MODE_FORWARD_ALL ||
+        mode == AMQ_CLUSTER_MTA_MODE_FORWARD_ELSE);
+
+    self->mode = mode;
     self->peering = amq_peering_new (host, virtual_host,
         amq_server_config_trace (amq_server_config));
     amq_peering_set_login (self->peering, login);
@@ -142,7 +142,7 @@ s_return_handler (
         (void*) self);
     amq_peering_start (self->peering);
     self->exchange = amq_exchange_link (exchange);
-    if (!self->copy)
+    if (self->mode == AMQ_CLUSTER_MTA_MODE_FORWARD_ALL)
         amq_exchange_discard_messages (self->exchange, TRUE);
 </method>
 
@@ -164,22 +164,25 @@ s_return_handler (
     <argument name = "content" type = "amq_content_basic_t*" />
     <argument name = "mandatory" type = "Bool" />
     <argument name = "immediate" type = "Bool" />
+    <argument name = "delivered" type = "Bool" />
     <local>
     icl_shortstr_t
         sender_id;
     </local>
 
-    if (self->push) {
+    if (self->mode == AMQ_CLUSTER_MTA_MODE_FORWARD_ALL ||
+          self->mode == AMQ_CLUSTER_MTA_MODE_FORWARD_ELSE) {
 
         //  Pulled messages (with channel = 0x0) cannot be forwarded so far
         assert (channel);
 
-       icl_shortstr_fmt (sender_id, "%s|%ld", channel->connection->key,
+        icl_shortstr_fmt (sender_id, "%s|%ld", channel->connection->key,
             (long) channel->number);
         amq_content_basic_set_sender_id (content, sender_id);
 
-        amq_peering_forward (self->peering, self->exchange->name,
-            content->routing_key, content, mandatory, immediate);
+        if (self->mode == AMQ_CLUSTER_MTA_MODE_FORWARD_ALL || !delivered)
+            amq_peering_forward (self->peering, self->exchange->name,
+                content->routing_key, content, mandatory, immediate);
     }
 </method>
 
