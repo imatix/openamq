@@ -59,17 +59,15 @@ static amq_console_class_t
     </action>
 </method>
 
-<method name = "inspect" async = "1" return = "rc">
+<method name = "inspect shim" return = "rc">
     <argument name = "self_v"  type = "void *">Object cast as a void *</argument>
     <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
     <declare name = "rc" type = "int" default = "0" />
-    <local>
-    $(selftype)
-        *self = self_v;
-    </local>
-    <header>
-    $(selfname:upper)_ASSERT_SANE (self);
-    </header>
+    self_inspect (($(selftype) *) (self_v), request);
+</method>
+
+<method name = "inspect" template = "async function" async = "1">
+    <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
     <possess>
     request = amq_content_basic_link (request);
     </possess>
@@ -130,19 +128,17 @@ static amq_console_class_t
     asl_field_list_unlink (&fields);
     </action>
 </method>
-
-<method name = "modify" async = "1" return = "rc">
+<method name = "modify shim" return = "rc">
     <argument name = "self_v"  type = "void *">Object cast as a void *</argument>
     <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
     <argument name = "fields"  type = "asl_field_list_t *">Fields to modify</argument>
     <declare name = "rc" type = "int" default = "0" />
-    <local>
-    $(selftype)
-        *self = self_v;
-    </local>
-    <header>
-    $(selfname:upper)_ASSERT_SANE (self);
-    </header>
+    self_modify (($(selftype) *) (self_v), request, fields);
+</method>
+
+<method name = "modify" template = "async function" async = "1">
+    <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
+    <argument name = "fields"  type = "asl_field_list_t *">Fields to modify</argument>
     <possess>
     request = amq_content_basic_link (request);
     asl_field_list_link (fields);
@@ -192,19 +188,19 @@ static amq_console_class_t
     </action>
 </method>
 
-<method name = "method" async = "1" return = "rc">
+<method name = "method shim" return = "rc">
     <argument name = "self_v"  type = "void *">Object cast as a void *</argument>
-    <argument name = "method name"  type = "char *">Argument fields</argument>
+    <argument name = "method name" type = "char *">Method name</argument>
     <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
-    <argument name = "fields"  type = "asl_field_list_t *">Argument fields</argument>
+    <argument name = "fields"  type = "asl_field_list_t *">Fields to modify</argument>
     <declare name = "rc" type = "int" default = "0" />
-    <local>
-    $(selftype)
-        *self = self_v;
-    </local>
-    <header>
-    $(selfname:upper)_ASSERT_SANE (self);
-    </header>
+    self_method (($(selftype) *) (self_v), method_name, request, fields);
+</method>
+
+<method name = "method" template = "async function" async = "1">
+    <argument name = "method name" type = "char *">Method name</argument>
+    <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
+    <argument name = "fields" type = "asl_field_list_t *">Argument fields</argument>
     <possess>
     method_name = icl_mem_strdup (method_name);
     request = amq_content_basic_link (request);
@@ -279,9 +275,9 @@ static amq_console_class_t
 <method name = "initialise">
     s_class = amq_console_class_new ();
     s_class->name    = "$(console_class)";
-    s_class->inspect = $(selfname)_inspect;
-    s_class->modify  = $(selfname)_modify;
-    s_class->method  = $(selfname)_method;
+    s_class->inspect = $(selfname)_inspect_shim;
+    s_class->modify  = $(selfname)_modify_shim;
+    s_class->method  = $(selfname)_method_shim;
 </method>
 
 <method name = "terminate">
