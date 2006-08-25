@@ -56,7 +56,7 @@ merge these two classes into one.
             if (channel) {
                 consumer = amq_consumer_by_channel_first (channel->consumer_list);
                 while (consumer) {
-                    queue = amq_queue_link (queue);
+                    queue = amq_queue_link (consumer->queue);
                     if (queue) {
                         if (queue->exclusive)
                             pending += amq_queue_message_count (queue);

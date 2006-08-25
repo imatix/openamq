@@ -47,7 +47,17 @@ class.  This is a lock-free asynchronous class.
         <field name = "client" label = "Client host name">
           <rule name = "show on summary" />
           <rule name = "ip address" />
-          <get>icl_shortstr_cpy (field_value, self->connection? self->connection->client_address: "");</get>
+          <local name = "get">
+            amq_server_connection_t
+                *connection;
+          </local>
+          <get>
+            connection = amq_server_connection_link (self->connection);
+            if (connection) {
+                icl_shortstr_cpy (field_value, connection->client_address);
+                amq_server_connection_unlink (&connection);
+            }
+          </get>
         </field>
         <field name = "exchange_type" label = "Exchange type">
           <rule name = "show on summary" />
