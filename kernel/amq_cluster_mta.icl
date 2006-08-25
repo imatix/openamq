@@ -79,7 +79,6 @@
     <argument name = "content" type = "amq_content_basic_t *" />
     <argument name = "mandatory" type = "Bool" />
     <argument name = "immediate" type = "Bool" />
-    <argument name = "delivered" type = "Bool" />
     <possess>
     channel = amq_server_channel_link (channel);
     content = amq_content_basic_link (content);
@@ -93,25 +92,20 @@
     icl_shortstr_t
         sender_id;
     
-    if (self->mode == AMQ_MTA_MODE_FORWARD_ALL
-    ||  self->mode == AMQ_MTA_MODE_FORWARD_ELSE) {
-        //  Pulled messages (null channel) cannot be forwarded
-        assert (channel);
+    //  Pulled messages (null channel) cannot be forwarded
+    assert (channel);
 
-        icl_shortstr_fmt (sender_id, "%s|%d", channel->connection->key, channel->number);
-        amq_content_basic_set_sender_id (content, sender_id);
+    icl_shortstr_fmt (sender_id, "%s|%d", channel->connection->key, channel->number);
+    amq_content_basic_set_sender_id (content, sender_id);
 
-        if (self->mode == AMQ_MTA_MODE_FORWARD_ALL || !delivered) {
-            icl_console_print ("I: Message pushed to the remote server.");
-            amq_peering_forward (
-                self->peering,
-                self->exchange->name,
-                content->routing_key,
-                content,
-                mandatory,
-                immediate);
-        }
-    }
+    icl_console_print ("I: Message pushed to the remote server.");
+    amq_peering_forward (
+        self->peering,
+        self->exchange->name,
+        content->routing_key,
+        content,
+        mandatory,
+        immediate);
     </action>
 </method>
 

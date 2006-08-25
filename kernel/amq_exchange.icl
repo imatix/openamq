@@ -393,27 +393,69 @@ for each type of exchange. This is a lock-free asynchronous class.
         delivered = 0;                      //  Number of message deliveries
     int64_t
         content_size;
+    amq_server_connection_t
+        *connection;
+    Bool
+        returned = FALSE;
 
-    if (!self->mta_mode == AMQ_MTA_MODE_FORWARD_ALL) {
-        icl_console_print ("I: Publishing to local consumers.");
-        delivered = self->publish (self->object, channel, method);
-        content_size = ((amq_content_basic_t *) method->content)->body_size;
+    icl_console_print ("I: Publishing to local consumers.");
+    delivered = self->publish (self->object, channel, method);
+    content_size = ((amq_content_basic_t *) method->content)->body_size;
 
-        //  Track exchange statistics
-        self->contents_in  += 1;
-        self->contents_out += delivered;
-        self->traffic_in   += content_size;
-        self->traffic_out  += (delivered * content_size);
-    }
-    //  Notify MTA about message being published
-    if (self->mta)
+    //  Publish message to MTA if required
+    if (self->mta && (self->mta_mode ==AMQ_MTA_MODE_FORWARD_ALL ||
+          (self->mta_mode == AMQ_MTA_MODE_FORWARD_ELSE && !delivered))) {
         amq_cluster_mta_message_published (
             self->mta,
             channel,
             method->content,
             method->payload.basic_publish.mandatory,
-            method->payload.basic_publish.immediate,
-            delivered? TRUE: FALSE);
+            method->payload.basic_publish.immediate);
+        delivered++;
+    }
+
+    if (!delivered && method->payload.basic_publish.mandatory) {
+        if (method->class_id == AMQ_SERVER_BASIC) {
+            if (!((amq_content_basic_t *) method->content)->returned) {
+                connection = channel?
+                    amq_server_connection_link (channel->connection): NULL;
+                if (connection) {
+                    amq_server_agent_basic_return (
+                        connection->thread,
+                        channel->number,
+                        (amq_content_basic_t *) method->content,
+                        ASL_NOT_DELIVERED,
+                        "Message cannot be processed - no route is defined",
+                        method->payload.basic_publish.exchange,
+                        method->payload.basic_publish.routing_key,
+                        ((amq_content_basic_t *) method->content)->sender_id,
+                        NULL);
+                    ((amq_content_basic_t *) method->content)->returned = TRUE;
+                }
+                returned = TRUE;
+                amq_server_connection_unlink (&connection);
+            }
+        }
+    }
+    if (amq_server_config_debug_route (amq_server_config)) {
+        if (returned)
+            asl_log_print (amq_broker->debug_log,
+                "X: return   %s: message=%s reason=unroutable_mandatory",
+                    self->name,
+                    ((amq_content_basic_t *) method->content)->message_id);
+        else
+        if (!delivered)
+            asl_log_print (amq_broker->debug_log,
+                "X: discard  %s: message=%s reason=unroutable_optional",
+                    self->name,
+                    ((amq_content_basic_t *) method->content)->message_id);
+    }
+
+    //  Track exchange statistics
+    self->contents_in  += 1;
+    self->contents_out += delivered;
+    self->traffic_in   += content_size;
+    self->traffic_out  += (delivered * content_size);
     </action>
 </method>
 

@@ -97,37 +97,6 @@ This is an abstract base class for all exchange implementations.
         amq_server_connection_link (channel->connection): NULL;
     </header>
     <footer>
-    if (!delivered && mandatory) {
-        if (method->class_id == AMQ_SERVER_BASIC) {
-            if (!basic_content->returned) {
-                if (connection) {
-                    amq_server_agent_basic_return (
-                        connection->thread,
-                        channel->number,
-                        basic_content,
-                        ASL_NOT_DELIVERED,
-                        "Message cannot be processed - no route is defined",
-                        basic_method->exchange,
-                        routing_key,
-                        sender_id,
-                        NULL);
-                    basic_content->returned = TRUE;
-                }
-                returned = TRUE;
-            }
-        }
-    }
-    if (amq_server_config_debug_route (amq_server_config)) {
-        if (returned)
-            asl_log_print (amq_broker->debug_log,
-                "X: return   %s: message=%s reason=unroutable_mandatory",
-                    self->exchange->name, message_id);
-        else
-        if (!delivered)
-            asl_log_print (amq_broker->debug_log,
-                "X: discard  %s: message=%s reason=unroutable_optional",
-                    self->exchange->name, message_id);
-    }
     amq_server_connection_unlink (&connection);
     rc = delivered;                     //  Return number of deliveries
     </footer>
