@@ -240,38 +240,10 @@ runs lock-free as a child of the asynchronous queue class.
             //  No consumers at all for content, send back to originator
             //  if the immediate flag was set, else discard it.
             if (content->immediate && !content->returned) {
-                amq_server_channel_t
-                    *channel;           //  Channel to send message back to
-
                 if (amq_server_config_debug_queue (amq_server_config))
                     asl_log_print (amq_broker->debug_log,
                         "Q: return   queue=%s message=%s",
                         self->queue->name, content->message_id);
-
-#ifdef __DISABLED_CLUSTER_TODO__
-//  Need a way to lookup the content to see what channel to return it
-//  on.  If not the cluster-tag then what?
-                //  We use content's cluster_id for return path
-                channel = amq_server_channel_cluster_search (content->cluster_id);
-                if (channel) {
-                    connection = amq_server_connection_link (channel->connection);
-                    if (connection) {
-                        content->returned = TRUE;
-                        amq_server_agent_basic_return (
-                            connection->thread,
-                            channel->number,
-                            content,
-                            ASL_NOT_DELIVERED,
-                            "No immediate consumers for Basic message",
-                            content->exchange,
-                            content->routing_key,
-                            content->sender_id,
-                            NULL);
-                        amq_server_connection_unlink (&connection);
-                    }
-                    amq_server_channel_unlink (&channel);
-                }
-#endif
             }
             else {
                 if (amq_server_config_debug_queue (amq_server_config))
