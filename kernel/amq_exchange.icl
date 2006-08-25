@@ -62,7 +62,6 @@ for each type of exchange. This is a lock-free asynchronous class.
 </data>
 
 <import class = "amq_server_classes" />
-<import class = "amq_cluster_mta_list" />
 
 <context>
     amq_broker_t
@@ -85,11 +84,11 @@ for each type of exchange. This is a lock-free asynchronous class.
         *binding_hash;                  //  Bindings hashed by routing_key
     ipr_index_t
         *binding_index;                 //  Gives us binding indices
-    Bool
-        discard_messages;               //  If true, all the messages are discarded
-                                        //  Only the notifications are sent
-    amq_cluster_mta_list_t
-        *mtas;                          //  List of MTAs attached to the exchange
+
+    amq_cluster_mta_t
+        *mta;                           //  MTA for this exchange, if any
+    int
+        mta_mode;                       //  MTA mode, if we're using an MTA
 
     //  Exchange access functions
     int
@@ -134,19 +133,18 @@ for each type of exchange. This is a lock-free asynchronous class.
     <argument name = "internal" type = "Bool">Internal exchange?</argument>
     <dismiss argument = "key" value = "name">Key is exchange name</dismiss>
     <local>
-        amq_broker_t
-            *broker = amq_broker;
-        ipr_config_t
-            *config;
-        amq_cluster_mta_t
-            *mta;
-        char
-            *host,
-            *virtual_host,
-            *login,
-            *mode;
-        int
-            mta_mode = 0;
+    amq_broker_t
+        *broker = amq_broker;
+    ipr_config_t
+        *config;
+    amq_cluster_mta_t
+        *mta;                           //  Newly created MTA
+    char
+        *mta_host,                      //  Host used for MTA
+        *mta_vhost,                     //  Virtual host for MTA
+        *mta_login;                     //  Login name for MTA
+    int
+        mta_mode;                       //  MTA mode
     </local>
     //
     self->broker        = broker;
@@ -158,7 +156,6 @@ for each type of exchange. This is a lock-free asynchronous class.
     self->binding_list  = amq_binding_list_new ();
     self->binding_hash  = ipr_hash_table_new ();
     self->binding_index = ipr_index_new ();
-    self->mtas          = amq_cluster_mta_list_new ();
     icl_shortstr_cpy (self->name, name);
 
     if (self->type == AMQ_EXCHANGE_SYSTEM) {
@@ -201,33 +198,21 @@ for each type of exchange. This is a lock-free asynchronous class.
 
     amq_exchange_by_vhost_queue (self->vhost->exchange_list, self);
 
-    //  Create appropriate MTAs as specified in the config file
+    //  If exchange is configured for message transfer, create MTA agent
     config = ipr_config_dup (amq_server_config->config);
     ipr_config_locate (config, "/config/cluster-mta", name);
-    if (config->located) {    
-        host = ipr_config_get (config, "host", NULL);
-        virtual_host = ipr_config_get (config, "virtual-host", NULL);
-        login = ipr_config_get (config, "login", NULL);
-        mode = ipr_config_get (config, "mode", NULL);
-        if (mode) {
-            if (streq (mode, "subscriber"))
-                mta_mode = AMQ_CLUSTER_MTA_MODE_SUBSCRIBER;
-            else if (streq (mode, "forward-all"))
-                mta_mode = AMQ_CLUSTER_MTA_MODE_FORWARD_ALL;
-            else if (streq (mode, "forward-else"))
-                mta_mode = AMQ_CLUSTER_MTA_MODE_FORWARD_ELSE;
-            else
-                icl_console_print ("W: Invalid MTA mode in config file. Ignoring MTA.");
-
-            if (mta_mode) {
-                mta = amq_cluster_mta_new (host, virtual_host, login, self,
-                    mta_mode); 
-                amq_cluster_mta_list_push_back (self->mtas, mta);
-                amq_cluster_mta_unlink (&mta);
-            }
+    if (config->located) {
+        mta_host  = ipr_config_get (config, "host", NULL);
+        mta_vhost = ipr_config_get (config, "vhost", "/");
+        mta_login = ipr_config_get (config, "login", "peering");
+        mta_mode  = atoi (ipr_config_get (config, "mode", "0"));
+        if (AMQ_MTA_MODE_VALID (mode)) {
+            self->mta = amq_cluster_mta_new (mta_host, mta_vhost, mta_login, mta_self, mta_mode_value);
+            self->mta_mode = mta_mode_value;
         }
         else
-            icl_console_print ("W: No 'mode' attribute set for MTA in config fie. Ignoring MTA.");
+        if (mode > 0)
+            icl_console_print ("W: invalid mode for MTA '%s' - ignoring", name);
     }
     ipr_config_destroy (&config);
 </method>
@@ -237,7 +222,8 @@ for each type of exchange. This is a lock-free asynchronous class.
     ipr_hash_table_destroy (&self->binding_hash);
     amq_binding_list_destroy (&self->binding_list);
     ipr_index_destroy (&self->binding_index);
-    amq_cluster_mta_list_destroy (&self->mtas);
+    amq_cluster_mta_destroy (&self->mta);
+
     if (self->type == AMQ_EXCHANGE_SYSTEM)
         amq_exchange_system_destroy ((amq_exchange_system_t **) &self->object);
     else
@@ -338,8 +324,6 @@ for each type of exchange. This is a lock-free asynchronous class.
         *binding = NULL;                //  New binding created
     ipr_hash_t
         *hash;                          //  Entry into hash table
-    amq_cluster_mta_list_iterator_t
-        iterator;
 
     if (amq_server_config_debug_route (amq_server_config))
         asl_log_print (amq_broker->debug_log,
@@ -379,12 +363,10 @@ for each type of exchange. This is a lock-free asynchronous class.
                 amq_binding_list_queue (self->binding_list, binding);
         }
 
-        //  Notify MTAs about binging being created
-        for (iterator = amq_cluster_mta_list_begin (self->mtas);
-              iterator != NULL;
-              iterator = amq_cluster_mta_list_next (iterator))
-            amq_cluster_mta_binding_created (*iterator, routing_key, arguments); 
-    }
+        //  Notify MTA about new binding
+        if (self->mta)
+            amq_cluster_mta_binding_created (self->mta, routing_key, arguments);
+
     amq_binding_bind_queue (binding, queue);
     amq_binding_unlink (&binding);
     ipr_hash_unlink (&hash);
@@ -413,10 +395,8 @@ for each type of exchange. This is a lock-free asynchronous class.
         delivered = 0;                      //  Number of message deliveries
     int64_t
         content_size;
-    amq_cluster_mta_list_iterator_t
-        iterator;
 
-    if (!self->discard_messages) {
+    if (!self->mta_mode == AMQ_MTA_MODE_FORWARD_ALL) {
         delivered = self->publish (self->object, channel, method);
         content_size = ((amq_content_basic_t *) method->content)->body_size;
 
@@ -426,15 +406,15 @@ for each type of exchange. This is a lock-free asynchronous class.
         self->traffic_in   += content_size;
         self->traffic_out  += (delivered * content_size);
     }
-
-    //  Notify MTAs about message being published
-    for (iterator = amq_cluster_mta_list_begin (self->mtas);
-          iterator != NULL;
-          iterator = amq_cluster_mta_list_next (iterator))
-        amq_cluster_mta_message_published (*iterator, channel, method->content,
+    //  Notify MTA about message being published
+    if (self->mta)
+        amq_cluster_mta_message_published (
+            self->mta,
+            channel,
+            method->content,
             method->payload.basic_publish.mandatory,
             method->payload.basic_publish.immediate,
-            delivered ? TRUE : FALSE); 
+            delivered? TRUE: FALSE);
     </action>
 </method>
 
@@ -468,13 +448,6 @@ for each type of exchange. This is a lock-free asynchronous class.
         else
             binding = amq_binding_list_next (&binding);
     }
-    </action>
-</method>
-
-<method name = "discard messages" template = "async function" async = "1">
-    <argument name = "value" type = "Bool" />
-    <action>
-    self->discard_messages = value;
     </action>
 </method>
 

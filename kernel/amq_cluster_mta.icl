@@ -17,20 +17,91 @@
 
 <context>
     amq_peering_t
-        *peering;
+        *peering;                       //  The peering we work with
     amq_exchange_t
-        *exchange;
+        *exchange;                      //  The exchange we work with
     int
-        mode;  //  One of the AMQ_CLUSTER_MTA_MODE constants
+        mode;                           //  MTA operation mode
 </context>
 
 <public>
-#define AMQ_CLUSTER_MTA_MODE_SUBSCRIBER     1
-#define AMQ_CLUSTER_MTA_MODE_FORWARD_ALL   2
-#define AMQ_CLUSTER_MTA_MODE_FORWARD_ELSE  3
+//  MTA operation modes
+#define AMQ_MTA_MODE_DISABLED           0
+#define AMQ_MTA_MODE_SUBSCRIBER         1
+#define AMQ_MTA_MODE_FORWARD_ALL        2
+#define AMQ_MTA_MODE_FORWARD_ELSE       3
+#define AMQ_MTA_MODE_VALID(m) (m > 0 && m <= 3)
 </public>
 
-<private>
+<method name = "new">
+    <argument name = "host" type = "char *">Host to connect to</argument>
+    <argument name = "virtual host" type = "char *" />
+    <argument name = "login" type = "char *" />
+    <argument name = "exchange" type = "amq_exchange_t *" />
+    <argument name = "mode" type = "int" />
+    //
+    assert (AMQ_MTA_MODE_VALID (mode));
+    
+    self->exchange = amq_exchange_link (exchange);
+    self->mode = mode;
+    self->peering = amq_peering_new (host, virtual_host, amq_server_config_trace (amq_server_config));
+    amq_peering_set_login           (self->peering, login);
+    amq_peering_set_content_handler (self->peering, s_content_handler, self);
+    amq_peering_set_return_handler  (self->peering, s_return_handler, self);
+    amq_peering_start (self->peering);
+</method>
+
+<method name = "destroy">
+    amq_peering_stop (self->peering);
+    amq_exchange_unlink (&self->exchange);
+    amq_peering_unlink (&self->peering);
+</method>
+
+<method name = "binding created" template = "function">
+    <argument name = "routing key" type = "icl_shortstr_t" />
+    <argument name = "arguments" type = "icl_longstr_t *" />
+    //
+    amq_peering_bind (self->peering, self->exchange->name, routing_key, arguments);
+</method>
+
+<method name = "message published" template = "function">
+    <argument name = "channel" type = "amq_server_channel_t *" />
+    <argument name = "content" type = "amq_content_basic_t *" />
+    <argument name = "mandatory" type = "Bool" />
+    <argument name = "immediate" type = "Bool" />
+    <argument name = "delivered" type = "Bool" />
+    <local>
+    icl_shortstr_t
+        sender_id;
+    </local>
+    //
+    if (self->mode == AMQ_MTA_MODE_FORWARD_ALL
+    ||  self->mode == AMQ_MTA_MODE_FORWARD_ELSE) {
+        //  Pulled messages (null channel) cannot be forwarded
+        assert (channel);
+
+        icl_shortstr_fmt (sender_id, "%s|%d", channel->connection->key, channel->number);
+        amq_content_basic_set_sender_id (content, sender_id);
+
+        if (self->mode == AMQ_MTA_MODE_FORWARD_ALL || !delivered)
+            amq_peering_forward (
+                self->peering,
+                self->exchange->name,
+                content->routing_key,
+                content,
+                mandatory,
+                immediate);
+    }
+</method>
+
+<private name = "header">
+static int
+    s_content_handler (void *vself, amq_peering_t *peering, amq_peer_method_t *peer_method);
+static int
+    s_return_handler (void *vself, amq_peering_t *peering, amq_peer_method_t *peer_method);
+</private>
+
+<private name = "footer">
 static int
 s_content_handler (
     void *vself,
@@ -38,28 +109,34 @@ s_content_handler (
     amq_peer_method_t *peer_method)
 {
     amq_cluster_mta_t
-        *self = (amq_cluster_mta_t*) vself;
+        *self = (amq_cluster_mta_t *) vself;
     amq_client_method_t
         *client_method;
 
-    if (self->mode == AMQ_CLUSTER_MTA_MODE_SUBSCRIBER) {
+    if (self->mode == AMQ_MTA_MODE_SUBSCRIBER) {
+        assert (peer_method->class_id == AMQ_PEER_BASIC)
+        assert (peer_method->method_id == AMQ_PEER_BASIC_DELIVER);
 
-        assert (peer_method->class_id == AMQ_PEER_BASIC &&
-              peer_method->method_id == AMQ_PEER_BASIC_DELIVER);
-
-        /*  TODO:  Implement rejected messages returning in pull model       */
-        /*  Notice two last arguments in the call bellow                     */
+        //  TODO: Implement rejected messages returning in pull model
+        //  Notice two last arguments in the call bellow
         client_method = amq_client_method_new_basic_publish (
-            0, peer_method->payload.basic_deliver.exchange,
-            peer_method->payload.basic_deliver.routing_key, FALSE, FALSE);
+            0,                          //  Access ticket
+            peer_method->payload.basic_deliver.exchange,
+            peer_method->payload.basic_deliver.routing_key,
+            FALSE,                      //  Mandatory
+            FALSE);                     //  Immediate
+
         client_method->content = peer_method->content;
         peer_method->content = NULL;
-        icl_shortstr_cpy (((amq_content_basic_t*) client_method->content)->exchange,
+
+        /*  Should not be needed - PH
+        icl_shortstr_cpy (((amq_content_basic_t *) client_method->content)->exchange,
             peer_method->payload.basic_deliver.exchange);
-        icl_shortstr_cpy (((amq_content_basic_t*) client_method->content)->routing_key,
+        icl_shortstr_cpy (((amq_content_basic_t *) client_method->content)->routing_key,
             peer_method->payload.basic_deliver.routing_key);
-        amq_exchange_publish (self->exchange, NULL,
-            (amq_server_method_t *) client_method);
+        */
+
+        amq_exchange_publish (self->exchange, NULL, (amq_server_method_t *) client_method);
         amq_client_method_unlink (&client_method);
     }
     return (0);
@@ -72,11 +149,9 @@ s_return_handler (
     amq_peer_method_t *peer_method)
 {
     amq_cluster_mta_t
-        *self = (amq_cluster_mta_t*) vself;
+        *self = (amq_cluster_mta_t *) vself;
     char
-        *sender_id;
-    int
-        pos;
+        *separator;
     icl_shortstr_t
         connection_id;
     dbyte
@@ -84,28 +159,25 @@ s_return_handler (
     amq_server_connection_t
         *connection;
 
-    if (self->mode == AMQ_CLUSTER_MTA_MODE_FORWARD_ALL ||
-          self->mode == AMQ_CLUSTER_MTA_MODE_FORWARD_ELSE) {
+    assert (peer_method->class_id == AMQ_PEER_BASIC);
+    assert (peer_method->method_id == AMQ_PEER_BASIC_RETURN);
 
-        assert (peer_method->class_id == AMQ_PEER_BASIC &&
-              peer_method->method_id == AMQ_PEER_BASIC_RETURN);
+    if (self->mode == AMQ_MTA_MODE_FORWARD_ALL
+    ||  self->mode == AMQ_MTA_MODE_FORWARD_ELSE) {
+        //  Split sender-id "connection-key|channel-nbr" into fields
+        //  NB: compare to previous code
+        icl_shortstr_cpy (connection_id, peer_method->payload.basic_return.sender_id);
+        separator = strchr (connection_id, "|");
 
-        //  Parse sender id
-        sender_id = peer_method->payload.basic_return.sender_id;
-        pos = 0;
-        while (sender_id [pos] != '|') {
-            assert (sender_id [pos]);
-            pos++;
-        }
-        assert (pos < 255);
-        memcpy (connection_id, sender_id, pos);
-        connection_id [pos] = 0;
-        channel_nbr = atoi (sender_id + pos + 1);
+        //  Does this assertion mean we can crash the server by sending it junk?
+        assert (separator);
+        *separator++ = 0;               //  Split sender-id into fields
+        channel_nbr = atoi (separator);
+        assert (channel_nbr);
 
         //  Find the connection that sent the message
-        connection = amq_server_connection_table_search (amq_broker->connections,
-            connection_id);
-    
+        connection = amq_server_connection_table_search (amq_broker->connections, connection_id);
+
         if (connection) {
             amq_server_agent_basic_return (
                 connection->thread,
@@ -124,71 +196,6 @@ s_return_handler (
     return (0);
 }
 </private>
-
-<method name = "new">
-    <argument name = "host" type = "char *">Host to connect to</argument>
-    <argument name = "virtual host" type = "char *">Virtual host</argument>
-    <argument name = "login" type = "char*">Login</argument>
-    <argument name = "exchange" type = "amq_exchange_t*" />
-    <argument name = "mode" type = "int" />
-
-    assert (mode == AMQ_CLUSTER_MTA_MODE_SUBSCRIBER ||
-        mode == AMQ_CLUSTER_MTA_MODE_FORWARD_ALL ||
-        mode == AMQ_CLUSTER_MTA_MODE_FORWARD_ELSE);
-
-    self->mode = mode;
-    self->peering = amq_peering_new (host, virtual_host,
-        amq_server_config_trace (amq_server_config));
-    amq_peering_set_login (self->peering, login);
-    amq_peering_set_content_handler (self->peering, s_content_handler,
-        (void*) self);
-    amq_peering_set_return_handler (self->peering, s_return_handler,
-        (void*) self);
-    amq_peering_start (self->peering);
-    self->exchange = amq_exchange_link (exchange);
-    if (self->mode == AMQ_CLUSTER_MTA_MODE_FORWARD_ALL)
-        amq_exchange_discard_messages (self->exchange, TRUE);
-</method>
-
-<method name = "destroy">
-    amq_peering_stop (self->peering);
-    amq_exchange_unlink (&self->exchange);
-    amq_peering_unlink (&self->peering);
-</method>
-
-<method name = "binding created" template = "function">
-    <argument name = "routing key" type = "icl_shortstr_t" />
-    <argument name = "arguments" type = "icl_longstr_t*" />
-    amq_peering_bind (self->peering, self->exchange->name, routing_key,
-        arguments);
-</method>
-
-<method name = "message published" template = "function">
-    <argument name = "channel" type = "amq_server_channel_t*" />
-    <argument name = "content" type = "amq_content_basic_t*" />
-    <argument name = "mandatory" type = "Bool" />
-    <argument name = "immediate" type = "Bool" />
-    <argument name = "delivered" type = "Bool" />
-    <local>
-    icl_shortstr_t
-        sender_id;
-    </local>
-
-    if (self->mode == AMQ_CLUSTER_MTA_MODE_FORWARD_ALL ||
-          self->mode == AMQ_CLUSTER_MTA_MODE_FORWARD_ELSE) {
-
-        //  Pulled messages (with channel = 0x0) cannot be forwarded so far
-        assert (channel);
-
-        icl_shortstr_fmt (sender_id, "%s|%ld", channel->connection->key,
-            (long) channel->number);
-        amq_content_basic_set_sender_id (content, sender_id);
-
-        if (self->mode == AMQ_CLUSTER_MTA_MODE_FORWARD_ALL || !delivered)
-            amq_peering_forward (self->peering, self->exchange->name,
-                content->routing_key, content, mandatory, immediate);
-    }
-</method>
 
 <method name = "selftest" />
 </class>
