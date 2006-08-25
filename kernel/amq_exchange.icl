@@ -137,8 +137,6 @@ for each type of exchange. This is a lock-free asynchronous class.
         *broker = amq_broker;
     ipr_config_t
         *config;
-    amq_cluster_mta_t
-        *mta;                           //  Newly created MTA
     char
         *mta_host,                      //  Host used for MTA
         *mta_vhost,                     //  Virtual host for MTA
@@ -206,12 +204,12 @@ for each type of exchange. This is a lock-free asynchronous class.
         mta_vhost = ipr_config_get (config, "vhost", "/");
         mta_login = ipr_config_get (config, "login", "peering");
         mta_mode  = atoi (ipr_config_get (config, "mode", "0"));
-        if (AMQ_MTA_MODE_VALID (mode)) {
-            self->mta = amq_cluster_mta_new (mta_host, mta_vhost, mta_login, mta_self, mta_mode_value);
-            self->mta_mode = mta_mode_value;
+        if (AMQ_MTA_MODE_VALID (mta_mode)) {
+            self->mta = amq_cluster_mta_new (mta_host, mta_vhost, mta_login, self, mta_mode);
+            self->mta_mode = mta_mode;
         }
         else
-        if (mode > 0)
+        if (mta_mode > 0)
             icl_console_print ("W: invalid mode for MTA '%s' - ignoring", name);
     }
     ipr_config_destroy (&config);
@@ -334,7 +332,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         arguments = NULL;
 
     //  We need to know if this is a new binding or not
-    //  First, we'll check on the routing key
+    //  First, we`ll check on the routing key
     hash = ipr_hash_table_search (self->binding_hash, routing_key);
     if (hash) {
         //  We found the same routing key, now we need to check
@@ -366,7 +364,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         //  Notify MTA about new binding
         if (self->mta)
             amq_cluster_mta_binding_created (self->mta, routing_key, arguments);
-
+    }
     amq_binding_bind_queue (binding, queue);
     amq_binding_unlink (&binding);
     ipr_hash_unlink (&hash);
@@ -397,6 +395,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         content_size;
 
     if (!self->mta_mode == AMQ_MTA_MODE_FORWARD_ALL) {
+        icl_console_print ("I: Publishing to local consumers.");
         delivered = self->publish (self->object, channel, method);
         content_size = ((amq_content_basic_t *) method->content)->body_size;
 

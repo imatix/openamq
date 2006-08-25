@@ -57,24 +57,42 @@
     amq_peering_unlink (&self->peering);
 </method>
 
-<method name = "binding created" template = "function">
-    <argument name = "routing key" type = "icl_shortstr_t" />
+<method name = "binding created" template = "async function" async = "1">
+    <argument name = "routing key" type = "char*" />
     <argument name = "arguments" type = "icl_longstr_t *" />
+    <possess>
+    arguments = icl_longstr_dup (arguments);
+    routing_key = icl_mem_strdup (routing_key);
+    </possess>
+    <release>
+    icl_longstr_destroy (&arguments);
+    icl_mem_free (routing_key);
+    </release>
     //
+    <action>
     amq_peering_bind (self->peering, self->exchange->name, routing_key, arguments);
+    </action>
 </method>
 
-<method name = "message published" template = "function">
+<method name = "message published" template = "async function" async = "1">
     <argument name = "channel" type = "amq_server_channel_t *" />
     <argument name = "content" type = "amq_content_basic_t *" />
     <argument name = "mandatory" type = "Bool" />
     <argument name = "immediate" type = "Bool" />
     <argument name = "delivered" type = "Bool" />
-    <local>
+    <possess>
+    channel = amq_server_channel_link (channel);
+    content = amq_content_basic_link (content);
+    </possess>
+    <release>
+    amq_server_channel_unlink (&channel);
+    amq_content_basic_unlink (&content);
+    </release>
+    //
+    <action>
     icl_shortstr_t
         sender_id;
-    </local>
-    //
+    
     if (self->mode == AMQ_MTA_MODE_FORWARD_ALL
     ||  self->mode == AMQ_MTA_MODE_FORWARD_ELSE) {
         //  Pulled messages (null channel) cannot be forwarded
@@ -83,7 +101,8 @@
         icl_shortstr_fmt (sender_id, "%s|%d", channel->connection->key, channel->number);
         amq_content_basic_set_sender_id (content, sender_id);
 
-        if (self->mode == AMQ_MTA_MODE_FORWARD_ALL || !delivered)
+        if (self->mode == AMQ_MTA_MODE_FORWARD_ALL || !delivered) {
+            icl_console_print ("I: Message pushed to the remote server.");
             amq_peering_forward (
                 self->peering,
                 self->exchange->name,
@@ -91,7 +110,9 @@
                 content,
                 mandatory,
                 immediate);
+        }
     }
+    </action>
 </method>
 
 <private name = "header">
@@ -114,7 +135,7 @@ s_content_handler (
         *client_method;
 
     if (self->mode == AMQ_MTA_MODE_SUBSCRIBER) {
-        assert (peer_method->class_id == AMQ_PEER_BASIC)
+        assert (peer_method->class_id == AMQ_PEER_BASIC);
         assert (peer_method->method_id == AMQ_PEER_BASIC_DELIVER);
 
         //  TODO: Implement rejected messages returning in pull model
@@ -136,6 +157,7 @@ s_content_handler (
             peer_method->payload.basic_deliver.routing_key);
         */
 
+        icl_console_print ("I: Message pulled from remote server.");
         amq_exchange_publish (self->exchange, NULL, (amq_server_method_t *) client_method);
         amq_client_method_unlink (&client_method);
     }
@@ -167,7 +189,7 @@ s_return_handler (
         //  Split sender-id "connection-key|channel-nbr" into fields
         //  NB: compare to previous code
         icl_shortstr_cpy (connection_id, peer_method->payload.basic_return.sender_id);
-        separator = strchr (connection_id, "|");
+        separator = strchr (connection_id, '|');
 
         //  Does this assertion mean we can crash the server by sending it junk?
         assert (separator);
@@ -179,6 +201,7 @@ s_return_handler (
         connection = amq_server_connection_table_search (amq_broker->connections, connection_id);
 
         if (connection) {
+            icl_console_print ("I: Message returned from remote server.");
             amq_server_agent_basic_return (
                 connection->thread,
                 channel_nbr,
