@@ -89,6 +89,7 @@ $(selftype)
         hash = self->object_store->table_items [table_idx];
         if (hash && hash != IPR_HASH_DELETED) {
             entry = hash->data;
+            entry->class_ref->unlink (&entry->object_ref);
             icl_mem_free (entry);
             ipr_hash_destroy (&hash);
         }
@@ -104,6 +105,7 @@ $(selftype)
     <argument name = "object id"  type = "qbyte">Object id</argument>
     <argument name = "object ref" type = "void *">Object reference</argument>
     <argument name = "class ref"  type = "amq_console_class_t *" />
+    //
     <!-- This is not currently used but should be at some point
          if we can find a way to build a console structure that
          lets us organise all items into a nice tree
@@ -141,6 +143,7 @@ $(selftype)
 
     entry = s_lookup_object (self, object_id);
     if (entry) {
+        entry->class_ref->unlink (&entry->object_ref);
         ipr_hash_destroy (&entry->hash);
         icl_mem_free (entry);
     }

@@ -48,7 +48,7 @@ static amq_console_class_t
     <header>
     self->console = amq_console_link (amq_console);
     self->object_id = icl_atomic_inc32 ((volatile qbyte *) &amq_object_id);
-    amq_console_register (self->console, self->object_id, self, s_class, $(parent_id));
+    amq_console_register (self->console, self->object_id, self_link (self), s_class, $(parent_id));
     </header>
 </method>
 
@@ -272,12 +272,19 @@ static amq_console_class_t
     </action>
 </method>
 
+<method name = "unlink shim">
+    <argument name = "object_p" type = "void *">Reference pointer cast as a void *</argument>
+    //
+    $(selfname)_unlink ((($(selftype) **) object_p));
+</method>
+
 <method name = "initialise">
     s_class = amq_console_class_new ();
     s_class->name    = "$(console_class)";
     s_class->inspect = $(selfname)_inspect_shim;
     s_class->modify  = $(selfname)_modify_shim;
     s_class->method  = $(selfname)_method_shim;
+    s_class->unlink  = $(selfname)_unlink_shim;
 </method>
 
 <method name = "terminate">
