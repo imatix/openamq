@@ -40,8 +40,9 @@
 <class name = "channel">
   <action name = "close">
     //
-    icl_console_print ("E: cluster peer closed channel unexpectedly, aborting");
-    exit (1);
+    icl_console_print ("E: cluster peer closed channel unexpectedly (%d, %s)",
+        method->reply_code, method->reply_text);
+    abort ();
   </action>
 </class>
 
