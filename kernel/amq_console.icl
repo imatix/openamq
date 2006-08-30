@@ -403,10 +403,8 @@ s_execute_inspect (
         entry = s_lookup_object (self, atol (object_str));
         if (entry)
             entry->class_ref->inspect (entry->object_ref, request);
-        else {
-            asl_log_print (amq_broker->alert_log, "W: console - no such object found (ID=%s)", object_str);
+        else
             s_reply_error (request, "inspect-reply", "notfound");
-        }
     }
     else {
         asl_log_print (amq_broker->alert_log, "W: console - badly-formatted CML method, no object ID");
@@ -443,10 +441,8 @@ s_execute_modify (
                 asl_field_list_unlink (&fields);
             }
         }
-        else {
-            asl_log_print (amq_broker->alert_log, "W: console - no such object found (ID=%s)", object_str);
+        else
             s_reply_error (request, "modify-reply", "notfound");
-        }
     }
     else {
         asl_log_print (amq_broker->alert_log, "W: console - badly-formatted CML method, no object ID");
@@ -498,10 +494,8 @@ s_execute_method (
                 asl_field_list_unlink (&fields);
             }
         }
-        else {
-            asl_log_print (amq_broker->alert_log, "W: console - no such object found (ID=%s)", object_str);
+        else
             s_reply_error (request, "method-reply", "notfound");
-        }
     }
     else {
         asl_log_print (amq_broker->alert_log, "W: console - badly-formatted CML method, no object ID");
