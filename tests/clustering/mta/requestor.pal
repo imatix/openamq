@@ -1,0 +1,52 @@
+<?xml?>
+<pal
+    script = "amq_pal_gen"
+    desc   = "reqestor side of req/rep scenario"
+    >
+    
+    <session>        
+        <exchange_declare exchange = "replies" type = "direct" />
+        <queue_declare />
+        <queue_bind queue = "$queue" exchange = "replies" routing_key = "rk" />
+        <basic_consume queue = "$queue" />
+        <wait timeout = "1000" />
+
+        <basic_content message_id = "request" />
+        <basic_publish exchange = "amq.direct"
+            mandatory = "1" immediate = "1" />
+        <echo>Request sent</echo>
+
+        <wait timeout = "10000" />
+        <basic_arrived>
+            <echo>OK</echo>
+        </basic_arrived>
+        <basic_returned>
+            <abort>E: Not able to deliver request to the replier</abort>
+        </basic_returned>
+<!--
+        <empty>
+            <abort>E: No reply arrived from replier</abort>
+        </empty>
+-->
+
+        <wait timeout = "1000" />
+
+        <basic_content message_id = "request" />
+        <basic_publish exchange = "amq.direct"
+            mandatory = "1" immediate = "1" />
+        <echo>Request sent</echo>
+
+        <wait timeout = "10000" />
+        <basic_arrived>
+            <abort>E: Unexpected reply from replier arrived</abort>
+        </basic_arrived>
+        <basic_returned>
+            <echo>OK</echo>
+        </basic_returned>
+<!--
+        <empty>
+            <abort>E: Rejected request didn't came back</abort>
+        </empty>
+-->
+    </session>    
+</pal>

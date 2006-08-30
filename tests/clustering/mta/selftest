@@ -1,0 +1,33 @@
+#!/bin/sh
+rm *.log
+amq_server --port 5000 -s config_remote.cfg >>remote_broker.log 2>&1 &
+remote_broker_pid=$!
+sleep 3
+amq_server -port 5672 -s config_local.cfg >>local_broker.log 2>&1 &
+local_broker_pid=$!
+sleep 3
+./replier -a -s localhost:5000 >>replier.log 2>&1 &
+replier_pid=$!
+./requestor -a  >>requestor.log 2>&1 &
+requestor_pid=$!
+
+wait $replier_pid
+if [ $? = 0 ]; then
+    echo "replier: SUCCESS"
+else
+    echo "replier: FAILURE"
+    exit 1
+fi
+
+wait $requestor_pid
+if [ $? = 0 ]; then
+    echo "requestor: SUCCESS"
+else
+    echo "requestor: FAILURE"
+    exit 1
+fi
+
+kill $remote_broker_pid
+kill $local_broker_pid
+
+sleep 2
