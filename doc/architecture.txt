@@ -662,3 +662,68 @@ The consumer defines these response methods:
  - deliver - delivers a message to the gateway.
 
 
+----
+
+Interfaces
+
+General Description
+
+Interfaces are a virtualisation mechanism for iCL.  An interface defines a formal unidirectional API consisting of a set of methods, each with arguments, addressed to an object passed as a void pointer.  The goal of interfaces is to allow arbitrary classes, implementing a pre-agreed API, to be added to an application with minimum changes.
+
+An interface consists of several class definitions:
+
+1. The interface model class, a hand-written class that defines the interface API methods.
+2. One or more 'target' classes, hand-written classes that implement the API methods.
+3. The interface glue class, a generated abstract class that hooks the target class into the interface.
+4.. The interface item class, a generated class that helps applications use the interface.
+
+The implementation and instance classes are generated automatically when we build the model class (at code generation time).  These generated classes cannot be overridden or modified manually.
+
+The naming conventions for these classes is:
+- my_interface.icl - the model class (a stateful class).
+- my_interface_glue.icl - the glue class (an abstract base class).
+- my_interface_item.icl - the item class (a stateful class).
+
+The Model Class
+
+The model class is a standard stateful class (a class that has context, and object instances).  (PDL class = "icl class")  The model class has these specific features:
+
+- It is inherited from the ipr_interface_model.icl abstract base class.
+- It has a method template, "interface", used for the methods that are part of the interface.
+- It invokes the interface code generator, ipr_interface_model.gsl, which generates the implementation and instance classes.
+
+The interface methods are defined as normal iCL class methods, inherited from the "interface" method template.  The interface class can define other methods, and can define its own context if that is needed.
+
+When we generate the model class ("gsl my_interface.icl'), the iCL code generator also produces the glue and item classes.  In a project definition, the model class must be defined before the glue and item classes.
+
+One instance of an interface works with one class.  The interface context (its state) consists
+
+We create a new interface to a class by invoking the interface constructor method from the implementation class.  That is, if we have an interface called my_if, and an implementation class called my_class, we create a new interface instance using the method my_class_my_if_new (), and not my_if_new ().  The interface constructor prepares the interface, setting its virtual function table to point into the class.
+
+We need to create one interface instance for each implementation class.  The interface instances are held in a list or table, indexed (usually) with the class name.
+
+
+ The Glue Class
+
+The glue class is a generated abstract base class. (PDL class = "icl cont") .  We inherit this class in all target classes for the interface.
+
+To create a glue class that works equally well with synchronous and asynchronous target classes, we use a layer of 'shim functions' that accept a void object reference and recast this as a proper reference for the target class.
+
+The glue class provides these functions:
+
+- It defines the interface methods in the class, so that the developer can provide the bodies for these methods.
+- It defines an interface constructor.
+
+The Instance Class
+
+
+
+
+Factory function
+- virtualised constructor
+- "given interface object X, give me new object instance.
+- returns interface item
+- accepts arguments, must be
+
+
+
