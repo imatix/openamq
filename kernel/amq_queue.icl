@@ -236,6 +236,8 @@ class.  This is a lock-free asynchronous class.
         if (self->exclusive)
             amq_broker_unbind_queue (amq_broker, queue_ref);
 
+        //  Tell console to drop link back to queue
+        amq_console_cancel (self->console, self->object_id);
         amq_queue_unlink (&queue_ref);
     }
     </action>
