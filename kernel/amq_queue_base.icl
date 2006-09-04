@@ -50,6 +50,13 @@ independent of the queue content type.
     </footer>
 </method>
 
+<method name = "stop" template = "function">
+    <footer>
+    s_free_consumer_queue (&self->active_consumers);
+    s_free_consumer_queue (&self->paused_consumers);
+    </footer>
+</method>
+
 <method name = "consume" template = "function">
     <doc>
     Attach consumer to appropriate queue consumer list.
@@ -230,11 +237,13 @@ s_free_consumer_queue (amq_consumer_by_queue_t **queue)
     amq_consumer_t
         *consumer;
 
-    while ((consumer = amq_consumer_by_queue_pop (*queue))) {
-        amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE, TRUE);
-        amq_consumer_destroy (&consumer);
+    if (*queue) {
+        while ((consumer = amq_consumer_by_queue_pop (*queue))) {
+            amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE, TRUE);
+            amq_consumer_destroy (&consumer);
+        }
+        amq_consumer_by_queue_destroy (queue);
     }
-    amq_consumer_by_queue_destroy (queue);
 }
 </private>
 

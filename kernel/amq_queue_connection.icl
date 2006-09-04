@@ -14,6 +14,7 @@ consumer object.
 <inherit class = "smt_object" />
 <!-- any containers must come here -->
 <inherit class = "amq_console_object" />
+<inherit class = "smt_object_tracker" />
 
 <!-- Console definitions for this object -->
 <data name = "cml">
@@ -121,7 +122,7 @@ consumer object.
     <argument name = "consumer" type = "amq_consumer_t *">Consumer</argument>
     //
     self->consumer = amq_consumer_link (consumer);
-    self->channel  = amq_server_channel_link (consumer->channel);
+    self->channel = amq_server_channel_link (consumer->channel);
     if (self->channel)
         self->connection = amq_server_connection_link (self->channel->connection);
     if (!self->connection)

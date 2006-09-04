@@ -19,6 +19,7 @@ merge these two classes into one.
     <option name = "links" value = "1"/>
 </inherit>
 <inherit class = "amq_console_object" />
+<inherit class = "smt_object_tracker" />
 
 <!-- Console definitions for this object -->
 <data name = "cml">

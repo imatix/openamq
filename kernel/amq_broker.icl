@@ -276,6 +276,11 @@
                 amq_index_count (),
                 ipr_index_count (),
                 ipr_bits_count ());
+
+            asl_log_print (amq_broker->alert_log,
+                "I: qcn=%d cnq=%d",
+                amq_queue_connection_count (),
+                amq_connection_queue_count ());
         }
     }
     if (self->auto_crash_timer) {

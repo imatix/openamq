@@ -203,7 +203,7 @@ class.  This is a lock-free asynchronous class.
     icl_shortstr_cpy (self->name, name);
     amq_queue_by_vhost_queue (self->vhost->queue_list, self);
     if (amq_server_config_debug_queue (amq_server_config))
-        asl_log_print (amq_broker->debug_log, 
+        asl_log_print (amq_broker->debug_log,
             "Q: create   queue=%s auto_delete=%d", self->name, self->auto_delete);
 
     s_set_queue_limits (self);
@@ -392,7 +392,7 @@ class.  This is a lock-free asynchronous class.
         *connection;
     amq_server_channel_t
         *channel;
-        
+
     if (consumer->class_id == AMQ_SERVER_BASIC) {
         if (notify) {
             channel = amq_server_channel_link (consumer->channel);
@@ -465,6 +465,10 @@ class.  This is a lock-free asynchronous class.
     if (self->exclusive)
         amq_broker_unbind_queue (amq_broker, queue_ref);
 
+    //  Stop consumers because they link back to queue
+    amq_queue_basic_stop (self->queue_basic);
+    //  Tell console to drop link back to queue
+    amq_console_cancel (self->console, self->object_id);
     amq_queue_unlink (&queue_ref);
     </action>
 </method>

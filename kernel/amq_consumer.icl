@@ -112,10 +112,11 @@ for Basic, File, and Stream content classes.
         *method;
     </local>
     //
-    amq_server_channel_unlink   (&self->channel);
-    amq_queue_unlink            (&self->queue);
-    amq_connection_queue_unlink (&self->mgt_connection_queue);
-    amq_queue_connection_unlink (&self->mgt_queue_connection);
+    amq_server_channel_unlink    (&self->channel);
+    amq_queue_unlink             (&self->queue);
+    
+    amq_connection_queue_destroy (&self->mgt_connection_queue);
+    amq_queue_connection_destroy (&self->mgt_queue_connection);
 
     if (self->class_id == AMQ_SERVER_BASIC) {
         amq_consumer_basic_destroy (&self->consumer_basic);

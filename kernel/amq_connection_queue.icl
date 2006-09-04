@@ -14,6 +14,7 @@ consumer object.
 <inherit class = "smt_object" />
 <!-- any containers must come here -->
 <inherit class = "amq_console_object" />
+<inherit class = "smt_object_tracker" />
 
 <!-- Console definitions for this object -->
 <data name = "cml">
