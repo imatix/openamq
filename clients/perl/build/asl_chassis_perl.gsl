@@ -20,7 +20,7 @@ use strict;
 use warnings;
 
 # Constructor
-sub new($$) {
+sub new($) {
     my $class = ref($_[0]) || $_[0];
     my $self = bless {}, $class;
 
@@ -39,7 +39,7 @@ sub amqp_method_id() {
 }
 
 .for field by index where !field.global
-sub $(field.name:c)($;$) {
+sub $(field.name:c)(;$) {
     my ($self, \$$(field.name:c)) = @_;
     my $old_$(field.name:c) = undef;
 
@@ -55,8 +55,8 @@ sub $(field.name:c)($;$) {
 
 .endfor
 
-sub body_size($) {
-    $self = shift;
+sub body_size() {
+    my $self = shift;
 .fsize = 0
 .vsize = ""
 .for field where !field.global
@@ -72,7 +72,7 @@ sub body_size($) {
 }
 
 # Marshalling
-sub write_method($) {
+sub write_method() {
     my $self = shift;
 
 .for field where !field.global
@@ -82,7 +82,7 @@ sub write_method($) {
 .endfor
 }
 
-sub read_method($) {
+sub read_method() {
     my $self = shift;
 
 .for field where !field.global
@@ -92,12 +92,11 @@ sub read_method($) {
 .endfor
 }
 
-sub print($$) {
-    my $self = shift;
-    my $HANDLE = shift;
+sub print($) {
+    my ($self, $logger) = @_;
 
 .for field where !field.global
-    $HANDLE->printf("\\n\\t$(field.name:c): %s", "\$self->{'$(field.name:c)'}");
+    $logger->debug("\\t$(field.name:c): \$self->{'$(field.name:c)'}", );
 .endfor
 }
 
@@ -106,7 +105,7 @@ sub print($$) {
 .    endfor
 .endfor
 
-.perl_module_name = "MainFrameRegistry"
+.perl_module_name = "MainRegistry"
 .open_output ("$(target_dir:)/$(perl_module_name:).pm")
 #!/usr/bin/perl
 # $(perl_module_name:).pm
@@ -119,6 +118,13 @@ package AMQP::Framing::Frames::$(perl_module_name:);
 use strict;
 use warnings;
 
+.for class by index
+.    for method
+.        method_name = get_perl_module_name("$(class.Name)$(method.Name)")
+use $(target_module:)::$(method_name:);
+.    endfor
+.endfor
+
 sub new() {
     my $class = ref($_[0]) || $_[0];
     my $registry = {};
@@ -127,7 +133,7 @@ sub new() {
 .    for method
 .        method_name = get_perl_module_name("$(class.Name)$(method.Name)")
 .        magic_number = class.index * 1000 + method.index
-    $registry{$(magic_number)} = "$(target_module:)::$(method_name:)";
+    $registry->{$(magic_number)} = "$(target_module:)::$(method_name:)";
 .    endfor
 .endfor
 

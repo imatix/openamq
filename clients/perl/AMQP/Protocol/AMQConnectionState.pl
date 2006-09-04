@@ -10,23 +10,16 @@
 #=============================================================================
 
 use warnings;
-use IO::Socket;
 
 use Log::Log4perl qw(get_logger :levels);
 
-use AMQP::Framing::EncodingUtils;
-use AMQP::Framing::ProtocolInitiation;
+use AMQP::Transport::InetHandle;
+use AMQP::Protocol::Handler;
 
-$socket = new IO::Socket(
-    Domain   => PF_INET,
-    Proto     => 'tcp',
-    PeerAddr => "localhost",
-    PeerPort => 5672,
-);
+Log::Log4perl->init('log4perl.conf');
 
 $logger = get_logger("AMQP::Framing::EncodingUtils");
-$codec_util = new AMQP::Framing::EncodingUtils($socket);
-$pi = new AMQP::Framing::ProtocolInitiation();
+$handler = new AMQP::Protocol::Handler(new AMQP::Transport::InetHandle('localhost', 5672));
 
 require 'AMQConnectionState.d';         #   Include dialog interpreter
 
@@ -57,9 +50,9 @@ sub terminate_the_program
 
 sub send_protocol_initiation
 {
-    $pi->write_protocol_initiation($codec_util);
-
-    $the_next_event = $terminate_event;
+    $handler->write_protocol_initiation();
+    while (1) {
+    } 
 }
 
 

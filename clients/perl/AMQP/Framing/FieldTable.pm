@@ -10,7 +10,7 @@ use Log::Log4perl qw(get_logger :levels);
 my $logger = get_logger("AMQP::Framing::FieldTable");
 
 # Constructor
-sub new($$;$) {
+sub new($;$) {
     my $class = ref($_[0]) || $_[0];
     my $self = bless {}, $class;
 
@@ -26,7 +26,7 @@ sub new($$;$) {
 }
 
 # Accessors
-sub put_field($$$$) {
+sub put_field($$$) {
     my ($self, $name, $type, $value) = @_;
     my $old_value = $self->get_field($name);
     my $key_order = $self->{'key_order'};
@@ -37,7 +37,7 @@ sub put_field($$$$) {
     $old_value;
 }
 
-sub remove_field($$) {
+sub remove_field($) {
     my ($self, $name) = @_;
     my $value = $self->get_field($name);
 
@@ -47,7 +47,7 @@ sub remove_field($$) {
 }
 
 
-sub get_field($$) {
+sub get_field($) {
     my ($self, $name) = @_;
     my $value = $self->{"$name"};
 
@@ -58,7 +58,7 @@ sub get_field($$) {
     }
 }
 
-sub get_type($$) {
+sub get_type($) {
     my ($self, $name) = @_;
     my $value = $self->{"$name"};
 
@@ -70,7 +70,7 @@ sub get_type($$) {
 }
 
 # Marshalling methods
-sub read($) {
+sub read() {
     my $self = shift;
     my $read = $self->{'size'};
 
@@ -105,7 +105,7 @@ sub read($) {
     1;
 }
 
-sub write($;$) {
+sub write(;$) {
     my ($self, $codec) = @_;
     my $key_order = $self->{'key_order'};
 
@@ -125,7 +125,7 @@ sub write($;$) {
     }
 }
 
-sub table_size($) {
+sub table_size() {
     my $self = shift;
     my $size = 0;
     my $key_order = $self->{'key_order'};
