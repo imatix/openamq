@@ -11,14 +11,6 @@ end gdl
 Cover
 *****
 
-As discussed previously, I think the document could do with a few example
-use cases that are relevant to JPMC e.g.
-
-  Running a remote AMQ Broker  (the 'Jo'burg requirement')
-  Load Balancing e.g. running 2 or more Price Brokers to improve
-  throughput of NA market data volumes
-
-  
 State of this Document
 ======================
 

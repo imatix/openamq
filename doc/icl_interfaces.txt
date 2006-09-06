@@ -1,0 +1,160 @@
+iCL Interfaces
+**************
+
+Summary
+=======
+
+This whitepaper documents the iCL Interface concept, an abstraction mechanism for
+iCL classes.  An interface provides virtualised methods, virtualised object
+construction (factories) and works both with synchronous and asynchronous
+objects.
+
+General Description
+===================
+
+Interfaces are an abstraction mechanism for iCL classes.  An interface is a class
+with these features:
+
+- It has no context (no objects, no constructor or destructor).
+- It exports a structure typedef which we call the "interface structure".
+- It provides a set of methods that operate on an interface structure pointer.
+
+Interface classes invoke a special code generator (as well as the usual iCL code
+generator) which generates a "glue" class for the interface.  The glue class is an
+abstract class that provides a framework for classes that implement the interface,
+which we call "target" classes.  Target classes are the ones that do the work, that
+implement the interface methods.
+
+So an interface "my_interface.icl" generates "my_interface_glue.icl", the glue class.
+A target class "my_target.icl" inherits "my_interface_glue.icl".
+
+The Glue Class
+==============
+
+The glue class does this to a target class which inherits it:
+
+- It defines a static interface structure in the target class's private header.
+- It inherits the icl_init class to add class initialisation/termination.
+- At class initialisation, it initialises the static structure as explained below.
+- It adds a pointer to the static interface structure to the target class's context.
+- It adds a "intref" method that returns the interface pointer for an object.
+- It adds a "objref" method that returns the object for an interface pointer.
+- It adds prototypes to implement each interface method, as explained below.
+
+Caller code that wants to use an interface always uses a "interface pointer",
+which is a pointer to the interface structure within a given object instance of
+the target class.
+
+There are two ways a caller can get an interface pointer. It can use the intref
+method.  This call cannot be virtualised; the caller must know the target class
+type.
+
+The second option is to use the interface to construct the object, as explained
+below.
+
+The glue class works equally well in synchronous and asynchronous classes. The
+target class must define the method using 'template = "async function"' for async
+classes.
+
+Using the Interface
+===================
+
+To use the interface, the caller needs an interface pointer, then executes:
+
+    my_interface_method (interface_ptr, arguments...);
+
+Interface methods do not have return values.  If an invalid interface pointer
+is used, they raise an assertion failure.
+
+The caller can get an interface pointer from an object reference:
+
+    interface_ptr = my_object_my_interface_intref (object_ref)
+
+And an object reference from an interface pointer:
+
+    object_ref = my_interface_objref (interface_ptr)
+
+Multiple Interfaces
+===================
+
+Target classes can support multiple interfaces.  The main issues is naming
+the interface methods in the target class.  The solution is the following
+rule:
+
+- If two interfaces used by a single target class use the same method name,
+  this maps to the same method in the target class.
+
+Object Factories
+================
+
+General Requirements
+--------------------
+
+An object factory lets us create object instances without addressing the
+target classes directly.  This is essential for applications with any kind
+of 'plug-in' architecture.
+
+To implement an object factory we need to:
+
+- Add a constructor to the interface table, i.e. a virtual function that
+  invokes the target class's new method.
+- Provide some way for callers to lookup the address of an interface table
+  instance without using an object instance.
+
+To do a lookup, we need to maintain a set of interface table addresses (each
+corresponding to a single target class) and we need to provide a way to lookup
+these values using a key of some kind.
+
+It would be possible to use the target class name as the key, but it is more
+useful to add a level of indirection.  We invent a concept called the "factory
+key" which is an arbitrary string that identifies a class.
+
+The advantages of using an abstracted key are:
+
+- A single target class can implement multiple factory keys.
+- The implementor can switch target classes without changing the rest of the
+  application, which knows only the factory key.
+
+Implementation
+--------------
+
+We implement the object factory as an optional functionality within the
+interface class.  The object factory has these features:
+
+- It uses a simple lookup table that is allocated and freed together with
+  class initialisation and termination.
+
+- It provides a "factory_register" method to allow the registration of a class
+  together with a factory key.  This method is used only by target classes, not
+  by applications.
+
+- It provides a "factory_cancel" method to allow the removal of a class from
+  the lookup table.  This method is used only by target classes, not by
+  applications.
+
+- It provides a "factory" method to create an object, given a factory key;
+  this method returns an interface pointer.  This method is used by
+  applications.
+
+Target Class Implementation
+---------------------------
+
+When a target class uses an interface that has an object factory, the
+interface glue class adds these methods:
+
+- A factory registration method "_my_interface_register" that invokes the
+  interface "factory_register" method with the appropriate arguments.
+
+- A factory cancellation method "_my_interface_cancel" that invokes the
+  interface "factory_cancel" method with the appropriate arguments.
+
+The constructor in a target class that works with object factories may not
+take any arguments.  If the object instance is to be bound to other objects
+(e.g. parent objects), these bindings must be created by passing methods
+across the interface.
+
+Standard Methods
+================
+
+At present we don't define any standard interface methods but these may
+be added later.
