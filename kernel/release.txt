@@ -1,3 +1,12 @@
+1.0d4 - 2006/09/07
+---------------------------------------------------------------------
+Bugfixes (backport):    
+    JAMQ-10    Server assertion failure at amq_console_agent.c:2646:
+               action_register: Assertion `hash' failed.
+    JAMQ-11    debugging message removed from this release
+    AMQ-527    console: Race condition accessing destroyed objects can cause a
+               server crash
+
 1.0d3 - 2006/08/04
 ---------------------------------------------------------------------
 Bugfixes (backport):    
