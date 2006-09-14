@@ -61,6 +61,7 @@ Defines a virtual host. This is a lock-free asynchronous class.
     s_exchange_declare (self, "amq.headers", AMQ_EXCHANGE_HEADERS, FALSE);
     s_exchange_declare (self, "amq.system",  AMQ_EXCHANGE_SYSTEM,  FALSE);
     s_exchange_declare (self, "amq.notify",  AMQ_EXCHANGE_TOPIC,   FALSE);
+    s_exchange_declare (self, "amq.status",  AMQ_EXCHANGE_DIRECT,  FALSE);
 </method>
 
 <method name = "destroy">

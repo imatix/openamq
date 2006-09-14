@@ -144,13 +144,6 @@ s_content_handler (
         client_method->content = peer_method->content;
         peer_method->content = NULL;
 
-        /*  Should not be needed - PH
-        icl_shortstr_cpy (((amq_content_basic_t *) client_method->content)->exchange,
-            peer_method->payload.basic_deliver.exchange);
-        icl_shortstr_cpy (((amq_content_basic_t *) client_method->content)->routing_key,
-            peer_method->payload.basic_deliver.routing_key);
-        */
-
         icl_console_print ("I: Message pulled from remote server.");
         amq_exchange_publish (self->exchange, NULL, (amq_server_method_t *) client_method);
         amq_client_method_unlink (&client_method);

@@ -191,9 +191,12 @@
         *vhost;                         //  Single vhost (for now)
     amq_connection_by_broker_t
         *mgt_connection_list;           //  Connection mgt objects list
+    amq_cluster_hac_t
+        *hac;                           //  High availabilty cluster
 </context>
 
 <method name = "new">
+    <argument name = "name" type = "char*" />
     //
     //  We use a single global vhost for now
     //  TODO: load list of vhosts from config file
@@ -209,10 +212,15 @@
         self->auto_crash_timer = randomof (self->auto_crash_timer) + 1;
     if (self->auto_block_timer)
         self->auto_block_timer = randomof (self->auto_block_timer) + 1;
+
+    //  Create HAC
+    self->hac = amq_cluster_hac_new (self, name);
+    assert (self->hac);
 </method>
 
 <method name = "destroy">
     <action>
+    amq_cluster_hac_destroy (&self->hac);
     amq_console_config_destroy (&amq_console_config);
     amq_vhost_destroy (&self->vhost);
     amq_connection_by_broker_destroy (&self->mgt_connection_list);

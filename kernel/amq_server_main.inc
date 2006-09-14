@@ -281,8 +281,7 @@ s_run_server (void)
 
     //  Create main objects and do the work
     amq_console = amq_console_new ();
-    amq_broker  = amq_broker_new  ();
-    //amq_cluster = amq_cluster_new (amq_broker, s_opt_cluster);
+    amq_broker  = amq_broker_new  (s_opt_cluster);
     smt_wait (0);                       //  Execute the server
 
     if (amq_broker->restart)

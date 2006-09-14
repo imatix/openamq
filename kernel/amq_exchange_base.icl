@@ -66,8 +66,7 @@ This is an abstract base class for all exchange implementations.
         *message_id = NULL,
         *sender_id = NULL;
     Bool
-        mandatory = FALSE,              //  Mandatory option from method
-        returned = FALSE;
+        mandatory = FALSE;              //  Mandatory option from method
     int
         delivered = 0;                  //  Number of message deliveries
     amq_server_connection_t

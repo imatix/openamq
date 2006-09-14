@@ -27,6 +27,7 @@
 <file name = "amq_tx.asl"            class = "public resource"   >Transactions</file>
 <file name = "amq_dtx.asl"           class = "public resource"   >2-phase transactions</file>
 <file name = "amq_tunnel.asl"        class = "public resource"   >Method tunneling</file>
+m
 <!-- OpenAMQ WireAPI/C implementation -->
 <file name = "amq_client.asl"        class = "gsl data"          >Client definition</file>
 <file name = "amq_client.c"          class = "main program"      >Client test program</file>
@@ -86,7 +87,6 @@
 <file name = "amq_peer_config.txt"   class = "generated resource">Peering config documentation</file>
 <file name = "amq_peer_agent.smt"    class = "smt public module"
                                      generated = "1"             >Peering client agent</file>
-
 <file name = "amq_vhost.icl"         class = "icl private class" >Server vhost class</file>
 <file name = "amq_vhost_agent.smt"   class = "smt public module"
                                      generated = "1"             >Server vhost agent</file>
@@ -210,8 +210,10 @@
 <file name = "amq_cluster_mta_agent.smt"
                                      class = "smt public module"
                                      generated = "1"             >MTA agent</file>
-<file name = "amq_cluster_mta_list.icl"
-                                     class = "icl private class" >List of MTAs</file>
+<file name = "amq_cluster_hac.icl"   class = "icl private class" >HAC class</file>
+<file name = "amq_cluster_hac_agent.smt"
+                                     class = "smt public module"
+                                     generated = "1"             >HAC agent</file>
 
 <!-- OpenAMQ deliverables -->
 <file name = "amq_server"            class = "public command"    >Server</file>

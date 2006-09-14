@@ -360,11 +360,12 @@ for each type of exchange. This is a lock-free asynchronous class.
             else
                 amq_binding_list_queue (self->binding_list, binding);
         }
-
-        //  Notify MTA about new binding
-        if (self->mta)
-            amq_cluster_mta_binding_created (self->mta, routing_key, arguments);
     }
+
+    //  Notify MTA about new binding
+    if (self->mta)
+        amq_cluster_mta_binding_created (self->mta, routing_key, arguments);
+
     amq_binding_bind_queue (binding, queue);
     amq_binding_unlink (&binding);
     ipr_hash_unlink (&hash);
@@ -398,7 +399,6 @@ for each type of exchange. This is a lock-free asynchronous class.
     Bool
         returned = FALSE;
 
-    icl_console_print ("I: Publishing to local consumers.");
     delivered = self->publish (self->object, channel, method);
     content_size = ((amq_content_basic_t *) method->content)->body_size;
 
@@ -420,6 +420,7 @@ for each type of exchange. This is a lock-free asynchronous class.
                 connection = channel?
                     amq_server_connection_link (channel->connection): NULL;
                 if (connection) {
+                    icl_console_print ("I: Returning message to sender.");
                     amq_server_agent_basic_return (
                         connection->thread,
                         channel->number,

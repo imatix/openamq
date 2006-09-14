@@ -31,6 +31,7 @@
 <import class = "amq_exchange_fanout" />
 <import class = "amq_exchange_system" />
 <import class = "amq_cluster_mta" />
+<import class = "amq_cluster_hac" />
 <import class = "amq_hitset" />
 <import class = "amq_index" />
 <import class = "amq_queue" />

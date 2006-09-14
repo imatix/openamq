@@ -477,6 +477,7 @@ static void s_terminate_peering  (amq_peering_t *self);
 </private>
 
 <private name = "async footer">
+
 static void
 s_initialise_peering (amq_peering_t *self)
 {
@@ -501,6 +502,7 @@ s_initialise_peering (amq_peering_t *self)
         *method;                        //  Method to send to peer server
     //
     if (!self->connected) {
+
         self->connected = TRUE;
         self->offlined = FALSE;
         asl_log_print (amq_broker->alert_log,
@@ -611,7 +613,7 @@ s_test_content_handler (
 
         //  These objects are needed for our test framework
         amq_console = amq_console_new ();
-        amq_broker = amq_broker_new ();
+        amq_broker = amq_broker_new (NULL);
 
         //  **************   Peering example starts here   *******************
         //  Create a new peering to local AMQP server
