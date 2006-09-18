@@ -18,13 +18,13 @@
 
 <class name = "connection">
   <action name = "start">
-    amq_peering_peer_connection_start (caller, method);
+    amq_peering_peer_connection_start (caller, self);
   </action>
 </class>
 
 <class name = "channel">
   <action name = "open-ok">
-    amq_peering_peer_channel_open_ok (caller, method);
+    amq_peering_peer_channel_open_ok (caller, self);
   </action>
 </class>
 

@@ -385,7 +385,13 @@ typedef int (amq_peering_return_fn) (
     <doc>
     Handles a Connection.Start method coming from the peered server.
     </doc>
-    <argument name = "method" type = "amq_peer_connection_start_t *" />
+    <argument name = "method" type = "amq_peer_method_t *" />
+    <possess>
+    method = amq_peer_method_link (method);
+    </possess>
+    <release>
+    amq_peer_method_unlink (&method);
+    </release>
     //
     <action>
     //  Extract and check the peer name, to make sure we're not connecting
@@ -398,7 +404,13 @@ typedef int (amq_peering_return_fn) (
     <doc>
     Handles a Channel.Open-Ok method coming from the peered server.
     </doc>
-    <argument name = "method" type = "amq_peer_channel_open_ok_t *" />
+    <argument name = "method" type = "amq_peer_method_t *" />
+    <possess>
+    method = amq_peer_method_link (method);
+    </possess>
+    <release>
+    amq_peer_method_unlink (&method);
+    </release>
     //
     <action>
     s_initialise_peering (self);
@@ -410,6 +422,12 @@ typedef int (amq_peering_return_fn) (
     Handles a Basic.Deliver method coming from the peered server.
     </doc>
     <argument name = "method" type = "amq_peer_method_t *" />
+    <possess>
+    method = amq_peer_method_link (method);
+    </possess>
+    <release>
+    amq_peer_method_unlink (&method);
+    </release>
     //
     <action>
     if (self->content_fn)
@@ -422,6 +440,12 @@ typedef int (amq_peering_return_fn) (
     Handles a Basic.Return method coming from the peered server.
     </doc>
     <argument name = "method" type = "amq_peer_method_t *" />
+    <possess>
+    method = amq_peer_method_link (method);
+    </possess>
+    <release>
+    amq_peer_method_unlink (&method);
+    </release>
     //
     <action>
     if (self->return_fn)

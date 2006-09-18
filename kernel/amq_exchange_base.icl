@@ -65,8 +65,6 @@ This is an abstract base class for all exchange implementations.
         *routing_key = "",
         *message_id = NULL,
         *sender_id = NULL;
-    Bool
-        mandatory = FALSE;              //  Mandatory option from method
     int
         delivered = 0;                  //  Number of message deliveries
     amq_server_connection_t
@@ -79,7 +77,6 @@ This is an abstract base class for all exchange implementations.
     if (method->class_id == AMQ_SERVER_BASIC) {
         basic_method  = &method->payload.basic_publish;
         basic_content = (amq_content_basic_t *) (method->content);
-        mandatory     = basic_method->mandatory;
         routing_key   = basic_method->routing_key;
         message_id    = basic_content->message_id;
         sender_id     = basic_content->sender_id;

@@ -17,7 +17,7 @@
 
 <public>
 //  Monitoring frequency (in milliseconds)
-#define AMQ_HAC_MONITOR_FREQUENCY 1000 
+#define AMQ_HAC_MONITOR_FREQUENCY 1000
 //  Time required to consider other HAC peer dead (in milliseconds)
 #define AMQ_HAC_FAILOVER_TIME 10000
 
@@ -28,54 +28,6 @@
 #define AMQ_HAC_STATE_PASSIVE  3
 #define AMQ_HAC_STATE_DEAD     4
 </public>
-
-<private name = "header">
-static int
-    s_content_handler (void *vself, amq_peering_t *peering, amq_peer_method_t *peer_method);
-</private>
-
-<private name = "footer">
-static int
-s_content_handler (
-    void *vself,
-    amq_peering_t *peering,
-    amq_peer_method_t *peer_method)
-{
-    amq_cluster_hac_t
-        *self = (amq_cluster_hac_t*) vself;
-    asl_reader_t
-        reader;
-    ipr_bucket_t
-        *body;
-    int
-        state;
-
-    assert (peer_method->class_id == AMQ_PEER_BASIC);
-    assert (peer_method->method_id == AMQ_PEER_BASIC_DELIVER);
-
-    //  Status from other HAC party received
-    self->last_peer_time = apr_time_now ();
-
-    //  Parse content
-    amq_content_basic_set_reader (peer_method->content, &reader, 4096);
-    body = amq_content_basic_replay_body (peer_method->content, &reader);
-    assert (body);    
-    state = atoi (body->data);
-    ipr_bucket_destroy (&body);
-
-    if (self->peer_state != state) {
-        amq_cluster_hac_peer_state_changed (self, self->peer_state, state);
-        self->peer_state = state;
-    }
-
-    //  If notification about peer being in pending state is received
-    //  start the monitor
-    if (state == AMQ_HAC_STATE_PENDING)
-        amq_cluster_hac_start_monitoring (self);
-    
-    return 0;
-}
-</private>
 
 <context>
     char
@@ -111,51 +63,46 @@ s_content_handler (
     char
         *virtual_host;
     </local>
-
+    //
     self->broker = amq_broker_link (broker);
-
     config = ipr_config_dup (amq_server_config->config);
     ipr_config_locate (config, "/config/cluster-hac", NULL);
     if (config->located) {
-
-        enabled  = ipr_config_get (config, "enabled", "1");
+        enabled = ipr_config_get (config, "enabled", "1");
         if (strcmp (enabled, "0") == 0)
-            icl_console_print ("Server being run in non-HAC mode.");
+            icl_console_print ("Server being run in non-HAC mode");
         else {
             //  If server is run in HAC mode, it has to have name specified
             assert (name);
 
-            self->name  = ipr_config_get (config, "primary-name", NULL);
+            self->name = ipr_config_get (config, "primary-name", NULL);
             if (strcmp (self->name, name) == 0) {
-                icl_console_print ("Server %s being run in 'primary' HAC mode.",
-                    self->name);
+                icl_console_print ("Server %s being run in 'primary' HAC mode", self->name);
                 self->hac_on = TRUE;
                 self->primary = TRUE;
                 other_peer = ipr_config_get (config, "backup-host", NULL);
             }
             else {
-                self->name  = ipr_config_get (config, "backup-name", NULL);
+                self->name = ipr_config_get (config, "backup-name", NULL);
                 if (strcmp (self->name, name) == 0) {
-                    icl_console_print ("Server %s being run in 'backup' HAC mode.",
-                        self->name);
+                    icl_console_print ("Server %s being run in 'backup' HAC mode", self->name);
                     self->hac_on = TRUE;
                     self->primary = FALSE;
                     other_peer = ipr_config_get (config, "primary-host", NULL);
                 }
                 else
-                    icl_console_print ("Server being run in non-HAC mode.");
+                    icl_console_print ("Server being run in non-HAC mode");
             }
         }
     }
     else
-        icl_console_print ("Server being run in non-HAC mode.");
+        icl_console_print ("Server being run in non-HAC mode");
 
-    self->state = AMQ_HAC_STATE_UNKNOWN;
-    self->peer_state = AMQ_HAC_STATE_UNKNOWN;
+    self->state          = AMQ_HAC_STATE_UNKNOWN;
+    self->peer_state     = AMQ_HAC_STATE_UNKNOWN;
     self->last_peer_time = apr_time_now ();
 
     if (self->hac_on) {
-
         //  Start peering
         assert (other_peer);
         virtual_host = ipr_config_get (config, "primary-host", NULL);
@@ -175,14 +122,12 @@ s_content_handler (
         //  Send state to the HAC peer
         amq_cluster_hac_send_state (self);
     }
-
     ipr_config_destroy (&config);
 </method>
 
 <method name = "start_monitoring" template = "async function" async = "1">
     <action>
-    smt_timer_request_delay (self->thread, AMQ_HAC_MONITOR_FREQUENCY * 1000,
-        monitor_event);
+    smt_timer_request_delay (self->thread, AMQ_HAC_MONITOR_FREQUENCY * 1000, monitor_event);
     </action>
 </method>
 
@@ -196,16 +141,13 @@ s_content_handler (
 
 <method name = "send_state" template = "function">
     <local>
-    char
-        status_data [1024];
+    icl_shortstr_t
+        status_data;
     amq_content_basic_t
         *content;
-    </local> 
+    </local>
 
-    sprintf (status_data, "%ld|%s|%ld",
-        (long) self->state,
-        self->name,
-        (long) amq_server_connection_count ());
+    icl_shortstr_fmt (status_data, "%d|%s|%ld", self->state, self->name, amq_server_connection_count ());
     content = amq_content_basic_new ();
     assert (content);
     amq_content_basic_set_body (content,
@@ -230,18 +172,65 @@ s_content_handler (
     //  Test whether peer died
     //  If it did, stop monitoring
     if (apr_time_now () - self->last_peer_time > AMQ_HAC_FAILOVER_TIME * 1000) {
+        //  TODO: fix following message
         icl_console_print ("W: HAC peer died !");
         amq_cluster_hac_peer_state_changed (self, self->peer_state,
             AMQ_HAC_STATE_DEAD);
         self->peer_state = AMQ_HAC_STATE_DEAD;
     }
-    else {
+    else
         smt_timer_request_delay (self->thread, AMQ_HAC_MONITOR_FREQUENCY * 1000,
             monitor_event);
-    }
     </action>
 </event>
 
-<method name = "selftest" />
-</class>
+<private name = "header">
+static int
+    s_content_handler (void *vself, amq_peering_t *peering, amq_peer_method_t *peer_method);
+</private>
 
+<private name = "footer">
+static int
+s_content_handler (
+    void *vself,
+    amq_peering_t *peering,
+    amq_peer_method_t *peer_method)
+{
+    amq_cluster_hac_t
+        *self = (amq_cluster_hac_t*) vself;
+    asl_reader_t
+        reader;
+    ipr_bucket_t
+        *body;
+    int
+        state;
+
+    assert (peer_method->class_id == AMQ_PEER_BASIC);
+    assert (peer_method->method_id == AMQ_PEER_BASIC_DELIVER);
+
+    //  Status from other HAC party received
+    self->last_peer_time = apr_time_now ();
+
+    //  Parse content
+    amq_content_basic_set_reader (peer_method->content, &reader, 4096);
+    body = amq_content_basic_replay_body (peer_method->content, &reader);
+    assert (body);
+    state = atoi (body->data);
+    ipr_bucket_destroy (&body);
+
+    if (self->peer_state != state) {
+        amq_cluster_hac_peer_state_changed (self, self->peer_state, state);
+        self->peer_state = state;
+    }
+    //  If notification about peer being in pending state is received
+    //  start the monitor
+    if (state == AMQ_HAC_STATE_PENDING)
+        amq_cluster_hac_start_monitoring (self);
+
+    return (0);
+}
+</private>
+
+<method name = "selftest" />
+
+</class>
