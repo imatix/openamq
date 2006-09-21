@@ -197,6 +197,10 @@
 
 <method name = "new">
     <argument name = "name" type = "char*" />
+    <local>
+        amq_exchange_t
+            *state_exchange;
+    </local>
     //
     //  We use a single global vhost for now
     //  TODO: load list of vhosts from config file
@@ -214,8 +218,12 @@
         self->auto_block_timer = randomof (self->auto_block_timer) + 1;
 
     //  Create HAC
-    self->hac = amq_cluster_hac_new (self, name);
+    state_exchange = amq_exchange_table_search (self->vhost->exchange_table,
+        "amq.status");
+    assert (state_exchange);
+    self->hac = amq_cluster_hac_new (self, name, state_exchange);
     assert (self->hac);
+    amq_exchange_unlink (&state_exchange);
 </method>
 
 <method name = "destroy">

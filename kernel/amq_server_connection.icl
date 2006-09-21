@@ -41,6 +41,9 @@ This class implements the connection class for the AMQ server.
 <method name = "new">
     self->own_queue_list = amq_queue_list_new ();
     self->consumer_table = amq_consumer_table_new ();
+
+    //  Notify HAC that new connection is being created
+    amq_cluster_hac_new_connection (amq_broker->hac);
 </method>
 
 <method name = "destroy">
@@ -123,6 +126,11 @@ This class implements the connection class for the AMQ server.
 </method>
 
 <method name = "open">
+    if (self->group != AMQ_CONNECTION_GROUP_SUPER &&
+          self->group != AMQ_CONNECTION_GROUP_CLUSTER &&
+          amq_broker->hac->state != AMQ_HAC_STATE_ACTIVE)
+        self_exception (self, ASL_ACCESS_REFUSED, "Server is not in the active state");
+
     //  For now, link to single global vhost object
     self->vhost = amq_vhost_link (amq_broker->vhost);
 
