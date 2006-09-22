@@ -43,17 +43,22 @@ independent of the queue content type.
 </method>
 
 <method name = "destroy">
-    <footer>
-    s_free_consumer_queue (&self->active_consumers);
-    s_free_consumer_queue (&self->paused_consumers);
+    <action>
+    s_free_consumer_queue (self->active_consumers);
+    s_free_consumer_queue (self->paused_consumers);
+    </action>
+</method>
+
+<method name = "free">
+    amq_consumer_by_queue_destroy (self->active_consumers);
+    amq_consumer_by_queue_destroy (self->paused_consumers);
     ipr_looseref_list_destroy (&self->content_list);
-    </footer>
 </method>
 
 <method name = "stop" template = "function">
     <footer>
-    s_free_consumer_queue (&self->active_consumers);
-    s_free_consumer_queue (&self->paused_consumers);
+    s_free_consumer_queue (self->active_consumers);
+    s_free_consumer_queue (self->paused_consumers);
     </footer>
 </method>
 
@@ -232,17 +237,16 @@ s_get_next_consumer (
 }
 
 static void
-s_free_consumer_queue (amq_consumer_by_queue_t **queue)
+s_free_consumer_queue (amq_consumer_by_queue_t *queue)
 {
     amq_consumer_t
         *consumer;
 
-    if (*queue) {
-        while ((consumer = amq_consumer_by_queue_pop (*queue))) {
+    if (queue) {
+        while ((consumer = amq_consumer_by_queue_pop (queue))) {
             amq_server_channel_cancel (consumer->channel, consumer->tag, FALSE, TRUE);
             amq_consumer_destroy (&consumer);
         }
-        amq_consumer_by_queue_destroy (queue);
     }
 }
 </private>
