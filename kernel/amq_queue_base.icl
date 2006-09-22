@@ -50,8 +50,8 @@ independent of the queue content type.
 </method>
 
 <method name = "free">
-    amq_consumer_by_queue_destroy (self->active_consumers);
-    amq_consumer_by_queue_destroy (self->paused_consumers);
+    amq_consumer_by_queue_destroy (&self->active_consumers);
+    amq_consumer_by_queue_destroy (&self->paused_consumers);
     ipr_looseref_list_destroy (&self->content_list);
 </method>
 
@@ -128,7 +128,7 @@ static int
     s_get_next_consumer (
     $(selftype) *self, char *producer_id, char *cluster_id, amq_consumer_t **consumer_p);
 static void
-    s_free_consumer_queue (amq_consumer_by_queue_t **queue);
+    s_free_consumer_queue (amq_consumer_by_queue_t *queue);
 </private>
 
 <private name = "footer">
