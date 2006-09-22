@@ -57,17 +57,14 @@
 </context>
 
 <method name = "new">
-    <argument name = "broker" type = "amq_broker_t*" />
-    <argument name = "name" type = "char*" />
-    <argument name = "state_exchange" type = "amq_exchange_t*" />
+    <argument name = "broker" type = "amq_broker_t *" />
+    <argument name = "name" type = "char *" />
+    <argument name = "state_exchange" type = "amq_exchange_t *" />
     <local>
     ipr_config_t
         *config;
     char
-        *enabled;
-    char
-        *other_peer;
-    char
+        *other_peer,
         *virtual_host;
     </local>
     //
@@ -76,8 +73,7 @@
     config = ipr_config_dup (amq_server_config->config);
     ipr_config_locate (config, "/config/cluster-hac", NULL);
     if (config->located) {
-        enabled = ipr_config_get (config, "enabled", "1");
-        if (strcmp (enabled, "0") == 0)
+        if (ipr_config_getn (config, "enabled") == 0)
             icl_console_print ("Server being run in non-HAC mode");
         else {
             //  If server is run in HAC mode, it has to have name specified

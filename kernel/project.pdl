@@ -17,7 +17,7 @@
 <file name = "libamq"                class = "public library"    >Object library</file>
 
 <!-- AMQ protocol specification -->
-<file name = "amq.asl"               class = "public resource"   >AMQ protocol definition</file>
+<file name = "amq.asl"               class = "gsl public data"   >AMQ protocol definition</file>
 <file name = "amq_access.asl"        class = "public resource"   >Access control</file>
 <file name = "amq_exchange.asl"      class = "public resource"   >Exchange management</file>
 <file name = "amq_queue.asl"         class = "public resource"   >Queue management</file>
@@ -27,7 +27,7 @@
 <file name = "amq_tx.asl"            class = "public resource"   >Transactions</file>
 <file name = "amq_dtx.asl"           class = "public resource"   >2-phase transactions</file>
 <file name = "amq_tunnel.asl"        class = "public resource"   >Method tunneling</file>
-m
+
 <!-- OpenAMQ WireAPI/C implementation -->
 <file name = "amq_client.asl"        class = "gsl data"          >Client definition</file>
 <file name = "amq_client.c"          class = "main program"      >Client test program</file>

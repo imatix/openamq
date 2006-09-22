@@ -132,7 +132,7 @@
           broker process will exit.
           </doc>
           <exec>
-            asl_log_print (amq_broker->alert_log,
+            smt_log_print (amq_broker->alert_log,
                 "W: operator requested shutdown - closing all connections");
             smt_shut_down ();
           </exec>
@@ -145,7 +145,7 @@
           broker process will then restart.
           </doc>
           <exec>
-            asl_log_print (amq_broker->alert_log,
+            smt_log_print (amq_broker->alert_log,
                 "W: operator requested restart - closing all connections");
             self->restart = TRUE;       //  Tell main line to restart
             smt_shut_down ();
@@ -281,7 +281,7 @@
         self->dump_state_timer--;
         if (self->dump_state_timer == 0) {
             self->dump_state_timer = amq_server_config_dump_state (amq_server_config);
-            asl_log_print (amq_broker->alert_log,
+            smt_log_print (amq_broker->alert_log,
                 "I: cnn=%d msg=%d mem=%uK/%uK exc=%d que=%d csm=%d bnd=%d adx=%d idx=%d map=%d",
                 amq_server_connection_count (),
                 amq_content_basic_count (),
@@ -298,18 +298,18 @@
     }
     if (self->auto_crash_timer) {
         if (--self->auto_crash_timer == 0) {
-            asl_log_print (amq_broker->alert_log,
+            smt_log_print (amq_broker->alert_log,
                 "W: ************************  AUTO-CRASH  ************************");
-            asl_log_print (amq_broker->alert_log,
+            smt_log_print (amq_broker->alert_log,
                 "W: server is now emulating a system crash, and will exit brutally.");
             exit (0);
         }
     }
     if (self->auto_block_timer) {
         if (--self->auto_block_timer == 0) {
-            asl_log_print (amq_broker->alert_log,
+            smt_log_print (amq_broker->alert_log,
                 "W: ************************  AUTO-BLOCK  ************************");
-            asl_log_print (amq_broker->alert_log,
+            smt_log_print (amq_broker->alert_log,
                 "W: server is now emulating a blockage, and will freeze for 5 minutes.");
             sleep (300);
         }

@@ -107,7 +107,7 @@ This class implements the connection class for the AMQ server.
     if (self)
         amq_server_connection_exception (self, reply_code, reply_text);
     else
-        asl_log_print (amq_broker->alert_log,
+        smt_log_print (amq_broker->alert_log,
             "E: connection exception: (%d) %s", reply_code, reply_text);
 </method>
 
@@ -115,7 +115,7 @@ This class implements the connection class for the AMQ server.
     //
     //  Server only supports plain authentication for now
     //
-    asl_log_print (amq_broker->daily_log,
+    smt_log_print (amq_broker->daily_log,
         "I: start login from=%s product=%s version=%s",
         self->client_address, self->client_product, self->client_version);
 
@@ -155,7 +155,7 @@ This class implements the connection class for the AMQ server.
                 amq_cluster_balance_client (amq_cluster, self);
         }
         else {
-            asl_log_print (amq_broker->alert_log,
+            smt_log_print (amq_broker->alert_log,
                 "E: client at %s tried to connect to invalid vhost '%s'",
                 self->client_address, method->virtual_host);
             self_exception (self, ASL_INVALID_PATH, "Cluster vhost is not correct");
@@ -203,7 +203,7 @@ static int s_auth_plain (
     config = ipr_config_dup (amq_server_config->config);
     ipr_config_locate (config, "/config/security", "plain");
     if (!config->located) {
-        asl_log_print (amq_broker->alert_log,
+        smt_log_print (amq_broker->alert_log,
             "E: no 'plain' security defined in server config");
         self_exception (self, ASL_INTERNAL_ERROR, "Bad server configuration");
         return (0);
@@ -224,11 +224,11 @@ static int s_auth_plain (
             if (streq (group, "cluster"))
                 self->group = AMQ_CONNECTION_GROUP_CLUSTER;
             else {
-                asl_log_print (amq_broker->alert_log,
+                smt_log_print (amq_broker->alert_log,
                     "E: invalid user group '%s' in config", group);
                 self_exception (self, ASL_INTERNAL_ERROR, "Bad server configuration");
             }
-            asl_log_print (amq_broker->daily_log,
+            smt_log_print (amq_broker->daily_log,
                 "I: valid login from=%s user=%s group=%s", self->client_address, login, group);
             break;
         }
@@ -255,7 +255,7 @@ s_collect_plain_token (byte *data, char *token, uint token_end)
     //  Token start must point to a null octet before the string
     token_size = token_end - token_null;
     if (token_size > ICL_SHORTSTR_MAX)
-        asl_log_print (amq_broker->alert_log,
+        smt_log_print (amq_broker->alert_log,
             "W: client used over-long authentication value - rejected");
     else {
         memcpy (token, data + token_null + 1, token_size);

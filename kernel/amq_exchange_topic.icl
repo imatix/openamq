@@ -57,7 +57,7 @@ amq_index_hash table.
 
     if (binding->is_wildcard) {
         if (amq_server_config_debug_route (amq_server_config))
-            asl_log_print (amq_broker->debug_log,
+            smt_log_print (amq_broker->debug_log,
                 "X: compile  %s: wildcard=%s", self->exchange->name, binding->routing_key);
 
         //  We scan all indices to see which ones match our regexp
@@ -67,7 +67,7 @@ amq_index_hash table.
             if (index) {
                 if (ipr_regexp_match (regexp, index->key, NULL)) {
                     if (amq_server_config_debug_route (amq_server_config))
-                        asl_log_print (amq_broker->debug_log,
+                        smt_log_print (amq_broker->debug_log,
                             "X: index    %s: wildcard=%s routing_key=%s",
                             self->exchange->name, binding->routing_key, index->key);
 
@@ -82,14 +82,14 @@ amq_index_hash table.
     }
     else {
         if (amq_server_config_debug_route (amq_server_config))
-            asl_log_print (amq_broker->debug_log,
+            smt_log_print (amq_broker->debug_log,
                 "X: compile  %s: topic=%s", self->exchange->name, binding->routing_key);
 
         //  Find index that matches our topic name as-is
         index = amq_index_hash_search (self->index_hash, binding->routing_key);
         if (index == NULL) {
             if (amq_server_config_debug_route (amq_server_config))
-                asl_log_print (amq_broker->debug_log,
+                smt_log_print (amq_broker->debug_log,
                     "X: newtopic %s: topic=%s", self->exchange->name, binding->routing_key);
 
             index = amq_index_new (self->index_hash, binding->routing_key, self->index_array);
@@ -117,7 +117,7 @@ amq_index_hash table.
     index = amq_index_hash_search (self->index_hash, routing_key);
     if (index == NULL) {
         if (amq_server_config_debug_route (amq_server_config))
-            asl_log_print (amq_broker->debug_log,
+            smt_log_print (amq_broker->debug_log,
                 "X: newtopic %s: topic=%s", self->exchange->name, routing_key);
 
         //  Create new index and recompile all bindings for it
@@ -130,7 +130,7 @@ amq_index_hash table.
             regexp = ipr_regexp_new (binding->regexp);
             if (ipr_regexp_match (regexp, routing_key, NULL)) {
                 if (amq_server_config_debug_route (amq_server_config))
-                    asl_log_print (amq_broker->debug_log,
+                    smt_log_print (amq_broker->debug_log,
                         "X: index    %s: routing_key=%s wildcard=%s",
                         self->exchange->name, routing_key, binding->routing_key);
 
@@ -145,7 +145,7 @@ amq_index_hash table.
             amq_binding_unlink (&binding);
     }
     if (amq_server_config_debug_route (amq_server_config))
-        asl_log_print (amq_broker->debug_log,
+        smt_log_print (amq_broker->debug_log,
             "X: route    %s: routing_key=%s", self->exchange->name, routing_key);
 
     assert (index);
@@ -154,7 +154,7 @@ amq_index_hash table.
         binding = self->exchange->binding_index->data [binding_nbr];
         assert (binding);
         if (amq_server_config_debug_route (amq_server_config))
-            asl_log_print (amq_broker->debug_log,
+            smt_log_print (amq_broker->debug_log,
                 "X: hit      %s: wildcard=%s", self->exchange->name, binding->routing_key);
         delivered += amq_binding_publish (binding, channel, method);
         binding_nbr = ipr_bits_next (index->bindset, binding_nbr);

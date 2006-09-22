@@ -55,7 +55,7 @@ runs lock-free as a child of the asynchronous queue class.
         - no windowing
      */
     if (amq_server_config_debug_queue (amq_server_config))
-        asl_log_print (amq_broker->debug_log,
+        smt_log_print (amq_broker->debug_log,
             "Q: publish  queue=%s message=%s", self->queue->name, content->message_id);
 
     self->queue->contents_in++;
@@ -82,7 +82,7 @@ runs lock-free as a child of the asynchronous queue class.
         switch (limit_action) {
             case AMQ_QUEUE_LIMIT_WARN:
                 if (!self->warned) {
-                    asl_log_print (amq_broker->alert_log,
+                    smt_log_print (amq_broker->alert_log,
                         "I: yellow alert on queue=%s, reached %d messages",
                         self->queue->name, queue_size);
                     self->warned = TRUE;
@@ -90,7 +90,7 @@ runs lock-free as a child of the asynchronous queue class.
                 break;
             case AMQ_QUEUE_LIMIT_DROP:
                 if (!self->dropped) {
-                    asl_log_print (amq_broker->alert_log,
+                    smt_log_print (amq_broker->alert_log,
                         "W: orange alert on queue=%s, dropping new messages", 
                         self->queue->name);
                     self->dropped = TRUE;
@@ -100,7 +100,7 @@ runs lock-free as a child of the asynchronous queue class.
                 break;
             case AMQ_QUEUE_LIMIT_TRIM:
                 if (!self->trimmed) {
-                    asl_log_print (amq_broker->alert_log,
+                    smt_log_print (amq_broker->alert_log,
                         "W: orange alert on queue=%s, trimming old messages",
                         self->queue->name);
                     self->trimmed = TRUE;
@@ -110,7 +110,7 @@ runs lock-free as a child of the asynchronous queue class.
                 self->queue->dropped++;
                 break;
             case AMQ_QUEUE_LIMIT_KILL:
-                asl_log_print (amq_broker->alert_log,
+                smt_log_print (amq_broker->alert_log,
                         "E: red alert on queue=%s, killing queue", self->queue->name);
                 if (self->queue->exclusive)
                     amq_server_connection_error (self->queue->connection,
@@ -130,7 +130,7 @@ runs lock-free as a child of the asynchronous queue class.
         //  If immediate, and no consumers, return the message
         if (immediate && amq_consumer_by_queue_count (self->active_consumers) == 0) {
             if (amq_server_config_debug_queue (amq_server_config))
-                asl_log_print (amq_broker->debug_log,
+                smt_log_print (amq_broker->debug_log,
                     "Q: return   queue=%s message=%s",
                     self->queue->name, content->message_id);
 
@@ -181,7 +181,7 @@ runs lock-free as a child of the asynchronous queue class.
     </local>
     //
     if (amq_server_config_debug_queue (amq_server_config))
-        asl_log_print (amq_broker->debug_log,
+        smt_log_print (amq_broker->debug_log,
             "Q: dispatch queue=%s nbr_messages=%d nbr_consumers=%d",
             self->queue->name,
             ipr_looseref_list_count (self->content_list),
@@ -195,7 +195,7 @@ runs lock-free as a child of the asynchronous queue class.
 
         if (rc == CONSUMER_FOUND) {
             if (amq_server_config_debug_queue (amq_server_config))
-                asl_log_print (amq_broker->debug_log,
+                smt_log_print (amq_broker->debug_log,
                     "Q: deliver  queue=%s message=%s",
                     self->queue->name, content->message_id);
 
@@ -227,7 +227,7 @@ runs lock-free as a child of the asynchronous queue class.
         else
         if (rc == CONSUMER_BUSY) {
             if (amq_server_config_debug_queue (amq_server_config))
-                asl_log_print (amq_broker->debug_log,
+                smt_log_print (amq_broker->debug_log,
                     "Q: busy     queue=%s message=%s",
                     self->queue->name, content->message_id);
 
@@ -241,13 +241,13 @@ runs lock-free as a child of the asynchronous queue class.
             //  if the immediate flag was set, else discard it.
             if (content->immediate && !content->returned) {
                 if (amq_server_config_debug_queue (amq_server_config))
-                    asl_log_print (amq_broker->debug_log,
+                    smt_log_print (amq_broker->debug_log,
                         "Q: return   queue=%s message=%s",
                         self->queue->name, content->message_id);
             }
             else {
                 if (amq_server_config_debug_queue (amq_server_config))
-                    asl_log_print (amq_broker->debug_log,
+                    smt_log_print (amq_broker->debug_log,
                         "Q: discard  queue=%s message=%s",
                         self->queue->name, content->message_id);
             }

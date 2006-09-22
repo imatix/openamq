@@ -115,7 +115,7 @@ cluster class.
                 self->heartbeat_timer = self->heartbeat;
                 self->heartbeat_ttl--;
                 if (self->heartbeat_ttl == 0) {
-                    asl_log_print (amq_broker->alert_log,
+                    smt_log_print (amq_broker->alert_log,
                         "E: cluster - peer '%s' not responding, assuming failed",
                         self->name);
                     self_disconnect (self);
@@ -213,7 +213,7 @@ cluster class.
     self->connected = TRUE;
     self->offlined = FALSE;
     self->master = FALSE;               //  Until we get a new status
-    asl_log_print (amq_broker->alert_log,
+    smt_log_print (amq_broker->alert_log,
         "I: cluster - connected to %s", self->host);
 
     self->heartbeat = amq_server_config_cluster_heartbeat (amq_server_config);
@@ -224,12 +224,12 @@ cluster class.
 
     //  Synchronise our state to the new peer
     if (amq_server_config_debug_cluster (amq_server_config))
-        asl_log_print (amq_broker->debug_log, "C: cluster synchronising with new peer");
+        smt_log_print (amq_broker->debug_log, "C: cluster synchronising with new peer");
     looseref = ipr_looseref_list_first (self->cluster->state_list);
     while (looseref) {
         content = (amq_content_tunnel_t *) (looseref->object);
         if (amq_server_config_debug_cluster (amq_server_config))
-            asl_log_print (amq_broker->debug_log, "C: replay   method=%s", content->data_name);
+            smt_log_print (amq_broker->debug_log, "C: replay   method=%s", content->data_name);
         icl_shortstr_cpy (content->proxy_name, self->cluster->broker->name);
         amq_peer_tunnel (self, content);
         looseref = ipr_looseref_list_next (&looseref);
@@ -262,27 +262,27 @@ cluster class.
     //
     //  Double-check that we agree with peer on cluster settings
     if (method->version != AMQ_CLUSTER_VERSION) {
-        asl_log_print (amq_broker->alert_log,
+        smt_log_print (amq_broker->alert_log,
             "E: cluster - peer has wrong version %04x (expect %04x)",
             method->version, AMQ_CLUSTER_VERSION);
         self_disconnect (self);
     }
     else
     if (strneq (method->name, self->name)) {
-        asl_log_print (amq_broker->alert_log,
+        smt_log_print (amq_broker->alert_log,
             "E: cluster - peer using wrong name %s (expect %s)", method->name, self->name);
         self_disconnect (self);
     }
     else
     if (method->signature != self->cluster->crc->value) {
-        asl_log_print (amq_broker->alert_log,
+        smt_log_print (amq_broker->alert_log,
             "E: cluster - peer has wrong signature %04x (expect %04x)",
             method->signature, self->cluster->crc->value);
         self_disconnect (self);
     }
     else
     if (strneq (method->vhost, amq_server_config_cluster_vhost (amq_server_config))) {
-        asl_log_print (amq_broker->alert_log,
+        smt_log_print (amq_broker->alert_log,
             "E: cluster - peer using wrong vhost %s (expect %s)",
             method->vhost, amq_server_config_cluster_vhost (amq_server_config));
         self_disconnect (self);
@@ -337,7 +337,7 @@ cluster class.
     //
     if (self->connected) {
         if (amq_server_config_debug_cluster (amq_server_config))
-            asl_log_print (amq_broker->debug_log,
+            smt_log_print (amq_broker->debug_log,
                 "C: proxy    method=%s peer=%s", content->data_name, self->name);
         amq_proxy_agent_tunnel_request (self->thread, self->channel_nbr, content, NULL);
     }
@@ -353,7 +353,7 @@ cluster class.
     if (self->connected) {
         if (self->last_sequence != method->sequence) {
             if (amq_server_config_debug_cluster (amq_server_config))
-                asl_log_print (amq_broker->debug_log,
+                smt_log_print (amq_broker->debug_log,
                     "C: passthru method=%s peer=%s", method->name, self->name);
             amq_proxy_agent_push (
                 self->thread,
@@ -361,14 +361,14 @@ cluster class.
                 (amq_proxy_method_t *) method);
         }
         else
-            asl_log_print (amq_broker->alert_log,
+            smt_log_print (amq_broker->alert_log,
                 "W: cluster dropped method=%s peer=%s seq=%d reason=duplicate",
                 method->name, self->name, method->sequence);
 
         self->last_sequence = method->sequence;
     }
     else
-        asl_log_print (amq_broker->alert_log,
+        smt_log_print (amq_broker->alert_log,
             "W: cluster dropped method=%s peer=%s seq=%d reason=unconnected",
             method->name, self->name, method->sequence);
 </method>

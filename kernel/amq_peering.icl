@@ -191,7 +191,7 @@ typedef int (amq_peering_return_fn) (
         self->auth_data = ipr_sasl_plain_encode (login, ipr_config_get (config, "password", ""));
     }
     else
-        asl_log_print (amq_broker->alert_log,
+        smt_log_print (amq_broker->alert_log,
             "W: peering credentials for '%s' not defined - cannot connect", login);
 
     ipr_config_destroy (&config);
@@ -529,7 +529,7 @@ s_initialise_peering (amq_peering_t *self)
 
         self->connected = TRUE;
         self->offlined = FALSE;
-        asl_log_print (amq_broker->alert_log,
+        smt_log_print (amq_broker->alert_log,
             "I: peering to %s is now active", self->host);
 
         //  Create private queue on peer and consume off queue

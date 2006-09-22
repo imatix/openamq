@@ -191,7 +191,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         self->unbind  = amq_exchange_headers_unbind;
     }
     else
-        asl_log_print (amq_broker->alert_log,
+        smt_log_print (amq_broker->alert_log,
             "E: invalid type '%d' in exchange_new", self->type);
 
     amq_exchange_by_vhost_queue (self->vhost->exchange_list, self);
@@ -324,7 +324,7 @@ for each type of exchange. This is a lock-free asynchronous class.
         *hash;                          //  Entry into hash table
 
     if (amq_server_config_debug_route (amq_server_config))
-        asl_log_print (amq_broker->debug_log,
+        smt_log_print (amq_broker->debug_log,
             "X: bind     %s: queue=%s", self->name, queue->name);
 
     //  Treat empty arguments as null to simplify comparisons
@@ -440,13 +440,13 @@ for each type of exchange. This is a lock-free asynchronous class.
     }
     if (amq_server_config_debug_route (amq_server_config)) {
         if (returned)
-            asl_log_print (amq_broker->debug_log,
+            smt_log_print (amq_broker->debug_log,
                 "X: return   %s: message=%s reason=unroutable_mandatory",
                     self->name,
                     ((amq_content_basic_t *) method->content)->message_id);
         else
         if (!delivered)
-            asl_log_print (amq_broker->debug_log,
+            smt_log_print (amq_broker->debug_log,
                 "X: discard  %s: message=%s reason=unroutable_optional",
                     self->name,
                     ((amq_content_basic_t *) method->content)->message_id);

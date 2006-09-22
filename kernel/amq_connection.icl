@@ -110,7 +110,7 @@ merge these two classes into one.
           Disconnects the client application.
           </doc>
           <exec>
-            asl_log_print (amq_broker->alert_log,
+            smt_log_print (amq_broker->alert_log,
                 "W: operator killed connection to %s", self->connection->client_address);
             amq_server_connection_kill (self->connection);
           </exec>

@@ -182,7 +182,7 @@ class.  This is a lock-free asynchronous class.
     icl_shortstr_cpy (self->name, name);
     amq_queue_by_vhost_queue (self->vhost->queue_list, self);
     if (amq_server_config_debug_queue (amq_server_config))
-        asl_log_print (amq_broker->debug_log, 
+        smt_log_print (amq_broker->debug_log, 
             "Q: create   queue=%s auto_delete=%d", self->name, self->auto_delete);
 
     s_set_queue_limits (self);
@@ -192,7 +192,7 @@ class.  This is a lock-free asynchronous class.
     <action>
     amq_server_connection_unlink (&self->connection);
     if (amq_server_config_debug_queue (amq_server_config))
-        asl_log_print (amq_broker->debug_log, "Q: destroy  queue=%s", self->name);
+        smt_log_print (amq_broker->debug_log, "Q: destroy  queue=%s", self->name);
 
     amq_queue_basic_destroy (&self->queue_basic);
     </action>
@@ -207,7 +207,7 @@ class.  This is a lock-free asynchronous class.
     assert (self->auto_delete);
     if (self->consumers == 0) {
         if (amq_server_config_debug_queue (amq_server_config))
-            asl_log_print (amq_broker->debug_log, "Q: auto-del queue=%s", self->name);
+            smt_log_print (amq_broker->debug_log, "Q: auto-del queue=%s", self->name);
 
         queue_ref = amq_queue_link (self);
         amq_vhost_unbind_queue (self->vhost, queue_ref);
@@ -267,7 +267,7 @@ class.  This is a lock-free asynchronous class.
     if (class_id == AMQ_SERVER_BASIC)
         amq_queue_basic_get (self->queue_basic, channel);
     else
-        asl_log_print (amq_broker->alert_log, "E: illegal content class (%d)", class_id);
+        smt_log_print (amq_broker->alert_log, "E: illegal content class (%d)", class_id);
     </action>
 </method>
 
@@ -392,7 +392,7 @@ class.  This is a lock-free asynchronous class.
     //  If we're still at zero consumers, self-destruct
     if (self->consumers == 0) {
         if (amq_server_config_debug_queue (amq_server_config))
-            asl_log_print (amq_broker->debug_log, "Q: auto-del queue=%s", self->name);
+            smt_log_print (amq_broker->debug_log, "Q: auto-del queue=%s", self->name);
 
         amq_queue_self_destruct (self);
     }
@@ -558,7 +558,7 @@ s_set_queue_limits ($(selftype) *self)
             limit_action = AMQ_QUEUE_LIMIT_KILL;
         else {
             limit_action = 0;
-            asl_log_print (amq_broker->alert_log,
+            smt_log_print (amq_broker->alert_log,
                 "E: invalid configured limit action '%s'", action_text);
         }
         limit_value = atol (ipr_config_get (config, "value",  "0"));
@@ -573,13 +573,13 @@ s_set_queue_limits ($(selftype) *self)
                     self->limit_min = limit_value;
             }
             else {
-                asl_log_print (amq_broker->alert_log,
+                smt_log_print (amq_broker->alert_log,
                     "E: too many limits for queue profile (%d)", self->limits);
                 break;
             }
         }
         else
-            asl_log_print (amq_broker->alert_log,
+            smt_log_print (amq_broker->alert_log,
                 "W: configured limit value '%s' ignored", action_text);
         ipr_config_next (config);
     }
