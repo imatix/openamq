@@ -48,7 +48,7 @@ static amq_console_class_t
     <header>
     self->console = amq_console_link (amq_console);
     self->object_id = icl_atomic_inc32 ((volatile qbyte *) &amq_object_id);
-    amq_console_register (self->console, self->object_id, self, s_class, $(parent_id));
+    amq_console_register (self->console, self->object_id, self_link (self), s_class, $(parent_id));
     </header>
 </method>
 
@@ -59,17 +59,15 @@ static amq_console_class_t
     </action>
 </method>
 
-<method name = "inspect" async = "1" return = "rc">
+<method name = "inspect shim" return = "rc">
     <argument name = "self_v"  type = "void *">Object cast as a void *</argument>
     <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
     <declare name = "rc" type = "int" default = "0" />
-    <local>
-    $(selftype)
-        *self = self_v;
-    </local>
-    <header>
-    $(selfname:upper)_ASSERT_SANE (self);
-    </header>
+    self_inspect (($(selftype) *) (self_v), request);
+</method>
+
+<method name = "inspect" template = "async function" async = "1">
+    <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
     <possess>
     request = amq_content_basic_link (request);
     </possess>
@@ -82,17 +80,22 @@ static amq_console_class_t
     icl_shortstr_t
         field_value;
 .for global.top->data->class.field
-.   for local
+.   for local where (0.name?"get") = "get"
     $(string.trim (local.?''))
 .   endfor
 .endfor
 .for global.top->data->class.class
-.   for local
+.   for local where (0.name?"get") = "get"
     $(string.trim (local.?''))
 .   endfor
 .endfor
 
     fields = asl_field_list_new (NULL);
+.for global.top->data->class.field
+.   for header where (0.name?"get") = "get"
+    $(string.trim (header.?''))
+.   endfor
+.endfor
 .for global.top->data->class.field
 .   for get
     $(string.trim (get.?''))
@@ -116,23 +119,26 @@ static amq_console_class_t
     asl_field_new_string (fields, "$(name)", field_value);
 .   endif
 .endfor
+.for global.top->data->class.field
+.   for footer where (0.name?"get") = "get"
+    $(string.trim (footer.?''))
+.   endfor
+.endfor
     amq_console_reply_ok (amq_console, "inspect-reply", request, self->object_id, fields, NULL);
     asl_field_list_unlink (&fields);
     </action>
 </method>
-
-<method name = "modify" async = "1" return = "rc">
+<method name = "modify shim" return = "rc">
     <argument name = "self_v"  type = "void *">Object cast as a void *</argument>
     <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
     <argument name = "fields"  type = "asl_field_list_t *">Fields to modify</argument>
     <declare name = "rc" type = "int" default = "0" />
-    <local>
-    $(selftype)
-        *self = self_v;
-    </local>
-    <header>
-    $(selfname:upper)_ASSERT_SANE (self);
-    </header>
+    self_modify (($(selftype) *) (self_v), request, fields);
+</method>
+
+<method name = "modify" template = "async function" async = "1">
+    <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
+    <argument name = "fields"  type = "asl_field_list_t *">Fields to modify</argument>
     <possess>
     request = amq_content_basic_link (request);
     asl_field_list_link (fields);
@@ -149,9 +155,19 @@ static amq_console_class_t
         field_value;
 .   last
 .endfor
-    char 
+.for global.top->data->class.field
+.   for local where (0.name?"put") = "put"
+    $(string.trim (local.?''))
+.   endfor
+.endfor
+    char
         *notice_text = NULL;            //  Notice to UI, if any
-        
+
+.for global.top->data->class.field
+.   for header where (0.name?"put") = "put"
+    $(string.trim (header.?''))
+.   endfor
+.endfor
 .for global.top->data->class.field
 .   for put
     field = asl_field_list_search (fields, "$(name)");
@@ -162,24 +178,29 @@ static amq_console_class_t
     }
 .   endfor
 .endfor
+.for global.top->data->class.field
+.   for footer where (0.name?"put") = "put"
+    $(string.trim (footer.?''))
+.   endfor
+.endfor
     amq_console_reply_ok (
         amq_console, "modify-reply", request, self->object_id, NULL, notice_text);
     </action>
 </method>
 
-<method name = "method" async = "1" return = "rc">
-    <argument name = "self_v" type = "void *">Object cast as a void *</argument>
-    <argument name = "method name" type = "char *">Argument fields</argument>
+<method name = "method shim" return = "rc">
+    <argument name = "self_v"  type = "void *">Object cast as a void *</argument>
+    <argument name = "method name" type = "char *">Method name</argument>
+    <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
+    <argument name = "fields"  type = "asl_field_list_t *">Fields to modify</argument>
+    <declare name = "rc" type = "int" default = "0" />
+    self_method (($(selftype) *) (self_v), method_name, request, fields);
+</method>
+
+<method name = "method" template = "async function" async = "1">
+    <argument name = "method name" type = "char *">Method name</argument>
     <argument name = "request" type = "amq_content_basic_t *">The original request</argument>
     <argument name = "fields" type = "asl_field_list_t *">Argument fields</argument>
-    <declare name = "rc" type = "int" default = "0" />
-    <local>
-    $(selftype)
-        *self = self_v;
-    </local>
-    <header>
-    $(selfname:upper)_ASSERT_SANE (self);
-    </header>
     <possess>
     method_name = icl_mem_strdup (method_name);
     request = amq_content_basic_link (request);
@@ -193,9 +214,13 @@ static amq_console_class_t
     <action>
     int
         rc = 0;
-    char 
+    char
         *notice_text = NULL;            //  Notice to UI, if any
-
+.for global.top->data->class.method
+.   for local
+    $(string.trim (local.?''))
+.   endfor
+.endfor
 .for global.top->data->class.method
     if (streq (method_name, "$(method.name)")) {
 .   for field
@@ -206,7 +231,7 @@ static amq_console_class_t
 .       endif
 .       if type = "string"
         icl_shortstr_t
-            $(name);     
+            $(name);
 .       elsif type = "int"
         qbyte
             $(name) = 0;
@@ -247,12 +272,19 @@ static amq_console_class_t
     </action>
 </method>
 
+<method name = "unlink shim">
+    <argument name = "object_p" type = "void *">Reference pointer cast as a void *</argument>
+    //
+    $(selfname)_unlink ((($(selftype) **) object_p));
+</method>
+
 <method name = "initialise">
     s_class = amq_console_class_new ();
     s_class->name    = "$(console_class)";
-    s_class->inspect = $(selfname)_inspect;
-    s_class->modify  = $(selfname)_modify;
-    s_class->method  = $(selfname)_method;
+    s_class->inspect = $(selfname)_inspect_shim;
+    s_class->modify  = $(selfname)_modify_shim;
+    s_class->method  = $(selfname)_method_shim;
+    s_class->unlink  = $(selfname)_unlink_shim;
 </method>
 
 <method name = "terminate">

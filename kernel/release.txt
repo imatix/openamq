@@ -1,3 +1,24 @@
+1.0d4 - 2006/09/07
+---------------------------------------------------------------------
+Bugfixes (backport):    
+    JAMQ-10    Server assertion failure at amq_console_agent.c:2646:
+               action_register: Assertion `hash' failed.
+    JAMQ-11    debugging message removed from this release
+    AMQ-527    console: Race condition accessing destroyed objects can cause a
+               server crash
+
+1.0d3 - 2006/08/04
+---------------------------------------------------------------------
+Bugfixes (backport):    
+    JAMQ-9     amq_shell is missing certain features which are necessary for
+               monitoring individual connections.
+    AMQ-524    amq_console: "normal user attempted super-user function" message
+               should show client IP, instance name
+    AMQ-525    amq_console: Improve feedback when asked to manipulate objects
+               that have gone away
+    AMQ-526    Server needs to allow infinite read timeout when not
+               heartbeating (e.g. talking to ST clients)
+
 1.0d2 - 2006/07/20
 ---------------------------------------------------------------------
 Bugfixes (backport):

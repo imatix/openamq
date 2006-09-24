@@ -42,11 +42,13 @@ maximum number of consumers per channel is set at compile time.
             //  If the async cancel failed, destroy the consumer ourselves
             amq_consumer_destroy (&consumer);
     }
-    //  Now destroy containers
-    amq_consumer_by_channel_destroy (&self->consumer_list);
     amq_connection_destroy (&self->mgt_connection);
     }
     </action>
+</method>
+
+<method name = "free">
+    amq_consumer_by_channel_destroy (&self->consumer_list);
 </method>
 
 <method name = "flow" template = "async function" async = "1">

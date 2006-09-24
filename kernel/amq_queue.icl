@@ -47,7 +47,17 @@ class.  This is a lock-free asynchronous class.
         <field name = "client" label = "Client host name">
           <rule name = "show on summary" />
           <rule name = "ip address" />
-          <get>icl_shortstr_cpy (field_value, self->connection? self->connection->client_address: "");</get>
+          <local name = "get">
+            amq_server_connection_t
+                *connection;
+          </local>
+          <get>
+            connection = amq_server_connection_link (self->connection);
+            if (connection) {
+                icl_shortstr_cpy (field_value, connection->client_address);
+                amq_server_connection_unlink (&connection);
+            }
+          </get>
         </field>
         <field name = "exchange_type" label = "Exchange type">
           <rule name = "show on summary" />
@@ -56,6 +66,10 @@ class.  This is a lock-free asynchronous class.
         <field name = "routing_key" label = "Routing key">
           <rule name = "show on summary" />
           <get>icl_shortstr_cpy (field_value, self->last_routing_key);</get>
+        </field>
+        <field name = "binding_args" label = "Binding arguments">
+          <rule name = "show on summary" />
+          <get>icl_shortstr_cpy (field_value, self->last_binding_args);</get>
         </field>
         <field name = "auto_delete" label = "Auto-deleted?" type = "bool">
           <rule name = "show on summary" />
@@ -92,11 +106,14 @@ class.  This is a lock-free asynchronous class.
           </local>
           <get>
             consumer = amq_consumer_by_queue_first (self->queue_basic->active_consumers);
-            while (consumer) {
+            if (consumer)
                 icl_shortstr_fmt (field_value, "%d", consumer->mgt_queue_connection->object_id);
-                consumer = amq_consumer_by_queue_next (&consumer);
-            }
           </get>
+          <next>
+            consumer = amq_consumer_by_queue_next (&consumer);
+            if (consumer)
+                icl_shortstr_fmt (field_value, "%d", consumer->mgt_queue_connection->object_id);
+          </next>
         </class>
 
         <method name = "purge" label = "Purge all queue messages">
@@ -141,6 +158,8 @@ class.  This is a lock-free asynchronous class.
         last_exchange_type;             //  Last exchange type bound to
     icl_shortstr_t
         last_routing_key;               //  Last routing key
+    icl_shortstr_t
+        last_binding_args;              //  Last binding arguments
     qbyte
         limits,                         //  Number of limits
         limit_min,                      //  Lowest limit
@@ -182,7 +201,7 @@ class.  This is a lock-free asynchronous class.
     icl_shortstr_cpy (self->name, name);
     amq_queue_by_vhost_queue (self->vhost->queue_list, self);
     if (amq_server_config_debug_queue (amq_server_config))
-        smt_log_print (amq_broker->debug_log, 
+        smt_log_print (amq_broker->debug_log,
             "Q: create   queue=%s auto_delete=%d", self->name, self->auto_delete);
 
     s_set_queue_limits (self);
@@ -215,6 +234,8 @@ class.  This is a lock-free asynchronous class.
         if (self->exclusive)
             amq_broker_unbind_queue (amq_broker, queue_ref);
 
+        //  Tell console to drop link back to queue
+        amq_console_cancel (self->console, self->object_id);
         amq_queue_unlink (&queue_ref);
     }
     </action>
@@ -358,7 +379,7 @@ class.  This is a lock-free asynchronous class.
         *connection;
     amq_server_channel_t
         *channel;
-        
+
     if (consumer->class_id == AMQ_SERVER_BASIC) {
         if (notify) {
             channel = amq_server_channel_link (consumer->channel);
@@ -416,6 +437,10 @@ class.  This is a lock-free asynchronous class.
     if (self->exclusive)
         amq_broker_unbind_queue (amq_broker, queue_ref);
 
+    //  Stop consumers because they link back to queue
+    amq_queue_basic_stop (self->queue_basic);
+    //  Tell console to drop link back to queue
+    amq_console_cancel (self->console, self->object_id);
     amq_queue_unlink (&queue_ref);
     </action>
 </method>
@@ -507,16 +532,28 @@ class.  This is a lock-free asynchronous class.
     </doc>
     <argument name = "exchange type" type = "int"></argument>
     <argument name = "routing key" type = "char *"></argument>
+    <argument name = "arguments" type = "icl_longstr_t*"></argument>
     //
     <possess>
     routing_key = icl_mem_strdup (routing_key);
+    arguments = icl_longstr_dup (arguments);
     </possess>
     <release>
+    icl_longstr_destroy (&arguments);
     icl_mem_free (routing_key);
     </release>
     <action>
+    asl_field_list_t
+        *field_list;
+
     self->last_exchange_type = exchange_type;
     icl_shortstr_cpy (self->last_routing_key, routing_key);
+
+    // Convert binding arguments to human readable string
+    field_list = asl_field_list_new (arguments);
+    assert (field_list);
+    asl_field_list_dump (field_list, self->last_binding_args);
+    asl_field_list_destroy (&field_list);
     </action>
 </method>
 

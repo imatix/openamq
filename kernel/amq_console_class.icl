@@ -15,6 +15,13 @@ This class defines a class descriptor.
 
 <import class = "amq_server_classes" />
 
+<public name = "header">
+#ifndef AMQ_CONSOLE_UNTYPED_UNLINK
+#define AMQ_CONSOLE_UNTYPED_UNLINK
+    typedef void (amq_console_unlink_fn) (void *object_p);
+#endif
+</public>
+
 <context>
     char
         *name;                          //  Name of class
@@ -41,6 +48,9 @@ This class defines a class descriptor.
             *request,                   //  Original request
         asl_field_list_t
             *fields                     //  Arguments to method
+    );
+    void (*unlink) (
+        void *self
     );
 </context>
 
