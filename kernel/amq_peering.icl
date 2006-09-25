@@ -637,7 +637,7 @@ s_test_content_handler (
 
         //  These objects are needed for our test framework
         amq_console = amq_console_new ();
-        amq_broker = amq_broker_new (NULL);
+        amq_broker = amq_broker_new ();
 
         //  **************   Peering example starts here   *******************
         //  Create a new peering to local AMQP server

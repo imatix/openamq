@@ -179,9 +179,8 @@
 
 <context>
     Bool
-        clustered,                      //  Holding point for cluster
+        clustered,                      //  Is broker running in clustered mode?
         locked,                         //  Is broker locked?
-        master,                         //  Acting as cluster master server?
         restart;                        //  Restart broker after exit?
     int
         dump_state_timer,               //  Dump state timer
@@ -196,12 +195,6 @@
 </context>
 
 <method name = "new">
-    <argument name = "name" type = "char*" />
-    <local>
-        amq_exchange_t
-            *state_exchange;
-    </local>
-    //
     //  We use a single global vhost for now
     //  TODO: load list of vhosts from config file
     self->vhost = amq_vhost_new (self, "/");
@@ -217,13 +210,8 @@
     if (self->auto_block_timer)
         self->auto_block_timer = randomof (self->auto_block_timer) + 1;
 
-    //  Create HAC
-    state_exchange = amq_exchange_table_search (self->vhost->exchange_table,
-        "amq.status");
-    assert (state_exchange);
-    self->hac = amq_cluster_hac_new (self, name, state_exchange);
-    assert (self->hac);
-    amq_exchange_unlink (&state_exchange);
+    //  Initialise high-availability controller (HAC)
+    self->hac = amq_cluster_hac_new (self);
 </method>
 
 <method name = "destroy">

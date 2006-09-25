@@ -171,6 +171,7 @@ merge these two classes into one.
 <method name = "new">
     <argument name = "broker" type = "amq_broker_t *">Parent broker</argument>
     <argument name = "channel" type = "amq_server_channel_t *">Parent server channel</argument>
+    //
     amq_connection_by_broker_push (broker->mgt_connection_list, self);
     self->channel = amq_server_channel_link (channel);
     if (self->channel)

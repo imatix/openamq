@@ -29,7 +29,7 @@ $\(selftype)
 </private>
 
 <path name = "server">
-    <property name = "port" type = "char *" default = "5672">
+    <property name = "port" type = "icl_shortstr_t" default = "5672">
     Server port for clients
     <doc>
     Specifies the port on which the server should open its connections.
@@ -96,7 +96,7 @@ $\(selftype)
 </path>
 
 <path name = "logging">
-    <property name = "log path" type = "char *" default = "logs">
+    <property name = "log path" type = "icl_shortstr_t" default = "logs">
     Active log file directory
     <doc>
     Specifies the directory path into which active log files are
@@ -113,7 +113,7 @@ $\(selftype)
     </doc>
     </property>
 
-    <property name = "archive path" type = "char *" default = "archive">
+    <property name = "archive path" type = "icl_shortstr_t" default = "archive">
     Archive log file directory
     <doc>
     Specifies the directory path into which archived log files are
@@ -195,6 +195,16 @@ $\(selftype)
     </doc>
     </property>
 
+    <property name = "debug cluster" type = "Bool" default = "0" dynamic = "1">
+    Debug cluster activity?
+    <doc>
+    Specifies whether cluster activity is logged or not.  Set this
+    option when you are configuring or debugging high-availability
+    clustering.  For production use, we recommend you do not set this
+    option.
+    </doc>
+    </property>
+
     <property name = "trace" type = "int" default = "0" dynamic = "1">
     Protocol trace level
     <doc>
@@ -219,7 +229,7 @@ $\(selftype)
     </property>
 
     <property name = "heartbeat" type = "int" default = "2" dynamic = "1">
-    Heartbeat from client to server, seconds
+    Heartbeat timer, seconds
     <doc>
     Defines the timeout for connection heartbeating.
     </doc>
@@ -308,6 +318,55 @@ $\(selftype)
     </property>
 </path>
 
+<path name = "cluster">
+    <property name = "cluster vhost" type = "icl_shortstr_t" default = "/">
+    Cluster virtual host
+    <doc>
+    Specifies the cluster vhost name, which must be identical for both
+    HA peers.  Any string, up to 255 chars long, may be used. By convention
+    virtual host names are formatted as POSIX paths, starting with '/'.  Note
+    that all applications must use the same virtual host name when connecting
+    to the cluster.
+    </doc>
+    </property>
+
+    <property name = "is primary" type = "Bool" default = "0">
+    Server is HA primary
+    <doc>
+    Specifies whether or not this server instance is the HA primary peer.
+    If this option is set, the cluster backup-peer option must be set as
+    well.
+    </doc>
+    </property>
+
+    <property name = "is backup" type = "Bool" default = "0">
+    Server is HA backup
+    <doc>
+    Specifies whether or not this server instance is the HA backup peer.
+    If this option is set, the cluster primary-peer option must be set as
+    well.
+    </doc>
+    </property>
+
+    <property name = "primary peer" type = "icl_shortstr_t" default = "">
+    HA primary peer address
+    <doc>
+    Specifies the primary high-availability peer address.  This should consist
+    of a servername:portnumber combination that allows the backup peer to
+    correctly address the primary peer.
+    </doc>
+    </property>
+
+    <property name = "backup peer" type = "icl_shortstr_t" default = "">
+    HA backup peer address
+    <doc>
+    Specifies the backup high-availability peer address.  This should consist
+    of a servername:portnumber combination that allows the primary peer to
+    correctly address the backup peer.
+    </doc>
+    </property>
+</path>
+
 <path name = "internal">
     <property name = "auto crash" type = "int" default = "0" dynamic = "1">
     Auto-crash test timer, seconds
@@ -342,7 +401,6 @@ $\(selftype)
 <!-- These sections are allowed but ignored -->
 <path name = "queue_profile" />
 <path name = "security" />
-<path name = "cluster-hac" />
 <path name = "cluster-mta" />
 
 </opf>

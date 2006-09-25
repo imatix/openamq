@@ -23,7 +23,6 @@ static char
     *s_opt_port = NULL,                 //  -p specifies server port
     *s_opt_workdir = NULL,              //  -w specifies working directory
     *s_opt_config = NULL,               //  -s specifies configuration file
-    *s_opt_cluster = NULL,              //  -c specifies broker cluster name
     *s_opt_trace = NULL,                //  -t defines trace level
     *s_opt_monitor = NULL;              //  -m means monitor server
 static int
@@ -43,7 +42,7 @@ static char
     "General options:\n"                                                     \
     "  -w directory     Working directory for server (current)\n"            \
     "  -s filename      Load custom settings from file (amq_server.cfg)\n"   \
-    "  -c name          Set server cluster name and join cluster (none)\n"   \
+    "  -c name          Run server as high-availability peer (none)\n"       \
     "  -X comment       Comment\n"                                           \
     "  -q               Quiet mode: no messages (no)\n"                      \
     "  -b               Run as background server process (no)\n"             \
@@ -117,9 +116,6 @@ s_start (int argc, char *argv [])
                     break;
                 case 's':
                     argparm = &s_opt_config;
-                    break;
-                case 'c':
-                    argparm = &s_opt_cluster;
                     break;
                 case 't':
                     icl_console_print ("W: deprecated argument, suggest you use '--trace'");
@@ -281,14 +277,13 @@ s_run_server (void)
 
     //  Create main objects and do the work
     amq_console = amq_console_new ();
-    amq_broker  = amq_broker_new  (s_opt_cluster);
+    amq_broker = amq_broker_new ();
     smt_wait (0);                       //  Execute the server
 
     if (amq_broker->restart)
         rc = 1;                         //  Restart the broker
 
     broker_ref = amq_broker_link (amq_broker);
-    //amq_cluster_destroy (&amq_cluster);
     amq_broker_destroy  (&broker_ref);
     amq_console_destroy (&amq_console);
     smt_wait (0);
