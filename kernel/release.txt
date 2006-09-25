@@ -1,3 +1,9 @@
+1.0d5 - 2006/09/25
+---------------------------------------------------------------------
+Bugfixes:
+    JAMQ-16    amq_server: amq_consumer_by_queue.c:1492: 
+               amq_consumer_by_queue_count: Assertion `self' failed.
+
 1.0d4 - 2006/09/07
 ---------------------------------------------------------------------
 Bugfixes (backport):    
