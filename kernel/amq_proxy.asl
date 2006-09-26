@@ -50,8 +50,6 @@
   <action name = "deliver">
     amq_consumer_t
         *consumer;                      //  Consumer to send message to
-    amq_content_$(class.name)_t
-        *content;                       //  Current content
     amq_server_connection_t
         *connection;
     amq_server_channel_t
@@ -59,7 +57,6 @@
 
     consumer = amq_consumer_cluster_search (method->consumer_tag);
     if (consumer) {
-        content = (amq_content_$(class.name)_t *) self->content;
         channel = amq_server_channel_link (consumer->channel);
         if (channel) {
             connection = amq_server_connection_link (channel->connection);
@@ -83,15 +80,12 @@
   </action>
 
   <action name = "get-ok">
-    amq_content_$(class.name)_t
-        *content;                       //  Current content
     amq_server_channel_t
         *channel;                       //  Channel to send message on to
     amq_server_connection_t
         *connection;
 
     //  We use content's cluster_id to know where to forward content
-    content = (amq_content_$(class.name)_t *) self->content;
     channel = amq_server_channel_cluster_search (content->cluster_id);
     if (channel) {
         connection = amq_server_connection_link (channel->connection);
