@@ -136,10 +136,22 @@ This class implements the connection class for the AMQ server.
     if (amq_broker->locked && self->group == AMQ_CONNECTION_GROUP_NORMAL)
         self_exception (self, ASL_ACCESS_REFUSED, "Connections not allowed at present");
     else
-    if (amq_broker->clustered && amq_broker->hac->state != AMQ_HAC_STATE_ACTIVE
-    &&  self->group == AMQ_CONNECTION_GROUP_NORMAL)
-        self_exception (self, ASL_ACCESS_REFUSED,
-            "Application connections not allowed at present");
+    if (amq_broker->clustered) {
+        if (streq (method->virtual_host, amq_server_config_cluster_vhost (amq_server_config))) {
+            if (amq_broker->hac->state == AMQ_HAC_STATE_ACTIVE)
+            ||  self->group > AMQ_CONNECTION_GROUP_NORMAL)
+                amq_server_agent_connection_open_ok (self->thread, NULL);
+            else
+                self_exception (self, ASL_ACCESS_REFUSED,
+                    "Application connections not allowed at present");
+        }
+        else {
+            asl_log_print (amq_broker->alert_log,
+                "E: client at %s tried to connect to invalid vhost '%s'",
+                self->client_address, method->virtual_host);
+            self_exception (self, ASL_INVALID_PATH, "Cluster vhost is not correct");
+        }
+    }
     else
         amq_server_agent_connection_open_ok (self->thread, NULL);
 </method>

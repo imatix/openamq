@@ -476,10 +476,4 @@
   <action name = "cancel"  sameas = "basic" />
 </class>
 
-<class name = "tunnel">
-  <action name = "request">
-    //  Tunnelling is being redesigned as an explicit internal API
-  </action>
-</class>
-
 </protocol>
