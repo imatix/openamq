@@ -1,0 +1,164 @@
+Clustering HOWTO
+================
+
+For OpenAMQ/1.0e
+
+High-availability
+-----------------
+
+Summary
+.......
+
+We take two brokers, running on the same or different systems.  One broker
+is the primary, one is the backup.  When the cluster starts, the primary
+is master and the backup is slave.  If the primary dies, the backup takes
+over the role of master.  If the primary comes back, it remains slave. To
+reset the cluster, restart the backup.
+
+Application Support
+...................
+
+For HA clustering to work, applications must connect to first the primary
+server, and if that fails, the backup server.  The HA clustering in 1.0e is
+compatible with the application-side mechanisms used in 1.0c and earlier to
+do cluster scaling.
+
+Applications must use the correct order (primary, then secondary).
+
+HA Configuration
+................
+
+You can share the same configuration for both brokers by specifying the key
+options on the command-line.  In amq_server.cfg, add this section:
+
+    <cluster
+        vhost = "/"
+        primary_peer = "localhost:5555"
+        backup_peer = "localhost:6666"
+    />
+
+Then start the two brokers as follows (you can use any legal values for the
+port numbers):
+
+    amq_server --port 5555 --is_primary 1
+    amq_server --port 6666 --is_backup 1
+
+Alternatively you can use two separate configuration files, with the primary
+server using this:
+
+    <cluster
+        vhost = "/"
+        is_primary = "1"
+        backup_peer = "localhost:6666"
+    />
+
+And the backup server using this:
+
+    <cluster
+        vhost = "/"
+        is_backup = "1"
+        primary_peer = "localhost:5555"
+    />
+
+Virtual Host
+............
+
+The vhost option is used to ensure that connecting applications are using the
+correct cluster.  This value must match the value used by applications.
+
+Exchange Forwarding
+-------------------
+
+Summary
+.......
+
+We connect an exchange on one broker (or HA pair of brokers) to the matching
+exchange on a remote broker (or HA pair of brokers).
+
+The local exchange either sends messages to the remote exchange, or subscribes
+to messages from it.
+
+There are three message transfer modes:
+
+1. Subscriber forwarding - the local exchange requests messages from the remote
+   exchange.
+2. Full forwarding - the local exchange forwards all messages to the remote
+   exchange.
+3. Default forwarding - the local exchange forwards only unmatched messages to
+   the remote exchange.
+
+Subscribe Forwarding
+....................
+
+The classic scenario is when local applications want to receive topic data
+published centrally.
+
+The configuration looks like this:
+
+    <cluster-mta
+        name = "exchange-name"
+        vhost = "virtual-host-name"
+        host = "remotehost:port"
+        login = "peering"
+        mode = "1"
+    />
+
+All bindings made to the specified exchange are copied to the specified remote
+host exchange.
+
+Most often used with topic or headers exchanges.
+
+Worked example:
+
+ - A set of clients in a regional office need to get market data from a
+   central server.
+
+ - The configuration is done entirely at the regional office by defining an
+   MTA that connects the market data exchanges on both servers.
+
+ - When data is published centrally, any messages that match requests from
+   the regional applications are forwarded to the regional server.
+
+Full Message Forwarding
+.......................
+
+The classic scenario is when local applications want to publish data both to
+local clients and remote ones.
+
+The configuration looks like this:
+
+    <cluster-mta
+        name = "exchange-name"
+        vhost = "virtual-host-name"
+        host = "remotehost:port"
+        login = "peering"
+        mode = "2"
+    />
+
+All messages published to the local exchange are automatically published to the
+remote exchange as well.
+
+Most often used with topic or headers exchanges.
+
+Default Message Forwarding
+..........................
+
+The classic scenario is when local applications want to use services that could
+be either local, or remote.
+
+The configuration looks like this:
+
+    <cluster-mta
+        name = "exchange-name"
+        vhost = "virtual-host-name"
+        host = "remotehost:port"
+        login = "peering"
+        mode = "3"
+    />
+
+All messages published to the local exchange are automatically published to the
+remote exchange only if they are not delivered locally.
+
+Most often used with direct exchanges so that services can be placed either
+locally or remotely, invisibly to the applications.
+
