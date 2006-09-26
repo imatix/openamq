@@ -146,7 +146,7 @@ This class implements the connection class for the AMQ server.
                     "Application connections not allowed at present");
         }
         else {
-            asl_log_print (amq_broker->alert_log,
+            smt_log_print (amq_broker->alert_log,
                 "E: client at %s tried to connect to invalid vhost '%s'",
                 self->client_address, method->virtual_host);
             self_exception (self, ASL_INVALID_PATH, "Cluster vhost is not correct");
