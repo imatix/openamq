@@ -138,7 +138,7 @@ This class implements the connection class for the AMQ server.
     else
     if (amq_broker->clustered) {
         if (streq (method->virtual_host, amq_server_config_cluster_vhost (amq_server_config))) {
-            if (amq_broker->hac->state == AMQ_HAC_STATE_ACTIVE)
+            if (amq_broker->hac->state == AMQ_HAC_STATE_ACTIVE
             ||  self->group > AMQ_CONNECTION_GROUP_NORMAL)
                 amq_server_agent_connection_open_ok (self->thread, NULL);
             else
